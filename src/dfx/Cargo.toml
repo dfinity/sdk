@@ -58,7 +58,7 @@ ic-agent = { workspace = true, features = ["reqwest"] }
 ic-asset.workspace = true
 ic-identity-hsm = { workspace = true }
 ic-utils = { workspace = true }
-ic-wasm = "0.3.6"
+ic-wasm = "0.4.0"
 indicatif = "0.16.0"
 itertools.workspace = true
 keyring.workspace = true
@@ -107,8 +107,7 @@ time = { workspace = true, features = [
 tokio = { workspace = true, features = ["fs"] }
 url.workspace = true
 walkdir.workspace = true
-walrus = "0.19.0"
-wasmparser = "0.87.0"
+walrus = "0.20.1"
 which = "4.2.5"
 
 [target.'cfg(windows)'.dependencies]

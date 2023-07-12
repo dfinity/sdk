@@ -1,5 +1,5 @@
-use crate::commands::ledger::notify_top_up;
 use crate::lib::ledger_types::NotifyError;
+use crate::lib::operations::cmc::notify_top_up;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, error::DfxResult};
 

@@ -60,6 +60,8 @@ pub struct ExtensionSubcommandArgOpts {
     pub about: Option<String>,
     pub long: Option<String>,
     pub short: Option<char>,
+    #[serde(default)]
+    pub multiple: bool,
 }
 
 impl ExtensionSubcommandArgOpts {
@@ -78,9 +80,12 @@ impl ExtensionSubcommandArgOpts {
         if let Some(s) = self.short {
             arg = arg.short(s);
         }
+        if self.multiple {
+            arg = arg.num_args(0..);
+        }
         Ok(arg
             // let's not enforce any restrictions
-            .allow_hyphen_values(false)
+            .allow_hyphen_values(true)
             .required(false)
             .action(ArgAction::Append))
     }
@@ -164,26 +169,65 @@ fn parse_test_file() {
           "long": "wasms-dir"
         }
       }
+    },
+    "install": {
+      "about": "Subcommand for installing something.",
+      "args": {
+        "accounts": {
+          "about": "some arg that accepts multiple values separated by spaces",
+          "long": "accounts",
+          "multiple": true
+        }
+      }
     }
   }
 }
 "#;
 
     let m: Result<ExtensionManifest, serde_json::Error> = serde_json::from_str(f);
-    // dbg!(&m);
+    dbg!(&m);
     assert!(m.is_ok());
 
     let subcmds = m.unwrap().into_clap_commands().unwrap();
     dbg!(&subcmds);
     for s in &subcmds {
-        if s.get_name() == "download" {
-            let matches = s
-                .clone()
-                .get_matches_from(vec!["download", "--ic-commit", "value"]);
-            assert_eq!(
-                Some(&"value".to_string()),
-                matches.get_one::<String>("ic_commit")
-            );
+        match s.get_name() {
+            "download" => {
+                let matches = s
+                    .clone()
+                    .get_matches_from(vec!["download", "--ic-commit", "value"]);
+                assert_eq!(
+                    Some(&"value".to_string()),
+                    matches.get_one::<String>("ic_commit")
+                );
+                let matches = s.clone().try_get_matches_from(vec![
+                    "download",
+                    "--ic-commit",
+                    "value",
+                    "value2",
+                ]);
+                assert!(matches.is_err());
+            }
+            "install" => {
+                let matches = s.clone().get_matches_from(vec![
+                    "install",
+                    "--accounts",
+                    "value1",
+                    "value2",
+                    "value3",
+                    "value4",
+                ]);
+                assert_eq!(
+                    vec!["value1", "value2", "value3", "value4"],
+                    matches
+                        .get_many::<String>("accounts")
+                        .unwrap()
+                        .into_iter()
+                        .map(|x| x.as_str())
+                        .collect::<Vec<&str>>()
+                );
+            }
+            _ => {}
         }
     }
 

@@ -1,10 +1,10 @@
-use crate::commands::ledger::{get_icpts_from_args, notify_top_up, transfer_cmc};
+use crate::commands::ledger::get_icpts_from_args;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{Memo, NotifyError};
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
-
+use crate::lib::operations::cmc::{notify_top_up, transfer_cmc};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::e8s_parser;
 

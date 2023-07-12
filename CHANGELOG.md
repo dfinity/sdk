@@ -4,6 +4,10 @@
 
 ## DFX
 
+### feat!: Removed dfx nns and dfx sns commands
+
+Both have now been turned into the dfx extensions. In order to obtain them, please run `dfx extension install nns` and `dfx extension install sns` respectively. After the installation, you can use them as you did before: `dfx nns ...`, and `dfx sns ...`.
+
 ### feat!: Removed dfx replica and dfx bootstrap commands
 
 Use `dfx start` instead.  If you have a good reason why we should keep these commands, please contribute to the discussion at https://github.com/dfinity/sdk/discussions/3163
@@ -34,22 +38,36 @@ Note that this can be combined to also disable the dfx version check warning:
 export DFX_WARNING="-version_check,-mainnet_plaintext_identity"
 ```
 
+### fix!: restrict `dfx identity new` to safe characters
+
+New identities like `dfx identity new my/identity` or `dfx identity new 'my identity'` can easily lead to problems, either for dfx internals or for usability.
+New identities are now restricted to the characters `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_@0123456789`.
+Existing identities are not affected by this change.
+
 ## Dependencies
 
 ### Motoko
 
 Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
 
+### Updated candid to 0.9.0
+
 ### Candid UI
 
 - Updated Candid UI canister to https://github.com/dfinity/candid/pull/449
 - Module hash: 32cf0e528ee7a4fc0ac2028c985ce3bbf5af264e802a9473f72ba332eff32185
 
+### Frontend canister
+
+- Module hash: e50dfb318c8eb3dfb70fc3276b014302adaa0a26b5d8b4537bac033ad8d934c2
+- https://github.com/dfinity/sdk/pull/3227
+
 ### Replica
 
-Updated replica to elected commit 7742d96ddd30aa6b607c9d2d4093a7b714f5b25b.
+Updated replica to elected commit a17247bd86c7aa4e87742bf74d108614580f216d.
 This incorporates the following executed proposals:
 
+- [123410](https://dashboard.internetcomputer.org/proposal/123410)
 - [123311](https://dashboard.internetcomputer.org/proposal/123311)
 
 # 0.14.2
