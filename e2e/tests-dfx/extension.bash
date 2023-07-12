@@ -155,6 +155,8 @@ EOF
 
     assert_command dfx test_extension abc --the-param 123
     assert_eq "pamparam the param is 123"
+    assert_command dfx extension run test_extension abc --the-param 123
+    assert_eq "pamparam the param is 123"
 }
 
 @test "run with multiple values for the same parameter" {
@@ -199,7 +201,11 @@ EOF
 EOF
 
     assert_command dfx test_extension abc --the-param 123 456 789 --the-another-param 464646
-    assert_match "abc --the-param 123 456 789 --the-another-param 464646"
+    assert_eq "abc --the-param 123 456 789 --the-another-param 464646 --dfx-cache-path $CACHE_DIR"
     assert_command dfx test_extension abc --the-another-param 464646 --the-param 123 456 789
-    assert_match "abc --the-another-param 464646 --the-param 123 456 789"
+    assert_eq "abc --the-another-param 464646 --the-param 123 456 789 --dfx-cache-path $CACHE_DIR"
+    assert_command dfx extension run test_extension abc --the-param 123 456 789 --the-another-param 464646
+    assert_eq "abc --the-param 123 456 789 --the-another-param 464646 --dfx-cache-path $CACHE_DIR"
+    assert_command dfx extension run test_extension abc --the-another-param 464646 --the-param 123 456 789
+    assert_eq "abc --the-another-param 464646 --the-param 123 456 789 --dfx-cache-path $CACHE_DIR"
 }
