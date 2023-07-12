@@ -60,7 +60,8 @@ pub struct ExtensionSubcommandArgOpts {
     pub about: Option<String>,
     pub long: Option<String>,
     pub short: Option<char>,
-    pub multiple: Option<bool>,
+    #[serde(default)]
+    pub multiple: bool,
 }
 
 impl ExtensionSubcommandArgOpts {
@@ -79,8 +80,8 @@ impl ExtensionSubcommandArgOpts {
         if let Some(s) = self.short {
             arg = arg.short(s);
         }
-        if matches!(self.multiple, Some(true)) {
-            arg = arg.num_args(0..)
+        if self.multiple {
+            arg = arg.num_args(0..);
         }
         Ok(arg
             // let's not enforce any restrictions
@@ -199,6 +200,13 @@ fn parse_test_file() {
                     Some(&"value".to_string()),
                     matches.get_one::<String>("ic_commit")
                 );
+                let matches = s.clone().try_get_matches_from(vec![
+                    "download",
+                    "--ic-commit",
+                    "value",
+                    "value2",
+                ]);
+                assert!(matches.is_err());
             }
             "install" => {
                 let matches = s.clone().get_matches_from(vec![
