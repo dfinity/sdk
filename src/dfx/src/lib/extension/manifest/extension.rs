@@ -79,9 +79,8 @@ impl ExtensionSubcommandArgOpts {
         if let Some(s) = self.short {
             arg = arg.short(s);
         }
-        match self.multiple {
-            Some(m) if m => arg = arg.num_args(0..),
-            _ => {}
+        if matches!(self.multiple, Some(true)) {
+            arg = arg.num_args(0..)
         }
         Ok(arg
             // let's not enforce any restrictions
