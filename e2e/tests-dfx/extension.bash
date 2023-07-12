@@ -156,3 +156,50 @@ EOF
     assert_command dfx test_extension abc --the-param 123
     assert_eq "pamparam the param is 123"
 }
+
+@test "run with multiple values for the same parameter" {
+    CACHE_DIR=$(dfx cache show)
+    mkdir -p "$CACHE_DIR"/extensions/test_extension
+
+    cat > "$CACHE_DIR"/extensions/test_extension/test_extension << "EOF"
+#!/usr/bin/env bash
+
+echo $@
+EOF
+
+    chmod +x "$CACHE_DIR"/extensions/test_extension/test_extension
+
+    cat > "$CACHE_DIR"/extensions/test_extension/extension.json <<EOF
+{
+  "name": "test_extension",
+  "version": "0.1.0",
+  "homepage": "https://github.com/dfinity/dfx-extensions",
+  "authors": "DFINITY",
+  "summary": "Test extension for e2e purposes.",
+  "categories": [],
+  "keywords": [],
+  "subcommands": {
+    "abc": {
+      "about": "something something",
+      "args": {
+        "the_param": {
+          "about": "this is the param",
+          "long": "the-param",
+          "multiple": true
+        },
+        "another_param": {
+          "about": "this is the param",
+          "long": "the-another-param",
+          "multiple": true
+        }
+      }
+    }
+  }
+}
+EOF
+
+    assert_command dfx test_extension abc --the-param 123 456 789 --the-another-param 464646
+    assert_match "abc --the-param 123 456 789 --the-another-param 464646"
+    assert_command dfx test_extension abc --the-another-param 464646 --the-param 123 456 789
+    assert_match "abc --the-another-param 464646 --the-param 123 456 789"
+}
