@@ -2189,7 +2189,7 @@ dependencies = [
 [[package]]
 name = "ic-cdk"
 version = "0.10.0"
-source = "git+https://github.com/dfinity/cdk-rs.git?branch=beta#ed1cdd9a7a222752f563edfeff0786285c3a93cf"
+source = "git+https://github.com/dfinity/cdk-rs.git?branch=beta#aec7633fb55058bb9041fa3aa1b8f15cb989bb8d"
 dependencies = [
  "candid 0.9.1",
  "ic-cdk-macros",
@@ -2201,7 +2201,7 @@ dependencies = [
 [[package]]
 name = "ic-cdk-macros"
 version = "0.7.0"
-source = "git+https://github.com/dfinity/cdk-rs.git?branch=beta#ed1cdd9a7a222752f563edfeff0786285c3a93cf"
+source = "git+https://github.com/dfinity/cdk-rs.git?branch=beta#aec7633fb55058bb9041fa3aa1b8f15cb989bb8d"
 dependencies = [
  "candid 0.9.1",
  "proc-macro2",
@@ -2254,7 +2254,7 @@ dependencies = [
 [[package]]
 name = "ic-certified-map"
 version = "0.3.4"
-source = "git+https://github.com/dfinity/cdk-rs.git?branch=beta#ed1cdd9a7a222752f563edfeff0786285c3a93cf"
+source = "git+https://github.com/dfinity/cdk-rs.git?branch=beta#aec7633fb55058bb9041fa3aa1b8f15cb989bb8d"
 dependencies = [
  "serde",
  "serde_bytes",
@@ -2350,8 +2350,8 @@ dependencies = [
 
 [[package]]
 name = "ic0"
-version = "0.18.10"
-source = "git+https://github.com/dfinity/cdk-rs.git?branch=beta#ed1cdd9a7a222752f563edfeff0786285c3a93cf"
+version = "0.18.11"
+source = "git+https://github.com/dfinity/cdk-rs.git?branch=beta#aec7633fb55058bb9041fa3aa1b8f15cb989bb8d"
 
 [[package]]
 name = "icx-asset"
