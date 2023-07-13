@@ -46,6 +46,8 @@ Existing identities are not affected by this change.
 
 ## Frontend canister
 
+> **NOTE**: We've re-enabled response verification v2 in the asset canister.
+
 ### fix: Certification for aliasing updates on asset deletion
 
 Best explained by an example: Two assets exist with aliasing enabled: `/content` and `/content.html`. Usually, when requesting `/content`, `/content.html` is served because it has aliasing enabled.
@@ -129,6 +131,8 @@ Then it is separated into two parts: `service.did` and `init_args.txt`, correspo
 ### fix: dfx start now respects the network replica port configuration in dfx.json or networks.json
 
 ## Frontend canister
+
+> **NOTE**: We've disabled response verification v2 in the asset canister while we improve test coverage.
 
 The redirect from `.raw.ic0.app` now redirects to `.ic0.app` instead of `.icp0.io`
 
