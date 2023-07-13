@@ -1,5 +1,15 @@
 # dfx changelog
 
+# 0.14.3
+
+## Dependencies
+
+### Replica
+
+Updated replica to non-elected release candidate 0ab9178c6684f122ae713928b3664c33a697e9c4.
+
+This removes a dependency on OpenSSL in order to avoid spurious errors that reference "Invalid delegation: Invalid public key: Malformed EcdsaP256 public key".
+
 # 0.14.2
 
 Note: Canister http functionality is broken.  Do not release dfx until this is corrected.  See https://dfinity.atlassian.net/browse/SDK-1129
