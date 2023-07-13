@@ -1073,7 +1073,7 @@ dependencies = [
 
 [[package]]
 name = "dfx"
-version = "0.14.2"
+version = "0.14.3-beta.0"
 dependencies = [
  "actix",
  "aes-gcm",
