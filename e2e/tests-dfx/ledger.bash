@@ -4,6 +4,7 @@ load ../utils/_
 
 # All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
 
+
 setup() {
     standard_setup
     install_asset ledger
@@ -14,6 +15,7 @@ setup() {
 
     dfx_start_for_nns_install
 
+    dfx extension install nns || true
     dfx nns install --ledger-accounts 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc
 }
 
