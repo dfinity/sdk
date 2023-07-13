@@ -15,10 +15,6 @@ on:
       sdkBranch:
         description: 'Open PR against this sdk branch'
         default: "master"
-      updateNnsCanisters:
-        description: 'Update the NNS canisters for e2e tests'
-        type: boolean
-        default: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
