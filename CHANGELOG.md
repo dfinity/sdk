@@ -4,6 +4,18 @@
 
 ## DFX
 
+### feat!: Removed dfx nns and dfx sns commands
+
+Both have now been turned into the dfx extensions. In order to obtain them, please run `dfx extension install nns` and `dfx extension install sns` respectively. After the installation, you can use them as you did before: `dfx nns ...`, and `dfx sns ...`.
+
+### feat!: Removed dfx replica and dfx bootstrap commands
+
+Use `dfx start` instead.  If you have a good reason why we should keep these commands, please contribute to the discussion at https://github.com/dfinity/sdk/discussions/3163
+
+### fix: Wait for new module hash when installing wallet
+
+A previous change made dfx wait after installing a canister until the replica updated its reported module hash, but this change did not affect wallets. Now dfx waits for wallets too, to eliminate a class of wallet installation errors.
+
 ### fix: Ctrl-C right after dfx start will hang for minutes and panics
 
 Early break out from actors starting procedure.
@@ -26,6 +38,12 @@ Note that this can be combined to also disable the dfx version check warning:
 export DFX_WARNING="-version_check,-mainnet_plaintext_identity"
 ```
 
+### fix!: restrict `dfx identity new` to safe characters
+
+New identities like `dfx identity new my/identity` or `dfx identity new 'my identity'` can easily lead to problems, either for dfx internals or for usability.
+New identities are now restricted to the characters `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_@0123456789`.
+Existing identities are not affected by this change.
+
 ## Frontend canister
 
 ### fix: Certification for aliasing updates on asset deletion
@@ -42,10 +60,30 @@ the frontend canister serves a HTTP 404 response. This response was previously n
 
 ## Dependencies
 
+### Motoko
+
+Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
+
+### Updated candid to 0.9.0
+
+### Candid UI
+
+- Updated Candid UI canister to https://github.com/dfinity/candid/pull/449
+- Module hash: 32cf0e528ee7a4fc0ac2028c985ce3bbf5af264e802a9473f72ba332eff32185
+
 ### Frontend canister
 
-- Module hash: f426dff9e67c67c37b4940805c2f7bf92212376c5721c77ddf3b71f0e3e68971
+- Module hash: a74bc55e55be6dc1d1e00634cd335fab6237c5b3f8715f9c577e76cb2d0401c3
 - https://github.com/dfinity/sdk/pull/3212
+- https://github.com/dfinity/sdk/pull/3227
+
+### Replica
+
+Updated replica to elected commit a17247bd86c7aa4e87742bf74d108614580f216d.
+This incorporates the following executed proposals:
+
+- [123410](https://dashboard.internetcomputer.org/proposal/123410)
+- [123311](https://dashboard.internetcomputer.org/proposal/123311)
 
 # 0.14.2
 
@@ -136,7 +174,8 @@ Now, only transport errors and timeout errors are considered retryable.
 
 ### Frontend canister
 
-- Module hash: d1596b50735085c863a8cdc0570066c643b731837c0fcde32f5234634b59d2f4
+- Module hash: 1286960c50eb7a773cfb5fdd77cc238588f39e21f189cc3eb0f35199a99b9c7e
+- https://github.com/dfinity/sdk/pull/3205
 - https://github.com/dfinity/sdk/pull/3198
 - https://github.com/dfinity/sdk/pull/3154
 - https://github.com/dfinity/sdk/pull/3158

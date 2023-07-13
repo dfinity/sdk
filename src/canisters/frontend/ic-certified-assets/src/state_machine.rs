@@ -13,8 +13,8 @@ use crate::{
             },
             http::{
                 build_ic_certificate_expression_from_headers_and_encoding,
-                build_ic_certificate_expression_header, response_hash, HttpRequest, HttpResponse,
-                StreamingCallbackHttpResponse, StreamingCallbackToken, FALLBACK_FILE,
+                build_ic_certificate_expression_header, response_hash, CallbackFunc, HttpRequest,
+                HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken, FALLBACK_FILE,
             },
             rc_bytes::RcBytes,
         },
@@ -25,7 +25,7 @@ use crate::{
     url_decode::url_decode,
 };
 
-use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
+use candid::{CandidType, Deserialize, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash};
 use ic_representation_independent_hash::Value;
 use num_traits::ToPrimitive;
@@ -812,7 +812,7 @@ impl State {
         path: &str,
         requested_encodings: Vec<String>,
         chunk_index: usize,
-        callback: Func,
+        callback: CallbackFunc,
         etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
@@ -873,7 +873,7 @@ impl State {
         &self,
         req: HttpRequest,
         certificate: &[u8],
-        callback: Func,
+        callback: CallbackFunc,
     ) -> HttpResponse {
         let mut encodings = vec![];
         // waiting for https://dfinity.atlassian.net/browse/BOUN-446

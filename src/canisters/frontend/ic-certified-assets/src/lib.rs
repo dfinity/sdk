@@ -11,7 +11,8 @@ mod tests;
 pub use crate::state_machine::StableState;
 use crate::{
     asset_certification::types::http::{
-        HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
+        CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
+        StreamingCallbackToken,
     },
     state_machine::{AssetDetails, CertifiedTree, EncodedAsset, State},
     types::*,
@@ -315,10 +316,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
         s.borrow().http_request(
             req,
             &certificate,
-            candid::Func {
-                method: "http_request_streaming_callback".to_string(),
-                principal: ic_cdk::id(),
-            },
+            CallbackFunc::new(ic_cdk::id(), "http_request_streaming_callback".to_string()),
         )
     })
 }

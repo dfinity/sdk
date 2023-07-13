@@ -3,7 +3,7 @@ use crate::{
     state_machine::{encoding_certification_order, Asset, AssetEncoding},
 };
 
-use candid::{CandidType, Deserialize, Func, Nat};
+use candid::{define_function, CandidType, Deserialize, Nat};
 use ic_certified_map::Hash;
 use ic_representation_independent_hash::{representation_independent_hash, Value};
 use serde_bytes::ByteBuf;
@@ -47,10 +47,11 @@ pub struct StreamingCallbackToken {
     pub sha256: Option<ByteBuf>,
 }
 
+define_function!(pub CallbackFunc : (StreamingCallbackToken) -> (StreamingCallbackHttpResponse) query);
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub enum StreamingStrategy {
     Callback {
-        callback: Func,
+        callback: CallbackFunc,
         token: StreamingCallbackToken,
     },
 }
@@ -159,7 +160,7 @@ impl HttpResponse {
         key: &str,
         chunk_index: usize,
         certificate_header: Option<&HeaderField>,
-        callback: &Func,
+        callback: &CallbackFunc,
         etags: &[Hash],
         cert_version: u16,
     ) -> HttpResponse {
@@ -206,7 +207,7 @@ impl HttpResponse {
         key: &str,
         chunk_index: usize,
         certificate_header: Option<&HeaderField>,
-        callback: &Func,
+        callback: &CallbackFunc,
         etags: &[Hash],
         cert_version: u16,
     ) -> Option<HttpResponse> {

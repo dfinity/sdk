@@ -26,6 +26,7 @@ teardown() {
 }
 
 dfx_replica_kills_replica() {
+    skip "dfx replica and bootstrap are deprecated"
     signal=$1
 
     dfx_patchelf
