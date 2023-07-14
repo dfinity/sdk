@@ -81,7 +81,11 @@ Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
 
 ### Replica
 
-Updated replica to release candidate commit 0ab9178c6684f122ae713928b3664c33a697e9c4.
+Updated replica to proposed commit 97df774f8cb88ca1a00e26dc3daa19735ad3599a.
+
+This incorporates the following proposal under consideration:
+
+- [123474](https://dashboard.internetcomputer.org/proposal/123474)
 
 This incorporates these elected proposals up to commit a17247bd86c7aa4e87742bf74d108614580f216d:
 
