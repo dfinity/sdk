@@ -12,5 +12,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 candid = "0.7.4"
-ic-cdk = { version = "*" }
-ic-cdk-macros = { version = "*" }
+ic-cdk = { version = "0.5" }
+ic-cdk-macros = { version = "0.5" }
