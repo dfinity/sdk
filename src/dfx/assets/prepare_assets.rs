@@ -211,7 +211,7 @@ async fn download_bin_tarballs(
         spawn(download_and_check_sha(client, source))
     });
     let (motoko, ic_ref) = tokio::try_join!(motoko, ic_ref).unwrap();
-    for tar in [motoko, icx_proxy, ic_ref] {
+    for tar in [motoko, ic_ref] {
         tar_xzf(&tar, |path, content| {
             map.insert(path, content);
         });
