@@ -16,7 +16,6 @@ base64.workspace = true
 candid = { workspace = true }
 hex.workspace = true
 ic-cdk.workspace = true
-ic-cdk-macros.workspace = true
 ic-certified-map = "0.3.2"
 ic-response-verification = "0.3.0"
 ic-representation-independent-hash = "0.3.0"
