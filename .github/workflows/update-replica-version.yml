@@ -12,10 +12,9 @@ on:
       customReplicaVersion:
         description: 'dfinity/ic commit SHA - get the latest Elect Replica Version from https://dashboard.internetcomputer.org/releases'     
         default: "required if custom"
-      updateNnsCanisters:
-        description: 'Update the NNS canisters for e2e tests'
-        type: boolean
-        default: true
+      sdkBranch:
+        description: 'Open PR against this sdk branch'
+        default: "master"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -33,6 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3.0.2
+      with:
+        ref: ${{ github.event.inputs.sdkBranch }}
 
     - name: determine replica commit sha
       run: |
@@ -51,7 +52,7 @@ jobs:
     - name: install niv (dependency manager for Nix projects)
       run: nix-env -i niv -f '<nixpkgs>'
 
-    - name: intall packages from nix/sources.json
+    - name: install packages from nix/sources.json
       run: niv update
 
     - name: update replica
@@ -113,7 +114,7 @@ jobs:
             owner,
             repo,
             head: 'chore-update-replica-${{ env.REPLICA_VERSION }}',
-            base: 'master',
+            base: '${{ github.event.inputs.sdkBranch }}',
             body: [
               `## Suggested [CHANGELOG.md](https://github.com/${owner}/${repo}/edit/chore-update-replica-${{ env.REPLICA_VERSION }}/CHANGELOG.md) changes`,
               '```',

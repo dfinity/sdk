@@ -44,6 +44,22 @@ New identities like `dfx identity new my/identity` or `dfx identity new 'my iden
 New identities are now restricted to the characters `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_@0123456789`.
 Existing identities are not affected by this change.
 
+## Frontend canister
+
+> **NOTE**: We've re-enabled response verification v2 in the asset canister.
+
+### fix: Certification for aliasing updates on asset deletion
+
+Best explained by an example: Two assets exist with aliasing enabled: `/content` and `/content.html`. Usually, when requesting `/content`, `/content.html` is served because it has aliasing enabled.
+But in this scenario, because `/content` exists, it overwrites the alias and `/content` is served when requesting the path `/content`.
+When the file `/content` is deleted, `/content` is once again a valid alias of `/content.html`.
+Previously, the alias of `/content.html` was not properly updated in the certification tree, making `/content` inaccessible.
+
+### fix: 404 response is now certified for certification v2
+
+Certification v2 allows certifying arbitrary responses. If the requested file does not exist, and the fallback file (`/index.html`) does not exist either,
+the frontend canister serves a HTTP 404 response. This response was previously not certified.
+
 ## Dependencies
 
 ### Motoko
@@ -59,13 +75,19 @@ Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
 
 ### Frontend canister
 
-- Module hash: e50dfb318c8eb3dfb70fc3276b014302adaa0a26b5d8b4537bac033ad8d934c2
+- Module hash: a74bc55e55be6dc1d1e00634cd335fab6237c5b3f8715f9c577e76cb2d0401c3
+- https://github.com/dfinity/sdk/pull/3212
 - https://github.com/dfinity/sdk/pull/3227
 
 ### Replica
 
-Updated replica to elected commit a17247bd86c7aa4e87742bf74d108614580f216d.
-This incorporates the following executed proposals:
+Updated replica to proposed commit 97df774f8cb88ca1a00e26dc3daa19735ad3599a.
+
+This incorporates the following proposals still being voted upon:
+
+- [123474](https://dashboard.internetcomputer.org/proposal/123474)
+
+This incorporates the following elected proposals:
 
 - [123410](https://dashboard.internetcomputer.org/proposal/123410)
 - [123311](https://dashboard.internetcomputer.org/proposal/123311)
