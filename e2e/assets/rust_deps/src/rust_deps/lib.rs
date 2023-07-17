@@ -1,11 +1,10 @@
-use ic_cdk_macros::*;
-use ic_cdk::export::candid;
+use ic_cdk::update;
 
-#[import(canister = "multiply_deps")]
-struct CounterCanister;
+mod declarations;
+use declarations::multiply_deps::multiply_deps;
 
 // Inter-canister call can only be from a update call
 #[update]
 async fn read() -> candid::Nat {
-    CounterCanister::read().await.0
+    multiply_deps.read().await.unwrap().0
 }

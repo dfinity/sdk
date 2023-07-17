@@ -20,8 +20,7 @@ license = "Apache-2.0"
 candid = "0.9.0"
 ic-agent = "0.25.0"
 ic-asset = { path = "src/canisters/frontend/ic-asset" }
-ic-cdk = { version = "0.10.0", git = "https://github.com/dfinity/cdk-rs.git", branch = "beta" }
-ic-cdk-macros = { version = "0.7.0", git = "https://github.com/dfinity/cdk-rs.git", branch = "beta" }
+ic-cdk = "0.10.0"
 ic-identity-hsm = "0.25.0"
 ic-utils = "0.25.0"
 

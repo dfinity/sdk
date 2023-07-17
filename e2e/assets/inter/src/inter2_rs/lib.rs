@@ -1,20 +1,19 @@
-use ic_cdk::export::candid;
-use ic_cdk_macros::*;
+use ic_cdk::update;
 
-#[import(canister = "inter_mo")]
-struct CounterCanister;
+mod declarations;
+use declarations::inter_mo::inter_mo;
 
 #[update]
 async fn read() -> candid::Nat {
-    CounterCanister::read().await.0
+    inter_mo.read().await.unwrap().0
 }
 
 #[update]
-async fn inc() -> () {
-    CounterCanister::inc().await
+async fn inc() {
+    inter_mo.inc().await.unwrap()
 }
 
 #[update]
-async fn write(input: candid::Nat) -> () {
-    CounterCanister::write(input).await
+async fn write(input: candid::Nat) {
+    inter_mo.write(input).await.unwrap()
 }
