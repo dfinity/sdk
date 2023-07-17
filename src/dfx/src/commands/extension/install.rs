@@ -18,7 +18,7 @@ pub struct InstallOpts {
 pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
     let spinner = env.new_spinner(format!("Installing extension: {}", opts.name).into());
     let mgr = env.new_extension_manager()?;
-    let effective_extension_name = opts.install_as.clone().unwrap_or(opts.name.clone());
+    let effective_extension_name = opts.install_as.clone().unwrap_or_else(|| opts.name.clone());
     if DfxCommand::has_subcommand(&effective_extension_name) {
         return Err(ExtensionError::CommandAlreadyExists(opts.name).into());
     }
