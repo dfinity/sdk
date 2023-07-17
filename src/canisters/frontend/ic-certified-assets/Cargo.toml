@@ -13,10 +13,9 @@ keywords = ["internet-computer", "dfinity"]
 
 [dependencies]
 base64.workspace = true
-candid = { workspace = true }
+candid.workspace = true
 hex.workspace = true
 ic-cdk.workspace = true
-ic-cdk-macros.workspace = true
 ic-certified-map = "0.3.2"
 ic-response-verification = "0.3.0"
 ic-representation-independent-hash = "0.3.0"
@@ -29,4 +28,4 @@ sha2.workspace = true
 
 [dev-dependencies]
 ic-response-verification-test-utils = { git = "https://github.com/dfinity/response-verification.git" }
-ic-crypto-tree-hash = { git = "https://github.com/dfinity/ic.git", rev = "a533346f63f4091eb64692891de0d5b2ffd5b22a"  }
+ic-crypto-tree-hash = { git = "https://github.com/dfinity/ic.git", rev = "a533346f63f4091eb64692891de0d5b2ffd5b22a" }

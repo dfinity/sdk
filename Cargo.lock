@@ -2451,7 +2451,8 @@ dependencies = [
 [[package]]
 name = "ic-cdk"
 version = "0.10.0"
-source = "git+https://github.com/dfinity/cdk-rs.git?branch=beta#aec7633fb55058bb9041fa3aa1b8f15cb989bb8d"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "08d4c0b932bf454d5d60e61e13c3c944972fcfd74dc82b9ed5c8b0a75979cf50"
 dependencies = [
  "candid 0.9.1",
  "ic-cdk-macros",
@@ -2463,7 +2464,8 @@ dependencies = [
 [[package]]
 name = "ic-cdk-macros"
 version = "0.7.0"
-source = "git+https://github.com/dfinity/cdk-rs.git?branch=beta#aec7633fb55058bb9041fa3aa1b8f15cb989bb8d"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4587624e64b8db56224033ee74e5c246d39be15375d03d3df7c117d49d18487"
 dependencies = [
  "candid 0.9.1",
  "proc-macro2",
@@ -2502,7 +2504,6 @@ dependencies = [
  "candid 0.9.1",
  "hex",
  "ic-cdk",
- "ic-cdk-macros",
  "ic-certified-map",
  "ic-crypto-tree-hash",
  "ic-representation-independent-hash",
@@ -2680,7 +2681,6 @@ name = "ic-frontend-canister"
 version = "0.2.5"
 dependencies = [
  "ic-cdk",
- "ic-cdk-macros",
  "ic-certified-assets",
 ]
 
@@ -2908,7 +2908,8 @@ dependencies = [
 [[package]]
 name = "ic0"
 version = "0.18.11"
-source = "git+https://github.com/dfinity/cdk-rs.git?branch=beta#aec7633fb55058bb9041fa3aa1b8f15cb989bb8d"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "576c539151d4769fb4d1a0c25c4108dd18facd04c5695b02cf2d226ab4e43aa5"
 
 [[package]]
 name = "ic_bls12_381"
