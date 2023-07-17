@@ -1,5 +1,5 @@
 //! This module contains an implementation of [RcBytes], a reference-counted byte array.
-use ic_cdk::export::candid::{
+use candid::{
     types::{Serializer, Type, TypeInner},
     CandidType, Deserialize,
 };
