@@ -20,7 +20,7 @@ use crate::{
 use asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use candid::{candid_method, Principal};
 use ic_cdk::api::{call::ManualReply, caller, data_certificate, set_certified_data, time, trap};
-use ic_cdk_macros::{query, update};
+use ic_cdk::{query, update};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 
