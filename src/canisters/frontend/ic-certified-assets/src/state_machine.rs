@@ -348,23 +348,20 @@ impl State {
     }
 
     pub fn create_asset(&mut self, arg: CreateAssetArguments) -> Result<(), String> {
-        if let Some(asset) = self.assets.get(&arg.key) {
-            if asset.content_type != arg.content_type {
-                return Err("create_asset: content type mismatch".to_string());
-            }
-        } else {
-            self.assets.insert(
-                arg.key,
-                Asset {
-                    content_type: arg.content_type,
-                    encodings: HashMap::new(),
-                    max_age: arg.max_age,
-                    headers: arg.headers,
-                    is_aliased: arg.enable_aliasing,
-                    allow_raw_access: arg.allow_raw_access,
-                },
-            );
+        if self.assets.contains_key(&arg.key) {
+            return Err("asset already exists".to_string());
         }
+        self.assets.insert(
+            arg.key,
+            Asset {
+                content_type: arg.content_type,
+                encodings: HashMap::new(),
+                max_age: arg.max_age,
+                headers: arg.headers,
+                is_aliased: arg.enable_aliasing,
+                allow_raw_access: arg.allow_raw_access,
+            },
+        );
         Ok(())
     }
 

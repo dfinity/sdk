@@ -341,7 +341,9 @@ check_permission_failure() {
 
   # create_asset
   args='(record { key="/a.txt"; content_type="text/plain" })'
+  delete_args='(record { key="/a.txt" })'
   assert_command      dfx canister call e2e_project_frontend create_asset "$args"
+  assert_command      dfx canister call e2e_project_frontend delete_asset "$delete_args"
   assert_command      dfx canister call e2e_project_frontend create_asset "$args" --identity commit
   assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity prepare
   assert_contains "Caller does not have Commit permission"
