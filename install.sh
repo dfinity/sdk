@@ -161,7 +161,7 @@ DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx}"
 DFX_GITHUB_RELEASE_ROOT="${DFX_GITHUB_RELEASE_ROOT:-https://github.com/dfinity/sdk/releases/download}"
 DFX_MANIFEST_JSON_URL="${DFX_MANIFEST_JSON_URL:-$SDK_WEBSITE/manifest.json}"
 DFX_VERSION="${DFX_VERSION-}"
-SCRIPT_COMMIT_DESC="3a172809d9bd0657efedfaaf6c8ac0fa77d5fb64"
+SCRIPT_COMMIT_DESC="6defd34bfe3ba1185dcacf1e6fd6f72752bc8c43"
 get_tag_from_manifest_json() {
     cat \
         | tr -d '\n' \
