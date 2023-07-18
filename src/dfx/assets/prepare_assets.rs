@@ -7,8 +7,8 @@ use std::{
     time::Duration,
 };
 
-use backoff::ExponentialBackoffBuilder;
 use backoff::future::retry;
+use backoff::ExponentialBackoffBuilder;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use flate2::{bufread::GzDecoder, write::GzEncoder, Compression};
 use reqwest::Client;
@@ -154,12 +154,13 @@ async fn download_and_check_sha(client: Client, source: Source) -> Bytes {
         .build();
 
     let response = retry(retry_policy, || async {
-        let x: Result<_, backoff::Error<_>> = match client.get(&source.url).send().await {
+        match client.get(&source.url).send().await {
             Ok(response) => Ok(response),
             Err(err) => Err(backoff::Error::transient(err)),
-        };
-        x
-    }).await.unwrap();
+        }
+    })
+    .await
+    .unwrap();
 
     response.error_for_status_ref().unwrap();
     let content = response.bytes().await.unwrap();
