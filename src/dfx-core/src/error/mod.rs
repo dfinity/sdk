@@ -6,6 +6,7 @@ pub mod cli;
 pub mod config;
 pub mod dfx_config;
 pub mod encryption;
+pub mod extension;
 pub mod foundation;
 pub mod fs;
 pub mod identity;

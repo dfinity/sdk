@@ -7,7 +7,6 @@ pub mod dist;
 pub mod environment;
 pub mod error;
 pub mod error_code;
-pub mod extension;
 pub mod ic_attributes;
 pub mod identity;
 pub mod info;

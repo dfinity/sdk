@@ -4,12 +4,11 @@ use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
-
 use crate::lib::warning::{is_warning_disabled, DfxWarning::VersionCheck};
+use dfx_core::extension::manager::ExtensionManager;
+
 use anyhow::Error;
 use clap::{ArgAction, Args, CommandFactory, Parser};
-
-use lib::extension::manager::ExtensionManager;
 use semver::Version;
 use std::collections::HashMap;
 use std::ffi::OsString;

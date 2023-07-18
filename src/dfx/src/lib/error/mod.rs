@@ -1,10 +1,9 @@
 pub mod build;
-pub mod extension;
 pub mod project;
 
 pub use build::BuildError;
+pub use dfx_core::error::extension::ExtensionError;
 pub use dfx_core::error::identity::IdentityError;
-pub use extension::ExtensionError;
 pub use project::ProjectError;
 
 /// The type to represent DFX results.

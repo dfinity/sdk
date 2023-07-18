@@ -1,4 +1,4 @@
-use crate::lib::error::ExtensionError;
+use crate::error::extension::ExtensionError;
 
 use schemars::JsonSchema;
 use semver::Version;

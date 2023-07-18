@@ -3,15 +3,14 @@
 pub mod manager;
 pub mod manifest;
 
-use crate::lib::extension::{manager::ExtensionManager, manifest::ExtensionManifest};
+use crate::error::extension::ExtensionError;
+use crate::extension::{manager::ExtensionManager, manifest::ExtensionManifest};
 
 use clap::Command;
 use std::{
     fmt::{Display, Formatter},
     fs::DirEntry,
 };
-
-use super::error::ExtensionError;
 
 #[derive(Debug, Default)]
 pub struct Extension {
