@@ -64,7 +64,7 @@ the frontend canister serves a HTTP 404 response. This response was previously n
 
 ### Motoko
 
-Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
+Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Updated candid to 0.9.0
 
