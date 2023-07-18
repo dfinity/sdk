@@ -239,16 +239,11 @@ impl Loader {
 
     fn client(&mut self) -> Result<&Client, ProjectError> {
         if self.client.is_none() {
-            let tls_config = rustls::ClientConfig::builder()
-                .with_safe_defaults()
-                .with_webpki_roots()
-                .with_no_client_auth();
-
             // Advertise support for HTTP/2
             //tls_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
 
             let client = reqwest::Client::builder()
-                .use_preconfigured_tls(tls_config)
+                .use_rustls_tls()
                 .build()
                 .map_err(ProjectError::CouldNotCreateHttpClient)?;
             self.client = Some(client);

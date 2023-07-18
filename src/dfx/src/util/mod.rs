@@ -334,13 +334,8 @@ pub async fn download_file_to_path(from: &Url, to: &Path) -> DfxResult {
 
 #[context("Failed to download from url: {}.", from)]
 pub async fn download_file(from: &Url) -> DfxResult<Vec<u8>> {
-    let tls_config = rustls::ClientConfig::builder()
-        .with_safe_defaults()
-        .with_webpki_roots()
-        .with_no_client_auth();
-
     let client = reqwest::Client::builder()
-        .use_preconfigured_tls(tls_config)
+        .use_rustls_tls()
         .build()
         .context("Could not create HTTP client.")?;
 
