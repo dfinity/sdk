@@ -1,7 +1,7 @@
-use dfx_core::config::cache::get_bin_cache;
+use crate::config::cache::get_bin_cache;
 
 use super::ExtensionManager;
-use crate::lib::error::ExtensionError;
+use crate::error::extension::ExtensionError;
 use std::ffi::OsString;
 
 impl ExtensionManager {

@@ -1,4 +1,4 @@
-use crate::lib::error::ExtensionError;
+use crate::error::extension::ExtensionError;
 
 use clap::ArgAction;
 use serde::Deserialize;
@@ -29,7 +29,7 @@ pub struct ExtensionManifest {
 impl ExtensionManifest {
     pub fn new(name: &str, extensions_root_dir: &Path) -> Result<Self, ExtensionError> {
         let manifest_path = extensions_root_dir.join(name).join(MANIFEST_FILE_NAME);
-        let mut m: ExtensionManifest = dfx_core::json::load_json_file(&manifest_path)
+        let mut m: ExtensionManifest = crate::json::load_json_file(&manifest_path)
             .map_err(ExtensionError::LoadExtensionManifestFailed)?;
         m.name = name.to_string();
         Ok(m)
