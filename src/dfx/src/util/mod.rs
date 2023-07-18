@@ -334,8 +334,6 @@ pub async fn download_file_to_path(from: &Url, to: &Path) -> DfxResult {
 
 #[context("Failed to download from url: {}.", from)]
 pub async fn download_file(from: &Url) -> DfxResult<Vec<u8>> {
-    // Advertise support for HTTP/2
-    //tls_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
     let client = reqwest::Client::builder()
         .use_rustls_tls()
         .build()
