@@ -251,6 +251,11 @@ fn assemble_create_assets_and_set_contents_operations(
     let mut operations = vec![];
 
     for asset in assets {
+        if state.get_asset_properties(asset.name.clone()).is_ok() {
+            operations.push(BatchOperation::DeleteAsset(DeleteAssetArguments {
+                key: asset.name.clone(),
+            }));
+        }
         operations.push(BatchOperation::CreateAsset(CreateAssetArguments {
             key: asset.name.clone(),
             content_type: asset.content_type,
@@ -451,8 +456,8 @@ fn serve_correct_encoding_v2() {
         time_now,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
-                .with_encoding("identity", vec![IDENTITY_BODY]),
-            AssetBuilder::new("/contents.html", "text/html").with_encoding("gzip", vec![GZIP_BODY]),
+                .with_encoding("identity", vec![IDENTITY_BODY])
+                .with_encoding("gzip", vec![GZIP_BODY]),
             AssetBuilder::new("/no-encoding.html", "text/html"),
         ],
     );
