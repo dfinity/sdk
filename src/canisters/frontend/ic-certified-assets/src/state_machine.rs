@@ -792,7 +792,7 @@ impl State {
 
         let expected_hash = arg.sha256.ok_or("sha256 required")?;
         if expected_hash != enc.sha256 {
-            return Err(format!("sha256 mismatch"));
+            return Err("sha256 mismatch".to_string());
         }
 
         if arg.index >= enc.content_chunks.len() {
@@ -924,7 +924,7 @@ impl State {
 
         let expected_hash = sha256.ok_or("sha256 required")?;
         if expected_hash != enc.sha256 {
-            return Err(format!("sha256 mismatch"));
+            return Err("sha256 mismatch".to_string());
         }
 
         // MAX is good enough. This means a chunk would be above 64-bits, which is impossible...
