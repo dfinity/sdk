@@ -251,6 +251,11 @@ fn assemble_create_assets_and_set_contents_operations(
     let mut operations = vec![];
 
     for asset in assets {
+        if state.get_asset_properties(asset.name.clone()).is_ok() {
+            operations.push(BatchOperation::DeleteAsset(DeleteAssetArguments {
+                key: asset.name.clone(),
+            }));
+        }
         operations.push(BatchOperation::CreateAsset(CreateAssetArguments {
             key: asset.name.clone(),
             content_type: asset.content_type,
@@ -451,8 +456,8 @@ fn serve_correct_encoding_v2() {
         time_now,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
-                .with_encoding("identity", vec![IDENTITY_BODY]),
-            AssetBuilder::new("/contents.html", "text/html").with_encoding("gzip", vec![GZIP_BODY]),
+                .with_encoding("identity", vec![IDENTITY_BODY])
+                .with_encoding("gzip", vec![GZIP_BODY]),
             AssetBuilder::new("/no-encoding.html", "text/html"),
         ],
     );
@@ -1274,6 +1279,34 @@ fn supports_getting_and_setting_asset_properties() {
             allow_raw_access: None,
             is_aliased: None
         })
+    );
+}
+
+#[test]
+fn create_asset_fails_if_asset_exists() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+    const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/contents.html", "text/html")
+            .with_encoding("identity", vec![FILE_BODY])],
+    );
+
+    assert!(
+        state
+            .create_asset(CreateAssetArguments {
+                key: "/contents.html".to_string(),
+                content_type: "text/html".to_string(),
+                max_age: None,
+                headers: None,
+                allow_raw_access: None,
+                enable_aliasing: None,
+            })
+            .unwrap_err()
+            == "asset already exists"
     );
 }
 

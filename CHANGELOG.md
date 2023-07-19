@@ -60,23 +60,29 @@ Previously, the alias of `/content.html` was not properly updated in the certifi
 Certification v2 allows certifying arbitrary responses. If the requested file does not exist, and the fallback file (`/index.html`) does not exist either,
 the frontend canister serves a HTTP 404 response. This response was previously not certified.
 
+### fix!: The CreateAsset batch operation now fails if the asset already exists
+
+Previously, the operation was a no-op if the content type matched, but ignored other, possibly different, asset properties. Now, it fails with an error.
+
 ## Dependencies
 
 ### Motoko
 
-Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
+Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Updated candid to 0.9.0
 
 ### Candid UI
 
-- Module hash: 813be4a19429cd481518480b131e756a0811ccf5bae7c3e0e594355c5f819e1f
+- Module hash: 886d113aa335b709db770ec8fe156b5ec8c7b55cbe0184b1168342a597f31fb4
+- https://github.com/dfinity/sdk/pull/3252
 - https://github.com/dfinity/candid/pull/449
 - https://github.com/dfinity/candid/pull/453
 
 ### Frontend canister
 
-- Module hash: 5fecf8e6af7867624c1effd62054f0d1eb230a8a610eba16d6e9c6f1f537d82e
+- Module hash: b044794cd29e8ea0cdde2a44e314d612885ad0e2bfe3bf65a4d9934035c0e58d
+- https://github.com/dfinity/sdk/pull/3252
 - https://github.com/dfinity/sdk/pull/3249
 - https://github.com/dfinity/sdk/pull/3212
 - https://github.com/dfinity/sdk/pull/3227
