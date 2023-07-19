@@ -1,16 +1,17 @@
 use std::collections::HashMap;
 
 use crate::asset_certification::types::http::{
-    CallbackFunc, HttpRequest, HttpResponse, StreamingStrategy,
+    CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackToken, StreamingStrategy,
 };
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
     AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CommitProposedBatchArguments,
     ComputeEvidenceArguments, CreateAssetArguments, CreateChunkArg, DeleteAssetArguments,
-    DeleteBatchArguments, SetAssetContentArguments, SetAssetPropertiesArguments,
+    DeleteBatchArguments, GetArg, GetChunkArg, SetAssetContentArguments,
+    SetAssetPropertiesArguments,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
-use candid::Principal;
+use candid::{Nat, Principal};
 use ic_crypto_tree_hash::Digest;
 use ic_response_verification::ResponseVerificationError;
 use ic_response_verification_test_utils::{
@@ -944,12 +945,72 @@ fn uses_streaming_for_multichunk_assets() {
         .expect("missing streaming strategy");
     assert_eq!(callback, streaming_callback);
 
+    // sha256 is required
+    assert_eq!(
+        state
+            .http_request_streaming_callback(StreamingCallbackToken {
+                key: "/index.html".to_string(),
+                content_encoding: "identity".to_string(),
+                index: Nat::from(1),
+                sha256: None,
+            })
+            .unwrap_err(),
+        "sha256 required"
+    );
+
     let streaming_response = state.http_request_streaming_callback(token).unwrap();
     assert_eq!(streaming_response.body.as_ref(), INDEX_BODY_CHUNK_2);
     assert!(
         streaming_response.token.is_none(),
         "Unexpected streaming response: {:?}",
         streaming_response
+    );
+}
+
+#[test]
+fn get_and_get_chunk_for_multichunk_assets() {
+    let mut state = State::default();
+    let time_now = 100_000_000_000;
+
+    const INDEX_BODY_CHUNK_0: &[u8] = b"<!DOCTYPE html>";
+    const INDEX_BODY_CHUNK_1: &[u8] = b"<html>Index</html>";
+
+    create_assets(
+        &mut state,
+        time_now,
+        vec![AssetBuilder::new("/index.html", "text/html")
+            .with_encoding("identity", vec![INDEX_BODY_CHUNK_0, INDEX_BODY_CHUNK_1])],
+    );
+
+    let chunk_0 = state
+        .get(GetArg {
+            key: "/index.html".to_string(),
+            accept_encodings: vec!["identity".to_string()],
+        })
+        .unwrap();
+    assert_eq!(chunk_0.content.as_ref(), INDEX_BODY_CHUNK_0);
+
+    let chunk_1 = state
+        .get_chunk(GetChunkArg {
+            key: "/index.html".to_string(),
+            content_encoding: "identity".to_string(),
+            index: Nat::from(1),
+            sha256: chunk_0.sha256,
+        })
+        .unwrap();
+    assert_eq!(chunk_1.as_ref(), INDEX_BODY_CHUNK_1);
+
+    // get_chunk fails if we don't pass the sha256
+    assert_eq!(
+        state
+            .get_chunk(GetChunkArg {
+                key: "/index.html".to_string(),
+                content_encoding: "identity".to_string(),
+                index: Nat::from(1),
+                sha256: None,
+            })
+            .unwrap_err(),
+        "sha256 required".to_string()
     );
 }
 

@@ -64,6 +64,14 @@ the frontend canister serves a HTTP 404 response. This response was previously n
 
 Previously, the operation was a no-op if the content type matched, but ignored other, possibly different, asset properties. Now, it fails with an error.
 
+### fix!: http_request_streaming_callback and get_chunk now require the sha256 parameter to be set
+
+The `http_request_streaming_callback()` and `get_chunk()` methods use the `sha256` parameter to ensure that the chunks they return are part of the same asset contents returned by the initial call.  This parameter is now required to be Some(hash).
+
+For `http_request()` and `http_request_streaming_callback()`, there should be no change: all callers of `http_request_streaming_callback()` are expected to pass the entire token returned by `http_request()`, which includes the sha256 parameter.
+
+Any callers of `get_chunk()` should make sure to always pass the `sha256` value returned by the `get()` method.  It will always be present.
+
 ## Dependencies
 
 ### Motoko
@@ -81,7 +89,8 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Frontend canister
 
-- Module hash: b044794cd29e8ea0cdde2a44e314d612885ad0e2bfe3bf65a4d9934035c0e58d
+- Module hash: 88d1e5795d29debc1ff56fa0696dcb3adfa67f82fe2739d1aa644263838174b9
+- https://github.com/dfinity/sdk/pull/3256
 - https://github.com/dfinity/sdk/pull/3252
 - https://github.com/dfinity/sdk/pull/3249
 - https://github.com/dfinity/sdk/pull/3212
