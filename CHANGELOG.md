@@ -68,7 +68,7 @@ Previously, the operation was a no-op if the content type matched, but ignored o
 
 ### Motoko
 
-Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
+Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Updated candid to 0.9.0
 
