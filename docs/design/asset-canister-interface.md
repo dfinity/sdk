@@ -12,15 +12,15 @@ For brevity, this document does not reproduce the candid signatures for every me
 
 ## Table of Contents
 
-| Section                                                 | Description                                     |
-|---------------------------------------------------------|-------------------------------------------------|
-| [Retrieving Assets](#retrieving-assets)                 | How to retrieve assets from the asset canister. |
-| [Storing Assets](#storing-assets)                       | How to store assets in the asset canister.      |
-| [Type Reference](#type-reference)                       | Reference for types used in the interface.      |
-| [Method Reference](#method-reference)                   | Reference for methods in the interface.         |
-| [Batch Operation Reference](#batch-operation-reference) | Reference for batch operations.                 |
-| [Configuration Reference](#configuration-reference)     | Reference for configurable values.              |
-| [Permission Reference](#permission-reference)           | Reference for permissions in the interface.     |
+| Section                                                  |
+|----------------------------------------------------------|
+| [Retrieving Assets](#retrieving-assets)                  |
+| [Storing Assets](#storing-assets)                        |
+| [Type Reference](#type-reference)                        |
+| [Method Reference](#method-reference)                    |
+| [Batch Operation Reference](#batch-operation-reference)  |
+| [Configuration Reference](#configuration-reference)      |
+| [Permission Reference](#permission-reference)            |
 
 ## Retrieving Assets
 
