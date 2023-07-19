@@ -157,13 +157,13 @@ jobs:
     needs: [build_dfx]
     strategy:
       matrix:
-        os: [macos-11, ubuntu-20.04]
-        rust: ['1.60.0']
+        os: [macos-12, ubuntu-20.04, ubuntu-22.04]
+        rust: ['1.65.0']
     steps:
       - name: Checking out repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setting up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Installing playwright
@@ -171,7 +171,7 @@ jobs:
           pip install playwright==1.35.0
           playwright install
       - name: Download dfx binary
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: dfx-${{ matrix.os }}-rs-${{ matrix.rust }}
           path: /usr/local/bin
