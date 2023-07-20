@@ -58,41 +58,37 @@ pub async fn create_canister(
         format!("on network {} ", network_name)
     };
 
-    match canister_id_store.find(canister_name) {
-        Some(canister_id) => {
-            info!(
-                log,
-                "{} canister was already created {}and has canister id: {}",
-                canister_name,
-                non_default_network,
-                canister_id.to_text()
-            );
-            Ok(())
+    if let Some(canister_id) = canister_id_store.find(canister_name) {
+        info!(
+            log,
+            "{} canister was already created {}and has canister id: {}",
+            canister_name,
+            non_default_network,
+            canister_id.to_text()
+        );
+        return Ok(());
+    }
+
+    let agent = env
+        .get_agent()
+        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let cid = match call_sender {
+        CallSender::SelectedId => {
+            create_with_management_canister(env, agent, with_cycles, specified_id, settings).await
         }
-        None => {
-            let agent = env
-                .get_agent()
-                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-            let cid = match call_sender {
-                CallSender::SelectedId => {
-                    create_with_management_canister(env, agent, with_cycles, specified_id, settings)
-                        .await?
-                }
-                CallSender::Wallet(wallet_id) => {
-                    create_with_wallet(agent, wallet_id, with_cycles, settings).await?
-                }
-            };
-            let canister_id = cid.to_text();
-            info!(
-                log,
-                "{} canister created {}with canister id: {}",
-                canister_name,
-                non_default_network,
-                canister_id
-            );
-            canister_id_store.add(canister_name, &canister_id)
+        CallSender::Wallet(wallet_id) => {
+            create_with_wallet(agent, wallet_id, with_cycles, settings).await
         }
     }?;
+    let canister_id = cid.to_text();
+    info!(
+        log,
+        "{} canister created {}with canister id: {}",
+        canister_name,
+        non_default_network,
+        canister_id
+    );
+    canister_id_store.add(canister_name, &canister_id)?;
 
     Ok(())
 }
@@ -163,10 +159,10 @@ async fn create_with_wallet(
         .await
     {
         Ok(result) => Ok(result.canister_id),
-        Err(AgentError::WalletUpgradeRequired(s)) => Err(anyhow!(format!(
+        Err(AgentError::WalletUpgradeRequired(s)) => Err(anyhow!(
             "{}\nTo upgrade, run dfx wallet upgrade.",
             AgentError::WalletUpgradeRequired(s)
-        ))),
-        Err(other) => Err(anyhow::Error::from(other)),
+        )),
+        Err(other) => Err(anyhow!(other)),
     }
 }
