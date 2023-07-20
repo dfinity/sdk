@@ -1,7 +1,7 @@
 use crate::lib::error::NotifyCreateCanisterError::Notify;
 use crate::lib::ledger_types::NotifyError::Refunded;
+use crate::lib::operations::cmc::MEMO_CREATE_CANISTER;
 use crate::{
-    commands::ledger::create_canister::MEMO_CREATE_CANISTER,
     lib::{
         agent::create_agent_environment,
         environment::Environment,

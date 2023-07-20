@@ -1,7 +1,16 @@
+use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::error::NotifyCreateCanisterError::Notify;
 use crate::lib::ic_attributes::CanisterSettings;
+use crate::lib::ledger_types::{Memo, NotifyError};
+use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
+use crate::lib::operations::canister::deploy_canisters::{
+    ICPFunding, ICPFundingRetry, ICPFundingRetryPhase,
+};
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
+use crate::lib::operations::canister::Funding;
+use crate::lib::operations::cmc::{notify_create, transfer_cmc, MEMO_CREATE_CANISTER};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
@@ -25,7 +34,7 @@ const CANISTER_INITIAL_CYCLE_BALANCE: u128 = 3_000_000_000_000_u128;
 pub async fn create_canister(
     env: &dyn Environment,
     canister_name: &str,
-    with_cycles: Option<u128>,
+    funding: &Funding,
     specified_id: Option<Principal>,
     call_sender: &CallSender,
     settings: CanisterSettings,
@@ -76,12 +85,18 @@ pub async fn create_canister(
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-    let cid = match call_sender {
-        CallSender::SelectedId => {
-            create_with_management_canister(env, agent, with_cycles, specified_id, settings).await
+    let cid = match (call_sender, funding) {
+        (CallSender::SelectedId, Funding::Icp(icp_funding)) => {
+            create_with_ledger(agent, canister_name, icp_funding, settings).await
         }
-        CallSender::Wallet(wallet_id) => {
-            create_with_wallet(agent, wallet_id, with_cycles, settings).await
+        (CallSender::SelectedId, Funding::MaybeCycles(cycles)) => {
+            create_with_management_canister(env, agent, *cycles, specified_id, settings).await
+        }
+        (CallSender::Wallet(wallet_id), Funding::MaybeCycles(cycles)) => {
+            create_with_wallet(agent, wallet_id, *cycles, settings).await
+        }
+        (CallSender::Wallet(_), Funding::Icp(_)) => {
+            unreachable!("Cannot create canister with wallet and ICP at the same time.")
         }
     }?;
     let canister_id = cid.to_text();
@@ -95,6 +110,61 @@ pub async fn create_canister(
     canister_id_store.add(canister_name, &canister_id, None)?;
 
     Ok(())
+}
+
+async fn create_with_ledger(
+    agent: &Agent,
+    canister_name: &str,
+    funding: &ICPFunding,
+    _settings: CanisterSettings,
+) -> DfxResult<Principal> {
+    let to_principal = agent.get_principal().unwrap();
+
+    let canister_name_matches = matches!(&funding.retry_canister_name, Some(canister_name));
+
+    let retry_block_height = funding
+        .retry_notify_block_height
+        .as_ref()
+        .filter(|_| canister_name_matches);
+
+    let height = if let Some(height) = retry_block_height {
+        *height
+    } else {
+        let retry_transfer_created_at_time = funding
+            .retry_transfer_created_at_time
+            .as_ref()
+            .filter(|_| canister_name_matches)
+            .copied();
+        let fee = TRANSACTION_FEE;
+        let memo = Memo(MEMO_CREATE_CANISTER);
+        let amount = funding.amount;
+        let from_subaccount = funding.from_subaccount;
+        let height = transfer_cmc(
+            agent,
+            memo,
+            amount,
+            fee,
+            from_subaccount,
+            to_principal,
+            retry_transfer_created_at_time,
+        )
+        .await?;
+        println!("Using transfer at block height {height}");
+        height
+    };
+
+    let controller = to_principal;
+    let subnet_type = None;
+
+    let principal = notify_create(agent, controller, height, subnet_type)
+        .await
+        .map_err(|e| {
+            DiagnosedError::new(
+                format!("Failed to notify cmc: {}", e),
+                format!("Re-run the command with --icp-block-height {}", height),
+            )
+        })?;
+    Ok(principal)
 }
 
 async fn create_with_management_canister(

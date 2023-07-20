@@ -13,7 +13,9 @@ use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
 pub use deploy_canisters::deploy_canisters;
-pub use deploy_canisters::DeployMode;
+pub use deploy_canisters::{
+    DeployMode, Funding, ICPFunding, ICPFundingRetry, ICPFundingRetryPhase,
+};
 use dfx_core::canister::build_wallet_canister;
 pub use dfx_core::canister::install_canister_wasm;
 use dfx_core::identity::CallSender;

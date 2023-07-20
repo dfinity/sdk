@@ -12,6 +12,8 @@ use ic_agent::Agent;
 const NOTIFY_CREATE_CANISTER_METHOD: &str = "notify_create_canister";
 const NOTIFY_TOP_UP_METHOD: &str = "notify_top_up";
 
+pub const MEMO_CREATE_CANISTER: u64 = 1095062083_u64;
+
 pub async fn transfer_cmc(
     agent: &Agent,
     memo: Memo,

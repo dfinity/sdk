@@ -1,17 +1,22 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
+use crate::lib::ledger_types::BlockHeight;
 use crate::lib::network::network_opt::NetworkOpt;
-use crate::lib::operations::canister::deploy_canisters::deploy_canisters;
-use crate::lib::operations::canister::deploy_canisters::DeployMode::{
+use crate::lib::nns_types::account_identifier::Subaccount;
+use crate::lib::nns_types::icpts::ICPTs;
+use crate::lib::operations::canister::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
+};
+use crate::lib::operations::canister::{
+    deploy_canisters, Funding, ICPFunding, ICPFundingRetry, ICPFundingRetryPhase,
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::parsers::cycle_amount_parser;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
-use clap::Parser;
+use clap::{ArgGroup, Parser};
 use console::Style;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
@@ -29,6 +34,10 @@ const MAINNET_CANDID_INTERFACE_PRINCIPAL: &str = "a4gq6-oaaaa-aaaab-qaa4q-cai";
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.
 #[derive(Parser)]
+#[clap(
+group(ArgGroup::new("using_icp_group").multiple(false).required(false)),
+group(ArgGroup::new("icp_retry").multiple(false).required(false)),
+)]
 pub struct DeployOpts {
     /// Specifies the name of the canister you want to deploy.
     /// If you don’t specify a canister name, all canisters defined in the dfx.json file are deployed.
@@ -59,7 +68,7 @@ pub struct DeployOpts {
     /// Specifies the initial cycle balance to deposit into the newly created canister.
     /// The specified amount needs to take the canister create fee into account.
     /// This amount is deducted from the wallet's cycle balance.
-    #[arg(long, value_parser = cycle_amount_parser)]
+    #[arg(long, value_parser = cycle_amount_parser, conflicts_with("using_icp_group"))]
     with_cycles: Option<u128>,
 
     /// Attempts to create the canister with this Canister ID.
@@ -99,6 +108,41 @@ pub struct DeployOpts {
     /// Compute evidence and compare it against expected evidence
     #[arg(long, conflicts_with("by_proposal"))]
     compute_evidence: bool,
+
+    // /// Group to enforce at most one of --using-icp-amount or --using-icp
+    // #[clap(group = ArgGroup::with_name("using_icp_group").required(false).multiple(false))]
+    // using_icp_group: bool,
+    /// ICP to mint into cycles and deposit into destination canister
+    /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
+    /// i.e. 100.012
+    /// This option implies the --no-wallet flag.
+    #[arg(long, group = "using_icp_group", conflicts_with("with_cycles"))]
+    using_icp_amount: Option<ICPTs>,
+
+    /// Mint ICP into cycles and deposit into destination canister
+    /// This option implies the --no-wallet flag.
+    #[arg(long, group = "using_icp_group", conflicts_with("with_cycles"))]
+    using_icp: bool,
+
+    /// Subaccount to withdraw from
+    #[arg(long, requires("using_icp_group"))]
+    icp_from_subaccount: Option<Subaccount>,
+
+    /// Transaction fee, default is 10000 e8s.
+    #[arg(long, requires("using_icp_group"))]
+    icp_fee: Option<ICPTs>,
+
+    /// Resume creation of this canister
+    #[arg(long, requires("using_icp_group"), requires("icp_retry"))]
+    retry_create_canister_name: Option<String>,
+
+    /// Transaction timestamp, in nanoseconds, for use in controlling transaction-deduplication, default is system-time. // https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
+    #[arg(long, group = "icp_retry", requires("retry_create_canister_name"))]
+    retry_create_canister_transfer_created_at_time: Option<u64>,
+
+    /// Block height at which transaction took place
+    #[arg(long, group = "icp_retry", requires("retry_create_canister_name"))]
+    retry_create_canister_notify_block_height: Option<BlockHeight>,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -119,7 +163,10 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         .output_env_file
         .or_else(|| config.get_config().output_env_file.clone());
 
-    let with_cycles = opts.with_cycles;
+    let no_wallet = opts.no_wallet
+        || opts.specified_id.is_some()
+        || opts.using_icp_amount.is_some()
+        || opts.using_icp;
 
     let deploy_mode = match (mode, canister_name) {
         (Some(InstallMode::Reinstall), Some(canister_name)) => {
@@ -156,6 +203,24 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
+    let funding = if opts.using_icp || opts.using_icp_amount.is_some() {
+        // as_cycles_with_current_exchange_rate ?
+        let amount = opts
+            .using_icp_amount
+            .unwrap_or_else(|| ICPTs::from_icpts(1).unwrap());
+
+        Funding::Icp(ICPFunding {
+            amount,
+            from_subaccount: opts.icp_from_subaccount,
+            fee: opts.icp_fee,
+            retry_canister_name: opts.retry_create_canister_name,
+            retry_transfer_created_at_time: opts.retry_create_canister_transfer_created_at_time,
+            retry_notify_block_height: opts.retry_create_canister_notify_block_height,
+        })
+    } else {
+        Funding::MaybeCycles(opts.with_cycles)
+    };
+
     let call_sender = CallSender::from(&opts.wallet)
         .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
 
@@ -168,10 +233,10 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         argument_type,
         &deploy_mode,
         opts.upgrade_unchanged,
-        with_cycles,
+        &funding,
         opts.specified_id,
         &call_sender,
-        opts.no_wallet,
+        no_wallet,
         opts.yes,
         env_file,
         opts.no_asset_upgrade,

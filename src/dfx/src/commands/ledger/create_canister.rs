@@ -6,14 +6,12 @@ use crate::lib::ledger_types::Memo;
 use crate::lib::ledger_types::NotifyError::Refunded;
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
-use crate::lib::operations::cmc::{notify_create, transfer_cmc};
+use crate::lib::operations::cmc::{notify_create, transfer_cmc, MEMO_CREATE_CANISTER};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::e8s_parser;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
-
-pub const MEMO_CREATE_CANISTER: u64 = 1095062083_u64;
 
 /// Create a canister from ICP
 #[derive(Parser)]

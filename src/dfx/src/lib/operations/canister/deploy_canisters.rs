@@ -6,7 +6,10 @@ use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::installers::assets::prepare_assets_for_proposal;
+use crate::lib::ledger_types::BlockHeight;
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::nns_types::account_identifier::Subaccount;
+use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
@@ -35,6 +38,34 @@ pub enum DeployMode {
     ComputeEvidence(String),
 }
 
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub enum ICPFundingRetryPhase {
+    Transfer(u64),
+    Notify(BlockHeight),
+}
+
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub struct ICPFundingRetry {
+    pub canister_name: String,
+    pub phase: ICPFundingRetryPhase,
+}
+
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub struct ICPFunding {
+    pub amount: ICPTs,
+    pub from_subaccount: Option<Subaccount>,
+    pub fee: Option<ICPTs>,
+    pub retry_canister_name: Option<String>,
+    pub retry_transfer_created_at_time: Option<u64>,
+    pub retry_notify_block_height: Option<BlockHeight>,
+}
+
+#[derive(Eq, PartialEq, Debug, Clone)]
+pub enum Funding {
+    Icp(ICPFunding),
+    MaybeCycles(Option<u128>),
+}
+
 #[context("Failed while trying to deploy canisters.")]
 pub async fn deploy_canisters(
     env: &dyn Environment,
@@ -43,7 +74,7 @@ pub async fn deploy_canisters(
     argument_type: Option<&str>,
     deploy_mode: &DeployMode,
     upgrade_unchanged: bool,
-    with_cycles: Option<u128>,
+    funding: &Funding,
     specified_id: Option<Principal>,
     call_sender: &CallSender,
     no_wallet: bool,
@@ -126,7 +157,7 @@ pub async fn deploy_canisters(
             env,
             &canisters_to_load,
             &initial_canister_id_store,
-            with_cycles,
+            funding,
             specified_id,
             create_call_sender,
             &config,
@@ -196,7 +227,7 @@ async fn register_canisters(
     env: &dyn Environment,
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
-    with_cycles: Option<u128>,
+    funding: &Funding,
     specified_id: Option<Principal>,
     call_sender: &CallSender,
     config: &Config,
@@ -246,7 +277,7 @@ async fn register_canisters(
             create_canister(
                 env,
                 canister_name,
-                with_cycles,
+                funding,
                 specified_id,
                 call_sender,
                 CanisterSettings {

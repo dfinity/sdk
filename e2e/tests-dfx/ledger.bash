@@ -29,6 +29,36 @@ current_time_nanoseconds() {
     echo "$(date +%s)"000000000
 }
 
+@test "deploy icp retry options" {
+    dfx identity use alice
+    dfx ledger balance
+    dfx ledger account-id
+    dfx_new
+    assert_command_fail dfx deploy --using-icp-amount 1 --retry-create-canister-name abc
+    assert_contains "error: the following required arguments were not provided"
+    assert_contains "<--retry-create-canister-transfer-created-at-time <RETRY_CREATE_CANISTER_TRANSFER_CREATED_AT_TIME>|--retry-create-canister-notify-block-height <RETRY_CREATE_CANISTER_NOTIFY_BLOCK_HEIGHT>>"
+
+    assert_command_fail dfx deploy --using-icp-amount 1 --retry-create-canister-transfer-created-at-time 777
+    assert_contains "error: the following required arguments were not provided"
+    assert_contains "<--retry-create-canister-transfer-created-at-time <RETRY_CREATE_CANISTER_TRANSFER_CREATED_AT_TIME>|--retry-create-canister-notify-block-height <RETRY_CREATE_CANISTER_NOTIFY_BLOCK_HEIGHT>>"
+
+    assert_command_fail dfx deploy --using-icp-amount 1 --retry-create-canister-notify-block-height 87
+    assert_contains "ABC"
+    assert_contains "error: the following required arguments were not provided"
+    assert_contains "--retry-create-canister-name <RETRY_CREATE_CANISTER_NAME>"
+}
+
+@test "deploy --using-icp-amount" {
+    dfx identity use alice
+    dfx ledger balance
+    dfx ledger account-id
+    dfx_new
+    assert_command dfx deploy --using-icp-amount 1
+    assert_contains "Using transfer at block height" # todo
+    assert_command dfx ledger balance
+    assert_eq "999999997.99980000 ICP"
+}
+
 @test "ledger account-id" {
     dfx identity use alice
     assert_command dfx ledger account-id
