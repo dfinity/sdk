@@ -250,18 +250,25 @@ Required Permission: [Prepare](#permission-prepare)
 
 ### Method: `commit_batch`
 
-The `commit_batch` method accepts a list of batch operations, which it executes in order. The operations are executed in a single transaction, so that if any operation fails, the entire batch is rolled back.
+```candid
+  commit_batch: (record {
+    batch_id: BatchId;
+    operations: vec BatchOperationKind
+  }) -> ();
+```
 
-It is not required that the batch ID passed in the method arguments matches any batch ID. This allows multiple calls to `commit_batch` for the same batch, to work around per-call computation limits.  The final call to `commit_batch` should contain the actual batch ID, in order to delete the batch.
+The `commit_batch` method executes the specified batch operations in the order listed. The method traps if there is an error executing any operation, so either all or none of the operations will be applied.
 
-| Operation                                           | Description |
-|-----------------------------------------------------| ----------- | 
-| [CreateAsset](#operation-createasset)               | Creates a new asset. |
+After executing the operations, this method deletes the batch associated with `batch_id`. It is valid to pass `0` for batch_id, in which case this method does not delete any batch. This allows multiple calls to `commit_batch` to execute operations from a large batch, such that no call to `commit_batch` exceeds per-call computation limits.  The final call to `commit_batch` should include the batch ID, in order to delete the batch.
+
+| Operation                                           | Description                           |
+|-----------------------------------------------------|---------------------------------------|
+| [CreateAsset](#operation-createasset)               | Creates a new asset.                  |
 | [SetAssetContent](#operation-setassetcontent)       | Adds or changes content for an asset. |
-| [SetAssetProperties](#operation-setassetproperties) | Changes properties for an asset. |
-| [UnsetAssetContent](#operation-unsetassetcontent)   | Removes content for an asset. |
-| [DeleteAsset](#operation-deleteasset)               | Deletes an asset. |
-| [Clear](#operation-clear)                           | Deletes all assets. |
+| [SetAssetProperties](#operation-setassetproperties) | Changes properties for an asset.      |
+| [UnsetAssetContent](#operation-unsetassetcontent)   | Removes content for an asset.         |
+| [DeleteAsset](#operation-deleteasset)               | Deletes an asset.                     |
+| [Clear](#operation-clear)                           | Deletes all assets.                   |
 
 Required Permission: [Commit](#permission-commit)
 
@@ -311,7 +318,7 @@ Callable by: Principals with [ManagePermissions](#permission-managepermissions) 
 
 This method revokes a permission from a principal.
 
-Callable by: Principals with [ManagePermissions](#permission-managepermissions) permission, and canister controllers. Also, any principal can revoke any of its own own permissions.
+Callable by: Principals with [ManagePermissions](#permission-managepermissions) permission, and canister controllers. Also, any principal can revoke any of its own permissions.
 
 ### Method: `list_permitted`
 
