@@ -29,7 +29,6 @@ impl ExtensionCompatibilityMatrix {
                 e,
             )
         })?;
-
         resp.json()
             .map_err(ExtensionError::MalformedCompatibilityMatrix)
     }

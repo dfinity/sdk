@@ -12,3 +12,12 @@ pub mod extension;
 pub use extension::ExtensionManifest;
 /// File name for the file describing the extension.
 pub use extension::MANIFEST_FILE_NAME;
+
+pub mod external_extension;
+/// In order for extensions stored in external repositories to be consumable by dfx,
+/// the repository maintainers must provide a URL to a JSON file with the following structure.
+/// This file is an amalgamation of the compatibility.json file and the combined manifest.json
+/// files for each individual extension, as they exist in the DFINITY extension repository.
+/// The file must respect the following constraint: for every version of every extension
+/// listed under the “compatibility” key, there should be a corresponding entry under the “extensions” key.
+pub use external_extension::ExternalExtensionManifest;

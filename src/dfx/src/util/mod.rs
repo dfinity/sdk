@@ -10,7 +10,6 @@ use candid::parser::typing::pretty_check_file;
 use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
 use candid::IDLArgs;
 use fn_error_context::context;
-use hyper_rustls::ConfigBuilderExt;
 #[cfg(unix)]
 use net2::unix::UnixTcpBuilderExt;
 use net2::{TcpBuilder, TcpListenerExt};

@@ -3,7 +3,6 @@ use dfx_core::config::model::canister_id_store;
 use dfx_core::config::model::canister_id_store::CanisterIds;
 use dfx_core::config::model::dfinity::Config;
 
-use hyper_rustls::ConfigBuilderExt;
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use serde_json::{Map, Value};
