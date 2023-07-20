@@ -1,6 +1,7 @@
 use crate::error::extension::ExtensionError;
 
 use clap::ArgAction;
+use semver::Version;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashMap},
@@ -17,7 +18,7 @@ type ArgName = String;
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct ExtensionManifest {
     pub name: Option<String>,
-    pub version: Option<String>,
+    pub version: Option<Version>,
     pub homepage: String,
     pub authors: Option<String>,
     pub summary: String,
@@ -61,7 +62,13 @@ impl ExtensionManifest {
     ) -> Result<&ExtensionBinariesDescriptor, ExtensionError> {
         self.binaries
             .as_ref()
-            .ok_or(ExtensionError::BinaryEntryNotFoundInExtensionManifest)?
+            .ok_or_else(|| {
+                ExtensionError::BinaryEntryNotFoundInExtensionManifest(
+                    // safe to unwrap because name and version were set in 'fn find_extension'
+                    self.name.as_ref().unwrap().clone(),
+                    self.version.as_ref().unwrap().clone(),
+                )
+            })?
             .get(&platform_arch)
             .ok_or_else(|| ExtensionError::PlatformNotSupported(platform_arch.to_string()))
     }

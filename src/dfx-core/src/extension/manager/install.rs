@@ -147,12 +147,6 @@ fn process_external_registry_manifest(
     let manifest = ExternalExtensionManifest::fetch(&manifest_url)?;
     let extension_manifest = manifest.find_extension(extension_name, dfx_version)?;
     let extension_version = extension_manifest.version.clone().unwrap(); // safe to unwrap, because the value is set in find_extension
-    let extension_version = Version::parse(&extension_version).map_err(|e| {
-        ExtensionError::MalformedVersionsEntryForExtensionInCompatibilityMatrix(
-            extension_name.to_string(),
-            e,
-        )
-    })?;
     let archive_filename = get_extension_archive_name(extension_name, &extension_version)?;
     let binary_descriptor =
         extension_manifest.get_binary_descriptor(format!("{}-{}", platform, arch))?;

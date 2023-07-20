@@ -4,6 +4,67 @@
 
 ## DFX
 
+### feat: dfx extension can now be installed from external registries
+
+Modifies the `dfx extension install` command to take a flag `--registry` that allows installing extensions from external registries. Here is an example:
+
+```bash
+dfx extension install your_extension --registry=https://raw.githubusercontent.com/your-org/your-repo/master/dfx-extensions-registry.json
+```
+
+The registry file is a JSON file that contains a list of extensions. Here is an example:
+
+```json
+{
+  "compatibility": {
+    "0.15.0": {
+      "your_extension": {
+        "versions": ["0.1.0"]
+      }
+    }
+  },
+  "extensions": {
+    "your_extension": {
+      "0.1.0": {
+        "homepage": "https://github.com/your-org/your-repo",
+        "authors": "Your Org",
+        "summary": "Your extension",
+        "categories": ["development"],
+        "keywords": ["cli-helper"],
+        "description": "A longer description.",
+        "subcommands": {
+          "do_something": {
+            "about": "does something",
+            "args": {
+              "the_param": {
+                "about": "some paramater",
+                "long": "the-param"
+              }
+            }
+          }
+        },
+        "binaries": {
+          "unknown-linux-gnu-x86_64": {
+            "url": "https://raw.githubusercontent.com/your-org/your-repo/master/your_extension-v0.1.0-x86_64-unknown-linux-gnu.tar.gz",
+            "sha256": "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+          },
+          "apple-darwin-x86_64": {
+            "url": "https://raw.githubusercontent.com/your-org/your-repo/master/your_extension-v0.1.0-x86_64-apple-darwin.tar.gz ",
+            "sha256": "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+          },
+          "apple-darwin-aarch64": {
+            "url": "https://raw.githubusercontent.com/your-org/your-repo/master/your_extension-v0.1.0-aarch64-apple-darwin.tar.gz ",
+            "sha256": "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+The extension must be published as a tarball (`.tag.gz`), which contains a directory named `<EXTENSION_NAME>-v<EXTENSION_VERSION>-<CPU_ARCHITECTURE>-<PLATFORM>`, which contains a binary named `your_extension`.
+
 ### feat!: Removed dfx nns and dfx sns commands
 
 Both have now been turned into the dfx extensions. In order to obtain them, please run `dfx extension install nns` and `dfx extension install sns` respectively. After the installation, you can use them as you did before: `dfx nns ...`, and `dfx sns ...`.

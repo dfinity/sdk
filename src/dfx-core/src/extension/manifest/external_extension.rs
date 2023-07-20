@@ -44,7 +44,8 @@ impl ExternalExtensionManifest {
                 )
             })?
             .clone();
-        manifest.version.replace(extension_version.to_string());
+        // TODO: maybe serde can do this for us?
+        manifest.version.replace(extension_version);
         manifest.name.replace(extension_name.to_string());
         Ok(manifest)
     }
