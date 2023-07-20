@@ -209,3 +209,81 @@ EOF
     assert_command dfx extension run test_extension abc --the-another-param 464646 --the-param 123 456 789
     assert_eq "abc --the-another-param 464646 --the-param 123 456 789 --dfx-cache-path $CACHE_DIR"
 }
+
+@test "install extension from external registry" {
+  # strip semver suffix
+  DFX_VERSION=$(dfx --version | sed 's/-.*//' | cut -d ' ' -f 2)
+  # find unoocupied port
+  port=49152
+  while lsof -i :$port > /dev/null 2>&1
+  do
+    port=$((port+1))
+  done
+
+  cat > test_extension << "EOF"
+#!/usr/bin/env bash
+
+echo $@
+EOF
+  mkdir -p test_extension-v0.1.0-unknown-linux-gnu-x86_64
+  mv test_extension test_extension-v0.1.0-unknown-linux-gnu-x86_64
+  cp -r test_extension-v0.1.0-unknown-linux-gnu-x86_64 test_extension-v0.1.0-aarch64-apple-darwin
+  cp -r test_extension-v0.1.0-unknown-linux-gnu-x86_64 test_extension-v0.1.0-x86_64-apple-darwin
+  tar -czf test_extension-v0.1.0-unknown-linux-gnu-x86_64.tar.gz test_extension-v0.1.0-unknown-linux-gnu-x86_64
+  tar -czf test_extension-v0.1.0-aarch64-apple-darwin.tar.gz test_extension-v0.1.0-aarch64-apple-darwin
+  tar -czf test_extension-v0.1.0-x86_64-apple-darwin.tar.gz test_extension-v0.1.0-x86_64-apple-darwin
+  cat > registry.json <<EOF
+{
+  "compatibility": {
+    "$DFX_VERSION": {
+      "test_extension": {
+        "versions": ["0.1.0"]
+      }
+    }
+  },
+  "extensions": {
+    "test_extension": {
+      "0.1.0": {
+        "homepage": "https://github.com/dfinity/sdk",
+        "authors": "DFINITY",
+        "summary": "A foo extension",
+        "categories": ["development"],
+        "keywords": ["development"],
+        "description": "A longer description.",
+        "subcommands": {},
+        "binaries": {
+          "unknow-linux-gnu-x86_64": {
+            "url": "http://localhost:$port/test_extension-v0.1.0-unknown-linux-gnu-x86_64.tar.gz",
+            "sha256": "$(shasum -a 256 test_extension-v0.1.0-unknown-linux-gnu-x86_64.tar.gz | cut -d ' ' -f 1)"
+          },
+          "apple-darwin-x86_64": {
+            "url": "http://localhost:$port/test_extension-v0.1.0-x86_64-apple-darwin.tar.gz ",
+            "sha256": "$(shasum -a 256 test_extension-v0.1.0-x86_64-apple-darwin.tar.gz | cut -d ' ' -f 1)"
+          },
+          "apple-darwin-aarch64": {
+            "url": "http://localhost:$port/test_extension-v0.1.0-aarch64-apple-darwin.tar.gz ",
+            "sha256": "$(shasum -a 256 test_extension-v0.1.0-aarch64-apple-darwin.tar.gz | cut -d ' ' -f 1)"
+          }
+        }
+      }
+    }
+  }
+}
+EOF
+
+  python3 -m http.server "$port" &
+  pid=$!
+
+  # # Wait until the server is up
+  while ! echo exit | nc localhost "$port"; do sleep 1; done
+  echo "Server is up"
+  echo yes | (
+    assert_command dfx extension install test_extension --registry "http://localhost:$port/registry.json"
+  )
+  kill $pid
+
+  assert_command dfx extension list
+  assert_match "test_extension"
+  assert_command dfx test_extension
+  assert_eq "--dfx-cache-path $(dfx cache show)"
+}

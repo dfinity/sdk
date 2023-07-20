@@ -1,21 +1,23 @@
 use crate::error::extension::ExtensionError;
 
 use clap::ArgAction;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashMap},
     path::Path,
 };
+use url::Url;
 
 pub static MANIFEST_FILE_NAME: &str = "extension.json";
 
+type PlatformArch = String;
 type SubcmdName = String;
 type ArgName = String;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct ExtensionManifest {
-    pub name: String,
-    pub version: String,
+    pub name: Option<String>,
+    pub version: Option<String>,
     pub homepage: String,
     pub authors: Option<String>,
     pub summary: String,
@@ -24,6 +26,13 @@ pub struct ExtensionManifest {
     pub description: Option<String>,
     pub subcommands: Option<ExtensionSubcommandsOpts>,
     pub dependencies: Option<HashMap<String, String>>,
+    pub binaries: Option<HashMap<PlatformArch, ExtensionBinariesDescriptor>>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ExtensionBinariesDescriptor {
+    pub url: Url,
+    pub sha256: String,
 }
 
 impl ExtensionManifest {
@@ -31,7 +40,7 @@ impl ExtensionManifest {
         let manifest_path = extensions_root_dir.join(name).join(MANIFEST_FILE_NAME);
         let mut m: ExtensionManifest = crate::json::load_json_file(&manifest_path)
             .map_err(ExtensionError::LoadExtensionManifestFailed)?;
-        m.name = name.to_string();
+        m.name = Some(name.to_string());
         Ok(m)
     }
 
@@ -45,17 +54,30 @@ impl ExtensionManifest {
     }
 }
 
-#[derive(Debug, Deserialize, Default)]
+impl ExtensionManifest {
+    pub fn get_binary_descriptor(
+        &self,
+        platform_arch: String,
+    ) -> Result<&ExtensionBinariesDescriptor, ExtensionError> {
+        self.binaries
+            .as_ref()
+            .ok_or(ExtensionError::BinaryEntryNotFoundInExtensionManifest)?
+            .get(&platform_arch)
+            .ok_or_else(|| ExtensionError::PlatformNotSupported(platform_arch.to_string()))
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Default, Clone)]
 pub struct ExtensionSubcommandsOpts(BTreeMap<SubcmdName, ExtensionSubcommandOpts>);
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ExtensionSubcommandOpts {
     pub about: Option<String>,
     pub args: Option<BTreeMap<ArgName, ExtensionSubcommandArgOpts>>,
     pub subcommands: Option<ExtensionSubcommandsOpts>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ExtensionSubcommandArgOpts {
     pub about: Option<String>,
     pub long: Option<String>,

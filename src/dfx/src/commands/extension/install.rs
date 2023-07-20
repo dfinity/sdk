@@ -1,29 +1,42 @@
 use crate::commands::DfxCommand;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use clap::Subcommand;
-
-use clap::Parser;
+use dfx_core::cli::ask_for_consent;
 use dfx_core::error::extension::ExtensionError;
 
-#[derive(Parser)]
+use clap::{Parser, Subcommand};
+
+#[derive(Parser, Debug)]
 pub struct InstallOpts {
     /// Specifies the name of the extension to install.
     name: String,
+
+    /// Use external (non-DFINITY) registry to install the extension.
+    #[clap(long)]
+    registry: Option<String>,
+
     /// Installs the extension under different name. Useful when installing an extension with the same name as: already installed extension, or a built-in command.
     #[clap(long)]
     install_as: Option<String>,
 }
 
 pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
+    if opts.registry.is_some() {
+        ask_for_consent("DFINITY cannot guarantee the authenticity of extensions installed from external registries. You're installing it at your own risk!")?;
+    }
     let spinner = env.new_spinner(format!("Installing extension: {}", opts.name).into());
     let mgr = env.new_extension_manager()?;
     let effective_extension_name = opts.install_as.clone().unwrap_or_else(|| opts.name.clone());
     if DfxCommand::has_subcommand(&effective_extension_name) {
-        return Err(ExtensionError::CommandAlreadyExists(opts.name).into());
+        return Err(ExtensionError::CommandAlreadyExists(effective_extension_name).into());
     }
 
-    mgr.install_extension(&opts.name, opts.install_as.as_deref())?;
+    mgr.install_extension(
+        &opts.name,
+        opts.registry.as_deref(),
+        opts.install_as.as_deref(),
+    )?;
+
     spinner.finish_with_message(
         format!(
             "Extension '{}' installed successfully{}",

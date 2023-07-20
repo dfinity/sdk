@@ -4,6 +4,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ExtensionError {
+    #[error(transparent)]
+    Io(#[from] crate::error::unified_io::UnifiedIoError),
+
     // errors related to extension directory management
     #[error("Cannot find cache directory: '{0}'")]
     FindCacheDirectoryFailed(crate::error::cache::CacheError),
@@ -54,11 +57,35 @@ pub enum ExtensionError {
     #[error("Cannot create temporary directory at '{0}': {1}")]
     CreateTemporaryDirectoryFailed(std::path::PathBuf, std::io::Error),
 
-    #[error(transparent)]
-    Io(#[from] crate::error::fs::FsError),
+    #[error("Failed to download extension: checksum of the downloaded archive (sha256:{0}) (downloaded from: '{1}') doesn't match the one provided in the manifest (sha256:{2})")]
+    ChecksumMismatch(String, String, String),
 
     #[error("Platform '{0}' is not supported.")]
     PlatformNotSupported(String),
+
+    // errors related to installing extensions from 3rd party registries
+    #[error("Extension manifest URL '{0}' is not valid: {1}")]
+    InvalidExternalManifestUrl(String, url::ParseError),
+
+    #[error("Entry 'binaries' not found in extension manifest entry.")]
+    BinaryEntryNotFoundInExtensionManifest,
+
+    #[error("Entry 'extensions.{0}' not found in extension manifest entry.")]
+    ExtensionNameNotFoundInManifest(String),
+
+    #[error("Extension '{0}' was found in the manifest in both 'comppatibility' and 'extensions' entries, however, the latest compatible version of the extension ({1}) could not be found in 'extensions' entry. Please contact the extension author.")]
+    MalformedManifestExtensionVersionNotFound(String, semver::Version),
+
+    #[error(
+        "Manifest downloaded from '{}' does not contain 'binaries' object for extension {}-v{}."
+    , _0.0, _0.1, _0.2)]
+    BinariesObejectNotFoundInManifest(Box<(url::Url, String, semver::Version)>),
+
+    #[error("Platform '{}' and architecture '{}' is not supported for extension '{}' defined in manifest downloaded from '{}'.", _0.0, _0.1, _0.2, _0.3)]
+    PlatformArchCombinationNotFoundInManifest(Box<(url::Url, String, String, String)>),
+
+    #[error("Cannot save extension manifest: {0}")]
+    SaveExtensionManifestFailed(crate::error::structured_file::StructuredFileError),
 
     // errors related to uninstalling extensions
     #[error("Cannot uninstall extension: {0}")]
