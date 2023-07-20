@@ -63,7 +63,20 @@ The registry file is a JSON file that contains a list of extensions. Here is an 
 }
 ```
 
-The extension must be published as a tarball (`.tag.gz`), which contains a directory named `<EXTENSION_NAME>-v<EXTENSION_VERSION>-<CPU_ARCHITECTURE>-<PLATFORM>`, which contains a binary named `your_extension`.
+The extension must be published as a tarball (`.tag.gz`), which contains a directory named `<EXTENSION_NAME>-v<EXTENSION_VERSION>-<CPU_ARCHITECTURE>-<PLATFORM>`, which contains a binary named `<EXTENSION_NAME>`, here is minimal example:
+
+```bash
+mkdir test_extension-v0.1.0-x86_64-unknown-linux-gnu
+cat > test_extension-v0.1.0-x86_64-unknown-linux-gnu/test_extension << "EOF"
+#!/usr/bin/env bash
+
+echo Hello, World!
+EOF
+tar -czf test_extension-v0.1.0-x86_64-unknown-linux-gnu.tar.gz test_extension-v0.1.0-x86_64-unknown-linux-gnu
+# you'll also need to generate a sha256 hash of the tarball and put it into the registry file
+shasum -a 256 test_extension-v0.1.0-x86_64-unknown-linux-gnu.tar.gz 
+```
+
 
 ### feat!: Removed dfx nns and dfx sns commands
 

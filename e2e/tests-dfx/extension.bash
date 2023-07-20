@@ -220,13 +220,12 @@ EOF
     port=$((port+1))
   done
 
-  cat > test_extension << "EOF"
+  mkdir test_extension-v0.1.0-x86_64-unknown-linux-gnu
+  cat > test_extension-v0.1.0-x86_64-unknown-linux-gnu/test_extension << "EOF"
 #!/usr/bin/env bash
 
 echo $@
 EOF
-  mkdir -p test_extension-v0.1.0-x86_64-unknown-linux-gnu
-  mv test_extension test_extension-v0.1.0-x86_64-unknown-linux-gnu
   cp -r test_extension-v0.1.0-x86_64-unknown-linux-gnu test_extension-v0.1.0-aarch64-apple-darwin
   cp -r test_extension-v0.1.0-x86_64-unknown-linux-gnu  test_extension-v0.1.0-x86_64-apple-darwin
   tar -czf test_extension-v0.1.0-x86_64-unknown-linux-gnu.tar.gz test_extension-v0.1.0-x86_64-unknown-linux-gnu
