@@ -95,7 +95,7 @@ impl ExtensionManager {
                     .join("extension.json"),
                 &extension_manifest,
             )
-            .map_err(|e| ExtensionError::SaveExtensionManifestFailed(e))?;
+            .map_err(ExtensionError::SaveExtensionManifestFailed)?;
         }
         self.finalize_installation(
             extension_name,

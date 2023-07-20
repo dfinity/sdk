@@ -225,11 +225,11 @@ EOF
 
 echo $@
 EOF
-  mkdir -p test_extension-v0.1.0-unknown-linux-gnu-x86_64
-  mv test_extension test_extension-v0.1.0-unknown-linux-gnu-x86_64
-  cp -r test_extension-v0.1.0-unknown-linux-gnu-x86_64 test_extension-v0.1.0-aarch64-apple-darwin
-  cp -r test_extension-v0.1.0-unknown-linux-gnu-x86_64 test_extension-v0.1.0-x86_64-apple-darwin
-  tar -czf test_extension-v0.1.0-unknown-linux-gnu-x86_64.tar.gz test_extension-v0.1.0-unknown-linux-gnu-x86_64
+  mkdir -p test_extension-v0.1.0-x86_64-unknown-linux-gnu
+  mv test_extension test_extension-v0.1.0-x86_64-unknown-linux-gnu
+  cp -r test_extension-v0.1.0-x86_64-unknown-linux-gnu test_extension-v0.1.0-aarch64-apple-darwin
+  cp -r test_extension-v0.1.0-x86_64-unknown-linux-gnu  test_extension-v0.1.0-x86_64-apple-darwin
+  tar -czf test_extension-v0.1.0-x86_64-unknown-linux-gnu.tar.gz test_extension-v0.1.0-x86_64-unknown-linux-gnu
   tar -czf test_extension-v0.1.0-aarch64-apple-darwin.tar.gz test_extension-v0.1.0-aarch64-apple-darwin
   tar -czf test_extension-v0.1.0-x86_64-apple-darwin.tar.gz test_extension-v0.1.0-x86_64-apple-darwin
   cat > registry.json <<EOF
@@ -252,9 +252,9 @@ EOF
         "description": "A longer description.",
         "subcommands": {},
         "binaries": {
-          "unknow-linux-gnu-x86_64": {
-            "url": "http://localhost:$port/test_extension-v0.1.0-unknown-linux-gnu-x86_64.tar.gz",
-            "sha256": "$(shasum -a 256 test_extension-v0.1.0-unknown-linux-gnu-x86_64.tar.gz | cut -d ' ' -f 1)"
+          "unknown-linux-gnu-x86_64": {
+            "url": "http://localhost:$port/test_extension-v0.1.0-x86_64-unknown-linux-gnu.tar.gz",
+            "sha256": "$(shasum -a 256 test_extension-v0.1.0-x86_64-unknown-linux-gnu.tar.gz | cut -d ' ' -f 1)"
           },
           "apple-darwin-x86_64": {
             "url": "http://localhost:$port/test_extension-v0.1.0-x86_64-apple-darwin.tar.gz ",
@@ -274,7 +274,7 @@ EOF
   python3 -m http.server "$port" &
   pid=$!
 
-  # # Wait until the server is up
+  # wait until the server is up
   while ! echo exit | nc localhost "$port"; do sleep 1; done
   echo "Server is up"
   echo yes | (
