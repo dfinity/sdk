@@ -10,7 +10,7 @@ use candid::Principal;
 use fn_error_context::context;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::agent_error::HttpErrorPayload;
-use ic_agent::AgentError;
+use ic_agent::{Agent, AgentError};
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::format;
@@ -73,70 +73,13 @@ pub async fn create_canister(
             let agent = env
                 .get_agent()
                 .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-            let mgr = ManagementCanister::create(agent);
             let cid = match call_sender {
                 CallSender::SelectedId => {
-                    let mut builder = mgr
-                        .create_canister()
-                        .as_provisional_create_with_amount(with_cycles)
-                        .with_effective_canister_id(env.get_effective_canister_id());
-                    if let Some(sid) = specified_id {
-                        builder = builder.as_provisional_create_with_specified_id(sid);
-                    }
-                    if let Some(controllers) = settings.controllers {
-                        for controller in controllers {
-                            builder = builder.with_controller(controller);
-                        }
-                    };
-                    let res = builder
-                        .with_optional_compute_allocation(settings.compute_allocation)
-                        .with_optional_memory_allocation(settings.memory_allocation)
-                        .with_optional_freezing_threshold(settings.freezing_threshold)
-                        .call_and_wait()
-                        .await;
-                    const NEEDS_WALLET: &str = "In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
-                        To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
-                        using `dfx ledger create-canister`, but doing so will not associate the created canister with any of the canisters in your project.";
-                    match res {
-                        Ok((o,)) => o,
-                        Err(AgentError::HttpError(HttpErrorPayload { status, .. }))
-                            if (400..500).contains(&status) =>
-                        {
-                            bail!(NEEDS_WALLET)
-                        }
-                        Err(AgentError::ReplicaError(RejectResponse {
-                            reject_code: RejectCode::CanisterReject,
-                            reject_message,
-                            ..
-                        })) if reject_message.contains("is not allowed to call ic00 method") => {
-                            bail!(NEEDS_WALLET)
-                        }
-                        Err(e) => return Err(e).context("Canister creation call failed."),
-                    }
+                    create_with_management_canister(env, agent, with_cycles, specified_id, settings)
+                        .await?
                 }
                 CallSender::Wallet(wallet_id) => {
-                    let wallet = build_wallet_canister(*wallet_id, agent).await?;
-                    let cycles =
-                        with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
-                    match wallet
-                        .wallet_create_canister(
-                            cycles,
-                            settings.controllers,
-                            settings.compute_allocation,
-                            settings.memory_allocation,
-                            settings.freezing_threshold,
-                        )
-                        .await
-                    {
-                        Ok(result) => Ok(result.canister_id),
-                        Err(AgentError::WalletUpgradeRequired(s)) => {
-                            bail!(format!(
-                                "{}\nTo upgrade, run dfx wallet upgrade.",
-                                AgentError::WalletUpgradeRequired(s)
-                            ));
-                        }
-                        Err(other) => Err(other),
-                    }?
+                    create_with_wallet(agent, wallet_id, with_cycles, settings).await?
                 }
             };
             let canister_id = cid.to_text();
@@ -152,4 +95,78 @@ pub async fn create_canister(
     }?;
 
     Ok(())
+}
+
+async fn create_with_management_canister(
+    env: &dyn Environment,
+    agent: &Agent,
+    with_cycles: Option<u128>,
+    specified_id: Option<Principal>,
+    settings: CanisterSettings,
+) -> DfxResult<Principal> {
+    let mgr = ManagementCanister::create(agent);
+    let mut builder = mgr
+        .create_canister()
+        .as_provisional_create_with_amount(with_cycles)
+        .with_effective_canister_id(env.get_effective_canister_id());
+    if let Some(sid) = specified_id {
+        builder = builder.as_provisional_create_with_specified_id(sid);
+    }
+    if let Some(controllers) = settings.controllers {
+        for controller in controllers {
+            builder = builder.with_controller(controller);
+        }
+    };
+    let res = builder
+        .with_optional_compute_allocation(settings.compute_allocation)
+        .with_optional_memory_allocation(settings.memory_allocation)
+        .with_optional_freezing_threshold(settings.freezing_threshold)
+        .call_and_wait()
+        .await;
+    const NEEDS_WALLET: &str = "In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
+                        To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
+                        using `dfx ledger create-canister`, but doing so will not associate the created canister with any of the canisters in your project.";
+    match res {
+        Ok((o,)) => Ok(o),
+        Err(AgentError::HttpError(HttpErrorPayload { status, .. }))
+            if (400..500).contains(&status) =>
+        {
+            Err(anyhow!(NEEDS_WALLET))
+        }
+        Err(AgentError::ReplicaError(RejectResponse {
+            reject_code: RejectCode::CanisterReject,
+            reject_message,
+            ..
+        })) if reject_message.contains("is not allowed to call ic00 method") => {
+            Err(anyhow!(NEEDS_WALLET))
+        }
+        Err(e) => Err(e).context("Canister creation call failed."),
+    }
+}
+
+async fn create_with_wallet(
+    agent: &Agent,
+    wallet_id: &Principal,
+    with_cycles: Option<u128>,
+    settings: CanisterSettings,
+) -> DfxResult<Principal> {
+    let wallet = build_wallet_canister(*wallet_id, agent).await?;
+    let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
+    match wallet
+        .wallet_create_canister(
+            cycles,
+            settings.controllers,
+            settings.compute_allocation,
+            settings.memory_allocation,
+            settings.freezing_threshold,
+        )
+        .await
+    {
+        Ok(result) => Ok(result.canister_id),
+        Err(AgentError::WalletUpgradeRequired(s)) => Err(anyhow!(format!(
+            "{}\nTo upgrade, run dfx wallet upgrade.",
+            AgentError::WalletUpgradeRequired(s)
+        ))),
+        Err(other) => Err(anyhow::Error::from(other)),
+    }
 }
