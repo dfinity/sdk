@@ -1,7 +1,8 @@
 use crate::commands::ledger::get_icpts_from_args;
 use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
-use crate::lib::ledger_types::{Memo, NotifyError};
+use crate::lib::error::{DfxResult, NotifyTopUpError::Notify};
+use crate::lib::ledger_types::Memo;
+use crate::lib::ledger_types::NotifyError::Refunded;
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 use crate::lib::operations::cmc::{notify_top_up, transfer_cmc};
@@ -81,16 +82,16 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
     )
     .await?;
     println!("Using transfer at block height {height}");
-    let result = notify_top_up(agent, to, height).await?;
+    let result = notify_top_up(agent, to, height).await;
 
     match result {
         Ok(cycles) => {
             println!("Canister was topped up with {cycles} cycles!");
         }
-        Err(NotifyError::Refunded {
+        Err(Notify(Refunded {
             reason,
             block_index,
-        }) => match block_index {
+        })) => match block_index {
             Some(height) => {
                 println!("Refunded at block height {height} with message: {reason}")
             }
