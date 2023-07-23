@@ -357,11 +357,15 @@ fn replica_start_thread(
         }
         cmd.args([
             "--initial-notary-delay-millis",
-            // The intial notary delay is set to 2500ms in the replica's
+            // The initial notary delay is set to 2500ms in the replica's
             // default subnet configuration to help running tests.
             // For our production network, we actually set them to 600ms.
             &format!("{artificial_delay}"),
         ]);
+
+        if config.use_old_metering {
+            cmd.args(["--use-old-metering"]);
+        }
 
         // This should agree with the value at
         // at https://gitlab.com/dfinity-lab/core/ic/-/blob/master/ic-os/guestos/rootfs/etc/systemd/system/ic-replica.service
