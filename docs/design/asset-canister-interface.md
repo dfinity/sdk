@@ -24,7 +24,7 @@ For brevity, this document does not reproduce the candid signatures for every me
 
 ## Retrieving Assets
 
-Asset retrieval begins with a call to either [get](#method-get) or [http_request](#method-http_request).
+Asset retrieval begins with a call to either [get()](#method-get) or [http_request()](#method-http_request).
 
 ### Asset Lookup
 
@@ -54,10 +54,10 @@ The size of each chunk is limited by the message ingress limit.
 ### Batch Updates
 
 The usual method of updating data in the asset canister is by calling the following methods:
-1. [create_batch](#method-create_batch) once.
-2. [create_chunk](#method-create_chunk) one or more times, which can occur concurrently.
-3. [commit_batch](#method-commit_batch) zero or more times with `batch_id: 0`.
-4. [commit_batch](#method-commit_batch) once with the batch ID from step 1, which indicates the batch is complete.
+1. [create_batch()](#method-create_batch) once.
+2. [create_chunk()](#method-create_chunk) one or more times, which can occur concurrently.
+3. [commit_batch()](#method-commit_batch) zero or more times with `batch_id: 0`.
+4. [commit_batch()](#method-commit_batch) once with the batch ID from step 1, which indicates the batch is complete.
 
 The reason for multiple rather than single calls to [commit_batch][#method-commit_batch] is that certificate computation for an entire batch may exceed per-message computation limits.
 
@@ -68,23 +68,23 @@ If an SNS controls an asset canister, it can update the assets by proposal. In t
 - The Committer, which must have the [Commit](#permission-commit) permission. This principal commits the previously-proposed changes.
 
 In this scenario, the Preparer calls the following methods:
-1. [create_batch](#method-create_batch) once.
-2. [create_chunk](#method-create_chunk) one or more times, which can occur concurrently.
-3. [propose_commit_batch](#method-propose_commit_batch) once.
-4. [compute_evidence](#method-compute_evidence) until the method returns `Some(evidence)`.
+1. [create_batch()](#method-create_batch) once.
+2. [create_chunk()](#method-create_chunk) one or more times, which can occur concurrently.
+3. [propose_commit_batch()](#method-propose_commit_batch) once.
+4. [compute_evidence()](#method-compute_evidence) until the method returns `Some(evidence)`.
 
 The Preparer then furnishes the Committer with the following information:
 - the batch ID
 - the computed evidence
 
 The Committer then calls the following method upon approval of the proposal:
-1. [commit_proposed_batch](#method-commit_proposed_batch)
+1. [commit_proposed_batch()](#method-commit_proposed_batch)
 
-If the proposal is not approved, the Preparer must call [delete_batch](#method-delete_batch).
+If the proposal is not approved, the Preparer must call [delete_batch()](#method-delete_batch).
 
 ### Individual Updates
 
-It is also possible to upload a single content encoding of a single asset by calling the [store](#method-store) method.  The size of the content encoding must not exceed the message ingress limit.
+It is also possible to upload a single content encoding of a single asset by calling the [store()](#method-store) method.  The size of the content encoding must not exceed the message ingress limit.
 
 ## Type Reference
 
@@ -165,7 +165,7 @@ Then, it searches the asset's [content encodings](#content-encodings) in the ord
 
 Finally, it returns the first chunk of the content encoding.
 
-If `total_length` exceeds the length of the returned `content` blob, this means that there is more than one chunk.  The caller can then call [get_chunk](#method-get_chunk) to retrieve the remaining chunks.  Note that since all chunks except the last have the same length as the first chunk, the caller can determine the number of chunks by dividing `total_length` by the length of the first chunk.
+If `total_length` exceeds the length of the returned `content` blob, this means that there is more than one chunk.  The caller can then call [get_chunk()](#method-get_chunk) to retrieve the remaining chunks.  Note that since all chunks except the last have the same length as the first chunk, the caller can determine the number of chunks by dividing `total_length` by the length of the first chunk.
 
 The `sha256` field is `opt` only because it was added after the initial release of the asset canister.  It must always be present in the response.
 
@@ -184,7 +184,7 @@ This method looks up the asset with the given key, using [aliasing](#aliasing) r
 
 It returns the chunk with the given index of the specified content encoding of the asset.
 
-The asset canister returns an error if the `sha256` field is not present, or if the `sha256` field does not match the hash of the content encoding.  This protects against changes to the content encoding in between calls to [get](#method-get) and [get_chunk](#method-get_chunk).
+The asset canister returns an error if the `sha256` field is not present, or if the `sha256` field does not match the hash of the content encoding.  This protects against changes to the content encoding in between calls to [get()](#method-get) and [get_chunk()](#method-get_chunk).
 
 ### Method: `list`
 
@@ -218,7 +218,7 @@ If the response to an `http_request` call includes a `streaming_strategy`, then 
 This method creates a new [batch](#batch) and returns its ID.
 
 Preconditions:
-- No batch exists for which [propose_commit_batch](#method-propose_commit_batch) has been called.
+- No batch exists for which [propose_commit_batch()](#method-propose_commit_batch) has been called.
 - Creation of a new batch would not exceed batch creation limits.
 
 Required Permission: [Prepare](#permission-prepare)
@@ -298,13 +298,13 @@ Required permission: [Prepare](#permission-prepare)
 
 ### Method: `commit_proposed_batch`
 
-This method executes the operations previously supplied by [propose_commit_batch](#method-propose_commit_batch), and deletes the batch.
+This method executes the operations previously supplied by [propose_commit_batch()](#method-propose_commit_batch), and deletes the batch.
 
 Preconditions:
 - The batch exists.
 - The batch has proposed commit batch arguments.
 - Evidence computation has completed.
-- Evidence passed in the arguments matches the evidence previously computed by [compute_evidence](#method-compute_evidence).
+- Evidence passed in the arguments matches the evidence previously computed by [compute_evidence()](#method-compute_evidence).
 
 Required permission: [Commit](#permission-commit)
 
@@ -326,7 +326,7 @@ This method returns a list of principals that have the given permission.
 
 ### Method: `authorize`
 
-> **NOTE**: This method is deprecated. Use [grant_permission](#method-grant_permission) instead.
+> **NOTE**: This method is deprecated. Use [grant_permission()](#method-grant_permission) instead.
 
 This method grants the [Commit](#Permission_commit) permission to a principal.
 
@@ -334,7 +334,7 @@ Callable by: Principals with [ManagePermissions](#permission-managepermissions) 
 
 ### Method: `deauthorize`
 
-> **NOTE**: This method is deprecated. Use [revoke_permission](#method-revoke_permission) instead.
+> **NOTE**: This method is deprecated. Use [revoke_permission()](#method-revoke_permission) instead.
 
 This method revokes the [Commit](#Permission_commit) permission from a principal.
 
@@ -342,7 +342,7 @@ Callable by: Principals with [ManagePermissions](#permission-managepermissions) 
 
 ### Method: `list_authorized`
 
-> **NOTE**: This method is deprecated. Use [list_permitted](#method-list_permitted) instead.
+> **NOTE**: This method is deprecated. Use [list_permitted()](#method-list_permitted) instead.
 
 This method returns a list of principals that have the [Commit](#Permission_commit) permission.
 
@@ -366,7 +366,7 @@ This method returns the certified tree.
 
 Each of these methods is the equivalent of its respective batch operation.
 
-While they are provided for "convenience," some don't really make sense.  For example, [set_asset_content()](#operation-setassetcontent) requires chunk ids, but [create_chunk()](#method-createchunk) requires a batch.
+While they are provided for "convenience," some don't actually make sense.  For example, [set_asset_content()](#operation-setassetcontent) requires chunk ids, but [create_chunk()](#method-createchunk) requires a batch.
 
 These methods may be deprecated in the future.  It is recommended to instead call [commit_batch()](#method-commitbatch) with a single operation, specifying batch ID 0. 
 
@@ -468,7 +468,7 @@ This operation deletes all assets.
 
 ## Configuration Reference
 
-These are set by the [configure](#method-configure) method.  All limits default to unlimited.
+These are set by the [configure()](#method-configure) method.  All limits default to unlimited.
 
 | Configuration | Description                                                                         |
 |---------------|-------------------------------------------------------------------------------------|
