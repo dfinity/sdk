@@ -80,7 +80,7 @@ The Preparer then furnishes the Committer with the following information:
 The Committer then calls the following method upon approval of the proposal:
 1. [commit_proposed_batch()](#method-commit_proposed_batch)
 
-If the proposal is not approved, the Preparer must call [delete_batch()](#method-delete_batch).
+If the proposal is not approved, the Preparer must call [delete_batch()](#method-delete_batch).  Until this is done, all calls to [create_batch()](#method-create_batch) will fail.
 
 ### Individual Updates
 
@@ -293,6 +293,11 @@ Since calculation of this hash may exceed per-message computation limits, this m
 The method will return `None` if the hash computation has not yet completed, or `Some(evidence)` if the hash computation has been completed.
 
 The returned `evidence` value must be passed to the `commit_proposed_batch` method.
+
+After the hash computation has completed, the batch will no longer expire. The batch will remain until one of the following occurs:
+- a call to [commit_proposed_batch()]
+- a call to [delete_batch()]
+- the canister is upgraded
 
 Required permission: [Prepare](#permission-prepare)
 
