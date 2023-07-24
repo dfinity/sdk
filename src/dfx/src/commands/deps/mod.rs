@@ -1,7 +1,6 @@
 use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::{environment::Environment, error::DfxResult};
 use crate::NetworkOpt;
-
 use clap::Parser;
 use tokio::runtime::Runtime;
 

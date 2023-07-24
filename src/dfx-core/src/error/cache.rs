@@ -1,9 +1,8 @@
-use thiserror::Error;
-
 use super::{
     archive::ArchiveError, fs::FsError, structured_file::StructuredFileError,
     unified_io::UnifiedIoError,
 };
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CacheError {

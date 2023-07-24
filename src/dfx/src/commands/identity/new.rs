@@ -1,18 +1,16 @@
-use anyhow::Context;
-use regex::Regex;
-use std::str::FromStr;
-
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::clap::parsers::hsm_key_id_parser;
+use anyhow::Context;
+use clap::Parser;
 use dfx_core::error::identity::IdentityError::SwitchBackToIdentityFailed;
 use dfx_core::identity::identity_manager::{
     HardwareIdentityConfiguration, IdentityCreationParameters, IdentityStorageMode,
 };
-use IdentityCreationParameters::{Hardware, Pem};
-
-use clap::Parser;
+use regex::Regex;
 use slog::{info, warn, Logger};
+use std::str::FromStr;
+use IdentityCreationParameters::{Hardware, Pem};
 
 /// Creates a new identity.
 #[derive(Parser)]

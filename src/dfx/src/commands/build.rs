@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use crate::config::cache::DiskBasedCache;
 use crate::lib::agent::create_agent_environment;
 use crate::lib::builders::BuildConfig;
@@ -7,9 +5,9 @@ use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::NetworkOpt;
-
 use clap::Parser;
 use dfx_core::config::model::dfinity::Config;
+use std::path::PathBuf;
 use tokio::runtime::Runtime;
 
 /// Builds all or specific canisters from the code in your project. By default, all canisters are built.

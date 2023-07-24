@@ -1,7 +1,6 @@
 use crate::error::config::ConfigError;
 use crate::error::fs::FsError;
 use crate::error::structured_file::StructuredFileError;
-
 use thiserror::Error;
 
 #[derive(Error, Debug)]

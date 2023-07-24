@@ -30,7 +30,6 @@ use crate::error::SyncError;
 use crate::error::SyncError::CommitBatchFailed;
 use crate::error::UploadContentError;
 use crate::error::UploadContentError::{CreateBatchFailed, ListAssetsFailed};
-
 use candid::Nat;
 use ic_agent::AgentError;
 use ic_utils::Canister;

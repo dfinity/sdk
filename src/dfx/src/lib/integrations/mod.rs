@@ -4,11 +4,10 @@ use crate::lib::environment::create_agent;
 use crate::lib::error::DfxResult;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::util::{blob_from_arguments, expiry_duration};
-use dfx_core::error::root_key::FetchRootKeyError;
-use dfx_core::identity::Identity;
-
 use anyhow::bail;
 use candid::Principal;
+use dfx_core::error::root_key::FetchRootKeyError;
+use dfx_core::identity::Identity;
 use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;

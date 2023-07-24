@@ -1,5 +1,4 @@
 pub mod composite;
-
 use crate::error::archive::ArchiveError;
 use crate::error::fs::FsError;
 use crate::error::fs::FsErrorKind::{
@@ -8,7 +7,6 @@ use crate::error::fs::FsErrorKind::{
     RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
     UnpackingArchiveFailed, WriteFileFailed, WritePermissionsFailed,
 };
-
 use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
 

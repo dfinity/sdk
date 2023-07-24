@@ -3,15 +3,13 @@
 // The contents are borrowed from:
 // dfinity-lab/dfinity@25999dd54d29c24edb31483801bddfd8c1d780c8
 // https://github.com/dfinity-lab/dfinity/blob/master/rs/rosetta-api/ledger_canister/src/icpts.rs
-
+use crate::lib::error::DfxResult;
 use candid::CandidType;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
-
-use crate::lib::error::DfxResult;
 
 #[derive(
     Serialize,

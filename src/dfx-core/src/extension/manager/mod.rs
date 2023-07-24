@@ -1,6 +1,5 @@
 use crate::config::cache::get_cache_path_for_version;
 use crate::error::extension::ExtensionError;
-
 use semver::Version;
 use std::path::PathBuf;
 

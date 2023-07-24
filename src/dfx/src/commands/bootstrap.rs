@@ -6,7 +6,6 @@ use crate::util::get_reusable_socket_addr;
 use crate::NetworkOpt;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
-
 use anyhow::{anyhow, Context, Error};
 use clap::Parser;
 use fn_error_context::context;

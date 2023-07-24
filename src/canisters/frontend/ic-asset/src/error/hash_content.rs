@@ -1,5 +1,4 @@
 use crate::asset::content_encoder::ContentEncoder;
-
 use dfx_core::error::fs::FsError;
 use thiserror::Error;
 

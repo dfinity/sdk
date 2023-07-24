@@ -1,5 +1,9 @@
+use crate::lib::identity::wallet::wallet_canister_id;
+use crate::lib::operations::canister::install_wallet;
+use crate::lib::{environment::Environment, error::DfxResult, root_key::fetch_root_key_if_needed};
 use anyhow::{bail, Context, Error};
 use candid::{CandidType, Deserialize, Principal};
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::Identity;
 use ic_agent::{Agent, Identity as _};
 use ic_utils::{
@@ -10,11 +14,6 @@ use ic_utils::{
     Argument,
 };
 use itertools::Itertools;
-
-use crate::lib::identity::wallet::wallet_canister_id;
-use crate::lib::operations::canister::install_wallet;
-use crate::lib::{environment::Environment, error::DfxResult, root_key::fetch_root_key_if_needed};
-use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 
 pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bool) -> DfxResult {
     fetch_root_key_if_needed(env).await?;

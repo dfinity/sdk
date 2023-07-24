@@ -1,9 +1,7 @@
 use super::signed_message::SignedMessageV1;
-
 use candid::Principal;
 use ic_agent::agent::Transport;
 use ic_agent::{AgentError, RequestId};
-
 use std::fs::{File, OpenOptions};
 use std::future::Future;
 use std::io::{Read, Write};

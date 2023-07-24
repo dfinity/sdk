@@ -1,3 +1,5 @@
+use super::pem_utils::validate_pem_file;
+use super::{keyring_mock, WALLET_CONFIG_FILENAME};
 use crate::config::directories::get_config_dfx_dir_path;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
@@ -26,7 +28,6 @@ use crate::identity::{
     TEMP_IDENTITY_PREFIX,
 };
 use crate::json::{load_json_file, save_json_file};
-
 use bip32::XPrv;
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use candid::Principal;
@@ -40,9 +41,6 @@ use std::boxed::Box;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use thiserror::Error;
-
-use super::pem_utils::validate_pem_file;
-use super::{keyring_mock, WALLET_CONFIG_FILENAME};
 
 const DEFAULT_IDENTITY_NAME: &str = "default";
 

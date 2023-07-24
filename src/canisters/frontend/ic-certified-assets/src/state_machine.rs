@@ -3,7 +3,6 @@
 // NB. This module should not depend on ic_cdk, it contains only pure state transition functions.
 // All the environment (time, certificates, etc.) is passed to the state transition functions
 // as formal arguments.  This approach makes it very easy to test the state machine.
-
 use crate::{
     asset_certification::{
         types::{
@@ -24,7 +23,6 @@ use crate::{
     types::*,
     url_decode::url_decode,
 };
-
 use candid::{CandidType, Deserialize, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash};
 use ic_representation_independent_hash::Value;

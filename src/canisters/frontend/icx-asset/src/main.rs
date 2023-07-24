@@ -1,16 +1,14 @@
 mod commands;
 mod support;
-
 use crate::commands::list::list;
 use crate::commands::sync::sync;
+use crate::commands::upload::upload;
 use anstyle::{AnsiColor, Style};
 use candid::Principal;
 use clap::builder::Styles;
 use clap::{crate_authors, crate_version, Parser};
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
 use ic_agent::{agent, Agent, Identity};
-
-use crate::commands::upload::upload;
 use std::path::PathBuf;
 
 const DEFAULT_IC_GATEWAY: &str = "https://icp0.io";

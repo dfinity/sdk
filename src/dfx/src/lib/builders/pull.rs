@@ -6,7 +6,6 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-
 use anyhow::bail;
 use candid::Principal as CanisterId;
 use fn_error_context::context;

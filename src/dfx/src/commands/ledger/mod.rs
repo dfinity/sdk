@@ -3,7 +3,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::nns_types::icpts::ICPTs;
 use crate::NetworkOpt;
-
 use anyhow::anyhow;
 use clap::Parser;
 use fn_error_context::context;

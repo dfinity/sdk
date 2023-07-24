@@ -1,14 +1,13 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::cycle_amount_parser;
-use dfx_core::identity::CallSender;
-
-use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use anyhow::Context;
 use candid::Principal;
 use clap::Parser;
+use dfx_core::identity::CallSender;
 use slog::info;
 
 /// Deposit cycles into the specified canister.

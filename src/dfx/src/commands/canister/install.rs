@@ -5,12 +5,11 @@ use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{blob_from_arguments, get_candid_init_type};
-use dfx_core::canister::install_canister_wasm;
-use dfx_core::identity::CallSender;
-
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
+use dfx_core::canister::install_canister_wasm;
+use dfx_core::identity::CallSender;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
 use std::fs;

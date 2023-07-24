@@ -1,17 +1,16 @@
 #![allow(dead_code)]
 use crate::lib::error::DfxResult;
 use crate::lib::metadata::config::CanisterMetadataConfig;
+use anyhow::{anyhow, Context};
+use candid::Principal as CanisterId;
+use candid::Principal;
+use core::panic;
 use dfx_core::config::model::dfinity::{
     CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config, Pullable,
     WasmOptLevel,
 };
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
-
-use anyhow::{anyhow, Context};
-use candid::Principal as CanisterId;
-use candid::Principal;
-use core::panic;
 use fn_error_context::context;
 use std::path::{Path, PathBuf};
 
@@ -20,13 +19,11 @@ pub mod custom;
 pub mod motoko;
 pub mod pull;
 pub mod rust;
-
+use self::pull::PullCanisterInfo;
 use assets::AssetsCanisterInfo;
 use custom::CustomCanisterInfo;
 use motoko::MotokoCanisterInfo;
 use rust::RustCanisterInfo;
-
-use self::pull::PullCanisterInfo;
 
 pub trait CanisterInfoFactory {
     fn create(info: &CanisterInfo) -> DfxResult<Self>

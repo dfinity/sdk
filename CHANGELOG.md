@@ -82,7 +82,8 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Candid UI
 
-- Module hash: 886d113aa335b709db770ec8fe156b5ec8c7b55cbe0184b1168342a597f31fb4
+- Module hash: b9173bb25dabe5e2b736a8f2816e68fba14ca72132f5485ce7b8f16a85737a17
+- https://github.com/dfinity/sdk/pull/3260
 - https://github.com/dfinity/sdk/pull/3252
 - https://github.com/dfinity/candid/pull/449
 - https://github.com/dfinity/candid/pull/453

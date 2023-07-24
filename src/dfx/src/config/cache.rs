@@ -8,7 +8,6 @@ use dfx_core::config::cache::{
 #[cfg(windows)]
 use dfx_core::config::directories::project_dirs;
 use dfx_core::error::cache::CacheError;
-
 use dfx_core::error::unified_io::UnifiedIoError;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;

@@ -1,7 +1,6 @@
 use candid::{CandidType, Int, Nat};
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
-
 use num_traits::ToPrimitive;
 use serde::Deserialize;
 use slog::{info, Logger};

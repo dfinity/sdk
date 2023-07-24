@@ -4,7 +4,6 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::state_tree::canister_info::{
     read_state_tree_canister_controllers, read_state_tree_canister_module_hash,
 };
-
 use anyhow::anyhow;
 use candid::Principal;
 use clap::Parser;

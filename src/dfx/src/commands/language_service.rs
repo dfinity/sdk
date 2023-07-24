@@ -3,15 +3,14 @@ use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::package_arguments::{self, PackageArguments};
+use anyhow::{anyhow, bail, Context};
+use candid::Principal;
+use clap::Parser;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{
     ConfigCanistersCanister, ConfigInterface, CONFIG_FILE_NAME,
 };
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
-
-use anyhow::{anyhow, bail, Context};
-use candid::Principal;
-use clap::Parser;
 use fn_error_context::context;
 use std::path::PathBuf;
 use std::process::Stdio;

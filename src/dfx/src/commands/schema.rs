@@ -1,11 +1,9 @@
-use std::path::PathBuf;
-
 use crate::lib::error::DfxResult;
-use dfx_core::config::model::dfinity::{ConfigInterface, TopLevelConfigNetworks};
-
 use anyhow::Context;
 use clap::{Parser, ValueEnum};
+use dfx_core::config::model::dfinity::{ConfigInterface, TopLevelConfigNetworks};
 use schemars::schema_for;
+use std::path::PathBuf;
 
 #[derive(ValueEnum, Clone)]
 enum ForFile {

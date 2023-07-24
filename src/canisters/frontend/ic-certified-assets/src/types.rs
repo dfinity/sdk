@@ -1,11 +1,9 @@
 //! This module defines types shared by the certified assets state machine and the canister
 //! endpoints.
-use std::collections::HashMap;
-
+use crate::asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde_bytes::ByteBuf;
-
-use crate::asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
+use std::collections::HashMap;
 
 pub type BatchId = Nat;
 pub type ChunkId = Nat;

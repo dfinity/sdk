@@ -3,11 +3,10 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::wallet::set_wallet_id;
-use dfx_core::canister::build_wallet_canister;
-
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;
+use dfx_core::canister::build_wallet_canister;
 use ic_utils::interfaces::wallet::BalanceResult;
 use slog::{error, info};
 use tokio::runtime::Runtime;

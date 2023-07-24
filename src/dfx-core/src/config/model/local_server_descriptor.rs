@@ -8,7 +8,6 @@ use crate::config::model::dfinity::{
 use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
-
 use slog::{debug, info, Logger};
 use std::net::{IpAddr, SocketAddr};
 use std::path::{Path, PathBuf};

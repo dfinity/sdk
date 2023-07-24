@@ -1,10 +1,9 @@
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::Manifest;
 use crate::{error_invalid_argument, error_invalid_data};
+use anyhow::Context;
 #[cfg(windows)]
 use dfx_core::config::directories::project_dirs;
-
-use anyhow::Context;
 use flate2::read::GzDecoder;
 use fn_error_context::context;
 use indicatif::{ProgressBar, ProgressDrawTarget};

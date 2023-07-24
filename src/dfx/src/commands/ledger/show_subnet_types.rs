@@ -1,9 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{GetSubnetTypesToSubnetsResult, MAINNET_CYCLE_MINTER_CANISTER_ID};
-
 use crate::lib::root_key::fetch_root_key_if_needed;
-
 use anyhow::{anyhow, Context};
 use candid::{Decode, Encode, Principal};
 use clap::Parser;

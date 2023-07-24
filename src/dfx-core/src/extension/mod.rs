@@ -2,10 +2,8 @@
 
 pub mod manager;
 pub mod manifest;
-
 use crate::error::extension::ExtensionError;
 use crate::extension::{manager::ExtensionManager, manifest::ExtensionManifest};
-
 use clap::Command;
 use std::{
     fmt::{Display, Formatter},

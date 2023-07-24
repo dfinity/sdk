@@ -2,7 +2,6 @@ use crate::error::config::ConfigError;
 use crate::error::fs::FsError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError;
 use crate::error::uri::UriError;
-
 use std::num::ParseIntError;
 use std::path::PathBuf;
 use thiserror::Error;
