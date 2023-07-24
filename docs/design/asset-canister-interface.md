@@ -370,14 +370,14 @@ While they are provided for "convenience," some don't actually make sense.  For 
 
 These methods may be deprecated in the future.  It is recommended to instead call [commit_batch()](#method-commitbatch) with a single operation, specifying batch ID 0. 
 
-| Method                   | Operation                                            |
-|--------------------------|------------------------------------------------------| 
-| `create_asset()`         | [CreateAsset](#operation-createasset)                |
-| `delete_asset()`         | [DeleteAsset](#operation-deleteasset)                |
-| `set_asset_content()`    | [SetAssetContent](#operation-setassetcontent)        |
-| `set_asset_properties()` | [SetAssetProperties](#operation-setassetproperties)  |
-| `unset_asset_content()`  | [UnsetAssetContent](#operation-unsetassetcontent     |
-| `clear()`                | [Clear](#operation-clear)                            |
+| Method                   | Operation                                           |
+|--------------------------|-----------------------------------------------------|
+| `create_asset()`         | [CreateAsset](#operation-createasset)               |
+| `delete_asset()`         | [DeleteAsset](#operation-deleteasset)               |
+| `set_asset_content()`    | [SetAssetContent](#operation-setassetcontent)       |
+| `set_asset_properties()` | [SetAssetProperties](#operation-setassetproperties) |
+| `unset_asset_content()`  | [UnsetAssetContent](#operation-unsetassetcontent)   |
+| `clear()`                | [Clear](#operation-clear)                           |
 
 Each of these methods requires permission: [Commit](#permission-commit)
 
