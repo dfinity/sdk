@@ -124,9 +124,13 @@ The `headers` field is a list of additional headers to set when serving the asse
 
 #### Enable Aliasing
 
-This field is sometimes called `is_aliased` in the interface, but it should be called `enable_aliasing` everywhere.  It enables a behavior.  It does not indicate that the behavior is currently active for the asset.
-
 This field enables retrieval of this asset by a different key, according to the [aliasing](#aliasing) rules.
+
+> **NOTE** The interface uses more than one name for this field:
+> - `enable_aliasing` in [CreateAsset](#operation-createasset) arguments
+> - `is_aliased` in [SetAssetProperties](#operation-setassetproperties) arguments and in the return value of [get_asset_properties()](#method-get_asset_properties).
+>
+> In all cases, it indicates that the asset's key _might be_ an alias for another asset, not that it is _definitely the case_ for the asset in question.  It will often be `true` for assets which are not an alias for another asset.
 
 #### Raw Access
 
