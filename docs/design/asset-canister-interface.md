@@ -28,7 +28,11 @@ Asset retrieval begins with a call to either [get()](#method-get) or [http_reque
 
 ### Asset Lookup
 
-The asset canister looks up assets by [key](#key) in a case-sensitive manner.
+The asset canister looks up assets by [key](#key).  An asset key is a unique, case-sensitive identifier.  Asset keys are usually pathnames, and by convention begin with a forward slash.
+
+Examples:
+- `/index.html`
+- `/img/how-it-works/chain-key-signature.jpg`
 
 #### Aliasing
 
@@ -38,6 +42,11 @@ The aliasing rules are as follows:
 
 - an attempt to retrieve `{some key}/` can instead retrieve `{some key}/index.html`
 - an attempt to retrieve `{some key}`, where `{some key}` does not end with `.html`, can instead retrieve either `{some key}.html` or `{some key}/index.html`
+
+Examples:
+- an attempt to retrieve `/` can instead retrieve `/index.html`
+- an attempt to retrieve `/docs/language-guide/about-this-guide/` can instead retrieve `/docs/language-guide/about-this-guide/index.html`
+- an attempt to retrieve `/docs/language-guide/about-this-guide` can instead retrieve `/docs/language-guide/about-this-guide/index.html` or `/docs/language-guide/about-this-guide.html`
 
 ### Content Encoding Selection
 
