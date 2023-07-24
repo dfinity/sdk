@@ -8,6 +8,8 @@ A canister that implements this interface can also return dynamic results from t
 
 This document is meant to describe the interface with enough detail to aid in understanding how the asset canister works and in interacting with the asset canister at the code level.  It does not describe the interface in sufficient detail to rise to the level of a specification.
 
+This document describes an interface, not an implementation. The IC SDK bundles one such possible implementation, the [IC Frontend Canister](https://github.com/dfinity/sdk/tree/master/src/canisters/frontend/ic-frontend-canister).
+
 For brevity, this document does not reproduce the candid signatures for every method. 
 
 ## Table of Contents
