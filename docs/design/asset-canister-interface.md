@@ -371,9 +371,9 @@ This method returns the certified tree.
 
 Each of these methods is the equivalent of its respective batch operation.
 
-While they are provided for "convenience," some don't actually make sense.  For example, [set_asset_content()](#operation-setassetcontent) requires chunk ids, but [create_chunk()](#method-createchunk) requires a batch.
-
-These methods may be deprecated in the future.  It is recommended to instead call [commit_batch()](#method-commitbatch) with a single operation, specifying batch ID 0. 
+> **NOTE**: While they are provided for "convenience," some don't actually make sense.  For example, [set_asset_content()](#operation-setassetcontent) requires chunk ids, but [create_chunk()](#method-createchunk) requires a batch.
+>
+> These methods may be deprecated in the future.  It is recommended to instead call [commit_batch()](#method-commitbatch) with a single operation, specifying batch ID 0.
 
 | Method                   | Operation                                           |
 |--------------------------|-----------------------------------------------------|
