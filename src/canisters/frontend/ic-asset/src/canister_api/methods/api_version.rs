@@ -1,5 +1,4 @@
 use crate::canister_api::methods::method_names::API_VERSION;
-
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
 

@@ -1,10 +1,9 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::NetworkOpt;
-
-use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use anyhow::Context;
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;

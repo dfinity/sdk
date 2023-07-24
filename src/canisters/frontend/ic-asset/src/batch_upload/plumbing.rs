@@ -8,7 +8,6 @@ use crate::error::CreateChunkError;
 use crate::error::CreateEncodingError;
 use crate::error::CreateEncodingError::EncodeContentFailed;
 use crate::error::CreateProjectAssetError;
-
 use candid::Nat;
 use futures::future::try_join_all;
 use futures::TryFutureExt;

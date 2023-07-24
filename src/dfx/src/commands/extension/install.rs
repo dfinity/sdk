@@ -1,9 +1,8 @@
 use crate::commands::DfxCommand;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use clap::Subcommand;
-
 use clap::Parser;
+use clap::Subcommand;
 use dfx_core::error::extension::ExtensionError;
 
 #[derive(Parser)]

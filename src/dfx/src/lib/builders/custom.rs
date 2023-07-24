@@ -7,9 +7,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::util::download_file_to_path;
-
 use anyhow::{anyhow, Context};
-
 use candid::Principal as CanisterId;
 use console::style;
 use fn_error_context::context;

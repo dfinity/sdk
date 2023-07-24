@@ -1,6 +1,5 @@
-use crate::config::cache::get_bin_cache;
-
 use super::ExtensionManager;
+use crate::config::cache::get_bin_cache;
 use crate::error::extension::ExtensionError;
 use std::ffi::OsString;
 

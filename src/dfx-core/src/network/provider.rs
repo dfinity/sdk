@@ -14,7 +14,6 @@ use crate::error::network_config::NetworkConfigError::{
 };
 use crate::identity::WALLET_CONFIG_FILENAME;
 use crate::util;
-
 use lazy_static::lazy_static;
 use slog::{debug, info, warn, Logger};
 use std::path::{Path, PathBuf};

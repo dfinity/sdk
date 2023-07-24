@@ -4,7 +4,6 @@ use crate::config::model::local_server_descriptor::LocalServerDescriptor;
 use crate::error::network_config::NetworkConfigError;
 use crate::error::network_config::NetworkConfigError::{NetworkHasNoProviders, NetworkMustBeLocal};
 use crate::error::uri::UriError;
-
 use slog::Logger;
 use std::path::{Path, PathBuf};
 use url::Url;

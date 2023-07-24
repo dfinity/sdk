@@ -2,7 +2,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::toolchain;
 use crate::lib::toolchain::Toolchain;
-
 use anyhow::Context;
 use clap::Parser;
 

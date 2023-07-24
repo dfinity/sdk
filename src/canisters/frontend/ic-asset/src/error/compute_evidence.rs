@@ -2,7 +2,6 @@ use crate::error::create_project_asset::CreateProjectAssetError;
 use crate::error::gather_asset_descriptors::GatherAssetDescriptorsError;
 use crate::error::get_asset_properties::GetAssetPropertiesError;
 use crate::error::hash_content::HashContentError;
-
 use ic_agent::AgentError;
 use thiserror::Error;
 

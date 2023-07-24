@@ -1,3 +1,4 @@
+use super::environment::Environment;
 use crate::lib::error_code;
 use anyhow::Error as AnyhowError;
 use ic_agent::agent::{RejectCode, RejectResponse};
@@ -6,8 +7,6 @@ use ic_asset::error::{GatherAssetDescriptorsError, SyncError, UploadContentError
 use regex::Regex;
 use std::path::Path;
 use thiserror::Error as ThisError;
-
-use super::environment::Environment;
 
 /// Contains two Option<Strings> that can be displayed to the user:
 ///   - Error explanation: Goes into a bit of detail on what the error is and/or where the user can find out more about it.

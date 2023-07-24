@@ -8,11 +8,10 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
-use dfx_core::config::cache::Cache;
-use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
-
 use anyhow::Context;
 use candid::Principal as CanisterId;
+use dfx_core::config::cache::Cache;
+use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
 use fn_error_context::context;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};

@@ -1,5 +1,4 @@
 use crate::lib::error::DfxResult;
-
 use anyhow::{bail, Context};
 use ic_agent::agent::http_transport::ReqwestHttpReplicaV2Transport;
 use ic_agent::Agent;

@@ -1,6 +1,5 @@
 use crate::asset::content_encoder::ContentEncoder;
 use crate::error::create_chunk::CreateChunkError;
-
 use thiserror::Error;
 
 /// Errors related to creating/uploading an asset content encoding to the asset canister

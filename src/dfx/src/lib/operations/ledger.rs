@@ -8,7 +8,6 @@ use crate::lib::{
     },
     nns_types::{account_identifier::AccountIdentifier, icpts::ICPTs},
 };
-
 use anyhow::{bail, ensure, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;

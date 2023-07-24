@@ -1,8 +1,7 @@
+use crate::SyncOpts;
 use ic_utils::Canister;
 use slog::Logger;
 use std::path::Path;
-
-use crate::SyncOpts;
 
 pub(crate) async fn sync(
     canister: &Canister<'_>,

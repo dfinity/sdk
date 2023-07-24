@@ -7,7 +7,6 @@ use crate::lib::deps::{
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
-
 use anyhow::anyhow;
 use candid::Principal;
 use clap::Parser;

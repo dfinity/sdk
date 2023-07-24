@@ -5,13 +5,12 @@ use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{cycle_amount_parser, file_or_stdin_parser};
 use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob};
-use dfx_core::identity::CallSender;
-
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::{CandidType, Decode, Deserialize, Principal};
 use clap::Parser;
 use dfx_core::canister::build_wallet_canister;
+use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};

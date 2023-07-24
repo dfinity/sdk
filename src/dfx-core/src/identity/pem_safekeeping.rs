@@ -11,7 +11,6 @@ use crate::error::identity::IdentityError::{
 use crate::identity::identity_file_locations::IdentityFileLocations;
 use crate::identity::keyring_mock;
 use crate::identity::pem_safekeeping::PromptMode::{DecryptingToUse, EncryptingToCreate};
-
 use aes_gcm::aead::{Aead, NewAead};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 use argon2::{password_hash::PasswordHasher, Argon2};

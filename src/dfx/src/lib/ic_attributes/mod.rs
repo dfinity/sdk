@@ -1,9 +1,8 @@
 use crate::lib::error::DfxResult;
-use dfx_core::config::model::dfinity::ConfigInterface;
-
 use anyhow::{anyhow, Context};
 use byte_unit::Byte;
 use candid::Principal;
+use dfx_core::config::model::dfinity::ConfigInterface;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,

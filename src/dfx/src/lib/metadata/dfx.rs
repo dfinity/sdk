@@ -2,11 +2,9 @@
 //!
 //! The cli tool dfx should consolidate its usage of canister metadata into this single section
 //! It's originally for pulling dependencies. But open to extend for other usage.
-
 use crate::lib::error::DfxResult;
-use dfx_core::config::model::dfinity::Pullable;
-
 use anyhow::bail;
+use dfx_core::config::model::dfinity::Pullable;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]

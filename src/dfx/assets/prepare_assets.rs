@@ -1,3 +1,10 @@
+use crate::Source;
+use backoff::future::retry;
+use backoff::ExponentialBackoffBuilder;
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+use flate2::{bufread::GzDecoder, write::GzEncoder, Compression};
+use reqwest::Client;
+use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
     fs::File,
@@ -6,17 +13,8 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-
-use backoff::future::retry;
-use backoff::ExponentialBackoffBuilder;
-use bytes::{Buf, BufMut, Bytes, BytesMut};
-use flate2::{bufread::GzDecoder, write::GzEncoder, Compression};
-use reqwest::Client;
-use sha2::{Digest, Sha256};
 use tar::{Archive, Builder, EntryType, Header};
 use tokio::task::{spawn, spawn_blocking, JoinSet};
-
-use crate::Source;
 
 #[tokio::main]
 pub(crate) async fn prepare(out_dir: &Path, source_set: HashMap<String, Source>) {

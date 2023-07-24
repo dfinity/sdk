@@ -1,14 +1,12 @@
+use super::{get_canister_prompt, PulledCanister};
 use crate::lib::error::DfxResult;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_controllers;
-
 use anyhow::bail;
 use candid::Principal;
 use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::interfaces::ManagementCanister;
 use slog::{info, Logger};
-
-use super::{get_canister_prompt, PulledCanister};
 
 // not use operations::canister::create_canister because we don't want to modify canister_id_store
 #[context("Failed to create canister {}", canister_id)]

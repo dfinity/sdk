@@ -2,7 +2,6 @@ use crate::commands::wallet::get_wallet;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
-
 use anyhow::Context;
 use clap::Parser;
 

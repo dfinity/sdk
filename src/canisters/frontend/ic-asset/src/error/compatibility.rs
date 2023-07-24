@@ -1,5 +1,4 @@
 use crate::error::downgrade_commit_batch_arguments::DowngradeCommitBatchArgumentsV1ToV0Error;
-
 use thiserror::Error;
 
 /// Errors that occur when trying to deploy to an older version of the asset canister.

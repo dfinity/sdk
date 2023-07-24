@@ -4,7 +4,6 @@ use fn_error_context::context;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::process::{self, Command};
-
 use crate::lib::error::DfxResult;
 use dfx_core::config::cache::Cache;
 

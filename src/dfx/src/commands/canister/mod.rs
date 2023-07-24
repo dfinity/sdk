@@ -1,10 +1,9 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::error::DfxResult;
 use crate::{lib::environment::Environment, NetworkOpt};
-use dfx_core::identity::CallSender;
-
 use anyhow::anyhow;
 use clap::{Parser, Subcommand};
+use dfx_core::identity::CallSender;
 use tokio::runtime::Runtime;
 
 mod call;

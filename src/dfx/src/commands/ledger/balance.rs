@@ -2,7 +2,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::operations::ledger;
-
 use anyhow::anyhow;
 use candid::Principal;
 use clap::Parser;

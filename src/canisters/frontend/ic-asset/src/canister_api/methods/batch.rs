@@ -5,7 +5,6 @@ use crate::canister_api::methods::method_names::{
 use crate::canister_api::types::batch_upload::common::{
     ComputeEvidenceArguments, CreateBatchRequest, CreateBatchResponse,
 };
-
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
 use candid::{CandidType, Nat};

@@ -3,6 +3,8 @@ use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
 use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
+use anyhow::{anyhow, Context};
+use candid::Principal;
 use dfx_core::config::cache::Cache;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{Config, NetworksConfig};
@@ -12,9 +14,6 @@ use dfx_core::error::extension::ExtensionError;
 use dfx_core::error::identity::IdentityError;
 use dfx_core::extension::manager::ExtensionManager;
 use dfx_core::identity::identity_manager::IdentityManager;
-
-use anyhow::{anyhow, Context};
-use candid::Principal;
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use semver::Version;

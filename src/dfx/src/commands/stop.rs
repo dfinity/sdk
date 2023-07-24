@@ -1,11 +1,9 @@
-use std::time::Duration;
-
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
-
 use anyhow::bail;
 use clap::Parser;
+use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
+use std::time::Duration;
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 
 /// Stops the local network replica.

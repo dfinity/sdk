@@ -1,15 +1,13 @@
+use super::rc_bytes::RcBytes;
 use crate::{
     asset_certification::types::certification::{CertificateExpression, ResponseHash},
     state_machine::{encoding_certification_order, Asset, AssetEncoding},
 };
-
 use candid::{define_function, CandidType, Deserialize, Nat};
 use ic_certified_map::Hash;
 use ic_representation_independent_hash::{representation_independent_hash, Value};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
-
-use super::rc_bytes::RcBytes;
 
 /// The file to serve if the requested file wasn't found.
 pub const FALLBACK_FILE: &str = "/index.html";

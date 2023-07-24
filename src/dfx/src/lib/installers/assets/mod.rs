@@ -1,12 +1,11 @@
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
-use std::path::Path;
-
 use anyhow::Context;
 use fn_error_context::context;
 use ic_agent::Agent;
 use slog::Logger;
+use std::path::Path;
 
 #[context("Failed to store assets in canister '{}'.", info.get_name())]
 pub async fn post_install_store_assets(

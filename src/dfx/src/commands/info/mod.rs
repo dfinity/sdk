@@ -1,15 +1,13 @@
 mod replica_port;
 mod webserver_port;
-
 use crate::commands::info::replica_port::get_replica_port;
 use crate::commands::info::webserver_port::get_webserver_port;
 use crate::lib::error::DfxResult;
 use crate::lib::info;
 use crate::Environment;
-use dfx_core::config::model::dfinity::NetworksConfig;
-
 use anyhow::Context;
 use clap::{Parser, Subcommand};
+use dfx_core::config::model::dfinity::NetworksConfig;
 
 #[derive(Subcommand, Clone, Debug)]
 enum InfoType {

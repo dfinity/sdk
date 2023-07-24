@@ -1,10 +1,9 @@
 use crate::commands::identity::new::create_new_dfx_identity;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use dfx_core::identity::identity_manager::{IdentityCreationParameters, IdentityStorageMode};
-
 use anyhow::Context;
 use clap::Parser;
+use dfx_core::identity::identity_manager::{IdentityCreationParameters, IdentityStorageMode};
 use slog::{info, warn};
 use std::fs;
 use std::path::PathBuf;

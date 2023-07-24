@@ -4,12 +4,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util::check_candid_file;
+use anyhow::{anyhow, bail, Context};
+use candid::Principal as CanisterId;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
-
-use anyhow::{anyhow, bail, Context};
-use candid::Principal as CanisterId;
 use fn_error_context::context;
 use handlebars::Handlebars;
 use std::borrow::Cow;

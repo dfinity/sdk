@@ -13,20 +13,18 @@ use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::lib::wasm::file::{decompress_bytes, read_wasm_module};
 use crate::util::download_file;
 use crate::NetworkOpt;
-use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
-
-use std::collections::{BTreeMap, BTreeSet, VecDeque};
-use std::io::Write;
-use std::path::Path;
-
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
+use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
 use ic_wasm::metadata::get_metadata;
 use sha2::{Digest, Sha256};
 use slog::{error, info, trace, Logger};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
+use std::io::Write;
+use std::path::Path;
 
 /// Pull canisters upon which the project depends.
 /// This command connects to the "ic" mainnet by default.

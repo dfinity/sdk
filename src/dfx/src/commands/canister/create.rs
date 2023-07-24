@@ -11,14 +11,13 @@ use crate::util::clap::parsers::cycle_amount_parser;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
 };
+use anyhow::{bail, Context};
 use byte_unit::Byte;
+use candid::Principal as CanisterId;
+use clap::{ArgAction, Parser};
 use dfx_core::error::identity::IdentityError;
 use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
-
-use anyhow::{bail, Context};
-use candid::Principal as CanisterId;
-use clap::{ArgAction, Parser};
 use ic_agent::Identity as _;
 use slog::info;
 

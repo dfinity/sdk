@@ -1,5 +1,4 @@
 use crate::error::structured_file::StructuredFileError;
-
 use thiserror::Error;
 
 #[derive(Error, Debug)]
