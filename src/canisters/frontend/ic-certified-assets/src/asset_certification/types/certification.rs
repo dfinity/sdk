@@ -1,15 +1,13 @@
-use std::borrow::Borrow;
-
+use super::{
+    http::{build_ic_certificate_expression_from_headers, FALLBACK_FILE},
+    rc_bytes::RcBytes,
+};
 use candid::{CandidType, Deserialize};
 use ic_representation_independent_hash::Value;
 use serde_cbor::ser::IoWrite;
 use serde_cbor::Serializer;
 use sha2::Digest;
-
-use super::{
-    http::{build_ic_certificate_expression_from_headers, FALLBACK_FILE},
-    rc_bytes::RcBytes,
-};
+use std::borrow::Borrow;
 
 pub type AssetKey = String;
 

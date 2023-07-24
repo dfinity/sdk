@@ -1,15 +1,13 @@
 use crate::error::extension::ExtensionError;
 use crate::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
-
 use flate2::read::GzDecoder;
 use reqwest::Url;
 use semver::{BuildMetadata, Prerelease, Version};
-use tar::Archive;
-use tempfile::{tempdir_in, TempDir};
-
 use std::io::Cursor;
 #[cfg(not(target_os = "windows"))]
 use std::os::unix::fs::PermissionsExt;
+use tar::Archive;
+use tempfile::{tempdir_in, TempDir};
 
 const DFINITY_DFX_EXTENSIONS_RELEASES_URL: &str =
     "https://github.com/dfinity/dfx-extensions/releases/download";

@@ -4,7 +4,6 @@ use crate::util::expiry_duration;
 use crate::Environment;
 use dfx_core::identity::ANONYMOUS_IDENTITY_NAME;
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
-
 use fn_error_context::context;
 
 #[context("Failed to create AgentEnvironment.")]

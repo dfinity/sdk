@@ -1,16 +1,3 @@
-use anyhow::{bail, Context};
-use candid::Principal;
-use clap::Parser;
-use dialoguer::{Confirm, Input};
-use ic_agent::Agent;
-use ic_utils::interfaces::{
-    management_canister::builders::InstallMode, ManagementCanister, WalletCanister,
-};
-use indicatif::ProgressBar;
-use num_traits::Inv;
-use rust_decimal::Decimal;
-use tokio::runtime::Runtime;
-
 use crate::{
     commands::ledger::create_canister::MEMO_CREATE_CANISTER,
     lib::{
@@ -31,6 +18,18 @@ use crate::{
     },
     util::assets::wallet_wasm,
 };
+use anyhow::{bail, Context};
+use candid::Principal;
+use clap::Parser;
+use dialoguer::{Confirm, Input};
+use ic_agent::Agent;
+use ic_utils::interfaces::{
+    management_canister::builders::InstallMode, ManagementCanister, WalletCanister,
+};
+use indicatif::ProgressBar;
+use num_traits::Inv;
+use rust_decimal::Decimal;
+use tokio::runtime::Runtime;
 
 /// Use the `dfx quickstart` command to perform initial one time setup for your identity and/or wallet. This command
 /// can be run anytime to repeat the setup process or to be used as an informational command, printing

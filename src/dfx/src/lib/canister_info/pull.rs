@@ -1,12 +1,10 @@
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
 use crate::lib::deps::get_candid_path_in_project;
 use crate::lib::error::DfxResult;
-
-use std::path::{Path, PathBuf};
-
 use anyhow::bail;
 use candid::Principal;
 use dfx_core::config::model::dfinity::CanisterTypeProperties;
+use std::path::{Path, PathBuf};
 
 pub struct PullCanisterInfo {
     name: String,

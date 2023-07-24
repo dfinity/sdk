@@ -1,10 +1,8 @@
 use crate::canister_api::methods::method_names::LIST;
 use crate::canister_api::types::{asset::AssetDetails, list::ListAssetsRequest};
-
+use ic_agent::AgentError;
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
-
-use ic_agent::AgentError;
 use std::collections::HashMap;
 
 pub(crate) async fn list_assets(

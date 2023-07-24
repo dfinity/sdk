@@ -9,13 +9,12 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::parsers::cycle_amount_parser;
 use crate::NetworkOpt;
-use dfx_core::config::model::network_descriptor::NetworkDescriptor;
-use dfx_core::identity::CallSender;
-
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
 use console::Style;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;

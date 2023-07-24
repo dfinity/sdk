@@ -9,11 +9,10 @@ use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
 use crate::util::{assets, check_candid_file};
-use dfx_core::config::model::canister_id_store::CanisterIdStore;
-use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
-
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
+use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
 use fn_error_context::context;
 use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
 use itertools::Itertools;

@@ -3,7 +3,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::util::check_candid_file;
-
 use anyhow::Context;
 use clap::Parser;
 use slog::info;

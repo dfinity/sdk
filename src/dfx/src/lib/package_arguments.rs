@@ -1,7 +1,6 @@
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use dfx_core::config::cache::Cache;
-
 use anyhow::{anyhow, bail};
+use dfx_core::config::cache::Cache;
 use fn_error_context::context;
 use std::process::Command;
 

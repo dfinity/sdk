@@ -1,6 +1,5 @@
-use crate::error::extension::ExtensionError;
-
 use super::ExtensionManager;
+use crate::error::extension::ExtensionError;
 
 impl ExtensionManager {
     pub fn uninstall_extension(&self, extension_name: &str) -> Result<(), ExtensionError> {

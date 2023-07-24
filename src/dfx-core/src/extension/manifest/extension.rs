@@ -1,5 +1,4 @@
 use crate::error::extension::ExtensionError;
-
 use clap::ArgAction;
 use serde::Deserialize;
 use std::{

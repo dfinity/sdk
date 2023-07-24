@@ -1,15 +1,13 @@
-use std::time::Duration;
-
 use crate::batch_upload::retryable::retryable;
 use crate::batch_upload::semaphores::Semaphores;
 use crate::canister_api::methods::method_names::CREATE_CHUNK;
 use crate::canister_api::types::batch_upload::common::{CreateChunkRequest, CreateChunkResponse};
 use crate::error::CreateChunkError;
-
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
 use candid::{Decode, Nat};
 use ic_utils::Canister;
+use std::time::Duration;
 
 pub(crate) async fn create_chunk(
     canister: &Canister<'_>,

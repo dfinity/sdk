@@ -4,11 +4,10 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
 use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
-use dfx_core::config::model::dfinity::CONFIG_FILE_NAME;
-
 use anyhow::{anyhow, bail, Context};
 use clap::Parser;
 use console::{style, Style};
+use dfx_core::config::model::dfinity::CONFIG_FILE_NAME;
 use fn_error_context::context;
 use indicatif::HumanBytes;
 use lazy_static::lazy_static;

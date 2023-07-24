@@ -1,7 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
-
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;

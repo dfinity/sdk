@@ -3,7 +3,6 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers;
 use crate::util::print_idl_blob;
-
 use anyhow::{anyhow, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;

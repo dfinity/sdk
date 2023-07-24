@@ -1,18 +1,16 @@
-use std::collections::HashMap;
-
-use ic_agent::{
-    agent::{RejectCode, RejectResponse},
-    AgentError,
-};
-use ic_utils::call::SyncCall;
-use ic_utils::Canister;
-
 use crate::canister_api::{
     methods::method_names::GET_ASSET_PROPERTIES,
     types::asset::{AssetDetails, AssetProperties, GetAssetPropertiesArgument},
 };
 use crate::error::GetAssetPropertiesError;
 use crate::error::GetAssetPropertiesError::GetAssetPropertiesFailed;
+use ic_agent::{
+    agent::{RejectCode, RejectResponse},
+    AgentError,
+};
+use ic_utils::call::SyncCall;
+use ic_utils::Canister;
+use std::collections::HashMap;
 
 pub(crate) async fn get_assets_properties(
     canister: &Canister<'_>,

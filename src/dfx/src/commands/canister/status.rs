@@ -2,10 +2,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use dfx_core::identity::CallSender;
-
 use candid::Principal;
 use clap::Parser;
+use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use slog::info;
 

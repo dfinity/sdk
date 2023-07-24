@@ -7,7 +7,6 @@ use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 use crate::lib::operations::ledger::transfer;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{e8s_parser, memo_parser};
-
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;

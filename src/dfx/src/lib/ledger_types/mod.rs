@@ -2,7 +2,6 @@
 // Do not modify this file arbitrarily.
 // The contents are borrowed from:
 // https://gitlab.com/dfinity-lab/public/ic/-/blob/master/rs/rosetta-api/ledger_canister/src/lib.rs
-
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::ICPTs;
 use candid::CandidType;

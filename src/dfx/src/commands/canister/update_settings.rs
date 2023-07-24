@@ -9,14 +9,13 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
 };
+use anyhow::{bail, Context};
 use byte_unit::Byte;
+use candid::Principal as CanisterId;
+use clap::{ArgAction, Parser};
 use dfx_core::cli::ask_for_consent;
 use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
-
-use anyhow::{bail, Context};
-use candid::Principal as CanisterId;
-use clap::{ArgAction, Parser};
 use fn_error_context::context;
 use ic_agent::identity::Identity;
 

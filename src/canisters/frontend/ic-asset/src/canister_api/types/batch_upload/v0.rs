@@ -1,7 +1,6 @@
 use super::common::*;
 use crate::error::DowngradeCommitBatchArgumentsV1ToV0Error;
 use crate::error::DowngradeCommitBatchArgumentsV1ToV0Error::V0SetAssetPropertiesNotSupported;
-
 use candid::{CandidType, Nat};
 
 /// Batch operations that can be applied atomically.

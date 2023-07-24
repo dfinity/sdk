@@ -6,7 +6,6 @@ use crate::lib::deps::{
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::{check_candid_file, fuzzy_parse_argument};
-
 use anyhow::{anyhow, bail};
 use candid::parser::types::IDLTypes;
 use candid::Principal;

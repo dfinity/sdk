@@ -1,14 +1,12 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::sign::signed_message::SignedMessageV1;
-use dfx_core::identity::CallSender;
-
-use ic_agent::agent::Transport;
-use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, RequestId};
-
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
+use dfx_core::identity::CallSender;
+use ic_agent::agent::Transport;
+use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, RequestId};
 use std::{fs::File, path::Path};
 use std::{io::Read, str::FromStr};
 

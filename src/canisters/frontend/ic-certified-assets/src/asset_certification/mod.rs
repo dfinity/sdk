@@ -1,5 +1,3 @@
-use crate::asset_certification::types::http::build_ic_certificate_expression_header;
-
 use self::{
     tree::{merge_hash_trees, NestedTree},
     types::{
@@ -9,7 +7,7 @@ use self::{
         },
     },
 };
-
+use crate::asset_certification::types::http::build_ic_certificate_expression_header;
 use ic_representation_independent_hash::Value;
 use serde::Serialize;
 use sha2::Digest;

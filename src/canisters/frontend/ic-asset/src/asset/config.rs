@@ -2,7 +2,6 @@ use crate::error::AssetLoadConfigError;
 use crate::error::AssetLoadConfigError::{LoadRuleFailed, MalformedAssetConfigFile};
 use crate::error::GetAssetConfigError;
 use crate::error::GetAssetConfigError::{AssetConfigNotFound, InvalidPath};
-
 use derivative::Derivative;
 use globset::GlobMatcher;
 use serde::{Deserialize, Serialize};

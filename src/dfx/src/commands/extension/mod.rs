@@ -1,8 +1,6 @@
 #![allow(dead_code)]
-
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-
 use clap::{Parser, Subcommand};
 
 mod install;

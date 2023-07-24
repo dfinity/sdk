@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use candid::CandidType;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 /// Information about a content encoding stored for an asset.
 #[derive(CandidType, Debug, Deserialize)]

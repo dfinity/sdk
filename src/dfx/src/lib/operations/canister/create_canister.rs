@@ -1,12 +1,11 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
+use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::identity::CallSender;
 use dfx_core::network::provider::get_network_context;
-
-use anyhow::{anyhow, bail, Context};
-use candid::Principal;
 use fn_error_context::context;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::agent_error::HttpErrorPayload;

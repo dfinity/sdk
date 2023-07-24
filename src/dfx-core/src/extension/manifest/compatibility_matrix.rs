@@ -1,5 +1,4 @@
 use crate::error::extension::ExtensionError;
-
 use schemars::JsonSchema;
 use semver::Version;
 use serde::Deserialize;

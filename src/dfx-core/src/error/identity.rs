@@ -5,11 +5,9 @@ use crate::error::fs::FsError;
 use crate::error::keyring::KeyringError;
 use crate::error::structured_file::StructuredFileError;
 use crate::error::wallet_config::WalletConfigError;
-
 use ic_agent::export::PrincipalError;
 use ic_agent::identity::PemError;
 use ic_identity_hsm::HardwareIdentityError;
-
 use std::path::PathBuf;
 use std::string::FromUtf8Error;
 use thiserror::Error;
