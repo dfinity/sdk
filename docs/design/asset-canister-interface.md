@@ -63,7 +63,7 @@ The reason for multiple rather than single calls to [commit_batch][#method-commi
 
 ### Batch Updates By Proposal
 
-If an SNS controls an asset canister, it can update the assets by proposal. In this scenario, there are two principals:
+If a [Service Nervous System](https://internetcomputer.org/docs/current/developer-docs/integrations/sns/)  (SNS) controls an asset canister, it can update the assets by proposal. In this scenario, there are two principals:
 - The Preparer, which must have the [Prepare](#permission-prepare) permission. This principal prepares the proposal by uploading data and proposing changes to be committed.
 - The Committer, which must have the [Commit](#permission-commit) permission. This principal commits the previously-proposed changes.
 
