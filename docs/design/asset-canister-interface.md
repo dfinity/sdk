@@ -6,7 +6,7 @@ The asset canister interface provides for storage and retrieval of static assets
 
 A canister that implements this interface can also return dynamic results from the [http_request](#method-http_request) method.
 
-This document is meant to describe the interface, not the idiosyncrasies of the implementation.
+This document is meant to describe the interface with enough detail to aid in understanding how the asset canister works and in interacting with the asset canister at the code level.  It does not describe the interface in sufficient detail to rise to the level of a specification.
 
 For brevity, this document does not reproduce the candid signatures for every method. 
 
