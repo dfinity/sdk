@@ -2,7 +2,7 @@
 
 # UNRELEASED
 
-# 0.15.0-beta.1
+# 0.15.0
 
 ## DFX
 
