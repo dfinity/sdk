@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.15.0-beta.1
+
 ## DFX
 
 ### feat!: Removed dfx nns and dfx sns commands
