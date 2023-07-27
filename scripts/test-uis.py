@@ -15,6 +15,7 @@ import argparse
 import logging
 import re
 import sys
+from enum import Enum
 
 from playwright.sync_api import sync_playwright
 
@@ -27,6 +28,7 @@ _SUPPORTED_BROWSERS = {
     _WEBKIT_BROWSER,
 }
 _CANDID_UI_WARNINGS_TO_IGNORE = [
+    ('Error', '/index.js'),
     ('Invalid asm.js: Unexpected token', '/index.js'),
     ('Expected to find result for path [object Object], but instead found nothing.', '/index.js'),
     ('''
@@ -39,11 +41,22 @@ Error: Server returned an error:
     at async Promise.all (index 0)
     at async Module.UA (http://localhost:4943/index.js:2:98732)
     at async Object.getNames (http://localhost:4943/index.js:2:266156)
-    at async http://localhost:4943/index.js:2:275479'''.strip(), '/index.js')
+    at async http://localhost:4943/index.js:2:275479'''.strip(), '/index.js'),
+    ('''
+Error: Server returned an error:
+  Code: 404 (Not Found)
+  Body: Custom section name not found.'''.strip(), '/index.js'),
 ]
 _CANDID_UI_ERRORS_TO_IGNORE = [
     ('Failed to load resource: the server responded with a status of 404 (Not Found)', '/read_state'),
 ]
+# `page.route` does not support additional function parameters
+_FRONTEND_URL = None
+
+
+class _UI(Enum):
+    CANDID = 1
+    FRONTEND = 2
 
 
 def _validate_browsers(browser):
@@ -112,11 +125,12 @@ def _check_console_logs(console_logs):
             raise RuntimeError(f'Cannot find "url" during log parsing (log.type={log.type}, log.text="{log.text}", log.location="{log.location}")')
 
         for actual_text, endpoint in (_CANDID_UI_ERRORS_TO_IGNORE if log.type == 'error' else _CANDID_UI_WARNINGS_TO_IGNORE):
-            if actual_text == log.text and endpoint in url:
+            if actual_text == log.text.strip() and endpoint in url:
                 logging.warning(f'Found {log.type}, but it was expected (log.type="{actual_text}", endpoint="{endpoint}")')
                 break
         else:
-            logging.error(f'Found unexpected console log {log.type}. Text: "{log.text}"')
+            logging.error(f'Found unexpected console log {log.type}. Text: "{log.text}", url: {url}')
+
             has_err = True
 
     if has_err:
@@ -132,10 +146,10 @@ def _click_button(page, button):
 
 def _set_text(page, text, value):
     logging.info(f'Setting text to "{value}"')
-    page.get_by_placeholder(text).fill(value)
+    page.get_by_role('textbox', name=text).fill(value)
 
 
-def _test_frontend_ui_handler(browser, context, page):
+def _test_frontend_ui_handler(page):
     # Set the name & Click the button
     name = 'my name'
     logging.info(f'Setting name "{name}"')
@@ -156,7 +170,7 @@ def _test_frontend_ui_handler(browser, context, page):
         raise RuntimeError(f'Cannot find {greeting_id} selector')
 
 
-def _test_candid_ui_handler(browser, context, page):
+def _test_candid_ui_handler(page):
     # Set the text & Click the "Query" button
     text = 'hello, world'
     _set_text(page, 'text', text)
@@ -202,8 +216,24 @@ def _test_candid_ui_handler(browser, context, page):
         raise RuntimeError(f'Cannot find {output_list_id} selector')
 
 
-def _test_ui(url, ui_name, handler, browsers):
-    logging.info(f'Testing "{ui_name}" at "{url}"')
+def _handle_route_for_webkit(route):
+    url = route.request.url.replace('https://', 'http://')
+
+    headers = None
+    if any(map(url.endswith, ['.css', '.js', '.svg'])):
+        global _FRONTEND_URL
+        assert _FRONTEND_URL
+        headers = {
+            'referer': _FRONTEND_URL,
+        }
+
+    response = route.fetch(url=url, headers=headers)
+    assert response.status == 200, f'Expected 200 status code, but got {response.status}. Url: {url}'
+    route.fulfill(response=response)
+
+
+def _test_ui(ui, url, handler, browsers):
+    logging.info(f'Testing "{str(ui)}" at "{url}"')
 
     has_err = False
     with sync_playwright() as playwright:
@@ -214,7 +244,7 @@ def _test_ui(url, ui_name, handler, browsers):
                 raise RuntimeError(f'Cannot determine browser object for browser {browser_name}')
 
             try:
-                browser = playwright.chromium.launch(headless=True)
+                browser = browser.launch(headless=True)
                 context = browser.new_context()
                 page = context.new_page()
 
@@ -222,9 +252,17 @@ def _test_ui(url, ui_name, handler, browsers):
                 console_logs = []
                 page.on('console', lambda msg: console_logs.append(msg))
 
+                # Webkit forces HTTPS:
+                #   - https://github.com/microsoft/playwright/issues/12975
+                #   - https://stackoverflow.com/questions/46394682/safari-keeps-forcing-https-on-localhost
+                if ui == _UI.FRONTEND and browser_name == _WEBKIT_BROWSER:
+                    global _FRONTEND_URL
+                    _FRONTEND_URL = url
+                    page.route('**/*', _handle_route_for_webkit)
+
                 page.goto(url)
 
-                handler(browser, context, page)
+                handler(page)
                 _check_console_logs(console_logs)
             except Exception as e:
                 logging.error(f'Error: {str(e)}')
@@ -244,9 +282,9 @@ def _main():
     _validate_args(args)
 
     if args.frontend_url:
-        _test_ui(args.frontend_url, 'Frontend UI', _test_frontend_ui_handler, args.browsers)
+        _test_ui(_UI.FRONTEND, args.frontend_url, _test_frontend_ui_handler, args.browsers)
     if args.candid_url:
-        _test_ui(args.candid_url, 'Candid UI', _test_candid_ui_handler, args.browsers)
+        _test_ui(_UI.CANDID, args.candid_url, _test_candid_ui_handler, args.browsers)
 
     logging.info('DONE!')
 
