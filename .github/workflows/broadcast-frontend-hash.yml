@@ -1,0 +1,53 @@
+name: Broadcast Frontend Hash
+on:
+  workflow_dispatch:
+    inputs:
+      dfx_version:
+        description: 'Open PR against this sdk branch'
+        default: "master"
+  # release:
+  #   # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads?actionType=released#release
+  #   # "A release was published, or a pre-release was changed to a release."
+  #   types: [released]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLAYGROUD_REPO: dfinity/motoko-playground
+  TEMPLATE_STRING: ""
+
+jobs:
+  build_dfx:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ env.PLAYGROUD_REPO }}
+
+      - name: Get new hash
+        env:
+          DFX_VERSION: ${{ inputs.dfx_version }}
+        run: .github/workflows/broadcast-frontend-hash_extract-hash-from-release-notes.sh "$DFX_VERSION" | tee hash.txt
+
+      - name: Modify Rust file
+        env:
+          FILE: motoko-playground/service/wasm-utils/lib.rs
+          DFX_VERSION: ${{ inputs.dfx_version }}
+          NEW_HASH: $(cat hash.txt)
+        run: .github/workflows/broadcast-frontend-hash_modify-file.sh "$FILE" "$DFX_VERSION" "$NEW_HASH"
+
+      - name: Commit files, push changes, and create PR
+        run: |
+          git config author.email "${{ github.event.sender.id }}+${{ github.event.sender.login }}@users.noreply.github.com"
+          git config author.name "${{ github.event.sender.login }}"
+          git config committer.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config committer.name "GitHub Actions Bot"
+          git config user.email "${{ github.event.sender.id }}+${{ github.event.sender.login }}@users.noreply.github.com"
+          git config user.name "${{ github.event.sender.login }}"
+          git checkout -b broadcast-frontend-hash-${{ inputs.dfx_version }}
+          git add .
+          git commit -m "Update hash for dfx version ${{ inputs.dfx_version }}"
+          git push origin broadcast-frontend-hash-${{ inputs.dfx_version }}
+          gh pr create --title "chore: Whitelist frontend canister hash from dfx version ${{ inputs.dfx_version }}" --body "https://github.com/dfinity/sdk/releases/tag/${{ inputs.dfx_version }}" --base master --head broadcast-frontend-hash-${{ inputs.dfx_version }} --repo ${{ env.PLAYGROUD_REPO }}
