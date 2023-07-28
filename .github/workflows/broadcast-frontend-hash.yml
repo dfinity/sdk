@@ -3,8 +3,8 @@ on:
   workflow_dispatch:
     inputs:
       dfx_version:
-        description: 'Open PR against this sdk branch'
-        default: "master"
+        description: 'Release version of dfx'
+        default: "latest"
   # release:
   #   # https://docs.github.com/en/webhooks-and-events/webhooks/webhook-events-and-payloads?actionType=released#release
   #   # "A release was published, or a pre-release was changed to a release."
@@ -16,28 +16,39 @@ concurrency:
 
 env:
   PLAYGROUD_REPO: ${{ github.repository_owner }}/motoko-playground
+  FILE: service/wasm-utils/lib.rs
 
 jobs:
-  build_dfx:
+  update-frontend-hash:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout sdk repo
+        uses: actions/checkout@v3
         with:
+          path: sdk
+
+      - name: Checkout playground repo
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.NIV_UPDATER_TOKEN }}
           repository: ${{ env.PLAYGROUD_REPO }}
+          path: motoko-playground
 
       - name: Get new hash
+        working-directory: ./sdk
         env:
-          DFX_VERSION: ${{ inputs.dfx_version }}
-        run: .github/workflows/broadcast-frontend-hash_extract-hash-from-release-notes.sh "$DFX_VERSION" | tee hash.txt
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          export NEW_HASH=$(.github/workflows/broadcast-frontend-hash_extract-hash-from-release-notes.sh ${{ inputs.dfx_version }})
+          echo "NEW_HASH=$NEW_HASH" >> $GITHUB_ENV
 
       - name: Modify Rust file
-        env:
-          FILE: motoko-playground/service/wasm-utils/lib.rs
-          DFX_VERSION: ${{ inputs.dfx_version }}
-          NEW_HASH: $(cat hash.txt)
-        run: .github/workflows/broadcast-frontend-hash_modify-file.sh "$FILE" "$DFX_VERSION" "$NEW_HASH"
+        run: sdk/.github/workflows/broadcast-frontend-hash_modify-file.sh "motoko-playground/${{ env.FILE }}" "${{ inputs.dfx_version }}" "${{ env.NEW_HASH }}"
 
       - name: Commit files, push changes, and create PR
+        env:
+          GH_TOKEN: ${{ secrets.NIV_UPDATER_TOKEN }}
+        working-directory: ./motoko-playground
         run: |
           git config author.email "${{ github.event.sender.id }}+${{ github.event.sender.login }}@users.noreply.github.com"
           git config author.name "${{ github.event.sender.login }}"
@@ -46,7 +57,14 @@ jobs:
           git config user.email "${{ github.event.sender.id }}+${{ github.event.sender.login }}@users.noreply.github.com"
           git config user.name "${{ github.event.sender.login }}"
           git checkout -b broadcast-frontend-hash-${{ inputs.dfx_version }}
-          git add .
+          git add ${{ env.FILE }}
+          git status
           git commit -m "Update hash for dfx version ${{ inputs.dfx_version }}"
           git push origin broadcast-frontend-hash-${{ inputs.dfx_version }}
-          gh pr create --title "chore: Whitelist frontend canister hash from dfx version ${{ inputs.dfx_version }}" --body "https://github.com/${{ github.repository_owner }}/sdk/releases/tag/${{ inputs.dfx_version }}" --base master --head broadcast-frontend-hash-${{ inputs.dfx_version }} --repo ${{ env.PLAYGROUD_REPO }}
+          echo "- new hash: ${{ env.NEW_HASH }}" >> pr.md
+          echo "- release: https://github.com/${{ github.repository_owner }}/sdk/releases/tag/${{ inputs.dfx_version }}" >> pr.md
+          gh pr create --title "chore: Whitelist frontend canister hash from dfx version ${{ inputs.dfx_version }}" \
+                       --body-file pr.md \
+                       --base main \
+                       --head broadcast-frontend-hash-${{ inputs.dfx_version }} \
+                       --repo ${{ env.PLAYGROUD_REPO }}
