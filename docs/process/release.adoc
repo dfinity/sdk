@@ -356,6 +356,13 @@ git push origin $NEW_DFX_VERSION
 The link:../../.github/workflows/publish.yml[publish.yml GitHub workflow] will build the release
 and upload to GitHub releases after you push the tag.
 
+==== Add new frontend canister hash to list of WHITELISTED_WASMS in dfinity/motoko-playground repo
+You can do it either by using GitHub UI (https://github.com/dfinity/sdk/actions/workflows/broadcast-frontend-hash.yml) or by running the following command:
+[source, bash]
+----
+gh workflow run "broadcast-frontend-hash.yml" -f dfx_version=<n.n.n>
+----
+
 [[post-build]]
 == Notification and post-build validation
 
