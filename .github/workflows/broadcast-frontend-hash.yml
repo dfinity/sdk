@@ -15,8 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PLAYGROUD_REPO: dfinity/motoko-playground
-  TEMPLATE_STRING: ""
+  PLAYGROUD_REPO: ${{ github.repository_owner }}/motoko-playground
 
 jobs:
   build_dfx:
@@ -50,4 +49,4 @@ jobs:
           git add .
           git commit -m "Update hash for dfx version ${{ inputs.dfx_version }}"
           git push origin broadcast-frontend-hash-${{ inputs.dfx_version }}
-          gh pr create --title "chore: Whitelist frontend canister hash from dfx version ${{ inputs.dfx_version }}" --body "https://github.com/dfinity/sdk/releases/tag/${{ inputs.dfx_version }}" --base master --head broadcast-frontend-hash-${{ inputs.dfx_version }} --repo ${{ env.PLAYGROUD_REPO }}
+          gh pr create --title "chore: Whitelist frontend canister hash from dfx version ${{ inputs.dfx_version }}" --body "https://github.com/${{ github.repository_owner }}/sdk/releases/tag/${{ inputs.dfx_version }}" --base master --head broadcast-frontend-hash-${{ inputs.dfx_version }} --repo ${{ env.PLAYGROUD_REPO }}
