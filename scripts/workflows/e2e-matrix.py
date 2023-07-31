@@ -13,7 +13,6 @@ def test_scripts(prefix):
 
 test = sorted(test_scripts("dfx") + test_scripts("replica") + test_scripts("icx-asset"))
 
-# Custom function to prioritize "dfx/rust" and "icx-asset/icx-asset" in the front
 def long_tests_first(test_name):
     priority_tests = {"dfx/rust": 0, "icx-asset/icx-asset": 1}
     return priority_tests.get(test_name, 2)
