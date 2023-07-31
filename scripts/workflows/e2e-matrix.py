@@ -20,9 +20,9 @@ def long_tests_first(test_name):
 test = sorted(test, key=long_tests_first)
 
 matrix = {
+    "test": test,
     "backend": ["ic-ref", "replica"],
     "os": ["macos-12", "ubuntu-20.04"],
-    "test": test,
     "rust": ["1.65.0"],
     "exclude": [
         {"backend": "ic-ref", "test": "dfx/bitcoin"},
