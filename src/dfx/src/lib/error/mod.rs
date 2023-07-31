@@ -1,6 +1,6 @@
 pub mod build;
-mod notify_create_canister;
-mod notify_top_up;
+pub mod notify_create_canister;
+pub mod notify_top_up;
 pub mod project;
 
 pub use build::BuildError;
