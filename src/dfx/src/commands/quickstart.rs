@@ -1,3 +1,5 @@
+use crate::lib::error::NotifyCreateCanisterError::Notify;
+use crate::lib::ledger_types::NotifyError::Refunded;
 use crate::{
     commands::ledger::create_canister::MEMO_CREATE_CANISTER,
     lib::{
@@ -5,7 +7,7 @@ use crate::{
         environment::Environment,
         error::DfxResult,
         identity::wallet::{set_wallet_id, wallet_canister_id},
-        ledger_types::{Memo, NotifyError},
+        ledger_types::Memo,
         nns_types::{
             account_identifier::AccountIdentifier,
             icpts::{ICPTs, TRANSACTION_FEE},
@@ -182,14 +184,13 @@ async fn step_interact_ledger(
     let notify_spinner = ProgressBar::new_spinner();
     notify_spinner.set_message("Notifying the cycles minting canister...");
     notify_spinner.enable_steady_tick(100);
-    let res = notify_create(agent, ident_principal, height, None).await
-        .with_context(|| format!("Failed to notify the CMC of the transfer. Write down that height ({height}), and once the error is fixed, use `dfx ledger notify create-canister`."))?;
+    let res = notify_create(agent, ident_principal, height, None).await;
     let wallet = match res {
-        Ok(principal) => principal,
-        Err(NotifyError::Refunded {
+        Ok(principal) => Ok(principal),
+        Err(Notify(Refunded {
             reason,
             block_index,
-        }) => {
+        })) => {
             match block_index {
                 Some(height) => {
                     bail!("Refunded at block height {height} with message: {reason}")
@@ -197,8 +198,9 @@ async fn step_interact_ledger(
                 None => bail!("Refunded with message: {reason}"),
             };
         }
-        Err(err) => bail!("{err:?}"),
-    };
+        Err(err) => Err(err),
+    }.with_context(|| format!("Failed to notify the CMC of the transfer. Write down that height ({height}), and once the error is fixed, use `dfx ledger notify create-canister`."))?;
+
     notify_spinner.finish_with_message(format!(
         "Created wallet canister with principal ID {wallet}"
     ));

@@ -1,4 +1,4 @@
-use crate::lib::error::DfxResult;
+use crate::lib::error::{DfxResult, NotifyCreateCanisterError, NotifyTopUpError};
 use crate::lib::ledger_types::{
     BlockHeight, Memo, NotifyCreateCanisterArg, NotifyCreateCanisterResult, NotifyTopUpArg,
     NotifyTopUpResult, MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
@@ -6,11 +6,10 @@ use crate::lib::ledger_types::{
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::operations::ledger::transfer;
-use anyhow::Context;
 use candid::{Decode, Encode, Principal};
 use ic_agent::Agent;
 
-const NOTIFY_CREATE_METHOD: &str = "notify_create_canister";
+const NOTIFY_CREATE_CANISTER_METHOD: &str = "notify_create_canister";
 const NOTIFY_TOP_UP_METHOD: &str = "notify_top_up";
 
 pub async fn transfer_cmc(
@@ -43,30 +42,33 @@ pub async fn notify_create(
     controller: Principal,
     block_height: BlockHeight,
     subnet_type: Option<String>,
-) -> DfxResult<NotifyCreateCanisterResult> {
+) -> Result<Principal, NotifyCreateCanisterError> {
     let result = agent
-        .update(&MAINNET_CYCLE_MINTER_CANISTER_ID, NOTIFY_CREATE_METHOD)
+        .update(
+            &MAINNET_CYCLE_MINTER_CANISTER_ID,
+            NOTIFY_CREATE_CANISTER_METHOD,
+        )
         .with_arg(
             Encode!(&NotifyCreateCanisterArg {
                 block_index: block_height,
                 controller,
                 subnet_type,
             })
-            .context("Failed to encode notify arguments.")?,
+            .map_err(NotifyCreateCanisterError::EncodeArguments)?,
         )
         .call_and_wait()
         .await
-        .context("Notify call failed.")?;
-    let result =
-        Decode!(&result, NotifyCreateCanisterResult).context("Failed to decode notify response")?;
-    Ok(result)
+        .map_err(NotifyCreateCanisterError::Call)?;
+    Decode!(&result, NotifyCreateCanisterResult)
+        .map_err(NotifyCreateCanisterError::DecodeResponse)?
+        .map_err(NotifyCreateCanisterError::Notify)
 }
 
 pub async fn notify_top_up(
     agent: &Agent,
     canister: Principal,
     block_height: BlockHeight,
-) -> DfxResult<NotifyTopUpResult> {
+) -> Result<u128, NotifyTopUpError> {
     let result = agent
         .update(&MAINNET_CYCLE_MINTER_CANISTER_ID, NOTIFY_TOP_UP_METHOD)
         .with_arg(
@@ -74,11 +76,12 @@ pub async fn notify_top_up(
                 block_index: block_height,
                 canister_id: canister,
             })
-            .context("Failed to encode notify arguments.")?,
+            .map_err(NotifyTopUpError::EncodeArguments)?,
         )
         .call_and_wait()
         .await
-        .context("Notify call failed.")?;
-    let result = Decode!(&result, NotifyTopUpResult).context("Failed to decode notify response")?;
-    Ok(result)
+        .map_err(NotifyTopUpError::Call)?;
+    Decode!(&result, NotifyTopUpResult)
+        .map_err(NotifyTopUpError::DecodeResponse)?
+        .map_err(NotifyTopUpError::Notify)
 }
