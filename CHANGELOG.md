@@ -2,16 +2,6 @@
 
 # UNRELEASED
 
-## Dependencies
-
-### Replica
-
-Updated replica to elected commit 9c89622231301daf93528aa3b64b4d1ec4657680.
-This incorporates the following executed proposals:
-
-- [123784](https://dashboard.internetcomputer.org/proposal/123784)
-- [123730](https://dashboard.internetcomputer.org/proposal/123730)
-
 # 0.15.0
 
 ## DFX
@@ -111,9 +101,11 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Replica
 
-Updated replica to elected commit 0062aec2efc16d6e4cadb2cd1052aaabbc9f6e48.
-This incorporates the following elected proposals:
+Updated replica to elected commit 9c89622231301daf93528aa3b64b4d1ec4657680.
+This incorporates the following executed proposals:
 
+- [123784](https://dashboard.internetcomputer.org/proposal/123784)
+- [123730](https://dashboard.internetcomputer.org/proposal/123730)
 - [123711](https://dashboard.internetcomputer.org/proposal/123711)
 - [123474](https://dashboard.internetcomputer.org/proposal/123474)
 - [123410](https://dashboard.internetcomputer.org/proposal/123410)
