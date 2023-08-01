@@ -2,6 +2,16 @@
 
 # UNRELEASED
 
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 9c89622231301daf93528aa3b64b4d1ec4657680.
+This incorporates the following executed proposals:
+
+- [123784](https://dashboard.internetcomputer.org/proposal/123784)
+- [123730](https://dashboard.internetcomputer.org/proposal/123730)
+
 # 0.15.0
 
 ## DFX
