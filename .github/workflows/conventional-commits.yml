@@ -31,7 +31,7 @@ jobs:
         # scope: refers to the part of code being changed.  E.g. " (accounts)" or " (accounts,canisters)"
         # !: Indicates that the PR contains a breaking change.
       - run: |
-          if echo "${{ github.event.pull_request.title }}" | grep -Eq ^(feat|fix|chore|build|ci|docs|style|refactor|perf|test)(\([-a-zA-Z0-9,]+\))?\!?\: ]]; then
+          if echo "${{ github.event.pull_request.title }}" | grep -Eq "^(feat|fix|chore|build|ci|docs|style|refactor|perf|test)(\([-a-zA-Z0-9,]+\))?\!?\:" ; then
               echo pass
           else
               echo "PR title does not match conventions"
