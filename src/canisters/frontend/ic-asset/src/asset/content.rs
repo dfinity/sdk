@@ -1,6 +1,5 @@
 use crate::asset::content_encoder::ContentEncoder;
 use dfx_core::error::fs::FsError;
-
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use mime::Mime;

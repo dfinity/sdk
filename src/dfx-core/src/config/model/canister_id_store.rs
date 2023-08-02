@@ -3,7 +3,6 @@ use crate::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDes
 use crate::error::canister_id_store::CanisterIdStoreError;
 use crate::error::unified_io::UnifiedIoError;
 use crate::network::directory::ensure_cohesive_network_directory;
-
 use candid::Principal as CanisterId;
 use serde::{Deserialize, Serialize, Serializer};
 use slog::{warn, Logger};

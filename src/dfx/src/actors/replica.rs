@@ -12,7 +12,6 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::integrations::bitcoin::initialize_bitcoin_canister;
 use crate::lib::integrations::create_integrations_agent;
 use crate::lib::replica_config::ReplicaConfig;
-
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,

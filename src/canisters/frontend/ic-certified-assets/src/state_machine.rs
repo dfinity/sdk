@@ -3,7 +3,6 @@
 // NB. This module should not depend on ic_cdk, it contains only pure state transition functions.
 // All the environment (time, certificates, etc.) is passed to the state transition functions
 // as formal arguments.  This approach makes it very easy to test the state machine.
-
 use crate::{
     asset_certification::{
         types::{
@@ -13,8 +12,8 @@ use crate::{
             },
             http::{
                 build_ic_certificate_expression_from_headers_and_encoding,
-                build_ic_certificate_expression_header, response_hash, HttpRequest, HttpResponse,
-                StreamingCallbackHttpResponse, StreamingCallbackToken, FALLBACK_FILE,
+                build_ic_certificate_expression_header, response_hash, CallbackFunc, HttpRequest,
+                HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken, FALLBACK_FILE,
             },
             rc_bytes::RcBytes,
         },
@@ -24,10 +23,9 @@ use crate::{
     types::*,
     url_decode::url_decode,
 };
-
-use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
+use candid::{CandidType, Deserialize, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash};
-use ic_response_verification::hash::Value;
+use ic_representation_independent_hash::Value;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
@@ -348,23 +346,20 @@ impl State {
     }
 
     pub fn create_asset(&mut self, arg: CreateAssetArguments) -> Result<(), String> {
-        if let Some(asset) = self.assets.get(&arg.key) {
-            if asset.content_type != arg.content_type {
-                return Err("create_asset: content type mismatch".to_string());
-            }
-        } else {
-            self.assets.insert(
-                arg.key,
-                Asset {
-                    content_type: arg.content_type,
-                    encodings: HashMap::new(),
-                    max_age: arg.max_age,
-                    headers: arg.headers,
-                    is_aliased: arg.enable_aliasing,
-                    allow_raw_access: arg.allow_raw_access,
-                },
-            );
+        if self.assets.contains_key(&arg.key) {
+            return Err("asset already exists".to_string());
         }
+        self.assets.insert(
+            arg.key,
+            Asset {
+                content_type: arg.content_type,
+                encodings: HashMap::new(),
+                max_age: arg.max_age,
+                headers: arg.headers,
+                is_aliased: arg.enable_aliasing,
+                allow_raw_access: arg.allow_raw_access,
+            },
+        );
         Ok(())
     }
 
@@ -447,6 +442,15 @@ impl State {
                 }
             }
             self.assets.remove(&arg.key);
+        }
+        for key in aliases_of(&arg.key) {
+            // if an existing file can be aliased to the deleted file it has to become a valid alias again
+            if self.assets.contains_key(&key) {
+                let dependent_keys = self.dependent_keys(&key);
+                if let Some(asset) = self.assets.get_mut(&key) {
+                    on_asset_change(&mut self.asset_hashes, &key, asset, dependent_keys);
+                }
+            }
         }
     }
 
@@ -616,6 +620,7 @@ impl State {
             }
         }
         self.batches.remove(&batch_id);
+        self.certify_404_if_required();
         Ok(())
     }
 
@@ -783,11 +788,11 @@ impl State {
             .get(&arg.content_encoding)
             .ok_or_else(|| "no such encoding".to_string())?;
 
-        if let Some(expected_hash) = arg.sha256 {
-            if expected_hash != enc.sha256 {
-                return Err("sha256 mismatch".to_string());
-            }
+        let expected_hash = arg.sha256.ok_or("sha256 required")?;
+        if expected_hash != enc.sha256 {
+            return Err("sha256 mismatch".to_string());
         }
+
         if arg.index >= enc.content_chunks.len() {
             return Err("chunk index out of bounds".to_string());
         }
@@ -802,7 +807,7 @@ impl State {
         path: &str,
         requested_encodings: Vec<String>,
         chunk_index: usize,
-        callback: Func,
+        callback: CallbackFunc,
         etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
@@ -856,15 +861,14 @@ impl State {
                 }
             }
         }
-
-        HttpResponse::build_404(certificate_header)
+        HttpResponse::build_404(certificate_header, req.get_certificate_version())
     }
 
     pub fn http_request(
         &self,
         req: HttpRequest,
         certificate: &[u8],
-        callback: Func,
+        callback: CallbackFunc,
     ) -> HttpResponse {
         let mut encodings = vec![];
         // waiting for https://dfinity.atlassian.net/browse/BOUN-446
@@ -916,10 +920,9 @@ impl State {
             .get(&content_encoding)
             .ok_or_else(|| "Invalid token on streaming: encoding not found.".to_string())?;
 
-        if let Some(expected_hash) = sha256 {
-            if expected_hash != enc.sha256 {
-                return Err("sha256 mismatch".to_string());
-            }
+        let expected_hash = sha256.ok_or("sha256 required")?;
+        if expected_hash != enc.sha256 {
+            return Err("sha256 mismatch".to_string());
         }
 
         // MAX is good enough. This means a chunk would be above 64-bits, which is impossible...
@@ -1014,6 +1017,26 @@ impl State {
         }
         if let Some(max_bytes) = args.max_bytes {
             self.configuration.max_bytes = max_bytes;
+        }
+    }
+
+    fn certify_404_if_required(&mut self) {
+        if !self
+            .asset_hashes
+            .contains_path(HashTreePath::not_found_base_path_v2().as_vec())
+        {
+            let response = HttpResponse::uncertified_404();
+            let headers: Vec<_> = response
+                .headers
+                .into_iter()
+                .map(|(k, v)| (k, Value::String(v)))
+                .collect();
+            self.asset_hashes.certify_fallback_response(
+                response.status_code,
+                &headers,
+                &response.body,
+                None,
+            );
         }
     }
 }

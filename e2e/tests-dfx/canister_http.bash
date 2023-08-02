@@ -330,8 +330,6 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "can query a website" {
-    skip "Canister http functionality is broken.  See https://dfinity.atlassian.net/browse/SDK-1129"
-
     dfx_start
 
     dfx_new
@@ -339,8 +337,7 @@ set_shared_local_network_canister_http_empty() {
 
     dfx deploy
 
-    assert_command dfx canister call e2e_project_backend get_url '("smartcontracts.org:443","https://smartcontracts.org:443")'
-    assert_contains "Internet Computer"
-    assert_contains "smart contracts"
-    assert_contains "dapps"
+    assert_command dfx canister call e2e_project_backend get_url '("www.githubstatus.com:443","https://www.githubstatus.com:443")'
+    assert_contains "Git Operations"
+    assert_contains "API Requests"
 }

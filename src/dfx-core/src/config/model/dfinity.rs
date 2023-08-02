@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 #![allow(clippy::should_implement_trait)] // for from_str.  why now?
-
 use crate::config::directories::get_config_dfx_dir_path;
 use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
@@ -29,7 +28,6 @@ use crate::error::structured_file::StructuredFileError::{
 };
 use crate::json::save_json_file;
 use crate::json::structure::{PossiblyStr, SerdeVec};
-
 use byte_unit::Byte;
 use candid::Principal;
 use schemars::JsonSchema;

@@ -1,7 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::manifest::{get_latest_release, get_latest_version};
-
 use anyhow::Context;
 use clap::Parser;
 use semver::Version;

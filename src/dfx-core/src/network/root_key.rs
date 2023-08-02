@@ -1,8 +1,7 @@
-use ic_agent::Agent;
-
 use crate::{
     config::model::network_descriptor::NetworkDescriptor, error::root_key::FetchRootKeyError,
 };
+use ic_agent::Agent;
 
 pub async fn fetch_root_key_when_local(
     agent: &Agent,

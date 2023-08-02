@@ -1,21 +1,21 @@
-use anyhow::Context;
-use std::str::FromStr;
-
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::clap::parsers::hsm_key_id_parser;
+use anyhow::Context;
+use clap::Parser;
 use dfx_core::error::identity::IdentityError::SwitchBackToIdentityFailed;
 use dfx_core::identity::identity_manager::{
     HardwareIdentityConfiguration, IdentityCreationParameters, IdentityStorageMode,
 };
-use IdentityCreationParameters::{Hardware, Pem};
-
-use clap::Parser;
+use regex::Regex;
 use slog::{info, warn, Logger};
+use std::str::FromStr;
+use IdentityCreationParameters::{Hardware, Pem};
 
 /// Creates a new identity.
 #[derive(Parser)]
 pub struct NewIdentityOpts {
+    #[arg(value_parser = identity_name_validator)]
     /// The name of the identity to create.
     new_identity: String,
 
@@ -48,6 +48,14 @@ pub struct NewIdentityOpts {
     /// If the identity already exists, remove and re-create it.
     #[arg(long)]
     force: bool,
+}
+
+fn identity_name_validator(name: &str) -> Result<String, String> {
+    let valid_name = Regex::new(r"^[A-Za-z0-9\.\-_@]+$").unwrap();
+    if !valid_name.is_match(name) {
+        return Err("Invalid identity name. Please only use the characters ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_@0123456789".to_string());
+    }
+    Ok(name.into())
 }
 
 pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {

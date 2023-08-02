@@ -9,16 +9,15 @@ use crate::lib::operations::canister::motoko_playground::authorize_asset_uploade
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::util::assets::wallet_wasm;
 use crate::util::read_module_metadata;
+use anyhow::{anyhow, bail, Context};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoff;
+use candid::Principal;
 use dfx_core::canister::{build_wallet_canister, install_canister_wasm};
 use dfx_core::cli::ask_for_consent;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
-
-use anyhow::{anyhow, bail, Context};
-use backoff::backoff::Backoff;
-use backoff::ExponentialBackoff;
-use candid::Principal;
 use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;

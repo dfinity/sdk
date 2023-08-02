@@ -1,16 +1,14 @@
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
-use dfx_core::fs::create_dir_all;
-
 use anyhow::{bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use bytes::Bytes;
-use candid::parser::typing::{pretty_check_file, TypeEnv};
-use candid::types::{Function, Type};
-use candid::{parser::value::IDLValue, IDLArgs};
+use candid::parser::typing::pretty_check_file;
+use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
+use candid::IDLArgs;
+use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
-use hyper_rustls::ConfigBuilderExt;
 #[cfg(unix)]
 use net2::unix::UnixTcpBuilderExt;
 use net2::{TcpBuilder, TcpListenerExt};
@@ -126,8 +124,8 @@ pub fn get_candid_type(
 pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Function)> {
     let (env, ty) = check_candid_file(idl_path).ok()?;
     let actor = ty?;
-    let args = match actor {
-        Type::Class(args, _) => args,
+    let args = match actor.as_ref() {
+        TypeInner::Class(args, _) => args.clone(),
         _ => vec![],
     };
     let res = Function {
@@ -190,7 +188,11 @@ pub fn blob_from_arguments(
                     } else if func.args.is_empty() {
                         use candid::Encode;
                         Encode!()
-                    } else if func.args.iter().all(|t| matches!(t, Type::Opt(_))) {
+                    } else if func
+                        .args
+                        .iter()
+                        .all(|t| matches!(t.as_ref(), TypeInner::Opt(_)))
+                    {
                         // If the user provided no arguments, and if all the expected arguments are
                         // optional, then use null values.
                         let nulls = vec![IDLValue::Null; func.args.len()];
@@ -236,7 +238,7 @@ pub fn fuzzy_parse_argument(
     let args = arg_str.parse::<IDLArgs>().or_else(|_| {
         if types.len() == 1 && !is_candid_format {
             let is_quote = first_char.map_or(false, |c| c == '"');
-            if candid::types::Type::Text == types[0] && !is_quote {
+            if &TypeInner::Text == types[0].as_ref() && !is_quote {
                 Ok(IDLValue::Text(arg_str.to_string()))
             } else {
                 candid::pretty_parse::<IDLValue>("Candid argument", arg_str)
@@ -325,13 +327,8 @@ pub async fn download_file_to_path(from: &Url, to: &Path) -> DfxResult {
 
 #[context("Failed to download from url: {}.", from)]
 pub async fn download_file(from: &Url) -> DfxResult<Vec<u8>> {
-    let tls_config = rustls::ClientConfig::builder()
-        .with_safe_defaults()
-        .with_webpki_roots()
-        .with_no_client_auth();
-
     let client = reqwest::Client::builder()
-        .use_preconfigured_tls(tls_config)
+        .use_rustls_tls()
         .build()
         .context("Could not create HTTP client.")?;
 

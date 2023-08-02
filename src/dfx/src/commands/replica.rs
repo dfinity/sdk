@@ -14,7 +14,6 @@ use dfx_core::config::model::dfinity::DEFAULT_REPLICA_PORT;
 use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 use dfx_core::json::{load_json_file, save_json_file};
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
-
 use anyhow::{bail, Context};
 use clap::{ArgAction, Parser};
 use fn_error_context::context;
@@ -24,7 +23,6 @@ use std::fs;
 use std::fs::create_dir_all;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
-
 use super::start::CachedConfig;
 
 /// Starts a local Internet Computer replica.

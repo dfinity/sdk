@@ -8,7 +8,6 @@ use crate::error::foundation::FoundationError::NoHomeInEnvironment;
 #[cfg(not(windows))]
 use crate::foundation::get_user_home;
 use crate::fs::composite::ensure_dir_exists;
-
 use directories_next::ProjectDirs;
 use std::path::PathBuf;
 

@@ -4,7 +4,6 @@ use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-
 use clap::Parser;
 use tokio::runtime::Runtime;
 

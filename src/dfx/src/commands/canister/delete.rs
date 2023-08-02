@@ -10,23 +10,21 @@ use crate::lib::operations::canister::{
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::util::blob_from_arguments;
+use anyhow::{anyhow, Context};
+use candid::Principal;
+use clap::Parser;
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::cli::ask_for_consent;
 use dfx_core::identity::CallSender;
-
 use fn_error_context::context;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,
 };
-use ic_utils::interfaces::management_canister::CanisterStatus;
-use ic_utils::Argument;
-
-use anyhow::{anyhow, Context};
-use candid::Principal;
-use clap::Parser;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
+use ic_utils::interfaces::management_canister::CanisterStatus;
 use ic_utils::interfaces::ManagementCanister;
+use ic_utils::Argument;
 use num_traits::cast::ToPrimitive;
 use slog::info;
 use std::convert::TryFrom;

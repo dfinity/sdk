@@ -1,6 +1,5 @@
 use crate::error::compatibility::CompatibilityError;
 use crate::error::create_project_asset::CreateProjectAssetError;
-
 use ic_agent::AgentError;
 use thiserror::Error;
 

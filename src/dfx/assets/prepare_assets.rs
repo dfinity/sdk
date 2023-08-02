@@ -1,3 +1,10 @@
+use crate::Source;
+use backoff::future::retry;
+use backoff::ExponentialBackoffBuilder;
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+use flate2::{bufread::GzDecoder, write::GzEncoder, Compression};
+use reqwest::Client;
+use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
     fs::File,
@@ -6,15 +13,8 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-
-use bytes::{Buf, BufMut, Bytes, BytesMut};
-use flate2::{bufread::GzDecoder, write::GzEncoder, Compression};
-use reqwest::Client;
-use sha2::{Digest, Sha256};
 use tar::{Archive, Builder, EntryType, Header};
 use tokio::task::{spawn, spawn_blocking, JoinSet};
-
-use crate::Source;
 
 #[tokio::main]
 pub(crate) async fn prepare(out_dir: &Path, source_set: HashMap<String, Source>) {
@@ -144,7 +144,22 @@ fn write_binary_cache(
 }
 
 async fn download_and_check_sha(client: Client, source: Source) -> Bytes {
-    let response = client.get(&source.url).send().await.unwrap();
+    let retry_policy = ExponentialBackoffBuilder::new()
+        .with_initial_interval(Duration::from_secs(1))
+        .with_max_interval(Duration::from_secs(16))
+        .with_multiplier(2.0)
+        .with_max_elapsed_time(Some(Duration::from_secs(300)))
+        .build();
+
+    let response = retry(retry_policy, || async {
+        match client.get(&source.url).send().await {
+            Ok(response) => Ok(response),
+            Err(err) => Err(backoff::Error::transient(err)),
+        }
+    })
+    .await
+    .unwrap();
+
     response.error_for_status_ref().unwrap();
     let content = response.bytes().await.unwrap();
     let sha = Sha256::digest(&content);

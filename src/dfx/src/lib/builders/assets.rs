@@ -7,12 +7,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util;
+use anyhow::{anyhow, Context};
+use candid::Principal as CanisterId;
 use console::style;
 use dfx_core::config::cache::Cache;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
-
-use anyhow::{anyhow, Context};
-use candid::Principal as CanisterId;
 use fn_error_context::context;
 use slog::{o, Logger};
 use std::fs;

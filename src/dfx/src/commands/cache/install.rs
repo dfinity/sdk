@@ -1,7 +1,6 @@
 use crate::config::cache::DiskBasedCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-
 use clap::Parser;
 
 /// Forces unpacking the cache from this dfx version.

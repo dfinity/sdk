@@ -1,15 +1,17 @@
 #![allow(dead_code)]
-
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ExtensionError {
     // errors related to extension directory management
-    #[error("Cannot find cache directory '{0}': {1}")]
-    FindCacheDirectoryFailed(std::path::PathBuf, dfx_core::error::cache::CacheError),
+    #[error("Cannot find cache directory: '{0}'")]
+    FindCacheDirectoryFailed(crate::error::cache::CacheError),
 
     #[error("Cannot get extensions directory: {0}")]
-    EnsureExtensionDirExistsFailed(dfx_core::error::fs::FsError),
+    EnsureExtensionDirExistsFailed(crate::error::fs::FsError),
+
+    #[error("Extension directory '{0}' does not exist.")]
+    ExtensionDirDoesNotExist(std::path::PathBuf),
 
     #[error("Extension '{0}' not installed.")]
     ExtensionNotInstalled(String),
@@ -17,6 +19,9 @@ pub enum ExtensionError {
     // errors related to installing extensions
     #[error("Extension '{0}' is already installed.")]
     ExtensionAlreadyInstalled(String),
+
+    #[error("Extension '{0}' cannot be installed because it conflicts with an existing command. Consider using '--install-as' flag to install this extension under different name.")]
+    CommandAlreadyExists(String),
 
     #[error("Cannot fetch compatibility.json from '{0}': {1}")]
     CompatibilityMatrixFetchError(String, reqwest::Error),
@@ -49,25 +54,28 @@ pub enum ExtensionError {
     CreateTemporaryDirectoryFailed(std::path::PathBuf, std::io::Error),
 
     #[error(transparent)]
-    Io(#[from] dfx_core::error::fs::FsError),
+    Io(#[from] crate::error::fs::FsError),
 
     #[error("Platform '{0}' is not supported.")]
     PlatformNotSupported(String),
 
     // errors related to uninstalling extensions
     #[error("Cannot uninstall extension: {0}")]
-    InsufficientPermissionsToDeleteExtensionDirectory(dfx_core::error::fs::FsError),
+    InsufficientPermissionsToDeleteExtensionDirectory(crate::error::fs::FsError),
 
     // errors related to listing extensions
     #[error("Cannot list extensions: {0}")]
-    ExtensionsDirectoryIsNotReadable(dfx_core::error::fs::FsError),
+    ExtensionsDirectoryIsNotReadable(crate::error::fs::FsError),
 
-    #[error("Malformed extension manifest: {0}")]
-    ExtensionManifestIsNotValidJson(dfx_core::error::structured_file::StructuredFileError),
+    #[error("Cannot load extension manifest: {0}")]
+    LoadExtensionManifestFailed(crate::error::structured_file::StructuredFileError),
 
     // errors related to executing extensions
     #[error("Invalid extension name '{0:?}'.")]
     InvalidExtensionName(std::ffi::OsString),
+
+    #[error("Extension's subcommand argument '{0}' is missing description.")]
+    ExtensionSubcommandArgMissingDescription(String),
 
     #[error("Cannot find extension binary at '{0}'.")]
     ExtensionBinaryDoesNotExist(std::path::PathBuf),

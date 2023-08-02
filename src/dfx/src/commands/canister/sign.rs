@@ -4,26 +4,22 @@ use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::sign::sign_transport::SignTransport;
 use crate::lib::sign::signed_message::SignedMessageV1;
-use dfx_core::identity::CallSender;
-
 use crate::util::clap::parsers::file_or_stdin_parser;
 use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type};
-
+use anyhow::{anyhow, bail, Context};
 use candid::Principal;
+use clap::Parser;
+use dfx_core::identity::CallSender;
 use ic_agent::AgentError;
 use ic_agent::RequestId;
-
-use anyhow::{anyhow, bail, Context};
-use clap::Parser;
 use slog::info;
-use time::OffsetDateTime;
-
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::SystemTime;
+use time::OffsetDateTime;
 
 /// Sign a canister call and generate message file.
 #[derive(Parser)]

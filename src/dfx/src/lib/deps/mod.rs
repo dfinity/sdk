@@ -1,20 +1,18 @@
 use crate::lib::{environment::Environment, error::DfxResult};
+use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use dfx_core::{
     config::cache::get_cache_root,
     fs::composite::ensure_parent_dir_exists,
     json::{load_json_file, save_json_file},
 };
-
+use fn_error_context::context;
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
 };
-
-use anyhow::{anyhow, bail, Context};
-use candid::Principal;
-use fn_error_context::context;
-use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 pub mod deploy;
 
@@ -260,7 +258,8 @@ pub fn get_pulled_service_candid_path(canister_id: &Principal) -> DfxResult<Path
 
 /// The path of the dir contains wasm and service.did.
 pub fn get_pulled_canister_dir(canister_id: &Principal) -> DfxResult<PathBuf> {
-    Ok(get_cache_root()?.join("pulled").join(canister_id.to_text()))
+    let p = get_cache_root()?;
+    Ok(p.join("pulled").join(canister_id.to_text()))
 }
 
 /// Get the principal of a pull dependency which must exist in `pulled.json`.

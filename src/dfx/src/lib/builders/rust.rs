@@ -6,11 +6,9 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
-
 use slog::{info, o};
 use std::path::PathBuf;
 use std::process::Command;

@@ -1,6 +1,3 @@
-use clap::Parser;
-use tokio::runtime::Runtime;
-
 use crate::{
     lib::{
         agent::create_agent_environment, environment::Environment, error::DfxResult,
@@ -8,6 +5,8 @@ use crate::{
     },
     NetworkOpt,
 };
+use clap::Parser;
+use tokio::runtime::Runtime;
 
 /// Applies one-time fixes for known problems in the current environment caused by upgrading DFX.
 /// Makes no changes that would not have been suggested by `dfx diagnose`.

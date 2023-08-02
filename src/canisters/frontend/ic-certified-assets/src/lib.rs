@@ -11,7 +11,8 @@ mod tests;
 pub use crate::state_machine::StableState;
 use crate::{
     asset_certification::types::http::{
-        HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
+        CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
+        StreamingCallbackToken,
     },
     state_machine::{AssetDetails, CertifiedTree, EncodedAsset, State},
     types::*,
@@ -19,14 +20,13 @@ use crate::{
 use asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use candid::{candid_method, Principal};
 use ic_cdk::api::{call::ManualReply, caller, data_certificate, set_certified_data, time, trap};
-use ic_cdk_macros::{query, update};
+use ic_cdk::{query, update};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 
-// https://dfinity.atlassian.net/browse/SDK-1156 change back to [u8; 3] = *b"1,2"
 #[cfg(target_arch = "wasm32")]
 #[link_section = "icp:public supported_certificate_versions"]
-pub static SUPPORTED_CERTIFICATE_VERSIONS: [u8; 1] = *b"1";
+pub static SUPPORTED_CERTIFICATE_VERSIONS: [u8; 3] = *b"1,2";
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
@@ -316,10 +316,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
         s.borrow().http_request(
             req,
             &certificate,
-            candid::Func {
-                method: "http_request_streaming_callback".to_string(),
-                principal: ic_cdk::id(),
-            },
+            CallbackFunc::new(ic_cdk::id(), "http_request_streaming_callback".to_string()),
         )
     })
 }

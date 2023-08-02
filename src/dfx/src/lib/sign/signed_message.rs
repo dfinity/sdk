@@ -1,10 +1,8 @@
 use crate::lib::error::DfxResult;
-
+use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use fn_error_context::context;
 use ic_agent::RequestId;
-
-use anyhow::{anyhow, bail, Context};
 use serde::{Deserialize, Serialize};
 use serde_cbor::Value;
 use std::convert::TryFrom;

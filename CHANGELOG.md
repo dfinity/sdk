@@ -2,8 +2,6 @@
 
 # UNRELEASED
 
-## DFX
-
 ### feat: deploy to playground
 
 Introduced a new network type called `playground`. Canisters on such networks are not created through standard means, but are instead borrowed from a canister pool.
@@ -23,6 +21,10 @@ By default, this network targets the Motoko Playground backend to borrow caniste
 When the timer runs out the canister(s) will be uninstalled and are returned to the pool.
 Any commands that allow choosing a target network (e.g. `dfx canister call`) require `--playground` or `--network playground` in order to target the borrowed canister(s).
 Use `dfx deploy --playground` to deploy simple projects to a canister borrowed from the Motoko Playground.
+
+# 0.15.0
+
+## DFX
 
 ### feat!: Removed dfx replica and dfx bootstrap commands
 
@@ -54,16 +56,74 @@ Note that this can be combined to also disable the dfx version check warning:
 export DFX_WARNING="-version_check,-mainnet_plaintext_identity"
 ```
 
+### fix!: restrict `dfx identity new` to safe characters
+
+New identities like `dfx identity new my/identity` or `dfx identity new 'my identity'` can easily lead to problems, either for dfx internals or for usability.
+New identities are now restricted to the characters `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_@0123456789`.
+Existing identities are not affected by this change.
+
+## Frontend canister
+
+> **NOTE**: We've re-enabled response verification v2 in the asset canister.
+
+### fix: Certification for aliasing updates on asset deletion
+
+Best explained by an example: Two assets exist with aliasing enabled: `/content` and `/content.html`. Usually, when requesting `/content`, `/content.html` is served because it has aliasing enabled.
+But in this scenario, because `/content` exists, it overwrites the alias and `/content` is served when requesting the path `/content`.
+When the file `/content` is deleted, `/content` is once again a valid alias of `/content.html`.
+Previously, the alias of `/content.html` was not properly updated in the certification tree, making `/content` inaccessible.
+
+### fix: 404 response is now certified for certification v2
+
+Certification v2 allows certifying arbitrary responses. If the requested file does not exist, and the fallback file (`/index.html`) does not exist either,
+the frontend canister serves a HTTP 404 response. This response was previously not certified.
+
+### fix!: The CreateAsset batch operation now fails if the asset already exists
+
+Previously, the operation was a no-op if the content type matched, but ignored other, possibly different, asset properties. Now, it fails with an error.
+
+### fix!: http_request_streaming_callback and get_chunk now require the sha256 parameter to be set
+
+The `http_request_streaming_callback()` and `get_chunk()` methods use the `sha256` parameter to ensure that the chunks they return are part of the same asset contents returned by the initial call.  This parameter is now required to be Some(hash).
+
+For `http_request()` and `http_request_streaming_callback()`, there should be no change: all callers of `http_request_streaming_callback()` are expected to pass the entire token returned by `http_request()`, which includes the sha256 parameter.
+
+Any callers of `get_chunk()` should make sure to always pass the `sha256` value returned by the `get()` method.  It will always be present.
+
 ## Dependencies
 
 ### Motoko
 
-Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
+Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
+
+### Updated candid to 0.9.0
 
 ### Candid UI
 
-- Updated Candid UI canister to https://github.com/dfinity/candid/pull/449
-- Module hash: 32cf0e528ee7a4fc0ac2028c985ce3bbf5af264e802a9473f72ba332eff32185
+- Module hash: b9173bb25dabe5e2b736a8f2816e68fba14ca72132f5485ce7b8f16a85737a17
+- https://github.com/dfinity/sdk/pull/3260
+- https://github.com/dfinity/sdk/pull/3252
+- https://github.com/dfinity/candid/pull/449
+- https://github.com/dfinity/candid/pull/453
+
+### Frontend canister
+
+- Module hash: 88d1e5795d29debc1ff56fa0696dcb3adfa67f82fe2739d1aa644263838174b9
+- https://github.com/dfinity/sdk/pull/3256
+- https://github.com/dfinity/sdk/pull/3252
+- https://github.com/dfinity/sdk/pull/3249
+- https://github.com/dfinity/sdk/pull/3212
+- https://github.com/dfinity/sdk/pull/3227
+
+### Replica
+
+Updated replica to elected commit 0062aec2efc16d6e4cadb2cd1052aaabbc9f6e48.
+This incorporates the following elected proposals:
+
+- [123711](https://dashboard.internetcomputer.org/proposal/123711)
+- [123474](https://dashboard.internetcomputer.org/proposal/123474)
+- [123410](https://dashboard.internetcomputer.org/proposal/123410)
+- [123311](https://dashboard.internetcomputer.org/proposal/123311)
 
 # 0.14.2
 

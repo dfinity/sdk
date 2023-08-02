@@ -1,7 +1,6 @@
 use crate::config::dfx_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-
 use clap::Parser;
 use dfx_core::config::cache::list_versions;
 use std::io::Write;

@@ -16,12 +16,16 @@ use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
+pub use deploy_canisters::deploy_canisters;
+pub use deploy_canisters::DeployMode;
 use dfx_core::canister::build_wallet_canister;
+pub use dfx_core::canister::install_canister_wasm;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
+pub use install_canister::{install_canister, install_wallet};
 use std::path::PathBuf;
 
 pub mod motoko_playground;

@@ -1,15 +1,13 @@
-use crate::lib::error::extension::ExtensionError;
-use crate::lib::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
-
+use crate::error::extension::ExtensionError;
+use crate::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
 use flate2::read::GzDecoder;
 use reqwest::Url;
 use semver::{BuildMetadata, Prerelease, Version};
-use tar::Archive;
-use tempfile::{tempdir_in, TempDir};
-
 use std::io::Cursor;
 #[cfg(not(target_os = "windows"))]
 use std::os::unix::fs::PermissionsExt;
+use tar::Archive;
+use tempfile::{tempdir_in, TempDir};
 
 const DFINITY_DFX_EXTENSIONS_RELEASES_URL: &str =
     "https://github.com/dfinity/dfx-extensions/releases/download";
@@ -78,6 +76,9 @@ impl ExtensionManager {
             .bytes()
             .map_err(|e| ExtensionError::ExtensionDownloadFailed(download_url.clone(), e))?;
 
+        crate::fs::composite::ensure_dir_exists(&self.dir)
+            .map_err(ExtensionError::EnsureExtensionDirExistsFailed)?;
+
         let temp_dir = tempdir_in(&self.dir).map_err(|e| {
             ExtensionError::CreateTemporaryDirectoryFailed(self.dir.to_path_buf(), e)
         })?;
@@ -98,13 +99,13 @@ impl ExtensionManager {
         temp_dir: TempDir,
     ) -> Result<(), ExtensionError> {
         let effective_extension_dir = &self.get_extension_directory(effective_extension_name);
-        dfx_core::fs::rename(
+        crate::fs::rename(
             &temp_dir.path().join(extension_unarchived_dir_name),
             effective_extension_dir,
         )?;
         if extension_name != effective_extension_name {
             // rename the binary
-            dfx_core::fs::rename(
+            crate::fs::rename(
                 &effective_extension_dir.join(extension_name),
                 &effective_extension_dir.join(effective_extension_name),
             )?;
@@ -112,7 +113,7 @@ impl ExtensionManager {
         #[cfg(not(target_os = "windows"))]
         {
             let bin = effective_extension_dir.join(effective_extension_name);
-            dfx_core::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;
+            crate::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;
         }
         Ok(())
     }

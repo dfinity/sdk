@@ -1,6 +1,5 @@
 use crate::error::create_encoding::CreateEncodingError;
 use dfx_core::error::fs::FsError;
-
 use thiserror::Error;
 
 /// Errors related to creating an asset found in the project in the asset canister.

@@ -1,7 +1,6 @@
 use crate::{lib::error::DfxResult, Environment};
-use dfx_core::network::root_key;
-
 use anyhow::anyhow;
+use dfx_core::network::root_key;
 
 pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
     let agent = env

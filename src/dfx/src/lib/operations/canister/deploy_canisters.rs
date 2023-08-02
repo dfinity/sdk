@@ -13,12 +13,11 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::operations::canister::{create_canister, install_canister::install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
+use anyhow::{anyhow, bail, Context};
+use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::Config;
 use dfx_core::identity::CallSender;
-
-use anyhow::{anyhow, bail, Context};
-use candid::Principal;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation,

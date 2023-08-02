@@ -1,15 +1,13 @@
-use std::borrow::Borrow;
-
-use candid::{CandidType, Deserialize};
-use ic_response_verification::hash::Value;
-use serde_cbor::ser::IoWrite;
-use serde_cbor::Serializer;
-use sha2::Digest;
-
 use super::{
     http::{build_ic_certificate_expression_from_headers, FALLBACK_FILE},
     rc_bytes::RcBytes,
 };
+use candid::{CandidType, Deserialize};
+use ic_representation_independent_hash::Value;
+use serde_cbor::ser::IoWrite;
+use serde_cbor::Serializer;
+use sha2::Digest;
+use std::borrow::Borrow;
 
 pub type AssetKey = String;
 
@@ -85,12 +83,19 @@ impl AssetPath {
         RequestHash(maybe_request_hash): &RequestHash,
         ResponseHash(response_hash): ResponseHash,
     ) -> HashTreePath {
-        let mut hash_path: Vec<NestedTreeKey> = vec!["http_expr".into()];
-        hash_path = self.0.iter().fold(hash_path, |mut path, s| {
-            path.push(s.as_str().into());
-            path
-        });
-        hash_path.push("<$>".into()); // asset path terminator
+        let mut hash_path: Vec<NestedTreeKey> = vec![];
+        if matches!(self.0.last(), Some(segment) if segment == "<*>") {
+            // it's a v2 fallback path
+            hash_path.push("http_expr".into());
+            hash_path.push("<*>".into());
+        } else {
+            hash_path.push("http_expr".into());
+            hash_path = self.0.iter().fold(hash_path, |mut path, s| {
+                path.push(s.as_str().into());
+                path
+            });
+            hash_path.push("<$>".into()); // asset path terminator
+        };
         hash_path.push(certificate_expression.expression_hash.into());
         hash_path.push(
             maybe_request_hash
@@ -173,6 +178,14 @@ impl HashTreePath {
     pub fn not_found_base_path_v2() -> Self {
         HashTreePath::from(Vec::from([
             NestedTreeKey::String("http_expr".into()),
+            NestedTreeKey::String("<*>".into()),
+        ]))
+    }
+
+    pub fn not_found_trailing_slash_path_v2() -> Self {
+        HashTreePath::from(Vec::from([
+            NestedTreeKey::String("http_expr".into()),
+            NestedTreeKey::String("".into()),
             NestedTreeKey::String("<*>".into()),
         ]))
     }

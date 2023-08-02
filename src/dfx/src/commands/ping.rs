@@ -1,7 +1,7 @@
-use std::time::Duration;
-
 use crate::lib::environment::{create_agent, Environment};
 use crate::lib::error::{DfxError, DfxResult};
+use anyhow::{bail, Context};
+use clap::Parser;
 use dfx_core::identity::Identity;
 use dfx_core::network::provider::{
     command_line_provider_to_url, create_network_descriptor, get_network_context,
@@ -9,9 +9,8 @@ use dfx_core::network::provider::{
 };
 use dfx_core::util::expiry_duration;
 
-use anyhow::{bail, Context};
-use clap::Parser;
 use slog::warn;
+use std::time::Duration;
 use tokio::runtime::Runtime;
 
 /// Pings an Internet Computer network and returns its status.

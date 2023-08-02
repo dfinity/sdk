@@ -1,12 +1,12 @@
-use crate::commands::ledger::{get_icpts_from_args, transfer};
+use crate::commands::ledger::get_icpts_from_args;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{Memo, MAINNET_LEDGER_CANISTER_ID};
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
+use crate::lib::operations::ledger::transfer;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{e8s_parser, memo_parser};
-
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;

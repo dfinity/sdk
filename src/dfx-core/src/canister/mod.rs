@@ -1,3 +1,8 @@
+use crate::{
+    cli::ask_for_consent,
+    error::canister::{CanisterBuilderError, CanisterInstallError},
+    identity::CallSender,
+};
 use candid::Principal;
 use ic_agent::Agent;
 use ic_utils::{
@@ -9,12 +14,6 @@ use ic_utils::{
     Argument,
 };
 use slog::{info, Logger};
-
-use crate::{
-    cli::ask_for_consent,
-    error::canister::{CanisterBuilderError, CanisterInstallError},
-    identity::CallSender,
-};
 
 pub async fn build_wallet_canister(
     id: Principal,

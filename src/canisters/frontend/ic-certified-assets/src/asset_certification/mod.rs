@@ -7,14 +7,14 @@ use self::{
         },
     },
 };
-
+use crate::asset_certification::types::http::build_ic_certificate_expression_header;
+use ic_representation_independent_hash::Value;
 use serde::Serialize;
 use sha2::Digest;
 
 pub mod tree;
 pub mod types;
 pub use ic_certified_map::HashTree;
-pub use ic_response_verification::hash::Value;
 
 pub type CertifiedResponses = NestedTree<NestedTreeKey, Vec<u8>>;
 
@@ -104,9 +104,13 @@ impl CertifiedResponses {
         body_hash: Option<[u8; 32]>,
     ) -> HashTreePath {
         let certificate_expression = build_ic_certificate_expression_from_headers(headers);
+        let cert_expr_header = build_ic_certificate_expression_header(&certificate_expression);
+        let cert_expr_header = (cert_expr_header.0, Value::String(cert_expr_header.1));
+        let mut certified_headers = Vec::from(headers);
+        certified_headers.push(cert_expr_header);
         let request_hash = RequestHash::default(); // request certification currently not supported
         let body_hash = body_hash.unwrap_or_else(|| sha2::Sha256::digest(body).into());
-        let response_hash = response_hash(headers, status_code, &body_hash);
+        let response_hash = response_hash(&certified_headers, status_code, &body_hash);
 
         let asset_path = AssetPath::fallback_path();
         let hash_tree_path =
@@ -183,8 +187,21 @@ impl CertifiedResponses {
             let fallback_path = HashTreePath::not_found_base_path_v2();
 
             let absence_proof = self.witness(hash_tree_path_root.as_vec());
-            let not_found_proof = self.witness(fallback_path.as_vec());
-            let combined_proof = merge_hash_trees(absence_proof, not_found_proof);
+            let fallback_trailing_slash_path = HashTreePath::not_found_trailing_slash_path_v2();
+            let not_found_trailing_slash_proof =
+                self.witness(fallback_trailing_slash_path.as_vec());
+            let mut combined_proof =
+                merge_hash_trees(absence_proof, not_found_trailing_slash_proof);
+
+            let mut partial_path = hash_tree_path_root.0;
+            while partial_path.pop().is_some() && !partial_path.is_empty() {
+                partial_path.push(NestedTreeKey::String("<*>".into()));
+
+                let proof = self.witness(HashTreePath::from(partial_path.clone()).as_vec());
+                combined_proof = merge_hash_trees(combined_proof, proof);
+
+                partial_path.pop(); // remove <*>
+            }
 
             if self.contains_path(fallback_path.as_vec()) {
                 (combined_proof, WitnessResult::FallbackFound)

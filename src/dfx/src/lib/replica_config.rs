@@ -1,8 +1,7 @@
+use dfx_core::config::model::dfinity::{ReplicaLogLevel, ReplicaSubnetType};
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 use std::path::{Path, PathBuf};
-
-use dfx_core::config::model::dfinity::{ReplicaLogLevel, ReplicaSubnetType};
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HttpHandlerConfig {
