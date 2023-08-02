@@ -1,4 +1,5 @@
-use crate::lib::ledger_types::NotifyError;
+use crate::lib::error::NotifyCreateCanisterError::Notify;
+use crate::lib::ledger_types::NotifyError::Refunded;
 use crate::lib::operations::cmc::notify_create;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, error::DfxResult};
@@ -32,16 +33,16 @@ pub async fn exec(env: &dyn Environment, opts: NotifyCreateOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
 
-    let result = notify_create(agent, controller, block_height, opts.subnet_type).await?;
+    let result = notify_create(agent, controller, block_height, opts.subnet_type).await;
 
     match result {
         Ok(principal) => {
             println!("Canister created with id: {:?}", principal.to_text());
         }
-        Err(NotifyError::Refunded {
+        Err(Notify(Refunded {
             reason,
             block_index,
-        }) => {
+        })) => {
             match block_index {
                 Some(height) => {
                     println!("Refunded at block height {height} with message: {reason}")
