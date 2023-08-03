@@ -6,6 +6,10 @@
 
 ## DFX
 
+### feat!: Updated handling of missing values in state tree certificates
+
+The `Unknown` lookup of a path in a certificate results in an `AgentError` (the IC returns `Absent` for non-existing paths).
+
 ### feat!: Removed dfx nns and dfx sns commands
 
 Both have now been turned into the dfx extensions. In order to obtain them, please run `dfx extension install nns` and `dfx extension install sns` respectively. After the installation, you can use them as you did before: `dfx nns ...`, and `dfx sns ...`.
