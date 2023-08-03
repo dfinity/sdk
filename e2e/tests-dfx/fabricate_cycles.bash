@@ -41,6 +41,8 @@ teardown() {
     install_asset greet
     assert_command_fail dfx ledger fabricate-cycles --all --network ic
     assert_match "Cannot run this on the real IC."
+    assert_command_fail dfx ledger fabricate-cycles --all --ic
+    assert_match "Cannot run this on the real IC."
 }
 
 @test "ledger fabricate-cycles fails with wrong option combinations" {
