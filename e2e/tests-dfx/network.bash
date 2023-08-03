@@ -86,3 +86,9 @@ teardown() {
     assert_match "Cannot find canister id."
     assert_match "--network actuallylocal"
 }
+
+@test "network 'playground' has a default definition" {
+    # if network is unknown dfx fails with `Network not found: <network name>`
+    assert_command_fail dfx canister id hello_backend --network playground
+    assert_contains "Cannot find canister id"
+}

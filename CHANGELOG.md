@@ -2,6 +2,26 @@
 
 # UNRELEASED
 
+### feat: deploy to playground
+
+Introduced a new network type called `playground`. Canisters on such networks are not created through standard means, but are instead borrowed from a canister pool.
+The canisters time out after a while and new canisters need to be borrowed for further deployments.
+To define custom playground networks, use a network definition that includes the `playground` key:
+```json
+"<network name>": {
+  "playground": {
+    "playground_canister": "<canister pool id>",
+    "timeout_seconds": <amount of seconds after which a canister is returned to the pool>
+  }
+}
+```
+
+Introduced a new network that is available by default called `playground`. Additionally, `--playground` is an alias for `--network playground`.
+By default, this network targets the Motoko Playground backend to borrow canisters. The borrowed canisters will be available for 20 minutes, and the timer restarts on new deployments.
+When the timer runs out the canister(s) will be uninstalled and are returned to the pool.
+Any commands that allow choosing a target network (e.g. `dfx canister call`) require `--playground` or `--network playground` in order to target the borrowed canister(s).
+Use `dfx deploy --playground` to deploy simple projects to a canister borrowed from the Motoko Playground.
+
 # 0.15.0
 
 ## DFX

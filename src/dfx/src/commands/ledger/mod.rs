@@ -1,8 +1,8 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::network::network_opt::NetworkOpt;
 use crate::lib::nns_types::icpts::ICPTs;
-use crate::NetworkOpt;
 use anyhow::anyhow;
 use clap::Parser;
 use fn_error_context::context;
@@ -41,7 +41,7 @@ enum SubCommand {
 }
 
 pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network.network)?;
+    let agent_env = create_agent_environment(env, opts.network.to_network_name())?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         match opts.subcmd {

@@ -13,7 +13,7 @@ use crate::{
             icpts::{ICPTs, TRANSACTION_FEE},
         },
         operations::{
-            canister::install_wallet,
+            canister::install_canister::install_wallet,
             cmc::{notify_create, transfer_cmc},
             ledger::{balance, xdr_permyriad_per_icp},
         },

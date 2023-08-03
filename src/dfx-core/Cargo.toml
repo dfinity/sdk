@@ -38,6 +38,7 @@ tar.workspace = true
 tempfile.workspace = true
 thiserror.workspace = true
 tiny-bip39 = "1.0.0"
+time.workspace = true
 url.workspace = true
 
 [dev-dependencies]

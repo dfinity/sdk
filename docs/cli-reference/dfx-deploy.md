@@ -23,6 +23,7 @@ You can use the following options with the `dfx deploy` command.
 | Option                             | Description                                                                                                                                                                 |
 |------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `--network <network>`              | Overrides the environment to connect to. By default, the local canister execution environment is used.                                                                      |
+| `--playground       `              | Alias for `--network playground`. By default, canisters on this network are borrowed from the Motoko Playground.                                                            |
 | `--argument <argument>`            | Specifies an argument using Candid syntax to pass to the canister during deployment. Note that this option requires you to define an actor class in the Motoko program. |
 | `--with-cycles <number-of-cycles>` | Enables you to specify the initial number of cycles for a canister in a project.                                                                                            |
 | `--specified-id <PRINCIPAL>`       | Attempts to create the canister with this Canister ID                                                                                 |

@@ -41,6 +41,8 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use super::network_descriptor::MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS;
+
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
@@ -593,6 +595,21 @@ impl ReplicaSubnetType {
     }
 }
 
+fn default_playground_timeout_seconds() -> u64 {
+    MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS
+}
+
+/// Playground config to borrow canister from instead of creating new canisters.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct PlaygroundConfig {
+    /// Canister ID of the playground canister
+    pub playground_canister: String,
+
+    /// How many seconds a canister can be borrowed for
+    #[serde(default = "default_playground_timeout_seconds")]
+    pub timeout_seconds: u64,
+}
+
 /// # Custom Network Configuration
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigNetworkProvider {
@@ -602,6 +619,7 @@ pub struct ConfigNetworkProvider {
     /// Persistence type of this network.
     #[serde(default = "NetworkType::persistent")]
     pub r#type: NetworkType,
+    pub playground: Option<PlaygroundConfig>,
 }
 
 /// # Local Replica Configuration
@@ -620,6 +638,7 @@ pub struct ConfigLocalProvider {
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
     pub replica: Option<ConfigDefaultsReplica>,
+    pub playground: Option<PlaygroundConfig>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, JsonSchema)]
@@ -891,7 +910,7 @@ fn add_dependencies(
     Ok(())
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Config {
     path: PathBuf,
     json: Value,
@@ -1252,6 +1271,7 @@ mod tests {
             &ConfigNetwork::ConfigNetworkProvider(ConfigNetworkProvider {
                 providers: vec![String::from("https://1.2.3.4:5000")],
                 r#type: NetworkType::Ephemeral,
+                playground: None,
             })
         );
     }

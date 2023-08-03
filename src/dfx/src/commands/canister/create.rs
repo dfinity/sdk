@@ -87,6 +87,7 @@ pub async fn exec(
     if opts.specified_id.is_none()
         && !opts.no_wallet
         && !matches!(call_sender, CallSender::Wallet(_))
+        && !network.is_playground()
     {
         let wallet = get_or_create_wallet_canister(
             env,

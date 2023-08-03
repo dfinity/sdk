@@ -6,10 +6,11 @@ use crate::config::model::dfinity::{
 use crate::config::model::local_server_descriptor::{
     LocalNetworkScopeDescriptor, LocalServerDescriptor,
 };
-use crate::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
-use crate::error::network_config::NetworkConfigError;
+use crate::config::model::network_descriptor::{
+    NetworkDescriptor, NetworkTypeDescriptor, PLAYGROUND_NETWORK_NAME,
+};
 use crate::error::network_config::NetworkConfigError::{
-    NetworkNotFound, NoNetworkContext, NoProvidersForNetwork, ParsePortValueFailed,
+    self, NetworkNotFound, NoNetworkContext, NoProvidersForNetwork, ParsePortValueFailed,
     ParseProviderUrlFailed, ReadWebserverPortFailed,
 };
 use crate::identity::WALLET_CONFIG_FILENAME;
@@ -69,6 +70,7 @@ fn config_network_to_network_descriptor(
             } else {
                 Err(NoProvidersForNetwork(network_name.to_string()))
             }?;
+            let playground = network_provider.playground.clone();
             let is_ic = NetworkDescriptor::is_ic(network_name, &providers);
             Ok(NetworkDescriptor {
                 name: network_name.to_string(),
@@ -76,7 +78,8 @@ fn config_network_to_network_descriptor(
                 r#type: NetworkTypeDescriptor::new(
                     network_provider.r#type,
                     ephemeral_wallet_config_path,
-                ),
+                    playground,
+                )?,
                 is_ic,
                 local_server_descriptor: None,
             })
@@ -102,9 +105,13 @@ fn config_network_to_network_descriptor(
                 .clone()
                 .or_else(|| project_defaults.and_then(|x| x.replica.clone()))
                 .unwrap_or_default();
+            let playground = local_provider.playground.clone();
 
-            let network_type =
-                NetworkTypeDescriptor::new(local_provider.r#type, ephemeral_wallet_config_path);
+            let network_type = NetworkTypeDescriptor::new(
+                local_provider.r#type,
+                ephemeral_wallet_config_path,
+                playground,
+            )?;
             let bind_address = get_local_bind_address(
                 local_provider,
                 local_bind_determination,
@@ -163,6 +170,7 @@ pub fn create_network_descriptor(
                 &logger,
             )
         })
+        .or_else(|| create_default_network_from_name(&network_name, &logger).map(Ok))
         .or_else(|| create_url_based_network_descriptor(&network_name))
         .unwrap_or(Err(NetworkNotFound(network_name)))
 }
@@ -194,7 +202,8 @@ fn create_url_based_network_descriptor(
         let network_type = NetworkTypeDescriptor::new(
             NetworkType::Ephemeral,
             &data_directory.join(WALLET_CONFIG_FILENAME),
-        );
+            None,
+        )?;
         Ok(NetworkDescriptor {
             name,
             providers: vec![url],
@@ -229,6 +238,7 @@ fn create_shared_network_descriptor(
                 bootstrap: None,
                 canister_http: None,
                 replica: None,
+                playground: None,
             }))
         }
         (network_name, None) => {
@@ -332,6 +342,19 @@ fn create_project_network_descriptor(
             network_name
         );
         None
+    }
+}
+
+fn create_default_network_from_name(
+    network_name: &str,
+    logger: &Logger,
+) -> Option<NetworkDescriptor> {
+    match network_name {
+        PLAYGROUND_NETWORK_NAME => {
+            debug!(logger, "Using default definition for network 'playground'.");
+            Some(NetworkDescriptor::default_playground_network())
+        }
+        _ => None,
     }
 }
 

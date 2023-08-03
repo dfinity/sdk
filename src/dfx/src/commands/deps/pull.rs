@@ -8,11 +8,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
+use crate::lib::network::network_opt::NetworkOpt;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::lib::wasm::file::{decompress_bytes, read_wasm_module};
 use crate::util::download_file;
-use crate::NetworkOpt;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
@@ -43,7 +43,10 @@ pub async fn exec(env: &dyn Environment, opts: DepsPullOpts) -> DfxResult {
         return Ok(());
     }
 
-    let network = opts.network.network.unwrap_or_else(|| "ic".to_string());
+    let network = opts
+        .network
+        .to_network_name()
+        .unwrap_or_else(|| "ic".to_string());
     let env = create_anonymous_agent_environment(env, Some(network))?;
 
     let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
