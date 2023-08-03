@@ -1,9 +1,6 @@
-use crate::{
-    lib::{
-        agent::create_agent_environment, environment::Environment, error::DfxResult,
-        migrate::migrate,
-    },
-    NetworkOpt,
+use crate::lib::{
+    agent::create_agent_environment, environment::Environment, error::DfxResult, migrate::migrate,
+    network::network_opt::NetworkOpt,
 };
 use clap::Parser;
 use tokio::runtime::Runtime;

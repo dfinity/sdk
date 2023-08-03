@@ -1,6 +1,7 @@
 use crate::lib::agent::create_agent_environment;
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::{lib::environment::Environment, NetworkOpt};
+use crate::lib::network::network_opt::NetworkOpt;
 use anyhow::anyhow;
 use clap::{Parser, Subcommand};
 use dfx_core::identity::CallSender;

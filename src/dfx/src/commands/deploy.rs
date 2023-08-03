@@ -1,6 +1,7 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
+use crate::lib::network::network_opt::NetworkOpt;
 use crate::lib::operations::canister::deploy_canisters::deploy_canisters;
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
@@ -8,7 +9,6 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::parsers::cycle_amount_parser;
-use crate::NetworkOpt;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;

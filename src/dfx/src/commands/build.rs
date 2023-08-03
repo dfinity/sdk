@@ -4,7 +4,7 @@ use crate::lib::builders::BuildConfig;
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use crate::NetworkOpt;
+use crate::lib::network::network_opt::NetworkOpt;
 use clap::Parser;
 use dfx_core::config::model::dfinity::Config;
 use std::path::PathBuf;
