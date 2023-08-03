@@ -16,11 +16,11 @@ pub struct NetworkOpt {
 }
 
 impl NetworkOpt {
-    pub fn to_network_name(self) -> Option<String> {
+    pub fn to_network_name(&self) -> Option<String> {
         if self.playground {
             Some("playground".to_string())
         } else {
-            self.network
+            self.network.clone()
         }
     }
 }
