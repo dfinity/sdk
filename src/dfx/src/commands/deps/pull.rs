@@ -43,7 +43,10 @@ pub async fn exec(env: &dyn Environment, opts: DepsPullOpts) -> DfxResult {
         return Ok(());
     }
 
-    let network = opts.network.network.unwrap_or_else(|| "ic".to_string());
+    let network = opts
+        .network
+        .to_network_name()
+        .unwrap_or_else(|| "ic".to_string());
     let env = create_anonymous_agent_environment(env, Some(network))?;
 
     let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
