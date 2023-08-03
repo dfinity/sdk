@@ -94,6 +94,7 @@ teardown() {
 }
 
 @test "equivalent: --network ic and --ic" {
+    dfx_start
     dfx identity get-wallet
 
     assert_command_fail dfx diagnose --network ic
