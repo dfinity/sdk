@@ -5,7 +5,6 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::wallet::set_wallet_id;
 use crate::NetworkOpt;
 use dfx_core::canister::build_wallet_canister;
-
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;

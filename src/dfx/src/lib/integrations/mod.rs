@@ -6,7 +6,6 @@ use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::util::blob_from_arguments;
 use dfx_core::identity::Identity;
 use dfx_core::{error::root_key::FetchRootKeyError, util::expiry_duration};
-
 use anyhow::bail;
 use candid::Principal;
 use fn_error_context::context;

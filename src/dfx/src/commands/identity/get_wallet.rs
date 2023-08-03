@@ -3,7 +3,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::NetworkOpt;
-
 use crate::lib::identity::wallet::get_or_create_wallet;
 use clap::Parser;
 use tokio::runtime::Runtime;

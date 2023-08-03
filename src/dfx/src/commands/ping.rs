@@ -8,7 +8,6 @@ use dfx_core::network::provider::{
     LocalBindDetermination,
 };
 use dfx_core::util::expiry_duration;
-
 use slog::warn;
 use std::time::Duration;
 use tokio::runtime::Runtime;

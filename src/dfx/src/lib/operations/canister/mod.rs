@@ -1,8 +1,6 @@
 mod create_canister;
 pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
-
-use anyhow::bail;
 pub use create_canister::create_canister;
 
 use crate::lib::canister_info::CanisterInfo;
@@ -10,8 +8,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
 use dfx_core::identity::CallSender;
-
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use candid::Principal as CanisterId;
