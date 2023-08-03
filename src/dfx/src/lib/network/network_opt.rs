@@ -1,4 +1,4 @@
-use clap::{Args, ArgGroup};
+use clap::{ArgGroup, Args};
 
 #[derive(Args, Clone, Debug, Default)]
 #[clap(
