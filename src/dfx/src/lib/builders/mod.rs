@@ -352,22 +352,22 @@ pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult
 }
 
 /// Set the permission of the given file to be writeable.
-pub fn set_perms_readwrite(file_path: &PathBuf) -> DfxResult<()> {
+pub fn set_perms_readwrite(_file_path: &Path) -> DfxResult<()> {
     #[cfg(unix)]
     {
-        let mut perms = std::fs::metadata(file_path)
+        let mut perms = std::fs::metadata(_file_path)
             .with_context(|| {
                 format!(
                     "Failed to read metadata for file {}.",
-                    file_path.to_string_lossy()
+                    _file_path.to_string_lossy()
                 )
             })?
             .permissions();
         perms.set_mode(perms.mode() | 0o600);
-        std::fs::set_permissions(file_path, perms).with_context(|| {
+        std::fs::set_permissions(_file_path, perms).with_context(|| {
             format!(
                 "Failed to set permissions for file {}.",
-                file_path.to_string_lossy()
+                _file_path.to_string_lossy()
             )
         })?;
     }
