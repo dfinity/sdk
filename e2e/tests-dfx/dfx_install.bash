@@ -54,6 +54,16 @@ teardown() {
     assert_command dfx cache install
 }
 
+@test "Motoko base library files are not executable" {
+    assert_command dfx cache install
+    for file in "$(dfx cache show)"/base/*.mo; do
+        assert_command_fail test -x "$file"
+        assert_command_fail "$file"
+        assert_contains "Permission denied"
+    done
+}
+
+
 @test "forced install overwrites a cached version" {
     assert_command dfx cache install
     test -f "$(dfx cache show)"/dfx
