@@ -154,7 +154,7 @@ impl AssetSourceDirectoryConfiguration {
         for (path, rules) in hm.iter_mut() {
             rules.sort_by_key(|v| v.r#match.glob().to_string());
             rules.dedup();
-            for mut rule in rules {
+            for rule in rules {
                 let prefix_path = format!("{}/", path.display());
                 let modified_glob = rule.r#match.glob().to_string();
                 let original_glob = &modified_glob.strip_prefix(&prefix_path);

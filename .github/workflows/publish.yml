@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.65.0' ]
+        rust: [ '1.71.1' ]
         # We build a dynamic-linked linux binary because otherwise HSM support fails with:
         #   Error: IO: Dynamic loading not supported
         target: [ x86_64-apple-darwin, x86_64-unknown-linux-gnu ]
@@ -142,7 +142,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.65.0' ]
+        rust: [ '1.71.1' ]
         name: [ 'x86_64-darwin', 'x86_64-linux' ]
     steps:
       - name: Setup environment variables
