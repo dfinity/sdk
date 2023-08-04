@@ -3,7 +3,6 @@
 use crate::config::directories::get_config_dfx_dir_path;
 use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
-use crate::config::model::dfinity::MetadataVisibility::Public;
 use crate::error::dfx_config::DfxConfigError;
 use crate::error::dfx_config::DfxConfigError::{
     CanisterCircularDependency, CanisterNotFound, CanistersFieldDoesNotExist,
@@ -100,20 +99,15 @@ impl std::fmt::Display for WasmOptLevel {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum MetadataVisibility {
     /// Anyone can query the metadata
+    #[default]
     Public,
 
     /// Only the controllers of the canister can query the metadata.
     Private,
-}
-
-impl Default for MetadataVisibility {
-    fn default() -> Self {
-        Public
-    }
 }
 
 /// # Canister Metadata Configuration
@@ -543,22 +537,15 @@ pub struct ConfigDefaultsReplica {
 /// # Network Type
 /// Type 'ephemeral' is used for networks that are regularly reset.
 /// Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum NetworkType {
     // We store ephemeral canister ids in .dfx/{network}/canister_ids.json
+    #[default]
     Ephemeral,
 
     // We store persistent canister ids in canister_ids.json (adjacent to dfx.json)
     Persistent,
-}
-
-impl Default for NetworkType {
-    // This is just needed for the Default trait on NetworkType,
-    // but nothing will ever call it, due to field defaults.
-    fn default() -> Self {
-        NetworkType::Ephemeral
-    }
 }
 
 impl NetworkType {
@@ -570,18 +557,13 @@ impl NetworkType {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ReplicaSubnetType {
     System,
+    #[default]
     Application,
     VerifiedApplication,
-}
-
-impl Default for ReplicaSubnetType {
-    fn default() -> Self {
-        ReplicaSubnetType::Application
-    }
 }
 
 impl ReplicaSubnetType {

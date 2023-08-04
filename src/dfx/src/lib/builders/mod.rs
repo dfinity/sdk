@@ -17,6 +17,8 @@ use std::ffi::OsStr;
 use std::fmt::Write;
 use std::fs;
 use std::io::Read;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
@@ -350,22 +352,26 @@ pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult
 }
 
 /// Set the permission of the given file to be writeable.
-pub fn set_perms_readwrite(file_path: &PathBuf) -> DfxResult<()> {
-    let mut perms = std::fs::metadata(file_path)
-        .with_context(|| {
+pub fn set_perms_readwrite(_file_path: &Path) -> DfxResult<()> {
+    #[cfg(unix)]
+    {
+        let mut perms = std::fs::metadata(_file_path)
+            .with_context(|| {
+                format!(
+                    "Failed to read metadata for file {}.",
+                    _file_path.to_string_lossy()
+                )
+            })?
+            .permissions();
+        perms.set_mode(perms.mode() | 0o600);
+        std::fs::set_permissions(_file_path, perms).with_context(|| {
             format!(
-                "Failed to read metadata for file {}.",
-                file_path.to_string_lossy()
+                "Failed to set permissions for file {}.",
+                _file_path.to_string_lossy()
             )
-        })?
-        .permissions();
-    perms.set_readonly(false);
-    std::fs::set_permissions(file_path, perms).with_context(|| {
-        format!(
-            "Failed to set permissions for file {}.",
-            file_path.to_string_lossy()
-        )
-    })
+        })?;
+    }
+    Ok(())
 }
 
 type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);
