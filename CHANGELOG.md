@@ -22,6 +22,10 @@ When the timer runs out the canister(s) will be uninstalled and are returned to 
 Any commands that allow choosing a target network (e.g. `dfx canister call`) require `--playground` or `--network playground` in order to target the borrowed canister(s).
 Use `dfx deploy --playground` to deploy simple projects to a canister borrowed from the Motoko Playground.
 
+### feat: `--ic` is shorthand for `--network ic`
+
+For example, `dfx deploy --ic` rather than `dfx deploy --network ic`.
+
 # 0.15.0
 
 ## DFX
