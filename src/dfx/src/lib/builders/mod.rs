@@ -353,7 +353,7 @@ pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult
 
 /// Set the permission of the given file to be writeable.
 pub fn set_perms_readwrite(file_path: &PathBuf) -> DfxResult<()> {
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(unix)]
     {
         let mut perms = std::fs::metadata(file_path)
             .with_context(|| {
