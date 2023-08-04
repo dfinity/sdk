@@ -392,10 +392,10 @@ pub fn exec(
     system.run()?;
 
     if let Some(btc_adapter_socket_path) = btc_adapter_socket_path {
-        let _ = std::fs::remove_file(&btc_adapter_socket_path);
+        let _ = std::fs::remove_file(btc_adapter_socket_path);
     }
     if let Some(canister_http_socket_path) = canister_http_socket_path {
-        let _ = std::fs::remove_file(&canister_http_socket_path);
+        let _ = std::fs::remove_file(canister_http_socket_path);
     }
 
     Ok(())
@@ -607,7 +607,7 @@ fn create_new_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> Df
     // An attempt to use a path under .dfx/ resulted in this error:
     //    path must be shorter than libc::sockaddr_un.sun_path
     let uds_path = std::env::temp_dir().join(format!("{}.{}.{}", prefix, pid, timestamp_seconds));
-    std::fs::write(uds_holder_path, &uds_path.to_raw_bytes()).with_context(|| {
+    std::fs::write(uds_holder_path, uds_path.to_raw_bytes()).with_context(|| {
         format!(
             "unable to write unix domain socket path to {}",
             uds_holder_path.to_string_lossy()
@@ -638,7 +638,7 @@ fn write_btc_adapter_config(
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize btc adapter configuration to json")?;
-    std::fs::write(config_path, &contents).with_context(|| {
+    std::fs::write(config_path, contents).with_context(|| {
         format!(
             "Unable to write btc adapter configuration to {}",
             config_path.to_string_lossy()
@@ -672,7 +672,7 @@ pub fn configure_canister_http_adapter_if_enabled(
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize canister http adapter configuration to json")?;
-    std::fs::write(config_path, &contents)
+    std::fs::write(config_path, contents)
         .with_context(|| format!("Unable to write {}", config_path.to_string_lossy()))?;
 
     Ok(Some(adapter_config))

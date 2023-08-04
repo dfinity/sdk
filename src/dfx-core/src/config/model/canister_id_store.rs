@@ -192,9 +192,9 @@ impl CanisterIdStore {
             .or_else(|| self.get_name_in_pull_ids(canister_id))
     }
 
-    pub fn get_name_in<'a, 'b>(
+    pub fn get_name_in<'a>(
         &'a self,
-        canister_id: &'b str,
+        canister_id: &str,
         canister_ids: &'a CanisterIds,
     ) -> Option<&'a String> {
         canister_ids

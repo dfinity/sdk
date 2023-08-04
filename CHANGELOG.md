@@ -28,6 +28,13 @@ For example, `dfx deploy --ic` rather than `dfx deploy --network ic`.
 
 ### fix: Motoko base library files in cache are no longer executable
 
+## Dependencies
+
+### Frontend canister
+
+- Module hash: 16befa499b2d0a50adf48ad695d6b5e0fd594a669a6600f87e629fa4cd8a058c
+- https://github.com/dfinity/sdk/pull/3281
+
 # 0.15.0
 
 ## DFX
