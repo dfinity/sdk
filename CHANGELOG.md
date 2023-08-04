@@ -26,6 +26,8 @@ Use `dfx deploy --playground` to deploy simple projects to a canister borrowed f
 
 For example, `dfx deploy --ic` rather than `dfx deploy --network ic`.
 
+### fix: Motoko base library files in cache are no longer executable
+
 # 0.15.0
 
 ## DFX

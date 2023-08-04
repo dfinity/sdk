@@ -20,6 +20,8 @@ use std::path::PathBuf;
 // POSIX permissions for files in the cache.
 #[cfg(unix)]
 const EXEC_READ_USER_ONLY_PERMISSION: u32 = 0o500;
+#[cfg(unix)]
+const READ_USER_ONLY_PERMISSION: u32 = 0o400;
 
 pub struct DiskBasedCache {
     version: Version,
@@ -113,10 +115,15 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
             #[cfg(unix)]
             {
                 let archive_path = dfx_core::fs::get_archive_path(&file)?;
+                let mode = if archive_path.starts_with("base/") {
+                    READ_USER_ONLY_PERMISSION
+                } else {
+                    EXEC_READ_USER_ONLY_PERMISSION
+                };
                 let full_path = temp_p.join(archive_path);
                 let mut perms = dfx_core::fs::read_permissions(full_path.as_path())
                     .map_err(UnifiedIoError::from)?;
-                perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
+                perms.set_mode(mode);
                 dfx_core::fs::set_permissions(full_path.as_path(), perms)
                     .map_err(UnifiedIoError::from)?;
             }
