@@ -356,7 +356,7 @@ fn scaffold_frontend_code(
             &mut assets::new_project_no_frontend_files()?,
             project_name,
             dry_run,
-            &variables,
+            variables,
         )?;
     }
 

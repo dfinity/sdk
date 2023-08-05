@@ -147,6 +147,7 @@ fn check_sum(hex: [u8; 32]) -> Result<AccountIdentifier, String> {
     }
 }
 
+#[allow(deprecated)] // candid arc_type
 impl CandidType for AccountIdentifier {
     // The type expected for account identifier is
     fn _ty() -> candid::types::Type {

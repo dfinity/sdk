@@ -114,18 +114,18 @@ impl Settings {
             // then interleave the context lines with the added lines
             let mut orig_lines = content[found_range].lines();
             for hunk_line in &hunk.lines {
-                match hunk_line {
-                    &Line::Context(_) => {
+                match *hunk_line {
+                    Line::Context(_) => {
                         // in the case of a context line, push the original line, not the one from the patch file
                         // this may be a whitespace-insensitive patch, and we don't want to modify any lines that aren't marked `-`
                         new_content.push_str(orig_lines.next().unwrap());
                         new_content.push('\n');
                     }
-                    &Line::Add(s) => {
+                    Line::Add(s) => {
                         new_content.push_str(s);
                         new_content.push('\n');
                     }
-                    &Line::Remove(_) => {
+                    Line::Remove(_) => {
                         orig_lines.next().unwrap();
                     }
                 }
@@ -143,14 +143,12 @@ fn compare_range(content: &str, lines: &[&str], ignore_whitespace: bool) -> bool
             if left != right {
                 return false;
             }
-        } else {
-            if !left
-                .chars()
-                .filter(|ch| !ch.is_whitespace())
-                .eq(right.chars().filter(|ch| !ch.is_whitespace()))
-            {
-                return false;
-            }
+        } else if !left
+            .chars()
+            .filter(|ch| !ch.is_whitespace())
+            .eq(right.chars().filter(|ch| !ch.is_whitespace()))
+        {
+            return false;
         }
     }
     true

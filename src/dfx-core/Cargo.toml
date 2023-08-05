@@ -14,7 +14,7 @@ bip32 = "0.4.0"
 byte-unit = { workspace = true, features = ["serde"] }
 bytes.workspace = true
 candid = { workspace = true, features = ["random"] }
-clap = { workspae = true, features = ["string"] }
+clap = { workspace = true, features = ["string"] }
 dialoguer = "0.10.0"
 directories-next.workspace = true
 flate2 = { workspace = true, default-features = false, features = ["zlib-ng"] }
