@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "canisters": {},
+    "defaults": {
+        "build": {
+            "packtool": "",
+            "args": ""
+        }
+    },
+    "output_env_file": ".env"
+}

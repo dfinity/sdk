@@ -254,6 +254,16 @@ fn add_assets(sources: Sources) {
         &mut f,
         "assets/new_project_rust_files",
     );
+    add_assets_from_directory(
+        "new_project_no_frontend_files",
+        &mut f,
+        "assets/new_project_no_frontend_files",
+    );
+    add_assets_from_directory(
+        "new_project_base_files",
+        &mut f,
+        "assets/new_project_base_files",
+    );
 }
 
 /// Use a verion based on environment variable,

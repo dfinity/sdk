@@ -36,3 +36,26 @@ teardown() {
     assert_command_fail dfx new '不好'
     assert_command_fail dfx new 'a:b'
 }
+
+@test "dfx new readmes contain appropriate links" {
+    assert_command dfx new --type rust e2e_rust --no-frontend
+    assert_command grep "https://docs.rs/ic-cdk" e2e_rust/README.md
+    assert_command dfx new --type motoko e2e_motoko --no-frontend
+    assert_command grep "https://internetcomputer.org/docs/current/references/motoko-ref/" e2e_motoko/README.md
+}
+
+@test "dfx new emits projects of the correct type" {
+    assert_command dfx new --type rust e2e_rust --no-frontend
+    assert_command jq -r '.canisters.e2e_rust_backend.type' e2e_rust/dfx.json
+    assert_eq "rust"
+    assert_command dfx new --type motoko e2e_motoko --no-frontend
+    assert_command jq -r '.canisters.e2e_motoko_backend.type' e2e_motoko/dfx.json
+    assert_eq "motoko" 
+}
+
+@test "dfx new always emits sample-asset.txt" {
+    assert_command dfx new e2e_frontend --frontend
+    assert_file_exists e2e_frontend/src/e2e_frontend_frontend/assets/sample-asset.txt
+    assert_command dfx new e2e_no_frontend --no-frontend
+    assert_file_exists e2e_no_frontend/src/e2e_no_frontend_frontend/assets/sample-asset.txt
+}

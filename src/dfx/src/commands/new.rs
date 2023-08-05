@@ -4,10 +4,11 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
 use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail, ensure, Context};
 use clap::Parser;
 use console::{style, Style};
 use dfx_core::config::model::dfinity::CONFIG_FILE_NAME;
+use dfx_core::json::{load_json_file, save_json_file};
 use fn_error_context::context;
 use indicatif::HumanBytes;
 use lazy_static::lazy_static;
@@ -196,7 +197,32 @@ fn write_files_from_entries<R: Sized + Read>(
         });
 
         let p = PathBuf::from(p);
-        create_file(log, p.as_path(), &v, dry_run)?;
+        if p.extension() == Some("json-patch".as_ref()) {
+            let patch: json_patch::Patch = serde_json::from_slice(&v)
+                .with_context(|| format!("Failed to parse {}", p.display()))?;
+            let to_patch = p.with_extension("json");
+            ensure!(
+                to_patch.exists(),
+                "Failed to patch {}: not found",
+                to_patch.display()
+            );
+            let mut value = load_json_file(&to_patch)?;
+            json_patch::patch(&mut value, &patch)
+                .with_context(|| format!("Failed to patch {}", to_patch.display()))?;
+            save_json_file(&to_patch, &value)?;
+        } else if p.extension() == Some("patch".as_ref()) {
+            let v = std::str::from_utf8(&v)
+                .with_context(|| format!("Failed to parse {}", p.display()))?;
+            let patch = patch::Patch::from_single(v)
+                .map_err(|e| anyhow!("Failed to parse {}: {e}", p.display()))?;
+            let to_patch = p.with_extension("");
+            let existing_content = dfx_core::fs::read_to_string(&to_patch)?;
+            let patched_content = apply_patch::apply_to(&patch, &existing_content)
+                .with_context(|| format!("Failed to patch {}", to_patch.display()))?;
+            dfx_core::fs::write(&to_patch, &patched_content)?;
+        } else {
+            create_file(log, p.as_path(), &v, dry_run)?;
+        }
     }
 
     Ok(())
@@ -314,15 +340,24 @@ fn scaffold_frontend_code(
                 }
             }
         }
-    } else if !arg_frontend && !node_installed {
-        warn!(
+    } else {
+        if !arg_frontend && !node_installed {
+            warn!(
+                log,
+                "Node could not be found. Skipping installing the frontend example code."
+            );
+            warn!(
+                log,
+                "You can bypass this check by using the --frontend flag."
+            );
+        }
+        write_files_from_entries(
             log,
-            "Node could not be found. Skipping installing the frontend example code."
-        );
-        warn!(
-            log,
-            "You can bypass this check by using the --frontend flag."
-        );
+            &mut assets::new_project_no_frontend_files()?,
+            project_name,
+            dry_run,
+            &variables,
+        )?;
     }
 
     Ok(())
@@ -394,6 +429,14 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
     .iter()
     .cloned()
     .collect();
+
+    write_files_from_entries(
+        log,
+        &mut assets::new_project_base_files().context("Failed to get base project archive.")?,
+        project_name,
+        dry_run,
+        &variables,
+    )?;
 
     // Default to start with motoko
     let mut new_project_files = match opts.r#type.as_str() {
