@@ -1,18 +1,17 @@
-use crate::lib::canister_info::CanisterInfo;
 use crate::lib::deps::get_pull_canisters_in_config;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::operations::canister::install_canister;
+use crate::lib::operations::canister::install_canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::{blob_from_arguments, get_candid_init_type};
+use crate::util::get_candid_init_type;
+use crate::{lib::canister_info::CanisterInfo, util::blob_from_arguments};
+use dfx_core::identity::CallSender;
+
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
-use dfx_core::canister::install_canister_wasm;
-use dfx_core::identity::CallSender;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
-use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 
@@ -70,10 +69,6 @@ pub async fn exec(
     opts: CanisterInstallOpts,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
-
     fetch_root_key_if_needed(env).await?;
 
     let mode = if opts.mode == "auto" {
@@ -120,24 +115,26 @@ pub async fn exec(
         if let Some(wasm_path) = opts.wasm {
             // streamlined version, we can ignore most of the environment
             let mode = mode.context("The install mode cannot be auto when using --wasm")?;
-            let install_args = blob_from_arguments(arguments, None, arg_type, &None)?;
-            install_canister_wasm(
-                agent,
+            let install_args = || blob_from_arguments(arguments, None, arg_type, &None);
+            install_canister(
+                env,
+                &mut canister_id_store,
                 canister_id,
-                canister_info.as_ref().map(|info| info.get_name()).ok(),
-                &install_args,
-                mode,
+                canister_info.ok().as_ref(),
+                Some(&wasm_path),
+                install_args,
+                Some(mode),
                 call_sender,
-                fs::read(&wasm_path)
-                    .with_context(|| format!("Unable to read {}", wasm_path.display()))?,
+                opts.upgrade_unchanged,
+                None,
                 opts.yes,
-                env.get_logger(),
+                None,
+                opts.no_asset_upgrade,
             )
             .await
             .map_err(Into::into)
         } else {
-            let canister_info = canister_info
-                .with_context(|| format!("Failed to load canister info for {}.", canister))?;
+            let canister_info = canister_info?;
             let config = config.unwrap();
             let env_file = opts
                 .output_env_file
@@ -147,17 +144,18 @@ pub async fn exec(
             let install_args = || blob_from_arguments(arguments, None, arg_type, &init_type);
             install_canister(
                 env,
-                agent,
                 &mut canister_id_store,
-                &canister_info,
-                &install_args,
+                canister_id,
+                Some(&canister_info),
+                None,
+                install_args,
                 mode,
                 call_sender,
                 opts.upgrade_unchanged,
                 None,
                 opts.yes,
                 env_file.as_deref(),
-                !opts.no_asset_upgrade,
+                opts.no_asset_upgrade,
             )
             .await
             .map_err(Into::into)
@@ -194,17 +192,18 @@ pub async fn exec(
 
                 install_canister(
                     env,
-                    agent,
                     &mut canister_id_store,
-                    &canister_info,
-                    &install_args,
+                    canister_id,
+                    Some(&canister_info),
+                    None,
+                    install_args,
                     mode,
                     call_sender,
                     opts.upgrade_unchanged,
                     None,
                     opts.yes,
                     env_file.as_deref(),
-                    !opts.no_asset_upgrade,
+                    opts.no_asset_upgrade,
                 )
                 .await?;
             }

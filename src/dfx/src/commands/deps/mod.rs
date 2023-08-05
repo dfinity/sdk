@@ -1,6 +1,6 @@
 use crate::lib::agent::create_anonymous_agent_environment;
+use crate::lib::network::network_opt::NetworkOpt;
 use crate::lib::{environment::Environment, error::DfxResult};
-use crate::NetworkOpt;
 use clap::Parser;
 use tokio::runtime::Runtime;
 
@@ -31,7 +31,7 @@ enum SubCommand {
 /// Executes `dfx deps` and its subcommands.
 pub fn exec(env: &dyn Environment, opts: DepsOpts) -> DfxResult {
     // all deps subcommands should use anounymous identity
-    let agent_env = create_anonymous_agent_environment(env, opts.network.network)?;
+    let agent_env = create_anonymous_agent_environment(env, opts.network.to_network_name())?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {
         match opts.subcmd {

@@ -4,7 +4,7 @@ use flate2::read::GzDecoder;
 use reqwest::Url;
 use semver::{BuildMetadata, Prerelease, Version};
 use std::io::Cursor;
-#[cfg(not(target_os = "windows"))]
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use tar::Archive;
 use tempfile::{tempdir_in, TempDir};
@@ -110,7 +110,7 @@ impl ExtensionManager {
                 &effective_extension_dir.join(effective_extension_name),
             )?;
         }
-        #[cfg(not(target_os = "windows"))]
+        #[cfg(unix)]
         {
             let bin = effective_extension_dir.join(effective_extension_name);
             crate::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;

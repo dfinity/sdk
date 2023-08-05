@@ -2,6 +2,41 @@
 
 # UNRELEASED
 
+### feat: deploy to playground
+
+Introduced a new network type called `playground`. Canisters on such networks are not created through standard means, but are instead borrowed from a canister pool.
+The canisters time out after a while and new canisters need to be borrowed for further deployments.
+To define custom playground networks, use a network definition that includes the `playground` key:
+```json
+"<network name>": {
+  "playground": {
+    "playground_canister": "<canister pool id>",
+    "timeout_seconds": <amount of seconds after which a canister is returned to the pool>
+  }
+}
+```
+
+Introduced a new network that is available by default called `playground`. Additionally, `--playground` is an alias for `--network playground`.
+By default, this network targets the Motoko Playground backend to borrow canisters. The borrowed canisters will be available for 20 minutes, and the timer restarts on new deployments.
+When the timer runs out the canister(s) will be uninstalled and are returned to the pool.
+Any commands that allow choosing a target network (e.g. `dfx canister call`) require `--playground` or `--network playground` in order to target the borrowed canister(s).
+Use `dfx deploy --playground` to deploy simple projects to a canister borrowed from the Motoko Playground.
+
+### feat: `--ic` is shorthand for `--network ic`
+
+For example, `dfx deploy --ic` rather than `dfx deploy --network ic`.
+
+### fix: Motoko base library files in cache are no longer executable
+
+## Dependencies
+
+### Frontend canister
+
+- Module hash: 16befa499b2d0a50adf48ad695d6b5e0fd594a669a6600f87e629fa4cd8a058c
+- https://github.com/dfinity/sdk/pull/3281
+
+# 0.15.0
+
 ## DFX
 
 ### feat!: Removed dfx nns and dfx sns commands
@@ -99,9 +134,11 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Replica
 
-Updated replica to elected commit 0062aec2efc16d6e4cadb2cd1052aaabbc9f6e48.
-This incorporates the following elected proposals:
+Updated replica to elected commit 9c89622231301daf93528aa3b64b4d1ec4657680.
+This incorporates the following executed proposals:
 
+- [123784](https://dashboard.internetcomputer.org/proposal/123784)
+- [123730](https://dashboard.internetcomputer.org/proposal/123730)
 - [123711](https://dashboard.internetcomputer.org/proposal/123711)
 - [123474](https://dashboard.internetcomputer.org/proposal/123474)
 - [123410](https://dashboard.internetcomputer.org/proposal/123410)

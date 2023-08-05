@@ -348,7 +348,7 @@ pub fn response_hash(
         Value::Number(status_code.into()),
     ));
     let header_hash = representation_independent_hash(&headers);
-    let hash: [u8; 32] = sha2::Sha256::digest(&[header_hash.as_ref(), body_hash].concat()).into();
+    let hash: [u8; 32] = sha2::Sha256::digest([header_hash.as_ref(), body_hash].concat()).into();
     ResponseHash(hash)
 }
 

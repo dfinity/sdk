@@ -6,8 +6,8 @@ import Blob "mo:base/Blob";
 import Nat "mo:base/Nat";
 
 shared actor class HttpQuery() = this {
-    let MAX_RESPONSE_BYTES : Nat64 = 12000;
-    let CYCLES_TO_PAY : Nat = 2_000_000_000;
+    let MAX_RESPONSE_BYTES : Nat64 = 800000; // last seen ~90k
+    let CYCLES_TO_PAY : Nat = 16_000_000_000;
 
     public func get_url(host : Text, url : Text) : async Text {
         let request_headers = [

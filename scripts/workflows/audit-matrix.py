@@ -9,7 +9,7 @@ def get_cargo_audit_ref():
         return data[ 'advisory-db']['rev']
 
 matrix = {
-    'rust': [ '1.65.0' ],
+    'rust': [ '1.71.1' ],
     'os': [ 'macos-latest', 'ubuntu-latest' ],
     'cargo-audit': [ '0.17.4' ],
     'advisory-db-rev': [ get_cargo_audit_ref() ]

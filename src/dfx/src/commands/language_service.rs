@@ -55,11 +55,12 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
         let network_descriptor = create_network_descriptor(
             env.get_config(),
             env.get_networks_config(),
-            None, /* opts.network */
+            None,
             None,
             LocalBindDetermination::ApplyRunningWebserverPort,
         )?;
-        let canister_id_store = CanisterIdStore::new(&network_descriptor, env.get_config())?;
+        let canister_id_store =
+            CanisterIdStore::new(env.get_logger(), &network_descriptor, env.get_config())?;
         for canister_name in canister_names {
             match canister_id_store.get(&canister_name) {
                 Ok(canister_id) => package_arguments.append(&mut vec![
@@ -72,7 +73,8 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
         }
 
         // Add IDL directory flag
-        let build_config = BuildConfig::from_config(&config)?;
+        let build_config =
+            BuildConfig::from_config(&config, env.get_network_descriptor().is_playground())?;
         package_arguments.append(&mut vec![
             "--actor-idl".to_owned(),
             (*build_config.lsp_root.to_string_lossy()).to_owned(),

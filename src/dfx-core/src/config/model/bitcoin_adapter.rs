@@ -14,29 +14,25 @@ pub fn default_nodes() -> Vec<SocketAddr> {
 }
 
 // These definitions come from https://gitlab.com/dfinity-lab/public/ic/-/blob/master/rs/bitcoin/adapter/src/config.rs
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Default)]
 /// The source of the unix domain socket to be used for inter-process
 /// communication.
 pub enum IncomingSource {
     /// We use systemd's created socket.
+    #[default]
     Systemd,
     /// We use the corresponing path as socket.
     Path(PathBuf),
 }
 
-impl Default for IncomingSource {
-    fn default() -> Self {
-        IncomingSource::Systemd
-    }
-}
-
 /// Represents the log level of the bitcoin adapter.
-#[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq, JsonSchema, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum BitcoinAdapterLogLevel {
     Critical,
     Error,
     Warning,
+    #[default]
     Info,
     Debug,
     Trace,
@@ -55,12 +51,6 @@ impl FromStr for BitcoinAdapterLogLevel {
             "trace" => Ok(BitcoinAdapterLogLevel::Trace),
             other => Err(format!("Unknown log level: {}", other)),
         }
-    }
-}
-
-impl Default for BitcoinAdapterLogLevel {
-    fn default() -> Self {
-        BitcoinAdapterLogLevel::Info
     }
 }
 

@@ -305,7 +305,7 @@ impl Canister {
         // 4. Save init_args into .dfx/local/canisters/NAME/init_args.txt
         let init_args_txt_path = self.info.get_init_args_txt_path();
         dfx_core::fs::composite::ensure_parent_dir_exists(&init_args_txt_path)?;
-        dfx_core::fs::write(&init_args_txt_path, &init_args)?;
+        dfx_core::fs::write(&init_args_txt_path, init_args)?;
         set_perms_readwrite(&init_args_txt_path)?;
         Ok(())
     }

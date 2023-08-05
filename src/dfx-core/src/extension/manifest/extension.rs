@@ -221,7 +221,6 @@ fn parse_test_file() {
                     matches
                         .get_many::<String>("accounts")
                         .unwrap()
-                        .into_iter()
                         .map(|x| x.as_str())
                         .collect::<Vec<&str>>()
                 );

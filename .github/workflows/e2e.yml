@@ -21,7 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.65.0' ]
+        rust: [ '1.71.1' ]
         # We build a dynamic-linked linux binary because otherwise HSM support fails with:
         #   Error: IO: Dynamic loading not supported
         os: [ macos-12, ubuntu-20.04, ubuntu-22.04 ]
@@ -93,7 +93,7 @@ jobs:
         #     /home/runner/.cache/dfinity/versions/0.8.3-34-g36e39809/ic-starter:
         #     /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.29' not found
         os: [macos-12, ubuntu-20.04, ubuntu-22.04]
-        rust: ["1.65.0"]
+        rust: ["1.71.1"]
     steps:
       - uses: actions/checkout@v3
       - name: Download dfx binary
@@ -153,6 +153,12 @@ jobs:
           export
       - name: Download bats-support as a git submodule
         run: git submodule update --init --recursive
+      - name: Cache mops files
+        uses: actions/cache@v3
+        with:
+          path: |
+            e2e/assets/playground_backend/.mops
+          key: playground-backend-mops-${{ hashFiles('e2e/assets/playground_backend/mops.toml') }}
       - name: Run e2e test
         run: timeout 2400 bats "e2e/$E2E_TEST"
 
