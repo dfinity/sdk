@@ -170,6 +170,7 @@ jobs:
         run: |
           pip install playwright==1.35.0
           playwright install
+          playwright install-deps
       - name: Download dfx binary
         uses: actions/download-artifact@v3
         with:
