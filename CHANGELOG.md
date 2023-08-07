@@ -99,9 +99,10 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Replica
 
-Updated replica to elected commit 9c89622231301daf93528aa3b64b4d1ec4657680.
+Updated replica to elected commit f8f59f896499f2fef394d8321116f83351c59aa8.
 This incorporates the following executed proposals:
 
+- [123922](https://dashboard.internetcomputer.org/proposal/123922)
 - [123784](https://dashboard.internetcomputer.org/proposal/123784)
 - [123730](https://dashboard.internetcomputer.org/proposal/123730)
 - [123711](https://dashboard.internetcomputer.org/proposal/123711)
