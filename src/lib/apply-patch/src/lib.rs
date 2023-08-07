@@ -3,9 +3,11 @@
 // This will eventually be its own package with more fleshed-out features, but currently just has the bare minimum to implement `dfx new` against it.
 // Missing spots are marked `todo:` with a corresponding `mvp:` section explaining why it doesn't need to be in yet.
 
+use std::ops::Range;
+
 // todo: reimplement ::patch. benefits: non-borrowed error, binary patching, consistent newlining, validation of non-overlapping and sortedness.
 // mvp: borrowed errors can be formatted into anyhow, all our patches are text patches to text files in a reasonable format
-use patch::{Line, Patch};
+use patch::{Hunk, Line, Patch};
 use thiserror::Error;
 
 /// Applies a single-file patch to `content`.
@@ -61,9 +63,11 @@ impl Settings {
     /// Applies a single-file patch to `content`. File paths in the patch file are ignored.
     // todo: use an iterator instead of returning String. mvp: our files are small.
     pub fn apply_to(&self, patch: &Patch, content: &str) -> Result<String, MismatchError> {
+        assert!(is_patch_coherent(patch));
+        let original_content = content;
         let mut expected_lines = vec![];
-        let mut prev_idx = 0;
-        let mut new_content = String::new();
+        let mut patched_up_to = 0;
+        let mut patched_content = String::new();
         for hunk in &patch.hunks {
             // first, assemble the list of lines we expect to find in `content`
             expected_lines.clear();
@@ -78,80 +82,95 @@ impl Settings {
                 // todo: implement line-number-agnostic patching. mvp: all our patch files have exact line numbers known.
                 unimplemented!()
             } else {
-                // todo: sort patch contents so the line cursor can be cached. mvp: all our patches are short and single-range.
-                let mut lines = content.match_indices('\n');
-                // line numbers are all 1-indexed - this is specifically the parsed number
-                let start_line = hunk.old_range.start as usize - 1;
-                // line n starts one past the n-1th newline
-                let start = if start_line == 0 {
-                    0
-                } else {
-                    lines
-                        .nth(start_line - 1)
-                        .ok_or(MismatchError::NotEnoughLines)?
-                        .0
-                        + 1
-                };
-                // start..end should be the byte range in `content` to be patched
-                let end = lines
-                    .nth(expected_lines.len() - 1)
-                    .ok_or(MismatchError::NotEnoughLines)?
-                    .0
-                    + 1;
-                if compare_range(
-                    &content[start..end],
-                    &expected_lines,
-                    self.ignore_whitespace,
-                ) {
-                    start..end
-                } else {
-                    return Err(MismatchError::LineMismatch);
-                }
+                self.find_fixed_range(original_content, hunk, &expected_lines)?
             };
             // first copy to the output all the content between either the last patched range or the beginning of the file, and the beginning of this patch
-            new_content.push_str(&content[prev_idx..found_range.start]);
-            prev_idx = found_range.end;
+            patched_content.push_str(&original_content[patched_up_to..found_range.start]);
+            patched_up_to = found_range.end;
             // then interleave the context lines with the added lines
-            let mut orig_lines = content[found_range].lines();
-            for hunk_line in &hunk.lines {
-                match *hunk_line {
-                    Line::Context(_) => {
-                        // in the case of a context line, push the original line, not the one from the patch file
-                        // this may be a whitespace-insensitive patch, and we don't want to modify any lines that aren't marked `-`
-                        new_content.push_str(orig_lines.next().unwrap());
-                        new_content.push('\n');
-                    }
-                    Line::Add(s) => {
-                        new_content.push_str(s);
-                        new_content.push('\n');
-                    }
-                    Line::Remove(_) => {
-                        orig_lines.next().unwrap();
-                    }
+            self.patch_content(&original_content[found_range], hunk, &mut patched_content);
+        }
+        // finally, copy everything between the final patch and the end of the file
+        patched_content.push_str(&original_content[patched_up_to..]);
+        Ok(patched_content)
+    }
+
+    fn patch_content(&self, original_content: &str, hunk: &Hunk, patched_content: &mut String) {
+        let mut orig_lines = original_content.lines();
+        for hunk_line in &hunk.lines {
+            match *hunk_line {
+                Line::Context(_) => {
+                    // in the case of a context line, push the original line, not the one from the patch file
+                    // this may be a whitespace-insensitive patch, and we don't want to modify any lines that aren't marked `-`
+                    patched_content.push_str(orig_lines.next().unwrap());
+                    patched_content.push('\n');
+                }
+                Line::Add(s) => {
+                    patched_content.push_str(s);
+                    patched_content.push('\n');
+                }
+                Line::Remove(_) => {
+                    orig_lines.next().unwrap();
                 }
             }
         }
-        // finally, copy everything between the final patch and the end of the file
-        new_content.push_str(&content[prev_idx..]);
-        Ok(new_content)
+    }
+
+    fn find_fixed_range(
+        &self,
+        original_content: &str,
+        hunk: &Hunk,
+        expected_lines: &[&str],
+    ) -> Result<Range<usize>, MismatchError> {
+        let mut lines = original_content.match_indices('\n');
+        // line numbers are all 1-indexed - this is specifically the parsed number
+        let start_line = hunk.old_range.start as usize - 1;
+        // line n starts one past the n-1th newline
+        let start = if start_line == 0 {
+            0
+        } else {
+            lines
+                .nth(start_line - 1)
+                .ok_or(MismatchError::NotEnoughLines)?
+                .0
+                + 1
+        };
+        // start..end should be the byte range in `content` to be patched
+        let end = lines
+            .nth(expected_lines.len() - 1)
+            .ok_or(MismatchError::NotEnoughLines)?
+            .0
+            + 1;
+        if equal_range(
+            &original_content[start..end],
+            expected_lines,
+            self.ignore_whitespace,
+        ) {
+            Ok(start..end)
+        } else {
+            return Err(MismatchError::LineMismatch);
+        }
     }
 }
 
-fn compare_range(content: &str, lines: &[&str], ignore_whitespace: bool) -> bool {
-    for (left, &right) in content.lines().zip(lines) {
+fn is_patch_coherent(patch: &Patch) -> bool {
+    // each patch file should be sorted and non-overlapping
+    patch
+        .hunks
+        .iter()
+        .zip(&patch.hunks[1..])
+        .all(|(h1, h2)| h1.old_range.start + h1.old_range.count < h2.old_range.start)
+}
+fn equal_range(content: &str, lines: &[&str], ignore_whitespace: bool) -> bool {
+    content.lines().zip(lines).all(|(left, &right)| {
         if ignore_whitespace {
-            if left != right {
-                return false;
-            }
-        } else if !left
-            .chars()
-            .filter(|ch| !ch.is_whitespace())
-            .eq(right.chars().filter(|ch| !ch.is_whitespace()))
-        {
-            return false;
+            left.chars()
+                .filter(|ch| !ch.is_whitespace())
+                .eq(right.chars().filter(|ch| !ch.is_whitespace()))
+        } else {
+            left == right
         }
-    }
-    true
+    })
 }
 
 impl Default for Settings {
@@ -166,12 +185,4 @@ pub enum MismatchError {
     NotEnoughLines,
     #[error("Mismatch between context/removal line and file")]
     LineMismatch,
-}
-
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
-    #[error(transparent)]
-    Mismatch(#[from] MismatchError),
 }
