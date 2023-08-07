@@ -1,5 +1,4 @@
 //! This module contains an implementation of [RcBytes], a reference-counted byte array.
-#![allow(deprecated)] // candid arc_type
 use candid::{
     types::{Serializer, Type, TypeInner},
     CandidType, Deserialize,

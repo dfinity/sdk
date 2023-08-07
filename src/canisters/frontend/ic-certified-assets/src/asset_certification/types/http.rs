@@ -1,4 +1,3 @@
-#![allow(deprecated)] // candid arc_type
 use super::rc_bytes::RcBytes;
 use crate::{
     asset_certification::types::certification::{CertificateExpression, ResponseHash},

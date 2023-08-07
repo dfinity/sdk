@@ -433,7 +433,6 @@ pub fn post_upgrade(stable_state: StableState) {
 }
 
 #[test]
-#[allow(deprecated)] // candid arc_type
 fn candid_interface_compatibility() {
     use candid::utils::{service_compatible, CandidSource};
     use std::path::PathBuf;
