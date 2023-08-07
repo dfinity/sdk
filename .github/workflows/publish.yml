@@ -27,7 +27,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.65.0' ]
         # We build a dynamic-linked linux binary because otherwise HSM support fails with:
         #   Error: IO: Dynamic loading not supported
         target: [ x86_64-apple-darwin, x86_64-unknown-linux-gnu ]
@@ -63,13 +62,12 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ matrix.rust }}-publish-1
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('rust-toolchain.toml') }}-publish-1
 
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: ${{ matrix.rust }}
           override: true
         if: contains(matrix.os, 'macos')
 
@@ -120,7 +118,7 @@ jobs:
         if: github.ref_type == 'tag'
         uses: actions/upload-artifact@v3
         with:
-          name: dfx-artifacts-${{ matrix.rust }}-${{ matrix.name }}
+          name: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-${{ matrix.name }}
           path: |
             ${{ env.TARBALL_FILENAME }}
             ${{ env.SHA256_FILENAME }}
@@ -142,7 +140,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.65.0' ]
         name: [ 'x86_64-darwin', 'x86_64-linux' ]
     steps:
       - name: Setup environment variables
@@ -151,7 +148,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: dfx-artifacts-${{ matrix.rust }}-${{ matrix.name }}
+          name: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-${{ matrix.name }}
 
       - name: Upload tarball and sha256
         uses: svenstaro/upload-release-action@v2

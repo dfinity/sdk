@@ -51,11 +51,8 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install Rust
-        run: |
-          rustup update ${{ matrix.rust }} --no-self-update
-          rustup default ${{ matrix.rust }}
-          cargo install --force --version ${{ matrix.cargo-audit }} cargo-audit --locked
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
       - name: Audit
         # ignores RUSTSEC-2020-0071 because it is 'only' in a dev dependency (ic-certified-responses -> ic-types -> chrono -> time)
         run: |
