@@ -113,7 +113,7 @@ impl ExtensionManager {
         #[cfg(unix)]
         {
             let bin = effective_extension_dir.join(effective_extension_name);
-            crate::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o777))?;
+            crate::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o500))?;
         }
         Ok(())
     }
