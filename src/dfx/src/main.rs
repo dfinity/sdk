@@ -227,18 +227,6 @@ fn main() {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use clap::CommandFactory;
-
-    use crate::CliOpts;
-
-    #[test]
-    fn validate_cli() {
-        CliOpts::command().debug_assert();
-    }
-}
-
 /// sort subcommands alphabetically (despite this clap prints help as the last one)
 pub fn sort_clap_commands(cmd: &mut clap::Command) {
     let mut cli_subcommands: Vec<String> = cmd
@@ -255,5 +243,17 @@ pub fn sort_clap_commands(cmd: &mut clap::Command) {
         let name = c.get_display_name().unwrap_or_default().to_string();
         let ord = *cli_subcommands.get(&name).unwrap_or(&999);
         *c = c.clone().display_order(ord);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::CommandFactory;
+
+    use crate::CliOpts;
+
+    #[test]
+    fn validate_cli() {
+        CliOpts::command().debug_assert();
     }
 }

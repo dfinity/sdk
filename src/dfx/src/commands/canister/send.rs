@@ -53,7 +53,7 @@ pub async fn exec(
         if message.signed_request_status.is_none() {
             bail!("No signed_request_status in [{}].", file_name);
         }
-        let envelope = hex::decode(&message.signed_request_status.unwrap())
+        let envelope = hex::decode(message.signed_request_status.unwrap())
             .context("Failed to decode envelope.")?;
         let response = transport
             .read_state(canister_id, envelope)

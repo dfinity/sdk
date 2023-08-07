@@ -39,7 +39,7 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
 
     let module_hash_hex = match read_state_tree_canister_module_hash(agent, canister_id).await? {
         None => "None".to_string(),
-        Some(blob) => format!("0x{}", hex::encode(&blob)),
+        Some(blob) => format!("0x{}", hex::encode(blob)),
     };
 
     println!(
