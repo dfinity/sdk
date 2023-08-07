@@ -50,9 +50,9 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust
+        run: |
+          rustup show
       - name: Audit
         # ignores RUSTSEC-2020-0071 because it is 'only' in a dev dependency (ic-certified-responses -> ic-types -> chrono -> time)
         run: |

@@ -31,9 +31,9 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-
+      - name: Install Rust
+        run: |
+          rustup show
       - name: Check cargo test
         run: cargo test --workspace --all-features --no-fail-fast
 
