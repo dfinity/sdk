@@ -116,7 +116,7 @@ fn json_patch_file(
     dry_run: bool,
 ) -> DfxResult {
     if !dry_run {
-        let patch: json_patch::Patch = serde_json::from_slice(&patch_content)
+        let patch: json_patch::Patch = serde_json::from_slice(patch_content)
             .with_context(|| format!("Failed to parse {}", patch_path.display()))?;
         let to_patch = patch_path.with_extension("json");
         ensure!(
@@ -134,7 +134,7 @@ fn json_patch_file(
 
 fn patch_file(_log: &Logger, patch_path: &Path, patch_content: &[u8], dry_run: bool) -> DfxResult {
     if !dry_run {
-        let patch_content = std::str::from_utf8(&patch_content)
+        let patch_content = std::str::from_utf8(patch_content)
             .with_context(|| format!("Failed to parse {}", patch_path.display()))?;
         let patch = patch::Patch::from_single(patch_content)
             .map_err(|e| anyhow!("Failed to parse {}: {e}", patch_path.display()))?;
@@ -142,7 +142,7 @@ fn patch_file(_log: &Logger, patch_path: &Path, patch_content: &[u8], dry_run: b
         let existing_content = dfx_core::fs::read_to_string(&to_patch)?;
         let patched_content = apply_patch::apply_to(&patch, &existing_content)
             .with_context(|| format!("Failed to patch {}", to_patch.display()))?;
-        dfx_core::fs::write(&to_patch, &patched_content)?;
+        dfx_core::fs::write(&to_patch, patched_content)?;
     }
     Ok(())
 }

@@ -131,25 +131,29 @@ impl Settings {
         } else {
             lines
                 .nth(start_line - 1)
-                .ok_or(MismatchError::NotEnoughLines)?
+                .ok_or_else(|| MismatchError::NotEnoughLines {
+                    expected: start_line - 1,
+                    found: original_content.lines().count(),
+                })?
                 .0
                 + 1
         };
         // start..end should be the byte range in `content` to be patched
         let end = lines
             .nth(expected_lines.len() - 1)
-            .ok_or(MismatchError::NotEnoughLines)?
+            .ok_or_else(|| MismatchError::NotEnoughLines {
+                expected: expected_lines.len() - 1,
+                found: original_content.lines().count(),
+            })?
             .0
             + 1;
-        if equal_range(
+        check_equal_range(
             &original_content[start..end],
             expected_lines,
             self.ignore_whitespace,
-        ) {
-            Ok(start..end)
-        } else {
-            return Err(MismatchError::LineMismatch);
-        }
+            start_line,
+        )?;
+        Ok(start..end)
     }
 }
 
@@ -161,16 +165,36 @@ fn is_patch_coherent(patch: &Patch) -> bool {
         .zip(&patch.hunks[1..])
         .all(|(h1, h2)| h1.old_range.start + h1.old_range.count < h2.old_range.start)
 }
-fn equal_range(content: &str, lines: &[&str], ignore_whitespace: bool) -> bool {
-    content.lines().zip(lines).all(|(left, &right)| {
+fn check_equal_range(
+    content: &str,
+    lines: &[&str],
+    ignore_whitespace: bool,
+    context_line_number: usize,
+) -> Result<(), MismatchError> {
+    for (i, (from_content, &from_patch)) in content.lines().zip(lines).enumerate() {
         if ignore_whitespace {
-            left.chars()
+            if !from_content
+                .chars()
                 .filter(|ch| !ch.is_whitespace())
-                .eq(right.chars().filter(|ch| !ch.is_whitespace()))
-        } else {
-            left == right
+                .eq(from_patch.chars().filter(|ch| !ch.is_whitespace()))
+            {
+                return Err(MismatchError::LineMismatch {
+                    from_content: from_content.to_string(),
+                    from_patch: from_patch.to_string(),
+                    whitespace_insensitive: ignore_whitespace,
+                    line: i + context_line_number,
+                });
+            }
+        } else if from_content != from_patch {
+            return Err(MismatchError::LineMismatch {
+                from_content: from_content.to_string(),
+                from_patch: from_patch.to_string(),
+                whitespace_insensitive: ignore_whitespace,
+                line: i + context_line_number,
+            });
         }
-    })
+    }
+    Ok(())
 }
 
 impl Default for Settings {
@@ -181,8 +205,16 @@ impl Default for Settings {
 
 #[derive(Debug, Error)]
 pub enum MismatchError {
-    #[error("File did not contain enough lines")]
-    NotEnoughLines,
-    #[error("Mismatch between context/removal line and file")]
-    LineMismatch,
+    #[error(
+        "File too short: attempted to patch line {expected}, but file was only {found} lines long"
+    )]
+    NotEnoughLines { expected: usize, found: usize },
+    #[error("Mismatch between context/removal line and file at line {line}: {from_patch:?} (patch) {op} {from_content:?} (content)", 
+        op = if *.whitespace_insensitive { "!~" } else { "!=" })]
+    LineMismatch {
+        from_patch: String,
+        from_content: String,
+        whitespace_insensitive: bool,
+        line: usize,
+    },
 }
