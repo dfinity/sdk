@@ -109,6 +109,44 @@ pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> 
     Ok(())
 }
 
+fn json_patch_file(
+    _log: &Logger,
+    patch_path: &Path,
+    patch_content: &[u8],
+    dry_run: bool,
+) -> DfxResult {
+    if !dry_run {
+        let patch: json_patch::Patch = serde_json::from_slice(&patch_content)
+            .with_context(|| format!("Failed to parse {}", patch_path.display()))?;
+        let to_patch = patch_path.with_extension("json");
+        ensure!(
+            to_patch.exists(),
+            "Failed to patch {}: not found",
+            to_patch.display()
+        );
+        let mut value = load_json_file(&to_patch)?;
+        json_patch::patch(&mut value, &patch)
+            .with_context(|| format!("Failed to patch {}", to_patch.display()))?;
+        save_json_file(&to_patch, &value)?;
+    }
+    Ok(())
+}
+
+fn patch_file(_log: &Logger, patch_path: &Path, patch_content: &[u8], dry_run: bool) -> DfxResult {
+    if !dry_run {
+        let patch_content = std::str::from_utf8(&patch_content)
+            .with_context(|| format!("Failed to parse {}", patch_path.display()))?;
+        let patch = patch::Patch::from_single(patch_content)
+            .map_err(|e| anyhow!("Failed to parse {}: {e}", patch_path.display()))?;
+        let to_patch = patch_path.with_extension("");
+        let existing_content = dfx_core::fs::read_to_string(&to_patch)?;
+        let patched_content = apply_patch::apply_to(&patch, &existing_content)
+            .with_context(|| format!("Failed to patch {}", to_patch.display()))?;
+        dfx_core::fs::write(&to_patch, &patched_content)?;
+    }
+    Ok(())
+}
+
 #[allow(dead_code)]
 pub fn create_dir<P: AsRef<Path>>(log: &Logger, path: P, dry_run: bool) -> DfxResult {
     let path = path.as_ref();
@@ -198,28 +236,9 @@ fn write_files_from_entries<R: Sized + Read>(
 
         let p = PathBuf::from(p);
         if p.extension() == Some("json-patch".as_ref()) {
-            let patch: json_patch::Patch = serde_json::from_slice(&v)
-                .with_context(|| format!("Failed to parse {}", p.display()))?;
-            let to_patch = p.with_extension("json");
-            ensure!(
-                to_patch.exists(),
-                "Failed to patch {}: not found",
-                to_patch.display()
-            );
-            let mut value = load_json_file(&to_patch)?;
-            json_patch::patch(&mut value, &patch)
-                .with_context(|| format!("Failed to patch {}", to_patch.display()))?;
-            save_json_file(&to_patch, &value)?;
+            json_patch_file(log, &p, &v, dry_run)?;
         } else if p.extension() == Some("patch".as_ref()) {
-            let v = std::str::from_utf8(&v)
-                .with_context(|| format!("Failed to parse {}", p.display()))?;
-            let patch = patch::Patch::from_single(v)
-                .map_err(|e| anyhow!("Failed to parse {}: {e}", p.display()))?;
-            let to_patch = p.with_extension("");
-            let existing_content = dfx_core::fs::read_to_string(&to_patch)?;
-            let patched_content = apply_patch::apply_to(&patch, &existing_content)
-                .with_context(|| format!("Failed to patch {}", to_patch.display()))?;
-            dfx_core::fs::write(&to_patch, &patched_content)?;
+            patch_file(log, &p, &v, dry_run)?;
         } else {
             create_file(log, p.as_path(), &v, dry_run)?;
         }
