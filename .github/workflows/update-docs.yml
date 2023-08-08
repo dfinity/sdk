@@ -20,7 +20,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: ["1.71.1"]
         os: [ ubuntu-20.04 ]
     steps:
       - uses: actions/checkout@v3.0.2
@@ -29,11 +28,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{github.event.pull_request.head.repo.full_name}}
       - name: Install Rust
-        run: |
-          rustup update ${{ matrix.rust }} --no-self-update
-          rustup component add clippy
-          rustup default ${{ matrix.rust }}
-
+        run: rustup show
       - name: Check cargo build
         run: cargo build
       - name: Show download worked

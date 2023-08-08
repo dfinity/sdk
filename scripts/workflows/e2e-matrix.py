@@ -17,7 +17,6 @@ matrix = {
     "test": test,
     "backend": ["ic-ref", "replica"],
     "os": ["macos-12", "ubuntu-20.04"],
-    "rust": ["1.71.1"],
     "exclude": [
         {"backend": "ic-ref", "test": "dfx/bitcoin"},
         {"backend": "ic-ref", "test": "dfx/canister_http"},
