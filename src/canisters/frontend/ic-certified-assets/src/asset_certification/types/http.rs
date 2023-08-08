@@ -44,6 +44,7 @@ pub struct StreamingCallbackToken {
     // We don't care about the sha, we just want to be backward compatible.
     pub sha256: Option<ByteBuf>,
 }
+
 define_function!(pub CallbackFunc : (StreamingCallbackToken) -> (StreamingCallbackHttpResponse) query);
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub enum StreamingStrategy {
