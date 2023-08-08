@@ -6,8 +6,8 @@ To get started, you might want to explore the project directory structure and th
 
 To learn more before you start working with {project_name}, see the following documentation available online:
 
-- [Quick Start](https://internetcomputer.org/docs/quickstart/quickstart-intro)
-- [SDK Developer Tools](https://internetcomputer.org/docs/developers-guide/sdk-guide)
+- [Quick Start](https://internetcomputer.org/docs/current/developer-docs/setup/deploy-locally)
+- [SDK Developer Tools](https://internetcomputer.org/docs/current/developer-docs/setup/install)
 
 If you want to start working on your project right away, you might want to try the following commands:
 
