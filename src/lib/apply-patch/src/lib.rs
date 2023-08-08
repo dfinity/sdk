@@ -21,7 +21,7 @@ pub fn apply_to(patch: &Patch, content: &str) -> Result<String, MismatchError> {
 #[derive(Debug, Clone)]
 pub struct Settings {
     ignore_line_numbers: bool,
-    ignore_whitespace: bool,
+    whitespace_insensitive: bool,
     // todo: implement multi-patch application to directory. mvp: our patch files are specific
     _reject_relative_path_segments: bool,
 }
@@ -35,7 +35,7 @@ impl Settings {
     pub fn new() -> Self {
         Self {
             ignore_line_numbers: false,
-            ignore_whitespace: true,
+            whitespace_insensitive: true,
             _reject_relative_path_segments: true,
         }
     }
@@ -49,7 +49,7 @@ impl Settings {
     /// Requires whitespace to be an exact match between the patch file's context/deleted lines and the content.
     pub fn exact_whitespace(self) -> Self {
         Self {
-            ignore_whitespace: false,
+            whitespace_insensitive: false,
             ..self
         }
     }
@@ -148,7 +148,7 @@ impl Settings {
         check_equal_range(
             &original_content[start..end],
             expected_lines,
-            self.ignore_whitespace,
+            self.whitespace_insensitive,
             start_line,
         )?;
         Ok(start..end)
@@ -166,11 +166,11 @@ fn is_patch_coherent(patch: &Patch) -> bool {
 fn check_equal_range(
     content: &str,
     lines: &[&str],
-    ignore_whitespace: bool,
+    whitespace_insensitive: bool,
     context_line_number: usize,
 ) -> Result<(), MismatchError> {
     for (i, (from_content, &from_patch)) in content.lines().zip(lines).enumerate() {
-        if ignore_whitespace {
+        if whitespace_insensitive {
             if !from_content
                 .chars()
                 .filter(|ch| !ch.is_whitespace())
@@ -179,7 +179,7 @@ fn check_equal_range(
                 return Err(MismatchError::LineMismatch {
                     from_content: from_content.to_string(),
                     from_patch: from_patch.to_string(),
-                    whitespace_insensitive: ignore_whitespace,
+                    whitespace_insensitive,
                     line: i + context_line_number,
                 });
             }
@@ -187,7 +187,7 @@ fn check_equal_range(
             return Err(MismatchError::LineMismatch {
                 from_content: from_content.to_string(),
                 from_patch: from_patch.to_string(),
-                whitespace_insensitive: ignore_whitespace,
+                whitespace_insensitive,
                 line: i + context_line_number,
             });
         }
