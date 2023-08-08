@@ -20,6 +20,7 @@ teardown() {
     dfx new --no-frontend a_1
     dfx new --no-frontend a1
     dfx new --no-frontend a1a
+    dfx new --no-frontend a-b-c
 }
 
 @test "dfx new - bad names" {
@@ -31,7 +32,6 @@ teardown() {
     assert_command_fail dfx new 1_
     assert_command_fail dfx new -
     assert_command_fail dfx new _
-    assert_command_fail dfx new a-b-c
     assert_command_fail dfx new '🕹'
     assert_command_fail dfx new '不好'
     assert_command_fail dfx new 'a:b'
