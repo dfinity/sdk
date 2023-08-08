@@ -122,31 +122,29 @@ impl Settings {
         hunk: &Hunk,
         expected_lines: &[&str],
     ) -> Result<Range<usize>, MismatchError> {
-        let mut lines = original_content.match_indices('\n');
+        let mut line_indices = original_content
+            .match_indices('\n')
+            .map(|(newline_index, _)| newline_index + 1);
         // line numbers are all 1-indexed - this is specifically the parsed number
         let start_line = hunk.old_range.start as usize - 1;
         // line n starts one past the n-1th newline
         let start = if start_line == 0 {
             0
         } else {
-            lines
+            line_indices
                 .nth(start_line - 1)
                 .ok_or_else(|| MismatchError::NotEnoughLines {
                     expected: start_line - 1,
                     found: original_content.lines().count(),
                 })?
-                .0
-                + 1
         };
         // start..end should be the byte range in `content` to be patched
-        let end = lines
-            .nth(expected_lines.len() - 1)
-            .ok_or_else(|| MismatchError::NotEnoughLines {
-                expected: expected_lines.len() - 1,
+        let end = line_indices.nth(expected_lines.len() - 1).ok_or_else(|| {
+            MismatchError::NotEnoughLines {
+                expected: start_line + expected_lines.len() - 1,
                 found: original_content.lines().count(),
-            })?
-            .0
-            + 1;
+            }
+        })?;
         check_equal_range(
             &original_content[start..end],
             expected_lines,
