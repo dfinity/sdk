@@ -32,8 +32,7 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rust
-        run: |
-          rustup show
+        run: rustup show
       - name: Run Lint
         run: cargo clippy --verbose --tests --benches --workspace -- -D clippy::all
         env:

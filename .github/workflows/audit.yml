@@ -51,8 +51,7 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rust
-        run: |
-          rustup show
+        run: rustup show
       - name: Audit
         # ignores RUSTSEC-2020-0071 because it is 'only' in a dev dependency (ic-certified-responses -> ic-types -> chrono -> time)
         run: |

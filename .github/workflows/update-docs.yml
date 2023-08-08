@@ -28,8 +28,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{github.event.pull_request.head.repo.full_name}}
       - name: Install Rust
-        run: |
-          rustup show
+        run: ustup show
       - name: Check cargo build
         run: cargo build
       - name: Show download worked

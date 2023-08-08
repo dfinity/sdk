@@ -32,8 +32,7 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-1
       - name: Install Rust
-        run: |
-          rustup show
+        run: rustup show
       - name: Run Cargo Fmt
         run: cargo fmt --all -- --check
         env:
