@@ -21,7 +21,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.71.1' ]
         os: [ ubuntu-latest, macos-latest ]
     steps:
       - uses: actions/checkout@v3
@@ -33,11 +32,7 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - name: Install Rust
-        run: |
-          rustup update ${{ matrix.rust }} --no-self-update
-          rustup component add clippy
-          rustup default ${{ matrix.rust }}
-
+        run: rustup show
       - name: Check cargo test
         run: cargo test --workspace --all-features --no-fail-fast
 
