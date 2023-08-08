@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "canisters": {},
+    "canisters": { },
     "defaults": {
         "build": {
             "packtool": "",
