@@ -13,7 +13,7 @@ name = "dfx"
 path = "src/main.rs"
 
 [build-dependencies]
-backoff = { version = "0.4.0", features = [ "futures", "tokio" ] }
+backoff = { version = "0.4.0", features = ["futures", "tokio"] }
 bytes = "1"
 flate2 = { version = "1.0.11", default-features = false, features = [
     "zlib-ng",
@@ -32,6 +32,7 @@ actix = "0.13.0"
 aes-gcm.workspace = true
 anstyle.workspace = true
 anyhow.workspace = true
+apply-patch.path = "../lib/apply-patch"
 argon2.workspace = true
 atty = "0.2.13"
 backoff.workspace = true
@@ -39,7 +40,12 @@ base64.workspace = true
 byte-unit = { workspace = true, features = ["serde"] }
 bytes.workspace = true
 candid = { workspace = true, features = ["random"] }
-clap = { workspace = true, features = ["derive", "env", "unstable-styles", "wrap_help" ] }
+clap = { workspace = true, features = [
+    "derive",
+    "env",
+    "unstable-styles",
+    "wrap_help",
+] }
 console = "0.15.0"
 crc32fast = "1.3.2"
 crossbeam = "0.8.1"
@@ -62,6 +68,7 @@ ic-utils = { workspace = true }
 ic-wasm = "0.4.0"
 indicatif = "0.16.0"
 itertools.workspace = true
+json-patch = "1.0.0"
 keyring.workspace = true
 lazy_static.workspace = true
 mime.workspace = true
@@ -69,6 +76,7 @@ mime_guess.workspace = true
 net2 = "0.2.34"
 num-traits.workspace = true
 os_str_bytes = "6.3.0"
+patch = "0.7.0"
 pem.workspace = true
 petgraph = "0.6.0"
 rand = "0.8.5"

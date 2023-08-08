@@ -5,8 +5,6 @@ use dfx_core::config::cache::{
     binary_command_from_version, delete_version, get_bin_cache, get_binary_path_from_version,
     is_version_installed, Cache,
 };
-#[cfg(windows)]
-use dfx_core::config::directories::project_dirs;
 use dfx_core::error::cache::CacheError;
 use dfx_core::error::unified_io::UnifiedIoError;
 use indicatif::{ProgressBar, ProgressDrawTarget};
