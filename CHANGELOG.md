@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### chore: --emulator parameter is deprecated and will be discontinued soon
+
+Added warning that the `--emulator` is deprecated and will be discontinued soon.
+
 ### feat: deploy to playground
 
 Introduced a new network type called `playground`. Canisters on such networks are not created through standard means, but are instead borrowed from a canister pool.

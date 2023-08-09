@@ -173,6 +173,7 @@ pub fn exec(
         enable_bitcoin,
         bitcoin_node,
         enable_canister_http,
+        emulator,
     )?;
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
@@ -441,6 +442,7 @@ pub fn apply_command_line_parameters(
     enable_bitcoin: bool,
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
+    emulator: bool,
 ) -> DfxResult<NetworkDescriptor> {
     if enable_canister_http {
         warn!(
@@ -448,6 +450,13 @@ pub fn apply_command_line_parameters(
             "The --enable-canister-http parameter is deprecated."
         );
         warn!(logger, "Canister HTTP suppport is enabled by default.  It can be disabled through dfx.json or networks.json.");
+    }
+
+    if emulator {
+        warn!(
+            logger,
+            "The --emulator parameter is deprecated and will be discontinued soon."
+        );
     }
 
     let _ = network_descriptor.local_server_descriptor()?;
