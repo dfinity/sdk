@@ -64,6 +64,12 @@ The verifying side can then unzip the response and will have a valid certificate
 
 ## DFX
 
+### chore: add `--use-old-metering` flag
+
+The `use-old-metering` flag enables old metering in replica. The new metering is enabled in the `starter` by default, so this flag is to compare the default new metering with the old one.
+
+The flag is temporary and will be removed in a few months.
+
 ### feat!: Removed dfx nns and dfx sns commands
 
 Both have now been turned into the dfx extensions. In order to obtain them, please run `dfx extension install nns` and `dfx extension install sns` respectively. After the installation, you can use them as you did before: `dfx nns ...`, and `dfx sns ...`.
