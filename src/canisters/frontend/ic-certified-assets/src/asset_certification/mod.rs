@@ -284,7 +284,7 @@ impl CertifiedResponses {
                     + "certificate=:"
                     + &base64::encode(certificate)
                     + ":, tree=:"
-                    + &base64::encode(&serializer.into_inner())
+                    + &base64::encode(serializer.into_inner())
                     + ":, expr_path=:"
                     + &expr_path
                     + ":",
@@ -309,7 +309,7 @@ impl CertifiedResponses {
                 String::from("certificate=:")
                     + &base64::encode(certificate)
                     + ":, tree=:"
-                    + &base64::encode(&serializer.into_inner())
+                    + &base64::encode(serializer.into_inner())
                     + ":",
             ),
             witness_result,

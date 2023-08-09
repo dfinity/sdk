@@ -71,7 +71,7 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
         fs::create_dir_all(&download_dir)
             .with_context(|| format!("Failed to create dir {}.", download_dir.to_string_lossy()))?;
     }
-    let download_file = download_dir.join(&format!("dfx-{}.tar.gz", version));
+    let download_file = download_dir.join(format!("dfx-{}.tar.gz", version));
     if download_file.exists() {
         println!("Found downloaded file {}", download_file.to_string_lossy());
     } else {

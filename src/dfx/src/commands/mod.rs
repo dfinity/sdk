@@ -39,7 +39,6 @@ pub enum DfxCommand {
     Deps(deps::DepsOpts),
     Diagnose(diagnose::DiagnoseOpts),
     Fix(fix::FixOpts),
-    #[command(hide = true)]
     Extension(extension::ExtensionOpts),
     Generate(generate::GenerateOpts),
     Identity(identity::IdentityOpts),

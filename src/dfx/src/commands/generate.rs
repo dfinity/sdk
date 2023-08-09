@@ -68,9 +68,11 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
         }
     }
     let build_config =
-        BuildConfig::from_config(&config)?.with_canisters_to_build(build_before_generate);
+        BuildConfig::from_config(&config, env.get_network_descriptor().is_playground())?
+            .with_canisters_to_build(build_before_generate);
     let generate_config =
-        BuildConfig::from_config(&config)?.with_canisters_to_build(canisters_to_generate);
+        BuildConfig::from_config(&config, env.get_network_descriptor().is_playground())?
+            .with_canisters_to_build(canisters_to_generate);
 
     if build_config
         .canisters_to_build

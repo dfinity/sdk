@@ -1,7 +1,9 @@
 use crate::commands::ledger::get_icpts_from_args;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::ledger_types::{Memo, NotifyError};
+use crate::lib::error::NotifyCreateCanisterError::Notify;
+use crate::lib::ledger_types::Memo;
+use crate::lib::ledger_types::NotifyError::Refunded;
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 use crate::lib::operations::cmc::{notify_create, transfer_cmc};
@@ -87,16 +89,16 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
     .await?;
     println!("Using transfer at block height {height}");
 
-    let result = notify_create(agent, controller, height, opts.subnet_type).await?;
+    let result = notify_create(agent, controller, height, opts.subnet_type).await;
 
     match result {
         Ok(principal) => {
             println!("Canister created with id: {:?}", principal.to_text());
         }
-        Err(NotifyError::Refunded {
+        Err(Notify(Refunded {
             reason,
             block_index,
-        }) => {
+        })) => {
             match block_index {
                 Some(height) => {
                     println!("Refunded at block height {height} with message: {reason}")

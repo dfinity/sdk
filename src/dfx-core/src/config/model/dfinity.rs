@@ -3,7 +3,6 @@
 use crate::config::directories::get_config_dfx_dir_path;
 use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
-use crate::config::model::dfinity::MetadataVisibility::Public;
 use crate::error::dfx_config::DfxConfigError;
 use crate::error::dfx_config::DfxConfigError::{
     CanisterCircularDependency, CanisterNotFound, CanistersFieldDoesNotExist,
@@ -40,6 +39,8 @@ use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+
+use super::network_descriptor::MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS;
 
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
@@ -98,20 +99,15 @@ impl std::fmt::Display for WasmOptLevel {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum MetadataVisibility {
     /// Anyone can query the metadata
+    #[default]
     Public,
 
     /// Only the controllers of the canister can query the metadata.
     Private,
-}
-
-impl Default for MetadataVisibility {
-    fn default() -> Self {
-        Public
-    }
 }
 
 /// # Canister Metadata Configuration
@@ -541,22 +537,15 @@ pub struct ConfigDefaultsReplica {
 /// # Network Type
 /// Type 'ephemeral' is used for networks that are regularly reset.
 /// Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum NetworkType {
     // We store ephemeral canister ids in .dfx/{network}/canister_ids.json
+    #[default]
     Ephemeral,
 
     // We store persistent canister ids in canister_ids.json (adjacent to dfx.json)
     Persistent,
-}
-
-impl Default for NetworkType {
-    // This is just needed for the Default trait on NetworkType,
-    // but nothing will ever call it, due to field defaults.
-    fn default() -> Self {
-        NetworkType::Ephemeral
-    }
 }
 
 impl NetworkType {
@@ -568,18 +557,13 @@ impl NetworkType {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ReplicaSubnetType {
     System,
+    #[default]
     Application,
     VerifiedApplication,
-}
-
-impl Default for ReplicaSubnetType {
-    fn default() -> Self {
-        ReplicaSubnetType::Application
-    }
 }
 
 impl ReplicaSubnetType {
@@ -593,6 +577,21 @@ impl ReplicaSubnetType {
     }
 }
 
+fn default_playground_timeout_seconds() -> u64 {
+    MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS
+}
+
+/// Playground config to borrow canister from instead of creating new canisters.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct PlaygroundConfig {
+    /// Canister ID of the playground canister
+    pub playground_canister: String,
+
+    /// How many seconds a canister can be borrowed for
+    #[serde(default = "default_playground_timeout_seconds")]
+    pub timeout_seconds: u64,
+}
+
 /// # Custom Network Configuration
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigNetworkProvider {
@@ -602,6 +601,7 @@ pub struct ConfigNetworkProvider {
     /// Persistence type of this network.
     #[serde(default = "NetworkType::persistent")]
     pub r#type: NetworkType,
+    pub playground: Option<PlaygroundConfig>,
 }
 
 /// # Local Replica Configuration
@@ -620,6 +620,7 @@ pub struct ConfigLocalProvider {
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
     pub replica: Option<ConfigDefaultsReplica>,
+    pub playground: Option<PlaygroundConfig>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, JsonSchema)]
@@ -891,7 +892,7 @@ fn add_dependencies(
     Ok(())
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Config {
     path: PathBuf,
     json: Value,
@@ -1252,6 +1253,7 @@ mod tests {
             &ConfigNetwork::ConfigNetworkProvider(ConfigNetworkProvider {
                 providers: vec![String::from("https://1.2.3.4:5000")],
                 r#type: NetworkType::Ephemeral,
+                playground: None,
             })
         );
     }

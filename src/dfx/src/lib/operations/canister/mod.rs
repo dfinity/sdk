@@ -1,17 +1,17 @@
 mod create_canister;
-mod deploy_canisters;
-mod install_canister;
+pub(crate) mod deploy_canisters;
+pub(crate) mod install_canister;
+pub use create_canister::create_canister;
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
-pub use create_canister::create_canister;
 pub use deploy_canisters::deploy_canisters;
 pub use deploy_canisters::DeployMode;
 use dfx_core::canister::build_wallet_canister;
@@ -24,6 +24,8 @@ use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 pub use install_canister::{install_canister, install_wallet};
 use std::path::PathBuf;
+
+pub mod motoko_playground;
 
 #[context(
     "Failed to call update function '{}' regarding canister '{}'.",
@@ -128,6 +130,10 @@ pub async fn stop_canister(
     canister_id: Principal,
     call_sender: &CallSender,
 ) -> DfxResult {
+    if env.get_network_descriptor().is_playground() {
+        bail!("Canisters borrowed from a playground cannot be stopped.");
+    }
+
     #[derive(CandidType)]
     struct In {
         canister_id: Principal,

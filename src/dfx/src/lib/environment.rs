@@ -72,7 +72,11 @@ pub trait Environment {
     fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError>;
 
     fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
-        CanisterIdStore::new(self.get_network_descriptor(), self.get_config())
+        CanisterIdStore::new(
+            self.get_logger(),
+            self.get_network_descriptor(),
+            self.get_config(),
+        )
     }
 }
 

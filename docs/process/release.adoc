@@ -248,6 +248,17 @@ cd ..
 rm -rf hello_world
 ----
 
+
+=== Whitelist asset canister in Motoko Playground
+
+If the release includes a new version of the asset canister, then the Motoko Playground needs to have the new asset canister WASM whitelisted.
+Otherwise `dfx deploy --playground` will not work for asset canisters.
+
+Find the new asset canister module hash. It will be listed in `CHANGELOG.md` under `<n.n.n>` - `Dependencies` - `Frontend canister`.
+
+Head over to the link:https://github.com/dfinity/motoko-playground[Motoko Playground repo] and create a PR that adds the asset canister module hash to the whitelist in `service/wasm-utils/lib.rs`.
+You can use link:https://github.com/dfinity/motoko-playground/pull/175/files#diff-c8a035da9dcede5539deb0e81164ea50730e3177f56aef747d157406b1ba648dR15-R17[this change] as an example.
+
 ==== Update the version
 
 . Set the new version in a temporary environment variable.
@@ -384,6 +395,8 @@ For example, changes to the external network for onboarded developers are curren
 
 . Verify that release notes and documentation are ready for public consumption.
 . Open the `public/manifest.json` file in a text editor.
+. Verify that `dfx deploy --playground` works with an asset canister by e.g. deploying the default project created by `dfx new`.
+.. If it doesn't work, make sure the PR created on the Motoko Playground repo is merged and deployed.
 . Under the `tags` key, change the version number associated with the `latest` key.
 +
 For example:
