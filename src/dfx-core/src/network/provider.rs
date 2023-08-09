@@ -16,8 +16,9 @@ use crate::error::network_config::NetworkConfigError::{
 use crate::identity::WALLET_CONFIG_FILENAME;
 use crate::util;
 use lazy_static::lazy_static;
+use serde_json::json;
 use slog::{debug, info, warn, Logger};
-use std::path::{Path, PathBuf};
+use std::path::{Display, Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use url::Url;
 
@@ -163,9 +164,11 @@ pub fn create_network_descriptor(
             )
         })
         .or_else(|| {
+            let project_config_for_warnings_only = project_config;
             create_shared_network_descriptor(
                 &network_name,
                 shared_config,
+                project_config_for_warnings_only,
                 &local_bind_determination,
                 &logger,
             )
@@ -217,6 +220,7 @@ fn create_url_based_network_descriptor(
 fn create_shared_network_descriptor(
     network_name: &str,
     shared_config: Arc<NetworksConfig>,
+    project_config_for_warnings_only: Option<Arc<Config>>,
     local_bind_determination: &LocalBindDetermination,
     logger: &Logger,
 ) -> Option<Result<NetworkDescriptor, NetworkConfigError>> {
@@ -271,6 +275,13 @@ fn create_shared_network_descriptor(
     };
 
     network.as_ref().map(|config_network| {
+        warn_if_ignoring_project_defaults_in_shared_network(
+            network_name,
+            &shared_config_display_path,
+            project_config_for_warnings_only,
+            logger,
+        );
+
         let data_directory = get_shared_network_data_directory(network_name)?;
 
         let ephemeral_wallet_config_path = data_directory.join(WALLET_CONFIG_FILENAME);
@@ -288,6 +299,44 @@ fn create_shared_network_descriptor(
             None,
         )
     })
+}
+
+fn warn_if_ignoring_project_defaults_in_shared_network(
+    network_name: &str,
+    shared_config_display_path: &Display,
+    project_config_for_warnings_only: Option<Arc<Config>>,
+    logger: &Logger,
+) {
+    if let Some(project_config_for_warnings_only) = project_config_for_warnings_only {
+        let defaults = project_config_for_warnings_only.get_json().get("defaults");
+        let bitcoin = defaults.and_then(|x| x.get("bitcoin")).cloned();
+        let replica = defaults.and_then(|x| x.get("replica")).cloned();
+        let canister_http = defaults.and_then(|x| x.get("canister_http")).cloned();
+
+        if bitcoin.is_some() || replica.is_some() || canister_http.is_some() {
+            let mut example_network_json = json!({});
+            if let Some(bitcoin) = bitcoin {
+                example_network_json["bitcoin"] = bitcoin;
+            }
+            if let Some(replica) = replica {
+                example_network_json["replica"] = replica;
+            }
+            if let Some(canister_http) = canister_http {
+                example_network_json["canister_http"] = canister_http;
+            }
+            let example_networks_json = json!({
+                network_name: example_network_json
+            });
+
+            let example_networks_json =
+                serde_json::to_string_pretty(&example_networks_json).unwrap();
+            warn!(logger, "Ignoring the 'defaults' field in dfx.json because project settings never apply to the shared network.\n\
+                    To apply these settings to the shared network, define them in {shared_config_display_path} like so:\n\
+                    {example_networks_json}",
+                    shared_config_display_path = &shared_config_display_path,
+                    example_networks_json = &example_networks_json);
+        }
+    }
 }
 
 fn create_project_network_descriptor(
