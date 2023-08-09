@@ -16,34 +16,42 @@ concurrency:
 
 env:
   PLAYGROUND_REPO: ${{ github.repository_owner }}/motoko-playground
-  FILE: service/wasm-utils/lib.rs
+  FILE: service/wasm-utils/whitelisted_wasms.txt
 
 jobs:
   update-frontend-hash:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout sdk repo
+      - name: Checkout dfinity/sdk repo
         uses: actions/checkout@v3
         with:
+          fetch-depth: 0 # workaround to fetch all tags: https://github.com/actions/checkout/issues/701
           path: sdk
-
-      - name: Checkout playground repo
-        uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.NIV_UPDATER_TOKEN }}
-          repository: ${{ env.PLAYGROUND_REPO }}
-          path: motoko-playground
 
       - name: Get new hash
         working-directory: ./sdk
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          export NEW_HASH=$(.github/workflows/broadcast-frontend-hash_extract-hash-from-release-notes.sh ${{ inputs.dfx_version }})
-          echo "NEW_HASH=$NEW_HASH" >> $GITHUB_ENV
+          git checkout ${{ inputs.dfx_version }}
+          echo "NEW_HASH=$(shasum -a 256 src/distributed/assetstorage.wasm.gz | cut -f1 -d" ")" >> $GITHUB_ENV
+
+      - name: Checkout dfinity/motoko-playground repo
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.NIV_UPDATER_TOKEN }}
+          repository: ${{ env.PLAYGROUND_REPO }}
+          path: motoko-playground
 
       - name: Modify Rust file
-        run: sdk/.github/workflows/broadcast-frontend-hash_modify-file.sh "motoko-playground/${{ env.FILE }}" "${{ inputs.dfx_version }}" "${{ env.NEW_HASH }}"
+        working-directory: ./motoko-playground
+        run: |
+          tempfile=$(mktemp)
+          # `$i` specifies that the insertion should happen at the line before the last line. `$` matches the last line, and `i` inserts before the matched line.
+          # `\/\/` is `//` escaped for sed, same for `\"` -> `"`, and `\ ` -> ` `
+          sed '$i\ \ \ \ \"${{ env.NEW_HASH }}\", \/\/ dfx ${{ inputs.dfx_version }} frontend canister' "${{ env.FILE }}" > "$tempfile"
+          # not worth it to install sponge
+          mv "$tempfile" "${{ env.FILE }}"
 
       - name: Commit files, push changes, and create PR
         env:
@@ -67,4 +75,4 @@ jobs:
                        --body-file pr.md \
                        --base main \
                        --head broadcast-frontend-hash-${{ inputs.dfx_version }} \
-                       --repo ${{ env.PLAYGROUD_REPO }}
+                       --repo ${{ env.PLAYGROUND_REPO }}
