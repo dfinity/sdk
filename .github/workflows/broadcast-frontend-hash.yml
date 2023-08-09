@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PLAYGROUD_REPO: ${{ github.repository_owner }}/motoko-playground
+  PLAYGROUND_REPO: ${{ github.repository_owner }}/motoko-playground
   FILE: service/wasm-utils/lib.rs
 
 jobs:
