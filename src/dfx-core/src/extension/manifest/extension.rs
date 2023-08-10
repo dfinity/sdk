@@ -60,6 +60,8 @@ pub struct ExtensionSubcommandArgOpts {
     pub long: Option<String>,
     pub short: Option<char>,
     #[serde(default)]
+    pub values: usize,
+    #[serde(default)]
     pub multiple: bool,
 }
 
@@ -82,6 +84,7 @@ impl ExtensionSubcommandArgOpts {
         if self.multiple {
             arg = arg.num_args(0..);
         }
+        arg = arg.number_of_values(self.values);
         Ok(arg
             // let's not enforce any restrictions
             .allow_hyphen_values(true)
