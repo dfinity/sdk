@@ -22,6 +22,9 @@ jobs:
   update-frontend-hash:
     runs-on: ubuntu-latest
     steps:
+      - name: Install sponge
+        run: sudo apt-get install --yes moreutils
+
       - name: Checkout dfinity/sdk repo
         uses: actions/checkout@v3
         with:
@@ -45,7 +48,13 @@ jobs:
 
       - name: Modify Rust file
         working-directory: ./motoko-playground
-        run: echo "${{ env.NEW_HASH }} dfx ${{ inputs.dfx_version }} frontend canister" >> ${{ env.FILE }}
+        run: |
+          # Below won't work on MacOS. If you want to debug it on MacOS, run:
+          # > sudo docker run -ti --rm ubuntu /bin/bash
+          # ubuntu> apt-get update && apt-get install --yes moreutils --fix-missing
+          head -n -1 ${{ env.FILE }} | sponge ${{ env.FILE }}
+          echo '    "${{ env.NEW_HASH }}", // dfx ${{ inputs.dfx_version }} frontend canister' >> ${{ env.FILE }}
+          echo ']' >> ${{ env.FILE }}
 
       - name: Commit files, push changes, and create PR
         env:
