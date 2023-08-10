@@ -6,6 +6,13 @@
 
 Added warning that the `--emulator` is deprecated and will be discontinued soon.
 
+### fix: node engines in starter
+
+Updates node engines to reflect the same engines supported in agent-js.
+
+"node": "^12 || ^14 || ^16 || >=17",
+"npm": "^7.17 || >=8"
+
 ### feat: deploy to playground
 
 Introduced a new network type called `playground`. Canisters on such networks are not created through standard means, but are instead borrowed from a canister pool.
