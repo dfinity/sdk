@@ -45,13 +45,7 @@ jobs:
 
       - name: Modify Rust file
         working-directory: ./motoko-playground
-        run: |
-          tempfile=$(mktemp)
-          # `$i` specifies that the insertion should happen at the line before the last line. `$` matches the last line, and `i` inserts before the matched line.
-          # `\/\/` is `//` escaped for sed, same for `\"` -> `"`, and `\ ` -> ` `
-          sed '$i\ \ \ \ \"${{ env.NEW_HASH }}\", \/\/ dfx ${{ inputs.dfx_version }} frontend canister' "${{ env.FILE }}" > "$tempfile"
-          # not worth it to install sponge
-          mv "$tempfile" "${{ env.FILE }}"
+        run: echo "${{ env.NEW_HASH }} dfx ${{ inputs.dfx_version }} frontend canister" >> ${{ env.FILE }}
 
       - name: Commit files, push changes, and create PR
         env:
