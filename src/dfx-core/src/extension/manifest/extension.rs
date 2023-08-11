@@ -1,6 +1,6 @@
 use crate::error::extension::ExtensionError;
 use clap::ArgAction;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use std::{
     collections::{BTreeMap, HashMap},
     path::Path,
@@ -60,9 +60,63 @@ pub struct ExtensionSubcommandArgOpts {
     pub long: Option<String>,
     pub short: Option<char>,
     #[serde(default)]
-    pub values: usize,
-    #[serde(default)]
-    pub multiple: bool,
+    pub values: ArgNumberOfValues,
+}
+
+#[derive(Debug)]
+pub enum ArgNumberOfValues {
+    /// zero or more values
+    Number(usize),
+    /// non-inclusive range
+    Range(std::ops::Range<usize>),
+    /// unlimited values
+    Unlimited,
+}
+
+impl Default for ArgNumberOfValues {
+    fn default() -> Self {
+        Self::Number(1)
+    }
+}
+
+impl<'de> Deserialize<'de> for ArgNumberOfValues {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum StrOrUsize<'a> {
+            Str(&'a str),
+            Usize(usize),
+        }
+
+        match StrOrUsize::deserialize(deserializer)? {
+            StrOrUsize::Usize(n) => return Ok(Self::Number(n)),
+            StrOrUsize::Str(s) => {
+                dbg!(&s);
+                if s == "unlimited" {
+                    return dbg!(Ok(Self::Unlimited));
+                }
+                if s.contains("..=") {
+                    let msg = format!("Inclusive ranges are not supported: {}", s);
+                    return Err(serde::de::Error::custom(msg));
+                }
+                if s.contains("..") {
+                    let parts: Vec<&str> = s.split("..").collect();
+                    if let (Ok(start), Ok(end)) =
+                        (parts[0].parse::<usize>(), parts[1].parse::<usize>())
+                    {
+                        return dbg!(Ok(Self::Range(start..end + 1)));
+                    }
+                }
+                return Err(serde::de::Error::custom(format!(
+            "Invalid format for values: '{}'. Expected 'unlimited' or a positive integer or a range (for example '1..3')",
+            s
+        )));
+            }
+        }
+    }
 }
 
 impl ExtensionSubcommandArgOpts {
@@ -81,15 +135,15 @@ impl ExtensionSubcommandArgOpts {
         if let Some(s) = self.short {
             arg = arg.short(s);
         }
-        if self.multiple {
-            arg = arg.num_args(0..);
-        }
-        arg = arg.number_of_values(self.values);
+        arg = dbg!(match dbg!(self.values) {
+            ArgNumberOfValues::Number(n) => arg.num_args(n).action(ArgAction::Set),
+            ArgNumberOfValues::Range(r) => arg.num_args(dbg!(r)),
+            ArgNumberOfValues::Unlimited => arg.num_args(0..).action(ArgAction::Append),
+        });
         Ok(arg
-            // let's not enforce any restrictions
+            // let's not enforce restrictions
             .allow_hyphen_values(true)
-            .required(false)
-            .action(ArgAction::Append))
+            .required(false))
     }
 }
 
@@ -137,7 +191,7 @@ fn parse_test_file() {
   ],
   "subcommands": {
     "config": {
-      "about": "Subcommands for working with configuration.",
+      "about": "About for config command. You're looking at the output of parsing test extension.json.",
       "subcommands": {
         "create": {
           "about": "Command line options for creating an SNS configuration."
@@ -148,10 +202,10 @@ fn parse_test_file() {
       }
     },
     "deploy": {
-      "about": "Subcommand for creating an SNS."
+      "about": "About for deploy command. You're looking at the output of parsing test extension.json."
     },
     "import": {
-      "about": "Subcommand for importing sns API definitions and canister IDs.",
+      "about": "About for import command. You're looking at the output of parsing test extension.json.",
       "args": {
         "network_mapping": {
           "about": "Networks to import canisters ids for.\n  --network-mapping <network name in both places>\n  --network-mapping <network name here>=<network name in project being imported>\nExamples:\n  --network-mapping ic\n  --network-mapping ic=mainnet",
@@ -160,7 +214,7 @@ fn parse_test_file() {
       }
     },
     "download": {
-      "about": "Subcommand for downloading SNS WASMs.",
+      "about": "About for download command. You're looking at the output of parsing test extension.json.",
       "args": {
         "ic_commit": {
           "about": "IC commit of SNS canister WASMs to download",
@@ -173,12 +227,47 @@ fn parse_test_file() {
       }
     },
     "install": {
-      "about": "Subcommand for installing something.",
+      "about": "About for install command. You're looking at the output of parsing test extension.json.",
       "args": {
         "accounts": {
           "about": "some arg that accepts multiple values separated by spaces",
           "long": "accounts",
-          "multiple": true
+          "values": "unlimited"
+        }
+      }
+    },
+    "initialize-canister": {
+      "about": "About for initialize-canister command. You're looking at the output of parsing test extension.json.",
+      "args": {
+        "canister_id": {
+          "about": "some arg that accepts multiple values separated by spaces"
+        }
+      }
+    },
+    "initialize-canisters": {
+      "about": "About for initialize-canisters command. You're looking at the output of parsing test extension.json.",
+      "args": {
+        "canister_ids": {
+          "about": "some arg that accepts multiple values separated by spaces",
+          "values": "unlimited"
+        }
+      }
+    },
+    "initialize-two-canisters": {
+      "about": "About for initialize-two-canisters command. You're looking at the output of parsing test extension.json.",
+      "args": {
+        "canister_ids": {
+          "about": "some arg that accepts multiple values separated by spaces",
+          "values": 2
+        }
+      }
+    },
+    "initialize-two-or-three-canisters": {
+      "about": "About for initialize-two-or-three-canisters command. You're looking at the output of parsing test extension.json.",
+      "args": {
+        "canister_ids": {
+          "about": "some arg that accepts multiple values separated by spaces",
+          "values": "2..3"
         }
       }
     }
@@ -186,13 +275,27 @@ fn parse_test_file() {
 }
 "#;
 
-    let m: Result<ExtensionManifest, serde_json::Error> = serde_json::from_str(f);
-    dbg!(&m);
+    use clap::error::ErrorKind;
+    fn get_many<'a>(matches: &'a clap::ArgMatches, name: &'a str) -> Vec<&'a str> {
+        matches
+            .get_many::<String>(name)
+            .unwrap()
+            .map(|s| s.as_str())
+            .collect::<Vec<&str>>()
+    }
+    macro_rules! assert_err_kind {
+        ($matches:expr, $kind:expr) => {
+            assert_eq!($matches.as_ref().map_err(|e| e.kind()), Err($kind))
+        };
+    }
+
+    let m: Result<ExtensionManifest, serde_json::Error> = dbg!(serde_json::from_str(f));
     assert!(m.is_ok());
 
-    let subcmds = m.unwrap().into_clap_commands().unwrap();
-    dbg!(&subcmds);
-    for s in &subcmds {
+    let mut subcmds = dbg!(m.unwrap().into_clap_commands().unwrap());
+
+    for s in &mut subcmds {
+        s.print_long_help().unwrap();
         match s.get_name() {
             "download" => {
                 let matches = s
@@ -205,8 +308,8 @@ fn parse_test_file() {
                 let matches = s.clone().try_get_matches_from(vec![
                     "download",
                     "--ic-commit",
-                    "value",
-                    "value2",
+                    "commit1",
+                    "commit2",
                 ]);
                 assert!(matches.is_err());
             }
@@ -214,24 +317,96 @@ fn parse_test_file() {
                 let matches = s.clone().get_matches_from(vec![
                     "install",
                     "--accounts",
-                    "value1",
-                    "value2",
-                    "value3",
-                    "value4",
+                    "accountA",
+                    "accountB",
+                    "accountC",
+                    "accountD",
                 ]);
                 assert_eq!(
-                    vec!["value1", "value2", "value3", "value4"],
-                    matches
-                        .get_many::<String>("accounts")
-                        .unwrap()
-                        .map(|x| x.as_str())
-                        .collect::<Vec<&str>>()
+                    vec!["accountA", "accountB", "accountC", "accountD"],
+                    get_many(&matches, "accounts")
                 );
+            }
+            "initialize-canister" => {
+                let matches = s
+                    .clone()
+                    .get_matches_from(vec!["initialize-canister", "one-canister"]);
+                assert_eq!(vec!["one-canister"], get_many(&matches, "canister_id"));
+                let matches = s.clone().try_get_matches_from(vec![
+                    "initialize-canister",
+                    "not-one-canister1",
+                    "not-one-canister2",
+                ]);
+                assert_err_kind!(matches, ErrorKind::UnknownArgument);
+            }
+            "initialize-canisters" => {
+                let matches = s.clone().get_matches_from(vec![
+                    "initialize-canisters",
+                    "can1",
+                    "can2",
+                    "can3",
+                    "can4",
+                    "can5",
+                ]);
+                assert_eq!(
+                    vec!["can1", "can2", "can3", "can4", "can5"],
+                    get_many(&matches, "canister_ids")
+                );
+            }
+            "initialize-two-canisters" => {
+                let matches =
+                    s.clone()
+                        .get_matches_from(vec!["initialize-canisters", "toucan1", "toucan2"]);
+                assert_eq!(
+                    vec!["toucan1", "toucan2"],
+                    get_many(&matches, "canister_ids")
+                );
+                let matches = s
+                    .clone()
+                    .try_get_matches_from(vec!["initialize-canister", "not-toucan"]);
+                assert_err_kind!(matches, ErrorKind::WrongNumberOfValues);
+            }
+            "initialize-two-or-three-canisters" => {
+                let matches = s.clone().get_matches_from(vec![
+                    "initialize-canisters",
+                    "2or3can1",
+                    "2or3can2",
+                ]);
+                assert_eq!(
+                    vec!["2or3can1", "2or3can2"],
+                    get_many(&matches, "canister_ids")
+                );
+                let matches = s.clone().get_matches_from(vec![
+                    "initialize-canisters",
+                    "2or3can1",
+                    "2or3can2",
+                    "2or3can3",
+                ]);
+                assert_eq!(
+                    vec!["2or3can1", "2or3can2", "2or3can3"],
+                    get_many(&matches, "canister_ids")
+                );
+                let matches = s
+                    .clone()
+                    .try_get_matches_from(vec!["initialize-canisters", "2or3can"]);
+                assert_err_kind!(matches, ErrorKind::TooFewValues);
+                let matches = s.clone().try_get_matches_from(vec![
+                    "initialize-canisters",
+                    "not2or3can1",
+                    "not2or3can2",
+                    "not2or3can3",
+                    "not2or3can4",
+                ]);
+                assert_err_kind!(matches, ErrorKind::TooManyValues);
             }
             _ => {}
         }
     }
-
-    let cli = clap::Command::new("sns").subcommands(subcmds);
-    cli.debug_assert();
+    clap::Command::new("sns")
+        .subcommands(&subcmds)
+        .print_help()
+        .unwrap();
+    clap::Command::new("sns")
+        .subcommands(&subcmds)
+        .debug_assert();
 }
