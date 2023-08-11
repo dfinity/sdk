@@ -12,6 +12,7 @@ type SubcmdName = String;
 type ArgName = String;
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ExtensionManifest {
     pub name: String,
     pub version: String,
@@ -48,6 +49,7 @@ impl ExtensionManifest {
 pub struct ExtensionSubcommandsOpts(BTreeMap<SubcmdName, ExtensionSubcommandOpts>);
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ExtensionSubcommandOpts {
     pub about: Option<String>,
     pub args: Option<BTreeMap<ArgName, ExtensionSubcommandArgOpts>>,
@@ -55,6 +57,7 @@ pub struct ExtensionSubcommandOpts {
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ExtensionSubcommandArgOpts {
     pub about: Option<String>,
     pub long: Option<String>,
@@ -92,11 +95,10 @@ impl<'de> Deserialize<'de> for ArgNumberOfValues {
         }
 
         match StrOrUsize::deserialize(deserializer)? {
-            StrOrUsize::Usize(n) => return Ok(Self::Number(n)),
+            StrOrUsize::Usize(n) => Ok(Self::Number(n)),
             StrOrUsize::Str(s) => {
-                dbg!(&s);
                 if s == "unlimited" {
-                    return dbg!(Ok(Self::Unlimited));
+                    return Ok(Self::Unlimited);
                 }
                 if s.contains("..=") {
                     let msg = format!("Inclusive ranges are not supported: {}", s);
@@ -107,13 +109,13 @@ impl<'de> Deserialize<'de> for ArgNumberOfValues {
                     if let (Ok(start), Ok(end)) =
                         (parts[0].parse::<usize>(), parts[1].parse::<usize>())
                     {
-                        return dbg!(Ok(Self::Range(start..end + 1)));
+                        return Ok(Self::Range(start..end + 1));
                     }
                 }
-                return Err(serde::de::Error::custom(format!(
+                Err(serde::de::Error::custom(format!(
             "Invalid format for values: '{}'. Expected 'unlimited' or a positive integer or a range (for example '1..3')",
             s
-        )));
+        )))
             }
         }
     }
@@ -135,14 +137,15 @@ impl ExtensionSubcommandArgOpts {
         if let Some(s) = self.short {
             arg = arg.short(s);
         }
-        arg = dbg!(match dbg!(self.values) {
+        arg = match self.values {
             ArgNumberOfValues::Number(n) => arg.num_args(n).action(ArgAction::Set),
-            ArgNumberOfValues::Range(r) => arg.num_args(dbg!(r)),
+            ArgNumberOfValues::Range(r) => arg.num_args(r),
             ArgNumberOfValues::Unlimited => arg.num_args(0..).action(ArgAction::Append),
-        });
+        };
         Ok(arg
-            // let's not enforce restrictions
+            // let's allow values that start with a hyphen for args (for example, --calculator -2+2)
             .allow_hyphen_values(true)
+            // don't enforce that args are required
             .required(false))
     }
 }
