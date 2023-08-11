@@ -407,7 +407,7 @@ fn serve_correct_encoding_v1() {
     );
     assert_eq!(gzip_response.status_code, 200);
     assert_eq!(gzip_response.body.as_ref(), GZIP_BODY);
-    assert!(lookup_header(&gzip_response, "IC-Certificate").is_none());
+    assert!(lookup_header(&gzip_response, "IC-Certificate").is_some());
 
     // If no encoding matches, return most important encoding with certificate
     let unknown_encoding_response = certified_http_request(
