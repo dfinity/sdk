@@ -47,9 +47,10 @@ If `dfx start` is starting the shared network from within a dfx project, and tha
 
 ### Frontend canister
 
-For certification v1, if none of the requested encoding are certified but an encoding is certified the frontend canister once again returns the certificatie even though the response hash won't match.
+For certification v1, if none of the requested encoding are certified but another encoding is certified, then the frontend canister once again returns the certificatie even though the response hash won't match.
 This allows the verifying side to try to transform the response such that it matches the response hash.
-For example, if only the encoding `gzip` is requested but the `identity` encoding is certified, the verifying side can unzip the response and will have a matching certificate for the unzipped response.
+For example, if only the encoding `gzip` is requested but the `identity` encoding is certified, the `gzip` encoding is returned with the certificate for the `identity` encoding.
+The verifying side can then unzip the response and will have a valid certificate for the `identity` response.
 
 - Module hash: cd3e7fa2b826f84cdd107eef28633b0c669b4687ae1598dd854828e82d2e4652
 - https://github.com/dfinity/sdk/pull/3298
