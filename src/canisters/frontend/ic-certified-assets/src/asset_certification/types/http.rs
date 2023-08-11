@@ -214,13 +214,8 @@ impl HttpResponse {
         // Return a requested encoding that is certified
         for enc_name in requested_encodings.iter() {
             if let Some(enc) = asset.encodings.get(enc_name) {
-                if enc.certified {
-                    if cert_version == 1 {
-                        // In v1, only the most important encoding is certified.
-                        if enc_name != &most_important_v1 {
-                            continue;
-                        }
-                    }
+                // for v1 we can return an encoding even if that specific encoding is not certified
+                if enc.certified || cert_version == 1 {
                     return Some(Self::build_ok(
                         asset,
                         enc_name,
