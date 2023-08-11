@@ -2,6 +2,13 @@
 
 # UNRELEASED
 
+### fix: node engines in starter
+
+Updates node engines to reflect the same engines supported in agent-js.
+
+"node": "^12 || ^14 || ^16 || >=17",
+"npm": "^7.17 || >=8"
+
 ### feat: deploy to playground
 
 Introduced a new network type called `playground`. Canisters on such networks are not created through standard means, but are instead borrowed from a canister pool.
@@ -27,6 +34,14 @@ Use `dfx deploy --playground` to deploy simple projects to a canister borrowed f
 For example, `dfx deploy --ic` rather than `dfx deploy --network ic`.
 
 ### fix: Motoko base library files in cache are no longer executable
+
+### feat: `dfx start` for shared network warns if ignoring 'defaults' in dfx.json
+
+Background: In order to determine whether to start a project-specific network or the shared network, `dfx start` looks for the `local` network in dfx.json.
+   - If found, `dfx start` starts the project-specific local network, applying any `defaults` from dfx.json.
+   - If there is no dfx.json, or if dfx.json does not define a `local` network, `dfx start` starts the shared network.  Because the shared network is not specific to any project, `dfx start` ignores any other settings from dfx.json, including `defaults`.
+
+If `dfx start` is starting the shared network from within a dfx project, and that dfx.json contains settings in the `defaults` key for `bitcoin`, `replica`, or `canister_http`, then `dfx start` will warn that it is ignoring those settings.  It will also describe how to define equivalent settings in networks.json.
 
 ## Dependencies
 
