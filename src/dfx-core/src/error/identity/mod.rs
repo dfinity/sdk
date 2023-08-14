@@ -1,3 +1,5 @@
+pub mod new_identity_manager;
+
 use crate::error::config::ConfigError;
 use crate::error::encryption::EncryptionError;
 use crate::error::foundation::FoundationError;
@@ -88,9 +90,6 @@ pub enum IdentityError {
 
     #[error("Failed to load configuration for identity '{0}': {1}")]
     LoadIdentityConfigurationFailed(String, StructuredFileError),
-
-    #[error("Failed to load identity manager configuration: {0}")]
-    LoadIdentityManagerConfigurationFailed(StructuredFileError),
 
     #[error("Failed to load PEM file from keyring for identity '{0}': {1}")]
     LoadPemFromKeyringFailed(Box<String>, KeyringError),

@@ -4,21 +4,23 @@ use crate::config::directories::get_config_dfx_dir_path;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use crate::error::fs::FsError;
+use crate::error::identity::new_identity_manager::NewIdentityManagerError;
+use crate::error::identity::new_identity_manager::NewIdentityManagerError::LoadIdentityManagerConfigurationFailed;
 use crate::error::identity::IdentityError;
 use crate::error::identity::IdentityError::{
     CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
     CreateIdentityDirectoryFailed, CreateMnemonicFromPhraseFailed,
     CreateTemporaryIdentityDirectoryFailed, DisplayLinkedWalletsFailed,
     DropWalletsFlagRequiredToRemoveIdentityWithWallets, EnsureIdentityConfigurationDirExistsFailed,
-    GenerateFreshEncryptionConfigurationFailed, GetConfigDirectoryFailed,
-    GetIdentityPrincipalFailed, GetLegacyPemPathFailed, IdentityAlreadyExists,
-    LoadIdentityConfigurationFailed, LoadIdentityManagerConfigurationFailed,
-    RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed,
-    RenameIdentityDirectoryFailed, RenameTemporaryIdentityDirectoryFailed,
-    SaveIdentityConfigurationFailed, SaveIdentityManagerConfigurationFailed,
-    SwitchBackToIdentityFailed, SwitchDefaultIdentitySettingsFailed,
-    SwitchToAnonymousIdentityFailed, TranslatePemContentToTextFailed,
+    GenerateFreshEncryptionConfigurationFailed, GetIdentityPrincipalFailed, GetLegacyPemPathFailed,
+    IdentityAlreadyExists, LoadIdentityConfigurationFailed, RemoveIdentityDirectoryFailed,
+    RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed, RenameIdentityDirectoryFailed,
+    RenameTemporaryIdentityDirectoryFailed, SaveIdentityConfigurationFailed,
+    SaveIdentityManagerConfigurationFailed, SwitchBackToIdentityFailed,
+    SwitchDefaultIdentitySettingsFailed, SwitchToAnonymousIdentityFailed,
+    TranslatePemContentToTextFailed,
 };
+use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
 use crate::fs::composite::ensure_parent_dir_exists;
 use crate::identity::identity_file_locations::{IdentityFileLocations, IDENTITY_PEM};
@@ -169,15 +171,21 @@ pub struct IdentityManager {
 }
 
 impl IdentityManager {
-    pub fn new(logger: &Logger, identity_override: &Option<String>) -> Result<Self, IdentityError> {
-        let config_dfx_dir_path = get_config_dfx_dir_path().map_err(GetConfigDirectoryFailed)?;
+    pub fn new(
+        logger: &Logger,
+        identity_override: &Option<String>,
+    ) -> Result<Self, NewIdentityManagerError> {
+        let config_dfx_dir_path =
+            get_config_dfx_dir_path().map_err(NewIdentityManagerError::GetConfigDirectoryFailed)?;
         let identity_root_path = config_dfx_dir_path.join("identity");
         let identity_json_path = config_dfx_dir_path.join("identity.json");
 
         let configuration = if identity_json_path.exists() {
-            load_configuration(&identity_json_path)?
+            load_configuration(&identity_json_path)
+                .map_err(LoadIdentityManagerConfigurationFailed)?
         } else {
-            initialize(logger, &identity_json_path, &identity_root_path)?
+            initialize(logger, &identity_json_path, &identity_root_path)
+                .map_err(NewIdentityManagerError::InitializeFailed)?
         };
 
         let selected_identity = identity_override
@@ -194,7 +202,8 @@ impl IdentityManager {
         };
 
         if let Some(identity) = identity_override {
-            mgr.require_identity_exists(logger, identity)?;
+            mgr.require_identity_exists(logger, identity)
+                .map_err(NewIdentityManagerError::OverrideIdentityMustExist)?;
         }
 
         Ok(mgr)
@@ -685,8 +694,8 @@ fn get_legacy_creds_pem_path() -> Result<Option<PathBuf>, IdentityError> {
     }
 }
 
-fn load_configuration(path: &Path) -> Result<Configuration, IdentityError> {
-    load_json_file(path).map_err(LoadIdentityManagerConfigurationFailed)
+fn load_configuration(path: &Path) -> Result<Configuration, StructuredFileError> {
+    load_json_file(path)
 }
 
 fn save_configuration(path: &Path, config: &Configuration) -> Result<(), IdentityError> {

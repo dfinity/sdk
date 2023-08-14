@@ -1,6 +1,6 @@
 use crate::lib::deps::get_pull_canisters_in_config;
 use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
+use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation, CanisterSettings,
 };
@@ -119,11 +119,12 @@ pub async fn exec(
                                     .and_then(|identity| {
                                         identity.sender().map_err(GetIdentityPrincipalFailed)
                                     })
+                                    .map_err(DfxError::new)
                             }
                         }
                     },
                 )
-                .collect::<Result<Vec<_>, IdentityError>>()
+                .collect::<Result<Vec<_>, DfxError>>()
         })
         .transpose()
         .context("Failed to determine controllers.")?;

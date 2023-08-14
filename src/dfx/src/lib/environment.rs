@@ -11,6 +11,7 @@ use dfx_core::config::model::dfinity::{Config, NetworksConfig};
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::extension::ExtensionError;
+use dfx_core::error::identity::new_identity_manager::NewIdentityManagerError;
 use dfx_core::error::identity::IdentityError;
 use dfx_core::extension::manager::ExtensionManager;
 use dfx_core::identity::identity_manager::IdentityManager;
@@ -53,7 +54,7 @@ pub trait Environment {
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
     fn new_progress(&self, message: &str) -> ProgressBar;
 
-    fn new_identity_manager(&self) -> Result<IdentityManager, IdentityError> {
+    fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {
         IdentityManager::new(self.get_logger(), self.get_identity_override())
     }
 
