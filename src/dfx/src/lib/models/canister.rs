@@ -1,6 +1,6 @@
 use crate::lib::builders::{
-    custom_download, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder,
-    IdlBuildOutput, WasmBuildOutput,
+    custom_download, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput,
+    WasmBuildOutput,
 };
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
