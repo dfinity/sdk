@@ -101,9 +101,13 @@ pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), FsEr
 }
 
 pub fn set_permissions_readwrite(path: &Path) -> Result<(), FsError> {
-    let mut permissions = read_permissions(path)?;
-    permissions.set_readonly(false);
-    set_permissions(path, permissions)
+    #[cfg(unix)]
+    {
+        let mut permissions = read_permissions(path)?;
+        permissions.set_readonly(false);
+        set_permissions(path, permissions)?;
+    }
+    Ok(())
 }
 
 pub fn tar_unpack_in<P: AsRef<Path>>(
