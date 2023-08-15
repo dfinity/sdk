@@ -351,6 +351,7 @@ pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult
     }
 }
 
+<<<<<<< Updated upstream
 /// Set the permission of the given file to be writeable.
 pub fn set_perms_readwrite(_file_path: &Path) -> DfxResult<()> {
     #[cfg(unix)]
@@ -374,6 +375,8 @@ pub fn set_perms_readwrite(_file_path: &Path) -> DfxResult<()> {
     Ok(())
 }
 
+=======
+>>>>>>> Stashed changes
 type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);
 
 pub fn get_and_write_environment_variables<'a>(

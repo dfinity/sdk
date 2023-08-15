@@ -100,6 +100,12 @@ pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), FsEr
         .map_err(|err| FsError::new(WritePermissionsFailed(path.to_path_buf(), err)))
 }
 
+pub fn set_permissions_readwrite(path: &Path) -> Result<(), FsError> {
+    let mut permissions = read_permissions(path)?;
+    permissions.set_readonly(false);
+    set_permissions(path, permissions)
+}
+
 pub fn tar_unpack_in<P: AsRef<Path>>(
     path: P,
     tar: &mut tar::Entry<flate2::read::GzDecoder<&'static [u8]>>,
