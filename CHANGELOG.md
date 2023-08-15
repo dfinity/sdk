@@ -39,11 +39,25 @@ For example, `dfx deploy --ic` rather than `dfx deploy --network ic`.
 
 ### fix: Motoko base library files in cache are no longer executable
 
+### feat: `dfx start` for shared network warns if ignoring 'defaults' in dfx.json
+
+Background: In order to determine whether to start a project-specific network or the shared network, `dfx start` looks for the `local` network in dfx.json.
+   - If found, `dfx start` starts the project-specific local network, applying any `defaults` from dfx.json.
+   - If there is no dfx.json, or if dfx.json does not define a `local` network, `dfx start` starts the shared network.  Because the shared network is not specific to any project, `dfx start` ignores any other settings from dfx.json, including `defaults`.
+
+If `dfx start` is starting the shared network from within a dfx project, and that dfx.json contains settings in the `defaults` key for `bitcoin`, `replica`, or `canister_http`, then `dfx start` will warn that it is ignoring those settings.  It will also describe how to define equivalent settings in networks.json.
+
 ## Dependencies
 
 ### Frontend canister
 
-- Module hash: 16befa499b2d0a50adf48ad695d6b5e0fd594a669a6600f87e629fa4cd8a058c
+For certification v1, if none of the requested encoding are certified but another encoding is certified, then the frontend canister once again returns the certificatie even though the response hash won't match.
+This allows the verifying side to try to transform the response such that it matches the response hash.
+For example, if only the encoding `gzip` is requested but the `identity` encoding is certified, the `gzip` encoding is returned with the certificate for the `identity` encoding.
+The verifying side can then unzip the response and will have a valid certificate for the `identity` response.
+
+- Module hash: cd3e7fa2b826f84cdd107eef28633b0c669b4687ae1598dd854828e82d2e4652
+- https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3281
 
 # 0.15.0
@@ -145,9 +159,13 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Replica
 
-Updated replica to elected commit 9c89622231301daf93528aa3b64b4d1ec4657680.
+Updated replica to elected commit 3bcccef07408921fe849c92dd2437adc157ef9c3.
 This incorporates the following executed proposals:
 
+- [124021](https://dashboard.internetcomputer.org/proposal/124021)
+- [123977](https://dashboard.internetcomputer.org/proposal/123977)
+- [123976](https://dashboard.internetcomputer.org/proposal/123976)
+- [123922](https://dashboard.internetcomputer.org/proposal/123922)
 - [123784](https://dashboard.internetcomputer.org/proposal/123784)
 - [123730](https://dashboard.internetcomputer.org/proposal/123730)
 - [123711](https://dashboard.internetcomputer.org/proposal/123711)

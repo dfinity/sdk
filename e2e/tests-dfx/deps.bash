@@ -125,7 +125,6 @@ Failed to download from url: http://example.com/c.wasm."
     cd ../app
     assert_command_fail dfx deps pull --network local
     assert_contains "Failed to get dependencies of canister $CANISTER_ID_A."
-    assert_contains "Canister $CANISTER_ID_A has no module."
 
     cd ../onchain
     dfx canister stop a
@@ -134,7 +133,6 @@ Failed to download from url: http://example.com/c.wasm."
     cd ../app
     assert_command_fail dfx deps pull --network local
     assert_contains "Failed to get dependencies of canister $CANISTER_ID_A."
-    assert_contains "Canister $CANISTER_ID_A not found."
 }
 
 @test "dfx deps pull can download wasm and candids to shared cache and generate pulled.json" {
