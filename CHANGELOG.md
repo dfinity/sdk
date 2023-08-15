@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### chore: --emulator parameter is deprecated and will be discontinued soon
+
+Added warning that the `--emulator` is deprecated and will be discontinued soon.
+
 ### fix: node engines in starter
 
 Updates node engines to reflect the same engines supported in agent-js.
