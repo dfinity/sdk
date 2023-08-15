@@ -103,8 +103,9 @@ pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), FsEr
 pub fn set_permissions_readwrite(path: &Path) -> Result<(), FsError> {
     #[cfg(unix)]
     {
+        use std::os::unix::fs::PermissionsExt;
         let mut permissions = read_permissions(path)?;
-        permissions.set_readonly(false);
+        permissions.set_mode(permissions.mode() | 0o200);
         set_permissions(path, permissions)?;
     }
     Ok(())
