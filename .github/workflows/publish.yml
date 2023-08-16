@@ -138,6 +138,8 @@ jobs:
       matrix:
         name: [ 'x86_64-darwin', 'x86_64-linux' ]
     steps:
+      - uses: actions/checkout@v3
+
       - name: Setup environment variables
         run: echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
 
