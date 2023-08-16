@@ -314,6 +314,7 @@ pub fn copy_service_candid_to_project(
     let path_in_project = get_candid_path_in_project(project_root, canister_id);
     ensure_parent_dir_exists(&path_in_project)?;
     dfx_core::fs::copy(&service_candid_path, &path_in_project)?;
+    dfx_core::fs::set_permissions_readwrite(&path_in_project)?;
     Ok(())
 }
 
