@@ -21,6 +21,7 @@ You can use the following optional flags with the `dfx start` command.
 | `--emulator`      | Starts the [IC reference emulator](https://github.com/dfinity/ic-hs) rather than the replica.                                                                                                                                                |
 | `--enable-bitcoin` | Enables bitcoin integration.                                                                                                                                                                                                                 |
 | `--enable-canister-http` | Enables canister HTTP requests. (deprecated: now enabled by default)                                                                                                                                                                         |
+| `--use-old-metering` | Enables the old metering in the local canister execution environment. Please see the forum thread for more details or to report any issues: [forum.dfinity.org/t/new-wasm-instrumentation/](https://forum.dfinity.org/t/new-wasm-instrumentation/22080) |
 
 ## Options
 

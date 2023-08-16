@@ -77,6 +77,10 @@ pub struct StartOpts {
     /// Start even if the network config was modified.
     #[arg(long)]
     force: bool,
+
+    /// Use old metering.
+    #[arg(long)]
+    use_old_metering: bool,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -142,6 +146,7 @@ pub fn exec(
         enable_bitcoin,
         enable_canister_http,
         artificial_delay,
+        use_old_metering,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -288,8 +293,13 @@ pub fn exec(
         .unwrap_or_default();
 
     let replica_config = {
-        let replica_config =
-            ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay);
+        let replica_config = ReplicaConfig::new(
+            &state_root,
+            subnet_type,
+            log_level,
+            artificial_delay,
+            use_old_metering,
+        );
         let mut replica_config = if let Some(port) = local_server_descriptor.replica.port {
             replica_config.with_port(port)
         } else {

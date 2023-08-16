@@ -6,6 +6,20 @@
 
 ### fix: added https://icp-api.io to the default Content-Security-Policy header
 
+### chore: add `--use-old-metering` flag
+
+The `use-old-metering` flag enables old metering in replica. The new metering is enabled in the `starter` by default, so this flag is to compare the default new metering with the old one.
+
+The flag is temporary and will be removed in a few months.
+
+### feat!: Removed dfx nns and dfx sns commands
+
+Both have now been turned into the dfx extensions. In order to obtain them, please run `dfx extension install nns` and `dfx extension install sns` respectively. After the installation, you can use them as you did before: `dfx nns ...`, and `dfx sns ...`.
+
+### feat!: Removed dfx replica and dfx bootstrap commands
+
+Use `dfx start` instead.  If you have a good reason why we should keep these commands, please contribute to the discussion at https://github.com/dfinity/sdk/discussions/3163
+
 Existing projects will need to change this value in .ic-assets.json or .ic-assets.json5 to include https://icp-api.io
 
 All projects will need to redeploy.

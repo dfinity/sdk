@@ -54,6 +54,7 @@ pub struct ReplicaConfig {
     pub canister_http_adapter: CanisterHttpAdapterConfig,
     pub log_level: ReplicaLogLevel,
     pub artificial_delay: u32,
+    pub use_old_metering: bool,
 }
 
 impl ReplicaConfig {
@@ -62,6 +63,7 @@ impl ReplicaConfig {
         subnet_type: ReplicaSubnetType,
         log_level: ReplicaLogLevel,
         artificial_delay: u32,
+        use_old_metering: bool,
     ) -> Self {
         ReplicaConfig {
             http_handler: HttpHandlerConfig {
@@ -88,6 +90,7 @@ impl ReplicaConfig {
             },
             log_level,
             artificial_delay,
+            use_old_metering,
         }
     }
 
