@@ -4,6 +4,8 @@ use crate::config::directories::get_config_dfx_dir_path;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use crate::error::fs::FsError;
+use crate::error::identity::export_identity::ExportIdentityError;
+use crate::error::identity::export_identity::ExportIdentityError::TranslatePemContentToTextFailed;
 use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError;
 use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError::GetLegacyPemPathFailed;
 use crate::error::identity::initialize_identity_manager::InitializeIdentityManagerError;
@@ -13,6 +15,11 @@ use crate::error::identity::initialize_identity_manager::InitializeIdentityManag
 };
 use crate::error::identity::new_identity_manager::NewIdentityManagerError;
 use crate::error::identity::new_identity_manager::NewIdentityManagerError::LoadIdentityManagerConfigurationFailed;
+use crate::error::identity::rename_identity::RenameIdentityError;
+use crate::error::identity::rename_identity::RenameIdentityError::{
+    GetIdentityConfigFailed, LoadPemFailed, MapWalletsToRenamedIdentityFailed,
+    RenameIdentityDirectoryFailed, SavePemFailed, SwitchDefaultIdentitySettingsFailed,
+};
 use crate::error::identity::IdentityError;
 use crate::error::identity::IdentityError::{
     CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
@@ -21,10 +28,8 @@ use crate::error::identity::IdentityError::{
     EnsureIdentityConfigurationDirExistsFailed, GenerateFreshEncryptionConfigurationFailed,
     GetIdentityPrincipalFailed, IdentityAlreadyExists, LoadIdentityConfigurationFailed,
     RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed,
-    RenameIdentityDirectoryFailed, RenameTemporaryIdentityDirectoryFailed,
-    SaveIdentityConfigurationFailed, SwitchBackToIdentityFailed,
-    SwitchDefaultIdentitySettingsFailed, SwitchToAnonymousIdentityFailed,
-    TranslatePemContentToTextFailed,
+    RenameTemporaryIdentityDirectoryFailed, SaveIdentityConfigurationFailed,
+    SwitchBackToIdentityFailed, SwitchToAnonymousIdentityFailed,
 };
 use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
@@ -431,12 +436,16 @@ impl IdentityManager {
     }
 
     /// Returns the pem file content of the selected identity
-    pub fn export(&self, log: &Logger, name: &str) -> Result<String, IdentityError> {
-        self.require_identity_exists(log, name)?;
-        let config = self.get_identity_config_or_default(name)?;
-        let (pem_content, _) = pem_safekeeping::load_pem(log, &self.file_locations, name, &config)?;
+    pub fn export(&self, log: &Logger, name: &str) -> Result<String, ExportIdentityError> {
+        self.require_identity_exists(log, name)
+            .map_err(ExportIdentityError::IdentityDoesNotExist)?;
+        let config = self
+            .get_identity_config_or_default(name)
+            .map_err(ExportIdentityError::GetIdentityConfigFailed)?;
+        let (pem_content, _) = pem_safekeeping::load_pem(log, &self.file_locations, name, &config)
+            .map_err(ExportIdentityError::LoadPemFailed)?;
 
-        validate_pem_file(&pem_content)?;
+        validate_pem_file(&pem_content).map_err(ExportIdentityError::ValidatePemFileFailed)?;
         String::from_utf8(pem_content).map_err(TranslatePemContentToTextFailed)
     }
 
@@ -501,40 +510,47 @@ impl IdentityManager {
         project_temp_dir: Option<PathBuf>,
         from: &str,
         to: &str,
-    ) -> Result<bool, IdentityError> {
+    ) -> Result<bool, RenameIdentityError> {
         if to == ANONYMOUS_IDENTITY_NAME {
-            return Err(IdentityError::CannotCreateAnonymousIdentity());
+            return Err(RenameIdentityError::CannotCreateAnonymousIdentity());
         }
-        self.require_identity_exists(log, from)?;
+        self.require_identity_exists(log, from)
+            .map_err(RenameIdentityError::IdentityDoesNotExist)?;
 
-        let identity_config = self.get_identity_config_or_default(from)?;
+        let identity_config = self
+            .get_identity_config_or_default(from)
+            .map_err(GetIdentityConfigFailed)?;
         let from_dir = self.get_identity_dir_path(from);
         let to_dir = self.get_identity_dir_path(to);
 
         if to_dir.exists() {
-            return Err(IdentityError::IdentityAlreadyExists());
+            return Err(RenameIdentityError::IdentityAlreadyExists());
         }
 
-        DfxIdentity::map_wallets_to_renamed_identity(project_temp_dir, from, to)?;
+        DfxIdentity::map_wallets_to_renamed_identity(project_temp_dir, from, to)
+            .map_err(MapWalletsToRenamedIdentityFailed)?;
         crate::fs::rename(&from_dir, &to_dir).map_err(RenameIdentityDirectoryFailed)?;
         if let Some(keyring_identity_suffix) = &identity_config.keyring_identity_suffix {
             debug!(log, "Migrating keyring content.");
             let (pem, _) =
-                pem_safekeeping::load_pem(log, &self.file_locations, from, &identity_config)?;
+                pem_safekeeping::load_pem(log, &self.file_locations, from, &identity_config)
+                    .map_err(LoadPemFailed)?;
             let new_config = IdentityConfiguration {
                 keyring_identity_suffix: Some(to.to_string()),
                 ..identity_config
             };
-            pem_safekeeping::save_pem(log, &self.file_locations, to, &new_config, pem.as_ref())?;
+            pem_safekeeping::save_pem(log, &self.file_locations, to, &new_config, pem.as_ref())
+                .map_err(SavePemFailed)?;
             let config_path = self.get_identity_json_path(to);
-            save_identity_configuration(log, &config_path, &new_config)?;
+            save_identity_configuration(log, &config_path, &new_config)
+                .map_err(RenameIdentityError::SaveIdentityConfigurationFailed)?;
             keyring_mock::delete_pem_from_keyring(keyring_identity_suffix)
-                .map_err(RemoveIdentityFromKeyringFailed)?;
+                .map_err(RenameIdentityError::RemoveIdentityFromKeyringFailed)?;
         }
 
         if from == self.configuration.default {
             self.write_default_identity(to)
-                .map_err(|e| SwitchDefaultIdentitySettingsFailed(Box::new(e)))?;
+                .map_err(SwitchDefaultIdentitySettingsFailed)?;
             Ok(true)
         } else {
             Ok(false)

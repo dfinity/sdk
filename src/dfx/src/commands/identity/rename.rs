@@ -2,7 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use anyhow::bail;
 use clap::Parser;
-use dfx_core::error::identity::IdentityError::SwitchDefaultIdentitySettingsFailed;
+use dfx_core::error::identity::rename_identity::RenameIdentityError::SwitchDefaultIdentitySettingsFailed;
 use slog::info;
 
 /// Renames an existing identity.
