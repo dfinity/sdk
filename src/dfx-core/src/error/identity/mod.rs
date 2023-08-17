@@ -1,8 +1,9 @@
+pub mod get_legacy_credentials_pem_path;
+pub mod initialize_identity_manager;
 pub mod new_identity_manager;
 
 use crate::error::config::ConfigError;
 use crate::error::encryption::EncryptionError;
-use crate::error::foundation::FoundationError;
 use crate::error::fs::FsError;
 use crate::error::keyring::KeyringError;
 use crate::error::structured_file::StructuredFileError;
@@ -30,9 +31,6 @@ pub enum IdentityError {
 
     #[error("Convert secret key to sec1 Pem failed: {0}")]
     ConvertSecretKeyToSec1PemFailed(Box<sec1::Error>),
-
-    #[error("Cannot create identity directory: {0}")]
-    CreateIdentityDirectoryFailed(FsError),
 
     #[error("Failed to create mnemonic from phrase: {0}")]
     CreateMnemonicFromPhraseFailed(String),
@@ -76,9 +74,6 @@ pub enum IdentityError {
     #[error("Failed to get principal of identity: {0}")]
     GetIdentityPrincipalFailed(String),
 
-    #[error("Failed to get legacy pem path: {0}")]
-    GetLegacyPemPathFailed(FoundationError),
-
     #[error("Identity already exists.")]
     IdentityAlreadyExists(),
 
@@ -93,9 +88,6 @@ pub enum IdentityError {
 
     #[error("Failed to load PEM file from keyring for identity '{0}': {1}")]
     LoadPemFromKeyringFailed(Box<String>, KeyringError),
-
-    #[error("Failed to migrate legacy identity")]
-    MigrateLegacyIdentityFailed(FsError),
 
     #[error("Failed to read principal from id '{0}': {1}")]
     ParsePrincipalFromIdFailed(String, PrincipalError),

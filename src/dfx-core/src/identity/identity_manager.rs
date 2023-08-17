@@ -4,19 +4,25 @@ use crate::config::directories::get_config_dfx_dir_path;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use crate::error::fs::FsError;
+use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError;
+use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError::GetLegacyPemPathFailed;
+use crate::error::identity::initialize_identity_manager::InitializeIdentityManagerError;
+use crate::error::identity::initialize_identity_manager::InitializeIdentityManagerError::{
+    CreateIdentityDirectoryFailed, GenerateKeyFailed, MigrateLegacyIdentityFailed,
+    WritePemToFileFailed,
+};
 use crate::error::identity::new_identity_manager::NewIdentityManagerError;
 use crate::error::identity::new_identity_manager::NewIdentityManagerError::LoadIdentityManagerConfigurationFailed;
 use crate::error::identity::IdentityError;
 use crate::error::identity::IdentityError::{
     CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
-    CreateIdentityDirectoryFailed, CreateMnemonicFromPhraseFailed,
-    CreateTemporaryIdentityDirectoryFailed, DisplayLinkedWalletsFailed,
-    DropWalletsFlagRequiredToRemoveIdentityWithWallets, EnsureIdentityConfigurationDirExistsFailed,
-    GenerateFreshEncryptionConfigurationFailed, GetIdentityPrincipalFailed, GetLegacyPemPathFailed,
-    IdentityAlreadyExists, LoadIdentityConfigurationFailed, RemoveIdentityDirectoryFailed,
-    RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed, RenameIdentityDirectoryFailed,
-    RenameTemporaryIdentityDirectoryFailed, SaveIdentityConfigurationFailed,
-    SaveIdentityManagerConfigurationFailed, SwitchBackToIdentityFailed,
+    CreateMnemonicFromPhraseFailed, CreateTemporaryIdentityDirectoryFailed,
+    DisplayLinkedWalletsFailed, DropWalletsFlagRequiredToRemoveIdentityWithWallets,
+    EnsureIdentityConfigurationDirExistsFailed, GenerateFreshEncryptionConfigurationFailed,
+    GetIdentityPrincipalFailed, IdentityAlreadyExists, LoadIdentityConfigurationFailed,
+    RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed,
+    RenameIdentityDirectoryFailed, RenameTemporaryIdentityDirectoryFailed,
+    SaveIdentityConfigurationFailed, SwitchBackToIdentityFailed,
     SwitchDefaultIdentitySettingsFailed, SwitchToAnonymousIdentityFailed,
     TranslatePemContentToTextFailed,
 };
@@ -547,7 +553,8 @@ impl IdentityManager {
         let config = Configuration {
             default: String::from(name),
         };
-        save_configuration(&self.identity_json_path, &config)?;
+        save_configuration(&self.identity_json_path, &config)
+            .map_err(IdentityError::SaveIdentityManagerConfigurationFailed)?;
         Ok(())
     }
 
@@ -615,7 +622,7 @@ fn initialize(
     logger: &Logger,
     identity_json_path: &Path,
     identity_root_path: &Path,
-) -> Result<Configuration, IdentityError> {
+) -> Result<Configuration, InitializeIdentityManagerError> {
     slog::info!(
         logger,
         r#"Creating the "default" identity.
@@ -648,15 +655,16 @@ To create a more secure identity, create and use an identity that is protected b
                 identity_pem_path.display()
             );
             crate::fs::copy(&creds_pem_path, &identity_pem_path)
-                .map_err(IdentityError::MigrateLegacyIdentityFailed)?;
+                .map_err(MigrateLegacyIdentityFailed)?;
         } else {
             slog::info!(
                 logger,
                 "  - generating new key at {}",
                 identity_pem_path.display()
             );
-            let (key, mnemonic) = generate_key()?;
-            pem_safekeeping::write_pem_to_file(&identity_pem_path, None, key.as_slice())?;
+            let (key, mnemonic) = generate_key().map_err(GenerateKeyFailed)?;
+            pem_safekeeping::write_pem_to_file(&identity_pem_path, None, key.as_slice())
+                .map_err(WritePemToFileFailed)?;
             eprintln!("Your seed phrase: {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
         }
     } else {
@@ -670,13 +678,14 @@ To create a more secure identity, create and use an identity that is protected b
     let config = Configuration {
         default: String::from(DEFAULT_IDENTITY_NAME),
     };
-    save_configuration(identity_json_path, &config)?;
+    save_configuration(identity_json_path, &config)
+        .map_err(InitializeIdentityManagerError::SaveConfigurationFailed)?;
     slog::info!(logger, r#"Created the "default" identity."#);
 
     Ok(config)
 }
 
-fn get_legacy_creds_pem_path() -> Result<Option<PathBuf>, IdentityError> {
+fn get_legacy_creds_pem_path() -> Result<Option<PathBuf>, GetLegacyCredentialsPemPathError> {
     if cfg!(windows) {
         // No legacy path on Windows - there was no Windows support when paths were changed
         Ok(None)
@@ -698,8 +707,8 @@ fn load_configuration(path: &Path) -> Result<Configuration, StructuredFileError>
     load_json_file(path)
 }
 
-fn save_configuration(path: &Path, config: &Configuration) -> Result<(), IdentityError> {
-    save_json_file(path, config).map_err(SaveIdentityManagerConfigurationFailed)
+fn save_configuration(path: &Path, config: &Configuration) -> Result<(), StructuredFileError> {
+    save_json_file(path, config)
 }
 
 pub(super) fn save_identity_configuration(

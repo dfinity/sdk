@@ -12,7 +12,6 @@ use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::extension::ExtensionError;
 use dfx_core::error::identity::new_identity_manager::NewIdentityManagerError;
-use dfx_core::error::identity::IdentityError;
 use dfx_core::extension::manager::ExtensionManager;
 use dfx_core::identity::identity_manager::IdentityManager;
 use fn_error_context::context;
