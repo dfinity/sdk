@@ -1,4 +1,6 @@
 use crate::error::fs::FsError;
+use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError;
+use crate::error::identity::generate_key::GenerateKeyError;
 use crate::error::identity::IdentityError;
 use thiserror::Error;
 
@@ -11,7 +13,7 @@ pub enum CreateNewIdentityError {
     CleanupPreviousCreationAttemptsFailed(FsError),
 
     #[error("Failed to create identity config: {0}")]
-    ConvertMnemonicToKeyFailed(IdentityError),
+    ConvertMnemonicToKeyFailed(ConvertMnemonicToKeyError),
 
     #[error("Convert secret key to sec1 Pem failed: {0}")]
     ConvertSecretKeyToSec1PemFailed(Box<sec1::Error>),
@@ -26,7 +28,7 @@ pub enum CreateNewIdentityError {
     CreateTemporaryIdentityDirectoryFailed(FsError),
 
     #[error("Failed to generate key: {0}")]
-    GenerateKeyFailed(IdentityError),
+    GenerateKeyFailed(GenerateKeyError),
 
     #[error("Identity already exists.")]
     IdentityAlreadyExists(),

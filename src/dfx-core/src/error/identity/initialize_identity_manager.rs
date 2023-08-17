@@ -1,4 +1,5 @@
 use crate::error::fs::FsError;
+use crate::error::identity::generate_key::GenerateKeyError;
 use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError;
 use crate::error::identity::IdentityError;
 use crate::error::structured_file::StructuredFileError;
@@ -10,7 +11,7 @@ pub enum InitializeIdentityManagerError {
     CreateIdentityDirectoryFailed(FsError),
 
     #[error("Failed to generate key: {0}")]
-    GenerateKeyFailed(IdentityError),
+    GenerateKeyFailed(GenerateKeyError),
 
     #[error(transparent)]
     GetLegacyCredentialsPemPathFailed(#[from] GetLegacyCredentialsPemPathError),

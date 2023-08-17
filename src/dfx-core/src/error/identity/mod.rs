@@ -1,5 +1,7 @@
+pub mod convert_mnemonic_to_key;
 pub mod create_new_identity;
 pub mod export_identity;
+pub mod generate_key;
 pub mod get_legacy_credentials_pem_path;
 pub mod initialize_identity_manager;
 pub mod new_identity_manager;
@@ -31,9 +33,6 @@ pub enum IdentityError {
     #[error("Failed to decrypt PEM file: {0}")]
     DecryptPemFileFailed(PathBuf, EncryptionError),
 
-    #[error("Failed to derive extended secret key from path: {0}")]
-    DeriveExtendedKeyFromPathFailed(bip32::Error),
-
     #[error("Failed to display linked wallets: {0}")]
     DisplayLinkedWalletsFailed(WalletConfigError),
 
@@ -48,9 +47,6 @@ pub enum IdentityError {
 
     #[error("Failed to generate a fresh encryption configuration: {0}")]
     GenerateFreshEncryptionConfigurationFailed(EncryptionError),
-
-    #[error("Failed to generate a fresh secp256k1 key: {0}")]
-    GenerateFreshSecp256k1KeyFailed(Box<sec1::Error>),
 
     #[error("Failed to get config directory for identity manager: {0}")]
     GetConfigDirectoryFailed(ConfigError),
