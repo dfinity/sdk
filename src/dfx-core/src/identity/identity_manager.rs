@@ -4,6 +4,8 @@ use crate::config::directories::get_config_dfx_dir_path;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use crate::error::fs::FsError;
+use crate::error::identity::export_identity::ExportIdentityError;
+use crate::error::identity::export_identity::ExportIdentityError::TranslatePemContentToTextFailed;
 use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError;
 use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError::GetLegacyPemPathFailed;
 use crate::error::identity::initialize_identity_manager::InitializeIdentityManagerError;
@@ -27,7 +29,7 @@ use crate::error::identity::IdentityError::{
     GetIdentityPrincipalFailed, IdentityAlreadyExists, LoadIdentityConfigurationFailed,
     RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed,
     RenameTemporaryIdentityDirectoryFailed, SaveIdentityConfigurationFailed,
-    SwitchBackToIdentityFailed, SwitchToAnonymousIdentityFailed, TranslatePemContentToTextFailed,
+    SwitchBackToIdentityFailed, SwitchToAnonymousIdentityFailed,
 };
 use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
@@ -434,12 +436,16 @@ impl IdentityManager {
     }
 
     /// Returns the pem file content of the selected identity
-    pub fn export(&self, log: &Logger, name: &str) -> Result<String, IdentityError> {
-        self.require_identity_exists(log, name)?;
-        let config = self.get_identity_config_or_default(name)?;
-        let (pem_content, _) = pem_safekeeping::load_pem(log, &self.file_locations, name, &config)?;
+    pub fn export(&self, log: &Logger, name: &str) -> Result<String, ExportIdentityError> {
+        self.require_identity_exists(log, name)
+            .map_err(ExportIdentityError::IdentityDoesNotExist)?;
+        let config = self
+            .get_identity_config_or_default(name)
+            .map_err(ExportIdentityError::GetIdentityConfigFailed)?;
+        let (pem_content, _) = pem_safekeeping::load_pem(log, &self.file_locations, name, &config)
+            .map_err(ExportIdentityError::LoadPemFailed)?;
 
-        validate_pem_file(&pem_content)?;
+        validate_pem_file(&pem_content).map_err(ExportIdentityError::ValidatePemFileFailed)?;
         String::from_utf8(pem_content).map_err(TranslatePemContentToTextFailed)
     }
 
