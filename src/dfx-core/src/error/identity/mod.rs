@@ -1,6 +1,7 @@
 pub mod get_legacy_credentials_pem_path;
 pub mod initialize_identity_manager;
 pub mod new_identity_manager;
+pub mod rename_identity;
 
 use crate::error::config::ConfigError;
 use crate::error::encryption::EncryptionError;
@@ -107,9 +108,6 @@ pub enum IdentityError {
     #[error("Failed to remove identity file: {0}")]
     RemoveIdentityFileFailed(FsError),
 
-    #[error("Cannot rename identity directory: {0}")]
-    RenameIdentityDirectoryFailed(FsError),
-
     #[error("Failed to rename temporary directory to permanent identity directory: {0}")]
     RenameTemporaryIdentityDirectoryFailed(FsError),
 
@@ -127,9 +125,6 @@ pub enum IdentityError {
 
     #[error("Failed to switch back over to the identity you're replacing: {0}")]
     SwitchBackToIdentityFailed(Box<IdentityError>),
-
-    #[error("Failed to switch over default identity settings: {0}")]
-    SwitchDefaultIdentitySettingsFailed(Box<IdentityError>),
 
     #[error("Failed to temporarily switch over to anonymous identity: {0}")]
     SwitchToAnonymousIdentityFailed(Box<IdentityError>),
