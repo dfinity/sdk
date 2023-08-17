@@ -6,6 +6,8 @@ pub mod get_legacy_credentials_pem_path;
 pub mod initialize_identity_manager;
 pub mod new_identity_manager;
 pub mod rename_identity;
+pub mod save_pem;
+pub mod write_pem_to_file;
 
 use crate::error::config::ConfigError;
 use crate::error::encryption::EncryptionError;
@@ -27,9 +29,6 @@ pub enum IdentityError {
     #[error("Cannot delete the anonymous identity.")]
     CannotDeleteAnonymousIdentity(),
 
-    #[error("Cannot save PEM content for an HSM.")]
-    CannotSavePemContentForHsm(),
-
     #[error("Failed to decrypt PEM file: {0}")]
     DecryptPemFileFailed(PathBuf, EncryptionError),
 
@@ -38,9 +37,6 @@ pub enum IdentityError {
 
     #[error("If you want to remove an identity with configured wallets, please use the --drop-wallets flag.")]
     DropWalletsFlagRequiredToRemoveIdentityWithWallets(),
-
-    #[error("Cannot encrypt PEM file: {0}")]
-    EncryptPemFileFailed(PathBuf, EncryptionError),
 
     #[error("Failed to ensure identity configuration directory exists: {0}")]
     EnsureIdentityConfigurationDirExistsFailed(FsError),
@@ -106,10 +102,4 @@ pub enum IdentityError {
 
     #[error("Failed to validate PEM content: {0}")]
     ValidatePemContentFailed(Box<PemError>),
-
-    #[error("Cannot write PEM file: {0}")]
-    WritePemFileFailed(FsError),
-
-    #[error("Failed to write PEM to keyring: {0}")]
-    WritePemToKeyringFailed(KeyringError),
 }
