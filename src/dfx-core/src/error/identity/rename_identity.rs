@@ -1,4 +1,6 @@
 use crate::error::fs::FsError;
+use crate::error::identity::get_identity_config_or_default::GetIdentityConfigOrDefaultError;
+use crate::error::identity::load_pem::LoadPemError;
 use crate::error::identity::save_pem::SavePemError;
 use crate::error::identity::IdentityError;
 use crate::error::keyring::KeyringError;
@@ -10,7 +12,7 @@ pub enum RenameIdentityError {
     CannotCreateAnonymousIdentity(),
 
     #[error("Failed to get identity config: {0}")]
-    GetIdentityConfigFailed(IdentityError),
+    GetIdentityConfigFailed(GetIdentityConfigOrDefaultError),
 
     #[error("Identity already exists.")]
     IdentityAlreadyExists(),
@@ -19,7 +21,7 @@ pub enum RenameIdentityError {
     IdentityDoesNotExist(IdentityError),
 
     #[error("Failed to load pem: {0}")]
-    LoadPemFailed(IdentityError),
+    LoadPemFailed(LoadPemError),
 
     #[error("Failed to map wallets to renamed identity: {0}")]
     MapWalletsToRenamedIdentityFailed(IdentityError /*MapWalletsToRenamedIdentityError*/),

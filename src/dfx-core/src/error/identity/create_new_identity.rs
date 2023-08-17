@@ -1,6 +1,7 @@
 use crate::error::fs::FsError;
 use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError;
 use crate::error::identity::generate_key::GenerateKeyError;
+use crate::error::identity::load_pem_from_file::LoadPemFromFileError;
 use crate::error::identity::remove_identity::RemoveIdentityError;
 use crate::error::identity::save_pem::SavePemError;
 use crate::error::identity::IdentityError;
@@ -36,7 +37,7 @@ pub enum CreateNewIdentityError {
     IdentityAlreadyExists(),
 
     #[error("Failed to load pem file: {0}")]
-    LoadPemFromFileFailed(IdentityError),
+    LoadPemFromFileFailed(LoadPemFromFileError),
 
     #[error("Failed to remove identity: {0}")]
     RemoveIdentityFailed(RemoveIdentityError),
