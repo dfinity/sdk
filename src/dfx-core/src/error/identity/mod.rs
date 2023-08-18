@@ -1,4 +1,5 @@
 pub mod convert_mnemonic_to_key;
+pub mod create_identity_config;
 pub mod create_new_identity;
 pub mod export_identity;
 pub mod generate_key;
@@ -20,8 +21,6 @@ pub mod save_pem;
 pub mod write_pem_to_file;
 
 use crate::error::config::ConfigError;
-use crate::error::encryption::EncryptionError;
-use crate::error::fs::FsError;
 use crate::error::structured_file::StructuredFileError;
 use crate::error::wallet_config::WalletConfigError;
 use ic_agent::export::PrincipalError;
@@ -31,9 +30,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IdentityError {
-    #[error("Failed to generate a fresh encryption configuration: {0}")]
-    GenerateFreshEncryptionConfigurationFailed(EncryptionError),
-
     #[error("Failed to get config directory for identity manager: {0}")]
     GetConfigDirectoryFailed(ConfigError),
 

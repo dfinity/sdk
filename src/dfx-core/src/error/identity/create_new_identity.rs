@@ -1,5 +1,6 @@
 use crate::error::fs::FsError;
 use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError;
+use crate::error::identity::create_identity_config::CreateIdentityConfigError;
 use crate::error::identity::generate_key::GenerateKeyError;
 use crate::error::identity::load_pem_from_file::LoadPemFromFileError;
 use crate::error::identity::remove_identity::RemoveIdentityError;
@@ -23,7 +24,7 @@ pub enum CreateNewIdentityError {
     ConvertSecretKeyToSec1PemFailed(Box<sec1::Error>),
 
     #[error("Failed to create identity config: {0}")]
-    CreateIdentityConfigFailed(IdentityError),
+    CreateIdentityConfigFailed(CreateIdentityConfigError),
 
     #[error("Failed to create mnemonic from phrase: {0}")]
     CreateMnemonicFromPhraseFailed(String),

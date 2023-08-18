@@ -6,6 +6,8 @@ use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGener
 use crate::error::fs::FsError;
 use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError;
 use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError::DeriveExtendedKeyFromPathFailed;
+use crate::error::identity::create_identity_config::CreateIdentityConfigError;
+use crate::error::identity::create_identity_config::CreateIdentityConfigError::GenerateFreshEncryptionConfigurationFailed;
 use crate::error::identity::create_new_identity::CreateNewIdentityError;
 use crate::error::identity::create_new_identity::CreateNewIdentityError::{
     CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
@@ -46,7 +48,6 @@ use crate::error::identity::rename_identity::RenameIdentityError::{
 use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError;
 use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError::EnsureIdentityConfigurationDirExistsFailed;
 use crate::error::identity::IdentityError;
-use crate::error::identity::IdentityError::GenerateFreshEncryptionConfigurationFailed;
 use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
 use crate::fs::composite::ensure_parent_dir_exists;
@@ -318,7 +319,7 @@ impl IdentityManager {
             mode: IdentityStorageMode,
             name: &str,
             hardware_config: Option<HardwareIdentityConfiguration>,
-        ) -> Result<IdentityConfiguration, IdentityError> {
+        ) -> Result<IdentityConfiguration, CreateIdentityConfigError> {
             if let Some(hsm) = hardware_config {
                 Ok(IdentityConfiguration {
                     hsm: Some(hsm),
