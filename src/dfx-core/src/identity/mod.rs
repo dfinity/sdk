@@ -5,9 +5,13 @@
 use crate::config::directories::{get_config_dfx_dir_path, get_shared_network_data_directory};
 use crate::error::identity::load_pem_identity::LoadPemIdentityError;
 use crate::error::identity::load_pem_identity::LoadPemIdentityError::ReadIdentityFileFailed;
+use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError;
+use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError::RenameWalletGlobalConfigKeyFailed;
 use crate::error::identity::new_hardware_identity::NewHardwareIdentityError;
 use crate::error::identity::new_hardware_identity::NewHardwareIdentityError::InstantiateHardwareIdentityFailed;
 use crate::error::identity::new_identity::NewIdentityError;
+use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError;
+use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError::RenameWalletFailed;
 use crate::error::identity::IdentityError;
 use crate::error::wallet_config::WalletConfigError;
 use crate::error::wallet_config::WalletConfigError::{
@@ -30,10 +34,6 @@ use serde::{Deserialize, Serialize};
 use slog::{info, Logger};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError;
-use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError::RenameWalletGlobalConfigKeyFailed;
-use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError;
-use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError::RenameWalletFailed;
 
 mod identity_file_locations;
 pub mod identity_manager;
@@ -234,7 +234,8 @@ impl Identity {
                 original_identity,
                 renamed_identity,
                 persistent_wallet_path,
-            ).map_err(RenameWalletGlobalConfigKeyFailed)?;
+            )
+            .map_err(RenameWalletGlobalConfigKeyFailed)?;
         }
         let shared_local_network_wallet_path = get_shared_network_data_directory("local")
             .map_err(MapWalletsToRenamedIdentityError::GetSharedNetworkDataDirectoryFailed)?
@@ -244,7 +245,8 @@ impl Identity {
                 original_identity,
                 renamed_identity,
                 shared_local_network_wallet_path,
-            ).map_err(RenameWalletGlobalConfigKeyFailed)?;
+            )
+            .map_err(RenameWalletGlobalConfigKeyFailed)?;
         }
         if let Some(temp_dir) = project_temp_dir {
             let local_wallet_path = temp_dir.join("local").join(WALLET_CONFIG_FILENAME);
@@ -253,7 +255,8 @@ impl Identity {
                     original_identity,
                     renamed_identity,
                     local_wallet_path,
-                ).map_err(RenameWalletGlobalConfigKeyFailed)?;
+                )
+                .map_err(RenameWalletGlobalConfigKeyFailed)?;
             }
         }
         Ok(())

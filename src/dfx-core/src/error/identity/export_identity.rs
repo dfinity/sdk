@@ -1,5 +1,6 @@
 use crate::error::identity::get_identity_config_or_default::GetIdentityConfigOrDefaultError;
 use crate::error::identity::load_pem::LoadPemError;
+use crate::error::identity::validate_pem_file::ValidatePemFileError;
 use crate::error::identity::IdentityError;
 use std::string::FromUtf8Error;
 use thiserror::Error;
@@ -19,5 +20,5 @@ pub enum ExportIdentityError {
     TranslatePemContentToTextFailed(FromUtf8Error),
 
     #[error("Failed to validate pem file: {0}")]
-    ValidatePemFileFailed(IdentityError),
+    ValidatePemFileFailed(ValidatePemFileError),
 }

@@ -1,12 +1,12 @@
 use crate::error::fs::FsError;
 use crate::error::identity::get_identity_config_or_default::GetIdentityConfigOrDefaultError;
 use crate::error::identity::load_pem::LoadPemError;
+use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError;
 use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError;
 use crate::error::identity::save_pem::SavePemError;
 use crate::error::identity::IdentityError;
 use crate::error::keyring::KeyringError;
 use thiserror::Error;
-use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError;
 
 #[derive(Error, Debug)]
 pub enum RenameIdentityError {

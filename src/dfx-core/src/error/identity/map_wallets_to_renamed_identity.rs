@@ -1,7 +1,6 @@
-use thiserror::Error;
 use crate::error::config::ConfigError;
-use crate::error::identity::IdentityError;
 use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum MapWalletsToRenamedIdentityError {
@@ -13,5 +12,4 @@ pub enum MapWalletsToRenamedIdentityError {
 
     #[error("Failed to rename wallet global config key: {0}")]
     RenameWalletGlobalConfigKeyFailed(RenameWalletGlobalConfigKeyError),
-
 }
