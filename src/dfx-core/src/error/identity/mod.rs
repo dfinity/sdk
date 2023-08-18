@@ -22,9 +22,9 @@ pub mod save_identity_configuration;
 pub mod save_pem;
 pub mod use_identity_by_name;
 pub mod validate_pem_file;
+pub mod write_default_identity;
 pub mod write_pem_to_file;
 
-use crate::error::structured_file::StructuredFileError;
 use ic_agent::export::PrincipalError;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -39,7 +39,4 @@ pub enum IdentityError {
 
     #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
     ReservedIdentityName(String),
-
-    #[error("Failed to save identity manager configuration: {0}")]
-    SaveIdentityManagerConfigurationFailed(StructuredFileError),
 }

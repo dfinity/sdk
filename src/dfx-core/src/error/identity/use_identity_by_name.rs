@@ -1,3 +1,4 @@
+use crate::error::identity::write_default_identity::WriteDefaultIdentityError;
 use crate::error::identity::IdentityError;
 use thiserror::Error;
 
@@ -7,5 +8,5 @@ pub enum UseIdentityByNameError {
     RequireIdentityExistsFailed(IdentityError),
 
     #[error("Failed to write default identity: {0}")]
-    WriteDefaultIdentityFailed(IdentityError),
+    WriteDefaultIdentityFailed(WriteDefaultIdentityError),
 }

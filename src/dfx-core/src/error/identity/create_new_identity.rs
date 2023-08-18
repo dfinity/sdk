@@ -8,7 +8,6 @@ use crate::error::identity::save_identity_configuration::SaveIdentityConfigurati
 use crate::error::identity::save_pem::SavePemError;
 use crate::error::identity::use_identity_by_name::UseIdentityByNameError;
 use crate::error::identity::validate_pem_file::ValidatePemFileError;
-use crate::error::identity::IdentityError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

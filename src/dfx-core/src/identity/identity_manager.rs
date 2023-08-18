@@ -49,6 +49,8 @@ use crate::error::identity::save_identity_configuration::SaveIdentityConfigurati
 use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError::EnsureIdentityConfigurationDirExistsFailed;
 use crate::error::identity::use_identity_by_name::UseIdentityByNameError;
 use crate::error::identity::use_identity_by_name::UseIdentityByNameError::WriteDefaultIdentityFailed;
+use crate::error::identity::write_default_identity::WriteDefaultIdentityError;
+use crate::error::identity::write_default_identity::WriteDefaultIdentityError::SaveIdentityManagerConfigurationFailed;
 use crate::error::identity::IdentityError;
 use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
@@ -610,12 +612,12 @@ impl IdentityManager {
         Ok(())
     }
 
-    fn write_default_identity(&self, name: &str) -> Result<(), IdentityError> {
+    fn write_default_identity(&self, name: &str) -> Result<(), WriteDefaultIdentityError> {
         let config = Configuration {
             default: String::from(name),
         };
         save_configuration(&self.identity_json_path, &config)
-            .map_err(IdentityError::SaveIdentityManagerConfigurationFailed)?;
+            .map_err(SaveIdentityManagerConfigurationFailed)?;
         Ok(())
     }
 
