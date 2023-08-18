@@ -5,7 +5,6 @@ pub mod project;
 
 pub use build::BuildError;
 pub use dfx_core::error::extension::ExtensionError;
-pub use dfx_core::error::identity::IdentityError;
 pub use notify_create_canister::NotifyCreateCanisterError;
 pub use notify_top_up::NotifyTopUpError;
 pub use project::ProjectError;

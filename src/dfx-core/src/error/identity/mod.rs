@@ -19,21 +19,10 @@ pub mod new_identity_manager;
 pub mod remove_identity;
 pub mod rename_identity;
 pub mod rename_wallet_global_config_key;
+pub mod require_identity_exists;
 pub mod save_identity_configuration;
 pub mod save_pem;
 pub mod use_identity_by_name;
 pub mod validate_pem_file;
 pub mod write_default_identity;
 pub mod write_pem_to_file;
-
-use std::path::PathBuf;
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum IdentityError {
-    #[error("Identity {0} does not exist at '{1}'.")]
-    IdentityDoesNotExist(String, PathBuf),
-
-    #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
-    ReservedIdentityName(String),
-}

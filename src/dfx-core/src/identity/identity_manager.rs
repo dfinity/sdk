@@ -45,13 +45,13 @@ use crate::error::identity::rename_identity::RenameIdentityError::{
     GetIdentityConfigFailed, LoadPemFailed, MapWalletsToRenamedIdentityFailed,
     RenameIdentityDirectoryFailed, SavePemFailed, SwitchDefaultIdentitySettingsFailed,
 };
+use crate::error::identity::require_identity_exists::RequireIdentityExistsError;
 use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError;
 use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError::EnsureIdentityConfigurationDirExistsFailed;
 use crate::error::identity::use_identity_by_name::UseIdentityByNameError;
 use crate::error::identity::use_identity_by_name::UseIdentityByNameError::WriteDefaultIdentityFailed;
 use crate::error::identity::write_default_identity::WriteDefaultIdentityError;
 use crate::error::identity::write_default_identity::WriteDefaultIdentityError::SaveIdentityManagerConfigurationFailed;
-use crate::error::identity::IdentityError;
 use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
 use crate::fs::composite::ensure_parent_dir_exists;
@@ -623,14 +623,20 @@ impl IdentityManager {
 
     /// Determines if there are enough files present to consider the identity as existing.
     /// Does NOT guarantee that the identity will load correctly.
-    pub fn require_identity_exists(&self, log: &Logger, name: &str) -> Result<(), IdentityError> {
+    pub fn require_identity_exists(
+        &self,
+        log: &Logger,
+        name: &str,
+    ) -> Result<(), RequireIdentityExistsError> {
         trace!(log, "Checking if identity '{name}' exists.");
         if name == ANONYMOUS_IDENTITY_NAME {
             return Ok(());
         }
 
         if name.starts_with(TEMP_IDENTITY_PREFIX) {
-            return Err(IdentityError::ReservedIdentityName(String::from(name)));
+            return Err(RequireIdentityExistsError::ReservedIdentityName(
+                String::from(name),
+            ));
         }
 
         let json_path = self.get_identity_json_path(name);
@@ -638,7 +644,7 @@ impl IdentityManager {
         let encrypted_pem_path = self.file_locations.get_encrypted_identity_pem_path(name);
 
         if !plaintext_pem_path.exists() && !encrypted_pem_path.exists() && !json_path.exists() {
-            Err(IdentityError::IdentityDoesNotExist(
+            Err(RequireIdentityExistsError::IdentityDoesNotExist(
                 String::from(name),
                 json_path,
             ))

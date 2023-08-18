@@ -2,10 +2,10 @@ use crate::error::fs::FsError;
 use crate::error::identity::get_identity_config_or_default::GetIdentityConfigOrDefaultError;
 use crate::error::identity::load_pem::LoadPemError;
 use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError;
+use crate::error::identity::require_identity_exists::RequireIdentityExistsError;
 use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError;
 use crate::error::identity::save_pem::SavePemError;
 use crate::error::identity::write_default_identity::WriteDefaultIdentityError;
-use crate::error::identity::IdentityError;
 use crate::error::keyring::KeyringError;
 use thiserror::Error;
 
@@ -21,7 +21,7 @@ pub enum RenameIdentityError {
     IdentityAlreadyExists(),
 
     #[error("Identity does not exist: {0}")]
-    IdentityDoesNotExist(IdentityError),
+    IdentityDoesNotExist(RequireIdentityExistsError),
 
     #[error("Failed to load pem: {0}")]
     LoadPemFailed(LoadPemError),
