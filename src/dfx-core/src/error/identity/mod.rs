@@ -15,6 +15,7 @@ pub mod new_identity;
 pub mod new_identity_manager;
 pub mod remove_identity;
 pub mod rename_identity;
+pub mod save_identity_configuration;
 pub mod save_pem;
 pub mod write_pem_to_file;
 
@@ -30,9 +31,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IdentityError {
-    #[error("Failed to ensure identity configuration directory exists: {0}")]
-    EnsureIdentityConfigurationDirExistsFailed(FsError),
-
     #[error("Failed to generate a fresh encryption configuration: {0}")]
     GenerateFreshEncryptionConfigurationFailed(EncryptionError),
 
@@ -53,9 +51,6 @@ pub enum IdentityError {
 
     #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
     ReservedIdentityName(String),
-
-    #[error("Failed to save identity configuration: {0}")]
-    SaveIdentityConfigurationFailed(StructuredFileError),
 
     #[error("Failed to save identity manager configuration: {0}")]
     SaveIdentityManagerConfigurationFailed(StructuredFileError),

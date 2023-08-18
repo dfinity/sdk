@@ -43,10 +43,10 @@ use crate::error::identity::rename_identity::RenameIdentityError::{
     GetIdentityConfigFailed, LoadPemFailed, MapWalletsToRenamedIdentityFailed,
     RenameIdentityDirectoryFailed, SavePemFailed, SwitchDefaultIdentitySettingsFailed,
 };
+use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError;
+use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError::EnsureIdentityConfigurationDirExistsFailed;
 use crate::error::identity::IdentityError;
-use crate::error::identity::IdentityError::{
-    EnsureIdentityConfigurationDirExistsFailed, GenerateFreshEncryptionConfigurationFailed,
-};
+use crate::error::identity::IdentityError::GenerateFreshEncryptionConfigurationFailed;
 use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
 use crate::fs::composite::ensure_parent_dir_exists;
@@ -767,11 +767,12 @@ pub(super) fn save_identity_configuration(
     log: &Logger,
     path: &Path,
     config: &IdentityConfiguration,
-) -> Result<(), IdentityError> {
+) -> Result<(), SaveIdentityConfigurationError> {
     trace!(log, "Writing identity configuration to {}", path.display());
     ensure_parent_dir_exists(path).map_err(EnsureIdentityConfigurationDirExistsFailed)?;
 
-    save_json_file(path, &config).map_err(IdentityError::SaveIdentityConfigurationFailed)
+    save_json_file(path, &config)
+        .map_err(SaveIdentityConfigurationError::SaveIdentityConfigurationFailed)
 }
 
 /// Removes the file if it exists.
