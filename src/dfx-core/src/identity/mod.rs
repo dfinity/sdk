@@ -3,6 +3,8 @@
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
 use crate::config::directories::{get_config_dfx_dir_path, get_shared_network_data_directory};
+use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError;
+use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError::ParsePrincipalFromIdFailed;
 use crate::error::identity::load_pem_identity::LoadPemIdentityError;
 use crate::error::identity::load_pem_identity::LoadPemIdentityError::ReadIdentityFileFailed;
 use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError;
@@ -12,7 +14,6 @@ use crate::error::identity::new_hardware_identity::NewHardwareIdentityError::Ins
 use crate::error::identity::new_identity::NewIdentityError;
 use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError;
 use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError::RenameWalletFailed;
-use crate::error::identity::IdentityError;
 use crate::error::wallet_config::WalletConfigError;
 use crate::error::wallet_config::WalletConfigError::{
     EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
@@ -304,11 +305,10 @@ pub enum CallSender {
 // Determine whether the selected Identity
 // or the provided wallet canister ID should be the Sender of the call.
 impl CallSender {
-    pub fn from(wallet: &Option<String>) -> Result<Self, IdentityError> {
+    pub fn from(wallet: &Option<String>) -> Result<Self, CallSenderFromWalletError> {
         let sender = if let Some(id) = wallet {
             CallSender::Wallet(
-                Principal::from_text(id)
-                    .map_err(|e| IdentityError::ParsePrincipalFromIdFailed(id.clone(), e))?,
+                Principal::from_text(id).map_err(|e| ParsePrincipalFromIdFailed(id.clone(), e))?,
             )
         } else {
             CallSender::SelectedId

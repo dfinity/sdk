@@ -1,3 +1,4 @@
+pub mod call_sender_from_wallet;
 pub mod convert_mnemonic_to_key;
 pub mod create_identity_config;
 pub mod create_new_identity;
@@ -25,7 +26,6 @@ pub mod validate_pem_file;
 pub mod write_default_identity;
 pub mod write_pem_to_file;
 
-use ic_agent::export::PrincipalError;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -33,9 +33,6 @@ use thiserror::Error;
 pub enum IdentityError {
     #[error("Identity {0} does not exist at '{1}'.")]
     IdentityDoesNotExist(String, PathBuf),
-
-    #[error("Failed to read principal from id '{0}': {1}")]
-    ParsePrincipalFromIdFailed(String, PrincipalError),
 
     #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
     ReservedIdentityName(String),
