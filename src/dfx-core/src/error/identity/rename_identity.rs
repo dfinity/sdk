@@ -6,6 +6,7 @@ use crate::error::identity::save_pem::SavePemError;
 use crate::error::identity::IdentityError;
 use crate::error::keyring::KeyringError;
 use thiserror::Error;
+use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError;
 
 #[derive(Error, Debug)]
 pub enum RenameIdentityError {
@@ -25,7 +26,7 @@ pub enum RenameIdentityError {
     LoadPemFailed(LoadPemError),
 
     #[error("Failed to map wallets to renamed identity: {0}")]
-    MapWalletsToRenamedIdentityFailed(IdentityError /*MapWalletsToRenamedIdentityError*/),
+    MapWalletsToRenamedIdentityFailed(MapWalletsToRenamedIdentityError),
 
     #[error("Failed to remove identity from keyring: {0}")]
     RemoveIdentityFromKeyringFailed(KeyringError),

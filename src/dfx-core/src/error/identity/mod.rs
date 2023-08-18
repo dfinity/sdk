@@ -19,6 +19,8 @@ pub mod rename_identity;
 pub mod save_identity_configuration;
 pub mod save_pem;
 pub mod write_pem_to_file;
+pub mod map_wallets_to_renamed_identity;
+pub mod rename_wallet_global_config_key;
 
 use crate::error::config::ConfigError;
 use crate::error::structured_file::StructuredFileError;
@@ -30,20 +32,12 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IdentityError {
-    #[error("Failed to get config directory for identity manager: {0}")]
-    GetConfigDirectoryFailed(ConfigError),
-
-    #[error("Failed to get shared network data directory: {0}")]
-    GetSharedNetworkDataDirectoryFailed(ConfigError),
-
     #[error("Identity {0} does not exist at '{1}'.")]
     IdentityDoesNotExist(String, PathBuf),
 
     #[error("Failed to read principal from id '{0}': {1}")]
     ParsePrincipalFromIdFailed(String, PrincipalError),
 
-    #[error("Failed to rename '{0}' to '{1}' in the global wallet config: {2}")]
-    RenameWalletFailed(Box<String>, Box<String>, WalletConfigError),
 
     #[error("An Identity named {0} cannot be created as it is reserved for internal use.")]
     ReservedIdentityName(String),
