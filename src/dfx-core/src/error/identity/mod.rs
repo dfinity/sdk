@@ -20,6 +20,7 @@ pub mod rename_identity;
 pub mod rename_wallet_global_config_key;
 pub mod save_identity_configuration;
 pub mod save_pem;
+pub mod use_identity_by_name;
 pub mod validate_pem_file;
 pub mod write_pem_to_file;
 

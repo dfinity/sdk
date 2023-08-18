@@ -47,6 +47,8 @@ use crate::error::identity::rename_identity::RenameIdentityError::{
 };
 use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError;
 use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError::EnsureIdentityConfigurationDirExistsFailed;
+use crate::error::identity::use_identity_by_name::UseIdentityByNameError;
+use crate::error::identity::use_identity_by_name::UseIdentityByNameError::WriteDefaultIdentityFailed;
 use crate::error::identity::IdentityError;
 use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
@@ -595,9 +597,15 @@ impl IdentityManager {
     }
 
     /// Select an identity by name to use by default
-    pub fn use_identity_named(&mut self, log: &Logger, name: &str) -> Result<(), IdentityError> {
-        self.require_identity_exists(log, name)?;
-        self.write_default_identity(name)?;
+    pub fn use_identity_named(
+        &mut self,
+        log: &Logger,
+        name: &str,
+    ) -> Result<(), UseIdentityByNameError> {
+        self.require_identity_exists(log, name)
+            .map_err(UseIdentityByNameError::RequireIdentityExistsFailed)?;
+        self.write_default_identity(name)
+            .map_err(WriteDefaultIdentityFailed)?;
         self.configuration.default = name.to_string();
         Ok(())
     }

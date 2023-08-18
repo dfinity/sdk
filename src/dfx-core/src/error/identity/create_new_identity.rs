@@ -6,6 +6,7 @@ use crate::error::identity::load_pem_from_file::LoadPemFromFileError;
 use crate::error::identity::remove_identity::RemoveIdentityError;
 use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError;
 use crate::error::identity::save_pem::SavePemError;
+use crate::error::identity::use_identity_by_name::UseIdentityByNameError;
 use crate::error::identity::validate_pem_file::ValidatePemFileError;
 use crate::error::identity::IdentityError;
 use thiserror::Error;
@@ -55,10 +56,10 @@ pub enum CreateNewIdentityError {
     SavePemFailed(SavePemError),
 
     #[error("Failed to switch back over to the identity you're replacing: {0}")]
-    SwitchBackToIdentityFailed(IdentityError),
+    SwitchBackToIdentityFailed(UseIdentityByNameError),
 
     #[error("Failed to temporarily switch over to anonymous identity: {0}")]
-    SwitchToAnonymousIdentityFailed(IdentityError),
+    SwitchToAnonymousIdentityFailed(UseIdentityByNameError),
 
     #[error("Failed to validate pem file: {0}")]
     ValidatePemFileFailed(ValidatePemFileError),
