@@ -4,6 +4,8 @@ use crate::config::directories::get_config_dfx_dir_path;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use crate::error::fs::FsError;
+use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError;
+use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError::DeriveExtendedKeyFromPathFailed;
 use crate::error::identity::create_new_identity::CreateNewIdentityError;
 use crate::error::identity::create_new_identity::CreateNewIdentityError::{
     CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
@@ -13,6 +15,8 @@ use crate::error::identity::create_new_identity::CreateNewIdentityError::{
 };
 use crate::error::identity::export_identity::ExportIdentityError;
 use crate::error::identity::export_identity::ExportIdentityError::TranslatePemContentToTextFailed;
+use crate::error::identity::generate_key::GenerateKeyError;
+use crate::error::identity::generate_key::GenerateKeyError::GenerateFreshSecp256k1KeyFailed;
 use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError;
 use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError::GetLegacyPemPathFailed;
 use crate::error::identity::initialize_identity_manager::InitializeIdentityManagerError;
@@ -762,20 +766,21 @@ fn remove_identity_file(file: &Path) -> Result<(), IdentityError> {
 }
 
 /// Generates a new secp256k1 key.
-pub(super) fn generate_key() -> Result<(Vec<u8>, Mnemonic), IdentityError> {
+pub(super) fn generate_key() -> Result<(Vec<u8>, Mnemonic), GenerateKeyError> {
     let mnemonic = Mnemonic::new(MnemonicType::for_key_size(256).unwrap(), Language::English);
-    let secret = mnemonic_to_key(&mnemonic)?;
+    let secret =
+        mnemonic_to_key(&mnemonic).map_err(GenerateKeyError::ConvertMnemonicToKeyFailed)?;
     let pem = secret
         .to_sec1_pem(LineEnding::CRLF)
-        .map_err(|e| IdentityError::GenerateFreshSecp256k1KeyFailed(Box::new(e)))?;
+        .map_err(|e| GenerateFreshSecp256k1KeyFailed(Box::new(e)))?;
     Ok((pem.as_bytes().to_vec(), mnemonic))
 }
 
-pub fn mnemonic_to_key(mnemonic: &Mnemonic) -> Result<SecretKey, IdentityError> {
+pub fn mnemonic_to_key(mnemonic: &Mnemonic) -> Result<SecretKey, ConvertMnemonicToKeyError> {
     const DEFAULT_DERIVATION_PATH: &str = "m/44'/223'/0'/0/0";
     let path = DEFAULT_DERIVATION_PATH.parse().unwrap();
     let seed = Seed::new(mnemonic, "");
-    let pk = XPrv::derive_from_path(seed.as_bytes(), &path)
-        .map_err(IdentityError::DeriveExtendedKeyFromPathFailed)?;
+    let pk =
+        XPrv::derive_from_path(seed.as_bytes(), &path).map_err(DeriveExtendedKeyFromPathFailed)?;
     Ok(SecretKey::from(pk.private_key()))
 }

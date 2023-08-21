@@ -1,4 +1,5 @@
 use crate::error::fs::FsError;
+use crate::error::identity::save_pem::SavePemError;
 use crate::error::identity::IdentityError;
 use crate::error::keyring::KeyringError;
 use thiserror::Error;
@@ -33,7 +34,7 @@ pub enum RenameIdentityError {
     SaveIdentityConfigurationFailed(IdentityError),
 
     #[error("Failed to save pem: {0}")]
-    SavePemFailed(IdentityError),
+    SavePemFailed(SavePemError),
 
     #[error("Failed to switch over default identity settings: {0}")]
     SwitchDefaultIdentitySettingsFailed(IdentityError),
