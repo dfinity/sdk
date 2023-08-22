@@ -1351,7 +1351,7 @@ dependencies = [
  "ic-agent",
  "ic-asset",
  "ic-identity-hsm",
- "ic-utils 0.25.0",
+ "ic-utils 0.26.0",
  "ic-wasm",
  "indicatif",
  "itertools 0.10.5",
@@ -1420,7 +1420,7 @@ dependencies = [
  "humantime-serde",
  "ic-agent",
  "ic-identity-hsm",
- "ic-utils 0.25.0",
+ "ic-utils 0.26.0",
  "k256 0.11.6",
  "keyring",
  "lazy_static",
@@ -2363,8 +2363,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.25.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=6d923cbc918852ef5bfaeb08e63c86580aa80ffe#6d923cbc918852ef5bfaeb08e63c86580aa80ffe"
+version = "0.26.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=bf4bc8e6f4b71d18ffea009fa3a7179ce6dd7afd#bf4bc8e6f4b71d18ffea009fa3a7179ce6dd7afd"
 dependencies = [
  "backoff",
  "candid 0.9.1",
@@ -2372,7 +2372,7 @@ dependencies = [
  "hex",
  "http",
  "http-body",
- "ic-certification 0.25.0",
+ "ic-certification 0.26.0",
  "ic-verify-bls-signature",
  "k256 0.13.1",
  "leb128",
@@ -2409,7 +2409,7 @@ dependencies = [
  "globset",
  "hex",
  "ic-agent",
- "ic-utils 0.25.0",
+ "ic-utils 0.26.0",
  "itertools 0.10.5",
  "json5",
  "mime",
@@ -2508,8 +2508,8 @@ dependencies = [
 
 [[package]]
 name = "ic-certification"
-version = "0.25.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=6d923cbc918852ef5bfaeb08e63c86580aa80ffe#6d923cbc918852ef5bfaeb08e63c86580aa80ffe"
+version = "0.26.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=bf4bc8e6f4b71d18ffea009fa3a7179ce6dd7afd#bf4bc8e6f4b71d18ffea009fa3a7179ce6dd7afd"
 dependencies = [
  "hex",
  "serde",
@@ -2727,8 +2727,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.25.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=6d923cbc918852ef5bfaeb08e63c86580aa80ffe#6d923cbc918852ef5bfaeb08e63c86580aa80ffe"
+version = "0.26.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=bf4bc8e6f4b71d18ffea009fa3a7179ce6dd7afd#bf4bc8e6f4b71d18ffea009fa3a7179ce6dd7afd"
 dependencies = [
  "hex",
  "ic-agent",
@@ -2882,8 +2882,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.25.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=6d923cbc918852ef5bfaeb08e63c86580aa80ffe#6d923cbc918852ef5bfaeb08e63c86580aa80ffe"
+version = "0.26.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=bf4bc8e6f4b71d18ffea009fa3a7179ce6dd7afd#bf4bc8e6f4b71d18ffea009fa3a7179ce6dd7afd"
 dependencies = [
  "async-trait",
  "candid 0.9.1",
@@ -2959,7 +2959,7 @@ dependencies = [
  "humantime",
  "ic-agent",
  "ic-asset",
- "ic-utils 0.25.0",
+ "ic-utils 0.26.0",
  "libflate",
  "num-traits",
  "pem 1.1.1",
