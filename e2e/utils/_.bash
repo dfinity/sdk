@@ -139,34 +139,21 @@ dfx_start() {
     FRONTEND_HOST="127.0.0.1:0"
 
     determine_network_directory
-    if [ "$USE_IC_REF" ]
-    then
-        if [[ $# -eq 0 ]]; then
-            dfx start --emulator --background --host "$FRONTEND_HOST" 3>&-
-        else
-            batslib_decorate "no arguments to dfx start --emulator supported yet"
-            fail
-        fi
-
-        test -f "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port"
-        port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port")
+    # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
+    # wait for it to close. Because `dfx start` leaves child processes running, we need
+    # to close this pipe, otherwise Bats will wait indefinitely.
+    if [[ $# -eq 0 ]]; then
+        dfx start --background --host "$FRONTEND_HOST" --artificial-delay 100 3>&- # Start on random port for parallel test execution
     else
-        # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
-        # wait for it to close. Because `dfx start` leaves child processes running, we need
-        # to close this pipe, otherwise Bats will wait indefinitely.
-        if [[ $# -eq 0 ]]; then
-            dfx start --background --host "$FRONTEND_HOST" --artificial-delay 100 3>&- # Start on random port for parallel test execution
-        else
-            dfx start --background --artificial-delay 100 "$@" 3>&-
-        fi
+        dfx start --background --artificial-delay 100 "$@" 3>&-
+    fi
 
-        dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
-        printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
-        test -f "${dfx_config_root}/replica-1.port"
-        port=$(cat "${dfx_config_root}/replica-1.port")
-        if [ "$port" == "" ]; then
-          port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
-        fi
+    dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
+    printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
+    test -f "${dfx_config_root}/replica-1.port"
+    port=$(cat "${dfx_config_root}/replica-1.port")
+    if [ "$port" == "" ]; then
+      port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
     fi
 
     webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
@@ -207,37 +194,20 @@ dfx_replica() {
     local replica_port dfx_config_root
     dfx_patchelf
     determine_network_directory
-    if [ "$USE_IC_REF" ]
-    then
-        # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
-        # wait for it to close. Because `dfx start` leaves child processes running, we need
-        # to close this pipe, otherwise Bats will wait indefinitely.
-        dfx replica --emulator --port 0 "$@" 3>&- &
-        export DFX_REPLICA_PID=$!
 
-        timeout 60 sh -c \
-            "until test -s \"$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port\"; do echo waiting for ic-ref port; sleep 1; done" \
-            || (echo "replica did not write to \"$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port\" file" && exit 1)
+    # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
+    # wait for it to close. Because `dfx start` leaves child processes running, we need
+    # to close this pipe, otherwise Bats will wait indefinitely.
+    dfx replica --port 0 "$@" 3>&- &
+    export DFX_REPLICA_PID=$!
 
-        test -f "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port"
-        replica_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port")
+    timeout 60 sh -c \
+        "until test -s \"$E2E_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port\"; do echo waiting for replica port; sleep 1; done" \
+        || (echo "replica did not write to port file" && exit 1)
 
-    else
-        # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
-        # wait for it to close. Because `dfx start` leaves child processes running, we need
-        # to close this pipe, otherwise Bats will wait indefinitely.
-        dfx replica --port 0 "$@" 3>&- &
-        export DFX_REPLICA_PID=$!
-
-        timeout 60 sh -c \
-            "until test -s \"$E2E_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port\"; do echo waiting for replica port; sleep 1; done" \
-            || (echo "replica did not write to port file" && exit 1)
-
-        dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
-        test -f "${dfx_config_root}/replica-1.port"
-        replica_port=$(cat "${dfx_config_root}/replica-1.port")
-
-    fi
+    dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
+    test -f "${dfx_config_root}/replica-1.port"
+    replica_port=$(cat "${dfx_config_root}/replica-1.port")
 
     printf "Replica Configured Port: %s\n" "${replica_port}"
 
@@ -318,12 +288,7 @@ setup_actuallylocal_shared_network() {
 
 setup_local_shared_network() {
     local replica_port
-    if [ "$USE_IC_REF" ]
-    then
-        replica_port=$(get_ic_ref_port)
-    else
-        replica_port=$(get_replica_port)
-    fi
+    replica_port=$(get_replica_port)
 
     [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
 
@@ -363,10 +328,6 @@ get_replica_pid() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/replica-configuration/replica-pid"
 }
 
-get_ic_ref_port() {
-  cat "$E2E_NETWORK_DATA_DIRECTORY/ic-ref.port"
-
-}
 get_replica_port() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port"
 }

@@ -2,8 +2,6 @@
 
 load ../utils/_
 
-# All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
-
 setup() {
     standard_setup
 
@@ -17,8 +15,6 @@ teardown() {
 }
 
 @test "print_mo" {
-    [ "$USE_IC_REF" ] && skip "printing from mo not specified"
-
     install_asset print
     dfx_start 2>stderr.txt
     dfx canister create --all

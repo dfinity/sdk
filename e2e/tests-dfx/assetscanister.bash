@@ -913,8 +913,6 @@ CHERRIES" "$stdout"
 }
 
 @test 'can store arbitrarily large files' {
-    [ "$USE_IC_REF" ] && skip "skip for ic-ref" # this takes too long for ic-ref's wasm interpreter
-
     install_asset assetscanister
 
     # make a big file with deterministic contents (a fixed hash)
