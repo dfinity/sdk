@@ -2550,7 +2550,7 @@ dependencies = [
 [[package]]
 name = "ic-certification-testing"
 version = "1.0.2"
-source = "git+https://github.com/dfinity/response-verification.git#82f7e02cc819b340b84322a20f1d2dc3cbaf70ef"
+source = "git+https://github.com/dfinity/response-verification.git?rev=82f7e02cc819b340b84322a20f1d2dc3cbaf70ef#82f7e02cc819b340b84322a20f1d2dc3cbaf70ef"
 dependencies = [
  "console_error_panic_hook",
  "getrandom",
@@ -2914,7 +2914,7 @@ dependencies = [
 [[package]]
 name = "ic-response-verification-test-utils"
 version = "1.0.2"
-source = "git+https://github.com/dfinity/response-verification.git#82f7e02cc819b340b84322a20f1d2dc3cbaf70ef"
+source = "git+https://github.com/dfinity/response-verification.git?rev=82f7e02cc819b340b84322a20f1d2dc3cbaf70ef#82f7e02cc819b340b84322a20f1d2dc3cbaf70ef"
 dependencies = [
  "base64 0.21.2",
  "flate2",
