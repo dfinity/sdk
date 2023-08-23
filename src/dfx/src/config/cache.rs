@@ -5,8 +5,6 @@ use dfx_core::config::cache::{
     binary_command_from_version, delete_version, get_bin_cache, get_binary_path_from_version,
     is_version_installed, Cache,
 };
-#[cfg(windows)]
-use dfx_core::config::directories::project_dirs;
 use dfx_core::error::cache::CacheError;
 use dfx_core::error::unified_io::UnifiedIoError;
 use indicatif::{ProgressBar, ProgressDrawTarget};
@@ -20,6 +18,8 @@ use std::path::PathBuf;
 // POSIX permissions for files in the cache.
 #[cfg(unix)]
 const EXEC_READ_USER_ONLY_PERMISSION: u32 = 0o500;
+#[cfg(unix)]
+const READ_USER_ONLY_PERMISSION: u32 = 0o400;
 
 pub struct DiskBasedCache {
     version: Version,
@@ -113,10 +113,15 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
             #[cfg(unix)]
             {
                 let archive_path = dfx_core::fs::get_archive_path(&file)?;
+                let mode = if archive_path.starts_with("base/") {
+                    READ_USER_ONLY_PERMISSION
+                } else {
+                    EXEC_READ_USER_ONLY_PERMISSION
+                };
                 let full_path = temp_p.join(archive_path);
                 let mut perms = dfx_core::fs::read_permissions(full_path.as_path())
                     .map_err(UnifiedIoError::from)?;
-                perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
+                perms.set_mode(mode);
                 dfx_core::fs::set_permissions(full_path.as_path(), perms)
                     .map_err(UnifiedIoError::from)?;
             }
@@ -124,6 +129,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
 
         // Copy our own binary in the cache.
         let dfx = temp_p.join("dfx");
+        #[allow(clippy::needless_borrow)]
         dfx_core::fs::write(
             &dfx,
             dfx_core::fs::read(&current_exe).map_err(UnifiedIoError::from)?,

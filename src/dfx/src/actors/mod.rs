@@ -121,7 +121,7 @@ fn setup_replica_env(
     let replica_configuration_dir = local_server_descriptor.replica_configuration_dir();
     fs::create_dir_all(&replica_configuration_dir).with_context(|| {
         format!(
-            "Failed to create replica config direcory {}.",
+            "Failed to create replica config directory {}.",
             replica_configuration_dir.to_string_lossy()
         )
     })?;

@@ -207,13 +207,8 @@ impl CanisterBuilder for MotokoBuilder {
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
         let idl_from_build = motoko_info.get_output_idl_path().to_path_buf();
 
-        std::fs::copy(&idl_from_build, &output_idl_path).with_context(|| {
-            format!(
-                "Failed to copy {} to {}.",
-                idl_from_build.to_string_lossy(),
-                output_idl_path.to_string_lossy()
-            )
-        })?;
+        dfx_core::fs::copy(&idl_from_build, &output_idl_path)?;
+        dfx_core::fs::set_permissions_readwrite(&output_idl_path)?;
 
         Ok(output_idl_path)
     }

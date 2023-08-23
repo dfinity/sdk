@@ -124,6 +124,7 @@ pub fn exec(
         enable_bitcoin,
         bitcoin_node,
         enable_canister_http,
+        emulator
     )?;
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;

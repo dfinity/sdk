@@ -3,27 +3,23 @@ use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, str::FromStr};
 
 // These definitions come from https://gitlab.com/dfinity-lab/public/ic/-/blob/master/rs/canister_http/adapter/src/config.rs
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Default)]
 /// The source of the unix domain socket to be used for inter-process
 /// communication.
 pub enum IncomingSource {
     /// We use systemd's created socket.
+    #[default]
     Systemd,
     /// We use the corresponing path as socket.
     Path(PathBuf),
 }
 
-impl Default for IncomingSource {
-    fn default() -> Self {
-        IncomingSource::Systemd
-    }
-}
-
 /// Represents the log level of the HTTP adapter.
-#[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq, JsonSchema)]
+#[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq, JsonSchema, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum HttpAdapterLogLevel {
     Critical,
+    #[default]
     Error,
     Warning,
     Info,
@@ -44,12 +40,6 @@ impl FromStr for HttpAdapterLogLevel {
             "trace" => Ok(HttpAdapterLogLevel::Trace),
             other => Err(format!("Unknown log level: {}", other)),
         }
-    }
-}
-
-impl Default for HttpAdapterLogLevel {
-    fn default() -> Self {
-        HttpAdapterLogLevel::Error
     }
 }
 

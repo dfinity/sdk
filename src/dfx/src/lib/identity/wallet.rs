@@ -57,7 +57,7 @@ pub fn get_wallet_config_path(
     name: &str,
 ) -> Result<PathBuf, WalletConfigError> {
     Ok(match &network.r#type {
-        NetworkTypeDescriptor::Persistent => {
+        NetworkTypeDescriptor::Persistent | NetworkTypeDescriptor::Playground { .. } => {
             // Using the global
             get_config_dfx_dir_path()
                 .map_err(|e| {

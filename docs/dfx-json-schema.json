@@ -214,14 +214,6 @@
             "type"
           ],
           "properties": {
-            "source": {
-              "title": "Asset Source Folder",
-              "description": "Folders from which assets are uploaded.",
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
             "build": {
               "title": "Build Commands",
               "description": "Commands that are executed in order to produce this canister's assets. Expected to produce assets in one of the paths specified by the 'source' field. Optional if there is no build necessary or the assets can be built using the default `npm run build` command.",
@@ -231,6 +223,14 @@
                   "$ref": "#/definitions/SerdeVec_for_String"
                 }
               ]
+            },
+            "source": {
+              "title": "Asset Source Folder",
+              "description": "Folders from which assets are uploaded.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             },
             "type": {
               "type": "string",
@@ -723,6 +723,16 @@
             }
           ]
         },
+        "playground": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PlaygroundConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "replica": {
           "anyOf": [
             {
@@ -761,6 +771,16 @@
         "providers"
       ],
       "properties": {
+        "playground": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PlaygroundConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "providers": {
           "description": "The URL(s) this network can be reached at.",
           "type": "array",
@@ -856,6 +876,26 @@
         "ephemeral",
         "persistent"
       ]
+    },
+    "PlaygroundConfig": {
+      "description": "Playground config to borrow canister from instead of creating new canisters.",
+      "type": "object",
+      "required": [
+        "playground_canister"
+      ],
+      "properties": {
+        "playground_canister": {
+          "description": "Canister ID of the playground canister",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "description": "How many seconds a canister can be borrowed for",
+          "default": 1200,
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
     },
     "PossiblyStr_for_uint64": {
       "type": "integer",

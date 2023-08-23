@@ -582,7 +582,7 @@ impl State {
                 return Err("byte limit exceeded".to_string());
             }
         }
-        let mut batch = self
+        let batch = self
             .batches
             .get_mut(&arg.batch_id)
             .ok_or_else(|| "batch not found".to_string())?;

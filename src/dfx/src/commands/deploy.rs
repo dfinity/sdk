@@ -1,14 +1,14 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
-use crate::lib::operations::canister::deploy_canisters;
-use crate::lib::operations::canister::DeployMode::{
+use crate::lib::network::network_opt::NetworkOpt;
+use crate::lib::operations::canister::deploy_canisters::deploy_canisters;
+use crate::lib::operations::canister::deploy_canisters::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::parsers::cycle_amount_parser;
-use crate::NetworkOpt;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
@@ -102,7 +102,7 @@ pub struct DeployOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network.network)?;
+    let env = create_agent_environment(env, opts.network.to_network_name())?;
 
     let canister_name = opts.canister_name.as_deref();
     let argument = opts.argument.as_deref();
@@ -158,6 +158,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let call_sender = CallSender::from(&opts.wallet)
         .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
+
     runtime.block_on(fetch_root_key_if_needed(&env))?;
 
     runtime.block_on(deploy_canisters(
@@ -173,7 +174,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         opts.no_wallet,
         opts.yes,
         env_file,
-        !opts.no_asset_upgrade,
+        opts.no_asset_upgrade,
     ))?;
 
     if matches!(deploy_mode, NormalDeploy | ForceReinstallSingleCanister(_)) {

@@ -17,6 +17,8 @@ use std::ffi::OsStr;
 use std::fmt::Write;
 use std::fs;
 use std::io::Read;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
@@ -349,25 +351,6 @@ pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult
     }
 }
 
-/// Set the permission of the given file to be writeable.
-pub fn set_perms_readwrite(file_path: &PathBuf) -> DfxResult<()> {
-    let mut perms = std::fs::metadata(file_path)
-        .with_context(|| {
-            format!(
-                "Failed to read metadata for file {}.",
-                file_path.to_string_lossy()
-            )
-        })?
-        .permissions();
-    perms.set_readonly(false);
-    std::fs::set_permissions(file_path, perms).with_context(|| {
-        format!(
-            "Failed to set permissions for file {}.",
-            file_path.to_string_lossy()
-        )
-    })
-}
-
 type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);
 
 pub fn get_and_write_environment_variables<'a>(
@@ -488,6 +471,7 @@ pub struct BuildConfig {
     profile: Profile,
     pub build_mode_check: bool,
     pub network_name: String,
+    pub network_is_playground: bool,
 
     /// The root of all IDL files.
     pub idl_root: PathBuf,
@@ -504,7 +488,7 @@ pub struct BuildConfig {
 
 impl BuildConfig {
     #[context("Failed to create build config.")]
-    pub fn from_config(config: &Config) -> DfxResult<Self> {
+    pub fn from_config(config: &Config, network_is_playground: bool) -> DfxResult<Self> {
         let config_intf = config.get_config();
         let network_name = util::network_to_pathcompat(&get_network_context()?);
         let network_root = config.get_temp_path().join(&network_name);
@@ -512,6 +496,7 @@ impl BuildConfig {
 
         Ok(BuildConfig {
             network_name,
+            network_is_playground,
             profile: config_intf.profile.unwrap_or(Profile::Debug),
             build_mode_check: false,
             build_root: canister_root.clone(),

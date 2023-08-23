@@ -79,7 +79,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.
                 .map_err(CanisterBuilderError::CallSenderBuildError)?
                 .call_and_wait()
                 .await
-                .map_err(CanisterInstallError::InstallWasmError)?;
+                .map_err(CanisterInstallError::InstallWasmError)
         }
         CallSender::Wallet(wallet_id) => {
             let wallet = build_wallet_canister(*wallet_id, agent).await?;
@@ -98,8 +98,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.
                 )
                 .call_and_wait()
                 .await
-                .map_err(CanisterInstallError::InstallWasmError)?;
+                .map_err(CanisterInstallError::InstallWasmError)
         }
     }
-    Ok(())
 }

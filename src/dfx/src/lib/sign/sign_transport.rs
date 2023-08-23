@@ -43,7 +43,7 @@ impl Transport for SignTransport {
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
             let message: SignedMessageV1 =
                 serde_json::from_str(&json).map_err(|x| AgentError::MessageError(x.to_string()))?;
-            let message = message.with_signed_request_status(hex::encode(&envelope));
+            let message = message.with_signed_request_status(hex::encode(envelope));
             let json = serde_json::to_string(&message)
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
             let mut file = OpenOptions::new()
@@ -81,7 +81,7 @@ impl Transport for SignTransport {
                 .clone()
                 .with_call_type("update".to_string())
                 .with_request_id(request_id)
-                .with_content(hex::encode(&envelope));
+                .with_content(hex::encode(envelope));
             let json = serde_json::to_string(&message)
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
             let path = &s.file_name;
@@ -111,7 +111,7 @@ impl Transport for SignTransport {
                 .message_template
                 .clone()
                 .with_call_type("query".to_string())
-                .with_content(hex::encode(&envelope));
+                .with_content(hex::encode(envelope));
             let json = serde_json::to_string(&message)
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
             let path = &s.file_name;

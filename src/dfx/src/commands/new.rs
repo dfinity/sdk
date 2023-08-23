@@ -4,10 +4,11 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
 use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail, ensure, Context};
 use clap::Parser;
 use console::{style, Style};
 use dfx_core::config::model::dfinity::CONFIG_FILE_NAME;
+use dfx_core::json::{load_json_file, save_json_file};
 use fn_error_context::context;
 use indicatif::HumanBytes;
 use lazy_static::lazy_static;
@@ -108,6 +109,44 @@ pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> 
     Ok(())
 }
 
+fn json_patch_file(
+    _log: &Logger,
+    patch_path: &Path,
+    patch_content: &[u8],
+    dry_run: bool,
+) -> DfxResult {
+    if !dry_run {
+        let patch: json_patch::Patch = serde_json::from_slice(patch_content)
+            .with_context(|| format!("Failed to parse {}", patch_path.display()))?;
+        let to_patch = patch_path.with_extension("json");
+        ensure!(
+            to_patch.exists(),
+            "Failed to patch {}: not found",
+            to_patch.display()
+        );
+        let mut value = load_json_file(&to_patch)?;
+        json_patch::patch(&mut value, &patch)
+            .with_context(|| format!("Failed to patch {}", to_patch.display()))?;
+        save_json_file(&to_patch, &value)?;
+    }
+    Ok(())
+}
+
+fn patch_file(_log: &Logger, patch_path: &Path, patch_content: &[u8], dry_run: bool) -> DfxResult {
+    if !dry_run {
+        let patch_content = std::str::from_utf8(patch_content)
+            .with_context(|| format!("Failed to parse {}", patch_path.display()))?;
+        let patch = patch::Patch::from_single(patch_content)
+            .map_err(|e| anyhow!("Failed to parse {}: {e}", patch_path.display()))?;
+        let to_patch = patch_path.with_extension("");
+        let existing_content = dfx_core::fs::read_to_string(&to_patch)?;
+        let patched_content = apply_patch::apply_to(&patch, &existing_content)
+            .with_context(|| format!("Failed to patch {}", to_patch.display()))?;
+        dfx_core::fs::write(&to_patch, patched_content)?;
+    }
+    Ok(())
+}
+
 #[allow(dead_code)]
 pub fn create_dir<P: AsRef<Path>>(log: &Logger, path: P, dry_run: bool) -> DfxResult {
     let path = path.as_ref();
@@ -196,7 +235,13 @@ fn write_files_from_entries<R: Sized + Read>(
         });
 
         let p = PathBuf::from(p);
-        create_file(log, p.as_path(), &v, dry_run)?;
+        if p.extension() == Some("json-patch".as_ref()) {
+            json_patch_file(log, &p, &v, dry_run)?;
+        } else if p.extension() == Some("patch".as_ref()) {
+            patch_file(log, &p, &v, dry_run)?;
+        } else {
+            create_file(log, p.as_path(), &v, dry_run)?;
+        }
     }
 
     Ok(())
@@ -314,15 +359,24 @@ fn scaffold_frontend_code(
                 }
             }
         }
-    } else if !arg_frontend && !node_installed {
-        warn!(
+    } else {
+        if !arg_frontend && !node_installed {
+            warn!(
+                log,
+                "Node could not be found. Skipping installing the frontend example code."
+            );
+            warn!(
+                log,
+                "You can bypass this check by using the --frontend flag."
+            );
+        }
+        write_files_from_entries(
             log,
-            "Node could not be found. Skipping installing the frontend example code."
-        );
-        warn!(
-            log,
-            "You can bypass this check by using the --frontend flag."
-        );
+            &mut assets::new_project_no_frontend_files()?,
+            project_name,
+            dry_run,
+            variables,
+        )?;
     }
 
     Ok(())
@@ -394,6 +448,14 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
     .iter()
     .cloned()
     .collect();
+
+    write_files_from_entries(
+        log,
+        &mut assets::new_project_base_files().context("Failed to get base project archive.")?,
+        project_name,
+        dry_run,
+        &variables,
+    )?;
 
     // Default to start with motoko
     let mut new_project_files = match opts.r#type.as_str() {

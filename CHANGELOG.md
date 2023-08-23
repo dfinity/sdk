@@ -2,13 +2,77 @@
 
 # UNRELEASED
 
+### feat!: Updated handling of missing values in state tree certificates
+
+The `Unknown` lookup of a path in a certificate results in an `AgentError` (the IC returns `Absent` for non-existing paths).
+
+### chore: --emulator parameter is deprecated and will be discontinued soon
+
+Added warning that the `--emulator` is deprecated and will be discontinued soon.
+
+### fix: node engines in starter
+
+Updates node engines to reflect the same engines supported in agent-js.
+
+"node": "^12 || ^14 || ^16 || >=17",
+"npm": "^7.17 || >=8"
+
+### feat: deploy to playground
+
+Introduced a new network type called `playground`. Canisters on such networks are not created through standard means, but are instead borrowed from a canister pool.
+The canisters time out after a while and new canisters need to be borrowed for further deployments.
+To define custom playground networks, use a network definition that includes the `playground` key:
+```json
+"<network name>": {
+  "playground": {
+    "playground_canister": "<canister pool id>",
+    "timeout_seconds": <amount of seconds after which a canister is returned to the pool>
+  }
+}
+```
+
+Introduced a new network that is available by default called `playground`. Additionally, `--playground` is an alias for `--network playground`.
+By default, this network targets the Motoko Playground backend to borrow canisters. The borrowed canisters will be available for 20 minutes, and the timer restarts on new deployments.
+When the timer runs out the canister(s) will be uninstalled and are returned to the pool.
+Any commands that allow choosing a target network (e.g. `dfx canister call`) require `--playground` or `--network playground` in order to target the borrowed canister(s).
+Use `dfx deploy --playground` to deploy simple projects to a canister borrowed from the Motoko Playground.
+
+### feat: `--ic` is shorthand for `--network ic`
+
+For example, `dfx deploy --ic` rather than `dfx deploy --network ic`.
+
+### fix: Motoko base library files in cache are no longer executable
+
+### feat: `dfx start` for shared network warns if ignoring 'defaults' in dfx.json
+
+Background: In order to determine whether to start a project-specific network or the shared network, `dfx start` looks for the `local` network in dfx.json.
+   - If found, `dfx start` starts the project-specific local network, applying any `defaults` from dfx.json.
+   - If there is no dfx.json, or if dfx.json does not define a `local` network, `dfx start` starts the shared network.  Because the shared network is not specific to any project, `dfx start` ignores any other settings from dfx.json, including `defaults`.
+
+If `dfx start` is starting the shared network from within a dfx project, and that dfx.json contains settings in the `defaults` key for `bitcoin`, `replica`, or `canister_http`, then `dfx start` will warn that it is ignoring those settings.  It will also describe how to define equivalent settings in networks.json.
+
+## Dependencies
+
+### Frontend canister
+
+For certification v1, if none of the requested encoding are certified but another encoding is certified, then the frontend canister once again returns the certificatie even though the response hash won't match.
+This allows the verifying side to try to transform the response such that it matches the response hash.
+For example, if only the encoding `gzip` is requested but the `identity` encoding is certified, the `gzip` encoding is returned with the certificate for the `identity` encoding.
+The verifying side can then unzip the response and will have a valid certificate for the `identity` response.
+
+- Module hash: cd3e7fa2b826f84cdd107eef28633b0c669b4687ae1598dd854828e82d2e4652
+- https://github.com/dfinity/sdk/pull/3298
+- https://github.com/dfinity/sdk/pull/3281
+
 # 0.15.0
 
 ## DFX
 
-### feat!: Updated handling of missing values in state tree certificates
+### chore: add `--use-old-metering` flag
 
-The `Unknown` lookup of a path in a certificate results in an `AgentError` (the IC returns `Absent` for non-existing paths).
+The `use-old-metering` flag enables old metering in replica. The new metering is enabled in the `starter` by default, so this flag is to compare the default new metering with the old one.
+
+The flag is temporary and will be removed in a few months.
 
 ### feat!: Removed dfx nns and dfx sns commands
 
@@ -105,9 +169,13 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Replica
 
-Updated replica to elected commit 9c89622231301daf93528aa3b64b4d1ec4657680.
+Updated replica to elected commit 3bcccef07408921fe849c92dd2437adc157ef9c3.
 This incorporates the following executed proposals:
 
+- [124021](https://dashboard.internetcomputer.org/proposal/124021)
+- [123977](https://dashboard.internetcomputer.org/proposal/123977)
+- [123976](https://dashboard.internetcomputer.org/proposal/123976)
+- [123922](https://dashboard.internetcomputer.org/proposal/123922)
 - [123784](https://dashboard.internetcomputer.org/proposal/123784)
 - [123730](https://dashboard.internetcomputer.org/proposal/123730)
 - [123711](https://dashboard.internetcomputer.org/proposal/123711)

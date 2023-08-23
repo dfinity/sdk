@@ -2,6 +2,8 @@ use crate::error::config::ConfigError;
 use crate::error::fs::FsError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError;
 use crate::error::uri::UriError;
+
+use candid::types::principal::PrincipalError;
 use std::num::ParseIntError;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -49,4 +51,7 @@ pub enum NetworkConfigError {
 
     #[error("Failed to read webserver port: {0}")]
     ReadWebserverPortFailed(FsError),
+
+    #[error("Failed to parse principal '{0}': {1}")]
+    ParsePrincipalFailed(String, PrincipalError),
 }

@@ -2,6 +2,7 @@
 members = [
     "src/dfx",
     "src/dfx-core",
+    "src/lib/apply-patch",
     "src/canisters/frontend/ic-asset",
     "src/canisters/frontend/icx-asset",
     "src/canisters/frontend/ic-certified-assets",
@@ -13,7 +14,7 @@ default-members = ["src/dfx"]
 authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
 edition = "2021"
 repository = "https://github.com/dfinity/sdk"
-rust-version = "1.65.0"
+rust-version = "1.71.1"
 license = "Apache-2.0"
 
 [workspace.dependencies]
@@ -35,7 +36,7 @@ bytes = "1.2.1"
 clap = "4.2.0"
 dialoguer = "0.10.0"
 directories-next = "2.0.0"
-flate2 = "1.0.11"
+flate2 = { version = "1.0.11", default-features = false }
 futures = "0.3.21"
 hex = "0.4.3"
 humantime = "2.1.0"
