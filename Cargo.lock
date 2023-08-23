@@ -2786,7 +2786,7 @@ dependencies = [
 [[package]]
 name = "ic-response-verification-test-utils"
 version = "0.3.0"
-source = "git+https://github.com/dfinity/response-verification.git#4686895c6070ac36109a01f4bd642caf2369b97b"
+source = "git+https://github.com/dfinity/response-verification.git?rev=4686895c6070ac36109a01f4bd642caf2369b97b#4686895c6070ac36109a01f4bd642caf2369b97b"
 dependencies = [
  "base64 0.21.2",
  "flate2",
