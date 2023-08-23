@@ -60,7 +60,7 @@ futures.workspace = true
 handlebars = "4.3.3"
 hex = { workspace = true, features = ["serde"] }
 humantime.workspace = true
-hyper-rustls = { version = "0.24.1", features = ["webpki-roots", "http2"] }
+hyper-rustls = { version = "0.23.0", features = ["webpki-roots", "http2"] }
 ic-agent = { workspace = true, features = ["reqwest"] }
 ic-asset.workspace = true
 ic-identity-hsm = { workspace = true }
@@ -89,7 +89,7 @@ reqwest = { version = "0.11.9", default-features = false, features = [
 ] }
 ring.workspace = true
 rust_decimal = "1.22.0"
-rustls-webpki = "0.101.4"
+rustls = "0.20.4"
 schemars.workspace = true
 sec1 = { workspace = true, features = ["std"] }
 semver = { workspace = true }
