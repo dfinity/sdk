@@ -69,6 +69,26 @@ setup_onchain() {
     assert_eq "A natural number, e.g. 20." "$output"
 }
 
+@test "dfx build can handle dynamic_wasm_url" {
+    dfx_start
+
+    install_asset deps
+
+    cd onchain
+    jq 'del(.canisters.a.pullable.wasm_url)' dfx.json | sponge dfx.json
+    jq '.canisters.a.pullable.dynamic_wasm_url.generate=""' dfx.json | sponge dfx.json
+    jq '.canisters.a.pullable.dynamic_wasm_url.path="dynamic_wasm_url.txt"' dfx.json | sponge dfx.json
+
+    echo "http:/example.com/dynamic_wasm_url/a.wasm" > dynamic_wasm_url.txt
+
+    assert_command dfx canister create --all
+    assert_command dfx build
+
+    ic-wasm .dfx/local/canisters/a/a.wasm metadata dfx > a_dfx.json
+    assert_command jq -r '.pullable.wasm_url' a_dfx.json
+    assert_eq "http:/example.com/dynamic_wasm_url/a.wasm" "$output"  
+}
+
 @test "dfx deps pull can resolve dependencies from on-chain canister metadata" {
     # ic-ref has different behavior than the replica:
     #   it doesn't differ whether the canister not exist or the metadata not exist

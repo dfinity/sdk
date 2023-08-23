@@ -6,8 +6,8 @@ use candid::Principal as CanisterId;
 use candid::Principal;
 use core::panic;
 use dfx_core::config::model::dfinity::{
-    CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config, Pullable,
-    WasmOptLevel,
+    CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config,
+    PullableConfig, WasmOptLevel,
 };
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
@@ -55,7 +55,7 @@ pub struct CanisterInfo {
     shrink: Option<bool>,
     optimize: Option<WasmOptLevel>,
     metadata: CanisterMetadataConfig,
-    pullable: Option<Pullable>,
+    pullable: Option<PullableConfig>,
     pull_dependencies: Vec<(String, CanisterId)>,
     gzip: bool,
 }
@@ -245,8 +245,7 @@ impl CanisterInfo {
         })
     }
 
-    /// Path to the wasm module in .dfx that will be install.
-    pub fn get_build_wasm_path(&self) -> PathBuf {
+    fn get_wasm_path(&self, file_name: &str) -> PathBuf {
         let mut gzip_original = false;
         if let CanisterTypeProperties::Custom { wasm, .. } = &self.type_specific {
             if wasm.ends_with(".gz") {
@@ -260,7 +259,17 @@ impl CanisterInfo {
         } else {
             "wasm"
         };
-        self.output_root.join(&self.name).with_extension(ext)
+        self.output_root.join(file_name).with_extension(ext)
+    }
+
+    /// Path to the post-processed wasm module in .dfx that will be install.
+    pub fn get_build_wasm_path(&self) -> PathBuf {
+        self.get_wasm_path(&self.name)
+    }
+
+    /// Path to the post-processed custom wasm module for pullable
+    pub fn get_custom_wasm_path(&self) -> PathBuf {
+        self.get_wasm_path(&format!("{}_custom", &self.name))
     }
 
     /// Path to the candid file which contains no init types.
@@ -349,7 +358,7 @@ impl CanisterInfo {
         &self.metadata
     }
 
-    pub fn get_pullable(&self) -> Option<Pullable> {
+    pub fn get_pullable(&self) -> Option<PullableConfig> {
         self.pullable.clone()
     }
 

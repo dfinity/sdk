@@ -51,6 +51,7 @@ impl Canister {
     }
 
     pub fn prebuild(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
+        // TODO: run scripts for custom_wasm and dynamic_wasm_url
         self.builder.prebuild(pool, &self.info, build_config)
     }
 
@@ -151,9 +152,9 @@ impl Canister {
             public_candid = true;
         }
 
-        if let Some(pullable) = info.get_pullable() {
+        if let Some(pullable_config) = info.get_pullable() {
             let mut dfx_metadata = DfxMetadata::default();
-            dfx_metadata.set_pullable(pullable);
+            dfx_metadata.set_pullable(pullable_config)?;
             let content = serde_json::to_string_pretty(&dfx_metadata)
                 .with_context(|| "Failed to serialize `dfx` metadata.".to_string())?;
             metadata_sections.insert(

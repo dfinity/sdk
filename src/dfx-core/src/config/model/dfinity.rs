@@ -154,21 +154,37 @@ impl CanisterMetadataSection {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
-pub struct Pullable {
+pub struct PullableConfig {
     /// # wasm_url
     /// The Url to download canister wasm.
-    pub wasm_url: String,
+    pub wasm_url: Option<String>,
+
+    /// # dynamic_wasm_url
+    /// Generate wasm_url dynamically.
+    pub dynamic_wasm_url: Option<DynamicWasmUrl>,
+
     /// # wasm_hash
     /// SHA256 hash of the wasm module located at wasm_url.
     /// Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.
     pub wasm_hash: Option<String>,
+
     /// # dependencies
     /// Canister IDs (Principal) of direct dependencies.
     #[schemars(with = "Vec::<String>")]
     pub dependencies: Vec<Principal>,
+
     /// # init_guide
     /// A message to guide consumers how to initialize the canister.
     pub init_guide: String,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct DynamicWasmUrl {
+    /// TODO: use similar description of "build"
+    pub generate: String,
+
+    /// TODO: use similar description of "wasm"
+    pub path: String,
 }
 
 pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
@@ -247,7 +263,7 @@ pub struct ConfigCanistersCanister {
     /// # Pullable
     /// Defines required properties so that this canister is ready for `dfx deps pull` by other projects.
     #[serde(default)]
-    pub pullable: Option<Pullable>,
+    pub pullable: Option<PullableConfig>,
 
     /// # Gzip Canister WASM
     /// Disabled by default.
