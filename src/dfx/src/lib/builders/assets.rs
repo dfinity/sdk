@@ -7,7 +7,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util;
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use candid::Principal as CanisterId;
 use console::style;
 use dfx_core::config::cache::Cache;
@@ -31,17 +31,7 @@ struct AssetsBuilderExtra {
 impl AssetsBuilderExtra {
     #[context("Failed to create AssetBuilderExtra for canister '{}'.", info.get_name())]
     fn try_from(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult<Self> {
-        let dependencies = info.get_dependencies()
-            .iter()
-            .map(|name| {
-                pool.get_first_canister_with_name(name)
-                    .map(|c| c.canister_id())
-                    .map_or_else(
-                        || Err(anyhow!("A canister with the name '{}' was not found in the current project.", name.clone())),
-                        DfxResult::Ok,
-                    )
-            })
-            .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
+        let dependencies = super::collect_dependencies(info, pool)?;
         let info = info.as_info::<AssetsCanisterInfo>()?;
         let build = info.get_build_tasks().to_owned();
 

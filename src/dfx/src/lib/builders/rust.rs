@@ -6,7 +6,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
 use slog::{info, o};
@@ -36,18 +36,7 @@ impl CanisterBuilder for RustBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        let dependencies = info.get_dependencies()
-            .iter()
-            .map(|name| {
-                pool.get_first_canister_with_name(name)
-                    .map(|c| c.canister_id())
-                    .map_or_else(
-                        || Err(anyhow!("A canister with the name '{}' was not found in the current project.", name.clone())),
-                        DfxResult::Ok,
-                    )
-            })
-            .collect::<DfxResult<Vec<CanisterId>>>().with_context(|| format!("Failed to collect dependencies (canister ids) for canister {}.", info.get_name()))?;
-        Ok(dependencies)
+        super::collect_dependencies(info, pool)
     }
 
     #[context("Failed to build Rust canister '{}'.", canister_info.get_name())]

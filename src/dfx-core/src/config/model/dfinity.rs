@@ -180,10 +180,15 @@ pub struct PullableConfig {
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct DynamicWasmUrl {
-    /// TODO: use similar description of "build"
-    pub generate: String,
+    /// # Generate Commands
+    /// Commands that are executed in order to generate this pullable canister's wasm_url dynamically.
+    /// Expected to produce the wasm_url file in the path specified by the 'path' field.
+    #[schemars(default)]
+    pub generate: SerdeVec<String>,
 
-    /// TODO: use similar description of "wasm"
+    /// # wasm_url Path
+    /// Path to the wasm_url file from the "generate" commands.
+    /// The file should contains a valid URL.
     pub path: String,
 }
 

@@ -6,6 +6,7 @@ use crate::lib::models::canister::CanisterPool;
 use crate::util::check_candid_file;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
+use console::style;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
@@ -222,6 +223,50 @@ pub trait CanisterBuilder {
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
         Ok(PathBuf::new())
+    }
+
+    // Run generate scripts for pullable custom_wasm and dynamic_wasm_url
+    // Should be run before prebuild()
+    fn prepare_pullable(
+        &self,
+        pool: &CanisterPool,
+        info: &CanisterInfo,
+        config: &BuildConfig,
+    ) -> DfxResult {
+        if let Some(pullable_config) = info.get_pullable() {
+            let dependencies = collect_dependencies(info, pool)?;
+            let vars = get_and_write_environment_variables(
+                info,
+                &config.network_name,
+                pool,
+                &dependencies,
+                config.env_file.as_deref(),
+            )?;
+
+            if let Some(dwu) = pullable_config.dynamic_wasm_url {
+                eprintln!(
+                    "{}",
+                    style("Running generate commands of dynamic_wasm_url")
+                        .green()
+                        .bold()
+                );
+
+                for command in dwu.generate.into_vec() {
+                    eprintln!(r#"{} '{}'"#, style("Executing").green().bold(), command);
+
+                    // First separate everything as if it was read from a shell.
+                    let args = shell_words::split(&command)
+                        .with_context(|| format!("Cannot parse command '{}'.", command))?;
+                    // No commands, noop.
+                    if !args.is_empty() {
+                        run_command(args, &vars, info.get_workspace_root())
+                            .with_context(|| format!("Failed to run {}.", command))?;
+                    }
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -550,4 +595,29 @@ impl BuilderPool {
     pub fn get(&self, info: &CanisterInfo) -> Arc<dyn CanisterBuilder> {
         self.builders[info.get_type_specific_properties().name()].clone()
     }
+}
+
+fn collect_dependencies(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult<Vec<CanisterId>> {
+    info.get_dependencies()
+        .iter()
+        .map(|name| {
+            pool.get_first_canister_with_name(name)
+                .map(|c| c.canister_id())
+                .map_or_else(
+                    || {
+                        Err(anyhow!(
+                            "A canister with the name '{}' was not found in the current project.",
+                            name.clone()
+                        ))
+                    },
+                    DfxResult::Ok,
+                )
+        })
+        .collect::<DfxResult<Vec<CanisterId>>>()
+        .with_context(|| {
+            format!(
+                "Failed to collect dependencies (canister ids) of canister {}.",
+                info.get_name()
+            )
+        })
 }

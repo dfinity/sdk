@@ -51,7 +51,8 @@ impl Canister {
     }
 
     pub fn prebuild(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
-        // TODO: run scripts for custom_wasm and dynamic_wasm_url
+        self.builder
+            .prepare_pullable(pool, &self.info, build_config)?;
         self.builder.prebuild(pool, &self.info, build_config)
     }
 

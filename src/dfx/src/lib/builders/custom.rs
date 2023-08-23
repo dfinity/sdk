@@ -7,7 +7,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::util::download_file_to_path;
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use candid::Principal as CanisterId;
 use console::style;
 use fn_error_context::context;
@@ -36,17 +36,7 @@ struct CustomBuilderExtra {
 impl CustomBuilderExtra {
     #[context("Failed to create CustomBuilderExtra for canister '{}'.", info.get_name())]
     fn try_from(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult<Self> {
-        let dependencies = info.get_dependencies()
-            .iter()
-            .map(|name| {
-                pool.get_first_canister_with_name(name)
-                    .map(|c| c.canister_id())
-                    .map_or_else(
-                        || Err(anyhow!("A canister with the name '{}' was not found in the current project.", name.clone())),
-                        DfxResult::Ok,
-                    )
-            })
-            .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
+        let dependencies = super::collect_dependencies(info, pool)?;
         let info = info.as_info::<CustomCanisterInfo>()?;
         let input_wasm_url = info.get_input_wasm_url().to_owned();
         let wasm = info.get_output_wasm_path().to_owned();

@@ -76,10 +76,10 @@ setup_onchain() {
 
     cd onchain
     jq 'del(.canisters.a.pullable.wasm_url)' dfx.json | sponge dfx.json
-    jq '.canisters.a.pullable.dynamic_wasm_url.generate=""' dfx.json | sponge dfx.json
+    jq '.canisters.a.pullable.dynamic_wasm_url.generate="bash dynamic_wasm_url_a.sh"' dfx.json | sponge dfx.json
     jq '.canisters.a.pullable.dynamic_wasm_url.path="dynamic_wasm_url.txt"' dfx.json | sponge dfx.json
 
-    echo "http:/example.com/dynamic_wasm_url/a.wasm" > dynamic_wasm_url.txt
+    echo "echo \"http:/example.com/dynamic_wasm_url/a.wasm\" > dynamic_wasm_url.txt" > dynamic_wasm_url_a.sh
 
     assert_command dfx canister create --all
     assert_command dfx build
