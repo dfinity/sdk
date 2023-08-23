@@ -158,10 +158,5 @@ teardown() {
     assert_command dfx canister call hello_backend always_accepted
 
     assert_command_fail dfx canister call hello_backend always_rejected
-    if [ "$USE_IC_REF" ];
-    then
-        assert_contains "canister trapped in inspect_message: message not accepted by inspect_message"
-    else
-        assert_contains "Canister $(dfx canister id hello_backend) rejected the message"
-    fi
+    assert_contains "Canister $(dfx canister id hello_backend) rejected the message"
 }
