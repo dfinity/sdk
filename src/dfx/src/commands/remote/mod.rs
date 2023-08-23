@@ -1,6 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::NetworkOpt;
+use crate::lib::network::network_opt::NetworkOpt;
 use clap::Parser;
 
 mod generate_binding;

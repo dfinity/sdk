@@ -1,17 +1,29 @@
-use crate::config::model::dfinity::NetworkType;
-use crate::config::model::dfinity::{DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH};
+use crate::config::model::dfinity::{
+    NetworkType, PlaygroundConfig, DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH,
+};
 use crate::config::model::local_server_descriptor::LocalServerDescriptor;
 use crate::error::network_config::NetworkConfigError;
 use crate::error::network_config::NetworkConfigError::{NetworkHasNoProviders, NetworkMustBeLocal};
 use crate::error::uri::UriError;
+use candid::Principal;
 use slog::Logger;
 use std::path::{Path, PathBuf};
 use url::Url;
 
+const MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID: Principal =
+    Principal::from_slice(&[0, 0, 0, 0, 0, 48, 0, 97, 1, 1]);
+pub const PLAYGROUND_NETWORK_NAME: &str = "playground";
+pub const MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS: u64 = 1200;
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NetworkTypeDescriptor {
-    Ephemeral { wallet_config_path: PathBuf },
-
+    Ephemeral {
+        wallet_config_path: PathBuf,
+    },
+    Playground {
+        playground_canister: Principal,
+        canister_timeout_seconds: u64,
+    },
     Persistent,
 }
 
@@ -25,12 +37,29 @@ pub struct NetworkDescriptor {
 }
 
 impl NetworkTypeDescriptor {
-    pub fn new(r#type: NetworkType, ephemeral_wallet_config_path: &Path) -> Self {
-        match r#type {
-            NetworkType::Ephemeral => NetworkTypeDescriptor::Ephemeral {
-                wallet_config_path: ephemeral_wallet_config_path.to_path_buf(),
-            },
-            NetworkType::Persistent => NetworkTypeDescriptor::Persistent,
+    pub fn new(
+        r#type: NetworkType,
+        ephemeral_wallet_config_path: &Path,
+        playground: Option<PlaygroundConfig>,
+    ) -> Result<Self, NetworkConfigError> {
+        if let Some(playground_config) = playground {
+            Ok(NetworkTypeDescriptor::Playground {
+                playground_canister: Principal::from_text(&playground_config.playground_canister)
+                    .map_err(|e| {
+                    NetworkConfigError::ParsePrincipalFailed(
+                        playground_config.playground_canister,
+                        e,
+                    )
+                })?,
+                canister_timeout_seconds: playground_config.timeout_seconds,
+            })
+        } else {
+            match r#type {
+                NetworkType::Ephemeral => Ok(NetworkTypeDescriptor::Ephemeral {
+                    wallet_config_path: ephemeral_wallet_config_path.to_path_buf(),
+                }),
+                NetworkType::Persistent => Ok(NetworkTypeDescriptor::Persistent),
+            }
         }
     }
 }
@@ -63,6 +92,10 @@ impl NetworkDescriptor {
         name_match || provider_match
     }
 
+    pub fn is_playground(&self) -> bool {
+        matches!(self.r#type, NetworkTypeDescriptor::Playground { .. })
+    }
+
     /// Return the first provider in the list
     pub fn first_provider(&self) -> Result<&str, NetworkConfigError> {
         match self.providers.first() {
@@ -75,6 +108,20 @@ impl NetworkDescriptor {
         match &self.local_server_descriptor {
             Some(p) => Ok(p),
             None => Err(NetworkMustBeLocal(self.name.clone())),
+        }
+    }
+
+    /// Playground on mainnet
+    pub(crate) fn default_playground_network() -> Self {
+        Self {
+            name: PLAYGROUND_NETWORK_NAME.to_string(),
+            providers: vec![DEFAULT_IC_GATEWAY.to_string()],
+            r#type: NetworkTypeDescriptor::Playground {
+                playground_canister: MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
+                canister_timeout_seconds: MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS,
+            },
+            is_ic: true,
+            local_server_descriptor: None,
         }
     }
 
@@ -157,5 +204,13 @@ mod test {
                 "some_other_provider".to_string()
             ]
         ));
+    }
+
+    #[test]
+    fn playground_canister_id() {
+        assert_eq!(
+            MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
+            Principal::from_text("mwrha-maaaa-aaaab-qabqq-cai").unwrap()
+        )
     }
 }

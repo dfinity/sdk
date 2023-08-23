@@ -13,8 +13,6 @@ teardown() {
 }
 
 @test "dfx restarts the replica" {
-    [ "$USE_IC_REF" ] && skip "skip for ic-ref"
-
     dfx_new hello
     dfx_start
 
@@ -53,8 +51,6 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy" {
-    [ "$USE_IC_REF" ] && skip "skip for ic-ref"
-
     dfx_new hello
     dfx_start
 
@@ -80,8 +76,6 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy when the replica restarts" {
-    [ "$USE_IC_REF" ] && skip "skip for ic-ref"
-
     dfx_new hello
     dfx_start
 
@@ -228,6 +222,55 @@ teardown() {
     assert_match "dfx is already running"
 }
 
+@test "dfx start for shared network warns about default settings specified in dfx.json that do not apply" {
+    dfx_new hello
+
+    IGNORED_MESSAGE="Ignoring the 'defaults' field in dfx.json because project settings never apply to the shared network."
+    APPLY_SETTINGS_MESSAGE="To apply these settings to the shared network, define them in .*/config-root/.config/dfx/networks.json like so"
+
+    jq 'del(.defaults)' dfx.json | sponge dfx.json
+    jq '.defaults.bitcoin.enabled=true' dfx.json | sponge dfx.json
+    assert_command dfx start --background
+    assert_contains "$IGNORED_MESSAGE"
+    assert_match "$APPLY_SETTINGS_MESSAGE"
+    assert_contains '"bitcoin": {'
+    assert_not_contains '"replica"'
+    assert_not_contains '"canister_http"'
+    assert_command dfx stop
+
+    jq 'del(.defaults)' dfx.json | sponge dfx.json
+    jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
+    assert_command dfx start --background
+    assert_contains "$IGNORED_MESSAGE"
+    assert_match "$APPLY_SETTINGS_MESSAGE"
+    assert_not_contains '"bitcoin"'
+    assert_contains '"replica": {'
+    assert_not_contains '"canister_http"'
+    assert_command dfx stop
+
+    jq 'del(.defaults)' dfx.json | sponge dfx.json
+    jq '.defaults.canister_http.enabled=false' dfx.json | sponge dfx.json
+    assert_command dfx start --background
+    assert_contains "$IGNORED_MESSAGE"
+    assert_match "$APPLY_SETTINGS_MESSAGE"
+    assert_not_contains '"bitcoin"'
+    assert_not_contains '"replica"'
+    assert_contains '"canister_http": {'
+    assert_command dfx stop
+
+    jq 'del(.defaults)' dfx.json | sponge dfx.json
+    jq '.defaults.bitcoin.enabled=true' dfx.json | sponge dfx.json
+    jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
+    jq '.defaults.canister_http.enabled=false' dfx.json | sponge dfx.json
+    assert_command dfx start --background
+    assert_contains "$IGNORED_MESSAGE"
+    assert_match "$APPLY_SETTINGS_MESSAGE"
+    assert_contains '"bitcoin": {'
+    assert_contains '"replica": {'
+    assert_contains '"canister_http": {'
+    assert_command dfx stop
+}
+
 @test "dfx starts replica with correct log level - project defaults" {
     dfx_new
     jq '.defaults.replica.log_level="warning"' dfx.json | sponge dfx.json
@@ -271,8 +314,6 @@ teardown() {
 }
 
 @test "debug print statements work with default log level" {
-    [ "$USE_IC_REF" ] && skip "printing from mo not specified"
-
     dfx_new
     install_asset print
     dfx_start 2>stderr.txt
@@ -284,7 +325,6 @@ teardown() {
 }
 
 @test "modifying networks.json requires --clean on restart" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     dfx_start
     dfx stop
     assert_command dfx_start 
@@ -298,7 +338,6 @@ teardown() {
 }
 
 @test "project-local networks require --clean if dfx.json was updated" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     dfx_new
     define_project_network
     dfx_start
@@ -317,7 +356,6 @@ teardown() {
 }
 
 @test "flags count as configuration modification and require --clean" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     dfx_start
     dfx stop
     assert_command_fail dfx_start --enable-bitcoin
@@ -332,6 +370,5 @@ teardown() {
 }
 
 @test "dfx start then ctrl-c won't hang and panic but stop actors quickly" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/ctrl_c_right_after_dfx_start.exp"
 }

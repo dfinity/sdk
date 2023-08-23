@@ -9,7 +9,6 @@ use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
 use candid::IDLArgs;
 use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
-use hyper_rustls::ConfigBuilderExt;
 #[cfg(unix)]
 use net2::unix::UnixTcpBuilderExt;
 use net2::{TcpBuilder, TcpListenerExt};
@@ -58,11 +57,6 @@ pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> 
     listener
         .local_addr()
         .context("Failed to fectch local address.")
-}
-
-pub fn expiry_duration() -> Duration {
-    // 5 minutes is max ingress timeout
-    Duration::from_secs(60 * 5)
 }
 
 /// Deserialize and print return values from canister method.

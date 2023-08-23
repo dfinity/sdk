@@ -4,7 +4,7 @@ use crate::lib::builders::BuildConfig;
 use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use crate::NetworkOpt;
+use crate::lib::network::network_opt::NetworkOpt;
 use clap::Parser;
 use dfx_core::config::model::dfinity::Config;
 use std::path::PathBuf;
@@ -34,7 +34,7 @@ pub struct CanisterBuildOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network.network)?;
+    let env = create_agent_environment(env, opts.network.to_network_name())?;
 
     let logger = env.get_logger();
 
@@ -93,10 +93,11 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     slog::info!(logger, "Building canisters...");
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
-    let build_config = BuildConfig::from_config(&config)?
-        .with_build_mode_check(build_mode_check)
-        .with_canisters_to_build(canisters_to_build)
-        .with_env_file(env_file);
+    let build_config =
+        BuildConfig::from_config(&config, env.get_network_descriptor().is_playground())?
+            .with_build_mode_check(build_mode_check)
+            .with_canisters_to_build(canisters_to_build)
+            .with_env_file(env_file);
     runtime.block_on(canister_pool.build_or_fail(logger, &build_config))?;
 
     Ok(())

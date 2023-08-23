@@ -1,6 +1,16 @@
+pub mod convert_mnemonic_to_key;
+pub mod create_new_identity;
+pub mod export_identity;
+pub mod generate_key;
+pub mod get_legacy_credentials_pem_path;
+pub mod initialize_identity_manager;
+pub mod new_identity_manager;
+pub mod rename_identity;
+pub mod save_pem;
+pub mod write_pem_to_file;
+
 use crate::error::config::ConfigError;
 use crate::error::encryption::EncryptionError;
-use crate::error::foundation::FoundationError;
 use crate::error::fs::FsError;
 use crate::error::keyring::KeyringError;
 use crate::error::structured_file::StructuredFileError;
@@ -9,7 +19,6 @@ use ic_agent::export::PrincipalError;
 use ic_agent::identity::PemError;
 use ic_identity_hsm::HardwareIdentityError;
 use std::path::PathBuf;
-use std::string::FromUtf8Error;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -20,32 +29,8 @@ pub enum IdentityError {
     #[error("Cannot delete the anonymous identity.")]
     CannotDeleteAnonymousIdentity(),
 
-    #[error("Cannot create an anonymous identity.")]
-    CannotCreateAnonymousIdentity(),
-
-    #[error("Failed to clean up previous creation attempts: {0}")]
-    CleanupPreviousCreationAttemptsFailed(FsError),
-
-    #[error("Convert secret key to sec1 Pem failed: {0}")]
-    ConvertSecretKeyToSec1PemFailed(Box<sec1::Error>),
-
-    #[error("Cannot create identity directory: {0}")]
-    CreateIdentityDirectoryFailed(FsError),
-
-    #[error("Failed to create mnemonic from phrase: {0}")]
-    CreateMnemonicFromPhraseFailed(String),
-
-    #[error("Failed to create temporary identity directory: {0}")]
-    CreateTemporaryIdentityDirectoryFailed(FsError),
-
-    #[error("Cannot save PEM content for an HSM.")]
-    CannotSavePemContentForHsm(),
-
     #[error("Failed to decrypt PEM file: {0}")]
     DecryptPemFileFailed(PathBuf, EncryptionError),
-
-    #[error("Failed to derive extended secret key from path: {0}")]
-    DeriveExtendedKeyFromPathFailed(bip32::Error),
 
     #[error("Failed to display linked wallets: {0}")]
     DisplayLinkedWalletsFailed(WalletConfigError),
@@ -53,17 +38,11 @@ pub enum IdentityError {
     #[error("If you want to remove an identity with configured wallets, please use the --drop-wallets flag.")]
     DropWalletsFlagRequiredToRemoveIdentityWithWallets(),
 
-    #[error("Cannot encrypt PEM file: {0}")]
-    EncryptPemFileFailed(PathBuf, EncryptionError),
-
     #[error("Failed to ensure identity configuration directory exists: {0}")]
     EnsureIdentityConfigurationDirExistsFailed(FsError),
 
     #[error("Failed to generate a fresh encryption configuration: {0}")]
     GenerateFreshEncryptionConfigurationFailed(EncryptionError),
-
-    #[error("Failed to generate a fresh secp256k1 key: {0}")]
-    GenerateFreshSecp256k1KeyFailed(Box<sec1::Error>),
 
     #[error("Failed to get config directory for identity manager: {0}")]
     GetConfigDirectoryFailed(ConfigError),
@@ -74,12 +53,6 @@ pub enum IdentityError {
     #[error("Failed to get principal of identity: {0}")]
     GetIdentityPrincipalFailed(String),
 
-    #[error("Failed to get legacy pem path: {0}")]
-    GetLegacyPemPathFailed(FoundationError),
-
-    #[error("Identity already exists.")]
-    IdentityAlreadyExists(),
-
     #[error("Identity {0} does not exist at '{1}'.")]
     IdentityDoesNotExist(String, PathBuf),
 
@@ -89,14 +62,8 @@ pub enum IdentityError {
     #[error("Failed to load configuration for identity '{0}': {1}")]
     LoadIdentityConfigurationFailed(String, StructuredFileError),
 
-    #[error("Failed to load identity manager configuration: {0}")]
-    LoadIdentityManagerConfigurationFailed(StructuredFileError),
-
     #[error("Failed to load PEM file from keyring for identity '{0}': {1}")]
     LoadPemFromKeyringFailed(Box<String>, KeyringError),
-
-    #[error("Failed to migrate legacy identity")]
-    MigrateLegacyIdentityFailed(FsError),
 
     #[error("Failed to read principal from id '{0}': {1}")]
     ParsePrincipalFromIdFailed(String, PrincipalError),
@@ -116,12 +83,6 @@ pub enum IdentityError {
     #[error("Failed to remove identity file: {0}")]
     RemoveIdentityFileFailed(FsError),
 
-    #[error("Cannot rename identity directory: {0}")]
-    RenameIdentityDirectoryFailed(FsError),
-
-    #[error("Failed to rename temporary directory to permanent identity directory: {0}")]
-    RenameTemporaryIdentityDirectoryFailed(FsError),
-
     #[error("Failed to rename '{0}' to '{1}' in the global wallet config: {2}")]
     RenameWalletFailed(Box<String>, Box<String>, WalletConfigError),
 
@@ -134,18 +95,6 @@ pub enum IdentityError {
     #[error("Failed to save identity manager configuration: {0}")]
     SaveIdentityManagerConfigurationFailed(StructuredFileError),
 
-    #[error("Failed to switch back over to the identity you're replacing: {0}")]
-    SwitchBackToIdentityFailed(Box<IdentityError>),
-
-    #[error("Failed to switch over default identity settings: {0}")]
-    SwitchDefaultIdentitySettingsFailed(Box<IdentityError>),
-
-    #[error("Failed to temporarily switch over to anonymous identity: {0}")]
-    SwitchToAnonymousIdentityFailed(Box<IdentityError>),
-
-    #[error("Could not translate pem file to text: {0}")]
-    TranslatePemContentToTextFailed(FromUtf8Error),
-
     #[error(
         "Ed25519 v1 keys (those generated by OpenSSL) are not supported. Try again with a v2 key"
     )]
@@ -153,10 +102,4 @@ pub enum IdentityError {
 
     #[error("Failed to validate PEM content: {0}")]
     ValidatePemContentFailed(Box<PemError>),
-
-    #[error("Cannot write PEM file: {0}")]
-    WritePemFileFailed(FsError),
-
-    #[error("Failed to write PEM to keyring: {0}")]
-    WritePemToKeyringFailed(KeyringError),
 }

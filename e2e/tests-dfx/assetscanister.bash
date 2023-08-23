@@ -23,12 +23,37 @@ create_batch() {
     echo "$BATCH_ID"
 }
 
+create_chunk() {
+    batch_id="$1"
+    reg="chunk_id = ([0-9]*) : nat"
+    assert_command      dfx canister call e2e_project_frontend create_chunk "(record { batch_id = $batch_id; content = vec {} })"
+    # shellcheck disable=SC2154
+    [[ "$stdout" =~ $reg ]]
+    CHUNK_ID="${BASH_REMATCH[1]}"
+    echo "$CHUNK_ID"
+}
+
 delete_batch() {
     assert_command dfx canister call e2e_project_frontend delete_batch "(record { batch_id=$1; })"
 }
 
 check_permission_failure() {
     assert_contains "$1"
+}
+
+@test "commit_batch is atomic" {
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+  BATCH_ID=$(create_batch)
+  CHUNK_ID=$(create_chunk "$BATCH_ID")
+  CREATE_ASSET='variant { CreateAsset = record { key="/abc.txt" ; content_type = "text/plain"} }'
+  SET_ASSET_CONTENT="variant { SetAssetContent = record { key=\"/abd.txt\"; content_encoding = \"identity\"; chunk_ids=vec { $CHUNK_ID } } }"
+  OPERATIONS="vec { $CREATE_ASSET ; $SET_ASSET_CONTENT }"
+  assert_command_fail dfx canister call e2e_project_frontend commit_batch "(record { batch_id=$BATCH_ID; operations = $OPERATIONS })"
+  assert_contains "asset not found"
+  assert_command dfx canister call e2e_project_frontend list '(record {})'
+  assert_not_contains "/abc.txt"
 }
 
 @test "batch id persists through upgrade" {
@@ -890,8 +915,6 @@ CHERRIES" "$stdout"
 }
 
 @test 'can store arbitrarily large files' {
-    [ "$USE_IC_REF" ] && skip "skip for ic-ref" # this takes too long for ic-ref's wasm interpreter
-
     install_asset assetscanister
 
     # make a big file with deterministic contents (a fixed hash)

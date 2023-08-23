@@ -10,7 +10,8 @@ use crate::lib::models::canister::CanisterPool;
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
-use crate::lib::operations::canister::{create_canister, install_canister};
+use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
+use crate::lib::operations::canister::{create_canister, install_canister::install_canister};
 use crate::util::{blob_from_arguments, get_candid_init_type};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -48,7 +49,7 @@ pub async fn deploy_canisters(
     no_wallet: bool,
     skip_consent: bool,
     env_file: Option<PathBuf>,
-    assets_upgrade: bool,
+    no_asset_upgrade: bool,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -108,6 +109,7 @@ pub async fn deploy_canisters(
         let create_call_sender = if no_wallet
             || specified_id.is_some()
             || matches!(call_sender, CallSender::Wallet(_))
+            || env.get_network_descriptor().is_playground()
         {
             call_sender
         } else {
@@ -159,7 +161,7 @@ pub async fn deploy_canisters(
                 pool,
                 skip_consent,
                 env_file.as_deref(),
-                assets_upgrade,
+                no_asset_upgrade,
             )
             .await?;
             info!(log, "Deployed canisters.");
@@ -204,48 +206,58 @@ async fn register_canisters(
         .filter(|n| canister_id_store.find(n).is_none())
         .cloned()
         .collect::<Vec<String>>();
-    info!(env.get_logger(), "Creating canisters...");
-    for canister_name in &canisters_to_create {
-        let config_interface = config.get_config();
-        let compute_allocation = config_interface
-            .get_compute_allocation(canister_name)?
-            .map(|arg| {
-                ComputeAllocation::try_from(arg).context("Compute Allocation must be a percentage.")
-            })
-            .transpose()?;
-        let memory_allocation = config_interface
-            .get_memory_allocation(canister_name)?
-            .map(|arg| {
-                u64::try_from(arg.get_bytes())
-                    .map_err(|e| anyhow!(e))
-                    .and_then(|n| Ok(MemoryAllocation::try_from(n)?))
-                    .context(
-                        "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
-                    )
-            })
-            .transpose()?;
-        let freezing_threshold =
-            config_interface
-                .get_freezing_threshold(canister_name)?
+    if canisters_to_create.is_empty() {
+        info!(env.get_logger(), "All canisters have already been created.");
+    } else if env.get_network_descriptor().is_playground() {
+        info!(env.get_logger(), "Reserving canisters in playground...");
+        for canister_name in &canisters_to_create {
+            reserve_canister_with_playground(env, canister_name).await?;
+        }
+    } else {
+        info!(env.get_logger(), "Creating canisters...");
+        for canister_name in &canisters_to_create {
+            let config_interface = config.get_config();
+            let compute_allocation = config_interface
+                .get_compute_allocation(canister_name)?
                 .map(|arg| {
-                    FreezingThreshold::try_from(arg.as_secs())
-                        .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
-                });
-        let controllers = None;
-        create_canister(
-            env,
-            canister_name,
-            with_cycles,
-            specified_id,
-            call_sender,
-            CanisterSettings {
-                controllers,
-                compute_allocation,
-                memory_allocation,
-                freezing_threshold,
-            },
-        )
-        .await?;
+                    ComputeAllocation::try_from(arg)
+                        .context("Compute Allocation must be a percentage.")
+                })
+                .transpose()?;
+            let memory_allocation = config_interface
+                .get_memory_allocation(canister_name)?
+                .map(|arg| {
+                    u64::try_from(arg.get_bytes())
+                        .map_err(|e| anyhow!(e))
+                        .and_then(|n| Ok(MemoryAllocation::try_from(n)?))
+                        .context(
+                            "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
+                        )
+                })
+                .transpose()?;
+            let freezing_threshold =
+                config_interface
+                    .get_freezing_threshold(canister_name)?
+                    .map(|arg| {
+                        FreezingThreshold::try_from(arg.as_secs())
+                            .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
+                    });
+            let controllers = None;
+            create_canister(
+                env,
+                canister_name,
+                with_cycles,
+                specified_id,
+                call_sender,
+                CanisterSettings {
+                    controllers,
+                    compute_allocation,
+                    memory_allocation,
+                    freezing_threshold,
+                },
+            )
+            .await?;
+        }
     }
     Ok(())
 }
@@ -262,9 +274,11 @@ async fn build_canisters(
     info!(log, "Building canisters...");
     let build_mode_check = false;
     let canister_pool = CanisterPool::load(env, build_mode_check, referenced_canisters)?;
-    let build_config = BuildConfig::from_config(config)?
-        .with_canisters_to_build(canisters_to_build.into())
-        .with_env_file(env_file);
+
+    let build_config =
+        BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
+            .with_canisters_to_build(canisters_to_build.into())
+            .with_env_file(env_file);
     canister_pool.build_or_fail(log, &build_config).await?;
     Ok(canister_pool)
 }
@@ -283,13 +297,9 @@ async fn install_canisters(
     pool: CanisterPool,
     skip_consent: bool,
     env_file: Option<&Path>,
-    assets_upgrade: bool,
+    no_asset_upgrade: bool,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
-
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
     let mut canister_id_store = env.get_canister_id_store()?;
 
@@ -312,17 +322,18 @@ async fn install_canisters(
 
         install_canister(
             env,
-            agent,
             &mut canister_id_store,
-            &canister_info,
-            &install_args,
+            canister_id,
+            Some(&canister_info),
+            None,
+            install_args,
             install_mode,
             call_sender,
             upgrade_unchanged,
             Some(&pool),
             skip_consent,
             env_file,
-            assets_upgrade,
+            no_asset_upgrade,
         )
         .await?;
     }

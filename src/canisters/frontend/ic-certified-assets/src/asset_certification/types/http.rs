@@ -247,7 +247,9 @@ impl HttpResponse {
                         enc,
                         key,
                         chunk_index,
-                        None,
+                        // we return the certificate anyways because then the service worker can try to convert the encoding (e.g. unzip)
+                        // and then try to match the response hash in other encoding formats
+                        certificate_header,
                         callback,
                         etags,
                         cert_version,
@@ -348,7 +350,7 @@ pub fn response_hash(
         Value::Number(status_code.into()),
     ));
     let header_hash = representation_independent_hash(&headers);
-    let hash: [u8; 32] = sha2::Sha256::digest(&[header_hash.as_ref(), body_hash].concat()).into();
+    let hash: [u8; 32] = sha2::Sha256::digest([header_hash.as_ref(), body_hash].concat()).into();
     ResponseHash(hash)
 }
 

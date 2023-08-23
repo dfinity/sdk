@@ -170,13 +170,8 @@ impl CanisterBuilder for CustomBuilder {
         // get the path to candid file
         let CustomBuilderExtra { candid, .. } = CustomBuilderExtra::try_from(info, pool)?;
 
-        std::fs::copy(&candid, &output_idl_path).with_context(|| {
-            format!(
-                "Failed to copy canidid from {} to {}.",
-                candid.to_string_lossy(),
-                output_idl_path.to_string_lossy()
-            )
-        })?;
+        dfx_core::fs::copy(&candid, &output_idl_path)?;
+        dfx_core::fs::set_permissions_readwrite(&output_idl_path)?;
 
         Ok(output_idl_path)
     }

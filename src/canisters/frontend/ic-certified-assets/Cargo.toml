@@ -27,5 +27,5 @@ serde_cbor.workspace = true
 sha2.workspace = true
 
 [dev-dependencies]
-ic-response-verification-test-utils = { git = "https://github.com/dfinity/response-verification.git" }
+ic-response-verification-test-utils = { git = "https://github.com/dfinity/response-verification.git", rev = "4686895c6070ac36109a01f4bd642caf2369b97b" }
 ic-crypto-tree-hash = { git = "https://github.com/dfinity/ic.git", rev = "a533346f63f4091eb64692891de0d5b2ffd5b22a" }

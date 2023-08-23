@@ -1,6 +1,7 @@
 use crate::lib::agent::create_agent_environment;
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::{lib::environment::Environment, NetworkOpt};
+use crate::lib::network::network_opt::NetworkOpt;
 use anyhow::anyhow;
 use clap::{Parser, Subcommand};
 use dfx_core::identity::CallSender;
@@ -60,7 +61,7 @@ pub enum SubCommand {
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network.network)?;
+    let agent_env = create_agent_environment(env, opts.network.to_network_name())?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(async {

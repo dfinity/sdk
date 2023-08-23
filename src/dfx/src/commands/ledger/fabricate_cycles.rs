@@ -80,7 +80,7 @@ pub struct FabricateCyclesOpts {
     all: bool,
 }
 
-#[context("Failed to deposite {} cycles into canister '{}'.", cycles, canister)]
+#[context("Failed to deposit {} cycles into canister '{}'.", cycles, canister)]
 async fn deposit_minted_cycles(
     env: &dyn Environment,
     canister: &str,

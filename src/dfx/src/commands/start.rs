@@ -76,6 +76,10 @@ pub struct StartOpts {
     /// Start even if the network config was modified.
     #[arg(long)]
     force: bool,
+
+    /// Use old metering.
+    #[arg(long)]
+    use_old_metering: bool,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -141,6 +145,7 @@ pub fn exec(
         enable_bitcoin,
         enable_canister_http,
         artificial_delay,
+        use_old_metering,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -173,6 +178,7 @@ pub fn exec(
         enable_bitcoin,
         bitcoin_node,
         enable_canister_http,
+        emulator,
     )?;
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
@@ -287,8 +293,13 @@ pub fn exec(
         .unwrap_or_default();
 
     let replica_config = {
-        let replica_config =
-            ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay);
+        let replica_config = ReplicaConfig::new(
+            &state_root,
+            subnet_type,
+            log_level,
+            artificial_delay,
+            use_old_metering,
+        );
         let mut replica_config = if let Some(port) = local_server_descriptor.replica.port {
             replica_config.with_port(port)
         } else {
@@ -392,10 +403,10 @@ pub fn exec(
     system.run()?;
 
     if let Some(btc_adapter_socket_path) = btc_adapter_socket_path {
-        let _ = std::fs::remove_file(&btc_adapter_socket_path);
+        let _ = std::fs::remove_file(btc_adapter_socket_path);
     }
     if let Some(canister_http_socket_path) = canister_http_socket_path {
-        let _ = std::fs::remove_file(&canister_http_socket_path);
+        let _ = std::fs::remove_file(canister_http_socket_path);
     }
 
     Ok(())
@@ -441,6 +452,7 @@ pub fn apply_command_line_parameters(
     enable_bitcoin: bool,
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
+    emulator: bool,
 ) -> DfxResult<NetworkDescriptor> {
     if enable_canister_http {
         warn!(
@@ -448,6 +460,13 @@ pub fn apply_command_line_parameters(
             "The --enable-canister-http parameter is deprecated."
         );
         warn!(logger, "Canister HTTP suppport is enabled by default.  It can be disabled through dfx.json or networks.json.");
+    }
+
+    if emulator {
+        warn!(
+            logger,
+            "The --emulator parameter is deprecated and will be discontinued soon."
+        );
     }
 
     let _ = network_descriptor.local_server_descriptor()?;
@@ -607,7 +626,7 @@ fn create_new_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> Df
     // An attempt to use a path under .dfx/ resulted in this error:
     //    path must be shorter than libc::sockaddr_un.sun_path
     let uds_path = std::env::temp_dir().join(format!("{}.{}.{}", prefix, pid, timestamp_seconds));
-    std::fs::write(uds_holder_path, &uds_path.to_raw_bytes()).with_context(|| {
+    std::fs::write(uds_holder_path, uds_path.to_raw_bytes()).with_context(|| {
         format!(
             "unable to write unix domain socket path to {}",
             uds_holder_path.to_string_lossy()
@@ -638,7 +657,7 @@ fn write_btc_adapter_config(
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize btc adapter configuration to json")?;
-    std::fs::write(config_path, &contents).with_context(|| {
+    std::fs::write(config_path, contents).with_context(|| {
         format!(
             "Unable to write btc adapter configuration to {}",
             config_path.to_string_lossy()
@@ -672,7 +691,7 @@ pub fn configure_canister_http_adapter_if_enabled(
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize canister http adapter configuration to json")?;
-    std::fs::write(config_path, &contents)
+    std::fs::write(config_path, contents)
         .with_context(|| format!("Unable to write {}", config_path.to_string_lossy()))?;
 
     Ok(Some(adapter_config))

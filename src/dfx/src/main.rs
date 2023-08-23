@@ -5,7 +5,7 @@ use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
 use crate::lib::warning::{is_warning_disabled, DfxWarning::VersionCheck};
 use anyhow::Error;
-use clap::{ArgAction, Args, CommandFactory, Parser};
+use clap::{ArgAction, CommandFactory, Parser};
 use dfx_core::extension::manager::ExtensionManager;
 use semver::Version;
 use std::collections::HashMap;
@@ -48,16 +48,6 @@ pub struct CliOpts {
 
     #[command(subcommand)]
     command: commands::DfxCommand,
-}
-
-#[derive(Args, Clone, Debug)]
-struct NetworkOpt {
-    /// Override the compute network to connect to. By default, the local network is used.
-    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
-    /// ephemeral network will be created specifically for this request. E.g.
-    /// "http://localhost:12345/" is a valid network name.
-    #[arg(long, global = true)]
-    network: Option<String>,
 }
 
 /// In some cases, redirect the dfx execution to the proper version.
@@ -237,18 +227,6 @@ fn main() {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use clap::CommandFactory;
-
-    use crate::CliOpts;
-
-    #[test]
-    fn validate_cli() {
-        CliOpts::command().debug_assert();
-    }
-}
-
 /// sort subcommands alphabetically (despite this clap prints help as the last one)
 pub fn sort_clap_commands(cmd: &mut clap::Command) {
     let mut cli_subcommands: Vec<String> = cmd
@@ -265,5 +243,17 @@ pub fn sort_clap_commands(cmd: &mut clap::Command) {
         let name = c.get_display_name().unwrap_or_default().to_string();
         let ord = *cli_subcommands.get(&name).unwrap_or(&999);
         *c = c.clone().display_order(ord);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::CommandFactory;
+
+    use crate::CliOpts;
+
+    #[test]
+    fn validate_cli() {
+        CliOpts::command().debug_assert();
     }
 }

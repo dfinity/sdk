@@ -4,21 +4,41 @@ use crate::config::directories::get_config_dfx_dir_path;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use crate::error::fs::FsError;
+use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError;
+use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError::DeriveExtendedKeyFromPathFailed;
+use crate::error::identity::create_new_identity::CreateNewIdentityError;
+use crate::error::identity::create_new_identity::CreateNewIdentityError::{
+    CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
+    CreateMnemonicFromPhraseFailed, CreateTemporaryIdentityDirectoryFailed,
+    RenameTemporaryIdentityDirectoryFailed, SwitchBackToIdentityFailed,
+    SwitchToAnonymousIdentityFailed,
+};
+use crate::error::identity::export_identity::ExportIdentityError;
+use crate::error::identity::export_identity::ExportIdentityError::TranslatePemContentToTextFailed;
+use crate::error::identity::generate_key::GenerateKeyError;
+use crate::error::identity::generate_key::GenerateKeyError::GenerateFreshSecp256k1KeyFailed;
+use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError;
+use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError::GetLegacyPemPathFailed;
+use crate::error::identity::initialize_identity_manager::InitializeIdentityManagerError;
+use crate::error::identity::initialize_identity_manager::InitializeIdentityManagerError::{
+    CreateIdentityDirectoryFailed, GenerateKeyFailed, MigrateLegacyIdentityFailed,
+    WritePemToFileFailed,
+};
+use crate::error::identity::new_identity_manager::NewIdentityManagerError;
+use crate::error::identity::new_identity_manager::NewIdentityManagerError::LoadIdentityManagerConfigurationFailed;
+use crate::error::identity::rename_identity::RenameIdentityError;
+use crate::error::identity::rename_identity::RenameIdentityError::{
+    GetIdentityConfigFailed, LoadPemFailed, MapWalletsToRenamedIdentityFailed,
+    RenameIdentityDirectoryFailed, SavePemFailed, SwitchDefaultIdentitySettingsFailed,
+};
 use crate::error::identity::IdentityError;
 use crate::error::identity::IdentityError::{
-    CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
-    CreateIdentityDirectoryFailed, CreateMnemonicFromPhraseFailed,
-    CreateTemporaryIdentityDirectoryFailed, DisplayLinkedWalletsFailed,
-    DropWalletsFlagRequiredToRemoveIdentityWithWallets, EnsureIdentityConfigurationDirExistsFailed,
-    GenerateFreshEncryptionConfigurationFailed, GetConfigDirectoryFailed,
-    GetIdentityPrincipalFailed, GetLegacyPemPathFailed, IdentityAlreadyExists,
-    LoadIdentityConfigurationFailed, LoadIdentityManagerConfigurationFailed,
-    RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed,
-    RenameIdentityDirectoryFailed, RenameTemporaryIdentityDirectoryFailed,
-    SaveIdentityConfigurationFailed, SaveIdentityManagerConfigurationFailed,
-    SwitchBackToIdentityFailed, SwitchDefaultIdentitySettingsFailed,
-    SwitchToAnonymousIdentityFailed, TranslatePemContentToTextFailed,
+    DisplayLinkedWalletsFailed, DropWalletsFlagRequiredToRemoveIdentityWithWallets,
+    EnsureIdentityConfigurationDirExistsFailed, GenerateFreshEncryptionConfigurationFailed,
+    GetIdentityPrincipalFailed, LoadIdentityConfigurationFailed, RemoveIdentityDirectoryFailed,
+    RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed, SaveIdentityConfigurationFailed,
 };
+use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
 use crate::fs::composite::ensure_parent_dir_exists;
 use crate::identity::identity_file_locations::{IdentityFileLocations, IDENTITY_PEM};
@@ -169,15 +189,21 @@ pub struct IdentityManager {
 }
 
 impl IdentityManager {
-    pub fn new(logger: &Logger, identity_override: &Option<String>) -> Result<Self, IdentityError> {
-        let config_dfx_dir_path = get_config_dfx_dir_path().map_err(GetConfigDirectoryFailed)?;
+    pub fn new(
+        logger: &Logger,
+        identity_override: &Option<String>,
+    ) -> Result<Self, NewIdentityManagerError> {
+        let config_dfx_dir_path =
+            get_config_dfx_dir_path().map_err(NewIdentityManagerError::GetConfigDirectoryFailed)?;
         let identity_root_path = config_dfx_dir_path.join("identity");
         let identity_json_path = config_dfx_dir_path.join("identity.json");
 
         let configuration = if identity_json_path.exists() {
-            load_configuration(&identity_json_path)?
+            load_configuration(&identity_json_path)
+                .map_err(LoadIdentityManagerConfigurationFailed)?
         } else {
-            initialize(logger, &identity_json_path, &identity_root_path)?
+            initialize(logger, &identity_json_path, &identity_root_path)
+                .map_err(NewIdentityManagerError::InitializeFailed)?
         };
 
         let selected_identity = identity_override
@@ -194,7 +220,8 @@ impl IdentityManager {
         };
 
         if let Some(identity) = identity_override {
-            mgr.require_identity_exists(logger, identity)?;
+            mgr.require_identity_exists(logger, identity)
+                .map_err(NewIdentityManagerError::OverrideIdentityMustExist)?;
         }
 
         Ok(mgr)
@@ -246,9 +273,9 @@ impl IdentityManager {
         name: &str,
         parameters: IdentityCreationParameters,
         force: bool,
-    ) -> Result<(), IdentityError> {
+    ) -> Result<(), CreateNewIdentityError> {
         if name == ANONYMOUS_IDENTITY_NAME {
-            return Err(IdentityError::CannotCreateAnonymousIdentity());
+            return Err(CreateNewIdentityError::CannotCreateAnonymousIdentity());
         }
 
         trace!(log, "Creating identity '{name}'.");
@@ -261,11 +288,12 @@ impl IdentityManager {
             if force {
                 if temporarily_use_anonymous_identity {
                     self.use_identity_named(log, ANONYMOUS_IDENTITY_NAME)
-                        .map_err(|e| SwitchToAnonymousIdentityFailed(Box::new(e)))?;
+                        .map_err(SwitchToAnonymousIdentityFailed)?;
                 }
-                self.remove(log, name, true, None)?;
+                self.remove(log, name, true, None)
+                    .map_err(CreateNewIdentityError::RemoveIdentityFailed)?;
             } else {
-                return Err(IdentityAlreadyExists());
+                return Err(CreateNewIdentityError::IdentityAlreadyExists());
             }
         }
 
@@ -323,41 +351,50 @@ impl IdentityManager {
         let identity_config;
         match parameters {
             IdentityCreationParameters::Pem { mode } => {
-                let (pem_content, mnemonic) = generate_key()?;
-                identity_config = create_identity_config(log, mode, name, None)?;
+                let (pem_content, mnemonic) =
+                    generate_key().map_err(CreateNewIdentityError::GenerateKeyFailed)?;
+                identity_config = create_identity_config(log, mode, name, None)
+                    .map_err(CreateNewIdentityError::CreateIdentityConfigFailed)?;
                 pem_safekeeping::save_pem(
                     log,
                     self.file_locations(),
                     &temp_identity_name,
                     &identity_config,
                     pem_content.as_slice(),
-                )?;
+                )
+                .map_err(CreateNewIdentityError::SavePemFailed)?;
                 eprintln!("Your seed phrase for identity '{name}': {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
             }
             IdentityCreationParameters::PemFile { src_pem_file, mode } => {
-                identity_config = create_identity_config(log, mode, name, None)?;
-                let (src_pem_content, _) =
-                    pem_safekeeping::load_pem_from_file(&src_pem_file, None)?;
-                pem_utils::validate_pem_file(&src_pem_content)?;
+                identity_config = create_identity_config(log, mode, name, None)
+                    .map_err(CreateNewIdentityError::CreateIdentityConfigFailed)?;
+                let (src_pem_content, _) = pem_safekeeping::load_pem_from_file(&src_pem_file, None)
+                    .map_err(CreateNewIdentityError::LoadPemFromFileFailed)?;
+                pem_utils::validate_pem_file(&src_pem_content)
+                    .map_err(CreateNewIdentityError::ValidatePemFileFailed)?;
                 pem_safekeeping::save_pem(
                     log,
                     self.file_locations(),
                     &temp_identity_name,
                     &identity_config,
                     src_pem_content.as_slice(),
-                )?;
+                )
+                .map_err(CreateNewIdentityError::SavePemFailed)?;
             }
             IdentityCreationParameters::Hardware { hsm } => {
                 identity_config =
-                    create_identity_config(log, IdentityStorageMode::default(), name, Some(hsm))?;
+                    create_identity_config(log, IdentityStorageMode::default(), name, Some(hsm))
+                        .map_err(CreateNewIdentityError::CreateIdentityConfigFailed)?;
                 crate::fs::create_dir_all(&temp_identity_dir)
                     .map_err(CreateTemporaryIdentityDirectoryFailed)?;
             }
             IdentityCreationParameters::SeedPhrase { mnemonic, mode } => {
-                identity_config = create_identity_config(log, mode, name, None)?;
+                identity_config = create_identity_config(log, mode, name, None)
+                    .map_err(CreateNewIdentityError::CreateIdentityConfigFailed)?;
                 let mnemonic = Mnemonic::from_phrase(&mnemonic, Language::English)
                     .map_err(|e| CreateMnemonicFromPhraseFailed(format!("{}", e)))?;
-                let key = mnemonic_to_key(&mnemonic)?;
+                let key = mnemonic_to_key(&mnemonic)
+                    .map_err(CreateNewIdentityError::ConvertMnemonicToKeyFailed)?;
                 let pem = key
                     .to_sec1_pem(k256::pkcs8::LineEnding::CRLF)
                     .map_err(|e| ConvertSecretKeyToSec1PemFailed(Box::new(e)))?;
@@ -368,11 +405,13 @@ impl IdentityManager {
                     &temp_identity_name,
                     &identity_config,
                     pem_content,
-                )?;
+                )
+                .map_err(CreateNewIdentityError::SavePemFailed)?;
             }
         }
         let identity_config_location = self.get_identity_json_path(&temp_identity_name);
-        save_identity_configuration(log, &identity_config_location, &identity_config)?;
+        save_identity_configuration(log, &identity_config_location, &identity_config)
+            .map_err(CreateNewIdentityError::SaveIdentityConfigurationFailed)?;
 
         // Everything is created. Now move from the temporary directory to the actual identity location.
         let identity_dir = self.get_identity_dir_path(name);
@@ -381,7 +420,7 @@ impl IdentityManager {
 
         if temporarily_use_anonymous_identity {
             self.use_identity_named(log, &identity_in_use)
-                .map_err(|e| SwitchBackToIdentityFailed(Box::new(e)))?;
+                .map_err(SwitchBackToIdentityFailed)?;
         }
         Ok(())
     }
@@ -416,12 +455,16 @@ impl IdentityManager {
     }
 
     /// Returns the pem file content of the selected identity
-    pub fn export(&self, log: &Logger, name: &str) -> Result<String, IdentityError> {
-        self.require_identity_exists(log, name)?;
-        let config = self.get_identity_config_or_default(name)?;
-        let (pem_content, _) = pem_safekeeping::load_pem(log, &self.file_locations, name, &config)?;
+    pub fn export(&self, log: &Logger, name: &str) -> Result<String, ExportIdentityError> {
+        self.require_identity_exists(log, name)
+            .map_err(ExportIdentityError::IdentityDoesNotExist)?;
+        let config = self
+            .get_identity_config_or_default(name)
+            .map_err(ExportIdentityError::GetIdentityConfigFailed)?;
+        let (pem_content, _) = pem_safekeeping::load_pem(log, &self.file_locations, name, &config)
+            .map_err(ExportIdentityError::LoadPemFailed)?;
 
-        validate_pem_file(&pem_content)?;
+        validate_pem_file(&pem_content).map_err(ExportIdentityError::ValidatePemFileFailed)?;
         String::from_utf8(pem_content).map_err(TranslatePemContentToTextFailed)
     }
 
@@ -486,40 +529,47 @@ impl IdentityManager {
         project_temp_dir: Option<PathBuf>,
         from: &str,
         to: &str,
-    ) -> Result<bool, IdentityError> {
+    ) -> Result<bool, RenameIdentityError> {
         if to == ANONYMOUS_IDENTITY_NAME {
-            return Err(IdentityError::CannotCreateAnonymousIdentity());
+            return Err(RenameIdentityError::CannotCreateAnonymousIdentity());
         }
-        self.require_identity_exists(log, from)?;
+        self.require_identity_exists(log, from)
+            .map_err(RenameIdentityError::IdentityDoesNotExist)?;
 
-        let identity_config = self.get_identity_config_or_default(from)?;
+        let identity_config = self
+            .get_identity_config_or_default(from)
+            .map_err(GetIdentityConfigFailed)?;
         let from_dir = self.get_identity_dir_path(from);
         let to_dir = self.get_identity_dir_path(to);
 
         if to_dir.exists() {
-            return Err(IdentityError::IdentityAlreadyExists());
+            return Err(RenameIdentityError::IdentityAlreadyExists());
         }
 
-        DfxIdentity::map_wallets_to_renamed_identity(project_temp_dir, from, to)?;
+        DfxIdentity::map_wallets_to_renamed_identity(project_temp_dir, from, to)
+            .map_err(MapWalletsToRenamedIdentityFailed)?;
         crate::fs::rename(&from_dir, &to_dir).map_err(RenameIdentityDirectoryFailed)?;
         if let Some(keyring_identity_suffix) = &identity_config.keyring_identity_suffix {
             debug!(log, "Migrating keyring content.");
             let (pem, _) =
-                pem_safekeeping::load_pem(log, &self.file_locations, from, &identity_config)?;
+                pem_safekeeping::load_pem(log, &self.file_locations, from, &identity_config)
+                    .map_err(LoadPemFailed)?;
             let new_config = IdentityConfiguration {
                 keyring_identity_suffix: Some(to.to_string()),
                 ..identity_config
             };
-            pem_safekeeping::save_pem(log, &self.file_locations, to, &new_config, pem.as_ref())?;
+            pem_safekeeping::save_pem(log, &self.file_locations, to, &new_config, pem.as_ref())
+                .map_err(SavePemFailed)?;
             let config_path = self.get_identity_json_path(to);
-            save_identity_configuration(log, &config_path, &new_config)?;
+            save_identity_configuration(log, &config_path, &new_config)
+                .map_err(RenameIdentityError::SaveIdentityConfigurationFailed)?;
             keyring_mock::delete_pem_from_keyring(keyring_identity_suffix)
-                .map_err(RemoveIdentityFromKeyringFailed)?;
+                .map_err(RenameIdentityError::RemoveIdentityFromKeyringFailed)?;
         }
 
         if from == self.configuration.default {
             self.write_default_identity(to)
-                .map_err(|e| SwitchDefaultIdentitySettingsFailed(Box::new(e)))?;
+                .map_err(SwitchDefaultIdentitySettingsFailed)?;
             Ok(true)
         } else {
             Ok(false)
@@ -538,7 +588,8 @@ impl IdentityManager {
         let config = Configuration {
             default: String::from(name),
         };
-        save_configuration(&self.identity_json_path, &config)?;
+        save_configuration(&self.identity_json_path, &config)
+            .map_err(IdentityError::SaveIdentityManagerConfigurationFailed)?;
         Ok(())
     }
 
@@ -606,7 +657,7 @@ fn initialize(
     logger: &Logger,
     identity_json_path: &Path,
     identity_root_path: &Path,
-) -> Result<Configuration, IdentityError> {
+) -> Result<Configuration, InitializeIdentityManagerError> {
     slog::info!(
         logger,
         r#"Creating the "default" identity.
@@ -639,15 +690,16 @@ To create a more secure identity, create and use an identity that is protected b
                 identity_pem_path.display()
             );
             crate::fs::copy(&creds_pem_path, &identity_pem_path)
-                .map_err(IdentityError::MigrateLegacyIdentityFailed)?;
+                .map_err(MigrateLegacyIdentityFailed)?;
         } else {
             slog::info!(
                 logger,
                 "  - generating new key at {}",
                 identity_pem_path.display()
             );
-            let (key, mnemonic) = generate_key()?;
-            pem_safekeeping::write_pem_to_file(&identity_pem_path, None, key.as_slice())?;
+            let (key, mnemonic) = generate_key().map_err(GenerateKeyFailed)?;
+            pem_safekeeping::write_pem_to_file(&identity_pem_path, None, key.as_slice())
+                .map_err(WritePemToFileFailed)?;
             eprintln!("Your seed phrase: {}\nThis can be used to reconstruct your key in case of emergency, so write it down in a safe place.", mnemonic.phrase());
         }
     } else {
@@ -661,13 +713,14 @@ To create a more secure identity, create and use an identity that is protected b
     let config = Configuration {
         default: String::from(DEFAULT_IDENTITY_NAME),
     };
-    save_configuration(identity_json_path, &config)?;
+    save_configuration(identity_json_path, &config)
+        .map_err(InitializeIdentityManagerError::SaveConfigurationFailed)?;
     slog::info!(logger, r#"Created the "default" identity."#);
 
     Ok(config)
 }
 
-fn get_legacy_creds_pem_path() -> Result<Option<PathBuf>, IdentityError> {
+fn get_legacy_creds_pem_path() -> Result<Option<PathBuf>, GetLegacyCredentialsPemPathError> {
     if cfg!(windows) {
         // No legacy path on Windows - there was no Windows support when paths were changed
         Ok(None)
@@ -685,12 +738,12 @@ fn get_legacy_creds_pem_path() -> Result<Option<PathBuf>, IdentityError> {
     }
 }
 
-fn load_configuration(path: &Path) -> Result<Configuration, IdentityError> {
-    load_json_file(path).map_err(LoadIdentityManagerConfigurationFailed)
+fn load_configuration(path: &Path) -> Result<Configuration, StructuredFileError> {
+    load_json_file(path)
 }
 
-fn save_configuration(path: &Path, config: &Configuration) -> Result<(), IdentityError> {
-    save_json_file(path, config).map_err(SaveIdentityManagerConfigurationFailed)
+fn save_configuration(path: &Path, config: &Configuration) -> Result<(), StructuredFileError> {
+    save_json_file(path, config)
 }
 
 pub(super) fn save_identity_configuration(
@@ -713,20 +766,21 @@ fn remove_identity_file(file: &Path) -> Result<(), IdentityError> {
 }
 
 /// Generates a new secp256k1 key.
-pub(super) fn generate_key() -> Result<(Vec<u8>, Mnemonic), IdentityError> {
+pub(super) fn generate_key() -> Result<(Vec<u8>, Mnemonic), GenerateKeyError> {
     let mnemonic = Mnemonic::new(MnemonicType::for_key_size(256).unwrap(), Language::English);
-    let secret = mnemonic_to_key(&mnemonic)?;
+    let secret =
+        mnemonic_to_key(&mnemonic).map_err(GenerateKeyError::ConvertMnemonicToKeyFailed)?;
     let pem = secret
         .to_sec1_pem(LineEnding::CRLF)
-        .map_err(|e| IdentityError::GenerateFreshSecp256k1KeyFailed(Box::new(e)))?;
+        .map_err(|e| GenerateFreshSecp256k1KeyFailed(Box::new(e)))?;
     Ok((pem.as_bytes().to_vec(), mnemonic))
 }
 
-pub fn mnemonic_to_key(mnemonic: &Mnemonic) -> Result<SecretKey, IdentityError> {
+pub fn mnemonic_to_key(mnemonic: &Mnemonic) -> Result<SecretKey, ConvertMnemonicToKeyError> {
     const DEFAULT_DERIVATION_PATH: &str = "m/44'/223'/0'/0/0";
     let path = DEFAULT_DERIVATION_PATH.parse().unwrap();
     let seed = Seed::new(mnemonic, "");
-    let pk = XPrv::derive_from_path(seed.as_bytes(), &path)
-        .map_err(IdentityError::DeriveExtendedKeyFromPathFailed)?;
+    let pk =
+        XPrv::derive_from_path(seed.as_bytes(), &path).map_err(DeriveExtendedKeyFromPathFailed)?;
     Ok(SecretKey::from(pk.private_key()))
 }

@@ -1,6 +1,5 @@
 use crate::lib::environment::{create_agent, Environment};
 use crate::lib::error::{DfxError, DfxResult};
-use crate::util::expiry_duration;
 use anyhow::{bail, Context};
 use clap::Parser;
 use dfx_core::identity::Identity;
@@ -8,6 +7,7 @@ use dfx_core::network::provider::{
     command_line_provider_to_url, create_network_descriptor, get_network_context,
     LocalBindDetermination,
 };
+use dfx_core::util::expiry_duration;
 use slog::warn;
 use std::time::Duration;
 use tokio::runtime::Runtime;

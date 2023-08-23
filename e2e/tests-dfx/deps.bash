@@ -72,7 +72,6 @@ setup_onchain() {
 @test "dfx deps pull can resolve dependencies from on-chain canister metadata" {
     # ic-ref has different behavior than the replica:
     #   it doesn't differ whether the canister not exist or the metadata not exist
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     dfx_start
 
     install_asset deps
@@ -125,7 +124,6 @@ Failed to download from url: http://example.com/c.wasm."
     cd ../app
     assert_command_fail dfx deps pull --network local
     assert_contains "Failed to get dependencies of canister $CANISTER_ID_A."
-    assert_contains "Canister $CANISTER_ID_A has no module."
 
     cd ../onchain
     dfx canister stop a
@@ -134,7 +132,6 @@ Failed to download from url: http://example.com/c.wasm."
     cd ../app
     assert_command_fail dfx deps pull --network local
     assert_contains "Failed to get dependencies of canister $CANISTER_ID_A."
-    assert_contains "Canister $CANISTER_ID_A not found."
 }
 
 @test "dfx deps pull can download wasm and candids to shared cache and generate pulled.json" {
@@ -314,10 +311,6 @@ candid:args => (nat)"
 }
 
 @test "dfx deps deploy works" {
-    # ic-ref have a different behavior than the replica:
-    #    once a canister has been deleted, it cannot be created again.
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
     # start a "mainnet" replica which host the onchain canisters
@@ -390,10 +383,6 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 }
 
 @test "dfx deps pulled dependencies work with app canister" {
-    # ic-ref have a different behavior than the replica:
-    #    once a canister has been deleted, it cannot be created again.
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
     # start a "mainnet" replica which host the onchain canisters

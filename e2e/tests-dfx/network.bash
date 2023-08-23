@@ -86,3 +86,28 @@ teardown() {
     assert_match "Cannot find canister id."
     assert_match "--network actuallylocal"
 }
+
+@test "network 'playground' has a default definition" {
+    # if network is unknown dfx fails with `Network not found: <network name>`
+    assert_command_fail dfx canister id hello_backend --network playground
+    assert_contains "Cannot find canister id"
+}
+
+@test "equivalent: --network ic and --ic" {
+    dfx_start
+    dfx identity get-wallet
+
+    assert_command_fail dfx diagnose --network ic
+    assert_contains "The test_id identity is not stored securely."
+    assert_contains "use it in mainnet-facing commands"
+    assert_contains "No wallet found; nothing to do"
+
+    assert_command_fail dfx diagnose --ic
+    assert_contains "The test_id identity is not stored securely."
+    assert_contains "use it in mainnet-facing commands"
+    assert_contains "No wallet found; nothing to do"
+
+    assert_command dfx diagnose
+    assert_not_contains "identity is not stored securely"
+    assert_eq "No problems found"
+}

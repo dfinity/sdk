@@ -100,6 +100,17 @@ pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), FsEr
         .map_err(|err| FsError::new(WritePermissionsFailed(path.to_path_buf(), err)))
 }
 
+pub fn set_permissions_readwrite(path: &Path) -> Result<(), FsError> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut permissions = read_permissions(path)?;
+        permissions.set_mode(permissions.mode() | 0o600);
+        set_permissions(path, permissions)?;
+    }
+    Ok(())
+}
+
 pub fn tar_unpack_in<P: AsRef<Path>>(
     path: P,
     tar: &mut tar::Entry<flate2::read::GzDecoder<&'static [u8]>>,

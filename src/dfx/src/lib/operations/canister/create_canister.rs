@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
+use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
@@ -68,6 +69,10 @@ pub async fn create_canister(
         return Ok(());
     }
 
+    if env.get_network_descriptor().is_playground() {
+        return reserve_canister_with_playground(env, canister_name).await;
+    }
+
     let agent = env
         .get_agent()
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
@@ -87,7 +92,7 @@ pub async fn create_canister(
         non_default_network,
         canister_id
     );
-    canister_id_store.add(canister_name, &canister_id)?;
+    canister_id_store.add(canister_name, &canister_id, None)?;
 
     Ok(())
 }
