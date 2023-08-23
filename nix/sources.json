@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "7600054d6c764c71f0b2a6f0b9f80b66c23b1e61",
-        "sha256": "12h4l7hz6bkf12hxx8f33a2za0l1fysk63jys2vmdjdai91idprl",
+        "rev": "5bde16559d674a17ff278a71c11b0635b80f4c6e",
+        "sha256": "0xbqrlxs2gpjzbpv0270a6f2h6kf1jl87vda5rsrng4av8xaq61x",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/7600054d6c764c71f0b2a6f0b9f80b66c23b1e61.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/5bde16559d674a17ff278a71c11b0635b80f4c6e.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "canister_sandbox-x86_64-darwin": {
@@ -142,18 +142,18 @@
     },
     "icx-proxy-x86_64-darwin": {
         "builtin": false,
-        "rev": "0062aec2efc16d6e4cadb2cd1052aaabbc9f6e48",
-        "sha256": "0afgjis1airca296m4nj9xkmag3xn6k2jfflnm99kxir8a5ymab4",
+        "rev": "3bcccef07408921fe849c92dd2437adc157ef9c3",
+        "sha256": "0irj1dja2dab26pdkwclxzdr4js3wk3kl88951f4dslp4zl576p9",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/0062aec2efc16d6e4cadb2cd1052aaabbc9f6e48/openssl-static-binaries/x86_64-darwin/icx-proxy-dev.gz",
+        "url": "https://download.dfinity.systems/ic/3bcccef07408921fe849c92dd2437adc157ef9c3/openssl-static-binaries/x86_64-darwin/icx-proxy-dev.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-darwin/icx-proxy-dev.gz"
     },
     "icx-proxy-x86_64-linux": {
         "builtin": false,
-        "rev": "0062aec2efc16d6e4cadb2cd1052aaabbc9f6e48",
-        "sha256": "1mkwikzr2m78fkf30xkyzhxrgihdl6lhsrxq8ljgbmg8k2gcipnb",
+        "rev": "3bcccef07408921fe849c92dd2437adc157ef9c3",
+        "sha256": "1n613zgbzpihy4849kccbqhdlvbd21qfpm28am78s53swlm5z7lc",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/0062aec2efc16d6e4cadb2cd1052aaabbc9f6e48/openssl-static-binaries/x86_64-linux/icx-proxy-dev.gz",
+        "url": "https://download.dfinity.systems/ic/3bcccef07408921fe849c92dd2437adc157ef9c3/openssl-static-binaries/x86_64-linux/icx-proxy-dev.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-linux/icx-proxy-dev.gz"
     },
     "motoko-base": {
