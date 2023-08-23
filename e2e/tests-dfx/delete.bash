@@ -23,11 +23,7 @@ teardown() {
     assert_command_fail dfx canister info e2e_project_backend
     assert_contains "Cannot find canister id. Please issue 'dfx canister create e2e_project_backend'."
     assert_command_fail dfx canister status "$id"
-    if [ "$USE_IC_REF" ]; then
-        assert_contains "canister no longer exists: $id"
-    else
-        assert_contains "Canister $id not found"
-    fi
+    assert_contains "Canister $id not found"
 }
 
 @test "delete requires confirmation if the canister is not stopped" {
@@ -40,9 +36,5 @@ teardown() {
     assert_command_fail dfx canister info e2e_project_backend
     assert_contains "Cannot find canister id. Please issue 'dfx canister create e2e_project_backend'."
     assert_command_fail dfx canister status "$id"
-    if [ "$USE_IC_REF" ]; then
-        assert_contains "canister no longer exists: $id"
-    else
-        assert_contains "Canister $id not found"
-    fi
+    assert_contains "Canister $id not found"
 }
