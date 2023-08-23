@@ -38,13 +38,11 @@ teardown() {
 }
 
 @test "uses local bind address if there is no local network" {
-  [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
   jq 'del(.networks.local)' dfx.json | sponge dfx.json
   dfx_start
 }
 
 @test "uses local bind address if there are no networks" {
-  [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
   jq 'del(.networks)' dfx.json | sponge dfx.json
   dfx_start
 }

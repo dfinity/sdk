@@ -15,8 +15,6 @@ teardown() {
 }
 
 @test "install --mode=reinstall --all fails" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
     dfx_start
     assert_command_fail dfx canister install --mode=reinstall --all
 
@@ -25,7 +23,6 @@ teardown() {
 
 @test "install --mode=reinstall fails if no canister is provided" {
     # This fails because clap protects against it.
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
 
     dfx_start
     assert_command_fail dfx canister install --mode=reinstall
@@ -63,8 +60,6 @@ teardown() {
 }
 
 @test "deploy --mode=reinstall fails if no canister name specified" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
     dfx_start
     assert_command_fail dfx deploy --mode=reinstall
 

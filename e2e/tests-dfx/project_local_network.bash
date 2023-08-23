@@ -72,8 +72,6 @@ teardown() {
 }
 
 @test "upgrade a wallet in a project-specific network" {
-    [ "$USE_IC_REF" ] && skip "wallet upgrade with emulator times out often under CI"
-
     dfx_new hello
     define_project_network
 

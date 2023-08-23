@@ -3,10 +3,17 @@ use super::IdentityConfiguration;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{DecryptContentFailed, HashPasswordFailed};
 use crate::error::fs::FsError;
+use crate::error::identity::save_pem::SavePemError;
+use crate::error::identity::save_pem::SavePemError::{
+    CannotSavePemContentForHsm, WritePemToKeyringFailed,
+};
+use crate::error::identity::write_pem_to_file::WritePemToFileError;
+use crate::error::identity::write_pem_to_file::WritePemToFileError::{
+    EncryptPemFileFailed, WritePemContentFailed,
+};
 use crate::error::identity::IdentityError;
 use crate::error::identity::IdentityError::{
-    CannotSavePemContentForHsm, DecryptPemFileFailed, LoadPemFromKeyringFailed, ReadPemFileFailed,
-    WritePemToKeyringFailed,
+    DecryptPemFileFailed, LoadPemFromKeyringFailed, ReadPemFileFailed,
 };
 use crate::identity::identity_file_locations::IdentityFileLocations;
 use crate::identity::keyring_mock;
@@ -46,7 +53,7 @@ pub(crate) fn save_pem(
     name: &str,
     identity_config: &IdentityConfiguration,
     pem_content: &[u8],
-) -> Result<(), IdentityError> {
+) -> Result<(), SavePemError> {
     trace!(
         log,
         "Saving pem with input identity name '{name}' and identity config {:?}",
@@ -61,6 +68,7 @@ pub(crate) fn save_pem(
     } else {
         let path = locations.get_identity_pem_path(name, identity_config);
         write_pem_to_file(&path, Some(identity_config), pem_content)
+            .map_err(SavePemError::WritePemToFileFailed)
     }
 }
 
@@ -87,11 +95,11 @@ pub fn write_pem_to_file(
     path: &Path,
     config: Option<&IdentityConfiguration>,
     pem_content: &[u8],
-) -> Result<(), IdentityError> {
+) -> Result<(), WritePemToFileError> {
     let pem_content = maybe_encrypt_pem(pem_content, config)
-        .map_err(|err| IdentityError::EncryptPemFileFailed(path.to_path_buf(), err))?;
+        .map_err(|err| EncryptPemFileFailed(path.to_path_buf(), err))?;
 
-    write_pem_content(path, &pem_content).map_err(IdentityError::WritePemFileFailed)
+    write_pem_content(path, &pem_content).map_err(WritePemContentFailed)
 }
 
 fn write_pem_content(path: &Path, pem_content: &[u8]) -> Result<(), FsError> {

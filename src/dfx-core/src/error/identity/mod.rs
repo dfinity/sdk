@@ -1,9 +1,13 @@
+pub mod convert_mnemonic_to_key;
 pub mod create_new_identity;
 pub mod export_identity;
+pub mod generate_key;
 pub mod get_legacy_credentials_pem_path;
 pub mod initialize_identity_manager;
 pub mod new_identity_manager;
 pub mod rename_identity;
+pub mod save_pem;
+pub mod write_pem_to_file;
 
 use crate::error::config::ConfigError;
 use crate::error::encryption::EncryptionError;
@@ -25,14 +29,8 @@ pub enum IdentityError {
     #[error("Cannot delete the anonymous identity.")]
     CannotDeleteAnonymousIdentity(),
 
-    #[error("Cannot save PEM content for an HSM.")]
-    CannotSavePemContentForHsm(),
-
     #[error("Failed to decrypt PEM file: {0}")]
     DecryptPemFileFailed(PathBuf, EncryptionError),
-
-    #[error("Failed to derive extended secret key from path: {0}")]
-    DeriveExtendedKeyFromPathFailed(bip32::Error),
 
     #[error("Failed to display linked wallets: {0}")]
     DisplayLinkedWalletsFailed(WalletConfigError),
@@ -40,17 +38,11 @@ pub enum IdentityError {
     #[error("If you want to remove an identity with configured wallets, please use the --drop-wallets flag.")]
     DropWalletsFlagRequiredToRemoveIdentityWithWallets(),
 
-    #[error("Cannot encrypt PEM file: {0}")]
-    EncryptPemFileFailed(PathBuf, EncryptionError),
-
     #[error("Failed to ensure identity configuration directory exists: {0}")]
     EnsureIdentityConfigurationDirExistsFailed(FsError),
 
     #[error("Failed to generate a fresh encryption configuration: {0}")]
     GenerateFreshEncryptionConfigurationFailed(EncryptionError),
-
-    #[error("Failed to generate a fresh secp256k1 key: {0}")]
-    GenerateFreshSecp256k1KeyFailed(Box<sec1::Error>),
 
     #[error("Failed to get config directory for identity manager: {0}")]
     GetConfigDirectoryFailed(ConfigError),
@@ -110,10 +102,4 @@ pub enum IdentityError {
 
     #[error("Failed to validate PEM content: {0}")]
     ValidatePemContentFailed(Box<PemError>),
-
-    #[error("Cannot write PEM file: {0}")]
-    WritePemFileFailed(FsError),
-
-    #[error("Failed to write PEM to keyring: {0}")]
-    WritePemToKeyringFailed(KeyringError),
 }
