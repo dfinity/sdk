@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### fix(frontend-canister): include .well-known dir by default, unless explicitly ignored
+
+Since .well-known is a well-known hidden directory, we're adding a rule that asset canisters should upload its content by default, even when not configured in .ic-assets.json.
+
+
 ### chore: --emulator parameter is deprecated and will be discontinued soon
 
 Added warning that the `--emulator` is deprecated and will be discontinued soon.
@@ -657,10 +662,6 @@ Added validate_grant_permission() and validate_revoke_permission() methods per S
 # 0.13.0
 
 ## DFX
-
-### fix(frontend-canister): include .well-known dir by defualt, unless explicitly ignored 
-
-Since .well-known is a well-known hidden directory, we're adding a rule that asset canisters should upload it's content by default, even when not configured in .ic-assets.json.
 
 ### feat: Add dfx sns download
 
