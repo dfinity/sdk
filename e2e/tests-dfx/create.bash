@@ -27,9 +27,6 @@ teardown() {
 }
 
 @test "create succeeds when specify large canister ID" {
-    # ic-ref defaults to have two subnets, each host 2^20 canisters
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-    
     dfx_start
     # hhn2s-5l777-77777-7777q-cai is the canister ID of (u64::MAX / 2)
     assert_command dfx canister create e2e_project_backend --specified-id hhn2s-5l777-77777-7777q-cai
@@ -42,7 +39,6 @@ teardown() {
     # nojwb-ieaaa-aaaaa-aaaaa-cai is the canister ID of (u64::MAX / 2 + 1)
     assert_command_fail dfx canister create e2e_project_backend --specified-id nojwb-ieaaa-aaaaa-aaaaa-cai
 
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref" # ic-ref has different error code and message
     assert_match "Specified CanisterId nojwb-ieaaa-aaaaa-aaaaa-cai is not hosted by subnet"
 }
 
