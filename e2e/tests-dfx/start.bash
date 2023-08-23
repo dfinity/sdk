@@ -13,8 +13,6 @@ teardown() {
 }
 
 @test "dfx restarts the replica" {
-    [ "$USE_IC_REF" ] && skip "skip for ic-ref"
-
     dfx_new hello
     dfx_start
 
@@ -53,8 +51,6 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy" {
-    [ "$USE_IC_REF" ] && skip "skip for ic-ref"
-
     dfx_new hello
     dfx_start
 
@@ -80,8 +76,6 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy when the replica restarts" {
-    [ "$USE_IC_REF" ] && skip "skip for ic-ref"
-
     dfx_new hello
     dfx_start
 
@@ -128,6 +122,17 @@ teardown() {
       || (echo "icx-proxy did not restart" && ps aux && exit 1)
 
     assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
+}
+
+@test "dfx start honors replica port configuration" {
+    create_networks_json
+    replica_port=$(get_ephemeral_port)
+    jq ".local.replica.port=$replica_port" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+
+    dfx_start
+
+    assert_command dfx info replica-port
+    assert_eq "$replica_port"
 }
 
 @test "dfx starts replica with subnet_type application - project defaults" {
@@ -217,6 +222,55 @@ teardown() {
     assert_match "dfx is already running"
 }
 
+@test "dfx start for shared network warns about default settings specified in dfx.json that do not apply" {
+    dfx_new hello
+
+    IGNORED_MESSAGE="Ignoring the 'defaults' field in dfx.json because project settings never apply to the shared network."
+    APPLY_SETTINGS_MESSAGE="To apply these settings to the shared network, define them in .*/config-root/.config/dfx/networks.json like so"
+
+    jq 'del(.defaults)' dfx.json | sponge dfx.json
+    jq '.defaults.bitcoin.enabled=true' dfx.json | sponge dfx.json
+    assert_command dfx start --background
+    assert_contains "$IGNORED_MESSAGE"
+    assert_match "$APPLY_SETTINGS_MESSAGE"
+    assert_contains '"bitcoin": {'
+    assert_not_contains '"replica"'
+    assert_not_contains '"canister_http"'
+    assert_command dfx stop
+
+    jq 'del(.defaults)' dfx.json | sponge dfx.json
+    jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
+    assert_command dfx start --background
+    assert_contains "$IGNORED_MESSAGE"
+    assert_match "$APPLY_SETTINGS_MESSAGE"
+    assert_not_contains '"bitcoin"'
+    assert_contains '"replica": {'
+    assert_not_contains '"canister_http"'
+    assert_command dfx stop
+
+    jq 'del(.defaults)' dfx.json | sponge dfx.json
+    jq '.defaults.canister_http.enabled=false' dfx.json | sponge dfx.json
+    assert_command dfx start --background
+    assert_contains "$IGNORED_MESSAGE"
+    assert_match "$APPLY_SETTINGS_MESSAGE"
+    assert_not_contains '"bitcoin"'
+    assert_not_contains '"replica"'
+    assert_contains '"canister_http": {'
+    assert_command dfx stop
+
+    jq 'del(.defaults)' dfx.json | sponge dfx.json
+    jq '.defaults.bitcoin.enabled=true' dfx.json | sponge dfx.json
+    jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
+    jq '.defaults.canister_http.enabled=false' dfx.json | sponge dfx.json
+    assert_command dfx start --background
+    assert_contains "$IGNORED_MESSAGE"
+    assert_match "$APPLY_SETTINGS_MESSAGE"
+    assert_contains '"bitcoin": {'
+    assert_contains '"replica": {'
+    assert_contains '"canister_http": {'
+    assert_command dfx stop
+}
+
 @test "dfx starts replica with correct log level - project defaults" {
     dfx_new
     jq '.defaults.replica.log_level="warning"' dfx.json | sponge dfx.json
@@ -227,7 +281,7 @@ teardown() {
     assert_command dfx stop
 
     jq '.defaults.replica.log_level="critical"' dfx.json | sponge dfx.json
-    assert_command dfx start --background --verbose
+    assert_command dfx start --background --verbose --clean
     assert_match "log level: Critical"
 }
 
@@ -241,7 +295,7 @@ teardown() {
     assert_command dfx stop
 
     jq '.networks.local.replica.log_level="critical"' dfx.json | sponge dfx.json
-    assert_command dfx start --background --verbose
+    assert_command dfx start --background --verbose --clean
     assert_match "log level: Critical"
 }
 
@@ -255,13 +309,11 @@ teardown() {
     assert_command dfx stop
 
     jq '.local.replica.log_level="critical"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
-    assert_command dfx start --background --verbose
+    assert_command dfx start --background --verbose --clean
     assert_match "log level: Critical"
 }
 
 @test "debug print statements work with default log level" {
-    [ "$USE_IC_REF" ] && skip "printing from mo not specified"
-
     dfx_new
     install_asset print
     dfx_start 2>stderr.txt
@@ -270,4 +322,53 @@ teardown() {
     sleep 2
     run tail -2 stderr.txt
     assert_match "Hello, World! from DFINITY"
+}
+
+@test "modifying networks.json requires --clean on restart" {
+    dfx_start
+    dfx stop
+    assert_command dfx_start 
+    dfx stop
+    jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
+    assert_command_fail dfx_start
+    assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+    assert_command dfx_start --force
+    dfx stop
+    assert_command dfx_start --clean
+}
+
+@test "project-local networks require --clean if dfx.json was updated" {
+    dfx_new
+    define_project_network
+    dfx_start
+    dfx stop
+    assert_command dfx_start
+    dfx stop
+    jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
+    assert_command dfx_start
+    dfx stop
+    jq '.networks.local.replica.log_level="warning"' dfx.json | sponge dfx.json
+    assert_command_fail dfx_start
+    assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+    assert_command dfx_start --force
+    dfx stop
+    assert_command dfx_start --clean
+}
+
+@test "flags count as configuration modification and require --clean" {
+    dfx_start
+    dfx stop
+    assert_command_fail dfx_start --enable-bitcoin
+    assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+    assert_command dfx_start --enable-bitcoin --clean
+    dfx stop
+    assert_command dfx_start --enable-bitcoin
+    dfx stop
+    assert_command_fail dfx_start
+    assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+    assert_command dfx_start --force
+}
+
+@test "dfx start then ctrl-c won't hang and panic but stop actors quickly" {
+    assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/ctrl_c_right_after_dfx_start.exp"
 }

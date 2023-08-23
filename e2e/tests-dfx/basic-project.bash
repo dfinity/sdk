@@ -4,8 +4,6 @@ load ../utils/_
 
 setup() {
     standard_setup
-
-    dfx_new hello
 }
 
 teardown() {
@@ -15,6 +13,7 @@ teardown() {
 }
 
 @test "build + install + call + request-status -- greet_mo" {
+    dfx_new hello
     install_asset greet
     dfx_start
     dfx canister create --all
@@ -54,6 +53,7 @@ teardown() {
 }
 
 @test "build + install + call + request-status -- counter_mo" {
+    dfx_new hello
     install_asset counter
     dfx_start
     dfx canister create --all
@@ -105,6 +105,7 @@ teardown() {
 }
 
 @test "build + install + call -- counter_idl_mo" {
+    dfx_new hello
     install_asset counter_idl
     dfx_start
     dfx canister create --all
@@ -116,6 +117,7 @@ teardown() {
 }
 
 @test "build + install + call -- matrix_multiply_mo" {
+    dfx_new hello
     install_asset matrix_multiply
     dfx_start
     dfx canister create --all
@@ -131,4 +133,30 @@ teardown() {
     vec { 29 : int; 40 : int; 51 : int };
   },
 )"
+}
+
+@test "inspect message - motoko" {
+    dfx_new hello
+    install_asset inspect_message
+    dfx_start
+    dfx deploy
+
+    assert_command dfx canister call hello_backend always_accepted
+
+    assert_command_fail dfx canister call hello_backend always_rejected
+    assert_contains "canister_inspect_message explicitly refused message"
+}
+
+@test "inspect message - rust" {
+    dfx_new_rust hello
+
+    install_asset inspect_message_rs
+
+    dfx_start
+    dfx deploy
+
+    assert_command dfx canister call hello_backend always_accepted
+
+    assert_command_fail dfx canister call hello_backend always_rejected
+    assert_contains "Canister $(dfx canister id hello_backend) rejected the message"
 }

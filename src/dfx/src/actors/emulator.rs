@@ -1,10 +1,9 @@
 use crate::actors::icx_proxy::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::error::{DfxError, DfxResult};
-
-use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
@@ -32,6 +31,7 @@ pub mod signals {
 #[derive(Clone)]
 pub struct Config {
     pub ic_ref_path: PathBuf,
+    pub port: Option<u16>,
     pub write_port_to: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
@@ -195,13 +195,15 @@ fn emulator_start_thread(
 
         // form the ic-start command here similar to emulator command
         let mut cmd = std::process::Command::new(ic_ref_path);
-        cmd.args(["--pick-port"]);
+        match config.port {
+            Some(port) if port != 0 => cmd.args(["--listen-port", &port.to_string()]),
+            _ => cmd.args(["--pick-port"]),
+        };
         cmd.args(["--write-port-to", &config.write_port_to.to_string_lossy()]);
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
-        let mut done = false;
-        while !done {
+        loop {
             let _ = std::fs::remove_file(&config.write_port_to);
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting emulator...");
@@ -217,7 +219,7 @@ fn emulator_start_thread(
                     debug!(logger, "Got signal to stop. Killing emulator process...");
                     let _ = child.kill();
                     let _ = child.wait();
-                    done = true;
+                    break;
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "Emulator process failed.");

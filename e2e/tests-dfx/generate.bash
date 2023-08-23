@@ -4,8 +4,6 @@ load ../utils/_
 
 setup() {
     standard_setup
-
-    dfx_new hello
 }
 
 teardown() {
@@ -15,6 +13,7 @@ teardown() {
 }
 
 @test "dfx generate creates files" {
+    dfx_new hello
     dfx_start
     dfx canister create --all
     dfx build
@@ -30,6 +29,7 @@ teardown() {
 }
 
 @test "dfx generate creates only JS files" {
+    dfx_new hello
     jq '.canisters.hello_backend.declarations.bindings=["js"]' dfx.json | sponge dfx.json
 
     dfx_start
@@ -47,6 +47,7 @@ teardown() {
 }
 
 @test "dfx generate creates only TS files" {
+    dfx_new hello
     jq '.canisters.hello_backend.declarations.bindings=["ts"]' dfx.json | sponge dfx.json
 
     dfx_start
@@ -64,6 +65,7 @@ teardown() {
 }
 
 @test "dfx generate creates only JS & TS files" {
+    dfx_new hello
     jq '.canisters.hello_backend.declarations.bindings=["js", "ts"]' dfx.json | sponge dfx.json
 
     dfx_start
@@ -81,6 +83,7 @@ teardown() {
 }
 
 @test "dfx generate creates only DID files" {
+    dfx_new hello
     jq '.canisters.hello_backend.declarations.bindings=["did"]' dfx.json | sponge dfx.json
 
     dfx_start
@@ -98,6 +101,7 @@ teardown() {
 }
 
 @test "dfx generate does not create any files" {
+    dfx_new hello
     jq '.canisters.hello_backend.declarations.bindings=[]' dfx.json | sponge dfx.json
 
     dfx_start
@@ -115,6 +119,7 @@ teardown() {
 }
 
 @test "dfx generate succeeds with an encrypted identity without input" {
+    dfx_new hello
     dfx_start
     dfx canister create --all
 
@@ -122,4 +127,24 @@ teardown() {
     assert_command dfx identity use alice
     
     assert_command timeout 30s dfx generate
+}
+
+@test "dfx generate does not require canister IDs for non-Motoko canisters" {
+    dfx_new_rust hello
+    assert_command dfx generate
+}
+
+@test "dfx generate does not require canister IDs for Motoko canisters" {
+    dfx_new hello
+    assert_command dfx generate
+}
+
+@test "dfx generate --network is still valid" {
+    # The option has no effect, but is still accepted to not break existing scripts
+    dfx_new hello
+    assert_command dfx generate --network local
+
+    # Option is not advertised anymore
+    assert_command dfx generate --help
+    assert_not_contains "--network"
 }

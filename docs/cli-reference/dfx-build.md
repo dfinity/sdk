@@ -22,11 +22,12 @@ You can use the following optional flags with the `dfx build` command.
 
 ## Options
 
-You can specify the following option for the `dfx build` command.
+You can specify the following options for the `dfx build` command.
 
 | Option                | Description                                                                                                                                                |
 |-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `--network <network>` | Specifies the network alias or URL you want to connect to. You can use this option to override the network specified in the `dfx.json` configuration file. |
+| `--output-env-file`   | Writes dfx environment variables to a provided path. Overrides the `output_env_file` configuration from `dfx.json` if passed.                              |
 
 ## Arguments
 

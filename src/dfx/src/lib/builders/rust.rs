@@ -6,11 +6,9 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
-
 use slog::{info, o};
 use std::path::PathBuf;
 use std::process::Command;
@@ -96,12 +94,6 @@ impl CanisterBuilder for RustBuilder {
             package
         );
         let output = cargo.output().context("Failed to run 'cargo build'. You might need to run `cargo update` (or a similar command like `cargo vendor`) if you have updated `Cargo.toml`, because `dfx build` uses the --locked flag with Cargo.")?;
-
-        let shrink = canister_info.get_shrink().unwrap_or(true);
-        if shrink {
-            info!(self.logger, "Shrink WASM module size.");
-            super::shrink_wasm(rust_info.get_output_wasm_path())?;
-        }
 
         if !output.status.success() {
             bail!("Failed to compile the rust package: {}", package);

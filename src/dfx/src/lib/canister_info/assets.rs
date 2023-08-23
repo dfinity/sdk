@@ -1,8 +1,7 @@
-use crate::config::dfinity::CanisterTypeProperties;
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
 use crate::lib::error::DfxResult;
-
 use anyhow::{bail, Context};
+use dfx_core::config::model::dfinity::CanisterTypeProperties;
 use fn_error_context::context;
 use std::path::{Path, PathBuf};
 
@@ -12,6 +11,7 @@ pub struct AssetsCanisterInfo {
 
     output_wasm_path: PathBuf,
     output_idl_path: PathBuf,
+    build: Vec<String>,
 }
 
 impl AssetsCanisterInfo {
@@ -23,6 +23,9 @@ impl AssetsCanisterInfo {
     }
     pub fn get_output_idl_path(&self) -> &Path {
         self.output_idl_path.as_path()
+    }
+    pub fn get_build_tasks(&self) -> &[String] {
+        &self.build
     }
 
     #[context("Failed to assert source paths.")]
@@ -49,17 +52,18 @@ impl AssetsCanisterInfo {
 }
 
 impl CanisterInfoFactory for AssetsCanisterInfo {
-    fn create(info: &CanisterInfo) -> DfxResult<AssetsCanisterInfo> {
+    fn create(info: &CanisterInfo) -> DfxResult<Self> {
         let input_root = info.get_workspace_root().to_path_buf();
         // If there are no "source" field, we just ignore this.
-        let source_paths = if let CanisterTypeProperties::Assets { source } = &info.type_specific {
-            source.clone()
-        } else {
-            bail!(
-                "Attempted to construct an assets canister from a type:{} canister config",
-                info.type_specific.name()
-            )
-        };
+        let (source_paths, build) =
+            if let CanisterTypeProperties::Assets { source, build } = info.type_specific.clone() {
+                (source, build.into_vec())
+            } else {
+                bail!(
+                    "Attempted to construct an assets canister from a type:{} canister config",
+                    info.type_specific.name()
+                )
+            };
 
         let output_root = info.get_output_root();
 
@@ -71,6 +75,7 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
             source_paths,
             output_wasm_path,
             output_idl_path,
+            build,
         })
     }
 }

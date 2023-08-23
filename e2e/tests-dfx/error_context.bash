@@ -44,7 +44,7 @@ teardown() {
 
     # can't write it?
     chmod u=r,go= "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
-    assert_command dfx identity new --disable-encryption alice
+    assert_command dfx identity new --storage-mode plaintext alice
     assert_command_fail dfx identity get-wallet --identity alice
     assert_match "Failed to write to .*/local/wallets.json"
     assert_match "Permission denied"
@@ -138,7 +138,8 @@ teardown() {
     PATH="$helpers_path" assert_command_fail "$dfx_path" deploy npm_missing
 
     # expect to see the npm command line
-    assert_match '"npm" "run" "build"'
+    assert_contains 'program: "npm"'
+    assert_match 'args: \[.*"npm".*"run".*"build".*\]'
     # expect to see the name of the canister
     assert_match "npm_missing"
     # expect to see the underlying cause
@@ -173,4 +174,10 @@ teardown() {
     assert_match "custom_bad_build_step"
     # expect to see the underlying cause
     assert_match "Cannot find command or file"
+}
+
+@test "invalid optimization level" {
+    jq '.canisters.bad_optimization_level.optimize="bad_level"' dfx.json | sponge dfx.json
+    assert_command_fail dfx_start
+    assert_match "expected one of "
 }

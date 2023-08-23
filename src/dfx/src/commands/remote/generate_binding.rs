@@ -1,9 +1,8 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use crate::lib::provider::create_agent_environment;
 use crate::util::check_candid_file;
-
 use anyhow::Context;
 use clap::Parser;
 use slog::info;
@@ -17,14 +16,14 @@ pub struct GenerateBindingOpts {
     canister: Option<String>,
 
     /// Builds bindings for all canisters.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     // destructive operations (see --overwrite) can happen
     // therefore it is safer to require the explicit --all flag
     #[allow(dead_code)]
     all: bool,
 
     /// Overwrite main file if it already exists.
-    #[clap(long)]
+    #[arg(long)]
     overwrite: bool,
 }
 
@@ -76,7 +75,10 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                 let bindings = if extension == "mo" {
                     Some(candid::bindings::motoko::compile(&type_env, &did_types))
                 } else if extension == "rs" {
-                    Some(candid::bindings::rust::compile(&type_env, &did_types))
+                    let config = candid::bindings::rust::Config::new();
+                    Some(candid::bindings::rust::compile(
+                        &config, &type_env, &did_types,
+                    ))
                 } else if extension == "js" {
                     Some(candid::bindings::javascript::compile(&type_env, &did_types))
                 } else if extension == "ts" {

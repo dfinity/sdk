@@ -1,15 +1,14 @@
 use crate::lib::error::DfxResult;
 use crate::Environment;
-
 use clap::Parser;
 
 mod import;
 
 /// Project commands.
 #[derive(Parser)]
-#[clap(name("project"))]
+#[command(name = "project")]
 pub struct ProjectOpts {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

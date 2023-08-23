@@ -16,9 +16,9 @@ For example, if you have a `whoami_frontend` canister that lists `whoami` under 
 
 ## CANISTER_ID\_{canister.name}
 
-Use environment variables with the `CANISTER_ID` prefix to reference the canister identifier for each canister in the `dfx.json` file for your project.  Hyphens are invalid in environment variables and are replaced by underscores.
+Use environment variables with the `CANISTER_ID` prefix to reference the canister identifier for each canister in the `dfx.json` file for your project. Hyphens are invalid in environment variables and are replaced by underscores.  Lowercase characters are replaced by uppercase characters.
 
-For example, if you have a `linkedup` project that consists of the `linkedup` and `connect-d` canisters, you could use the `CANISTER_ID_linkedup` and `CANISTER_ID_connect_d` environment variables to refer to the canister identifiers—for example `ryjl3-tyaaa-aaaaa-aaaba-cai` and `rrkah-fqaaa-aaaaa-aaaaq-cai`—created for your project.
+For example, if you have a `linkedup` project that consists of the `linkedup` and `connect-d` canisters, you could use the `CANISTER_ID_LINKEDUP` and `CANISTER_ID_CONNECT_D` environment variables to refer to the canister identifiers—for example `ryjl3-tyaaa-aaaaa-aaaba-cai` and `rrkah-fqaaa-aaaaa-aaaaq-cai`—created for your project.
 
 ## DFX_CONFIG_ROOT
 
@@ -39,3 +39,26 @@ The `.cache/dfinity/uninstall.sh` script uses this environment variable to ident
 Use the `DFX_VERSION` environment variable to identify a specific version of the SDK that you want to install.
 
     DFX_VERSION=0.10.0 sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+
+## DFX_MOC_PATH
+
+Use the `DFX_MOC_PATH` environment variable to use a different version of the Motoko compiler than the one bundled with a given dfx version.
+
+## DFX_WARNING
+
+Use the `DFX_WARNING` environment variable to disable one or more warnings that dfx may display. The value is a comma-separated list of warning names, each prefixed with a "-" to disable. The following warning names are currently supported:
+
+- `version_check`: Disables the warning message that is displayed when you use an older version of the SDK.
+- `mainnet_plaintext_identity`: Disables the warning message that is displayed when you use an insecure identity on the Internet Computer mainnet.
+
+```bash
+export DFX_WARNING="-version_check"
+DFX_VERSION=0.13.1 dfx deploy --network ic
+
+export DFX_WARNING="-mainnet_plaintext_identity"
+dfx deploy --network ic
+
+# disable multiple warnings, though dfx 0.13.1 does not know about the mainnet_plaintext_identity warning
+export DFX_WARNING="-version_check,-mainnet_plaintext_identity"
+DFX_VERSION=0.13.1 dfx deploy --network ic
+```

@@ -5,7 +5,7 @@ load ../utils/_
 setup() {
     standard_setup
 
-    dfx identity new --disable-encryption test_id
+    dfx identity new --storage-mode plaintext test_id
     dfx identity use test_id
     dfx_new
 }
@@ -73,7 +73,8 @@ teardown() {
 @test "failure message does not include network if for local network" {
     dfx_start
     assert_command_fail dfx build --network local
-    assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_frontend"
+    assert_match "Cannot find canister id."
+    assert_not_contains "--network local"
 }
 
 @test "failure message does include network if for non-local network" {
@@ -82,5 +83,31 @@ teardown() {
     setup_actuallylocal_shared_network
 
     assert_command_fail dfx build --network actuallylocal
-    assert_match "Cannot find canister id. Please issue 'dfx canister create e2e_project_frontend --network actuallylocal"
+    assert_match "Cannot find canister id."
+    assert_match "--network actuallylocal"
+}
+
+@test "network 'playground' has a default definition" {
+    # if network is unknown dfx fails with `Network not found: <network name>`
+    assert_command_fail dfx canister id hello_backend --network playground
+    assert_contains "Cannot find canister id"
+}
+
+@test "equivalent: --network ic and --ic" {
+    dfx_start
+    dfx identity get-wallet
+
+    assert_command_fail dfx diagnose --network ic
+    assert_contains "The test_id identity is not stored securely."
+    assert_contains "use it in mainnet-facing commands"
+    assert_contains "No wallet found; nothing to do"
+
+    assert_command_fail dfx diagnose --ic
+    assert_contains "The test_id identity is not stored securely."
+    assert_contains "use it in mainnet-facing commands"
+    assert_contains "No wallet found; nothing to do"
+
+    assert_command dfx diagnose
+    assert_not_contains "identity is not stored securely"
+    assert_eq "No problems found"
 }

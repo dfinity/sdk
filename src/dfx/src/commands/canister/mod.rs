@@ -1,9 +1,10 @@
+use crate::lib::agent::create_agent_environment;
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::call_sender;
-use crate::lib::provider::create_agent_environment;
-use crate::{lib::environment::Environment, NetworkOpt};
-
+use crate::lib::network::network_opt::NetworkOpt;
+use anyhow::anyhow;
 use clap::{Parser, Subcommand};
+use dfx_core::identity::CallSender;
 use tokio::runtime::Runtime;
 
 mod call;
@@ -25,17 +26,17 @@ mod update_settings;
 
 /// Manages canisters deployed on a network replica.
 #[derive(Parser)]
-#[clap(name("canister"))]
+#[command(name = "canister")]
 pub struct CanisterOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
     /// Specify a wallet canister id to perform the call.
     /// If none specified, defaults to use the selected Identity's wallet canister.
-    #[clap(long, global(true))]
+    #[arg(long, global = true)]
     wallet: Option<String>,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 
@@ -60,11 +61,12 @@ pub enum SubCommand {
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network.network)?;
+    let agent_env = create_agent_environment(env, opts.network.to_network_name())?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(async {
-        let call_sender = call_sender(&opts.wallet).await?;
+        let call_sender = CallSender::from(&opts.wallet)
+            .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
         match opts.subcmd {
             SubCommand::Call(v) => call::exec(&agent_env, v, &call_sender).await,
             SubCommand::Create(v) => create::exec(&agent_env, v, &call_sender).await,

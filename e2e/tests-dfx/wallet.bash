@@ -16,8 +16,8 @@ teardown() {
     dfx_new hello
     dfx_start
 
-    dfx identity new --disable-encryption alice
-    dfx identity new --disable-encryption bob
+    dfx identity new --storage-mode plaintext alice
+    dfx identity new --storage-mode plaintext bob
 
     use_wallet_wasm 0.7.0
     assert_command dfx identity get-wallet --identity alice
@@ -158,7 +158,7 @@ teardown() {
     assert_command dfx wallet balance
     assert_command dfx deploy --wallet "$WALLET"
     assert_command dfx canister call hello_backend greet '("")' --with-cycles 1 --wallet "$WALLET"
-    dfx identity new alice --disable-encryption
+    dfx identity new alice --storage-mode plaintext
     ALICE_WALLET=$(dfx identity get-wallet --identity alice)
     dfx wallet send "$ALICE_WALLET" 1
 }
@@ -166,7 +166,7 @@ teardown() {
 @test "dfx canister deposit-cycles succeeds on a canister the caller does not own" {
     dfx_new hello
     dfx_start
-    dfx identity new alice --disable-encryption
+    dfx identity new alice --storage-mode plaintext
     dfx deploy --no-wallet hello_backend --identity alice
     assert_command dfx canister deposit-cycles 1 hello_backend --wallet "$(dfx identity get-wallet)"
 }
@@ -191,7 +191,7 @@ teardown() {
     dfx deploy
     dfx ledger fabricate-cycles --canister faucet --t 1000
 
-    dfx identity new --disable-encryption faucet_testing
+    dfx identity new --storage-mode plaintext faucet_testing
     dfx identity use faucet_testing
 
     # prepare wallet to hand out

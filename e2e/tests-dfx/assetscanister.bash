@@ -23,16 +23,252 @@ create_batch() {
     echo "$BATCH_ID"
 }
 
-check_permission_failure() {
-    expected="$1"
-    # Why are these different? https://dfinity.atlassian.net/browse/SDK-955 will find out.
-    if [ "$USE_IC_REF" ]
-    then
-        assert_contains "canister did not respond"
-    else
-        assert_contains "$expected"
-    fi
+create_chunk() {
+    batch_id="$1"
+    reg="chunk_id = ([0-9]*) : nat"
+    assert_command      dfx canister call e2e_project_frontend create_chunk "(record { batch_id = $batch_id; content = vec {} })"
+    # shellcheck disable=SC2154
+    [[ "$stdout" =~ $reg ]]
+    CHUNK_ID="${BASH_REMATCH[1]}"
+    echo "$CHUNK_ID"
 }
+
+delete_batch() {
+    assert_command dfx canister call e2e_project_frontend delete_batch "(record { batch_id=$1; })"
+}
+
+check_permission_failure() {
+    assert_contains "$1"
+}
+
+@test "commit_batch is atomic" {
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+  BATCH_ID=$(create_batch)
+  CHUNK_ID=$(create_chunk "$BATCH_ID")
+  CREATE_ASSET='variant { CreateAsset = record { key="/abc.txt" ; content_type = "text/plain"} }'
+  SET_ASSET_CONTENT="variant { SetAssetContent = record { key=\"/abd.txt\"; content_encoding = \"identity\"; chunk_ids=vec { $CHUNK_ID } } }"
+  OPERATIONS="vec { $CREATE_ASSET ; $SET_ASSET_CONTENT }"
+  assert_command_fail dfx canister call e2e_project_frontend commit_batch "(record { batch_id=$BATCH_ID; operations = $OPERATIONS })"
+  assert_contains "asset not found"
+  assert_command dfx canister call e2e_project_frontend list '(record {})'
+  assert_not_contains "/abc.txt"
+}
+
+@test "batch id persists through upgrade" {
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call e2e_project_frontend create_batch '(record { })'
+  assert_eq "(record { batch_id = 2 : nat })"
+  assert_command dfx canister call e2e_project_frontend create_batch '(record { })'
+  assert_eq "(record { batch_id = 3 : nat })"
+  assert_command dfx deploy --upgrade-unchanged
+  assert_command dfx canister call e2e_project_frontend create_batch '(record { })'
+  assert_eq "(record { batch_id = 5 : nat })"
+  assert_command dfx canister call e2e_project_frontend create_batch '(record { })'
+  assert_eq "(record { batch_id = 6 : nat })"
+}
+
+@test "dfx deploy does not retry forever on permissions failure" {
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+  echo "new file content" > 'src/e2e_project_frontend/assets/new_file.txt'
+
+  assert_command_fail dfx deploy --identity anonymous
+  assert_contains "Caller does not have Prepare permission"
+}
+
+@test "deploy --by-proposal extravaganza" {
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity new prepare --storage-mode plaintext
+  assert_command dfx identity new commit --storage-mode plaintext
+  assert_command dfx identity use anonymous
+
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal --identity controller)
+  PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
+  COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
+
+  install_asset assetscanister
+  # Prep for a DeleteAsset operation
+  echo "to-be-deleted" >src/e2e_project_frontend/assets/to-be-deleted.txt
+  # Prep for an UnsetAssetContent operation
+  for i in $(seq 1 400); do
+    echo "some easily duplicate text $i" >>src/e2e_project_frontend/assets/notreally.js
+  done
+
+  echo "update-my-properties" > src/e2e_project_frontend/assets/update-my-properties.txt
+
+  dfx_start
+  assert_command dfx deploy --identity controller
+
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity controller
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity controller
+
+  # For a CreateAsset operation
+  echo "new file content" > 'src/e2e_project_frontend/assets/new_file.txt'
+  # For a DeleteAsset operation
+  rm src/e2e_project_frontend/assets/to-be-deleted.txt
+  # For an UnsetAssetContent operation
+  echo "will not compress" >src/e2e_project_frontend/assets/notreally.js
+  # For an SetAssetProperties operation
+  echo '[
+    {
+      "match": "update-my-properties.txt",
+      "cache": {
+        "max_age": 888
+      },
+      "headers": {
+        "x-extra-header": "x-extra-value"
+      }
+    }
+  ]' > 'src/e2e_project_frontend/assets/.ic-assets.json5'
+
+  # this includes some more files, so they have the possibility to be in a different order
+  # and require sorting in order to have a consistent hash.
+  echo "file a b c" > 'src/e2e_project_frontend/assets/a_b_c.txt'
+  echo "file x y z" > 'src/e2e_project_frontend/assets/x_y_z.txt'
+
+  dfx identity get-principal --identity prepare
+  dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
+  assert_contains "Proposed commit of batch 2 with evidence 4301263f1fcc0d19ef92cfb6774c4da92bf1a9d2002a293a9d95d97819c02958.  Either commit it by proposal, or delete it."
+
+  assert_command_fail dfx deploy e2e_project_frontend --by-proposal --identity prepare
+  assert_contains "Batch 2 is already proposed.  Delete or execute it to propose another."
+
+  assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
+  # shellcheck disable=SC2154
+  assert_eq "4301263f1fcc0d19ef92cfb6774c4da92bf1a9d2002a293a9d95d97819c02958" "$stdout"
+
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/new_file.txt?canisterId="$ID"
+  assert_contains "The requested URL returned error: 404"
+
+  assert_command curl --fail -vv http://localhost:"$PORT"/to-be-deleted.txt?canisterId="$ID"
+
+  assert_command curl --fail -vv --output encoded-compressed-1.gz -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+  assert_match "content-encoding: gzip"
+
+  assert_command curl --fail -vv http://localhost:"$PORT"/update-my-properties.txt?canisterId="$ID"
+  assert_not_contains "x-extra-header: x-extra-value"
+
+  wrong_commit_args='(record { batch_id = 2; evidence = blob "\31\e0\bf\26\2c\ab\cb\bb\eb\65\a9\54\4b\a2\3c\7c\af\88\42\3f\e0\3f\68\14\8d\31\b2\e4\ca\50\cd\b1" } )'
+  assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$wrong_commit_args" --identity commit
+  assert_match "batch computed evidence .* does not match presented evidence"
+
+  commit_args='(record { batch_id = 2; evidence = blob "\43\01\26\3f\1f\cc\0d\19\ef\92\cf\b6\77\4c\4d\a9\2b\f1\a9\d2\00\2a\29\3a\9d\95\d9\78\19\c0\29\58" } )'
+  assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
+  assert_contains "commit proposed batch 2 with evidence 4301"
+  assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
+  assert_eq "()"
+
+  # show this asset was created and its content set
+  assert_command curl --fail -vv http://localhost:"$PORT"/new_file.txt?canisterId="$ID"
+  # shellcheck disable=SC2154
+  assert_match "200 OK" "$stderr"
+  assert_match "new file content"
+
+  # show the DeleteAsset operation was applied
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/to-be-deleted.txt?canisterId="$ID"
+
+  # show the UnsetAssetContent was applied (gzip content encoding was removed)
+  assert_command curl --fail -vv -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+  assert_not_contains "content-encoding"
+  assert_eq "will not compress" "$stdout"
+
+  assert_command curl --fail -vv http://localhost:"$PORT"/update-my-properties.txt?canisterId="$ID"
+  assert_contains "x-extra-header: x-extra-value"
+  assert_contains "cache-control: max-age=888"
+}
+
+@test "deploy --by-proposal all assets" {
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity new prepare --storage-mode plaintext
+  assert_command dfx identity new commit --storage-mode plaintext
+  assert_command dfx identity use anonymous
+
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal --identity controller)
+  PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
+  COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
+
+  install_asset assetscanister
+  dfx_start
+  mkdir tmp
+  mkdir tmp/assets
+
+  mv src/e2e_project_frontend/assets/* tmp/assets/
+
+  assert_command dfx deploy --identity controller
+
+  mv tmp/assets/* src/e2e_project_frontend/assets/
+
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity controller
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity controller
+
+  dfx identity get-principal --identity prepare
+  dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
+  assert_contains "Proposed commit of batch 2 with evidence 1b45c8b1d0deec88ac032590e0f1cd9ab407f796e827aac880f4ffb035fdc200.  Either commit it by proposal, or delete it."
+
+  assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
+  # shellcheck disable=SC2154
+  assert_eq "1b45c8b1d0deec88ac032590e0f1cd9ab407f796e827aac880f4ffb035fdc200" "$stdout"
+
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
+  assert_contains "The requested URL returned error: 404"
+
+  commit_args='(record { batch_id = 2; evidence = blob "\1b\45\c8\b1\d0\de\ec\88\ac\03\25\90\e0\f1\cd\9a\b4\07\f7\96\e8\27\aa\c8\80\f4\ff\b0\35\fd\c2\00" } )'
+  assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
+  assert_contains "commit proposed batch 2 with evidence 1b45c8b1d0deec88ac032590e0f1cd9ab407f796e827aac880f4ffb035fdc200"
+  assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
+  assert_eq "()"
+
+  dfx canister call --query e2e_project_frontend list '(record{})'
+
+  assert_command curl --fail -vv http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
+  # shellcheck disable=SC2154
+  assert_match "200 OK" "$stderr"
+  assert_match "This is a sample asset!"
+}
+
+@test "validation methods" {
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity use controller
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal)
+
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+
+  assert_command dfx identity new prepare --storage-mode plaintext
+  PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
+
+  assert_command dfx canister call e2e_project_frontend validate_grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })"
+  assert_contains 'Ok = "grant Prepare permission to principal '"$PREPARE_PRINCIPAL"'"'
+
+  assert_command dfx canister call e2e_project_frontend validate_grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity prepare
+  assert_contains 'Ok = "grant Prepare permission to principal '"$PREPARE_PRINCIPAL"'"'
+
+  assert_command dfx canister call e2e_project_frontend validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Commit }; })"
+  assert_contains 'Ok = "revoke Commit permission from principal '"$PREPARE_PRINCIPAL"'"'
+
+  assert_command dfx canister call e2e_project_frontend validate_take_ownership "()"
+  assert_contains 'Ok = "revoke all permissions, then gives the caller Commit permissions"'
+
+  FE_CANISTER_ID="$(dfx canister id e2e_project_frontend)"
+  rm .dfx/local/canister_ids.json
+  assert_command_fail dfx canister call "$FE_CANISTER_ID" validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { FlyBeFree }; })"
+  assert_contains "trapped"
+}
+
 @test "access control - fine-grained" {
   assert_command dfx identity new controller --storage-mode plaintext
   assert_command dfx identity use controller
@@ -130,7 +366,9 @@ check_permission_failure() {
 
   # create_asset
   args='(record { key="/a.txt"; content_type="text/plain" })'
+  delete_args='(record { key="/a.txt" })'
   assert_command      dfx canister call e2e_project_frontend create_asset "$args"
+  assert_command      dfx canister call e2e_project_frontend delete_asset "$delete_args"
   assert_command      dfx canister call e2e_project_frontend create_asset "$args" --identity commit
   assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity prepare
   assert_contains "Caller does not have Commit permission"
@@ -157,6 +395,158 @@ check_permission_failure() {
   assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity anonymous
   assert_contains "Caller does not have Commit permission"
 
+  # propose_commit_batch
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
+  delete_batch "$BATCH_ID"
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity commit
+  delete_batch "$BATCH_ID"
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity prepare
+  delete_batch "$BATCH_ID"
+
+  assert_command_fail dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity manage-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity no-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity anonymous
+  assert_contains "Caller does not have Prepare permission"
+
+
+  # delete_batch
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; })"
+  assert_command      dfx canister call e2e_project_frontend delete_batch "$args"
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; })"
+  assert_command      dfx canister call e2e_project_frontend delete_batch "$args" --identity commit
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; })"
+  assert_command      dfx canister call e2e_project_frontend delete_batch "$args" --identity prepare
+
+  assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity manage-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity no-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity anonymous
+  assert_contains "Caller does not have Prepare permission"
+
+
+  # compute_evidence
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args"
+  delete_batch "$BATCH_ID"
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity commit
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args" --identity commit
+  delete_batch "$BATCH_ID"
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args" --identity prepare
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args" --identity prepare
+  delete_batch "$BATCH_ID"
+
+  assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity manage-permissions
+  assert_command_fail dfx canister call e2e_project_frontend delete_batch "$args" --identity manage-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity no-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend compute_evidence "$args" --identity anonymous
+  assert_contains "Caller does not have Prepare permission"
+
+
+  # commit_proposed_batch
+  EVIDENCE_BLOB="blob \"\e3\b0\c4\42\98\fc\1c\14\9a\fb\f4\c8\99\6f\b9\24\27\ae\41\e4\64\9b\93\4c\a4\95\99\1b\78\52\b8\55\""
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args"
+  args="(record { batch_id=$BATCH_ID; evidence=$EVIDENCE_BLOB })"
+  assert_command      dfx canister call e2e_project_frontend commit_proposed_batch "$args"
+
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args"
+  args="(record { batch_id=$BATCH_ID; evidence=$EVIDENCE_BLOB })"
+  assert_command      dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity commit
+
+  assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity prepare
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity manage-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity no-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$args" --identity anonymous
+  assert_contains "Caller does not have Commit permission"
+
+  # get_configuration()
+  args="()"
+  assert_command      dfx canister call e2e_project_frontend get_configuration "$args" --identity commit
+  assert_command      dfx canister call e2e_project_frontend get_configuration "$args" --identity prepare
+
+  assert_command_fail dfx canister call e2e_project_frontend get_configuration "$args" --identity manage-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend get_configuration "$args" --identity no-permissions
+  assert_contains "Caller does not have Prepare permission"
+  assert_command_fail dfx canister call e2e_project_frontend get_configuration "$args" --identity anonymous
+  assert_contains "Caller does not have Prepare permission"
+
+  # configure()
+  args="(record { })"
+  assert_command      dfx canister call e2e_project_frontend configure "$args" --identity commit
+
+  assert_command_fail dfx canister call e2e_project_frontend configure "$args" --identity prepare
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend configure "$args" --identity manage-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend configure "$args" --identity no-permissions
+  assert_contains "Caller does not have Commit permission"
+  assert_command_fail dfx canister call e2e_project_frontend configure "$args" --identity anonymous
+  assert_contains "Caller does not have Commit permission"
+
+  # validate_configure()
+  args="(record { })"
+  assert_command      dfx canister call e2e_project_frontend validate_configure "$args" --identity commit
+  assert_command      dfx canister call e2e_project_frontend validate_configure "$args" --identity prepare
+  assert_command      dfx canister call e2e_project_frontend validate_configure "$args" --identity manage-permissions
+  assert_command      dfx canister call e2e_project_frontend validate_configure "$args" --identity no-permissions
+  assert_command      dfx canister call e2e_project_frontend validate_configure "$args" --identity anonymous
+
+  # validate_commit_proposed_batch
+  BATCH_ID="$(create_batch)"
+  args="(record { batch_id=$BATCH_ID; operations=vec{} })"
+  assert_command      dfx canister call e2e_project_frontend propose_commit_batch "$args"
+  args="(record { batch_id=$BATCH_ID })"
+  assert_command      dfx canister call e2e_project_frontend compute_evidence "$args"
+  args="(record { batch_id=$BATCH_ID; evidence=$EVIDENCE_BLOB })"
+  assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args"
+  assert_contains "commit proposed batch $BATCH_ID with evidence"
+  assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity commit
+  assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity prepare
+  assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity manage-permissions
+  assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity no-permissions
+  assert_command      dfx canister call e2e_project_frontend validate_commit_proposed_batch "$args" --identity anonymous
+  delete_batch "$BATCH_ID"
 
   # revoking permissions
 
@@ -165,11 +555,11 @@ check_permission_failure() {
   assert_command      dfx canister call e2e_project_frontend revoke_permission  "(record { of_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity non-permissioned-controller
   assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity commit
   assert_contains "Caller does not have Prepare permission"
-  assert_command_fail dfx canister call e2e_project_frontend commit_batch "$args" --identity commit
+  assert_command_fail dfx canister call e2e_project_frontend commit_batch "(record { batch_id=7; operations=vec{} })" --identity commit
   assert_contains "Caller does not have Commit permission"
 
   assert_command      dfx canister call e2e_project_frontend create_batch '(record { })' --identity prepare
-  # principal with only ManagePermissions can revokje
+  # principal with only ManagePermissions can revoke
   assert_command      dfx canister call e2e_project_frontend revoke_permission  "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity manage-permissions
   assert_command_fail dfx canister call e2e_project_frontend create_batch '(record { })' --identity prepare
   assert_contains "Caller does not have Prepare permission"
@@ -453,7 +843,7 @@ check_permission_failure() {
     assert_command_fail dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
 }
 
-@test "verifies sha256, if specified" {
+@test "verifies sha256" {
     install_asset assetscanister
 
     dfx_start
@@ -462,12 +852,13 @@ check_permission_failure() {
     assert_command dfx canister call --query e2e_project_frontend get '(record{key="/text-with-newlines.txt";accept_encodings=vec{"identity"}})'
 
     assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
-    assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
+    assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
+    assert_match 'sha256 required'
     assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
     assert_match 'sha256 mismatch'
 
     assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt blob "\f3\bf\72\b1\53\12\90\79\83\26\6d\b7\59\f4\78\88\35\bb\0e\4a\08\70\56\64\73\08\b3\9b\45\4e\5f\a0"})'
     assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
     assert_match 'sha256 mismatch'
 
@@ -522,10 +913,13 @@ CHERRIES" "$stdout"
 }
 
 @test 'can store arbitrarily large files' {
-    [ "$USE_IC_REF" ] && skip "skip for ic-ref" # this takes too long for ic-ref's wasm interpreter
-
     install_asset assetscanister
-    dd if=/dev/urandom of=src/e2e_project_frontend/assets/large-asset.bin bs=1000000 count=6
+
+    # make a big file with deterministic contents (a fixed hash)
+    for a in $(seq 1 20); do
+        echo "$a" >>src/e2e_project_frontend/assets/large-asset.bin
+        dd if=/dev/zero bs=300000 count=1 >> src/e2e_project_frontend/assets/large-asset.bin
+    done
 
     dfx_start
     dfx canister create --all
@@ -537,13 +931,18 @@ CHERRIES" "$stdout"
     assert_match 'Asset too large.'
 
     assert_command dfx canister call --query e2e_project_frontend get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
-    assert_match 'total_length = 6_000_000'
+    assert_match 'total_length = 6_000_051'
     assert_match 'content_type = "application/octet-stream"'
     assert_match 'content_encoding = "identity"'
 
-    assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=2})'
+    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
 
-    assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=3})'
+    assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=2;sha256=opt blob "\4f\a1\0f\f7\41\9f\0e\18\81\44\8f\d5\6e\2c\6a\a1\89\a8\f5\21\92\d4\87\f5\9b\4b\a2\3c\52\eb\e5\b7"})'
+    assert_contains "sha256 mismatch"
+
+    assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=2;sha256=opt blob "\4f\a1\0f\f7\41\9c\0e\18\81\44\8f\d5\6e\2c\6a\a1\89\a8\f5\21\92\d4\87\f5\9b\4b\a2\3c\52\eb\e5\b7"})'
+
+    assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=3;sha256=opt blob "\4f\a1\0f\f7\41\9c\0e\18\81\44\8f\d5\6e\2c\6a\a1\89\a8\f5\21\92\d4\87\f5\9b\4b\a2\3c\52\eb\e5\b7"})'
     assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=4})'
 
     PORT=$(get_webserver_port)
@@ -834,6 +1233,9 @@ CHERRIES" "$stdout"
     mkdir 'src/e2e_project_frontend/assets/index_test'
     echo "test index file" >'src/e2e_project_frontend/assets/index_test/index.html'
 
+    TEST_ALIAS_SHA256="blob \"\67\fb\58\e3\ea\45\56\10\5d\d5\a4\08\0e\8d\38\6e\0c\5f\9b\f5\f5\05\dd\0f\4a\2b\d8\65\ec\27\c6\06\""
+    TEST_INDEX_SHA256="blob \"\2c\0c\c1\2a\96\c6\79\8c\34\be\fd\8f\6f\df\ba\2f\39\57\8e\15\c0\f8\69\2f\54\da\df\06\ee\98\08\f5\""
+
     dfx_start
     dfx deploy
 
@@ -844,11 +1246,11 @@ CHERRIES" "$stdout"
     assert_match "test alias file"
     assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/index_test";headers=vec{};method="GET";body=vec{}})'
     assert_match "test index file"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file.html\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
     assert_match "test alias file"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
     assert_match "test alias file"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/index_test\";content_encoding=\"identity\";index=0;sha256=opt $TEST_INDEX_SHA256})"
     assert_match "test index file"
 
     ID=$(dfx canister id e2e_project_frontend)
@@ -868,6 +1270,14 @@ CHERRIES" "$stdout"
     assert_match "200 OK" "$stderr"
     assert_match "test index file"
 
+    # toggle aliasing on and off using `set_asset_properties`
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(false))  })'
+    assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "404" "$stderr"
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(true))  })'
+    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "200 OK" "$stderr"
+
     # redirect survives upgrade
     assert_command dfx deploy --upgrade-unchanged
     assert_match "is already installed"
@@ -883,11 +1293,11 @@ CHERRIES" "$stdout"
     assert_match "200 OK" "$stderr"
     assert_match "test index file"
 
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file.html\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
     assert_match "test alias file"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
     assert_match "test alias file"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/index_test\";content_encoding=\"identity\";index=0;sha256=opt $TEST_INDEX_SHA256})"
     assert_match "test index file"
 
     # disabling redirect works
@@ -898,8 +1308,7 @@ CHERRIES" "$stdout"
         "enable_aliasing": false
       }
     ]' > src/e2e_project_frontend/assets/.ic-assets.json5
-    # '--mode reinstall --yes' can be removed once SDK-817 is implemented
-    dfx deploy e2e_project_frontend --mode reinstall --yes
+    dfx deploy e2e_project_frontend
     
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
     # shellcheck disable=SC2154
@@ -911,11 +1320,11 @@ CHERRIES" "$stdout"
     assert_match "200 OK" "$stderr"
     assert_match "test index file"
 
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file.html\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
     assert_match "test alias file"
-    assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
     assert_match "key not found"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/index_test\";content_encoding=\"identity\";index=0;sha256=opt $TEST_INDEX_SHA256})"
     assert_match "test index file"
 
     # disabled redirect survives canister upgrade
@@ -932,13 +1341,14 @@ CHERRIES" "$stdout"
     assert_match "200 OK" "$stderr"
     assert_match "test index file"
 
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file.html\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
     assert_match "test alias file"
-    assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
+    assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
     assert_match "key not found"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
+    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/index_test\";content_encoding=\"identity\";index=0;sha256=opt $TEST_INDEX_SHA256})"
     assert_match "test index file"
 
+    #
 }
 
 @test "asset configuration via .ic-assets.json5 - detect unused config" {
@@ -1033,7 +1443,8 @@ WARN: {
       {
         "match": "**/*",
         "cache": { "max_age": 2000 },
-        "headers": { "x-key": "x-value" }
+        "headers": { "x-key": "x-value" },
+        "enable_aliasing": true
       }
     ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
@@ -1044,6 +1455,7 @@ WARN: {
     assert_contains '(
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
+    is_aliased = opt true;
     allow_raw_access = opt false;
     max_age = opt (2_000 : nat64);
   },
@@ -1063,6 +1475,7 @@ WARN: {
     assert_contains '(
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
+    is_aliased = opt true;
     allow_raw_access = opt false;
     max_age = opt (5 : nat64);
   },
@@ -1075,6 +1488,7 @@ WARN: {
     assert_contains '(
   record {
     headers = opt vec { record { "new-key"; "new-value" } };
+    is_aliased = opt true;
     allow_raw_access = opt false;
     max_age = opt (5 : nat64);
   },
@@ -1087,16 +1501,37 @@ WARN: {
     assert_contains '(
   record {
     headers = opt vec { record { "new-key"; "new-value" } };
+    is_aliased = opt true;
     allow_raw_access = opt true;
     max_age = opt (5 : nat64);
   },
 )'
 
-    # set headers and max_age property to None and read it back
-    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null); allow_raw_access=opt(null)})'
+    # set is_aliased property and read it back
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; is_aliased=opt(opt(false))})'
     assert_contains '()'
     assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
-    assert_contains '(record { headers = null; allow_raw_access = null; max_age = null })'
+    assert_contains '(
+  record {
+    headers = opt vec { record { "new-key"; "new-value" } };
+    is_aliased = opt false;
+    allow_raw_access = opt true;
+    max_age = opt (5 : nat64);
+  },
+)'
+
+    # set all properties to None and read them back
+    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null); allow_raw_access=opt(null); is_aliased=opt(null)})'
+    assert_contains '()'
+    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
+    assert_contains '(
+  record {
+    headers = null;
+    is_aliased = null;
+    allow_raw_access = null;
+    max_age = null;
+  },
+)'
 }
 
 @test "asset configuration via .ic-assets.json5 - pretty printing when deploying" {
@@ -1119,4 +1554,94 @@ WARN: {
 
     assert_command dfx deploy
     assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]* \(with cache and 1 header\)'
+}
+
+@test "uses selected canister wasm" {
+    dfx_start
+    use_asset_wasm 0.12.1
+    assert_command dfx deploy
+    assert_command dfx canister info e2e_project_frontend
+    assert_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
+    use_default_asset_wasm
+    assert_command dfx deploy
+    assert_command dfx canister info e2e_project_frontend
+    assert_not_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
+}
+
+@test "api version endpoint" {
+    install_asset assetscanister
+    dfx_start
+    assert_command dfx deploy
+    assert_command dfx canister call e2e_project_frontend api_version '()'
+    assert_match '\([0-9]* : nat16\)'
+}
+
+@test "syncs asset properties when redeploying" {
+    install_asset assetscanister
+    dfx_start
+    assert_command dfx deploy
+    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/text-with-newlines.txt")'
+    assert_contains '(
+  record {
+    headers = null;
+    is_aliased = null;
+    allow_raw_access = opt false;
+    max_age = null;
+  },
+)'
+
+    echo '[
+      {
+        "match": "**/*",
+        "cache": { "max_age": 2000 },
+        "headers": {
+          "x-header": "x-value"
+        },
+        "allow_raw_access": true,
+        "enable_aliasing": false
+      },
+    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+    assert_command dfx deploy
+    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/text-with-newlines.txt")'
+    assert_contains '(
+  record {
+    headers = opt vec { record { "x-header"; "x-value" } };
+    is_aliased = opt false;
+    allow_raw_access = opt true;
+    max_age = opt (2_000 : nat64);
+  },
+)'
+}
+
+@test "upload limits" {
+  # Upload limits are covered in detail in state machine tests.  This verifies the integration.
+
+  dfx_start
+  dfx deploy
+
+  dd if=/dev/urandom of='src/e2e_project_frontend/assets/f1.bin' bs=3000 count=1
+  dd if=/dev/urandom of='src/e2e_project_frontend/assets/f2.bin' bs=1500 count=1
+  dd if=/dev/urandom of='src/e2e_project_frontend/assets/f3.bin' bs=1000 count=1
+
+  assert_command      dfx canister call e2e_project_frontend configure '(record { max_batches= opt opt 1 })'
+  EXTRA_BATCH=$(create_batch)
+  assert_command_fail dfx deploy
+  assert_contains "batch limit exceeded"
+  assert_command      dfx canister call e2e_project_frontend delete_batch "(record { batch_id=$EXTRA_BATCH })"
+
+  assert_command      dfx canister call e2e_project_frontend configure '(record { max_batches= opt null })'
+
+  assert_command      dfx canister call e2e_project_frontend configure '(record { max_bytes= opt opt 5499 })'
+  assert_command_fail dfx deploy
+  assert_contains "byte limit exceeded"
+  assert_command      dfx canister call e2e_project_frontend delete_batch "(record { batch_id=3 })"
+  assert_command      dfx canister call e2e_project_frontend configure '(record { max_bytes= opt null })'
+
+  assert_command      dfx canister call e2e_project_frontend configure '(record { max_chunks=opt opt 2 })'
+  assert_command_fail dfx deploy
+  assert_contains "chunk limit exceeded"
+  assert_command      dfx canister call e2e_project_frontend delete_batch "(record { batch_id=4 })"
+
+  assert_command      dfx canister call e2e_project_frontend configure '(record { max_chunks=opt opt 3; max_bytes = opt opt 5500 })'
+  assert_command      dfx deploy
 }

@@ -1,0 +1,42 @@
+{
+    "canisters": {
+        "a": {
+            "type": "motoko",
+            "main": "src/a.mo",
+            "pullable": {
+                "wasm_url": "http://example.com/a.wasm",
+                "dependencies": [],
+                "init_guide": "A natural number, e.g. 10."
+            }
+        },
+        "b": {
+            "type": "motoko",
+            "main": "src/b.mo",
+            "dependencies": [
+                "a"
+            ],
+            "pullable": {
+                "wasm_url": "http://example.com/b.wasm.gz",
+                "dependencies": [
+                    "yofga-2qaaa-aaaaa-aabsq-cai"
+                ],
+                "init_guide": "No init arguments required"
+            },
+            "gzip": true
+        },
+        "c": {
+            "type": "motoko",
+            "main": "src/c.mo",
+            "dependencies": [
+                "a"
+            ],
+            "pullable": {
+                "wasm_url": "http://example.com/c.wasm",
+                "dependencies": [
+                    "yofga-2qaaa-aaaaa-aabsq-cai"
+                ],
+                "init_guide": "A natural number, e.g. 20."
+            }
+        }
+    }
+}

@@ -47,7 +47,6 @@ teardown() {
 }
 
 @test "dfx start serves a frontend on a port" {
-    [ "$USE_IC_REF" ] && skip "dfx start cannot serve frontend when using ic-ref"
     skip "Need a build of @dfinity/agent that works with HTTP Query"
 
     dfx_start --host 127.0.0.1:12345
@@ -80,4 +79,21 @@ teardown() {
     assert_match "< x-key: x-value"
     assert_command curl -vv http://localhost:"$PORT"/index.js?canisterId="$ID"
     assert_match "< x-key: x-value"
+}
+
+@test "dfx uses a custom build command if one is provided" {
+    jq '.canisters.e2e_project_frontend.source = ["dist/e2e_project_frontend/"]' dfx.json | sponge dfx.json
+    jq '.canisters.e2e_project_frontend.build = ["npm run custom-build"]' dfx.json | sponge dfx.json
+    jq '.scripts["custom-build"] = "mkdir -p ./dist/e2e_project_frontend/assets/ && cp -r ./src/e2e_project_frontend/assets/* ./dist/e2e_project_frontend"' package.json | sponge package.json
+
+    dfx_start
+    dfx canister create --all
+    dfx build
+    dfx canister install --all
+
+    ID=$(dfx canister id e2e_project_frontend)
+    PORT=$(get_webserver_port)
+
+    assert_command curl -vv http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
+    assert_match "This is a sample asset!"
 }

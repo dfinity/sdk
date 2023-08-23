@@ -1,11 +1,10 @@
+use super::TEMP_IDENTITY_PREFIX;
 use crate::error::keyring::KeyringError;
 use crate::error::keyring::KeyringError::{
     DecodePemFailed, DeletePasswordFailed, GetPasswordFailed, LoadMockKeyringFailed,
     MockKeyNotFound, MockUnavailable, SaveMockKeyringFailed, SetPasswordFailed,
 };
 use crate::json::{load_json_file, save_json_file};
-
-use super::TEMP_IDENTITY_PREFIX;
 use keyring;
 use serde::{Deserialize, Serialize};
 use slog::{trace, Logger};
@@ -76,7 +75,7 @@ pub fn load_pem_from_keyring(identity_name_suffix: &str) -> Result<Vec<u8>, Keyr
         KeyringMockMode::NoMock => {
             let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
             let encoded_pem = entry.get_password().map_err(GetPasswordFailed)?;
-            let pem = hex::decode(&encoded_pem).map_err(DecodePemFailed)?;
+            let pem = hex::decode(encoded_pem).map_err(DecodePemFailed)?;
             Ok(pem)
         }
         KeyringMockMode::MockAvailable => {

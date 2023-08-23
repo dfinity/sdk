@@ -1,30 +1,25 @@
 use crate::commands::canister::call::get_effective_canister_id;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
-use crate::lib::sign::sign_transport::SignReplicaV2Transport;
+use crate::lib::sign::sign_transport::SignTransport;
 use crate::lib::sign::signed_message::SignedMessageV1;
-
-use crate::util::clap::validators::file_or_stdin_validator;
+use crate::util::clap::parsers::file_or_stdin_parser;
 use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type};
-
+use anyhow::{anyhow, bail, Context};
 use candid::Principal;
+use clap::Parser;
+use dfx_core::identity::CallSender;
 use ic_agent::AgentError;
 use ic_agent::RequestId;
-
-use anyhow::{anyhow, bail, Context};
-use clap::Parser;
 use slog::info;
-use time::OffsetDateTime;
-
 use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::SystemTime;
+use time::OffsetDateTime;
 
 /// Sign a canister call and generate message file.
 #[derive(Parser)]
@@ -36,40 +31,40 @@ pub struct CanisterSignOpts {
     method_name: String,
 
     /// Sends a query request to a canister.
-    #[clap(long)]
+    #[arg(long)]
     query: bool,
 
     /// Sends an update request to a canister. This is the default if the method is not a query method.
-    #[clap(long, conflicts_with("query"))]
+    #[arg(long, conflicts_with("query"))]
     update: bool,
 
     /// Specifies the argument to pass to the method.
     argument: Option<String>,
 
     /// Specifies the file from which to read the argument to pass to the method.
-    #[clap(
+    #[arg(
         long,
-        validator(file_or_stdin_validator),
+        value_parser = file_or_stdin_parser,
         conflicts_with("random"),
         conflicts_with("argument")
     )]
-    argument_file: Option<String>,
+    argument_file: Option<PathBuf>,
 
     /// Specifies the config for generating random argument.
-    #[clap(long, conflicts_with("argument"))]
+    #[arg(long, conflicts_with("argument"))]
     random: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
-    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
     r#type: Option<String>,
 
     /// Specifies how long the message will be valid in seconds, default to be 300s (5 minutes)
-    #[clap(long, default_value("5m"))]
+    #[arg(long, default_value = "5m")]
     expire_after: String,
 
     /// Specifies the output file name.
-    #[clap(long, default_value("message.json"))]
-    file: String,
+    #[arg(long, default_value = "message.json")]
+    file: PathBuf,
 }
 
 pub async fn exec(
@@ -84,7 +79,7 @@ pub async fn exec(
 
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let (canister_id, maybe_candid_path) = match Principal::from_text(callee_canister) {
         Ok(id) => {
@@ -170,15 +165,12 @@ pub async fn exec(
     if Path::new(&file_name).exists() {
         bail!(
             "[{}] already exists, please specify a different output file name.",
-            file_name
+            file_name.display(),
         );
     }
 
     let mut sign_agent = agent.clone();
-    sign_agent.set_transport(SignReplicaV2Transport::new(
-        file_name.clone(),
-        message_template,
-    ));
+    sign_agent.set_transport(SignTransport::new(file_name.clone(), message_template));
 
     let is_management_canister = canister_id == Principal::management_canister();
     let effective_canister_id =
@@ -188,7 +180,7 @@ pub async fn exec(
         let res = sign_agent
             .query(&canister_id, method_name)
             .with_effective_canister_id(effective_canister_id)
-            .with_arg(&arg_value)
+            .with_arg(arg_value)
             .expire_at(expiration_system_time)
             .call()
             .await;
@@ -204,7 +196,7 @@ pub async fn exec(
         let res = sign_agent
             .update(&canister_id, method_name)
             .with_effective_canister_id(effective_canister_id)
-            .with_arg(&arg_value)
+            .with_arg(arg_value)
             .expire_at(expiration_system_time)
             .call()
             .await;

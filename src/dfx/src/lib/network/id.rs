@@ -1,7 +1,6 @@
 use crate::lib::error::DfxResult;
-use crate::lib::network::local_server_descriptor::LocalServerDescriptor;
-
 use anyhow::Context;
+use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 use fn_error_context::context;
 use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;

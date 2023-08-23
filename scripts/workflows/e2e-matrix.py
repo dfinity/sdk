@@ -15,9 +15,8 @@ test = sorted(test_scripts("dfx") + test_scripts("replica") + test_scripts("icx-
 
 matrix = {
     "test": test,
-    "backend": ["ic-ref", "replica"],
-    "os": ["macos-11", "ubuntu-20.04"],
-    "rust": ["1.65.0"],
+    "backend": ["replica"],
+    "os": ["macos-12", "ubuntu-20.04"],
     "exclude": [
         {"backend": "ic-ref", "test": "dfx/bitcoin"},
         {"backend": "ic-ref", "test": "dfx/canister_http"},

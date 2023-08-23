@@ -4,9 +4,8 @@ use fn_error_context::context;
 use std::ffi::OsStr;
 use std::path::Path;
 use std::process::{self, Command};
-
 use crate::lib::error::DfxResult;
-use crate::Environment;
+use dfx_core::config::cache::Cache;
 
 /// Calls a bundled command line tool.
 ///
@@ -14,13 +13,12 @@ use crate::Environment;
 /// - On success, returns stdout as a string.
 /// - On error, returns an error message including stdout and stderr.
 #[context("Failed to call sns CLI.")]
-pub fn call_bundled<S, I>(env: &dyn Environment, command: &str, args: I) -> DfxResult<String>
+pub fn call_bundled<S, I>(cache: &dyn Cache, command: &str, args: I) -> DfxResult<String>
 where
     I: IntoIterator<Item = S>,
     S: AsRef<OsStr>,
 {
-    let binary = env
-        .get_cache()
+    let binary = cache
         .get_binary_command_path(command)
         .with_context(|| format!("Could not find bundled binary '{command}'."))?;
     let mut command = Command::new(&binary);

@@ -1,13 +1,15 @@
 #![allow(special_module_name)]
-
 use crate::config::{dfx_version, dfx_version_str};
+use crate::lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::logger::{create_root_logger, LoggingMode};
-
+use crate::lib::warning::{is_warning_disabled, DfxWarning::VersionCheck};
 use anyhow::Error;
-use clap::{Args, Parser};
-use lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
+use clap::{ArgAction, CommandFactory, Parser};
+use dfx_core::extension::manager::ExtensionManager;
 use semver::Version;
+use std::collections::HashMap;
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 mod actors;
@@ -18,53 +20,34 @@ mod util;
 
 /// The DFINITY Executor.
 #[derive(Parser)]
-#[clap(name("dfx"), version = dfx_version_str())]
+#[command(name = "dfx", version = dfx_version_str(), styles = util::clap::style(), arg_required_else_help = true)]
 pub struct CliOpts {
     /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
-    #[clap(long, short('v'), parse(from_occurrences), global(true))]
-    verbose: u64,
+    #[arg(long, short, action = ArgAction::Count, global = true)]
+    verbose: u8,
 
     /// Suppresses informational messages. -qq limits to errors only; -qqqq disables them all.
-    #[clap(long, short('q'), parse(from_occurrences), global(true))]
-    quiet: u64,
+    #[arg(long, short, action = ArgAction::Count, global = true)]
+    quiet: u8,
 
     /// The logging mode to use. You can log to stderr, a file, or both.
-    #[clap(long("log"), default_value("stderr"), possible_values(&["stderr", "tee", "file"]), global(true))]
+    #[arg(long = "log", default_value = "stderr", value_parser = ["stderr", "tee", "file"], global = true)]
     logmode: String,
 
     /// The file to log to, if logging to a file (see --logmode).
-    #[clap(long, global(true))]
+    #[arg(long, global = true)]
     logfile: Option<String>,
 
     /// The user identity to run this command as. It contains your principal as well as some things DFX associates with it like the wallet.
-    #[clap(long, global(true))]
+    #[arg(long, env = "DFX_IDENTITY", global = true)]
     identity: Option<String>,
 
     /// The effective canister id for provisional canister creation must be a canister id in the canister ranges of the subnet on which new canisters should be created.
-    #[clap(long, global(true))]
+    #[arg(long, global = true, value_name = "PRINCIPAL")]
     provisional_create_canister_effective_canister_id: Option<String>,
 
-    #[clap(subcommand)]
-    command: commands::Command,
-}
-
-#[derive(Args, Clone, Debug)]
-struct NetworkOpt {
-    /// Override the compute network to connect to. By default, the local network is used.
-    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
-    /// ephemeral network will be created specifically for this request. E.g.
-    /// "http://localhost:12345/" is a valid network name.
-    #[clap(long, global(true))]
-    network: Option<String>,
-}
-
-fn is_warning_disabled(warning: &str) -> bool {
-    // By default, warnings are all enabled.
-    let env_warnings = std::env::var("DFX_WARNING").unwrap_or_else(|_| "".to_string());
-    env_warnings
-        .split(',')
-        .filter(|w| w.starts_with('-'))
-        .any(|w| w.chars().skip(1).collect::<String>().eq(warning))
+    #[command(subcommand)]
+    command: commands::DfxCommand,
 }
 
 /// In some cases, redirect the dfx execution to the proper version.
@@ -78,7 +61,7 @@ fn maybe_redirect_dfx(version: &Version) -> Option<()> {
     // call to the cache.
     if dfx_version() != version {
         // Show a warning to the user.
-        if !is_warning_disabled("version_check") {
+        if !is_warning_disabled(VersionCheck) {
             eprintln!(
                 concat!(
                     "Warning: The version of DFX used ({}) is different than the version ",
@@ -93,7 +76,7 @@ fn maybe_redirect_dfx(version: &Version) -> Option<()> {
             );
         }
 
-        match crate::config::cache::call_cached_dfx(version) {
+        match dfx_core::config::cache::call_cached_dfx(version) {
             Ok(status) => std::process::exit(status.code().unwrap_or(0)),
             Err(e) => {
                 eprintln!("Error when trying to forward to project dfx:\n{:?}", e);
@@ -178,12 +161,36 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
 }
 
 fn main() {
-    let cli_opts = CliOpts::parse();
+    let mut args = std::env::args_os().collect::<Vec<OsString>>();
+    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
+
+    ExtensionManager::new(dfx_version())
+        .and_then(|em| {
+            let installed_extensions = em.installed_extensions_as_clap_commands()?;
+            if !installed_extensions.is_empty() {
+                let mut app = CliOpts::command_for_update().subcommands(&installed_extensions);
+                sort_clap_commands(&mut app);
+                // here clap will display the help message if no subcommand was provided...
+                let app = app.get_matches();
+                // ...therefore we can safely unwrap here because we know a subcommand was provided
+                let subcmd = app.subcommand().unwrap().0;
+                if em.is_extension_installed(subcmd) {
+                    let idx = args.iter().position(|arg| arg == subcmd).unwrap();
+                    args.splice(idx..idx, ["extension", "run"].iter().map(OsString::from));
+                }
+            }
+            Ok(())
+        })
+        .unwrap_or_else(|err| {
+            print_error_and_diagnosis(err.into(), error_diagnosis.clone());
+            std::process::exit(255);
+        });
+
+    let cli_opts = CliOpts::parse_from(args);
     let (verbose_level, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
     let command = cli_opts.command;
-    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
     let result = match EnvironmentImpl::new() {
         Ok(env) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
@@ -210,12 +217,43 @@ fn main() {
             }
         }
         Err(e) => match command {
-            commands::Command::Schema(_) => commands::exec_without_env(command),
+            commands::DfxCommand::Schema(_) => commands::exec_without_env(command),
             _ => Err(e),
         },
     };
     if let Err(err) = result {
         print_error_and_diagnosis(err, error_diagnosis);
         std::process::exit(255);
+    }
+}
+
+/// sort subcommands alphabetically (despite this clap prints help as the last one)
+pub fn sort_clap_commands(cmd: &mut clap::Command) {
+    let mut cli_subcommands: Vec<String> = cmd
+        .get_subcommands()
+        .map(|v| v.get_display_name().unwrap_or_default().to_string())
+        .collect();
+    cli_subcommands.sort();
+    let cli_subcommands: HashMap<String, usize> = cli_subcommands
+        .into_iter()
+        .enumerate()
+        .map(|(i, v)| (v, i))
+        .collect();
+    for c in cmd.get_subcommands_mut() {
+        let name = c.get_display_name().unwrap_or_default().to_string();
+        let ord = *cli_subcommands.get(&name).unwrap_or(&999);
+        *c = c.clone().display_order(ord);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use clap::CommandFactory;
+
+    use crate::CliOpts;
+
+    #[test]
+    fn validate_cli() {
+        CliOpts::command().debug_assert();
     }
 }

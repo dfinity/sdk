@@ -1,7 +1,5 @@
 start_webserver() {
-    local port script_dir
-    script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-    port=$(python3 "$script_dir/get_ephemeral_port.py")
+    port="$(get_ephemeral_port)"
     export E2E_WEB_SERVER_PORT="$port"
 
     python3 -m http.server "$E2E_WEB_SERVER_PORT" "$@" &

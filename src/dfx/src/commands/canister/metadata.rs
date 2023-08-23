@@ -1,8 +1,6 @@
 use crate::lib::error::DfxResult;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::Environment;
-
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;
@@ -24,7 +22,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterMetadataOpts) -> DfxResul
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     let callee_canister = opts.canister_name.as_str();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let canister_id = Principal::from_text(callee_canister)
         .or_else(|_| canister_id_store.get(callee_canister))?;

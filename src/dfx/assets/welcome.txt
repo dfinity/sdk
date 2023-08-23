@@ -7,11 +7,11 @@
 
 To learn more before you start coding, see the documentation available online:
 
-- Quick Start: https://internetcomputer.org/docs/current/developer-docs/quickstart/hello10mins/
-- SDK Developer Tools: https://internetcomputer.org/docs/current/developer-docs/build/install-upgrade-remove/
-- Motoko Language Guide: https://internetcomputer.org/docs/current/developer-docs/build/cdks/motoko-dfinity/about-this-guide
-- Motoko Quick Reference: https://internetcomputer.org/docs/current/developer-docs/build/cdks/motoko-dfinity/language-manual
-- Rust CDK Guide: https://internetcomputer.org/docs/current/developer-docs/build/cdks/cdk-rs-dfinity/
+- Quick Start: https://internetcomputer.org/docs/current/tutorials/deploy_sample_app
+- SDK Developer Tools: https://internetcomputer.org/docs/current/developer-docs/setup/install/
+- Motoko Language Guide: https://internetcomputer.org/docs/current/motoko/main/about-this-guide
+- Motoko Quick Reference: https://internetcomputer.org/docs/current/motoko/main/language-manual
+- Rust CDK Guide: https://internetcomputer.org/docs/current/developer-docs/backend/rust/
 
 If you want to work on programs right away, try the following commands to get started:
 

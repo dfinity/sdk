@@ -1,18 +1,16 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::validators::{cycle_amount_validator, file_or_stdin_validator};
+use crate::util::clap::parsers::{cycle_amount_parser, file_or_stdin_parser};
 use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob};
-
-use crate::lib::identity::wallet::build_wallet_canister;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::{CandidType, Decode, Deserialize, Principal};
 use clap::Parser;
+use dfx_core::canister::build_wallet_canister;
+use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
@@ -35,52 +33,52 @@ pub struct CanisterCallOpts {
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica.
     /// Instead return a response ID.
-    #[clap(long)]
+    #[arg(long)]
     r#async: bool,
 
     /// Sends a query request to a canister instead of an update request.
-    #[clap(long, conflicts_with("async"))]
+    #[arg(long, conflicts_with("async"))]
     query: bool,
 
     /// Sends an update request to a canister. This is the default if the method is not a query method.
-    #[clap(long, conflicts_with("async"), conflicts_with("query"))]
+    #[arg(long, conflicts_with("async"), conflicts_with("query"))]
     update: bool,
 
     /// Specifies the argument to pass to the method.
-    #[clap(conflicts_with("random"), conflicts_with("argument-file"))]
+    #[arg(conflicts_with("random"), conflicts_with("argument_file"))]
     argument: Option<String>,
 
     /// Specifies the file from which to read the argument to pass to the method.
-    #[clap(
+    #[arg(
         long,
-        validator(file_or_stdin_validator),
+        value_parser = file_or_stdin_parser,
         conflicts_with("random"),
         conflicts_with("argument")
     )]
-    argument_file: Option<String>,
+    argument_file: Option<PathBuf>,
 
     /// Specifies the config for generating random argument.
-    #[clap(long, conflicts_with("argument"), conflicts_with("argument-file"))]
+    #[arg(long, conflicts_with("argument"), conflicts_with("argument_file"))]
     random: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
-    #[clap(long, requires("argument"), possible_values(&["idl", "raw"]))]
+    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
     r#type: Option<String>,
 
     /// Specifies the format for displaying the method's return result.
-    #[clap(long, conflicts_with("async"),
-        possible_values(&["idl", "raw", "pp"]))]
+    #[arg(long, conflicts_with("async"),
+        value_parser = ["idl", "raw", "pp"])]
     output: Option<String>,
 
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
     /// Requires --wallet as a flag to `dfx canister`.
-    #[clap(long, validator(cycle_amount_validator))]
-    with_cycles: Option<String>,
+    #[arg(long, value_parser = cycle_amount_parser)]
+    with_cycles: Option<u128>,
 
     /// Provide the .did file with which to decode the response.  Overrides value from dfx.json
     /// for project canisters.
-    #[clap(long)]
+    #[arg(long)]
     candid: Option<PathBuf>,
 }
 
@@ -211,7 +209,7 @@ pub async fn exec(
 ) -> DfxResult {
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let (canister_id, maybe_candid_path) = match CanisterId::from_text(callee_canister) {
         Ok(id) => {
@@ -273,10 +271,7 @@ pub async fn exec(
     fetch_root_key_if_needed(env).await?;
 
     // amount has been validated by cycle_amount_validator
-    let cycles = opts
-        .with_cycles
-        .as_deref()
-        .map_or(0_u128, |amount| amount.parse::<u128>().unwrap());
+    let cycles = opts.with_cycles.unwrap_or(0);
 
     if call_sender == &CallSender::SelectedId && cycles != 0 {
         return Err(DiagnosedError::new("It is only possible to send cycles from a canister.".to_string(), "To send the same function call from your wallet (a canister), run the command using 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\
@@ -295,13 +290,13 @@ pub async fn exec(
                 agent
                     .query(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
-                    .with_arg(&arg_value)
+                    .with_arg(arg_value)
                     .call()
                     .await
                     .context("Failed query call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = build_wallet_canister(*wallet_id, env).await?;
+                let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {
@@ -328,13 +323,13 @@ pub async fn exec(
                 agent
                     .update(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
-                    .with_arg(&arg_value)
+                    .with_arg(arg_value)
                     .call()
                     .await
                     .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = build_wallet_canister(*wallet_id, env).await?;
+                let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 let mut args = Argument::default();
                 args.set_raw_arg(arg_value);
 
@@ -357,13 +352,13 @@ pub async fn exec(
                 agent
                     .update(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
-                    .with_arg(&arg_value)
+                    .with_arg(arg_value)
                     .call_and_wait()
                     .await
                     .context("Failed update call.")?
             }
             CallSender::Wallet(wallet_id) => {
-                let wallet = build_wallet_canister(*wallet_id, env).await?;
+                let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 do_wallet_call(
                     &wallet,
                     &CallIn {

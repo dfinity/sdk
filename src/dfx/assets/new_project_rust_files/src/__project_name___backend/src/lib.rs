@@ -1,4 +1,4 @@
-#[ic_cdk_macros::query]
+#[ic_cdk::query]
 fn greet(name: String) -> String {
     format!("Hello, {}!", name)
 }

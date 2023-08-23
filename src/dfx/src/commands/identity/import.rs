@@ -1,10 +1,9 @@
 use crate::commands::identity::new::create_new_dfx_identity;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use dfx_core::identity::identity_manager::{IdentityCreationParameters, IdentityStorageMode};
-
 use anyhow::Context;
 use clap::Parser;
+use dfx_core::identity::identity_manager::{IdentityCreationParameters, IdentityStorageMode};
 use slog::{info, warn};
 use std::fs;
 use std::path::PathBuf;
@@ -20,22 +19,22 @@ pub struct ImportOpts {
     pem_file: Option<PathBuf>,
 
     /// The path to a file with your seed phrase.
-    #[clap(long, conflicts_with("pem-file"), required_unless_present("pem-file"))]
+    #[arg(long, conflicts_with("pem_file"), required_unless_present("pem_file"))]
     seed_file: Option<PathBuf>,
 
     /// DEPRECATED: Please use --storage-mode=plaintext instead
-    #[clap(long)]
+    #[arg(long)]
     disable_encryption: bool,
 
     /// How your private keys are stored. By default, if keyring/keychain is available, keys are stored there.
     /// Otherwise, a password-protected file is used as fallback.
     /// Mode 'plaintext' is not safe, but convenient for use in CI.
-    #[clap(long, conflicts_with("disable-encryption"),
-    possible_values(&["keyring", "password-protected", "plaintext"]))]
+    #[arg(long, conflicts_with("disable_encryption"),
+        value_parser = ["keyring", "password-protected", "plaintext"])]
     storage_mode: Option<String>,
 
     /// If the identity already exists, remove and re-import it.
-    #[clap(long)]
+    #[arg(long)]
     force: bool,
 }
 

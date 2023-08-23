@@ -1,3 +1,6 @@
+:::caution
+The `dfx nns` command is no longer part of dfx, and has now been turned into the dfx extension. In order to obtain it, please run `dfx extension install nns`.
+:::
 
 Use the `dfx nns` subcommands to interact with the Network Nervous System.
 
@@ -77,7 +80,7 @@ $ cat ~/.config/dfx/networks.json
 This is because:
 
 * The NNS canisters need to run on a system subnet.
-* Some canisters are comiled to run on only very specific canister IDs and hostname/port pairs.
+* Some canisters are compiled to run on only very specific canister IDs and hostname/port pairs.
 
 
 In addition, the local dfx server needs to be clean:

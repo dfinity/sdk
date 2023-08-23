@@ -2,7 +2,6 @@ use crate::commands::wallet::get_wallet;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
-
 use anyhow::Context;
 use clap::Parser;
 
@@ -10,7 +9,7 @@ use clap::Parser;
 #[derive(Parser)]
 pub struct WalletBalanceOpts {
     /// Get balance raw value (without upscaling to trillions of cycles).
-    #[clap(long)]
+    #[arg(long)]
     precise: bool,
 }
 

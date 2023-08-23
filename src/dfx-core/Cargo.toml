@@ -1,29 +1,46 @@
 [package]
 name = "dfx-core"
 version = "0.0.1"
-authors = ["DFINITY Team"]
-edition = "2021"
+authors.workspace = true
+edition.workspace = true
+repository.workspace = true
+license.workspace = true
+rust-version.workspace = true
 
 [dependencies]
-aes-gcm = "0.9.4"
-argon2 = "0.4.0"
+aes-gcm.workspace = true
+argon2.workspace = true
 bip32 = "0.4.0"
-candid = { version = "0.8.2", features = [ "random" ] }
+byte-unit = { workspace = true, features = ["serde"] }
+bytes.workspace = true
+candid = { workspace = true, features = ["random"] }
+clap = { workspace = true, features = ["string"] }
 dialoguer = "0.10.0"
-directories-next = "2.0.0"
-hex = {version = "0.4.2", features = ["serde"] }
-ic-agent = { version = "0.23.0", features = ["reqwest"] }
-ic-identity-hsm = "0.23.0"
+directories-next.workspace = true
+flate2 = { workspace = true, default-features = false, features = ["zlib-ng"] }
+hex = { workspace = true, features = ["serde"] }
+humantime-serde = "1.1.1"
+ic-agent = { workspace = true, features = ["reqwest"] }
+ic-utils.workspace = true
+ic-identity-hsm = { workspace = true }
 k256 = { version = "0.11.4", features = ["pem"] }
-keyring = "1.2.0"
-lazy_static = "1.4.0"
-ring = "0.16.11"
-sec1 = { version = "0.3.0", features = ["std"] }
-serde = "1.0"
-serde_json = "1.0.79"
-slog = { version = "2.5.2", features = ["max_level_trace"] }
-thiserror = "1.0.20"
+keyring.workspace = true
+lazy_static.workspace = true
+reqwest = { version = "0.11.9", features = ["blocking", "json"] }
+ring.workspace = true
+schemars.workspace = true
+sec1 = { workspace = true, features = ["std"] }
+semver = { workspace = true, features = ["serde"] }
+serde.workspace = true
+serde_json.workspace = true
+slog = { workspace = true, features = ["max_level_trace"] }
+tar.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
 tiny-bip39 = "1.0.0"
+time.workspace = true
+url.workspace = true
 
 [dev-dependencies]
 proptest = "1.0"
+tempfile = "3.1.0"

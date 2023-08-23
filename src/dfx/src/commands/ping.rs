@@ -1,17 +1,15 @@
-use std::time::Duration;
-
 use crate::lib::environment::{create_agent, Environment};
 use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::provider::{
+use anyhow::{bail, Context};
+use clap::Parser;
+use dfx_core::identity::Identity;
+use dfx_core::network::provider::{
     command_line_provider_to_url, create_network_descriptor, get_network_context,
     LocalBindDetermination,
 };
-use crate::util::expiry_duration;
-use dfx_core::identity::Identity;
-
-use anyhow::{bail, Context};
-use clap::Parser;
+use dfx_core::util::expiry_duration;
 use slog::warn;
+use std::time::Duration;
 use tokio::runtime::Runtime;
 
 /// Pings an Internet Computer network and returns its status.
@@ -24,7 +22,7 @@ pub struct PingOpts {
     network: Option<String>,
 
     /// Repeatedly ping until the replica is healthy
-    #[clap(long)]
+    #[arg(long)]
     wait_healthy: bool,
 }
 

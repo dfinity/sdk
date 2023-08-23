@@ -79,3 +79,43 @@ teardown() {
     assert_command dfx deploy
     assert_command dfx deploy importer --mode reinstall --yes
 }
+
+@test "deploy succeeds with --specified-id" {
+    dfx_start
+    assert_command dfx deploy hello_backend --specified-id n5n4y-3aaaa-aaaaa-p777q-cai
+    assert_command dfx canister id hello_backend
+    assert_match n5n4y-3aaaa-aaaaa-p777q-cai
+}
+
+@test "deploy fails if --specified-id without canister_name" {
+    dfx_start
+    assert_command_fail dfx deploy --specified-id n5n4y-3aaaa-aaaaa-p777q-cai
+    assert_match \
+"error: the following required arguments were not provided:
+  <CANISTER_NAME>"
+}
+
+@test "deploy does not require wallet if all canisters are created" {
+    dfx_start
+    dfx canister create --all --no-wallet
+    assert_command dfx deploy
+    assert_not_contains "Creating a wallet canister"
+    assert_command dfx identity get-wallet
+    assert_contains "Creating a wallet canister"
+}
+
+@test "deploying multiple canisters with arguments fails" {
+    assert_command_fail dfx deploy --argument hello
+    assert_contains \
+"error: the following required arguments were not provided:
+  <CANISTER_NAME>"
+}
+
+@test "can deploy gzip wasm" {
+    jq '.canisters.hello_backend.gzip=true' dfx.json | sponge dfx.json
+    dfx_start
+    assert_command dfx deploy
+    BUILD_HASH="0x$(sha256sum .dfx/local/canisters/hello_backend/hello_backend.wasm.gz | cut -d " " -f 1)"
+    ONCHAIN_HASH="$(dfx canister info hello_backend | tail -n 1 | cut -d " " -f 3)"
+    assert_eq "$BUILD_HASH" "$ONCHAIN_HASH"
+}

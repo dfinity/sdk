@@ -1,20 +1,16 @@
+use super::get_icpts_from_args;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
+use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_or_anyhow;
-use crate::util::clap::validators::{
-    cycle_amount_validator, e8s_validator, icpts_amount_validator, trillion_cycle_amount_validator,
-};
+use crate::util::clap::parsers::{cycle_amount_parser, e8s_parser, trillion_cycle_amount_parser};
 use crate::util::currency_conversion::as_cycles_with_current_exchange_rate;
-
 use candid::Principal;
 use clap::Parser;
+use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use slog::info;
-
-use super::get_icpts_from_args;
 
 const DEFAULT_CYCLES_TO_FABRICATE: u128 = 10_000_000_000_000_u128;
 
@@ -24,68 +20,67 @@ const DEFAULT_CYCLES_TO_FABRICATE: u128 = 10_000_000_000_000_u128;
 #[derive(Parser)]
 pub struct FabricateCyclesOpts {
     /// Specifies the amount of cycles to fabricate.
-    #[clap(
+    #[arg(
         long,
-        validator(cycle_amount_validator),
+        value_parser = cycle_amount_parser,
         conflicts_with("t"),
         conflicts_with("amount"),
         conflicts_with("icp"),
         conflicts_with("e8s")
     )]
-    cycles: Option<String>,
+    cycles: Option<u128>,
 
     /// ICP to mint into cycles and deposit into destination canister
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
-    #[clap(
+    #[arg(
         long,
-        validator(icpts_amount_validator),
         conflicts_with("cycles"),
         conflicts_with("icp"),
         conflicts_with("e8s"),
         conflicts_with("t")
     )]
-    amount: Option<String>,
+    amount: Option<ICPTs>,
 
     /// Specify ICP as a whole number, helpful for use in conjunction with `--e8s`
-    #[clap(
+    #[arg(
         long,
-        validator(e8s_validator),
+        value_parser = e8s_parser,
         conflicts_with("amount"),
         conflicts_with("cycles"),
         conflicts_with("t")
     )]
-    icp: Option<String>,
+    icp: Option<u64>,
 
     /// Specify e8s as a whole number, helpful for use in conjunction with `--icp`
-    #[clap(
+    #[arg(
         long,
-        validator(e8s_validator),
+        value_parser = e8s_parser,
         conflicts_with("amount"),
         conflicts_with("cycles"),
         conflicts_with("t")
     )]
-    e8s: Option<String>,
+    e8s: Option<u64>,
 
     /// Specifies the amount of trillion cycles to fabricate.
-    #[clap(
+    #[arg(
         long,
-        validator(trillion_cycle_amount_validator),
+        value_parser = trillion_cycle_amount_parser,
         conflicts_with("amount")
     )]
-    t: Option<String>,
+    t: Option<u128>,
 
     /// Specifies the name or id of the canister to receive the cycles deposit.
     /// You must specify either a canister name/id or the --all option.
-    #[clap(long, required_unless_present("all"))]
+    #[arg(long, required_unless_present("all"))]
     canister: Option<String>,
 
     /// Deposit cycles to all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 }
 
-#[context("Failed to deposite {} cycles into canister '{}'.", cycles, canister)]
+#[context("Failed to deposit {} cycles into canister '{}'.", cycles, canister)]
 async fn deposit_minted_cycles(
     env: &dyn Environment,
     canister: &str,
@@ -93,7 +88,7 @@ async fn deposit_minted_cycles(
     cycles: u128,
 ) -> DfxResult {
     let log = env.get_logger();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
 
@@ -138,16 +133,12 @@ pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult
 
 #[context("Failed to determine amount of cycles to fabricate.")]
 async fn cycles_to_fabricate(env: &dyn Environment, opts: &FabricateCyclesOpts) -> DfxResult<u128> {
-    if let Some(cycles_str) = &opts.cycles {
-        //cycles_str is validated by cycle_amount_validator. Therefore unwrap is safe
-        Ok(cycles_str.parse::<u128>().unwrap())
-    } else if let Some(t_cycles_str) = &opts.t {
-        //t_cycles_str is validated by trillion_cycle_amount_validator. Therefore unwrap is safe
-        Ok(format!("{}000000000000", t_cycles_str)
-            .parse::<u128>()
-            .unwrap())
+    if let Some(cycles) = opts.cycles {
+        Ok(cycles)
+    } else if let Some(t_cycles) = opts.t {
+        Ok(t_cycles)
     } else if opts.amount.is_some() || opts.icp.is_some() || opts.e8s.is_some() {
-        let icpts = get_icpts_from_args(&opts.amount, &opts.icp, &opts.e8s)?;
+        let icpts = get_icpts_from_args(opts.amount, opts.icp, opts.e8s)?;
         let cycles = as_cycles_with_current_exchange_rate(&icpts).await?;
         let log = env.get_logger();
         info!(

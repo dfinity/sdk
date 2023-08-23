@@ -1,4 +1,3 @@
+pub const CANDID_ARGS: &str = "candid:args";
 pub const CANDID_SERVICE: &str = "candid:service";
-pub const DFX_WASM_URL: &str = "dfx:wasm_url";
-pub const DFX_DEPS: &str = "dfx:deps";
-pub const DFX_INIT: &str = "dfx:init";
+pub const DFX: &str = "dfx";

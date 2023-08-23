@@ -1,3 +1,10 @@
+use crate::Source;
+use backoff::future::retry;
+use backoff::ExponentialBackoffBuilder;
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+use flate2::{bufread::GzDecoder, write::GzEncoder, Compression};
+use reqwest::Client;
+use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
     fs::File,
@@ -6,15 +13,8 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-
-use bytes::{Buf, BufMut, Bytes, BytesMut};
-use flate2::{bufread::GzDecoder, write::GzEncoder, Compression};
-use reqwest::Client;
-use sha2::{Digest, Sha256};
 use tar::{Archive, Builder, EntryType, Header};
 use tokio::task::{spawn, spawn_blocking, JoinSet};
-
-use crate::Source;
 
 #[tokio::main]
 pub(crate) async fn prepare(out_dir: &Path, source_set: HashMap<String, Source>) {
@@ -53,6 +53,34 @@ fn copy_canisters(out_dir: PathBuf) {
     }
 }
 
+async fn download_canisters(
+    client: Client,
+    sources: Arc<HashMap<String, Source>>,
+    out_dir: PathBuf,
+) {
+    // replace with joinset setup from download_binaries if another gets added
+    let source = sources["ic-btc-canister"].clone();
+    let btc_canister = download_and_check_sha(client, source).await;
+    spawn_blocking(move || {
+        let mut tar = Builder::new(GzEncoder::new(
+            BufWriter::new(File::create(out_dir.join("btc_canister.tgz")).unwrap()),
+            Compression::new(6),
+        ));
+        let mut header = Header::new_gnu();
+        header.set_mode(0o644);
+        header.set_size(btc_canister.len() as u64);
+        tar.append_data(
+            &mut header,
+            "ic-btc-canister.wasm.gz",
+            btc_canister.reader(),
+        )
+        .unwrap();
+        tar.finish().unwrap();
+    })
+    .await
+    .unwrap();
+}
+
 async fn make_binary_cache(out_dir: PathBuf, sources: HashMap<String, Source>) {
     let sources = Arc::new(sources);
     let client = Client::builder()
@@ -62,7 +90,13 @@ async fn make_binary_cache(out_dir: PathBuf, sources: HashMap<String, Source>) {
     let mo_base = spawn(download_mo_base(client.clone(), sources.clone()));
     let bins = spawn(download_binaries(client.clone(), sources.clone()));
     let bin_tars = spawn(download_bin_tarballs(client.clone(), sources.clone()));
-    let (mo_base, bins, bin_tars) = tokio::try_join!(mo_base, bins, bin_tars).unwrap();
+    let canisters = spawn(download_canisters(
+        client.clone(),
+        sources.clone(),
+        out_dir.clone(),
+    ));
+    let (mo_base, bins, bin_tars, _) =
+        tokio::try_join!(mo_base, bins, bin_tars, canisters).unwrap();
     spawn_blocking(|| write_binary_cache(out_dir, mo_base, bins, bin_tars))
         .await
         .unwrap();
@@ -110,7 +144,22 @@ fn write_binary_cache(
 }
 
 async fn download_and_check_sha(client: Client, source: Source) -> Bytes {
-    let response = client.get(&source.url).send().await.unwrap();
+    let retry_policy = ExponentialBackoffBuilder::new()
+        .with_initial_interval(Duration::from_secs(1))
+        .with_max_interval(Duration::from_secs(16))
+        .with_multiplier(2.0)
+        .with_max_elapsed_time(Some(Duration::from_secs(300)))
+        .build();
+
+    let response = retry(retry_policy, || async {
+        match client.get(&source.url).send().await {
+            Ok(response) => Ok(response),
+            Err(err) => Err(backoff::Error::transient(err)),
+        }
+    })
+    .await
+    .unwrap();
+
     response.error_for_status_ref().unwrap();
     let content = response.bytes().await.unwrap();
     let sha = Sha256::digest(&content);
@@ -131,7 +180,7 @@ async fn download_binaries(
     for bin in [
         "ic-admin",
         "ic-btc-adapter",
-        "ic-canister-http-adapter",
+        "ic-https-outcalls-adapter",
         "ic-nns-init",
         "replica",
         "canister_sandbox",

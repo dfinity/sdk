@@ -1,14 +1,12 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
 use crate::lib::sign::signed_message::SignedMessageV1;
-
-use ic_agent::agent::ReplicaV2Transport;
-use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, RequestId};
-
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
+use dfx_core::identity::CallSender;
+use ic_agent::agent::Transport;
+use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, RequestId};
 use std::{fs::File, path::Path};
 use std::{io::Read, str::FromStr};
 
@@ -19,7 +17,7 @@ pub struct CanisterSendOpts {
     file_name: String,
 
     /// Send the signed request-status call in the message
-    #[clap(long)]
+    #[arg(long)]
     status: bool,
 }
 
@@ -55,7 +53,7 @@ pub async fn exec(
         if message.signed_request_status.is_none() {
             bail!("No signed_request_status in [{}].", file_name);
         }
-        let envelope = hex::decode(&message.signed_request_status.unwrap())
+        let envelope = hex::decode(message.signed_request_status.unwrap())
             .context("Failed to decode envelope.")?;
         let response = transport
             .read_state(canister_id, envelope)

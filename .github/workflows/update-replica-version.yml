@@ -12,10 +12,9 @@ on:
       customReplicaVersion:
         description: 'dfinity/ic commit SHA - get the latest Elect Replica Version from https://dashboard.internetcomputer.org/releases'     
         default: "required if custom"
-      updateNnsCanisters:
-        description: 'Update the NNS canisters for e2e tests'
-        type: boolean
-        default: true
+      sdkBranch:
+        description: 'Open PR against this sdk branch'
+        default: "master"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -33,6 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3.0.2
+      with:
+        ref: ${{ github.event.inputs.sdkBranch }}
 
     - name: determine replica commit sha
       run: |
@@ -44,25 +45,20 @@ jobs:
         grep -s "REPLICA_VERSION" $GITHUB_ENV
    
     - name: install Nix
-      uses: cachix/install-nix-action@v18
+      uses: cachix/install-nix-action@v21
       with:
         nix_path: nixpkgs=channel:nixos-unstable
 
     - name: install niv (dependency manager for Nix projects)
       run: nix-env -i niv -f '<nixpkgs>'
 
-    - name: intall packages from nix/sources.json
+    - name: install packages from nix/sources.json
       run: niv update
 
     - name: update replica
       run: |
-        if [ ${{ github.event.inputs.updateNnsCanisters }} = true ]; then
-          echo "updating the replica and NNS canisters for e2e test"
-          scripts/update-replica.sh ${{ env.REPLICA_VERSION }} --update-nns
-        else
-          echo "updating the replica"
-          scripts/update-replica.sh ${{ env.REPLICA_VERSION }} 
-        fi
+        echo "updating the replica"
+        scripts/update-replica.sh ${{ env.REPLICA_VERSION }} 
 
     - name: setup git config, then create new branch and push new commit to it
       run: |
@@ -77,7 +73,7 @@ jobs:
         git commit -m "chore: update replica version to ${{ env.REPLICA_VERSION }}"
         git push origin chore-update-replica-${{ env.REPLICA_VERSION }} 
       
-    - name: create Pull Request, with CHANGELOG.adoc entry suggestion 
+    - name: create Pull Request, with CHANGELOG.md entry suggestion 
       uses: actions/github-script@v6
       with:
         github-token: ${{ secrets.NIV_UPDATER_TOKEN }} # act on behalf of https://github.com/dfinity-bot 
@@ -118,7 +114,7 @@ jobs:
             owner,
             repo,
             head: 'chore-update-replica-${{ env.REPLICA_VERSION }}',
-            base: 'master',
+            base: '${{ github.event.inputs.sdkBranch }}',
             body: [
               `## Suggested [CHANGELOG.md](https://github.com/${owner}/${repo}/edit/chore-update-replica-${{ env.REPLICA_VERSION }}/CHANGELOG.md) changes`,
               '```',

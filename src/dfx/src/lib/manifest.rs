@@ -1,6 +1,5 @@
 use crate::lib::error::{DfxError, DfxResult};
 use crate::{error_invalid_argument, error_invalid_data};
-
 use anyhow::Context;
 use flate2::read::GzDecoder;
 use fn_error_context::context;
@@ -161,7 +160,7 @@ pub fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> 
                 )
             })?
             .permissions();
-        permissions.set_mode(0o775); // FIXME Preserve existing permissions
+        permissions.set_mode(permissions.mode() | 0o755);
         fs::set_permissions(&current_exe_path, permissions).with_context(|| {
             format!(
                 "Failed to set metadata for {}.",

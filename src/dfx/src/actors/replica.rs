@@ -1,25 +1,26 @@
-use crate::actors::icx_proxy::signals::{PortReadySignal, PortReadySubscribe};
-use crate::actors::replica::signals::ReplicaRestarted;
-use crate::actors::shutdown_controller::signals::outbound::Shutdown;
-use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
-use crate::actors::shutdown_controller::ShutdownController;
-use crate::lib::error::{DfxError, DfxResult};
-use crate::lib::replica_config::ReplicaConfig;
-
 use crate::actors::btc_adapter::signals::{BtcAdapterReady, BtcAdapterReadySubscribe};
 use crate::actors::canister_http_adapter::signals::{
     CanisterHttpAdapterReady, CanisterHttpAdapterReadySubscribe,
 };
+use crate::actors::icx_proxy::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::replica::signals::ReplicaRestarted;
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
+use crate::actors::shutdown_controller::signals::outbound::Shutdown;
+use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
+use crate::actors::shutdown_controller::ShutdownController;
+use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::integrations::bitcoin::initialize_bitcoin_canister;
+use crate::lib::integrations::create_integrations_agent;
+use crate::lib::replica_config::ReplicaConfig;
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
 use anyhow::bail;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use slog::{debug, info, Logger};
+use slog::{debug, error, info, Logger};
 use std::path::{Path, PathBuf};
-use std::thread::{self, JoinHandle};
+use std::thread::JoinHandle;
 use std::time::Duration;
 use tokio::runtime::Builder;
 
@@ -35,10 +36,16 @@ pub mod signals {
     }
 }
 
+#[derive(Clone)]
+pub struct BitcoinIntegrationConfig {
+    pub canister_init_arg: String,
+}
+
 /// The configuration for the replica actor.
 pub struct Config {
     pub ic_starter_path: PathBuf,
     pub replica_config: ReplicaConfig,
+    pub bitcoin_integration_config: Option<BitcoinIntegrationConfig>,
     pub replica_path: PathBuf,
     pub replica_pid_path: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
@@ -92,12 +99,26 @@ impl Replica {
         }
     }
 
-    fn wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
+    /// Wait for `ic-starter` process writing the http port file.
+    /// Retry every 0.1s for 2 minutes.
+    /// Will break out of the loop if receive stop signal.
+    ///
+    /// Returns
+    /// - Ok(Some(port)) if succeed;
+    /// - Ok(None) if receive stop signal (`dfx start` then Ctrl-C immediately);
+    /// - Err if time out;
+    fn wait_for_port_file(
+        file_path: &Path,
+        stop_receiver: &Receiver<()>,
+    ) -> DfxResult<Option<u16>> {
         let mut retries = 0;
         loop {
+            if stop_receiver.try_recv().is_ok() {
+                return Ok(None);
+            }
             if let Ok(content) = std::fs::read_to_string(file_path) {
                 if let Ok(port) = content.parse::<u16>() {
-                    return Ok(port);
+                    return Ok(Some(port));
                 }
             }
             if retries >= 1200 {
@@ -127,6 +148,7 @@ impl Replica {
 
         let port = config.http_handler.port;
         let write_port_to = config.http_handler.write_port_to.clone();
+        let artificial_delay = config.artificial_delay;
         let replica_path = self.config.replica_path.to_path_buf();
         let ic_starter_path = self.config.ic_starter_path.to_path_buf();
 
@@ -136,11 +158,13 @@ impl Replica {
             replica_start_thread(
                 logger,
                 config.clone(),
+                self.config.bitcoin_integration_config.clone(),
                 port,
                 write_port_to,
                 ic_starter_path,
                 replica_path,
                 replica_pid_path,
+                artificial_delay,
                 addr,
                 receiver,
             ),
@@ -266,11 +290,13 @@ impl Handler<Shutdown> for Replica {
 fn replica_start_thread(
     logger: Logger,
     config: ReplicaConfig,
+    bitcoin_integration_config: Option<BitcoinIntegrationConfig>,
     port: Option<u16>,
     write_port_to: Option<PathBuf>,
     ic_starter_path: PathBuf,
     replica_path: PathBuf,
     replica_pid_path: PathBuf,
+    artificial_delay: u32,
     addr: Addr<Replica>,
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
@@ -293,6 +319,7 @@ fn replica_start_thread(
             "Secp256k1:dfx_test_key",
             "--log-level",
             &config.log_level.as_ic_starter_string(),
+            "--use-specified-ids-allocation-range",
         ]);
         #[cfg(target_os = "macos")]
         cmd.args(["--consensus-pool-backend", "rocksdb"]);
@@ -304,7 +331,6 @@ fn replica_start_thread(
         // change is rolled out without any issues.
         cmd.args(["--subnet-features", "canister_sandboxing"]);
         if config.btc_adapter.enabled {
-            cmd.args(["--subnet-features", "bitcoin_regtest"]);
             if let Some(socket_path) = config.btc_adapter.socket_path {
                 cmd.args([
                     "--bitcoin-testnet-uds-path",
@@ -331,11 +357,15 @@ fn replica_start_thread(
         }
         cmd.args([
             "--initial-notary-delay-millis",
-            // The intial notary delay is set to 2500ms in the replica's
+            // The initial notary delay is set to 2500ms in the replica's
             // default subnet configuration to help running tests.
             // For our production network, we actually set them to 600ms.
-            "600",
+            &format!("{artificial_delay}"),
         ]);
+
+        if config.use_old_metering {
+            cmd.args(["--use-old-metering"]);
+        }
 
         // This should agree with the value at
         // at https://gitlab.com/dfinity-lab/core/ic/-/blob/master/ic-os/guestos/rootfs/etc/systemd/system/ic-replica.service
@@ -344,8 +374,7 @@ fn replica_start_thread(
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
-        let mut done = false;
-        while !done {
+        loop {
             if let Some(port_path) = write_port_to.as_ref() {
                 let _ = std::fs::remove_file(port_path);
             }
@@ -357,23 +386,39 @@ fn replica_start_thread(
             std::fs::write(&replica_pid_path, child.id().to_string())
                 .expect("Could not write to replica-pid file.");
 
-            let port = port.unwrap_or_else(|| {
-                Replica::wait_for_port_file(write_port_to.as_ref().unwrap()).unwrap()
-            });
+            let port = if let Some(p) = port {
+                p
+            } else {
+                match Replica::wait_for_port_file(write_port_to.as_ref().unwrap(), &receiver)
+                    .unwrap()
+                {
+                    Some(p) => p,
+                    // If Ctrl-C right after `dfx start`, the `ic-starter` child process will be killed already.
+                    // And the `write_port_to` file will never be ready.
+                    // So we let `wait_for_port_file` method to break out from the waiting,
+                    // finish this actor starting ASAP and let the system stop the actor.
+                    None => break,
+                }
+            };
             addr.do_send(signals::ReplicaRestarted { port });
             let log_clone = logger.clone();
-            thread::spawn(move || {
-                Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .unwrap()
-                    .block_on(async move {
-                        crate::lib::provider::ping_and_wait(&format!("http://localhost:{port}"))
-                            .await
-                            .unwrap();
-                        info!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
-                    })
-            });
+
+            if let Err(e) = block_on_initialize_replica(
+                port,
+                logger.clone(),
+                bitcoin_integration_config.clone(),
+            ) {
+                error!(logger, "Failed to initialize replica: {:#}", e);
+                let _ = child.kill();
+                let _ = child.wait();
+                if receiver.try_recv().is_ok() {
+                    debug!(logger, "Got signal to stop.");
+                    break;
+                } else {
+                    continue;
+                }
+            }
+            info!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
 
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the replica if done = true.
@@ -382,7 +427,7 @@ fn replica_start_thread(
                     debug!(logger, "Got signal to stop. Killing replica process...");
                     let _ = child.kill();
                     let _ = child.wait();
-                    done = true;
+                    break;
                 }
                 ChildOrReceiver::Child => {
                     debug!(logger, "Replica process failed.");
@@ -405,4 +450,37 @@ fn replica_start_thread(
         .name("replica-actor".to_owned())
         .spawn(thread_handler)
         .map_err(DfxError::from)
+}
+
+fn block_on_initialize_replica(
+    port: u16,
+    logger: Logger,
+    bitcoin_integration_config: Option<BitcoinIntegrationConfig>,
+) -> DfxResult {
+    Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async move { initialize_replica(port, logger, bitcoin_integration_config).await })
+}
+
+async fn initialize_replica(
+    port: u16,
+    logger: Logger,
+    bitcoin_integration_config: Option<BitcoinIntegrationConfig>,
+) -> DfxResult {
+    let agent_url = format!("http://localhost:{port}");
+
+    debug!(logger, "Waiting for replica to report healthy status");
+    crate::lib::replica::status::ping_and_wait(&agent_url).await?;
+
+    let agent = create_integrations_agent(&agent_url, &logger).await?;
+
+    if let Some(bitcoin_integration_config) = bitcoin_integration_config {
+        initialize_bitcoin_canister(&agent, &logger, bitcoin_integration_config).await?;
+    }
+
+    info!(logger, "Initialized replica.");
+
+    Ok(())
 }

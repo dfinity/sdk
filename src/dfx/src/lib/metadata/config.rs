@@ -1,5 +1,4 @@
-use crate::config::dfinity::CanisterMetadataSection;
-
+use dfx_core::config::model::dfinity::CanisterMetadataSection;
 use std::collections::BTreeMap;
 
 #[derive(Debug)]

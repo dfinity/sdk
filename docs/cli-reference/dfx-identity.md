@@ -172,6 +172,7 @@ In this example, the `bob_standard` identity is the currently-active user contex
 ## dfx identity new
 
 Use the `dfx identity new` command to add new user identities. You should note that the identities you add are global. They are not confined to a specific project context. Therefore, you can use any identity you add using the `dfx identity new` command in any project.
+Only the characters `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_@0123456789` are valid in identity names.
 
 ### Basic usage
 
@@ -313,6 +314,11 @@ For example, you might store the wallet canister identifier in an environment va
 ## dfx identity use
 
 Use the `dfx identity use` command to specify the user identity you want to active. You should note that the identities you have available to use are global. They are not confined to a specific project context. Therefore, you can use any identity you have previously created in any project.
+
+The identity used by a command is:
+- the identity specified in the command with `--identity <NAME>`, if defined
+- else the identity specified by the environment variable `export DFX_IDENTITY=<NAME>`, if defined
+- the identity specified by `dfx identity use <NAME>`.
 
 ### Basic usage
 

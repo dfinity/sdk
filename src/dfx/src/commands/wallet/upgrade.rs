@@ -1,11 +1,11 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::wallet_canister_id;
-use crate::lib::operations::canister::install_wallet;
+use crate::lib::operations::canister::install_canister::install_wallet;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use anyhow::{anyhow, bail};
 use clap::Parser;
-use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 
 /// Upgrade the wallet's Wasm module to the current Wasm bundled with DFX.
@@ -36,19 +36,12 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
         .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
 
     fetch_root_key_if_needed(env).await?;
-    match agent
-        .read_state_canister_info(canister_id, "module_hash")
-        .await
+    if read_state_tree_canister_module_hash(agent, canister_id)
+        .await?
+        .is_none()
     {
-        // If the canister is empty, this path does not exist.
-        // The replica doesn't support negative lookups, therefore if the canister
-        // is empty, the replica will return lookup_path([], Pruned _) = Unknown
-        Err(AgentError::LookupPathUnknown(_)) | Err(AgentError::LookupPathAbsent(_)) => {
-            bail!("The cycles wallet canister is empty. Try running `dfx identity deploy-wallet` to install code for the cycles wallet in this canister.")
-        }
-        Err(x) => bail!(x),
-        _ => {}
-    };
+        bail!("The cycles wallet canister is empty. Try running `dfx identity deploy-wallet` to install code for the cycles wallet in this canister.")
+    }
 
     let agent = env
         .get_agent()

@@ -4,6 +4,8 @@ load ../utils/_
 
 # All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
 
+BITCOIN_CANISTER_ID="g4xu7-jiaaa-aaaan-aaaaq-cai"
+
 setup() {
     standard_setup
 
@@ -14,8 +16,8 @@ teardown() {
     bitcoin-cli -regtest stop
 
     dfx_stop
-    stop_dfx_replica
-    stop_dfx_bootstrap
+    # stop_dfx_replica
+    # stop_dfx_bootstrap
     standard_teardown
 }
 
@@ -88,6 +90,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "dfx restarts replica when ic-btc-adapter restarts - replica and bootstrap" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     dfx_replica --enable-bitcoin
     dfx_bootstrap
@@ -143,6 +146,8 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "dfx replica --bitcoin-node <node> implies --enable-bitcoin" {
+    skip "dfx replica and bootstrap are deprecated"
+
     dfx_new hello
     dfx_replica "--bitcoin-node" "127.0.0.1:18444"
     dfx_bootstrap
@@ -159,7 +164,18 @@ set_local_network_bitcoin_enabled() {
     assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
 }
 
+@test "dfx start --enable-bitcoin --background waits until bitcoin canister is installed" {
+    dfx_new hello
+
+    dfx_start --enable-bitcoin
+
+    assert_command dfx canister info "$BITCOIN_CANISTER_ID"
+    assert_contains "Controllers: 2vxsx-fae"
+    assert_contains "Module hash: 0x"
+}
+
 @test "dfx replica --enable-bitcoin with no other configuration succeeds" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
 
     dfx_replica --enable-bitcoin
@@ -196,6 +212,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "can enable bitcoin through default configuration - dfx replica" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     define_project_network
     set_project_default_bitcoin_enabled
@@ -206,6 +223,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "can enable bitcoin through shared local network - dfx replica" {
+    skip "dfx replica and bootstrap are deprecated"
     dfx_new hello
     set_shared_local_network_bitcoin_enabled
 
@@ -220,7 +238,7 @@ set_local_network_bitcoin_enabled() {
     dfx_start --enable-bitcoin --enable-canister-http
 
     assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
-    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 
     install_asset greet
     assert_command dfx deploy
@@ -229,13 +247,15 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "dfx replica+bootstrap with both bitcoin and canister http enabled" {
+    skip "dfx replica and bootstrap are deprecated"
+
     dfx_new hello
 
     dfx_replica --enable-bitcoin --enable-canister-http
     dfx_bootstrap
 
     assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
-    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-canister-http-adapter-pid"
+    assert_file_not_empty "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 
     install_asset greet
     assert_command dfx deploy

@@ -1,15 +1,14 @@
 use crate::lib::error::DfxResult;
 use crate::Environment;
-
 use clap::Parser;
 
 mod project;
 
 /// Beta commands.
 #[derive(Parser)]
-#[clap(name("beta"))]
+#[command(name = "beta")]
 pub struct BetaOpts {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

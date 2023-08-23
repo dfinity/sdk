@@ -1,8 +1,7 @@
-use crate::config::cache;
 use crate::lib::dist;
 use crate::lib::error::{DfxError, DfxResult};
-
 use anyhow::{bail, Context};
+use dfx_core::config::cache;
 use directories_next::BaseDirs;
 use fn_error_context::context;
 use semver::{Version, VersionReq};

@@ -69,7 +69,7 @@ teardown() {
     dfx_start
     assert_command dfx canister create --all
 
-    assert_command dfx deploy --argument '("World")'
+    assert_command dfx deploy hello_backend --argument '("World")'
 
     assert_command dfx canister call hello_backend greet
     assert_match 'Hello, World'

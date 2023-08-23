@@ -1,9 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ledger_types::{GetSubnetTypesToSubnetsResult, MAINNET_CYCLE_MINTER_CANISTER_ID};
-
 use crate::lib::root_key::fetch_root_key_if_needed;
-
 use anyhow::{anyhow, Context};
 use candid::{Decode, Encode, Principal};
 use clap::Parser;
@@ -13,7 +11,7 @@ const GET_SUBNET_TYPES_TO_SUBNETS_METHOD: &str = "get_subnet_types_to_subnets";
 /// Show available subnet types in the cycles minting canister.
 #[derive(Parser)]
 pub struct ShowSubnetTypesOpts {
-    #[clap(long)]
+    #[arg(long)]
     /// Canister ID of the cycles minting canister.
     cycles_minting_canister_id: Option<Principal>,
 }

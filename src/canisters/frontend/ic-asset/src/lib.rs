@@ -31,16 +31,15 @@
     rustdoc::private_intra_doc_links
 )]
 
-mod asset_canister;
-mod asset_config;
-mod content;
-mod content_encoder;
-mod operations;
-mod plumbing;
-mod retryable;
-mod semaphores;
+mod asset;
+mod batch_upload;
+mod canister_api;
+pub mod error;
+mod evidence;
 mod sync;
 mod upload;
 
+pub use evidence::compute_evidence;
+pub use sync::prepare_sync_for_proposal;
 pub use sync::sync;
 pub use upload::upload;

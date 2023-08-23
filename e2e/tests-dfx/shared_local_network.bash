@@ -27,8 +27,6 @@ teardown() {
 }
 
 @test "project data is cleared after dfx start --clean from outside the project" {
-    [ "$USE_IC_REF" ] && skip "start_dfx does not support parameters with emulator"
-
     mkdir somewhere
     (
         cd somewhere
@@ -95,8 +93,6 @@ teardown() {
 
 
 @test "wallet config file is reset after start --clean" {
-    [ "$USE_IC_REF" ] && skip "start_dfx does not support parameters with emulator"
-
     dfx_start
 
     (
@@ -131,7 +127,7 @@ teardown() {
 @test "dfx identity rename renames wallet for shared local network" {
      dfx_start
 
-     dfx identity new  alice --disable-encryption
+     dfx identity new  alice --storage-mode plaintext
      ALICE_WALLET="$(dfx identity get-wallet --identity alice)"
 
      dfx identity rename alice bob

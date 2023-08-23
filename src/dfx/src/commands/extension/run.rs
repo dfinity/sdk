@@ -1,8 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-
 use clap::Parser;
-
 use std::ffi::OsString;
 
 #[derive(Parser, Debug)]
@@ -10,6 +8,7 @@ pub struct RunOpts {
     /// Specifies the name of the extension to run.
     name: OsString,
     /// Specifies the parameters to pass to the extension.
+    #[arg(allow_hyphen_values = true)]
     params: Vec<OsString>,
 }
 

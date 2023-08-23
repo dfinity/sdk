@@ -1,8 +1,8 @@
-use crate::{
-    config::dfinity::DEFAULT_IC_GATEWAY,
-    lib::{error::DfxResult, nns_types::icpts::ICPTs, operations::ledger::xdr_permyriad_per_icp},
+use crate::lib::{
+    error::DfxResult, nns_types::icpts::ICPTs, operations::ledger::xdr_permyriad_per_icp,
 };
 use anyhow::Context;
+use dfx_core::config::model::dfinity::DEFAULT_IC_GATEWAY;
 use fn_error_context::context;
 use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, Agent};
 use rust_decimal::Decimal;

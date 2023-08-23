@@ -1,7 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::manifest::{get_latest_release, get_latest_version};
-
 use anyhow::Context;
 use clap::Parser;
 use semver::Version;
@@ -10,10 +9,10 @@ use semver::Version;
 #[derive(Parser)]
 pub struct UpgradeOpts {
     /// Current Version.
-    #[clap(long)]
+    #[arg(long)]
     current_version: Option<String>,
 
-    #[clap(long, default_value = "https://sdk.dfinity.org", hide(true))]
+    #[arg(long, default_value = "https://sdk.dfinity.org", hide = true)]
     release_root: String,
 }
 

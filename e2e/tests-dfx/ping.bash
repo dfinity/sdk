@@ -64,8 +64,6 @@ teardown() {
 }
 
 @test "dfx ping succeeds by arbitrary network name to a nonstandard port" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
     dfx_start --host 127.0.0.1:12345
 
     # Make dfx use the port from configuration:

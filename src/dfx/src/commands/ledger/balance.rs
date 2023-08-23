@@ -2,7 +2,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::operations::ledger;
-
 use anyhow::anyhow;
 use candid::Principal;
 use clap::Parser;
@@ -15,11 +14,11 @@ pub struct BalanceOpts {
     of: Option<String>,
 
     /// Subaccount of the selected identity to get the balance of
-    #[clap(long, conflicts_with("of"))]
+    #[arg(long, conflicts_with("of"))]
     subaccount: Option<Subaccount>,
 
     /// Canister ID of the ledger canister.
-    #[clap(long)]
+    #[arg(long)]
     ledger_canister_id: Option<Principal>,
 }
 

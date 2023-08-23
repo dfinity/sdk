@@ -1,5 +1,5 @@
 use crate::lib::error::DfxResult;
-use anyhow::Context;
+use anyhow::{bail, Context};
 use fn_error_context::context;
 use slog::info;
 use std::io::Read;
@@ -22,14 +22,9 @@ pub fn dfinity_logo() -> String {
 
 #[context("Failed to load wallet wasm.")]
 pub fn wallet_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
-    let mut wasm = Vec::new();
-
     if let Ok(dfx_wallet_wasm) = std::env::var("DFX_WALLET_WASM") {
         info!(logger, "Using wasm at path: {}", dfx_wallet_wasm);
-        std::fs::File::open(&dfx_wallet_wasm)
-            .with_context(|| format!("Failed to open {}.", dfx_wallet_wasm))?
-            .read_to_end(&mut wasm)
-            .with_context(|| format!("Failed to read file content for {}.", dfx_wallet_wasm))?;
+        Ok(dfx_core::fs::read(dfx_wallet_wasm.as_ref())?)
     } else {
         let mut canister_assets =
             wallet_canister().context("Failed to load wallet canister archive.")?;
@@ -44,10 +39,71 @@ pub fn wallet_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
                 .context("Failed to read archive entry path.")?
                 .ends_with("wallet.wasm")
             {
+                let mut wasm = vec![];
                 file.read_to_end(&mut wasm)
                     .context("Failed to read archive entry.")?;
+                return Ok(wasm);
             }
         }
+        bail!("Failed to find wallet canister archive entry.");
     }
-    Ok(wasm)
+}
+
+#[context("Failed to load assets wasm.")]
+pub fn assets_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
+    if let Ok(dfx_assets_wasm) = std::env::var("DFX_ASSETS_WASM") {
+        info!(logger, "Using wasm at path: {}", dfx_assets_wasm);
+        Ok(dfx_core::fs::read(dfx_assets_wasm.as_ref())?)
+    } else {
+        let mut canister_assets =
+            assetstorage_canister().context("Failed to load asset canister archive.")?;
+        for file in canister_assets
+            .entries()
+            .context("Failed to read asset canister archive entries.")?
+        {
+            let mut file = file.context("Failed to read asset canister archive entry.")?;
+            if file
+                .header()
+                .path()
+                .context("Failed to read archive entry path.")?
+                .ends_with("assetstorage.wasm.gz")
+            {
+                let mut wasm = vec![];
+                file.read_to_end(&mut wasm)
+                    .context("Failed to read archive entry.")?;
+                return Ok(wasm);
+            }
+        }
+        bail!("Failed to find asset canister archive entry.");
+    }
+}
+
+#[allow(unused)]
+#[context("Failed to load bitcoin wasm.")]
+pub fn bitcoin_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
+    if let Ok(dfx_assets_wasm) = std::env::var("DFX_BITCOIN_WASM") {
+        info!(logger, "Using wasm at path: {}", dfx_assets_wasm);
+        Ok(dfx_core::fs::read(dfx_assets_wasm.as_ref())?)
+    } else {
+        let mut canister_assets =
+            btc_canister().context("Failed to load bitcoin canister archive.")?;
+        for file in canister_assets
+            .entries()
+            .context("Failed to read bitcoin canister archive entries.")?
+        {
+            let mut file = file.context("Failed to read bitcoin canister archive entry.")?;
+            if file
+                .header()
+                .path()
+                .context("Failed to read archive entry path.")?
+                .ends_with("ic-btc-canister.wasm.gz")
+            {
+                let mut wasm = vec![];
+                file.read_to_end(&mut wasm)
+                    .context("Failed to read archive entry.")?;
+                return Ok(wasm);
+            }
+        }
+        bail!("Failed to find bitcoin canister archive entry");
+    }
 }

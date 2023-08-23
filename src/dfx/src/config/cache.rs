@@ -1,11 +1,12 @@
 use crate::config::dfx_version;
-use crate::lib::error::{CacheError, DfxError, DfxResult};
 use crate::util;
-#[cfg(windows)]
-use dfx_core::config::directories::project_dirs;
-
-use anyhow::{bail, Context};
-use fn_error_context::context;
+use dfx_core;
+use dfx_core::config::cache::{
+    binary_command_from_version, delete_version, get_bin_cache, get_binary_path_from_version,
+    is_version_installed, Cache,
+};
+use dfx_core::error::cache::CacheError;
+use dfx_core::error::unified_io::UnifiedIoError;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -13,21 +14,12 @@ use semver::Version;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
-use std::process::ExitStatus;
 
 // POSIX permissions for files in the cache.
 #[cfg(unix)]
 const EXEC_READ_USER_ONLY_PERMISSION: u32 = 0o500;
-
-pub trait Cache {
-    fn version_str(&self) -> String;
-    fn is_installed(&self) -> DfxResult<bool>;
-    fn install(&self) -> DfxResult;
-    fn force_install(&self) -> DfxResult;
-    fn delete(&self) -> DfxResult;
-    fn get_binary_command_path(&self, binary_name: &str) -> DfxResult<PathBuf>;
-    fn get_binary_command(&self, binary_name: &str) -> DfxResult<std::process::Command>;
-}
+#[cfg(unix)]
+const READ_USER_ONLY_PERMISSION: u32 = 0o400;
 
 pub struct DiskBasedCache {
     version: Version,
@@ -39,6 +31,12 @@ impl DiskBasedCache {
             version: version.clone(),
         }
     }
+    pub fn install(version: &str) -> Result<(), CacheError> {
+        install_version(version, false).map(|_| {})
+    }
+    pub fn force_install(version: &str) -> Result<(), CacheError> {
+        install_version(version, true).map(|_| {})
+    }
 }
 
 #[allow(dead_code)]
@@ -47,114 +45,37 @@ impl Cache for DiskBasedCache {
         format!("{}", self.version)
     }
 
-    fn is_installed(&self) -> DfxResult<bool> {
+    fn is_installed(&self) -> Result<bool, CacheError> {
         is_version_installed(&self.version_str())
     }
 
-    fn install(&self) -> DfxResult {
-        install_version(&self.version_str(), false).map(|_| {})
-    }
-    fn force_install(&self) -> DfxResult {
-        install_version(&self.version_str(), true).map(|_| {})
-    }
-
-    fn delete(&self) -> DfxResult {
+    fn delete(&self) -> Result<(), CacheError> {
         delete_version(&self.version_str()).map(|_| {})
     }
 
-    fn get_binary_command_path(&self, binary_name: &str) -> DfxResult<PathBuf> {
+    fn get_binary_command_path(&self, binary_name: &str) -> Result<PathBuf, CacheError> {
+        Self::install(&self.version_str())?;
         get_binary_path_from_version(&self.version_str(), binary_name)
     }
 
-    fn get_binary_command(&self, binary_name: &str) -> DfxResult<std::process::Command> {
+    fn get_binary_command(&self, binary_name: &str) -> Result<std::process::Command, CacheError> {
+        Self::install(&self.version_str())?;
         binary_command_from_version(&self.version_str(), binary_name)
     }
 }
 
-#[context("Failed to get cache root.")]
-pub fn get_cache_root() -> DfxResult<PathBuf> {
-    let cache_root = std::env::var_os("DFX_CACHE_ROOT");
-    // dirs-next is not used for *nix to preserve existing paths
-    #[cfg(not(windows))]
-    let p = {
-        let home = std::env::var_os("HOME")
-            .ok_or_else(|| DfxError::new(CacheError::NoHomeInEnvironment()))?;
-        let root = cache_root.unwrap_or(home);
-        PathBuf::from(root).join(".cache").join("dfinity")
-    };
-    #[cfg(windows)]
-    let p = match cache_root {
-        Some(var) => PathBuf::from(var),
-        None => project_dirs()?.cache_dir().to_owned(),
-    };
-    if !p.exists() {
-        if let Err(_e) = std::fs::create_dir_all(&p) {
-            return Err(DfxError::new(CacheError::CreateCacheDirectoryFailed(p)));
-        }
-    } else if !p.is_dir() {
-        return Err(DfxError::new(CacheError::FindCacheDirectoryFailed(p)));
-    }
-    Ok(p)
-}
-
-/// Return the binary cache root. It constructs it if not present
-/// already.
-#[context("Failed to get path to binary cache root.")]
-pub fn get_bin_cache_root() -> DfxResult<PathBuf> {
-    let p = get_cache_root()?.join("versions");
-
-    if !p.exists() {
-        if let Err(_e) = std::fs::create_dir_all(&p) {
-            return Err(DfxError::new(CacheError::CreateCacheDirectoryFailed(p)));
-        }
-    } else if !p.is_dir() {
-        return Err(DfxError::new(CacheError::FindCacheDirectoryFailed(p)));
-    }
-
-    Ok(p)
-}
-
-#[context("Failed to get path to binary cache for version '{}'.", v)]
-pub fn get_bin_cache(v: &str) -> DfxResult<PathBuf> {
-    let root = get_bin_cache_root()?;
-    Ok(root.join(v))
-}
-
-#[context("Failed to determine if cache is installed for version '{}'.", v)]
-pub fn is_version_installed(v: &str) -> DfxResult<bool> {
-    get_bin_cache(v).map(|c| c.is_dir())
-}
-
-pub fn delete_version(v: &str) -> DfxResult<bool> {
-    if !is_version_installed(v).unwrap_or(false) {
-        return Ok(false);
-    }
-
-    let root = get_bin_cache(v)?;
-    std::fs::remove_dir_all(&root).with_context(|| {
-        format!(
-            "Failed to remove bin cache root {}.",
-            root.to_string_lossy()
-        )
-    })?;
-
-    Ok(true)
-}
-
-#[context("Failed to install binary cache for version '{}'.", v)]
-pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
+pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
     let p = get_bin_cache(v)?;
     if !force && is_version_installed(v).unwrap_or(false) {
         return Ok(p);
     }
 
-    if Version::parse(v).with_context(|| format!("Failed to parse version string {}.", v))?
+    if Version::parse(v).map_err(|e| CacheError::MalformedSemverString(v.to_string(), e))?
         == *dfx_version()
     {
         // Dismiss as fast as possible. We use the current_exe variable after an
         // expensive step, and if this fails we can't continue anyway.
-        let current_exe =
-            std::env::current_exe().context("Failed to identify currently running executable.")?;
+        let current_exe = dfx_core::foundation::get_current_exe()?;
 
         let b: Option<ProgressBar> = if atty::is(atty::Stream::Stderr) {
             let b = ProgressBar::new_spinner();
@@ -171,176 +92,74 @@ pub fn install_version(v: &str, force: bool) -> DfxResult<PathBuf> {
             .take(12)
             .map(|byte| byte as char)
             .collect();
-        let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))
-            .context("Failed to get temporary bin cache path.")?;
-        std::fs::create_dir(&temp_p).with_context(|| {
-            format!(
-                "Failed to create temporary bin cache dir {}.",
-                temp_p.to_string_lossy()
-            )
-        })?;
+        let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))?;
+        dfx_core::fs::create_dir_all(&temp_p).map_err(UnifiedIoError::from)?;
 
         let mut binary_cache_assets =
-            util::assets::binary_cache().context("Failed to get asset binary cache.")?;
+            util::assets::binary_cache().map_err(CacheError::ReadBinaryCacheStoreFailed)?;
         // Write binaries and set them to be executable.
         for file in binary_cache_assets
             .entries()
-            .context("Failed to get binary cache archive entires.")?
+            .map_err(CacheError::ReadBinaryCacheEntriesFailed)?
         {
-            let mut file = file.context("Failed to get binary cache archive entry.")?;
+            let mut file = file.map_err(CacheError::ReadBinaryCacheEntryFailed)?;
 
             if file.header().entry_type().is_dir() {
                 continue;
             }
-            file.unpack_in(temp_p.as_path())
-                .context("Failed to unpack archive asset.")?;
+            dfx_core::fs::tar_unpack_in(temp_p.as_path(), &mut file)
+                .map_err(UnifiedIoError::from)?;
             // On *nix we need to set the execute permission as the tgz doesn't include it
             #[cfg(unix)]
             {
-                let full_path = temp_p.join(file.path().context("Failed to get file path.")?);
-                let mut perms = std::fs::metadata(full_path.as_path())
-                    .with_context(|| {
-                        format!(
-                            "Failed to get file metadata for {}.",
-                            full_path.to_string_lossy()
-                        )
-                    })?
-                    .permissions();
-                perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
-                std::fs::set_permissions(full_path.as_path(), perms).with_context(|| {
-                    format!(
-                        "Failed to set file permissions for {}.",
-                        full_path.to_string_lossy()
-                    )
-                })?;
+                let archive_path = dfx_core::fs::get_archive_path(&file)?;
+                let mode = if archive_path.starts_with("base/") {
+                    READ_USER_ONLY_PERMISSION
+                } else {
+                    EXEC_READ_USER_ONLY_PERMISSION
+                };
+                let full_path = temp_p.join(archive_path);
+                let mut perms = dfx_core::fs::read_permissions(full_path.as_path())
+                    .map_err(UnifiedIoError::from)?;
+                perms.set_mode(mode);
+                dfx_core::fs::set_permissions(full_path.as_path(), perms)
+                    .map_err(UnifiedIoError::from)?;
             }
         }
 
         // Copy our own binary in the cache.
         let dfx = temp_p.join("dfx");
-        std::fs::write(
+        #[allow(clippy::needless_borrow)]
+        dfx_core::fs::write(
             &dfx,
-            std::fs::read(current_exe).context("Failed to read currently running executable.")?,
+            dfx_core::fs::read(&current_exe).map_err(UnifiedIoError::from)?,
         )
-        .with_context(|| {
-            format!(
-                "Failed to copy running binary {} to cache.",
-                dfx.to_string_lossy()
-            )
-        })?;
+        .map_err(UnifiedIoError::from)?;
         // On *nix we need to set the execute permission as the tgz doesn't include it
         #[cfg(unix)]
         {
-            let mut perms = std::fs::metadata(&dfx)
-                .with_context(|| {
-                    format!(
-                        "Failed to read file metadata for {}.",
-                        dfx.to_string_lossy()
-                    )
-                })?
-                .permissions();
+            let mut perms = dfx_core::fs::read_permissions(&dfx).map_err(UnifiedIoError::from)?;
             perms.set_mode(EXEC_READ_USER_ONLY_PERMISSION);
-            std::fs::set_permissions(&dfx, perms).with_context(|| {
-                format!("Failed to set file metadata for {}.", dfx.to_string_lossy())
-            })?;
+            dfx_core::fs::set_permissions(&dfx, perms).map_err(UnifiedIoError::from)?;
         }
 
         // atomically install cache version into place
         if force && p.exists() {
-            std::fs::remove_dir_all(&p)
-                .with_context(|| format!("Failed to remove {}.", p.to_string_lossy()))?;
+            dfx_core::fs::remove_dir_all(&p).map_err(UnifiedIoError::from)?;
         }
 
-        if std::fs::rename(&temp_p, &p).is_ok() {
+        if dfx_core::fs::rename(temp_p.as_path(), &p).is_ok() {
             if let Some(b) = b {
                 b.finish_with_message(format!("Version v{} installed successfully.", v));
             }
         } else {
-            std::fs::remove_dir_all(&temp_p).with_context(|| {
-                format!(
-                    "Failed to remove temp binary cache {}.",
-                    temp_p.to_string_lossy()
-                )
-            })?;
+            dfx_core::fs::remove_dir_all(temp_p.as_path()).map_err(UnifiedIoError::from)?;
             if let Some(b) = b {
                 b.finish_with_message(format!("Version v{} was already installed.", v));
             }
         }
-
         Ok(p)
     } else {
-        Err(DfxError::new(CacheError::UnknownVersion(v.to_owned())))
+        Err(CacheError::InvalidCacheForDfxVersion(v.to_owned()))
     }
-}
-
-#[context(
-    "Failed to get path to binary '{}' for version '{}'.",
-    binary_name,
-    version
-)]
-pub fn get_binary_path_from_version(version: &str, binary_name: &str) -> DfxResult<PathBuf> {
-    install_version(version, false)?;
-
-    let env_var_name = format!("DFX_{}_PATH", binary_name.replace('-', "_").to_uppercase());
-
-    if let Ok(path) = std::env::var(env_var_name) {
-        return Ok(PathBuf::from(path));
-    }
-
-    Ok(get_bin_cache(version)?.join(binary_name))
-}
-
-#[context("Failed to get binary '{}' for version '{}'.", name, version)]
-pub fn binary_command_from_version(version: &str, name: &str) -> DfxResult<std::process::Command> {
-    let path = get_binary_path_from_version(version, name)?;
-    let cmd = std::process::Command::new(path);
-
-    Ok(cmd)
-}
-
-#[context("Failed to list cache versions.")]
-pub fn list_versions() -> DfxResult<Vec<Version>> {
-    let root = get_bin_cache_root()?;
-    let mut result: Vec<Version> = Vec::new();
-
-    for entry in std::fs::read_dir(&root).with_context(|| {
-        format!(
-            "Failed to read bin cache root content at {}.",
-            root.to_string_lossy()
-        )
-    })? {
-        let entry = entry.with_context(|| {
-            format!(
-                "Failed to read an entry in bin cache root at {}.",
-                root.to_string_lossy()
-            )
-        })?;
-        if let Some(version) = entry.file_name().to_str() {
-            if version.starts_with('_') {
-                // temp directory for version being installed
-                continue;
-            }
-            result.push(
-                Version::parse(version)
-                    .with_context(|| format!("Failed to parse version from {}.", version))?,
-            );
-        }
-    }
-
-    Ok(result)
-}
-
-pub fn call_cached_dfx(v: &Version) -> DfxResult<ExitStatus> {
-    let v = format!("{}", v);
-    let command_path = get_binary_path_from_version(&v, "dfx")?;
-    if command_path
-        == std::env::current_exe().context("Failed to get currently running executable.")?
-    {
-        bail!("Invalid cache for version {}.", v)
-    }
-
-    std::process::Command::new(command_path)
-        .args(std::env::args().skip(1))
-        .status()
-        .map_err(DfxError::from)
 }

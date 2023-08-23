@@ -1,3 +1,4 @@
+use candid::Principal;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -25,4 +26,7 @@ pub enum DfxConfigError {
 
     #[error("Failed to figure out if canister '{0}' has a remote id on network '{1}': {2}")]
     GetRemoteCanisterIdFailed(Box<String>, Box<String>, Box<DfxConfigError>),
+
+    #[error("Pull dependencies '{0}' and '{1}' have the same canister ID: {2}")]
+    PullCanistersSameId(String, String, Principal),
 }

@@ -4,39 +4,29 @@ load ../utils/_
 
 # All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
 
+
 setup() {
     standard_setup
     install_asset ledger
-    install_shared_asset ledger_shared
+    install_shared_asset subnet_type/shared_network_settings/system
 
-    dfx identity import --disable-encryption alice alice.pem
-    dfx identity import --disable-encryption bob bob.pem
+    dfx identity import --storage-mode plaintext alice alice.pem
+    dfx identity import --storage-mode plaintext bob bob.pem
 
-    dfx_start
+    dfx_start_for_nns_install
 
-    # local NNS_URL
-    NNS_URL="http://localhost:$(get_replica_port)"
-    local ic_nns_init
-    case "$(uname)" in
-    Darwin) ic_nns_init="./ic-nns-init_macos" ;;
-    Linux) ic_nns_init="./ic-nns-init_linux" ;;
-    *) echo "Unsupported platform $(uname)" && return 1 ;;
-    esac
-
-    "$ic_nns_init" \
-      --url "$NNS_URL" \
-      --initialize-ledger-with-test-accounts 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc\
-      --wasm-dir .
-
-    # Set the XDR conversion rate. Locally, 1 XDR = 1 ICP = 1 TC.
-    dfx canister call rkp4c-7iaaa-aaaaa-aaaca-cai set_icp_xdr_conversion_rate \
-        '(record { data_source= "max"; xdr_permyriad_per_icp = 10000 : nat64 ; timestamp_seconds= '"$(date +%s)"' : nat64 })'
+    dfx extension install nns || true
+    dfx nns install --ledger-accounts 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc
 }
 
 teardown() {
     dfx_stop
 
     standard_teardown
+}
+
+current_time_nanoseconds() {
+    echo "$(date +%s)"000000000
 }
 
 @test "ledger account-id" {
@@ -62,7 +52,7 @@ teardown() {
     assert_match "1000000000.00000000 ICP"
 
     assert_command dfx ledger transfer --amount 100 --memo 1 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89 # to bob
-    assert_match "Transfer sent at BlockHeight:"
+    assert_match "Transfer sent at block height"
 
     # The sender(alice) paid transaction fee which is 0.0001 ICP
     assert_command dfx ledger balance
@@ -76,12 +66,40 @@ teardown() {
     assert_match "1000000100.00000000 ICP"
 
     assert_command dfx ledger transfer --icp 100 --e8s 1 --memo 2 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 # to alice
-    assert_match "Transfer sent at BlockHeight:"
+    assert_match "Transfer sent at block height"
 
     # The sender(bob) paid transaction fee which is 0.0001 ICP
     # 10100 - 100 - 0.0001 - 0.00000001 = 9999.99989999
     assert_command dfx ledger balance
     assert_match "999999999.99989999 ICP"
+
+    # Transaction Deduplication
+    t=$(current_time_nanoseconds)
+
+    assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time "$t" 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+    # shellcheck disable=SC2154
+    block_height=$(echo "$stdout" | sed '1q' | sed 's/Transfer sent at block height //')
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height $block_height" "$stdout"
+
+    assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time $((t+1)) 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_not_match "Transfer sent at block height $block_height" "$stdout"
+
+    assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time "$t" 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+    # shellcheck disable=SC2154
+    assert_match "transaction is a duplicate of another transaction in block $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height $block_height" "$stdout"
+
+    assert_command dfx ledger transfer --icp 1 --memo 2 --created-at-time "$t" 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_not_match "Transfer sent at block height $block_height" "$stdout"
+
 }
 
 @test "ledger subaccounts" {
@@ -93,7 +111,7 @@ teardown() {
     assert_command dfx ledger balance
     assert_match "1000000000.00000000 ICP"
     assert_command dfx ledger transfer --amount 100 --memo 1 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc # to bob+subacct 
-    assert_match "Transfer sent at BlockHeight:"
+    assert_match "Transfer sent at block height"
     assert_command dfx ledger balance
     assert_match "999999899.99990000 ICP"
 
@@ -104,7 +122,7 @@ teardown() {
     assert_match "1000000100.00000000 ICP"
     
     assert_command dfx ledger transfer --amount 100 --memo 2 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 --from-subaccount "$subacct" # to alice
-    assert_match "Transfer sent at BlockHeight"
+    assert_match "Transfer sent at block height"
     assert_command dfx ledger balance
     assert_match "1000000000.00000000 ICP"
     assert_command dfx ledger balance --subaccount "$subacct"
@@ -129,17 +147,96 @@ tc_to_num() {
     balance=$(tc_to_num "$(dfx wallet balance)")
 
     assert_command dfx ledger top-up "$wallet" --icp 5
-    assert_match "Canister was topped up with 5000000000000 cycles"
+    assert_match "Canister was topped up with 617283500000000 cycles"
     balance_now=$(tc_to_num "$(dfx wallet balance)")
     
-    (( balance_now - balance > 4000000000000 ))
+    (( balance_now - balance > 600000000000000 ))
+    
+    # Transaction Deduplication
+    t=$(current_time_nanoseconds)
+
+    assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time "$t"
+    
+    # shellcheck disable=SC2154
+    block_height=$(echo "$stdout" | sed '1q' | sed 's/Transfer sent at block height //')
+    
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Using transfer at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Canister was topped up with" "$stdout"
+
+    assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time $((t+1))
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Using transfer at block height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Canister was topped up with" "$stdout"
+    # shellcheck disable=SC2154
+    assert_not_match "Transfer sent at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_not_match "Using transfer at block height $block_height" "$stdout"
+    
+    assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time "$t"
+    # shellcheck disable=SC2154
+    assert_match "transaction is a duplicate of another transaction in block $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Using transfer at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Canister was topped up with" "$stdout"
 }
 
 @test "ledger create-canister" {
     dfx identity use alice
     assert_command dfx ledger create-canister --amount=100 --subnet-type "type1" "$(dfx identity get-principal)"
-    assert_match "Transfer sent at block height 6"
-    assert_match "Refunded at block height 7 with message: Provided subnet type type1 does not exist"
+    assert_match "Transfer sent at block height"
+    assert_match "Refunded at block height"
+    assert_match "with message: Provided subnet type type1 does not exist"
+    
+    # Transaction Deduplication
+    t=$(current_time_nanoseconds)
+
+    assert_command dfx ledger create-canister --amount=100 --created-at-time "$t" "$(dfx identity get-principal)"
+    # shellcheck disable=SC2154
+    block_height=$(echo "$stdout" | sed '1q' | sed 's/Transfer sent at block height //')
+    # shellcheck disable=SC2154
+    created_canister_id=$(echo "$stdout" | sed '3q;d' | sed 's/Canister created with id: //')
+    
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Using transfer at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Canister created with id: $created_canister_id" "$stdout"
+    
+    assert_command dfx ledger create-canister --amount=100 --created-at-time $((t+1)) "$(dfx identity get-principal)"
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Using transfer at block height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Canister created with id:" "$stdout" 
+    # shellcheck disable=SC2154
+    assert_not_match "Transfer sent at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_not_match "Using transfer at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_not_match "Canister created with id: $created_canister_id" "$stdout"
+    
+    assert_command dfx ledger create-canister --amount=100 --created-at-time "$t" "$(dfx identity get-principal)"
+    # shellcheck disable=SC2154
+    assert_match "transaction is a duplicate of another transaction in block $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Transfer sent at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Using transfer at block height $block_height" "$stdout"
+    # shellcheck disable=SC2154
+    assert_match "Canister created with id: $created_canister_id" "$stdout"
+    
 }
 
 @test "ledger show-subnet-types" {

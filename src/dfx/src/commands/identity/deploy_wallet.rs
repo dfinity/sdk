@@ -1,9 +1,9 @@
+use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::provider::create_agent_environment;
-use crate::lib::root_key::fetch_root_key_if_needed;
-
 use crate::lib::identity::wallet::create_wallet;
+use crate::lib::network::network_opt::NetworkOpt;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use anyhow::bail;
 use candid::Principal as CanisterId;
 use clap::Parser;
@@ -16,8 +16,8 @@ pub struct DeployWalletOpts {
     canister_id: String,
 }
 
-pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: Option<String>) -> DfxResult {
-    let agent_env = create_agent_environment(env, network)?;
+pub fn exec(env: &dyn Environment, opts: DeployWalletOpts, network: NetworkOpt) -> DfxResult {
+    let agent_env = create_agent_environment(env, network.to_network_name())?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(async { fetch_root_key_if_needed(&agent_env).await })?;

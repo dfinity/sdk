@@ -1,7 +1,6 @@
 use crate::commands::wallet::wallet_update;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-
 use clap::Parser;
 
 /// Set wallet name.

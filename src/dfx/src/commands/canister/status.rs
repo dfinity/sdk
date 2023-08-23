@@ -1,12 +1,10 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::identity_utils::CallSender;
-use crate::lib::models::canister_id_store::CanisterIdStore;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-
 use candid::Principal;
 use clap::Parser;
+use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use slog::info;
 
@@ -18,7 +16,7 @@ pub struct CanisterStatusOpts {
     canister: Option<String>,
 
     /// Returns status information for all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 }
 
@@ -29,7 +27,7 @@ async fn canister_status(
     call_sender: &CallSender,
 ) -> DfxResult {
     let log = env.get_logger();
-    let canister_id_store = CanisterIdStore::for_env(env)?;
+    let canister_id_store = env.get_canister_id_store()?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
 

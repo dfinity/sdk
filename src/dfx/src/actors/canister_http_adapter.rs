@@ -41,7 +41,7 @@ pub struct Config {
     pub logger: Option<Logger>,
 }
 
-/// An actor for the ic-canister-http-adapter process.  Publishes information about
+/// An actor for the ic-https-outcalls-adapter process.  Publishes information about
 /// the process starting or restarting, so that other processes can reconnect.
 pub struct CanisterHttpAdapter {
     config: Config,
@@ -69,9 +69,20 @@ impl CanisterHttpAdapter {
         }
     }
 
-    fn wait_for_socket(socket_path: &Path) -> DfxResult {
+    /// Wait for canister http adapter creating the socket file.
+    /// Retry every 0.1s for 5 minutes.
+    /// Will break out of the loop if receive stop signal.
+    ///
+    /// Returns
+    /// - Ok(Some()) if succeed;
+    /// - Ok(None) if receive stop signal (`dfx start` then Ctrl-C immediately);
+    /// - Err if time out;
+    fn wait_for_socket(socket_path: &Path, stop_receiver: &Receiver<()>) -> DfxResult<Option<()>> {
         let mut retries = 0;
         while !socket_path.exists() {
+            if stop_receiver.try_recv().is_ok() {
+                return Ok(None);
+            }
             if retries >= 3000 {
                 bail!("Cannot start canister-http-adapter: timed out");
             }
@@ -79,7 +90,7 @@ impl CanisterHttpAdapter {
             retries += 1;
         }
 
-        Ok(())
+        Ok(Some(()))
     }
 
     fn start_adapter(&mut self, addr: Addr<Self>) -> DfxResult {
@@ -184,12 +195,11 @@ fn canister_http_adapter_start_thread(
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
 
-        let mut done = false;
-        while !done {
+        loop {
             if let Some(socket_path) = &config.socket_path {
                 if socket_path.exists() {
                     std::fs::remove_file(socket_path)
-                        .expect("Could not remove ic-canister-http-adapter socket");
+                        .expect("Could not remove ic-https-outcalls-adapter socket");
                 }
             }
             let last_start = std::time::Instant::now();
@@ -202,8 +212,16 @@ fn canister_http_adapter_start_thread(
                 .expect("Could not write to canister http adapter pid file.");
 
             if let Some(socket_path) = &config.socket_path {
-                CanisterHttpAdapter::wait_for_socket(socket_path)
-                    .expect("canister http adapter socket was not created");
+                // If Ctrl-C right after `dfx start`, the adapter child process will be killed already.
+                // And the socket file will never be ready.
+                // So we let `wait_for_socket` method to break out from the waiting,
+                // finish this actor starting ASAP and let the system stop the actor.
+                if CanisterHttpAdapter::wait_for_socket(socket_path, &receiver)
+                    .expect("canister http adapter socket was not created")
+                    .is_none()
+                {
+                    break;
+                }
             }
             addr.do_send(signals::CanisterHttpAdapterReady {});
 
@@ -213,14 +231,14 @@ fn canister_http_adapter_start_thread(
                 ChildOrReceiver::Receiver => {
                     debug!(
                         logger,
-                        "Got signal to stop. Killing ic-canister-http-adapter process..."
+                        "Got signal to stop. Killing ic-https-outcalls-adapter process..."
                     );
                     let _ = child.kill();
                     let _ = child.wait();
-                    done = true;
+                    break;
                 }
                 ChildOrReceiver::Child => {
-                    debug!(logger, "ic-canister-http-adapter process failed.");
+                    debug!(logger, "ic-https-outcalls-adapter process failed.");
                     // If it took less than two seconds to exit, wait a bit before trying again.
                     if std::time::Instant::now().duration_since(last_start) < Duration::from_secs(2)
                     {
@@ -228,7 +246,7 @@ fn canister_http_adapter_start_thread(
                     } else {
                         debug!(
                             logger,
-                            "Last ic-canister-http-adapter seemed to have been healthy, not waiting..."
+                            "Last ic-https-outcalls-adapter seemed to have been healthy, not waiting..."
                         );
                     }
                 }
