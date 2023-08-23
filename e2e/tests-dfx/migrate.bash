@@ -15,8 +15,6 @@ teardown() {
 }
 
 @test "detects the wallet being outdated" {
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref because uploading wallet.wasm as data takes too long"
-
     use_wallet_wasm 0.7.2
     dfx_start
     WALLET=$(dfx identity get-wallet)

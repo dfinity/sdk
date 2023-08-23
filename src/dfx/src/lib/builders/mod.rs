@@ -17,8 +17,6 @@ use std::ffi::OsStr;
 use std::fmt::Write;
 use std::fs;
 use std::io::Read;
-#[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;

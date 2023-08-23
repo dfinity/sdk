@@ -20,12 +20,7 @@ teardown() {
 
     dfx_start
     assert_command dfx info replica-port
-    if [ "$USE_IC_REF" ]
-    then
-        assert_eq "$(get_ic_ref_port)"
-    else
-        assert_eq "$(get_replica_port)"
-    fi
+    assert_eq "$(get_replica_port)"
 }
 
 @test "displays the default webserver port for the local shared network" {
