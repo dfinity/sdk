@@ -153,6 +153,8 @@ impl CanisterMetadataSection {
     }
 }
 
+/// # Pullable configuration
+/// Configs the "pullable" metadata of the canister.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct PullableConfig {
     /// # wasm_url
@@ -191,6 +193,8 @@ pub struct PullableConfig {
     pub init_guide: String,
 }
 
+/// # Dynamic wasm_url configuration
+/// Configs how to generate wasm_url dynamically and where is the file contains wasm_url.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct DynamicWasmUrl {
     /// # Generate Commands
@@ -205,6 +209,8 @@ pub struct DynamicWasmUrl {
     pub path: String,
 }
 
+/// # Custom WASM configuration
+/// Configs how to generate a custom WASM for pullable and where is the custom WASM file.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct CustomWasm {
     /// # Generate Commands

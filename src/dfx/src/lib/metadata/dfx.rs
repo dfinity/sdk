@@ -13,15 +13,19 @@ pub struct DfxMetadata {
     pub pullable: Option<Pullable>,
 }
 
+/// "pullable" object of the "dfx" metadata
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Pullable {
     /// # wasm_url
     /// The Url to download canister wasm.
+    /// Must be valid URL for on-chain canisters.
+    /// Can be Empty for custom wasm module.
     pub wasm_url: String,
 
     /// # wasm_hash
     /// SHA256 hash of the wasm module located at wasm_url.
     /// Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.
+    /// Can be None for custom wasm module.
     pub wasm_hash: Option<String>,
 
     /// # dependencies
