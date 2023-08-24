@@ -3,12 +3,9 @@
 //! The cli tool dfx should consolidate its usage of canister metadata into this single section
 //! It's originally for pulling dependencies. But open to extend for other usage.
 use crate::lib::error::DfxResult;
-use anyhow::{bail, Context};
+use anyhow::bail;
 use candid::Principal;
-use dfx_core::config::model::dfinity::PullableConfig;
-use dfx_core::fs::read_to_string;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct DfxMetadata {
@@ -37,36 +34,8 @@ pub struct Pullable {
 }
 
 impl DfxMetadata {
-    pub fn set_pullable(&mut self, pullable_config: PullableConfig) -> DfxResult {
-        let wasm_url_str = match (pullable_config.wasm_url, pullable_config.dynamic_wasm_url) {
-            (Some(_), Some(_)) => {
-                bail!("Cannot define `wasm_url` and `dynamic_wasm_url` at the same time.")
-            }
-            (None, None) => {
-                bail!("Pullable canister must define `wasm_url` or `dynamic_wasm_url`.")
-            }
-            (Some(s), None) => s,
-            (None, Some(dwu)) => {
-                let path = PathBuf::from(dwu.path);
-                let file_content = read_to_string(&path)?;
-                file_content
-            }
-        };
-
-        reqwest::Url::parse(&wasm_url_str).with_context(|| {
-            format!(
-                "Failed to set wasm_url: \"{}\" is not a valid URL.",
-                wasm_url_str
-            )
-        })?;
-
-        self.pullable = Some(Pullable {
-            wasm_url: wasm_url_str,
-            wasm_hash: None, // TODO: get from config
-            dependencies: pullable_config.dependencies,
-            init_guide: pullable_config.init_guide,
-        });
-        Ok(())
+    pub fn set_pullable(&mut self, pullable: Pullable) {
+        self.pullable = Some(pullable);
     }
 
     pub fn get_pullable(&self) -> DfxResult<&Pullable> {

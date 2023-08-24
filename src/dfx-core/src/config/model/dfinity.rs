@@ -157,16 +157,29 @@ impl CanisterMetadataSection {
 pub struct PullableConfig {
     /// # wasm_url
     /// The Url to download canister wasm.
+    /// Conflicts with `dynamic_wasm_url`.
     pub wasm_url: Option<String>,
 
-    /// # dynamic_wasm_url
+    /// # Dynamic wasm_url
     /// Generate wasm_url dynamically.
+    /// Conflicts with `wasm_url`.
     pub dynamic_wasm_url: Option<DynamicWasmUrl>,
 
     /// # wasm_hash
     /// SHA256 hash of the wasm module located at wasm_url.
     /// Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.
+    /// Conflicts with `wasm_hash_file` and `custom_wasm`.
     pub wasm_hash: Option<String>,
+
+    /// # Path to wasm_hash
+    /// Conflicts with `wasm_hash` and `custom_wasm`.
+    pub wasm_hash_file: Option<String>,
+
+    /// # Custom WASM
+    /// Build a custom WASM for pullable.
+    /// wasm_hash will be calculated from this custom WASM.
+    /// Conflicts with `wasm_hash` and `wasm_hash_file`.
+    pub custom_wasm: Option<CustomWasm>,
 
     /// # dependencies
     /// Canister IDs (Principal) of direct dependencies.
@@ -189,6 +202,20 @@ pub struct DynamicWasmUrl {
     /// # wasm_url Path
     /// Path to the wasm_url file from the "generate" commands.
     /// The file should contains a valid URL.
+    pub path: String,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct CustomWasm {
+    /// # Generate Commands
+    /// Commands that are executed in order to generate a custom wasm of this pullable canister.
+    /// Expected to produce the wasm file in the path specified by the 'path' field.
+    #[schemars(default)]
+    pub generate: SerdeVec<String>,
+
+    /// # Custom WASM Path
+    /// Path to the custom wasm file from the "generate" commands.
+    /// The file should be a valid canister WASM .
     pub path: String,
 }
 

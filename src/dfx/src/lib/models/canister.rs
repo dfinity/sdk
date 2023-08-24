@@ -5,7 +5,7 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::metadata::dfx::DfxMetadata;
+use crate::lib::metadata::dfx::{DfxMetadata, Pullable};
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
 use crate::util::{assets, check_candid_file};
@@ -13,18 +13,20 @@ use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
+use dfx_core::fs::{read, read_to_string};
 use fn_error_context::context;
 use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
 use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
+use sha2::{Digest, Sha256};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashSet};
 use std::convert::TryFrom;
 use std::ffi::OsStr;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 
@@ -108,23 +110,17 @@ impl Canister {
     pub(crate) fn wasm_post_process(
         &self,
         logger: &Logger,
-        build_output: &BuildOutput,
+        input_wasm_path: &PathBuf,
+        output_wasm_path: &PathBuf,
+        is_custom_wasm: bool,
     ) -> DfxResult {
-        let build_output_wasm_path = match &build_output.wasm {
-            WasmBuildOutput::File(p) => p,
-            WasmBuildOutput::None => {
-                // exclude pull canisters
-                return Ok(());
-            }
-        };
-        let wasm_path = self.info.get_build_wasm_path();
-        dfx_core::fs::composite::ensure_parent_dir_exists(&wasm_path)?;
+        dfx_core::fs::composite::ensure_parent_dir_exists(&output_wasm_path)?;
         let info = &self.info;
         if info.is_remote() {
             return Ok(());
         }
 
-        let mut m = read_wasm_module(build_output_wasm_path)?;
+        let mut m = read_wasm_module(input_wasm_path)?;
         let mut modified = false;
 
         // optimize or shrink
@@ -153,9 +149,68 @@ impl Canister {
             public_candid = true;
         }
 
-        if let Some(pullable_config) = info.get_pullable() {
+        if let Some(pullable_config) = info.get_pullable_config() {
             let mut dfx_metadata = DfxMetadata::default();
-            dfx_metadata.set_pullable(pullable_config)?;
+            let mut pullable = Pullable::default();
+            pullable.dependencies = pullable_config.dependencies;
+            pullable.init_guide = pullable_config.init_guide;
+            // only set wasm_url and wasm_hash for prod wasm
+            if !is_custom_wasm {
+                // wasm_hash
+                let mut set_wasm_hash = false;
+                if let Some(s) = pullable_config.wasm_hash {
+                    pullable.wasm_hash = Some(s);
+                    set_wasm_hash = true;
+                }
+                if let Some(s) = pullable_config.wasm_hash_file {
+                    if set_wasm_hash == true {
+                        bail!("Pullable canister can only define one of `wasm_hash`, `wasm_hash_file`, `custom_wasm`.");
+                    }
+                    let path = PathBuf::from(s);
+                    let file_content = read_to_string(&path)?;
+                    pullable.wasm_hash = Some(file_content);
+                    set_wasm_hash = true;
+                }
+                if pullable_config.custom_wasm.is_some() {
+                    if set_wasm_hash == true {
+                        bail!("Pullable canister can only define one of `wasm_hash`, `wasm_hash_file`, `custom_wasm`.");
+                    }
+                    let path = info.get_custom_wasm_path(); // Use the post_processed custom wasm
+                    let bytes = read(&path)?;
+                    let wasm_hash = hex::encode(Sha256::digest(bytes));
+                    info!(logger, "Custom wasm for pullable at: {:?}", path);
+                    info!(logger, "  wasm_hash: {}", &wasm_hash);
+                    pullable.wasm_hash = Some(wasm_hash);
+                }
+
+                // wasm_url
+                let wasm_url_str =
+                    match (pullable_config.wasm_url, pullable_config.dynamic_wasm_url) {
+                        (Some(_), Some(_)) => {
+                            bail!(
+                                "Cannot define `wasm_url` and `dynamic_wasm_url` at the same time."
+                            )
+                        }
+                        (None, None) => {
+                            bail!("Pullable canister must define `wasm_url` or `dynamic_wasm_url`.")
+                        }
+                        (Some(s), None) => s,
+                        (None, Some(c)) => {
+                            let path = PathBuf::from(c.path);
+                            let file_content = read_to_string(&path)?;
+                            file_content
+                        }
+                    };
+                reqwest::Url::parse(&wasm_url_str).with_context(|| {
+                    format!(
+                        "Failed to set wasm_url: \"{}\" is not a valid URL.",
+                        wasm_url_str
+                    )
+                })?;
+                pullable.wasm_url = wasm_url_str;
+            }
+
+            dfx_metadata.set_pullable(pullable);
             let content = serde_json::to_string_pretty(&dfx_metadata)
                 .with_context(|| "Failed to serialize `dfx` metadata.".to_string())?;
             metadata_sections.insert(
@@ -191,6 +246,7 @@ impl Canister {
         }
 
         for (name, section) in &metadata_sections {
+            // TODO: candid:service for custom pullable wasm
             if section.name == CANDID_SERVICE && info.is_motoko() {
                 if let Some(specified_path) = &section.path {
                     check_valid_subtype(&info.get_service_idl_path(), specified_path)?
@@ -238,11 +294,11 @@ impl Canister {
 
         // If not modified and not set "gzip" explicitly, copy the wasm file directly so that hash match.
         if !modified && !info.get_gzip() {
-            dfx_core::fs::copy(build_output_wasm_path, &wasm_path)?;
+            dfx_core::fs::copy(&input_wasm_path, &output_wasm_path)?;
             return Ok(());
         }
 
-        let new_bytes = if wasm_path.extension() == Some(OsStr::new("gz")) {
+        let new_bytes = if output_wasm_path.extension() == Some(OsStr::new("gz")) {
             // gzip
             // Unlike using gzip CLI, the compression below only takes the wasm bytes
             // So as long as the wasm bytes are the same, the gzip file will be the same on different platforms.
@@ -251,7 +307,7 @@ impl Canister {
         } else {
             m.emit_wasm()
         };
-        dfx_core::fs::write(&wasm_path, new_bytes)?;
+        dfx_core::fs::write(&output_wasm_path, new_bytes)?;
 
         Ok(())
     }
@@ -570,7 +626,27 @@ impl CanisterPool {
     ) -> DfxResult<()> {
         canister.candid_post_process(self.get_logger(), build_config, build_output)?;
 
-        canister.wasm_post_process(self.get_logger(), build_output)?;
+        if let Some(c) = canister.info.get_pullable_config() {
+            if let Some(custom_wasm) = c.custom_wasm {
+                let input_wasm_path = PathBuf::from(custom_wasm.path);
+                let output_wasm_path = canister.info.get_custom_wasm_path();
+                canister.wasm_post_process(
+                    self.get_logger(),
+                    &input_wasm_path,
+                    &output_wasm_path,
+                    true,
+                )?;
+            }
+        }
+
+        if let WasmBuildOutput::File(p) = &build_output.wasm {
+            canister.wasm_post_process(
+                self.get_logger(),
+                p,
+                &canister.info.get_build_wasm_path(),
+                false,
+            )?;
+        }
 
         build_canister_js(&canister.canister_id(), &canister.info)?;
 

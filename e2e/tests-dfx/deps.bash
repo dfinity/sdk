@@ -8,8 +8,8 @@ setup() {
 
 teardown() {
     stop_webserver
-    dfx_stop
-    standard_teardown
+    # dfx_stop
+    # standard_teardown
 }
 
 CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"
@@ -75,18 +75,63 @@ setup_onchain() {
     install_asset deps
 
     cd onchain
-    jq 'del(.canisters.a.pullable.wasm_url)' dfx.json | sponge dfx.json
     jq '.canisters.a.pullable.dynamic_wasm_url.generate="bash dynamic_wasm_url_a.sh"' dfx.json | sponge dfx.json
     jq '.canisters.a.pullable.dynamic_wasm_url.path="dynamic_wasm_url.txt"' dfx.json | sponge dfx.json
 
     echo "echo \"http:/example.com/dynamic_wasm_url/a.wasm\" > dynamic_wasm_url.txt" > dynamic_wasm_url_a.sh
 
     assert_command dfx canister create --all
-    assert_command dfx build
+    assert_command_fail dfx build a
+    assert_contains "Cannot define \`wasm_url\` and \`dynamic_wasm_url\` at the same time."
+
+    jq 'del(.canisters.a.pullable.wasm_url)' dfx.json | sponge dfx.json
+    assert_command dfx build a
 
     ic-wasm .dfx/local/canisters/a/a.wasm metadata dfx > a_dfx.json
     assert_command jq -r '.pullable.wasm_url' a_dfx.json
     assert_eq "http:/example.com/dynamic_wasm_url/a.wasm" "$output"  
+}
+
+@test "dfx build can handle custom_wasm" {
+    dfx_start
+
+    install_asset deps
+
+    cd onchain
+
+    echo -n -e "\x00asm\x01\x00\x00\x00" > main.wasm
+    WASM_HASH="$(sha256sum main.wasm | cut -d " " -f 1)"
+    echo "$WASM_HASH" > wasm_hash.txt
+    
+    assert_command dfx canister create --all
+
+    # Cannot define multiple fields for wasm_hash
+    jq '.canisters.a.pullable.wasm_hash="'"$WASM_HASH"'"' dfx.json | sponge dfx.json
+    jq '.canisters.a.pullable.wasm_hash_file="wasm_hash.txt"' dfx.json | sponge dfx.json
+    assert_command_fail dfx build a
+    assert_contains "Pullable canister can only define one of \`wasm_hash\`, \`wasm_hash_file\`, \`custom_wasm\`."
+
+    # Read wasm_hash from a file
+    jq 'del(.canisters.a.pullable.wasm_hash)' dfx.json | sponge dfx.json
+    assert_command dfx build a
+    ic-wasm .dfx/local/canisters/a/a.wasm metadata dfx > a_dfx.json
+    assert_command jq -r '.pullable.wasm_hash' a_dfx.json
+    assert_eq "$WASM_HASH" "$output"
+
+    # Generate the custom wasm, post-process it and calculate wasm_hash
+    jq 'del(.canisters.a.pullable.wasm_hash_file)' dfx.json | sponge dfx.json
+    jq '.canisters.a.pullable.custom_wasm.generate="cp main.wasm custom.wasm"' dfx.json | sponge dfx.json
+    jq '.canisters.a.pullable.custom_wasm.path="custom.wasm"' dfx.json | sponge dfx.json
+
+    assert_command dfx build a
+    assert_contains "Custom wasm for pullable at:"
+    assert_contains ".dfx/local/canisters/a/a_custom.wasm"
+    PROCESSED_WASM_HASH="$(sha256sum .dfx/local/canisters/a/a_custom.wasm | cut -d " " -f 1)"
+    assert_contains "wasm_hash: $PROCESSED_WASM_HASH"
+
+    ic-wasm .dfx/local/canisters/a/a.wasm metadata dfx > a_dfx.json
+    assert_command jq -r '.pullable.wasm_hash' a_dfx.json
+    assert_eq "$PROCESSED_WASM_HASH" "$output"
 }
 
 @test "dfx deps pull can resolve dependencies from on-chain canister metadata" {

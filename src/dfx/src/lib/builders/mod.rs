@@ -233,7 +233,7 @@ pub trait CanisterBuilder {
         info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult {
-        if let Some(pullable_config) = info.get_pullable() {
+        if let Some(pullable_config) = info.get_pullable_config() {
             let dependencies = collect_dependencies(info, pool)?;
             let vars = get_and_write_environment_variables(
                 info,
@@ -242,6 +242,28 @@ pub trait CanisterBuilder {
                 &dependencies,
                 config.env_file.as_deref(),
             )?;
+
+            if let Some(c) = pullable_config.custom_wasm {
+                eprintln!(
+                    "{}",
+                    style("Running generate commands of custom_wasm")
+                        .green()
+                        .bold()
+                );
+
+                for command in c.generate.into_vec() {
+                    eprintln!(r#"{} '{}'"#, style("Executing").green().bold(), command);
+
+                    // First separate everything as if it was read from a shell.
+                    let args = shell_words::split(&command)
+                        .with_context(|| format!("Cannot parse command '{}'.", command))?;
+                    // No commands, noop.
+                    if !args.is_empty() {
+                        run_command(args, &vars, info.get_workspace_root())
+                            .with_context(|| format!("Failed to run {}.", command))?;
+                    }
+                }
+            }
 
             if let Some(dwu) = pullable_config.dynamic_wasm_url {
                 eprintln!(

@@ -55,7 +55,7 @@ pub struct CanisterInfo {
     shrink: Option<bool>,
     optimize: Option<WasmOptLevel>,
     metadata: CanisterMetadataConfig,
-    pullable: Option<PullableConfig>,
+    pullable_config: Option<PullableConfig>,
     pull_dependencies: Vec<(String, CanisterId)>,
     gzip: bool,
 }
@@ -161,7 +161,7 @@ impl CanisterInfo {
             shrink: canister_config.shrink,
             optimize: canister_config.optimize,
             metadata,
-            pullable: canister_config.pullable.clone(),
+            pullable_config: canister_config.pullable.clone(),
             pull_dependencies,
             gzip,
         };
@@ -245,7 +245,8 @@ impl CanisterInfo {
         })
     }
 
-    fn get_wasm_path(&self, file_name: &str) -> PathBuf {
+    /// Path to the post-processed wasm module in .dfx that will be install.
+    pub fn get_build_wasm_path(&self) -> PathBuf {
         let mut gzip_original = false;
         if let CanisterTypeProperties::Custom { wasm, .. } = &self.type_specific {
             if wasm.ends_with(".gz") {
@@ -259,17 +260,27 @@ impl CanisterInfo {
         } else {
             "wasm"
         };
-        self.output_root.join(file_name).with_extension(ext)
-    }
-
-    /// Path to the post-processed wasm module in .dfx that will be install.
-    pub fn get_build_wasm_path(&self) -> PathBuf {
-        self.get_wasm_path(&self.name)
+        self.output_root.join(&self.name).with_extension(ext)
     }
 
     /// Path to the post-processed custom wasm module for pullable
     pub fn get_custom_wasm_path(&self) -> PathBuf {
-        self.get_wasm_path(&format!("{}_custom", &self.name))
+        let mut gzip_original = false;
+        self.pullable_config.as_ref().map(|c| {
+            c.custom_wasm.as_ref().map(|c| {
+                if c.path.ends_with(".gz") {
+                    gzip_original = true
+                }
+            })
+        });
+        let ext = if self.gzip || gzip_original {
+            "wasm.gz"
+        } else {
+            "wasm"
+        };
+        self.output_root
+            .join(&format!("{}_custom", &self.name))
+            .with_extension(ext)
     }
 
     /// Path to the candid file which contains no init types.
@@ -358,8 +369,8 @@ impl CanisterInfo {
         &self.metadata
     }
 
-    pub fn get_pullable(&self) -> Option<PullableConfig> {
-        self.pullable.clone()
+    pub fn get_pullable_config(&self) -> Option<PullableConfig> {
+        self.pullable_config.clone()
     }
 
     pub fn get_pull_dependencies(&self) -> &[(String, CanisterId)] {
