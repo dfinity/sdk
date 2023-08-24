@@ -110,11 +110,11 @@ impl Canister {
     pub(crate) fn wasm_post_process(
         &self,
         logger: &Logger,
-        input_wasm_path: &PathBuf,
-        output_wasm_path: &PathBuf,
+        input_wasm_path: &Path,
+        output_wasm_path: &Path,
         is_custom_wasm: bool,
     ) -> DfxResult {
-        dfx_core::fs::composite::ensure_parent_dir_exists(&output_wasm_path)?;
+        dfx_core::fs::composite::ensure_parent_dir_exists(output_wasm_path)?;
         let info = &self.info;
         if info.is_remote() {
             return Ok(());
@@ -151,9 +151,12 @@ impl Canister {
 
         if let Some(pullable_config) = info.get_pullable_config() {
             let mut dfx_metadata = DfxMetadata::default();
-            let mut pullable = Pullable::default();
-            pullable.dependencies = pullable_config.dependencies;
-            pullable.init_guide = pullable_config.init_guide;
+            let mut pullable = Pullable {
+                dependencies: pullable_config.dependencies,
+                init_guide: pullable_config.init_guide,
+                ..Default::default()
+            };
+
             // only set wasm_url and wasm_hash for prod wasm
             if !is_custom_wasm {
                 // wasm_hash
@@ -163,7 +166,7 @@ impl Canister {
                     set_wasm_hash = true;
                 }
                 if let Some(s) = pullable_config.wasm_hash_file {
-                    if set_wasm_hash == true {
+                    if set_wasm_hash {
                         bail!("Pullable canister can only define one of `wasm_hash`, `wasm_hash_file`, `custom_wasm`.");
                     }
                     let path = PathBuf::from(s);
@@ -172,7 +175,7 @@ impl Canister {
                     set_wasm_hash = true;
                 }
                 if pullable_config.custom_wasm.is_some() {
-                    if set_wasm_hash == true {
+                    if set_wasm_hash {
                         bail!("Pullable canister can only define one of `wasm_hash`, `wasm_hash_file`, `custom_wasm`.");
                     }
                     let path = info.get_custom_wasm_path(); // Use the post_processed custom wasm
@@ -197,8 +200,8 @@ impl Canister {
                         (Some(s), None) => s,
                         (None, Some(c)) => {
                             let path = PathBuf::from(c.path);
-                            let file_content = read_to_string(&path)?;
-                            file_content
+
+                            read_to_string(&path)?
                         }
                     };
                 reqwest::Url::parse(&wasm_url_str).with_context(|| {
@@ -291,7 +294,7 @@ impl Canister {
 
         // If not modified and not set "gzip" explicitly, copy the wasm file directly so that hash match.
         if !modified && !info.get_gzip() {
-            dfx_core::fs::copy(&input_wasm_path, &output_wasm_path)?;
+            dfx_core::fs::copy(input_wasm_path, output_wasm_path)?;
             return Ok(());
         }
 
@@ -304,7 +307,7 @@ impl Canister {
         } else {
             m.emit_wasm()
         };
-        dfx_core::fs::write(&output_wasm_path, new_bytes)?;
+        dfx_core::fs::write(output_wasm_path, new_bytes)?;
 
         Ok(())
     }

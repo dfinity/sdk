@@ -279,7 +279,7 @@ impl CanisterInfo {
             "wasm"
         };
         self.output_root
-            .join(&format!("{}_custom", &self.name))
+            .join(format!("{}_custom", &self.name))
             .with_extension(ext)
     }
 
