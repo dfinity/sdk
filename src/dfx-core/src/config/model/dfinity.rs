@@ -158,7 +158,7 @@ impl CanisterMetadataSection {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct PullableConfig {
     /// # wasm_url
-    /// The Url to download canister wasm.
+    /// The URL to download canister wasm.
     /// Conflicts with `dynamic_wasm_url`.
     pub wasm_url: Option<String>,
 

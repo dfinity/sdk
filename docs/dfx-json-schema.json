@@ -426,7 +426,7 @@
           "default": null,
           "anyOf": [
             {
-              "$ref": "#/definitions/Pullable"
+              "$ref": "#/definitions/PullableConfig"
             },
             {
               "type": "null"
@@ -799,6 +799,56 @@
         }
       }
     },
+    "CustomWasm": {
+      "title": "Custom WASM configuration",
+      "description": "Configs how to generate a custom WASM for pullable and where is the custom WASM file.",
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "generate": {
+          "title": "Generate Commands",
+          "description": "Commands that are executed in order to generate a custom wasm of this pullable canister. Expected to produce the wasm file in the path specified by the 'path' field.",
+          "default": [],
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
+            }
+          ]
+        },
+        "path": {
+          "title": "Custom WASM Path",
+          "description": "Path to the custom wasm file from the \"generate\" commands. The file should be a valid canister WASM .",
+          "type": "string"
+        }
+      }
+    },
+    "DynamicWasmUrl": {
+      "title": "Dynamic wasm_url configuration",
+      "description": "Configs how to generate wasm_url dynamically and where is the file contains wasm_url.",
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "generate": {
+          "title": "Generate Commands",
+          "description": "Commands that are executed in order to generate this pullable canister's wasm_url dynamically. Expected to produce the wasm_url file in the path specified by the 'path' field.",
+          "default": [],
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
+            }
+          ]
+        },
+        "path": {
+          "title": "wasm_url Path",
+          "description": "Path to the wasm_url file from the \"generate\" commands. The file should contains a valid URL.",
+          "type": "string"
+        }
+      }
+    },
     "HttpAdapterLogLevel": {
       "description": "Represents the log level of the HTTP adapter.",
       "type": "string",
@@ -909,14 +959,27 @@
         "Release"
       ]
     },
-    "Pullable": {
+    "PullableConfig": {
+      "title": "Pullable configuration",
+      "description": "Configs the \"pullable\" metadata of the canister.",
       "type": "object",
       "required": [
         "dependencies",
-        "init_guide",
-        "wasm_url"
+        "init_guide"
       ],
       "properties": {
+        "custom_wasm": {
+          "title": "Custom WASM",
+          "description": "Build a custom WASM for pullable. wasm_hash will be calculated from this custom WASM. Conflicts with `wasm_hash` and `wasm_hash_file`.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CustomWasm"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "dependencies": {
           "title": "dependencies",
           "description": "Canister IDs (Principal) of direct dependencies.",
@@ -925,6 +988,18 @@
             "type": "string"
           }
         },
+        "dynamic_wasm_url": {
+          "title": "Dynamic wasm_url",
+          "description": "Generate wasm_url dynamically. Conflicts with `wasm_url`.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DynamicWasmUrl"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "init_guide": {
           "title": "init_guide",
           "description": "A message to guide consumers how to initialize the canister.",
@@ -932,7 +1007,15 @@
         },
         "wasm_hash": {
           "title": "wasm_hash",
-          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.",
+          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. Conflicts with `wasm_hash_file` and `custom_wasm`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wasm_hash_file": {
+          "title": "Path to wasm_hash",
+          "description": "Conflicts with `wasm_hash` and `custom_wasm`.",
           "type": [
             "string",
             "null"
@@ -940,8 +1023,11 @@
         },
         "wasm_url": {
           "title": "wasm_url",
-          "description": "The Url to download canister wasm.",
-          "type": "string"
+          "description": "The URL to download canister wasm. Conflicts with `dynamic_wasm_url`.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
