@@ -8,8 +8,8 @@ setup() {
 
 teardown() {
     stop_webserver
-    # dfx_stop
-    # standard_teardown
+    dfx_stop
+    standard_teardown
 }
 
 CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"
@@ -132,6 +132,11 @@ setup_onchain() {
     ic-wasm .dfx/local/canisters/a/a.wasm metadata dfx > a_dfx.json
     assert_command jq -r '.pullable.wasm_hash' a_dfx.json
     assert_eq "$PROCESSED_WASM_HASH" "$output"
+
+    assert_command ic-wasm .dfx/local/canisters/a/a.wasm metadata
+    assert_contains "icp:public dfx"
+    assert_contains "icp:public candid:service"
+    assert_contains "icp:public candid:args"
 }
 
 @test "dfx deps pull can resolve dependencies from on-chain canister metadata" {
@@ -214,8 +219,6 @@ Failed to download from url: http://example.com/c.wasm."
     dfx_start
 
     setup_onchain
-
-    # TODO: test gzipped wasm can be pulled when we have "gzip" option in dfx.json (SDK-1102)
 
     # pull canisters in app project
     cd app

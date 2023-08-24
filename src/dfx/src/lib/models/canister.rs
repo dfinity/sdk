@@ -250,9 +250,6 @@ impl Canister {
             if section.name == CANDID_SERVICE && info.is_motoko() {
                 if let Some(specified_path) = &section.path {
                     check_valid_subtype(&info.get_service_idl_path(), specified_path)?
-                } else {
-                    // Motoko compiler handles this
-                    continue;
                 }
             }
 
