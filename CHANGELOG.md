@@ -2,6 +2,70 @@
 
 # UNRELEASED
 
+### feat: dynamic wasm_url and wasm_hash
+
+`wasm_url` and `wasm_hash` might need to be calculated dynamically during canister build.
+
+#### wasm_url
+
+Beyond setting `wasm_url` directly, you can generate it into a file with configuration in `dfx.json` like:
+
+```json
+{
+  "pullable" : {
+    "dynamic_wasm_url" : {
+      "generate" : "<commands to generate wasm_url file>",
+      "path" : "<path/to/wasm_url_file>"
+    }
+  }
+}
+```
+
+You can only set one of `wasm_url` and `dynamic_wasm_url`.
+
+#### wasm_hash
+
+Service providers may want consumers to download a different wasm module than the on-chain canister.
+
+In such case, providers need to include a `wasm_hash` field in the `dfx/pullable` metadata of the on-chain pullable canister.
+
+There are three ways to specify `wasm_hash` in `dfx.json`. You can choose the most suitable one for your use.
+
+1. Set `wasm_hash` statically:
+
+```json
+{
+  "pullable" : {
+    "wasm_hash" : "<hex-encoded SHA256 hash of the wasm module to be downloaded>"
+  }
+}
+```
+
+1. Set `wasm_hash_file`, then `dfx` read its content to set `wasm_hash`:
+
+```json
+{
+  "pullable" : {
+    "wasm_hash_file" : "<path/to/wasm_hash_file>"
+  }
+}
+```
+
+3. Set `custom_wasm` which run `generate` commands and use the custom wasm module to calculate `wasm_hash`:
+
+```json
+{
+  "pullable" : {
+    "custom_wasm" : {
+      "generate" : "<commands to generate custom wasm file>",
+      "path" : "<path/to/custom_wasm_file>"
+    }
+  }
+}
+```
+
+`dfx` will do the same post-processing (optimize, metadata, gzip) to the custom wasm as to the canister to be deployed on-chain. `wasm_hash` will be calculated from the post-processed wasm.
+
 ### chore: --emulator parameter is deprecated and will be discontinued soon
 
 Added warning that the `--emulator` is deprecated and will be discontinued soon.
