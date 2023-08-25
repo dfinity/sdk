@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 
 use candid::{CandidType, Deserialize};
-use ic_response_verification::hash::Value;
+use ic_representation_independent_hash::Value;
 use serde_cbor::ser::IoWrite;
 use serde_cbor::Serializer;
 use sha2::Digest;

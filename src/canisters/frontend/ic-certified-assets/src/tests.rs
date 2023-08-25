@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use crate::asset_certification::types::http::{HttpRequest, HttpResponse, StreamingStrategy};
+use crate::asset_certification::types::http::{
+    CallbackFunc, HttpRequest, HttpResponse, StreamingStrategy,
+};
 use crate::state_machine::{StableState, State, BATCH_EXPIRY_NANOS};
 use crate::types::{
     AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CommitProposedBatchArguments,
@@ -15,11 +17,8 @@ fn some_principal() -> Principal {
     Principal::from_text("ryjl3-tyaaa-aaaaa-aaaba-cai").unwrap()
 }
 
-fn unused_callback() -> candid::Func {
-    candid::Func {
-        method: "unused".to_string(),
-        principal: some_principal(),
-    }
+fn unused_callback() -> CallbackFunc {
+    CallbackFunc::new(some_principal(), "unused".to_string())
 }
 
 struct AssetBuilder {
@@ -887,10 +886,7 @@ fn uses_streaming_for_multichunk_assets() {
             .with_encoding("identity", vec![INDEX_BODY_CHUNK_1, INDEX_BODY_CHUNK_2])],
     );
 
-    let streaming_callback = candid::Func {
-        method: "stream".to_string(),
-        principal: some_principal(),
-    };
+    let streaming_callback = CallbackFunc::new(some_principal(), "stream".to_string());
     let response = state.http_request(
         RequestBuilder::get("/index.html")
             .with_header("Accept-Encoding", "gzip,identity")
@@ -1592,9 +1588,8 @@ mod allow_raw_access {
 
 #[cfg(test)]
 mod certificate_expression {
-    use ic_response_verification::hash::Value;
-
     use crate::asset_certification::types::http::build_ic_certificate_expression_from_headers_and_encoding;
+    use ic_representation_independent_hash::Value;
 
     use super::*;
 
