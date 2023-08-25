@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "d401af5af8e74d61872688d6228d067c553db2c9",
-        "sha256": "0l9vkdas1vgwhi82qbw7fv68chvaqvh1yy4r9znrj13j1wycygl4",
+        "rev": "5ceeefcbbabf4b510ef8ede121d6dc57d1a1f7f8",
+        "sha256": "1lr5dpkscdjnwflqxfdf0jfpa2rh349mmncql4zrf76662ws3bbw",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/d401af5af8e74d61872688d6228d067c553db2c9.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/5ceeefcbbabf4b510ef8ede121d6dc57d1a1f7f8.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "canister_sandbox-x86_64-darwin": {
@@ -126,7 +126,7 @@
     },
     "ic-starter-x86_64-darwin": {
         "builtin": false,
-        "rev": "0ab9178c6684f122ae713928b3664c33a697e9c4",
+        "rev": "00000",
         "sha256": "0zy6bml4lmca7pyvgb3q5rqmsm5d87c0y9j9i7y7n39qnxhw4lm2",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/0ab9178c6684f122ae713928b3664c33a697e9c4/openssl-static-binaries/x86_64-darwin/ic-starter.gz",
@@ -187,7 +187,7 @@
     "replica-x86_64-darwin": {
         "builtin": false,
         "description": "The replica binary. It must be updated together with the canister_sandbox binary.",
-        "rev": "0ab9178c6684f122ae713928b3664c33a697e9c4",
+        "rev": "00000",
         "sha256": "0vskwrbgdxga7pwc3wknmvprhrm1wxfb6q4dn4z6xcccd8jw2lgj",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/0ab9178c6684f122ae713928b3664c33a697e9c4/openssl-static-binaries/x86_64-darwin/replica.gz",
