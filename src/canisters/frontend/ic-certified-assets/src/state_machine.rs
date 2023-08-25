@@ -27,7 +27,6 @@ use crate::{
 
 use candid::{CandidType, Deserialize, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash};
-use ic_response_verification::hash::Value;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;

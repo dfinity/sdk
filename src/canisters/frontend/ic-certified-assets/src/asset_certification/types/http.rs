@@ -5,7 +5,7 @@ use crate::{
 
 use candid::{define_function, CandidType, Deserialize, Nat};
 use ic_certified_map::Hash;
-use ic_response_verification::hash::{representation_independent_hash, Value};
+use ic_representation_independent_hash::{representation_independent_hash, Value};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
 
