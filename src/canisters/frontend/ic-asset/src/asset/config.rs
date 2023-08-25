@@ -24,7 +24,7 @@ pub struct AssetConfig {
     pub(crate) headers: Option<HeadersConfig>,
     pub(crate) ignore: Option<bool>,
     pub(crate) enable_aliasing: Option<bool>,
-    #[derivative(Default(value = "Some(false)"))]
+    #[derivative(Default(value = "Some(true)"))]
     pub(crate) allow_raw_access: Option<bool>,
 }
 
