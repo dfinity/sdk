@@ -126,7 +126,7 @@
     },
     "ic-starter-x86_64-darwin": {
         "builtin": false,
-        "rev": "0ab9178c6684f122ae713928b3664c33a697e9c4",
+        "rev": "00000",
         "sha256": "0zy6bml4lmca7pyvgb3q5rqmsm5d87c0y9j9i7y7n39qnxhw4lm2",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/0ab9178c6684f122ae713928b3664c33a697e9c4/openssl-static-binaries/x86_64-darwin/ic-starter.gz",
@@ -187,7 +187,7 @@
     "replica-x86_64-darwin": {
         "builtin": false,
         "description": "The replica binary. It must be updated together with the canister_sandbox binary.",
-        "rev": "0ab9178c6684f122ae713928b3664c33a697e9c4",
+        "rev": "00000",
         "sha256": "0vskwrbgdxga7pwc3wknmvprhrm1wxfb6q4dn4z6xcccd8jw2lgj",
         "type": "file",
         "url": "https://download.dfinity.systems/ic/0ab9178c6684f122ae713928b3664c33a697e9c4/openssl-static-binaries/x86_64-darwin/replica.gz",
