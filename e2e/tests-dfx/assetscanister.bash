@@ -109,14 +109,14 @@ check_permission_failure() {
   dfx identity get-principal --identity prepare
   dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_contains "Proposed commit of batch 2 with evidence 4301263f1fcc0d19ef92cfb6774c4da92bf1a9d2002a293a9d95d97819c02958.  Either commit it by proposal, or delete it."
+  assert_contains "Proposed commit of batch 2 with evidence 164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1.  Either commit it by proposal, or delete it."
 
   assert_command_fail dfx deploy e2e_project_frontend --by-proposal --identity prepare
   assert_contains "Batch 2 is already proposed.  Delete or execute it to propose another."
 
   assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
   # shellcheck disable=SC2154
-  assert_eq "4301263f1fcc0d19ef92cfb6774c4da92bf1a9d2002a293a9d95d97819c02958" "$stdout"
+  assert_eq "164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1" "$stdout"
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
@@ -188,11 +188,11 @@ check_permission_failure() {
   dfx identity get-principal --identity prepare
   dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_contains "Proposed commit of batch 2 with evidence 1b45c8b1d0deec88ac032590e0f1cd9ab407f796e827aac880f4ffb035fdc200.  Either commit it by proposal, or delete it."
+  assert_contains "Proposed commit of batch 2 with evidence 9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b.  Either commit it by proposal, or delete it."
 
   assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
   # shellcheck disable=SC2154
-  assert_eq "1b45c8b1d0deec88ac032590e0f1cd9ab407f796e827aac880f4ffb035fdc200" "$stdout"
+  assert_eq "9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b" "$stdout"
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
@@ -1359,20 +1359,20 @@ CHERRIES" "$stdout"
   "cache": {
     "max_age": 2000
   },
-  "allow_raw_access": false
+  "allow_raw_access": true
 }'
     assert_match 'WARN: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
     assert_contains 'WARN: {
   "match": "nevermatchme",
   "headers": {},
   "ignore": false,
-  "allow_raw_access": false
+  "allow_raw_access": true
 }
 WARN: {
   "match": "nevermatchmetoo",
   "headers": {},
   "ignore": false,
-  "allow_raw_access": false
+  "allow_raw_access": true
 }
 WARN: {
   "match": "non-matcher",
@@ -1380,7 +1380,7 @@ WARN: {
     "x-header": "x-value"
   },
   "ignore": false,
-  "allow_raw_access": false
+  "allow_raw_access": true
 }'
     # splitting this up into two checks, because the order is different on macos vs ubuntu
     assert_contains 'WARN: {
@@ -1389,7 +1389,7 @@ WARN: {
     "x-header": "x-value"
   },
   "ignore": false,
-  "allow_raw_access": false
+  "allow_raw_access": true
 }'
 }
 
@@ -1417,7 +1417,7 @@ WARN: {
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
     is_aliased = opt true;
-    allow_raw_access = opt false;
+    allow_raw_access = opt true;
     max_age = opt (2_000 : nat64);
   },
 )'
@@ -1546,7 +1546,7 @@ WARN: {
   record {
     headers = null;
     is_aliased = null;
-    allow_raw_access = opt false;
+    allow_raw_access = opt true;
     max_age = null;
   },
 )'
