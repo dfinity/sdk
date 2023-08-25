@@ -36,7 +36,7 @@ pub(crate) struct CacheConfig {
 }
 
 fn default_raw_access() -> Option<bool> {
-    Some(false)
+    Some(true)
 }
 
 /// A single configuration object, from `.ic-assets.json` config file
