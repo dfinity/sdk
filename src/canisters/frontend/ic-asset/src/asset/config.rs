@@ -932,7 +932,7 @@ mod with_tempdir {
                 .get_asset_config(assets_dir.join("index.html").as_path())
                 .unwrap(),
             AssetConfig {
-                allow_raw_access: Some(false),
+                allow_raw_access: Some(true),
                 ..Default::default()
             },
         );
