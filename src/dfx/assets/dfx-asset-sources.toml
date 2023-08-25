@@ -27,7 +27,7 @@ sha256 = '2caf1263ece5bc3cf46e16b26cd9efb1e3c3dab160afd42a10e6a9df64864a22'
 
 [x86_64-darwin.ic-starter]
 url = 'https://download.dfinity.systems/ic/0ab9178c6684f122ae713928b3664c33a697e9c4/openssl-static-binaries/x86_64-darwin/ic-starter.gz'
-sha256 = '072d0de4c2857b111459315bad485751c625c79f2e47b8488a3d814d3649c05d'
+sha256 = 'a252c261b7380d7bfc8949260fd841ad545d712e78acb7fd3d8a554a685dc67f'
 
 [x86_64-darwin.motoko]
 url = 'https://github.com/dfinity/motoko/releases/download/0.9.3/motoko-macos-0.9.3.tar.gz'
@@ -36,7 +36,7 @@ sha256 = '3c74ec7afc4aecb40a822d8e37195142806706df48acfebba52ddb838ddeb320'
 
 [x86_64-darwin.replica]
 url = 'https://download.dfinity.systems/ic/0ab9178c6684f122ae713928b3664c33a697e9c4/openssl-static-binaries/x86_64-darwin/replica.gz'
-sha256 = '7eab29c295d8aa1d7bcee6398d231f1eff46da972d675902348e99b96a34fc23'
+sha256 = 'f251c1256a8cb16e3eb18d60b35ce7a16698efae76f2c1f83deaf5f656e6536f'
 # The replica and canister_sandbox binaries must have the same revision.
 
 [x86_64-darwin.canister_sandbox]
