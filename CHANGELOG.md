@@ -22,29 +22,12 @@ Note that existing projects that specify `"allow_raw_access": false` in .ic-asse
 
 ### Frontend canister
 
-- Module hash: 752f6cb0118ccf314627a38242ba63b142f46a12b39e2922079fd6bf0e5dcf98
+- Module hash: d5c324fea6b0f8eaa9feede10b342b098f7cf64682e168e58fa2ca2bf028b96f
 - https://github.com/dfinity/sdk/pull/3327
 
 # 0.14.3
 
 ## Dependencies
-
-### Motoko
-
-Updated Motoko to [0.9.5](https://github.com/dfinity/motoko/releases/tag/0.9.5)
-
-### Updated candid to 0.9.0
-
-### Candid UI
-
-- Updated Candid UI canister to https://github.com/dfinity/candid/pull/449
-
-### Frontend canister
-
-- Module hash: 5fecf8e6af7867624c1effd62054f0d1eb230a8a610eba16d6e9c6f1f537d82e
-- https://github.com/dfinity/sdk/pull/3249
-- https://github.com/dfinity/sdk/pull/3212
-- https://github.com/dfinity/sdk/pull/3227
 
 ### Replica
 
