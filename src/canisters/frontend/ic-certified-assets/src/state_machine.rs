@@ -245,7 +245,7 @@ pub struct StableState {
 
 impl Asset {
     fn allow_raw_access(&self) -> bool {
-        self.allow_raw_access.unwrap_or(false)
+        self.allow_raw_access.unwrap_or(true)
     }
 
     fn update_ic_certificate_expressions(&mut self) {
