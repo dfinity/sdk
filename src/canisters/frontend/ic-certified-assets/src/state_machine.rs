@@ -27,13 +27,13 @@ use crate::{
 
 use candid::{CandidType, Deserialize, Int, Nat, Principal};
 use ic_certified_map::{AsHashTree, Hash};
+use ic_representation_independent_hash::Value;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use sha2::Digest;
 use std::collections::{BTreeSet, HashMap};
 use std::convert::TryInto;
-use ic_representation_independent_hash::Value;
 
 /// The amount of time a batch is kept alive. Modifying the batch
 /// delays the expiry further.

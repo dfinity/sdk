@@ -1588,8 +1588,8 @@ mod allow_raw_access {
 
 #[cfg(test)]
 mod certificate_expression {
-    use ic_representation_independent_hash::Value;
     use crate::asset_certification::types::http::build_ic_certificate_expression_from_headers_and_encoding;
+    use ic_representation_independent_hash::Value;
 
     use super::*;
 
