@@ -2,6 +2,8 @@
 
 # 0.14.4
 
+## DFX
+
 ### fix: added https://icp-api.io to the default Content-Security-Policy header
 
 Existing projects will need to change this value in .ic-assets.json or .ic-assets.json5 to include https://icp-api.io
@@ -13,6 +15,13 @@ All projects will need to redeploy.
 The default value for `allow_raw_access` is now `true`.  This means that by default, the frontend canister will no longer restrict the access of traffic to the `<canister-id>.raw.icp0.io` domain, and will no longer automatically redirect all requests to the certified domain (`<canister-id>.icp0.io`), unless configured explicitly.
 
 Note that existing projects that specify `"allow_raw_access": false` in .ic-assets.json5 will need to change or remove this value manually in order to allow raw access.
+
+## Dependencies
+
+### Frontend canister
+
+- Module hash: 752f6cb0118ccf314627a38242ba63b142f46a12b39e2922079fd6bf0e5dcf98
+- https://github.com/dfinity/sdk/pull/3327
 
 # 0.14.3
 
