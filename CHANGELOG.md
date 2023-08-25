@@ -20,6 +20,8 @@ Note that existing projects that specify `"allow_raw_access": false` in .ic-asse
 
 ### Updated candid to 0.9.0
 
+### Updated cdk-rs to 0.10.0
+
 ### Frontend canister
 
 - Module hash: d5c324fea6b0f8eaa9feede10b342b098f7cf64682e168e58fa2ca2bf028b96f
