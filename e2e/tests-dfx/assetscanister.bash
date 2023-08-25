@@ -136,9 +136,9 @@ check_permission_failure() {
   assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$wrong_commit_args" --identity commit
   assert_match "batch computed evidence .* does not match presented evidence"
 
-  commit_args='(record { batch_id = 2; evidence = blob "\43\01\26\3f\1f\cc\0d\19\ef\92\cf\b6\77\4c\4d\a9\2b\f1\a9\d2\00\2a\29\3a\9d\95\d9\78\19\c0\29\58" } )'
+  commit_args='(record { batch_id = 2; evidence = blob "\16\4f\cc\4d\93\3f\f9\99\2a\b6\ab\90\9a\4b\f3\50\01\0f\a0\f4\a3\e1\e2\47\bf\c6\79\d3\f4\52\54\e1" } )'
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
-  assert_contains "commit proposed batch 2 with evidence 4301"
+  assert_contains "commit proposed batch 2 with evidence 164f"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
   assert_eq "()"
 
@@ -200,9 +200,9 @@ check_permission_failure() {
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
   assert_contains "The requested URL returned error: 404"
 
-  commit_args='(record { batch_id = 2; evidence = blob "\1b\45\c8\b1\d0\de\ec\88\ac\03\25\90\e0\f1\cd\9a\b4\07\f7\96\e8\27\aa\c8\80\f4\ff\b0\35\fd\c2\00" } )'
+  commit_args='(record { batch_id = 2; evidence = blob "\9b\72\ee\e7\f0\d7\af\2a\9b\41\23\3c\34\1b\1c\aa\0c\90\5e\f9\14\05\f5\f5\13\ff\b5\8f\68\af\ee\5b" } )'
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
-  assert_contains "commit proposed batch 2 with evidence 1b45c8b1d0deec88ac032590e0f1cd9ab407f796e827aac880f4ffb035fdc200"
+  assert_contains "commit proposed batch 2 with evidence 9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
   assert_eq "()"
 
@@ -1437,7 +1437,7 @@ WARN: {
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
     is_aliased = opt true;
-    allow_raw_access = opt false;
+    allow_raw_access = opt true;
     max_age = opt (5 : nat64);
   },
 )'
@@ -1450,7 +1450,7 @@ WARN: {
   record {
     headers = opt vec { record { "new-key"; "new-value" } };
     is_aliased = opt true;
-    allow_raw_access = opt false;
+    allow_raw_access = opt true;
     max_age = opt (5 : nat64);
   },
 )'
