@@ -76,7 +76,10 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                 let bindings = if extension == "mo" {
                     Some(candid::bindings::motoko::compile(&type_env, &did_types))
                 } else if extension == "rs" {
-                    Some(candid::bindings::rust::compile(&type_env, &did_types))
+                    let config = candid::bindings::rust::Config::new();
+                    Some(candid::bindings::rust::compile(
+                        &config, &type_env, &did_types,
+                    ))
                 } else if extension == "js" {
                     Some(candid::bindings::javascript::compile(&type_env, &did_types))
                 } else if extension == "ts" {

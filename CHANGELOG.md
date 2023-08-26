@@ -1,5 +1,32 @@
 # dfx changelog
 
+# 0.14.4
+
+## DFX
+
+### fix: added https://icp-api.io to the default Content-Security-Policy header
+
+Existing projects will need to change this value in .ic-assets.json or .ic-assets.json5 to include https://icp-api.io
+
+All projects will need to redeploy.
+
+### fix: access to raw assets is now enabled by default
+
+The default value for `allow_raw_access` is now `true`.  This means that by default, the frontend canister will no longer restrict the access of traffic to the `<canister-id>.raw.icp0.io` domain, and will no longer automatically redirect all requests to the certified domain (`<canister-id>.icp0.io`), unless configured explicitly.
+
+Note that existing projects that specify `"allow_raw_access": false` in .ic-assets.json5 will need to change or remove this value manually in order to allow raw access.
+
+## Dependencies
+
+### Updated candid to 0.9.0
+
+### Updated cdk-rs to 0.10.0
+
+### Frontend canister
+
+- Module hash: d5c324fea6b0f8eaa9feede10b342b098f7cf64682e168e58fa2ca2bf028b96f
+- https://github.com/dfinity/sdk/pull/3327
+
 # 0.14.3
 
 ## Dependencies
@@ -11,8 +38,6 @@ Updated replica to non-elected release candidate 0ab9178c6684f122ae713928b3664c3
 This removes a dependency on OpenSSL in order to avoid spurious errors that reference "Invalid delegation: Invalid public key: Malformed EcdsaP256 public key".
 
 # 0.14.2
-
-Note: Canister http functionality is broken.  Do not release dfx until this is corrected.  See https://dfinity.atlassian.net/browse/SDK-1129
 
 ## DFX
 

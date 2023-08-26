@@ -14,7 +14,7 @@ use sha2::Digest;
 pub mod tree;
 pub mod types;
 pub use ic_certified_map::HashTree;
-pub use ic_response_verification::hash::Value;
+use ic_representation_independent_hash::Value;
 
 pub type CertifiedResponses = NestedTree<NestedTreeKey, Vec<u8>>;
 

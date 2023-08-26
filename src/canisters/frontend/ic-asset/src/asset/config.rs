@@ -24,7 +24,7 @@ pub struct AssetConfig {
     pub(crate) headers: Option<HeadersConfig>,
     pub(crate) ignore: Option<bool>,
     pub(crate) enable_aliasing: Option<bool>,
-    #[derivative(Default(value = "Some(false)"))]
+    #[derivative(Default(value = "Some(true)"))]
     pub(crate) allow_raw_access: Option<bool>,
 }
 
@@ -36,7 +36,7 @@ pub(crate) struct CacheConfig {
 }
 
 fn default_raw_access() -> Option<bool> {
-    Some(false)
+    Some(true)
 }
 
 /// A single configuration object, from `.ic-assets.json` config file
@@ -932,7 +932,7 @@ mod with_tempdir {
                 .get_asset_config(assets_dir.join("index.html").as_path())
                 .unwrap(),
             AssetConfig {
-                allow_raw_access: Some(false),
+                allow_raw_access: Some(true),
                 ..Default::default()
             },
         );
