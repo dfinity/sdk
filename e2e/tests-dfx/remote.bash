@@ -200,6 +200,15 @@ teardown() {
 
     assert_command jq .remote canister_ids.json
     assert_eq "null"
+
+    # Assert frontend declarations are actually created
+    dfx generate
+    assert_file_exists "src/declarations/remote/remote.did"
+    assert_file_exists "src/declarations/remote/remote.did.js"
+    assert_file_exists "src/declarations/remote/remote.did.d.ts"
+    assert_file_exists "src/declarations/remote/index.js"
+    assert_file_exists "src/declarations/remote/index.d.ts"
+
 }
 
 @test "for remote build, checks imports against the candid file rather than the mock" {
