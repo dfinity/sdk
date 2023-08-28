@@ -1601,7 +1601,7 @@ mod allow_raw_access {
             "https://a-b-c.ic0.app/page"
         );
 
-        state.create_test_asset(AssetBuilder::new("/page2.html", "text/html"));
+        state.create_test_asset(AssetBuilder::new("/page2.html", "text/html").with_allow_raw_access(Some(false)));
         let response = state.fake_http_request("a-b-c.raw.icp0.io", "/page2");
         dbg!(&response);
         assert_eq!(response.status_code, 308);
@@ -1610,7 +1610,7 @@ mod allow_raw_access {
             "https://a-b-c.icp0.io/page2"
         );
 
-        state.create_test_asset(AssetBuilder::new("/index.html", "text/html"));
+        state.create_test_asset(AssetBuilder::new("/index.html", "text/html").with_allow_raw_access(Some(false)));
         let response = state.fake_http_request("a-b-c.raw.icp0.io", "/");
         dbg!(&response);
         assert_eq!(response.status_code, 308);
