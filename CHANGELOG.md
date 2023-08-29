@@ -4,6 +4,12 @@
 
 ### fix: dfx deploy urls printed for asset canisters
 
+### feat: new subcommand: dfx canister url
+
+Dfx Canister URL is a new subcommand that allows you to print the URL of a canister on a specific network. Currently works for local and ic networks.
+
+Asset canisters will print the URL of the asset canister itself, while non-asset canisters will print the URL of the Candid UI interface.
+
 ### chore: --emulator parameter is deprecated and will be discontinued soon
 
 Added warning that the `--emulator` is deprecated and will be discontinued soon.
