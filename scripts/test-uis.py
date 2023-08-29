@@ -158,7 +158,8 @@ def _test_frontend_ui_handler(page):
 
     # Check if `#greeting` is populated correctly
     greeting_id = '#greeting'
-    greeting_obj = page.query_selector(greeting_id)
+    timeout_ms = 60000
+    greeting_obj = page.wait_for_selector(greeting_id, timeout=timeout_ms)
     if greeting_obj:
         actual_value = greeting_obj.inner_text()
         expected_value = f'Hello, {name}!'
@@ -183,7 +184,8 @@ def _test_candid_ui_handler(page):
 
     # Check if `#output-list` is populated correctly
     output_list_id = '#output-list'
-    output_list_obj = page.query_selector(output_list_id)
+    timeout_ms = 60000
+    output_list_obj = page.wait_for_selector(output_list_id, timeout=timeout_ms)
     if output_list_obj:
         output_list_lines = output_list_obj.inner_text().split('\n')
         actual_num_lines, expected_num_lines = len(output_list_lines), 4
