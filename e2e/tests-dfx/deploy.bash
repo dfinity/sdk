@@ -129,7 +129,7 @@ teardown() {
 
 @test "prints the frontend url if 'frontend' section is not present in dfx.json" {
     dfx_new_frontend hello
-    jq 'del(.canisters.e2e_project_frontend.frontend)' dfx.json | sponge dfx.json
+    jq 'del(.canisters.hello_frontend.frontend)' dfx.json | sponge dfx.json
     dfx_start
     assert_command dfx deploy
     assert_contains "hello_frontend: http://127.0.0.1"
