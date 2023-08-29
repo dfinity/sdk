@@ -119,3 +119,18 @@ teardown() {
     ONCHAIN_HASH="$(dfx canister info hello_backend | tail -n 1 | cut -d " " -f 3)"
     assert_eq "$BUILD_HASH" "$ONCHAIN_HASH"
 }
+
+@test "prints the frontend url after deploy" {
+    dfx_new_frontend hello
+    dfx_start
+    assert_command dfx deploy
+    assert_contains "hello_frontend: http://127.0.0.1"
+}
+
+@test "prints the frontend url if 'frontend' section is not present in dfx.json" {
+    dfx_new_frontend hello
+    jq 'del(.canisters.e2e_project_frontend.frontend)' dfx.json | sponge dfx.json
+    dfx_start
+    assert_command dfx deploy
+    assert_contains "hello_frontend: http://127.0.0.1"
+}
