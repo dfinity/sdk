@@ -220,9 +220,17 @@ fn include_entry(entry: &walkdir::DirEntry, config: &AssetConfig) -> bool {
         .map(|s| s.starts_with('.'))
         .unwrap_or(false);
 
-    match (starts_with_a_dot, config.ignore) {
-        (dot, None) => !dot,
-        (_dot, Some(ignored)) => !ignored,
+    let well_known = entry.path().is_dir()
+        && entry
+            .file_name()
+            .to_str()
+            .map(|s| s.starts_with(".well-known"))
+            .unwrap_or(false);
+
+    match (starts_with_a_dot, config.ignore, well_known) {
+        (_, ignored, wk) if wk && !ignored.map_or(false, |v| v) => true,
+        (dot, None, _) => !dot,
+        (_dot, Some(ignored), _) => !ignored,
     }
 }
 
@@ -855,5 +863,83 @@ mod test_gathering_asset_descriptors_with_tempdir {
         expected_asset_descriptors.sort_by_key(|v| v.source.clone());
         asset_descriptors.sort_by_key(|v| v.source.clone());
         assert_eq!(dbg!(asset_descriptors), expected_asset_descriptors);
+    }
+
+    #[test]
+    /// Test if the content of `.well-known` is included by default.
+    fn include_well_known_directory_by_default() {
+        let files = HashMap::from([
+            // additional, non-dot dirs and files
+            (Path::new(".well-known/file").to_path_buf(), "".to_string()),
+        ]);
+
+        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+
+        let mut expected_asset_descriptors = vec![
+            AssetDescriptor::default_from_path(&assets_dir, "file"),
+            AssetDescriptor::default_from_path(&assets_dir, ".well-known/file"),
+        ];
+
+        expected_asset_descriptors.sort_by_key(|v| v.source.clone());
+        asset_descriptors.sort_by_key(|v| v.source.clone());
+        assert_eq!(asset_descriptors, expected_asset_descriptors);
+    }
+
+    #[test]
+    /// Test that the `ignore` flag is respected for `.well-known` directory.
+    fn include_well_known_directory_when_configured() {
+        let files = HashMap::from([
+            // additional, non-dot dirs and files
+            (Path::new(".well-known/file").to_path_buf(), "".to_string()),
+            (
+                Path::new(".ic-assets.json").to_path_buf(),
+                r#"[
+                    {"match": ".well-known", "ignore": false}
+                ]"#
+                .to_string(),
+            ),
+        ]);
+
+        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+
+        let mut expected_asset_descriptors = vec![
+            AssetDescriptor::default_from_path(&assets_dir, "file"),
+            AssetDescriptor::default_from_path(&assets_dir, ".well-known/file"),
+        ];
+
+        expected_asset_descriptors.sort_by_key(|v| v.source.clone());
+        asset_descriptors.sort_by_key(|v| v.source.clone());
+        assert_eq!(asset_descriptors, expected_asset_descriptors);
+    }
+
+    #[test]
+    /// Test that the `ignore` flag is respected for `.well-known` directory.
+    fn exclude_well_known_directory_explicitly() {
+        let files = HashMap::from([
+            // additional, non-dot dirs and files
+            (Path::new(".well-known/file").to_path_buf(), "".to_string()),
+            (
+                Path::new(".ic-assets.json").to_path_buf(),
+                r#"[
+                    {"match": ".well-known", "ignore": true}
+                ]"#
+                .to_string(),
+            ),
+        ]);
+
+        let assets_temp_dir = create_temporary_assets_directory(files).unwrap();
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]).unwrap());
+
+        let mut expected_asset_descriptors =
+            vec![AssetDescriptor::default_from_path(&assets_dir, "file")];
+
+        expected_asset_descriptors.sort_by_key(|v| v.source.clone());
+        asset_descriptors.sort_by_key(|v| v.source.clone());
+        assert_eq!(asset_descriptors, expected_asset_descriptors);
     }
 }

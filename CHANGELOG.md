@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### fix(frontend-canister): include .well-known dir by default, unless explicitly ignored
+
+Since .well-known is a well-known hidden directory, we're adding a rule that asset canisters should upload its content by default, even when not configured in .ic-assets.json.
+
+
 ### chore: --emulator parameter is deprecated and will be discontinued soon
 
 Added warning that the `--emulator` is deprecated and will be discontinued soon.
