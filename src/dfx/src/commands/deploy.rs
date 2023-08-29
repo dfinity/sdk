@@ -209,7 +209,10 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
             if let Some(canister_id) = canister_id {
                 let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
 
-                if canister_config.frontend.is_some() {
+                // If the canister is an assets canister or has a frontend section, we can display a frontend url.
+                let is_assets = canister_info.is_assets() || canister_config.frontend.is_some();
+                
+                if is_assets {
                     let url = construct_frontend_url(network, &canister_id)?;
                     frontend_urls.insert(canister_name, url);
                 }
