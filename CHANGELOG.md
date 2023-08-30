@@ -2,9 +2,12 @@
 
 # UNRELEASED
 
-### feat!: Updated handling of missing values in state tree certificates
+### feat: Updated handling of missing values in state tree certificates
 
 The `Unknown` lookup of a path in a certificate results in an `AgentError` (the IC returns `Absent` for non-existing paths).
+
+### fix: dfx deploy urls printed for asset canisters
+
 
 ### chore: --emulator parameter is deprecated and will be discontinued soon
 

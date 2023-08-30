@@ -72,7 +72,6 @@ setup_onchain() {
 @test "dfx deps pull can resolve dependencies from on-chain canister metadata" {
     # ic-ref has different behavior than the replica:
     #   it doesn't differ whether the canister not exist or the metadata not exist
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
     dfx_start
 
     install_asset deps
@@ -312,10 +311,6 @@ candid:args => (nat)"
 }
 
 @test "dfx deps deploy works" {
-    # ic-ref have a different behavior than the replica:
-    #    once a canister has been deleted, it cannot be created again.
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
     # start a "mainnet" replica which host the onchain canisters
@@ -388,10 +383,6 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 }
 
 @test "dfx deps pulled dependencies work with app canister" {
-    # ic-ref have a different behavior than the replica:
-    #    once a canister has been deleted, it cannot be created again.
-    [ "$USE_IC_REF" ] && skip "skipped for ic-ref"
-
     use_test_specific_cache_root # dfx deps pull will download files to cache
 
     # start a "mainnet" replica which host the onchain canisters

@@ -27,8 +27,6 @@ teardown() {
 }
 
 @test "project data is cleared after dfx start --clean from outside the project" {
-    [ "$USE_IC_REF" ] && skip "start_dfx does not support parameters with emulator"
-
     mkdir somewhere
     (
         cd somewhere
@@ -95,8 +93,6 @@ teardown() {
 
 
 @test "wallet config file is reset after start --clean" {
-    [ "$USE_IC_REF" ] && skip "start_dfx does not support parameters with emulator"
-
     dfx_start
 
     (
