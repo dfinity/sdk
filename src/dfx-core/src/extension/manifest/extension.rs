@@ -1,6 +1,5 @@
 use crate::error::extension::ExtensionError;
-use clap::ArgAction;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use std::{
     collections::{BTreeMap, HashMap},
     path::Path,
@@ -60,7 +59,65 @@ pub struct ExtensionSubcommandArgOpts {
     pub long: Option<String>,
     pub short: Option<char>,
     #[serde(default)]
+    #[deprecated(note = "use `values` instead")]
     pub multiple: bool,
+    #[serde(default)]
+    pub values: ArgNumberOfValues,
+}
+
+#[derive(Debug)]
+pub enum ArgNumberOfValues {
+    /// zero or more values
+    Number(usize),
+    /// non-inclusive range
+    Range(std::ops::Range<usize>),
+    /// unlimited values
+    Unlimited,
+}
+
+impl Default for ArgNumberOfValues {
+    fn default() -> Self {
+        Self::Number(1)
+    }
+}
+
+impl<'de> Deserialize<'de> for ArgNumberOfValues {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(untagged)]
+        enum StrOrUsize<'a> {
+            Str(&'a str),
+            Usize(usize),
+        }
+
+        match StrOrUsize::deserialize(deserializer)? {
+            StrOrUsize::Usize(n) => Ok(Self::Number(n)),
+            StrOrUsize::Str(s) => {
+                if s == "unlimited" {
+                    return Ok(Self::Unlimited);
+                }
+                if s.contains("..=") {
+                    let msg = format!("Inclusive ranges are not supported: {}", s);
+                    return Err(serde::de::Error::custom(msg));
+                }
+                if s.contains("..") {
+                    let parts: Vec<&str> = s.split("..").collect();
+                    if let (Ok(start), Ok(end)) =
+                        (parts[0].parse::<usize>(), parts[1].parse::<usize>())
+                    {
+                        return Ok(Self::Range(start..end + 1));
+                    }
+                }
+                Err(serde::de::Error::custom(format!(
+            "Invalid format for values: '{}'. Expected 'unlimited' or a positive integer or a range (for example '1..3')",
+            s
+        )))
+            }
+        }
+    }
 }
 
 impl ExtensionSubcommandArgOpts {
@@ -79,14 +136,21 @@ impl ExtensionSubcommandArgOpts {
         if let Some(s) = self.short {
             arg = arg.short(s);
         }
+        #[allow(deprecated)]
         if self.multiple {
             arg = arg.num_args(0..);
+        } else {
+            arg = match self.values {
+                ArgNumberOfValues::Number(n) => arg.num_args(n),
+                ArgNumberOfValues::Range(r) => arg.num_args(r),
+                ArgNumberOfValues::Unlimited => arg.num_args(0..),
+            };
         }
         Ok(arg
-            // let's not enforce any restrictions
+            // let's allow values that start with a hyphen for args (for example, --calculator -2+2)
             .allow_hyphen_values(true)
-            .required(false)
-            .action(ArgAction::Append))
+            // let's not enforce any restrictions
+            .required(false))
     }
 }
 
@@ -172,59 +236,128 @@ fn parse_test_file() {
     "install": {
       "about": "Subcommand for installing something.",
       "args": {
+        "account": {
+          "about": "some arg that accepts multiple values separated by spaces",
+          "long": "account"
+        },
         "accounts": {
           "about": "some arg that accepts multiple values separated by spaces",
           "long": "accounts",
           "multiple": true
+        },
+        "two-accounts": {
+          "about": "some arg that accepts multiple values separated by spaces",
+          "long": "two-accounts",
+          "values": 2
+        },
+        "two-or-three-accounts": {
+          "about": "some arg that accepts multiple values separated by spaces",
+          "long": "two-or-three-accounts",
+          "values": "2..3"
+        }
+      }
+    },
+    "init-canister": {
+      "about": "About for init-canister command. You're looking at the output of parsing test extension.json.",
+      "args": {
+        "canister_id": {
+          "about": "some arg that accepts multiple values separated by spaces"
+        }
+      }
+    },
+    "init-canisters": {
+      "about": "About for init-canisters command. You're looking at the output of parsing test extension.json.",
+      "args": {
+        "canister_ids": {
+          "about": "some arg that accepts multiple values separated by spaces",
+          "values": "unlimited"
+        }
+      }
+    },
+    "init-two-canisters": {
+      "about": "About for init-two-canisters command. You're looking at the output of parsing test extension.json.",
+      "args": {
+        "canister_ids": {
+          "about": "some arg that accepts multiple values separated by spaces",
+          "values": 2
+        }
+      }
+    },
+    "init-two-or-three-canisters": {
+      "about": "About for init-two-or-three-canisters command. You're looking at the output of parsing test extension.json.",
+      "args": {
+        "canister_ids": {
+          "about": "some arg that accepts multiple values separated by spaces",
+          "values": "2..3"
         }
       }
     }
   }
 }
 "#;
+    macro_rules! test_cmd {
+        ($cmd:expr, [$($cmds:expr),*], $arg_name:expr => [$($expected:expr),*]) => {{
+            let commands = vec![$($cmds),*];
+            let expected_values: Vec<&str> = vec![$($expected),*];
+            let matches = $cmd.clone().get_matches_from(commands);
+            let output = matches
+                .get_many::<String>(&$arg_name)
+                .unwrap()
+                .map(|s| s.as_str())
+                .collect::<Vec<&str>>();
+            assert_eq!(expected_values, output, "Arg: {}", $arg_name);
+        }};
+        ($cmd:expr, [$($cmds:expr),*], $err_kind:expr) => {{
+            let commands = vec![$($cmds),*];
+            let matches = dbg!($cmd.clone().try_get_matches_from(commands));
+            assert_eq!(matches.as_ref().map_err(|e| e.kind()), Err($err_kind));
+        }};
+    }
 
-    let m: Result<ExtensionManifest, serde_json::Error> = serde_json::from_str(f);
-    dbg!(&m);
+    let m: Result<ExtensionManifest, serde_json::Error> = dbg!(serde_json::from_str(f));
     assert!(m.is_ok());
 
-    let subcmds = m.unwrap().into_clap_commands().unwrap();
-    dbg!(&subcmds);
-    for s in &subcmds {
-        match s.get_name() {
-            "download" => {
-                let matches = s
-                    .clone()
-                    .get_matches_from(vec!["download", "--ic-commit", "value"]);
-                assert_eq!(
-                    Some(&"value".to_string()),
-                    matches.get_one::<String>("ic_commit")
-                );
-                let matches = s.clone().try_get_matches_from(vec![
-                    "download",
-                    "--ic-commit",
-                    "value",
-                    "value2",
-                ]);
-                assert!(matches.is_err());
+    let mut subcmds = dbg!(m.unwrap().into_clap_commands().unwrap());
+
+    use clap::error::ErrorKind::*;
+    for c in &mut subcmds {
+        c.print_long_help().unwrap();
+        match c.get_name() {
+            subcmd @ "download" => {
+                test_cmd!(c, [subcmd, "--ic-commit", "C"], "ic_commit" => ["C"]);
+                test_cmd!(c, [subcmd, "--ic-commit", "c1", "c2"], UnknownArgument);
+                test_cmd!(c, [subcmd, "--dosent-extist", "c1", "c2"], UnknownArgument);
             }
-            "install" => {
-                let matches = s.clone().get_matches_from(vec![
-                    "install",
-                    "--accounts",
-                    "value1",
-                    "value2",
-                    "value3",
-                    "value4",
-                ]);
-                assert_eq!(
-                    vec!["value1", "value2", "value3", "value4"],
-                    matches
-                        .get_many::<String>("accounts")
-                        .unwrap()
-                        .into_iter()
-                        .map(|x| x.as_str())
-                        .collect::<Vec<&str>>()
-                );
+            #[rustfmt::skip]
+            subcmd @ "install" => {
+                test_cmd!(c, [subcmd, "--account", "A"], "account" => ["A"]);
+                test_cmd!(c, [subcmd, "--account", "A", "B"], UnknownArgument);
+                test_cmd!(c, [subcmd, "--accounts"], "accounts" => []);
+                test_cmd!(c, [subcmd, "--accounts", "A", "B"], "accounts" => ["A", "B"]);
+                test_cmd!(c, [subcmd, "--two-accounts", "A"], WrongNumberOfValues);
+                test_cmd!(c, [subcmd, "--two-accounts", "A", "B"], "two-accounts" => ["A", "B"]);
+                test_cmd!(c, [subcmd, "--two-accounts", "A", "B", "C"], UnknownArgument);
+                test_cmd!(c, [subcmd, "--two-or-three-accounts", "A"], TooFewValues);
+                test_cmd!(c, [subcmd, "--two-or-three-accounts", "A", "B"], "two-or-three-accounts" => ["A", "B"]);
+                test_cmd!(c, [subcmd, "--two-or-three-accounts", "A", "B", "C"], "two-or-three-accounts" => ["A", "B", "C"]);
+                test_cmd!(c, [subcmd, "--two-or-three-accounts", "A", "B", "C", "D"], UnknownArgument);
+            }
+            subcmd @ "init-canister" => {
+                test_cmd!(c, [subcmd, "x1"], "canister_id" => ["x1"]);
+                test_cmd!(c, [subcmd, "x1", "x2"], UnknownArgument);
+            }
+            subcmd @ "init-canisters" => {
+                test_cmd!(c, [subcmd, "y1", "y2", "y3", "y4", "y5"], "canister_ids" => ["y1", "y2", "y3", "y4", "y5"]);
+            }
+            subcmd @ "init-two-canisters" => {
+                test_cmd!(c, [subcmd, "z1"], WrongNumberOfValues);
+                test_cmd!(c, [subcmd, "z1", "z2"], "canister_ids" => ["z1", "z2"]);
+            }
+            subcmd @ "init-two-or-three-canisters" => {
+                test_cmd!(c, [subcmd, "1"], TooFewValues);
+                test_cmd!(c, [subcmd, "1", "2"], "canister_ids" => ["1", "2"]);
+                test_cmd!(c, [subcmd, "1", "2", "3"], "canister_ids" => ["1", "2", "3"]);
+                test_cmd!(c, [subcmd, "1", "2", "3", "4"], TooManyValues);
             }
             _ => {}
         }
