@@ -48,6 +48,13 @@ Existing identities are not affected by this change.
 
 > **NOTE**: We've re-enabled response verification v2 in the asset canister.
 
+### fix: return asset certificate for cert v1 even if encoding does not match
+
+For certification v1, if none of the requested encoding are certified but another encoding is certified, then the frontend canister once again returns the certificatie even though the response hash won't match.
+This allows the verifying side to try to transform the response such that it matches the response hash.
+For example, if only the encoding `gzip` is requested but the `identity` encoding is certified, the `gzip` encoding is returned with the certificate for the `identity` encoding.
+The verifying side can then unzip the response and will have a valid certificate for the `identity` response.
+
 ### fix: Certification for aliasing updates on asset deletion
 
 Best explained by an example: Two assets exist with aliasing enabled: `/content` and `/content.html`. Usually, when requesting `/content`, `/content.html` is served because it has aliasing enabled.
@@ -90,7 +97,8 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Frontend canister
 
-- Module hash: 88d1e5795d29debc1ff56fa0696dcb3adfa67f82fe2739d1aa644263838174b9
+- Module hash: d9142d47813d851f5c86f0d780b8c8851aae6d910e486b3a2a698de0bb40c99b
+- https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3256
 - https://github.com/dfinity/sdk/pull/3252
 - https://github.com/dfinity/sdk/pull/3249
@@ -99,9 +107,12 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Replica
 
-Updated replica to elected commit f8f59f896499f2fef394d8321116f83351c59aa8.
+Updated replica to elected commit 3bcccef07408921fe849c92dd2437adc157ef9c3.
 This incorporates the following executed proposals:
 
+- [124021](https://dashboard.internetcomputer.org/proposal/124021)
+- [123977](https://dashboard.internetcomputer.org/proposal/123977)
+- [123976](https://dashboard.internetcomputer.org/proposal/123976)
 - [123922](https://dashboard.internetcomputer.org/proposal/123922)
 - [123784](https://dashboard.internetcomputer.org/proposal/123784)
 - [123730](https://dashboard.internetcomputer.org/proposal/123730)

@@ -247,7 +247,9 @@ impl HttpResponse {
                         enc,
                         key,
                         chunk_index,
-                        None,
+                        // we return the certificate anyways because then the service worker can try to convert the encoding (e.g. unzip)
+                        // and then try to match the response hash in other encoding formats
+                        certificate_header,
                         callback,
                         etags,
                         cert_version,
