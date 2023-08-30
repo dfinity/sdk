@@ -31,7 +31,7 @@ impl ExtensionManager {
 
         let extension_version = self.get_extension_compatible_version(extension_name)?;
         let github_release_tag = get_git_release_tag(extension_name, &extension_version);
-        let extension_archive = get_extension_archive_name(extension_name, &extension_version)?;
+        let extension_archive = get_extension_archive_name(extension_name)?;
         let url = get_extension_download_url(&github_release_tag, &extension_archive)?;
 
         let temp_dir = self.download_and_unpack_extension_to_tempdir(url)?;
@@ -132,12 +132,9 @@ fn get_git_release_tag(extension_name: &str, extension_verion: &Version) -> Stri
     format!("{extension_name}-v{extension_verion}",)
 }
 
-fn get_extension_archive_name(
-    extension_name: &str,
-    extension_version: &Version,
-) -> Result<String, ExtensionError> {
+fn get_extension_archive_name(extension_name: &str) -> Result<String, ExtensionError> {
     Ok(format!(
-        "{extension_name}-v{extension_version}-{arch}-{platform}",
+        "{extension_name}-{arch}-{platform}",
         platform = match std::env::consts::OS {
             "linux" => "unknown-linux-gnu",
             "macos" => "apple-darwin",
