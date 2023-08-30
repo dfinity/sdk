@@ -14,7 +14,8 @@ The following subcommands are available:
 
 | Command                               | Description                                                                          |
 |---------------------------------------|--------------------------------------------------------------------------------------|
-| [`balance`](#dfx-ledger-balance)                 | Prints the account balance of the user.                                              |
+| [`balance`](#dfx-cycles-balance)      | Prints the account balance of the user.                                              |
+| [`transfer`](#dfx-cycles-transfer)    | Send cycles to another account.                                                      |
 | `help`                                | Displays usage information message for a specified subcommand.                       |
 
 To view usage information for a specific subcommand, specify the subcommand and the `--help` flag. For example, to see usage information for `dfx cycles balance`, you can run the following command:
@@ -63,5 +64,50 @@ You can use the `dfx cycles balance` command to check the balance of another pri
 
 ``` bash
 dfx cycles balance --owner raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae --network ic
+```
+
+## dfx cycles transfer
+
+Use the `dfx cycles transfer` command to transfer cycles from your account to another account.
+
+### Basic usage
+
+``` bash
+dfx cycles transfer [options] <amount>
+```
+
+### Arguments
+
+You must specify the following argument for the `dfx cycles transfer` command.
+
+| Argument     | Description                       |
+|--------------|-----------------------------------|
+| `<amount>`   | The number of cycles to transfer. |
+
+### Options
+
+You can specify the following options for the `dfx cycles transfer` command.
+
+| Option                           | Description                                                        |
+|----------------------------------|--------------------------------------------------------------------|
+| `--to-owner <principal>`         | The principal of the account to which you want to transfer cycles. |
+| `--to-subaccount <subaccount>`   | The subaccount to which you want to transfer cycles.               |
+| `--from-subaccount <subaccount>` | The subaccount from which you want to transfer cycles.             |
+| `--fee <fee>`                    | Specifies a transaction fee.                                       |
+| `--memo <memo>`                  | Specifies a numeric memo for this transaction.                     |
+| `--created-at-time <timestamp>`  | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
+
+### Examples
+
+Transfer 1 billion cycles to another account:
+
+``` bash
+dfx cycles transfer 1000000000 --to-owner raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae --network ic
+```
+
+Transfer from a subaccount:
+
+``` bash
+dfx cycles transfer 1000000000 --from-subaccount 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f --to-owner raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae --network ic
 ```
 

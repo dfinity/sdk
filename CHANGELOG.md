@@ -2,9 +2,13 @@
 
 # UNRELEASED
 
-### feat: added `cycles balance` command
+### feat: added `dfx cycles` command
 
-This won't work on mainnet yet, but it can work locally after installing the cycles ledger.
+This won't work on mainnet yet, but can work locally after installing the cycles ledger.
+
+Added the following subcommands:
+ - `dfx cycles balance`
+ - `dfx cycles transfer --to-owner <principal>` (transfer from one account to another account)
 
 ## Dependencies
 

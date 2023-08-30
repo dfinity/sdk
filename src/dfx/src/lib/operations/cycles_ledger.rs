@@ -3,13 +3,15 @@ use crate::lib::retryable::retryable;
 use anyhow::anyhow;
 use backoff::future::retry;
 use backoff::ExponentialBackoff;
-use candid::Principal;
+use candid::{Nat, Principal};
 use ic_agent::Agent;
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
 use icrc_ledger_types::icrc1;
+use icrc_ledger_types::icrc1::transfer::{BlockIndex, TransferError};
 
 const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
+const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
 
 pub async fn balance(
     agent: &Agent,
@@ -41,4 +43,65 @@ pub async fn balance(
         }
     })
     .await
+}
+
+pub async fn transfer(
+    agent: &Agent,
+    amount: u128,
+    from_subaccount: Option<icrc1::account::Subaccount>,
+    owner: Principal,
+    to_subaccount: Option<icrc1::account::Subaccount>,
+    created_at_time: u64,
+    fee: Option<u128>,
+    memo: Option<u64>,
+    cycles_ledger_canister_id: Principal,
+) -> DfxResult<BlockIndex> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(cycles_ledger_canister_id)
+        .build()?;
+
+    let retry_policy = ExponentialBackoff::default();
+
+    let block_index = retry(retry_policy, || async {
+        let arg = icrc1::transfer::TransferArg {
+            from_subaccount,
+            to: icrc1::account::Account {
+                owner,
+                subaccount: to_subaccount,
+            },
+            fee: fee.map(Nat::from),
+            created_at_time: Some(created_at_time),
+            memo: memo.map(|v| v.into()),
+            amount: Nat::from(amount),
+        };
+        match canister
+            .update(ICRC1_TRANSFER_METHOD)
+            .with_arg(arg)
+            .build()
+            .map(|result: (Result<BlockIndex, TransferError>,)| (result.0,))
+            .call_and_wait()
+            .await
+            .map(|(result,)| result)
+        {
+            Ok(Ok(block_index)) => Ok(block_index),
+            Ok(Err(TransferError::Duplicate { duplicate_of })) => {
+                println!(
+                    "{}",
+                    TransferError::Duplicate {
+                        duplicate_of: duplicate_of.clone()
+                    }
+                );
+                Ok(duplicate_of)
+            }
+            Ok(Err(transfer_err)) => Err(backoff::Error::permanent(anyhow!(transfer_err))),
+            Err(agent_err) if retryable(&agent_err) => {
+                Err(backoff::Error::transient(anyhow!(agent_err)))
+            }
+            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+        }
+    })
+    .await?;
+
+    Ok(block_index)
 }
