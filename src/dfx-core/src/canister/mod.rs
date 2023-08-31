@@ -1,3 +1,4 @@
+pub mod url;
 use crate::{
     cli::ask_for_consent,
     error::canister::{CanisterBuilderError, CanisterInstallError},
