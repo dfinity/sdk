@@ -12,7 +12,15 @@ pub fn format_frontend_url(provider: &Url, canister_id: &str) -> Url {
             let new_domain = new_domain.replace("ic0.app", "icp0.io");
             let host = format!("{}.{}", canister_id, new_domain);
             let _ = url.set_host(Some(&host));
-        } else {
+        } 
+        else if domain.contains("localhost") {
+            let port = url.port().unwrap_or(4943);
+            let host = format!("localhost:{}", port);
+            let query = format!("canisterId={}", canister_id);
+            url.set_host(Some(&host)).unwrap();
+            url.set_query(Some(&query));
+        }
+        else {
             let host = format!("{}.{}", canister_id, domain);
             let _ = url.set_host(Some(&host));
         }
@@ -52,4 +60,48 @@ pub fn format_ui_canister_url_custom(
     }
 
     return url;
+}
+
+#[cfg(test)]
+mod test {
+    use url::Url;
+    use crate::canister::url::format_frontend_url;
+
+    #[test]
+    fn print_local_frontend() {
+        let provider1 = &Url::parse("http://127.0.0.1:4943").unwrap();
+        let provider2 = &Url::parse("http://localhost:4943").unwrap();
+        let provider3 = &Url::parse("http://127.0.0.1:8000").unwrap();
+        assert_eq!(
+            format_frontend_url(provider1, "ryjl3-tyaaa-aaaaa-aaaba-cai").as_str(),
+            "http://127.0.0.1:4943/?canisterId=ryjl3-tyaaa-aaaaa-aaaba-cai"
+        );
+        assert_eq!(
+            format_frontend_url(provider2, "ryjl3-tyaaa-aaaaa-aaaba-cai").as_str(),
+            "http://localhost:4943/?canisterId=ryjl3-tyaaa-aaaaa-aaaba-cai"
+        );
+        assert_eq!(
+            format_frontend_url(provider3, "ryjl3-tyaaa-aaaaa-aaaba-cai").as_str(),
+            "http://127.0.0.1:8000/?canisterId=ryjl3-tyaaa-aaaaa-aaaba-cai"
+        );
+    }
+
+    #[test]
+    fn print_ic_frontend() {
+        let provider1 = &Url::parse("https://ic0.app").unwrap();
+        let provider2 = &Url::parse("https://icp-api.io").unwrap();
+        let provider3 = &Url::parse("https://icp0.io").unwrap();
+        assert_eq!(
+            format_frontend_url(provider1, "ryjl3-tyaaa-aaaaa-aaaba-cai").as_str(),
+            "https://ryjl3-tyaaa-aaaaa-aaaba-cai.icp0.io/"
+        );
+        assert_eq!(
+            format_frontend_url(provider2, "ryjl3-tyaaa-aaaaa-aaaba-cai").as_str(),
+            "https://ryjl3-tyaaa-aaaaa-aaaba-cai.icp0.io/"
+        );
+        assert_eq!(
+            format_frontend_url(provider3, "ryjl3-tyaaa-aaaaa-aaaba-cai").as_str(),
+            "https://ryjl3-tyaaa-aaaaa-aaaba-cai.icp0.io/"
+        );
+    }
 }

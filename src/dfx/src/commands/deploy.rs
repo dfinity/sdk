@@ -1,4 +1,3 @@
-use crate::commands::canister::url::{construct_frontend_url, construct_ui_canister_url};
 use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
@@ -14,6 +13,7 @@ use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
 use console::Style;
+use dfx_core::canister::url::{format_frontend_url, format_ui_canister_url_ic, format_ui_canister_url_custom};
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -209,14 +209,36 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
                 // If the canister is an assets canister or has a frontend section, we can display a frontend url.
                 let is_assets = canister_info.is_assets() || canister_config.frontend.is_some();
 
+                let provider = Url::parse(&network.providers[0]).with_context(|| {
+                    format!(
+                        "Failed to parse url for network provider {}.",
+                        &network.providers[0]
+                    )
+                })?;
                 if is_assets {
-                    let url = construct_frontend_url(network, &canister_id)?;
+                    let url = format_frontend_url(&provider, &canister_id.to_string());
                     frontend_urls.insert(canister_name, url);
                 }
 
                 if !canister_info.is_assets() {
-                    let url = construct_ui_canister_url(network, &canister_id, ui_canister_id)?;
-                    candid_urls.insert(canister_name, url);
+                    let is_local = env.get_network_descriptor().name == "local";
+                    if is_local {
+                        let ui_canister_id = ui_canister_id.ok_or_else(|| {
+                            anyhow!(
+                                "The ui canister id is not set in the canister_id_store.json file."
+                            )
+                        })?;
+                        let url = format_ui_canister_url_custom(
+                            &&canister_id.to_string(),
+                            &provider,
+                            &ui_canister_id.to_string(),
+                        );
+                        candid_urls.insert(canister_name, url);
+                    }
+                    else {
+                        let url = format_ui_canister_url_ic(&canister_id.to_string())?;
+                        candid_urls.insert(canister_name, url);
+                    }
                 }
             }
         }
