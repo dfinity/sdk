@@ -23,6 +23,14 @@ teardown() {
     assert_match "$(jq -r .e2e_project_backend.local < .dfx/local/canister_ids.json)"
 }
 
+@test "id subcommand does not display warning about plaintext keys" {
+    install_asset id
+    dfx identity get-principal
+    echo "{}" | jq '.e2e_project_backend.ic = "bd3sg-teaaa-aaaaa-qaaba-cai"' >canister_ids.json
+    assert_command dfx canister id e2e_project_backend --ic
+    assert_eq "bd3sg-teaaa-aaaaa-qaaba-cai"
+}
+
 @test "id subcommand works from a subdirectory of the project - ephemeral id" {
     install_asset id
     dfx_start
