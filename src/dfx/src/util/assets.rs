@@ -110,6 +110,7 @@ pub fn bitcoin_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
 
 pub fn management_idl() -> DfxResult<String> {
     // FIXME get idl from replica when it's available
+    // Pulled from https://github.com/dfinity/interface-spec/blob/master/spec/_attachments/ic.did
     Ok(r##"
 type canister_id = principal;
 type wasm_module = blob;
