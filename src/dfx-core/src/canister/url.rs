@@ -12,15 +12,13 @@ pub fn format_frontend_url(provider: &Url, canister_id: &str) -> Url {
             let new_domain = new_domain.replace("ic0.app", "icp0.io");
             let host = format!("{}.{}", canister_id, new_domain);
             let _ = url.set_host(Some(&host));
-        } 
-        else if domain.contains("localhost") {
+        } else if domain.contains("localhost") {
             let port = url.port().unwrap_or(4943);
             let host = format!("localhost:{}", port);
             let query = format!("canisterId={}", canister_id);
             url.set_host(Some(&host)).unwrap();
             url.set_query(Some(&query));
-        }
-        else {
+        } else {
             let host = format!("{}.{}", canister_id, domain);
             let _ = url.set_host(Some(&host));
         }
@@ -64,8 +62,8 @@ pub fn format_ui_canister_url_custom(
 
 #[cfg(test)]
 mod test {
-    use url::Url;
     use crate::canister::url::format_frontend_url;
+    use url::Url;
 
     #[test]
     fn print_local_frontend() {

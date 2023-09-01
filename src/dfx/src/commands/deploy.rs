@@ -13,7 +13,9 @@ use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
 use console::Style;
-use dfx_core::canister::url::{format_frontend_url, format_ui_canister_url_ic, format_ui_canister_url_custom};
+use dfx_core::canister::url::{
+    format_frontend_url, format_ui_canister_url_custom, format_ui_canister_url_ic,
+};
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -234,8 +236,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
                             &ui_canister_id.to_string(),
                         );
                         candid_urls.insert(canister_name, url);
-                    }
-                    else {
+                    } else {
                         let url = format_ui_canister_url_ic(&canister_id.to_string())?;
                         candid_urls.insert(canister_name, url);
                     }
