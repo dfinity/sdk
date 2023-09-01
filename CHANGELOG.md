@@ -120,7 +120,11 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Replica
 
-Updated replica to elected commit 3bcccef07408921fe849c92dd2437adc157ef9c3.
+Updated replica to release candidate b9949229021c8801c03b38d73d53a9dfb14d5f60.
+
+This incorporates the following open proposals:
+- [124330](https://dashboard.internetcomputer.org/proposal/124330)
+
 This incorporates the following executed proposals:
 
 - [124021](https://dashboard.internetcomputer.org/proposal/124021)
