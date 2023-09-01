@@ -64,7 +64,7 @@ pub enum SubCommand {
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env;
-    let env = if matches!(&opts.subcmd, SubCommand::Id(_)) {
+    let env = if matches!(&opts.subcmd, SubCommand::Id(_) | SubCommand::Url(_)) {
         env
     } else {
         agent_env = create_agent_environment(env, opts.network.to_network_name())?;

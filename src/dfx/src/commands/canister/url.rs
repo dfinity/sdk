@@ -63,8 +63,8 @@ pub fn construct_ui_canister_url(
             return Ok(formatted_url);
         } else {
             return Err(anyhow::anyhow!(
-                "Canister {} does not have a ui canister id",
-                canister_id
+                "Network {} does not have a ui canister id",
+                network.name
             ));
         }
     }

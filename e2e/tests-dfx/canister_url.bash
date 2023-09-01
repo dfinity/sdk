@@ -30,3 +30,20 @@ teardown() {
     assert_command dfx canister url whoami --network ic
     assert_eq "https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=ivcos-eqaaa-aaaab-qablq-cai"
 }
+
+@test "missing ui canister error" {
+    dfx_start
+    dfx canister create hello_backend
+    assert_command_fail dfx canister url hello_backend
+    assert_contains "Network local does not have a ui canister id"
+}
+
+@test "missing local id error" {
+    assert_command_fail dfx canister url hello_backend
+    assert_contains "Cannot find canister id. Please issue 'dfx canister create hello_backend'"
+}
+
+@test "missing ic id error" {
+    assert_command_fail dfx canister url hello_backend --network ic
+    assert_contains "Cannot find canister id. Please issue 'dfx canister create hello_backend --network ic'."
+}
