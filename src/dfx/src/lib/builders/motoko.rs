@@ -143,9 +143,7 @@ impl CanisterBuilder for MotokoBuilder {
             .contains(&MotokoImport::Ic("aaaaa-aa".to_string()))
         {
             let management_idl_path = idl_dir_path.join("aaaaa-aa.did");
-            std::fs::write(&management_idl_path, management_idl()?).with_context(|| {
-                format!("Failed to write {}.", management_idl_path.to_string_lossy())
-            })?;
+            dfx_core::fs::write(&management_idl_path, management_idl()?)?;
         }
 
         let package_arguments =
