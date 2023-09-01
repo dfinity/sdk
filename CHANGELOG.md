@@ -124,6 +124,7 @@ Updated replica to release candidate b9949229021c8801c03b38d73d53a9dfb14d5f60.
 
 This incorporates the following open proposals:
 - [124330](https://dashboard.internetcomputer.org/proposal/124330)
+- [124272](https://dashboard.internetcomputer.org/proposal/124272)
 
 This incorporates the following executed proposals:
 
