@@ -4,6 +4,18 @@
 
 ## DFX
 
+### fix: added https://icp-api.io to the default Content-Security-Policy header
+
+Existing projects will need to change this value in .ic-assets.json or .ic-assets.json5 to include https://icp-api.io
+
+All projects will need to redeploy.
+
+### fix: access to raw assets is now enabled by default
+
+The default value for `allow_raw_access` is now `true`.  This means that by default, the frontend canister will no longer restrict the access of traffic to the `<canister-id>.raw.icp0.io` domain, and will no longer automatically redirect all requests to the certified domain (`<canister-id>.icp0.io`), unless configured explicitly.
+
+Note that existing projects that specify `"allow_raw_access": false` in .ic-assets.json5 will need to change or remove this value manually in order to allow raw access.
+
 ### feat!: Removed dfx nns and dfx sns commands
 
 Both have now been turned into the dfx extensions. In order to obtain them, please run `dfx extension install nns` and `dfx extension install sns` respectively. After the installation, you can use them as you did before: `dfx nns ...`, and `dfx sns ...`.
@@ -113,7 +125,8 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Frontend canister
 
-- Module hash: d9142d47813d851f5c86f0d780b8c8851aae6d910e486b3a2a698de0bb40c99b
+- Module hash: e20be8df2c392937a6ae0f70d20ff23b75e8c71d9085a8b8bb438b8c2d4eafe5
+- https://github.com/dfinity/sdk/pull/3337
 - https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3256
 - https://github.com/dfinity/sdk/pull/3252
@@ -123,7 +136,12 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Replica
 
-Updated replica to elected commit 3bcccef07408921fe849c92dd2437adc157ef9c3.
+Updated replica to release candidate b9949229021c8801c03b38d73d53a9dfb14d5f60.
+
+This incorporates the following open proposals:
+- [124330](https://dashboard.internetcomputer.org/proposal/124330)
+- [124272](https://dashboard.internetcomputer.org/proposal/124272)
+
 This incorporates the following executed proposals:
 
 - [124021](https://dashboard.internetcomputer.org/proposal/124021)
