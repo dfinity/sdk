@@ -6,9 +6,10 @@
 
 This won't work on mainnet yet, but can work locally after installing the cycles ledger.
 
-Added the following subcommands:
+Added the following subcommands and variants:
  - `dfx cycles balance`
  - `dfx cycles transfer --to-owner <principal>` (transfer from one account to another account)
+ - `dfx cycles transfer --top-up <principal>` (transfer from an account to a canister)
 
 ## Dependencies
 

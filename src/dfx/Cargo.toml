@@ -63,6 +63,7 @@ humantime.workspace = true
 hyper-rustls = { version = "0.24.1", features = ["webpki-roots", "http2"] }
 ic-agent = { workspace = true, features = ["reqwest"] }
 ic-asset.workspace = true
+ic-cdk.workspace = true
 ic-identity-hsm = { workspace = true }
 ic-utils = { workspace = true }
 ic-wasm = "0.4.0"

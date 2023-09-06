@@ -31,13 +31,17 @@ pub struct TransferOpts {
     #[arg(long, requires("to_owner"))]
     to_subaccount: Option<Subaccount>,
 
+    /// Canister to top up.
+    #[arg(long, group = "target", name = "CANISTER_ID")]
+    top_up: Option<String>,
+
     /// Transaction timestamp, in nanoseconds, for use in controlling transaction-deduplication, default is system-time.
     /// https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
     #[arg(long)]
     created_at_time: Option<u64>,
 
     /// Transfer fee.
-    #[arg(long, value_parser = cycle_amount_parser)]
+    #[arg(long, value_parser = cycle_amount_parser, requires("to_owner"))]
     fee: Option<u128>,
 
     /// Memo.
@@ -86,6 +90,25 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
                 created_at_time
             )
         })?
+    } else if let Some(top_up) = opts.top_up {
+        let to = get_canister_id(env, &top_up)?;
+        let from_subaccount = opts.from_subaccount.map(|x| x.0);
+        cycles_ledger::send(
+            agent,
+            to,
+            amount,
+            created_at_time,
+            opts.memo,
+            from_subaccount,
+            opts.cycles_ledger_canister_id,
+        )
+        .await
+        .with_context(|| {
+            format!(
+                "If you retry this operation, use --created-at-time {}",
+                created_at_time
+            )
+        })?
     } else {
         unreachable!();
     };
@@ -93,4 +116,12 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
     println!("Transfer sent at block index {block_index}");
 
     Ok(())
+}
+
+fn get_canister_id(env: &dyn Environment, s: &str) -> DfxResult<Principal> {
+    let principal = Principal::from_text(s).or_else(|_| {
+        env.get_canister_id_store()
+            .and_then(|canister_id_store| canister_id_store.get(s))
+    })?;
+    Ok(principal)
 }

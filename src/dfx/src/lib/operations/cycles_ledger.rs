@@ -1,3 +1,5 @@
+use crate::lib::cycles_ledger_types;
+use crate::lib::cycles_ledger_types::send::SendError;
 use crate::lib::error::DfxResult;
 use crate::lib::retryable::retryable;
 use anyhow::anyhow;
@@ -12,6 +14,7 @@ use icrc_ledger_types::icrc1::transfer::{BlockIndex, TransferError};
 
 const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
 const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
+const SEND_METHOD: &str = "send";
 
 pub async fn balance(
     agent: &Agent,
@@ -95,6 +98,67 @@ pub async fn transfer(
                 Ok(duplicate_of)
             }
             Ok(Err(transfer_err)) => Err(backoff::Error::permanent(anyhow!(transfer_err))),
+            Err(agent_err) if retryable(&agent_err) => {
+                Err(backoff::Error::transient(anyhow!(agent_err)))
+            }
+            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+        }
+    })
+    .await?;
+
+    Ok(block_index)
+}
+
+pub async fn send(
+    agent: &Agent,
+    to: Principal,
+    amount: u128,
+    created_at_time: u64,
+    memo: Option<u64>,
+    from_subaccount: Option<icrc1::account::Subaccount>,
+    cycles_ledger_canister_id: Principal,
+) -> DfxResult<BlockIndex> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(cycles_ledger_canister_id)
+        .build()?;
+
+    let retry_policy = ExponentialBackoff::default();
+    let block_index: BlockIndex = retry(retry_policy, || async {
+        let arg = cycles_ledger_types::send::SendArgs {
+            from_subaccount,
+            to,
+            created_at_time: Some(created_at_time),
+            memo: memo.map(|v| v.into()),
+            amount: Nat::from(amount),
+        };
+        match canister
+            .update(SEND_METHOD)
+            .with_arg(arg)
+            .build()
+            .map(|result: (Result<BlockIndex, SendError>,)| (result.0,))
+            .call_and_wait()
+            .await
+            .map(|(result,)| result)
+        {
+            Ok(Ok(block_index)) => Ok(block_index),
+            Ok(Err(SendError::Duplicate { duplicate_of })) => {
+                println!(
+                    "transaction is a duplicate of another transaction in block {}",
+                    duplicate_of
+                );
+                Ok(duplicate_of)
+            }
+            Ok(Err(SendError::InvalidReceiver { receiver })) => {
+                Err(backoff::Error::permanent(anyhow!(
+                    "Invalid receiver: {}.  Make sure the receiver is a canister.",
+                    receiver
+                )))
+            }
+            Ok(Err(send_err)) => Err(backoff::Error::permanent(anyhow!(
+                "send error: {:?}",
+                send_err
+            ))),
             Err(agent_err) if retryable(&agent_err) => {
                 Err(backoff::Error::transient(anyhow!(agent_err)))
             }

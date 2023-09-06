@@ -68,7 +68,7 @@ dfx cycles balance --owner raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j
 
 ## dfx cycles transfer
 
-Use the `dfx cycles transfer` command to transfer cycles from your account to another account.
+Use the `dfx cycles transfer` command to transfer cycles from your account to another account.  This can be to the account of another owner's principal, or to a canister.
 
 ### Basic usage
 
@@ -90,6 +90,7 @@ You can specify the following options for the `dfx cycles transfer` command.
 
 | Option                           | Description                                                        |
 |----------------------------------|--------------------------------------------------------------------|
+| `--top-up <principal>`           | The canister to which you want to transfer cycles.                 |
 | `--to-owner <principal>`         | The principal of the account to which you want to transfer cycles. |
 | `--to-subaccount <subaccount>`   | The subaccount to which you want to transfer cycles.               |
 | `--from-subaccount <subaccount>` | The subaccount from which you want to transfer cycles.             |
@@ -111,3 +112,8 @@ Transfer from a subaccount:
 dfx cycles transfer 1000000000 --from-subaccount 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f --to-owner raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae --network ic
 ```
 
+Transfer to (top up) a canister:
+
+``` bash
+dfx cycles transfer 1000000000 --top-up bkyz2-fmaaa-aaaaa-qaaaq-cai --network ic
+```
