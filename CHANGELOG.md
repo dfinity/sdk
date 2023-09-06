@@ -62,6 +62,10 @@ The verifying side can then unzip the response and will have a valid certificate
 - https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3281
 
+### Motoko
+
+Updated Motoko to [0.9.8](https://github.com/dfinity/motoko/releases/tag/0.9.8)
+
 # 0.15.0
 
 ## DFX
