@@ -49,12 +49,21 @@ pub struct InstallArgs<'a> {
     pub mode: InstallMode,
     pub canister_id: Principal,
 }
+#[derive(CandidType)]
+struct InstallConfig<'a> {
+    profiling: bool,
+    is_whitelisted: bool,
+    origin: &'a str,
+}
 
 #[context("Failed to reserve canister '{}'.", canister_name)]
 pub async fn reserve_canister_with_playground(
     env: &dyn Environment,
     canister_name: &str,
 ) -> DfxResult {
+    if ci_info::is_ci() {
+        bail!("Cannot reserve playground canister in CI, please run `dfx start` to use the local replica.")
+    }
     let agent = env.get_agent().context("Failed to get HTTP agent")?;
     let log = env.get_logger();
     let playground_canister = if let NetworkTypeDescriptor::Playground {
@@ -69,7 +78,7 @@ pub async fn reserve_canister_with_playground(
     };
     let mut canister_id_store = env.get_canister_id_store()?;
     let (timestamp, nonce) = create_nonce();
-    let get_can_arg = Encode!(&GetCanisterIdArgs { timestamp, nonce })?;
+    let get_can_arg = Encode!(&GetCanisterIdArgs { timestamp, nonce }, &"dfx")?;
     let result = agent
         .update(&playground_canister, "getCanisterId")
         .with_arg(get_can_arg)
@@ -148,7 +157,17 @@ pub async fn playground_install_code(
         mode,
         canister_id: canister_info.id,
     };
-    let encoded_arg = encode_args((canister_info, install_arg, false, is_asset_canister))?;
+    let origin = if is_asset_canister {
+        "dfx:asset"
+    } else {
+        "dfx"
+    };
+    let install_config = InstallConfig {
+        profiling: false,
+        is_whitelisted: is_asset_canister,
+        origin,
+    };
+    let encoded_arg = encode_args((canister_info, install_arg, install_config))?;
     let result = agent
         .update(&playground_canister, "installCode")
         .with_arg(encoded_arg.as_slice())
