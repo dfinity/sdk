@@ -146,8 +146,8 @@ check_permission_failure() {
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
 
-  assert_command curl -vv http://localhost:"$PORT"/new_file.txt?canisterId="$ID"
-  assert_eq "not found" "$stdout"
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/new_file.txt?canisterId="$ID"
+  assert_contains "The requested URL returned error: 404"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/to-be-deleted.txt?canisterId="$ID"
 
@@ -222,8 +222,8 @@ check_permission_failure() {
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
 
-  assert_command curl -vv http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
-  assert_eq "not found" "$stdout"
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
+  assert_contains "The requested URL returned error: 404"
 
   commit_args='(record { batch_id = 2; evidence = blob "\1b\45\c8\b1\d0\de\ec\88\ac\03\25\90\e0\f1\cd\9a\b4\07\f7\96\e8\27\aa\c8\80\f4\ff\b0\35\fd\c2\00" } )'
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
