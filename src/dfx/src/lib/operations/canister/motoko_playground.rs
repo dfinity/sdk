@@ -53,7 +53,20 @@ pub struct InstallArgs<'a> {
 struct InstallConfig<'a> {
     profiling: bool,
     is_whitelisted: bool,
+    origin: Origin<'a>,
+}
+#[derive(CandidType)]
+struct Origin<'a> {
     origin: &'a str,
+    tags: &'a [&'a str],
+}
+impl<'a> Origin<'a> {
+    fn new() -> Self {
+        Self {
+            origin: "dfx",
+            tags: &[],
+        }
+    }
 }
 
 #[context("Failed to reserve canister '{}'.", canister_name)]
@@ -78,7 +91,7 @@ pub async fn reserve_canister_with_playground(
     };
     let mut canister_id_store = env.get_canister_id_store()?;
     let (timestamp, nonce) = create_nonce();
-    let get_can_arg = Encode!(&GetCanisterIdArgs { timestamp, nonce }, &"dfx")?;
+    let get_can_arg = Encode!(&GetCanisterIdArgs { timestamp, nonce }, &Origin::new())?;
     let result = agent
         .update(&playground_canister, "getCanisterId")
         .with_arg(get_can_arg)
@@ -157,15 +170,10 @@ pub async fn playground_install_code(
         mode,
         canister_id: canister_info.id,
     };
-    let origin = if is_asset_canister {
-        "dfx:asset"
-    } else {
-        "dfx"
-    };
     let install_config = InstallConfig {
         profiling: false,
         is_whitelisted: is_asset_canister,
-        origin,
+        origin: Origin::new(),
     };
     let encoded_arg = encode_args((canister_info, install_arg, install_config))?;
     let result = agent
