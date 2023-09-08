@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+## DFX
+
+### feat: dfx killall
+
+Introduced `dfx killall`, a command for killing DFX-started processes.
+
 ### fix: dfx deploy urls printed for asset canisters
 
 ### chore: --emulator parameter is deprecated and will be discontinued soon
