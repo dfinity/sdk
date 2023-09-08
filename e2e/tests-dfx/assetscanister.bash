@@ -1188,14 +1188,11 @@ CHERRIES" "$stdout"
     assert_match "x-header: x-value"
 
     assert_command curl -vv "http://localhost:$PORT/.ignored-by-defualt.txt?canisterId=$ID"
-    assert_eq "Body does not pass verification" "$stdout"
-    #assert_match "404 Not Found"
+    assert_match "404 Not Found"
     assert_command curl -vv "http://localhost:$PORT/.well-known/.hidden/ignored.txt?canisterId=$ID"
-    assert_eq "Body does not pass verification" "$stdout"
-    #assert_match "404 Not Found"
+    assert_match "404 Not Found"
     assert_command curl -vv "http://localhost:$PORT/.well-known/.another-hidden/ignored.txt?canisterId=$ID"
-    assert_eq "Body does not pass verification" "$stdout"
-    #assert_match "404 Not Found"
+    assert_match "404 Not Found"
 
 }
 @test "asset configuration via .ic-assets.json5 - overwriting default headers" {
@@ -1275,9 +1272,8 @@ CHERRIES" "$stdout"
 
     # toggle aliasing on and off using `set_asset_properties`
     assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(false))  })'
-    assert_command curl -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-    assert_contains "Body does not pass verification" "$stdout"
-    # assert_match "404" "$stderr"
+    assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "404" "$stderr"
     assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(true))  })'
     assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
     assert_match "200 OK" "$stderr"
@@ -1318,9 +1314,8 @@ CHERRIES" "$stdout"
     # shellcheck disable=SC2154
     assert_match "200 OK" "$stderr"
     assert_match "test alias file"
-    assert_command curl -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-    assert_eq "Body does not pass verification" "$stdout"
-    # assert_match "404 Not Found" "$stderr"
+    assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "404 Not Found" "$stderr"
     assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
     assert_match "200 OK" "$stderr"
     assert_match "test index file"
@@ -1340,8 +1335,8 @@ CHERRIES" "$stdout"
     # shellcheck disable=SC2154
     assert_match "200 OK" "$stderr"
     assert_match "test alias file"
-    assert_command curl -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-    assert_eq "not found" "$stdout"
+    assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+    assert_match "404 Not Found" "$stderr"
     assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
     assert_match "200 OK" "$stderr"
     assert_match "test index file"
