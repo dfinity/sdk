@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### fix: Include remote canisters in canisters_to_generate
+
+Generate frontend declarations for remote canisters too because frontend JS code may want to call them.
+
 ### feat: Updated handling of missing values in state tree certificates
 
 The `Unknown` lookup of a path in a certificate results in an `AgentError` (the IC returns `Absent` for non-existing paths).
