@@ -177,20 +177,26 @@ def _test_candid_ui_handler(page):
     _set_text(page, 'text', text)
     _click_button(page, 'Query')
 
+    # Check if `#output-list` is populated correctly (after the first click)
+    output_list_id = '#output-list'
+    timeout_ms = 60000
+    _ = page.wait_for_selector(output_list_id, timeout=timeout_ms)
+
     # Reset the text & Click the "Random" button
     _set_text(page, 'text', '')
     _click_button(page, 'Random')
     # ~
 
-    # Check if `#output-list` is populated correctly
-    output_list_id = '#output-list'
-    timeout_ms = 60000
+    # Check if `#output-list` is populated correctly  (after the second click)
     output_list_obj = page.wait_for_selector(output_list_id, timeout=timeout_ms)
     if output_list_obj:
         output_list_lines = output_list_obj.inner_text().split('\n')
         actual_num_lines, expected_num_lines = len(output_list_lines), 4
         if actual_num_lines != expected_num_lines:
-            raise RuntimeError(f'Expected {expected_num_lines} lines of text but found {actual_num_lines}')
+            err = [f'Expected {expected_num_lines} lines of text but found {actual_num_lines}']
+            err.append('Lines:')
+            err.extend(output_list_lines)
+            raise RuntimeError('\n'.join(err))
 
         # Extract random text from third line
         random_text = re.search(r'"([^"]*)"', output_list_lines[2])
