@@ -74,9 +74,6 @@ pub async fn reserve_canister_with_playground(
     env: &dyn Environment,
     canister_name: &str,
 ) -> DfxResult {
-    if ci_info::is_ci() {
-        bail!("Cannot reserve playground canister in CI, please run `dfx start` to use the local replica.")
-    }
     let agent = env.get_agent().context("Failed to get HTTP agent")?;
     let log = env.get_logger();
     let playground_canister = if let NetworkTypeDescriptor::Playground {
@@ -89,6 +86,12 @@ pub async fn reserve_canister_with_playground(
     } else {
         bail!("Trying to reserve canister with playground on non-playground network.")
     };
+    if ci_info::is_ci()
+        && playground_canister == Principal::from_text("mwrha-maaaa-aaaab-qabqq-cai").unwrap()
+    {
+        bail!("Cannot reserve playground canister in CI, please run `dfx start` to use the local replica.")
+    }
+
     let mut canister_id_store = env.get_canister_id_store()?;
     let (timestamp, nonce) = create_nonce();
     let get_can_arg = Encode!(&GetCanisterIdArgs { timestamp, nonce }, &Origin::new())?;
