@@ -101,7 +101,7 @@ Any callers of `get_chunk()` should make sure to always pass the `sha256` value 
 
 ### Motoko
 
-Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
+Updated Motoko to [0.10.0](https://github.com/dfinity/motoko/releases/tag/0.10.0)
 
 ### Updated candid to 0.9.0
 
