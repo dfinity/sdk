@@ -1,4 +1,6 @@
-use dfx_core::config::model::network_descriptor::NetworkTypeDescriptor;
+use dfx_core::config::model::network_descriptor::{
+    NetworkTypeDescriptor, MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
+};
 use num_traits::ToPrimitive;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -49,6 +51,25 @@ pub struct InstallArgs<'a> {
     pub mode: InstallMode,
     pub canister_id: Principal,
 }
+#[derive(CandidType)]
+struct InstallConfig<'a> {
+    profiling: bool,
+    is_whitelisted: bool,
+    origin: Origin<'a>,
+}
+#[derive(CandidType)]
+struct Origin<'a> {
+    origin: &'a str,
+    tags: &'a [&'a str],
+}
+impl<'a> Origin<'a> {
+    fn new() -> Self {
+        Self {
+            origin: "dfx",
+            tags: &[],
+        }
+    }
+}
 
 #[context("Failed to reserve canister '{}'.", canister_name)]
 pub async fn reserve_canister_with_playground(
@@ -67,9 +88,13 @@ pub async fn reserve_canister_with_playground(
     } else {
         bail!("Trying to reserve canister with playground on non-playground network.")
     };
+    if ci_info::is_ci() && playground_canister == MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID {
+        bail!("Cannot reserve playground canister in CI, please run `dfx start` to use the local replica.")
+    }
+
     let mut canister_id_store = env.get_canister_id_store()?;
     let (timestamp, nonce) = create_nonce();
-    let get_can_arg = Encode!(&GetCanisterIdArgs { timestamp, nonce })?;
+    let get_can_arg = Encode!(&GetCanisterIdArgs { timestamp, nonce }, &Origin::new())?;
     let result = agent
         .update(&playground_canister, "getCanisterId")
         .with_arg(get_can_arg)
@@ -148,7 +173,12 @@ pub async fn playground_install_code(
         mode,
         canister_id: canister_info.id,
     };
-    let encoded_arg = encode_args((canister_info, install_arg, false, is_asset_canister))?;
+    let install_config = InstallConfig {
+        profiling: false,
+        is_whitelisted: is_asset_canister,
+        origin: Origin::new(),
+    };
+    let encoded_arg = encode_args((canister_info, install_arg, install_config))?;
     let result = agent
         .update(&playground_canister, "installCode")
         .with_arg(encoded_arg.as_slice())
