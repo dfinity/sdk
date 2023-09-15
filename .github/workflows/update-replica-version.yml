@@ -68,10 +68,10 @@ jobs:
         git config committer.name "GitHub Actions Bot"
         git config user.email "${{ github.event.sender.id }}+${{ github.event.sender.login }}@users.noreply.github.com"
         git config user.name "${{ github.event.sender.login }}"
-        git checkout -b chore-update-replica-${{ env.REPLICA_VERSION }} 
+        git checkout -b chore-update-replica-${{ env.REPLICA_VERSION }}-${{ github.event.inputs.sdkBranch }}
         git add .
         git commit -m "chore: update replica version to ${{ env.REPLICA_VERSION }}"
-        git push origin chore-update-replica-${{ env.REPLICA_VERSION }} 
+        git push origin chore-update-replica-${{ env.REPLICA_VERSION }}-${{ github.event.inputs.sdkBranch }}
       
     - name: create Pull Request, with CHANGELOG.md entry suggestion 
       uses: actions/github-script@v6
@@ -113,10 +113,10 @@ jobs:
             title: `chore: update replica version to ${new_replica_sha__short}`,
             owner,
             repo,
-            head: 'chore-update-replica-${{ env.REPLICA_VERSION }}',
+            head: 'chore-update-replica-${{ env.REPLICA_VERSION }}-${{ github.event.inputs.sdkBranch }}',
             base: '${{ github.event.inputs.sdkBranch }}',
             body: [
-              `## Suggested [CHANGELOG.md](https://github.com/${owner}/${repo}/edit/chore-update-replica-${{ env.REPLICA_VERSION }}/CHANGELOG.md) changes`,
+              `## Suggested [CHANGELOG.md](https://github.com/${owner}/${repo}/edit/chore-update-replica-${{ env.REPLICA_VERSION }}-${{ github.event.inputs.sdkBranch }}/CHANGELOG.md) changes`,
               '```',
               '## Dependencies',
               '',
