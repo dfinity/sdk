@@ -66,7 +66,8 @@ This allows the verifying side to try to transform the response such that it mat
 For example, if only the encoding `gzip` is requested but the `identity` encoding is certified, the `gzip` encoding is returned with the certificate for the `identity` encoding.
 The verifying side can then unzip the response and will have a valid certificate for the `identity` response.
 
-- Module hash: cd3e7fa2b826f84cdd107eef28633b0c669b4687ae1598dd854828e82d2e4652
+- Module hash: baf9bcab2ebc2883f850b965af658e66725087933df012ebd35c03929c39efe3
+- https://github.com/dfinity/sdk/pull/3369
 - https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3281
 
@@ -79,6 +80,18 @@ The verifying side can then unzip the response and will have a valid certificate
 The `use-old-metering` flag enables old metering in replica. The new metering is enabled in the `starter` by default, so this flag is to compare the default new metering with the old one.
 
 The flag is temporary and will be removed in a few months.
+
+### fix: added https://icp-api.io to the default Content-Security-Policy header
+
+Existing projects will need to change this value in .ic-assets.json or .ic-assets.json5 to include https://icp-api.io
+
+All projects will need to redeploy.
+
+### fix: access to raw assets is now enabled by default
+
+The default value for `allow_raw_access` is now `true`.  This means that by default, the frontend canister will no longer restrict the access of traffic to the `<canister-id>.raw.icp0.io` domain, and will no longer automatically redirect all requests to the certified domain (`<canister-id>.icp0.io`), unless configured explicitly.
+
+Note that existing projects that specify `"allow_raw_access": false` in .ic-assets.json5 will need to change or remove this value manually in order to allow raw access.
 
 ### feat!: Removed dfx nns and dfx sns commands
 
@@ -166,7 +179,9 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Frontend canister
 
-- Module hash: 88d1e5795d29debc1ff56fa0696dcb3adfa67f82fe2739d1aa644263838174b9
+- Module hash: e20be8df2c392937a6ae0f70d20ff23b75e8c71d9085a8b8bb438b8c2d4eafe5
+- https://github.com/dfinity/sdk/pull/3337
+- https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3256
 - https://github.com/dfinity/sdk/pull/3252
 - https://github.com/dfinity/sdk/pull/3249
