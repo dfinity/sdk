@@ -1,4 +1,6 @@
-use dfx_core::config::model::network_descriptor::NetworkTypeDescriptor;
+use dfx_core::config::model::network_descriptor::{
+    NetworkTypeDescriptor, MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
+};
 use num_traits::ToPrimitive;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -86,9 +88,7 @@ pub async fn reserve_canister_with_playground(
     } else {
         bail!("Trying to reserve canister with playground on non-playground network.")
     };
-    if ci_info::is_ci()
-        && playground_canister == Principal::from_text("mwrha-maaaa-aaaab-qabqq-cai").unwrap()
-    {
+    if ci_info::is_ci() && playground_canister == MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID {
         bail!("Cannot reserve playground canister in CI, please run `dfx start` to use the local replica.")
     }
 
