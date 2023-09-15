@@ -66,7 +66,8 @@ This allows the verifying side to try to transform the response such that it mat
 For example, if only the encoding `gzip` is requested but the `identity` encoding is certified, the `gzip` encoding is returned with the certificate for the `identity` encoding.
 The verifying side can then unzip the response and will have a valid certificate for the `identity` response.
 
-- Module hash: cd3e7fa2b826f84cdd107eef28633b0c669b4687ae1598dd854828e82d2e4652
+- Module hash: baf9bcab2ebc2883f850b965af658e66725087933df012ebd35c03929c39efe3
+- https://github.com/dfinity/sdk/pull/3369
 - https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3281
 
