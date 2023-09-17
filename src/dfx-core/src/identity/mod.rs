@@ -249,6 +249,10 @@ impl ic_agent::Identity for Identity {
         self.inner.sender()
     }
 
+    fn public_key(&self) -> Option<Vec<u8>> {
+        self.inner.public_key()
+    }
+
     fn sign(&self, content: &EnvelopeContent) -> Result<Signature, String> {
         self.inner.sign(content)
     }
