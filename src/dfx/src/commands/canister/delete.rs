@@ -19,7 +19,7 @@ use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::attributes::{
-    ComputeAllocation, FreezingThreshold, MemoryAllocation,
+    ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit,
 };
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::management_canister::CanisterStatus;
@@ -161,6 +161,7 @@ async fn delete_canister(
                 compute_allocation: Some(ComputeAllocation::try_from(0u8).unwrap()),
                 memory_allocation: Some(MemoryAllocation::try_from(MAX_MEMORY_ALLOCATION).unwrap()),
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
+                reserved_cycles_limit: Some(ReservedCyclesLimit::try_from(0u128).unwrap()),
             };
             info!(log, "Setting the controller to identity principal.");
             update_settings(env, canister_id, settings, call_sender).await?;

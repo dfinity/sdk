@@ -2,6 +2,16 @@
 
 # UNRELEASED
 
+### feat: Added support for reserved_cycles and reserved_cycles_limit
+
+`dfx canister status` will now display the reserved cycles balance and reserved cycles limit for a canister.
+
+Added command-line options:
+  - `dfx canister create --reserved-cycles-limit <limit>`
+  - `dfx canister update-settings --reserved-cycles-limit <limit>`
+
+In addition, `dfx deploy` will set `reserved_cycles_limit` when creating canisters if specified in `canisters.<canister>.initialization_values.reserved_cycles_limit` in dfx.json.
+
 ### fix: Include remote canisters in canisters_to_generate
 
 Generate frontend declarations for remote canisters too because frontend JS code may want to call them.

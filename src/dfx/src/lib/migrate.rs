@@ -114,6 +114,7 @@ async fn migrate_canister(
                             compute_allocation: None,
                             freezing_threshold: None,
                             memory_allocation: None,
+                            reserved_cycles_limit: None,
                         },
                     },)),
                     0,

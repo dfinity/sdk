@@ -7,14 +7,9 @@ use crate::error::dfx_config::AddDependenciesError::CanisterCircularDependency;
 use crate::error::dfx_config::GetCanisterNamesWithDependenciesError::AddDependenciesFailed;
 use crate::error::dfx_config::GetComputeAllocationError::GetComputeAllocationFailed;
 use crate::error::dfx_config::GetFreezingThresholdError::GetFreezingThresholdFailed;
-use crate::error::dfx_config::GetMemoryAllocationError::GetMemoryAllocationFailed;
 use crate::error::dfx_config::GetPullCanistersError::PullCanistersSameId;
 use crate::error::dfx_config::GetRemoteCanisterIdError::GetRemoteCanisterIdFailed;
-use crate::error::dfx_config::{
-    AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError,
-    GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError,
-    GetPullCanistersError, GetRemoteCanisterIdError,
-};
+use crate::error::dfx_config::{AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError, GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError, GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError};
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
     DetermineCurrentWorkingDirFailed, LoadFromFileFailed, ResolveConfigPathFailed,
@@ -45,6 +40,8 @@ use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+use crate::error::dfx_config::GetMemoryAllocationError::GetMemoryAllocationFailed;
+use crate::error::dfx_config::GetReservedCyclesLimitError::GetReservedCyclesLimitFailed;
 
 use super::network_descriptor::MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS;
 
@@ -347,6 +344,19 @@ pub struct InitializationValues {
     #[serde(with = "humantime_serde")]
     #[schemars(with = "Option<String>")]
     pub freezing_threshold: Option<Duration>,
+
+    /// # Reserved Cycles Limit
+    /// Specifies the upper limit of the canister's reserved cycles balance.
+    ///
+    /// Reserved cycles are cycles that the system sets aside for future use by the canister.
+    /// If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes,
+    /// the system sets aside some amount of cycles from the main balance of the canister.
+    /// These reserved cycles will be used to cover future payments for the newly allocated bytes.
+    /// The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.
+    ///
+    /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.
+    #[schemars(with = "Option<u128>")]
+    pub reserved_cycles_limit: Option<u128>,
 }
 
 /// # Declarations Configuration
@@ -834,6 +844,17 @@ impl ConfigInterface {
             .map_err(|e| GetFreezingThresholdFailed(canister_name.to_string(), e))?
             .initialization_values
             .freezing_threshold)
+    }
+
+    pub fn get_reserved_cycles_limit(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<u128>, GetReservedCyclesLimitError> {
+        Ok(self
+            .get_canister_config(canister_name)
+            .map_err(|e| GetReservedCyclesLimitFailed(canister_name.to_string(), e))?
+            .initialization_values
+            .reserved_cycles_limit)
     }
 
     fn get_canister_config(

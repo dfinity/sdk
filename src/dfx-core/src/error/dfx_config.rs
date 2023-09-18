@@ -41,7 +41,14 @@ pub enum GetFreezingThresholdError {
 }
 
 #[derive(Error, Debug)]
+pub enum GetReservedCyclesLimitError {
+    #[error("Failed to get reserved cycles limit for canister '{0}': {1}")]
+    GetReservedCyclesLimitFailed(String, GetCanisterConfigError),
+}
+
+#[derive(Error, Debug)]
 pub enum GetMemoryAllocationError {
+
     #[error("Failed to get memory allocation for canister '{0}': {1}")]
     GetMemoryAllocationFailed(String, GetCanisterConfigError),
 }
