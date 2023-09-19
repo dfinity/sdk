@@ -2,8 +2,6 @@
 
 load ../utils/_
 
-# All tests in this file are skipped for ic-ref.  See scripts/workflows/e2e-matrix.py
-
 BITCOIN_CANISTER_ID="g4xu7-jiaaa-aaaan-aaaaq-cai"
 
 setup() {
