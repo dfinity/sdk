@@ -743,16 +743,17 @@ dependencies = [
 
 [[package]]
 name = "candid"
-version = "0.9.1"
+version = "0.9.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4df671c37a9c6168db0334f2b289dd4e02dea1bbefe1fb22c5d43b12d865aacd"
+checksum = "88f6eec0ae850e006ef0fe306f362884d370624094ec55a6a26de18b251774be"
 dependencies = [
  "anyhow",
  "arbitrary",
  "binread",
  "byteorder",
- "candid_derive 0.6.2",
+ "candid_derive 0.6.3",
  "codespan-reporting",
+ "convert_case 0.6.0",
  "crc32fast",
  "data-encoding",
  "fake",
@@ -789,9 +790,9 @@ dependencies = [
 
 [[package]]
 name = "candid_derive"
-version = "0.6.2"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "810b3bd60244f282090652ffc7c30a9d23892e72dfe443e46ee55569044f7dd5"
+checksum = "158403ea38fab5904ae47a5d67eb7047650a91681407f5ccbcbcabc4f4ffb489"
 dependencies = [
  "lazy_static",
  "proc-macro2",
@@ -1339,7 +1340,7 @@ dependencies = [
  "base64 0.13.1",
  "byte-unit",
  "bytes",
- "candid 0.9.1",
+ "candid 0.9.6",
  "ci_info",
  "clap",
  "console",
@@ -1361,7 +1362,7 @@ dependencies = [
  "ic-agent",
  "ic-asset",
  "ic-identity-hsm",
- "ic-utils 0.26.1",
+ "ic-utils 0.27.0",
  "ic-wasm",
  "indicatif",
  "itertools 0.10.5",
@@ -1421,7 +1422,7 @@ dependencies = [
  "bip32",
  "byte-unit",
  "bytes",
- "candid 0.9.1",
+ "candid 0.9.6",
  "clap",
  "dialoguer",
  "directories-next",
@@ -1430,7 +1431,7 @@ dependencies = [
  "humantime-serde",
  "ic-agent",
  "ic-identity-hsm",
- "ic-utils 0.26.1",
+ "ic-utils 0.27.0",
  "k256 0.11.6",
  "keyring",
  "lazy_static",
@@ -2385,16 +2386,16 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.26.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=4afb978efb2e3fb0bcaa2178571b81bed73ca0ae#4afb978efb2e3fb0bcaa2178571b81bed73ca0ae"
+version = "0.27.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=eaba57b6cda43abc04581d61d19c1f2809cc6b90#eaba57b6cda43abc04581d61d19c1f2809cc6b90"
 dependencies = [
  "backoff",
- "candid 0.9.1",
+ "candid 0.9.6",
  "futures-util",
  "hex",
  "http",
  "http-body",
- "ic-certification 0.26.1",
+ "ic-certification 0.27.0",
  "ic-verify-bls-signature",
  "k256 0.13.1",
  "leb128",
@@ -2422,7 +2423,7 @@ name = "ic-asset"
 version = "0.20.0"
 dependencies = [
  "backoff",
- "candid 0.9.1",
+ "candid 0.9.6",
  "derivative",
  "dfx-core",
  "flate2",
@@ -2431,7 +2432,7 @@ dependencies = [
  "globset",
  "hex",
  "ic-agent",
- "ic-utils 0.26.1",
+ "ic-utils 0.27.0",
  "itertools 0.10.5",
  "json5",
  "mime",
@@ -2497,7 +2498,7 @@ version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d4c0b932bf454d5d60e61e13c3c944972fcfd74dc82b9ed5c8b0a75979cf50"
 dependencies = [
- "candid 0.9.1",
+ "candid 0.9.6",
  "ic-cdk-macros",
  "ic0",
  "serde",
@@ -2510,7 +2511,7 @@ version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4587624e64b8db56224033ee74e5c246d39be15375d03d3df7c117d49d18487"
 dependencies = [
- "candid 0.9.1",
+ "candid 0.9.6",
  "proc-macro2",
  "quote",
  "serde",
@@ -2530,8 +2531,8 @@ dependencies = [
 
 [[package]]
 name = "ic-certification"
-version = "0.26.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=4afb978efb2e3fb0bcaa2178571b81bed73ca0ae#4afb978efb2e3fb0bcaa2178571b81bed73ca0ae"
+version = "0.27.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=eaba57b6cda43abc04581d61d19c1f2809cc6b90#eaba57b6cda43abc04581d61d19c1f2809cc6b90"
 dependencies = [
  "hex",
  "serde",
@@ -2544,7 +2545,7 @@ name = "ic-certified-assets"
 version = "0.2.5"
 dependencies = [
  "base64 0.13.1",
- "candid 0.9.1",
+ "candid 0.9.6",
  "hex",
  "ic-cdk",
  "ic-certified-map",
@@ -2749,8 +2750,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.26.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=4afb978efb2e3fb0bcaa2178571b81bed73ca0ae#4afb978efb2e3fb0bcaa2178571b81bed73ca0ae"
+version = "0.27.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=eaba57b6cda43abc04581d61d19c1f2809cc6b90#eaba57b6cda43abc04581d61d19c1f2809cc6b90"
 dependencies = [
  "hex",
  "ic-agent",
@@ -2904,11 +2905,11 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.26.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=4afb978efb2e3fb0bcaa2178571b81bed73ca0ae#4afb978efb2e3fb0bcaa2178571b81bed73ca0ae"
+version = "0.27.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=eaba57b6cda43abc04581d61d19c1f2809cc6b90#eaba57b6cda43abc04581d61d19c1f2809cc6b90"
 dependencies = [
  "async-trait",
- "candid 0.9.1",
+ "candid 0.9.6",
  "ic-agent",
  "once_cell",
  "semver",
@@ -2939,7 +2940,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e360e45c2bf406a867c35ec5daee433f2c3bbbaf013469e6a386a322a9713885"
 dependencies = [
  "anyhow",
- "candid 0.9.1",
+ "candid 0.9.6",
  "clap",
  "rustc-demangle",
  "tempfile",
@@ -2975,13 +2976,13 @@ version = "0.20.0"
 dependencies = [
  "anstyle",
  "anyhow",
- "candid 0.9.1",
+ "candid 0.9.6",
  "clap",
  "delay",
  "humantime",
  "ic-agent",
  "ic-asset",
- "ic-utils 0.26.1",
+ "ic-utils 0.27.0",
  "libflate",
  "num-traits",
  "pem 1.1.1",
