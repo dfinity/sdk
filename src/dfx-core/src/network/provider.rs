@@ -353,10 +353,6 @@ fn create_project_network_descriptor(
                 network_name,
                 config.get_path().display(),
             );
-            warn!(
-                logger,
-                "Project-specific networks are deprecated and will be removed after February 2023."
-            );
 
             let data_directory = config.get_temp_path().join("network").join(network_name);
             let legacy_pid_path = Some(config.get_temp_path().join("pid"));

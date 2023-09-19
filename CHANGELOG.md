@@ -61,6 +61,10 @@ If `dfx start` is starting the shared network from within a dfx project, and tha
 
 The parameter was erroneously passed twice.  Now it is passed only once.
 
+### fix: Removed deprecation warning about project-specific networks
+
+Removed this warning: "Project-specific networks are deprecated and will be removed after February 2023." While we may remove project-specific networks in the future, it is not imminent.  One key requirement is the ability to run more than one subnet type at one time.
+
 ## Dependencies
 
 ### Frontend canister
