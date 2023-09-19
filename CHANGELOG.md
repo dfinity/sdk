@@ -57,6 +57,10 @@ Background: In order to determine whether to start a project-specific network or
 
 If `dfx start` is starting the shared network from within a dfx project, and that dfx.json contains settings in the `defaults` key for `bitcoin`, `replica`, or `canister_http`, then `dfx start` will warn that it is ignoring those settings.  It will also describe how to define equivalent settings in networks.json.
 
+### fix: dfx canister call --wallet no longer passes the parameter twice
+
+Removed the duplicate parameter.
+
 ## Dependencies
 
 ### Frontend canister
