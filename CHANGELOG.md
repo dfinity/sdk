@@ -59,7 +59,7 @@ If `dfx start` is starting the shared network from within a dfx project, and tha
 
 ### fix: dfx canister call --wallet no longer passes the parameter twice
 
-Removed the duplicate parameter.
+The parameter was erroneously passed twice.  Now it is passed only once.
 
 ## Dependencies
 
