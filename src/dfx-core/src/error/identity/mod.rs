@@ -5,6 +5,7 @@ pub mod generate_key;
 pub mod get_legacy_credentials_pem_path;
 pub mod initialize_identity_manager;
 pub mod new_identity_manager;
+pub mod remove_identity;
 pub mod rename_identity;
 pub mod save_pem;
 pub mod write_pem_to_file;
@@ -23,20 +24,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IdentityError {
-    #[error("Cannot delete the default identity.")]
-    CannotDeleteDefaultIdentity(),
-
-    #[error("Cannot delete the anonymous identity.")]
-    CannotDeleteAnonymousIdentity(),
-
     #[error("Failed to decrypt PEM file: {0}")]
     DecryptPemFileFailed(PathBuf, EncryptionError),
-
-    #[error("Failed to display linked wallets: {0}")]
-    DisplayLinkedWalletsFailed(WalletConfigError),
-
-    #[error("If you want to remove an identity with configured wallets, please use the --drop-wallets flag.")]
-    DropWalletsFlagRequiredToRemoveIdentityWithWallets(),
 
     #[error("Failed to ensure identity configuration directory exists: {0}")]
     EnsureIdentityConfigurationDirExistsFailed(FsError),
@@ -73,15 +62,6 @@ pub enum IdentityError {
 
     #[error("Failed to read pem file: {0}")]
     ReadPemFileFailed(FsError),
-
-    #[error("Failed to remove identity directory: {0}")]
-    RemoveIdentityDirectoryFailed(FsError),
-
-    #[error("Failed to remove identity from keyring: {0}")]
-    RemoveIdentityFromKeyringFailed(KeyringError),
-
-    #[error("Failed to remove identity file: {0}")]
-    RemoveIdentityFileFailed(FsError),
 
     #[error("Failed to rename '{0}' to '{1}' in the global wallet config: {2}")]
     RenameWalletFailed(Box<String>, Box<String>, WalletConfigError),

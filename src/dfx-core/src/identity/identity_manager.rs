@@ -26,6 +26,11 @@ use crate::error::identity::initialize_identity_manager::InitializeIdentityManag
 };
 use crate::error::identity::new_identity_manager::NewIdentityManagerError;
 use crate::error::identity::new_identity_manager::NewIdentityManagerError::LoadIdentityManagerConfigurationFailed;
+use crate::error::identity::remove_identity::RemoveIdentityError;
+use crate::error::identity::remove_identity::RemoveIdentityError::{
+    DisplayLinkedWalletsFailed, DropWalletsFlagRequiredToRemoveIdentityWithWallets,
+    RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed,
+};
 use crate::error::identity::rename_identity::RenameIdentityError;
 use crate::error::identity::rename_identity::RenameIdentityError::{
     GetIdentityConfigFailed, LoadPemFailed, MapWalletsToRenamedIdentityFailed,
@@ -33,10 +38,8 @@ use crate::error::identity::rename_identity::RenameIdentityError::{
 };
 use crate::error::identity::IdentityError;
 use crate::error::identity::IdentityError::{
-    DisplayLinkedWalletsFailed, DropWalletsFlagRequiredToRemoveIdentityWithWallets,
     EnsureIdentityConfigurationDirExistsFailed, GenerateFreshEncryptionConfigurationFailed,
-    GetIdentityPrincipalFailed, LoadIdentityConfigurationFailed, RemoveIdentityDirectoryFailed,
-    RemoveIdentityFileFailed, RemoveIdentityFromKeyringFailed, SaveIdentityConfigurationFailed,
+    GetIdentityPrincipalFailed, LoadIdentityConfigurationFailed, SaveIdentityConfigurationFailed,
 };
 use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
@@ -478,15 +481,16 @@ impl IdentityManager {
         name: &str,
         drop_wallets: bool,
         display_linked_wallets_to: Option<&Logger>,
-    ) -> Result<(), IdentityError> {
-        self.require_identity_exists(log, name)?;
+    ) -> Result<(), RemoveIdentityError> {
+        self.require_identity_exists(log, name)
+            .map_err(RemoveIdentityError::RequireIdentityExistsFailed)?;
 
         if name == ANONYMOUS_IDENTITY_NAME {
-            return Err(IdentityError::CannotDeleteAnonymousIdentity());
+            return Err(RemoveIdentityError::CannotDeleteAnonymousIdentity());
         }
 
         if self.configuration.default == name {
-            return Err(IdentityError::CannotDeleteDefaultIdentity());
+            return Err(RemoveIdentityError::CannotDeleteDefaultIdentity());
         }
 
         let wallet_config_file = self.get_persistent_wallet_config_file(name);
@@ -505,7 +509,7 @@ impl IdentityManager {
         if let Ok(config) = self.get_identity_config_or_default(name) {
             if let Some(suffix) = config.keyring_identity_suffix {
                 keyring_mock::delete_pem_from_keyring(&suffix)
-                    .map_err(RemoveIdentityFromKeyringFailed)?;
+                    .map_err(RemoveIdentityError::RemoveIdentityFromKeyringFailed)?;
             }
         }
         remove_identity_file(&self.get_identity_json_path(name))?;
@@ -758,7 +762,7 @@ pub(super) fn save_identity_configuration(
 }
 
 /// Removes the file if it exists.
-fn remove_identity_file(file: &Path) -> Result<(), IdentityError> {
+fn remove_identity_file(file: &Path) -> Result<(), RemoveIdentityError> {
     if file.exists() {
         crate::fs::remove_file(file).map_err(RemoveIdentityFileFailed)?;
     }
