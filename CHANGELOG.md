@@ -79,6 +79,14 @@ The verifying side can then unzip the response and will have a valid certificate
 - https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3281
 
+Updated replica to elected commit d87954601e4b22972899e9957e800406a0a6b929.
+This incorporates the following executed proposals:
+
+- [124538](https://dashboard.internetcomputer.org/proposal/124538)
+- [124537](https://dashboard.internetcomputer.org/proposal/124537)
+- [124488](https://dashboard.internetcomputer.org/proposal/124488)
+- [124487](https://dashboard.internetcomputer.org/proposal/124487)
+  
 # 0.15.0
 
 ## DFX
