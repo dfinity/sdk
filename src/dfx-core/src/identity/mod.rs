@@ -16,7 +16,9 @@ use crate::identity::identity_file_locations::IdentityFileLocations;
 use crate::json::{load_json_file, save_json_file};
 use candid::Principal;
 use ic_agent::agent::EnvelopeContent;
-use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
+use ic_agent::identity::{
+    AnonymousIdentity, BasicIdentity, Delegation, Secp256k1Identity, SignedDelegation,
+};
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
 pub use identity_manager::{
@@ -253,8 +255,20 @@ impl ic_agent::Identity for Identity {
         self.inner.public_key()
     }
 
+    fn delegation_chain(&self) -> Vec<SignedDelegation> {
+        self.inner.delegation_chain()
+    }
+
     fn sign(&self, content: &EnvelopeContent) -> Result<Signature, String> {
         self.inner.sign(content)
+    }
+
+    fn sign_arbitrary(&self, content: &[u8]) -> Result<Signature, String> {
+        self.inner.sign_arbitrary(content)
+    }
+
+    fn sign_delegation(&self, content: &Delegation) -> Result<Signature, String> {
+        self.inner.sign_delegation(content)
     }
 }
 
