@@ -71,17 +71,17 @@ walkdir = "2.3.2"
 [patch.crates-io.ic-agent]
 version = "0.28.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "f249c03e1278064e42e3759803ccbf6371d8c688"
+rev = "9c4db330d96938d95eda69bbf5878db91aae0aa1"
 
 [patch.crates-io.ic-identity-hsm]
 version = "0.28.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "f249c03e1278064e42e3759803ccbf6371d8c688"
+rev = "9c4db330d96938d95eda69bbf5878db91aae0aa1"
 
 [patch.crates-io.ic-utils]
 version = "0.28.0"
 git = "https://github.com/dfinity/agent-rs.git"
-rev = "f249c03e1278064e42e3759803ccbf6371d8c688"
+rev = "9c4db330d96938d95eda69bbf5878db91aae0aa1"
 
 [profile.release]
 panic = 'abort'
