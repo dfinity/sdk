@@ -3,10 +3,14 @@
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
 use crate::config::directories::{get_config_dfx_dir_path, get_shared_network_data_directory};
+use crate::error::identity::load_pem_identity::LoadPemIdentityError;
+use crate::error::identity::load_pem_identity::LoadPemIdentityError::ReadIdentityFileFailed;
+use crate::error::identity::new_hardware_identity::NewHardwareIdentityError;
+use crate::error::identity::new_hardware_identity::NewHardwareIdentityError::InstantiateHardwareIdentityFailed;
+use crate::error::identity::new_identity::NewIdentityError;
 use crate::error::identity::IdentityError;
 use crate::error::identity::IdentityError::{
-    GetConfigDirectoryFailed, GetSharedNetworkDataDirectoryFailed,
-    InstantiateHardwareIdentityFailed, ReadIdentityFileFailed, RenameWalletFailed,
+    GetConfigDirectoryFailed, GetSharedNetworkDataDirectoryFailed, RenameWalletFailed,
 };
 use crate::error::wallet_config::WalletConfigError;
 use crate::error::wallet_config::WalletConfigError::{
@@ -74,7 +78,11 @@ impl Identity {
         }
     }
 
-    fn basic(name: &str, pem_content: &[u8], was_encrypted: bool) -> Result<Self, IdentityError> {
+    fn basic(
+        name: &str,
+        pem_content: &[u8],
+        was_encrypted: bool,
+    ) -> Result<Self, LoadPemIdentityError> {
         let inner = Box::new(
             BasicIdentity::from_pem(pem_content)
                 .map_err(|e| ReadIdentityFileFailed(name.into(), Box::new(e)))?,
@@ -91,7 +99,7 @@ impl Identity {
         name: &str,
         pem_content: &[u8],
         was_encrypted: bool,
-    ) -> Result<Self, IdentityError> {
+    ) -> Result<Self, LoadPemIdentityError> {
         let inner = Box::new(
             Secp256k1Identity::from_pem(pem_content)
                 .map_err(|e| ReadIdentityFileFailed(name.into(), Box::new(e)))?,
@@ -104,7 +112,10 @@ impl Identity {
         })
     }
 
-    fn hardware(name: &str, hsm: HardwareIdentityConfiguration) -> Result<Self, IdentityError> {
+    fn hardware(
+        name: &str,
+        hsm: HardwareIdentityConfiguration,
+    ) -> Result<Self, NewHardwareIdentityError> {
         let inner = Box::new(
             HardwareIdentity::new(
                 hsm.pkcs11_lib_path,
@@ -126,14 +137,16 @@ impl Identity {
         config: IdentityConfiguration,
         locations: &IdentityFileLocations,
         log: &Logger,
-    ) -> Result<Self, IdentityError> {
+    ) -> Result<Self, NewIdentityError> {
         if let Some(hsm) = config.hsm {
-            Identity::hardware(name, hsm)
+            Identity::hardware(name, hsm).map_err(NewIdentityError::NewHardwareIdentityFailed)
         } else {
             let (pem_content, was_encrypted) =
-                pem_safekeeping::load_pem(log, locations, name, &config)?;
+                pem_safekeeping::load_pem(log, locations, name, &config)
+                    .map_err(NewIdentityError::LoadPemFailed)?;
             Identity::secp256k1(name, &pem_content, was_encrypted)
                 .or_else(|e| Identity::basic(name, &pem_content, was_encrypted).map_err(|_| e))
+                .map_err(NewIdentityError::LoadPemIdentityFailed)
         }
     }
 

@@ -17,6 +17,8 @@ use crate::error::identity::export_identity::ExportIdentityError;
 use crate::error::identity::export_identity::ExportIdentityError::TranslatePemContentToTextFailed;
 use crate::error::identity::generate_key::GenerateKeyError;
 use crate::error::identity::generate_key::GenerateKeyError::GenerateFreshSecp256k1KeyFailed;
+use crate::error::identity::get_identity_config_or_default::GetIdentityConfigOrDefaultError;
+use crate::error::identity::get_identity_config_or_default::GetIdentityConfigOrDefaultError::LoadIdentityConfigurationFailed;
 use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError;
 use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError::GetLegacyPemPathFailed;
 use crate::error::identity::initialize_identity_manager::InitializeIdentityManagerError;
@@ -24,6 +26,11 @@ use crate::error::identity::initialize_identity_manager::InitializeIdentityManag
     CreateIdentityDirectoryFailed, GenerateKeyFailed, MigrateLegacyIdentityFailed,
     WritePemToFileFailed,
 };
+use crate::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError;
+use crate::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError::{
+    GetIdentityPrincipalFailed, LoadIdentityFailed,
+};
+use crate::error::identity::load_identity::LoadIdentityError;
 use crate::error::identity::new_identity_manager::NewIdentityManagerError;
 use crate::error::identity::new_identity_manager::NewIdentityManagerError::LoadIdentityManagerConfigurationFailed;
 use crate::error::identity::remove_identity::RemoveIdentityError;
@@ -39,7 +46,6 @@ use crate::error::identity::rename_identity::RenameIdentityError::{
 use crate::error::identity::IdentityError;
 use crate::error::identity::IdentityError::{
     EnsureIdentityConfigurationDirExistsFailed, GenerateFreshEncryptionConfigurationFailed,
-    GetIdentityPrincipalFailed, LoadIdentityConfigurationFailed, SaveIdentityConfigurationFailed,
 };
 use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
@@ -238,7 +244,7 @@ impl IdentityManager {
     pub fn instantiate_selected_identity(
         &mut self,
         log: &Logger,
-    ) -> Result<Box<DfxIdentity>, IdentityError> {
+    ) -> Result<Box<DfxIdentity>, InstantiateIdentityFromNameError> {
         let name = self.selected_identity.clone();
         self.instantiate_identity_from_name(name.as_str(), log)
     }
@@ -248,12 +254,16 @@ impl IdentityManager {
         &mut self,
         identity_name: &str,
         log: &Logger,
-    ) -> Result<Box<DfxIdentity>, IdentityError> {
+    ) -> Result<Box<DfxIdentity>, InstantiateIdentityFromNameError> {
         let identity = match identity_name {
             ANONYMOUS_IDENTITY_NAME => Box::new(DfxIdentity::anonymous()),
             identity_name => {
-                self.require_identity_exists(log, identity_name)?;
-                Box::new(self.load_identity(identity_name, log)?)
+                self.require_identity_exists(log, identity_name)
+                    .map_err(InstantiateIdentityFromNameError::RequireIdentityExistsFailed)?;
+                Box::new(
+                    self.load_identity(identity_name, log)
+                        .map_err(LoadIdentityFailed)?,
+                )
             }
         };
         use ic_agent::identity::Identity;
@@ -262,9 +272,12 @@ impl IdentityManager {
         Ok(identity)
     }
 
-    fn load_identity(&self, name: &str, log: &Logger) -> Result<DfxIdentity, IdentityError> {
-        let config = self.get_identity_config_or_default(name)?;
+    fn load_identity(&self, name: &str, log: &Logger) -> Result<DfxIdentity, LoadIdentityError> {
+        let config = self
+            .get_identity_config_or_default(name)
+            .map_err(LoadIdentityError::GetIdentityConfigOrDefaultFailed)?;
         DfxIdentity::new(name, config, self.file_locations(), log)
+            .map_err(LoadIdentityError::NewIdentityFailed)
     }
 
     /// Create a new identity (name -> generated key)
@@ -641,7 +654,7 @@ impl IdentityManager {
     pub fn get_identity_config_or_default(
         &self,
         identity: &str,
-    ) -> Result<IdentityConfiguration, IdentityError> {
+    ) -> Result<IdentityConfiguration, GetIdentityConfigOrDefaultError> {
         let json_path = self.get_identity_json_path(identity);
         if json_path.exists() {
             load_json_file(&json_path)
@@ -758,7 +771,7 @@ pub(super) fn save_identity_configuration(
     trace!(log, "Writing identity configuration to {}", path.display());
     ensure_parent_dir_exists(path).map_err(EnsureIdentityConfigurationDirExistsFailed)?;
 
-    save_json_file(path, &config).map_err(SaveIdentityConfigurationFailed)
+    save_json_file(path, &config).map_err(IdentityError::SaveIdentityConfigurationFailed)
 }
 
 /// Removes the file if it exists.

@@ -15,7 +15,7 @@ use anyhow::{bail, Context};
 use byte_unit::Byte;
 use candid::Principal as CanisterId;
 use clap::{ArgAction, Parser};
-use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
+use dfx_core::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
 use ic_agent::Identity as _;
 use slog::info;

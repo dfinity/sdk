@@ -2,8 +2,16 @@ pub mod convert_mnemonic_to_key;
 pub mod create_new_identity;
 pub mod export_identity;
 pub mod generate_key;
+pub mod get_identity_config_or_default;
 pub mod get_legacy_credentials_pem_path;
 pub mod initialize_identity_manager;
+pub mod instantiate_identity_from_name;
+pub mod load_identity;
+pub mod load_pem;
+pub mod load_pem_from_file;
+pub mod load_pem_identity;
+pub mod new_hardware_identity;
+pub mod new_identity;
 pub mod new_identity_manager;
 pub mod remove_identity;
 pub mod rename_identity;
@@ -13,20 +21,15 @@ pub mod write_pem_to_file;
 use crate::error::config::ConfigError;
 use crate::error::encryption::EncryptionError;
 use crate::error::fs::FsError;
-use crate::error::keyring::KeyringError;
 use crate::error::structured_file::StructuredFileError;
 use crate::error::wallet_config::WalletConfigError;
 use ic_agent::export::PrincipalError;
 use ic_agent::identity::PemError;
-use ic_identity_hsm::HardwareIdentityError;
 use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum IdentityError {
-    #[error("Failed to decrypt PEM file: {0}")]
-    DecryptPemFileFailed(PathBuf, EncryptionError),
-
     #[error("Failed to ensure identity configuration directory exists: {0}")]
     EnsureIdentityConfigurationDirExistsFailed(FsError),
 
@@ -39,29 +42,11 @@ pub enum IdentityError {
     #[error("Failed to get shared network data directory: {0}")]
     GetSharedNetworkDataDirectoryFailed(ConfigError),
 
-    #[error("Failed to get principal of identity: {0}")]
-    GetIdentityPrincipalFailed(String),
-
     #[error("Identity {0} does not exist at '{1}'.")]
     IdentityDoesNotExist(String, PathBuf),
 
-    #[error("Failed to instantiate hardware identity for identity '{0}': {1}.")]
-    InstantiateHardwareIdentityFailed(String, Box<HardwareIdentityError>),
-
-    #[error("Failed to load configuration for identity '{0}': {1}")]
-    LoadIdentityConfigurationFailed(String, StructuredFileError),
-
-    #[error("Failed to load PEM file from keyring for identity '{0}': {1}")]
-    LoadPemFromKeyringFailed(Box<String>, KeyringError),
-
     #[error("Failed to read principal from id '{0}': {1}")]
     ParsePrincipalFromIdFailed(String, PrincipalError),
-
-    #[error("Cannot read identity file '{0}': {1:#}")]
-    ReadIdentityFileFailed(String, Box<PemError>),
-
-    #[error("Failed to read pem file: {0}")]
-    ReadPemFileFailed(FsError),
 
     #[error("Failed to rename '{0}' to '{1}' in the global wallet config: {2}")]
     RenameWalletFailed(Box<String>, Box<String>, WalletConfigError),
