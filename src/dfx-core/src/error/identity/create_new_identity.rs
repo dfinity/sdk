@@ -1,9 +1,12 @@
 use crate::error::fs::FsError;
 use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError;
+use crate::error::identity::create_identity_config::CreateIdentityConfigError;
 use crate::error::identity::generate_key::GenerateKeyError;
 use crate::error::identity::load_pem_from_file::LoadPemFromFileError;
 use crate::error::identity::remove_identity::RemoveIdentityError;
+use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError;
 use crate::error::identity::save_pem::SavePemError;
+use crate::error::identity::validate_pem_file::ValidatePemFileError;
 use crate::error::identity::IdentityError;
 use thiserror::Error;
 
@@ -22,7 +25,7 @@ pub enum CreateNewIdentityError {
     ConvertSecretKeyToSec1PemFailed(Box<sec1::Error>),
 
     #[error("Failed to create identity config: {0}")]
-    CreateIdentityConfigFailed(IdentityError),
+    CreateIdentityConfigFailed(CreateIdentityConfigError),
 
     #[error("Failed to create mnemonic from phrase: {0}")]
     CreateMnemonicFromPhraseFailed(String),
@@ -46,7 +49,7 @@ pub enum CreateNewIdentityError {
     RenameTemporaryIdentityDirectoryFailed(FsError),
 
     #[error("Failed to save identity configuration: {0}")]
-    SaveIdentityConfigurationFailed(IdentityError),
+    SaveIdentityConfigurationFailed(SaveIdentityConfigurationError),
 
     #[error("Failed to save pem: {0}")]
     SavePemFailed(SavePemError),
@@ -58,5 +61,5 @@ pub enum CreateNewIdentityError {
     SwitchToAnonymousIdentityFailed(IdentityError),
 
     #[error("Failed to validate pem file: {0}")]
-    ValidatePemFileFailed(IdentityError),
+    ValidatePemFileFailed(ValidatePemFileError),
 }
