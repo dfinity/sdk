@@ -1,6 +1,6 @@
 use crate::error::config::ConfigError;
 use crate::error::identity::initialize_identity_manager::InitializeIdentityManagerError;
-use crate::error::identity::IdentityError;
+use crate::error::identity::require_identity_exists::RequireIdentityExistsError;
 use crate::error::structured_file::StructuredFileError;
 use thiserror::Error;
 
@@ -16,5 +16,5 @@ pub enum NewIdentityManagerError {
     InitializeFailed(InitializeIdentityManagerError),
 
     #[error("The specified identity must exist: {0}")]
-    OverrideIdentityMustExist(IdentityError),
+    OverrideIdentityMustExist(RequireIdentityExistsError),
 }

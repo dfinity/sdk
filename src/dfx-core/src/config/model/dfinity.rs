@@ -3,11 +3,17 @@
 use crate::config::directories::get_config_dfx_dir_path;
 use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
-use crate::error::dfx_config::DfxConfigError;
-use crate::error::dfx_config::DfxConfigError::{
-    CanisterCircularDependency, CanisterNotFound, CanistersFieldDoesNotExist,
-    GetCanistersWithDependenciesFailed, GetComputeAllocationFailed, GetFreezingThresholdFailed,
-    GetMemoryAllocationFailed, GetRemoteCanisterIdFailed, PullCanistersSameId,
+use crate::error::dfx_config::AddDependenciesError::CanisterCircularDependency;
+use crate::error::dfx_config::GetCanisterNamesWithDependenciesError::AddDependenciesFailed;
+use crate::error::dfx_config::GetComputeAllocationError::GetComputeAllocationFailed;
+use crate::error::dfx_config::GetFreezingThresholdError::GetFreezingThresholdFailed;
+use crate::error::dfx_config::GetMemoryAllocationError::GetMemoryAllocationFailed;
+use crate::error::dfx_config::GetPullCanistersError::PullCanistersSameId;
+use crate::error::dfx_config::GetRemoteCanisterIdError::GetRemoteCanisterIdFailed;
+use crate::error::dfx_config::{
+    AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError,
+    GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError,
+    GetPullCanistersError, GetRemoteCanisterIdError,
 };
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
@@ -749,21 +755,19 @@ impl ConfigInterface {
     pub fn get_canister_names_with_dependencies(
         &self,
         some_canister: Option<&str>,
-    ) -> Result<Vec<String>, DfxConfigError> {
+    ) -> Result<Vec<String>, GetCanisterNamesWithDependenciesError> {
         self.canisters
             .as_ref()
-            .ok_or(CanistersFieldDoesNotExist())
+            .ok_or(GetCanisterNamesWithDependenciesError::CanistersFieldDoesNotExist())
             .and_then(|canister_map| match some_canister {
                 Some(specific_canister) => {
                     let mut names = HashSet::new();
                     let mut path = vec![];
                     add_dependencies(canister_map, &mut names, &mut path, specific_canister)
                         .map(|_| names.into_iter().collect())
+                        .map_err(|err| AddDependenciesFailed(specific_canister.to_string(), err))
                 }
                 None => Ok(canister_map.keys().cloned().collect()),
-            })
-            .map_err(|cause| {
-                GetCanistersWithDependenciesFailed(some_canister.map(String::from), Box::new(cause))
             })
     }
 
@@ -771,14 +775,14 @@ impl ConfigInterface {
         &self,
         canister: &str,
         network: &str,
-    ) -> Result<Option<Principal>, DfxConfigError> {
+    ) -> Result<Option<Principal>, GetRemoteCanisterIdError> {
         let maybe_principal = self
             .get_canister_config(canister)
             .map_err(|e| {
                 GetRemoteCanisterIdFailed(
                     Box::new(canister.to_string()),
                     Box::new(network.to_string()),
-                    Box::new(e),
+                    e,
                 )
             })?
             .remote
@@ -793,17 +797,17 @@ impl ConfigInterface {
         &self,
         canister: &str,
         network: &str,
-    ) -> Result<bool, DfxConfigError> {
+    ) -> Result<bool, GetRemoteCanisterIdError> {
         Ok(self.get_remote_canister_id(canister, network)?.is_some())
     }
 
     pub fn get_compute_allocation(
         &self,
         canister_name: &str,
-    ) -> Result<Option<u64>, DfxConfigError> {
+    ) -> Result<Option<u64>, GetComputeAllocationError> {
         Ok(self
             .get_canister_config(canister_name)
-            .map_err(|e| GetComputeAllocationFailed(canister_name.to_string(), Box::new(e)))?
+            .map_err(|e| GetComputeAllocationFailed(canister_name.to_string(), e))?
             .initialization_values
             .compute_allocation
             .map(|x| x.0))
@@ -812,10 +816,10 @@ impl ConfigInterface {
     pub fn get_memory_allocation(
         &self,
         canister_name: &str,
-    ) -> Result<Option<Byte>, DfxConfigError> {
+    ) -> Result<Option<Byte>, GetMemoryAllocationError> {
         Ok(self
             .get_canister_config(canister_name)
-            .map_err(|e| GetMemoryAllocationFailed(canister_name.to_string(), Box::new(e)))?
+            .map_err(|e| GetMemoryAllocationFailed(canister_name.to_string(), e))?
             .initialization_values
             .memory_allocation)
     }
@@ -823,10 +827,10 @@ impl ConfigInterface {
     pub fn get_freezing_threshold(
         &self,
         canister_name: &str,
-    ) -> Result<Option<Duration>, DfxConfigError> {
+    ) -> Result<Option<Duration>, GetFreezingThresholdError> {
         Ok(self
             .get_canister_config(canister_name)
-            .map_err(|e| GetFreezingThresholdFailed(canister_name.to_string(), Box::new(e)))?
+            .map_err(|e| GetFreezingThresholdFailed(canister_name.to_string(), e))?
             .initialization_values
             .freezing_threshold)
     }
@@ -834,15 +838,15 @@ impl ConfigInterface {
     fn get_canister_config(
         &self,
         canister_name: &str,
-    ) -> Result<&ConfigCanistersCanister, DfxConfigError> {
+    ) -> Result<&ConfigCanistersCanister, GetCanisterConfigError> {
         self.canisters
             .as_ref()
-            .ok_or(CanistersFieldDoesNotExist())?
+            .ok_or(GetCanisterConfigError::CanistersFieldDoesNotExist())?
             .get(canister_name)
-            .ok_or_else(|| CanisterNotFound(canister_name.to_string()))
+            .ok_or_else(|| GetCanisterConfigError::CanisterNotFound(canister_name.to_string()))
     }
 
-    pub fn get_pull_canisters(&self) -> Result<BTreeMap<String, Principal>, DfxConfigError> {
+    pub fn get_pull_canisters(&self) -> Result<BTreeMap<String, Principal>, GetPullCanistersError> {
         let mut res = BTreeMap::new();
         let mut id_to_name: BTreeMap<Principal, &String> = BTreeMap::new();
         if let Some(map) = &self.canisters {
@@ -865,7 +869,7 @@ fn add_dependencies(
     names: &mut HashSet<String>,
     path: &mut Vec<String>,
     canister_name: &str,
-) -> Result<(), DfxConfigError> {
+) -> Result<(), AddDependenciesError> {
     let inserted = names.insert(String::from(canister_name));
 
     if !inserted {
@@ -879,7 +883,7 @@ fn add_dependencies(
 
     let canister_config = all_canisters
         .get(canister_name)
-        .ok_or_else(|| CanisterNotFound(canister_name.to_string()))?;
+        .ok_or_else(|| AddDependenciesError::CanisterNotFound(canister_name.to_string()))?;
 
     path.push(String::from(canister_name));
 

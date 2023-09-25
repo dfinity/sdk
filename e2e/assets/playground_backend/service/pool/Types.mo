@@ -9,6 +9,7 @@ import Array "mo:base/Array";
 import List "mo:base/List";
 import Option "mo:base/Option";
 import Int "mo:base/Int";
+import Timer "mo:base/Timer";
 
 module {
     public type InitParams = {
@@ -51,9 +52,11 @@ module {
     public class CanisterPool(size: Nat, ttl: Nat, max_family_tree_size: Nat) {
         var len = 0;
         var tree = Splay.Splay<CanisterInfo>(canisterInfoCompare);
+        // Metadata is a replicate of splay tree, which allows lookup without timestamp. Internal use only.
         var metadata = TrieMap.TrieMap<Principal, (Int, Bool)>(Principal.equal, Principal.hash);
         var childrens = TrieMap.TrieMap<Principal, List.List<Principal>>(Principal.equal, Principal.hash);
         var parents = TrieMap.TrieMap<Principal, Principal>(Principal.equal, Principal.hash);
+        let timers = TrieMap.TrieMap<Principal, Timer.TimerId>(Principal.equal, Principal.hash);
 
         public type NewId = { #newId; #reuse:CanisterInfo; #outOfCapacity:Nat };
 
@@ -123,6 +126,24 @@ module {
             return true;
         };
 
+        public func updateTimer(info: CanisterInfo, job : () -> async ()) {
+            let elapsed = Time.now() - info.timestamp;
+            let duration = if (elapsed > ttl) { 0 } else { Int.abs(ttl - elapsed) };
+            let tid = Timer.setTimer(#nanoseconds duration, job);
+            switch (timers.replace(info.id, tid)) {
+            case null {};
+            case (?old_id) {
+                     // The old job can still run when it has expired, but the future
+                     // just started to run. To be safe, the job needs to check for timestamp.
+                     Timer.cancelTimer(old_id);
+                 };
+            };
+        };
+        
+        public func removeTimer(cid: Principal) {
+            timers.delete cid;
+        };
+        
         private func notExpired(info: CanisterInfo, now: Int) : Bool = (info.timestamp > now - ttl);
 
         // Return a list of canister IDs from which to uninstall code
@@ -140,17 +161,22 @@ module {
             result
         };
 
-        public func share() : ([CanisterInfo], [(Principal, (Int, Bool))], [(Principal, [Principal])]) {
+        public func share() : ([CanisterInfo], [(Principal, (Int, Bool))], [(Principal, [Principal])], [CanisterInfo]) {
             let stableInfos = Iter.toArray(tree.entries());
             let stableMetadata = Iter.toArray(metadata.entries());
-            let stableChildrens = 
+            let stableChildren = 
                 Iter.toArray(
                     Iter.map<(Principal, List.List<Principal>), (Principal, [Principal])>(
                         childrens.entries(),
                         func((parent, children)) = (parent, List.toArray(children))
                     )
                 );
-            (stableInfos, stableMetadata, stableChildrens)
+            let stableTimers = Iter.toArray(
+              Iter.filter<CanisterInfo>(
+                tree.entries(),
+                func (info) = Option.isSome(timers.get(info.id))
+              ));
+            (stableInfos, stableMetadata, stableChildren, stableTimers)
         };
 
         public func unshare(stableInfos: [CanisterInfo], stableMetadata: [(Principal, (Int, Bool))], stableChildrens : [(Principal, [Principal])]) {

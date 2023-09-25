@@ -3,11 +3,17 @@
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
 use crate::config::directories::{get_config_dfx_dir_path, get_shared_network_data_directory};
-use crate::error::identity::IdentityError;
-use crate::error::identity::IdentityError::{
-    GetConfigDirectoryFailed, GetSharedNetworkDataDirectoryFailed,
-    InstantiateHardwareIdentityFailed, ReadIdentityFileFailed, RenameWalletFailed,
-};
+use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError;
+use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError::ParsePrincipalFromIdFailed;
+use crate::error::identity::load_pem_identity::LoadPemIdentityError;
+use crate::error::identity::load_pem_identity::LoadPemIdentityError::ReadIdentityFileFailed;
+use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError;
+use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError::RenameWalletGlobalConfigKeyFailed;
+use crate::error::identity::new_hardware_identity::NewHardwareIdentityError;
+use crate::error::identity::new_hardware_identity::NewHardwareIdentityError::InstantiateHardwareIdentityFailed;
+use crate::error::identity::new_identity::NewIdentityError;
+use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError;
+use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError::RenameWalletFailed;
 use crate::error::wallet_config::WalletConfigError;
 use crate::error::wallet_config::WalletConfigError::{
     EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
@@ -16,7 +22,9 @@ use crate::identity::identity_file_locations::IdentityFileLocations;
 use crate::json::{load_json_file, save_json_file};
 use candid::Principal;
 use ic_agent::agent::EnvelopeContent;
-use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
+use ic_agent::identity::{
+    AnonymousIdentity, BasicIdentity, Delegation, Secp256k1Identity, SignedDelegation,
+};
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
 pub use identity_manager::{
@@ -72,7 +80,11 @@ impl Identity {
         }
     }
 
-    fn basic(name: &str, pem_content: &[u8], was_encrypted: bool) -> Result<Self, IdentityError> {
+    fn basic(
+        name: &str,
+        pem_content: &[u8],
+        was_encrypted: bool,
+    ) -> Result<Self, LoadPemIdentityError> {
         let inner = Box::new(
             BasicIdentity::from_pem(pem_content)
                 .map_err(|e| ReadIdentityFileFailed(name.into(), Box::new(e)))?,
@@ -89,7 +101,7 @@ impl Identity {
         name: &str,
         pem_content: &[u8],
         was_encrypted: bool,
-    ) -> Result<Self, IdentityError> {
+    ) -> Result<Self, LoadPemIdentityError> {
         let inner = Box::new(
             Secp256k1Identity::from_pem(pem_content)
                 .map_err(|e| ReadIdentityFileFailed(name.into(), Box::new(e)))?,
@@ -102,7 +114,10 @@ impl Identity {
         })
     }
 
-    fn hardware(name: &str, hsm: HardwareIdentityConfiguration) -> Result<Self, IdentityError> {
+    fn hardware(
+        name: &str,
+        hsm: HardwareIdentityConfiguration,
+    ) -> Result<Self, NewHardwareIdentityError> {
         let inner = Box::new(
             HardwareIdentity::new(
                 hsm.pkcs11_lib_path,
@@ -124,14 +139,16 @@ impl Identity {
         config: IdentityConfiguration,
         locations: &IdentityFileLocations,
         log: &Logger,
-    ) -> Result<Self, IdentityError> {
+    ) -> Result<Self, NewIdentityError> {
         if let Some(hsm) = config.hsm {
-            Identity::hardware(name, hsm)
+            Identity::hardware(name, hsm).map_err(NewIdentityError::NewHardwareIdentityFailed)
         } else {
             let (pem_content, was_encrypted) =
-                pem_safekeeping::load_pem(log, locations, name, &config)?;
+                pem_safekeeping::load_pem(log, locations, name, &config)
+                    .map_err(NewIdentityError::LoadPemFailed)?;
             Identity::secp256k1(name, &pem_content, was_encrypted)
                 .or_else(|e| Identity::basic(name, &pem_content, was_encrypted).map_err(|_| e))
+                .map_err(NewIdentityError::LoadPemIdentityFailed)
         }
     }
 
@@ -181,7 +198,7 @@ impl Identity {
         original_identity: &str,
         renamed_identity: &str,
         wallet_path: PathBuf,
-    ) -> Result<(), IdentityError> {
+    ) -> Result<(), RenameWalletGlobalConfigKeyError> {
         Identity::load_wallet_config(&wallet_path)
             .and_then(|mut config| {
                 let identities = &mut config.identities;
@@ -207,9 +224,9 @@ impl Identity {
         project_temp_dir: Option<PathBuf>,
         original_identity: &str,
         renamed_identity: &str,
-    ) -> Result<(), IdentityError> {
+    ) -> Result<(), MapWalletsToRenamedIdentityError> {
         let persistent_wallet_path = get_config_dfx_dir_path()
-            .map_err(GetConfigDirectoryFailed)?
+            .map_err(MapWalletsToRenamedIdentityError::GetConfigDirectoryFailed)?
             .join("identity")
             .join(original_identity)
             .join(WALLET_CONFIG_FILENAME);
@@ -218,17 +235,19 @@ impl Identity {
                 original_identity,
                 renamed_identity,
                 persistent_wallet_path,
-            )?;
+            )
+            .map_err(RenameWalletGlobalConfigKeyFailed)?;
         }
         let shared_local_network_wallet_path = get_shared_network_data_directory("local")
-            .map_err(GetSharedNetworkDataDirectoryFailed)?
+            .map_err(MapWalletsToRenamedIdentityError::GetSharedNetworkDataDirectoryFailed)?
             .join(WALLET_CONFIG_FILENAME);
         if shared_local_network_wallet_path.exists() {
             Identity::rename_wallet_global_config_key(
                 original_identity,
                 renamed_identity,
                 shared_local_network_wallet_path,
-            )?;
+            )
+            .map_err(RenameWalletGlobalConfigKeyFailed)?;
         }
         if let Some(temp_dir) = project_temp_dir {
             let local_wallet_path = temp_dir.join("local").join(WALLET_CONFIG_FILENAME);
@@ -237,7 +256,8 @@ impl Identity {
                     original_identity,
                     renamed_identity,
                     local_wallet_path,
-                )?;
+                )
+                .map_err(RenameWalletGlobalConfigKeyFailed)?;
             }
         }
         Ok(())
@@ -249,8 +269,24 @@ impl ic_agent::Identity for Identity {
         self.inner.sender()
     }
 
+    fn public_key(&self) -> Option<Vec<u8>> {
+        self.inner.public_key()
+    }
+
+    fn delegation_chain(&self) -> Vec<SignedDelegation> {
+        self.inner.delegation_chain()
+    }
+
     fn sign(&self, content: &EnvelopeContent) -> Result<Signature, String> {
         self.inner.sign(content)
+    }
+
+    fn sign_arbitrary(&self, content: &[u8]) -> Result<Signature, String> {
+        self.inner.sign_arbitrary(content)
+    }
+
+    fn sign_delegation(&self, content: &Delegation) -> Result<Signature, String> {
+        self.inner.sign_delegation(content)
     }
 }
 
@@ -269,11 +305,10 @@ pub enum CallSender {
 // Determine whether the selected Identity
 // or the provided wallet canister ID should be the Sender of the call.
 impl CallSender {
-    pub fn from(wallet: &Option<String>) -> Result<Self, IdentityError> {
+    pub fn from(wallet: &Option<String>) -> Result<Self, CallSenderFromWalletError> {
         let sender = if let Some(id) = wallet {
             CallSender::Wallet(
-                Principal::from_text(id)
-                    .map_err(|e| IdentityError::ParsePrincipalFromIdFailed(id.clone(), e))?,
+                Principal::from_text(id).map_err(|e| ParsePrincipalFromIdFailed(id.clone(), e))?,
             )
         } else {
             CallSender::SelectedId

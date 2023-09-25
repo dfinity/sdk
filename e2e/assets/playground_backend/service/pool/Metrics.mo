@@ -1,6 +1,5 @@
 import Text "mo:base/Text";
 import Time "mo:base/Time";
-import Int "mo:base/Int";
 import Logs "./Logs";
 
 module {
@@ -15,11 +14,7 @@ module {
         headers: [(Text, Text)];
         body: Blob;
     };
-    func encode_single_value(kind: Text, name: Text, number: Int, desc: Text, time: Int) : Text {
-        "# HELP " # name # " " # desc # "\n" #
-        "# TYPE " # name # " " # kind # "\n" #
-        name # " " # Int.toText(number) # " " # Int.toText(time) # "\n"
-    };
+    let encode_single_value = Logs.encode_single_value;
     public func metrics(stats: Logs.Stats) : Blob {
         let now = Time.now() / 1_000_000;
         var result = "";
