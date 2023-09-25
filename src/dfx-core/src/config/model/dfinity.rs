@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 #![allow(clippy::should_implement_trait)] // for from_str.  why now?
-use crate::config::directories::get_config_dfx_dir_path;
+use crate::config::directories::get_user_dfx_config_dir;
 use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
 use crate::error::dfx_config::AddDependenciesError::CanisterCircularDependency;
@@ -1079,7 +1079,7 @@ impl NetworksConfig {
     }
 
     pub fn new() -> Result<NetworksConfig, LoadNetworksConfigError> {
-        let dir = get_config_dfx_dir_path().map_err(GetConfigPathFailed)?;
+        let dir = get_user_dfx_config_dir().map_err(GetConfigPathFailed)?;
 
         let path = dir.join("networks.json");
         if path.exists() {

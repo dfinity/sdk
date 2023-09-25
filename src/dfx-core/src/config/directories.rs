@@ -23,7 +23,7 @@ pub fn get_shared_network_data_directory(network: &str) -> Result<PathBuf, Confi
     Ok(project_dirs.data_local_dir().join("network").join(network))
 }
 
-pub fn get_config_dfx_dir_path() -> Result<PathBuf, ConfigError> {
+pub fn get_user_dfx_config_dir() -> Result<PathBuf, ConfigError> {
     let config_root = std::env::var_os("DFX_CONFIG_ROOT");
     // dirs-next is not used for *nix to preserve existing paths
     #[cfg(not(windows))]
