@@ -2,7 +2,7 @@
 //!
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
-use crate::config::directories::{get_config_dfx_dir_path, get_shared_network_data_directory};
+use crate::config::directories::{get_shared_network_data_directory, get_user_dfx_config_dir};
 use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError;
 use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError::ParsePrincipalFromIdFailed;
 use crate::error::identity::load_pem_identity::LoadPemIdentityError;
@@ -225,7 +225,7 @@ impl Identity {
         original_identity: &str,
         renamed_identity: &str,
     ) -> Result<(), MapWalletsToRenamedIdentityError> {
-        let persistent_wallet_path = get_config_dfx_dir_path()
+        let persistent_wallet_path = get_user_dfx_config_dir()
             .map_err(MapWalletsToRenamedIdentityError::GetConfigDirectoryFailed)?
             .join("identity")
             .join(original_identity)
