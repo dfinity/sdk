@@ -1,5 +1,5 @@
 use crate::error::identity::load_identity::LoadIdentityError;
-use crate::error::identity::IdentityError;
+use crate::error::identity::require_identity_exists::RequireIdentityExistsError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -11,5 +11,5 @@ pub enum InstantiateIdentityFromNameError {
     LoadIdentityFailed(LoadIdentityError),
 
     #[error("Identity must exist: {0}")]
-    RequireIdentityExistsFailed(IdentityError),
+    RequireIdentityExistsFailed(RequireIdentityExistsError),
 }

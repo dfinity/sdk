@@ -1,5 +1,5 @@
 use crate::error::fs::FsError;
-use crate::error::identity::IdentityError;
+use crate::error::identity::require_identity_exists::RequireIdentityExistsError;
 use crate::error::keyring::KeyringError;
 use crate::error::wallet_config::WalletConfigError;
 use thiserror::Error;
@@ -28,5 +28,5 @@ pub enum RemoveIdentityError {
     RemoveIdentityFromKeyringFailed(KeyringError),
 
     #[error("Identity must exist: {0}")]
-    RequireIdentityExistsFailed(IdentityError),
+    RequireIdentityExistsFailed(RequireIdentityExistsError),
 }
