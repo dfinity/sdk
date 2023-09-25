@@ -1,5 +1,5 @@
-use crate::error::foundation::FoundationError;
 use crate::error::fs::FsError;
+use crate::error::get_user_home::GetUserHomeError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -8,8 +8,8 @@ pub enum ConfigError {
     EnsureConfigDirectoryExistsFailed(FsError),
 
     #[error("Failed to determine config directory path: {0}")]
-    DetermineConfigDirectoryFailed(FoundationError),
+    DetermineConfigDirectoryFailed(GetUserHomeError),
 
     #[error("Failed to determine shared network data directory: {0}")]
-    DetermineSharedNetworkDirectoryFailed(FoundationError),
+    DetermineSharedNetworkDirectoryFailed(GetUserHomeError),
 }
