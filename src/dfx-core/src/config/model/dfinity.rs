@@ -447,6 +447,7 @@ fn default_as_true() -> bool {
 }
 
 /// # Bootstrap Server Configuration
+/// The bootstrap command has been removed.  All of these fields are ignored.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBootstrap {
     /// Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.
