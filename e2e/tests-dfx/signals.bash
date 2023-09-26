@@ -3,15 +3,15 @@
 load ../utils/_
 
 setup() {
-    standard_setup
+  standard_setup
 
-    dfx_new hello
+  dfx_new hello
 }
 
 teardown() {
-    dfx_stop
+  dfx_stop
 
-    standard_teardown
+  standard_teardown
 }
 
 @test "dfx replica kills the replica upon SIGINT" {
@@ -23,18 +23,18 @@ teardown() {
 }
 
 dfx_replica_kills_replica() {
-    skip "dfx replica and bootstrap are deprecated"
-    signal=$1
+  skip "dfx replica and bootstrap are deprecated"
+  signal=$1
 
-    dfx_patchelf
-    dfx replica --port 0 &
-    DFX_PID=$!
+  dfx_patchelf
+  dfx replica --port 0 &
+  DFX_PID=$!
 
-    # wait for replica to start
-    assert_file_eventually_exists "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port" 15s
+  # wait for replica to start
+  assert_file_eventually_exists "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port" 15s
 
-    kill -"$signal" "$DFX_PID"
+  kill -"$signal" "$DFX_PID"
 
-    assert_process_exits $DFX_PID 15s
-    assert_no_dfx_start_or_replica_processes
+  assert_process_exits $DFX_PID 15s
+  assert_no_dfx_start_or_replica_processes
 }

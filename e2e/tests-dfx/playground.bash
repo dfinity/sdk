@@ -3,14 +3,14 @@
 load ../utils/_
 
 setup() {
-    standard_setup
-    setup_playground
-    dfx_new hello
+  standard_setup
+  setup_playground
+  dfx_new hello
 }
 
 teardown() {
-    dfx_stop
-    standard_teardown
+  dfx_stop
+  standard_teardown
 }
 
 setup_playground() {
@@ -53,10 +53,10 @@ setup_playground() {
   assert_match "The principal you are using to call a management function is not part of the controllers."
 
   if [ "$(uname)" == "Darwin" ]; then
-        sed -i '' 's/Hello/Goodbye/g' src/hello_backend/main.mo
-    elif [ "$(uname)" == "Linux" ]; then
-        sed -i 's/Hello/Goodbye/g' src/hello_backend/main.mo
-    fi
+    sed -i '' 's/Hello/Goodbye/g' src/hello_backend/main.mo
+  elif [ "$(uname)" == "Linux" ]; then
+    sed -i 's/Hello/Goodbye/g' src/hello_backend/main.mo
+  fi
   
   assert_command dfx deploy --playground
   assert_command dfx canister --playground call hello_backend greet '("player")'
