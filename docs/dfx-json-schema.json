@@ -579,6 +579,7 @@
     },
     "ConfigDefaultsBootstrap": {
       "title": "Bootstrap Server Configuration",
+      "description": "The bootstrap command has been removed.  All of these fields are ignored.",
       "type": "object",
       "properties": {
         "ip": {

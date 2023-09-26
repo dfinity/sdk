@@ -6,7 +6,7 @@ use crate::Environment;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
-use dfx_core::config::directories::get_config_dfx_dir_path;
+use dfx_core::config::directories::get_user_dfx_config_dir;
 use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::error::wallet_config::WalletConfigError;
 use dfx_core::error::wallet_config::WalletConfigError::{
@@ -59,7 +59,7 @@ pub fn get_wallet_config_path(
     Ok(match &network.r#type {
         NetworkTypeDescriptor::Persistent | NetworkTypeDescriptor::Playground { .. } => {
             // Using the global
-            get_config_dfx_dir_path()
+            get_user_dfx_config_dir()
                 .map_err(|e| {
                     GetWalletConfigPathFailed(
                         Box::new(name.to_string()),

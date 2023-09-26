@@ -1,6 +1,6 @@
 use super::pem_utils::validate_pem_file;
 use super::{keyring_mock, WALLET_CONFIG_FILENAME};
-use crate::config::directories::get_config_dfx_dir_path;
+use crate::config::directories::get_user_dfx_config_dir;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use crate::error::fs::FsError;
@@ -208,7 +208,7 @@ impl IdentityManager {
         identity_override: &Option<String>,
     ) -> Result<Self, NewIdentityManagerError> {
         let config_dfx_dir_path =
-            get_config_dfx_dir_path().map_err(NewIdentityManagerError::GetConfigDirectoryFailed)?;
+            get_user_dfx_config_dir().map_err(NewIdentityManagerError::GetConfigDirectoryFailed)?;
         let identity_root_path = config_dfx_dir_path.join("identity");
         let identity_json_path = config_dfx_dir_path.join("identity.json");
 
