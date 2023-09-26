@@ -3,15 +3,15 @@
 load ../utils/_
 
 setup() {
-    standard_setup
+  standard_setup
 
-    dfx_new
+  dfx_new
 }
 
 teardown() {
-    dfx_stop
+  dfx_stop
 
-    standard_teardown
+  standard_teardown
 }
 
 @test "build without cargo-audit installed cannot check for vulnerabilities" {
