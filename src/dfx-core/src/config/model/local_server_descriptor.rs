@@ -1,9 +1,8 @@
 use crate::config::model::bitcoin_adapter;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
 use crate::config::model::dfinity::{
-    to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp,
-    ConfigDefaultsReplica, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
-    DEFAULT_SHARED_LOCAL_BIND,
+    to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsReplica,
+    ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
 };
 use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,

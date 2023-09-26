@@ -470,8 +470,8 @@ mod tests {
     use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
     use crate::config::model::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
     use crate::config::model::dfinity::{
-        to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp,
-        ConfigDefaultsReplica, ReplicaLogLevel,
+        to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsReplica,
+        ReplicaLogLevel,
     };
     use std::fs;
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
