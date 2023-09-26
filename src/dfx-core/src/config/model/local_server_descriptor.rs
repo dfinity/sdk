@@ -1,15 +1,14 @@
 use crate::config::model::bitcoin_adapter;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
 use crate::config::model::dfinity::{
-    to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
-    ConfigDefaultsReplica, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
-    DEFAULT_SHARED_LOCAL_BIND,
+    to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsReplica,
+    ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
 };
 use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
 use slog::{debug, info, Logger};
-use std::net::{IpAddr, SocketAddr};
+use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -30,7 +29,6 @@ pub struct LocalServerDescriptor {
     pub bind_address: SocketAddr,
 
     pub bitcoin: ConfigDefaultsBitcoin,
-    pub bootstrap: ConfigDefaultsBootstrap,
     pub canister_http: ConfigDefaultsCanisterHttp,
     pub replica: ConfigDefaultsReplica,
 
@@ -52,7 +50,6 @@ impl LocalServerDescriptor {
         data_directory: PathBuf,
         bind: String,
         bitcoin: ConfigDefaultsBitcoin,
-        bootstrap: ConfigDefaultsBootstrap,
         canister_http: ConfigDefaultsCanisterHttp,
         replica: ConfigDefaultsReplica,
         scope: LocalNetworkScopeDescriptor,
@@ -63,7 +60,6 @@ impl LocalServerDescriptor {
             data_directory,
             bind_address,
             bitcoin,
-            bootstrap,
             canister_http,
             replica,
             scope,
@@ -203,30 +199,6 @@ impl LocalServerDescriptor {
         };
         Self { bitcoin, ..self }
     }
-
-    pub fn with_bootstrap_ip(self, ip: IpAddr) -> LocalServerDescriptor {
-        let bootstrap = ConfigDefaultsBootstrap {
-            ip,
-            ..self.bootstrap
-        };
-        Self { bootstrap, ..self }
-    }
-
-    pub fn with_bootstrap_port(self, port: u16) -> LocalServerDescriptor {
-        let bootstrap = ConfigDefaultsBootstrap {
-            port,
-            ..self.bootstrap
-        };
-        Self { bootstrap, ..self }
-    }
-
-    pub fn with_bootstrap_timeout(self, timeout: u64) -> LocalServerDescriptor {
-        let bootstrap = ConfigDefaultsBootstrap {
-            timeout,
-            ..self.bootstrap
-        };
-        Self { bootstrap, ..self }
-    }
 }
 
 impl LocalServerDescriptor {
@@ -310,31 +282,6 @@ impl LocalServerDescriptor {
         debug!(log, "");
     }
 
-    pub fn describe_bootstrap(&self, log: &Logger) {
-        debug!(log, "Bootstrap configuration:");
-        let default: ConfigDefaultsBootstrap = Default::default();
-        let diffs = if self.bootstrap.ip != default.ip {
-            format!("  (default: {:?})", default.ip)
-        } else {
-            "".to_string()
-        };
-        debug!(log, "  ip: {:?}{}", self.bootstrap.ip, diffs);
-
-        let diffs = if self.bootstrap.port != default.port {
-            format!("  (default: {})", default.port)
-        } else {
-            "".to_string()
-        };
-        debug!(log, "  port: {}{}", self.bootstrap.port, diffs);
-
-        let diffs = if self.bootstrap.timeout != default.timeout {
-            format!("  (default: {})", default.timeout)
-        } else {
-            "".to_string()
-        };
-        debug!(log, "  timeout: {}{}", self.bootstrap.timeout, diffs);
-        debug!(log, "");
-    }
     /// Gets the port of a local replica.
     ///
     /// # Prerequisites

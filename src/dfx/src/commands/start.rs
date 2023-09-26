@@ -227,7 +227,7 @@ pub fn exec(
 
     let previous_config_path = local_server_descriptor.effective_config_path();
 
-    // dfx bootstrap will read these port files to find out which port to use,
+    // dfx info replica-port will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
     let replica_config_dir = local_server_descriptor.replica_configuration_dir();
     fs::create_dir_all(&replica_config_dir).with_context(|| {
