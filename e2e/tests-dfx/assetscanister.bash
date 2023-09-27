@@ -1437,7 +1437,7 @@ CHERRIES" "$stdout"
 
   # again see # see https://dfinity.atlassian.net/browse/SDK-1246, this should be 404
   # assert_match "404 Not Found" "$stderr"
-  assert_contains "HTTP/1.1 500 Internal Server Error"
+  assert_contains "500 Internal Server Error"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
   assert_match "200 OK" "$stderr"
