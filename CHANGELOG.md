@@ -67,6 +67,18 @@ Removed this warning: "Project-specific networks are deprecated and will be remo
 
 ## Dependencies
 
+### icx-proxy
+
+Updated to a version of the icx-proxy that is released with the replica and other related binaries.
+
+Changes in behavior:
+- "%%" is no longer accepted when url-decoding filenames for the asset canister.  Though curl supports this, it's not part of the standard. Please replace with %25.
+- The icx-proxy now performs response verification.  This has exposed some bugs in the asset canister.  However, since this new icx-proxy matches what the boundary nodes use, this will better match the behavior seen on the mainnet.
+- Bugs that this has exposed in the asset canister:
+  - after disabling aliasing for an asset, the asset canister will return an incorrect certification in the 404 response.
+  - after setting a custom "etag" header in .ic-assets.json, the asset canister will return an incorrect certification in the 200 response.
+  - assets with certain characters in the filename (example: "æ") will no longer be served correctly.  The definition of "certain characters" is not yet known.
+
 ### Frontend canister
 
 For certification v1, if none of the requested encoding are certified but another encoding is certified, then the frontend canister once again returns the certificatie even though the response hash won't match.
