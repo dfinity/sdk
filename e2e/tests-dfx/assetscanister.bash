@@ -721,7 +721,7 @@ check_permission_failure() {
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
   # assert_match "200 OK" "$stderr"
   # assert_match "filename is an ae symbol"
-  assert_contains "HTTP/1.1 500 Internal Server Error"
+  assert_contains "500 Internal Server Error"
 }
 
 @test "http_request percent-decodes urls" {
@@ -792,7 +792,7 @@ check_permission_failure() {
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
   # see https://dfinity.atlassian.net/browse/SDK-1247
   # fails with Err(Utf8ConversionError(FromUtf8Error { bytes: [47, 230], error: Utf8Error { valid_up_to: 1, error_len: None } }))
-  assert_contains "HTTP/1.1 500 Internal Server Error"
+  assert_contains "500 Internal Server Error"
   # assert_match "200 OK" "$stderr"
   # assert_match "filename is an ae symbol"
 
@@ -1259,7 +1259,7 @@ CHERRIES" "$stdout"
   dfx canister call --query e2e_project_frontend http_request '(record{url="/thing.json";headers=vec{};method="GET";body=vec{}})'
 
   assert_command_fail curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-  assert_contains "HTTP/1.1 500 Internal Server Error"
+  assert_contains "500 Internal Server Error"
 }
 
 @test "asset configuration via .ic-assets.json5 - overwriting default headers" {
@@ -1390,7 +1390,7 @@ CHERRIES" "$stdout"
 
   # However, due to returning the wrong certificate, it fails with Err(InvalidResponseHashes)
   # see https://dfinity.atlassian.net/browse/SDK-1246
-  assert_contains "HTTP/1.1 500 Internal Server Error"
+  assert_contains "500 Internal Server Error"
 
 
   assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(true))  })'
