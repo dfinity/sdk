@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 set -e
+set -o pipefail
 
 for i in 0 2 4 8 16 32; do
   if [ $i -gt 0 ]; then
