@@ -1,6 +1,6 @@
 import Management "ic:aaaaa-aa";
 
-actor class Rand {
+module Rand {
   public func rand() : async Blob {
     await Management.raw_rand();
   };
