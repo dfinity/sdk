@@ -8,7 +8,7 @@ for i in 0 2 4 8 16 32; do
     sleep $i
   fi
 
-  if output=$(mops sources); then
+  if output=$(mops sources | grep -v "reducing threads"); then
     echo "$output"
     exit 0
   fi
