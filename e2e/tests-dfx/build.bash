@@ -115,6 +115,15 @@ teardown() {
     assert_command dfx canister call e2e_project_backend rand
 }
 
+@test "build supports auto-generated idl for recursive management canister imports in motoko" {
+    install_asset motoko_management_recursive
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build
+    dfx deploy
+    assert_command dfx canister call e2e_project_backend rand
+}
+
 @test "build succeeds on default project" {
     dfx_start
     dfx canister create --all
