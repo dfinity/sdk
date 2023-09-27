@@ -91,11 +91,6 @@ fn config_network_to_network_descriptor(
                 .clone()
                 .or_else(|| project_defaults.and_then(|x| x.bitcoin.clone()))
                 .unwrap_or_default();
-            let bootstrap = local_provider
-                .bootstrap
-                .clone()
-                .or_else(|| project_defaults.and_then(|x| x.bootstrap.clone()))
-                .unwrap_or_default();
             let canister_http = local_provider
                 .canister_http
                 .clone()
@@ -125,7 +120,6 @@ fn config_network_to_network_descriptor(
                 data_directory,
                 bind_address,
                 bitcoin,
-                bootstrap,
                 canister_http,
                 replica,
                 local_scope,
@@ -353,10 +347,6 @@ fn create_project_network_descriptor(
                 network_name,
                 config.get_path().display(),
             );
-            warn!(
-                logger,
-                "Project-specific networks are deprecated and will be removed after February 2023."
-            );
 
             let data_directory = config.get_temp_path().join("network").join(network_name);
             let legacy_pid_path = Some(config.get_temp_path().join("pid"));
@@ -480,8 +470,8 @@ mod tests {
     use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
     use crate::config::model::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
     use crate::config::model::dfinity::{
-        to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
-        ConfigDefaultsReplica, ReplicaLogLevel,
+        to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsReplica,
+        ReplicaLogLevel,
     };
     use std::fs;
     use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -1017,47 +1007,6 @@ mod tests {
             &ConfigDefaultsCanisterHttp {
                 enabled: true,
                 log_level: HttpAdapterLogLevel::Debug
-            }
-        );
-    }
-
-    #[test]
-    fn bootstrap_config_on_local_network() {
-        let config = Config::from_str(
-            r#"{
-              "networks": {
-                "local": {
-                  "bind": "127.0.0.1:8000",
-                  "bootstrap": {
-                    "ip": "0.0.0.0",
-                    "port": 12002,
-                    "timeout": 60000
-                  }
-                }
-              }
-        }"#,
-        )
-        .unwrap();
-
-        let network_descriptor = create_network_descriptor(
-            Some(Arc::new(config)),
-            Arc::new(NetworksConfig::new().unwrap()),
-            None,
-            None,
-            LocalBindDetermination::AsConfigured,
-        )
-        .unwrap();
-        let bootstrap_config = &network_descriptor
-            .local_server_descriptor()
-            .unwrap()
-            .bootstrap;
-
-        assert_eq!(
-            bootstrap_config,
-            &ConfigDefaultsBootstrap {
-                ip: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-                port: 12002,
-                timeout: 60000
             }
         );
     }

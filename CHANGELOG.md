@@ -8,6 +8,10 @@
 
 This will automatically produce the idl in the `.dfx` folder.
 
+### fix: Include remote canisters in canisters_to_generate
+
+Generate frontend declarations for remote canisters too because frontend JS code may want to call them.
+
 ### feat: Updated handling of missing values in state tree certificates
 
 The `Unknown` lookup of a path in a certificate results in an `AgentError` (the IC returns `Absent` for non-existing paths).
@@ -59,6 +63,14 @@ Background: In order to determine whether to start a project-specific network or
 
 If `dfx start` is starting the shared network from within a dfx project, and that dfx.json contains settings in the `defaults` key for `bitcoin`, `replica`, or `canister_http`, then `dfx start` will warn that it is ignoring those settings.  It will also describe how to define equivalent settings in networks.json.
 
+### fix: dfx canister call --wallet no longer passes the parameter twice
+
+The parameter was erroneously passed twice.  Now it is passed only once.
+
+### fix: Removed deprecation warning about project-specific networks
+
+Removed this warning: "Project-specific networks are deprecated and will be removed after February 2023." While we may remove project-specific networks in the future, it is not imminent.  One key requirement is the ability to run more than one subnet type at one time.
+
 ## Dependencies
 
 ### Frontend canister
@@ -68,10 +80,21 @@ This allows the verifying side to try to transform the response such that it mat
 For example, if only the encoding `gzip` is requested but the `identity` encoding is certified, the `gzip` encoding is returned with the certificate for the `identity` encoding.
 The verifying side can then unzip the response and will have a valid certificate for the `identity` response.
 
-- Module hash: cd3e7fa2b826f84cdd107eef28633b0c669b4687ae1598dd854828e82d2e4652
+- Module hash: baf9bcab2ebc2883f850b965af658e66725087933df012ebd35c03929c39efe3
+- https://github.com/dfinity/sdk/pull/3369
 - https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3281
 
+Updated replica to elected commit 91bf38ff3cb927cb94027d9da513cd15f91a5b04.
+This incorporates the following executed proposals:
+
+- [124795](https://dashboard.internetcomputer.org/proposal/124795)
+- [124790](https://dashboard.internetcomputer.org/proposal/124790)
+- [124538](https://dashboard.internetcomputer.org/proposal/124538)
+- [124537](https://dashboard.internetcomputer.org/proposal/124537)
+- [124488](https://dashboard.internetcomputer.org/proposal/124488)
+- [124487](https://dashboard.internetcomputer.org/proposal/124487)
+  
 # 0.15.0
 
 ## DFX
@@ -81,6 +104,18 @@ The verifying side can then unzip the response and will have a valid certificate
 The `use-old-metering` flag enables old metering in replica. The new metering is enabled in the `starter` by default, so this flag is to compare the default new metering with the old one.
 
 The flag is temporary and will be removed in a few months.
+
+### fix: added https://icp-api.io to the default Content-Security-Policy header
+
+Existing projects will need to change this value in .ic-assets.json or .ic-assets.json5 to include https://icp-api.io
+
+All projects will need to redeploy.
+
+### fix: access to raw assets is now enabled by default
+
+The default value for `allow_raw_access` is now `true`.  This means that by default, the frontend canister will no longer restrict the access of traffic to the `<canister-id>.raw.icp0.io` domain, and will no longer automatically redirect all requests to the certified domain (`<canister-id>.icp0.io`), unless configured explicitly.
+
+Note that existing projects that specify `"allow_raw_access": false` in .ic-assets.json5 will need to change or remove this value manually in order to allow raw access.
 
 ### feat!: Removed dfx nns and dfx sns commands
 
@@ -168,7 +203,9 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Frontend canister
 
-- Module hash: 88d1e5795d29debc1ff56fa0696dcb3adfa67f82fe2739d1aa644263838174b9
+- Module hash: e20be8df2c392937a6ae0f70d20ff23b75e8c71d9085a8b8bb438b8c2d4eafe5
+- https://github.com/dfinity/sdk/pull/3337
+- https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3256
 - https://github.com/dfinity/sdk/pull/3252
 - https://github.com/dfinity/sdk/pull/3249

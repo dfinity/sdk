@@ -42,7 +42,7 @@ For reference information and examples, select an appropriate subcommand.
 
 | Command                         | Description                                                                                                                                                                    |
 |---------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| bootstrap                       | Starts the bootstrap server (icx-proxy)                                                                                                                                        |
+| bootstrap                       | Removed.  Use the `start` command instead.                                                                                                                                     |
 | [`build`](./dfx-build.md)       | Builds canister output from the source code in your project.                                                                                                                   |
 | [`cache`](./dfx-cache.md)       | Manages the `dfx` cache on the local computer.                                                                                                                                 |
 | [`canister`](./dfx-canister.md) | Manages deployed canisters .                                                                                                                                                   |                                                                                                                    |
@@ -58,7 +58,7 @@ For reference information and examples, select an appropriate subcommand.
 | [`ping`](./dfx-ping.md)         | Sends a response request to the IC or the local canister execution environment to determine network connectivity. If the connection is successful, a status reply is returned. |
 | quickstart                      | Perform initial one time setup for your identity and/or wallet.                                                                                                                |
 | remote                          | Commands used to work with remote canisters.                                                                                                                                   |
-| [`replica`](./dfx-replica.md)   | Starts a local canister execution environment.                                                                                                                                 |
+| [`replica`](./dfx-replica.md)   | Removed.  Use the `start` command instead.                                                                                                                                     |
 | [`schema`](./dfx-schema.md)     | Prints the schema for `dfx.json`.                                                                                                                                              |
 | [`start`](./dfx-start.md)       | Starts the local canister execution environment a web server for the current project.                                                                                          |
 | [`stop`](./dfx-stop.md)         | Stops the local canister execution environment.                                                                                                                                |

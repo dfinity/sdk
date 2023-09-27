@@ -111,7 +111,6 @@ async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult
         wallet.update_("wallet_call").with_arg(args64)
     };
     let (result,): (Result<CallResult, String>,) = builder
-        .with_arg(args)
         .build()
         .call_and_wait()
         .await

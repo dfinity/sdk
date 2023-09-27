@@ -24,7 +24,7 @@
             //   See: https://github.com/WebAssembly/content-security-policy/blob/main/proposals/CSP.md.
             // - We added img-src data: because data: images are used often.
             // - frame-ancestors: none mitigates clickjacking attacks. See https://owasp.org/www-community/attacks/Clickjacking.
-            "Content-Security-Policy": "default-src 'self';script-src 'self' 'unsafe-eval';connect-src 'self' https://icp0.io https://*.icp0.io;img-src 'self' data:;style-src * 'unsafe-inline';style-src-elem * 'unsafe-inline';font-src *;object-src 'none';base-uri 'self';frame-ancestors 'none';form-action 'self';upgrade-insecure-requests;",
+            "Content-Security-Policy": "default-src 'self';script-src 'self' 'unsafe-eval';connect-src 'self' https://icp0.io https://*.icp0.io https://icp-api.io;img-src 'self' data:;style-src * 'unsafe-inline';style-src-elem * 'unsafe-inline';font-src *;object-src 'none';base-uri 'self';frame-ancestors 'none';form-action 'self';upgrade-insecure-requests;",
 
             // Security: The permissions policy disables all features for security reasons. If your site needs such permissions, activate them.
             // To configure permissions go here https://www.permissionspolicy.com/
@@ -50,7 +50,8 @@
             // See: https://owasp.org/www-community/attacks/xss/
             "X-XSS-Protection": "1; mode=block"
         },
-        // redirect all requests from .raw.icp0.io to .icp0.io (this redirection is the default)
-        "allow_raw_access": false
+        // Set the allow_raw_access field to false to redirect all requests from .raw.icp0.io to .icp0.io
+        // The default behavior is to allow raw access.
+        // "allow_raw_access": true
     },
 ]

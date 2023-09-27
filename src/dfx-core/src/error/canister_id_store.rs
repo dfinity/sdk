@@ -1,5 +1,5 @@
 use crate::error::{
-    dfx_config::DfxConfigError, fs::FsError, structured_file::StructuredFileError,
+    dfx_config::GetPullCanistersError, fs::FsError, structured_file::StructuredFileError,
     unified_io::UnifiedIoError,
 };
 use thiserror::Error;
@@ -37,7 +37,7 @@ pub enum CanisterIdStoreError {
     },
 
     #[error(transparent)]
-    DfxConfigError(#[from] DfxConfigError),
+    GetPullCanistersFailed(#[from] GetPullCanistersError),
 }
 
 impl From<FsError> for CanisterIdStoreError {

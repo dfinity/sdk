@@ -1,6 +1,11 @@
 use crate::error::fs::FsError;
+use crate::error::identity::get_identity_config_or_default::GetIdentityConfigOrDefaultError;
+use crate::error::identity::load_pem::LoadPemError;
+use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError;
+use crate::error::identity::require_identity_exists::RequireIdentityExistsError;
+use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError;
 use crate::error::identity::save_pem::SavePemError;
-use crate::error::identity::IdentityError;
+use crate::error::identity::write_default_identity::WriteDefaultIdentityError;
 use crate::error::keyring::KeyringError;
 use thiserror::Error;
 
@@ -10,19 +15,19 @@ pub enum RenameIdentityError {
     CannotCreateAnonymousIdentity(),
 
     #[error("Failed to get identity config: {0}")]
-    GetIdentityConfigFailed(IdentityError),
+    GetIdentityConfigFailed(GetIdentityConfigOrDefaultError),
 
     #[error("Identity already exists.")]
     IdentityAlreadyExists(),
 
     #[error("Identity does not exist: {0}")]
-    IdentityDoesNotExist(IdentityError),
+    IdentityDoesNotExist(RequireIdentityExistsError),
 
     #[error("Failed to load pem: {0}")]
-    LoadPemFailed(IdentityError),
+    LoadPemFailed(LoadPemError),
 
     #[error("Failed to map wallets to renamed identity: {0}")]
-    MapWalletsToRenamedIdentityFailed(IdentityError /*MapWalletsToRenamedIdentityError*/),
+    MapWalletsToRenamedIdentityFailed(MapWalletsToRenamedIdentityError),
 
     #[error("Failed to remove identity from keyring: {0}")]
     RemoveIdentityFromKeyringFailed(KeyringError),
@@ -31,11 +36,11 @@ pub enum RenameIdentityError {
     RenameIdentityDirectoryFailed(FsError),
 
     #[error("Failed to save identity configuration: {0}")]
-    SaveIdentityConfigurationFailed(IdentityError),
+    SaveIdentityConfigurationFailed(SaveIdentityConfigurationError),
 
     #[error("Failed to save pem: {0}")]
     SavePemFailed(SavePemError),
 
     #[error("Failed to switch over default identity settings: {0}")]
-    SwitchDefaultIdentitySettingsFailed(IdentityError),
+    SwitchDefaultIdentitySettingsFailed(WriteDefaultIdentityError),
 }
