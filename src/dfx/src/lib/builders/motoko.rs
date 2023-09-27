@@ -40,17 +40,45 @@ impl MotokoBuilder {
 }
 
 #[context("Failed to find imports for canister at '{}'.", file.to_string_lossy())]
-fn get_imports(cache: &dyn Cache, file: &Path) -> DfxResult<Vec<MotokoImport>> {
-    let mut command = cache.get_binary_command("moc")?;
-    let command = command.arg("--print-deps").arg(file);
-    let output = command
-        .output()
-        .with_context(|| format!("Error executing {:#?}", command))?;
+fn get_imports(cache: &dyn Cache, file: &Path) -> DfxResult<BTreeSet<MotokoImport>> {
+    #[context("Failed recursive dependency detection at {}.", file.to_string_lossy())]
+    fn get_imports_recursive(
+        cache: &dyn Cache,
+        file: &Path,
+        result: &mut BTreeSet<MotokoImport>,
+    ) -> DfxResult {
+        if result.contains(&MotokoImport::Relative(file.to_path_buf())) {
+            return Ok(());
+        }
 
-    String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .map(|line| MotokoImport::try_from(line).context("Failed to create MotokoImport."))
-        .collect::<DfxResult<Vec<MotokoImport>>>()
+        result.insert(MotokoImport::Relative(file.to_path_buf()));
+
+        let mut command = cache.get_binary_command("moc")?;
+        let command = command.arg("--print-deps").arg(file);
+        let output = command
+            .output()
+            .with_context(|| format!("Error executing {:#?}", command))?;
+        let output = String::from_utf8_lossy(&output.stdout);
+
+        for line in output.lines() {
+            let import = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
+            match import {
+                MotokoImport::Relative(path) => {
+                    get_imports_recursive(cache, path.as_path(), result)?;
+                }
+                _ => {
+                    result.insert(import);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    let mut result = BTreeSet::new();
+    get_imports_recursive(cache, file, &mut result)?;
+
+    Ok(result)
 }
 
 impl CanisterBuilder for MotokoBuilder {
@@ -60,43 +88,10 @@ impl CanisterBuilder for MotokoBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        let mut result = BTreeSet::new();
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
+        let imports = get_imports(self.cache.as_ref(), motoko_info.get_main_path())?;
 
-        #[context("Failed recursive dependency detection at {}.", file.to_string_lossy())]
-        fn find_deps_recursive(
-            cache: &dyn Cache,
-            file: &Path,
-            result: &mut BTreeSet<MotokoImport>,
-        ) -> DfxResult {
-            if result.contains(&MotokoImport::Relative(file.to_path_buf())) {
-                return Ok(());
-            }
-
-            result.insert(MotokoImport::Relative(file.to_path_buf()));
-
-            for import in get_imports(cache, file)? {
-                match import {
-                    MotokoImport::Canister(_) => {
-                        result.insert(import);
-                    }
-                    MotokoImport::Relative(path) => {
-                        find_deps_recursive(cache, path.as_path(), result)?;
-                    }
-                    MotokoImport::Lib(_) => (),
-                    MotokoImport::Ic(_) => (),
-                }
-            }
-
-            Ok(())
-        }
-        find_deps_recursive(
-            self.cache.as_ref(),
-            motoko_info.get_main_path(),
-            &mut result,
-        )?;
-
-        Ok(result
+        Ok(imports
             .iter()
             .filter_map(|import| {
                 if let MotokoImport::Canister(name) = import {
