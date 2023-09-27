@@ -15,5 +15,4 @@ for i in 0 2 4 8 16 32; do
   fi
   echo "failed with output: $output" 1>&2
 done
-
 exit 1
