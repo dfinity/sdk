@@ -6,8 +6,8 @@ url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-a9f73dba-x86_64-darw
 sha256 = 'e1c1694579f46d544aa87f6387d7e5a4b096fe65015b1609a459efcbaf15890f'
 
 [x86_64-darwin.icx-proxy]
-url = 'https://github.com/dfinity/icx-proxy/releases/download/rev-c312760/binaries-macos.tar.gz'
-sha256 = '5783bba5021cf43149bc118789cea29f6462fd97dd78bdb776f8782ea7813d27'
+url = 'https://download.dfinity.systems/ic/91bf38ff3cb927cb94027d9da513cd15f91a5b04/openssl-static-binaries/x86_64-darwin/icx-proxy-dev.gz'
+sha256 = '619bd5516aee3b454b774221dc0969efb0e3cea897fb55ae9b98241133c0c327'
 
 [x86_64-darwin.ic-admin]
 url = 'https://download.dfinity.systems/ic/91bf38ff3cb927cb94027d9da513cd15f91a5b04/openssl-static-binaries/x86_64-darwin/ic-admin.gz'
@@ -64,8 +64,8 @@ url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-a9f73dba-x86_64-linu
 sha256 = '5c4967764e87d1b2945b1db027422633b48f08cd01d96ba2f622753fcb62c2a4'
 
 [x86_64-linux.icx-proxy]
-url = 'https://github.com/dfinity/icx-proxy/releases/download/rev-c312760/binaries-linux.tar.gz'
-sha256 = '7a5612a1fb7512d22dcd37627a9d626fbc282b172665a832fe2cc2b243789fa1'
+url = 'https://download.dfinity.systems/ic/91bf38ff3cb927cb94027d9da513cd15f91a5b04/openssl-static-binaries/x86_64-linux/icx-proxy-dev.gz'
+sha256 = '078cae8d1b711b37a9ac45a8501bd14c8099167b885a6b3484323f411c241341'
 
 [x86_64-linux.ic-admin]
 url = 'https://download.dfinity.systems/ic/91bf38ff3cb927cb94027d9da513cd15f91a5b04/openssl-static-binaries/x86_64-linux/ic-admin.gz'
