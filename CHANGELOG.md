@@ -79,6 +79,12 @@ Changes in behavior:
   - after setting a custom "etag" header in .ic-assets.json, the asset canister will return an incorrect certification in the 200 response.
   - assets with certain characters in the filename (example: "æ") will no longer be served correctly.  The definition of "certain characters" is not yet known.
 
+### Candid UI
+
+- Module hash: 934756863c010898a24345ce4842d173b3ea7639a8eb394a0d027a9423c70b5c
+- Add `merge_init_args` method in Candid UI.
+- Draw flamegraph for canister upgrade.
+
 ### Frontend canister
 
 For certification v1, if none of the requested encoding are certified but another encoding is certified, then the frontend canister once again returns the certificatie even though the response hash won't match.
