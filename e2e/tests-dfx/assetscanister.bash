@@ -694,6 +694,36 @@ check_permission_failure() {
   assert_command dfx deploy
 }
 
+@test "can serve filenames with special characters in filename" {
+  # This is observed, not expected behavior
+  # see https://dfinity.atlassian.net/browse/SDK-1247
+  install_asset assetscanister
+
+  dfx_start
+
+  echo "filename is an ae symbol" >'src/e2e_project_frontend/assets/æ'
+
+  dfx deploy
+
+  dfx canister  call --query e2e_project_frontend list '(record {})'
+
+  # decode as expected
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%e6";headers=vec{};method="GET";body=vec{}})'
+  assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
+
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+
+  # fails with Err(InvalidExpressionPath)
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/%c3%a6?canisterId="$ID"
+
+  # fails with Err(Utf8ConversionError(FromUtf8Error { bytes: [47, 230], error: Utf8Error { valid_up_to: 1, error_len: None } }))
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
+  # assert_match "200 OK" "$stderr"
+  # assert_match "filename is an ae symbol"
+  assert_contains "500 Internal Server Error"
+}
+
 @test "http_request percent-decodes urls" {
   install_asset assetscanister
 
@@ -717,11 +747,11 @@ check_permission_failure() {
   assert_match "contents of file with plus in filename"
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/has%2Bplus.txt";headers=vec{};method="GET";body=vec{}})'
   assert_match "contents of file with plus in filename"
-  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/has%%percent.txt";headers=vec{};method="GET";body=vec{}})'
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/has%25percent.txt";headers=vec{};method="GET";body=vec{}})'
   assert_match "contents of file with percent in filename"
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%e6";headers=vec{};method="GET";body=vec{}})'
   assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
-  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%%";headers=vec{};method="GET";body=vec{}})'
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%25";headers=vec{};method="GET";body=vec{}})'
   assert_match "filename is percent"
    # this test ensures url decoding happens after removing the query string
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/filename%3fwithqmark.txt";headers=vec{};method="GET";body=vec{}})'
@@ -755,15 +785,18 @@ check_permission_failure() {
   assert_match "200 OK" "$stderr"
   assert_match "contents of file with plus in filename"
 
-  assert_command curl --fail -vv http://localhost:"$PORT"/has%%percent.txt?canisterId="$ID"
+  assert_command curl --fail -vv http://localhost:"$PORT"/has%25percent.txt?canisterId="$ID"
   assert_match "200 OK" "$stderr"
   assert_match "contents of file with percent in filename"
 
-  assert_command curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
-  assert_match "200 OK" "$stderr"
-  assert_match "filename is an ae symbol"
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
+  # see https://dfinity.atlassian.net/browse/SDK-1247
+  # fails with Err(Utf8ConversionError(FromUtf8Error { bytes: [47, 230], error: Utf8Error { valid_up_to: 1, error_len: None } }))
+  assert_contains "500 Internal Server Error"
+  # assert_match "200 OK" "$stderr"
+  # assert_match "filename is an ae symbol"
 
-  assert_command curl --fail -vv http://localhost:"$PORT"/%%?canisterId="$ID"
+  assert_command curl --fail -vv http://localhost:"$PORT"/%25?canisterId="$ID"
   assert_match "200 OK" "$stderr"
   assert_match "filename is percent symbol"
 
@@ -1193,8 +1226,42 @@ CHERRIES" "$stdout"
   assert_match "404 Not Found"
   assert_command curl -vv "http://localhost:$PORT/.well-known/.another-hidden/ignored.txt?canisterId=$ID"
   assert_match "404 Not Found"
-
 }
+
+@test "asset configuration via .ic-assets.json5 - overwriting etag breaks certification" {
+  # this is observed behavior, not expected behavior
+  # https://dfinity.atlassian.net/browse/SDK-1245
+  install_asset assetscanister
+
+  dfx_start
+
+  touch src/e2e_project_frontend/assets/thing.json
+
+  dfx deploy
+
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+
+  dfx canister  call --query e2e_project_frontend http_request '(record{url="/thing.json";headers=vec{};method="GET";body=vec{}})'
+  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+
+  echo '[
+    {
+      "match": "thing.json",
+      "headers": {
+        "etag": "my-etag"
+      }
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+  dfx deploy
+
+  dfx canister call --query e2e_project_frontend http_request '(record{url="/thing.json";headers=vec{};method="GET";body=vec{}})'
+
+  assert_command_fail curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+  assert_contains "500 Internal Server Error"
+}
+
 @test "asset configuration via .ic-assets.json5 - overwriting default headers" {
   install_asset assetscanister
 
@@ -1202,6 +1269,8 @@ CHERRIES" "$stdout"
 
   touch src/e2e_project_frontend/assets/thing.json
 
+  # this test used to also set etag, but that breaks certification
+  # see https://dfinity.atlassian.net/browse/SDK-1245
   echo '[
     {
       "match": "thing.json",
@@ -1209,8 +1278,7 @@ CHERRIES" "$stdout"
       "headers": {
         "Content-Encoding": "my-encoding",
         "Content-Type": "x-type",
-        "Cache-Control": "custom",
-        "etag": "my-etag"
+        "Cache-Control": "custom"
       }
     }
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
@@ -1220,11 +1288,13 @@ CHERRIES" "$stdout"
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
 
-  assert_command curl --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+  dfx canister call --query e2e_project_frontend http_request '(record{url="/thing.json";headers=vec{};method="GET";body=vec{}})'
+
+  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_match "cache-control: custom"
   assert_match "content-encoding: my-encoding"
   assert_match "content-type: x-type"
-  assert_not_match "etag: my-etag"
+  # https://dfinity.atlassian.net/browse/SDK-1245 assert_not_match "etag: my-etag"
   assert_match "etag: \"[a-z0-9]{64}\""
 }
 
@@ -1271,9 +1341,58 @@ CHERRIES" "$stdout"
   assert_match "test index file"
 
   # toggle aliasing on and off using `set_asset_properties`
+  # this doesn't work, see https://dfinity.atlassian.net/browse/SDK-1246
+  dfx canister call --query e2e_project_frontend http_request '(record{url="/test_alias_file";headers=vec{};method="GET";body=vec{}})'
+  # output looks like this:
+  #     (
+  #       record {
+  #         body = blob "test alias file\0a";
+  #         headers = vec {
+  #           record {
+  #             "etag";
+  #             "\"67fb58e3ea4556105dd5a4080e8d386e0c5f9bf5f505dd0f4a2bd865ec27c606\"";
+  #           };
+  #           record { "content-type"; "text/html" };
+  #           record {
+  #             "IC-Certificate";
+  #             "certificate=:2dn3omR0cmVlgwGDAYMBgwJIY2FuaXN0ZXKDAYIEWCB6TamgcIBRRI9+Lfe6n1mQhfqXmFKDoOihriXzPhQ8YIMBgwJKgAAAAAAQAAIBAYMBgwGDAk5jZXJ0aWZpZWRfZGF0YYIDWCDclbSRbugItvQEwCwQDt2dGNnmSWXaDfyenwBDFGQev4IEWCDN7xKU70bQDnAGR8er6+SatQSi07lHyqye6YJDNdfzOYIEWCB326K/dXJismN6beQyTC9LeKBpzbOmOZPkRjpu4uIkt4IEWCCsjlsVa3dA4Inoj23KaUsHLZTOoZT/Uqzog9gmkovo34IEWCB9LBGrUHBg7qBYleBnVlVc672alvi9zWYf8D/2CKvHMoIEWCCMpFgCT+gbsEX08W0sB8h46ysJg+clCHOjW/qmKqWCYIMBggRYIIUC8ZdiVnT/LeyjAp84wEB9JBYPO1U4tZCYvNVw1eM3gwJEdGltZYIDScD5rc7w2aTEF2lzaWduYXR1cmVYMIQdy8BFvQjET2yjcKYQ47d62tiCtV4lfcjNiyDYWGM3FXOgjORzH5MnoSIY1HwJrA==:, tree=:2dn3gwGDAktodHRwX2Fzc2V0c4MBggRYINCuA0oUZ982kzKVIIrBrs5i693coETpgd/s0JEVMozsgwGDAlAvdGVzdF9hbGlhc19maWxlggNYIGf7WOPqRVYQXdWkCA6NOG4MX5v19QXdD0or2GXsJ8YGggRYICTVHJF+Vk5ccI2w7iQhhyiMkcffMLtaKScYnwtlBC+BggRYIFce2lClRDSsnfeLc7YS3j0JsELBY5a3bbUPh+luB7dD:";
+  #           };
+  #         };
+  #         streaming_strategy = null;
+  #         status_code = 200 : nat16;
+  #       },
+  #     )
+
+
   assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(false))  })'
+
+  dfx canister call --query e2e_project_frontend http_request '(record{url="/test_alias_file";headers=vec{};method="GET";body=vec{}})'
+  # output looks like this.  Notice that the body and status code have changed, but the certificate is exactly the same.
+  #   (
+  #     record {
+  #       body = blob "not found";
+  #       headers = vec {
+  #         record { "content-type"; "text/plain" };
+  #         record {
+  #           "IC-Certificate";
+  #           "certificate=:2dn3omR0cmVlgwGDAYMBgwJIY2FuaXN0ZXKDAYIEWCB6TamgcIBRRI9+Lfe6n1mQhfqXmFKDoOihriXzPhQ8YIMBgwJKgAAAAAAQAAIBAYMBgwGDAk5jZXJ0aWZpZWRfZGF0YYIDWCDclbSRbugItvQEwCwQDt2dGNnmSWXaDfyenwBDFGQev4IEWCDN7xKU70bQDnAGR8er6+SatQSi07lHyqye6YJDNdfzOYIEWCB326K/dXJismN6beQyTC9LeKBpzbOmOZPkRjpu4uIkt4IEWCCsjlsVa3dA4Inoj23KaUsHLZTOoZT/Uqzog9gmkovo34IEWCCoBmzNJBeJUuPksGWjOP0JgQStmSri6XGg+//B8CS+PoIEWCApbis9cAc4Tv7tS97Vk+Dc14EE/styzggrRvkalYlD1YMBggRYIDG3uAnEPmC4tIPj0xDqUySASclS7unWnd6oG+IqIqGzgwJEdGltZYIDSaiiuufz2aTEF2lzaWduYXR1cmVYMLMbF+o1s///LvhWJ4sylt9/07OokAlX8L6+Dfd8L2KDUGgCzuPvmIy/3NC0+LMpEw==:, tree=:2dn3gwGDAktodHRwX2Fzc2V0c4MBggRYINCuA0oUZ982kzKVIIrBrs5i693coETpgd/s0JEVMozsgwGDAlAvdGVzdF9hbGlhc19maWxlggNYIGf7WOPqRVYQXdWkCA6NOG4MX5v19QXdD0or2GXsJ8YGggRYICTVHJF+Vk5ccI2w7iQhhyiMkcffMLtaKScYnwtlBC+BggRYIFce2lClRDSsnfeLc7YS3j0JsELBY5a3bbUPh+luB7dD:";
+  #         };
+  #       };
+  #       streaming_strategy = null;
+  #       status_code = 404 : nat16;
+  #     },
+  #   )
+
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-  assert_match "404" "$stderr"
+
+  # this should succeed, with output 404, like so:
+  # assert_match "404" "$stderr"
+
+  # However, due to returning the wrong certificate, it fails with Err(InvalidResponseHashes)
+  # see https://dfinity.atlassian.net/browse/SDK-1246
+  assert_contains "500 Internal Server Error"
+
+
   assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(true))  })'
   assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
   assert_match "200 OK" "$stderr"
@@ -1315,7 +1434,11 @@ CHERRIES" "$stdout"
   assert_match "200 OK" "$stderr"
   assert_match "test alias file"
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-  assert_match "404 Not Found" "$stderr"
+
+  # again see # see https://dfinity.atlassian.net/browse/SDK-1246, this should be 404
+  # assert_match "404 Not Found" "$stderr"
+  assert_contains "500 Internal Server Error"
+
   assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
   assert_match "200 OK" "$stderr"
   assert_match "test index file"
