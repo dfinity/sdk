@@ -17,6 +17,7 @@ impl ExtensionManager {
         &self,
         extension_name: &str,
         install_as: Option<&str>,
+        version: Option<&Version>,
     ) -> Result<(), ExtensionError> {
         let effective_extension_name = install_as.unwrap_or(extension_name);
 
@@ -29,7 +30,10 @@ impl ExtensionManager {
             ));
         }
 
-        let extension_version = self.get_extension_compatible_version(extension_name)?;
+        let extension_version = match version {
+            Some(version) => version.clone(),
+            None => self.get_extension_compatible_version(extension_name)?,
+        };
         let github_release_tag = get_git_release_tag(extension_name, &extension_version);
         let extension_archive = get_extension_archive_name(extension_name)?;
         let url = get_extension_download_url(&github_release_tag, &extension_archive)?;

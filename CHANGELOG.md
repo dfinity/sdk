@@ -6,6 +6,10 @@
 
 Generate frontend declarations for remote canisters too because frontend JS code may want to call them.
 
+### feat: dfx extension install <extension> --version <specific version>
+
+Install a specific version of an extension, bypassing version checks.
+
 ### feat: Updated handling of missing values in state tree certificates
 
 The `Unknown` lookup of a path in a certificate results in an `AgentError` (the IC returns `Absent` for non-existing paths).
