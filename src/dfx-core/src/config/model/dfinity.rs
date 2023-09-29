@@ -7,9 +7,15 @@ use crate::error::dfx_config::AddDependenciesError::CanisterCircularDependency;
 use crate::error::dfx_config::GetCanisterNamesWithDependenciesError::AddDependenciesFailed;
 use crate::error::dfx_config::GetComputeAllocationError::GetComputeAllocationFailed;
 use crate::error::dfx_config::GetFreezingThresholdError::GetFreezingThresholdFailed;
+use crate::error::dfx_config::GetMemoryAllocationError::GetMemoryAllocationFailed;
 use crate::error::dfx_config::GetPullCanistersError::PullCanistersSameId;
 use crate::error::dfx_config::GetRemoteCanisterIdError::GetRemoteCanisterIdFailed;
-use crate::error::dfx_config::{AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError, GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError, GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError};
+use crate::error::dfx_config::GetReservedCyclesLimitError::GetReservedCyclesLimitFailed;
+use crate::error::dfx_config::{
+    AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError,
+    GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError,
+    GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError,
+};
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
     DetermineCurrentWorkingDirFailed, LoadFromFileFailed, ResolveConfigPathFailed,
@@ -40,8 +46,6 @@ use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
-use crate::error::dfx_config::GetMemoryAllocationError::GetMemoryAllocationFailed;
-use crate::error::dfx_config::GetReservedCyclesLimitError::GetReservedCyclesLimitFailed;
 
 use super::network_descriptor::MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS;
 
