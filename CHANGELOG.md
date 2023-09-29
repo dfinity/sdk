@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### fix: frontend code crashing when there is no canister ID
+
 ### fix: Include remote canisters in canisters_to_generate
 
 Generate frontend declarations for remote canisters too because frontend JS code may want to call them.
