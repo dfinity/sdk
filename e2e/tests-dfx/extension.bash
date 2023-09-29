@@ -19,7 +19,7 @@ teardown() {
   assert_command dfx extension list
   assert_match 'No extensions installed'
 
-  assert_command dfx extension install sns --install-as snsx
+  assert_command dfx extension install sns --install-as snsx --version 0.2.1
   # TODO: how to capture spinner message?
   # assert_match 'Successfully installed extension'
 
