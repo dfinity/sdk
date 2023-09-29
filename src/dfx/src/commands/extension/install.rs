@@ -3,8 +3,8 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use clap::Parser;
 use clap::Subcommand;
-use semver::Version;
 use dfx_core::error::extension::ExtensionError;
+use semver::Version;
 
 #[derive(Parser)]
 pub struct InstallOpts {
@@ -15,7 +15,7 @@ pub struct InstallOpts {
     install_as: Option<String>,
     /// Installs a specific version of the extension, bypassing version checks
     #[clap(long)]
-    version: Option<Version>
+    version: Option<Version>,
 }
 
 pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
@@ -26,7 +26,11 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
         return Err(ExtensionError::CommandAlreadyExists(opts.name).into());
     }
 
-    mgr.install_extension(&opts.name, opts.install_as.as_deref(), opts.version.as_ref())?;
+    mgr.install_extension(
+        &opts.name,
+        opts.install_as.as_deref(),
+        opts.version.as_ref(),
+    )?;
     spinner.finish_with_message(
         format!(
             "Extension '{}' installed successfully{}",
