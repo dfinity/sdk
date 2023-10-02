@@ -14,6 +14,19 @@ teardown() {
   standard_teardown
 }
 
+@test "deploy with reserved cycles limit" {
+    dfx_start
+    cat dfx.json
+    jq '.canisters.hello_backend.initialization_values.reserved_cycles_limit=860000' dfx.json | sponge dfx.json
+    assert_command_fail dfx deploy
+    assert_contains "Cannot create a canister using a wallet if the reserved_cycles_limit is set. Please create with --no-wallet or use dfx canister update-settings instead."
+
+    assert_command dfx deploy --no-wallet
+
+    assert_command dfx canister status hello_backend
+    assert_contains "Reserved Cycles Limit: 860_000 Cycles"
+}
+
 @test "deploy --upgrade-unchanged upgrades even if the .wasm did not change" {
   dfx_start
   assert_command dfx deploy
