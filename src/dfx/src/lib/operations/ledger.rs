@@ -36,7 +36,7 @@ pub async fn balance(
         .with_canister_id(canister_id)
         .build()?;
     let (result,) = canister
-        .query_(ACCOUNT_BALANCE_METHOD)
+        .query(ACCOUNT_BALANCE_METHOD)
         .with_arg(AccountBalanceArgs {
             account: acct.to_string(),
         })
@@ -53,7 +53,7 @@ pub async fn xdr_permyriad_per_icp(agent: &Agent) -> DfxResult<u64> {
         .with_canister_id(MAINNET_CYCLE_MINTER_CANISTER_ID)
         .build()?;
     let (certified_rate,): (IcpXdrConversionRateCertifiedResponse,) = canister
-        .query_("get_icp_xdr_conversion_rate")
+        .query("get_icp_xdr_conversion_rate")
         .build()
         .call()
         .await?;

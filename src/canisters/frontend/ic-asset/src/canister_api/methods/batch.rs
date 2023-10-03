@@ -24,7 +24,7 @@ pub(crate) async fn create_batch(canister: &Canister<'_>) -> Result<Nat, AgentEr
     let result = loop {
         let create_batch_args = CreateBatchRequest {};
         let response = canister
-            .update_(CREATE_BATCH)
+            .update(CREATE_BATCH)
             .with_arg(&create_batch_args)
             .build()
             .map(|result: (CreateBatchResponse,)| (result.0.batch_id,))
@@ -58,7 +58,7 @@ pub(crate) async fn submit_commit_batch<T: CandidType + Sync>(
 
     loop {
         match canister
-            .update_(method_name)
+            .update(method_name)
             .with_arg(&arg)
             .build()
             .call_and_wait()
@@ -103,7 +103,7 @@ pub(crate) async fn compute_evidence(
 
     loop {
         match canister
-            .update_(COMPUTE_EVIDENCE)
+            .update(COMPUTE_EVIDENCE)
             .with_arg(arg)
             .build()
             .map(|result: (Option<ByteBuf>,)| (result.0,))

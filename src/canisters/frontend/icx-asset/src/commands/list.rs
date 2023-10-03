@@ -26,7 +26,7 @@ pub async fn list(canister: &Canister<'_>, logger: &Logger) -> anyhow::Result<()
     struct EmptyRecord {}
 
     let (entries,): (Vec<ListEntry>,) = canister
-        .query_("list")
+        .query("list")
         .with_arg(EmptyRecord {})
         .build()
         .call()

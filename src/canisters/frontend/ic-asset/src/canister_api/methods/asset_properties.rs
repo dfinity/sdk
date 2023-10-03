@@ -49,7 +49,7 @@ pub(crate) async fn get_asset_properties(
     asset_id: &str,
 ) -> Result<AssetProperties, AgentError> {
     let (asset_properties,): (AssetProperties,) = canister
-        .query_(GET_ASSET_PROPERTIES)
+        .query(GET_ASSET_PROPERTIES)
         .with_arg(GetAssetPropertiesArgument(asset_id.to_string()))
         .build()
         .call()

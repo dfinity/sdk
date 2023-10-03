@@ -94,7 +94,7 @@ struct CallIn<TCycles = u128> {
 async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult<Vec<u8>> {
     // todo change to wallet.call when IDLValue implements ArgumentDecoder
     let builder = if wallet.version_supports_u128_cycles() {
-        wallet.update_("wallet_call128").with_arg(args)
+        wallet.update("wallet_call128").with_arg(args)
     } else {
         let CallIn {
             canister,
@@ -108,7 +108,7 @@ async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult
             args,
             cycles: cycles as u64,
         };
-        wallet.update_("wallet_call").with_arg(args64)
+        wallet.update("wallet_call").with_arg(args64)
     };
     let (result,): (Result<CallResult, String>,) = builder
         .build()
