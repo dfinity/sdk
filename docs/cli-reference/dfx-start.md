@@ -84,6 +84,4 @@ dfx stores data for the shared local network in one of the following locations, 
 
 If dfx.json defines the `local` network, then `dfx start` will use this definition and store network data files under `\<project dir\>/.dfx/network/local`. 
 
-Such project-specific networks are deprecated, and we plan to remove support for them after February 2023.  We encourage you to remove any definitions of the `local` network from your project's dfx.json file and instead use the default shared local network.
-
 Note that for projects that define the `local` network in dfx.json, you can only run the `dfx start` and `dfx stop` commands from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.

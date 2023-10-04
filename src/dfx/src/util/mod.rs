@@ -27,8 +27,8 @@ pub mod stderr_wrapper;
 
 const DECIMAL_POINT: char = '.';
 
-// The user can pass in port "0" to dfx start or dfx bootstrap i.e. "127.0.0.1:0" or "[::1]:0",
-// thus, we need to recreate SocketAddr with the kernel provided dynmically allocated port here.
+// The user can pass in port "0" to dfx start i.e. "127.0.0.1:0" or "[::1]:0",
+// thus, we need to recreate SocketAddr with the kernel-provided dynamically allocated port here.
 // TcpBuilder is used with reuse_address and reuse_port set to "true" because
 // the Actix HttpServer in webserver.rs will bind to this SocketAddr.
 #[context("Failed to find reusable socket address")]

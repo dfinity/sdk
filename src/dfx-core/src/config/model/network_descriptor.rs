@@ -10,7 +10,7 @@ use slog::Logger;
 use std::path::{Path, PathBuf};
 use url::Url;
 
-const MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID: Principal =
+pub const MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID: Principal =
     Principal::from_slice(&[0, 0, 0, 0, 0, 48, 0, 97, 1, 1]);
 pub const PLAYGROUND_NETWORK_NAME: &str = "playground";
 pub const MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS: u64 = 1200;

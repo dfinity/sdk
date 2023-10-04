@@ -3,165 +3,183 @@
 load ../utils/_
 
 setup() {
-    standard_setup
+  standard_setup
 
-    dfx_new
+  dfx_new
 }
 
 teardown() {
-    stop_webserver
-    dfx_stop
+  stop_webserver
+  dfx_stop
 
-    standard_teardown
+  standard_teardown
 }
 
 @test "can build a custom canister with wasm and/or candid from a url" {
-    install_asset wasm/identity
-    mkdir -p www/wasm
-    mv main.wasm www/wasm/
-    mv main.did www/wasm
-    start_webserver --directory www
-    dfx_start
+  install_asset wasm/identity
+  mkdir -p www/wasm
+  mv main.wasm www/wasm/
+  mv main.did www/wasm
+  start_webserver --directory www
+  dfx_start
 
-    dfx_new
+  dfx_new
 
-    jq '.canisters={}' dfx.json | sponge dfx.json
+  jq '.canisters={}' dfx.json | sponge dfx.json
 
-    jq '.canisters.e2e_project.candid="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.did"' dfx.json | sponge dfx.json
-    jq '.canisters.e2e_project.wasm="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.wasm"' dfx.json | sponge dfx.json
-    jq '.canisters.e2e_project.type="custom"' dfx.json | sponge dfx.json
+  jq '.canisters.e2e_project.candid="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.did"' dfx.json | sponge dfx.json
+  jq '.canisters.e2e_project.wasm="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.wasm"' dfx.json | sponge dfx.json
+  jq '.canisters.e2e_project.type="custom"' dfx.json | sponge dfx.json
 
-    dfx deploy
+  dfx deploy
 
-    ID=$(dfx canister id e2e_project)
-    assert_command dfx canister call e2e_project getCanisterId
-    assert_match "$ID"
+  ID=$(dfx canister id e2e_project)
+  assert_command dfx canister call e2e_project getCanisterId
+  assert_match "$ID"
 }
 
 @test "report an error if a canister defines both a wasm url and a build step" {
-    install_asset wasm/identity
-    mkdir -p www/wasm
-    mv main.wasm www/wasm/
-    mv main.did www/wasm
-    start_webserver --directory www
-    dfx_start
+  install_asset wasm/identity
+  mkdir -p www/wasm
+  mv main.wasm www/wasm/
+  mv main.did www/wasm
+  start_webserver --directory www
+  dfx_start
 
-    dfx_new
+  dfx_new
 
-    jq '.canisters={}' dfx.json | sponge dfx.json
+  jq '.canisters={}' dfx.json | sponge dfx.json
 
-    jq '.canisters.e2e_project.candid="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.did"' dfx.json | sponge dfx.json
-    jq '.canisters.e2e_project.wasm="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.wasm"' dfx.json | sponge dfx.json
-    jq '.canisters.e2e_project.type="custom"' dfx.json | sponge dfx.json
-    jq '.canisters.e2e_project.build="echo nope"' dfx.json | sponge dfx.json
+  jq '.canisters.e2e_project.candid="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.did"' dfx.json | sponge dfx.json
+  jq '.canisters.e2e_project.wasm="http://localhost:'"$E2E_WEB_SERVER_PORT"'/wasm/main.wasm"' dfx.json | sponge dfx.json
+  jq '.canisters.e2e_project.type="custom"' dfx.json | sponge dfx.json
+  jq '.canisters.e2e_project.build="echo nope"' dfx.json | sponge dfx.json
 
-    assert_command_fail dfx deploy
-    assert_contains "Canister 'e2e_project' defines its wasm field as a URL, and has a build step."
+  assert_command_fail dfx deploy
+  assert_contains "Canister 'e2e_project' defines its wasm field as a URL, and has a build step."
 }
 
 @test "build uses default build args" {
-    install_asset default_args
-    dfx_start
-    dfx canister create --all
-    assert_command_fail dfx build --check
-    assert_match "unknown option"
-    assert_match "compacting-gcX"
+  install_asset default_args
+  dfx_start
+  dfx canister create --all
+  assert_command_fail dfx build --check
+  assert_match "unknown option"
+  assert_match "compacting-gcX"
 }
 
 @test "build uses canister build args" {
-    install_asset canister_args
-    dfx_start
-    dfx canister create --all
-    assert_command_fail dfx build --check
-    assert_match "unknown option"
-    assert_match "compacting-gcY"
-    assert_not_match "compacting-gcX"
+  install_asset canister_args
+  dfx_start
+  dfx canister create --all
+  assert_command_fail dfx build --check
+  assert_match "unknown option"
+  assert_match "compacting-gcY"
+  assert_not_match "compacting-gcX"
 }
 
 @test "empty canister build args don't shadow default" {
-    install_asset empty_canister_args
-    dfx_start
-    dfx canister create --all
-    assert_command_fail dfx build --check
-    assert_match '"--error-detail" "5"'
-    assert_match "unknown option"
-    assert_match "compacting-gcX"
+  install_asset empty_canister_args
+  dfx_start
+  dfx canister create --all
+  assert_command_fail dfx build --check
+  assert_match '"--error-detail" "5"'
+  assert_match "unknown option"
+  assert_match "compacting-gcX"
 }
 
 @test "build fails on invalid motoko" {
-    install_asset invalid
-    dfx_start
-    dfx canister create --all
-    assert_command_fail dfx build
-    assert_match "syntax error"
+  install_asset invalid
+  dfx_start
+  dfx canister create --all
+  assert_command_fail dfx build
+  assert_match "syntax error"
 }
 
 @test "build supports relative imports" {
-    install_asset import
+  install_asset import
+  dfx_start
+  dfx canister create --all
+  assert_command dfx build
+  dfx canister install --all
+  assert_command dfx canister call e2e_project_backend greet World
+  assert_match "10World"
+}
+
+@test "build supports auto-generated idl for management canister imports in motoko" {
+    install_asset motoko_management
     dfx_start
     dfx canister create --all
     assert_command dfx build
-    dfx canister install --all
-    assert_command dfx canister call e2e_project_backend greet World
-    assert_match "10World"
+    dfx deploy
+    assert_command dfx canister call e2e_project_backend rand
+}
+
+@test "build supports auto-generated idl for recursive management canister imports in motoko" {
+    install_asset motoko_management_recursive
+    dfx_start
+    dfx canister create --all
+    assert_command dfx build
+    dfx deploy
+    assert_command dfx canister call e2e_project_backend rand
 }
 
 @test "build succeeds on default project" {
-    dfx_start
-    dfx canister create --all
-    assert_command dfx build
+  dfx_start
+  dfx canister create --all
+  assert_command dfx build
 }
 
 @test "build succeeds if enable optimize" {
-    jq '.canisters.e2e_project_backend.optimize="cycles"' dfx.json | sponge dfx.json
-    dfx_start
-    dfx canister create --all
-    assert_command dfx build
+  jq '.canisters.e2e_project_backend.optimize="cycles"' dfx.json | sponge dfx.json
+  dfx_start
+  dfx canister create --all
+  assert_command dfx build
 }
 
 @test "build custom canister default no shrink" {
-    install_asset custom_canister
-    install_asset wasm/identity
+  install_asset custom_canister
+  install_asset wasm/identity
 
-    dfx_start
-    dfx canister create --all
-    assert_command dfx build custom -vvv
-    assert_not_match "Shrinking WASM"
+  dfx_start
+  dfx canister create --all
+  assert_command dfx build custom -vvv
+  assert_not_match "Shrinking WASM"
 
-    jq '.canisters.custom.shrink=true' dfx.json | sponge dfx.json
-    assert_command dfx build custom -vvv
-    assert_match "Shrinking WASM"
+  jq '.canisters.custom.shrink=true' dfx.json | sponge dfx.json
+  assert_command dfx build custom -vvv
+  assert_match "Shrinking WASM"
 }
 
 @test "build custom canister default no optimize" {
-    install_asset custom_canister
-    install_asset wasm/identity
+  install_asset custom_canister
+  install_asset wasm/identity
 
-    dfx_start
-    dfx canister create --all
-    assert_command dfx build custom -vvv
-    assert_not_match "Optimizing"
+  dfx_start
+  dfx canister create --all
+  assert_command dfx build custom -vvv
+  assert_not_match "Optimizing"
 
-    jq '.canisters.custom.optimize="size"' dfx.json | sponge dfx.json
-    assert_command dfx build custom -vvv
-    assert_match "Optimizing WASM at level"
+  jq '.canisters.custom.optimize="size"' dfx.json | sponge dfx.json
+  assert_command dfx build custom -vvv
+  assert_match "Optimizing WASM at level"
 }
 
 @test "build succeeds if enable gzip" {
-    install_asset base
-    jq '.canisters.e2e_project_backend.gzip=true' dfx.json | sponge dfx.json
-    dfx_start
-    dfx canister create --all
-    assert_command dfx build
-    assert_file_exists .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm.gz
+  install_asset base
+  jq '.canisters.e2e_project_backend.gzip=true' dfx.json | sponge dfx.json
+  dfx_start
+  dfx canister create --all
+  assert_command dfx build
+  assert_file_exists .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm.gz
 }
 
 @test "build succeeds if specify gzip wasm" {
-    install_asset gzip
-    install_asset wasm/identity
-    dfx_start
-    dfx canister create --all
-    assert_command dfx build
+  install_asset gzip
+  install_asset wasm/identity
+  dfx_start
+  dfx canister create --all
+  assert_command dfx build
 }
 
 # TODO: Before Tungsten, we need to update this test for code with inter-canister calls.
@@ -176,19 +194,19 @@ teardown() {
 }
 
 @test "build outputs warning" {
-    install_asset warning
-    dfx_start
-    dfx canister create --all
-    assert_command dfx build
-    assert_match "warning \[M0145\], this pattern of type"
+  install_asset warning
+  dfx_start
+  dfx canister create --all
+  assert_command dfx build
+  assert_match "warning \[M0145\], this pattern of type"
 }
 
 @test "build fails on unknown imports" {
-    install_asset import_error
-    dfx_start
-    dfx canister create --all
-    assert_command_fail dfx build
-    assert_match 'import error \[M0011\], canister alias "random" not defined'
+  install_asset import_error
+  dfx_start
+  dfx canister create --all
+  assert_command_fail dfx build
+  assert_match 'import error \[M0011\], canister alias "random" not defined'
 }
 
 @test "build fails if canister type is not supported" {
@@ -260,10 +278,10 @@ teardown() {
 }
 
 @test "build succeeds with URL as network parameter" {
-    dfx_start
-    webserver_port=$(get_webserver_port)
-    dfx canister create --all --network "http://127.0.0.1:$webserver_port"
-    assert_command dfx build --network "http://127.0.0.1:$webserver_port"
+  dfx_start
+  webserver_port=$(get_webserver_port)
+  dfx canister create --all --network "http://127.0.0.1:$webserver_port"
+  assert_command dfx build --network "http://127.0.0.1:$webserver_port"
 }
 
 @test "build succeeds when requested network is configured" {

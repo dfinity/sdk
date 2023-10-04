@@ -4,6 +4,7 @@ use crate::lib::error::DfxResult;
 use clap::Parser;
 use clap::Subcommand;
 use dfx_core::error::extension::ExtensionError;
+use semver::Version;
 
 #[derive(Parser)]
 pub struct InstallOpts {
@@ -12,6 +13,9 @@ pub struct InstallOpts {
     /// Installs the extension under different name. Useful when installing an extension with the same name as: already installed extension, or a built-in command.
     #[clap(long)]
     install_as: Option<String>,
+    /// Installs a specific version of the extension, bypassing version checks
+    #[clap(long)]
+    version: Option<Version>,
 }
 
 pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
@@ -22,7 +26,11 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
         return Err(ExtensionError::CommandAlreadyExists(opts.name).into());
     }
 
-    mgr.install_extension(&opts.name, opts.install_as.as_deref())?;
+    mgr.install_extension(
+        &opts.name,
+        opts.install_as.as_deref(),
+        opts.version.as_ref(),
+    )?;
     spinner.finish_with_message(
         format!(
             "Extension '{}' installed successfully{}",

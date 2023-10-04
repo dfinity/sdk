@@ -84,6 +84,12 @@ pub fn freezing_threshold_parser(freezing_threshold: &str) -> Result<u64, String
         .map_err(|_| "Must be a value between 0 and 2^64-1 inclusive".to_string())
 }
 
+pub fn reserved_cycles_limit_parser(reserved_cycles_limit: &str) -> Result<u128, String> {
+    reserved_cycles_limit
+        .parse::<u128>()
+        .map_err(|_| "Must be a value between 0 and 2^128-1 inclusive".to_string())
+}
+
 /// Validate a String can be a valid project name.
 /// A project name is valid if it starts with a letter, and is alphanumeric (with hyphens).
 /// It cannot end with a dash.

@@ -2,19 +2,21 @@ use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
-    get_compute_allocation, get_freezing_threshold, get_memory_allocation, CanisterSettings,
+    get_compute_allocation, get_freezing_threshold, get_memory_allocation,
+    get_reserved_cycles_limit, CanisterSettings,
 };
 use crate::lib::operations::canister::{get_canister_status, update_settings};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
+    reserved_cycles_limit_parser,
 };
 use anyhow::{bail, Context};
 use byte_unit::Byte;
 use candid::Principal as CanisterId;
 use clap::{ArgAction, Parser};
 use dfx_core::cli::ask_for_consent;
-use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
+use dfx_core::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::identity::Identity;
@@ -61,6 +63,18 @@ pub struct UpdateSettingsOpts {
     /// A frozen canister rejects any calls made to it.
     #[arg(long, value_parser = freezing_threshold_parser)]
     freezing_threshold: Option<u64>,
+
+    /// Sets the upper limit of the canister's reserved cycles balance.
+    ///
+    /// Reserved cycles are cycles that the system sets aside for future use by the canister.
+    /// If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes,
+    /// the system sets aside some amount of cycles from the main balance of the canister.
+    /// These reserved cycles will be used to cover future payments for the newly allocated bytes.
+    /// The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.
+    ///
+    /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.
+    #[arg(long, value_parser = reserved_cycles_limit_parser)]
+    reserved_cycles_limit: Option<u128>,
 
     /// Freezing thresholds above ~1.5 years require this flag as confirmation.
     #[arg(long)]
@@ -122,6 +136,8 @@ pub async fn exec(
             get_memory_allocation(opts.memory_allocation, config_interface, canister_name)?;
         let freezing_threshold =
             get_freezing_threshold(opts.freezing_threshold, config_interface, canister_name)?;
+        let reserved_cycles_limit =
+            get_reserved_cycles_limit(opts.reserved_cycles_limit, config_interface, canister_name)?;
         if let Some(added) = &opts.add_controller {
             let status = get_canister_status(env, canister_id, call_sender).await?;
             let mut existing_controllers = status.settings.controllers;
@@ -153,6 +169,7 @@ pub async fn exec(
             compute_allocation,
             memory_allocation,
             freezing_threshold,
+            reserved_cycles_limit,
         };
         update_settings(env, canister_id, settings, call_sender).await?;
         display_controller_update(&opts, canister_name_or_id);
@@ -188,6 +205,14 @@ pub async fn exec(
                 .with_context(|| {
                     format!("Failed to get freezing threshold for {}.", canister_name)
                 })?;
+                let reserved_cycles_limit = get_reserved_cycles_limit(
+                    opts.reserved_cycles_limit,
+                    Some(config_interface),
+                    Some(canister_name),
+                )
+                .with_context(|| {
+                    format!("Failed to get reserved cycles limit for {}.", canister_name)
+                })?;
                 if let Some(added) = &opts.add_controller {
                     let status = get_canister_status(env, canister_id, call_sender).await?;
                     let mut existing_controllers = status.settings.controllers;
@@ -219,6 +244,7 @@ pub async fn exec(
                     compute_allocation,
                     memory_allocation,
                     freezing_threshold,
+                    reserved_cycles_limit,
                 };
                 update_settings(env, canister_id, settings, call_sender).await?;
                 display_controller_update(&opts, canister_name);

@@ -8,7 +8,7 @@ use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use candid::Principal;
 use clap::Parser;
-use ic_agent::agent::{Replied, RequestStatusResponse};
+use ic_agent::agent::RequestStatusResponse;
 use ic_agent::{AgentError, RequestId};
 use std::str::FromStr;
 
@@ -49,7 +49,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
         .or_else(|_| canister_id_store.get(callee_canister))?;
 
     let mut retry_policy = ExponentialBackoff::default();
-    let Replied::CallReplied(blob) = async {
+    let blob = async {
         let mut request_accepted = false;
         loop {
             match agent
@@ -57,7 +57,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
                 .await
                 .context("Failed to fetch request status.")?
             {
-                RequestStatusResponse::Replied { reply } => return Ok(reply),
+                RequestStatusResponse::Replied(reply) => return Ok(reply.arg),
                 RequestStatusResponse::Rejected(response) => {
                     return Err(DfxError::new(AgentError::ReplicaError(response)))
                 }

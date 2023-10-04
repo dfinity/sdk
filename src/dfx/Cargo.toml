@@ -118,6 +118,7 @@ url.workspace = true
 walkdir.workspace = true
 walrus = "0.20.1"
 which = "4.2.5"
+ci_info = "0.14"
 
 [target.'cfg(windows)'.dependencies]
 junction = "1.0.0"

@@ -2,9 +2,29 @@
 
 # UNRELEASED
 
+### feat: Added support for reserved_cycles and reserved_cycles_limit
+
+`dfx canister status` will now display the reserved cycles balance and reserved cycles limit for a canister.
+
+Added command-line options:
+  - `dfx canister create --reserved-cycles-limit <limit>`
+  - `dfx canister update-settings --reserved-cycles-limit <limit>`
+
+In addition, `dfx deploy` will set `reserved_cycles_limit` when creating canisters if specified in `canisters.<canister>.initialization_values.reserved_cycles_limit` in dfx.json.
+
+### feat: emit management canister idl when imported by Motoko canister
+
+`import management "ic:aaaaa-aa;`
+
+This will automatically produce the idl in the `.dfx` folder.
+
 ### fix: Include remote canisters in canisters_to_generate
 
 Generate frontend declarations for remote canisters too because frontend JS code may want to call them.
+
+### feat: dfx extension install <extension> --version <specific version>
+
+Install a specific version of an extension, bypassing version checks.
 
 ### feat: Updated handling of missing values in state tree certificates
 
@@ -57,7 +77,33 @@ Background: In order to determine whether to start a project-specific network or
 
 If `dfx start` is starting the shared network from within a dfx project, and that dfx.json contains settings in the `defaults` key for `bitcoin`, `replica`, or `canister_http`, then `dfx start` will warn that it is ignoring those settings.  It will also describe how to define equivalent settings in networks.json.
 
+### fix: dfx canister call --wallet no longer passes the parameter twice
+
+The parameter was erroneously passed twice.  Now it is passed only once.
+
+### fix: Removed deprecation warning about project-specific networks
+
+Removed this warning: "Project-specific networks are deprecated and will be removed after February 2023." While we may remove project-specific networks in the future, it is not imminent.  One key requirement is the ability to run more than one subnet type at one time.
+
 ## Dependencies
+
+### icx-proxy
+
+Updated to a version of the icx-proxy that is released with the replica and other related binaries.
+
+Changes in behavior:
+- "%%" is no longer accepted when url-decoding filenames for the asset canister.  Though curl supports this, it's not part of the standard. Please replace with %25.
+- The icx-proxy now performs response verification.  This has exposed some bugs in the asset canister.  However, since this new icx-proxy matches what the boundary nodes use, this will better match the behavior seen on the mainnet.
+- Bugs that this has exposed in the asset canister:
+  - after disabling aliasing for an asset, the asset canister will return an incorrect certification in the 404 response.
+  - after setting a custom "etag" header in .ic-assets.json, the asset canister will return an incorrect certification in the 200 response.
+  - assets with certain characters in the filename (example: "æ") will no longer be served correctly.  The definition of "certain characters" is not yet known.
+
+### Candid UI
+
+- Module hash: 934756863c010898a24345ce4842d173b3ea7639a8eb394a0d027a9423c70b5c
+- Add `merge_init_args` method in Candid UI.
+- Draw flamegraph for canister upgrade.
 
 ### Frontend canister
 
@@ -66,10 +112,21 @@ This allows the verifying side to try to transform the response such that it mat
 For example, if only the encoding `gzip` is requested but the `identity` encoding is certified, the `gzip` encoding is returned with the certificate for the `identity` encoding.
 The verifying side can then unzip the response and will have a valid certificate for the `identity` response.
 
-- Module hash: cd3e7fa2b826f84cdd107eef28633b0c669b4687ae1598dd854828e82d2e4652
+- Module hash: baf9bcab2ebc2883f850b965af658e66725087933df012ebd35c03929c39efe3
+- https://github.com/dfinity/sdk/pull/3369
 - https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3281
 
+Updated replica to elected commit 91bf38ff3cb927cb94027d9da513cd15f91a5b04.
+This incorporates the following executed proposals:
+
+- [124795](https://dashboard.internetcomputer.org/proposal/124795)
+- [124790](https://dashboard.internetcomputer.org/proposal/124790)
+- [124538](https://dashboard.internetcomputer.org/proposal/124538)
+- [124537](https://dashboard.internetcomputer.org/proposal/124537)
+- [124488](https://dashboard.internetcomputer.org/proposal/124488)
+- [124487](https://dashboard.internetcomputer.org/proposal/124487)
+  
 # 0.15.0
 
 ## DFX
@@ -79,6 +136,18 @@ The verifying side can then unzip the response and will have a valid certificate
 The `use-old-metering` flag enables old metering in replica. The new metering is enabled in the `starter` by default, so this flag is to compare the default new metering with the old one.
 
 The flag is temporary and will be removed in a few months.
+
+### fix: added https://icp-api.io to the default Content-Security-Policy header
+
+Existing projects will need to change this value in .ic-assets.json or .ic-assets.json5 to include https://icp-api.io
+
+All projects will need to redeploy.
+
+### fix: access to raw assets is now enabled by default
+
+The default value for `allow_raw_access` is now `true`.  This means that by default, the frontend canister will no longer restrict the access of traffic to the `<canister-id>.raw.icp0.io` domain, and will no longer automatically redirect all requests to the certified domain (`<canister-id>.icp0.io`), unless configured explicitly.
+
+Note that existing projects that specify `"allow_raw_access": false` in .ic-assets.json5 will need to change or remove this value manually in order to allow raw access.
 
 ### feat!: Removed dfx nns and dfx sns commands
 
@@ -166,7 +235,9 @@ Updated Motoko to [0.9.7](https://github.com/dfinity/motoko/releases/tag/0.9.7)
 
 ### Frontend canister
 
-- Module hash: 88d1e5795d29debc1ff56fa0696dcb3adfa67f82fe2739d1aa644263838174b9
+- Module hash: e20be8df2c392937a6ae0f70d20ff23b75e8c71d9085a8b8bb438b8c2d4eafe5
+- https://github.com/dfinity/sdk/pull/3337
+- https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3256
 - https://github.com/dfinity/sdk/pull/3252
 - https://github.com/dfinity/sdk/pull/3249
@@ -275,7 +346,7 @@ Previously, it would only retry when waiting for the request to complete.
 
 ### fix: now considers fewer error types to be retryable
 
-Previously, errors were assumed to be retryable, except for a few specific error messages and 403/unauthorized responses.  This could cause deployment to appear to hang until timeout.  
+Previously, errors were assumed to be retryable, except for a few specific error messages and 403/unauthorized responses.  This could cause deployment to appear to hang until timeout.
 
 Now, only transport errors and timeout errors are considered retryable.
 
@@ -330,7 +401,7 @@ When running `dfx canister delete` on a canister that has not been stopped, dfx 
 
 ### feat: gzip option in dfx.json
 
-`dfx` can gzip wasm module as the final step in building canisters. 
+`dfx` can gzip wasm module as the final step in building canisters.
 
 This behavior is disabled by default.
 
@@ -420,7 +491,7 @@ Previously, it would only retry when waiting for the request to complete.
 
 ### fix: now considers fewer error types to be retryable
 
-Previously, errors were assumed to be retryable, except for a few specific error messages and 403/unauthorized responses.  This could cause deployment to appear to hang until timeout.  
+Previously, errors were assumed to be retryable, except for a few specific error messages and 403/unauthorized responses.  This could cause deployment to appear to hang until timeout.
 
 Now, only transport errors and timeout errors are considered retryable.
 
@@ -519,12 +590,12 @@ When creating a canister on non-mainnet replica, you can now specify the caniste
 `dfx deploy <CANISTER_NAME> --specified-id <PRINCIPAL>`
 
 You can specify the ID in the range of `[0, u64::MAX / 2]`.
-If not specify the ID, the canister will be created in the range of `[u64::MAX / 2 + 1, u64::MAX]`. 
+If not specify the ID, the canister will be created in the range of `[u64::MAX / 2 + 1, u64::MAX]`.
 This canister ID allocation behavior only applies to the replica, not the emulator (ic-ref).
 
 ### feat: dfx nns install --ledger-accounts
 
-`dfx nns install` now takes an option `--ledger-accounts` to initialize the ledger canister with these accounts. 
+`dfx nns install` now takes an option `--ledger-accounts` to initialize the ledger canister with these accounts.
 
 ### fix: update Rust canister template.
 
@@ -532,7 +603,7 @@ This canister ID allocation behavior only applies to the replica, not the emulat
 
 ### chore: change the default Internet Computer gateway domain to `icp0.io`
 
-By default, DFX now uses the `icp0.io` domain to connect to Internet Computer as opposed to using `ic0.app`. 
+By default, DFX now uses the `icp0.io` domain to connect to Internet Computer as opposed to using `ic0.app`.
 Canisters communicating with `ic0.app` will continue to function nominally.
 
 ### feat: --no-asset-upgrade
@@ -711,7 +782,7 @@ This is no longer the case.  See rules above for grant_permission and revoke_per
 
 ### feat(frontend-canister)!: default secure configuration for assets in frontend project template
 
-- Secure HTTP headers, preventing several typical security vulnerabilities (e.g. XSS, clickjacking, and many more). For more details, see comments in `headers` section in [default `.ic-assets.json5`](https://raw.githubusercontent.com/dfinity/sdk/master/src/dfx/assets/new_project_node_files/src/__project_name___frontend/src/.ic-assets.json5). 
+- Secure HTTP headers, preventing several typical security vulnerabilities (e.g. XSS, clickjacking, and many more). For more details, see comments in `headers` section in [default `.ic-assets.json5`](https://raw.githubusercontent.com/dfinity/sdk/master/src/dfx/assets/new_project_node_files/src/__project_name___frontend/src/.ic-assets.json5).
 - Configures `allow_raw_access` option in starter `.ic-assets.json5` config files, with the value set to its default value (which is `false`). We are showing that configuration in the default starter projects for the sake of easier discoverability, even though its value is set to the default.
 
 ### feat(frontend-canister)!: add `allow_raw_access` config option
@@ -729,12 +800,12 @@ By default, the frontend canister will now restrict the access of traffic to the
 **Important**: Note that any assets already uploaded to an asset canister will be protected by this redirection, because at present the asset synchronization process does not update the `allow_raw_access` property, or any other properties, after creating an asset.  This also applies to assets that are deployed without any configuration, and later configured to allow raw access.
 At the present time, there are two ways to reconfigure an existing asset:
 1. re-create the asset
-    1. delete the asset in your project's directory 
+    1. delete the asset in your project's directory
     1. execute `dfx deploy`
     1. re-create the asset in your project's directory
-    1. modify `.ic-assets.json` acordingly 
+    1. modify `.ic-assets.json` acordingly
     1. execute `dfx deploy`
-2. via manual candid call 
+2. via manual candid call
     ```
     dfx canister call PROJECT_NAME_frontend set_asset_properties '( record { key="/robots.txt"; allow_raw_access=opt(opt(true)) })'
     ```
@@ -750,7 +821,7 @@ Callable only by a controller.  Clears list of authorized principals and adds th
 
 ### feat(frontend-canister): add `get_asset_properties` and `set_asset_properties` to frontend canister
 
-As part of creating the support for future work, it's now possible to get and set AssetProperties for assets in frontend canister. 
+As part of creating the support for future work, it's now possible to get and set AssetProperties for assets in frontend canister.
 
 ### feat: add `--argument-file` argument to the `dfx canister sign` command
 
@@ -861,7 +932,7 @@ This incorporates the following executed proposals:
 
 ### feat(frontend-canister): add warning if config is provided in `.ic-assets.json` but not used
 
-### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister 
+### fix(frontend-canister): Allow overwriting default HTTP Headers for assets in frontend canister
 
 Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP headers with custom values via `.ic-assets.json5` config file. Example `.ic-assets.json5` file:
 ```json5
@@ -875,7 +946,7 @@ Allows to overwrite `Content-Type`, `Content-Encoding`, and `Cache-Control` HTTP
     }
 ]
 ```
-This change will trigger the update process for frontend canister (new module hash: `2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759`). 
+This change will trigger the update process for frontend canister (new module hash: `2ff0513123f11c57716d889ca487083fac7d94a4c9434d5879f8d0342ad9d759`).
 
 ### feat: warn if an unencrypted identity is used on mainnet
 
@@ -1100,12 +1171,12 @@ The running replica port and url are generally useful information. Previously th
 
 Instead, the build process relies on `ic-wasm` to provide candid metadata for the canister, and
 shrinking the canister size by stripping debug symbols and unused fuctions.
-Additionally, after build step, the `.wasm` file is archived with `gzip`. 
+Additionally, after build step, the `.wasm` file is archived with `gzip`.
 
 ### chore: Move all `frontend canister`-related code into the SDK repo
 
 | from (`repository` `path`)                  | to (path in `dfinity/sdk` repository)          | summary                                                                                     |
-|:--------------------------------------------|:-----------------------------------------------|:--------------------------------------------------------------------------------------------|
+| :------------------------------------------ | :--------------------------------------------- | :------------------------------------------------------------------------------------------ |
 | `dfinity/cdk-rs` `/src/ic-certified-assets` | `/src/canisters/frontend/ic-certified-asset`   | the core of the frontend canister                                                           |
 | `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-frontend-canister` | wraps `ic-certified-assets` to build the canister wasm                                      |
 | `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`             | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |
@@ -1122,7 +1193,7 @@ as if they were [JSON5](https://json5.org/) format. Example content of the `.ic-
     "match": "*", // comment
     /*
     keys below not wrapped in quotes
-*/  cache: { max_age: 999 }, // trailing comma 
+*/  cache: { max_age: 999 }, // trailing comma
   },
 ]
 ```

@@ -185,6 +185,10 @@ pub async fn update_settings(
                     .freezing_threshold
                     .map(u64::from)
                     .map(candid::Nat::from),
+                reserved_cycles_limit: settings
+                    .reserved_cycles_limit
+                    .map(u128::from)
+                    .map(candid::Nat::from),
             },
         },
         call_sender,
