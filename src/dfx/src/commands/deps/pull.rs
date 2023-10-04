@@ -53,9 +53,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsPullOpts) -> DfxResult {
 
     fetch_root_key_if_needed(&env).await?;
 
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     let all_dependencies =
         resolve_all_dependencies(agent, logger, &pull_canisters_in_config).await?;

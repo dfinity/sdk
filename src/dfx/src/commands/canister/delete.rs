@@ -10,7 +10,7 @@ use crate::lib::operations::canister::{
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::util::blob_from_arguments;
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use candid::Principal;
 use clap::Parser;
 use dfx_core::canister::build_wallet_canister;
@@ -149,9 +149,7 @@ async fn delete_canister(
                     "Canister {canister} has not been stopped. Delete anyway?"
                 ))?;
             }
-            let agent = env
-                .get_agent()
-                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+            let agent = env.get_agent();
             let mgr = ManagementCanister::create(agent);
             let canister_id =
                 Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;

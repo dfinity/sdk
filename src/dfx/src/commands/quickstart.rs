@@ -45,7 +45,7 @@ pub struct QuickstartOpts;
 
 pub fn exec(env: &dyn Environment, _: QuickstartOpts) -> DfxResult {
     let env = create_agent_environment(env, Some("ic".to_string()))?;
-    let agent = env.get_agent().expect("Unable to create agent");
+    let agent = env.get_agent();
     let ident = env.get_selected_identity().unwrap();
     let principal = env.get_selected_identity_principal().unwrap();
     eprintln!("Your DFX user principal: {principal}");

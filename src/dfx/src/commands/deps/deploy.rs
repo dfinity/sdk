@@ -7,7 +7,7 @@ use crate::lib::deps::{
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use anyhow::anyhow;
+
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
@@ -38,9 +38,7 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
     let init_json = load_init_json(&project_root)?;
 
     fetch_root_key_if_needed(env).await?;
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     let canister_ids = match &opts.canister {
         Some(canister) => {
