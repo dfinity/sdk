@@ -34,9 +34,7 @@ pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
             |v| AccountIdentifier::from_str(&v),
         )
         .map_err(|err| anyhow!(err))?;
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     let balance = ledger::balance(agent, &acc_id, opts.ledger_canister_id).await?;
 

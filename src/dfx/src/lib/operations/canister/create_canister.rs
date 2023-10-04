@@ -73,9 +73,7 @@ pub async fn create_canister(
         return reserve_canister_with_playground(env, canister_name).await;
     }
 
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
     let cid = match call_sender {
         CallSender::SelectedId => {
             create_with_management_canister(env, agent, with_cycles, specified_id, settings).await

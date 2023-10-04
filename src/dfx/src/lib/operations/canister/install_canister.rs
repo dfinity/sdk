@@ -50,9 +50,7 @@ pub async fn install_canister(
     no_asset_upgrade: bool,
 ) -> DfxResult {
     let log = env.get_logger();
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
     let network = env.get_network_descriptor();
     if !network.is_ic && named_canister::get_ui_canister_id(canister_id_store).is_none() {
         named_canister::install_ui_canister(env, canister_id_store, None).await?;

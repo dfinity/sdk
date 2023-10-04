@@ -3,7 +3,7 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers;
 use crate::util::print_idl_blob;
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use candid::Principal;
@@ -36,9 +36,7 @@ pub struct RequestStatusOpts {
 pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
     let request_id =
         RequestId::from_str(&opts.request_id[2..]).context("Invalid argument: request_id")?;
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     fetch_root_key_if_needed(env).await?;
 

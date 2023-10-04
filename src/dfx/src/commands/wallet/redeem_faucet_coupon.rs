@@ -33,9 +33,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
     } else {
         Principal::from_text(DEFAULT_FAUCET_PRINCIPAL).unwrap()
     };
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
     if fetch_root_key_if_needed(env).await.is_err() {
         bail!("Failed to connect to the local replica. Did you forget to use '--network ic'?");
     } else if !env.get_network_descriptor().is_ic {

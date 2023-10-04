@@ -43,7 +43,7 @@ pub trait Environment {
 
     // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
-    fn get_agent<'a>(&'a self) -> Option<&'a Agent>;
+    fn get_agent<'a>(&'a self) -> &'a Agent;
 
     #[allow(clippy::needless_lifetimes)]
     fn get_network_descriptor<'a>(&'a self) -> &'a NetworkDescriptor;
@@ -210,10 +210,8 @@ impl Environment for EnvironmentImpl {
         &self.identity_override
     }
 
-    fn get_agent(&self) -> Option<&Agent> {
-        // create an AgentEnvironment explicitly, in order to specify network and agent.
-        // See install, build for examples.
-        None
+    fn get_agent(&self) -> &Agent {
+        unreachable!("Agent only available from an AgentEnvironment");
     }
 
     fn get_network_descriptor(&self) -> &NetworkDescriptor {
@@ -337,8 +335,8 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_identity_override()
     }
 
-    fn get_agent(&self) -> Option<&Agent> {
-        Some(&self.agent)
+    fn get_agent(&self) -> &Agent {
+        &self.agent
     }
 
     fn get_network_descriptor(&self) -> &NetworkDescriptor {
