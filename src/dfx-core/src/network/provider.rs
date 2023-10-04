@@ -474,7 +474,7 @@ mod tests {
         ReplicaLogLevel,
     };
     use std::fs;
-    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+    use std::net::SocketAddr;
     use std::str::FromStr;
 
     #[test]
