@@ -39,18 +39,6 @@ pub enum DeployMode {
 }
 
 #[derive(Eq, PartialEq, Debug, Clone)]
-pub enum ICPFundingRetryPhase {
-    Transfer(u64),
-    Notify(BlockHeight),
-}
-
-#[derive(Eq, PartialEq, Debug, Clone)]
-pub struct ICPFundingRetry {
-    pub canister_name: String,
-    pub phase: ICPFundingRetryPhase,
-}
-
-#[derive(Eq, PartialEq, Debug, Clone)]
 pub struct ICPFunding {
     pub amount: ICPTs,
     pub from_subaccount: Option<Subaccount>,

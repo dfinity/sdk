@@ -8,9 +8,7 @@ use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::operations::canister::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
-use crate::lib::operations::canister::{
-    deploy_canisters, Funding, ICPFunding, ICPFundingRetry, ICPFundingRetryPhase,
-};
+use crate::lib::operations::canister::{deploy_canisters, Funding, ICPFunding};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::parsers::cycle_amount_parser;

@@ -1,13 +1,10 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::error::NotifyCreateCanisterError::Notify;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::ledger_types::{Memo, NotifyError};
-use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
-use crate::lib::operations::canister::deploy_canisters::{
-    ICPFunding, ICPFundingRetry, ICPFundingRetryPhase,
-};
+use crate::lib::ledger_types::Memo;
+use crate::lib::nns_types::icpts::TRANSACTION_FEE;
+use crate::lib::operations::canister::deploy_canisters::ICPFunding;
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::operations::canister::Funding;
 use crate::lib::operations::cmc::{notify_create, transfer_cmc, MEMO_CREATE_CANISTER};
@@ -120,7 +117,8 @@ async fn create_with_ledger(
 ) -> DfxResult<Principal> {
     let to_principal = agent.get_principal().unwrap();
 
-    let canister_name_matches = matches!(&funding.retry_canister_name, Some(canister_name));
+    let canister_name_matches =
+        matches!(&funding.retry_canister_name, Some(name) if name == canister_name);
 
     let retry_block_height = funding
         .retry_notify_block_height
