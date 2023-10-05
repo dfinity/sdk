@@ -17,9 +17,7 @@ pub struct InfoOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     let callee_canister = opts.canister.as_str();
     let canister_id_store = env.get_canister_id_store()?;

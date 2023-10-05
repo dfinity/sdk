@@ -70,9 +70,7 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
         })?
         .to_address();
 
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     fetch_root_key_if_needed(env).await?;
 

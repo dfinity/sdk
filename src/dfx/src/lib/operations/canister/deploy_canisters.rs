@@ -365,9 +365,7 @@ async fn prepare_assets_for_commit(
         );
     }
 
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     prepare_assets_for_proposal(&canister_info, agent, env.get_logger()).await?;
 
@@ -391,9 +389,7 @@ async fn compute_evidence(
         );
     }
 
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     let assets_canister_info = canister_info.as_info::<AssetsCanisterInfo>()?;
     let source_paths = assets_canister_info.get_source_paths();
