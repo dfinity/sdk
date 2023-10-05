@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.15.1
+
 ### feat: Added support for reserved_cycles and reserved_cycles_limit
 
 `dfx canister status` will now display the reserved cycles balance and reserved cycles limit for a canister.
@@ -116,6 +118,8 @@ The verifying side can then unzip the response and will have a valid certificate
 - https://github.com/dfinity/sdk/pull/3369
 - https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3281
+
+### Replica
 
 Updated replica to elected commit 91bf38ff3cb927cb94027d9da513cd15f91a5b04.
 This incorporates the following executed proposals:
