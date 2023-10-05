@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.15.1
+
 ### feat: Added support for reserved_cycles and reserved_cycles_limit
 
 `dfx canister status` will now display the reserved cycles balance and reserved cycles limit for a canister.
