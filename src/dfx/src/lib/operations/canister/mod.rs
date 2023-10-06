@@ -49,7 +49,7 @@ where
         CallSender::SelectedId => {
             let mgr = ManagementCanister::create(agent);
 
-            mgr.update_(method)
+            mgr.update(method)
                 .with_arg(arg)
                 .with_effective_canister_id(destination_canister)
                 .build()

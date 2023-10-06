@@ -4,7 +4,7 @@ use ic_utils::Canister;
 
 pub(crate) async fn api_version(canister: &Canister<'_>) -> u16 {
     canister
-        .query_(API_VERSION)
+        .query(API_VERSION)
         .build()
         .call()
         .await

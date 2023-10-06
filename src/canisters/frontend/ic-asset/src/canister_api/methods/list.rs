@@ -9,7 +9,7 @@ pub(crate) async fn list_assets(
     canister: &Canister<'_>,
 ) -> Result<HashMap<String, AssetDetails>, AgentError> {
     let (entries,): (Vec<AssetDetails>,) = canister
-        .query_(LIST)
+        .query(LIST)
         .with_arg(ListAssetsRequest {})
         .build()
         .call()
