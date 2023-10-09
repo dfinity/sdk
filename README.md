@@ -51,6 +51,14 @@ This command will install a binary compatible with your operating system, and ad
 
 Find a release for your architecture [here](https://github.com/dfinity/sdk/releases).
 
+#### in GitHub Action, using [`dfinity/setup-dfx`](https://github.com/dfinity/setup-dfx)
+
+```yml
+    steps:
+    - name: Install dfx
+      uses: dfinity/setup-dfx@main
+```
+
 ### Getting Help
 
 Once the `IC SDK` is installed, get acquainted with its capabilities by entering.
