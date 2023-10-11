@@ -25,6 +25,80 @@ teardown() {
     standard_teardown
 }
 
+@test "cycles ledger balance" {
+    ALICE=$(dfx identity get-principal --identity alice)
+    ALICE_SUBACCT1="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+    ALICE_SUBACCT1_CANDID="\00\01\02\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
+    ALICE_SUBACCT2="9C9B9A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+    ALICE_SUBACCT2_CANDID="\9C\9B\9A\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
+    BOB=$(dfx identity get-principal --identity bob)
+
+    assert_command dfx deploy cycles-ledger
+    assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})" --with-cycles 10000000000000
+
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity alice --precise
+    assert_eq "0 cycles."
+
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity alice
+    assert_eq "0.000 TC (trillion cycles)."
+
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob --precise
+    assert_eq "0 cycles."
+
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
+    assert_eq "0.000 TC (trillion cycles)."
+
+
+    assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 1_700_400_200_150;})" --identity cycle-giver
+    assert_eq "(record { balance = 1_700_400_200_150 : nat; txid = 0 : nat })"
+
+    assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 3_750_000_000_000;})" --identity cycle-giver
+    assert_eq "(record { balance = 3_750_000_000_000 : nat; txid = 1 : nat })"
+
+    assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT2_CANDID\"};cycles = 760_500_000_000;})" --identity cycle-giver
+    assert_eq "(record { balance = 760_500_000_000 : nat; txid = 2 : nat })"
+
+    assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$BOB\";};cycles = 2_900_000_000_000;})" --identity cycle-giver
+    assert_eq "(record { balance = 2_900_000_000_000 : nat; txid = 3 : nat })"
+
+
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity alice
+    assert_eq "1700400200150 cycles."
+
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)"  --precise --identity alice --subaccount "$ALICE_SUBACCT1"
+    assert_eq "3750000000000 cycles."
+
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)"  --precise --identity alice --subaccount "$ALICE_SUBACCT2"
+    assert_eq "760500000000 cycles."
+
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)"  --precise --identity bob
+    assert_eq "2900000000000 cycles."
+
+
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity alice
+    assert_eq "1.700 TC (trillion cycles)."
+
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)"  --identity alice --subaccount "$ALICE_SUBACCT1"
+    assert_eq "3.750 TC (trillion cycles)."
+
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)"  --identity alice --subaccount "$ALICE_SUBACCT2"
+    assert_eq "0.760 TC (trillion cycles)."
+
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
+    assert_eq "2.900 TC (trillion cycles)."
+
+
+    # can see cycles balance of other accounts
+    assert_command dfx cycles balance --owner "$ALICE" --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
+    assert_eq "1.700 TC (trillion cycles)."
+
+    assert_command dfx cycles balance --owner "$ALICE" --subaccount "$ALICE_SUBACCT1" --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
+    assert_eq "3.750 TC (trillion cycles)."
+
+    assert_command dfx cycles balance --owner "$BOB" --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)"  --identity anonymous
+    assert_eq "2.900 TC (trillion cycles)."
+}
+
 @test "cycles ledger howto" {
     # This is the equivalent of https://www.notion.so/dfinityorg/How-to-install-and-test-the-cycles-ledger-521c9f3c410f4a438514a03e35464299
     ALICE=$(dfx identity get-principal --identity alice)
@@ -41,11 +115,12 @@ teardown() {
 
     dfx canister status cycles-depositor
 
-    assert_command dfx canister call cycles-ledger icrc1_balance_of "(record {owner = principal \"$ALICE\"})"
-    assert_eq "(0 : nat)"
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity alice --precise
+    assert_eq "0 cycles."
 
-    assert_command dfx canister call cycles-ledger icrc1_balance_of "(record {owner = principal \"$BOB\"})"
-    assert_eq "(0 : nat)"
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob --precise
+    assert_eq "0 cycles."
+
 
     assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 500_000_000;})" --identity cycle-giver
     assert_eq "(record { balance = 500_000_000 : nat; txid = 0 : nat })"
@@ -53,23 +128,23 @@ teardown() {
     assert_command dfx canister status cycles-depositor
     assert_contains "Balance: 9_999_500_000_000 Cycles"
 
-    assert_command dfx canister call cycles-ledger icrc1_balance_of "(record {owner = principal \"$ALICE\"})"
-    assert_eq "(500_000_000 : nat)"
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity alice --precise
+    assert_eq "500000000 cycles."
 
     assert_command dfx canister call cycles-ledger icrc1_transfer "(record {to = record{owner = principal \"$BOB\"}; amount = 100_000;})" --identity alice
     assert_eq "(variant { Ok = 1 : nat })"
 
-    assert_command dfx canister call cycles-ledger icrc1_balance_of "(record {owner = principal \"$ALICE\"})"
-    assert_eq "(399_900_000 : nat)"
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity alice --precise
+    assert_eq "399900000 cycles."
 
-    assert_command dfx canister call cycles-ledger icrc1_balance_of "(record {owner = principal \"$BOB\"})"
-    assert_eq "(100_000 : nat)"
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob --precise
+    assert_eq "100000 cycles."
 
     assert_command dfx canister call cycles-ledger send "(record {amount = 100_000;to = principal \"$(dfx canister id cycles-depositor)\"})" --identity alice
     assert_eq "(variant { Ok = 2 : nat })"
 
-    assert_command dfx canister call cycles-ledger icrc1_balance_of "(record {owner = principal \"$ALICE\"})"
-    assert_eq "(299_800_000 : nat)"
+    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity alice --precise
+    assert_eq "299800000 cycles."
 
     assert_command dfx canister status cycles-depositor
     assert_contains "Balance: 9_999_500_100_000 Cycles"

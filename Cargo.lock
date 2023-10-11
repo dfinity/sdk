@@ -1364,6 +1364,7 @@ dependencies = [
  "ic-identity-hsm",
  "ic-utils 0.29.0",
  "ic-wasm",
+ "icrc-ledger-types",
  "indicatif",
  "itertools 0.10.5",
  "json-patch",
@@ -2986,6 +2987,20 @@ dependencies = [
  "rand_core",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "icrc-ledger-types"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69ee120bab077a71cf85fcc6b0e88674edfeca7fe18240bee9afa947d8e08865"
+dependencies = [
+ "candid 0.9.6",
+ "hex",
+ "num-traits",
+ "serde",
+ "serde_bytes",
+ "sha2 0.10.7",
 ]
 
 [[package]]
