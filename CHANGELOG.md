@@ -2,6 +2,16 @@
 
 # UNRELEASED
 
+### feat: added `cycles balance` command
+
+This won't work on mainnet yet, but it can work locally after installing the cycles ledger.
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.10.0](https://github.com/dfinity/motoko/releases/tag/0.10.0)
+
 # 0.15.1
 
 ### feat: Added support for reserved_cycles and reserved_cycles_limit
@@ -86,10 +96,6 @@ The parameter was erroneously passed twice.  Now it is passed only once.
 ### fix: Removed deprecation warning about project-specific networks
 
 Removed this warning: "Project-specific networks are deprecated and will be removed after February 2023." While we may remove project-specific networks in the future, it is not imminent.  One key requirement is the ability to run more than one subnet type at one time.
-
-### feat: added `cycles balance` command
-
-This won't work on mainnet yet, but it can work locally after installing the cycles ledger.
 
 ## Dependencies
 
