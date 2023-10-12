@@ -7,7 +7,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use candid::Principal as CanisterId;
@@ -44,14 +44,12 @@ where
     A: CandidType + Sync + Send,
     O: for<'de> ArgumentDecoder<'de> + Sync + Send,
 {
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
     let out = match call_sender {
         CallSender::SelectedId => {
             let mgr = ManagementCanister::create(agent);
 
-            mgr.update_(method)
+            mgr.update(method)
                 .with_arg(arg)
                 .with_effective_canister_id(destination_canister)
                 .build()

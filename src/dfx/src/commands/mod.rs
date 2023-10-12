@@ -7,6 +7,7 @@ mod beta;
 mod build;
 mod cache;
 mod canister;
+mod cycles;
 mod deploy;
 mod deps;
 mod diagnose;
@@ -35,6 +36,8 @@ pub enum DfxCommand {
     Build(build::CanisterBuildOpts),
     Cache(cache::CacheOpts),
     Canister(canister::CanisterOpts),
+    #[command(hide = true)]
+    Cycles(cycles::CyclesOpts),
     Deploy(deploy::DeployOpts),
     Deps(deps::DepsOpts),
     Diagnose(diagnose::DiagnoseOpts),
@@ -64,6 +67,7 @@ pub fn exec(env: &dyn Environment, cmd: DfxCommand) -> DfxResult {
         DfxCommand::Build(v) => build::exec(env, v),
         DfxCommand::Cache(v) => cache::exec(env, v),
         DfxCommand::Canister(v) => canister::exec(env, v),
+        DfxCommand::Cycles(v) => cycles::exec(env, v),
         DfxCommand::Deploy(v) => deploy::exec(env, v),
         DfxCommand::Deps(v) => deps::exec(env, v),
         DfxCommand::Diagnose(v) => diagnose::exec(env, v),

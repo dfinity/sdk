@@ -27,6 +27,7 @@ pub mod progress_bar;
 pub mod project;
 pub mod replica;
 pub mod replica_config;
+pub mod retryable;
 pub mod root_key;
 pub mod sign;
 pub mod state_tree;

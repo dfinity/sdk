@@ -26,7 +26,7 @@ pub(crate) async fn create_chunk(
         .build();
 
     loop {
-        let builder = canister.update_(CREATE_CHUNK);
+        let builder = canister.update(CREATE_CHUNK);
         let builder = builder.with_arg(&args);
         let request_id_result = {
             let _releaser = semaphores.create_chunk_call.acquire(1).await;
