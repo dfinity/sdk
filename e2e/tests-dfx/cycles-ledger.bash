@@ -363,13 +363,19 @@ current_time_nanoseconds() {
 
     # different memo, same created-at-time: not dupe
     assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" --memo 2 --created-at-time "$t" 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
+    # This is expected to be reported as a duplicate, but is not.
+    # See https://dfinity.atlassian.net/browse/SDK-1289
+    # If this part of the test is failing, it probably means the functionality has been fixed in the cycles ledger canister.
+
+    # expected result:
+    # assert_eq "Transfer sent at block index 5"
+
     # actual result:
     assert_contains "transaction is a duplicate of another transaction in block 3"
     assert_contains "Transfer sent at block index 3"
-    # expected result:
-    # assert_eq "Transfer sent at block index 5"
+
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob
-    assert_eq "2399799800000 cycles." # expect something else
+    assert_eq "2399799800000 cycles." # expect this to be a different value than above, but it's not
 
 }
 
