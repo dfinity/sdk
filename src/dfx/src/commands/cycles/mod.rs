@@ -6,6 +6,7 @@ use clap::Parser;
 use tokio::runtime::Runtime;
 
 mod balance;
+mod transfer;
 
 /// Helper commands to manage the user's cycles.
 #[derive(Parser)]
@@ -21,6 +22,7 @@ pub struct CyclesOpts {
 #[derive(Parser)]
 enum SubCommand {
     Balance(balance::CyclesBalanceOpts),
+    Transfer(transfer::TransferOpts),
 }
 
 pub fn exec(env: &dyn Environment, opts: CyclesOpts) -> DfxResult {
@@ -29,6 +31,7 @@ pub fn exec(env: &dyn Environment, opts: CyclesOpts) -> DfxResult {
     runtime.block_on(async {
         match opts.subcmd {
             SubCommand::Balance(v) => balance::exec(&agent_env, v).await,
+            SubCommand::Transfer(v) => transfer::exec(&agent_env, v).await,
         }
     })
 }
