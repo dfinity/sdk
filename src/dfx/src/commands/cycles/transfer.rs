@@ -6,14 +6,11 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::cycle_amount_parser;
 use anyhow::Context;
 use candid::Principal;
-use clap::{ArgGroup, Parser};
+use clap::Parser;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Transfer cycles to another principal.
 #[derive(Parser)]
-#[clap(
-group(ArgGroup::new("target").multiple(false).required(true)),
-)]
 pub struct TransferOpts {
     /// The amount of cycles to send.
     #[arg(value_parser = cycle_amount_parser)]
@@ -24,15 +21,15 @@ pub struct TransferOpts {
     from_subaccount: Option<Subaccount>,
 
     /// Transfer cycles to this principal.
-    #[arg(long, group = "target")]
+    #[arg(long, conflicts_with("top_up"))]
     to_owner: Option<Principal>,
 
     /// Transfer cycles to this subaccount.
-    #[arg(long, requires("to_owner"))]
+    #[arg(long, conflicts_with("top_up"))]
     to_subaccount: Option<Subaccount>,
 
     /// Canister to top up.
-    #[arg(long, group = "target", name = "CANISTER_ID")]
+    #[arg(long, conflicts_with("to_owner"))]
     top_up: Option<String>,
 
     /// Transaction timestamp, in nanoseconds, for use in controlling transaction-deduplication, default is system-time.
@@ -41,11 +38,11 @@ pub struct TransferOpts {
     created_at_time: Option<u64>,
 
     /// Transfer fee.
-    #[arg(long, value_parser = cycle_amount_parser, requires("to_owner"))]
+    #[arg(long, value_parser = cycle_amount_parser, conflicts_with("top_up"))]
     fee: Option<u128>,
 
     /// Memo.
-    #[arg(long, requires("to_owner"))]
+    #[arg(long, conflicts_with("top_up"))]
     memo: Option<u64>,
 
     /// Canister ID of the cycles ledger canister.

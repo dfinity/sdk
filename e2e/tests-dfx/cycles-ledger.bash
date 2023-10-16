@@ -348,35 +348,32 @@ current_time_nanoseconds() {
     assert_command dfx canister status e2e_project_backend
     assert_contains "Balance: 3_100_000_100_000 Cycles"
 
-    # same memo and created-at-time: dupe
+    # same created-at-time: dupe
     assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" --memo 1 --created-at-time "$t" 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
     assert_contains "transaction is a duplicate of another transaction in block 3"
     assert_contains "Transfer sent at block index 3"
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob
     assert_eq "2399899900000 cycles."
 
-    # same memo, different created-at-time: not dupe
+    # different created-at-time: not dupe
     assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" --memo 1 --created-at-time $((t+1)) 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
     assert_eq "Transfer sent at block index 4"
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob
     assert_eq "2399799800000 cycles."
+}
 
-    # different memo, same created-at-time: not dupe
-    assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" --memo 2 --created-at-time "$t" 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
-    # This is expected to be reported as a duplicate, but is not.
-    # See https://dfinity.atlassian.net/browse/SDK-1289
-    # If this part of the test is failing, it probably means the functionality has been fixed in the cycles ledger canister.
+@test "transfer top up canister cli exclusions" {
+    assert_command_fail dfx cycles transfer --top-up bkyz2-fmaaa-aaaaa-qaaaq-cai 100000 --to-owner raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae --cycles-ledger-canister-id bkyz2-fmaaa-aaaaa-qaaaq-cai
+    assert_contains "error: the argument '--top-up <TOP_UP>' cannot be used with '--to-owner <TO_OWNER>'"
 
-    # expected result:
-    # assert_eq "Transfer sent at block index 5"
+    assert_command_fail dfx cycles transfer --top-up bkyz2-fmaaa-aaaaa-qaaaq-cai 100000 --memo 4 --cycles-ledger-canister-id bkyz2-fmaaa-aaaaa-qaaaq-cai
+    assert_contains "error: the argument '--top-up <TOP_UP>' cannot be used with '--memo <MEMO>'"
 
-    # actual result:
-    assert_contains "transaction is a duplicate of another transaction in block 3"
-    assert_contains "Transfer sent at block index 3"
+    assert_command_fail dfx cycles transfer --top-up bkyz2-fmaaa-aaaaa-qaaaq-cai 100000 --fee 100000000 --cycles-ledger-canister-id bkyz2-fmaaa-aaaaa-qaaaq-cai --identity bob
+    assert_contains "error: the argument '--top-up <TOP_UP>' cannot be used with '--fee <FEE>'"
 
-    assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob
-    assert_eq "2399799800000 cycles." # expect this to be a different value than above, but it's not
-
+    assert_command_fail dfx cycles transfer --top-up bkyz2-fmaaa-aaaaa-qaaaq-cai 100000 --to-subaccount "6C6B6A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" --cycles-ledger-canister-id bkyz2-fmaaa-aaaaa-qaaaq-cai --identity bob
+    assert_contains "error: the argument '--top-up <TOP_UP>' cannot be used with '--to-subaccount <TO_SUBACCOUNT>'"
 }
 
 @test "howto" {
