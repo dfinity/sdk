@@ -2,7 +2,7 @@
 use candid::{CandidType, Nat, Principal};
 use ic_cdk::api::call::RejectionCode;
 use icrc_ledger_types::icrc1::account::Subaccount;
-use icrc_ledger_types::icrc1::transfer::{BlockIndex, Memo};
+use icrc_ledger_types::icrc1::transfer::BlockIndex;
 use serde::Deserialize;
 
 pub type NumCycles = Nat;
@@ -14,8 +14,6 @@ pub struct SendArgs {
     pub to: Principal,
     #[serde(default)]
     pub created_at_time: Option<u64>,
-    #[serde(default)]
-    pub memo: Option<Memo>,
     pub amount: NumCycles,
 }
 

@@ -68,7 +68,13 @@ dfx cycles balance --owner raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j
 
 ## dfx cycles transfer
 
-Use the `dfx cycles transfer` command to transfer cycles from your account to another account.  This can be to the account of another owner's principal, or to a canister.
+Use the `dfx cycles transfer` command to transfer cycles from your account to another account.
+
+The source of the transferred cycles is always the cycles ledger account associated with your identity's principal, or one of its subaccounts.
+
+The destination of the transferred cycles is one of the following:
+- A cycles ledger account associated with another identity's principal, or one of its subaccounts. This mode uses the `--to-owner` and `--to-subaccount` options.
+- A canister. This mode uses the `--top-up` option.
 
 ### Basic usage
 
@@ -88,14 +94,14 @@ You must specify the following argument for the `dfx cycles transfer` command.
 
 You can specify the following options for the `dfx cycles transfer` command.
 
-| Option                           | Description                                                        |
-|----------------------------------|--------------------------------------------------------------------|
-| `--top-up <principal>`           | The canister to which you want to transfer cycles.                 |
-| `--to-owner <principal>`         | The principal of the account to which you want to transfer cycles. |
-| `--to-subaccount <subaccount>`   | The subaccount to which you want to transfer cycles.               |
-| `--from-subaccount <subaccount>` | The subaccount from which you want to transfer cycles.             |
-| `--fee <fee>`                    | Specifies a transaction fee.                                       |
-| `--memo <memo>`                  | Specifies a numeric memo for this transaction.                     |
+| Option                           | Description                                                                            |
+|----------------------------------|----------------------------------------------------------------------------------------|
+| `--top-up <principal>`           | The canister which you want to top up.                                                 |
+| `--to-owner <principal>`         | The principal of the account to which you want to transfer cycles.                     |
+| `--to-subaccount <subaccount>`   | The subaccount to which you want to transfer cycles.                                   |
+| `--from-subaccount <subaccount>` | The subaccount from which you want to transfer cycles.                                 |
+| `--fee <fee>`                    | Specifies a transaction fee. Can only passed in `--to-owner` mode.                     |
+| `--memo <memo>`                  | Specifies a numeric memo for this transaction. Can only be passed in `--to-owner mode. |
 | `--created-at-time <timestamp>`  | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
 
 ### Examples

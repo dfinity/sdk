@@ -45,7 +45,7 @@ pub struct TransferOpts {
     fee: Option<u128>,
 
     /// Memo.
-    #[arg(long)]
+    #[arg(long, requires("to_owner"))]
     memo: Option<u64>,
 
     /// Canister ID of the cycles ledger canister.
@@ -98,7 +98,6 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
             to,
             amount,
             created_at_time,
-            opts.memo,
             from_subaccount,
             opts.cycles_ledger_canister_id,
         )

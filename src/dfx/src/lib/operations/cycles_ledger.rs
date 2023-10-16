@@ -114,7 +114,6 @@ pub async fn send(
     to: Principal,
     amount: u128,
     created_at_time: u64,
-    memo: Option<u64>,
     from_subaccount: Option<icrc1::account::Subaccount>,
     cycles_ledger_canister_id: Principal,
 ) -> DfxResult<BlockIndex> {
@@ -129,7 +128,6 @@ pub async fn send(
             from_subaccount,
             to,
             created_at_time: Some(created_at_time),
-            memo: memo.map(|v| v.into()),
             amount: Nat::from(amount),
         };
         match canister
