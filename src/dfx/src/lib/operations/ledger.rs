@@ -20,8 +20,8 @@ use ic_agent::{
     lookup_value, Agent, AgentError,
 };
 use ic_utils::{call::SyncCall, Canister};
-use std::time::{SystemTime, UNIX_EPOCH};
 use slog::{info, Logger};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";
 const TRANSFER_METHOD: &str = "transfer";
