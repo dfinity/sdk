@@ -340,7 +340,7 @@ current_time_nanoseconds() {
     assert_contains "Balance: 3_100_000_000_000 Cycles"
 
     t=$(current_time_nanoseconds)
-    assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" --memo 1 --created-at-time "$t" 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
+    assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
     assert_eq "Transfer sent at block index 3"
 
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob
@@ -349,14 +349,14 @@ current_time_nanoseconds() {
     assert_contains "Balance: 3_100_000_100_000 Cycles"
 
     # same created-at-time: dupe
-    assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" --memo 1 --created-at-time "$t" 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
+    assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
     assert_contains "transaction is a duplicate of another transaction in block 3"
     assert_contains "Transfer sent at block index 3"
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob
     assert_eq "2399899900000 cycles."
 
     # different created-at-time: not dupe
-    assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" --memo 1 --created-at-time $((t+1)) 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
+    assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" --created-at-time $((t+1)) 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
     assert_eq "Transfer sent at block index 4"
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob
     assert_eq "2399799800000 cycles."
