@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### fix: `dfx ledger transfer` now logs to stderr messages about duplicates rather than printing them to stdout
+
+The message "transaction is a duplicate of another transaction in block ...", previously printed to stdout, is now logged to stderr. This means that the output of `dfx ledger transfer` to stdout will contain only "Transfer sent at block height <block height>".
+
 ### feat: added `dfx cycles` command
 
 This won't work on mainnet yet, but can work locally after installing the cycles ledger.
