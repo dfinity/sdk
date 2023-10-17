@@ -225,13 +225,13 @@ tc_to_num() {
 
   assert_command dfx ledger create-canister --amount=100 --created-at-time "$t" "$(dfx identity get-principal)"
   # shellcheck disable=SC2154
-  assert_match "transaction is a duplicate of another transaction in block $block_height" "$stdout"
+  assert_contains "transaction is a duplicate of another transaction in block $block_height" "$stderr"
   # shellcheck disable=SC2154
-  assert_match "Transfer sent at block height $block_height" "$stdout"
+  assert_contains "Transfer sent at block height $block_height" "$stdout"
   # shellcheck disable=SC2154
-  assert_match "Using transfer at block height $block_height" "$stdout"
+  assert_contains "Using transfer at block height $block_height" "$stdout"
   # shellcheck disable=SC2154
-  assert_match "Canister created with id: $created_canister_id" "$stdout"
+  assert_contains "Canister created with id: $created_canister_id" "$stdout"
 
 }
 
