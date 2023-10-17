@@ -55,7 +55,6 @@ pub async fn transfer(
     owner: Principal,
     to_subaccount: Option<icrc1::account::Subaccount>,
     created_at_time: u64,
-    fee: Option<u128>,
     memo: Option<u64>,
     cycles_ledger_canister_id: Principal,
 ) -> DfxResult<BlockIndex> {
@@ -73,7 +72,7 @@ pub async fn transfer(
                 owner,
                 subaccount: to_subaccount,
             },
-            fee: fee.map(Nat::from),
+            fee: None,
             created_at_time: Some(created_at_time),
             memo: memo.map(|v| v.into()),
             amount: Nat::from(amount),

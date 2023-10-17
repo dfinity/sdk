@@ -107,7 +107,7 @@ current_time_nanoseconds() {
     assert_eq "2.900 TC (trillion cycles)."
 }
 
-@test "transfer to owner" {
+@test "transfer" {
     ALICE=$(dfx identity get-principal --identity alice)
     ALICE_SUBACCT1="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
     ALICE_SUBACCT1_CANDID="\00\01\02\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
@@ -244,16 +244,16 @@ current_time_nanoseconds() {
     assert_eq "300000 cycles."
 }
 
-@test "transfer top up canister principal check" {
+@test "top up canister principal check" {
     BOB=$(dfx identity get-principal --identity bob)
 
     assert_command dfx deploy cycles-ledger
 
-    assert_command_fail dfx cycles transfer --top-up "$BOB" 600000 --identity alice --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)"
+    assert_command_fail dfx cycles top-up "$BOB" 600000 --identity alice --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)"
     assert_contains "Invalid receiver: $BOB.  Make sure the receiver is a canister."
 }
 
-@test "transfer top up canister basic" {
+@test "top-up" {
     dfx_new
     add_cycles_ledger_canisters_to_project
     install_cycles_ledger_canisters
@@ -279,7 +279,7 @@ current_time_nanoseconds() {
     assert_command dfx canister status e2e_project_backend
     assert_contains "Balance: 3_100_000_000_000 Cycles"
 
-    assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
+    assert_command dfx cycles top-up e2e_project_backend 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
 
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob
     assert_eq "2399899900000 cycles."
@@ -292,20 +292,20 @@ current_time_nanoseconds() {
     assert_command dfx canister status e2e_project_backend
     assert_contains "Balance: 3_100_000_100_000 Cycles"
 
-    assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" 300000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob  --from-subaccount "$BOB_SUBACCT1"
+    assert_command dfx cycles top-up e2e_project_backend 300000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob  --from-subaccount "$BOB_SUBACCT1"
 
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob  --subaccount "$BOB_SUBACCT1"
     assert_eq "2599899700000 cycles."
     assert_command dfx canister status e2e_project_backend
     assert_contains "Balance: 3_100_000_400_000 Cycles"
 
-    # subaccount to canister - by canister name
+    # subaccount to canister - by canister id
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob --subaccount "$BOB_SUBACCT2"
     assert_eq "2700000000000 cycles."
     assert_command dfx canister status e2e_project_backend
     assert_contains "Balance: 3_100_000_400_000 Cycles"
 
-    assert_command dfx cycles transfer --top-up e2e_project_backend 600000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob  --from-subaccount "$BOB_SUBACCT2"
+    assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" 600000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob  --from-subaccount "$BOB_SUBACCT2"
 
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob  --subaccount "$BOB_SUBACCT2"
     assert_eq "2699899400000 cycles."
@@ -313,7 +313,7 @@ current_time_nanoseconds() {
     assert_contains "Balance: 3_100_001_000_000 Cycles"
 }
 
-@test "transfer top up canister deduplication" {
+@test "top-up deduplication" {
     dfx_new
     add_cycles_ledger_canisters_to_project
     install_cycles_ledger_canisters
@@ -340,7 +340,7 @@ current_time_nanoseconds() {
     assert_contains "Balance: 3_100_000_000_000 Cycles"
 
     t=$(current_time_nanoseconds)
-    assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
+    assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
     assert_eq "Transfer sent at block index 3"
 
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob
@@ -349,31 +349,17 @@ current_time_nanoseconds() {
     assert_contains "Balance: 3_100_000_100_000 Cycles"
 
     # same created-at-time: dupe
-    assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
+    assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
     assert_contains "transaction is a duplicate of another transaction in block 3"
     assert_contains "Transfer sent at block index 3"
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob
     assert_eq "2399899900000 cycles."
 
     # different created-at-time: not dupe
-    assert_command dfx cycles transfer --top-up "$(dfx canister id e2e_project_backend)" --created-at-time $((t+1)) 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
+    assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time $((t+1)) 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
     assert_eq "Transfer sent at block index 4"
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob
     assert_eq "2399799800000 cycles."
-}
-
-@test "transfer top up canister cli exclusions" {
-    assert_command_fail dfx cycles transfer --top-up bkyz2-fmaaa-aaaaa-qaaaq-cai 100000 --to-owner raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae --cycles-ledger-canister-id bkyz2-fmaaa-aaaaa-qaaaq-cai
-    assert_contains "error: the argument '--top-up <TOP_UP>' cannot be used with '--to-owner <TO_OWNER>'"
-
-    assert_command_fail dfx cycles transfer --top-up bkyz2-fmaaa-aaaaa-qaaaq-cai 100000 --memo 4 --cycles-ledger-canister-id bkyz2-fmaaa-aaaaa-qaaaq-cai
-    assert_contains "error: the argument '--top-up <TOP_UP>' cannot be used with '--memo <MEMO>'"
-
-    assert_command_fail dfx cycles transfer --top-up bkyz2-fmaaa-aaaaa-qaaaq-cai 100000 --fee 100000000 --cycles-ledger-canister-id bkyz2-fmaaa-aaaaa-qaaaq-cai --identity bob
-    assert_contains "error: the argument '--top-up <TOP_UP>' cannot be used with '--fee <FEE>'"
-
-    assert_command_fail dfx cycles transfer --top-up bkyz2-fmaaa-aaaaa-qaaaq-cai 100000 --to-subaccount "6C6B6A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f" --cycles-ledger-canister-id bkyz2-fmaaa-aaaaa-qaaaq-cai --identity bob
-    assert_contains "error: the argument '--top-up <TOP_UP>' cannot be used with '--to-subaccount <TO_SUBACCOUNT>'"
 }
 
 @test "howto" {
@@ -417,7 +403,7 @@ current_time_nanoseconds() {
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob --precise
     assert_eq "100000 cycles."
 
-    assert_command dfx cycles transfer 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity alice --top-up "$(dfx canister id cycles-depositor)"
+    assert_command dfx cycles top-up cycles-depositor 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity alice
     assert_eq "Transfer sent at block index 2"
 
     assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity alice --precise
