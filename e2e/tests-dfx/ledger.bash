@@ -177,13 +177,13 @@ tc_to_num() {
 
   assert_command dfx ledger top-up "$wallet" --icp 5 --created-at-time "$t"
   # shellcheck disable=SC2154
-  assert_match "transaction is a duplicate of another transaction in block $block_height" "$stdout"
+  assert_contains "transaction is a duplicate of another transaction in block $block_height" "$stderr"
   # shellcheck disable=SC2154
-  assert_match "Transfer sent at block height $block_height" "$stdout"
+  assert_contains "Transfer sent at block height $block_height" "$stdout"
   # shellcheck disable=SC2154
-  assert_match "Using transfer at block height $block_height" "$stdout"
+  assert_contains "Using transfer at block height $block_height" "$stdout"
   # shellcheck disable=SC2154
-  assert_match "Canister was topped up with" "$stdout"
+  assert_contains "Canister was topped up with" "$stdout"
 }
 
 @test "ledger create-canister" {
