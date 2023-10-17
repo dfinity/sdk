@@ -53,6 +53,7 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
     let from_subaccount = opts.from_subaccount.map(|x| x.0);
     let result = cycles_ledger::send(
         agent,
+        env.get_logger(),
         to,
         amount,
         created_at_time,

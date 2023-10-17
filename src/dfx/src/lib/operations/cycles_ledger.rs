@@ -113,6 +113,7 @@ pub async fn transfer(
 
 pub async fn send(
     agent: &Agent,
+    logger: &Logger,
     to: Principal,
     amount: u128,
     created_at_time: u64,
@@ -143,9 +144,9 @@ pub async fn send(
         {
             Ok(Ok(block_index)) => Ok(block_index),
             Ok(Err(SendError::Duplicate { duplicate_of })) => {
-                println!(
-                    "transaction is a duplicate of another transaction in block {}",
-                    duplicate_of
+                info!(
+                    logger,
+                    "transaction is a duplicate of another transaction in block {}", duplicate_of
                 );
                 Ok(duplicate_of)
             }

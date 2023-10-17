@@ -352,8 +352,10 @@ current_time_nanoseconds() {
 
   # same created-at-time: dupe
   assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 100000 --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --identity bob
-  assert_contains "transaction is a duplicate of another transaction in block 3"
-  assert_contains "Transfer sent at block index 3"
+  # shellcheck disable=SC2154
+  assert_contains "transaction is a duplicate of another transaction in block 3" "$stderr"
+  # shellcheck disable=SC2154
+  assert_contains "Transfer sent at block index 3" "$stdout"
   assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity bob
   assert_eq "2399899900000 cycles."
 
