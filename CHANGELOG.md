@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: change `list_permitted` and `list_authorized` to an update call.
+
+This requires the `list_authorized` and `list_permitted` methods to be called as an update and disables the ability to
+call it as a query call. This resolves a potential security risk.
+
 ### fix: `dfx ledger transfer` now logs to stderr messages about duplicates rather than printing them to stdout
 
 The message "transaction is a duplicate of another transaction in block ...", previously printed to stdout, is now logged to stderr. This means that the output of `dfx ledger transfer` to stdout will contain only "Transfer sent at block height <block height>".
@@ -11,8 +16,8 @@ The message "transaction is a duplicate of another transaction in block ...", pr
 This won't work on mainnet yet, but can work locally after installing the cycles ledger.
 
 Added the following subcommands:
- - `dfx cycles balance`
- - `dfx cycles transfer --to-owner <principal>` (transfer from one account to another account)
+- `dfx cycles balance`
+- `dfx cycles transfer --to-owner <principal>` (transfer from one account to another account)
 
 ## Dependencies
 
@@ -27,8 +32,8 @@ Updated Motoko to [0.10.0](https://github.com/dfinity/motoko/releases/tag/0.10.0
 `dfx canister status` will now display the reserved cycles balance and reserved cycles limit for a canister.
 
 Added command-line options:
-  - `dfx canister create --reserved-cycles-limit <limit>`
-  - `dfx canister update-settings --reserved-cycles-limit <limit>`
+- `dfx canister create --reserved-cycles-limit <limit>`
+- `dfx canister update-settings --reserved-cycles-limit <limit>`
 
 In addition, `dfx deploy` will set `reserved_cycles_limit` when creating canisters if specified in `canisters.<canister>.initialization_values.reserved_cycles_limit` in dfx.json.
 
@@ -92,8 +97,8 @@ For example, `dfx deploy --ic` rather than `dfx deploy --network ic`.
 ### feat: `dfx start` for shared network warns if ignoring 'defaults' in dfx.json
 
 Background: In order to determine whether to start a project-specific network or the shared network, `dfx start` looks for the `local` network in dfx.json.
-   - If found, `dfx start` starts the project-specific local network, applying any `defaults` from dfx.json.
-   - If there is no dfx.json, or if dfx.json does not define a `local` network, `dfx start` starts the shared network.  Because the shared network is not specific to any project, `dfx start` ignores any other settings from dfx.json, including `defaults`.
+- If found, `dfx start` starts the project-specific local network, applying any `defaults` from dfx.json.
+- If there is no dfx.json, or if dfx.json does not define a `local` network, `dfx start` starts the shared network.  Because the shared network is not specific to any project, `dfx start` ignores any other settings from dfx.json, including `defaults`.
 
 If `dfx start` is starting the shared network from within a dfx project, and that dfx.json contains settings in the `defaults` key for `bitcoin`, `replica`, or `canister_http`, then `dfx start` will warn that it is ignoring those settings.  It will also describe how to define equivalent settings in networks.json.
 
@@ -148,7 +153,7 @@ This incorporates the following executed proposals:
 - [124537](https://dashboard.internetcomputer.org/proposal/124537)
 - [124488](https://dashboard.internetcomputer.org/proposal/124488)
 - [124487](https://dashboard.internetcomputer.org/proposal/124487)
-  
+
 # 0.15.0
 
 ## DFX
@@ -822,11 +827,11 @@ By default, the frontend canister will now restrict the access of traffic to the
 **Important**: Note that any assets already uploaded to an asset canister will be protected by this redirection, because at present the asset synchronization process does not update the `allow_raw_access` property, or any other properties, after creating an asset.  This also applies to assets that are deployed without any configuration, and later configured to allow raw access.
 At the present time, there are two ways to reconfigure an existing asset:
 1. re-create the asset
-    1. delete the asset in your project's directory
-    1. execute `dfx deploy`
-    1. re-create the asset in your project's directory
-    1. modify `.ic-assets.json` acordingly
-    1. execute `dfx deploy`
+  1. delete the asset in your project's directory
+  1. execute `dfx deploy`
+  1. re-create the asset in your project's directory
+  1. modify `.ic-assets.json` acordingly
+  1. execute `dfx deploy`
 2. via manual candid call
     ```
     dfx canister call PROJECT_NAME_frontend set_asset_properties '( record { key="/robots.txt"; allow_raw_access=opt(opt(true)) })'
@@ -1448,10 +1453,10 @@ It is still possible to pin the dfx version by adding `"dfx":"<dfx version to pi
 ### fix: Small grammar change to identity password decryption prompt
 
 The prompt for entering your passphrase in order to decrypt an identity password read:
-    "Please enter a passphrase for your identity"
+"Please enter a passphrase for your identity"
 However, at that point, it isn't "a" passphrase.  It's either your passphrase, or incorrect.
 Changed the text in this case to read:
-    "Please enter the passphrase for your identity"
+"Please enter the passphrase for your identity"
 
 ### chore: add retry logic to dfx download script
 
@@ -1652,8 +1657,8 @@ The actual optimization was kept the same.
 ### feat: Read dfx canister call argument from a file or stdin
 
 Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example:
- * Named file: `dfx canister call --argument-file ./my/argument/file.txt my_canister_name greet`
- * Stdin: `echo '( null )' | dfx canister call --argument-file - my_canister_name greet`
+* Named file: `dfx canister call --argument-file ./my/argument/file.txt my_canister_name greet`
+* Stdin: `echo '( null )' | dfx canister call --argument-file - my_canister_name greet`
 
 ### fix: Use default setting for BTC adapter idle seconds
 
@@ -1856,11 +1861,11 @@ This incorporates the following executed proposals:
 ### ic-ref
 
 Updated ic-ref to 0.0.1-173cbe84
- - add ic0.performance_counter system interface
- - add system API for ECDSA signing
- - allow optional "error_code" field in responses
- - support gzip-compressed canister modules
- - enable canisters to send HTTP requests
+- add ic0.performance_counter system interface
+- add system API for ECDSA signing
+- allow optional "error_code" field in responses
+- support gzip-compressed canister modules
+- enable canisters to send HTTP requests
 
 # 0.10.1
 
@@ -2636,11 +2641,11 @@ The included replica now supports public spec 0.18.0
 * Canisters can now have more than one controller
 * Adds support for 64-bit stable memory
 * The replica now goes through an initialization sequence, reported in its status
-as `replica_health_status`.  Until this reports as `healthy`, queries or updates will
-fail.
-** `dfx start --background` waits to exit until `replica_health_status` is `healthy`.
-** If you run `dfx start` without `--background`, you can call `dfx ping --wait-healthy`
-to wait until the replica is healthy.
+  as `replica_health_status`.  Until this reports as `healthy`, queries or updates will
+  fail.
+  ** `dfx start --background` waits to exit until `replica_health_status` is `healthy`.
+  ** If you run `dfx start` without `--background`, you can call `dfx ping --wait-healthy`
+  to wait until the replica is healthy.
 
 ## Motoko
 
@@ -2680,15 +2685,15 @@ js declarations output
 
 ts declarations output
 
-  * <canister_name>.did.d.ts - candid ts binding output
+* <canister_name>.did.d.ts - candid ts binding output
 
 did declarations output
 
-  * <canister_name>.did - candid did binding output
+* <canister_name>.did - candid did binding output
 
 mo declarations output
 
-  * <canister_name>.mo - candid mo binding output
+* <canister_name>.mo - candid mo binding output
 
 ### feat: dfx now supports the anonymous identity
 
@@ -2980,7 +2985,7 @@ Users can sign the message on an air-gapped computer which is secure to host pri
 * `sign` and `send` currently don't proxy through wallet canister. Users should use the subcommands with `dfx canister --no-wallet sign ...`.
 
 * The `sign` option `--expire-after` will set the `ingress_expiry` to a future timestamp which is current plus the duration.
-Then users can send the message during a 5 minutes time window ending in that `ingress_expiry` timestamp. Sending the message earlier or later than the time window will both result in a replica error.
+  Then users can send the message during a 5 minutes time window ending in that `ingress_expiry` timestamp. Sending the message earlier or later than the time window will both result in a replica error.
 
 ### feat: implement the HTTP Request proposal in dfx' bootstrap webserver. +
 And add support for http requests in the base storage canister (with a default to `/index.html`).
@@ -3010,9 +3015,9 @@ dfx canister call ...
 
 * Please note that neither the JS agent nor the HTTP server have been updated yet to server such large assets.
 * The existing interface is left in place for backwards-compatibility, but deprecated:
-** retrieve(): use get() and get_chunk() instead
-** store(): use create_batch(), create_chunk(), and commit_batch() instead
-** list(): use keys() instead
+  ** retrieve(): use get() and get_chunk() instead
+  ** store(): use create_batch(), create_chunk(), and commit_batch() instead
+  ** list(): use keys() instead
 
 # 0.6.25
 
@@ -3025,7 +3030,7 @@ dfx canister call ...
 ### Rust Agent
 
 - feat: AgentError due to request::Error will now include the reqwest error message
-in addition to "Could not reach the server"
+  in addition to "Could not reach the server"
 - feat: Add secp256k1 support (dfx support to follow)
 
 # 0.6.24
@@ -3115,9 +3120,9 @@ FLAGS:
 
 - There have been updates, improvements, and new sample apps added to the [examples](https://github.com/dfinity/examples/tree/master/motoko) repository.
 
-    All of Motoko sample apps in the [examples](https://github.com/dfinity/examples/tree/master/motoko) repository have been updated to work with the latest release of the SDK.
+  All of Motoko sample apps in the [examples](https://github.com/dfinity/examples/tree/master/motoko) repository have been updated to work with the latest release of the SDK.
 
-    There are new sample apps to illustrate using arrays ([Quicksort](https://github.com/dfinity/examples/tree/master/motoko/quicksort)) and building create/read/update/delete (CRUD) operations for a web application [Superheroes](https://github.com/dfinity/examples/tree/master/motoko/superheroes).
+  There are new sample apps to illustrate using arrays ([Quicksort](https://github.com/dfinity/examples/tree/master/motoko/quicksort)) and building create/read/update/delete (CRUD) operations for a web application [Superheroes](https://github.com/dfinity/examples/tree/master/motoko/superheroes).
 
 - The [LinkedUp](https://github.com/dfinity/linkedup) sample application has been updated to work with the latest release of Motoko and the SDK.
 
