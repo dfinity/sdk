@@ -12,8 +12,8 @@ This won't work on mainnet yet, but can work locally after installing the cycles
 
 Added the following subcommands:
  - `dfx cycles balance`
- - `dfx cycles transfer <to> <amount>` (transfer from one account to another account)
- - `dfx cycles top-up <to> <amount>` (transfer from an account to a canister)
+ - `dfx cycles transfer <to> <amount>` (transfer cycles from one account to another account)
+ - `dfx cycles top-up <to> <amount>` (send cycles from an account to a canister)
 
 ## Dependencies
 
