@@ -20,6 +20,7 @@ use ic_agent::{
     lookup_value, Agent, AgentError,
 };
 use ic_utils::{call::SyncCall, Canister};
+use slog::{info, Logger};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";
@@ -98,6 +99,7 @@ pub async fn xdr_permyriad_per_icp(agent: &Agent) -> DfxResult<u64> {
 #[context("Failed to transfer funds.")]
 pub async fn transfer(
     agent: &Agent,
+    logger: &Logger,
     canister_id: &Principal,
     memo: Memo,
     amount: ICPTs,
@@ -138,7 +140,7 @@ pub async fn transfer(
                 match result {
                     Ok(block_height) => break block_height,
                     Err(TransferError::TxDuplicate { duplicate_of }) => {
-                        println!("{}", TransferError::TxDuplicate { duplicate_of });
+                        info!(logger, "{}", TransferError::TxDuplicate { duplicate_of });
                         break duplicate_of;
                     }
                     Err(transfer_err) => bail!(transfer_err),

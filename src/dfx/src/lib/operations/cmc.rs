@@ -8,12 +8,14 @@ use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::operations::ledger::transfer;
 use candid::{Decode, Encode, Principal};
 use ic_agent::Agent;
+use slog::Logger;
 
 const NOTIFY_CREATE_CANISTER_METHOD: &str = "notify_create_canister";
 const NOTIFY_TOP_UP_METHOD: &str = "notify_top_up";
 
 pub async fn transfer_cmc(
     agent: &Agent,
+    logger: &Logger,
     memo: Memo,
     amount: ICPTs,
     fee: ICPTs,
@@ -26,6 +28,7 @@ pub async fn transfer_cmc(
         AccountIdentifier::new(MAINNET_CYCLE_MINTER_CANISTER_ID, Some(to_subaccount)).to_address();
     transfer(
         agent,
+        logger,
         &MAINNET_LEDGER_CANISTER_ID,
         memo,
         amount,
