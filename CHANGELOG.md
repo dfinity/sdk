@@ -14,7 +14,7 @@ Added the following subcommands:
 
 ### Motoko
 
-Updated Motoko to [0.10.0](https://github.com/dfinity/motoko/releases/tag/0.10.0)
+Updated Motoko to [0.10.1](https://github.com/dfinity/motoko/releases/tag/0.10.1)
 
 # 0.15.1
 
