@@ -78,7 +78,7 @@ dfx cycles transfer [options] <to> <amount>
 
 ### Arguments
 
-You must specify the following argument for the `dfx cycles transfer` command.
+You must specify the following arguments for the `dfx cycles transfer` command.
 
 | Argument   | Description                       |
 |------------|-----------------------------------|
@@ -122,7 +122,7 @@ dfx cycles top-up [options] <to> <amount>
 
 ### Arguments
 
-You must specify the following argument for the `dfx cycles transfer` command.
+You must specify the following arguments for the `dfx cycles transfer` command.
 
 | Argument   | Description                                                             |
 |------------|-------------------------------------------------------------------------|
