@@ -25,6 +25,11 @@ Added the following subcommands:
 
 Updated Motoko to [0.10.0](https://github.com/dfinity/motoko/releases/tag/0.10.0)
 
+### Frontend canister
+
+- Module hash: d967cc70d033a5cafb7c18e2e94a6bd28c7544b07e8e351eb5c773a68fa8577a
+- https://github.com/dfinity/sdk/pull/3421
+
 # 0.15.1
 
 ### feat: Added support for reserved_cycles and reserved_cycles_limit

@@ -220,10 +220,10 @@ service: {
 
   authorize: (principal) -> ();
   deauthorize: (principal) -> ();
-  list_authorized: () -> (vec principal);
+  list_authorized: () -> (vec principal) query;
   grant_permission: (GrantPermission) -> ();
   revoke_permission: (RevokePermission) -> ();
-  list_permitted: (ListPermitted) -> (vec principal);
+  list_permitted: (ListPermitted) -> (vec principal) query;
   take_ownership: () -> ();
 
   get_asset_properties : (key: Key) -> (record {
