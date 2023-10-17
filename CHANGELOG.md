@@ -10,10 +10,10 @@ The message "transaction is a duplicate of another transaction in block ...", pr
 
 This won't work on mainnet yet, but can work locally after installing the cycles ledger.
 
-Added the following subcommands and variants:
+Added the following subcommands:
  - `dfx cycles balance`
- - `dfx cycles transfer --to-owner <principal>` (transfer from one account to another account)
- - `dfx cycles transfer --top-up <principal>` (transfer from an account to a canister)
+ - `dfx cycles transfer <to> <amount>` (transfer from one account to another account)
+ - `dfx cycles top-up <to> <amount>` (transfer from an account to a canister)
 
 ## Dependencies
 

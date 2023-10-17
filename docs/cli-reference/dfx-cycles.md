@@ -70,25 +70,20 @@ dfx cycles balance --owner raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j
 
 Use the `dfx cycles transfer` command to transfer cycles from your account to another account.
 
-The source of the transferred cycles is always the cycles ledger account associated with your identity's principal, or one of its subaccounts.
-
-The destination of the transferred cycles is one of the following:
-- A cycles ledger account associated with another identity's principal, or one of its subaccounts. This mode uses the `--to-owner` and `--to-subaccount` options.
-- A canister. This mode uses the `--top-up` option.
-
 ### Basic usage
 
 ``` bash
-dfx cycles transfer [options] <amount>
+dfx cycles transfer [options] <to> <amount>
 ```
 
 ### Arguments
 
 You must specify the following argument for the `dfx cycles transfer` command.
 
-| Argument     | Description                       |
-|--------------|-----------------------------------|
-| `<amount>`   | The number of cycles to transfer. |
+| Argument   | Description                       |
+|------------|-----------------------------------|
+| `<to>`     | The principal of the account to which you want to transfer cycles. |
+| `<amount>` | The number of cycles to transfer. |
 
 ### Options
 
@@ -96,11 +91,8 @@ You can specify the following options for the `dfx cycles transfer` command.
 
 | Option                           | Description                                                                            |
 |----------------------------------|----------------------------------------------------------------------------------------|
-| `--top-up <principal>`           | The canister which you want to top up.                                                 |
-| `--to-owner <principal>`         | The principal of the account to which you want to transfer cycles.                     |
 | `--to-subaccount <subaccount>`   | The subaccount to which you want to transfer cycles.                                   |
 | `--from-subaccount <subaccount>` | The subaccount from which you want to transfer cycles.                                 |
-| `--fee <fee>`                    | Specifies a transaction fee. Can only passed in `--to-owner` mode.                     |
 | `--memo <memo>`                  | Specifies a numeric memo for this transaction. Can only be passed in `--to-owner mode. |
 | `--created-at-time <timestamp>`  | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
 
@@ -109,17 +101,53 @@ You can specify the following options for the `dfx cycles transfer` command.
 Transfer 1 billion cycles to another account:
 
 ``` bash
-dfx cycles transfer 1000000000 --to-owner raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae --network ic
+dfx cycles transfer raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae 1000000000 --network ic
 ```
 
 Transfer from a subaccount:
 
 ``` bash
-dfx cycles transfer 1000000000 --from-subaccount 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f --to-owner raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae --network ic
+dfx cycles transfer raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae 1000000000 --from-subaccount 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f --network ic
 ```
 
-Transfer to (top up) a canister:
+## dfx cycles top-up
+
+Use the `dfx cycles top-up` command to send cycles from your account to a canister.
+
+### Basic usage
 
 ``` bash
-dfx cycles transfer 1000000000 --top-up bkyz2-fmaaa-aaaaa-qaaaq-cai --network ic
+dfx cycles top-up [options] <to> <amount>
+```
+
+### Arguments
+
+You must specify the following argument for the `dfx cycles transfer` command.
+
+| Argument   | Description                                                             |
+|------------|-------------------------------------------------------------------------|
+| `<to>`     | The name of a canister in the current project, or a canister principal. |
+| `<amount>` | The number of cycles to transfer.                                       |
+
+### Options
+
+You can specify the following options for the `dfx cycles top-up` command.
+
+| Option                           | Description                                                                            |
+|----------------------------------|----------------------------------------------------------------------------------------|
+| `--from-subaccount <subaccount>` | The subaccount from which you want to transfer cycles.                                 |
+| `--created-at-time <timestamp>`  | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
+
+### Examples
+
+Send cycles to a canister in your project:
+
+``` bash
+dfx cycles top-up my_backend 1000000000 --network ic
+```
+
+Send cycles to a canister by principal:
+
+``` bash
+dfx cycles top-up bkyz2-fmaaa-aaaaa-qaaaq-cai 1000000000 --network ic
 ```

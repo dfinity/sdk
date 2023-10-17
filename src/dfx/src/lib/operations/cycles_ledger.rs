@@ -11,6 +11,7 @@ use ic_utils::call::SyncCall;
 use ic_utils::Canister;
 use icrc_ledger_types::icrc1;
 use icrc_ledger_types::icrc1::transfer::{BlockIndex, TransferError};
+use slog::{info, Logger};
 
 const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
 const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
@@ -50,6 +51,7 @@ pub async fn balance(
 
 pub async fn transfer(
     agent: &Agent,
+    logger: &Logger,
     amount: u128,
     from_subaccount: Option<icrc1::account::Subaccount>,
     owner: Principal,
@@ -88,7 +90,8 @@ pub async fn transfer(
         {
             Ok(Ok(block_index)) => Ok(block_index),
             Ok(Err(TransferError::Duplicate { duplicate_of })) => {
-                println!(
+                info!(
+                    logger,
                     "{}",
                     TransferError::Duplicate {
                         duplicate_of: duplicate_of.clone()

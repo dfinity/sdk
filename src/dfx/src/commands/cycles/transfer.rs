@@ -4,9 +4,9 @@ use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::operations::cycles_ledger;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::cycle_amount_parser;
-use anyhow::Context;
 use candid::Principal;
 use clap::Parser;
+use slog::warn;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Transfer cycles to another principal.
@@ -15,7 +15,7 @@ pub struct TransferOpts {
     /// Transfer cycles to this principal.
     to: Principal,
 
-    /// The amount of cycles to send.
+    /// The number of cycles to send.
     #[arg(value_parser = cycle_amount_parser)]
     amount: u128,
 
@@ -59,8 +59,9 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
 
     let from_subaccount = opts.from_subaccount.map(|x| x.0);
     let to_subaccount = opts.to_subaccount.map(|x| x.0);
-    let block_index = cycles_ledger::transfer(
+    let result = cycles_ledger::transfer(
         agent,
+        env.get_logger(),
         amount,
         from_subaccount,
         opts.to,
@@ -69,13 +70,14 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
         opts.memo,
         opts.cycles_ledger_canister_id,
     )
-    .await
-    .with_context(|| {
-        format!(
-            "If you retry this operation, use --created-at-time {}",
-            created_at_time
-        )
-    })?;
+    .await;
+    if result.is_err() && opts.created_at_time.is_none() {
+        warn!(
+            env.get_logger(),
+            "If you retry this operation, use --created-at-time {}", created_at_time
+        );
+    }
+    let block_index = result?;
 
     println!("Transfer sent at block index {block_index}");
 
