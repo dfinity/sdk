@@ -77,6 +77,7 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
 
     let height = transfer_cmc(
         agent,
+        env.get_logger(),
         memo,
         amount,
         fee,
