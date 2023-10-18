@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: change `list_permitted` and `list_authorized` to an update call.
+
+This requires the `list_authorized` and `list_permitted` methods to be called as an update and disables the ability to
+call it as a query call. This resolves a potential security risk.
+
 ### fix: `dfx ledger transfer` now logs to stderr messages about duplicates rather than printing them to stdout
 
 The message "transaction is a duplicate of another transaction in block ...", previously printed to stdout, is now logged to stderr. This means that the output of `dfx ledger transfer` to stdout will contain only "Transfer sent at block height <block height>".
@@ -20,6 +25,11 @@ Added the following subcommands:
 ### Motoko
 
 Updated Motoko to [0.10.1](https://github.com/dfinity/motoko/releases/tag/0.10.1)
+
+### Frontend canister
+
+- Module hash: 517d5117bb43236e1673627aacec3955a68072dcd95f0b0218e6155f75a4bb54
+- https://github.com/dfinity/sdk/pull/3421
 
 # 0.15.1
 
