@@ -93,7 +93,7 @@ You can specify the following options for the `dfx cycles transfer` command.
 |----------------------------------|----------------------------------------------------------------------------------------|
 | `--to-subaccount <subaccount>`   | The subaccount to which you want to transfer cycles.                                   |
 | `--from-subaccount <subaccount>` | The subaccount from which you want to transfer cycles.                                 |
-| `--memo <memo>`                  | Specifies a numeric memo for this transaction. Can only be passed in `--to-owner mode. |
+| `--memo <memo>`                  | Specifies a numeric memo for this transaction. |
 | `--created-at-time <timestamp>`  | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
 
 ### Examples
