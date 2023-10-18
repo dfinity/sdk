@@ -1361,6 +1361,7 @@ dependencies = [
  "hyper-rustls",
  "ic-agent",
  "ic-asset",
+ "ic-cdk",
  "ic-identity-hsm",
  "ic-utils 0.29.0",
  "ic-wasm",
