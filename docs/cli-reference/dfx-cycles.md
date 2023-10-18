@@ -136,7 +136,7 @@ You can specify the following options for the `dfx cycles top-up` command.
 | Option                           | Description                                                                            |
 |----------------------------------|----------------------------------------------------------------------------------------|
 | `--from-subaccount <subaccount>` | The subaccount from which you want to transfer cycles.                                 |
-| `--created-at-time <timestamp>`  | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
+| `--created-at-time <timestamp>`  | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction deduplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
 
 ### Examples
 
