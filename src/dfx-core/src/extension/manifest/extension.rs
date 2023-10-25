@@ -1,9 +1,7 @@
-use crate::error::extension::ExtensionError;
+use super::custom_canister_type::CustomCanisterTypeDeclaration;
+use crate::{error::extension::ExtensionError, extension::manager::ExtensionManager};
 use serde::{Deserialize, Deserializer};
-use std::{
-    collections::{BTreeMap, HashMap},
-    path::Path,
-};
+use std::collections::{BTreeMap, HashMap};
 
 pub static MANIFEST_FILE_NAME: &str = "extension.json";
 
@@ -23,14 +21,23 @@ pub struct ExtensionManifest {
     pub description: Option<String>,
     pub subcommands: Option<ExtensionSubcommandsOpts>,
     pub dependencies: Option<HashMap<String, String>>,
+    pub canister_types: Option<HashMap<String, CustomCanisterTypeDeclaration>>,
 }
 
 impl ExtensionManifest {
-    pub fn new(name: &str, extensions_root_dir: &Path) -> Result<Self, ExtensionError> {
-        let manifest_path = extensions_root_dir.join(name).join(MANIFEST_FILE_NAME);
+    pub fn get(
+        extension_name: &str,
+        extension_manager: &ExtensionManager,
+    ) -> Result<Self, ExtensionError> {
+        if !extension_manager.is_extension_installed(extension_name) {
+            return Err(ExtensionError::ExtensionNotInstalled(extension_name.into()));
+        }
+        let manifest_path = extension_manager
+            .get_extension_directory(extension_name)
+            .join(MANIFEST_FILE_NAME);
         let mut m: ExtensionManifest = crate::json::load_json_file(&manifest_path)
             .map_err(ExtensionError::LoadExtensionManifestFailed)?;
-        m.name = name.to_string();
+        m.name = extension_name.to_string();
         Ok(m)
     }
 
@@ -182,7 +189,7 @@ impl ExtensionSubcommandOpts {
 }
 
 #[test]
-fn parse_test_file() {
+fn parse_test_extension_manifest_file() {
     let f = r#"
 {
   "name": "sns",
@@ -295,6 +302,27 @@ fn parse_test_file() {
         }
       }
     }
+  },
+  "canister_types": {
+    "azyl": {
+        "type": "custom",
+        "main": "fff",
+        "wasm": ".azyl/{{canister_name}}/{{canister_name}}.wasm.gz",
+        "candid": { "replace": { "input": "{{main}}", "search": "(.*).ts", "output": "$1.did" }},
+        "build": "npx azyl {{canister_name}}",
+        "root": { "replace": { "input": "{{main}}", "search": "(.*)/[^/]*", "output": "$1"}},
+        "ts": "{{main}}",
+        "main": { "remove": true }
+    },
+    "other": {
+        "type": "custom",
+        "main": "src/main.ts",
+        "wasm": { "replace": { "input": "{{candid}}", "search": "(.*)/candid/(.*).did", "output": "$1/wasm/$2.wasm" }},
+        "build": "",
+        "candid": { "replace": { "input": "{{main}}", "search": "(.*).ts", "output": "$1.did" }},
+        "main": { "remove": true },
+        "gzip": true
+    }
   }
 }
 "#;
@@ -317,11 +345,13 @@ fn parse_test_file() {
         }};
     }
 
-    let m: Result<ExtensionManifest, serde_json::Error> = dbg!(serde_json::from_str(f));
-    assert!(m.is_ok());
+    // test manifest parsing
+    let extension_manifest: Result<ExtensionManifest, serde_json::Error> =
+        dbg!(serde_json::from_str(f));
+    assert!(extension_manifest.is_ok());
 
-    let mut subcmds = dbg!(m.unwrap().into_clap_commands().unwrap());
-
+    // test parsing mock CLI commands
+    let mut subcmds = dbg!(extension_manifest.unwrap().into_clap_commands().unwrap());
     use clap::error::ErrorKind::*;
     for c in &mut subcmds {
         c.print_long_help().unwrap();
@@ -365,11 +395,118 @@ fn parse_test_file() {
             _ => {}
         }
     }
+
+    // display how the `help` will look like
     clap::Command::new("sns")
         .subcommands(&subcmds)
         .print_help()
         .unwrap();
+    // see docs for clap's debug_assert
     clap::Command::new("sns")
         .subcommands(&subcmds)
         .debug_assert();
+
+    // test custom canister type
+    // notice, we're testing if we can overwrite `gzip` field
+    let extension_manifest: ExtensionManifest = serde_json::from_str(f).unwrap();
+    const DFX_JSON_WITH_CUSTOM_CANISTER_TYPE: &str = r#"
+        {
+            "canisters": {
+                "azyl_frontend": {
+                    "type": "azyl",
+                    "main": "src/main.ts",
+                    "gzip": false
+                },
+                "another_canister": {
+                    "type": "azyl:other",
+                    "main": "path/to/file/main.ts",
+                    "candid":"custom/candid/file/main.did",
+                    "build": "./node_modules/.bin/webpack --mode production"
+                }
+            }
+        }
+        "#;
+    let canister_declarations = DFX_JSON_WITH_CUSTOM_CANISTER_TYPE
+        .parse::<serde_json::Value>()
+        .unwrap();
+    let canister_declarations = canister_declarations
+        .get("canisters")
+        .unwrap()
+        .as_object()
+        .unwrap()
+        .into_iter()
+        .collect::<Vec<_>>();
+
+    // first canister declaration
+    let (canister_name, canister_declaration) = canister_declarations[0];
+    let canister_declaration = canister_declaration.as_object().unwrap();
+    let canister_type = canister_declaration
+        .get("type")
+        .unwrap()
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let (extension_name, custom_canister_type) =
+        super::custom_canister_type::get_extension_name_and_custom_canister_type(&canister_type);
+    let processed_canister_declaration = super::custom_canister_type::process_canister_declaration(
+        &mut canister_declaration.clone(),
+        extension_name,
+        &extension_manifest,
+        canister_name,
+        custom_canister_type,
+    )
+    .unwrap();
+    let expected_output = serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(
+        r#"
+                {
+                    "build": "./node_modules/.bin/webpack --mode production",
+                    "candid":"custom/candid/file/main.did",
+                    "gzip": true,
+                    "main": "path/to/file/main.ts",
+                    "type": "custom",
+                    "wasm": "custom/wasm/file/main.wasm"
+                }
+                "#,
+    )
+    .unwrap()
+    .clone();
+
+    assert_eq!(processed_canister_declaration, expected_output);
+
+    // second canister declaration
+    let (canister_name, canister_declaration) = canister_declarations[1];
+    let canister_declaration = canister_declaration.as_object().unwrap();
+    let canister_type = canister_declaration
+        .get("type")
+        .unwrap()
+        .as_str()
+        .unwrap()
+        .to_owned();
+    let (extension_name, custom_canister_type) =
+        super::custom_canister_type::get_extension_name_and_custom_canister_type(&canister_type);
+    let processed_canister_declaration = super::custom_canister_type::process_canister_declaration(
+        &mut canister_declaration.clone(),
+        extension_name,
+        &extension_manifest,
+        canister_name,
+        custom_canister_type,
+    )
+    .unwrap();
+    let expected_output = serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(
+        r#"
+                {
+                    "build": "npx azyl azyl_frontend",
+                    "candid": "src/main.did",
+                    "gzip": false,
+                    "main": "src/main.ts",
+                    "root": "src",
+                    "ts": "src/main.ts",
+                    "type": "custom",
+                    "wasm": ".azyl/azyl_frontend/azyl_frontend.wasm.gz"
+                }
+                "#,
+    )
+    .unwrap()
+    .clone();
+    assert_eq!(processed_canister_declaration, expected_output);
 }

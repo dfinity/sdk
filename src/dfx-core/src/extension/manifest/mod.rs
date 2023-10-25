@@ -12,3 +12,5 @@ pub mod extension;
 pub use extension::ExtensionManifest;
 /// File name for the file describing the extension.
 pub use extension::MANIFEST_FILE_NAME;
+
+pub mod custom_canister_type;

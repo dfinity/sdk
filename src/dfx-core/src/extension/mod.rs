@@ -33,7 +33,7 @@ impl Extension {
         self,
         manager: &ExtensionManager,
     ) -> Result<clap::Command, ExtensionError> {
-        let manifest = ExtensionManifest::new(&self.name, &manager.dir)?;
+        let manifest = ExtensionManifest::get(&self.name, manager)?;
         let cmd = Command::new(&self.name)
             .bin_name(&self.name)
             // don't accept unknown options

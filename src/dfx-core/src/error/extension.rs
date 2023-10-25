@@ -94,4 +94,14 @@ pub enum ExtensionError {
 
     #[error("Extension exited with non-zero status code '{0}'.")]
     ExtensionExitedWithNonZeroStatus(i32),
+
+    // errors related to custom canister types
+    #[error("Extension '{0}' does not support any custom canister types.")]
+    ExtensionDoesNotSupportAnyCustomCanisterTypes(String),
+
+    #[error("Extension '{0}' does not support the specific custom canister type '{1}'.")]
+    ExtensionDoesNotSupportSpecificCustomCanisterType(String, String),
+
+    #[error("Failed to load custom canister type template for canister type '{0}' from extension '{1}': {2}")]
+    CustomCanisterTypeTemplateError(String, String, String),
 }

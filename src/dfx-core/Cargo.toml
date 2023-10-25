@@ -18,6 +18,7 @@ clap = { workspace = true, features = ["string"] }
 dialoguer = "0.10.0"
 directories-next.workspace = true
 flate2 = { workspace = true, default-features = false, features = ["zlib-ng"] }
+handlebars.workspace = true
 hex = { workspace = true, features = ["serde"] }
 humantime-serde = "1.1.1"
 ic-agent = { workspace = true, features = ["reqwest"] }
@@ -26,7 +27,8 @@ ic-identity-hsm = { workspace = true }
 k256 = { version = "0.11.4", features = ["pem"] }
 keyring.workspace = true
 lazy_static.workspace = true
-reqwest = { version = "0.11.9", features = ["blocking", "json"] }
+reqwest = { workspace = true, features = ["blocking", "json"] }
+regex.workspace = true
 ring.workspace = true
 schemars.workspace = true
 sec1 = { workspace = true, features = ["std"] }

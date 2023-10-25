@@ -57,7 +57,7 @@ flate2 = { workspace = true, default-features = false, features = ["zlib-ng"] }
 fn-error-context = "0.2.0"
 futures-util = "0.3.21"
 futures.workspace = true
-handlebars = "4.3.3"
+handlebars.workspace = true
 hex = { workspace = true, features = ["serde"] }
 humantime.workspace = true
 hyper-rustls = { version = "0.24.1", features = ["webpki-roots", "http2"] }
@@ -82,8 +82,8 @@ patch = "0.7.0"
 pem.workspace = true
 petgraph = "0.6.0"
 rand = "0.8.5"
-regex = "1.5.5"
-reqwest = { version = "0.11.9", default-features = false, features = [
+regex.workspace = true
+reqwest = { workspace = true, default-features = false, features = [
     "blocking",
     "json",
     "rustls-tls",

@@ -209,3 +209,62 @@ EOF
   assert_command dfx extension run test_extension abc --the-another-param 464646 --the-param 123 456 789
   assert_eq "abc --the-another-param 464646 --the-param 123 456 789 --dfx-cache-path $CACHE_DIR"
 }
+
+@test "custom canister types" {
+    dfx cache install
+
+    CACHE_DIR=$(dfx cache show)
+    mkdir -p "$CACHE_DIR"/extensions/playground
+    echo '#!/usr/bin/env bash
+
+echo testoutput' > "$CACHE_DIR"/extensions/playground/playground
+    chmod +x "$CACHE_DIR"/extensions/playground/playground
+
+    echo '{
+  "name": "playground",
+  "version": "0.1.0",
+  "homepage": "https://github.com/dfinity/playground",
+  "authors": "DFINITY",
+  "summary": "Motoko playground for the Internet Computer",
+  "categories": [],
+  "keywords": [],
+  "subcommands": {},
+  "canister_types": {
+    "playground": {
+      "type": "custom",
+      "build": "echo the wasm-utils canister is prebuilt",
+      "candid": "{{canister_name}}.did",
+      "wasm": "{{canister_name}}.wasm",
+      "gzip": false
+    }
+  }
+}' > "$CACHE_DIR"/extensions/playground/extension.json
+
+    assert_command dfx extension list
+    assert_match "playground"
+
+    dfx_new hello
+    create_networks_json
+    install_asset playground_backend
+
+    echo '{
+  "canisters": {
+      "wasm-utils": {
+          "type": "playground",
+          "gzip": true
+      }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}' > dfx.json
+
+    dfx_start
+    assert_command dfx deploy -v
+    assert_match 'Backend canister via Candid interface'
+}

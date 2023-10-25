@@ -99,7 +99,7 @@ pub struct EnvironmentImpl {
 impl EnvironmentImpl {
     pub fn new() -> DfxResult<Self> {
         let shared_networks_config = NetworksConfig::new()?;
-        let config = Config::from_current_dir()?;
+        let config = Config::from_current_dir(dfx_version())?;
         if let Some(ref config) = config {
             let temp_dir = config.get_temp_path();
             create_dir_all(&temp_dir).with_context(|| {

@@ -215,7 +215,7 @@ teardown() {
   jq '.canisters.e2e_project_backend.type="unknown_canister_type"' dfx.json | sponge dfx.json
   assert_command_fail dfx build
   # shellcheck disable=SC2016
-  assert_match 'unknown variant `unknown_canister_type`'
+  assert_match 'ExtensionNotInstalled("unknown_canister_type")' # TODO: concrete error type
 
   # If canister type is invalid, `dfx stop` fails
   jq '.canisters.e2e_project_backend.type="motoko"' dfx.json | sponge dfx.json
