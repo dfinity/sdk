@@ -31,6 +31,18 @@ Updated Motoko to [0.10.1](https://github.com/dfinity/motoko/releases/tag/0.10.1
 - Module hash: 517d5117bb43236e1673627aacec3955a68072dcd95f0b0218e6155f75a4bb54
 - https://github.com/dfinity/sdk/pull/3421
 
+### Replica
+
+Updated replica to elected commit 1e3f540180f15de4aae10a40257907dc47af8480.
+This incorporates the following executed proposals:
+
+- [125321](https://dashboard.internetcomputer.org/proposal/125321)
+- [125320](https://dashboard.internetcomputer.org/proposal/125320)
+- [125002](https://dashboard.internetcomputer.org/proposal/125002)
+- [125001](https://dashboard.internetcomputer.org/proposal/125001)
+- [124858](https://dashboard.internetcomputer.org/proposal/124858)
+- [124857](https://dashboard.internetcomputer.org/proposal/124857)
+
 # 0.15.1
 
 ### feat: Added support for reserved_cycles and reserved_cycles_limit
