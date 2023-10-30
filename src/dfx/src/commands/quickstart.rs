@@ -34,16 +34,16 @@ use rust_decimal::Decimal;
 use slog::Logger;
 use tokio::runtime::Runtime;
 
-/// Use the `dfx quickstart` command to perform initial one time setup for your identity and/or wallet. This command
-/// can be run anytime to repeat the setup process or to be used as an informational command, printing
+/// Use the `dfx quickstart` command to perform initial one time setup for your identity and/or wallet.
+#[derive(Parser)]
+pub struct QuickstartOpts;
+
+// This command can be run anytime to repeat the setup process or to be used as an informational command, printing
 /// information about your ICP balance, current ICP to XDR conversion rate, and more.
 ///
 /// If setup tasks remain, this command is equivalent to running `dfx identity set-wallet` (for importing) or
 /// `dfx ledger create-canister` followed by `dfx identity deploy-wallet` (for creating), though more steps may
 /// be added in future versions.
-#[derive(Parser)]
-pub struct QuickstartOpts;
-
 pub fn exec(env: &dyn Environment, _: QuickstartOpts) -> DfxResult {
     let env = create_agent_environment(env, Some("ic".to_string()))?;
     let agent = env.get_agent();
