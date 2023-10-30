@@ -184,19 +184,21 @@ impl CustomCanisterTypeDeclaration {
                 _ => {}
             }
         }
+
         // Removing fields should be done last because of the order of the fields in the map.
         // It's easier to do in second for loop than to sort Ops beforehand, bacause Op would need to implement PartialOrd,
         // which is not possible, because serde_json::Number does not implement it.
         for field_name in remove_fields {
             final_fields.remove(&field_name);
         }
+
         // Override custom canister declaration values by the real canister_declaration
+        // see: https://github.com/dfinity/sdk/pull/3222#issuecomment-1624073606
         for (key, value) in values.iter() {
             if key != "type" && key != "canister_name" {
                 final_fields.insert(key.clone(), value.clone());
             }
         }
-
         Ok(final_fields)
     }
 }
@@ -233,28 +235,132 @@ mod tests {
     };}
 
     #[test]
-    fn test_op_replace() {}
+    fn test_op_replace_basic() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": { "replace": { "input": "{{canister_name}}", "search": "frontend_(.*)", "output": "thecanister/$1/main.ts" } }
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "canister_name": "frontend_xyz"
+        }
+        "#,
+            expected = r#"
+        {
+            "main": "thecanister/xyz/main.ts"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_replace_nested() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": { "replace": { "input": "{{main}}", "search": "(.*)", "output": "thecanister/$1" } }
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "main": "src/main.ts"
+        }
+        "#,
+            expected = r#"
+        {
+            "main": "thecanister/src/main.ts"
+        }
+        "#
+        );
+    }
 
     #[test]
     fn test_op_remove() {
         test_op!(
             custom_canister_template = r#"
         {
-            "type": "{{canister_name}}",
             "main": "src/main.ts",
             "main": { "remove": true }
         }
         "#,
             dfx_json_canister_values = r#"
         {
-            "canister_name": "something",
-            "main": "oowee.exe"
+            "main": "thecanister.exe"
         }
         "#,
             expected = r#"
         {
-            "main": "oowee.exe",
-            "type": "something"
+            "main": "thecanister.exe"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_replacement_1() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": "something.py"
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "gzip": true
+        }
+        "#,
+            expected = r#"
+        {
+            "gzip": true,
+            "main": "something.py"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_replacement_2() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": "something.py",
+            "gzip": false
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "gzip": true
+        }
+        "#,
+            expected = r#"
+        {
+            "gzip": true,
+            "main": "something.py"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_replacement_3() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": "{{gzip}}.py",
+            "gzip": false
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "gzip": true
+        }
+        "#,
+            expected = r#"
+        {
+            "gzip": true,
+            "main": "true.py"
         }
         "#
         );
@@ -265,19 +371,16 @@ mod tests {
         test_op!(
             custom_canister_template = r#"
         {
-            "type": "{{canister_name}}",
-            "main": "src/main.ts"
+            "type": "{{canister_name}}"
         }
         "#,
             dfx_json_canister_values = r#"
         {
-            "type": "custom",
             "canister_name": "something"
         }
         "#,
             expected = r#"
         {
-            "main": "src/main.ts",
             "type": "something"
         }
         "#
@@ -323,6 +426,27 @@ mod tests {
             expected = r#"
         {
             "main": 3
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_overwrite() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "gzip": true
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "gzip": false
+        }
+        "#,
+            expected = r#"
+        {
+            "gzip": false
         }
         "#
         );
