@@ -154,7 +154,7 @@ impl HashTreePath {
 
         // starting at 1 because "http_expr" is always the starting element
         for i in 1..self.0.len() {
-            let mut without_trailing_slash: Vec<NestedTreeKey> = self.0.as_slice()[1..i].into();
+            let mut without_trailing_slash: Vec<NestedTreeKey> = self.0.as_slice()[0..i].into();
             let mut with_trailing_slash = without_trailing_slash.clone();
             without_trailing_slash.push("<*>".into());
             with_trailing_slash.push("".into());
