@@ -1228,40 +1228,6 @@ CHERRIES" "$stdout"
   assert_match "404 Not Found"
 }
 
-@test "asset configuration via .ic-assets.json5 - overwriting etag breaks certification" {
-  # this is observed behavior, not expected behavior
-  # https://dfinity.atlassian.net/browse/SDK-1245
-  install_asset assetscanister
-
-  dfx_start
-
-  touch src/e2e_project_frontend/assets/thing.json
-
-  dfx deploy
-
-  ID=$(dfx canister id e2e_project_frontend)
-  PORT=$(get_webserver_port)
-
-  dfx canister  call --query e2e_project_frontend http_request '(record{url="/thing.json";headers=vec{};method="GET";body=vec{}})'
-  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-
-  echo '[
-    {
-      "match": "thing.json",
-      "headers": {
-        "etag": "my-etag"
-      }
-    }
-  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
-
-  dfx deploy
-
-  dfx canister call --query e2e_project_frontend http_request '(record{url="/thing.json";headers=vec{};method="GET";body=vec{}})'
-
-  assert_command_fail curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-  assert_contains "500 Internal Server Error"
-}
-
 @test "asset configuration via .ic-assets.json5 - overwriting default headers" {
   install_asset assetscanister
 
@@ -1278,7 +1244,8 @@ CHERRIES" "$stdout"
       "headers": {
         "Content-Encoding": "my-encoding",
         "Content-Type": "x-type",
-        "Cache-Control": "custom"
+        "Cache-Control": "custom",
+        "etag": "my-custom-etag"
       }
     }
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
@@ -1294,8 +1261,7 @@ CHERRIES" "$stdout"
   assert_match "cache-control: custom"
   assert_match "content-encoding: my-encoding"
   assert_match "content-type: x-type"
-  # https://dfinity.atlassian.net/browse/SDK-1245 assert_not_match "etag: my-etag"
-  assert_match "etag: \"[a-z0-9]{64}\""
+  assert_match "etag: my-custom-etag"
 }
 
 @test "aliasing rules: <filename> to <filename>.html or <filename>/index.html" {
