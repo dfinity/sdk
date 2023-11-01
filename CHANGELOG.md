@@ -30,7 +30,7 @@ Updated Motoko to [0.10.1](https://github.com/dfinity/motoko/releases/tag/0.10.1
 
 Fixed a certification issue where under certain conditions the fallback file (`/index.html`) was served with an incomplete certificate tree, not proving sufficiently that the fallback file may be used as a replacement.
 
-- Module hash: 5c1ba7718b6d6db8e3f70a3ba46f9816717b66f22e879c337e7445cd9819ebb8
+- Module hash: 32f0024c3310b312b15118a8229998e326171c847955ecf223e166ba6b96b158
 - https://github.com/dfinity/sdk/pull/3428
 - https://github.com/dfinity/sdk/pull/3421
 
