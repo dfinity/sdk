@@ -182,10 +182,15 @@ impl HttpResponse {
         let (status_code, body) = if etags.contains(&enc.sha256) {
             (304, RcBytes::default())
         } else {
-            headers.insert(
-                "etag".to_string(),
-                format!("\"{}\"", hex::encode(enc.sha256)),
-            );
+            if !headers
+                .iter()
+                .any(|(header, _)| header.eq_ignore_ascii_case("etag"))
+            {
+                headers.insert(
+                    "etag".to_string(),
+                    format!("\"{}\"", hex::encode(enc.sha256)),
+                );
+            }
             (200, enc.content_chunks[chunk_index].clone())
         };
 

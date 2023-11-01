@@ -1875,6 +1875,49 @@ mod certification_v2 {
 
         assert!(lookup_header(&response, "ic-certificate").is_some());
     }
+
+    #[test]
+    fn etag() {
+        // For now only checks that defining a custom etag doesn't break certification.
+        // Serving 304 responses if the etag matches is part of https://dfinity.atlassian.net/browse/SDK-191
+
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![BODY])
+                .with_header("etag", "my-etag")],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(1)
+                .build(),
+        );
+        assert_eq!(
+            lookup_header(&response, "etag").expect("ic-certificate header missing"),
+            "my-etag"
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(
+            lookup_header(&response, "etag").expect("ic-certificate header missing"),
+            "my-etag"
+        );
+    }
 }
 
 #[cfg(test)]
