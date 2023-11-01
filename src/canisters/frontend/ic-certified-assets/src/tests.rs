@@ -84,7 +84,17 @@ pub fn verify_response(
 
 fn certified_http_request(state: &State, request: HttpRequest) -> HttpResponse {
     let response = state.http_request(request.clone(), &[], unused_callback());
-    let Ok(_) = verify_response(state, &request, &response) else {panic!("Response verification failed: {:#?}", response)};
+    match verify_response(state, &request, &response) {
+        Err(err) => panic!(
+            "Response verification failed with error {:?}. Response: {:#?}",
+            err, response
+        ),
+        Ok(success) => {
+            if !success {
+                panic!("Response verification failed. Response: {:?}", response)
+            }
+        }
+    }
     response
 }
 
