@@ -1235,8 +1235,6 @@ CHERRIES" "$stdout"
 
   touch src/e2e_project_frontend/assets/thing.json
 
-  # this test used to also set etag, but that breaks certification
-  # see https://dfinity.atlassian.net/browse/SDK-1245
   echo '[
     {
       "match": "thing.json",

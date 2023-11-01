@@ -184,7 +184,7 @@ impl HttpResponse {
         } else {
             if !headers
                 .iter()
-                .any(|(header, _)| header.eq_ignore_ascii_case("etag"))
+                .any(|(header_name, _)| header_name.eq_ignore_ascii_case("etag"))
             {
                 headers.insert(
                     "etag".to_string(),

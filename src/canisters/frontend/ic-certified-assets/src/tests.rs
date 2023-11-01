@@ -1879,7 +1879,7 @@ mod certification_v2 {
     #[test]
     fn etag() {
         // For now only checks that defining a custom etag doesn't break certification.
-        // Serving 304 responses if the etag matches is part of https://dfinity.atlassian.net/browse/SDK-191
+        // Serving HTTP 304 responses if the etag matches is part of https://dfinity.atlassian.net/browse/SDK-191
 
         let mut state = State::default();
         let time_now = 100_000_000_000;
