@@ -30,7 +30,11 @@ Updated Motoko to [0.10.1](https://github.com/dfinity/motoko/releases/tag/0.10.1
 
 Defining a custom `etag` header no longer breaks certification.
 
-- Module hash: 517d5117bb43236e1673627aacec3955a68072dcd95f0b0218e6155f75a4bb54
+Fixed a certification issue where under certain conditions the fallback file (`/index.html`) was served with an incomplete certificate tree, not proving sufficiently that the fallback file may be used as a replacement.
+
+- Module hash: 965c8899f0a033593dc9b1634b2ab4e0f3fd28c1cfa06993069be2040a2f700e
+- https://github.com/dfinity/sdk/pull/3429
+- https://github.com/dfinity/sdk/pull/3428
 - https://github.com/dfinity/sdk/pull/3421
 
 ### Replica
