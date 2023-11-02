@@ -84,7 +84,17 @@ pub fn verify_response(
 
 fn certified_http_request(state: &State, request: HttpRequest) -> HttpResponse {
     let response = state.http_request(request.clone(), &[], unused_callback());
-    assert!(verify_response(state, &request, &response).expect("Certificate validation failed."));
+    match verify_response(state, &request, &response) {
+        Err(err) => panic!(
+            "Response verification failed with error {:?}. Response: {:#?}",
+            err, response
+        ),
+        Ok(success) => {
+            if !success {
+                panic!("Response verification failed. Response: {:?}", response)
+            }
+        }
+    }
     response
 }
 
@@ -510,6 +520,8 @@ fn serve_fallback_v2() {
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY]),
+            AssetBuilder::new("/deep/nested/folder/index.html", "text/html")
+                .with_encoding("identity", vec![OTHER_BODY]),
             AssetBuilder::new("/deep/nested/folder/a_file.html", "text/html")
                 .with_encoding("identity", vec![OTHER_BODY]),
             AssetBuilder::new("/deep/nested/sibling/another_file.html", "text/html")

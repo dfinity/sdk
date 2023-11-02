@@ -28,7 +28,10 @@ Updated Motoko to [0.10.1](https://github.com/dfinity/motoko/releases/tag/0.10.1
 
 ### Frontend canister
 
-- Module hash: 517d5117bb43236e1673627aacec3955a68072dcd95f0b0218e6155f75a4bb54
+Fixed a certification issue where under certain conditions the fallback file (`/index.html`) was served with an incomplete certificate tree, not proving sufficiently that the fallback file may be used as a replacement.
+
+- Module hash: 32f0024c3310b312b15118a8229998e326171c847955ecf223e166ba6b96b158
+- https://github.com/dfinity/sdk/pull/3428
 - https://github.com/dfinity/sdk/pull/3421
 
 ### Replica
