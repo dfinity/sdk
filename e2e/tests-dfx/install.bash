@@ -184,14 +184,14 @@ teardown() {
 
 @test "installing one canister with an argument succeeds" {
   dfx_start
-  use_asset_wasm 0.12.1
+  assert_command dfx build e2e_project_backend
   assert_command dfx canister create e2e_project_backend
   assert_command dfx canister install e2e_project_backend --argument '()'
 }
 
 @test "installing with an argument in a file succeeds" {
   dfx_start
-  use_asset_wasm 0.12.1
+  assert_command dfx build e2e_project_backend
   TMPFILE="$(mktemp)"
   echo '()' >"$TMPFILE"
   assert_command dfx canister create e2e_project_backend
