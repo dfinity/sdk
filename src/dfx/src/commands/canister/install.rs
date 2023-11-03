@@ -3,8 +3,12 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::install_canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::util::clap::parsers::file_or_stdin_parser;
 use crate::util::get_candid_init_type;
-use crate::{lib::canister_info::CanisterInfo, util::blob_from_arguments};
+use crate::{
+    lib::canister_info::CanisterInfo,
+    util::{arguments_from_file, blob_from_arguments},
+};
 use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
