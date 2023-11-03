@@ -28,6 +28,8 @@ Updated Motoko to [0.10.1](https://github.com/dfinity/motoko/releases/tag/0.10.1
 
 ### Frontend canister
 
+Fixed an issue where the `allow_raw_access` configuration value was being affected by the order of  declarations in the configuration file in `.ic-assets.json`. 
+
 Defining a custom `etag` header no longer breaks certification.
 
 Fixed a certification issue where under certain conditions the fallback file (`/index.html`) was served with an incomplete certificate tree, not proving sufficiently that the fallback file may be used as a replacement.
