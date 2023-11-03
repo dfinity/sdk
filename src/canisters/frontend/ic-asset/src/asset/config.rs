@@ -248,16 +248,13 @@ impl AssetConfig {
             (_, Maybe::Null) => self.headers = None,
             (_, Maybe::Absent) => (),
         };
-
         if other.ignore.is_some() {
             self.ignore = other.ignore;
         }
-
         if other.enable_aliasing.is_some() {
             self.enable_aliasing = other.enable_aliasing;
         }
-
-        if other.allow_raw_access.is_some() {
+        if self.allow_raw_access.is_none() && other.allow_raw_access.is_some() {
             self.allow_raw_access = other.allow_raw_access;
         }
         self
