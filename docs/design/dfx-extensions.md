@@ -30,7 +30,7 @@ The dfx utility offers a feature to install new extensions. Here's a high-level 
     - After successful download, the extension, which is in a compressed archive format (.tar.gz), is unpacked to a temporary directory.
 
 3. Final Installation:
-    - Post extraction, the extension is renamed and moved to its permanent location (the directory where extensions are meant to reside).
+    - Post-extraction, the extension is renamed and moved to its permanent location (the directory where extensions are meant to reside).
     - If the user specifies a custom name for the extension at the time of installation, the binary is renamed to reflect this custom name.
     - On UNIX systems, appropriate permissions are set for the installed extension to ensure it's executable.
 
