@@ -28,14 +28,22 @@ Updated Motoko to [0.10.1](https://github.com/dfinity/motoko/releases/tag/0.10.1
 
 ### Frontend canister
 
-- Module hash: 517d5117bb43236e1673627aacec3955a68072dcd95f0b0218e6155f75a4bb54
+Defining a custom `etag` header no longer breaks certification.
+
+Fixed a certification issue where under certain conditions the fallback file (`/index.html`) was served with an incomplete certificate tree, not proving sufficiently that the fallback file may be used as a replacement.
+
+- Module hash: 965c8899f0a033593dc9b1634b2ab4e0f3fd28c1cfa06993069be2040a2f700e
+- https://github.com/dfinity/sdk/pull/3429
+- https://github.com/dfinity/sdk/pull/3428
 - https://github.com/dfinity/sdk/pull/3421
 
 ### Replica
 
-Updated replica to elected commit 1e3f540180f15de4aae10a40257907dc47af8480.
+Updated replica to elected commit 80a6745673a28ee53d257b3fe19dcd6b7efa93d1.
 This incorporates the following executed proposals:
 
+- [125343](https://dashboard.internetcomputer.org/proposal/125343)
+- [125342](https://dashboard.internetcomputer.org/proposal/125342)
 - [125321](https://dashboard.internetcomputer.org/proposal/125321)
 - [125320](https://dashboard.internetcomputer.org/proposal/125320)
 - [125002](https://dashboard.internetcomputer.org/proposal/125002)

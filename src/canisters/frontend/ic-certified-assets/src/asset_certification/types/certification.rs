@@ -145,6 +145,28 @@ impl HashTreePath {
         base64::encode(cbor)
     }
 
+    /// Produces all `HashTreePath`s required to prove
+    /// - whether or not fallback file exists and
+    /// - that there is no fallback file with higher priority
+    /// in the hash tree.
+    pub fn fallback_paths_v2(&self) -> Vec<Self> {
+        let mut paths = Vec::new();
+
+        // starting at 1 because "http_expr" is always the starting element
+        for i in 1..self.0.len() {
+            let mut without_trailing_slash: Vec<NestedTreeKey> = self.0.as_slice()[0..i].into();
+            let mut with_trailing_slash = without_trailing_slash.clone();
+            without_trailing_slash.push("<*>".into());
+            with_trailing_slash.push("".into());
+            with_trailing_slash.push("<*>".into());
+
+            paths.push(without_trailing_slash.into());
+            paths.push(with_trailing_slash.into());
+        }
+
+        paths
+    }
+
     pub fn new(
         asset: &str,
         status_code: u16,
@@ -178,14 +200,6 @@ impl HashTreePath {
     pub fn not_found_base_path_v2() -> Self {
         HashTreePath::from(Vec::from([
             NestedTreeKey::String("http_expr".into()),
-            NestedTreeKey::String("<*>".into()),
-        ]))
-    }
-
-    pub fn not_found_trailing_slash_path_v2() -> Self {
-        HashTreePath::from(Vec::from([
-            NestedTreeKey::String("http_expr".into()),
-            NestedTreeKey::String("".into()),
             NestedTreeKey::String("<*>".into()),
         ]))
     }

@@ -84,7 +84,17 @@ pub fn verify_response(
 
 fn certified_http_request(state: &State, request: HttpRequest) -> HttpResponse {
     let response = state.http_request(request.clone(), &[], unused_callback());
-    assert!(verify_response(state, &request, &response).expect("Certificate validation failed."));
+    match verify_response(state, &request, &response) {
+        Err(err) => panic!(
+            "Response verification failed with error {:?}. Response: {:#?}",
+            err, response
+        ),
+        Ok(success) => {
+            if !success {
+                panic!("Response verification failed. Response: {:?}", response)
+            }
+        }
+    }
     response
 }
 
@@ -510,6 +520,8 @@ fn serve_fallback_v2() {
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY]),
+            AssetBuilder::new("/deep/nested/folder/index.html", "text/html")
+                .with_encoding("identity", vec![OTHER_BODY]),
             AssetBuilder::new("/deep/nested/folder/a_file.html", "text/html")
                 .with_encoding("identity", vec![OTHER_BODY]),
             AssetBuilder::new("/deep/nested/sibling/another_file.html", "text/html")
@@ -1874,6 +1886,49 @@ mod certification_v2 {
         );
 
         assert!(lookup_header(&response, "ic-certificate").is_some());
+    }
+
+    #[test]
+    fn etag() {
+        // For now only checks that defining a custom etag doesn't break certification.
+        // Serving HTTP 304 responses if the etag matches is part of https://dfinity.atlassian.net/browse/SDK-191
+
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![BODY])
+                .with_header("etag", "my-etag")],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(1)
+                .build(),
+        );
+        assert_eq!(
+            lookup_header(&response, "etag").expect("ic-certificate header missing"),
+            "my-etag"
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(
+            lookup_header(&response, "etag").expect("ic-certificate header missing"),
+            "my-etag"
+        );
     }
 }
 

@@ -184,25 +184,18 @@ impl CertifiedResponses {
                 WitnessResult::PathFound,
             )
         } else {
-            let fallback_path = HashTreePath::not_found_base_path_v2();
-
             let absence_proof = self.witness(hash_tree_path_root.as_vec());
-            let fallback_trailing_slash_path = HashTreePath::not_found_trailing_slash_path_v2();
-            let not_found_trailing_slash_proof =
-                self.witness(fallback_trailing_slash_path.as_vec());
-            let mut combined_proof =
-                merge_hash_trees(absence_proof, not_found_trailing_slash_proof);
+            let fallback_paths = hash_tree_path_root.fallback_paths_v2();
 
-            let mut partial_path = hash_tree_path_root.0;
-            while partial_path.pop().is_some() && !partial_path.is_empty() {
-                partial_path.push(NestedTreeKey::String("<*>".into()));
+            let combined_proof =
+                fallback_paths
+                    .into_iter()
+                    .fold(absence_proof, |accumulator, path| {
+                        let new_proof = self.witness(path.as_vec());
+                        merge_hash_trees(accumulator, new_proof)
+                    });
 
-                let proof = self.witness(HashTreePath::from(partial_path.clone()).as_vec());
-                combined_proof = merge_hash_trees(combined_proof, proof);
-
-                partial_path.pop(); // remove <*>
-            }
-
+            let fallback_path = HashTreePath::not_found_base_path_v2();
             if self.contains_path(fallback_path.as_vec()) {
                 (combined_proof, WitnessResult::FallbackFound)
             } else {
