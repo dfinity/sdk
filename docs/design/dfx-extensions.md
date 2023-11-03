@@ -23,9 +23,10 @@ The dfx utility offers a feature to install new extensions. Here's a high-level 
 
 2. Download and Extraction:
     - Once the compatible version of the extension is determined, dfx constructs a download URL. This URL points to a GitHub releases page where the extensions are hosted. Currently, extensions support downloading only from `dfinity/dfx-extensions` repository. Here is how the URL template looks like:
-    ```
-    "https://github.com/dfinity/dfx-extensions/releases/download/{github_release_tag}/{extension_archive_name}.tar.gz";
-    ```
+        ```
+        "https://github.com/dfinity/dfx-extensions/releases/download/{github_release_tag}/{extension_archive_name}.tar.gz";
+        ```
+
     - The extension is then downloaded from this URL. If the download fails for any reason, an error is returned.
     - After successful download, the extension, which is in a compressed archive format (.tar.gz), is unpacked to a temporary directory.
 
