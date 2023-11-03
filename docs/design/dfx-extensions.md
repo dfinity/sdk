@@ -54,7 +54,7 @@ Installed extensions are stored in `dfx`'s cache. Let's say you have `sns` exten
       └── sns-cli
 ```
 
-When requested to run an extension, dfx fetches the location of the executable associated with the extension, by determining the cache location associated with its current version, and searching for directory with extension name inside: `$(dfx cache show)/extensions/EXT_NAME/EXT_NAME`. Fox example , when you're running `dfx sns ARGS` or `dfx extension run sns ARGS`, `dfx` will try to find and extension under this path: `$(dfx cache show)/extensions/sns/sns`. 
+When requested to run an extension, dfx fetches the location of the executable associated with the extension, by determining the cache location associated with its current version, and searching for directory with extension name inside: `$(dfx cache show)/extensions/EXT_NAME/EXT_NAME`. Fox example , when you're running `dfx sns ARGS` or `dfx extension run sns ARGS`, `dfx` will try to find the extension binary at this path: `$(dfx cache show)/extensions/sns/sns`. 
 
 When executing the binary, the path to the cache is appended as an argument when invoking the extension's executable, in practice that means the extension will always be executed with `--dfx-cache-path $(dfx cache show)` parameter, like so: `exec $(dfx cache show)/extensions/sns/sns --dfx-cache-path $(dfx cache show)`. This allows the extension to depend on other extensions, and binaries stored in dfx's cache.
 
