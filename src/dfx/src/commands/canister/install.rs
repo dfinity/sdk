@@ -40,8 +40,16 @@ pub struct CanisterInstallOpts {
     upgrade_unchanged: bool,
 
     /// Specifies the argument to pass to the method.
-    #[arg(long)]
+    #[arg(long, conflicts_with("argument_file"))]
     argument: Option<String>,
+
+    /// Specifies the file from which to read the argument to pass to the method.
+    #[arg(
+        long,
+        value_parser = file_or_stdin_parser,
+        conflicts_with("argument")
+    )]
+    argument_file: Option<PathBuf>,
 
     /// Specifies the data type for the argument when making the call using an argument.
     #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
@@ -107,7 +115,14 @@ pub async fn exec(
 
         let canister_id =
             Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
+
+        let arguments_from_file = opts
+            .argument_file
+            .map(|v| arguments_from_file(&v))
+            .transpose()?;
         let arguments = opts.argument.as_deref();
+        let arguments = arguments_from_file.as_deref().or(arguments);
+
         let arg_type = opts.argument_type.as_deref();
         let canister_info = config.as_ref()
             .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))

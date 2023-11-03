@@ -182,7 +182,17 @@ teardown() {
   assert_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
 }
 
+@test "installing one canister with an argument succeeds" {
+  assert_command dfx canister install e2e_project_backend --argument '()'
+}
+
+@test "installing with an argument in a file succeeds" {
+  TMPFILE="$(mktemp)"
+  echo '()' >"$TMPFILE"
+  assert_command dfx canister install e2e_project_backend --argument-file "$TMPFILE"
+}
+
 @test "installing multiple canisters with arguments fails" {
-  assert_command_fail dfx canister install --all --argument hello
+  assert_command_fail dfx canister install --all --argument '()'
   assert_contains "error: the argument '--all' cannot be used with '--argument <ARGUMENT>'"
 }
