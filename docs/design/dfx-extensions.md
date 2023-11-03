@@ -26,7 +26,6 @@ The dfx utility offers a feature to install new extensions. Here's a high-level 
         ```
         "https://github.com/dfinity/dfx-extensions/releases/download/{github_release_tag}/{extension_archive_name}.tar.gz";
         ```
-
     - The extension is then downloaded from this URL. If the download fails for any reason, an error is returned.
     - After successful download, the extension, which is in a compressed archive format (.tar.gz), is unpacked to a temporary directory.
 
