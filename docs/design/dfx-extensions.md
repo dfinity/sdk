@@ -2,7 +2,7 @@
 
 `dfx` extension is a feature in the DFINITY Developer Software Development Kit (SDK) that allows for extending the `dfx` CLI's core functionality. Modeled after the principles of [Git custom commands](https://mfranc.com/tools/git-custom-command/) and [Cargo's custom subcommands](https://doc.rust-lang.org/book/ch14-05-extending-cargo.html#extending-cargo-with-custom-commands), the feature enables the addition of user-defined commands that seamlessly integrate with the existing `dfx` command set. 
 
-## dfx exension install
+## dfx extension install
 
 The dfx utility offers a feature to install new extensions. Here's a high-level overview of how the installation process works:
 
