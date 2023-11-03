@@ -936,4 +936,82 @@ mod with_tempdir {
             },
         );
     }
+
+    #[test]
+    fn the_order_does_not_matter() {
+        let cfg = Some(HashMap::from([(
+            "".to_string(),
+            r#"[
+                {
+                    "match": "**/nested/**/*",
+                    "allow_raw_access": false
+                },
+                {
+                    "match": ".well-known",
+                    "ignore": false
+                },
+                {
+                    "match": "**/*",
+                    "headers": {
+                        "X-Frame-Options": "DENY",
+                        "X-Content-Type-Options": "nosniff",
+                        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+                        "Referrer-Policy": "same-origin",
+                        "X-XSS-Protection": "1; mode=block"
+                    }
+                }
+            ]
+"#
+            .to_string(),
+        )]));
+        let cfg2 = Some(HashMap::from([(
+            "".to_string(),
+            r#"[
+                {
+                    "match": ".well-known",
+                    "ignore": false
+                },
+                {
+                    "match": "**/*",
+                    "headers": {
+                        "X-Frame-Options": "DENY",
+                        "X-Content-Type-Options": "nosniff",
+                        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+                        "Referrer-Policy": "same-origin",
+                        "X-XSS-Protection": "1; mode=block"
+                    }
+                },
+                {
+                    "match": "**/nested/**/*",
+                    "allow_raw_access": false
+                }
+            ]
+            "#
+            .to_string(),
+        )]));
+
+        let x = {
+            let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
+            let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+            let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
+            assets_config
+                .get_asset_config(assets_dir.join("nested/deep/the-next-thing.toml").as_path())
+                .unwrap()
+        };
+        let y = {
+            let assets_temp_dir2 = create_temporary_assets_directory(cfg2, 0);
+            let assets_dir2 = assets_temp_dir2.path().canonicalize().unwrap();
+            let mut assets_config2 = AssetSourceDirectoryConfiguration::load(&assets_dir2).unwrap();
+            assets_config2
+                .get_asset_config(
+                    assets_dir2
+                        .join("nested/deep/the-next-thing.toml")
+                        .as_path(),
+                )
+                .unwrap()
+        };
+
+        assert_eq!(x.allow_raw_access, y.allow_raw_access);
+        assert_eq!(x, y);
+    }
 }
