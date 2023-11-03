@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+=== feat: Read dfx canister install argument from a file
+
+Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example `dfx canister install --argument-file ./my/argument/file.txt my_canister_name`.
+
+
 ### feat: change `list_permitted` and `list_authorized` to an update call.
 
 This requires the `list_authorized` and `list_permitted` methods to be called as an update and disables the ability to
