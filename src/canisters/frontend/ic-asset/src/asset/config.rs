@@ -1008,7 +1008,8 @@ mod with_tempdir {
                 .unwrap()
         };
 
-        assert_eq!(x.allow_raw_access, y.allow_raw_access);
+        assert_eq!(x.allow_raw_access, false);
+        assert_eq!(y.allow_raw_access, false);
         assert_eq!(x, y);
     }
 }
