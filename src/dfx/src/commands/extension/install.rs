@@ -1,11 +1,11 @@
 use crate::commands::DfxCommand;
+use crate::config::cache::DiskBasedCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use clap::Parser;
 use clap::Subcommand;
 use dfx_core::error::extension::ExtensionError;
 use semver::Version;
-use crate::config::cache::DiskBasedCache;
 
 #[derive(Parser)]
 pub struct InstallOpts {
