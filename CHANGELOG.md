@@ -2,6 +2,14 @@
 
 # UNRELEASED
 
+=== fix: dfx extension install can no longer create a corrupt cache directory
+
+Running `dfx cache delete && dfx extension install nns` would previously
+create a cache directory containing only an `extensions` subdirectory.
+dfx only looks for the existence of a cache version subdirectory to
+determine whether it has been installed. The end result was that later
+commands would fail when the cache did not contain expected files.
+
 === feat: Read dfx canister install argument from a file
 
 Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example `dfx canister install --argument-file ./my/argument/file.txt my_canister_name`.
