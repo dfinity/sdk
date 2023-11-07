@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+=== fix: output_env_file is now considered relative to project root
+
+The .env file location, whether specified as `output_env_file` in dfx.json
+or `--output-env-file <file>` on the commandline, is now considered relative
+to the project root, rather than relative to the current working directory.
+
 === feat: Read dfx canister install argument from a file
 
 Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example `dfx canister install --argument-file ./my/argument/file.txt my_canister_name`.
