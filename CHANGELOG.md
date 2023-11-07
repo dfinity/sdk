@@ -2,6 +2,14 @@
 
 # UNRELEASED
 
+=== fix: dfx extension install can no longer create a corrupt cache directory
+
+Running `dfx cache delete && dfx extension install nns` would previously
+create a cache directory containing only an `extensions` subdirectory.
+dfx only looks for the existence of a cache version subdirectory to
+determine whether it has been installed. The end result was that later
+commands would fail when the cache did not contain expected files.
+
 === fix: output_env_file is now considered relative to project root
 
 The .env file location, whether specified as `output_env_file` in dfx.json
