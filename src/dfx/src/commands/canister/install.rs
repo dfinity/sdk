@@ -155,9 +155,7 @@ pub async fn exec(
         } else {
             let canister_info = canister_info?;
             let config = config.unwrap();
-            let env_file = opts
-                .output_env_file
-                .or_else(|| config.get_config().output_env_file.clone());
+            let env_file = config.get_output_env_file(opts.output_env_file)?;
             let idl_path = canister_info.get_constructor_idl_path();
             let init_type = get_candid_init_type(&idl_path);
             let install_args = || blob_from_arguments(arguments, None, arg_type, &init_type);
@@ -182,9 +180,7 @@ pub async fn exec(
     } else if opts.all {
         // Install all canisters.
         let config = env.get_config_or_anyhow()?;
-        let env_file = opts
-            .output_env_file
-            .or_else(|| config.get_config().output_env_file.clone());
+        let env_file = config.get_output_env_file(opts.output_env_file)?;
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
                 if pull_canisters_in_config.contains_key(canister) {
