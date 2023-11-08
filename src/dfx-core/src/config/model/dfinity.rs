@@ -3,6 +3,7 @@
 use crate::config::directories::get_user_dfx_config_dir;
 use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
+use crate::error::config::GetOutputEnvFileError;
 use crate::error::dfx_config::AddDependenciesError::CanisterCircularDependency;
 use crate::error::dfx_config::GetCanisterNamesWithDependenciesError::AddDependenciesFailed;
 use crate::error::dfx_config::GetComputeAllocationError::GetComputeAllocationFailed;
@@ -1011,6 +1012,35 @@ impl Config {
         self.path.parent().expect(
             "An incorrect configuration path was set with no parent, i.e. did not include root",
         )
+    }
+
+    // returns the path to the output env file if any, guaranteed to be
+    // a child relative to the project root
+    pub fn get_output_env_file(
+        &self,
+        from_cmdline: Option<PathBuf>,
+    ) -> Result<Option<PathBuf>, GetOutputEnvFileError> {
+        from_cmdline
+            .or(self.config.output_env_file.clone())
+            .map(|p| {
+                if p.is_relative() {
+                    let p = self.get_project_root().join(p);
+
+                    // cannot canonicalize a path that doesn't exist, but the parent should exist
+                    let env_parent =
+                        crate::fs::parent(&p).map_err(GetOutputEnvFileError::Parent)?;
+                    let env_parent = crate::fs::canonicalize(&env_parent)
+                        .map_err(GetOutputEnvFileError::Canonicalize)?;
+                    if !env_parent.starts_with(self.get_project_root()) {
+                        Err(GetOutputEnvFileError::OutputEnvFileMustBeInProjectRoot(p))
+                    } else {
+                        Ok(self.get_project_root().join(p))
+                    }
+                } else {
+                    Err(GetOutputEnvFileError::OutputEnvFileMustBeRelative(p))
+                }
+            })
+            .transpose()
     }
 
     pub fn save(&self) -> Result<(), StructuredFileError> {
