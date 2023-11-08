@@ -41,6 +41,8 @@ Added the following subcommands:
 
 ## Dependencies
 
+### Updated to Candid 0.9.10
+
 ### Motoko
 
 Updated Motoko to [0.10.1](https://github.com/dfinity/motoko/releases/tag/0.10.1)
