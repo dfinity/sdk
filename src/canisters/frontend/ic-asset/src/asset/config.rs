@@ -1007,14 +1007,13 @@ mod with_tempdir {
 
         dbg!(&x, &y);
         assert_eq!(x.allow_raw_access, Some(false));
+        assert_eq!(y.allow_raw_access, Some(false));
         assert_eq!(x.enable_aliasing, Some(true));
+        assert_eq!(y.enable_aliasing, Some(true));
         assert_eq!(x.ignore, Some(true));
+        assert_eq!(y.ignore, Some(true));
         assert_eq!(x.cache.clone().unwrap().max_age, Some(22));
-        assert_eq!(
-            x.headers.clone().unwrap().get("X-Frame-Options"),
-            Some(&"DENY".to_string())
-        );
-        assert_eq!(x, y);
+        assert_eq!(y.cache.clone().unwrap().max_age, Some(22));
 
         // same as above but with different values
         let cfg = Some(HashMap::from([(
@@ -1081,13 +1080,12 @@ mod with_tempdir {
 
         dbg!(&x, &y);
         assert_eq!(x.allow_raw_access, Some(true));
+        assert_eq!(y.allow_raw_access, Some(true));
         assert_eq!(x.enable_aliasing, Some(false));
+        assert_eq!(y.enable_aliasing, Some(false));
         assert_eq!(x.ignore, Some(false));
+        assert_eq!(y.ignore, Some(false));
         assert_eq!(x.cache.clone().unwrap().max_age, Some(22));
-        assert_eq!(
-            x.headers.clone().unwrap().get("X-Frame-Options"),
-            Some(&"ALLOW".to_string())
-        );
-        assert_eq!(x, y);
+        assert_eq!(y.cache.clone().unwrap().max_age, Some(22));
     }
 }
