@@ -1,6 +1,8 @@
 # DFX extensions - how it works 
 
-`dfx` extension is a feature in the DFINITY Developer Software Development Kit (SDK) that allows for extending the `dfx` CLI's core functionality. Modeled after the principles of [Git custom commands](https://mfranc.com/tools/git-custom-command/) and [Cargo's custom subcommands](https://doc.rust-lang.org/book/ch14-05-extending-cargo.html#extending-cargo-with-custom-commands), the feature enables the addition of user-defined commands that seamlessly integrate with the existing `dfx` command set. 
+`dfx` extension is a feature in the DFINITY Developer Software Development Kit (SDK) that allows for extending the `dfx` CLI's core functionality; it enables the addition of user-defined commands.
+
+Modeled after the principles of [Git custom commands](https://mfranc.com/tools/git-custom-command/) and [Cargo's custom subcommands](https://doc.rust-lang.org/book/ch14-05-extending-cargo.html#extending-cargo-with-custom-commands), the feature enables the addition of user-defined commands that integrate with the existing `dfx` command set. 
 
 ## dfx extension install
 
@@ -40,7 +42,7 @@ The dfx utility offers a feature to install new extensions. Here's a high-level 
     - This process ensures that the extensions are not only installed from a trusted source but are also compatible with the user's dfx version, enhancing the utility's reliability and user experience.
 
 ## Running Extensions
-
+note: The extension version is not involved 
 Installed extensions are stored in `dfx`'s cache. Let's say you have `sns` extension installed; here is how the cache directory structure will look like:
 ```console
 ❯ tree $(dfx cache show)
@@ -48,12 +50,13 @@ Installed extensions are stored in `dfx`'s cache. Let's say you have `sns` exten
 └── extensions
    └── sns
       ├── CHANGELOG.md
-      ├── extension.json
+      ├── extension.json # audience: dev and extension maker  
       ├── LICENSE
       ├── README.md
       ├── sns
       └── sns-cli
 ```
+
 
 When requested to run an extension, dfx fetches the location of the executable associated with the extension, by determining the cache location associated with its current version, and searching for directory with extension name inside: `$(dfx cache show)/extensions/EXT_NAME/EXT_NAME`. Fox example , when you're running `dfx sns ARGS` or `dfx extension run sns ARGS`, `dfx` will try to find the extension binary at this path: `$(dfx cache show)/extensions/sns/sns`. 
 
@@ -63,4 +66,5 @@ The extension's binary is launched as a child process. The system waits for the 
 
 
 ### Extensions as Commands
+
 Extensions are converted to command-line commands via an `extension.json` manifest, which encodes metadata and command data. Once installed, extensions produce CLI commands with defined subcommands and arguments through this manifest. The manifest file contains metadata like the extension's name, version, authors, dependencies, and subcommands. Each extension can provide subcommands with specific arguments. By translating the manifest into command-line commands, dfx enables the user to interact with extension commands, including their subcommands and arguments, which in practice means that any command and subcommand will be displayed when `dfx EXT_NAME --help`, or `dfx EXT_NAME SUBCMD` is called, and it will display all available args, options and subcommands. 
