@@ -40,9 +40,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
 
     // Read the config.
     let config = env.get_config_or_anyhow()?;
-    let env_file = opts
-        .output_env_file
-        .or_else(|| config.get_config().output_env_file.clone());
+    let env_file = config.get_output_env_file(opts.output_env_file)?;
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.

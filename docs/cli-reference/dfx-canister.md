@@ -438,6 +438,7 @@ You can use the following optional flags with the `dfx canister install` command
 
 | Flag                  | Description                                                                                                                                                             |
 |-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--argument-file`     | Specifies the file from which to read the argument to pass to the init method.  Stdin may be referred to as `-`.                                                        |
 | `--async-call`        | Enables you to continue without waiting for the result of the installation to be returned by polling the Internet Computer or the local canister execution environment. |
 | `--upgrade-unchanged` | Upgrade the canister even if the .wasm did not change.                                                                                                                  |
 
