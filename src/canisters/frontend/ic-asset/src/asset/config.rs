@@ -34,10 +34,6 @@ pub(crate) struct CacheConfig {
     pub(crate) max_age: Option<u64>,
 }
 
-fn default_raw_access() -> Option<bool> {
-    Some(true)
-}
-
 /// A single configuration object, from `.ic-assets.json` config file
 #[derive(Derivative, Clone, Serialize)]
 #[derivative(Debug, PartialEq)]
@@ -254,7 +250,7 @@ impl AssetConfig {
         if other.enable_aliasing.is_some() {
             self.enable_aliasing = other.enable_aliasing;
         }
-        if self.allow_raw_access.is_none() && other.allow_raw_access.is_some() {
+        if other.allow_raw_access.is_some() {
             self.allow_raw_access = other.allow_raw_access;
         }
         self
@@ -266,6 +262,7 @@ impl AssetConfig {
 mod rule_utils {
     use super::{AssetConfig, AssetConfigRule, CacheConfig, HeadersConfig, Maybe};
     use crate::error::LoadRuleError;
+    use derivative::Derivative;
     use globset::{Glob, GlobMatcher};
     use serde::{Deserialize, Serializer};
     use serde_json::Value;
@@ -336,7 +333,7 @@ mod rule_utils {
         }
     }
 
-    #[derive(Deserialize)]
+    #[derive(Deserialize, Derivative)]
     #[serde(deny_unknown_fields)]
     pub(super) struct InterimAssetConfigRule {
         r#match: String,
@@ -345,7 +342,7 @@ mod rule_utils {
         headers: Maybe<HeadersConfig>,
         ignore: Option<bool>,
         enable_aliasing: Option<bool>,
-        #[serde(default = "super::default_raw_access")]
+        #[derivative(Default(value = "Some(true)"))]
         allow_raw_access: Option<bool>,
     }
 
@@ -428,6 +425,16 @@ mod rule_utils {
                 s.push_str(&format!(
                     "  - URL path aliasing: {}\n",
                     if aliasing { "enabled" } else { "disabled" }
+                ));
+            }
+            if let Some(allow_raw_access) = self.allow_raw_access {
+                s.push_str(&format!(
+                    "  - enable raw access: {}\n",
+                    if allow_raw_access {
+                        "enabled"
+                    } else {
+                        "disabled"
+                    }
                 ));
             }
             if let Some(ref headers) = self.headers {
@@ -940,21 +947,18 @@ mod with_tempdir {
             "".to_string(),
             r#"[
                 {
-                    "match": "**/nested/**/*",
-                    "allow_raw_access": false
-                },
-                {
-                    "match": ".well-known",
-                    "ignore": false
+                    "match": "**/deep/**/*",
+                    "allow_raw_access": false,
+                    "cache": {
+                      "max_age": 22
+                    },
+                    "enable_aliasing": true,
+                    "ignore": true
                 },
                 {
                     "match": "**/*",
                     "headers": {
-                        "X-Frame-Options": "DENY",
-                        "X-Content-Type-Options": "nosniff",
-                        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-                        "Referrer-Policy": "same-origin",
-                        "X-XSS-Protection": "1; mode=block"
+                        "X-Frame-Options": "DENY"
                     }
                 }
             ]
@@ -965,22 +969,19 @@ mod with_tempdir {
             "".to_string(),
             r#"[
                 {
-                    "match": ".well-known",
-                    "ignore": false
-                },
-                {
                     "match": "**/*",
                     "headers": {
-                        "X-Frame-Options": "DENY",
-                        "X-Content-Type-Options": "nosniff",
-                        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-                        "Referrer-Policy": "same-origin",
-                        "X-XSS-Protection": "1; mode=block"
+                        "X-Frame-Options": "DENY"
                     }
                 },
                 {
-                    "match": "**/nested/**/*",
-                    "allow_raw_access": false
+                    "match": "**/deep/**/*",
+                    "allow_raw_access": false,
+                    "cache": {
+                      "max_age": 22
+                    },
+                    "enable_aliasing": true,
+                    "ignore": true
                 }
             ]
             "#
@@ -996,20 +997,97 @@ mod with_tempdir {
                 .unwrap()
         };
         let y = {
-            let assets_temp_dir2 = create_temporary_assets_directory(cfg2, 0);
-            let assets_dir2 = assets_temp_dir2.path().canonicalize().unwrap();
-            let mut assets_config2 = AssetSourceDirectoryConfiguration::load(&assets_dir2).unwrap();
-            assets_config2
-                .get_asset_config(
-                    assets_dir2
-                        .join("nested/deep/the-next-thing.toml")
-                        .as_path(),
-                )
+            let assets_temp_dir = create_temporary_assets_directory(cfg2, 0);
+            let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+            let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
+            assets_config
+                .get_asset_config(assets_dir.join("nested/deep/the-next-thing.toml").as_path())
                 .unwrap()
         };
 
-        assert_eq!(x.allow_raw_access, false);
-        assert_eq!(y.allow_raw_access, false);
+        dbg!(&x, &y);
+        assert_eq!(x.allow_raw_access, Some(false));
+        assert_eq!(x.enable_aliasing, Some(true));
+        assert_eq!(x.ignore, Some(true));
+        assert_eq!(x.cache.clone().unwrap().max_age, Some(22));
+        assert_eq!(
+            x.headers.clone().unwrap().get("X-Frame-Options"),
+            Some(&"DENY".to_string())
+        );
+        assert_eq!(x, y);
+
+        // same as above but with different values
+        let cfg = Some(HashMap::from([(
+            "".to_string(),
+            r#"[
+                {
+                    "match": "**/deep/**/*",
+                    "allow_raw_access": true,
+                    "enable_aliasing": false,
+                    "ignore": false,
+                    "headers": {
+                        "X-Frame-Options": "ALLOW"
+                    }
+                },
+                {
+                    "match": "**/*",
+                    "cache": {
+                      "max_age": 22
+                    }
+                }
+            ]
+"#
+            .to_string(),
+        )]));
+        let cfg2 = Some(HashMap::from([(
+            "".to_string(),
+            r#"[
+                {
+                    "match": "**/*",
+                    "cache": {
+                      "max_age": 22
+                    }
+                },
+                {
+                    "match": "**/deep/**/*",
+                    "allow_raw_access": true,
+                    "enable_aliasing": false,
+                    "ignore": false,
+                    "headers": {
+                        "X-Frame-Options": "ALLOW"
+                    }
+                }
+            ]
+            "#
+            .to_string(),
+        )]));
+
+        let x = {
+            let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
+            let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+            let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
+            assets_config
+                .get_asset_config(assets_dir.join("nested/deep/the-next-thing.toml").as_path())
+                .unwrap()
+        };
+        let y = {
+            let assets_temp_dir = create_temporary_assets_directory(cfg2, 0);
+            let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+            let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
+            assets_config
+                .get_asset_config(assets_dir.join("nested/deep/the-next-thing.toml").as_path())
+                .unwrap()
+        };
+
+        dbg!(&x, &y);
+        assert_eq!(x.allow_raw_access, Some(true));
+        assert_eq!(x.enable_aliasing, Some(false));
+        assert_eq!(x.ignore, Some(false));
+        assert_eq!(x.cache.clone().unwrap().max_age, Some(22));
+        assert_eq!(
+            x.headers.clone().unwrap().get("X-Frame-Options"),
+            Some(&"ALLOW".to_string())
+        );
         assert_eq!(x, y);
     }
 }
