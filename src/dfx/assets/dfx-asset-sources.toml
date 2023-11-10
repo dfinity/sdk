@@ -56,8 +56,8 @@ url = 'https://github.com/dfinity/motoko/releases/download/0.10.1/motoko-base-li
 sha256 = '27563ee89ad2b6c24642ccd9b569836cef2a0316d33bc3d2b4cc61ed7ec1017e'
 
 [x86_64-darwin.ic-btc-canister]
-url = 'https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-03-31/ic-btc-canister.wasm.gz'
-sha256 = 'c4153339cc3d23eae8f5e5a9c3872df5e5713913357e11d493bc5d06f257fb47'
+url = 'https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-10-13/ic-btc-canister.wasm.gz'
+sha256 = '09f5647a45ff6d5d05b2b0ed48613fb2365b5fe6573ba0e901509c39fb9564ac'
 
 [x86_64-linux.ic-ref]
 url = 'https://download.dfinity.systems/ic-ref/ic-ref-0.0.1-a9f73dba-x86_64-linux.tar.gz'
@@ -114,5 +114,5 @@ url = 'https://github.com/dfinity/motoko/releases/download/0.10.1/motoko-base-li
 sha256 = '27563ee89ad2b6c24642ccd9b569836cef2a0316d33bc3d2b4cc61ed7ec1017e'
 
 [x86_64-linux.ic-btc-canister]
-url = 'https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-03-31/ic-btc-canister.wasm.gz'
-sha256 = 'c4153339cc3d23eae8f5e5a9c3872df5e5713913357e11d493bc5d06f257fb47'
+url = 'https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-10-13/ic-btc-canister.wasm.gz'
+sha256 = '09f5647a45ff6d5d05b2b0ed48613fb2365b5fe6573ba0e901509c39fb9564ac'
