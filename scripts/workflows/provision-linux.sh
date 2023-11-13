@@ -36,7 +36,8 @@ if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ] || [ "$E2E_TEST" = "te
     sudo apt-get install --yes expect
 fi
 if [ "$E2E_TEST" = "tests-dfx/deps.bash" ]; then
-     cargo install ic-wasm
+     cargo install cargo-binstall
+     cargo binstall ic-wasm
 fi
 
 # Set environment variables.
