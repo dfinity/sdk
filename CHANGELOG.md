@@ -43,7 +43,7 @@ Added the following subcommands:
 
 ### Motoko
 
-Updated Motoko to [0.10.1](https://github.com/dfinity/motoko/releases/tag/0.10.1)
+Updated Motoko to [0.10.2](https://github.com/dfinity/motoko/releases/tag/0.10.2)
 
 ### Frontend canister
 
@@ -69,6 +69,10 @@ This incorporates the following executed proposals:
 - [125001](https://dashboard.internetcomputer.org/proposal/125001)
 - [124858](https://dashboard.internetcomputer.org/proposal/124858)
 - [124857](https://dashboard.internetcomputer.org/proposal/124857)
+
+### Bitcoin canister
+
+Updated Bitcoin canister to [release/2023-10-13](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2023-10-13)
 
 # 0.15.1
 
@@ -529,7 +533,7 @@ To skip this check in CI, use either the `--yes`/`-y` argument or use `echo "yes
 If the replica does not report healthy at least once after launch,
 dfx will terminate and restart it.
 
-### fix: dfx start now installs the bitcoin canister when bitcoin support is enabled
+### fix: dfx start now installs the  canister when bitcoin support is enabled
 
 This is required for future replica versions.
 
