@@ -6,10 +6,10 @@
         "homepage": "https://rustsec.org",
         "owner": "RustSec",
         "repo": "advisory-db",
-        "rev": "0c251c3c9a1b08e08ef5946d4c2d133fe1bc213e",
-        "sha256": "1nqzy1ky570zdkkdc9q7cpi5ys9cxnkyjhzvic1fzfcrrlz92kzd",
+        "rev": "0f4e16f7cd4339870985903cde44ea45ffe265c5",
+        "sha256": "03692n3y0q1ig2bp7dvpppkyn155rqjidhwxndla108q5bgw4p2y",
         "type": "tarball",
-        "url": "https://github.com/RustSec/advisory-db/archive/0c251c3c9a1b08e08ef5946d4c2d133fe1bc213e.tar.gz",
+        "url": "https://github.com/RustSec/advisory-db/archive/0f4e16f7cd4339870985903cde44ea45ffe265c5.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "canister_sandbox-x86_64-darwin": {
@@ -66,11 +66,11 @@
     },
     "ic-btc-canister": {
         "owner": "dfinity",
-        "sha256": "0izvazr0cpdwjga12zim2cwp3rgm5n3w7ag5yplfl8rxrhwk65f4",
+        "sha256": "1b34jpxkk72h07ls0fspwrgmndmj7xhlivdhn82msvgz8mx69x89",
         "type": "file",
-        "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-03-31/ic-btc-canister.wasm.gz",
+        "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-10-13/ic-btc-canister.wasm.gz",
         "url_template": "https://github.com/dfinity/bitcoin-canister/releases/download/<version>/ic-btc-canister.wasm.gz",
-        "version": "release%2F2023-03-31"
+        "version": "release%2F2023-10-13"
     },
     "ic-https-outcalls-adapter-x86_64-darwin": {
         "builtin": false,
