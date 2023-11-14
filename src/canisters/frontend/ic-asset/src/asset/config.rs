@@ -62,17 +62,12 @@ pub struct AssetConfigRule {
     allow_raw_access: Option<bool>,
 }
 
-#[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Debug, Clone, PartialEq, Eq, Default)]
 enum Maybe<T> {
     Null,
+    #[default]
     Absent,
     Value(T),
-}
-
-impl<T> Default for Maybe<T> {
-    fn default() -> Self {
-        Self::Absent
-    }
 }
 
 impl AssetConfigRule {
@@ -421,12 +416,6 @@ mod rule_utils {
                     s.push_str(&format!("  - HTTP cache max-age: {}\n", max_age));
                 }
             }
-            if let Some(aliasing) = self.enable_aliasing {
-                s.push_str(&format!(
-                    "  - URL path aliasing: {}\n",
-                    if aliasing { "enabled" } else { "disabled" }
-                ));
-            }
             if let Some(allow_raw_access) = self.allow_raw_access {
                 s.push_str(&format!(
                     "  - enable raw access: {}\n",
@@ -435,6 +424,12 @@ mod rule_utils {
                     } else {
                         "disabled"
                     }
+                ));
+            }
+            if let Some(aliasing) = self.enable_aliasing {
+                s.push_str(&format!(
+                    "  - URL path aliasing: {}\n",
+                    if aliasing { "enabled" } else { "disabled" }
                 ));
             }
             if let Some(ref headers) = self.headers {
@@ -937,7 +932,7 @@ mod with_tempdir {
             AssetConfig {
                 allow_raw_access: Some(true),
                 ..Default::default()
-            },
+            }
         );
     }
 

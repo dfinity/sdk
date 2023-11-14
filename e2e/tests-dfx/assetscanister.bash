@@ -1484,29 +1484,25 @@ CHERRIES" "$stdout"
   "match": "nevermatchme",
   "cache": {
     "max_age": 2000
-  },
-  "allow_raw_access": true
+  }
 }'
   assert_match 'WARN: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
   assert_contains 'WARN: {
   "match": "nevermatchme",
   "headers": {},
-  "ignore": false,
-  "allow_raw_access": true
+  "ignore": false
 }
 WARN: {
   "match": "nevermatchmetoo",
   "headers": {},
-  "ignore": false,
-  "allow_raw_access": true
+  "ignore": false
 }
 WARN: {
   "match": "non-matcher",
   "headers": {
     "x-header": "x-value"
   },
-  "ignore": false,
-  "allow_raw_access": true
+  "ignore": false
 }'
   # splitting this up into two checks, because the order is different on macos vs ubuntu
   assert_contains 'WARN: {
@@ -1514,8 +1510,7 @@ WARN: {
   "headers": {
     "x-header": "x-value"
   },
-  "ignore": false,
-  "allow_raw_access": true
+  "ignore": false
 }'
 }
 
