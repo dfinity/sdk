@@ -43,7 +43,7 @@ Added the following subcommands:
 
 ### Motoko
 
-Updated Motoko to [0.10.1](https://github.com/dfinity/motoko/releases/tag/0.10.1)
+Updated Motoko to [0.10.2](https://github.com/dfinity/motoko/releases/tag/0.10.2)
 
 ### Frontend canister
 
@@ -69,6 +69,10 @@ This incorporates the following executed proposals:
 - [125001](https://dashboard.internetcomputer.org/proposal/125001)
 - [124858](https://dashboard.internetcomputer.org/proposal/124858)
 - [124857](https://dashboard.internetcomputer.org/proposal/124857)
+
+### Bitcoin canister
+
+Updated Bitcoin canister to [release/2023-10-13](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2023-10-13)
 
 # 0.15.1
 
