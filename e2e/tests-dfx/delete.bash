@@ -14,6 +14,19 @@ teardown() {
   standard_teardown
 }
 
+@test "delete by canister id cleans up canister id store" {
+  dfx_start
+  dfx deploy e2e_project_backend
+  id=$(dfx canister id e2e_project_backend)
+  dfx canister stop e2e_project_backend
+  assert_command dfx canister delete "$id"
+  assert_command_fail dfx canister info e2e_project_backend
+  assert_contains "Cannot find canister id. Please issue 'dfx canister create e2e_project_backend'."
+  assert_command_fail dfx canister status "$id"
+  assert_contains "Canister $id not found"
+  assert_command dfx deploy
+}
+
 @test "delete can be used to delete a canister" {
   dfx_start
   dfx deploy e2e_project_backend
