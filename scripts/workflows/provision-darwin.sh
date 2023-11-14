@@ -28,7 +28,7 @@ if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
 fi
 if [ "$E2E_TEST" = "tests-dfx/deps.bash" ]; then
      cargo install cargo-binstall
-     cargo binstall ic-wasm
+     cargo binstall -y ic-wasm
 fi
 
 # Exit temporary directory.

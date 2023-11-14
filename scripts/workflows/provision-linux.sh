@@ -37,7 +37,7 @@ if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ] || [ "$E2E_TEST" = "te
 fi
 if [ "$E2E_TEST" = "tests-dfx/deps.bash" ]; then
      cargo install cargo-binstall
-     cargo binstall ic-wasm
+     cargo binstall -y ic-wasm
 fi
 
 # Set environment variables.
