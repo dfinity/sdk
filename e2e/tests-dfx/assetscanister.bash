@@ -1761,8 +1761,8 @@ WARN: {
         manage_permissions = opt vec {
           principal \"$(dfx identity get-principal)\";
         };
-      };
-    };
+      }
+    }
   })"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
   assert_match "${ALICE}"

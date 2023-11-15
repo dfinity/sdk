@@ -203,7 +203,9 @@ pub async fn exec(
                     Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
                 let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
 
-                let install_args = || Ok(vec![]);
+                let idl_path = canister_info.get_constructor_idl_path();
+                let init_type = get_candid_init_type(&idl_path);
+                let install_args = || blob_from_arguments(None, None, None, &init_type);
 
                 install_canister(
                     env,
