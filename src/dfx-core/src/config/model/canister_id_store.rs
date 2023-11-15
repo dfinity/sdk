@@ -188,8 +188,12 @@ impl CanisterIdStore {
         self.remote_ids
             .as_ref()
             .and_then(|remote_ids| self.get_name_in(canister_id, remote_ids))
-            .or_else(|| self.get_name_in(canister_id, &self.ids))
+            .or_else(|| self.get_name_in_project(canister_id))
             .or_else(|| self.get_name_in_pull_ids(canister_id))
+    }
+
+    pub fn get_name_in_project(&self, canister_id: &str) -> Option<&String> {
+        self.get_name_in(canister_id, &self.ids)
     }
 
     pub fn get_name_in<'a>(

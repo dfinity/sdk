@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+=== fix: `dfx canister delete <canister id>` removes the related entry from the canister id store
+
+Previously, deleting a canister in the project by id rather than by name
+would leave the canister id in the canister id store. This would cause
+`dfx deploy` to fail.
+
 === fix: dfx extension install can no longer create a corrupt cache directory
 
 Running `dfx cache delete && dfx extension install nns` would previously
