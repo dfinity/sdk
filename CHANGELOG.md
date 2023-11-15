@@ -64,9 +64,13 @@ Fixed a certification issue where under certain conditions the fallback file (`/
 
 ### Replica
 
-Updated replica to elected commit 80a6745673a28ee53d257b3fe19dcd6b7efa93d1.
+Updated replica to elected commit d430f7ad0c6384921801a54b37b9f3c55a360c51.
 This incorporates the following executed proposals:
 
+- [125592](https://dashboard.internetcomputer.org/proposal/125592)
+- [125591](https://dashboard.internetcomputer.org/proposal/125591)
+- [125504](https://dashboard.internetcomputer.org/proposal/125504)
+- [125503](https://dashboard.internetcomputer.org/proposal/125503)
 - [125343](https://dashboard.internetcomputer.org/proposal/125343)
 - [125342](https://dashboard.internetcomputer.org/proposal/125342)
 - [125321](https://dashboard.internetcomputer.org/proposal/125321)
