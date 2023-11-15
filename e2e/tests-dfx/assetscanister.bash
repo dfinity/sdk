@@ -1752,17 +1752,17 @@ WARN: {
     Upgrade = record {
       set_permissions = opt record {
         prepare = opt vec {
-          principal \""${ALICE}"\";
+          principal \"${ALICE}\";
         };
         commit = opt vec {
-          principal \""$(dfx identity get-principal)"\";
+          principal \"$(dfx identity get-principal)\";
           principal \"aaaaa-aa\";
         };
         manage_permissions = opt vec {
-          principal \""$(dfx identity get-principal)"\"
-        }
-      }
-    }
+          principal \"$(dfx identity get-principal)\";
+        };
+      };
+    };
   })"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
   assert_match "${ALICE}"
