@@ -139,7 +139,25 @@ type ListPermitted = record { permission: Permission };
 
 type ValidationResult = variant { Ok : text; Err : text };
 
-service: {
+type AssetCanisterArgs = variant {
+  Init: InitArgs;
+  Upgrade: UpgradeArgs;
+};
+
+type InitArgs = record {};
+
+type UpgradeArgs = record {
+  set_permissions: opt SetPermissions;
+};
+
+/// Sets the list of principals with a certain permission for every permission that is set.
+type SetPermissions = record {
+  prepare: opt vec principal;
+  commit: opt vec principal;
+  manage_permissions: opt vec principal;
+};
+
+service: (asset_canister_args: opt AssetCanisterArgs) -> {
   api_version: () -> (nat16) query;
 
   get: (record {

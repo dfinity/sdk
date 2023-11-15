@@ -1732,3 +1732,61 @@ WARN: {
   assert_command      dfx canister call e2e_project_frontend configure '(record { max_chunks=opt opt 3; max_bytes = opt opt 5500 })'
   assert_command      dfx deploy
 }
+
+@test "set permissions through upgrade argument" {
+  dfx_start
+  dfx deploy
+
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
+  assert_match 'vec {}'
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_match "$(dfx identity get-principal)"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
+  assert_match 'vec {}'
+
+  dfx identity new alice --storage-mode plaintext
+  ALICE="$(dfx --identity alice identity get-principal)"
+
+  # set new lists
+  dfx canister install e2e_project_frontend --upgrade-unchanged --mode upgrade --argument "(opt variant {
+    Upgrade = record {
+      set_permissions = opt record {
+        prepare = opt vec {
+          principal \""${ALICE}"\";
+        };
+        commit = opt vec {
+          principal \""$(dfx identity get-principal)"\";
+          principal \"aaaaa-aa\";
+        };
+        manage_permissions = opt vec {
+          principal \""$(dfx identity get-principal)"\"
+        }
+      }
+    }
+  })"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
+  assert_match "${ALICE}"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_match "$(dfx identity get-principal)"
+  assert_match '"aaaaa-aa"'
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
+  assert_match "$(dfx identity get-principal)"
+
+  # set only some lists - others are not touched
+  dfx canister install e2e_project_frontend --upgrade-unchanged --mode upgrade --argument "(opt variant {
+    Upgrade = record {
+      set_permissions = opt record {
+        prepare = null;
+        commit = null;
+        manage_permissions = opt vec {};
+      }
+    }
+  })"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
+  assert_match "${ALICE}"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_match "$(dfx identity get-principal)"
+  assert_match '"aaaaa-aa"'
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
+  assert_match "vec {}"
+}
