@@ -178,6 +178,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "allocator-api2"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0942ffc6dcaadf03badf6e6a2d0228460359d5e34b57ccdc720b7382dfbd5ec5"
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -724,6 +730,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "cached"
+version = "0.46.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c7c8c50262271cdf5abc979a5f76515c234e764fa025d1ba4862c0f0bcda0e95"
+dependencies = [
+ "ahash 0.8.6",
+ "hashbrown 0.14.2",
+ "instant",
+ "once_cell",
+ "thiserror",
+]
+
+[[package]]
 name = "candid"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1192,6 +1211,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "curve25519-dalek-ng"
+version = "4.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c359b7249347e46fb28804470d071c921156ad62b3eef5d34e2ba867533dec8"
+dependencies = [
+ "byteorder",
+ "digest 0.9.0",
+ "rand_core",
+ "subtle-ng",
+ "zeroize",
+]
+
+[[package]]
 name = "cvt"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1388,7 +1420,7 @@ dependencies = [
  "ic-asset",
  "ic-cdk",
  "ic-identity-hsm",
- "ic-utils 0.29.0",
+ "ic-utils 0.30.1",
  "ic-wasm",
  "icrc-ledger-types",
  "indicatif",
@@ -1458,7 +1490,7 @@ dependencies = [
  "humantime-serde",
  "ic-agent",
  "ic-identity-hsm",
- "ic-utils 0.29.0",
+ "ic-utils 0.30.1",
  "k256 0.11.6",
  "keyring",
  "lazy_static",
@@ -1627,6 +1659,21 @@ dependencies = [
  "rfc6979 0.4.0",
  "signature 2.1.0",
  "spki 0.7.2",
+]
+
+[[package]]
+name = "ed25519-consensus"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3c8465edc8ee7436ffea81d21a019b16676ee3db267aa8d5a8d729581ecf998b"
+dependencies = [
+ "curve25519-dalek-ng",
+ "hex",
+ "rand_core",
+ "serde",
+ "sha2 0.9.9",
+ "thiserror",
+ "zeroize",
 ]
 
 [[package]]
@@ -2201,6 +2248,10 @@ name = "hashbrown"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f93e7192158dbcda357bdec5fb5788eebf8bbac027f3f33e719d29135ae84156"
+dependencies = [
+ "ahash 0.8.6",
+ "allocator-api2",
+]
 
 [[package]]
 name = "heck"
@@ -2408,11 +2459,13 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.29.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=b91b85b7b6ba6bfaf9dfd616b7c7c8f966bf8f68#b91b85b7b6ba6bfaf9dfd616b7c7c8f966bf8f68"
+version = "0.30.1"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=5aa3ba7d8c38d44910900af7ed7d8a25402fa9d9#5aa3ba7d8c38d44910900af7ed7d8a25402fa9d9"
 dependencies = [
  "backoff",
+ "cached 0.46.1",
  "candid 0.9.11",
+ "ed25519-consensus",
  "futures-util",
  "hex",
  "http",
@@ -2425,6 +2478,7 @@ dependencies = [
  "pem 2.0.1",
  "pkcs8 0.10.2",
  "rand",
+ "rangemap",
  "reqwest",
  "ring 0.16.20",
  "rustls-webpki",
@@ -2455,7 +2509,7 @@ dependencies = [
  "globset",
  "hex",
  "ic-agent",
- "ic-utils 0.29.0",
+ "ic-utils 0.30.1",
  "itertools 0.10.5",
  "json5",
  "mime",
@@ -2657,7 +2711,7 @@ source = "git+https://github.com/dfinity/ic.git?rev=a533346f63f4091eb64692891de0
 dependencies = [
  "arrayvec 0.5.2",
  "base64 0.11.0",
- "cached",
+ "cached 0.41.0",
  "hex",
  "ic-crypto-internal-bls12-381-type",
  "ic-crypto-internal-seed",
@@ -2774,8 +2828,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.29.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=b91b85b7b6ba6bfaf9dfd616b7c7c8f966bf8f68#b91b85b7b6ba6bfaf9dfd616b7c7c8f966bf8f68"
+version = "0.30.1"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=5aa3ba7d8c38d44910900af7ed7d8a25402fa9d9#5aa3ba7d8c38d44910900af7ed7d8a25402fa9d9"
 dependencies = [
  "hex",
  "ic-agent",
@@ -2870,8 +2924,8 @@ dependencies = [
 
 [[package]]
 name = "ic-transport-types"
-version = "0.29.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=b91b85b7b6ba6bfaf9dfd616b7c7c8f966bf8f68#b91b85b7b6ba6bfaf9dfd616b7c7c8f966bf8f68"
+version = "0.30.1"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=5aa3ba7d8c38d44910900af7ed7d8a25402fa9d9#5aa3ba7d8c38d44910900af7ed7d8a25402fa9d9"
 dependencies = [
  "candid 0.9.11",
  "hex",
@@ -2945,8 +2999,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.29.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=b91b85b7b6ba6bfaf9dfd616b7c7c8f966bf8f68#b91b85b7b6ba6bfaf9dfd616b7c7c8f966bf8f68"
+version = "0.30.1"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=5aa3ba7d8c38d44910900af7ed7d8a25402fa9d9#5aa3ba7d8c38d44910900af7ed7d8a25402fa9d9"
 dependencies = [
  "async-trait",
  "candid 0.9.11",
@@ -3039,7 +3093,7 @@ dependencies = [
  "humantime",
  "ic-agent",
  "ic-asset",
- "ic-utils 0.29.0",
+ "ic-utils 0.30.1",
  "libflate",
  "num-traits",
  "pem 1.1.1",
@@ -4485,6 +4539,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "rangemap"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "977b1e897f9d764566891689e642653e5ed90c6895106acd005eb4c1d0203991"
+
+[[package]]
 name = "rayon"
 version = "1.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5453,6 +5513,12 @@ name = "subtle"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
+
+[[package]]
+name = "subtle-ng"
+version = "2.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "734676eb262c623cec13c3155096e08d1f8f29adce39ba17948b18dad1e54142"
 
 [[package]]
 name = "supports-color"
