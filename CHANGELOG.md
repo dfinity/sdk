@@ -53,7 +53,8 @@ Fixed a certification issue where under certain conditions the fallback file (`/
 
 Add the option to (re)set all permissions using upgrade arguments. This is especially useful for SNSes that cannot make calls as the canister's controller.
 
-- Module hash: 965c8899f0a033593dc9b1634b2ab4e0f3fd28c1cfa06993069be2040a2f700e
+- Module hash: 993274af189aab1b253763c16c0d4e769bc674acde407c2834311bc39d09f831
+- https://github.com/dfinity/sdk/pull/3443
 - https://github.com/dfinity/sdk/pull/3429
 - https://github.com/dfinity/sdk/pull/3428
 - https://github.com/dfinity/sdk/pull/3421
