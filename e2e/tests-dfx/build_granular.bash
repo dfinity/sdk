@@ -47,7 +47,7 @@ teardown() {
   dfx build e2e_project_backend
   # validate assets canister wasn't built and can't be installed
   assert_command_fail dfx canister install e2e_project_frontend
-  assert_match "No such file or directory"
+  assert_match "The canister must be built before install. Please run \`dfx build\`."
 }
 
 
