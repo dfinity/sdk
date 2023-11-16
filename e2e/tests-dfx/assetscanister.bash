@@ -1738,11 +1738,11 @@ WARN: {
   dfx deploy
 
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
-  assert_match 'vec {}'
+  assert_eq "(vec {})"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_match "$(dfx identity get-principal)"
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
-  assert_match 'vec {}'
+  assert_eq "(vec {})"
 
   dfx identity new alice --storage-mode plaintext
   ALICE="$(dfx --identity alice identity get-principal)"
@@ -1788,5 +1788,5 @@ WARN: {
   assert_match "$(dfx identity get-principal)"
   assert_match '"aaaaa-aa"'
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
-  assert_match "vec {}"
+  assert_eq "(vec {})"
 }
