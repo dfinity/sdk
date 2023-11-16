@@ -13,7 +13,6 @@ setup() {
   dfx deploy
 
   BACKEND="127.0.0.1:$(get_webserver_port)"
-  declare -x DFX_DISABLE_QUERY_VERIFICATION=1
 
   # In github workflows, at the time of this writing, we get:
   #     macos-latest: mitmproxy 7.0.4
@@ -74,6 +73,7 @@ teardown() {
   # The wallet does not have a query call forward method (currently calls forward from wallet's update method)
   # So call with users Identity as sender here
   # There may need to be a query version of wallet_call
+  declare -x DFX_DISABLE_QUERY_VERIFICATION=1
   assert_command dfx canister call certificate_backend hello_query '("Buckaroo")'
   assert_eq '("Hullo, Buckaroo!")'
 }
