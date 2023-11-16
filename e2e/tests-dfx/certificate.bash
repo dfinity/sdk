@@ -13,6 +13,7 @@ setup() {
   dfx deploy
 
   BACKEND="127.0.0.1:$(get_webserver_port)"
+  declare -x DFX_DISABLE_QUERY_VERIFICATION=1
 
   # In github workflows, at the time of this writing, we get:
   #     macos-latest: mitmproxy 7.0.4

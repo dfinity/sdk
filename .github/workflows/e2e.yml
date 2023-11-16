@@ -97,6 +97,10 @@ jobs:
           path: /usr/local/bin
       - name: Setup dfx binary
         run: chmod +x /usr/local/bin/dfx
+      - name: Disable query verification in ic-ref
+        if: ${{ matrix.backend == 'ic-ref' }}
+        run: |
+          echo DFX_DISABLE_QUERY_VERIFICATION=1 >> $GITHUB_ENV
       - name: start and deploy
         run: |
           pwd
