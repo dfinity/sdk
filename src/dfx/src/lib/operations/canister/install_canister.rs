@@ -107,9 +107,13 @@ pub async fn install_canister(
     let wasm_path: PathBuf = if let Some(wasm_override) = wasm_path_override {
         wasm_override.into()
     } else {
-        canister_info
+        let build_wasm_path = canister_info
             .map(|info| info.get_build_wasm_path())
-            .context("Failed to find wasm")?
+            .context("Failed to find wasm")?;
+        if !build_wasm_path.exists() {
+            bail!("The canister must be built before install. Please run `dfx build`.");
+        }
+        build_wasm_path
     };
     let wasm_module = std::fs::read(&wasm_path)
         .with_context(|| format!("Failed to read {}.", &wasm_path.display()))?;
