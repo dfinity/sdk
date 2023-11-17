@@ -60,6 +60,8 @@ pub async fn exec(
     opts: DepositCyclesOpts,
     mut call_sender: &CallSender,
 ) -> DfxResult {
+    fetch_root_key_if_needed(env).await?;
+
     let proxy_sender;
 
     // choose default wallet if no wallet is specified
@@ -78,8 +80,6 @@ pub async fn exec(
     let cycles = opts.cycles;
 
     let config = env.get_config_or_anyhow()?;
-
-    fetch_root_key_if_needed(env).await?;
 
     if let Some(canister) = opts.canister.as_deref() {
         deposit_cycles(env, canister, call_sender, cycles).await

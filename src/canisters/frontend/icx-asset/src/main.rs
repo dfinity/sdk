@@ -110,9 +110,9 @@ async fn main() -> anyhow::Result<()> {
     let logger = support::new_logger();
 
     let agent = Agent::builder()
-        .with_transport(
-            agent::http_transport::ReqwestHttpReplicaV2Transport::create(opts.replica.clone())?,
-        )
+        .with_transport(agent::http_transport::ReqwestTransport::create(
+            opts.replica.clone(),
+        )?)
         .with_boxed_identity(create_identity(opts.pem))
         .build()?;
 
