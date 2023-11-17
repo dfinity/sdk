@@ -91,10 +91,15 @@ async fn delete_canister(
 ) -> DfxResult {
     let log = env.get_logger();
     let mut canister_id_store = env.get_canister_id_store()?;
+    let (canister_id, canister_name_to_delete) = match Principal::from_text(canister) {
+        Ok(canister_id) => (
+            canister_id,
+            canister_id_store.get_name_in_project(canister).cloned(),
+        ),
+        Err(_) => (canister_id_store.get(canister)?, Some(canister.to_string())),
+    };
 
     if !env.get_network_descriptor().is_playground() {
-        let canister_id =
-            Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
         let mut call_sender = call_sender;
         let to_dank = withdraw_cycles_to_dank || withdraw_cycles_to_dank_principal.is_some();
 
@@ -268,7 +273,10 @@ async fn delete_canister(
 
         canister::delete_canister(env, canister_id, call_sender).await?;
     }
-    canister_id_store.remove(canister)?;
+
+    if let Some(canister_name) = canister_name_to_delete {
+        canister_id_store.remove(&canister_name)?;
+    }
 
     Ok(())
 }

@@ -4,7 +4,7 @@ use crate::lib::{
 use anyhow::Context;
 use dfx_core::config::model::dfinity::DEFAULT_IC_GATEWAY;
 use fn_error_context::context;
-use ic_agent::{agent::http_transport::ReqwestHttpReplicaV2Transport, Agent};
+use ic_agent::{agent::http_transport::ReqwestTransport, Agent};
 use rust_decimal::Decimal;
 
 /// How many cycles you get per XDR when converting ICP to cycles
@@ -16,7 +16,7 @@ const CYCLES_PER_XDR: u128 = 1_000_000_000_000;
 pub async fn as_cycles_with_current_exchange_rate(icpts: &ICPTs) -> DfxResult<u128> {
     let agent = Agent::builder()
         .with_transport(
-            ReqwestHttpReplicaV2Transport::create(DEFAULT_IC_GATEWAY)
+            ReqwestTransport::create(DEFAULT_IC_GATEWAY)
                 .context("Failed to create transport object to default ic gateway.")?,
         )
         .build()

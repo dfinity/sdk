@@ -383,11 +383,14 @@ pub fn create_agent(
     identity: Box<dyn Identity + Send + Sync>,
     timeout: Duration,
 ) -> DfxResult<Agent> {
+    let disable_query_verification =
+        std::env::var("DFX_DISABLE_QUERY_VERIFICATION").is_ok_and(|x| !x.trim().is_empty());
     let agent = Agent::builder()
         .with_transport(ic_agent::agent::http_transport::ReqwestTransport::create(
             url,
         )?)
         .with_boxed_identity(identity)
+        .with_verify_query_signatures(!disable_query_verification)
         .with_ingress_expiry(Some(timeout))
         .build()?;
     Ok(agent)

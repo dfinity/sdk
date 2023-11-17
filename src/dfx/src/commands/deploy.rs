@@ -115,9 +115,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         .map_err(|err| anyhow!(err))
         .context("Failed to parse InstallMode.")?;
     let config = env.get_config_or_anyhow()?;
-    let env_file = opts
-        .output_env_file
-        .or_else(|| config.get_config().output_env_file.clone());
+    let env_file = config.get_output_env_file(opts.output_env_file)?;
 
     let with_cycles = opts.with_cycles;
 

@@ -3,8 +3,12 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::install_canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::util::clap::parsers::file_or_stdin_parser;
 use crate::util::get_candid_init_type;
-use crate::{lib::canister_info::CanisterInfo, util::blob_from_arguments};
+use crate::{
+    lib::canister_info::CanisterInfo,
+    util::{arguments_from_file, blob_from_arguments},
+};
 use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
@@ -40,8 +44,16 @@ pub struct CanisterInstallOpts {
     upgrade_unchanged: bool,
 
     /// Specifies the argument to pass to the method.
-    #[arg(long)]
+    #[arg(long, conflicts_with("argument_file"))]
     argument: Option<String>,
+
+    /// Specifies the file from which to read the argument to pass to the method.
+    #[arg(
+        long,
+        value_parser = file_or_stdin_parser,
+        conflicts_with("argument")
+    )]
+    argument_file: Option<PathBuf>,
 
     /// Specifies the data type for the argument when making the call using an argument.
     #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
@@ -107,7 +119,14 @@ pub async fn exec(
 
         let canister_id =
             Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
+
+        let arguments_from_file = opts
+            .argument_file
+            .map(|v| arguments_from_file(&v))
+            .transpose()?;
         let arguments = opts.argument.as_deref();
+        let arguments = arguments_from_file.as_deref().or(arguments);
+
         let arg_type = opts.argument_type.as_deref();
         let canister_info = config.as_ref()
             .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))
@@ -136,9 +155,7 @@ pub async fn exec(
         } else {
             let canister_info = canister_info?;
             let config = config.unwrap();
-            let env_file = opts
-                .output_env_file
-                .or_else(|| config.get_config().output_env_file.clone());
+            let env_file = config.get_output_env_file(opts.output_env_file)?;
             let idl_path = canister_info.get_constructor_idl_path();
             let init_type = get_candid_init_type(&idl_path);
             let install_args = || blob_from_arguments(arguments, None, arg_type, &init_type);
@@ -163,9 +180,7 @@ pub async fn exec(
     } else if opts.all {
         // Install all canisters.
         let config = env.get_config_or_anyhow()?;
-        let env_file = opts
-            .output_env_file
-            .or_else(|| config.get_config().output_env_file.clone());
+        let env_file = config.get_output_env_file(opts.output_env_file)?;
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
                 if pull_canisters_in_config.contains_key(canister) {
