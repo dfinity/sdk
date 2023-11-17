@@ -65,6 +65,19 @@ impl Transport for SignTransport {
         Box::pin(run(self, envelope))
     }
 
+    fn read_subnet_state(
+        &self,
+        _: Principal,
+        _: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + '_>> {
+        async fn run() -> Result<Vec<u8>, AgentError> {
+            Err(AgentError::MessageError(
+                "read_subnet_state calls not supported".to_string(),
+            ))
+        }
+        Box::pin(run())
+    }
+
     fn call<'a>(
         &'a self,
         _effective_canister_id: Principal,
