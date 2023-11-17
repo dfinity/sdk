@@ -13,6 +13,12 @@ teardown() {
   standard_teardown
 }
 
+@test "extension install with an empty cache does not create a corrupt cache" {
+  dfx cache delete
+  dfx extension install nns --version 0.2.1
+  dfx_start
+}
+
 @test "install extension from official registry" {
   assert_command_fail dfx snsx
 
