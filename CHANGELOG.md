@@ -2,13 +2,13 @@
 
 # UNRELEASED
 
-=== fix: `dfx canister delete <canister id>` removes the related entry from the canister id store
+### fix: `dfx canister delete <canister id>` removes the related entry from the canister id store
 
 Previously, deleting a canister in the project by id rather than by name
 would leave the canister id in the canister id store. This would cause
 `dfx deploy` to fail.
 
-=== fix: dfx extension install can no longer create a corrupt cache directory
+### fix: dfx extension install can no longer create a corrupt cache directory
 
 Running `dfx cache delete && dfx extension install nns` would previously
 create a cache directory containing only an `extensions` subdirectory.
@@ -16,13 +16,13 @@ dfx only looks for the existence of a cache version subdirectory to
 determine whether it has been installed. The end result was that later
 commands would fail when the cache did not contain expected files.
 
-=== fix: output_env_file is now considered relative to project root
+### fix: output_env_file is now considered relative to project root
 
 The .env file location, whether specified as `output_env_file` in dfx.json
 or `--output-env-file <file>` on the commandline, is now considered relative
 to the project root, rather than relative to the current working directory.
 
-=== feat: Read dfx canister install argument from a file
+### feat: Read dfx canister install argument from a file
 
 Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example `dfx canister install --argument-file ./my/argument/file.txt my_canister_name`.
 
