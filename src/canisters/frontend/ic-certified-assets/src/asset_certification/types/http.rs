@@ -4,7 +4,7 @@ use crate::{
     state_machine::{encoding_certification_order, Asset, AssetEncoding},
 };
 use candid::{define_function, CandidType, Deserialize, Nat};
-use ic_certified_map::Hash;
+use ic_certification::Hash;
 use ic_representation_independent_hash::{representation_independent_hash, Value};
 use serde_bytes::ByteBuf;
 use sha2::Digest;

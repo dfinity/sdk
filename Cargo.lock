@@ -2470,7 +2470,7 @@ dependencies = [
  "hex",
  "http",
  "http-body",
- "ic-certification 1.2.0",
+ "ic-certification 1.3.0",
  "ic-transport-types",
  "ic-verify-bls-signature",
  "k256 0.13.1",
@@ -2608,9 +2608,9 @@ dependencies = [
 
 [[package]]
 name = "ic-certification"
-version = "1.2.0"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a59dc342d11b2067e19d0f146bdec3674de921303ffc762f114d201ebbe0e68a"
+checksum = "e8c04340437a32c8b9c80d36f09715909c1e0a755327503a2e2906dcd662ba4e"
 dependencies = [
  "hex",
  "serde",
@@ -2626,7 +2626,7 @@ dependencies = [
  "candid 0.9.11",
  "hex",
  "ic-cdk",
- "ic-certified-map",
+ "ic-certification 1.3.0",
  "ic-crypto-tree-hash",
  "ic-representation-independent-hash",
  "ic-response-verification",
@@ -2929,7 +2929,7 @@ source = "git+https://github.com/dfinity/agent-rs.git?rev=ed0862a45d5973ff123cba
 dependencies = [
  "candid 0.9.11",
  "hex",
- "ic-certification 1.2.0",
+ "ic-certification 1.3.0",
  "leb128",
  "serde",
  "serde_bytes",
