@@ -82,7 +82,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        backend: ["ic-ref", "replica"]
         # macos-latest is currently macos-11, ubuntu-latest is currently ubuntu-20.04
         # ubuntu-18.04 not supported due to:
         #     /home/runner/.cache/dfinity/versions/0.8.3-34-g36e39809/ic-starter:
@@ -107,11 +106,7 @@ jobs:
           time dfx cache install
           time dfx new smoke
           cd smoke
-          if [ "${{ matrix.backend}}" = "ic-ref" ]; then
-              time dfx start --emulator --background
-          else
-              time dfx start --background
-          fi
+          time dfx start --background
           time dfx deploy
           time dfx canister call smoke_backend greet '("fire")'
           time curl --fail http://localhost:"$(dfx info webserver-port)"/sample-asset.txt?canisterId=$(dfx canister id smoke_frontend)
