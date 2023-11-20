@@ -57,7 +57,8 @@ Defining a custom `etag` header no longer breaks certification.
 
 Fixed a certification issue where under certain conditions the fallback file (`/index.html`) was served with an incomplete certificate tree, not proving sufficiently that the fallback file may be used as a replacement.
 
-- Module hash: 965c8899f0a033593dc9b1634b2ab4e0f3fd28c1cfa06993069be2040a2f700e
+- Module hash: 1621e9ead6463304ceb3a81b10577c61c9d24f6e70b2e275a10b3a9be982dfb4
+- https://github.com/dfinity/sdk/pull/3451
 - https://github.com/dfinity/sdk/pull/3429
 - https://github.com/dfinity/sdk/pull/3428
 - https://github.com/dfinity/sdk/pull/3421
