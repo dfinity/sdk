@@ -1747,18 +1747,17 @@ WARN: {
   dfx identity new alice --storage-mode plaintext
   ALICE="$(dfx --identity alice identity get-principal)"
 
-  # set new lists
   dfx canister install e2e_project_frontend --upgrade-unchanged --mode upgrade --argument "(opt variant {
     Upgrade = record {
       set_permissions = opt record {
-        prepare = opt vec {
+        prepare = vec {
           principal \"${ALICE}\";
         };
-        commit = opt vec {
+        commit = vec {
           principal \"$(dfx identity get-principal)\";
           principal \"aaaaa-aa\";
         };
-        manage_permissions = opt vec {
+        manage_permissions = vec {
           principal \"$(dfx identity get-principal)\";
         };
       }
@@ -1771,22 +1770,4 @@ WARN: {
   assert_match '"aaaaa-aa"'
   assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
   assert_match "$(dfx identity get-principal)"
-
-  # set only some lists - others are not touched
-  dfx canister install e2e_project_frontend --upgrade-unchanged --mode upgrade --argument "(opt variant {
-    Upgrade = record {
-      set_permissions = opt record {
-        prepare = null;
-        commit = null;
-        manage_permissions = opt vec {};
-      }
-    }
-  })"
-  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
-  assert_match "${ALICE}"
-  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
-  assert_match "$(dfx identity get-principal)"
-  assert_match '"aaaaa-aa"'
-  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
-  assert_eq "(vec {})"
 }

@@ -328,16 +328,10 @@ impl State {
             manage_permissions,
         }: SetPermissions,
     ) {
-        if let Some(prepare) = prepare {
-            *self.get_mut_permission_list(&Permission::Prepare) = prepare.into_iter().collect();
-        }
-        if let Some(commit) = commit {
-            *self.get_mut_permission_list(&Permission::Commit) = commit.into_iter().collect();
-        }
-        if let Some(manage_permissions) = manage_permissions {
-            *self.get_mut_permission_list(&Permission::ManagePermissions) =
-                manage_permissions.into_iter().collect();
-        }
+        *self.get_mut_permission_list(&Permission::Prepare) = prepare.into_iter().collect();
+        *self.get_mut_permission_list(&Permission::Commit) = commit.into_iter().collect();
+        *self.get_mut_permission_list(&Permission::ManagePermissions) =
+            manage_permissions.into_iter().collect();
     }
 
     pub fn grant_permission(&mut self, principal: Principal, permission: &Permission) {

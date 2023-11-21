@@ -204,7 +204,7 @@ pub struct UpgradeArgs {
 /// Sets the list of principals with a certain permission for every permission that is `Some`.
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct SetPermissions {
-    pub prepare: Option<Vec<Principal>>,
-    pub commit: Option<Vec<Principal>>,
-    pub manage_permissions: Option<Vec<Principal>>,
+    pub prepare: Vec<Principal>,
+    pub commit: Vec<Principal>,
+    pub manage_permissions: Vec<Principal>,
 }

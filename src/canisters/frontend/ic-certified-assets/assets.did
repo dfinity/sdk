@@ -152,9 +152,9 @@ type UpgradeArgs = record {
 
 /// Sets the list of principals with a certain permission for every permission that is set.
 type SetPermissions = record {
-  prepare: opt vec principal;
-  commit: opt vec principal;
-  manage_permissions: opt vec principal;
+  prepare: vec principal;
+  commit: vec principal;
+  manage_permissions: vec principal;
 };
 
 service: (asset_canister_args: opt AssetCanisterArgs) -> {
