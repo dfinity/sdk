@@ -1,4 +1,4 @@
-use ic_certified_map::{AsHashTree, HashTree, RbTree};
+use ic_certification::{AsHashTree, HashTree, RbTree};
 
 pub trait NestedTreeKeyRequirements: Clone + AsRef<[u8]> + 'static {}
 pub trait NestedTreeValueRequirements: AsHashTree + 'static {}
@@ -18,14 +18,14 @@ impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> Default for N
 }
 
 impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> AsHashTree for NestedTree<K, V> {
-    fn root_hash(&self) -> ic_certified_map::Hash {
+    fn root_hash(&self) -> ic_certification::Hash {
         match self {
             NestedTree::Leaf(a) => a.root_hash(),
             NestedTree::Nested(tree) => tree.root_hash(),
         }
     }
 
-    fn as_hash_tree(&self) -> HashTree<'_> {
+    fn as_hash_tree(&self) -> HashTree {
         match self {
             NestedTree::Leaf(a) => a.as_hash_tree(),
             NestedTree::Nested(tree) => tree.as_hash_tree(),
@@ -125,41 +125,6 @@ impl<K: NestedTreeKeyRequirements, V: NestedTreeValueRequirements> NestedTree<K,
             }
         } else {
             self.as_hash_tree()
-        }
-    }
-}
-
-pub fn merge_hash_trees<'a>(lhs: HashTree<'a>, rhs: HashTree<'a>) -> HashTree<'a> {
-    use HashTree::{Empty, Fork, Labeled, Leaf, Pruned};
-
-    match (lhs, rhs) {
-        (Pruned(l), Pruned(r)) => {
-            if l != r {
-                panic!("merge_hash_trees: inconsistent hashes");
-            }
-            Pruned(l)
-        }
-        (Pruned(_), r) => r,
-        (l, Pruned(_)) => l,
-        (Fork(l), Fork(r)) => Fork(Box::new((
-            merge_hash_trees(l.0, r.0),
-            merge_hash_trees(l.1, r.1),
-        ))),
-        (Labeled(l_label, l), Labeled(r_label, r)) => {
-            if l_label != r_label {
-                panic!("merge_hash_trees: inconsistent hash tree labels");
-            }
-            Labeled(l_label, Box::new(merge_hash_trees(*l, *r)))
-        }
-        (Empty, Empty) => Empty,
-        (Leaf(l), Leaf(r)) => {
-            if l != r {
-                panic!("merge_hash_trees: inconsistent leaves");
-            }
-            Leaf(l)
-        }
-        (_l, _r) => {
-            panic!("merge_hash_trees: inconsistent tree structure");
         }
     }
 }

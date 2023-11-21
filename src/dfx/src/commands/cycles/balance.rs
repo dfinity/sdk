@@ -2,6 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::operations::cycles_ledger;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
 use candid::Principal;
 use clap::Parser;
@@ -29,6 +30,8 @@ pub struct CyclesBalanceOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: CyclesBalanceOpts) -> DfxResult {
+    fetch_root_key_if_needed(env).await?;
+
     let agent = env.get_agent();
 
     let owner = opts.owner.unwrap_or_else(|| {
