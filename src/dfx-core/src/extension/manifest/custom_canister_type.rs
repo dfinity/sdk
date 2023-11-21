@@ -111,11 +111,11 @@ pub struct CustomCanisterTypeDeclaration(BTreeMap<FieldName, Op>);
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(untagged)]
 enum Op {
-    Replace { replace: Replace },
-    Remove { remove: bool },
-    Template(String),
     BoolValue(bool),
     NumberValue(serde_json::Number),
+    Remove { remove: bool },
+    Replace { replace: Replace },
+    Template(String),
 }
 
 #[cfg_attr(test, derive(Eq, PartialEq))]
@@ -157,17 +157,10 @@ impl CustomCanisterTypeDeclaration {
             .into_iter()
         {
             match op {
-                Op::NumberValue(x) => {
-                    final_fields.insert(field_name, x.into());
-                }
                 Op::BoolValue(x) => {
                     final_fields.insert(field_name, x.into());
                 }
-
-                Op::Template(template) => {
-                    let x = Handlebars::new()
-                        .render_template(&template, &values)
-                        .map_err(OpError::InvalidTemplate)?;
+                Op::NumberValue(x) => {
                     final_fields.insert(field_name, x.into());
                 }
                 Op::Replace { replace } => {
@@ -180,6 +173,12 @@ impl CustomCanisterTypeDeclaration {
                 }
                 Op::Remove { remove } if remove => {
                     remove_fields.push(field_name);
+                }
+                Op::Template(template) => {
+                    let x = Handlebars::new()
+                        .render_template(&template, &values)
+                        .map_err(OpError::InvalidTemplate)?;
+                    final_fields.insert(field_name, x.into());
                 }
                 _ => {}
             }
@@ -194,10 +193,9 @@ impl CustomCanisterTypeDeclaration {
 
         // Override custom canister declaration values by the real canister_declaration
         // see: https://github.com/dfinity/sdk/pull/3222#issuecomment-1624073606
-        for (key, value) in values.iter() {
-            if key != "type" && key != "canister_name" {
-                final_fields.insert(key.clone(), value.clone());
-            }
+        let skip_keys = ["type", "canister_name"].map(String::from);
+        for (key, value) in values.iter().filter(|(k, _)| !skip_keys.contains(&k)) {
+            final_fields.insert(key.clone(), value.clone());
         }
         Ok(final_fields)
     }
@@ -235,71 +233,7 @@ mod tests {
     };}
 
     #[test]
-    fn test_op_replace_basic() {
-        test_op!(
-            custom_canister_template = r#"
-        {
-            "main": { "replace": { "input": "{{canister_name}}", "search": "frontend_(.*)", "output": "thecanister/$1/main.ts" } }
-        }
-        "#,
-            dfx_json_canister_values = r#"
-        {
-            "canister_name": "frontend_xyz"
-        }
-        "#,
-            expected = r#"
-        {
-            "main": "thecanister/xyz/main.ts"
-        }
-        "#
-        );
-    }
-
-    #[test]
-    fn test_op_replace_nested() {
-        test_op!(
-            custom_canister_template = r#"
-        {
-            "main": { "replace": { "input": "{{main}}", "search": "(.*)", "output": "thecanister/$1" } }
-        }
-        "#,
-            dfx_json_canister_values = r#"
-        {
-            "main": "src/main.ts"
-        }
-        "#,
-            expected = r#"
-        {
-            "main": "thecanister/src/main.ts"
-        }
-        "#
-        );
-    }
-
-    #[test]
-    fn test_op_remove() {
-        test_op!(
-            custom_canister_template = r#"
-        {
-            "main": "src/main.ts",
-            "main": { "remove": true }
-        }
-        "#,
-            dfx_json_canister_values = r#"
-        {
-            "main": "thecanister.exe"
-        }
-        "#,
-            expected = r#"
-        {
-            "main": "thecanister.exe"
-        }
-        "#
-        );
-    }
-
-    #[test]
-    fn test_op_replacement_1() {
+    fn test_op_replace_1() {
         test_op!(
             custom_canister_template = r#"
         {
@@ -321,7 +255,7 @@ mod tests {
     }
 
     #[test]
-    fn test_op_replacement_2() {
+    fn test_op_replace_2() {
         test_op!(
             custom_canister_template = r#"
         {
@@ -344,7 +278,7 @@ mod tests {
     }
 
     #[test]
-    fn test_op_replacement_3() {
+    fn test_op_replace_3() {
         test_op!(
             custom_canister_template = r#"
         {
@@ -361,6 +295,226 @@ mod tests {
         {
             "gzip": true,
             "main": "true.py"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_replace_4() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": "path/to/{{main}}"
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "main": "something.py"
+        }
+        "#,
+            expected = r#"
+        {
+            "main": "path/to/something.py"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_replace_5() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": { "replace": { "input": "{{main}}", "search": ".*/(.*).ts", "output": "thecanister/$1.exe" } }
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "main": "src/main.ts"
+        }
+        "#,
+            expected = r#"
+        {
+            "main": "thecanister/main.exe"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_replace_6() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": { "replace": { "input": "{{canister_name}}", "search": "frontend_(.*)", "output": "thecanister/$1/main.ts" } }
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "canister_name": "frontend_xyz"
+        }
+        "#,
+            expected = r#"
+        {
+            "main": "thecanister/xyz/main.ts"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_replace_and_delete_1() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": "something.py",
+            "gzip": { "remove": true }
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "gzip": true
+        }
+        "#,
+            expected = r#"
+        {
+            "main": "something.py"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_replace_and_delete_2() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": "something.py",
+            "gzip": false,
+            "gzip": { "remove": true }
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "gzip": true
+        }
+        "#,
+            expected = r#"
+        {
+            "gzip": false,
+            "main": "something.py"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_replace_and_delete_3() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": "{{gzip}}.py",
+            "gzip": false,
+            "gzip": { "remove": true }
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "gzip": true
+        }
+        "#,
+            expected = r#"
+        {
+            "gzip": false,
+            "main": "true.py"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_replace_and_delete_4() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": "path/to/{{main}}",
+            "main": { "remove": true }
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "main": "something.py"
+        }
+        "#,
+            expected = r#"
+        {
+            "main": "path/to/something.py"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_replace_and_delete_5() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": { "replace": { "input": "{{main}}", "search": ".*/(.*).ts", "output": "thecanister/$1.exe" } },
+            "main": { "remove": true }
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "main": "src/main.ts"
+        }
+        "#,
+            expected = r#"
+        {
+            "main": "thecanister/main.exe"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_replace_and_delete_6() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": { "replace": { "input": "{{canister_name}}", "search": "frontend_(.*)", "output": "thecanister/$1/main.ts" } }
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "canister_name": "frontend_xyz"
+        }
+        "#,
+            expected = r#"
+        {
+            "main": "thecanister/xyz/main.ts"
+        }
+        "#
+        );
+    }
+
+    #[test]
+    fn test_op_remove() {
+        test_op!(
+            custom_canister_template = r#"
+        {
+            "main": "src/main.ts",
+            "main": { "remove": true }
+        }
+        "#,
+            dfx_json_canister_values = r#"
+        {
+            "main": "thecanister.exe"
+        }
+        "#,
+            expected = r#"
+        {
+            "main": "thecanister.exe"
         }
         "#
         );

@@ -215,12 +215,8 @@ EOF
 
     CACHE_DIR=$(dfx cache show)
     mkdir -p "$CACHE_DIR"/extensions/playground
-    echo '#!/usr/bin/env bash
-
-echo testoutput' > "$CACHE_DIR"/extensions/playground/playground
-    chmod +x "$CACHE_DIR"/extensions/playground/playground
-
-    echo '{
+    cat > "$CACHE_DIR"/extensions/playground/extension.json <<EOF
+{
   "name": "playground",
   "version": "0.1.0",
   "homepage": "https://github.com/dfinity/playground",
@@ -238,7 +234,13 @@ echo testoutput' > "$CACHE_DIR"/extensions/playground/playground
       "gzip": false
     }
   }
-}' > "$CACHE_DIR"/extensions/playground/extension.json
+}
+EOF
+    cat > "$CACHE_DIR"/extensions/playground/playground <<EOF
+#!/usr/bin/env bash
+echo testoutput
+EOF
+    chmod +x "$CACHE_DIR"/extensions/playground/playground
 
     assert_command dfx extension list
     assert_match "playground"
@@ -247,7 +249,8 @@ echo testoutput' > "$CACHE_DIR"/extensions/playground/playground
     create_networks_json
     install_asset playground_backend
 
-    echo '{
+    cat > dfx.json <<EOF
+{
   "canisters": {
       "wasm-utils": {
           "type": "playground",
@@ -262,7 +265,8 @@ echo testoutput' > "$CACHE_DIR"/extensions/playground/playground
   },
   "output_env_file": ".env",
   "version": 1
-}' > dfx.json
+}
+EOF
 
     dfx_start
     assert_command dfx deploy -v
