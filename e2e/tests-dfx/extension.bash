@@ -237,7 +237,7 @@ EOF
       "build": "echo the wasm-utils canister is prebuilt",
       "candid": "{{canister_name}}.did",
       "wasm": "{{canister_name}}.wasm",
-      "gzip": false
+      "gzip": true
     }
   }
 }
@@ -259,8 +259,7 @@ EOF
 {
   "canisters": {
       "wasm-utils": {
-          "type": "playground",
-          "gzip": true
+          "type": "playground"
       }
   },
   "defaults": {

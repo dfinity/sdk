@@ -194,7 +194,7 @@ impl CustomCanisterTypeDeclaration {
         // Override custom canister declaration values by the real canister_declaration
         // see: https://github.com/dfinity/sdk/pull/3222#issuecomment-1624073606
         let skip_keys = ["type", "canister_name"].map(String::from);
-        for (key, value) in values.iter().filter(|(k, _)| !skip_keys.contains(&k)) {
+        for (key, value) in values.iter().filter(|(k, _)| !skip_keys.contains(k)) {
             final_fields.insert(key.clone(), value.clone());
         }
         Ok(final_fields)
