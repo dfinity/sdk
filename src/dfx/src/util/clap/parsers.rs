@@ -1,5 +1,7 @@
 use byte_unit::{Byte, ByteUnit};
-use std::path::PathBuf;
+use regex::Regex;
+use rust_decimal::Decimal;
+use std::{path::PathBuf, str::FromStr};
 
 pub fn request_id_parser(v: &str) -> Result<String, String> {
     // A valid Request Id starts with `0x` and is a series of 64 hexadecimals.
@@ -29,9 +31,43 @@ pub fn memo_parser(memo: &str) -> Result<u64, String> {
 }
 
 pub fn cycle_amount_parser(cycles: &str) -> Result<u128, String> {
-    cycles
-        .parse::<u128>()
-        .map_err(|_| "Must be a non negative amount.".to_string())
+    fn get_multiplier(input: &str) -> Result<u128, String> {
+        match input {
+            "k" | "kc" => Ok(1_000),
+            "m" | "mc" => Ok(1_000_000),
+            "b" | "bc" => Ok(1_000_000_000),
+            "t" | "tc" => Ok(1_000_000_000_000),
+            other => Err(format!("Unknown amount specifier: '{}'", other)),
+        }
+    }
+
+    let input = &cycles.replace("_", "").to_lowercase();
+    if let Ok(num) = input.parse::<u128>() {
+        Ok(num)
+    } else {
+        let re = Regex::new(r"^(.*?)([a-zA-Z]{1,2})$").unwrap();
+
+        if let Some(captures) = re.captures(input) {
+            println!("captures: {:?}", captures);
+            if let (Some(number), Some(multiplier)) = (captures.get(1), captures.get(2)) {
+                let multiplier = get_multiplier(multiplier.as_str())?;
+                let number = Decimal::from_str(number.as_str())
+                    .map_err(|_| "must specify a decimal amount of cycles.".to_string())?;
+                let amount = Decimal::from(multiplier) * number;
+                if amount >= 0.into() {
+                    amount
+                        .try_into()
+                        .map_err(|_| "Too large amount of cycles.".to_string())
+                } else {
+                    Err("Must specify a non negative amount of cycles.".to_string())
+                }
+            } else {
+                Err("Failed to parse amount. Please use digits only or something like 3.5TC, 2t, or 5_000_000.".to_string())
+            }
+        } else {
+            Err("Failed to parse amount. Please use digits only or something like 3.5TC, 2t, or 5_000_000.".to_string())
+        }
+    }
 }
 
 pub fn file_parser(path: &str) -> Result<PathBuf, String> {
@@ -129,4 +165,18 @@ pub fn hsm_key_id_parser(key_id: &str) -> Result<String, String> {
     } else {
         Ok(key_id.to_string())
     }
+}
+
+#[test]
+fn test_cycle_amount_parser() {
+    assert_eq!(cycle_amount_parser("10T"), Ok(10_000_000_000_000));
+    assert_eq!(cycle_amount_parser("10TC"), Ok(10_000_000_000_000));
+    assert_eq!(cycle_amount_parser("0.01b"), Ok(10_000_000));
+    assert_eq!(cycle_amount_parser("1.23t"), Ok(1_230_000_000_000));
+    assert_eq!(cycle_amount_parser("9_887K"), Ok(9_887_000));
+
+    assert!(matches!(cycle_amount_parser("1MT"), Err(_)));
+    assert!(matches!(cycle_amount_parser("-0.1m"), Err(_)));
+    assert!(matches!(cycle_amount_parser("T100"), Err(_)));
+    assert!(matches!(cycle_amount_parser("1.1k0"), Err(_)));
 }
