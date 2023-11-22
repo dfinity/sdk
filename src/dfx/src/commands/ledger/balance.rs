@@ -2,6 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::operations::ledger;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use anyhow::anyhow;
 use candid::Principal;
 use clap::Parser;
@@ -23,6 +24,7 @@ pub struct BalanceOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: BalanceOpts) -> DfxResult {
+    fetch_root_key_if_needed(env).await?;
     let sender = env
         .get_selected_identity_principal()
         .expect("Selected identity not instantiated.");

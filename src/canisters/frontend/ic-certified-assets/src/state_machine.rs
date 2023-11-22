@@ -24,7 +24,7 @@ use crate::{
     url_decode::url_decode,
 };
 use candid::{CandidType, Deserialize, Int, Nat, Principal};
-use ic_certified_map::{AsHashTree, Hash};
+use ic_certification::{AsHashTree, Hash};
 use ic_representation_independent_hash::Value;
 use num_traits::ToPrimitive;
 use serde::Serialize;
