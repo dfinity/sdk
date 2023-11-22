@@ -150,7 +150,7 @@ type UpgradeArgs = record {
   set_permissions: opt SetPermissions;
 };
 
-/// Sets the list of principals with a certain permission for every permission that is set.
+/// Sets the list of principals granted each permission.
 type SetPermissions = record {
   prepare: vec principal;
   commit: vec principal;
