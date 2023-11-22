@@ -69,7 +69,10 @@ Defining a custom `etag` header no longer breaks certification.
 
 Fixed a certification issue where under certain conditions the fallback file (`/index.html`) was served with an incomplete certificate tree, not proving sufficiently that the fallback file may be used as a replacement.
 
-- Module hash: 1621e9ead6463304ceb3a81b10577c61c9d24f6e70b2e275a10b3a9be982dfb4
+Add the option to (re)set all permissions using upgrade arguments. This is especially useful for SNSes that cannot make calls as the canister's controller.
+
+- Module hash: 657938477f1dee46db70b5a9f0bd167ec5ffcd2f930a1d96593c17dcddef61b3
+- https://github.com/dfinity/sdk/pull/3443
 - https://github.com/dfinity/sdk/pull/3451
 - https://github.com/dfinity/sdk/pull/3429
 - https://github.com/dfinity/sdk/pull/3428
