@@ -4,7 +4,7 @@ use std::{path::PathBuf, str::FromStr};
 
 /// Removes `_`, interprets `k`, `m`, `b`, `t` suffix (case-insensitive)
 fn decimal_with_suffix_parser(input: &str) -> Result<Decimal, String> {
-    let input = input.replace("_", "").to_lowercase();
+    let input = input.replace('_', "").to_lowercase();
     let (number, suffix) = if input
         .chars()
         .last()
@@ -58,10 +58,10 @@ pub fn memo_parser(memo: &str) -> Result<u64, String> {
 }
 
 pub fn cycle_amount_parser(input: &str) -> Result<u128, String> {
-    let removed_cycle_suffix = if input.to_lowercase().chars().last() == Some('c') {
+    let removed_cycle_suffix = if input.to_lowercase().ends_with('c') {
         &input[..input.len() - 1]
     } else {
-        &input[..]
+        input
     };
 
     decimal_with_suffix_parser(removed_cycle_suffix)?.try_into().map_err(|_| "Failed to parse amount. Please use digits only or something like 3.5TC, 2t, or 5_000_000.".to_string())
@@ -86,7 +86,7 @@ pub fn file_or_stdin_parser(path: &str) -> Result<PathBuf, String> {
 }
 
 pub fn trillion_cycle_amount_parser(input: &str) -> Result<u128, String> {
-    if let Ok(cycles) = format!("{}000000000000", input.replace("_", "")).parse::<u128>() {
+    if let Ok(cycles) = format!("{}000000000000", input.replace('_', "")).parse::<u128>() {
         Ok(cycles)
     } else {
         decimal_with_suffix_parser(input)?
@@ -191,7 +191,7 @@ fn test_cycle_amount_parser() {
 #[test]
 fn test_trillion_cycle_amount_parser() {
     const TRILLION: u128 = 1_000_000_000_000;
-    assert_eq!(trillion_cycle_amount_parser("1"), Ok(1 * TRILLION));
+    assert_eq!(trillion_cycle_amount_parser("3"), Ok(3 * TRILLION));
     assert_eq!(trillion_cycle_amount_parser("5_555"), Ok(5_555 * TRILLION));
     assert_eq!(trillion_cycle_amount_parser("1k"), Ok(1_000 * TRILLION));
     assert_eq!(trillion_cycle_amount_parser("0.3"), Ok(300_000_000_000));
