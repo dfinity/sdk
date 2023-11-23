@@ -2,7 +2,7 @@ use byte_unit::{Byte, ByteUnit};
 use rust_decimal::Decimal;
 use std::{path::PathBuf, str::FromStr};
 
-/// Removes `_`, interprets `k`, `m`, `b`, `t` suffix (case insensitive)
+/// Removes `_`, interprets `k`, `m`, `b`, `t` suffix (case-insensitive)
 fn decimal_with_suffix_parser(input: &str) -> Result<Decimal, String> {
     let input = input.replace("_", "").to_lowercase();
     let (number, suffix) = if input
@@ -49,7 +49,7 @@ pub fn request_id_parser(v: &str) -> Result<String, String> {
 pub fn e8s_parser(input: &str) -> Result<u64, String> {
     decimal_with_suffix_parser(input)?
         .try_into()
-        .map_err(|_| "Must specify a non negative whole number.".to_string())
+        .map_err(|_| "Must specify a non-negative whole number.".to_string())
 }
 
 pub fn memo_parser(memo: &str) -> Result<u64, String> {

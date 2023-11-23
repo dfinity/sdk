@@ -38,9 +38,9 @@ The message "transaction is a duplicate of another transaction in block ...", pr
 
 ### feat: accept more ways to specify cycle and e8s amounts
 
-`_` can now be to make large numbers more readable. For example: `dfx canister deposit-cycles 1_234_567 mycanister`
+Underscores (`_`) can now be used to make large numbers more readable. For example: `dfx canister deposit-cycles 1_234_567 mycanister`
 
-Certain suffixes that replace a number of zeros are now supported. The (case insensiteve) suffixes are:
+Certain suffixes that replace a number of zeros are now supported. The (case-insensitive) suffixes are:
 - `k` for `000`, e.g. `500k`
 - `m` for `000_000`, e.g. `5m`
 - `b` for `000_000_000`, e.g. `50B`
