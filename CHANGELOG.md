@@ -46,7 +46,7 @@ Certain suffixes that replace a number of zeros are now supported. The (case-ins
 - `b` for `000_000_000`, e.g. `50B`
 - `t` for `000_000_000_000`, e.g. `0.3T`
 
-For cycles (but not trillion cycles), an additional `c` or `C` is also acceptable. For example: `dfx canister deposit-cycles 3TC mycanister`
+For cycles an additional `c` or `C` is also acceptable. For example: `dfx canister deposit-cycles 3TC mycanister`
 
 ### feat: added `dfx cycles` command
 
