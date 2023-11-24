@@ -80,6 +80,7 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
 
     let _block_height = transfer(
         agent,
+        env.get_logger(),
         &canister_id,
         memo,
         amount,

@@ -104,14 +104,14 @@ async fn validate_revoke_permission(arg: RevokePermissionArguments) -> Result<St
     ))
 }
 
-#[query(manual_reply = true)]
-#[candid_method(query)]
+#[update(manual_reply = true)]
+#[candid_method(update)]
 fn list_authorized() -> ManualReply<Vec<Principal>> {
     STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&Permission::Commit)))
 }
 
-#[query(manual_reply = true)]
-#[candid_method(query)]
+#[update(manual_reply = true)]
+#[candid_method(update)]
 fn list_permitted(arg: ListPermittedArguments) -> ManualReply<Vec<Principal>> {
     STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&arg.permission)))
 }
@@ -413,7 +413,10 @@ fn is_controller() -> Result<(), String> {
     }
 }
 
-pub fn init() {
+pub fn init(args: Option<AssetCanisterArgs>) {
+    if let Some(upgrade_arg) = args {
+        let AssetCanisterArgs::Init(InitArgs {}) = upgrade_arg else { ic_cdk::trap("Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.")};
+    }
     STATE.with(|s| {
         let mut s = s.borrow_mut();
         s.clear();
@@ -425,10 +428,18 @@ pub fn pre_upgrade() -> StableState {
     STATE.with(|s| s.take().into())
 }
 
-pub fn post_upgrade(stable_state: StableState) {
+pub fn post_upgrade(stable_state: StableState, args: Option<AssetCanisterArgs>) {
+    let set_permissions = args.and_then(|args| {
+        let AssetCanisterArgs::Upgrade(UpgradeArgs { set_permissions }) = args else {ic_cdk::trap("Cannot upgrade the canister with an Init argument. Please provide an Upgrade argument.")};
+        set_permissions
+    });
+
     STATE.with(|s| {
         *s.borrow_mut() = State::from(stable_state);
         set_certified_data(&s.borrow().root_hash());
+        if let Some(set_permissions) = set_permissions {
+            s.borrow_mut().set_permissions(set_permissions);
+        }
     });
 }
 

@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.14.3"
+version = "0.15.1"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
@@ -63,9 +63,11 @@ humantime.workspace = true
 hyper-rustls = { version = "0.24.1", features = ["webpki-roots", "http2"] }
 ic-agent = { workspace = true, features = ["reqwest"] }
 ic-asset.workspace = true
+ic-cdk.workspace = true
 ic-identity-hsm = { workspace = true }
 ic-utils = { workspace = true }
 ic-wasm = "0.4.0"
+icrc-ledger-types = "0.1.1"
 indicatif = "0.16.0"
 itertools.workspace = true
 json-patch = "1.0.0"
@@ -75,7 +77,7 @@ mime.workspace = true
 mime_guess.workspace = true
 net2 = "0.2.34"
 num-traits.workspace = true
-os_str_bytes = "6.3.0"
+os_str_bytes = { version = "6.3.0", features = ["conversions"] }
 patch = "0.7.0"
 pem.workspace = true
 petgraph = "0.6.0"

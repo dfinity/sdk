@@ -24,7 +24,7 @@ use crate::{
     url_decode::url_decode,
 };
 use candid::{CandidType, Deserialize, Int, Nat, Principal};
-use ic_certified_map::{AsHashTree, Hash};
+use ic_certification::{AsHashTree, Hash};
 use ic_representation_independent_hash::Value;
 use num_traits::ToPrimitive;
 use serde::Serialize;
@@ -318,6 +318,20 @@ impl State {
                 }
             })
             .ok_or_else(|| "asset not found".to_string())
+    }
+
+    pub fn set_permissions(
+        &mut self,
+        SetPermissions {
+            prepare,
+            commit,
+            manage_permissions,
+        }: SetPermissions,
+    ) {
+        *self.get_mut_permission_list(&Permission::Prepare) = prepare.into_iter().collect();
+        *self.get_mut_permission_list(&Permission::Commit) = commit.into_iter().collect();
+        *self.get_mut_permission_list(&Permission::ManagePermissions) =
+            manage_permissions.into_iter().collect();
     }
 
     pub fn grant_permission(&mut self, principal: Principal, permission: &Permission) {

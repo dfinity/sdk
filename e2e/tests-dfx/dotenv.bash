@@ -14,6 +14,43 @@ teardown() {
   standard_teardown
 }
 
+
+@test "puts .env in project root" {
+  dfx_start
+  jq '.canisters["e2e_project_backend"].post_install="echo post install backend"' dfx.json | sponge dfx.json
+  jq '.canisters["e2e_project_frontend"].post_install="echo post install frontend"' dfx.json | sponge dfx.json
+
+  mkdir subdir
+  mkdir subdir/canister-install-all subdir/canister-install-single
+  mkdir subdir/build-all subdir/build-single
+  mkdir subdir/deploy-single subdir/deploy-all
+  dfx canister create --all
+  ( cd subdir/build-single && dfx build e2e_project_frontend )
+  ( cd subdir/build-all && dfx build --all )
+  ( cd subdir/canister-install-single && dfx canister install e2e_project_backend )
+  dfx canister uninstall-code e2e_project_backend
+  ( cd subdir/canister-install-all && dfx canister install --all )
+  rm -rf .dfx
+  ( cd subdir/deploy-single && dfx deploy e2e_project_backend)
+  ( cd subdir/deploy-all && dfx deploy )
+
+  assert_command find . -name .env
+  assert_eq "./.env"
+}
+
+@test "the output_env_file must be contained within project" {
+  dfx_start
+  mkdir ../outside
+
+  assert_command_fail dfx deploy --output-env-file nonexistent/.env
+  assert_contains "failed to canonicalize output_env_file"
+  assert_contains "working-dir/e2e_project/nonexistent: No such file or directory"
+  assert_command_fail dfx deploy --output-env-file /etc/passwd
+  assert_contains "The output_env_file must be a relative path, but is /etc/passwd"
+  assert_command_fail dfx deploy --output-env-file ../outside/.env
+  assert_match "The output_env_file must be within the project root, but is .*/working-dir/e2e_project/../outside/.env"
+}
+
 @test "writes environment variables to .env" {
   dfx_start
   dfx canister create --all

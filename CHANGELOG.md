@@ -2,6 +2,95 @@
 
 # UNRELEASED
 
+### fix: `dfx canister delete <canister id>` removes the related entry from the canister id store
+
+Previously, deleting a canister in the project by id rather than by name
+would leave the canister id in the canister id store. This would cause
+`dfx deploy` to fail.
+
+### fix: dfx extension install can no longer create a corrupt cache directory
+
+Running `dfx cache delete && dfx extension install nns` would previously
+create a cache directory containing only an `extensions` subdirectory.
+dfx only looks for the existence of a cache version subdirectory to
+determine whether it has been installed. The end result was that later
+commands would fail when the cache did not contain expected files.
+
+### fix: output_env_file is now considered relative to project root
+
+The .env file location, whether specified as `output_env_file` in dfx.json
+or `--output-env-file <file>` on the commandline, is now considered relative
+to the project root, rather than relative to the current working directory.
+
+### feat: Read dfx canister install argument from a file
+
+Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example `dfx canister install --argument-file ./my/argument/file.txt my_canister_name`.
+
+
+### feat: change `list_permitted` and `list_authorized` to an update call.
+
+This requires the `list_authorized` and `list_permitted` methods to be called as an update and disables the ability to
+call it as a query call. This resolves a potential security risk.
+
+### fix: `dfx ledger transfer` now logs to stderr messages about duplicates rather than printing them to stdout
+
+The message "transaction is a duplicate of another transaction in block ...", previously printed to stdout, is now logged to stderr. This means that the output of `dfx ledger transfer` to stdout will contain only "Transfer sent at block height <block height>".
+
+### feat: added `dfx cycles` command
+
+This won't work on mainnet yet, but can work locally after installing the cycles ledger.
+
+Added the following subcommands:
+ - `dfx cycles balance`
+ - `dfx cycles transfer <to> <amount>` (transfer cycles from one account to another account)
+ - `dfx cycles top-up <to> <amount>` (send cycles from an account to a canister)
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.10.2](https://github.com/dfinity/motoko/releases/tag/0.10.2)
+
+### Frontend canister
+
+Defining a custom `etag` header no longer breaks certification.
+
+Fixed a certification issue where under certain conditions the fallback file (`/index.html`) was served with an incomplete certificate tree, not proving sufficiently that the fallback file may be used as a replacement.
+
+Add the option to (re)set all permissions using upgrade arguments. This is especially useful for SNSes that cannot make calls as the canister's controller.
+
+- Module hash: 657938477f1dee46db70b5a9f0bd167ec5ffcd2f930a1d96593c17dcddef61b3
+- https://github.com/dfinity/sdk/pull/3443
+- https://github.com/dfinity/sdk/pull/3451
+- https://github.com/dfinity/sdk/pull/3429
+- https://github.com/dfinity/sdk/pull/3428
+- https://github.com/dfinity/sdk/pull/3421
+
+### Replica
+
+Updated replica to elected commit d73659a2baf78302b88e29e5c2bc891cde1e3e0b.
+This incorporates the following executed proposals:
+
+- [126000](https://dashboard.internetcomputer.org/proposal/126000)
+- [125592](https://dashboard.internetcomputer.org/proposal/125592)
+- [125591](https://dashboard.internetcomputer.org/proposal/125591)
+- [125504](https://dashboard.internetcomputer.org/proposal/125504)
+- [125503](https://dashboard.internetcomputer.org/proposal/125503)
+- [125343](https://dashboard.internetcomputer.org/proposal/125343)
+- [125342](https://dashboard.internetcomputer.org/proposal/125342)
+- [125321](https://dashboard.internetcomputer.org/proposal/125321)
+- [125320](https://dashboard.internetcomputer.org/proposal/125320)
+- [125002](https://dashboard.internetcomputer.org/proposal/125002)
+- [125001](https://dashboard.internetcomputer.org/proposal/125001)
+- [124858](https://dashboard.internetcomputer.org/proposal/124858)
+- [124857](https://dashboard.internetcomputer.org/proposal/124857)
+
+### Bitcoin canister
+
+Updated Bitcoin canister to [release/2023-10-13](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2023-10-13)
+
+# 0.15.1
+
 ### feat: Added support for reserved_cycles and reserved_cycles_limit
 
 `dfx canister status` will now display the reserved cycles balance and reserved cycles limit for a canister.
@@ -116,6 +205,8 @@ The verifying side can then unzip the response and will have a valid certificate
 - https://github.com/dfinity/sdk/pull/3369
 - https://github.com/dfinity/sdk/pull/3298
 - https://github.com/dfinity/sdk/pull/3281
+
+### Replica
 
 Updated replica to elected commit 91bf38ff3cb927cb94027d9da513cd15f91a5b04.
 This incorporates the following executed proposals:
