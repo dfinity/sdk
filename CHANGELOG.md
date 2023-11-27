@@ -2,13 +2,13 @@
 
 # UNRELEASED
 
-=== fix: `dfx canister delete <canister id>` removes the related entry from the canister id store
+### fix: `dfx canister delete <canister id>` removes the related entry from the canister id store
 
 Previously, deleting a canister in the project by id rather than by name
 would leave the canister id in the canister id store. This would cause
 `dfx deploy` to fail.
 
-=== fix: dfx extension install can no longer create a corrupt cache directory
+### fix: dfx extension install can no longer create a corrupt cache directory
 
 Running `dfx cache delete && dfx extension install nns` would previously
 create a cache directory containing only an `extensions` subdirectory.
@@ -16,13 +16,13 @@ dfx only looks for the existence of a cache version subdirectory to
 determine whether it has been installed. The end result was that later
 commands would fail when the cache did not contain expected files.
 
-=== fix: output_env_file is now considered relative to project root
+### fix: output_env_file is now considered relative to project root
 
 The .env file location, whether specified as `output_env_file` in dfx.json
 or `--output-env-file <file>` on the commandline, is now considered relative
 to the project root, rather than relative to the current working directory.
 
-=== feat: Read dfx canister install argument from a file
+### feat: Read dfx canister install argument from a file
 
 Enables passing large arguments that cannot be passed directly in the command line using the `--argument-file` flag. For example `dfx canister install --argument-file ./my/argument/file.txt my_canister_name`.
 
@@ -35,6 +35,18 @@ call it as a query call. This resolves a potential security risk.
 ### fix: `dfx ledger transfer` now logs to stderr messages about duplicates rather than printing them to stdout
 
 The message "transaction is a duplicate of another transaction in block ...", previously printed to stdout, is now logged to stderr. This means that the output of `dfx ledger transfer` to stdout will contain only "Transfer sent at block height <block height>".
+
+### feat: accept more ways to specify cycle and e8s amounts
+
+Underscores (`_`) can now be used to make large numbers more readable. For example: `dfx canister deposit-cycles 1_234_567 mycanister`
+
+Certain suffixes that replace a number of zeros are now supported. The (case-insensitive) suffixes are:
+- `k` for `000`, e.g. `500k`
+- `m` for `000_000`, e.g. `5m`
+- `b` for `000_000_000`, e.g. `50B`
+- `t` for `000_000_000_000`, e.g. `0.3T`
+
+For cycles an additional `c` or `C` is also acceptable. For example: `dfx canister deposit-cycles 3TC mycanister`
 
 ### feat: added `dfx cycles` command
 
@@ -57,16 +69,26 @@ Defining a custom `etag` header no longer breaks certification.
 
 Fixed a certification issue where under certain conditions the fallback file (`/index.html`) was served with an incomplete certificate tree, not proving sufficiently that the fallback file may be used as a replacement.
 
-- Module hash: 965c8899f0a033593dc9b1634b2ab4e0f3fd28c1cfa06993069be2040a2f700e
+Add the option to (re)set all permissions using upgrade arguments. This is especially useful for SNSes that cannot make calls as the canister's controller.
+
+- Module hash: 657938477f1dee46db70b5a9f0bd167ec5ffcd2f930a1d96593c17dcddef61b3
+- https://github.com/dfinity/sdk/pull/3443
+- https://github.com/dfinity/sdk/pull/3451
 - https://github.com/dfinity/sdk/pull/3429
 - https://github.com/dfinity/sdk/pull/3428
 - https://github.com/dfinity/sdk/pull/3421
 
 ### Replica
 
-Updated replica to elected commit 80a6745673a28ee53d257b3fe19dcd6b7efa93d1.
+Updated replica to elected commit 69e1408347723dbaa7a6cd2faa9b65c42abbe861.
 This incorporates the following executed proposals:
 
+- [126095](https://dashboard.internetcomputer.org/proposal/126095)
+- [126000](https://dashboard.internetcomputer.org/proposal/126000)
+- [125592](https://dashboard.internetcomputer.org/proposal/125592)
+- [125591](https://dashboard.internetcomputer.org/proposal/125591)
+- [125504](https://dashboard.internetcomputer.org/proposal/125504)
+- [125503](https://dashboard.internetcomputer.org/proposal/125503)
 - [125343](https://dashboard.internetcomputer.org/proposal/125343)
 - [125342](https://dashboard.internetcomputer.org/proposal/125342)
 - [125321](https://dashboard.internetcomputer.org/proposal/125321)
