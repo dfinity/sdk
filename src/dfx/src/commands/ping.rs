@@ -59,7 +59,12 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
 
             loop {
                 let status = agent.status().await;
-                let output = serde_json::to_string(&status);
+                // These two types in ic_agent need to implement Serialize or CandidType if this is
+                // to be serialized as JSON or canid.  Candid is probbaly more consistent.
+                //    |                              ------------------  ^^^^^^ the trait `CandidType` is not implemented for `ic_agent::agent::status::Status`
+                //    |                              ------------------  ^^^^^^ the trait `CandidType` is not implemented for `ic_agent::AgentError`
+                //let output = serde_json::to_string(&status).expect("Failed to serialize as JSON");
+                let output = candid::encode_one(&status).expect("Failed to serilaize response as Candid");
                 if let Ok(status) = status {
                     let healthy = match &status.replica_health_status {
                         Some(s) if s == "healthy" => true,
@@ -84,8 +89,7 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
                 .status()
                 .await
                 .context("Failed while waiting for agent status.")?;
-            let output = serde_json::to_string(&status);
-            println!("{}", output);
+            println!("{}", status);
         }
 
         Ok(())
