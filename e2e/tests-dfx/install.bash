@@ -211,3 +211,10 @@ teardown() {
   assert_command_fail dfx canister install --all --argument '()'
   assert_contains "error: the argument '--all' cannot be used with '--argument <ARGUMENT>'"
 }
+
+@test "remind to build before install" {
+  dfx_start
+  dfx canister create --all
+  assert_command_fail dfx canister install e2e_project_backend
+  assert_contains "The canister must be built before install. Please run \`dfx build\`."
+}

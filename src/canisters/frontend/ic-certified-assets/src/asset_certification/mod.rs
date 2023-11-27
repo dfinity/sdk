@@ -1,5 +1,5 @@
 use self::{
-    tree::{merge_hash_trees, NestedTree},
+    tree::NestedTree,
     types::{
         certification::{AssetPath, HashTreePath, NestedTreeKey, RequestHash, WitnessResult},
         http::{
@@ -8,13 +8,14 @@ use self::{
     },
 };
 use crate::asset_certification::types::http::build_ic_certificate_expression_header;
+use ic_certification::merge_hash_trees;
 use ic_representation_independent_hash::Value;
 use serde::Serialize;
 use sha2::Digest;
 
 pub mod tree;
 pub mod types;
-pub use ic_certified_map::HashTree;
+pub use ic_certification::HashTree;
 
 pub type CertifiedResponses = NestedTree<NestedTreeKey, Vec<u8>>;
 
