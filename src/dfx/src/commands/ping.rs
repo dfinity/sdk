@@ -59,6 +59,7 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
 
             loop {
                 let status = agent.status().await;
+                let output = serde_json::to_string(&status);
                 if let Ok(status) = status {
                     let healthy = match &status.replica_health_status {
                         Some(s) if s == "healthy" => true,
@@ -66,10 +67,10 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
                         _ => false,
                     };
                     if healthy {
-                        println!("{}", status);
+                        println!("{}", output);
                         break;
                     } else {
-                        eprintln!("{}", status);
+                        eprintln!("{}", output);
                     }
                 }
                 if retries >= 60 {
@@ -83,7 +84,8 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
                 .status()
                 .await
                 .context("Failed while waiting for agent status.")?;
-            println!("{}", status);
+            let output = serde_json::to_string(&status);
+            println!("{}", output);
         }
 
         Ok(())
