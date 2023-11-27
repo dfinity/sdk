@@ -80,9 +80,10 @@ Add the option to (re)set all permissions using upgrade arguments. This is espec
 
 ### Replica
 
-Updated replica to elected commit d73659a2baf78302b88e29e5c2bc891cde1e3e0b.
+Updated replica to elected commit 69e1408347723dbaa7a6cd2faa9b65c42abbe861.
 This incorporates the following executed proposals:
 
+- [126095](https://dashboard.internetcomputer.org/proposal/126095)
 - [126000](https://dashboard.internetcomputer.org/proposal/126000)
 - [125592](https://dashboard.internetcomputer.org/proposal/125592)
 - [125591](https://dashboard.internetcomputer.org/proposal/125591)
