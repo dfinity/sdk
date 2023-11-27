@@ -36,6 +36,18 @@ call it as a query call. This resolves a potential security risk.
 
 The message "transaction is a duplicate of another transaction in block ...", previously printed to stdout, is now logged to stderr. This means that the output of `dfx ledger transfer` to stdout will contain only "Transfer sent at block height <block height>".
 
+### feat: accept more ways to specify cycle and e8s amounts
+
+Underscores (`_`) can now be used to make large numbers more readable. For example: `dfx canister deposit-cycles 1_234_567 mycanister`
+
+Certain suffixes that replace a number of zeros are now supported. The (case-insensitive) suffixes are:
+- `k` for `000`, e.g. `500k`
+- `m` for `000_000`, e.g. `5m`
+- `b` for `000_000_000`, e.g. `50B`
+- `t` for `000_000_000_000`, e.g. `0.3T`
+
+For cycles an additional `c` or `C` is also acceptable. For example: `dfx canister deposit-cycles 3TC mycanister`
+
 ### feat: added `dfx cycles` command
 
 This won't work on mainnet yet, but can work locally after installing the cycles ledger.
