@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use anyhow::{anyhow, bail, Context};
-use candid::Principal;
+use candid::{CandidType, Decode, Encode, Nat, Principal};
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::identity::CallSender;
 use dfx_core::network::provider::get_network_context;
@@ -12,6 +12,7 @@ use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
 use ic_utils::interfaces::ManagementCanister;
+use serde::{Deserialize, Serialize};
 use slog::info;
 use std::format;
 
@@ -29,6 +30,7 @@ pub async fn create_canister(
     specified_id: Option<Principal>,
     call_sender: &CallSender,
     settings: CanisterSettings,
+    cycles_ledger_canister_id: Option<Principal>,
 ) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {}...", canister_name);
@@ -76,7 +78,23 @@ pub async fn create_canister(
     let agent = env.get_agent();
     let cid = match call_sender {
         CallSender::SelectedId => {
-            create_with_management_canister(env, agent, with_cycles, specified_id, settings).await
+            if !env.get_network_descriptor().is_ic
+                && std::env::var("DFX_DISABLE_AUTO_WALLET").is_err()
+            {
+                create_with_management_canister(env, agent, with_cycles, specified_id, settings)
+                    .await
+            } else {
+                let Some(cycles_ledger_canister_id) = cycles_ledger_canister_id else { bail!("Must specify cycles ledger canister id")};
+                create_with_cycles_ledger(
+                    env,
+                    agent,
+                    with_cycles,
+                    specified_id,
+                    settings,
+                    cycles_ledger_canister_id,
+                )
+                .await
+            }
         }
         CallSender::Wallet(wallet_id) => {
             create_with_wallet(agent, wallet_id, with_cycles, settings).await
@@ -172,4 +190,82 @@ async fn create_with_wallet(
         )),
         Err(other) => Err(anyhow!(other)),
     }
+}
+
+async fn create_with_cycles_ledger(
+    env: &dyn Environment,
+    agent: &Agent,
+    with_cycles: Option<u128>,
+    specified_id: Option<Principal>,
+    settings: CanisterSettings,
+    cycles_ledger_canister_id: Principal,
+) -> DfxResult<Principal> {
+    #[derive(Default, Debug, Clone, CandidType, Serialize, PartialEq, Eq)]
+    pub struct CreateCanisterArgs {
+        pub from_subaccount: Option<icrc_ledger_types::icrc1::account::Subaccount>,
+        pub created_at_time: Option<u64>,
+        pub amount: u128,
+        pub creation_args: Option<CmcCreateCanisterArgs>,
+    }
+    #[derive(Default, Debug, Clone, CandidType, Serialize, PartialEq, Eq)]
+    struct CmcCreateCanisterArgs {
+        pub subnet_selection: Option<SubnetSelection>,
+        pub settings: Option<CanisterSettings>,
+    }
+    #[derive(Serialize, CandidType, Clone, Debug, PartialEq, Eq)]
+    enum SubnetSelection {
+        /// Choose a random subnet that satisfies the specified properties
+        Filter(SubnetFilter),
+        /// Choose a specific subnet
+        Subnet { subnet: Principal },
+    }
+    #[derive(Serialize, CandidType, Clone, Debug, PartialEq, Eq)]
+    struct SubnetFilter {
+        pub subnet_type: Option<String>,
+    }
+    #[derive(Deserialize, CandidType, Clone, Debug, PartialEq, Eq)]
+    enum CreateCanisterError {
+        InsufficientFunds {
+            balance: u128,
+        },
+        TooOld,
+        CreatedInFuture {
+            ledger_time: u64,
+        },
+        TemporarilyUnavailable,
+        Duplicate {
+            duplicate_of: Nat,
+        },
+        FailedToCreate {
+            fee_block: Option<Nat>,
+            refund_block: Option<Nat>,
+            error: String,
+        },
+        GenericError {
+            error_code: Nat,
+            message: String,
+        },
+    }
+    #[derive(Deserialize, CandidType, Clone, Debug, PartialEq, Eq)]
+    struct CreateCanisterSuccess {
+        pub block_id: Nat,
+        pub canister_id: Principal,
+    }
+
+    let result = agent
+        .update(&cycles_ledger_canister_id, "create_canister")
+        .with_arg(
+            Encode!(&CmcCreateCanisterArgs {
+                settings: Some(settings),
+                subnet_selection: None,
+            })
+            .unwrap(),
+        )
+        .call_and_wait()
+        .await?;
+    let out = Decode!(
+        &result,
+        (Result<CreateCanisterSuccess, CreateCanisterError>,)
+    )?;
+    todo!()
 }
