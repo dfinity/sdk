@@ -588,7 +588,9 @@ mod tests {
             .unwrap();
         }
 
-        let config = Config::from_dir(&project_dir, &semver::Version::new(0, 0, 0))
+        let mut no_op_transformer =
+            crate::extension::manifest::custom_canister_type::NoopTransformConfiguration;
+        let config = Config::from_dir(&project_dir, &mut no_op_transformer)
             .unwrap()
             .unwrap();
         let network_descriptor = create_network_descriptor(
@@ -619,7 +621,6 @@ mod tests {
                 }
             }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 
@@ -651,7 +652,6 @@ mod tests {
                 }
             }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 
@@ -672,7 +672,6 @@ mod tests {
             "networks": {
             }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
         let network_descriptor = create_network_descriptor(
@@ -698,7 +697,6 @@ mod tests {
         let config = Config::from_str(
             r#"{
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
         let network_descriptor = create_network_descriptor(
@@ -736,7 +734,6 @@ mod tests {
                 }
               }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 
@@ -780,7 +777,6 @@ mod tests {
                 }
               }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 
@@ -824,7 +820,6 @@ mod tests {
                 }
               }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 
@@ -866,7 +861,6 @@ mod tests {
                 }
               }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 
@@ -909,7 +903,6 @@ mod tests {
                 }
               }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 
@@ -957,7 +950,6 @@ mod tests {
                 }
               }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 
@@ -998,7 +990,6 @@ mod tests {
                 }
               }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 

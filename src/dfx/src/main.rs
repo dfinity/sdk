@@ -164,7 +164,7 @@ fn main() {
     let mut args = std::env::args_os().collect::<Vec<OsString>>();
     let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
 
-    ExtensionManager::new(dfx_version())
+    let mut extension_manager = ExtensionManager::new(dfx_version())
         .and_then(|em| {
             let installed_extensions = em.installed_extensions_as_clap_commands()?;
             if !installed_extensions.is_empty() {
@@ -179,7 +179,7 @@ fn main() {
                     args.splice(idx..idx, ["extension", "run"].iter().map(OsString::from));
                 }
             }
-            Ok(())
+            Ok(em)
         })
         .unwrap_or_else(|err| {
             print_error_and_diagnosis(err.into(), error_diagnosis.clone());
@@ -191,10 +191,10 @@ fn main() {
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
     let command = cli_opts.command;
-    let result = match EnvironmentImpl::new() {
+    let result = match EnvironmentImpl::new(&mut extension_manager) {
         Ok(env) => {
             maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
-            match EnvironmentImpl::new().map(|env| {
+            match EnvironmentImpl::new(&mut extension_manager).map(|env| {
                 env.with_logger(log)
                     .with_identity_override(identity)
                     .with_verbose_level(verbose_level)

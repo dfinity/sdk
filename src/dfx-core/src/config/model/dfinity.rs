@@ -29,11 +29,13 @@ use crate::error::socket_addr_conversion::SocketAddrConversionError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError::{
     EmptyIterator, ParseSocketAddrFailed,
 };
-use crate::error::structured_file::StructuredFileError;
 use crate::error::structured_file::StructuredFileError::{
     DeserializeJsonFileFailed, ReadJsonFileFailed,
 };
-use crate::extension::manifest::custom_canister_type;
+use crate::error::structured_file::{
+    ReadConfigurationError, StructuredFileError, TransformConfigurationError,
+};
+use crate::extension::manifest::custom_canister_type::TransformConfiguration;
 use crate::json::save_json_file;
 use crate::json::structure::{PossiblyStr, SerdeVec};
 use byte_unit::Byte;
@@ -952,44 +954,45 @@ impl Config {
         Ok(None)
     }
 
-    fn from_file(
+    fn from_file<T: TransformConfiguration>(
         path: &Path,
-        dfx_version: &semver::Version,
-    ) -> Result<Config, StructuredFileError> {
+        transformer: &mut T,
+    ) -> Result<Config, ReadConfigurationError> {
         let content = crate::fs::read(path).map_err(ReadJsonFileFailed)?;
-        Config::from_slice(path.to_path_buf(), &content, dfx_version)
+        Config::from_slice(path.to_path_buf(), &content, transformer)
     }
 
-    pub fn from_dir(
+    pub fn from_dir<T: TransformConfiguration>(
         working_dir: &Path,
-        dfx_version: &semver::Version,
+        transformer: &mut T,
     ) -> Result<Option<Config>, LoadDfxConfigError> {
         let path = Config::resolve_config_path(working_dir)?;
-        path.map(|path| Config::from_file(&path, dfx_version))
+        path.map(|path| Config::from_file(&path, transformer))
             .transpose()
             .map_err(LoadFromFileFailed)
     }
 
-    pub fn from_current_dir(
-        dfx_version: &semver::Version,
+    pub fn from_current_dir<T: TransformConfiguration>(
+        transformer: &mut T,
     ) -> Result<Option<Config>, LoadDfxConfigError> {
         Config::from_dir(
             &std::env::current_dir().map_err(DetermineCurrentWorkingDirFailed)?,
-            dfx_version,
+            transformer,
         )
     }
 
-    fn from_slice(
+    fn from_slice<T: TransformConfiguration>(
         path: PathBuf,
         content: &[u8],
-        dfx_version: &semver::Version,
-    ) -> Result<Config, StructuredFileError> {
+        transformer: &mut T,
+    ) -> Result<Config, ReadConfigurationError> {
         let mut json: serde_json::Value = serde_json::from_slice(content)
             .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
-        let extension_manager =
-            crate::extension::manager::ExtensionManager::new(dfx_version).unwrap();
-        custom_canister_type::transform_dfx_json_via_extension(&mut json, extension_manager)
-            .unwrap(); // TODO: error handling
+
+        transformer
+            .transform(&mut json)
+            .map_err(TransformConfigurationError::from)?;
+
         let config = serde_json::from_value(json.clone())
             .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
         Ok(Config { path, json, config })
@@ -997,20 +1000,24 @@ impl Config {
 
     /// Create a configuration from a string.
     #[cfg(test)]
-    pub(crate) fn from_str(
-        content: &str,
-        dfx_version: &semver::Version,
-    ) -> Result<Config, StructuredFileError> {
-        Config::from_slice(PathBuf::from("-"), content.as_bytes(), dfx_version)
+    pub(crate) fn from_str(content: &str) -> Result<Config, ReadConfigurationError> {
+        let mut no_op_transformer =
+            crate::extension::manifest::custom_canister_type::NoopTransformConfiguration;
+        Config::from_slice(
+            PathBuf::from("-"),
+            content.as_bytes(),
+            &mut no_op_transformer,
+        )
     }
 
     #[cfg(test)]
     pub(crate) fn from_str_and_path(
         path: PathBuf,
         content: &str,
-        dfx_version: &semver::Version,
-    ) -> Result<Config, StructuredFileError> {
-        Config::from_slice(path, content.as_bytes(), dfx_version)
+    ) -> Result<Config, ReadConfigurationError> {
+        let mut no_op_transformer =
+            crate::extension::manifest::custom_canister_type::NoopTransformConfiguration;
+        Config::from_slice(path, content.as_bytes(), &mut no_op_transformer)
     }
 
     pub fn get_path(&self) -> &PathBuf {
@@ -1257,7 +1264,6 @@ mod tests {
                 }
             }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 
@@ -1280,7 +1286,6 @@ mod tests {
                 }
             }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 
@@ -1302,7 +1307,6 @@ mod tests {
                 }
             }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 
@@ -1325,7 +1329,6 @@ mod tests {
                 }
             }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 
@@ -1359,7 +1362,6 @@ mod tests {
                 }
               }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
 
@@ -1383,7 +1385,6 @@ mod tests {
                 }
               }
         }"#,
-            &semver::Version::new(0, 0, 0),
         )
         .unwrap();
         let config_interface = config_no_values.get_config();

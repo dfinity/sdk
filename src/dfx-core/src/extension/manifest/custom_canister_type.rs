@@ -7,30 +7,34 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::collections::BTreeMap;
 
-pub(crate) fn transform_dfx_json_via_extension(
-    json: &mut JsonValue,
-    extension_manager: ExtensionManager,
-) -> Result<(), ExtensionError> {
-    let canisters = match json.get_mut("canisters").and_then(|v| v.as_object_mut()) {
-        Some(canisters) => canisters,
-        None => return Ok(()),
-    };
-    for (canister_name, canister_declaration) in canisters.iter_mut() {
-        if let Some(canister_type) = get_valid_canister_type(canister_declaration) {
-            let canister_declaration = canister_declaration.as_object_mut().unwrap();
-            let (extension_name, canister_type) =
-                get_extension_name_and_custom_canister_type(&canister_type);
-            let extension_manifest = ExtensionManifest::get(extension_name, &extension_manager)?;
-            *canister_declaration = process_canister_declaration(
-                canister_declaration,
-                extension_name,
-                &extension_manifest,
-                canister_name,
-                canister_type,
-            )?;
+pub trait TransformConfiguration {
+    fn transform(&mut self, json: &mut serde_json::Value) -> Result<(), ExtensionError>;
+}
+
+impl TransformConfiguration for ExtensionManager {
+    fn transform(&mut self, json: &mut JsonValue) -> Result<(), ExtensionError> {
+        let canisters = match json.get_mut("canisters").and_then(|v| v.as_object_mut()) {
+            Some(canisters) => canisters,
+            None => return Ok(()),
+        };
+        for (canister_name, canister_declaration) in canisters.iter_mut() {
+            if let Some(canister_type) = get_valid_canister_type(canister_declaration) {
+                let canister_declaration = canister_declaration.as_object_mut().unwrap();
+                let (extension_name, canister_type) =
+                    get_extension_name_and_custom_canister_type(&canister_type);
+                let extension_manifest =
+                    ExtensionManifest::get_by_extension_name(extension_name, self)?;
+                *canister_declaration = process_canister_declaration(
+                    canister_declaration,
+                    extension_name,
+                    &extension_manifest,
+                    canister_name,
+                    canister_type,
+                )?;
+            }
         }
+        Ok(())
     }
-    Ok(())
 }
 
 fn get_valid_canister_type(canister_declaration: &mut JsonValue) -> Option<String> {
@@ -202,7 +206,7 @@ impl CustomCanisterTypeDeclaration {
 }
 
 #[cfg(test)]
-mod tests {
+mod custom_canister_type_declaration_tests {
     use super::*;
 
     macro_rules! test_op {
@@ -638,5 +642,15 @@ mod tests {
         }
         "#
         );
+    }
+}
+
+#[cfg(test)]
+pub struct NoopTransformConfiguration;
+#[cfg(test)]
+impl TransformConfiguration for NoopTransformConfiguration {
+    fn transform(&mut self, _: &mut serde_json::Value) -> Result<(), ExtensionError> {
+        // Do nothing
+        Ok(())
     }
 }

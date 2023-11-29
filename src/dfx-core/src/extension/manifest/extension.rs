@@ -25,7 +25,7 @@ pub struct ExtensionManifest {
 }
 
 impl ExtensionManifest {
-    pub fn get(
+    pub fn get_by_extension_name(
         extension_name: &str,
         extension_manager: &ExtensionManager,
     ) -> Result<Self, ExtensionError> {
