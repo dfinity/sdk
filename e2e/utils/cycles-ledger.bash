@@ -22,7 +22,7 @@ download_cycles_ledger_canisters() {
     for name in cycles-ledger cycles-depositor; do
         for ext in wasm.gz wasm.gz.sha256 did; do
             URL=$(build_artifact_url "${name}.${ext}")
-            curl -v --fail -o "$DOWNLOAD_DIR/${name}.${ext}" "$URL"
+            curl -v -L --fail -o "$DOWNLOAD_DIR/${name}.${ext}" "$URL"
         done
     done
 
