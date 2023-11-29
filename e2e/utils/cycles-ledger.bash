@@ -1,7 +1,7 @@
 CYCLES_LEDGER_VERSION="0.2.1"
 
 build_artifact_url() {
-    echo "https://raw.githubusercontent.com/dfinity/sdk/cycles-ledger-prerelease/cycles-ledger-v$CYCLES_LEDGER_VERSION/${1}"
+    echo "https://github.com/dfinity/cycles-ledger/releases/download/cycles-ledger-v$CYCLES_LEDGER_VERSION/${1}"
 }
 
 downloaded_cycles_ledger_canisters_dir() {
