@@ -1,7 +1,7 @@
 CYCLES_LEDGER_VERSION="0.2.1"
 
 build_artifact_url() {
-    echo "https://raw.githubusercontent.com/dfinity/sdk/cycles-ledger-prerelease/cycles-ledger-v$CYCLES_LEDGER_VERSION/${1}"
+    echo "https://github.com/dfinity/cycles-ledger/releases/download/cycles-ledger-v$CYCLES_LEDGER_VERSION/${1}"
 }
 
 downloaded_cycles_ledger_canisters_dir() {
@@ -22,7 +22,7 @@ download_cycles_ledger_canisters() {
     for name in cycles-ledger cycles-depositor; do
         for ext in wasm.gz wasm.gz.sha256 did; do
             URL=$(build_artifact_url "${name}.${ext}")
-            curl -v --fail -o "$DOWNLOAD_DIR/${name}.${ext}" "$URL"
+            curl -v -L --fail -o "$DOWNLOAD_DIR/${name}.${ext}" "$URL"
         done
     done
 
