@@ -160,7 +160,7 @@ jobs:
         os: [macos-12, ubuntu-20.04, ubuntu-22.04]
     steps:
       - name: Checking out repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setting up Python
         uses: actions/setup-python@v4
         with:
