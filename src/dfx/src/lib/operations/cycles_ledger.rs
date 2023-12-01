@@ -1,21 +1,35 @@
 use crate::lib::cycles_ledger_types;
 use crate::lib::cycles_ledger_types::send::SendError;
 use crate::lib::error::DfxResult;
+use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
+use crate::lib::operations::canister::create_canister::{
+    CANISTER_CREATE_FEE, CANISTER_INITIAL_CYCLE_BALANCE,
+};
 use crate::lib::retryable::retryable;
 use anyhow::anyhow;
 use backoff::future::retry;
 use backoff::ExponentialBackoff;
-use candid::{Nat, Principal};
+use candid::{CandidType, Decode, Encode, Nat, Principal};
+use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::call::SyncCall;
+use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::Canister;
 use icrc_ledger_types::icrc1;
+use icrc_ledger_types::icrc1::account::Subaccount;
 use icrc_ledger_types::icrc1::transfer::{BlockIndex, TransferError};
+use serde::Deserialize;
 use slog::{info, Logger};
+use thiserror::Error;
+
+/// Cycles ledger feature flag to turn off behaviour that would be confusing while cycles ledger is not enabled yet.
+//TODO(SDK-1331): feature flag can be removed
+pub const CYCLES_LEDGER_ENABLED: bool = true;
 
 const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
 const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
 const SEND_METHOD: &str = "send";
+const CREATE_CANISTER_METHOD: &str = "create_canister";
 
 pub async fn balance(
     agent: &Agent,
@@ -169,4 +183,90 @@ pub async fn send(
     .await?;
 
     Ok(block_index)
+}
+
+#[context("Failed to create canister via cycles ledger.")]
+pub async fn create_with_cycles_ledger(
+    agent: &Agent,
+    with_cycles: Option<u128>,
+    from_subaccount: Option<Subaccount>,
+    settings: DfxCanisterSettings,
+    cycles_ledger_canister_id: Principal,
+) -> DfxResult<Principal> {
+    #[derive(CandidType, Clone, Debug)]
+    // TODO(FI-1022): Import types from cycles ledger crate once available
+    struct CreateCanisterArgs {
+        pub from_subaccount: Option<icrc_ledger_types::icrc1::account::Subaccount>,
+        pub created_at_time: Option<u64>,
+        pub amount: u128,
+        pub creation_args: Option<CmcCreateCanisterArgs>,
+    }
+    #[derive(CandidType, Clone, Debug)]
+    struct CmcCreateCanisterArgs {
+        pub subnet_selection: Option<SubnetSelection>,
+        pub settings: Option<CanisterSettings>,
+    }
+    #[derive(CandidType, Clone, Debug)]
+    #[allow(dead_code)]
+    enum SubnetSelection {
+        /// Choose a random subnet that satisfies the specified properties
+        Filter(SubnetFilter),
+        /// Choose a specific subnet
+        Subnet { subnet: Principal },
+    }
+    #[derive(CandidType, Clone, Debug)]
+    struct SubnetFilter {
+        pub subnet_type: Option<String>,
+    }
+    #[derive(CandidType, Clone, Debug, Deserialize, Error)]
+    enum CreateCanisterError {
+        #[error("Insufficient funds. Current balance: {balance}")]
+        InsufficientFunds { balance: u128 },
+        #[error("Local clock too far behind.")]
+        TooOld,
+        #[error("Local clock too far ahead.")]
+        CreatedInFuture { ledger_time: u64 },
+        #[error("Cycles ledger temporarily unavailable.")]
+        TemporarilyUnavailable,
+        #[error("Duplicate of block {duplicate_of}.")]
+        Duplicate { duplicate_of: Nat },
+        #[error("Cycles ledger failed to create canister: {error}")]
+        FailedToCreate {
+            fee_block: Option<Nat>,
+            refund_block: Option<Nat>,
+            error: String,
+        },
+        #[error("Ledger error {error_code}: {message}")]
+        GenericError { error_code: Nat, message: String },
+    }
+    #[derive(Deserialize, CandidType, Clone, Debug, PartialEq, Eq)]
+    struct CreateCanisterSuccess {
+        pub block_id: Nat,
+        pub canister_id: Principal,
+    }
+
+    let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
+    let result = agent
+        .update(&cycles_ledger_canister_id, CREATE_CANISTER_METHOD)
+        .with_arg(
+            Encode!(&CreateCanisterArgs {
+                from_subaccount,
+                created_at_time: None,
+                amount: cycles,
+                creation_args: Some(CmcCreateCanisterArgs {
+                    settings: Some(settings.into()),
+                    subnet_selection: None,
+                })
+            })
+            .unwrap(),
+        )
+        .call_and_wait()
+        .await
+        .map_err(|err| anyhow!(err))?;
+    let create_result = Decode!(
+        &result,
+        Result<CreateCanisterSuccess, CreateCanisterError>
+    )
+    .map_err(|_| anyhow!("Failed to decode response."))?;
+    Ok(create_result?.canister_id)
 }

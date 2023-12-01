@@ -1,22 +1,47 @@
 use crate::lib::error::DfxResult;
 use anyhow::{anyhow, Context};
 use byte_unit::Byte;
-use candid::{CandidType, Principal};
+use candid::Principal;
 use dfx_core::config::model::dfinity::ConfigInterface;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit,
 };
-use serde::Serialize;
 use std::convert::TryFrom;
 
-#[derive(Default, Debug, Clone, CandidType, Serialize, PartialEq, Eq)]
+#[derive(Default, Debug)]
 pub struct CanisterSettings {
     pub controllers: Option<Vec<Principal>>,
     pub compute_allocation: Option<ComputeAllocation>,
     pub memory_allocation: Option<MemoryAllocation>,
     pub freezing_threshold: Option<FreezingThreshold>,
     pub reserved_cycles_limit: Option<ReservedCyclesLimit>,
+}
+
+impl From<CanisterSettings>
+    for ic_utils::interfaces::management_canister::builders::CanisterSettings
+{
+    fn from(value: CanisterSettings) -> Self {
+        Self {
+            controllers: value.controllers,
+            compute_allocation: value
+                .compute_allocation
+                .map(u8::from)
+                .map(candid::Nat::from),
+            memory_allocation: value
+                .memory_allocation
+                .map(u64::from)
+                .map(candid::Nat::from),
+            freezing_threshold: value
+                .freezing_threshold
+                .map(u64::from)
+                .map(candid::Nat::from),
+            reserved_cycles_limit: value
+                .reserved_cycles_limit
+                .map(u128::from)
+                .map(candid::Nat::from),
+        }
+    }
 }
 
 #[context("Failed to get compute allocation.")]

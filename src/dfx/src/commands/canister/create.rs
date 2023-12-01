@@ -7,12 +7,13 @@ use crate::lib::ic_attributes::{
 };
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister::create_canister;
+use crate::lib::operations::cycles_ledger::CYCLES_LEDGER_ENABLED;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::parsers::cycle_amount_parser;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
     reserved_cycles_limit_parser,
 };
+use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use anyhow::{bail, Context};
 use byte_unit::Byte;
 use candid::Principal as CanisterId;
@@ -20,6 +21,7 @@ use clap::{ArgAction, Parser};
 use dfx_core::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
 use ic_agent::Identity as _;
+use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 
 /// Creates an empty canister and associates the assigned Canister ID to the canister name.
@@ -81,10 +83,15 @@ pub struct CanisterCreateOpts {
     #[arg(long)]
     no_wallet: bool,
 
+    /// Subaccount of the selected identity to spend cycles from.
+    //TODO(SDK-1331): unhide
+    #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
+    from_subaccount: Option<Subaccount>,
+
     /// Canister ID of the cycles ledger canister.
     /// If not specified, the default cycles ledger canister ID will be used.
     // todo: remove this.  See https://dfinity.atlassian.net/browse/SDK-1262
-    #[arg(long)]
+    #[arg(long, hide = true)]
     cycles_ledger_canister_id: Option<CanisterId>,
 }
 
@@ -108,14 +115,25 @@ pub async fn exec(
         && !matches!(call_sender, CallSender::Wallet(_))
         && !network.is_playground()
     {
-        let wallet = get_or_create_wallet_canister(
+        match get_or_create_wallet_canister(
             env,
             env.get_network_descriptor(),
             env.get_selected_identity().expect("No selected identity"),
         )
-        .await?;
-        proxy_sender = CallSender::Wallet(*wallet.canister_id_());
-        call_sender = &proxy_sender;
+        .await
+        {
+            Ok(wallet) => {
+                proxy_sender = CallSender::Wallet(*wallet.canister_id_());
+                call_sender = &proxy_sender;
+            }
+            Err(err) => {
+                if CYCLES_LEDGER_ENABLED {
+                    info!(env.get_logger(), "No wallet configured.");
+                } else {
+                    return Err(err);
+                }
+            }
+        };
     }
 
     let controllers: Option<Vec<_>> = opts
@@ -192,6 +210,7 @@ pub async fn exec(
             with_cycles,
             opts.specified_id,
             call_sender,
+            opts.from_subaccount,
             CanisterSettings {
                 controllers,
                 compute_allocation,
@@ -261,6 +280,7 @@ pub async fn exec(
                     with_cycles,
                     None,
                     call_sender,
+                    opts.from_subaccount,
                     CanisterSettings {
                         controllers: controllers.clone(),
                         compute_allocation,

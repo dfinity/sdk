@@ -1,4 +1,4 @@
-CYCLES_LEDGER_VERSION="0.2.1"
+CYCLES_LEDGER_VERSION="0.2.5"
 
 build_artifact_url() {
     echo "https://github.com/dfinity/cycles-ledger/releases/download/cycles-ledger-v$CYCLES_LEDGER_VERSION/${1}"
@@ -33,4 +33,8 @@ download_cycles_ledger_canisters() {
 install_cycles_ledger_canisters() {
     download_cycles_ledger_canisters
     cp "$(downloaded_cycles_ledger_canisters_dir)"/* .
+}
+
+deploy_cycles_ledger() {
+    dfx deploy cycles-ledger --argument '(variant { Init = record { max_transactions_per_request = 100; index_id = null; } })'
 }

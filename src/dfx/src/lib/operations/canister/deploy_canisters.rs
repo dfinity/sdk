@@ -23,6 +23,7 @@ use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit,
 };
 use ic_utils::interfaces::management_canister::builders::InstallMode;
+use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
@@ -46,10 +47,12 @@ pub async fn deploy_canisters(
     with_cycles: Option<u128>,
     specified_id: Option<Principal>,
     call_sender: &CallSender,
+    from_subaccount: Option<Subaccount>,
     no_wallet: bool,
     skip_consent: bool,
     env_file: Option<PathBuf>,
     no_asset_upgrade: bool,
+    cycles_ledger_canister_id: Option<Principal>,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -113,14 +116,19 @@ pub async fn deploy_canisters(
         {
             call_sender
         } else {
-            let wallet = get_or_create_wallet_canister(
+            match get_or_create_wallet_canister(
                 env,
                 env.get_network_descriptor(),
                 env.get_selected_identity().expect("No selected identity"),
             )
-            .await?;
-            proxy_sender = CallSender::Wallet(*wallet.canister_id_());
-            &proxy_sender
+            .await
+            {
+                Ok(wallet) => {
+                    proxy_sender = CallSender::Wallet(*wallet.canister_id_());
+                    &proxy_sender
+                }
+                Err(_) => call_sender,
+            }
         };
         register_canisters(
             env,
@@ -129,7 +137,9 @@ pub async fn deploy_canisters(
             with_cycles,
             specified_id,
             create_call_sender,
+            from_subaccount,
             &config,
+            cycles_ledger_canister_id,
         )
         .await?;
     } else {
@@ -199,7 +209,9 @@ async fn register_canisters(
     with_cycles: Option<u128>,
     specified_id: Option<Principal>,
     call_sender: &CallSender,
+    from_subaccount: Option<Subaccount>,
     config: &Config,
+    cycles_ledger_canister_id: Option<Principal>,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -255,6 +267,7 @@ async fn register_canisters(
                 with_cycles,
                 specified_id,
                 call_sender,
+                from_subaccount,
                 CanisterSettings {
                     controllers,
                     compute_allocation,
@@ -262,6 +275,7 @@ async fn register_canisters(
                     freezing_threshold,
                     reserved_cycles_limit,
                 },
+                cycles_ledger_canister_id,
             )
             .await?;
         }
