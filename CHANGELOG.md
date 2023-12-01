@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: `dfx ledger top-up` also accepts canister names
+
+Previously, `dfx ledger top-up` only accepted canister principals. Now it accepts both principals and canister names.
+
+# 0.15.2
+
 ### fix: `dfx canister delete <canister id>` removes the related entry from the canister id store
 
 Previously, deleting a canister in the project by id rather than by name
@@ -47,10 +53,6 @@ Certain suffixes that replace a number of zeros are now supported. The (case-ins
 - `t` for `000_000_000_000`, e.g. `0.3T`
 
 For cycles an additional `c` or `C` is also acceptable. For example: `dfx canister deposit-cycles 3TC mycanister`
-
-### feat: `dfx ledger top-up` also accepts canister names
-
-Previously, `dfx ledger top-up` only accepted canister principals. Now it accepts both principals and canister names.
 
 ### feat: added `dfx cycles` command
 
