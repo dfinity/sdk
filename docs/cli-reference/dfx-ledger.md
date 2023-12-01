@@ -276,9 +276,9 @@ dfx ledger top-up [options] canister [flag] --network ic
 
 You can specify the following argument for the `dfx ledger top-up` command.
 
-| Argument   | Description                                                      |
-|------------|------------------------------------------------------------------|
-| `canister` | Specifies the canister identifier that you would like to top up. |
+| Argument   | Description                                                              |
+|------------|--------------------------------------------------------------------------|
+| `canister` | Specifies the canister identifier or name that you would like to top up. |
 
 ### Options
 

@@ -48,6 +48,10 @@ Certain suffixes that replace a number of zeros are now supported. The (case-ins
 
 For cycles an additional `c` or `C` is also acceptable. For example: `dfx canister deposit-cycles 3TC mycanister`
 
+### feat: `dfx ledger top-up` also accepts canister names
+
+Previously, `dfx ledger top-up` only accepted canister principals. Now it accepts both principals and canister names.
+
 ### feat: added `dfx cycles` command
 
 This won't work on mainnet yet, but can work locally after installing the cycles ledger.

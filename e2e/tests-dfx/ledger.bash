@@ -184,6 +184,12 @@ tc_to_num() {
   assert_contains "Using transfer at block height $block_height" "$stdout"
   # shellcheck disable=SC2154
   assert_contains "Canister was topped up with" "$stdout"
+
+  # Top up canister by name instead of principal
+  dfx_new
+  assert_command dfx canister create e2e_project_backend
+  assert_command dfx ledger top-up e2e_project_backend --amount 5
+  assert_contains "Canister was topped up with 617283500000000 cycles"
 }
 
 @test "ledger create-canister" {
