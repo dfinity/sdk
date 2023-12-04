@@ -6,6 +6,11 @@
 
 Previously, `dfx ledger top-up` only accepted canister principals. Now it accepts both principals and canister names.
 
+### fix: installer once again detects if curl supports tlsv1.2
+
+A change to `curl --help` output made it so the install script did not detect
+that the `--proto` and `--tlsv1.2` options are available.
+
 # 0.15.2
 
 ### fix: `dfx canister delete <canister id>` removes the related entry from the canister id store
