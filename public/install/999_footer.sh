@@ -1,83 +1,40 @@
 ## 999_footer.sh
 
-# If DFX_RELEASE_ROOT is unset or empty, default it.
-SDK_WEBSITE="https://sdk.dfinity.org"
-DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx}"
-DFX_GITHUB_RELEASE_ROOT="${DFX_GITHUB_RELEASE_ROOT:-https://github.com/dfinity/sdk/releases/download}"
-DFX_MANIFEST_JSON_URL="${DFX_MANIFEST_JSON_URL:-$SDK_WEBSITE/manifest.json}"
+DFXVM_GITHUB_LATEST_RELEASE_ROOT="${DFXVM_GITHUB_LATEST_RELEASE_ROOT:-https://github.com/dfinity/dfxvm/releases/latest/download}"
 DFX_VERSION="${DFX_VERSION-}"
 
 # The SHA and the time of the last commit that touched this file.
 SCRIPT_COMMIT_DESC="@revision@"
 
-# Get the version of a tag from the manifest JSON file.
-# Arguments:
-#   $1 - The tag to get.
-#   STDIN - The manifest file.
-# Returns:
-#   0 if the tag was found, 1 if it wasn't.
-#   Prints out the version number.
-get_tag_from_manifest_json() {
-    # Find the tag in the file. Then get the last digits.
-    # The first grep returns `"tag_name": "1.2.3` (without the last quote).
-    cat \
-        | tr -d '\n' \
-        | grep -o "\"$1\":[[:space:]]*\"[a-zA-Z0-9.]*" \
-        | grep -o "[0-9.]*$"
-}
+download_and_install() {
+    SHASUM="$1"
 
-get_manifest_version() {
-    local _version
-    _version="$(downloader "${DFX_MANIFEST_JSON_URL}" - | get_tag_from_manifest_json latest)" || return 2
+    get_architecture || return 1
+    local _arch="$RETVAL"
+    assert_nz "$_arch" "arch"
 
-    printf %s "${_version}"
-}
+    local _archive="dfxvm-${_arch}"
+    local _tarball_filename="${_archive}.tar.gz"
+    local _tarball_url="${DFXVM_GITHUB_LATEST_RELEASE_ROOT}/${_tarball_filename}"
+    local _sha256_filename="${_tarball_filename}.sha256"
+    local _sha256_url="${_tarball_url}.sha256"
 
-validate_install_dir() {
-    local dir="${1%/}"
+    log "Downloading latest release..."
+    ensure downloader "$_tarball_url" "${_tarball_filename}"
+    ensure downloader "$_sha256_url"  "${_sha256_filename}"
 
-    # We test it's a directory and writeable.
+    log "Checking integrity of tarball..."
+    ensure $SHASUM -c "${_sha256_filename}"
 
-    # Try to create the directory if it doesn't exist already
-    if ! [ -d "$dir" ]; then
-        if ! mkdir -p "$dir"; then
-            if type sudo >/dev/null; then
-                sudo mkdir -p "$dir"
-            fi
-        fi
-    fi
+    ensure tar -xzf "${_tarball_filename}"
+    ensure cd "${_archive}" >/dev/null
+    ensure chmod u+x dfxvm
+    ensure mv dfxvm dfxvm-init
 
-    ! [ -d "$dir" ] && return 1
-    ! [ -w "$dir" ] && return 2
-
-    # We also test it's in the $PATH of the user.
-    case ":$PATH:" in
-        *:$dir:*) ;;
-        *) return 3 ;;
-    esac
-
-    return 0
-}
-
-sdk_install_dir() {
-    if [ "${DFX_INSTALL_ROOT-}" ]; then
-        # If user specifies an actual dir, use that.
-        validate_install_dir "${DFX_INSTALL_ROOT}"
-        printf %s "${DFX_INSTALL_ROOT}"
-    elif validate_install_dir /usr/local/bin; then
-        printf %s /usr/local/bin
-    elif [ "$(uname -s)" = Darwin ]; then
-        # OS X does not allow users to write to /usr/bin by default. In case the
-        # user is missing a /usr/local/bin we need to create it. Even if it is
-        # not "writeable" we expect the user to have access to super user
-        # privileges during the installation.
-        validate_install_dir /usr/local/bin
-        printf %s /usr/local/bin
-    elif validate_install_dir /usr/bin; then
-        printf %s /usr/bin
+    if [ -n "${DFX_VERSION}" ]; then
+        ./dfxvm-init --dfx-version "${DFX_VERSION}"
     else
-        # This is our last choice.
-        printf %s "${HOME}/bin"
+        ./dfxvm-init
     fi
 }
 
@@ -96,7 +53,7 @@ main() {
     # Read flags.
     read_flags "$@"
 
-    log "Executing dfx install script, commit: $SCRIPT_COMMIT_DESC"
+    log "Executing dfxvm install script, commit: $SCRIPT_COMMIT_DESC"
 
     downloader --check
     need_cmd uname
@@ -115,78 +72,31 @@ main() {
     need_cmd gzip
     need_cmd touch
 
-    get_architecture || return 1
-    local _arch="$RETVAL"
-    assert_nz "$_arch" "arch"
-
-    # Download the manifest if we need to.
-    if [ -z "${DFX_VERSION}" ]; then
-        DFX_VERSION=$(get_manifest_version)
-    fi
-
-    # TODO: dfx can't yet be distributed as a single file, it needs supporting libraries
-    # thus, make sure this handles archives
-    log "Version found: $DFX_VERSION"
-    case "$DFX_VERSION" in
-        0.[0-9].*)
-            local _dfx_tarball_filename="dfx-${DFX_VERSION}.tar.gz"
-            local _dfx_url="${DFX_RELEASE_ROOT}/${DFX_VERSION}/${_arch}/${_dfx_tarball_filename}"
-            local _dfx_sha256_filename=""
-            ;;
-
-        *)
-            local _dfx_tarball_filename="dfx-${DFX_VERSION}-${_arch}.tar.gz"
-            local _dfx_url="${DFX_GITHUB_RELEASE_ROOT}/${DFX_VERSION}/${_dfx_tarball_filename}"
-            local _dfx_sha256_filename="${_dfx_tarball_filename}.sha256"
-            local _dfx_sha256_url="${_dfx_url}.sha256"
-            ;;
-    esac
-
     local _dir
-    _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t dfinity-sdk)"
-    local _dfx_archive="${_dir}/${_dfx_tarball_filename}"
-    local _dfx_file="${_dir}/dfx"
-
-    log "Creating uninstall script in ~/.cache/dfinity"
-    mkdir -p "${HOME}/.cache/dfinity/"
-    # Ensure there is a way to uninstall dfx
-    install_uninstall_script
-
-    log "Checking for latest release..."
-
-    ensure mkdir -p "$_dir"
-    ensure downloader "$_dfx_url" "$_dfx_archive"
-    if [ -n "${_dfx_sha256_filename}" ]; then
-        log "Checking integrity of tarball..."
-        ensure downloader "$_dfx_sha256_url" "${_dir}/${_dfx_sha256_filename}"
-        (
-            ensure cd "${_dir}" >/dev/null
-            ensure $SHASUM -c "${_dfx_sha256_filename}"
-        )
-    fi
-    tar -xf "$_dfx_archive" -O >"$_dfx_file"
-    ensure chmod u+x "$_dfx_file"
-
-    local _install_dir
-    _install_dir="$(sdk_install_dir)"
-    printf "%s\n" "Will install in: ${_install_dir}"
-    mkdir -p "${_install_dir}" || true
-
-    if [ -w "${_install_dir}" ]; then
-        MV="mv"
-    else
-        if ! type sudo >/dev/null; then
-            err "Install directory '${_install_dir}' not writable and sudo command not found"
+    _dir="$(mktemp -d 2>/dev/null)"
+    if [ $? -ne 0 ]; then
+        _dir="$(mktemp -d -t dfinity-dfxvm)"
+        if [ $? -ne 0 ]; then
+            err "failed to create temporary directory"
         fi
-        MV="sudo mv"
     fi
-    $MV "$_dfx_file" "${_install_dir}" 2>/dev/null \
-        || err "Failed to install the DFINITY Development Kit: please check your permissions and try again."
 
-    log "Installed $_install_dir/dfx"
+    ensure mkdir -p "${_dir}"
 
-    ignore rm -rf "$_dir"
+    (
+        ensure cd "${_dir}" >/dev/null
+        download_and_install "$SHASUM"
+    )
+    local _subshell_exit_code=$?
+
+    ignore rm -rf "${_dir}"
+    exit $_subshell_exit_code
 }
+
+## output is one of the following, which correspond to part of the release asset filenames:
+##    aarch64-apple-darwin
+##    x86_64-apple-darwin
+##    x86_64-unknown-linux-gnu
 
 get_architecture() {
     local _ostype _cputype _arch
@@ -200,32 +110,14 @@ get_architecture() {
         fi
     fi
 
-    if [ "$_ostype" = Darwin ] && [ "$_cputype" = arm64 ]; then
-        # Support for M1 Macs using Rosetta for the time being.
-        # We specialize on Darwin here because we cannot support ARM natively.
-        _cputype=x86_64
-    fi
-
-    case "$_ostype" in
-
-        Linux)
-            _ostype=linux
-            ;;
-
-        Darwin)
-            _ostype=darwin
-            ;;
-
-        *)
-            err "unrecognized OS type: $_ostype"
-            ;;
-
-    esac
-
     case "$_cputype" in
 
         x86_64 | x86-64 | x64 | amd64)
             _cputype=x86_64
+            ;;
+
+        arm64 | aarch64)
+            _cputype=aarch64
             ;;
 
         *)
@@ -234,57 +126,28 @@ get_architecture() {
 
     esac
 
+    case "$_ostype" in
+
+        Linux)
+            _ostype=unknown-linux-gnu
+            # The only cputype we build on Linux is x86_64.
+            # `uname -m` in a Linux Docker container on an Apple M1 can return aarch64
+            _cputype=x86_64
+            ;;
+
+        Darwin)
+            _ostype=apple-darwin
+            ;;
+
+        *)
+            err "unrecognized OS type: $_ostype"
+            ;;
+
+    esac
+
     _arch="${_cputype}-${_ostype}"
 
     RETVAL="$_arch"
-}
-
-install_uninstall_script() {
-    set +u
-    local uninstall_file_path
-    local uninstall_script
-
-    uninstall_script=$(
-        cat <<'EOF'
-#!/usr/bin/env sh
-
-uninstall() {
-    check_rm "${DFX_INSTALL_ROOT}/dfx"
-    check_rm "${HOME}/bin/dfx"
-    check_rm /usr/local/bin/dfx /usr/bin/dfx
-
-    # Now clean the cache.
-    clean_cache
-}
-
-check_rm() {
-    local file
-    for file in "$@"
-    do
-        [ -e "${file}" ] && rm "${file}"
-    done
-}
-
-clean_cache() {
-    # Check if home is unset or set to empty.
-    if [ -z "$HOME" ]; then
-        exit "HOME environment variable unset."
-    fi
-
-    rm -Rf "${HOME}/.cache/dfinity"
-}
-
-uninstall
-EOF
-    )
-    set -u
-    # Being a bit more paranoid and rechecking.
-    assert_nz "${HOME}"
-    uninstall_file_path="${HOME}/.cache/dfinity/uninstall.sh"
-    log "uninstall path=${uninstall_file_path}"
-    rm -f "${uninstall_file_path}"
-    printf "%s" "$uninstall_script" >"${uninstall_file_path}"
-    ensure chmod u+x "${uninstall_file_path}"
 }
 
 main "$@" || exit $?
