@@ -63,6 +63,8 @@ Added the following subcommands:
  - `dfx cycles transfer <to> <amount>` (transfer cycles from one account to another account)
  - `dfx cycles top-up <to> <amount>` (send cycles from an account to a canister)
 
+### feat: `dfx new` allows hyphens in project name
+
 ## Dependencies
 
 ### Motoko

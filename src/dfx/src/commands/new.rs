@@ -585,6 +585,7 @@ mod tests {
         assert!(project_name_parser("A1").is_ok());
         assert!(project_name_parser("a_good_name_").is_ok());
         assert!(project_name_parser("a_good_name").is_ok());
+        assert!(project_name_parser("a-b-c").is_ok());
     }
 
     #[test]
@@ -597,7 +598,6 @@ mod tests {
         assert!(project_name_parser("1_").is_err());
         assert!(project_name_parser("-").is_err());
         assert!(project_name_parser("_").is_err());
-        assert!(project_name_parser("a-b-c").is_err());
         assert!(project_name_parser("🕹").is_err());
         assert!(project_name_parser("不好").is_err());
         assert!(project_name_parser("a:b").is_err());
