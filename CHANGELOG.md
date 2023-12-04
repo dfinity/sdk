@@ -6,6 +6,8 @@
 
 Previously, `dfx ledger top-up` only accepted canister principals. Now it accepts both principals and canister names.
 
+### feat: `dfx new` allows hyphens in project name
+
 # 0.15.2
 
 ### fix: `dfx canister delete <canister id>` removes the related entry from the canister id store
@@ -62,8 +64,6 @@ Added the following subcommands:
  - `dfx cycles balance`
  - `dfx cycles transfer <to> <amount>` (transfer cycles from one account to another account)
  - `dfx cycles top-up <to> <amount>` (send cycles from an account to a canister)
-
-### feat: `dfx new` allows hyphens in project name
 
 ## Dependencies
 
