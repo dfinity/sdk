@@ -110,7 +110,7 @@ check_help_for() {
         esac
     fi
     for _arg in "$@"; do
-        if ! "$_cmd" --help | grep -q -- "$_arg"; then
+        if ! "$_cmd" --help all | grep -q -- "$_arg"; then
             _ok="n"
         fi
     done
@@ -161,7 +161,7 @@ DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx}"
 DFX_GITHUB_RELEASE_ROOT="${DFX_GITHUB_RELEASE_ROOT:-https://github.com/dfinity/sdk/releases/download}"
 DFX_MANIFEST_JSON_URL="${DFX_MANIFEST_JSON_URL:-$SDK_WEBSITE/manifest.json}"
 DFX_VERSION="${DFX_VERSION-}"
-SCRIPT_COMMIT_DESC="8732f01781e6fdfaf49dc4e5621b1a481562017b"
+SCRIPT_COMMIT_DESC="b179e5111af820a37293adf8bf0d26df77a358d5"
 get_tag_from_manifest_json() {
     cat \
         | tr -d '\n' \
