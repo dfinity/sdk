@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### fix: removes `upgrade-insecure-requests` from default Content-Security-Policy header
+
+This was causing requests in safari to localhost to fail. We will re-add this header in a future PR without breaking local development.
+
 ### feat: `dfx ledger top-up` also accepts canister names
 
 Previously, `dfx ledger top-up` only accepted canister principals. Now it accepts both principals and canister names.
