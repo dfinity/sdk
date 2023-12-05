@@ -24,7 +24,7 @@ download_and_install() {
     ensure downloader "$_sha256_url"  "${_sha256_filename}"
 
     log "Checking integrity of tarball..."
-    ensure $SHASUM -c "${_sha256_filename}"
+    ensure "$SHASUM" -c "${_sha256_filename}"
 
     ensure tar -xzf "${_tarball_filename}"
     ensure cd "${_archive}" >/dev/null
@@ -73,10 +73,9 @@ main() {
     need_cmd touch
 
     local _dir
-    _dir="$(mktemp -d 2>/dev/null)"
-    if [ $? -ne 0 ]; then
-        _dir="$(mktemp -d -t dfinity-dfxvm)"
-        if [ $? -ne 0 ]; then
+
+    if ! _dir="$(mktemp -d 2>/dev/null)"; then
+        if ! _dir="$(mktemp -d -t dfinity-dfxvm)"; then
             err "failed to create temporary directory"
         fi
     fi
