@@ -21,7 +21,7 @@ download_and_install() {
 
     log "Downloading latest release..."
     ensure downloader "$_tarball_url" "${_tarball_filename}"
-    ensure downloader "$_sha256_url"  "${_sha256_filename}"
+    ensure downloader "$_sha256_url" "${_sha256_filename}"
 
     log "Checking integrity of tarball..."
     ensure "$SHASUM" -c "${_sha256_filename}"
