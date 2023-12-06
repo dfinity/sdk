@@ -105,6 +105,23 @@
         }
       }
     },
+    "ConfigDefaultsProxy": {
+      "description": "Configuration for icx-proxy.",
+      "type": "object",
+      "required": [
+        "domain"
+      ],
+      "properties": {
+        "domain": {
+          "description": "A list of domains that can be served. These are used for canister resolution [default: localhost]",
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
+            }
+          ]
+        }
+      }
+    },
     "ConfigDefaultsReplica": {
       "title": "Local Replica Configuration",
       "type": "object",
@@ -188,6 +205,16 @@
           "anyOf": [
             {
               "$ref": "#/definitions/PlaygroundConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proxy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsProxy"
             },
             {
               "type": "null"
@@ -318,6 +345,19 @@
         "system",
         "application",
         "verifiedapplication"
+      ]
+    },
+    "SerdeVec_for_String": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       ]
     }
   }

@@ -1,12 +1,14 @@
 use crate::config::model::bitcoin_adapter;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
 use crate::config::model::dfinity::{
-    to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsReplica,
-    ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
+    to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsProxy,
+    ConfigDefaultsReplica, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
+    DEFAULT_SHARED_LOCAL_BIND,
 };
 use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
+use crate::json::structure::SerdeVec;
 use slog::{debug, info, Logger};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -30,6 +32,7 @@ pub struct LocalServerDescriptor {
 
     pub bitcoin: ConfigDefaultsBitcoin,
     pub canister_http: ConfigDefaultsCanisterHttp,
+    pub proxy: ConfigDefaultsProxy,
     pub replica: ConfigDefaultsReplica,
 
     pub scope: LocalNetworkScopeDescriptor,
@@ -51,6 +54,7 @@ impl LocalServerDescriptor {
         bind: String,
         bitcoin: ConfigDefaultsBitcoin,
         canister_http: ConfigDefaultsCanisterHttp,
+        proxy: ConfigDefaultsProxy,
         replica: ConfigDefaultsReplica,
         scope: LocalNetworkScopeDescriptor,
         legacy_pid_path: Option<PathBuf>,
@@ -61,6 +65,7 @@ impl LocalServerDescriptor {
             bind_address,
             bitcoin,
             canister_http,
+            proxy,
             replica,
             scope,
             legacy_pid_path,
@@ -198,6 +203,13 @@ impl LocalServerDescriptor {
             ..self.bitcoin
         };
         Self { bitcoin, ..self }
+    }
+
+    pub fn with_proxy_domains(self, domains: Vec<String>) -> LocalServerDescriptor {
+        let proxy = ConfigDefaultsProxy {
+            domain: SerdeVec::Many(domains),
+        };
+        Self { proxy, ..self }
     }
 }
 

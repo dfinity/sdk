@@ -32,6 +32,7 @@ You can use the following option with the `dfx start` command.
 | `--host host` | Specifies the host interface IP address and port number to bind the frontend to. The default for the local shared network is `127.0.0.1:4943`, while the default for a project-specific network is '127.0.0.1:8000'. |
 | `--bitcoin-node host:port` | Specifies the address of a bitcoind node. Implies `--enable-bitcoin`.                                                                                                                                               |
 | `--artificial-delay milliseconds` | Specifies the delay that an update call should incur. Default: 600ms |
+| `--domain domain` | A domain that can be served. Can be specified more than once.  These are used for canister resolution [default: localhost] |
 
 ## Examples
 
