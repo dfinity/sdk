@@ -135,10 +135,10 @@ downloader() {
         need_cmd "$_dld"
     elif [ "$_dld" = curl ]; then
         if check_help_for curl --proto --tlsv1.2; then
-            curl --proto '=https' --tlsv1.2 --show-error --fail --connect-timeout 10 --retry 5 --location "$1" --output "$2"
+            curl --proto '=https' --tlsv1.2 --show-error --fail --connect-timeout 10 --retry 5 --location "$1" --output "$2" --progress-bar
         elif ! [ "$flag_INSECURE" ]; then
             warn "Not forcing TLS v1.2, this is potentially less secure"
-            curl --show-error --fail --connect-timeout 10 --retry 5 --location "$1" --output "$2"
+            curl --show-error --fail --connect-timeout 10 --retry 5 --location "$1" --output "$2" --progress-bar
         else
             err "TLS 1.2 is not supported on this platform. To force using it, use the --insecure flag."
         fi
@@ -156,53 +156,32 @@ downloader() {
     fi
 }
 ## 999_footer.sh
-SDK_WEBSITE="https://sdk.dfinity.org"
-DFX_RELEASE_ROOT="${DFX_RELEASE_ROOT:-$SDK_WEBSITE/downloads/dfx}"
-DFX_GITHUB_RELEASE_ROOT="${DFX_GITHUB_RELEASE_ROOT:-https://github.com/dfinity/sdk/releases/download}"
-DFX_MANIFEST_JSON_URL="${DFX_MANIFEST_JSON_URL:-$SDK_WEBSITE/manifest.json}"
+DFXVM_GITHUB_LATEST_RELEASE_ROOT="${DFXVM_GITHUB_LATEST_RELEASE_ROOT:-https://github.com/dfinity/dfxvm/releases/latest/download}"
 DFX_VERSION="${DFX_VERSION-}"
-SCRIPT_COMMIT_DESC="b179e5111af820a37293adf8bf0d26df77a358d5"
-get_tag_from_manifest_json() {
-    cat \
-        | tr -d '\n' \
-        | grep -o "\"$1\":[[:space:]]*\"[a-zA-Z0-9.]*" \
-        | grep -o "[0-9.]*$"
-}
-get_manifest_version() {
-    local _version
-    _version="$(downloader "${DFX_MANIFEST_JSON_URL}" - | get_tag_from_manifest_json latest)" || return 2
-    printf %s "${_version}"
-}
-validate_install_dir() {
-    local dir="${1%/}"
-    if ! [ -d "$dir" ]; then
-        if ! mkdir -p "$dir"; then
-            if type sudo >/dev/null; then
-                sudo mkdir -p "$dir"
-            fi
-        fi
-    fi
-    ! [ -d "$dir" ] && return 1
-    ! [ -w "$dir" ] && return 2
-    case ":$PATH:" in
-        *:$dir:*) ;;
-        *) return 3 ;;
-    esac
-    return 0
-}
-sdk_install_dir() {
-    if [ "${DFX_INSTALL_ROOT-}" ]; then
-        validate_install_dir "${DFX_INSTALL_ROOT}"
-        printf %s "${DFX_INSTALL_ROOT}"
-    elif validate_install_dir /usr/local/bin; then
-        printf %s /usr/local/bin
-    elif [ "$(uname -s)" = Darwin ]; then
-        validate_install_dir /usr/local/bin
-        printf %s /usr/local/bin
-    elif validate_install_dir /usr/bin; then
-        printf %s /usr/bin
+SCRIPT_COMMIT_DESC="f887039ff0618f2d7e1416773561d5b68ec21352"
+download_and_install() {
+    SHASUM="$1"
+    get_architecture || return 1
+    local _arch="$RETVAL"
+    assert_nz "$_arch" "arch"
+    local _archive="dfxvm-${_arch}"
+    local _tarball_filename="${_archive}.tar.gz"
+    local _tarball_url="${DFXVM_GITHUB_LATEST_RELEASE_ROOT}/${_tarball_filename}"
+    local _sha256_filename="${_tarball_filename}.sha256"
+    local _sha256_url="${_tarball_url}.sha256"
+    log "Downloading latest release..."
+    ensure downloader "$_tarball_url" "${_tarball_filename}"
+    ensure downloader "$_sha256_url" "${_sha256_filename}"
+    log "Checking integrity of tarball..."
+    ensure "$SHASUM" -c "${_sha256_filename}"
+    ensure tar -xzf "${_tarball_filename}"
+    ensure cd "${_archive}" >/dev/null
+    ensure chmod u+x dfxvm
+    ensure mv dfxvm dfxvm-init
+    if [ -n "${DFX_VERSION}" ]; then
+        ./dfxvm-init --dfx-version "${DFX_VERSION}"
     else
-        printf %s "${HOME}/bin"
+        ./dfxvm-init
     fi
 }
 main() {
@@ -217,7 +196,7 @@ main() {
         fi
     fi
     read_flags "$@"
-    log "Executing dfx install script, commit: $SCRIPT_COMMIT_DESC"
+    log "Executing dfxvm install script, commit: $SCRIPT_COMMIT_DESC"
     downloader --check
     need_cmd uname
     need_cmd mktemp
@@ -234,63 +213,25 @@ main() {
     need_cmd tar
     need_cmd gzip
     need_cmd touch
-    get_architecture || return 1
-    local _arch="$RETVAL"
-    assert_nz "$_arch" "arch"
-    if [ -z "${DFX_VERSION}" ]; then
-        DFX_VERSION=$(get_manifest_version)
-    fi
-    log "Version found: $DFX_VERSION"
-    case "$DFX_VERSION" in
-        0.[0-9].*)
-            local _dfx_tarball_filename="dfx-${DFX_VERSION}.tar.gz"
-            local _dfx_url="${DFX_RELEASE_ROOT}/${DFX_VERSION}/${_arch}/${_dfx_tarball_filename}"
-            local _dfx_sha256_filename=""
-            ;;
-        *)
-            local _dfx_tarball_filename="dfx-${DFX_VERSION}-${_arch}.tar.gz"
-            local _dfx_url="${DFX_GITHUB_RELEASE_ROOT}/${DFX_VERSION}/${_dfx_tarball_filename}"
-            local _dfx_sha256_filename="${_dfx_tarball_filename}.sha256"
-            local _dfx_sha256_url="${_dfx_url}.sha256"
-            ;;
-    esac
     local _dir
-    _dir="$(mktemp -d 2>/dev/null || ensure mktemp -d -t dfinity-sdk)"
-    local _dfx_archive="${_dir}/${_dfx_tarball_filename}"
-    local _dfx_file="${_dir}/dfx"
-    log "Creating uninstall script in ~/.cache/dfinity"
-    mkdir -p "${HOME}/.cache/dfinity/"
-    install_uninstall_script
-    log "Checking for latest release..."
-    ensure mkdir -p "$_dir"
-    ensure downloader "$_dfx_url" "$_dfx_archive"
-    if [ -n "${_dfx_sha256_filename}" ]; then
-        log "Checking integrity of tarball..."
-        ensure downloader "$_dfx_sha256_url" "${_dir}/${_dfx_sha256_filename}"
-        (
-            ensure cd "${_dir}" >/dev/null
-            ensure $SHASUM -c "${_dfx_sha256_filename}"
-        )
-    fi
-    tar -xf "$_dfx_archive" -O >"$_dfx_file"
-    ensure chmod u+x "$_dfx_file"
-    local _install_dir
-    _install_dir="$(sdk_install_dir)"
-    printf "%s\n" "Will install in: ${_install_dir}"
-    mkdir -p "${_install_dir}" || true
-    if [ -w "${_install_dir}" ]; then
-        MV="mv"
-    else
-        if ! type sudo >/dev/null; then
-            err "Install directory '${_install_dir}' not writable and sudo command not found"
+    if ! _dir="$(mktemp -d 2>/dev/null)"; then
+        if ! _dir="$(mktemp -d -t dfinity-dfxvm)"; then
+            err "failed to create temporary directory"
         fi
-        MV="sudo mv"
     fi
-    $MV "$_dfx_file" "${_install_dir}" 2>/dev/null \
-        || err "Failed to install the DFINITY Development Kit: please check your permissions and try again."
-    log "Installed $_install_dir/dfx"
-    ignore rm -rf "$_dir"
+    ensure mkdir -p "${_dir}"
+    (
+        ensure cd "${_dir}" >/dev/null
+        download_and_install "$SHASUM"
+    )
+    local _subshell_exit_code=$?
+    ignore rm -rf "${_dir}"
+    exit $_subshell_exit_code
 }
+## output is one of the following, which correspond to part of the release asset filenames:
+##    aarch64-apple-darwin
+##    x86_64-apple-darwin
+##    x86_64-unknown-linux-gnu
 get_architecture() {
     local _ostype _cputype _arch
     _ostype="$(uname -s)"
@@ -300,66 +241,30 @@ get_architecture() {
             _cputype=x86_64
         fi
     fi
-    if [ "$_ostype" = Darwin ] && [ "$_cputype" = arm64 ]; then
-        _cputype=x86_64
-    fi
-    case "$_ostype" in
-        Linux)
-            _ostype=linux
-            ;;
-        Darwin)
-            _ostype=darwin
-            ;;
-        *)
-            err "unrecognized OS type: $_ostype"
-            ;;
-    esac
     case "$_cputype" in
         x86_64 | x86-64 | x64 | amd64)
             _cputype=x86_64
+            ;;
+        arm64 | aarch64)
+            _cputype=aarch64
             ;;
         *)
             err "unknown CPU type: $_cputype"
             ;;
     esac
+    case "$_ostype" in
+        Linux)
+            _ostype=unknown-linux-gnu
+            _cputype=x86_64
+            ;;
+        Darwin)
+            _ostype=apple-darwin
+            ;;
+        *)
+            err "unrecognized OS type: $_ostype"
+            ;;
+    esac
     _arch="${_cputype}-${_ostype}"
     RETVAL="$_arch"
-}
-install_uninstall_script() {
-    set +u
-    local uninstall_file_path
-    local uninstall_script
-    uninstall_script=$(
-        cat <<'EOF'
-#!/usr/bin/env sh
-uninstall() {
-    check_rm "${DFX_INSTALL_ROOT}/dfx"
-    check_rm "${HOME}/bin/dfx"
-    check_rm /usr/local/bin/dfx /usr/bin/dfx
-    clean_cache
-}
-check_rm() {
-    local file
-    for file in "$@"
-    do
-        [ -e "${file}" ] && rm "${file}"
-    done
-}
-clean_cache() {
-    if [ -z "$HOME" ]; then
-        exit "HOME environment variable unset."
-    fi
-    rm -Rf "${HOME}/.cache/dfinity"
-}
-uninstall
-EOF
-    )
-    set -u
-    assert_nz "${HOME}"
-    uninstall_file_path="${HOME}/.cache/dfinity/uninstall.sh"
-    log "uninstall path=${uninstall_file_path}"
-    rm -f "${uninstall_file_path}"
-    printf "%s" "$uninstall_script" >"${uninstall_file_path}"
-    ensure chmod u+x "${uninstall_file_path}"
 }
 main "$@" || exit $?
