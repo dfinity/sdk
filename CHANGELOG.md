@@ -11,6 +11,16 @@ Previously, `dfx ledger top-up` only accepted canister principals. Now it accept
 A change to `curl --help` output made it so the install script did not detect
 that the `--proto` and `--tlsv1.2` options are available.
 
+## Dependencies
+
+### Candid UI
+
+- Module hash: d172df265a14397a460b752ff07598380bc7ebd9c43ece1e82495ae478a88719c
+- Internet identity integration in Candid UI. Thanks to @Samer!
+  + You can customize the II url and derivationOrigin via URL parameter `ii` and `origin` respectively.
+- Update with the new profiling API
+
+
 # 0.15.2
 
 ### fix: `dfx canister delete <canister id>` removes the related entry from the canister id store
