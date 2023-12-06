@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - sdk-1278-dfxvm-install-script
+  pull_request:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,6 +18,7 @@ env:
 
 jobs:
   publish-manifest:
+    name: dfxvm-install-script-shellcheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,6 +39,7 @@ jobs:
             s/ *#.*//
           " _out/install.sh
       - name: Upload Artifacts
+        if: github.event_name == 'push'
         uses: JamesIves/github-pages-deploy-action@releases/v3
         with:
           single_commit: yes
