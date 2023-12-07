@@ -11,6 +11,18 @@ Previously, `dfx ledger top-up` only accepted canister principals. Now it accept
 A change to `curl --help` output made it so the install script did not detect
 that the `--proto` and `--tlsv1.2` options are available.
 
+### feat: Added support for icx-proxy `--domain` parameter
+
+In order to access a local replica through a domain name or domain names,
+it's necessary to pass the `--domain` parameter to icx-proxy.  dfx now supports
+this in configuration and as a parameter to dfx start.  You can specify a single
+domain or a list of domains in any of the following ways:
+
+- in networks.json, in `.<network>.proxy.domain`
+- in dfx.json, in `.networks.<netowrk>.proxy.domain`
+- in dfx.json, in `.defaults.proxy.domain`
+- to dfx start, as `dfx start --domain <domain1> --domain <domain2> ...`
+
 # 0.15.2
 
 ### fix: `dfx canister delete <canister id>` removes the related entry from the canister id store
