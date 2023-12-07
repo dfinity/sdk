@@ -80,6 +80,10 @@ pub struct StartOpts {
     /// Use old metering.
     #[arg(long)]
     use_old_metering: bool,
+
+    /// A list of domains that can be served. These are used for canister resolution [default: localhost]
+    #[arg(long)]
+    domain: Vec<String>,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -146,6 +150,7 @@ pub fn exec(
         enable_canister_http,
         artificial_delay,
         use_old_metering,
+        domain,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -179,6 +184,7 @@ pub fn exec(
         bitcoin_node,
         enable_canister_http,
         emulator,
+        domain,
     )?;
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
@@ -292,6 +298,8 @@ pub fn exec(
         .log_level
         .unwrap_or_default();
 
+    let proxy_domains = local_server_descriptor.proxy.domain.clone().into_vec();
+
     let replica_config = {
         let replica_config = ReplicaConfig::new(
             &state_root,
@@ -388,6 +396,7 @@ pub fn exec(
             bind: address_and_port,
             replica_urls: vec![], // will be determined after replica starts
             fetch_root_key: !network_descriptor.is_ic,
+            domains: proxy_domains,
             verbose: env.get_verbose_level() > 0,
         };
 
@@ -453,6 +462,7 @@ pub fn apply_command_line_parameters(
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
     emulator: bool,
+    domain: Vec<String>,
 ) -> DfxResult<NetworkDescriptor> {
     if enable_canister_http {
         warn!(
@@ -490,6 +500,10 @@ pub fn apply_command_line_parameters(
 
     if !bitcoin_nodes.is_empty() {
         local_server_descriptor = local_server_descriptor.with_bitcoin_nodes(bitcoin_nodes)
+    }
+
+    if !domain.is_empty() {
+        local_server_descriptor = local_server_descriptor.with_proxy_domains(domain)
     }
 
     Ok(NetworkDescriptor {
