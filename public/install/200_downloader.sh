@@ -26,7 +26,7 @@ check_help_for() {
     fi
 
     for _arg in "$@"; do
-        if ! "$_cmd" --help | grep -q -- "$_arg"; then
+        if ! "$_cmd" --help all | grep -q -- "$_arg"; then
             _ok="n"
         fi
     done
