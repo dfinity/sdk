@@ -58,16 +58,16 @@ current_time_nanoseconds() {
 
 
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 1_700_400_200_150;})" --identity cycle-giver
-  assert_eq "(record { balance = 1_700_400_200_150 : nat; txid = 0 : nat })"
+  assert_eq "(record { balance = 1_700_400_200_150 : nat; block_index = 0 : nat })"
 
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 3_750_000_000_000;})" --identity cycle-giver
-  assert_eq "(record { balance = 3_750_000_000_000 : nat; txid = 1 : nat })"
+  assert_eq "(record { balance = 3_750_000_000_000 : nat; block_index = 1 : nat })"
 
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT2_CANDID\"};cycles = 760_500_000_000;})" --identity cycle-giver
-  assert_eq "(record { balance = 760_500_000_000 : nat; txid = 2 : nat })"
+  assert_eq "(record { balance = 760_500_000_000 : nat; block_index = 2 : nat })"
 
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$BOB\";};cycles = 2_900_000_000_000;})" --identity cycle-giver
-  assert_eq "(record { balance = 2_900_000_000_000 : nat; txid = 3 : nat })"
+  assert_eq "(record { balance = 2_900_000_000_000 : nat; block_index = 3 : nat })"
 
 
   assert_command dfx cycles balance --cycles-ledger-canister-id "$(dfx canister id cycles-ledger)" --precise --identity alice
@@ -390,7 +390,7 @@ current_time_nanoseconds() {
 
 
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 500_000_000;})" --identity cycle-giver
-  assert_eq "(record { balance = 500_000_000 : nat; txid = 0 : nat })"
+  assert_eq "(record { balance = 500_000_000 : nat; block_index = 0 : nat })"
 
   assert_command dfx canister status cycles-depositor
   assert_contains "Balance: 9_999_500_000_000 Cycles"
