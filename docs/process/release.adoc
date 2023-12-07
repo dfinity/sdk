@@ -99,12 +99,8 @@ git checkout release-<n.n.n> && git pull
 === Ready
 
 At this point, you are ready to build a release candidate.
-There are two ways you can build a release candidate:
+This is a script-based process.
 
-- Using the <<script,SCRIPT-BASED release process>> to automate the build process and skip manual testing.
-- Using the <<manual,MANUAL STEPS release process>> to build and test the release.
-
-[[script]]
 == SCRIPT-BASED release process
 
 To use the release script to automate building the release candidate:
@@ -125,254 +121,6 @@ For example, if releasing 0.7.0, you would run the following command:
 
 After running this command to build the release candidate, follow the steps in <<post-build,Notification and post-build validations>> to complete the release process.
 
-[[manual]]
-== MANUAL STEPS release process
-
-The manual release process provides full instructions for building and testing the release candidate binaries to ensure everything is working before making a release available to internal or external developers.
-
-=== Build DFX
-
-Verify that you can build DFX from the `+master+` branch without errors.
-
-. Verify you're connected to VPN, if necessary.
-. Build the `dfx` binary by running the following command:
-+
-[source, bash]
-----
-cargo clean --release
-cargo build --release --locked
-export dfx_rc="$(pwd)/target/release/dfx"
-----
-+
-The `nix-build` command can take a while to complete.
-Wait for it to be done.
-These commands create the binary then stores the binary in a shell variable.
-. Make sure the `$dfx_rc` variable points to a real file by running the following command:
-+
-```
-test -x $dfx_rc \
-    && echo 'Please proceed.' \
-    || echo 'Cant find executable $dfx_rc'="$dfx_rc"
-```
-+
-You should see 'Please proceed' returned.
-. Delete the existing `dfx` cache to ensure you're not using a stale binary.
-+
-[source, bash]
-----
-$dfx_rc cache delete
-----
-. Ensure `dfx` and `replica` are not running in the background by running the following command:
-+
-[source, bash]
-----
-ps -ef | grep -E 'replica|dfx' | grep -v grep
-----
-+
-If there are any `replica` or `dfx` processes running, use the `kill` command to terminate them.
-
-=== Validate the default project
-
-Verify that you can build, deploy, and call the default `hello_world` project without errors.
-
-. Generate a default new project and change to the project directory by running the following commands:
-+
-[source, bash]
-----
-$dfx_rc new hello_world
-cd hello_world
-----
-. Start the local `replica` as a background process by running the following command:
-+
-[source, bash]
-----
-$dfx_rc start --clean --background
-----
-. Create, build, and install canisters by running the following command:
-+
-[source, bash]
-----
-$dfx_rc deploy
-----
-. Call the canister and verify the result by running the following command:
-+
-[source, bash]
-----
-$dfx_rc canister call hello_world greet everyone
-----
-. Save the canister URLs as shell variables, then print them by running the following commands:
-+
-[source, bash]
-----
-export hello_world_backend_candid_url="http://localhost:4943/candid?canisterId=$($dfx_rc canister id hello_world_backend)"
-export hello_world_frontend_url="http://localhost:4943/?canisterId=$($dfx_rc canister id hello_world_frontend)"
-----
-. Open a web browser and clear your cache or switch to Private Browsing/Incognito mode.
-. Open the following URL in your web browser:
-+
-[source,bash]
-----
-echo "$hello_world_frontend_url"
-----
-+
-. Verify that you are prompted to type a greeting in a prompt window.
-.. Type a greeting, then click *OK* to return the greeting in an alert window.
-.. Verify there are no errors in the console by opening the Developer Tools.
-+
-For example, in the browser, right-click, then click Inspect and select Console to check for errors and warnings.
-Warnings can be ignored.
-
-. Verify the Candid UI by opening the following URL in your web browser:
-+
-[source, bash]
-----
-echo "$hello_world_backend_candid_url"
-----
-+
-.. Verify UI loads, then test the greet function by entering text and clicking *Call* or clicking *Lucky*,
-.. Verify there are no errors in the console by opening the Developer Tools.
-+
-For example, in the browser, right-click, then click Inspect and select Console to check for errors and warnings.
-Warnings can be ignored.
-. Stop the replica by running the following command:
-+
-[source, bash]
-----
-$dfx_rc stop
-----
-. Delete the test project by running the following commands:
-+
-[source, bash]
-----
-cd ..
-rm -rf hello_world
-----
-
-
-=== Whitelist asset canister in Motoko Playground
-
-If the release includes a new version of the asset canister, then the Motoko Playground needs to have the new asset canister WASM whitelisted.
-Otherwise `dfx deploy --playground` will not work for asset canisters.
-
-Find the new asset canister module hash. It will be listed in `CHANGELOG.md` under `<n.n.n>` - `Dependencies` - `Frontend canister`.
-
-Head over to the link:https://github.com/dfinity/motoko-playground[Motoko Playground repo] and create a PR that adds the asset canister module hash to the whitelist in `service/wasm-utils/lib.rs`.
-You can use link:https://github.com/dfinity/motoko-playground/pull/175/files#diff-c8a035da9dcede5539deb0e81164ea50730e3177f56aef747d157406b1ba648dR15-R17[this change] as an example.
-
-==== Update the version
-
-. Set the new version in a temporary environment variable.
-+
-For example, replace `<n.n.n>` with a specific version number:
-+
-[source, nix-shell]
-----
-export NEW_DFX_VERSION=<n.n.n>
-----
-. If you're not already there, navigate back to the top-level of the `sdk` repo.
-. Enter the sdk `nix` development environment by running the following command:
-+
-[source, bash]
-----
-nix-shell --option extra-binary-caches https://cache.dfinity.systems
-----
-. Create a new branch for your changes by running the following command:
-+
-[source, nix-shell]
-----
-git switch -c $USER/release-$NEW_DFX_VERSION
-----
-. Update the first `version` field in `src/dfx/Cargo.toml` to be equal to `$NEW_DFX_VERSION`
-. Apply these changes to `Cargo.lock` by running the following command:
-+
-[source, nix-shell]
-----
-cargo build
-----
-. Append the new version to `public/manifest.json` by appending it to the `versions` list.
-+
-For example:
-+
-[source, json]
-----
-{
-    "tags": {
-        "latest": "0.6.0"
-    },
-    "versions": [
-        "0.5.15",
-        "0.6.0",
-        "n.n.n"
-    ]
-}
-----
-+
-*Ensure* `tags.latest` remains the same.
-. Exit `nix-shell` to continue.
-
-==== Create a pull request and tag
-
-. Create a pull request with the above changes by running the following commands:
-+
-[source, bash]
-----
-git add --all
-git commit --signoff --message "chore: Release $NEW_DFX_VERSION"
-git push origin $USER/release-$NEW_DFX_VERSION
-----
-. After pushing, click the link in the console to go to your new branch in GitHub, then click *Create Pull Request*.  Change the base branch to `release-<n.n.n>`.
-. Have the validator review and approve the PR.
-. Merge the PR manually (the automerge-squash label only works for PRs to the master branch).
-+
-NOTE: Depending on the number of jobs queued up, this step can take 45 to 60 minutes to complete.
-
-. Switch to the release branch by running the following command:
-+
-[source, bash]
-----
-git switch release-$NEW_DFX_VERSION
-----
-. Set the upstream tracking information for the release branch:
-+
-[source, bash]
-----
-git branch --set-upstream-to=origin/$NEW_DFX_VERSION $NEW_DFX_VERSION
-----
-. Update the release branch:
-+
-[source, bash]
-----
-git pull
-----
-. Create a new tag by running the following command:
-+
-[source, bash]
-----
-git tag --annotate $NEW_DFX_VERSION --message "Release: $NEW_DFX_VERSION"
-----
-. Verify the tag points to the correct version and includes annotation by running the following commands:
-+
-[source, bash]
-----
-git log
-git describe --always
-----
-. Push the tag by running the following command:
-+
-[source, bash]
-----
-git push origin $NEW_DFX_VERSION
-----
-+
-The link:../../.github/workflows/publish.yml[publish.yml GitHub workflow] will build the release
-and upload to GitHub releases after you push the tag.
-
-==== Add new frontend canister hash to list of WHITELISTED_WASMS in dfinity/motoko-playground repo
-You can do it either by using GitHub UI (https://github.com/dfinity/sdk/actions/workflows/broadcast-frontend-hash.yml) or by running the following command:
-[source, bash]
-----
-gh workflow run "broadcast-frontend-hash.yml" -f dfx_version=<n.n.n>
-----
 
 [[post-build]]
 == Notification and post-build validation
@@ -390,6 +138,16 @@ If a release is known to have changes that are not backward-compatible, create a
 +
 Depending on the change, the notification might need to be posted in more than one topic channel.
 For example, changes to the external network for onboarded developers are currently posted in link:https://forum.dfinity.org/t/network-status-updates/928[Network status and updates] on the link:https://forum.dfinity.org[DFINITY Developer Forum].
+
+== Add new frontend canister hash to list of WHITELISTED_WASMS in dfinity/motoko-playground repo
+
+Once the release is ready to promote, you need to register the new frontent canister hash with the Motoko Playground repo.
+
+You can do it either by using GitHub UI (https://github.com/dfinity/sdk/actions/workflows/broadcast-frontend-hash.yml) or by running the following command:
+[source, bash]
+----
+gh workflow run "broadcast-frontend-hash.yml" -f dfx_version=<n.n.n>
+----
 
 == Promote a release candidate to production
 
