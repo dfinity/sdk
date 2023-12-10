@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### fix: frontend code crashing when there is no canister ID
+
 ### feat: `dfx ledger top-up` also accepts canister names
 
 Previously, `dfx ledger top-up` only accepted canister principals. Now it accepts both principals and canister names.
