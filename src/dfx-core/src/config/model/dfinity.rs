@@ -3,6 +3,7 @@
 use crate::config::directories::get_user_dfx_config_dir;
 use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
+use crate::error::config::GetOutputEnvFileError;
 use crate::error::dfx_config::AddDependenciesError::CanisterCircularDependency;
 use crate::error::dfx_config::GetCanisterNamesWithDependenciesError::AddDependenciesFailed;
 use crate::error::dfx_config::GetComputeAllocationError::GetComputeAllocationFailed;
@@ -10,10 +11,11 @@ use crate::error::dfx_config::GetFreezingThresholdError::GetFreezingThresholdFai
 use crate::error::dfx_config::GetMemoryAllocationError::GetMemoryAllocationFailed;
 use crate::error::dfx_config::GetPullCanistersError::PullCanistersSameId;
 use crate::error::dfx_config::GetRemoteCanisterIdError::GetRemoteCanisterIdFailed;
+use crate::error::dfx_config::GetReservedCyclesLimitError::GetReservedCyclesLimitFailed;
 use crate::error::dfx_config::{
     AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError,
     GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError,
-    GetPullCanistersError, GetRemoteCanisterIdError,
+    GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError,
 };
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
@@ -55,6 +57,7 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     bootstrap: None,
     build: None,
     canister_http: None,
+    proxy: None,
     replica: None,
 };
 
@@ -347,6 +350,19 @@ pub struct InitializationValues {
     #[serde(with = "humantime_serde")]
     #[schemars(with = "Option<String>")]
     pub freezing_threshold: Option<Duration>,
+
+    /// # Reserved Cycles Limit
+    /// Specifies the upper limit of the canister's reserved cycles balance.
+    ///
+    /// Reserved cycles are cycles that the system sets aside for future use by the canister.
+    /// If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes,
+    /// the system sets aside some amount of cycles from the main balance of the canister.
+    /// These reserved cycles will be used to cover future payments for the newly allocated bytes.
+    /// The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.
+    ///
+    /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.
+    #[schemars(with = "Option<u128>")]
+    pub reserved_cycles_limit: Option<u128>,
 }
 
 /// # Declarations Configuration
@@ -540,6 +556,13 @@ pub struct ConfigDefaultsReplica {
     pub log_level: Option<ReplicaLogLevel>,
 }
 
+/// Configuration for icx-proxy.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ConfigDefaultsProxy {
+    /// A list of domains that can be served. These are used for canister resolution [default: localhost]
+    pub domain: SerdeVec<String>,
+}
+
 // Schemars doesn't add the enum value's docstrings. Therefore the explanations have to be up here.
 /// # Network Type
 /// Type 'ephemeral' is used for networks that are regularly reset.
@@ -628,6 +651,7 @@ pub struct ConfigLocalProvider {
     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
     pub replica: Option<ConfigDefaultsReplica>,
     pub playground: Option<PlaygroundConfig>,
+    pub proxy: Option<ConfigDefaultsProxy>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, JsonSchema)]
@@ -652,6 +676,7 @@ pub struct ConfigDefaults {
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
+    pub proxy: Option<ConfigDefaultsProxy>,
     pub replica: Option<ConfigDefaultsReplica>,
 }
 
@@ -836,6 +861,17 @@ impl ConfigInterface {
             .freezing_threshold)
     }
 
+    pub fn get_reserved_cycles_limit(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<u128>, GetReservedCyclesLimitError> {
+        Ok(self
+            .get_canister_config(canister_name)
+            .map_err(|e| GetReservedCyclesLimitFailed(canister_name.to_string(), e))?
+            .initialization_values
+            .reserved_cycles_limit)
+    }
+
     fn get_canister_config(
         &self,
         canister_name: &str,
@@ -986,6 +1022,35 @@ impl Config {
         self.path.parent().expect(
             "An incorrect configuration path was set with no parent, i.e. did not include root",
         )
+    }
+
+    // returns the path to the output env file if any, guaranteed to be
+    // a child relative to the project root
+    pub fn get_output_env_file(
+        &self,
+        from_cmdline: Option<PathBuf>,
+    ) -> Result<Option<PathBuf>, GetOutputEnvFileError> {
+        from_cmdline
+            .or(self.config.output_env_file.clone())
+            .map(|p| {
+                if p.is_relative() {
+                    let p = self.get_project_root().join(p);
+
+                    // cannot canonicalize a path that doesn't exist, but the parent should exist
+                    let env_parent =
+                        crate::fs::parent(&p).map_err(GetOutputEnvFileError::Parent)?;
+                    let env_parent = crate::fs::canonicalize(&env_parent)
+                        .map_err(GetOutputEnvFileError::Canonicalize)?;
+                    if !env_parent.starts_with(self.get_project_root()) {
+                        Err(GetOutputEnvFileError::OutputEnvFileMustBeInProjectRoot(p))
+                    } else {
+                        Ok(self.get_project_root().join(p))
+                    }
+                } else {
+                    Err(GetOutputEnvFileError::OutputEnvFileMustBeRelative(p))
+                }
+            })
+            .transpose()
     }
 
     pub fn save(&self) -> Result<(), StructuredFileError> {

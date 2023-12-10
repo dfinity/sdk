@@ -19,9 +19,7 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
     fetch_root_key_if_needed(env).await?;
     let config = env.get_config_or_anyhow()?;
     let config = config.get_config();
-    let agent = env
-        .get_agent()
-        .expect("Could not get agent from environment");
+    let agent = env.get_agent();
     let mut mgr = env.new_identity_manager()?;
     let ident = mgr.instantiate_selected_identity(env.get_logger())?;
     let mut did_migrate = false;
@@ -114,6 +112,7 @@ async fn migrate_canister(
                             compute_allocation: None,
                             freezing_threshold: None,
                             memory_allocation: None,
+                            reserved_cycles_limit: None,
                         },
                     },)),
                     0,

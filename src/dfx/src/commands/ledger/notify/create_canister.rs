@@ -3,7 +3,7 @@ use crate::lib::ledger_types::NotifyError::Refunded;
 use crate::lib::operations::cmc::notify_create;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, error::DfxResult};
-use anyhow::{anyhow, bail};
+use anyhow::bail;
 use candid::Principal;
 use clap::Parser;
 
@@ -27,9 +27,7 @@ pub async fn exec(env: &dyn Environment, opts: NotifyCreateOpts) -> DfxResult {
     let block_height = opts.block_height;
     let controller = opts.controller;
 
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     fetch_root_key_if_needed(env).await?;
 

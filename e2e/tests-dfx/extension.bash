@@ -13,13 +13,19 @@ teardown() {
   standard_teardown
 }
 
+@test "extension install with an empty cache does not create a corrupt cache" {
+  dfx cache delete
+  dfx extension install nns --version 0.2.1
+  dfx_start
+}
+
 @test "install extension from official registry" {
   assert_command_fail dfx snsx
 
   assert_command dfx extension list
   assert_match 'No extensions installed'
 
-  assert_command dfx extension install sns --install-as snsx
+  assert_command dfx extension install sns --install-as snsx --version 0.2.1
   # TODO: how to capture spinner message?
   # assert_match 'Successfully installed extension'
 

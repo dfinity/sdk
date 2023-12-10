@@ -73,9 +73,7 @@ pub async fn create_canister(
         return reserve_canister_with_playground(env, canister_name).await;
     }
 
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
     let cid = match call_sender {
         CallSender::SelectedId => {
             create_with_management_canister(env, agent, with_cycles, specified_id, settings).await
@@ -121,6 +119,7 @@ async fn create_with_management_canister(
         .with_optional_compute_allocation(settings.compute_allocation)
         .with_optional_memory_allocation(settings.memory_allocation)
         .with_optional_freezing_threshold(settings.freezing_threshold)
+        .with_optional_reserved_cycles_limit(settings.reserved_cycles_limit)
         .call_and_wait()
         .await;
     const NEEDS_WALLET: &str = "In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
@@ -152,6 +151,10 @@ async fn create_with_wallet(
 ) -> DfxResult<Principal> {
     let wallet = build_wallet_canister(*wallet_id, agent).await?;
     let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
+    if settings.reserved_cycles_limit.is_some() {
+        bail!(
+            "Cannot create a canister using a wallet if the reserved_cycles_limit is set. Please create with --no-wallet or use dfx canister update-settings instead.")
+    }
     match wallet
         .wallet_create_canister(
             cycles,

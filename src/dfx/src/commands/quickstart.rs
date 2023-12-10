@@ -31,6 +31,7 @@ use ic_utils::interfaces::{
 use indicatif::ProgressBar;
 use num_traits::Inv;
 use rust_decimal::Decimal;
+use slog::Logger;
 use tokio::runtime::Runtime;
 
 /// Use the `dfx quickstart` command to perform initial one time setup for your identity and/or wallet. This command
@@ -45,7 +46,7 @@ pub struct QuickstartOpts;
 
 pub fn exec(env: &dyn Environment, _: QuickstartOpts) -> DfxResult {
     let env = create_agent_environment(env, Some("ic".to_string()))?;
-    let agent = env.get_agent().expect("Unable to create agent");
+    let agent = env.get_agent();
     let ident = env.get_selected_identity().unwrap();
     let principal = env.get_selected_identity_principal().unwrap();
     eprintln!("Your DFX user principal: {principal}");
@@ -151,13 +152,14 @@ async fn step_deploy_wallet(
         eprintln!("Run this command again at any time to continue from here.");
         return Ok(());
     }
-    let wallet = step_interact_ledger(agent, ident_principal, rounded).await?;
+    let wallet = step_interact_ledger(agent, env.get_logger(), ident_principal, rounded).await?;
     step_finish_wallet(env, agent, wallet, ident).await?;
     Ok(())
 }
 
 async fn step_interact_ledger(
     agent: &Agent,
+    logger: &Logger,
     ident_principal: Principal,
     to_spend: Decimal,
 ) -> DfxResult<Principal> {
@@ -169,6 +171,7 @@ async fn step_interact_ledger(
     let icpts = ICPTs::from_decimal(to_spend)?;
     let height = transfer_cmc(
         agent,
+        logger,
         Memo(MEMO_CREATE_CANISTER /* 👽 */),
         icpts,
         TRANSACTION_FEE,

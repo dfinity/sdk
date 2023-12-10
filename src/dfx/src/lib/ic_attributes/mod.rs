@@ -5,7 +5,7 @@ use candid::Principal;
 use dfx_core::config::model::dfinity::ConfigInterface;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
-    ComputeAllocation, FreezingThreshold, MemoryAllocation,
+    ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit,
 };
 use std::convert::TryFrom;
 
@@ -15,6 +15,7 @@ pub struct CanisterSettings {
     pub compute_allocation: Option<ComputeAllocation>,
     pub memory_allocation: Option<MemoryAllocation>,
     pub freezing_threshold: Option<FreezingThreshold>,
+    pub reserved_cycles_limit: Option<ReservedCyclesLimit>,
 }
 
 #[context("Failed to get compute allocation.")]
@@ -77,6 +78,27 @@ pub fn get_freezing_threshold(
         .map(|arg| {
             FreezingThreshold::try_from(arg)
                 .context("Must be a duration between 0 and 2^64-1 inclusive.")
+        })
+        .transpose()
+}
+
+#[context("Failed to get reserved cycles limit")]
+pub fn get_reserved_cycles_limit(
+    reserved_cycles_limit: Option<u128>,
+    config_interface: Option<&ConfigInterface>,
+    canister_name: Option<&str>,
+) -> DfxResult<Option<ReservedCyclesLimit>> {
+    let reserved_cycles_limit = match (reserved_cycles_limit, config_interface, canister_name) {
+        (Some(reserved_cycles_limit), _, _) => Some(reserved_cycles_limit),
+        (None, Some(config_interface), Some(canister_name)) => {
+            config_interface.get_reserved_cycles_limit(canister_name)?
+        }
+        _ => None,
+    };
+    reserved_cycles_limit
+        .map(|arg| {
+            ReservedCyclesLimit::try_from(arg)
+                .context("Must be a limit between 0 and 2^128-1 inclusive.")
         })
         .transpose()
 }

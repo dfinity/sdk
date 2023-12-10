@@ -76,7 +76,7 @@ pub async fn reserve_canister_with_playground(
     env: &dyn Environment,
     canister_name: &str,
 ) -> DfxResult {
-    let agent = env.get_agent().context("Failed to get HTTP agent")?;
+    let agent = env.get_agent();
     let log = env.get_logger();
     let playground_canister = if let NetworkTypeDescriptor::Playground {
         playground_canister,
@@ -125,7 +125,7 @@ pub async fn authorize_asset_uploader(
     canister_timestamp: &SystemTime,
     principal_to_authorize: &Principal,
 ) -> DfxResult {
-    let agent = env.get_agent().context("Failed to get HTTP agent")?;
+    let agent = env.get_agent();
     let playground_canister = if let NetworkTypeDescriptor::Playground {
         playground_canister,
         ..
@@ -159,7 +159,7 @@ pub async fn playground_install_code(
     is_asset_canister: bool,
 ) -> DfxResult<SystemTime> {
     let canister_info = CanisterInfo::from(canister_id, canister_timestamp)?;
-    let agent = env.get_agent().context("Failed to get HTTP agent")?;
+    let agent = env.get_agent();
     let playground_canister = match env.get_network_descriptor().r#type {
         NetworkTypeDescriptor::Playground {
             playground_canister,

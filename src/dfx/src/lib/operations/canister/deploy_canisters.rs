@@ -20,7 +20,7 @@ use dfx_core::config::model::dfinity::Config;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
-    ComputeAllocation, FreezingThreshold, MemoryAllocation,
+    ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit,
 };
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
@@ -242,6 +242,12 @@ async fn register_canisters(
                         FreezingThreshold::try_from(arg.as_secs())
                             .expect("Freezing threshold must be between 0 and 2^64-1, inclusively.")
                     });
+            let reserved_cycles_limit = config_interface
+                .get_reserved_cycles_limit(canister_name)?
+                .map(|arg| {
+                    ReservedCyclesLimit::try_from(arg)
+                        .expect("Reserved cycles limit must be between 0 and 2^128-1, inclusively.")
+                });
             let controllers = None;
             create_canister(
                 env,
@@ -254,6 +260,7 @@ async fn register_canisters(
                     compute_allocation,
                     memory_allocation,
                     freezing_threshold,
+                    reserved_cycles_limit,
                 },
             )
             .await?;
@@ -358,9 +365,7 @@ async fn prepare_assets_for_commit(
         );
     }
 
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     prepare_assets_for_proposal(&canister_info, agent, env.get_logger()).await?;
 
@@ -384,9 +389,7 @@ async fn compute_evidence(
         );
     }
 
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     let assets_canister_info = canister_info.as_info::<AssetsCanisterInfo>()?;
     let source_paths = assets_canister_info.get_source_paths();

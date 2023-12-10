@@ -1,7 +1,7 @@
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::Environment;
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use candid::Principal;
 use clap::Parser;
 use std::io::{stdout, Write};
@@ -17,9 +17,7 @@ pub struct CanisterMetadataOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: CanisterMetadataOpts) -> DfxResult {
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     let callee_canister = opts.canister_name.as_str();
     let canister_id_store = env.get_canister_id_store()?;

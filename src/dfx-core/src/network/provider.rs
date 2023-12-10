@@ -96,6 +96,11 @@ fn config_network_to_network_descriptor(
                 .clone()
                 .or_else(|| project_defaults.and_then(|x| x.canister_http.clone()))
                 .unwrap_or_default();
+            let proxy = local_provider
+                .proxy
+                .clone()
+                .or_else(|| project_defaults.and_then(|x| x.proxy.clone()))
+                .unwrap_or_default();
             let replica = local_provider
                 .replica
                 .clone()
@@ -121,6 +126,7 @@ fn config_network_to_network_descriptor(
                 bind_address,
                 bitcoin,
                 canister_http,
+                proxy,
                 replica,
                 local_scope,
                 legacy_pid_path,
@@ -237,6 +243,7 @@ fn create_shared_network_descriptor(
                 canister_http: None,
                 replica: None,
                 playground: None,
+                proxy: None,
             }))
         }
         (network_name, None) => {
@@ -474,7 +481,7 @@ mod tests {
         ReplicaLogLevel,
     };
     use std::fs;
-    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+    use std::net::SocketAddr;
     use std::str::FromStr;
 
     #[test]

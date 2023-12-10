@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::Environment;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::config::directories::get_user_dfx_config_dir;
@@ -83,9 +83,7 @@ pub async fn create_wallet(
     some_canister_id: Option<Principal>,
 ) -> DfxResult<Principal> {
     fetch_root_key_if_needed(env).await?;
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
     let mgr = ManagementCanister::create(agent);
     info!(
         env.get_logger(),
@@ -161,9 +159,7 @@ pub async fn get_or_create_wallet_canister<'env>(
     // without this async block, #[context] gives a spurious error
     async {
         let wallet_canister_id = get_or_create_wallet(env, network, name).await?;
-        let agent = env
-            .get_agent()
-            .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+        let agent = env.get_agent();
         build_wallet_canister(wallet_canister_id, agent)
             .await
             .map_err(Into::into)

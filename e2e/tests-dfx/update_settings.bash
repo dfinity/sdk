@@ -14,6 +14,17 @@ teardown() {
   standard_teardown
 }
 
+@test "set reserved cycles limit" {
+    dfx_start
+    assert_command dfx deploy hello_backend
+    assert_command dfx canister status hello_backend
+    assert_contains "Reserved Cycles Limit: 5_000_000_000_000 Cycles"
+
+    assert_command dfx canister update-settings hello_backend --reserved-cycles-limit 650000
+    assert_command dfx canister status hello_backend
+    assert_contains "Reserved Cycles Limit: 650_000 Cycles"
+}
+
 @test "set freezing threshold" {
   dfx_start
   assert_command dfx deploy hello_backend

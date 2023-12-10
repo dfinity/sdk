@@ -1228,40 +1228,6 @@ CHERRIES" "$stdout"
   assert_match "404 Not Found"
 }
 
-@test "asset configuration via .ic-assets.json5 - overwriting etag breaks certification" {
-  # this is observed behavior, not expected behavior
-  # https://dfinity.atlassian.net/browse/SDK-1245
-  install_asset assetscanister
-
-  dfx_start
-
-  touch src/e2e_project_frontend/assets/thing.json
-
-  dfx deploy
-
-  ID=$(dfx canister id e2e_project_frontend)
-  PORT=$(get_webserver_port)
-
-  dfx canister  call --query e2e_project_frontend http_request '(record{url="/thing.json";headers=vec{};method="GET";body=vec{}})'
-  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-
-  echo '[
-    {
-      "match": "thing.json",
-      "headers": {
-        "etag": "my-etag"
-      }
-    }
-  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
-
-  dfx deploy
-
-  dfx canister call --query e2e_project_frontend http_request '(record{url="/thing.json";headers=vec{};method="GET";body=vec{}})'
-
-  assert_command_fail curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-  assert_contains "500 Internal Server Error"
-}
-
 @test "asset configuration via .ic-assets.json5 - overwriting default headers" {
   install_asset assetscanister
 
@@ -1269,8 +1235,6 @@ CHERRIES" "$stdout"
 
   touch src/e2e_project_frontend/assets/thing.json
 
-  # this test used to also set etag, but that breaks certification
-  # see https://dfinity.atlassian.net/browse/SDK-1245
   echo '[
     {
       "match": "thing.json",
@@ -1278,7 +1242,8 @@ CHERRIES" "$stdout"
       "headers": {
         "Content-Encoding": "my-encoding",
         "Content-Type": "x-type",
-        "Cache-Control": "custom"
+        "Cache-Control": "custom",
+        "etag": "my-custom-etag"
       }
     }
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
@@ -1294,8 +1259,7 @@ CHERRIES" "$stdout"
   assert_match "cache-control: custom"
   assert_match "content-encoding: my-encoding"
   assert_match "content-type: x-type"
-  # https://dfinity.atlassian.net/browse/SDK-1245 assert_not_match "etag: my-etag"
-  assert_match "etag: \"[a-z0-9]{64}\""
+  assert_match "etag: my-custom-etag"
 }
 
 @test "aliasing rules: <filename> to <filename>.html or <filename>/index.html" {
@@ -1767,4 +1731,43 @@ WARN: {
 
   assert_command      dfx canister call e2e_project_frontend configure '(record { max_chunks=opt opt 3; max_bytes = opt opt 5500 })'
   assert_command      dfx deploy
+}
+
+@test "set permissions through upgrade argument" {
+  dfx_start
+  dfx deploy
+
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
+  assert_eq "(vec {})"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_match "$(dfx identity get-principal)"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
+  assert_eq "(vec {})"
+
+  dfx identity new alice --storage-mode plaintext
+  ALICE="$(dfx --identity alice identity get-principal)"
+
+  dfx canister install e2e_project_frontend --upgrade-unchanged --mode upgrade --argument "(opt variant {
+    Upgrade = record {
+      set_permissions = opt record {
+        prepare = vec {
+          principal \"${ALICE}\";
+        };
+        commit = vec {
+          principal \"$(dfx identity get-principal)\";
+          principal \"aaaaa-aa\";
+        };
+        manage_permissions = vec {
+          principal \"$(dfx identity get-principal)\";
+        };
+      }
+    }
+  })"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
+  assert_match "${ALICE}"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_match "$(dfx identity get-principal)"
+  assert_match '"aaaaa-aa"'
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
+  assert_match "$(dfx identity get-principal)"
 }

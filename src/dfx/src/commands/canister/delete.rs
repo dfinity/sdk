@@ -10,7 +10,7 @@ use crate::lib::operations::canister::{
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::util::blob_from_arguments;
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use candid::Principal;
 use clap::Parser;
 use dfx_core::canister::build_wallet_canister;
@@ -19,7 +19,7 @@ use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::attributes::{
-    ComputeAllocation, FreezingThreshold, MemoryAllocation,
+    ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit,
 };
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::management_canister::CanisterStatus;
@@ -36,6 +36,7 @@ const DANK_PRINCIPAL: Principal =
 // "Couldn't send message" when deleting a canister: increase WITHDRAWAL_COST
 const WITHDRAWAL_COST: u128 = 10_606_030_000; // 5% higher than a value observed ok locally
 const MAX_MEMORY_ALLOCATION: u64 = 8589934592;
+const DEFAULT_RESERVED_CYCLES_LIMIT: u128 = 5_000_000_000_000;
 
 /// Deletes a currently stopped canister.
 #[derive(Parser)]
@@ -90,10 +91,15 @@ async fn delete_canister(
 ) -> DfxResult {
     let log = env.get_logger();
     let mut canister_id_store = env.get_canister_id_store()?;
+    let (canister_id, canister_name_to_delete) = match Principal::from_text(canister) {
+        Ok(canister_id) => (
+            canister_id,
+            canister_id_store.get_name_in_project(canister).cloned(),
+        ),
+        Err(_) => (canister_id_store.get(canister)?, Some(canister.to_string())),
+    };
 
     if !env.get_network_descriptor().is_playground() {
-        let canister_id =
-            Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
         let mut call_sender = call_sender;
         let to_dank = withdraw_cycles_to_dank || withdraw_cycles_to_dank_principal.is_some();
 
@@ -148,9 +154,7 @@ async fn delete_canister(
                     "Canister {canister} has not been stopped. Delete anyway?"
                 ))?;
             }
-            let agent = env
-                .get_agent()
-                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+            let agent = env.get_agent();
             let mgr = ManagementCanister::create(agent);
             let canister_id =
                 Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
@@ -161,6 +165,9 @@ async fn delete_canister(
                 compute_allocation: Some(ComputeAllocation::try_from(0u8).unwrap()),
                 memory_allocation: Some(MemoryAllocation::try_from(MAX_MEMORY_ALLOCATION).unwrap()),
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
+                reserved_cycles_limit: Some(
+                    ReservedCyclesLimit::try_from(DEFAULT_RESERVED_CYCLES_LIMIT).unwrap(),
+                ),
             };
             info!(log, "Setting the controller to identity principal.");
             update_settings(env, canister_id, settings, call_sender).await?;
@@ -266,7 +273,10 @@ async fn delete_canister(
 
         canister::delete_canister(env, canister_id, call_sender).await?;
     }
-    canister_id_store.remove(canister)?;
+
+    if let Some(canister_name) = canister_name_to_delete {
+        canister_id_store.remove(&canister_name)?;
+    }
 
     Ok(())
 }

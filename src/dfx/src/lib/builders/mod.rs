@@ -448,7 +448,7 @@ fn write_environment_variables(vars: &[Env<'_>], write_path: &Path) -> DfxResult
                 // the section is correctly formed
                 let end_pos = end_pos + END_TAG.len() + start_pos + START_TAG.len();
                 existing_file.replace_range(start_pos..end_pos, &write_string);
-                fs::write(write_path, existing_file)?;
+                dfx_core::fs::write(write_path, existing_file)?;
                 return Ok(());
             } else {
                 // the file has been edited, so we don't know how much to delete, so we append instead
@@ -456,10 +456,10 @@ fn write_environment_variables(vars: &[Env<'_>], write_path: &Path) -> DfxResult
         }
         // append to the existing file
         existing_file.push_str(&write_string);
-        fs::write(write_path, existing_file)?;
+        dfx_core::fs::write(write_path, existing_file)?;
     } else {
         // no existing file, okay to clobber
-        fs::write(write_path, write_string)?;
+        dfx_core::fs::write(write_path, write_string)?;
     }
     Ok(())
 }
@@ -501,7 +501,7 @@ impl BuildConfig {
             idl_root: canister_root.join("idl/"), // TODO: possibly move to `network_root.join("idl/")`
             lsp_root: network_root.join("lsp/"),
             canisters_to_build: None,
-            env_file: config_intf.output_env_file.clone(),
+            env_file: config.get_output_env_file(None)?,
         })
     }
 

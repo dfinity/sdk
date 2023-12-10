@@ -14,6 +14,21 @@ teardown() {
   standard_teardown
 }
 
+@test "create with reserved cycles limit" {
+    dfx_start
+
+    assert_command_fail dfx canister create e2e_project_backend --reserved-cycles-limit 470000
+    assert_contains "Cannot create a canister using a wallet if the reserved_cycles_limit is set. Please create with --no-wallet or use dfx canister update-settings instead."
+
+    assert_command dfx canister create e2e_project_frontend --no-wallet
+    assert_command dfx canister status e2e_project_frontend
+    assert_contains "Reserved Cycles Limit: 5_000_000_000_000 Cycles"
+
+    assert_command dfx canister create e2e_project_backend --reserved-cycles-limit 470000 --no-wallet
+    assert_command dfx canister status e2e_project_backend
+    assert_contains "Reserved Cycles Limit: 470_000 Cycles"
+}
+
 @test "create succeeds on default project" {
   dfx_start
   assert_command dfx canister create --all

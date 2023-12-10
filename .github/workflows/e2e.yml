@@ -82,7 +82,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        backend: ["ic-ref", "replica"]
         # macos-latest is currently macos-11, ubuntu-latest is currently ubuntu-20.04
         # ubuntu-18.04 not supported due to:
         #     /home/runner/.cache/dfinity/versions/0.8.3-34-g36e39809/ic-starter:
@@ -97,17 +96,17 @@ jobs:
           path: /usr/local/bin
       - name: Setup dfx binary
         run: chmod +x /usr/local/bin/dfx
+      - name: Disable query verification in ic-ref
+        if: ${{ matrix.backend == 'ic-ref' }}
+        run: |
+          echo DFX_DISABLE_QUERY_VERIFICATION=1 >> $GITHUB_ENV
       - name: start and deploy
         run: |
           pwd
           time dfx cache install
           time dfx new smoke
           cd smoke
-          if [ "${{ matrix.backend}}" = "ic-ref" ]; then
-              time dfx start --emulator --background
-          else
-              time dfx start --background
-          fi
+          time dfx start --background
           time dfx deploy
           time dfx canister call smoke_backend greet '("fire")'
           time curl --fail http://localhost:"$(dfx info webserver-port)"/sample-asset.txt?canisterId=$(dfx canister id smoke_frontend)
@@ -153,10 +152,50 @@ jobs:
       - name: Run e2e test
         run: timeout 2400 bats "e2e/$E2E_TEST"
 
+  ui_test:
+    runs-on: ${{ matrix.os }}
+    needs: [build_dfx]
+    strategy:
+      matrix:
+        os: [macos-12, ubuntu-20.04, ubuntu-22.04]
+    steps:
+      - name: Checking out repo
+        uses: actions/checkout@v4
+      - name: Setting up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Installing playwright
+        run: |
+          pip install playwright==1.40.0
+          playwright install
+          playwright install-deps
+      - name: Download dfx binary
+        uses: actions/download-artifact@v3
+        with:
+          name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
+          path: /usr/local/bin
+      - name: Setup dfx binary
+        run: chmod +x /usr/local/bin/dfx
+      - name: Deploy default dfx project
+        run: |
+          dfx new e2e_project
+          cd e2e_project
+          dfx start --background --clean
+          dfx deploy 2>&1 | tee deploy.log
+          echo FRONTEND_URL=$(grep "_frontend:" deploy.log | grep -Eo "(http|https)://[a-zA-Z0-9./?=_&%:-]*") >> $GITHUB_ENV
+          echo CANDID_URL=$(grep "_backend:" deploy.log | grep -Eo "(http|https)://[a-zA-Z0-9./?=_&%:-]*") >> $GITHUB_ENV
+      - name: Running the Python script
+        run: |
+          python scripts/test-uis.py \
+            --frontend_url "$FRONTEND_URL" \
+            --candid_url "$CANDID_URL" \
+            --browser chromium firefox webkit
+
   aggregate:
     name: e2e:required
     if: ${{ always() }}
-    needs: [test, smoke]
+    needs: [test, smoke, ui_test]
     runs-on: ubuntu-latest
     steps:
       - name: check smoke test result
