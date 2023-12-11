@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### fix: allow `http://localhost:*` as `connect-src` in the asset canister's CSP
+
+This will enable browsing the asset canister at `http://<canister-id>.localhost:<port>` in most browsers.
+
 ### fix: frontend code crashing when there is no canister ID
 
 ### feat: `dfx ledger top-up` also accepts canister names
