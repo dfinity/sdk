@@ -30,7 +30,7 @@ domain or a list of domains in any of the following ways:
 ### Candid UI
 
 - Module hash: d172df265a14397a460b752ff07598380bc7ebd9c43ece1e82495ae478a88719c
-- Internet identity integration in Candid UI. Thanks to @Samer!
+- Internet identity integration in Candid UI. Thanks to @Web3NL!
   + You can customize the II url and derivationOrigin via URL parameter `ii` and `origin` respectively.
 - Update with the new profiling API
 
