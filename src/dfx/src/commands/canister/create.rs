@@ -22,7 +22,7 @@ use dfx_core::error::identity::instantiate_identity_from_name::InstantiateIdenti
 use dfx_core::identity::CallSender;
 use ic_agent::Identity as _;
 use icrc_ledger_types::icrc1::account::Subaccount;
-use slog::info;
+use slog::{debug, info};
 
 /// Creates an empty canister and associates the assigned Canister ID to the canister name.
 #[derive(Parser)]
@@ -83,6 +83,11 @@ pub struct CanisterCreateOpts {
     #[arg(long)]
     no_wallet: bool,
 
+    /// Transaction timestamp, in nanoseconds, for use in controlling transaction deduplication, default is system time.
+    /// https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
+    #[arg(long)]
+    created_at_time: Option<u64>,
+
     /// Subaccount of the selected identity to spend cycles from.
     //TODO(SDK-1331): unhide
     #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
@@ -128,9 +133,9 @@ pub async fn exec(
             }
             Err(err) => {
                 if CYCLES_LEDGER_ENABLED {
-                    info!(env.get_logger(), "No wallet configured.");
+                    debug!(env.get_logger(), "No wallet configured.");
                 } else {
-                    return Err(err);
+                    return Err(err.into());
                 }
             }
         };
@@ -218,6 +223,7 @@ pub async fn exec(
                 freezing_threshold,
                 reserved_cycles_limit,
             },
+            opts.created_at_time,
             opts.cycles_ledger_canister_id,
         )
         .await?;
@@ -288,6 +294,7 @@ pub async fn exec(
                         freezing_threshold,
                         reserved_cycles_limit,
                     },
+                    opts.created_at_time,
                     opts.cycles_ledger_canister_id,
                 )
                 .await?;

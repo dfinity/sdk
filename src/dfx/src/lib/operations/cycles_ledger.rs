@@ -1,5 +1,8 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use crate::lib::cycles_ledger_types;
 use crate::lib::cycles_ledger_types::send::SendError;
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
 use crate::lib::operations::canister::create_canister::{
@@ -22,7 +25,7 @@ use serde::Deserialize;
 use slog::{info, Logger};
 use thiserror::Error;
 
-/// Cycles ledger feature flag to turn off behaviour that would be confusing while cycles ledger is not enabled yet.
+/// Cycles ledger feature flag to turn off behavior that would be confusing while cycles ledger is not enabled yet.
 //TODO(SDK-1331): feature flag can be removed
 pub const CYCLES_LEDGER_ENABLED: bool = true;
 
@@ -187,10 +190,12 @@ pub async fn send(
 
 #[context("Failed to create canister via cycles ledger.")]
 pub async fn create_with_cycles_ledger(
+    env: &dyn Environment,
     agent: &Agent,
     with_cycles: Option<u128>,
     from_subaccount: Option<Subaccount>,
     settings: DfxCanisterSettings,
+    created_at_time: Option<u64>,
     cycles_ledger_canister_id: Principal,
 ) -> DfxResult<Principal> {
     #[derive(CandidType, Clone, Debug)]
@@ -246,12 +251,20 @@ pub async fn create_with_cycles_ledger(
     }
 
     let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
+    let created_at_time = created_at_time.or_else(|| {
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as u64;
+        info!(env.get_logger(), "created-at-time is {now}.");
+        Some(now)
+    });
     let result = agent
         .update(&cycles_ledger_canister_id, CREATE_CANISTER_METHOD)
         .with_arg(
             Encode!(&CreateCanisterArgs {
                 from_subaccount,
-                created_at_time: None,
+                created_at_time,
                 amount: cycles,
                 creation_args: Some(CmcCreateCanisterArgs {
                     settings: Some(settings.into()),
@@ -267,6 +280,55 @@ pub async fn create_with_cycles_ledger(
         &result,
         Result<CreateCanisterSuccess, CreateCanisterError>
     )
-    .map_err(|_| anyhow!("Failed to decode response."))?;
+    .map_err(|err| {
+        anyhow!(
+            "Failed to decode cycles ledger response: {}",
+            err.to_string()
+        )
+    })?;
+    Ok(create_result?.canister_id)
+}
+
+#[context("Failed to create canister via cycles ledger.")]
+pub async fn create_with_cycles_ledger(
+    env: &dyn Environment,
+    agent: &Agent,
+    with_cycles: Option<u128>,
+    from_subaccount: Option<Subaccount>,
+    settings: DfxCanisterSettings,
+    created_at_time: Option<u64>,
+    cycles_ledger_canister_id: Principal,
+) -> DfxResult<Principal> {
+    #[derive(CandidType, Clone, Debug)]
+    // TODO(FI-1022): Import types from cycles ledger crate once available
+    let result = agent
+        .update(&cycles_ledger_canister_id, GET_BLOCKS_METHOD)
+        .with_arg(
+            Encode!(&CreateCanisterArgs {
+                from_subaccount,
+                created_at_time,
+                amount: cycles,
+                creation_args: Some(CmcCreateCanisterArgs {
+                    settings: Some(settings.into()),
+                    subnet_selection: None,
+                })
+            })
+            .unwrap(),
+        )
+        .call_and_wait()
+        .await
+        .map_err(|err| anyhow!(err))?;
+    let create_result = Decode!(
+        &result,
+        Result<CreateCanisterSuccess, CreateCanisterError>
+    )
+    .map_err(|err| {
+        anyhow!(
+            "Failed to decode cycles ledger response: {}",
+            err.to_string()
+        )
+    })?;
+
+    todo!("handle duplicate response");
     Ok(create_result?.canister_id)
 }

@@ -22,6 +22,7 @@ use slog::info;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::str::FromStr;
+use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 use url::Host::Domain;
 use url::Url;
@@ -101,6 +102,11 @@ pub struct DeployOpts {
     #[arg(long, conflicts_with("by_proposal"))]
     compute_evidence: bool,
 
+    /// Transaction timestamp, in nanoseconds, for use in controlling transaction deduplication, default is system time.
+    /// https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
+    #[arg(long)]
+    created_at_time: Option<u64>,
+
     /// Subaccount of the selected identity to spend cycles from.
     //TODO(SDK-1331): unhide
     #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
@@ -168,6 +174,14 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let call_sender = CallSender::from(&opts.wallet)
         .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
+    let created_at_time = opts.created_at_time.or_else(|| {
+        Some(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos() as u64,
+        )
+    });
 
     runtime.block_on(fetch_root_key_if_needed(&env))?;
 
@@ -179,6 +193,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         &deploy_mode,
         opts.upgrade_unchanged,
         with_cycles,
+        created_at_time,
         opts.specified_id,
         &call_sender,
         opts.from_subaccount,

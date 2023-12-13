@@ -445,10 +445,17 @@ current_time_nanoseconds() {
   # using dfx canister create
   dfx identity use alice
   export DFX_DISABLE_AUTO_WALLET=1
-  assert_command dfx canister create e2e_project_backend --with-cycles 1T --cycles-ledger-canister-id "$CYCLES_LEDGER_ID"
+  t=$(current_time_nanoseconds)
+  assert_command dfx canister create e2e_project_backend --with-cycles 1T --created-at-time "$t" --cycles-ledger-canister-id "$CYCLES_LEDGER_ID"
   assert_command dfx canister id e2e_project_backend
+  E2E_PROJECT_BACKEND_CANISTER_ID=$(dfx canister id e2e_project_backend)
   assert_command dfx cycles balance --cycles-ledger-canister-id "$CYCLES_LEDGER_ID" --precise
   assert_eq "1399900000000 cycles."
+  # forget about canister. If --created-at-time is a valid idempotency key we should end up with the same canister id
+  rm .dfx/local/canister_ids.json
+  assert_command dfx canister create e2e_project_backend --with-cycles 1T --created-at-time "$t" --cycles-ledger-canister-id "$CYCLES_LEDGER_ID"
+  assert_command dfx canister id e2e_project_backend
+  assert_contains "$E2E_PROJECT_BACKEND_CANISTER_ID"
   dfx canister stop e2e_project_backend
   dfx canister delete e2e_project_backend
 

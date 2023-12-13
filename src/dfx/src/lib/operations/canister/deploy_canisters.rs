@@ -4,7 +4,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::wallet::get_or_create_wallet_canister;
+use crate::lib::identity::wallet::{get_or_create_wallet_canister, GetOrCreateWalletCanisterError};
 use crate::lib::installers::assets::prepare_assets_for_proposal;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
@@ -45,6 +45,7 @@ pub async fn deploy_canisters(
     deploy_mode: &DeployMode,
     upgrade_unchanged: bool,
     with_cycles: Option<u128>,
+    created_at_time: Option<u64>,
     specified_id: Option<Principal>,
     call_sender: &CallSender,
     from_subaccount: Option<Subaccount>,
@@ -127,7 +128,10 @@ pub async fn deploy_canisters(
                     proxy_sender = CallSender::Wallet(*wallet.canister_id_());
                     &proxy_sender
                 }
-                Err(_) => call_sender,
+                Err(err) => match err {
+                    GetOrCreateWalletCanisterError::NoWalletConfigured { .. } => call_sender,
+                    _ => bail!(err),
+                },
             }
         };
         register_canisters(
@@ -138,6 +142,7 @@ pub async fn deploy_canisters(
             specified_id,
             create_call_sender,
             from_subaccount,
+            created_at_time,
             &config,
             cycles_ledger_canister_id,
         )
@@ -210,6 +215,7 @@ async fn register_canisters(
     specified_id: Option<Principal>,
     call_sender: &CallSender,
     from_subaccount: Option<Subaccount>,
+    created_at_time: Option<u64>,
     config: &Config,
     cycles_ledger_canister_id: Option<Principal>,
 ) -> DfxResult {
@@ -275,6 +281,7 @@ async fn register_canisters(
                     freezing_threshold,
                     reserved_cycles_limit,
                 },
+                created_at_time,
                 cycles_ledger_canister_id,
             )
             .await?;

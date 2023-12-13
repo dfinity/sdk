@@ -44,3 +44,16 @@ teardown() {
   assert_match "not part of the controllers" # this is part of the error explanation
   assert_match "'dfx canister update-settings --add-controller <controller principal to add> <canister id/name or --all> \(--network ic\)'" # this is part of the solution
 }
+
+@test "Instruct user to set a wallet" {
+  skip "TODO(SDK-1331): remove this test"
+  dfx_new hello
+  install_asset greet
+  assert_command dfx identity new alice --storage-mode plaintext
+  assert_command dfx identity use alice
+
+  # this will fail because no wallet is configured for alice on network ic
+  assert_command_fail dfx deploy --network ic
+  assert_match "requires a configured wallet" # this is part of the error explanation
+  assert_match "'dfx identity set-wallet <wallet id> --network <network name>'" # this is part of the solution
+}
