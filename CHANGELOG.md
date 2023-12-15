@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### feat: Query call stats in `dfx canister status`
+
 ### fix: frontend code crashing when there is no canister ID
 
 ### feat: `dfx ledger top-up` also accepts canister names
