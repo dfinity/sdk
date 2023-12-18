@@ -35,7 +35,6 @@ const DANK_PRINCIPAL: Principal =
 
 // "Couldn't send message" when deleting a canister: increase WITHDRAWAL_COST
 const WITHDRAWAL_COST: u128 = 10_606_030_000; // 5% higher than a value observed ok locally
-const MAX_MEMORY_ALLOCATION: u64 = 8589934592;
 const DEFAULT_RESERVED_CYCLES_LIMIT: u128 = 5_000_000_000_000;
 
 /// Deletes a currently stopped canister.
@@ -163,7 +162,7 @@ async fn delete_canister(
             let settings = CanisterSettings {
                 controllers: Some(vec![principal]),
                 compute_allocation: Some(ComputeAllocation::try_from(0u8).unwrap()),
-                memory_allocation: Some(MemoryAllocation::try_from(MAX_MEMORY_ALLOCATION).unwrap()),
+                memory_allocation: Some(MemoryAllocation::try_from(0u8).unwrap()),
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
                 reserved_cycles_limit: Some(
                     ReservedCyclesLimit::try_from(DEFAULT_RESERVED_CYCLES_LIMIT).unwrap(),

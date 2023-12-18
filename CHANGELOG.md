@@ -13,6 +13,13 @@ Previously, `dfx ledger top-up` only accepted canister principals. Now it accept
 A change to `curl --help` output made it so the install script did not detect
 that the `--proto` and `--tlsv1.2` options are available.
 
+### chore: skip reserving 8GB of memory when deleting a canister
+
+When dfx deletes a canister, it first withdraws as many cycles as possible from the canister.
+While doing so, dfx previously set the memory allocation of the canister to 8GB in order to not run into any memory problems while withdrawing.
+This, however, lead to problems with dynamic memory pricing in subnets with a lot of data because then it becomes very expensive to reserve that much data.
+dfx now no longer sets a memory allocation. We anticipate fewer problems this way.
+
 ### feat: Added support for icx-proxy `--domain` parameter
 
 In order to access a local replica through a domain name or domain names,
