@@ -35,7 +35,6 @@ const DANK_PRINCIPAL: Principal =
 
 // "Couldn't send message" when deleting a canister: increase WITHDRAWAL_COST
 const WITHDRAWAL_COST: u128 = 10_606_030_000; // 5% higher than a value observed ok locally
-const DEFAULT_RESERVED_CYCLES_LIMIT: u128 = 5_000_000_000_000;
 
 /// Deletes a currently stopped canister.
 #[derive(Parser)]
@@ -164,9 +163,7 @@ async fn delete_canister(
                 compute_allocation: Some(ComputeAllocation::try_from(0u8).unwrap()),
                 memory_allocation: Some(MemoryAllocation::try_from(0u8).unwrap()),
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
-                reserved_cycles_limit: Some(
-                    ReservedCyclesLimit::try_from(DEFAULT_RESERVED_CYCLES_LIMIT).unwrap(),
-                ),
+                reserved_cycles_limit: Some(ReservedCyclesLimit::try_from(0u8).unwrap()),
             };
             info!(log, "Setting the controller to identity principal.");
             update_settings(env, canister_id, settings, call_sender).await?;
