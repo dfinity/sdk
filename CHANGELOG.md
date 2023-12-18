@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### chore: update `dfx cycles` commands with maninet `cycles-ledger` canister ID
+
 ### fix: frontend code crashing when there is no canister ID
 
 ### feat: `dfx ledger top-up` also accepts canister names

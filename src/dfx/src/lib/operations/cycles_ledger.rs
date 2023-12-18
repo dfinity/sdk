@@ -16,16 +16,16 @@ use slog::{info, Logger};
 const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
 const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
 const SEND_METHOD: &str = "send";
+const CYCLES_LEDGER_CANISTER_ID: &str = "um5iw-rqaaa-aaaaq-qaaba-cai";
 
 pub async fn balance(
     agent: &Agent,
     owner: Principal,
     subaccount: Option<icrc1::account::Subaccount>,
-    cycles_ledger_canister_id: Principal,
 ) -> DfxResult<u128> {
     let canister = Canister::builder()
         .with_agent(agent)
-        .with_canister_id(cycles_ledger_canister_id)
+        .with_canister_id(CYCLES_LEDGER_CANISTER_ID)
         .build()?;
     let arg = icrc1::account::Account { owner, subaccount };
 
@@ -58,11 +58,10 @@ pub async fn transfer(
     to_subaccount: Option<icrc1::account::Subaccount>,
     created_at_time: u64,
     memo: Option<u64>,
-    cycles_ledger_canister_id: Principal,
 ) -> DfxResult<BlockIndex> {
     let canister = Canister::builder()
         .with_agent(agent)
-        .with_canister_id(cycles_ledger_canister_id)
+        .with_canister_id(CYCLES_LEDGER_CANISTER_ID)
         .build()?;
 
     let retry_policy = ExponentialBackoff::default();
@@ -118,11 +117,10 @@ pub async fn send(
     amount: u128,
     created_at_time: u64,
     from_subaccount: Option<icrc1::account::Subaccount>,
-    cycles_ledger_canister_id: Principal,
 ) -> DfxResult<BlockIndex> {
     let canister = Canister::builder()
         .with_agent(agent)
-        .with_canister_id(cycles_ledger_canister_id)
+        .with_canister_id(CYCLES_LEDGER_CANISTER_ID)
         .build()?;
 
     let retry_policy = ExponentialBackoff::default();
