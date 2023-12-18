@@ -73,23 +73,23 @@ current_time_nanoseconds() {
   assert_command dfx cycles balance --precise --identity alice
   assert_eq "1700400200150 cycles."
 
-  assert_command dfx cycles balance  --precise --identity alice --subaccount "$ALICE_SUBACCT1"
+  assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT1"
   assert_eq "3750000000000 cycles."
 
-  assert_command dfx cycles balance  --precise --identity alice --subaccount "$ALICE_SUBACCT2"
+  assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT2"
   assert_eq "760500000000 cycles."
 
-  assert_command dfx cycles balance  --precise --identity bob
+  assert_command dfx cycles balance --precise --identity bob
   assert_eq "2900000000000 cycles."
 
 
   assert_command dfx cycles balance --identity alice
   assert_eq "1.700 TC (trillion cycles)."
 
-  assert_command dfx cycles balance  --identity alice --subaccount "$ALICE_SUBACCT1"
+  assert_command dfx cycles balance --identity alice --subaccount "$ALICE_SUBACCT1"
   assert_eq "3.750 TC (trillion cycles)."
 
-  assert_command dfx cycles balance  --identity alice --subaccount "$ALICE_SUBACCT2"
+  assert_command dfx cycles balance --identity alice --subaccount "$ALICE_SUBACCT2"
   assert_eq "0.760 TC (trillion cycles)."
 
   assert_command dfx cycles balance --identity bob
@@ -103,7 +103,7 @@ current_time_nanoseconds() {
   assert_command dfx cycles balance --owner "$ALICE" --subaccount "$ALICE_SUBACCT1" --identity bob
   assert_eq "3.750 TC (trillion cycles)."
 
-  assert_command dfx cycles balance --owner "$BOB"  --identity anonymous
+  assert_command dfx cycles balance --owner "$BOB" --identity anonymous
   assert_eq "2.900 TC (trillion cycles)."
 }
 
@@ -195,7 +195,7 @@ current_time_nanoseconds() {
 
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 3_000_000_000_000;})" --identity cycle-giver
 
-  assert_command dfx cycles balance  --precise --identity alice
+  assert_command dfx cycles balance --precise --identity alice
   assert_eq "3000000000000 cycles."
 
   assert_command dfx cycles balance --precise --identity bob
@@ -294,9 +294,9 @@ current_time_nanoseconds() {
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_100_000_100_000 Cycles"
 
-  assert_command dfx cycles top-up e2e_project_backend 300000 --identity bob  --from-subaccount "$BOB_SUBACCT1"
+  assert_command dfx cycles top-up e2e_project_backend 300000 --identity bob --from-subaccount "$BOB_SUBACCT1"
 
-  assert_command dfx cycles balance --precise --identity bob  --subaccount "$BOB_SUBACCT1"
+  assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
   assert_eq "2599899700000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_100_000_400_000 Cycles"
@@ -307,9 +307,9 @@ current_time_nanoseconds() {
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_100_000_400_000 Cycles"
 
-  assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" 600000 --identity bob  --from-subaccount "$BOB_SUBACCT2"
+  assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" 600000 --identity bob --from-subaccount "$BOB_SUBACCT2"
 
-  assert_command dfx cycles balance --precise --identity bob  --subaccount "$BOB_SUBACCT2"
+  assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT2"
   assert_eq "2699899400000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_100_001_000_000 Cycles"
