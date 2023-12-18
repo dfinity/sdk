@@ -18,9 +18,7 @@ use dfx_core::cli::ask_for_consent;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::attributes::{
-    ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit,
-};
+use ic_utils::interfaces::management_canister::attributes::FreezingThreshold;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::management_canister::CanisterStatus;
 use ic_utils::interfaces::ManagementCanister;
@@ -157,13 +155,13 @@ async fn delete_canister(
             let canister_id =
                 Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
 
-            // Set this principal to be a controller and default the other settings.
+            // Set this principal to be a controller and minimize the freezing threshold to free up as many cycles as possible.
             let settings = CanisterSettings {
                 controllers: Some(vec![principal]),
-                compute_allocation: Some(ComputeAllocation::try_from(0u8).unwrap()),
-                memory_allocation: Some(MemoryAllocation::try_from(0u8).unwrap()),
+                compute_allocation: None,
+                memory_allocation: None,
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
-                reserved_cycles_limit: Some(ReservedCyclesLimit::try_from(0u8).unwrap()),
+                reserved_cycles_limit: None,
             };
             info!(log, "Setting the controller to identity principal.");
             update_settings(env, canister_id, settings, call_sender).await?;
