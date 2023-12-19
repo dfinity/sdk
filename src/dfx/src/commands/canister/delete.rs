@@ -27,7 +27,6 @@ use num_traits::cast::ToPrimitive;
 use slog::info;
 use std::convert::TryFrom;
 
-#[allow(deprecated)]
 const DANK_PRINCIPAL: Principal =
     Principal::from_slice(&[0, 0, 0, 0, 0, 0xe0, 1, 0x11, 0x01, 0x01]); // Principal: aanaa-xaaaa-aaaah-aaeiq-cai
 
