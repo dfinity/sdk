@@ -2,7 +2,7 @@
 
 # UNRELEASED
 
-### chore: update `dfx cycles` commands with maninet `cycles-ledger` canister ID
+### chore: update `dfx cycles` commands with mainnet `cycles-ledger` canister ID
 
 ### fix: frontend code crashing when there is no canister ID
 
