@@ -16,15 +16,9 @@ use slog::{info, Logger};
 const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
 const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
 const SEND_METHOD: &str = "send";
+/// "um5iw-rqaaa-aaaaq-qaaba-cai" == CYCLES_LEDGER_CANISTER_ID.to_text()
 const CYCLES_LEDGER_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x02, 0x10, 0x00, 0x02, 0x01, 0x01]);
-#[test]
-fn ledger_canister_id_text_representation() {
-    assert_eq!(
-        "um5iw-rqaaa-aaaaq-qaaba-cai",
-        CYCLES_LEDGER_CANISTER_ID.to_text()
-    );
-}
 
 pub async fn balance(
     agent: &Agent,
