@@ -29,6 +29,11 @@ add_cycles_ledger_canisters_to_project() {
   jq -s '.[0] * .[1]' ../dfx.json dfx.json | sponge dfx.json
 }
 
+deploy_cycles_ledger() {
+  assert_command dfx deploy cycles-ledger --specified-id "um5iw-rqaaa-aaaaq-qaaba-cai"
+  assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})" --with-cycles 10000000000000 --specified-id "ul4oc-4iaaa-aaaaq-qaabq-cai"
+}
+
 current_time_nanoseconds() {
   echo "$(date +%s)"000000000
 }
@@ -41,8 +46,7 @@ current_time_nanoseconds() {
   ALICE_SUBACCT2_CANDID="\9C\9B\9A\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
   BOB=$(dfx identity get-principal --identity bob)
 
-  assert_command dfx deploy cycles-ledger
-  assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})" --with-cycles 10000000000000
+  deploy_cycles_ledger
 
   assert_command dfx cycles balance --identity alice --precise
   assert_eq "0 cycles."
@@ -116,8 +120,7 @@ current_time_nanoseconds() {
   BOB=$(dfx identity get-principal --identity bob)
   BOB_SUBACCT1="7C7B7A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
 
-  assert_command dfx deploy cycles-ledger
-  assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})" --with-cycles 10000000000000
+  deploy_cycles_ledger
 
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 3_000_000_000_000;})" --identity cycle-giver
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 2_000_000_000_000;})" --identity cycle-giver
@@ -190,8 +193,7 @@ current_time_nanoseconds() {
   ALICE=$(dfx identity get-principal --identity alice)
   BOB=$(dfx identity get-principal --identity bob)
 
-  assert_command dfx deploy cycles-ledger
-  assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})" --with-cycles 10000000000000
+  deploy_cycles_ledger
 
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 3_000_000_000_000;})" --identity cycle-giver
 
@@ -249,7 +251,7 @@ current_time_nanoseconds() {
 @test "top up canister principal check" {
   BOB=$(dfx identity get-principal --identity bob)
 
-  assert_command dfx deploy cycles-ledger
+  deploy_cycles_ledger
 
   assert_command_fail dfx cycles top-up "$BOB" 600000 --identity alice
   assert_contains "Invalid receiver: $BOB.  Make sure the receiver is a canister."
@@ -266,8 +268,7 @@ current_time_nanoseconds() {
   BOB_SUBACCT2="6C6B6A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
   BOB_SUBACCT2_CANDID="\6C\6B\6A\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
 
-  assert_command dfx deploy cycles-ledger
-  assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})" --with-cycles 10000000000000
+  deploy_cycles_ledger
 
   assert_command dfx deploy
 
@@ -326,8 +327,7 @@ current_time_nanoseconds() {
   BOB_SUBACCT2="6C6B6A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
   BOB_SUBACCT2_CANDID="\6C\6B\6A\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
 
-  assert_command dfx deploy cycles-ledger
-  assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})" --with-cycles 10000000000000
+  deploy_cycles_ledger
 
   assert_command dfx deploy
 
@@ -371,8 +371,7 @@ current_time_nanoseconds() {
   ALICE=$(dfx identity get-principal --identity alice)
   BOB=$(dfx identity get-principal --identity bob)
 
-  assert_command dfx deploy cycles-ledger
-  assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})" --with-cycles 10000000000000
+  deploy_cycles_ledger
 
   assert_command dfx ledger balance --identity cycle-giver
   assert_eq "1000000000.00000000 ICP"
