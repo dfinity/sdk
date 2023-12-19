@@ -10,7 +10,8 @@ use candid::{encode_args, Decode, Principal};
 use clap::Parser;
 use slog::{info, warn};
 
-const DEFAULT_FAUCET_PRINCIPAL: &str = "fg7gi-vyaaa-aaaal-qadca-cai";
+pub const DEFAULT_FAUCET_PRINCIPAL: Principal =
+    Principal::from_slice(&[0, 0, 0, 0, 1, 112, 0, 196, 1, 1]);
 
 /// Redeem a code at the cycles faucet.
 #[derive(Parser)]
@@ -31,7 +32,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         Principal::from_text(&alternative_faucet)
             .or_else(|_| canister_id_store.get(&alternative_faucet))?
     } else {
-        Principal::from_text(DEFAULT_FAUCET_PRINCIPAL).unwrap()
+        DEFAULT_FAUCET_PRINCIPAL
     };
     let agent = env.get_agent();
     if fetch_root_key_if_needed(env).await.is_err() {
@@ -99,5 +100,18 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
             info!(log, "New wallet set.");
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_faucet_canister_id() {
+        assert_eq!(
+            DEFAULT_FAUCET_PRINCIPAL,
+            Principal::from_text("fg7gi-vyaaa-aaaal-qadca-cai").unwrap()
+        );
     }
 }
