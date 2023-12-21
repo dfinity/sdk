@@ -9,7 +9,7 @@ use crate::lib::operations::canister::create_canister::{
     CANISTER_CREATE_FEE, CANISTER_INITIAL_CYCLE_BALANCE,
 };
 use crate::lib::retryable::retryable;
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use backoff::future::retry;
 use backoff::ExponentialBackoff;
 use candid::{CandidType, Decode, Encode, Nat, Principal};
@@ -234,7 +234,10 @@ pub async fn create_with_cycles_ledger(
         #[error("Cycles ledger temporarily unavailable.")]
         TemporarilyUnavailable,
         #[error("Duplicate of block {duplicate_of}.")]
-        Duplicate { duplicate_of: Nat },
+        Duplicate {
+            duplicate_of: Nat,
+            canister_id: Option<Principal>,
+        },
         #[error("Cycles ledger failed to create canister: {error}")]
         FailedToCreate {
             fee_block: Option<Nat>,
@@ -286,49 +289,20 @@ pub async fn create_with_cycles_ledger(
             err.to_string()
         )
     })?;
-    Ok(create_result?.canister_id)
-}
-
-#[context("Failed to create canister via cycles ledger.")]
-pub async fn create_with_cycles_ledger(
-    env: &dyn Environment,
-    agent: &Agent,
-    with_cycles: Option<u128>,
-    from_subaccount: Option<Subaccount>,
-    settings: DfxCanisterSettings,
-    created_at_time: Option<u64>,
-    cycles_ledger_canister_id: Principal,
-) -> DfxResult<Principal> {
-    #[derive(CandidType, Clone, Debug)]
-    // TODO(FI-1022): Import types from cycles ledger crate once available
-    let result = agent
-        .update(&cycles_ledger_canister_id, GET_BLOCKS_METHOD)
-        .with_arg(
-            Encode!(&CreateCanisterArgs {
-                from_subaccount,
-                created_at_time,
-                amount: cycles,
-                creation_args: Some(CmcCreateCanisterArgs {
-                    settings: Some(settings.into()),
-                    subnet_selection: None,
-                })
-            })
-            .unwrap(),
-        )
-        .call_and_wait()
-        .await
-        .map_err(|err| anyhow!(err))?;
-    let create_result = Decode!(
-        &result,
-        Result<CreateCanisterSuccess, CreateCanisterError>
-    )
-    .map_err(|err| {
-        anyhow!(
-            "Failed to decode cycles ledger response: {}",
-            err.to_string()
-        )
-    })?;
-
-    todo!("handle duplicate response");
-    Ok(create_result?.canister_id)
+    //todo: handle duplicate response
+    match create_result {
+        Ok(result) => Ok(result.canister_id),
+        Err(CreateCanisterError::Duplicate {
+            duplicate_of,
+            canister_id,
+        }) => {
+            if let Some(canister) = canister_id {
+                info!(env.get_logger(), "Duplicate of block {duplicate_of}. Canister already created with id {canister}.");
+                Ok(canister)
+            } else {
+                bail!("Duplicate of block {duplicate_of} but no canister id is available.");
+            }
+        }
+        Err(err) => bail!(err),
+    }
 }
