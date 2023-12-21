@@ -57,6 +57,7 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     bootstrap: None,
     build: None,
     canister_http: None,
+    proxy: None,
     replica: None,
 };
 
@@ -555,6 +556,13 @@ pub struct ConfigDefaultsReplica {
     pub log_level: Option<ReplicaLogLevel>,
 }
 
+/// Configuration for icx-proxy.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ConfigDefaultsProxy {
+    /// A list of domains that can be served. These are used for canister resolution [default: localhost]
+    pub domain: SerdeVec<String>,
+}
+
 // Schemars doesn't add the enum value's docstrings. Therefore the explanations have to be up here.
 /// # Network Type
 /// Type 'ephemeral' is used for networks that are regularly reset.
@@ -643,6 +651,7 @@ pub struct ConfigLocalProvider {
     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
     pub replica: Option<ConfigDefaultsReplica>,
     pub playground: Option<PlaygroundConfig>,
+    pub proxy: Option<ConfigDefaultsProxy>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, JsonSchema)]
@@ -667,6 +676,7 @@ pub struct ConfigDefaults {
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
+    pub proxy: Option<ConfigDefaultsProxy>,
     pub replica: Option<ConfigDefaultsReplica>,
 }
 

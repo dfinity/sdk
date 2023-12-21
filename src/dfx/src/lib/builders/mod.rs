@@ -268,7 +268,7 @@ fn compile_handlebars_files(
                 format!(
                     r#"
 
-export const {0} = createActor(canisterId);"#,
+export const {0} = canisterId ? createActor(canisterId) : undefined;"#,
                     canister_name
                 )
                 .to_string()

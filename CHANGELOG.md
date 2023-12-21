@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### fix: allow `http://localhost:*` as `connect-src` in the asset canister's CSP
+
+This will enable browsing the asset canister at `http://<canister-id>.localhost:<port>` in most browsers.
+
+### fix: frontend code crashing when there is no canister ID
+
 ### feat: `dfx ledger top-up` also accepts canister names
 
 Previously, `dfx ledger top-up` only accepted canister principals. Now it accepts both principals and canister names.
@@ -10,6 +16,35 @@ Previously, `dfx ledger top-up` only accepted canister principals. Now it accept
 
 A change to `curl --help` output made it so the install script did not detect
 that the `--proto` and `--tlsv1.2` options are available.
+
+### chore: skip reserving 8GB of memory when deleting a canister
+
+When dfx deletes a canister, it first withdraws as many cycles as possible from the canister.
+While doing so, dfx previously set the memory allocation of the canister to 8GB in order to not run into any memory problems while withdrawing.
+This, however, lead to problems with dynamic memory pricing in subnets with a lot of data because then it becomes very expensive to reserve that much data.
+dfx now no longer sets a memory allocation. We anticipate fewer problems this way.
+
+### feat: Added support for icx-proxy `--domain` parameter
+
+In order to access a local replica through a domain name or domain names,
+it's necessary to pass the `--domain` parameter to icx-proxy.  dfx now supports
+this in configuration and as a parameter to dfx start.  You can specify a single
+domain or a list of domains in any of the following ways:
+
+- in networks.json, in `.<network>.proxy.domain`
+- in dfx.json, in `.networks.<netowrk>.proxy.domain`
+- in dfx.json, in `.defaults.proxy.domain`
+- to dfx start, as `dfx start --domain <domain1> --domain <domain2> ...`
+
+## Dependencies
+
+### Candid UI
+
+- Module hash: d172df265a14397a460b752ff07598380bc7ebd9c43ece1e82495ae478a88719c
+- Internet identity integration in Candid UI. Thanks to @Web3NL!
+  + You can customize the II url and derivationOrigin via URL parameter `ii` and `origin` respectively.
+- Update with the new profiling API
+
 
 # 0.15.2
 
