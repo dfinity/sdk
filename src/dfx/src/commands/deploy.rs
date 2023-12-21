@@ -175,12 +175,12 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let call_sender = CallSender::from(&opts.wallet)
         .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
     let created_at_time = opts.created_at_time.or_else(|| {
-        Some(
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_nanos() as u64,
-        )
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as u64;
+        info!(env.get_logger(), "created-at-time is {now}.");
+        Some(now)
     });
 
     runtime.block_on(fetch_root_key_if_needed(&env))?;
