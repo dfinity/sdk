@@ -201,6 +201,9 @@ jobs:
       - name: check smoke test result
         if: ${{ needs.smoke.result != 'success' }}
         run: exit 1
+      - name: check UI test result
+        if: ${{ needs.ui_test.result != 'success' }}
+        run: exit 1
       - name: check e2e test result
         if: ${{ needs.test.result != 'success' }}
         run: exit 1
