@@ -262,6 +262,7 @@ pub async fn create_with_cycles_ledger(
         info!(env.get_logger(), "created-at-time is {now}.");
         Some(now)
     });
+
     let result = agent
         .update(&cycles_ledger_canister_id, CREATE_CANISTER_METHOD)
         .with_arg(
@@ -272,7 +273,7 @@ pub async fn create_with_cycles_ledger(
                 creation_args: Some(CmcCreateCanisterArgs {
                     settings: Some(settings.into()),
                     subnet_selection: None,
-                })
+                }),
             })
             .unwrap(),
         )
@@ -289,7 +290,6 @@ pub async fn create_with_cycles_ledger(
             err.to_string()
         )
     })?;
-    //todo: handle duplicate response
     match create_result {
         Ok(result) => Ok(result.canister_id),
         Err(CreateCanisterError::Duplicate {
