@@ -45,6 +45,9 @@ domain or a list of domains in any of the following ways:
   + You can customize the II url and derivationOrigin via URL parameter `ii` and `origin` respectively.
 - Update with the new profiling API
 
+### Motoko
+
+Updated Motoko to [0.10.3](https://github.com/dfinity/motoko/releases/tag/0.10.3)
 
 # 0.15.2
 
