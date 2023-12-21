@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.15.3
+
 ### fix: allow `http://localhost:*` as `connect-src` in the asset canister's CSP
 
 This will enable browsing the asset canister at `http://<canister-id>.localhost:<port>` in most browsers.
