@@ -202,7 +202,7 @@ teardown() {
   # assert: no wallet configured
   export DFX_DISABLE_AUTO_WALLET=1
   assert_command_fail dfx wallet balance
-  assert_match "command requires a configured wallet"
+  assert_match "No wallet configured"
 
   assert_command dfx wallet redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'valid-coupon'
   assert_match "Redeemed coupon valid-coupon for a new wallet"
