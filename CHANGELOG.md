@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.15.3
+
 ### fix: allow `http://localhost:*` as `connect-src` in the asset canister's CSP
 
 This will enable browsing the asset canister at `http://<canister-id>.localhost:<port>` in most browsers.
@@ -45,6 +47,9 @@ domain or a list of domains in any of the following ways:
   + You can customize the II url and derivationOrigin via URL parameter `ii` and `origin` respectively.
 - Update with the new profiling API
 
+### Motoko
+
+Updated Motoko to [0.10.3](https://github.com/dfinity/motoko/releases/tag/0.10.3)
 
 # 0.15.2
 
