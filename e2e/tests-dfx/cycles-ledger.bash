@@ -435,7 +435,7 @@ current_time_nanoseconds() {
 
   assert_command dfx deploy
 
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 3_400_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 13_400_000_000_000;})" --identity cycle-giver
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 2_600_000_000_000;})" --identity cycle-giver
 
   cd ..
@@ -450,14 +450,14 @@ current_time_nanoseconds() {
   assert_command dfx canister id e2e_project_backend
   E2E_PROJECT_BACKEND_CANISTER_ID=$(dfx canister id e2e_project_backend)
   assert_command dfx cycles balance --cycles-ledger-canister-id "$CYCLES_LEDGER_ID" --precise
-  assert_eq "2399900000000 cycles."
+  assert_eq "12399900000000 cycles."
   # forget about canister. If --created-at-time is a valid idempotency key we should end up with the same canister id
   rm .dfx/local/canister_ids.json
   assert_command dfx canister create e2e_project_backend --with-cycles 1T --created-at-time "$t" --cycles-ledger-canister-id "$CYCLES_LEDGER_ID"
   assert_command dfx canister id e2e_project_backend
   assert_contains "$E2E_PROJECT_BACKEND_CANISTER_ID"
   assert_command dfx cycles balance --cycles-ledger-canister-id "$CYCLES_LEDGER_ID" --precise
-  assert_eq "2399900000000 cycles."
+  assert_eq "12399900000000 cycles."
   dfx canister stop e2e_project_backend
   dfx canister delete e2e_project_backend
 
@@ -475,7 +475,7 @@ current_time_nanoseconds() {
   assert_command dfx canister id e2e_project_backend
   E2E_PROJECT_BACKEND_CANISTER_ID=$(dfx canister id e2e_project_backend)
   assert_command dfx cycles balance --cycles-ledger-canister-id "$CYCLES_LEDGER_ID" --precise
-  assert_eq "1399800000000 cycles."
+  assert_eq "11399800000000 cycles."
   # reset and forget about canister. If --created-at-time is a valid idempotency key we should end up with the same canister id
   dfx canister uninstall-code e2e_project_backend
   rm .dfx/local/canister_ids.json
@@ -483,7 +483,7 @@ current_time_nanoseconds() {
   assert_command dfx canister id e2e_project_backend
   assert_contains "$E2E_PROJECT_BACKEND_CANISTER_ID"
   assert_command dfx cycles balance --cycles-ledger-canister-id "$CYCLES_LEDGER_ID" --precise
-  assert_eq "1399800000000 cycles."
+  assert_eq "11399800000000 cycles."
   dfx canister stop e2e_project_backend
   dfx canister delete e2e_project_backend
   
@@ -491,4 +491,13 @@ current_time_nanoseconds() {
   assert_command dfx canister id e2e_project_backend
   assert_command dfx cycles balance --cycles-ledger-canister-id "$CYCLES_LEDGER_ID" --subaccount "$ALICE_SUBACCT1" --precise
   assert_eq "1599800000000 cycles."
+  dfx canister stop e2e_project_backend
+  dfx canister delete e2e_project_backend
+  
+  assert_command dfx deploy --with-cycles 1T --cycles-ledger-canister-id "$CYCLES_LEDGER_ID"
+  assert_command dfx canister id e2e_project_backend
+  assert_command dfx canister id e2e_project_frontend
+  assert_not_contains "$(dfx canister id e2e_project_backend)"
+  assert_command dfx cycles balance --cycles-ledger-canister-id "$CYCLES_LEDGER_ID" --precise
+  assert_eq "999600000000 cycles."
 }

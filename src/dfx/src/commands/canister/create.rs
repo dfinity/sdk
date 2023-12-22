@@ -86,7 +86,7 @@ pub struct CanisterCreateOpts {
     /// Transaction timestamp, in nanoseconds, for use in controlling transaction deduplication, default is system time.
     /// https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
     //TODO(SDK-1331): unhide
-    #[arg(long, hide = true)]
+    #[arg(long, hide = true, conflicts_with = "all")]
     created_at_time: Option<u64>,
 
     /// Subaccount of the selected identity to spend cycles from.
