@@ -22,7 +22,6 @@ use slog::info;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::str::FromStr;
-use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::runtime::Runtime;
 use url::Host::Domain;
 use url::Url;
@@ -175,14 +174,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
 
     let call_sender = CallSender::from(&opts.wallet)
         .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
-    let created_at_time = opts.created_at_time.or_else(|| {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_nanos() as u64;
-        info!(env.get_logger(), "created-at-time is {now}.");
-        Some(now)
-    });
 
     runtime.block_on(fetch_root_key_if_needed(&env))?;
 
@@ -194,7 +185,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         &deploy_mode,
         opts.upgrade_unchanged,
         with_cycles,
-        created_at_time,
+        opts.created_at_time,
         opts.specified_id,
         &call_sender,
         opts.from_subaccount,

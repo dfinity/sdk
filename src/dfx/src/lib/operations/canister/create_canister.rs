@@ -88,6 +88,7 @@ pub async fn create_canister(
                 create_with_cycles_ledger(
                     env,
                     agent,
+                    canister_name,
                     with_cycles,
                     from_subaccount,
                     settings,

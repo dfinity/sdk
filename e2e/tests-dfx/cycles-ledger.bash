@@ -430,8 +430,9 @@ current_time_nanoseconds() {
   assert_command deploy_cycles_ledger
   CYCLES_LEDGER_ID=$(dfx canister id cycles-ledger)
   echo "Cycles ledger deployed at id $CYCLES_LEDGER_ID"
-  assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})" --with-cycles 10000000000000
+  assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})"
   echo "Cycles depositor deployed at id $(dfx canister id cycles-depositor)"
+  assert_command dfx ledger fabricate-cycles --canister cycles-depositor --t 9999
 
   assert_command dfx deploy
 
@@ -499,5 +500,5 @@ current_time_nanoseconds() {
   assert_command dfx canister id e2e_project_frontend
   assert_not_contains "$(dfx canister id e2e_project_backend)"
   assert_command dfx cycles balance --cycles-ledger-canister-id "$CYCLES_LEDGER_ID" --precise
-  assert_eq "999600000000 cycles."
+  assert_eq "9399600000000 cycles."
 }

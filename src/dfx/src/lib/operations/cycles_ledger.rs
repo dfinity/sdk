@@ -192,6 +192,7 @@ pub async fn send(
 pub async fn create_with_cycles_ledger(
     env: &dyn Environment,
     agent: &Agent,
+    canister_name: &str,
     with_cycles: Option<u128>,
     from_subaccount: Option<Subaccount>,
     settings: DfxCanisterSettings,
@@ -259,7 +260,10 @@ pub async fn create_with_cycles_ledger(
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos() as u64;
-        info!(env.get_logger(), "created-at-time is {now}.");
+        info!(
+            env.get_logger(),
+            "created-at-time for canister {canister_name} is {now}."
+        );
         Some(now)
     });
 
