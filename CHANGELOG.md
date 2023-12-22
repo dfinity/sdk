@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat!: update `dfx cycles` commands with mainnet `cycles-ledger` canister ID
+
+The `dfx cycles` command no longer needs nor accepts the `--cycles-ledger-canister-id <canister id>` parameter.
+
 # 0.15.3
 
 ### fix: allow `http://localhost:*` as `connect-src` in the asset canister's CSP
