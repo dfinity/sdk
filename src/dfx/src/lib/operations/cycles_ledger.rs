@@ -267,23 +267,34 @@ pub async fn create_with_cycles_ledger(
         Some(now)
     });
 
-    let result = agent
-        .update(&cycles_ledger_canister_id, CREATE_CANISTER_METHOD)
-        .with_arg(
-            Encode!(&CreateCanisterArgs {
-                from_subaccount,
-                created_at_time,
-                amount: cycles,
-                creation_args: Some(CmcCreateCanisterArgs {
-                    settings: Some(settings.into()),
-                    subnet_selection: None,
-                }),
-            })
-            .unwrap(),
-        )
-        .call_and_wait()
-        .await
-        .map_err(|err| anyhow!(err))?;
+    let result = loop {
+        match agent
+            .update(&cycles_ledger_canister_id, CREATE_CANISTER_METHOD)
+            .with_arg(
+                Encode!(&CreateCanisterArgs {
+                    from_subaccount,
+                    created_at_time,
+                    amount: cycles,
+                    creation_args: Some(CmcCreateCanisterArgs {
+                        settings: Some(settings.clone().into()),
+                        subnet_selection: None,
+                    }),
+                })
+                .unwrap(),
+            )
+            .call_and_wait()
+            .await
+        {
+            Ok(result) => break result,
+            Err(err) => {
+                if retryable(&err) {
+                    info!(env.get_logger(), "Request error: {err:?}. Retrying...");
+                } else {
+                    bail!(err)
+                }
+            }
+        }
+    };
     let create_result = Decode!(
         &result,
         Result<CreateCanisterSuccess, CreateCanisterError>
