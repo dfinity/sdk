@@ -27,7 +27,7 @@ use thiserror::Error;
 #[derive(Debug, Error)]
 pub enum GetOrCreateWalletCanisterError {
     #[error(
-        "No wallet cofigured for combination of identity '{identity}' and network '{network}'"
+        "No wallet configured for combination of identity '{identity}' and network '{network}'"
     )]
     NoWalletConfigured { identity: String, network: String },
 
@@ -165,7 +165,6 @@ pub async fn create_wallet(
 /// While developing locally, this always creates a new wallet, even if `create` is false.
 /// This can be inhibited by setting the DFX_DISABLE_AUTO_WALLET env var.
 #[allow(clippy::needless_lifetimes)]
-// #[context("Failed to get wallet canister caller for identity '{}' on network '{}'.", name, network.name)]
 pub async fn get_or_create_wallet_canister<'env>(
     env: &'env dyn Environment,
     network: &NetworkDescriptor,
