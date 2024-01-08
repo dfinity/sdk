@@ -113,7 +113,7 @@ fn write_binary_cache(
         Compression::new(6),
     ));
     for (path, bin) in bins.into_iter().chain(
-        ["ic-ref", "moc", "mo-doc", "mo-ide"]
+        ["moc", "mo-doc", "mo-ide"]
             .map(|bin| (bin.into(), bin_tars.remove(Path::new(bin)).unwrap())),
     ) {
         let mut header = Header::new_gnu();
@@ -220,13 +220,13 @@ async fn download_bin_tarballs(
     sources: Arc<HashMap<String, Source>>,
 ) -> HashMap<PathBuf, Bytes> {
     let mut map = HashMap::new();
-    let [motoko, ic_ref] = ["motoko", "ic-ref"].map(|pkg| {
+    let [motoko] = ["motoko"].map(|pkg| {
         let client = client.clone();
         let source = sources[pkg].clone();
         spawn(download_and_check_sha(client, source))
     });
-    let (motoko, ic_ref) = tokio::try_join!(motoko, ic_ref).unwrap();
-    for tar in [motoko, ic_ref] {
+    let (motoko,) = tokio::try_join!(motoko,).unwrap();
+    for tar in [motoko] {
         tar_xzf(&tar, |path, content| {
             map.insert(path, content);
         });
