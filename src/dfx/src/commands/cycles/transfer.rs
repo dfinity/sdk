@@ -53,26 +53,29 @@ pub async fn exec(env: &dyn Environment, opts: TransferOpts) -> DfxResult {
 
     let from_subaccount = opts.from_subaccount.map(|x| x.0);
     let to_subaccount = opts.to_subaccount.map(|x| x.0);
-    let result = cycles_ledger::transfer(
-        agent,
-        env.get_logger(),
-        amount,
-        from_subaccount,
-        opts.to,
-        to_subaccount,
-        created_at_time,
-        opts.memo,
-    )
-    .await;
-    if result.is_err() && opts.created_at_time.is_none() {
-        warn!(
-            env.get_logger(),
-            "If you retry this operation, use --created-at-time {}", created_at_time
-        );
-    }
-    let block_index = result?;
+    todo!();
 
-    println!("Transfer sent at block index {block_index}");
+    // TODO: Support this functionality again.
+    // let result = cycles_ledger::transfer(
+    //     agent,
+    //     env.get_logger(),
+    //     amount,
+    //     from_subaccount,
+    //     opts.to,
+    //     to_subaccount,
+    //     created_at_time,
+    //     opts.memo,
+    // )
+    // .await;
+    // if result.is_err() && opts.created_at_time.is_none() {
+    //     warn!(
+    //         env.get_logger(),
+    //         "If you retry this operation, use --created-at-time {}", created_at_time
+    //     );
+    // }
+    // let block_index = result?;
+
+    // println!("Transfer sent at block index {block_index}");
 
     Ok(())
 }

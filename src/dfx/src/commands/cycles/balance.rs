@@ -35,16 +35,19 @@ pub async fn exec(env: &dyn Environment, opts: CyclesBalanceOpts) -> DfxResult {
 
     let subaccount = opts.subaccount.map(|x| x.0);
 
-    let balance = cycles_ledger::balance(agent, owner, subaccount).await?;
+    todo!();
 
-    if opts.precise {
-        println!("{} cycles.", balance);
-    } else {
-        println!(
-            "{} TC (trillion cycles).",
-            pretty_thousand_separators(format_as_trillions(balance))
-        );
-    }
+    // TODO: Support this functionality again.
+    // let balance = cycles_ledger::balance(agent, owner, subaccount).await?;
+
+    // if opts.precise {
+    //     println!("{} cycles.", balance);
+    // } else {
+    //     println!(
+    //         "{} TC (trillion cycles).",
+    //         pretty_thousand_separators(format_as_trillions(balance))
+    //     );
+    // }
 
     Ok(())
 }

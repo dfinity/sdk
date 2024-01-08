@@ -4,7 +4,7 @@ use crate::{
     identity::CallSender,
 };
 use candid::Principal;
-use ic_agent::Agent;
+use ic_agent::agent::Agent;
 use ic_utils::{
     call::AsyncCall,
     interfaces::{
@@ -58,7 +58,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.
     let mode_str = match mode {
         InstallMode::Install => "Installing",
         InstallMode::Reinstall => "Reinstalling",
-        InstallMode::Upgrade => "Upgrading",
+        InstallMode::Upgrade(..) => "Upgrading",
     };
     if let Some(name) = canister_name {
         info!(

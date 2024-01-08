@@ -14,7 +14,7 @@ use candid::Principal as CanisterId;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
 use fn_error_context::context;
-use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
+// use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
 use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
@@ -122,134 +122,136 @@ impl Canister {
             return Ok(());
         }
 
-        let mut m = read_wasm_module(build_output_wasm_path)?;
-        let mut modified = false;
+        // TODO: Support this functionality again.
+        // let mut m = read_wasm_module(build_output_wasm_path)?;
+        // let mut modified = false;
 
-        // optimize or shrink
-        if let Some(level) = info.get_optimize() {
-            trace!(logger, "Optimizing WASM at level {}", level);
-            ic_wasm::shrink::shrink_with_wasm_opt(&mut m, &level.to_string(), false)
-                .context("Failed to optimize the WASM module.")?;
-            modified = true;
-        } else if info.get_shrink() == Some(true)
-            || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
-        {
-            trace!(logger, "Shrinking WASM");
-            ic_wasm::shrink::shrink(&mut m);
-            modified = true;
-        }
+        // // optimize or shrink
+        // if let Some(level) = info.get_optimize() {
+        //     trace!(logger, "Optimizing WASM at level {}", level);
+        //     ic_wasm::shrink::shrink_with_wasm_opt(&mut m, &level.to_string(), false)
+        //         .context("Failed to optimize the WASM module.")?;
+        //     modified = true;
+        // } else if info.get_shrink() == Some(true)
+        //     || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
+        // {
+        //     trace!(logger, "Shrinking WASM");
+        //     ic_wasm::shrink::shrink(&mut m);
+        //     modified = true;
+        // }
 
-        // metadata
-        trace!(logger, "Attaching metadata");
-        let mut metadata_sections = info.metadata().sections.clone();
-        // Default to write public candid:service unless overwritten
-        let mut public_candid = false;
-        if (info.is_rust() || info.is_motoko())
-            && !metadata_sections.contains_key(CANDID_SERVICE)
-            && !metadata_sections.contains_key(CANDID_ARGS)
-        {
-            public_candid = true;
-        }
+        // // metadata
+        // trace!(logger, "Attaching metadata");
+        // let mut metadata_sections = info.metadata().sections.clone();
+        // // Default to write public candid:service unless overwritten
+        // let mut public_candid = false;
+        // if (info.is_rust() || info.is_motoko())
+        //     && !metadata_sections.contains_key(CANDID_SERVICE)
+        //     && !metadata_sections.contains_key(CANDID_ARGS)
+        // {
+        //     public_candid = true;
+        // }
 
-        if let Some(pullable) = info.get_pullable() {
-            let mut dfx_metadata = DfxMetadata::default();
-            dfx_metadata.set_pullable(pullable);
-            let content = serde_json::to_string_pretty(&dfx_metadata)
-                .with_context(|| "Failed to serialize `dfx` metadata.".to_string())?;
-            metadata_sections.insert(
-                DFX.to_string(),
-                CanisterMetadataSection {
-                    name: DFX.to_string(),
-                    visibility: MetadataVisibility::Public,
-                    content: Some(content),
-                    ..Default::default()
-                },
-            );
-            public_candid = true;
-        }
+        // if let Some(pullable) = info.get_pullable() {
+        //     let mut dfx_metadata = DfxMetadata::default();
+        //     dfx_metadata.set_pullable(pullable);
+        //     let content = serde_json::to_string_pretty(&dfx_metadata)
+        //         .with_context(|| "Failed to serialize `dfx` metadata.".to_string())?;
+        //     metadata_sections.insert(
+        //         DFX.to_string(),
+        //         CanisterMetadataSection {
+        //             name: DFX.to_string(),
+        //             visibility: MetadataVisibility::Public,
+        //             content: Some(content),
+        //             ..Default::default()
+        //         },
+        //     );
+        //     public_candid = true;
+        // }
 
-        if public_candid {
-            metadata_sections.insert(
-                CANDID_SERVICE.to_string(),
-                CanisterMetadataSection {
-                    name: CANDID_SERVICE.to_string(),
-                    visibility: MetadataVisibility::Public,
-                    ..Default::default()
-                },
-            );
+        // if public_candid {
+        //     metadata_sections.insert(
+        //         CANDID_SERVICE.to_string(),
+        //         CanisterMetadataSection {
+        //             name: CANDID_SERVICE.to_string(),
+        //             visibility: MetadataVisibility::Public,
+        //             ..Default::default()
+        //         },
+        //     );
 
-            metadata_sections.insert(
-                CANDID_ARGS.to_string(),
-                CanisterMetadataSection {
-                    name: CANDID_ARGS.to_string(),
-                    visibility: MetadataVisibility::Public,
-                    ..Default::default()
-                },
-            );
-        }
+        //     metadata_sections.insert(
+        //         CANDID_ARGS.to_string(),
+        //         CanisterMetadataSection {
+        //             name: CANDID_ARGS.to_string(),
+        //             visibility: MetadataVisibility::Public,
+        //             ..Default::default()
+        //         },
+        //     );
+        // }
 
-        for (name, section) in &metadata_sections {
-            if section.name == CANDID_SERVICE && info.is_motoko() {
-                if let Some(specified_path) = &section.path {
-                    check_valid_subtype(&info.get_service_idl_path(), specified_path)?
-                } else {
-                    // Motoko compiler handles this
-                    continue;
-                }
-            }
+        // for (name, section) in &metadata_sections {
+        //     if section.name == CANDID_SERVICE && info.is_motoko() {
+        //         if let Some(specified_path) = &section.path {
+        //             check_valid_subtype(&info.get_service_idl_path(), specified_path)?
+        //         } else {
+        //             // Motoko compiler handles this
+        //             continue;
+        //         }
+        //     }
 
-            let data = match (section.path.as_ref(), section.content.as_ref()) {
-                (None, None) if section.name == CANDID_SERVICE => {
-                    dfx_core::fs::read(&info.get_service_idl_path())?
-                }
-                (None, None) if section.name == CANDID_ARGS => {
-                    dfx_core::fs::read(&info.get_init_args_txt_path())?
-                }
-                (Some(path), None) => dfx_core::fs::read(path)?,
-                (None, Some(s)) => s.clone().into_bytes(),
-                (Some(_), Some(_)) => {
-                    bail!(
-                    "Metadata section could not specify path and content at the same time. section: {:?}",
-                    &section
-                )
-                }
-                (None, None) => {
-                    bail!(
-                        "Metadata section must specify a path or content. section: {:?}",
-                        &section
-                    )
-                }
-            };
+        //     let data = match (section.path.as_ref(), section.content.as_ref()) {
+        //         (None, None) if section.name == CANDID_SERVICE => {
+        //             dfx_core::fs::read(&info.get_service_idl_path())?
+        //         }
+        //         (None, None) if section.name == CANDID_ARGS => {
+        //             dfx_core::fs::read(&info.get_init_args_txt_path())?
+        //         }
+        //         (Some(path), None) => dfx_core::fs::read(path)?,
+        //         (None, Some(s)) => s.clone().into_bytes(),
+        //         (Some(_), Some(_)) => {
+        //             bail!(
+        //             "Metadata section could not specify path and content at the same time. section: {:?}",
+        //             &section
+        //         )
+        //         }
+        //         (None, None) => {
+        //             bail!(
+        //                 "Metadata section must specify a path or content. section: {:?}",
+        //                 &section
+        //             )
+        //         }
+        //     };
 
-            let visibility = match section.visibility {
-                MetadataVisibility::Public => Kind::Public,
-                MetadataVisibility::Private => Kind::Private,
-            };
+        //     let visibility = match section.visibility {
+        //         MetadataVisibility::Public => Kind::Public,
+        //         MetadataVisibility::Private => Kind::Private,
+        //     };
 
-            // if the metadata already exists in the wasm with a different visibility,
-            // then we have to remove it
-            remove_metadata(&mut m, name);
+        //     // if the metadata already exists in the wasm with a different visibility,
+        //     // then we have to remove it
+        //     remove_metadata(&mut m, name);
 
-            add_metadata(&mut m, visibility, name, data);
-            modified = true;
-        }
+        //     add_metadata(&mut m, visibility, name, data);
+        //     modified = true;
+        // }
 
-        // If not modified and not set "gzip" explicitly, copy the wasm file directly so that hash match.
-        if !modified && !info.get_gzip() {
-            dfx_core::fs::copy(build_output_wasm_path, &wasm_path)?;
-            return Ok(());
-        }
+        // TODO: Support this functionality again.
+        // // If not modified and not set "gzip" explicitly, copy the wasm file directly so that hash match.
+        // if !modified && !info.get_gzip() {
+        //     dfx_core::fs::copy(build_output_wasm_path, &wasm_path)?;
+        //     return Ok(());
+        // }
 
-        let new_bytes = if wasm_path.extension() == Some(OsStr::new("gz")) {
-            // gzip
-            // Unlike using gzip CLI, the compression below only takes the wasm bytes
-            // So as long as the wasm bytes are the same, the gzip file will be the same on different platforms.
-            trace!(logger, "Compressing WASM");
-            compress_bytes(&m.emit_wasm())?
-        } else {
-            m.emit_wasm()
-        };
-        dfx_core::fs::write(&wasm_path, new_bytes)?;
+        // let new_bytes = if wasm_path.extension() == Some(OsStr::new("gz")) {
+        //     // gzip
+        //     // Unlike using gzip CLI, the compression below only takes the wasm bytes
+        //     // So as long as the wasm bytes are the same, the gzip file will be the same on different platforms.
+        //     trace!(logger, "Compressing WASM");
+        //     compress_bytes(&m.emit_wasm())?
+        // } else {
+        //     m.emit_wasm()
+        // };
+        // dfx_core::fs::write(&wasm_path, new_bytes)?;
 
         Ok(())
     }
@@ -315,11 +317,11 @@ fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
     let (env, actor) = check_candid_file(path)?;
     let actor = actor.ok_or_else(|| anyhow!("provided candid file contains no main service"))?;
     if let candid::types::internal::TypeInner::Class(args, ty) = actor.as_ref() {
-        use candid::bindings::candid::pp_ty;
-        use candid::pretty::{concat, enclose};
+        use candid::pretty::candid::pp_ty;
+        use candid::pretty::utils::{concat, enclose};
 
         let actor = Some(ty.clone());
-        let service_did = candid::bindings::candid::compile(&env, &actor);
+        let service_did = candid_parser::bindings::javascript::compile(&env, &actor);
         let doc = concat(args.iter().map(pp_ty), ",");
         let init_args = enclose("(", doc, ")").pretty(80).to_string();
         Ok((service_did, init_args))
@@ -785,14 +787,14 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
         .with_extension("did.d.ts");
 
     let (env, ty) = check_candid_file(&canister_info.get_service_idl_path())?;
-    let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
+    let content = ensure_trailing_newline(candid_parser::bindings::javascript::compile(&env, &ty));
     std::fs::write(&output_did_js_path, content).with_context(|| {
         format!(
             "Failed to write to {}.",
             output_did_js_path.to_string_lossy()
         )
     })?;
-    let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
+    let content = ensure_trailing_newline(candid_parser::bindings::typescript::compile(&env, &ty));
     std::fs::write(&output_did_ts_path, content).with_context(|| {
         format!(
             "Failed to write to {}.",

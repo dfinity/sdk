@@ -18,12 +18,13 @@ rust-version = "1.71.1"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-candid = { version = "0.9.0", features = ["parser"] }
-ic-agent = "0.30.2"
+candid = { version = "0.10.2" }
+candid_parser = { version = "0.1.2" }
+ic-agent = { git = "https://github.com/dfinity/agent-rs.git", rev = "refs/pull/502/head" }
 ic-asset = { path = "src/canisters/frontend/ic-asset" }
-ic-cdk = "0.10.0"
-ic-identity-hsm = "0.30.2"
-ic-utils = "0.30.2"
+ic-cdk = "0.12.0"
+ic-identity-hsm = { git = "https://github.com/dfinity/agent-rs.git", rev = "refs/pull/502/head" }
+ic-utils = { git = "https://github.com/dfinity/agent-rs.git", rev = "refs/pull/502/head" }
 
 aes-gcm = "0.9.4"
 anyhow = "1.0.56"
@@ -67,21 +68,6 @@ time = "0.3.9"
 tokio = "1.24.2"
 url = "2.1.0"
 walkdir = "2.3.2"
-
-[patch.crates-io.ic-agent]
-version = "0.30.2"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "ed0862a45d5973ff123cbabc4ac40a89821b18c6"
-
-[patch.crates-io.ic-identity-hsm]
-version = "0.30.2"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "ed0862a45d5973ff123cbabc4ac40a89821b18c6"
-
-[patch.crates-io.ic-utils]
-version = "0.30.2"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "ed0862a45d5973ff123cbabc4ac40a89821b18c6"
 
 [profile.release]
 panic = 'abort'

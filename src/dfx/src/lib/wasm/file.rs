@@ -32,7 +32,10 @@ pub fn read_wasm_module(path: &Path) -> DfxResult<walrus::Module> {
 
 #[context("Failed to parse bytes as wasm")]
 pub fn bytes_to_module(bytes: &[u8]) -> DfxResult<walrus::Module> {
-    Ok(ic_wasm::utils::parse_wasm(bytes, true)?)
+    todo!();
+
+    // TODO: Support this functionality again.
+    // Ok(ic_wasm::utils::parse_wasm(bytes, true)?)
 }
 
 #[context("Failed to encode bytes as gzip")]

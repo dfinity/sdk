@@ -4,7 +4,7 @@ use anyhow::{bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use bytes::Bytes;
-use candid::parser::typing::pretty_check_file;
+use candid_parser::typing::pretty_check_file;
 use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
 use candid::IDLArgs;
 use dfx_core::fs::create_dir_all;
@@ -178,7 +178,7 @@ pub fn blob_from_arguments(
             let typed_args = match method_type {
                 None => {
                     let arguments = arguments.unwrap_or("()");
-                    candid::pretty_parse::<IDLArgs>("Candid argument", arguments)
+                    candid_parser::parse_idl_args(arguments)
                         .map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
                         .to_bytes()
                 }
@@ -199,21 +199,23 @@ pub fn blob_from_arguments(
                         let args = IDLArgs::new(&nulls);
                         args.to_bytes_with_types(env, &func.args)
                     } else if let Some(random) = random {
-                        let random = if random.is_empty() {
-                            eprintln!("Random schema is empty, using any random value instead.");
-                            "{=}"
-                        } else {
-                            random
-                        };
-                        use rand::Rng;
-                        let mut rng = rand::thread_rng();
-                        let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
-                        let config = candid::parser::configs::Configs::from_dhall(random)
-                            .context("Failed to create candid parser config.")?;
-                        let args = IDLArgs::any(&seed, &config, env, &func.args)
-                            .context("Failed to create idl args.")?;
-                        eprintln!("Sending the following random argument:\n{}\n", args);
-                        args.to_bytes_with_types(env, &func.args)
+                        todo!()
+                        // TODO: Support this functionality
+                        // let random = if random.is_empty() {
+                        //     eprintln!("Random schema is empty, using any random value instead.");
+                        //     "{=}"
+                        // } else {
+                        //     random
+                        // };
+                        // use rand::Rng;
+                        // let mut rng = rand::thread_rng();
+                        // let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
+                        // let config = candid_parser::configs::Configs::from_dhall(random)
+                        //     .context("Failed to create candid parser config.")?;
+                        // let args = IDLArgs::any(&seed, &config, env, &func.args)
+                        //     .context("Failed to create idl args.")?;
+                        // eprintln!("Sending the following random argument:\n{}\n", args);
+                        // args.to_bytes_with_types(env, &func.args)
                     } else {
                         return Err(error_invalid_data!("Expected arguments but found none."));
                     }
@@ -235,17 +237,17 @@ pub fn fuzzy_parse_argument(
     let is_candid_format = first_char.map_or(false, |c| c == '(');
     // If parsing fails and method expects a single value, try parsing as IDLValue.
     // If it still fails, and method expects a text type, send arguments as text.
-    let args = arg_str.parse::<IDLArgs>().or_else(|_| {
+    let args = candid_parser::parse_idl_args(arg_str).or_else(|_| {
         if types.len() == 1 && !is_candid_format {
             let is_quote = first_char.map_or(false, |c| c == '"');
             if &TypeInner::Text == types[0].as_ref() && !is_quote {
                 Ok(IDLValue::Text(arg_str.to_string()))
             } else {
-                candid::pretty_parse::<IDLValue>("Candid argument", arg_str)
+                candid_parser::parse_idl_value(arg_str)
             }
             .map(|v| IDLArgs::new(&[v]))
         } else {
-            candid::pretty_parse::<IDLArgs>("Candid argument", arg_str)
+            candid_parser::parse_idl_args(arg_str)
         }
     });
     let bytes = args

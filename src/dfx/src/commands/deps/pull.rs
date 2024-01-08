@@ -19,7 +19,7 @@ use clap::Parser;
 use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
-use ic_wasm::metadata::get_metadata;
+// use ic_wasm::metadata::get_metadata;
 use sha2::{Digest, Sha256};
 use slog::{error, info, trace, Logger};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -321,13 +321,15 @@ fn get_metadata_as_string(
     section: &str,
     wasm_path: &Path,
 ) -> DfxResult<String> {
-    let metadata_bytes = get_metadata(module, section)
-        .with_context(|| format!("Failed to get {} metadata from {:?}", section, wasm_path))?;
-    let metadata = String::from_utf8(metadata_bytes.to_vec()).with_context(|| {
-        format!(
-            "Failed to read {} metadata from {:?} as UTF-8 text",
-            section, wasm_path
-        )
-    })?;
-    Ok(metadata)
+    todo!();
+    // TODO: Support this functionality again.
+    // let metadata_bytes = get_metadata(module, section)
+    //     .with_context(|| format!("Failed to get {} metadata from {:?}", section, wasm_path))?;
+    // let metadata = String::from_utf8(metadata_bytes.to_vec()).with_context(|| {
+    //     format!(
+    //         "Failed to read {} metadata from {:?} as UTF-8 text",
+    //         section, wasm_path
+    //     )
+    // })?;
+    // Ok(metadata)
 }

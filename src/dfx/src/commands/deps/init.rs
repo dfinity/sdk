@@ -7,8 +7,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::{check_candid_file, fuzzy_parse_argument};
 use anyhow::{anyhow, bail};
-use candid::parser::types::IDLTypes;
+use candid_parser::types::IDLTypes;
 use candid::Principal;
+use candid_parser::typing::ast_to_type;
 use clap::Parser;
 use slog::{info, warn, Logger};
 
@@ -73,7 +74,7 @@ fn set_init(
     let candid_args_idl_types: IDLTypes = candid_args.parse()?;
     let mut types = vec![];
     for ty in candid_args_idl_types.args.iter() {
-        types.push(env.ast_to_type(ty)?);
+        types.push(ast_to_type(&env, ty)?);
     }
 
     let arguments = opts.argument.as_deref();
