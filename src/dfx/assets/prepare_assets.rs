@@ -226,7 +226,8 @@ async fn download_bin_tarballs(
         spawn(download_and_check_sha(client, source))
     });
     let (motoko,) = tokio::try_join!(motoko,).unwrap();
-    for tar in [motoko] {
+    {
+        let tar = motoko;
         tar_xzf(&tar, |path, content| {
             map.insert(path, content);
         });
