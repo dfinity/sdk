@@ -53,7 +53,6 @@ pub async fn deploy_canisters(
     skip_consent: bool,
     env_file: Option<PathBuf>,
     no_asset_upgrade: bool,
-    cycles_ledger_canister_id: Option<Principal>,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -144,7 +143,6 @@ pub async fn deploy_canisters(
             from_subaccount,
             created_at_time,
             &config,
-            cycles_ledger_canister_id,
         )
         .await?;
     } else {
@@ -217,7 +215,6 @@ async fn register_canisters(
     from_subaccount: Option<Subaccount>,
     created_at_time: Option<u64>,
     config: &Config,
-    cycles_ledger_canister_id: Option<Principal>,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -282,7 +279,6 @@ async fn register_canisters(
                     reserved_cycles_limit,
                 },
                 created_at_time,
-                cycles_ledger_canister_id,
             )
             .await?;
         }

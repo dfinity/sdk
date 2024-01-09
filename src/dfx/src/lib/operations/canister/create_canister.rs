@@ -33,7 +33,6 @@ pub async fn create_canister(
     from_subaccount: Option<Subaccount>,
     settings: DfxCanisterSettings,
     created_at_time: Option<u64>,
-    cycles_ledger_canister_id: Option<Principal>,
 ) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {}...", canister_name);
@@ -84,7 +83,6 @@ pub async fn create_canister(
             let auto_wallet_disabled = std::env::var("DFX_DISABLE_AUTO_WALLET").is_ok();
             let ic_network = env.get_network_descriptor().is_ic;
             if CYCLES_LEDGER_ENABLED && (ic_network || auto_wallet_disabled) {
-                let Some(cycles_ledger_canister_id) = cycles_ledger_canister_id else { bail!("Must specify cycles ledger canister id")};
                 create_with_cycles_ledger(
                     env,
                     agent,
@@ -93,7 +91,6 @@ pub async fn create_canister(
                     from_subaccount,
                     settings,
                     created_at_time,
-                    cycles_ledger_canister_id,
                 )
                 .await
             } else {

@@ -196,7 +196,6 @@ pub async fn create_with_cycles_ledger(
     from_subaccount: Option<Subaccount>,
     settings: DfxCanisterSettings,
     created_at_time: Option<u64>,
-    cycles_ledger_canister_id: Principal,
 ) -> DfxResult<Principal> {
     #[derive(CandidType, Clone, Debug)]
     // TODO(FI-1022): Import types from cycles ledger crate once available
@@ -268,7 +267,7 @@ pub async fn create_with_cycles_ledger(
 
     let result = loop {
         match agent
-            .update(&cycles_ledger_canister_id, CREATE_CANISTER_METHOD)
+            .update(&CYCLES_LEDGER_CANISTER_ID, CREATE_CANISTER_METHOD)
             .with_arg(
                 Encode!(&CreateCanisterArgs {
                     from_subaccount,

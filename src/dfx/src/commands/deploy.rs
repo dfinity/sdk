@@ -111,12 +111,6 @@ pub struct DeployOpts {
     //TODO(SDK-1331): unhide
     #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
     from_subaccount: Option<Subaccount>,
-
-    /// Canister ID of the cycles ledger canister.
-    /// If not specified, the default cycles ledger canister ID will be used.
-    // todo: remove this.  See https://dfinity.atlassian.net/browse/SDK-1262
-    #[arg(long, hide = true)]
-    cycles_ledger_canister_id: Option<Principal>,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -193,7 +187,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         opts.yes,
         env_file,
         opts.no_asset_upgrade,
-        opts.cycles_ledger_canister_id,
     ))?;
 
     if matches!(deploy_mode, NormalDeploy | ForceReinstallSingleCanister(_)) {

@@ -93,12 +93,6 @@ pub struct CanisterCreateOpts {
     //TODO(SDK-1331): unhide
     #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
     from_subaccount: Option<Subaccount>,
-
-    /// Canister ID of the cycles ledger canister.
-    /// If not specified, the default cycles ledger canister ID will be used.
-    // todo: remove this.  See https://dfinity.atlassian.net/browse/SDK-1262
-    #[arg(long, hide = true)]
-    cycles_ledger_canister_id: Option<CanisterId>,
 }
 
 pub async fn exec(
@@ -225,7 +219,6 @@ pub async fn exec(
                 reserved_cycles_limit,
             },
             opts.created_at_time,
-            opts.cycles_ledger_canister_id,
         )
         .await?;
         Ok(())
@@ -296,7 +289,6 @@ pub async fn exec(
                         reserved_cycles_limit,
                     },
                     opts.created_at_time,
-                    opts.cycles_ledger_canister_id,
                 )
                 .await?;
             }
