@@ -33,16 +33,17 @@ const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
 const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
 const SEND_METHOD: &str = "send";
 const CREATE_CANISTER_METHOD: &str = "create_canister";
+const CYCLES_LEDGER_CANISTER_ID: Principal =
+    Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x02, 0x10, 0x00, 0x02, 0x01, 0x01]);
 
 pub async fn balance(
     agent: &Agent,
     owner: Principal,
     subaccount: Option<icrc1::account::Subaccount>,
-    cycles_ledger_canister_id: Principal,
 ) -> DfxResult<u128> {
     let canister = Canister::builder()
         .with_agent(agent)
-        .with_canister_id(cycles_ledger_canister_id)
+        .with_canister_id(CYCLES_LEDGER_CANISTER_ID)
         .build()?;
     let arg = icrc1::account::Account { owner, subaccount };
 
@@ -75,11 +76,10 @@ pub async fn transfer(
     to_subaccount: Option<icrc1::account::Subaccount>,
     created_at_time: u64,
     memo: Option<u64>,
-    cycles_ledger_canister_id: Principal,
 ) -> DfxResult<BlockIndex> {
     let canister = Canister::builder()
         .with_agent(agent)
-        .with_canister_id(cycles_ledger_canister_id)
+        .with_canister_id(CYCLES_LEDGER_CANISTER_ID)
         .build()?;
 
     let retry_policy = ExponentialBackoff::default();
@@ -135,11 +135,10 @@ pub async fn send(
     amount: u128,
     created_at_time: u64,
     from_subaccount: Option<icrc1::account::Subaccount>,
-    cycles_ledger_canister_id: Principal,
 ) -> DfxResult<BlockIndex> {
     let canister = Canister::builder()
         .with_agent(agent)
-        .with_canister_id(cycles_ledger_canister_id)
+        .with_canister_id(CYCLES_LEDGER_CANISTER_ID)
         .build()?;
 
     let retry_policy = ExponentialBackoff::default();
@@ -320,4 +319,12 @@ pub async fn create_with_cycles_ledger(
         }
         Err(err) => bail!(err),
     }
+}
+
+#[test]
+fn ledger_canister_id_text_representation() {
+    assert_eq!(
+        Principal::from_text("um5iw-rqaaa-aaaaq-qaaba-cai").unwrap(),
+        CYCLES_LEDGER_CANISTER_ID
+    );
 }
