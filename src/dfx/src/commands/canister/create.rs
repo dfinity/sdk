@@ -5,7 +5,7 @@ use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation,
     get_reserved_cycles_limit, CanisterSettings,
 };
-use crate::lib::identity::wallet::get_or_create_wallet_canister;
+use crate::lib::identity::wallet::{get_or_create_wallet_canister, GetOrCreateWalletCanisterError};
 use crate::lib::operations::canister::create_canister;
 use crate::lib::operations::cycles_ledger::CYCLES_LEDGER_ENABLED;
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -127,10 +127,15 @@ pub async fn exec(
                 call_sender = &proxy_sender;
             }
             Err(err) => {
-                if CYCLES_LEDGER_ENABLED {
+                if CYCLES_LEDGER_ENABLED
+                    && matches!(
+                        err,
+                        GetOrCreateWalletCanisterError::NoWalletConfigured { .. }
+                    )
+                {
                     debug!(env.get_logger(), "No wallet configured.");
                 } else {
-                    return Err(err.into());
+                    bail!(err)
                 }
             }
         };
