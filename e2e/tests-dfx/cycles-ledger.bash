@@ -417,7 +417,7 @@ current_time_nanoseconds() {
 }
 
 @test "canister creation" {
-  skip "can't be properly tested with feature flag turned off (`CYCLES_LEDGER_ENABLED`). TODO(SDK-1331): re-enable this test"
+  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
   dfx_new temporary
   add_cycles_ledger_canisters_to_project
   install_cycles_ledger_canisters
