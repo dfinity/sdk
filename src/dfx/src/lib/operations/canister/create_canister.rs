@@ -1,7 +1,8 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::ic_attributes::CanisterSettings;
+use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
+use crate::lib::operations::cycles_ledger::{create_with_cycles_ledger, CYCLES_LEDGER_ENABLED};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
@@ -12,14 +13,15 @@ use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
 use ic_utils::interfaces::ManagementCanister;
+use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 use std::format;
 
 // The cycle fee for create request is 0.1T cycles.
-const CANISTER_CREATE_FEE: u128 = 100_000_000_000_u128;
+pub const CANISTER_CREATE_FEE: u128 = 100_000_000_000_u128;
 // We do not know the minimum cycle balance a canister should have.
 // For now create the canister with 3T cycle balance.
-const CANISTER_INITIAL_CYCLE_BALANCE: u128 = 3_000_000_000_000_u128;
+pub const CANISTER_INITIAL_CYCLE_BALANCE: u128 = 3_000_000_000_000_u128;
 
 #[context("Failed to create canister '{}'.", canister_name)]
 pub async fn create_canister(
@@ -28,7 +30,9 @@ pub async fn create_canister(
     with_cycles: Option<u128>,
     specified_id: Option<Principal>,
     call_sender: &CallSender,
-    settings: CanisterSettings,
+    from_subaccount: Option<Subaccount>,
+    settings: DfxCanisterSettings,
+    created_at_time: Option<u64>,
 ) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {}...", canister_name);
@@ -76,7 +80,23 @@ pub async fn create_canister(
     let agent = env.get_agent();
     let cid = match call_sender {
         CallSender::SelectedId => {
-            create_with_management_canister(env, agent, with_cycles, specified_id, settings).await
+            let auto_wallet_disabled = std::env::var("DFX_DISABLE_AUTO_WALLET").is_ok();
+            let ic_network = env.get_network_descriptor().is_ic;
+            if CYCLES_LEDGER_ENABLED && (ic_network || auto_wallet_disabled) {
+                create_with_cycles_ledger(
+                    env,
+                    agent,
+                    canister_name,
+                    with_cycles,
+                    from_subaccount,
+                    settings,
+                    created_at_time,
+                )
+                .await
+            } else {
+                create_with_management_canister(env, agent, with_cycles, specified_id, settings)
+                    .await
+            }
         }
         CallSender::Wallet(wallet_id) => {
             create_with_wallet(agent, wallet_id, with_cycles, settings).await
@@ -100,7 +120,7 @@ async fn create_with_management_canister(
     agent: &Agent,
     with_cycles: Option<u128>,
     specified_id: Option<Principal>,
-    settings: CanisterSettings,
+    settings: DfxCanisterSettings,
 ) -> DfxResult<Principal> {
     let mgr = ManagementCanister::create(agent);
     let mut builder = mgr
@@ -147,7 +167,7 @@ async fn create_with_wallet(
     agent: &Agent,
     wallet_id: &Principal,
     with_cycles: Option<u128>,
-    settings: CanisterSettings,
+    settings: DfxCanisterSettings,
 ) -> DfxResult<Principal> {
     let wallet = build_wallet_canister(*wallet_id, agent).await?;
     let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);

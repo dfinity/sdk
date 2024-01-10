@@ -30,7 +30,7 @@ add_cycles_ledger_canisters_to_project() {
 }
 
 deploy_cycles_ledger() {
-  assert_command dfx deploy cycles-ledger --specified-id "um5iw-rqaaa-aaaaq-qaaba-cai"
+  assert_command dfx deploy cycles-ledger --specified-id "um5iw-rqaaa-aaaaq-qaaba-cai" --argument '(variant { Init = record { max_transactions_per_request = 100; index_id = null; } })'
   assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})" --with-cycles 10000000000000 --specified-id "ul4oc-4iaaa-aaaaq-qaabq-cai"
 }
 
@@ -62,16 +62,16 @@ current_time_nanoseconds() {
 
 
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 1_700_400_200_150;})" --identity cycle-giver
-  assert_eq "(record { balance = 1_700_400_200_150 : nat; txid = 0 : nat })"
+  assert_eq "(record { balance = 1_700_400_200_150 : nat; block_index = 0 : nat })"
 
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 3_750_000_000_000;})" --identity cycle-giver
-  assert_eq "(record { balance = 3_750_000_000_000 : nat; txid = 1 : nat })"
+  assert_eq "(record { balance = 3_750_000_000_000 : nat; block_index = 1 : nat })"
 
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT2_CANDID\"};cycles = 760_500_000_000;})" --identity cycle-giver
-  assert_eq "(record { balance = 760_500_000_000 : nat; txid = 2 : nat })"
+  assert_eq "(record { balance = 760_500_000_000 : nat; block_index = 2 : nat })"
 
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$BOB\";};cycles = 2_900_000_000_000;})" --identity cycle-giver
-  assert_eq "(record { balance = 2_900_000_000_000 : nat; txid = 3 : nat })"
+  assert_eq "(record { balance = 2_900_000_000_000 : nat; block_index = 3 : nat })"
 
 
   assert_command dfx cycles balance --precise --identity alice
@@ -389,7 +389,7 @@ current_time_nanoseconds() {
 
 
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 500_000_000;})" --identity cycle-giver
-  assert_eq "(record { balance = 500_000_000 : nat; txid = 0 : nat })"
+  assert_eq "(record { balance = 500_000_000 : nat; block_index = 0 : nat })"
 
   assert_command dfx canister status cycles-depositor
   assert_contains "Balance: 9_999_500_000_000 Cycles"
@@ -414,4 +414,90 @@ current_time_nanoseconds() {
 
   assert_command dfx canister status cycles-depositor
   assert_contains "Balance: 9_999_500_100_000 Cycles"
+}
+
+@test "canister creation" {
+  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  dfx_new temporary
+  add_cycles_ledger_canisters_to_project
+  install_cycles_ledger_canisters
+
+  ALICE=$(dfx identity get-principal --identity alice)
+  ALICE_SUBACCT1="7C7B7A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+  ALICE_SUBACCT1_CANDID="\7C\7B\7A\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
+
+  assert_command deploy_cycles_ledger
+  CYCLES_LEDGER_ID=$(dfx canister id cycles-ledger)
+  echo "Cycles ledger deployed at id $CYCLES_LEDGER_ID"
+  assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})"
+  echo "Cycles depositor deployed at id $(dfx canister id cycles-depositor)"
+  assert_command dfx ledger fabricate-cycles --canister cycles-depositor --t 9999
+
+  assert_command dfx deploy
+
+  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 13_400_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 2_600_000_000_000;})" --identity cycle-giver
+
+  cd ..
+  dfx_new
+  # setup done
+
+  # using dfx canister create
+  dfx identity use alice
+  export DFX_DISABLE_AUTO_WALLET=1
+  t=$(current_time_nanoseconds)
+  assert_command dfx canister create e2e_project_backend --with-cycles 1T --created-at-time "$t"
+  assert_command dfx canister id e2e_project_backend
+  E2E_PROJECT_BACKEND_CANISTER_ID=$(dfx canister id e2e_project_backend)
+  assert_command dfx cycles balance --precise
+  assert_eq "12399900000000 cycles."
+  # forget about canister. If --created-at-time is a valid idempotency key we should end up with the same canister id
+  rm .dfx/local/canister_ids.json
+  assert_command dfx canister create e2e_project_backend --with-cycles 1T --created-at-time "$t"
+  assert_command dfx canister id e2e_project_backend
+  assert_contains "$E2E_PROJECT_BACKEND_CANISTER_ID"
+  assert_command dfx cycles balance --precise
+  assert_eq "12399900000000 cycles."
+  dfx canister stop e2e_project_backend
+  dfx canister delete e2e_project_backend
+
+  assert_command dfx canister create e2e_project_backend --with-cycles 0.5T --from-subaccount "$ALICE_SUBACCT1"
+  assert_command dfx canister id e2e_project_backend
+  assert_command dfx cycles balance --subaccount "$ALICE_SUBACCT1" --precise
+  assert_eq "2099900000000 cycles."
+  
+  # reset deployment status
+  rm -r .dfx
+
+  # using dfx deploy
+  t=$(current_time_nanoseconds)
+  assert_command dfx deploy e2e_project_backend --with-cycles 1T --created-at-time "$t"
+  assert_command dfx canister id e2e_project_backend
+  E2E_PROJECT_BACKEND_CANISTER_ID=$(dfx canister id e2e_project_backend)
+  assert_command dfx cycles balance --precise
+  assert_eq "11399800000000 cycles."
+  # reset and forget about canister. If --created-at-time is a valid idempotency key we should end up with the same canister id
+  dfx canister uninstall-code e2e_project_backend
+  rm .dfx/local/canister_ids.json
+  assert_command dfx deploy e2e_project_backend --with-cycles 1T --created-at-time "$t" -vv
+  assert_command dfx canister id e2e_project_backend
+  assert_contains "$E2E_PROJECT_BACKEND_CANISTER_ID"
+  assert_command dfx cycles balance --precise
+  assert_eq "11399800000000 cycles."
+  dfx canister stop e2e_project_backend
+  dfx canister delete e2e_project_backend
+  
+  assert_command dfx deploy e2e_project_backend --with-cycles 0.5T --from-subaccount "$ALICE_SUBACCT1"
+  assert_command dfx canister id e2e_project_backend
+  assert_command dfx cycles balance --subaccount "$ALICE_SUBACCT1" --precise
+  assert_eq "1599800000000 cycles."
+  dfx canister stop e2e_project_backend
+  dfx canister delete e2e_project_backend
+  
+  assert_command dfx deploy --with-cycles 1T
+  assert_command dfx canister id e2e_project_backend
+  assert_command dfx canister id e2e_project_frontend
+  assert_not_contains "$(dfx canister id e2e_project_backend)"
+  assert_command dfx cycles balance --precise
+  assert_eq "9399600000000 cycles."
 }

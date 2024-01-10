@@ -5,14 +5,15 @@ use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation,
     get_reserved_cycles_limit, CanisterSettings,
 };
-use crate::lib::identity::wallet::get_or_create_wallet_canister;
+use crate::lib::identity::wallet::{get_or_create_wallet_canister, GetOrCreateWalletCanisterError};
 use crate::lib::operations::canister::create_canister;
+use crate::lib::operations::cycles_ledger::CYCLES_LEDGER_ENABLED;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::parsers::cycle_amount_parser;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
     reserved_cycles_limit_parser,
 };
+use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use anyhow::{bail, Context};
 use byte_unit::Byte;
 use candid::Principal as CanisterId;
@@ -20,7 +21,8 @@ use clap::{ArgAction, Parser};
 use dfx_core::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
 use ic_agent::Identity as _;
-use slog::info;
+use icrc_ledger_types::icrc1::account::Subaccount;
+use slog::{debug, info};
 
 /// Creates an empty canister and associates the assigned Canister ID to the canister name.
 #[derive(Parser)]
@@ -80,6 +82,17 @@ pub struct CanisterCreateOpts {
     /// Bypasses the Wallet canister.
     #[arg(long)]
     no_wallet: bool,
+
+    /// Transaction timestamp, in nanoseconds, for use in controlling transaction deduplication, default is system time.
+    /// https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
+    //TODO(SDK-1331): unhide
+    #[arg(long, hide = true, conflicts_with = "all")]
+    created_at_time: Option<u64>,
+
+    /// Subaccount of the selected identity to spend cycles from.
+    //TODO(SDK-1331): unhide
+    #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
+    from_subaccount: Option<Subaccount>,
 }
 
 pub async fn exec(
@@ -102,14 +115,30 @@ pub async fn exec(
         && !matches!(call_sender, CallSender::Wallet(_))
         && !network.is_playground()
     {
-        let wallet = get_or_create_wallet_canister(
+        match get_or_create_wallet_canister(
             env,
             env.get_network_descriptor(),
             env.get_selected_identity().expect("No selected identity"),
         )
-        .await?;
-        proxy_sender = CallSender::Wallet(*wallet.canister_id_());
-        call_sender = &proxy_sender;
+        .await
+        {
+            Ok(wallet) => {
+                proxy_sender = CallSender::Wallet(*wallet.canister_id_());
+                call_sender = &proxy_sender;
+            }
+            Err(err) => {
+                if CYCLES_LEDGER_ENABLED
+                    && matches!(
+                        err,
+                        GetOrCreateWalletCanisterError::NoWalletConfigured { .. }
+                    )
+                {
+                    debug!(env.get_logger(), "No wallet configured.");
+                } else {
+                    bail!(err)
+                }
+            }
+        };
     }
 
     let controllers: Option<Vec<_>> = opts
@@ -186,6 +215,7 @@ pub async fn exec(
             with_cycles,
             opts.specified_id,
             call_sender,
+            opts.from_subaccount,
             CanisterSettings {
                 controllers,
                 compute_allocation,
@@ -193,6 +223,7 @@ pub async fn exec(
                 freezing_threshold,
                 reserved_cycles_limit,
             },
+            opts.created_at_time,
         )
         .await?;
         Ok(())
@@ -254,6 +285,7 @@ pub async fn exec(
                     with_cycles,
                     None,
                     call_sender,
+                    opts.from_subaccount,
                     CanisterSettings {
                         controllers: controllers.clone(),
                         compute_allocation,
@@ -261,6 +293,7 @@ pub async fn exec(
                         freezing_threshold,
                         reserved_cycles_limit,
                     },
+                    opts.created_at_time,
                 )
                 .await?;
             }

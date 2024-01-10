@@ -269,8 +269,3 @@ teardown() {
   assert_command dfx wallet upgrade --identity alice
   assert_command dfx canister create --all --controller alice --controller bob --identity alice
 }
-
-@test "canister-create on mainnet without wallet does not propagate the 404" {
-  assert_command_fail dfx deploy --network ic --no-wallet
-  assert_match 'dfx ledger create-canister'
-}

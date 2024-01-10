@@ -46,6 +46,7 @@ teardown() {
 }
 
 @test "Instruct user to set a wallet" {
+  skip "TODO(SDK-1331): remove this test"
   dfx_new hello
   install_asset greet
   assert_command dfx identity new alice --storage-mode plaintext
