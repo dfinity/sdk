@@ -1,6 +1,7 @@
 use crate::config::cache::DiskBasedCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::info::replica_rev;
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
 use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
@@ -48,8 +49,8 @@ pub struct NewOpts {
     project_name: String,
 
     /// Choose the type of canister in the starter project.
-    #[arg(long, value_parser = ["motoko", "rust", "azle", "kybra"])]
-    r#type: Option<String>,
+    #[arg(long, value_enum)]
+    r#type: Option<BackendType>,
 
     /// Provides a preview the directories and files to be created without adding them to the file system.
     #[arg(long)]
@@ -75,6 +76,26 @@ pub struct NewOpts {
 
     #[arg(long, value_enum)]
     extras: Vec<Extra>,
+}
+
+#[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq)]
+enum BackendType {
+    Motoko,
+    Rust,
+    Azle,
+    Kybra,
+}
+
+impl Display for BackendType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Motoko => "Motoko",
+            Self::Rust => "Rust",
+            Self::Azle => "TypeScript (Azle)",
+            Self::Kybra => "Python (Kybra)",
+        }
+        .fmt(f)
+    }
 }
 
 #[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq)]
@@ -445,6 +466,7 @@ fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
 }
 
 pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
+    use BackendType::*;
     let log = env.get_logger();
     let dry_run = opts.dry_run;
 
@@ -454,7 +476,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         opts = get_opts_interactively(opts)?;
         opts.r#type.unwrap()
     } else {
-        "motoko".into()
+        Motoko
     };
 
     let project_name = Path::new(opts.project_name.as_str());
@@ -495,6 +517,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         ("project_name".to_string(), project_name_str.to_string()),
         ("dfx_version".to_string(), version_str.clone()),
         ("dot".to_string(), ".".to_string()),
+        ("ic_commit".to_string(), replica_rev().to_string()),
     ]
     .iter()
     .cloned()
@@ -514,7 +537,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         opts.frontend
     };
 
-    if r#type == "azle" || frontend.has_js() {
+    if r#type == Azle || frontend.has_js() {
         write_files_from_entries(
             log,
             &mut assets::new_project_js_files().context("Failed to get JS config archive.")?,
@@ -525,12 +548,11 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
     }
 
     // Default to start with motoko
-    let mut new_project_files = match r#type.as_str() {
-        "rust" => assets::new_project_rust_files().context("Failed to get rust archive.")?,
-        "motoko" => assets::new_project_motoko_files().context("Failed to get motoko archive.")?,
-        "azle" => assets::new_project_azle_files().context("Failed to get azle archive.")?,
-        "kybra" => assets::new_project_kybra_files().context("Failed to get kybra archive.")?,
-        t => bail!("Unsupported canister type: {}", t),
+    let mut new_project_files = match r#type {
+        Rust => assets::new_project_rust_files().context("Failed to get rust archive.")?,
+        Motoko => assets::new_project_motoko_files().context("Failed to get motoko archive.")?,
+        Azle => assets::new_project_azle_files().context("Failed to get azle archive.")?,
+        Kybra => assets::new_project_kybra_files().context("Failed to get kybra archive.")?,
     };
     write_files_from_entries(
         log,
@@ -600,7 +622,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
             init_git(log, project_name)?;
         }
 
-        if r#type == "rust" {
+        if r#type == Rust {
             // dfx build will use --locked, so update the lockfile beforehand
             const MSG: &str = "You will need to run it yourself (or a similar command like `cargo vendor`), because `dfx build` will use the --locked flag with Cargo.";
             if let Ok(code) = Command::new("cargo")
@@ -638,16 +660,17 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
 }
 
 fn get_opts_interactively(opts: NewOpts) -> DfxResult<NewOpts> {
+    use BackendType::*;
     use Extra::*;
     use FrontendType::*;
     let theme = ColorfulTheme::default();
-
+    let backends_list = [Motoko, Rust, Azle, Kybra];
     let backend = FuzzySelect::with_theme(&theme)
-        .items(&["Motoko", "Rust", "TypeScript (Azle)", "Python (Kybra)"])
+        .items(&backends_list)
         .default(0)
         .with_prompt("Select a backend language:")
         .interact()?;
-    let backend = ["motoko", "rust", "azle", "kybra"][backend];
+    let backend = backends_list[backend];
     let frontends_list = [Svelte, React, Vue, Vanilla, SimpleAssets, None];
     let frontend = FuzzySelect::with_theme(&theme)
         .items(&frontends_list)
@@ -656,7 +679,7 @@ fn get_opts_interactively(opts: NewOpts) -> DfxResult<NewOpts> {
         .interact()?;
     let frontend = frontends_list[frontend];
     let mut extras_list = vec![InternetIdentity, Bitcoin];
-    if backend == "rust" {
+    if backend == Rust {
         extras_list.push(BackendTests);
     }
     if frontend != None && frontend != SimpleAssets {
@@ -672,7 +695,7 @@ fn get_opts_interactively(opts: NewOpts) -> DfxResult<NewOpts> {
     let opts = NewOpts {
         extras,
         frontend,
-        r#type: Some(backend.to_string()),
+        r#type: Some(backend),
         ..opts
     };
     Ok(opts)
