@@ -10,6 +10,7 @@ description = "Library for storing files in an asset canister."
 documentation = "https://docs.rs/ic-asset"
 categories = ["api-bindings", "data-structures"]
 keywords = ["internet-computer", "assets", "icp", "dfinity"]
+publish = false
 
 [dependencies]
 backoff.workspace = true

@@ -8,6 +8,7 @@ repository = "https://github.com/dfinity/sdk"
 license = "Apache-2.0"
 categories = ["wasm"]
 keywords = ["internet-computer", "dfinity"]
+publish = false
 
 [lib]
 path = "src/lib.rs"
