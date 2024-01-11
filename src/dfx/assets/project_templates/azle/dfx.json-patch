@@ -1,0 +1,14 @@
+[
+    {
+        "path": "/canisters/{project_name}_backend",
+        "op": "add",
+        "value": {
+            "type": "custom",
+            "main": "src/{project_name}_backend/src/index.ts",
+            "candid": "src/{project_name}_backend/{project_name}_backend.did",
+            "build": "npx azle {project_name}_backend",
+            "wasm": ".azle/{project_name}_backend/{project_name}_backend.wasm",
+            "gzip": true
+        }
+    }
+]

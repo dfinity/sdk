@@ -1,0 +1,5 @@
+{
+    "name": "{project_name}",
+    "type": "module",
+    "workspaces": [ ]
+}

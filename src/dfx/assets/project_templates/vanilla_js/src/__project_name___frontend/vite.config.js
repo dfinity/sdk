@@ -1,0 +1,44 @@
+/// <reference types="vitest" />
+import { defineConfig } from 'vite';
+import { fileURLToPath, URL } from 'url';
+import environment from 'vite-plugin-environment';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export default defineConfig({
+  root: 'src',
+  build: {
+    outDir: '../dist',
+    emptyOutDir: true,
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:4943',
+        changeOrigin: true,
+      },
+    },
+  },
+  publicDir: '../assets',
+  plugins: [
+    environment('all', { prefix: 'CANISTER_' }),
+    environment('all', { prefix: 'DFX_' }),
+  ],
+  test: {
+    environment: 'jsdom',
+    setupFiles: 'setupTests.js',
+  },
+  resolve: {
+    alias: [
+      { find: 'declarations', replacement: fileURLToPath(new URL('../declarations', import.meta.url)) },
+    ]
+  }
+});

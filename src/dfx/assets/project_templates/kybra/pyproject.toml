@@ -1,0 +1,4 @@
+[project]
+name = "{project_name}_backend"
+version = "0.1.0"
+dependencies = ["kybra ~= 0.5.0"]

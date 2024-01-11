@@ -1,0 +1,23 @@
+[
+    {
+        "op": "add",
+        "path": "/canisters/{project_name}_frontend",
+        "value": {
+            "type": "assets",
+            "source": [
+                "src/{project_name}_frontend/dist"
+            ],
+            "dependencies": [
+                "{project_name}_backend"
+            ],
+            "workspace": "{project_name}_frontend"
+        }
+    },
+    {
+        "op": "add",
+        "path": "/canisters/{project_name}_backend/declarations",
+        "value": {
+            "node_compatibility": true
+        }
+    }
+]
