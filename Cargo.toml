@@ -16,6 +16,7 @@ edition = "2021"
 repository = "https://github.com/dfinity/sdk"
 rust-version = "1.71.1"
 license = "Apache-2.0"
+publish = false
 
 [workspace.dependencies]
 candid = { version = "0.9.0", features = ["parser"] }
