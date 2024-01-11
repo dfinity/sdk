@@ -81,6 +81,8 @@ installers = []
 targets = ["x86_64-pc-windows-msvc"]
 # Publish jobs to run in CI
 pr-run-mode = "upload"
+# don't build ic-frontend-canister or others
+precise-builds = true
 
 [patch.crates-io.ic-agent]
 version = "0.30.2"
