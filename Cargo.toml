@@ -68,6 +68,19 @@ tokio = "1.24.2"
 url = "2.1.0"
 walkdir = "2.3.2"
 
+# Config for 'cargo dist'
+[workspace.metadata.dist]
+# The preferred cargo-dist version to use in CI (Cargo.toml SemVer syntax)
+cargo-dist-version = "0.5.0"
+# CI backends to support
+ci = ["github"]
+# The installers to generate for each app
+installers = []
+# Target platforms to build apps for (Rust target-triple syntax)
+targets = ["x86_64-pc-windows-msvc"]
+# Publish jobs to run in CI
+pr-run-mode = "plan"
+
 [patch.crates-io.ic-agent]
 version = "0.30.2"
 git = "https://github.com/dfinity/agent-rs.git"
@@ -89,6 +102,11 @@ lto = true
 
 [profile.dev.package.argon2]
 opt-level = 3
+
+# The profile that 'cargo dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
 
 [profile.release.package.ic-frontend-canister]
 opt-level = 'z'
