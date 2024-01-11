@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.15.3"
+version = "0.15.3-windows.2"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
