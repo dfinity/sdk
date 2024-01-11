@@ -247,11 +247,6 @@ fn add_assets(sources: Sources) {
         "assets/project_templates/rust",
     );
     add_assets_from_directory(
-        "new_project_no_frontend_files",
-        &mut f,
-        "assets/project_templates/no_frontend",
-    );
-    add_assets_from_directory(
         "new_project_base_files",
         &mut f,
         "assets/project_templates/base",
@@ -277,9 +272,19 @@ fn add_assets(sources: Sources) {
         "assets/project_templates/vanilla_js",
     );
     add_assets_from_directory(
+        "new_project_vanillajs_test_files",
+        &mut f,
+        "assets/project_templates/vanilla_js_tests",
+    );
+    add_assets_from_directory(
         "new_project_react_files",
         &mut f,
         "assets/project_templates/react",
+    );
+    add_assets_from_directory(
+        "new_project_react_test_files",
+        &mut f,
+        "assets/project_templates/react_tests",
     );
     add_assets_from_directory(
         "new_project_svelte_files",
@@ -287,9 +292,24 @@ fn add_assets(sources: Sources) {
         "assets/project_templates/svelte",
     );
     add_assets_from_directory(
+        "new_project_svelte_test_files",
+        &mut f,
+        "assets/project_templates/svelte_tests",
+    );
+    add_assets_from_directory(
         "new_project_vue_files",
         &mut f,
         "assets/project_templates/vue",
+    );
+    add_assets_from_directory(
+        "new_project_vue_test_files",
+        &mut f,
+        "assets/project_templates/vue_tests",
+    );
+    add_assets_from_directory(
+        "new_project_assets_files",
+        &mut f,
+        "assets/project_templates/simple_assets",
     );
     add_assets_from_directory(
         "new_project_internet_identity_files",

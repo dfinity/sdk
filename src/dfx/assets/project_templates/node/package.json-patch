@@ -1,7 +1,0 @@
-[
-    {
-        "op": "add",
-        "path": "/workspaces/-",
-        "value": "{project_name}_frontend"
-    }
-]

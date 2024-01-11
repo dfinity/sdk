@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 import { fileURLToPath, URL } from 'url';
 import { defineConfig } from 'vite';
 import environment from 'vite-plugin-environment';
@@ -31,10 +30,6 @@ export default defineConfig({
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),
   ],
-  test: {
-    environment: 'jsdom',
-    setupFiles: 'src/setupTests.js',
-  },
   resolve: {
     alias: [
       { find: 'declarations', replacement: fileURLToPath(new URL('../declarations', import.meta.url)) },

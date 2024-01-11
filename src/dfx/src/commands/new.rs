@@ -83,6 +83,7 @@ enum FrontendType {
     Vanilla,
     Vue,
     React,
+    SimpleAssets,
     None,
 }
 
@@ -93,9 +94,16 @@ impl Display for FrontendType {
             Self::Vanilla => "Vanilla JS",
             Self::Vue => "Vue",
             Self::React => "React",
-            Self::None => "None",
+            Self::SimpleAssets => "No JS template",
+            Self::None => "No frontend canister",
         }
         .fmt(f)
+    }
+}
+
+impl FrontendType {
+    fn has_js(&self) -> bool {
+        !matches!(self, Self::None | Self::SimpleAssets)
     }
 }
 
@@ -305,6 +313,7 @@ fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
         .arg("--quiet")
         .arg("--no-progress")
         .arg("--workspaces")
+        .arg("--if-present")
         .stdout(std::process::Stdio::inherit())
         .stderr(std::process::Stdio::inherit())
         .current_dir(location)
@@ -318,6 +327,7 @@ fn scaffold_frontend_code(
     dry_run: bool,
     project_name: &Path,
     frontend: FrontendType,
+    extras: &[Extra],
     agent_version: &Option<String>,
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
@@ -331,7 +341,7 @@ fn scaffold_frontend_code(
         .to_str()
         .ok_or_else(|| anyhow!("Invalid argument: project_name"))?;
 
-    if node_installed && frontend != FrontendType::None {
+    if node_installed {
         // Check if node is available, and if it is create the files for the frontend build.
         let js_agent_version = if let Some(v) = agent_version {
             v.clone()
@@ -352,7 +362,8 @@ fn scaffold_frontend_code(
             FrontendType::Svelte => assets::new_project_svelte_files(),
             FrontendType::Vue => assets::new_project_vue_files(),
             FrontendType::React => assets::new_project_react_files(),
-            _ => todo!(),
+            FrontendType::SimpleAssets => assets::new_project_assets_files(),
+            FrontendType::None => unreachable!(),
         }?;
         write_files_from_entries(
             log,
@@ -361,9 +372,22 @@ fn scaffold_frontend_code(
             dry_run,
             &variables,
         )?;
+        if extras.contains(&Extra::FrontendTests) {
+            let mut test_files = match frontend {
+                FrontendType::Svelte => assets::new_project_svelte_test_files(),
+                FrontendType::React => assets::new_project_react_test_files(),
+                FrontendType::Vue => assets::new_project_vue_test_files(),
+                FrontendType::Vanilla => assets::new_project_vanillajs_test_files(),
+                FrontendType::SimpleAssets => {
+                    bail!("Cannot add frontend tests to --frontend-type simple-assets")
+                }
+                FrontendType::None => bail!("Cannot add frontend tests to --no-frontend"),
+            }?;
+            write_files_from_entries(log, &mut test_files, project_name, dry_run, &variables)?;
+        }
 
         // Only install node dependencies if we're not running in dry run.
-        if !dry_run {
+        if !dry_run && frontend != FrontendType::SimpleAssets {
             // Install node modules. Error is not blocking, we just show a message instead.
             if node_installed {
                 let b = env.new_spinner("Installing node dependencies...".into());
@@ -390,7 +414,7 @@ fn scaffold_frontend_code(
         }
         write_files_from_entries(
             log,
-            &mut assets::new_project_no_frontend_files()?,
+            &mut assets::new_project_assets_files()?,
             project_name,
             dry_run,
             variables,
@@ -426,9 +450,11 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
 
     let r#type = if let Some(r#type) = opts.r#type {
         r#type
-    } else {
+    } else if opts.frontend == FrontendType::Vanilla && opts.extras.is_empty() {
         opts = get_opts_interactively(opts)?;
         opts.r#type.unwrap()
+    } else {
+        "motoko".into()
     };
 
     let project_name = Path::new(opts.project_name.as_str());
@@ -488,7 +514,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         opts.frontend
     };
 
-    if r#type == "azle" || frontend != FrontendType::None {
+    if r#type == "azle" || frontend.has_js() {
         write_files_from_entries(
             log,
             &mut assets::new_project_js_files().context("Failed to get JS config archive.")?,
@@ -532,14 +558,17 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
             &variables,
         )?;
     }
-    scaffold_frontend_code(
-        env,
-        dry_run,
-        project_name,
-        frontend,
-        &opts.agent_version,
-        &variables,
-    )?;
+    if frontend != FrontendType::None {
+        scaffold_frontend_code(
+            env,
+            dry_run,
+            project_name,
+            frontend,
+            &opts.extras,
+            &opts.agent_version,
+            &variables,
+        )?;
+    }
 
     if !dry_run {
         // If on mac, we should validate that XCode toolchain was installed.
@@ -619,15 +648,20 @@ fn get_opts_interactively(opts: NewOpts) -> DfxResult<NewOpts> {
         .with_prompt("Select a backend language:")
         .interact()?;
     let backend = ["motoko", "rust", "azle", "kybra"][backend];
-    let frontends_list = [Svelte, React, Vue, Vanilla, None];
+    let frontends_list = [Svelte, React, Vue, Vanilla, SimpleAssets, None];
     let frontend = FuzzySelect::with_theme(&theme)
         .items(&frontends_list)
         .default(0)
         .with_prompt("Select a frontend framework:")
         .interact()?;
     let frontend = frontends_list[frontend];
-
-    let extras_list = [BackendTests, FrontendTests, InternetIdentity, Bitcoin];
+    let mut extras_list = vec![InternetIdentity, Bitcoin];
+    if backend == "rust" {
+        extras_list.push(BackendTests);
+    }
+    if frontend != None && frontend != SimpleAssets {
+        extras_list.push(FrontendTests);
+    }
     let extras = MultiSelect::with_theme(&theme)
         .items(&extras_list)
         .with_prompt("Add extra features (space to select, enter to confirm)")
