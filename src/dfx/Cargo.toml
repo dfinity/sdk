@@ -7,6 +7,7 @@ repository.workspace = true
 license.workspace = true
 rust-version.workspace = true
 build = "assets/build.rs"
+publish = false
 
 [[bin]]
 name = "dfx"
@@ -125,3 +126,7 @@ env_logger = "0.10"
 proptest = "1.0"
 mockito = "0.31.0"
 tempfile = "3.1.0"
+
+# Config for 'cargo dist'
+[package.metadata.dist]
+dist = true
