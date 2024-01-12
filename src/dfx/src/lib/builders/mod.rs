@@ -104,7 +104,7 @@ pub trait CanisterBuilder {
             .context("`output` must not be None")?;
 
         if generate_output_dir.exists() {
-            let generate_output_dir = generate_output_dir.canonicalize().with_context(|| {
+            let generate_output_dir = dfx_core::fs::canonicalize(generate_output_dir).with_context(|| {
                 format!(
                     "Failed to canonicalize output dir {}.",
                     generate_output_dir.to_string_lossy()
