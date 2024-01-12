@@ -12,20 +12,6 @@ teardown() {
   standard_teardown
 }
 
-@test "Duplicate assets in dist/ from src/" {
-  dfx_new_frontend hello
-  install_asset greet
-  dfx_start
-  assert_command dfx deploy
-
-  # simulate previous deploy with CopyPlugin step
-  cp src/hello_frontend/assets/* src/hello_frontend/dist
-
-  assert_command_fail dfx deploy
-  assert_contains "Remove the CopyPlugin step from webpack.config.js"
-  assert_contains "Delete all files from the dist/ directory"
-}
-
 @test "HTTP 403 has a full diagnosis" {
   dfx_new hello
   install_asset greet

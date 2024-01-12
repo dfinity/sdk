@@ -3,9 +3,9 @@
 @@ -1,1 +1,2 @@
 +/// <reference types="vitest" />
  import { defineConfig } from 'vite';
-@@ -34,1 +34,5 @@
+@@ -32,1 +32,5 @@
 +  test: {
 +    environment: 'jsdom',
-+    setupFiles: 'setupTests.js',
++    setupFiles: 'src/setupTests.js',
 +  },
    resolve: {
