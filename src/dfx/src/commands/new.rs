@@ -6,6 +6,7 @@ use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
 use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
 use anyhow::{anyhow, bail, ensure, Context};
+use atty::Stream;
 use clap::{Parser, ValueEnum};
 use console::{style, Style};
 use dfx_core::json::{load_json_file, save_json_file};
@@ -57,13 +58,8 @@ pub struct NewOpts {
     dry_run: bool,
 
     /// Choose the type of frontend in the starter project. Defaults to vanilla.
-    #[arg(
-        long,
-        value_enum,
-        default_value = "vanilla",
-        default_missing_value = "vanilla"
-    )]
-    frontend: FrontendType,
+    #[arg(long, value_enum, default_missing_value = "vanilla")]
+    frontend: Option<FrontendType>,
 
     /// Skip installing the frontend code example.
     #[arg(long, conflicts_with = "frontend")]
@@ -472,7 +468,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
 
     let r#type = if let Some(r#type) = opts.r#type {
         r#type
-    } else if opts.frontend == FrontendType::Vanilla && opts.extras.is_empty() {
+    } else if opts.frontend.is_none() && opts.extras.is_empty() && atty::is(Stream::Stdout) {
         opts = get_opts_interactively(opts)?;
         opts.r#type.unwrap()
     } else {
@@ -534,7 +530,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
     let frontend = if opts.no_frontend {
         FrontendType::None
     } else {
-        opts.frontend
+        opts.frontend.unwrap_or(FrontendType::Vanilla)
     };
 
     if r#type == Azle || frontend.has_js() {
@@ -694,7 +690,7 @@ fn get_opts_interactively(opts: NewOpts) -> DfxResult<NewOpts> {
 
     let opts = NewOpts {
         extras,
-        frontend,
+        frontend: Some(frontend),
         r#type: Some(backend),
         ..opts
     };
