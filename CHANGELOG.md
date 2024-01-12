@@ -8,6 +8,10 @@ The `dfx cycles` command no longer needs nor accepts the `--cycles-ledger-canist
 
 ### chore: removed ic-ref from the binary cache
 
+### chore: updated dependencies for new rust projects
+
+Updated to candid 0.10, ic-cdk 0.12, and ic-cdk-timers 0.6
+
 # 0.15.3
 
 ### fix: allow `http://localhost:*` as `connect-src` in the asset canister's CSP
