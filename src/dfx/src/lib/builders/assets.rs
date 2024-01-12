@@ -222,7 +222,7 @@ fn build_frontend(
             let program = "npm.cmd";
         #[cfg(unix)]
             let program = "npm";
-        let mut cmd = std::process::Command::new("npm");
+        let mut cmd = std::process::Command::new(program);
 
         // Provide DFX_NETWORK at build time
         cmd.env("DFX_NETWORK", network_name);
