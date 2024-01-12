@@ -324,9 +324,8 @@ fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
         let init_args = enclose("(", doc, ")").pretty(80).to_string();
         Ok((service_did, init_args))
     } else {
-        // The original candid from builder output doesn't contain init_args
-        // Use it directly to avoid items reordering
-        let service_did = dfx_core::fs::read_to_string(path)?;
+        // Note for migration to candid 0.10: this function is now candid_parser::pretty::candid::compile
+        let service_did = candid::bindings::candid::compile(&env, &Some(actor));
         let init_args = String::from("()");
         Ok((service_did, init_args))
     }
