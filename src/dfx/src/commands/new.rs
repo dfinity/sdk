@@ -249,7 +249,11 @@ fn write_files_from_entries<R: Sized + Read>(
 
 #[context("Failed to run 'npm install'.")]
 fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
-    std::process::Command::new("npm")
+    #[cfg(target_os = "windows")]
+        let program = "npm.cmd";
+    #[cfg(unix)]
+        let program = "npm";
+    std::process::Command::new(program)
         .arg("install")
         .arg("--quiet")
         .arg("--no-progress")
@@ -271,7 +275,11 @@ fn scaffold_frontend_code(
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
     let log = env.get_logger();
-    let node_installed = std::process::Command::new("node")
+    #[cfg(target_os = "windows")]
+        let program = "node.exe";
+    #[cfg(unix)]
+        let program = "node";
+    let node_installed = std::process::Command::new(program)
         .arg("--version")
         .output()
         .is_ok();
@@ -383,7 +391,12 @@ fn scaffold_frontend_code(
 }
 
 fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
-    std::process::Command::new("npm")
+    #[cfg(target_os = "windows")]
+        let program = "npm.cmd";
+    #[cfg(unix)]
+        let program = "npm";
+
+    std::process::Command::new(program)
         .arg("show")
         .arg("@dfinity/agent")
         .arg(&format!("dist-tags.{}", dist_tag))

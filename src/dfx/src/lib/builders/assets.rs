@@ -218,6 +218,10 @@ fn build_frontend(
     } else if build_frontend {
         // Frontend build.
         slog::info!(logger, "Building frontend...");
+        #[cfg(target_os = "windows")]
+            let program = "npm.cmd";
+        #[cfg(unix)]
+            let program = "npm";
         let mut cmd = std::process::Command::new("npm");
 
         // Provide DFX_NETWORK at build time
