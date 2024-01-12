@@ -178,13 +178,14 @@ pub async fn playground_install_code(
         is_whitelisted: is_asset_canister,
         origin: Origin::new(),
     };
+    let canister_id = canister_info.id;
     let encoded_arg = encode_args((canister_info, install_arg, install_config))?;
     let result = agent
         .update(&playground_canister, "installCode")
         .with_arg(encoded_arg.as_slice())
         .call_and_wait()
         .await
-        .context("install failed")?;
+        .with_context(||format!("install canister {} failed", &canister_id))?;
     let out = Decode!(&result, CanisterInfo)?;
     out.get_timestamp()
 }
