@@ -4,7 +4,11 @@
 
 ### feat: new starter templates
 
-`dfx new` now has a new set of customizable project templates and an interactive menu for selecting them. Additionally `--no-frontend` no longer creates a frontend.
+`dfx new` now has a new set of customizable project templates and an interactive menu for selecting them. Supports the Svelte, Vue, and React frameworks, and Azle and Kybra backends.
+
+### fix: --no-frontend no longer creates a frontend
+
+Previously --no-frontend still created a frontend canister. This behavior is now accessed via `--frontend simple-assets`.
 
 ### feat!: update `dfx cycles` commands with mainnet `cycles-ledger` canister ID
 
