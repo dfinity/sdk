@@ -6,9 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config({ path: '../../.env' });
 
 export default defineConfig({
-  root: 'src',
   build: {
-    outDir: '../dist',
     emptyOutDir: true,
   },
   optimizeDeps: {
@@ -26,7 +24,7 @@ export default defineConfig({
       },
     },
   },
-  publicDir: '../assets',
+  publicDir: 'assets',
   plugins: [
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),

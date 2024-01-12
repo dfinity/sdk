@@ -19,7 +19,7 @@ teardown() {
   assert_command dfx deploy
 
   # simulate previous deploy with CopyPlugin step
-  cp src/hello_frontend/assets/* dist/hello_frontend/
+  cp src/hello_frontend/assets/* src/hello_frontend/dist
 
   assert_command_fail dfx deploy
   assert_contains "Remove the CopyPlugin step from webpack.config.js"
