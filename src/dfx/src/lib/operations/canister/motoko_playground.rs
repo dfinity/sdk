@@ -12,6 +12,7 @@ use rand::Rng;
 use slog::{debug, info};
 
 use crate::lib::{environment::Environment, error::DfxResult};
+use crate::lib::integrations::bitcoin::MAINNET_BITCOIN_CANISTER_ID;
 
 /// Arguments for the `getCanisterId` call.
 #[derive(CandidType)]
@@ -178,8 +179,18 @@ pub async fn playground_install_code(
         is_whitelisted: is_asset_canister,
         origin: Origin::new(),
     };
+    let canister_info2 = CanisterInfo::from(MAINNET_BITCOIN_CANISTER_ID,&SystemTime::UNIX_EPOCH).unwrap();
+    let install_arg2 = InstallArgs {
+        arg: b"",
+        wasm_module: b"",
+        mode: InstallMode::Reinstall,
+        canister_id: MAINNET_BITCOIN_CANISTER_ID.clone(),
+    };
     let canister_id = canister_info.id;
     let encoded_arg = encode_args((canister_info, install_arg, install_config))?;
+    let encoded_arg2 = encode_args((canister_info2, install_arg2,))?;
+    println!("encoded arg2: {:?}", encoded_arg2);
+    println!("hex: {}", hex::encode(&encoded_arg2));
     let result = agent
         .update(&playground_canister, "installCode")
         .with_arg(encoded_arg.as_slice())
