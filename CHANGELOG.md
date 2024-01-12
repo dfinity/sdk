@@ -20,6 +20,11 @@ The `dfx cycles` command no longer needs nor accepts the `--cycles-ledger-canist
 
 Updated to candid 0.10, ic-cdk 0.12, and ic-cdk-timers 0.6
 
+### fix: store playground canister acquisition timestamps with nanosecond precision on all platforms
+
+They've always been stored with nanosecond precisions on Linux and Macos.
+Now they are stored with nanosecond precision on Windows too.
+
 # 0.15.3
 
 ### fix: allow `http://localhost:*` as `connect-src` in the asset canister's CSP
