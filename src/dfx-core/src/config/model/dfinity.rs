@@ -1,9 +1,30 @@
 #![allow(dead_code)]
-#![allow(clippy::should_implement_trait)] // for from_str.  why now?
+#![allow(clippy::should_implement_trait)]
+
+use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::default::Default;
+use std::fmt;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
+use std::path::{Path, PathBuf};
+use std::time::Duration;
+
+use byte_unit::Byte;
+use candid::Principal;
+use schemars::JsonSchema;
+use serde::{Deserialize, Deserializer, Serialize};
+use serde::de::{Error as _, MapAccess, Visitor};
+use serde_json::Value;
+
+// for from_str.  why now?
 use crate::config::directories::get_user_dfx_config_dir;
 use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
 use crate::error::config::GetOutputEnvFileError;
+use crate::error::dfx_config::{
+    AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError,
+    GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError,
+    GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError,
+};
 use crate::error::dfx_config::AddDependenciesError::CanisterCircularDependency;
 use crate::error::dfx_config::GetCanisterNamesWithDependenciesError::AddDependenciesFailed;
 use crate::error::dfx_config::GetComputeAllocationError::GetComputeAllocationFailed;
@@ -12,11 +33,6 @@ use crate::error::dfx_config::GetMemoryAllocationError::GetMemoryAllocationFaile
 use crate::error::dfx_config::GetPullCanistersError::PullCanistersSameId;
 use crate::error::dfx_config::GetRemoteCanisterIdError::GetRemoteCanisterIdFailed;
 use crate::error::dfx_config::GetReservedCyclesLimitError::GetReservedCyclesLimitFailed;
-use crate::error::dfx_config::{
-    AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError,
-    GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError,
-    GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError,
-};
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
     DetermineCurrentWorkingDirFailed, LoadFromFileFailed, ResolveConfigPathFailed,
@@ -35,18 +51,6 @@ use crate::error::structured_file::StructuredFileError::{
 };
 use crate::json::save_json_file;
 use crate::json::structure::{PossiblyStr, SerdeVec};
-use byte_unit::Byte;
-use candid::Principal;
-use schemars::JsonSchema;
-use serde::de::{Error as _, MapAccess, Visitor};
-use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::default::Default;
-use std::fmt;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
-use std::path::{Path, PathBuf};
-use std::time::Duration;
 
 use super::network_descriptor::MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS;
 

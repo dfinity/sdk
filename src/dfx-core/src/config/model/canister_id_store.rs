@@ -23,11 +23,13 @@ pub type CanisterIds = BTreeMap<CanisterName, NetworkNametoCanisterId>;
 
 pub type CanisterTimestamps = BTreeMap<CanisterName, NetworkNametoCanisterTimestamp>;
 
+pub type AcquisitionDateTime = OffsetDateTime;
+
 #[derive(Debug, Clone, Default)]
-pub struct NetworkNametoCanisterTimestamp(BTreeMap<NetworkName, SystemTime>);
+pub struct NetworkNametoCanisterTimestamp(BTreeMap<NetworkName, AcquisitionDateTime>);
 
 impl Deref for NetworkNametoCanisterTimestamp {
-    type Target = BTreeMap<NetworkName, SystemTime>;
+    type Target = BTreeMap<NetworkName, OffsetDateTime>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -63,12 +65,12 @@ impl<'de> Deserialize<'de> for NetworkNametoCanisterTimestamp {
         D: serde::Deserializer<'de>,
     {
         let map: BTreeMap<NetworkName, String> = Deserialize::deserialize(deserializer)?;
-        let btree: BTreeMap<NetworkName, SystemTime> = map
+        let btree: BTreeMap<NetworkName, OffsetDateTime> = map
             .into_iter()
             .map(|(key, timestamp)| (key, OffsetDateTime::parse(&timestamp, &Rfc3339)))
             .try_fold(BTreeMap::new(), |mut map, (key, result)| match result {
                 Ok(value) => {
-                    map.insert(key, SystemTime::from(value));
+                    map.insert(key, value);
                     Ok(map)
                 }
                 Err(err) => Err(err),
@@ -178,7 +180,7 @@ impl CanisterIdStore {
         Ok(store)
     }
 
-    pub fn get_timestamp(&self, canister_name: &str) -> Option<&SystemTime> {
+    pub fn get_timestamp(&self, canister_name: &str) -> Option<&OffsetDateTime> {
         self.acquisition_timestamps
             .get(canister_name)
             .and_then(|timestamp_map| timestamp_map.get(&self.network_descriptor.name))
@@ -277,7 +279,7 @@ impl CanisterIdStore {
         &mut self,
         canister_name: &str,
         canister_id: &str,
-        timestamp: Option<SystemTime>,
+        timestamp: Option<OffsetDateTime>,
     ) -> Result<(), CanisterIdStoreError> {
         let network_name = &self.network_descriptor.name;
         match self.ids.get_mut(canister_name) {

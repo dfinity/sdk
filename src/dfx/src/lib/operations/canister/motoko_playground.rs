@@ -10,6 +10,8 @@ use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use rand::Rng;
 use slog::{debug, info};
+use time::OffsetDateTime;
+use dfx_core::config::model::canister_id_store::AcquisitionDateTime;
 
 use crate::lib::{environment::Environment, error::DfxResult};
 use crate::lib::integrations::bitcoin::MAINNET_BITCOIN_CANISTER_ID;
@@ -30,18 +32,19 @@ pub struct CanisterInfo {
 
 impl CanisterInfo {
     #[context("Failed to construct playground canister info.")]
-    pub fn from(id: Principal, timestamp: &SystemTime) -> DfxResult<Self> {
-        let timestamp = candid::Int::from(timestamp.duration_since(UNIX_EPOCH)?.as_nanos());
+    pub fn from(id: Principal, timestamp: &AcquisitionDateTime) -> DfxResult<Self> {
+        let timestamp = candid::Int::from(timestamp.unix_timestamp_nanos());
         Ok(Self { id, timestamp })
     }
 
     #[context("Failed to turn CanisterInfo into SystemTime")]
-    pub fn get_timestamp(&self) -> DfxResult<SystemTime> {
-        UNIX_EPOCH
-            .checked_add(Duration::from_nanos(
-                self.timestamp.0.to_u64().context("u64 overflow")?,
-            ))
+    pub fn get_timestamp(&self) -> DfxResult<AcquisitionDateTime> {
+        AcquisitionDateTime::from_unix_timestamp_nanos(self.timestamp.0.to_u64().context("u64 overflow")?.into())
             .context("Failed to make absolute time from offset")
+    }
+
+    pub fn get_timestamp_as_u64(&self) -> DfxResult<u64> {
+        self.timestamp.0.to_u64().context("u64 overflow")
     }
 }
 
@@ -111,9 +114,10 @@ pub async fn reserve_canister_with_playground(
 
     info!(
         env.get_logger(),
-        "Reserved canister '{}' with id {} with the playground.",
+        "Reserved canister '{}' with id {} with the playground at timestamp {}.",
         canister_name,
-        reserved_canister.id
+        reserved_canister.id,
+        reserved_canister.get_timestamp_as_u64()?
     );
 
     Ok(())
@@ -123,7 +127,7 @@ pub async fn reserve_canister_with_playground(
 pub async fn authorize_asset_uploader(
     env: &dyn Environment,
     canister_id: Principal,
-    canister_timestamp: &SystemTime,
+    canister_timestamp: &AcquisitionDateTime,
     principal_to_authorize: &Principal,
 ) -> DfxResult {
     let agent = env.get_agent();
@@ -153,13 +157,15 @@ pub async fn authorize_asset_uploader(
 pub async fn playground_install_code(
     env: &dyn Environment,
     canister_id: Principal,
-    canister_timestamp: &SystemTime,
+    canister_timestamp: &AcquisitionDateTime,
     arg: &[u8],
     wasm_module: &[u8],
     mode: InstallMode,
     is_asset_canister: bool,
-) -> DfxResult<SystemTime> {
+) -> DfxResult<AcquisitionDateTime> {
     let canister_info = CanisterInfo::from(canister_id, canister_timestamp)?;
+    println!("installing wasm, canister info: (canister id {}, timestamp {})",
+    canister_info.id, canister_info.timestamp.0.to_u64().unwrap());
     let agent = env.get_agent();
     let playground_canister = match env.get_network_descriptor().r#type {
         NetworkTypeDescriptor::Playground {
@@ -179,18 +185,16 @@ pub async fn playground_install_code(
         is_whitelisted: is_asset_canister,
         origin: Origin::new(),
     };
-    let canister_info2 = CanisterInfo::from(MAINNET_BITCOIN_CANISTER_ID,&SystemTime::UNIX_EPOCH).unwrap();
     let install_arg2 = InstallArgs {
         arg: b"",
         wasm_module: b"",
         mode: InstallMode::Reinstall,
         canister_id: MAINNET_BITCOIN_CANISTER_ID.clone(),
     };
+    // 1705082232580697147
+    // 1705082232580697100
     let canister_id = canister_info.id;
     let encoded_arg = encode_args((canister_info, install_arg, install_config))?;
-    let encoded_arg2 = encode_args((canister_info2, install_arg2,))?;
-    println!("encoded arg2: {:?}", encoded_arg2);
-    println!("hex: {}", hex::encode(&encoded_arg2));
     let result = agent
         .update(&playground_canister, "installCode")
         .with_arg(encoded_arg.as_slice())
