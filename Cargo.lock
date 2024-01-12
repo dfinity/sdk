@@ -1485,6 +1485,7 @@ dependencies = [
  "clap",
  "dialoguer",
  "directories-next",
+ "dunce",
  "flate2",
  "hex",
  "humantime-serde",
