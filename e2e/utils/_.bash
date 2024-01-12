@@ -64,7 +64,7 @@ dfx_new_frontend() {
 
 dfx_new_assets() {
     local project_name=${1:-e2e_project}
-    dfx new "${project_name}" --frontend plain-assets
+    dfx new "${project_name}" --frontend simple-assets
     test -d "${project_name}"
     test -f "${project_name}"/dfx.json
     cd "${project_name}"
