@@ -414,9 +414,7 @@ fn run_post_install_task(
     let cwd = canister.get_workspace_root();
     let words = shell_words::split(task)
         .with_context(|| format!("Error interpreting post-install task `{task}`"))?;
-    let canonicalized = cwd
-        .join(&words[0])
-        .canonicalize()
+    let canonicalized = dfx_core::fs::canonicalize(&cwd.join(&words[0]))
         .or_else(|_| which::which(&words[0]))
         .map_err(|_| anyhow!("Cannot find command or file {}", &words[0]))?;
     let mut command = Command::new(&canonicalized);
