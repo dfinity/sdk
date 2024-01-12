@@ -1,17 +1,16 @@
+use crate::lib::{environment::Environment, error::DfxResult};
+use anyhow::{bail, Context};
+use candid::{encode_args, CandidType, Decode, Deserialize, Encode, Principal};
+use dfx_core::config::model::canister_id_store::AcquisitionDateTime;
 use dfx_core::config::model::network_descriptor::{
     NetworkTypeDescriptor, MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
 };
-use num_traits::ToPrimitive;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
-use anyhow::{bail, Context};
-use candid::{encode_args, CandidType, Decode, Deserialize, Encode, Principal};
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
+use num_traits::ToPrimitive;
 use rand::Rng;
 use slog::{debug, info};
-
-use crate::lib::{environment::Environment, error::DfxResult};
+use std::time::SystemTime;
 
 /// Arguments for the `getCanisterId` call.
 #[derive(CandidType)]
@@ -28,19 +27,17 @@ pub struct CanisterInfo {
 }
 
 impl CanisterInfo {
-    #[context("Failed to construct playground canister info.")]
-    pub fn from(id: Principal, timestamp: &SystemTime) -> DfxResult<Self> {
-        let timestamp = candid::Int::from(timestamp.duration_since(UNIX_EPOCH)?.as_nanos());
-        Ok(Self { id, timestamp })
+    pub fn from(id: Principal, timestamp: &AcquisitionDateTime) -> Self {
+        let timestamp = candid::Int::from(timestamp.unix_timestamp_nanos());
+        Self { id, timestamp }
     }
 
-    #[context("Failed to turn CanisterInfo into SystemTime")]
-    pub fn get_timestamp(&self) -> DfxResult<SystemTime> {
-        UNIX_EPOCH
-            .checked_add(Duration::from_nanos(
-                self.timestamp.0.to_u64().context("u64 overflow")?,
-            ))
-            .context("Failed to make absolute time from offset")
+    #[context("Failed to get timestamp from CanisterInfo")]
+    pub fn get_timestamp(&self) -> DfxResult<AcquisitionDateTime> {
+        AcquisitionDateTime::from_unix_timestamp_nanos(
+            self.timestamp.0.to_i128().context("i128 overflow")?,
+        )
+        .context("Failed to make unix timestamp from nanos")
     }
 }
 
@@ -122,7 +119,7 @@ pub async fn reserve_canister_with_playground(
 pub async fn authorize_asset_uploader(
     env: &dyn Environment,
     canister_id: Principal,
-    canister_timestamp: &SystemTime,
+    canister_timestamp: &AcquisitionDateTime,
     principal_to_authorize: &Principal,
 ) -> DfxResult {
     let agent = env.get_agent();
@@ -135,7 +132,7 @@ pub async fn authorize_asset_uploader(
     } else {
         bail!("Trying to authorize asset uploader on non-playground network.")
     };
-    let canister_info = CanisterInfo::from(canister_id, canister_timestamp)?;
+    let canister_info = CanisterInfo::from(canister_id, canister_timestamp);
 
     let nested_arg = Encode!(&principal_to_authorize)?;
     let call_arg = Encode!(&canister_info, &"authorize", &nested_arg)?;
@@ -152,13 +149,13 @@ pub async fn authorize_asset_uploader(
 pub async fn playground_install_code(
     env: &dyn Environment,
     canister_id: Principal,
-    canister_timestamp: &SystemTime,
+    canister_timestamp: &AcquisitionDateTime,
     arg: &[u8],
     wasm_module: &[u8],
     mode: InstallMode,
     is_asset_canister: bool,
-) -> DfxResult<SystemTime> {
-    let canister_info = CanisterInfo::from(canister_id, canister_timestamp)?;
+) -> DfxResult<AcquisitionDateTime> {
+    let canister_info = CanisterInfo::from(canister_id, canister_timestamp);
     let agent = env.get_agent();
     let playground_canister = match env.get_network_descriptor().r#type {
         NetworkTypeDescriptor::Playground {
