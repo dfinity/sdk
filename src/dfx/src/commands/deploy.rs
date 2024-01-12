@@ -8,7 +8,7 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
-use crate::util::clap::parsers::cycle_amount_parser;
+use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
@@ -17,6 +17,7 @@ use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
+use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -99,6 +100,17 @@ pub struct DeployOpts {
     /// Compute evidence and compare it against expected evidence
     #[arg(long, conflicts_with("by_proposal"))]
     compute_evidence: bool,
+
+    /// Transaction timestamp, in nanoseconds, for use in controlling transaction deduplication, default is system time.
+    /// https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
+    //TODO(SDK-1331): unhide
+    #[arg(long, hide = true, requires = "canister_name")]
+    created_at_time: Option<u64>,
+
+    /// Subaccount of the selected identity to spend cycles from.
+    //TODO(SDK-1331): unhide
+    #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
+    from_subaccount: Option<Subaccount>,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -167,8 +179,10 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         &deploy_mode,
         opts.upgrade_unchanged,
         with_cycles,
+        opts.created_at_time,
         opts.specified_id,
         &call_sender,
+        opts.from_subaccount,
         opts.no_wallet,
         opts.yes,
         env_file,

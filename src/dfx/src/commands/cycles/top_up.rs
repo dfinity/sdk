@@ -27,12 +27,6 @@ pub struct TopUpOpts {
     /// https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
     #[arg(long)]
     created_at_time: Option<u64>,
-
-    /// Canister ID of the cycles ledger canister.
-    /// If not specified, the default cycles ledger canister ID will be used.
-    // todo: remove this.  See https://dfinity.atlassian.net/browse/SDK-1262
-    #[arg(long)]
-    cycles_ledger_canister_id: Principal,
 }
 
 pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
@@ -58,7 +52,6 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
         amount,
         created_at_time,
         from_subaccount,
-        opts.cycles_ledger_canister_id,
     )
     .await;
     if result.is_err() && opts.created_at_time.is_none() {

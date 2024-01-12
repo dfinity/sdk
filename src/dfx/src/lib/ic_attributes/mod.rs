@@ -9,13 +9,39 @@ use ic_utils::interfaces::management_canister::attributes::{
 };
 use std::convert::TryFrom;
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct CanisterSettings {
     pub controllers: Option<Vec<Principal>>,
     pub compute_allocation: Option<ComputeAllocation>,
     pub memory_allocation: Option<MemoryAllocation>,
     pub freezing_threshold: Option<FreezingThreshold>,
     pub reserved_cycles_limit: Option<ReservedCyclesLimit>,
+}
+
+impl From<CanisterSettings>
+    for ic_utils::interfaces::management_canister::builders::CanisterSettings
+{
+    fn from(value: CanisterSettings) -> Self {
+        Self {
+            controllers: value.controllers,
+            compute_allocation: value
+                .compute_allocation
+                .map(u8::from)
+                .map(candid::Nat::from),
+            memory_allocation: value
+                .memory_allocation
+                .map(u64::from)
+                .map(candid::Nat::from),
+            freezing_threshold: value
+                .freezing_threshold
+                .map(u64::from)
+                .map(candid::Nat::from),
+            reserved_cycles_limit: value
+                .reserved_cycles_limit
+                .map(u128::from)
+                .map(candid::Nat::from),
+        }
+    }
 }
 
 #[context("Failed to get compute allocation.")]

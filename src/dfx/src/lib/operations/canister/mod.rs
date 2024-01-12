@@ -1,4 +1,4 @@
-mod create_canister;
+pub(crate) mod create_canister;
 pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
 pub use create_canister::create_canister;
@@ -167,25 +167,7 @@ pub async fn update_settings(
         MgmtMethod::UpdateSettings.as_ref(),
         In {
             canister_id,
-            settings: CanisterSettings {
-                controllers: settings.controllers,
-                compute_allocation: settings
-                    .compute_allocation
-                    .map(u8::from)
-                    .map(candid::Nat::from),
-                memory_allocation: settings
-                    .memory_allocation
-                    .map(u64::from)
-                    .map(candid::Nat::from),
-                freezing_threshold: settings
-                    .freezing_threshold
-                    .map(u64::from)
-                    .map(candid::Nat::from),
-                reserved_cycles_limit: settings
-                    .reserved_cycles_limit
-                    .map(u128::from)
-                    .map(candid::Nat::from),
-            },
+            settings: settings.into(),
         },
         call_sender,
         0,
