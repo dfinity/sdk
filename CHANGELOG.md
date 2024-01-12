@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: new starter templates
+
+`dfx new` now has a new set of customizable project templates and an interactive menu for selecting them. Additionally `--no-frontend` no longer creates a frontend.
+
 ### fix: frontend code crashing when there is no canister ID
 
 ### feat: `dfx ledger top-up` also accepts canister names
@@ -1315,7 +1319,7 @@ Additionally, after build step, the `.wasm` file is archived with `gzip`.
 ### chore: Move all `frontend canister`-related code into the SDK repo
 
 | from (`repository` `path`)                  | to (path in `dfinity/sdk` repository)          | summary                                                                                     |
-| :------------------------------------------ | :--------------------------------------------- | :------------------------------------------------------------------------------------------ |
+|:--------------------------------------------|:-----------------------------------------------|:--------------------------------------------------------------------------------------------|
 | `dfinity/cdk-rs` `/src/ic-certified-assets` | `/src/canisters/frontend/ic-certified-asset`   | the core of the frontend canister                                                           |
 | `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-frontend-canister` | wraps `ic-certified-assets` to build the canister wasm                                      |
 | `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`             | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |

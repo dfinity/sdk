@@ -129,7 +129,6 @@ enum Extra {
     InternetIdentity,
     Bitcoin,
     FrontendTests,
-    BackendTests,
 }
 
 impl Display for Extra {
@@ -138,7 +137,6 @@ impl Display for Extra {
             Self::InternetIdentity => "Internet Identity",
             Self::Bitcoin => "Bitcoin (Regtest)",
             Self::FrontendTests => "Frontend tests",
-            Self::BackendTests => "Backend tests",
         }
         .fmt(f)
     }
@@ -675,9 +673,6 @@ fn get_opts_interactively(opts: NewOpts) -> DfxResult<NewOpts> {
         .interact()?;
     let frontend = frontends_list[frontend];
     let mut extras_list = vec![InternetIdentity, Bitcoin];
-    if backend == Rust {
-        extras_list.push(BackendTests);
-    }
     if frontend != None && frontend != SimpleAssets {
         extras_list.push(FrontendTests);
     }
