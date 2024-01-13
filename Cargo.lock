@@ -2832,6 +2832,7 @@ dependencies = [
 name = "ic-frontend-canister"
 version = "0.2.5"
 dependencies = [
+ "candid 0.10.2",
  "ic-cdk",
  "ic-certified-assets",
 ]
