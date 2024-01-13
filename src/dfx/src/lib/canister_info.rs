@@ -12,6 +12,7 @@ use dfx_core::config::model::dfinity::{
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 use fn_error_context::context;
+use ic_wasm::optimize::OptLevel;
 use std::path::{Path, PathBuf};
 
 pub mod assets;
@@ -236,12 +237,18 @@ impl CanisterInfo {
         self.shrink
     }
 
-    pub fn get_optimize(&self) -> Option<WasmOptLevel> {
+    pub fn get_optimize(&self) -> Option<OptLevel> {
         // Cycles defaults to O3, Size defaults to Oz
         self.optimize.map(|level| match level {
-            WasmOptLevel::Cycles => WasmOptLevel::O3,
-            WasmOptLevel::Size => WasmOptLevel::Oz,
-            other => other,
+            WasmOptLevel::Cycles => OptLevel::O3,
+            WasmOptLevel::Size => OptLevel::Oz,
+            WasmOptLevel::O4 => OptLevel::O4,
+            WasmOptLevel::O3 => OptLevel::O3,
+            WasmOptLevel::O2 => OptLevel::O2,
+            WasmOptLevel::O1 => OptLevel::O1,
+            WasmOptLevel::O0 => OptLevel::O0,
+            WasmOptLevel::Oz => OptLevel::Oz,
+            WasmOptLevel::Os => OptLevel::Os,
         })
     }
 

@@ -138,7 +138,7 @@ async fn commit_in_stages(
         commit_batch(
             canister,
             CommitBatchArguments {
-                batch_id: Nat::from(0),
+                batch_id: Nat::from(0u8),
                 operations: operations.into(),
             },
         )
@@ -156,7 +156,7 @@ async fn commit_in_stages(
         commit_batch(
             canister,
             CommitBatchArguments {
-                batch_id: Nat::from(0),
+                batch_id: Nat::from(0u8),
                 operations: operations.into(),
             },
         )

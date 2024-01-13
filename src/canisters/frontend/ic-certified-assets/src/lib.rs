@@ -415,7 +415,9 @@ fn is_controller() -> Result<(), String> {
 
 pub fn init(args: Option<AssetCanisterArgs>) {
     if let Some(upgrade_arg) = args {
-        let AssetCanisterArgs::Init(InitArgs {}) = upgrade_arg else { ic_cdk::trap("Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.")};
+        let AssetCanisterArgs::Init(InitArgs {}) = upgrade_arg else {
+            ic_cdk::trap("Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.")
+        };
     }
     STATE.with(|s| {
         let mut s = s.borrow_mut();

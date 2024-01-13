@@ -196,7 +196,7 @@ fn create_nonce() -> (candid::Int, candid::Nat) {
         .as_nanos();
     let timestamp = candid::Int::from(now);
     let mut rng = rand::thread_rng();
-    let mut nonce = candid::Nat::from(rng.gen::<i32>());
+    let mut nonce = candid::Nat::from(rng.gen::<u32>());
     let prefix = format!("{}{}", POW_DOMAIN, timestamp);
     loop {
         let to_hash = format!("{}{}", prefix, nonce).replace('_', "");
@@ -204,7 +204,7 @@ fn create_nonce() -> (candid::Int, candid::Nat) {
         if (hash & 0xc0000000) == 0 {
             return (timestamp, nonce);
         }
-        nonce += 1;
+        nonce += 1u8;
     }
 }
 

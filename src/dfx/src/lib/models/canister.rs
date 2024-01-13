@@ -127,8 +127,8 @@ impl Canister {
 
         // optimize or shrink
         if let Some(level) = info.get_optimize() {
-            trace!(logger, "Optimizing WASM at level {}", level);
-            ic_wasm::shrink::shrink_with_wasm_opt(&mut m, &level.to_string(), false)
+            //trace!(logger, "Optimizing WASM at level {}", level);
+            ic_wasm::optimize::optimize(&mut m, &level, false, &None, false)
                 .context("Failed to optimize the WASM module.")?;
             modified = true;
         } else if info.get_shrink() == Some(true)
@@ -312,28 +312,19 @@ impl Canister {
 }
 
 fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
-    let (env, actor) = check_candid_file(path)?;
-    let actor = actor.ok_or_else(|| anyhow!("provided candid file contains no main service"))?;
-    if let candid::types::internal::TypeInner::Class(args, ty) = actor.as_ref() {
-        use candid::bindings::candid::pp_ty;
-        use candid::pretty::{concat, enclose};
-
-        let actor = Some(ty.clone());
-        let service_did = candid::bindings::candid::compile(&env, &actor);
-        let doc = concat(args.iter().map(pp_ty), ",");
-        let init_args = enclose("(", doc, ")").pretty(80).to_string();
-        Ok((service_did, init_args))
-    } else {
-        // The original candid from builder output doesn't contain init_args
-        // Use it directly to avoid items reordering
-        let service_did = dfx_core::fs::read_to_string(path)?;
-        let init_args = String::from("()");
-        Ok((service_did, init_args))
-    }
+    use candid_parser::utils::{instantiate_candid, CandidSource};
+    // TODO: comments are omitted in the output
+    let (init_args, (env, actor)) = instantiate_candid(CandidSource::File(path))?;
+    let init_args = candid::pretty::candid::pp_args(&init_args)
+        .pretty(80)
+        .to_string();
+    let service_did = candid::pretty::candid::compile(&env, &Some(actor));
+    Ok((service_did, init_args))
 }
 
 #[context("{} is not a valid subtype of {}", specified_idl_path.display(), compiled_idl_path.display())]
 fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> DfxResult {
+    use candid::types::subtype::{subtype_with_config, OptReport};
     let (mut env, opt_specified) =
         check_candid_file(specified_idl_path).context("Checking specified candid file.")?;
     let specified_type =
@@ -344,7 +335,13 @@ fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> D
         opt_compiled.expect("Compiled did file should contain some service interface");
     let mut gamma = HashSet::new();
     let specified_type = env.merge_type(env2, specified_type);
-    candid::types::subtype::subtype(&mut gamma, &env, &compiled_type, &specified_type)?;
+    subtype_with_config(
+        OptReport::Error,
+        &mut gamma,
+        &env,
+        &compiled_type,
+        &specified_type,
+    )?;
     Ok(())
 }
 
@@ -785,14 +782,14 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
         .with_extension("did.d.ts");
 
     let (env, ty) = check_candid_file(&canister_info.get_service_idl_path())?;
-    let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
+    let content = ensure_trailing_newline(candid_parser::bindings::javascript::compile(&env, &ty));
     std::fs::write(&output_did_js_path, content).with_context(|| {
         format!(
             "Failed to write to {}.",
             output_did_js_path.to_string_lossy()
         )
     })?;
-    let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
+    let content = ensure_trailing_newline(candid_parser::bindings::typescript::compile(&env, &ty));
     std::fs::write(&output_did_ts_path, content).with_context(|| {
         format!(
             "Failed to write to {}.",
