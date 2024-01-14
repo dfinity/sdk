@@ -2719,12 +2719,16 @@ dependencies = [
 name = "ic-certified-assets"
 version = "0.2.5"
 dependencies = [
+ "anyhow",
  "base64 0.13.1",
  "candid",
+ "candid_parser",
  "hex",
  "ic-cdk",
  "ic-certification 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-certification-testing",
  "ic-crypto-tree-hash",
+ "ic-http-certification",
  "ic-representation-independent-hash",
  "ic-response-verification",
  "ic-response-verification-test-utils",
