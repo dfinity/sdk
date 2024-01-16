@@ -17,6 +17,12 @@ Updated to candid 0.10, ic-cdk 0.12, and ic-cdk-timers 0.6
 They've always been stored with nanosecond precisions on Linux and Macos.
 Now they are stored with nanosecond precision on Windows too.
 
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.10.4](https://github.com/dfinity/motoko/releases/tag/0.10.4)
+
 # 0.15.3
 
 ### fix: allow `http://localhost:*` as `connect-src` in the asset canister's CSP
