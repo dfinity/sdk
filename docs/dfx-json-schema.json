@@ -237,6 +237,14 @@
               "enum": [
                 "assets"
               ]
+            },
+            "workspace": {
+              "title": "NPM workspace",
+              "description": "The workspace in package.json that this canister is in, if it is not in the root workspace.",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         },
