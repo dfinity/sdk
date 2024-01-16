@@ -444,6 +444,7 @@ current_time_nanoseconds() {
 
   # using dfx canister create
   dfx identity use alice
+  # shellcheck disable=SC2030
   export DFX_DISABLE_AUTO_WALLET=1
   t=$(current_time_nanoseconds)
   assert_command dfx canister create e2e_project_backend --with-cycles 1T --created-at-time "$t"
@@ -516,9 +517,7 @@ current_time_nanoseconds() {
   assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})"
   echo "Cycles depositor deployed at id $(dfx canister id cycles-depositor)"
   assert_command dfx ledger fabricate-cycles --canister cycles-depositor --t 9999
-
   assert_command dfx deploy
-
   assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 22_400_000_000_000;})" --identity cycle-giver
 
   cd ..
@@ -526,6 +525,7 @@ current_time_nanoseconds() {
   # setup done
 
   dfx identity use alice
+  # shellcheck disable=SC2031
   export DFX_DISABLE_AUTO_WALLET=1
   assert_command dfx canister create --all --with-cycles 10T
   assert_command dfx cycles balance --precise
