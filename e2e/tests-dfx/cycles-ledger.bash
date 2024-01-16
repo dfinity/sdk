@@ -501,3 +501,47 @@ current_time_nanoseconds() {
   assert_command dfx cycles balance --precise
   assert_eq "9399600000000 cycles."
 }
+
+@test "canister deletion" {
+  # skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  dfx_new temporary
+  add_cycles_ledger_canisters_to_project
+  install_cycles_ledger_canisters
+
+  ALICE=$(dfx identity get-principal --identity alice)
+
+  assert_command deploy_cycles_ledger
+  CYCLES_LEDGER_ID=$(dfx canister id cycles-ledger)
+  echo "Cycles ledger deployed at id $CYCLES_LEDGER_ID"
+  assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})"
+  echo "Cycles depositor deployed at id $(dfx canister id cycles-depositor)"
+  assert_command dfx ledger fabricate-cycles --canister cycles-depositor --t 9999
+
+  assert_command dfx deploy
+
+  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 22_400_000_000_000;})" --identity cycle-giver
+
+  cd ..
+  dfx_new
+  # setup done
+
+  dfx identity use alice
+  export DFX_DISABLE_AUTO_WALLET=1
+  assert_command dfx canister create --all --with-cycles 10T
+  assert_command dfx cycles balance --precise
+  assert_eq "2399800000000 cycles."
+
+  # delete by name
+  assert_command dfx canister stop --all
+  assert_command dfx canister delete e2e_project_backend
+  assert_command dfx cycles balance
+  assert_eq "12.389 TC (trillion cycles)."
+
+  # delete by id
+  FRONTEND_ID=$(dfx canister id e2e_project_frontend)
+  rm .dfx/local/canister_ids.json
+  assert_command dfx canister stop "${FRONTEND_ID}"
+  assert_command dfx canister delete "${FRONTEND_ID}"
+  assert_command dfx cycles balance
+  assert_eq "22.379 TC (trillion cycles)."
+}
