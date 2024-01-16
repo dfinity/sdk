@@ -84,10 +84,6 @@ version = "0.31.0"
 git = "https://github.com/dfinity/agent-rs.git"
 rev = "a7f44ad05e77fc89b8447dd65b345e7a62fd1042"
 
-[patch.crates-io.icrc-ledger-types]
-git = "https://github.com/dfinity/ic.git"
-rev = "1290256484f59c3d950c5e9a098e97383b248ad6"
-
 [profile.release]
 panic = 'abort'
 lto = true

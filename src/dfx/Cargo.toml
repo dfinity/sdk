@@ -68,7 +68,7 @@ ic-cdk.workspace = true
 ic-identity-hsm = { workspace = true }
 ic-utils = { workspace = true }
 ic-wasm = "0.7.0"
-icrc-ledger-types = "0.1"
+icrc-ledger-types = "0.1.5"
 indicatif = "0.16.0"
 itertools.workspace = true
 json-patch = "1.0.0"

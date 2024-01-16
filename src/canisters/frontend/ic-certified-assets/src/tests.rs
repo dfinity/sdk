@@ -68,6 +68,7 @@ pub fn verify_response(
         status_code: response.status_code,
         headers: response.headers,
         body: response.body[..].into(),
+        upgrade: None,
     };
     Ok(ic_response_verification::verify_request_response_pair(
         request,

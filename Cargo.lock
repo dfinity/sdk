@@ -2508,7 +2508,7 @@ dependencies = [
  "hex",
  "http",
  "http-body",
- "ic-certification 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-certification 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ic-transport-types",
  "ic-verify-bls-signature",
  "k256 0.13.1",
@@ -2611,12 +2611,12 @@ dependencies = [
 
 [[package]]
 name = "ic-cbor"
-version = "2.2.0"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8042a3d83448c3f946ed9801bb5310f98191ba4812711610612bef0e851a5b5f"
+checksum = "027916ece94814fc7eebad43f91d691988ac8294121f54e8f22f4611c7d17f17"
 dependencies = [
  "candid",
- "ic-certification 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-certification 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "leb128",
  "nom",
  "thiserror",
@@ -2651,14 +2651,14 @@ dependencies = [
 
 [[package]]
 name = "ic-certificate-verification"
-version = "2.2.0"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e5f3fc90b5ae26b8b67236424a2ce6e311467c307515ff4886cfd0b61436e53"
+checksum = "74807b58655db518e68de1d65e1734da76af43949569b752aa27237e206bd4ad"
 dependencies = [
  "cached 0.47.0",
  "candid",
  "ic-cbor",
- "ic-certification 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-certification 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static",
  "leb128",
  "miracl_core_bls12381",
@@ -2670,9 +2670,9 @@ dependencies = [
 
 [[package]]
 name = "ic-certification"
-version = "2.2.0"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bb2219eb25be014287ff2e355b762c93952028401a4444031ef904535dc776e"
+checksum = "b79fd38f674173bd0af3c80b9dab6fedd3391b81a2fc0f87a2e393fb723fe13b"
 dependencies = [
  "hex",
  "serde",
@@ -2682,8 +2682,8 @@ dependencies = [
 
 [[package]]
 name = "ic-certification"
-version = "2.2.0"
-source = "git+https://github.com/dfinity/response-verification.git?rev=c3390a34bbd8582840ccc9deeebd6f08135b7c4f#c3390a34bbd8582840ccc9deeebd6f08135b7c4f"
+version = "2.3.0"
+source = "git+https://github.com/dfinity/response-verification.git?rev=a65009624b61736df6d2dc17756bdbd02a84f599#a65009624b61736df6d2dc17756bdbd02a84f599"
 dependencies = [
  "hex",
  "serde",
@@ -2693,8 +2693,8 @@ dependencies = [
 
 [[package]]
 name = "ic-certification-testing"
-version = "2.2.0"
-source = "git+https://github.com/dfinity/response-verification.git?rev=c3390a34bbd8582840ccc9deeebd6f08135b7c4f#c3390a34bbd8582840ccc9deeebd6f08135b7c4f"
+version = "2.3.0"
+source = "git+https://github.com/dfinity/response-verification.git?rev=a65009624b61736df6d2dc17756bdbd02a84f599#a65009624b61736df6d2dc17756bdbd02a84f599"
 dependencies = [
  "console_error_panic_hook",
  "getrandom",
@@ -2725,7 +2725,7 @@ dependencies = [
  "candid_parser",
  "hex",
  "ic-cdk",
- "ic-certification 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-certification 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ic-certification-testing",
  "ic-crypto-tree-hash",
  "ic-http-certification",
@@ -2899,13 +2899,13 @@ dependencies = [
 
 [[package]]
 name = "ic-http-certification"
-version = "2.2.0"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5198d89036cfb2b7de6e42306adba24427714dea77f668a6c917e153d92d758c"
+checksum = "1920329afced339a770ca2a56b00fb8229a63ab0dcf1bb119bdeb54b5b70dbfd"
 dependencies = [
  "candid",
  "http",
- "ic-certification 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-certification 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ic-representation-independent-hash",
  "serde",
  "thiserror",
@@ -2961,9 +2961,9 @@ dependencies = [
 
 [[package]]
 name = "ic-representation-independent-hash"
-version = "2.2.0"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d15dde6234abad419d1871bba56f52c7af66dcaea144a8efdafa01bfec129460"
+checksum = "be48db2f8b954b9b2a0f46424ddedda2728703d7b361bc65328ed17dcacd1e21"
 dependencies = [
  "leb128",
  "sha2 0.10.8",
@@ -2971,9 +2971,9 @@ dependencies = [
 
 [[package]]
 name = "ic-response-verification"
-version = "2.2.0"
+version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "117ac895004a7e78295b56fd21d0a8d4bbc8145d13950a98b687379d0f7dec07"
+checksum = "dd4b20dcd2bc7b1098c79dd545fa9ff7cb8cdca4345e2a823ffa73ebaf542b2b"
 dependencies = [
  "base64 0.21.5",
  "candid",
@@ -2982,7 +2982,7 @@ dependencies = [
  "http",
  "ic-cbor",
  "ic-certificate-verification",
- "ic-certification 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-certification 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ic-http-certification",
  "ic-representation-independent-hash",
  "leb128",
@@ -2995,13 +2995,13 @@ dependencies = [
 
 [[package]]
 name = "ic-response-verification-test-utils"
-version = "2.2.0"
-source = "git+https://github.com/dfinity/response-verification.git?rev=c3390a34bbd8582840ccc9deeebd6f08135b7c4f#c3390a34bbd8582840ccc9deeebd6f08135b7c4f"
+version = "2.3.0"
+source = "git+https://github.com/dfinity/response-verification.git?rev=a65009624b61736df6d2dc17756bdbd02a84f599#a65009624b61736df6d2dc17756bdbd02a84f599"
 dependencies = [
  "base64 0.21.5",
  "flate2",
  "hex",
- "ic-certification 2.2.0 (git+https://github.com/dfinity/response-verification.git?rev=c3390a34bbd8582840ccc9deeebd6f08135b7c4f)",
+ "ic-certification 2.3.0 (git+https://github.com/dfinity/response-verification.git?rev=a65009624b61736df6d2dc17756bdbd02a84f599)",
  "ic-certification-testing",
  "ic-types",
  "leb128",
@@ -3038,7 +3038,7 @@ source = "git+https://github.com/dfinity/agent-rs.git?rev=a7f44ad05e77fc89b8447d
 dependencies = [
  "candid",
  "hex",
- "ic-certification 2.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-certification 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "leb128",
  "serde",
  "serde_bytes",
@@ -3185,8 +3185,9 @@ dependencies = [
 
 [[package]]
 name = "icrc-ledger-types"
-version = "0.1.4"
-source = "git+https://github.com/dfinity/ic.git?rev=1290256484f59c3d950c5e9a098e97383b248ad6#1290256484f59c3d950c5e9a098e97383b248ad6"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "804c892bf95652101660a25cea10f059f73eb8973f6b04e0349758fda1190447"
 dependencies = [
  "base32",
  "candid",
