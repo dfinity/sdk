@@ -233,7 +233,7 @@ Failed to download from url: http://example.com/c.wasm."
   # C: set both dfx:wasm_hash and dfx:wasm_hash_url. This should be avoided by providers.
   CUSTOM_HASH_C="$(sha256sum .dfx/local/canisters/c/c.wasm | cut -d " " -f 1)"
   jq '.canisters.c.pullable.wasm_hash="'"$CUSTOM_HASH_C"'"' dfx.json | sponge dfx.json
-  echo -n $CUSTOM_HASH_C > ../www/c.wasm.sha256
+  echo -n "$CUSTOM_HASH_C" > ../www/c.wasm.sha256
   jq '.canisters.c.pullable.wasm_hash_url="'"http://localhost:$E2E_WEB_SERVER_PORT/c.wasm.sha256"'"' dfx.json | sponge dfx.json
 
   dfx build
