@@ -12,6 +12,10 @@ From a user perspective the limitation will simply have been lifted.
 
 The `dfx cycles` command no longer needs nor accepts the `--cycles-ledger-canister-id <canister id>` parameter.
 
+### chore: removed the dfx start --emulator mode
+
+This was deprecated in dfx 0.15.1.
+
 ### chore: removed ic-ref from the binary cache
 
 ### chore: updated dependencies for new rust projects
