@@ -11,6 +11,7 @@ use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use semver::Version;
+use std::io::{stderr, IsTerminal};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
@@ -77,7 +78,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         // expensive step, and if this fails we can't continue anyway.
         let current_exe = dfx_core::foundation::get_current_exe()?;
 
-        let b: Option<ProgressBar> = if atty::is(atty::Stream::Stderr) {
+        let b: Option<ProgressBar> = if stderr().is_terminal() {
             let b = ProgressBar::new_spinner();
             b.set_draw_target(ProgressDrawTarget::stderr());
             b.set_message(format!("Installing version {} of dfx...", v));
