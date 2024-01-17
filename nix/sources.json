@@ -144,25 +144,25 @@
         "owner": "dfinity",
         "sha256": "0x78h0xy31jdsinrhfa0hb9xyggs3cbn5jfxxy30gfjc4a6j04p1",
         "type": "tarball",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.10.3/motoko-base-library.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.10.4/motoko-base-library.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-base-library.tar.gz",
-        "version": "0.10.3"
+        "version": "0.10.4"
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
-        "sha256": "0ws8i03fvq42zkjrlwlmz67p2dfm7wzng3ilm3gg5igfpqrvvf2w",
+        "sha256": "0mv708lj4hzr3c6ld9mr25l0anvanx6agfrmad7ccw29dnbixjr1",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.10.3/motoko-Darwin-x86_64-0.10.3.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.10.4/motoko-Darwin-x86_64-0.10.4.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Darwin-x86_64-<version>.tar.gz",
-        "version": "0.10.3"
+        "version": "0.10.4"
     },
     "motoko-x86_64-linux": {
         "builtin": false,
-        "sha256": "1h19zkw49qwi8q9sllizpyy84ibgaq85i6p0jc6n8fr5gdy0bs7q",
+        "sha256": "0ml813b4108h3dxcz7lhpcihn4vp1yg9g66chc767hagzsabkgj8",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.10.3/motoko-Linux-x86_64-0.10.3.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.10.4/motoko-Linux-x86_64-0.10.4.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Linux-x86_64-<version>.tar.gz",
-        "version": "0.10.3"
+        "version": "0.10.4"
     },
     "replica-x86_64-darwin": {
         "builtin": false,

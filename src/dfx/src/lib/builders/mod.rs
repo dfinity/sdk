@@ -104,12 +104,13 @@ pub trait CanisterBuilder {
             .context("`output` must not be None")?;
 
         if generate_output_dir.exists() {
-            let generate_output_dir = generate_output_dir.canonicalize().with_context(|| {
-                format!(
-                    "Failed to canonicalize output dir {}.",
-                    generate_output_dir.to_string_lossy()
-                )
-            })?;
+            let generate_output_dir = dfx_core::fs::canonicalize(generate_output_dir)
+                .with_context(|| {
+                    format!(
+                        "Failed to canonicalize output dir {}.",
+                        generate_output_dir.to_string_lossy()
+                    )
+                })?;
             if !generate_output_dir.starts_with(info.get_workspace_root()) {
                 bail!(
                     "Directory at '{}' is outside the workspace root.",
@@ -324,9 +325,7 @@ fn ensure_trailing_newline(s: String) -> String {
 
 pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult<()> {
     let (command_name, arguments) = args.split_first().unwrap();
-    let canonicalized = cwd
-        .join(command_name)
-        .canonicalize()
+    let canonicalized = dfx_core::fs::canonicalize(&cwd.join(command_name))
         .or_else(|_| which::which(command_name))
         .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
     let mut cmd = Command::new(&canonicalized);

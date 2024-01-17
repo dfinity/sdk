@@ -18,7 +18,7 @@ use crate::{
     types::*,
 };
 use asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
-use candid::Principal;
+use candid::{candid_method, Principal};
 use ic_cdk::api::{call::ManualReply, caller, data_certificate, set_certified_data, time, trap};
 use ic_cdk::{query, update};
 use serde_bytes::ByteBuf;
@@ -33,16 +33,19 @@ thread_local! {
 }
 
 #[query]
+#[candid_method(query)]
 fn api_version() -> u16 {
     1
 }
 
 #[update(guard = "is_manager_or_controller")]
+#[candid_method(update)]
 fn authorize(other: Principal) {
     STATE.with(|s| s.borrow_mut().grant_permission(other, &Permission::Commit))
 }
 
 #[update(guard = "is_manager_or_controller")]
+#[candid_method(update)]
 fn grant_permission(arg: GrantPermissionArguments) {
     STATE.with(|s| {
         s.borrow_mut()
@@ -51,6 +54,7 @@ fn grant_permission(arg: GrantPermissionArguments) {
 }
 
 #[update]
+#[candid_method(update)]
 async fn validate_grant_permission(arg: GrantPermissionArguments) -> Result<String, String> {
     Ok(format!(
         "grant {} permission to principal {}",
@@ -59,6 +63,7 @@ async fn validate_grant_permission(arg: GrantPermissionArguments) -> Result<Stri
 }
 
 #[update]
+#[candid_method(update)]
 async fn deauthorize(other: Principal) {
     let check_access_result = if other == caller() {
         // this isn't "ManagePermissions" because these legacy methods only
@@ -74,6 +79,7 @@ async fn deauthorize(other: Principal) {
 }
 
 #[update]
+#[candid_method(update)]
 async fn revoke_permission(arg: RevokePermissionArguments) {
     let check_access_result = if arg.of_principal == caller() {
         has_permission_or_is_controller(&arg.permission)
@@ -90,6 +96,7 @@ async fn revoke_permission(arg: RevokePermissionArguments) {
 }
 
 #[update]
+#[candid_method(update)]
 async fn validate_revoke_permission(arg: RevokePermissionArguments) -> Result<String, String> {
     Ok(format!(
         "revoke {} permission from principal {}",
@@ -98,27 +105,32 @@ async fn validate_revoke_permission(arg: RevokePermissionArguments) -> Result<St
 }
 
 #[update(manual_reply = true)]
+#[candid_method(update)]
 fn list_authorized() -> ManualReply<Vec<Principal>> {
     STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&Permission::Commit)))
 }
 
 #[update(manual_reply = true)]
+#[candid_method(update)]
 fn list_permitted(arg: ListPermittedArguments) -> ManualReply<Vec<Principal>> {
     STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&arg.permission)))
 }
 
 #[update(guard = "is_controller")]
+#[candid_method(update)]
 async fn take_ownership() {
     let caller = ic_cdk::api::caller();
     STATE.with(|s| s.borrow_mut().take_ownership(caller))
 }
 
 #[update]
+#[candid_method(update)]
 async fn validate_take_ownership() -> Result<String, String> {
     Ok("revoke all permissions, then gives the caller Commit permissions".to_string())
 }
 
 #[query]
+#[candid_method(query)]
 fn retrieve(key: AssetKey) -> RcBytes {
     STATE.with(|s| match s.borrow().retrieve(&key) {
         Ok(bytes) => bytes,
@@ -127,6 +139,7 @@ fn retrieve(key: AssetKey) -> RcBytes {
 }
 
 #[update(guard = "can_commit")]
+#[candid_method(update)]
 fn store(arg: StoreArg) {
     STATE.with(move |s| {
         if let Err(msg) = s.borrow_mut().store(arg, time()) {
@@ -137,6 +150,7 @@ fn store(arg: StoreArg) {
 }
 
 #[update(guard = "can_prepare")]
+#[candid_method(update)]
 fn create_batch() -> CreateBatchResponse {
     STATE.with(|s| match s.borrow_mut().create_batch(time()) {
         Ok(batch_id) => CreateBatchResponse { batch_id },
@@ -145,6 +159,7 @@ fn create_batch() -> CreateBatchResponse {
 }
 
 #[update(guard = "can_prepare")]
+#[candid_method(update)]
 fn create_chunk(arg: CreateChunkArg) -> CreateChunkResponse {
     STATE.with(|s| match s.borrow_mut().create_chunk(arg, time()) {
         Ok(chunk_id) => CreateChunkResponse { chunk_id },
@@ -153,6 +168,7 @@ fn create_chunk(arg: CreateChunkArg) -> CreateChunkResponse {
 }
 
 #[update(guard = "can_commit")]
+#[candid_method(update)]
 fn create_asset(arg: CreateAssetArguments) {
     STATE.with(|s| {
         if let Err(msg) = s.borrow_mut().create_asset(arg) {
@@ -163,6 +179,7 @@ fn create_asset(arg: CreateAssetArguments) {
 }
 
 #[update(guard = "can_commit")]
+#[candid_method(update)]
 fn set_asset_content(arg: SetAssetContentArguments) {
     STATE.with(|s| {
         if let Err(msg) = s.borrow_mut().set_asset_content(arg, time()) {
@@ -173,6 +190,7 @@ fn set_asset_content(arg: SetAssetContentArguments) {
 }
 
 #[update(guard = "can_commit")]
+#[candid_method(update)]
 fn unset_asset_content(arg: UnsetAssetContentArguments) {
     STATE.with(|s| {
         if let Err(msg) = s.borrow_mut().unset_asset_content(arg) {
@@ -183,6 +201,7 @@ fn unset_asset_content(arg: UnsetAssetContentArguments) {
 }
 
 #[update(guard = "can_commit")]
+#[candid_method(update)]
 fn delete_asset(arg: DeleteAssetArguments) {
     STATE.with(|s| {
         s.borrow_mut().delete_asset(arg);
@@ -191,6 +210,7 @@ fn delete_asset(arg: DeleteAssetArguments) {
 }
 
 #[update(guard = "can_commit")]
+#[candid_method(update)]
 fn clear() {
     STATE.with(|s| {
         s.borrow_mut().clear();
@@ -199,6 +219,7 @@ fn clear() {
 }
 
 #[update(guard = "can_commit")]
+#[candid_method(update)]
 fn commit_batch(arg: CommitBatchArguments) {
     STATE.with(|s| {
         if let Err(msg) = s.borrow_mut().commit_batch(arg, time()) {
@@ -209,6 +230,7 @@ fn commit_batch(arg: CommitBatchArguments) {
 }
 
 #[update(guard = "can_prepare")]
+#[candid_method(update)]
 fn propose_commit_batch(arg: CommitBatchArguments) {
     STATE.with(|s| {
         if let Err(msg) = s.borrow_mut().propose_commit_batch(arg) {
@@ -218,6 +240,7 @@ fn propose_commit_batch(arg: CommitBatchArguments) {
 }
 
 #[update(guard = "can_prepare")]
+#[candid_method(update)]
 fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ByteBuf> {
     STATE.with(|s| match s.borrow_mut().compute_evidence(arg) {
         Err(msg) => trap(&msg),
@@ -226,6 +249,7 @@ fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ByteBuf> {
 }
 
 #[update(guard = "can_commit")]
+#[candid_method(update)]
 fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
     STATE.with(|s| {
         if let Err(msg) = s.borrow_mut().commit_proposed_batch(arg, time()) {
@@ -236,11 +260,13 @@ fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
 }
 
 #[update]
+#[candid_method(update)]
 fn validate_commit_proposed_batch(arg: CommitProposedBatchArguments) -> Result<String, String> {
     STATE.with(|s| s.borrow_mut().validate_commit_proposed_batch(arg))
 }
 
 #[update(guard = "can_prepare")]
+#[candid_method(update)]
 fn delete_batch(arg: DeleteBatchArguments) {
     STATE.with(|s| {
         if let Err(msg) = s.borrow_mut().delete_batch(arg) {
@@ -250,6 +276,7 @@ fn delete_batch(arg: DeleteBatchArguments) {
 }
 
 #[query]
+#[candid_method(query)]
 fn get(arg: GetArg) -> EncodedAsset {
     STATE.with(|s| match s.borrow().get(arg) {
         Ok(asset) => asset,
@@ -258,6 +285,7 @@ fn get(arg: GetArg) -> EncodedAsset {
 }
 
 #[query]
+#[candid_method(query)]
 fn get_chunk(arg: GetChunkArg) -> GetChunkResponse {
     STATE.with(|s| match s.borrow().get_chunk(arg) {
         Ok(content) => GetChunkResponse { content },
@@ -266,11 +294,13 @@ fn get_chunk(arg: GetChunkArg) -> GetChunkResponse {
 }
 
 #[query]
+#[candid_method(query)]
 fn list() -> Vec<AssetDetails> {
     STATE.with(|s| s.borrow().list_assets())
 }
 
 #[query]
+#[candid_method(query)]
 fn certified_tree() -> CertifiedTree {
     let certificate = data_certificate().unwrap_or_else(|| trap("no data certificate available"));
 
@@ -278,6 +308,7 @@ fn certified_tree() -> CertifiedTree {
 }
 
 #[query]
+#[candid_method(query)]
 fn http_request(req: HttpRequest) -> HttpResponse {
     let certificate = data_certificate().unwrap_or_else(|| trap("no data certificate available"));
 
@@ -291,6 +322,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
 }
 
 #[query]
+#[candid_method(query)]
 fn http_request_streaming_callback(token: StreamingCallbackToken) -> StreamingCallbackHttpResponse {
     STATE.with(|s| {
         s.borrow()
@@ -300,6 +332,7 @@ fn http_request_streaming_callback(token: StreamingCallbackToken) -> StreamingCa
 }
 
 #[query]
+#[candid_method(query)]
 fn get_asset_properties(key: AssetKey) -> AssetProperties {
     STATE.with(|s| {
         s.borrow()
@@ -309,6 +342,7 @@ fn get_asset_properties(key: AssetKey) -> AssetProperties {
 }
 
 #[update(guard = "can_commit")]
+#[candid_method(update)]
 fn set_asset_properties(arg: SetAssetPropertiesArguments) {
     STATE.with(|s| {
         if let Err(msg) = s.borrow_mut().set_asset_properties(arg) {
@@ -318,16 +352,19 @@ fn set_asset_properties(arg: SetAssetPropertiesArguments) {
 }
 
 #[update(guard = "can_prepare")]
+#[candid_method(update)]
 fn get_configuration() -> ConfigurationResponse {
     STATE.with(|s| s.borrow().get_configuration())
 }
 
 #[update(guard = "can_commit")]
+#[candid_method(update)]
 fn configure(arg: ConfigureArguments) {
     STATE.with(|s| s.borrow_mut().configure(arg))
 }
 
 #[update]
+#[candid_method(update)]
 fn validate_configure(arg: ConfigureArguments) -> Result<String, String> {
     Ok(format!("configure: {:?}", arg))
 }
@@ -378,9 +415,7 @@ fn is_controller() -> Result<(), String> {
 
 pub fn init(args: Option<AssetCanisterArgs>) {
     if let Some(upgrade_arg) = args {
-        let AssetCanisterArgs::Init(InitArgs {}) = upgrade_arg else {
-            ic_cdk::trap("Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.")
-        };
+        let AssetCanisterArgs::Init(InitArgs {}) = upgrade_arg else { ic_cdk::trap("Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.")};
     }
     STATE.with(|s| {
         let mut s = s.borrow_mut();

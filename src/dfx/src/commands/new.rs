@@ -2,6 +2,7 @@ use crate::config::cache::DiskBasedCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
+use crate::lib::program;
 use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
 use anyhow::{anyhow, bail, ensure, Context};
@@ -249,12 +250,12 @@ fn write_files_from_entries<R: Sized + Read>(
 
 #[context("Failed to run 'npm install'.")]
 fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
-    std::process::Command::new("npm")
+    Command::new(program::NPM)
         .arg("install")
         .arg("--quiet")
         .arg("--no-progress")
-        .stdout(std::process::Stdio::inherit())
-        .stderr(std::process::Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .current_dir(location)
         .spawn()
         .map_err(DfxError::from)
@@ -271,7 +272,7 @@ fn scaffold_frontend_code(
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
     let log = env.get_logger();
-    let node_installed = std::process::Command::new("node")
+    let node_installed = Command::new(program::NODE)
         .arg("--version")
         .output()
         .is_ok();
@@ -383,12 +384,12 @@ fn scaffold_frontend_code(
 }
 
 fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
-    std::process::Command::new("npm")
+    Command::new(program::NPM)
         .arg("show")
         .arg("@dfinity/agent")
         .arg(&format!("dist-tags.{}", dist_tag))
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::inherit())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
         .spawn()
         .map_err(DfxError::from)
         .and_then(|child| {

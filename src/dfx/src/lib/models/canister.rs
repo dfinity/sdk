@@ -12,9 +12,12 @@ use crate::util::{assets, check_candid_file};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
-use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
+use dfx_core::config::model::dfinity::{
+    CanisterMetadataSection, Config, MetadataVisibility, WasmOptLevel,
+};
 use fn_error_context::context;
 use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
+use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
@@ -127,9 +130,15 @@ impl Canister {
 
         // optimize or shrink
         if let Some(level) = info.get_optimize() {
-            //trace!(logger, "Optimizing WASM at level {}", level);
-            ic_wasm::optimize::optimize(&mut m, &level, false, &None, false)
-                .context("Failed to optimize the WASM module.")?;
+            trace!(logger, "Optimizing WASM at level {}", level);
+            ic_wasm::optimize::optimize(
+                &mut m,
+                &wasm_opt_level_convert(level),
+                false,
+                &None,
+                false,
+            )
+            .context("Failed to optimize the WASM module.")?;
             modified = true;
         } else if info.get_shrink() == Some(true)
             || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
@@ -311,20 +320,46 @@ impl Canister {
     }
 }
 
+fn wasm_opt_level_convert(opt_level: WasmOptLevel) -> OptLevel {
+    use WasmOptLevel::*;
+    match opt_level {
+        O0 => OptLevel::O0,
+        O1 => OptLevel::O1,
+        O2 => OptLevel::O2,
+        O3 => OptLevel::O3,
+        O4 => OptLevel::O4,
+        Os => OptLevel::Os,
+        Oz => OptLevel::Oz,
+        Size => OptLevel::Oz,
+        Cycles => OptLevel::O3,
+    }
+}
+
 fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
-    use candid_parser::utils::{instantiate_candid, CandidSource};
-    // TODO: comments are omitted in the output
-    let (init_args, (env, actor)) = instantiate_candid(CandidSource::File(path))?;
-    let init_args = candid::pretty::candid::pp_args(&init_args)
-        .pretty(80)
-        .to_string();
-    let service_did = candid::pretty::candid::compile(&env, &Some(actor));
-    Ok((service_did, init_args))
+    let (env, actor) = check_candid_file(path)?;
+    let actor = actor.ok_or_else(|| anyhow!("provided candid file contains no main service"))?;
+    if let candid::types::internal::TypeInner::Class(args, ty) = actor.as_ref() {
+        use candid_parser::pretty::{
+            candid::{compile, pp_ty},
+            utils::{concat, enclose},
+        };
+
+        let actor = Some(ty.clone());
+        let service_did = compile(&env, &actor);
+        let doc = concat(args.iter().map(pp_ty), ",");
+        let init_args = enclose("(", doc, ")").pretty(80).to_string();
+        Ok((service_did, init_args))
+    } else {
+        // The original candid from builder output doesn't contain init_args
+        // Use it directly to avoid items reordering
+        let service_did = dfx_core::fs::read_to_string(path)?;
+        let init_args = String::from("()");
+        Ok((service_did, init_args))
+    }
 }
 
 #[context("{} is not a valid subtype of {}", specified_idl_path.display(), compiled_idl_path.display())]
 fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> DfxResult {
-    use candid::types::subtype::{subtype_with_config, OptReport};
     let (mut env, opt_specified) =
         check_candid_file(specified_idl_path).context("Checking specified candid file.")?;
     let specified_type =
@@ -335,13 +370,7 @@ fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> D
         opt_compiled.expect("Compiled did file should contain some service interface");
     let mut gamma = HashSet::new();
     let specified_type = env.merge_type(env2, specified_type);
-    subtype_with_config(
-        OptReport::Error,
-        &mut gamma,
-        &env,
-        &compiled_type,
-        &specified_type,
-    )?;
+    candid::types::subtype::subtype(&mut gamma, &env, &compiled_type, &specified_type)?;
     Ok(())
 }
 

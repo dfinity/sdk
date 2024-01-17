@@ -6,6 +6,7 @@ use backoff::ExponentialBackoff;
 use bytes::Bytes;
 use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
 use candid::IDLArgs;
+use candid_parser::error::pretty_diagnose;
 use candid_parser::typing::pretty_check_file;
 use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
@@ -179,12 +180,8 @@ pub fn blob_from_arguments(
                 None => {
                     let arguments = arguments.unwrap_or("()");
                     candid_parser::parse_idl_args(arguments)
-                        .or_else(|e| {
-                            candid_parser::error::pretty_diagnose("Candid argument", arguments, &e)
-                                .unwrap();
-                            //error_invalid_argument!("Invalid Candid values: {}", e)
-                            Err(e)
-                        })?
+                        .or_else(|e| pretty_wrap("Candid argument", arguments, e))
+                        .map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
                         .to_bytes()
                 }
                 Some((env, func)) => {
@@ -247,11 +244,12 @@ pub fn fuzzy_parse_argument(
                 Ok(IDLValue::Text(arg_str.to_string()))
             } else {
                 candid_parser::parse_idl_value(arg_str)
+                    .or_else(|e| pretty_wrap("Candid argument", arg_str, e))
             }
             .map(|v| IDLArgs::new(&[v]))
         } else {
-            //candid::pretty_parse::<IDLArgs>("Candid argument", arg_str)
             candid_parser::parse_idl_args(arg_str)
+                .or_else(|e| pretty_wrap("Candid argument", arg_str, e))
         }
     });
     let bytes = args
@@ -259,6 +257,15 @@ pub fn fuzzy_parse_argument(
         .to_bytes_with_types(env, types)
         .map_err(|e| error_invalid_data!("Unable to serialize Candid values: {}", e))?;
     Ok(bytes)
+}
+
+fn pretty_wrap<T>(
+    file_name: &str,
+    source: &str,
+    e: candid_parser::Error,
+) -> Result<T, candid_parser::Error> {
+    pretty_diagnose(file_name, source, &e)?;
+    Err(e)
 }
 
 pub fn format_as_trillions(amount: u128) -> String {

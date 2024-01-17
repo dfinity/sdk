@@ -10,10 +10,11 @@ use crate::types::{
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::{Nat, Principal};
-use ic_certification_testing::CertificateBuilder;
 use ic_crypto_tree_hash::Digest;
+use ic_response_verification::ResponseVerificationError;
 use ic_response_verification_test_utils::{
-    base64_encode, create_canister_id, get_current_timestamp,
+    base64_encode, create_canister_id, get_current_timestamp, CanisterData, CertificateBuilder,
+    CertificateData,
 };
 use serde_bytes::ByteBuf;
 use std::collections::HashMap;
@@ -33,20 +34,21 @@ pub fn verify_response(
     state: &State,
     request: &HttpRequest,
     response: &HttpResponse,
-) -> anyhow::Result<bool> {
+) -> Result<bool, ResponseVerificationError> {
     let mut response = response.clone();
     let current_time = get_current_timestamp();
     let canister_id = create_canister_id("rdmx6-jaaaa-aaaaa-aaadq-cai");
     let min_requested_verification_version = request.get_certificate_version();
 
     // inject certificate into IC-Certificate header with 'certificate=::'
-    let data = CertificateBuilder::new(
-        &canister_id.to_string(),
-        Digest(state.root_hash()).as_bytes(),
-    )?
-    .with_time(current_time)
-    .build()?;
-    let replacement_cert_value = base64_encode(&data.cbor_encoded_certificate);
+    let (_cert, root_key, cert_cbor) =
+        CertificateBuilder::new(CertificateData::CanisterData(CanisterData {
+            canister_id,
+            certified_data: Digest(state.root_hash()),
+        }))
+        .with_time(current_time)
+        .build();
+    let replacement_cert_value = base64_encode(&cert_cbor);
     let (_, header_value) = response
         .headers
         .iter_mut()
@@ -58,28 +60,26 @@ pub fn verify_response(
     );
 
     // actual verification
-    let request = ic_http_certification::http::HttpRequest {
+    let request = ic_response_verification::types::Request {
         method: request.method.clone(),
         url: request.url.clone(),
         headers: request.headers.clone(),
-        body: request.body[..].into(),
     };
-    let response = ic_http_certification::http::HttpResponse {
+    let response = ic_response_verification::types::Response {
         status_code: response.status_code,
         headers: response.headers,
         body: response.body[..].into(),
-        upgrade: None,
     };
-    Ok(ic_response_verification::verify_request_response_pair(
+    ic_response_verification::verify_request_response_pair(
         request,
         response,
         canister_id.as_ref(),
         current_time,
         MAX_CERT_TIME_OFFSET_NS,
-        &data.root_key,
+        &root_key,
         min_requested_verification_version.try_into().unwrap(),
     )
-    .map(|res| res.response.is_some())?)
+    .map(|res| res.passed)
 }
 
 fn certified_http_request(state: &State, request: HttpRequest) -> HttpResponse {
@@ -962,7 +962,7 @@ fn uses_streaming_for_multichunk_assets() {
             .http_request_streaming_callback(StreamingCallbackToken {
                 key: "/index.html".to_string(),
                 content_encoding: "identity".to_string(),
-                index: Nat::from(1u8),
+                index: Nat::from(1_u8),
                 sha256: None,
             })
             .unwrap_err(),
@@ -1005,7 +1005,7 @@ fn get_and_get_chunk_for_multichunk_assets() {
         .get_chunk(GetChunkArg {
             key: "/index.html".to_string(),
             content_encoding: "identity".to_string(),
-            index: Nat::from(1u8),
+            index: Nat::from(1_u8),
             sha256: chunk_0.sha256,
         })
         .unwrap();
@@ -1017,7 +1017,7 @@ fn get_and_get_chunk_for_multichunk_assets() {
             .get_chunk(GetChunkArg {
                 key: "/index.html".to_string(),
                 content_encoding: "identity".to_string(),
-                index: Nat::from(1u8),
+                index: Nat::from(1_u8),
                 sha256: None,
             })
             .unwrap_err(),
@@ -3347,7 +3347,7 @@ mod validate_commit_proposed_batch {
         let time_now = 100_000_000_000;
 
         match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
-            batch_id: 1u8.into(),
+            batch_id: 1_u8.into(),
             evidence: Default::default(),
         }) {
             Err(err) if err.contains("batch not found") => (),
@@ -3356,7 +3356,7 @@ mod validate_commit_proposed_batch {
 
         match state.commit_proposed_batch(
             CommitProposedBatchArguments {
-                batch_id: 1u8.into(),
+                batch_id: 1_u8.into(),
                 evidence: Default::default(),
             },
             time_now,
