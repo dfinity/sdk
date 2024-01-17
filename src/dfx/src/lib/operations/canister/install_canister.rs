@@ -63,13 +63,15 @@ pub async fn install_canister(
     );
     let mode = mode.unwrap_or_else(|| {
         if installed_module_hash.is_some() {
-            InstallMode::Upgrade
+            InstallMode::Upgrade {
+                skip_pre_upgrade: false,
+            }
         } else {
             InstallMode::Install
         }
     });
     if let Some(canister_info) = canister_info {
-        if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade) {
+        if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade { .. }) {
             let candid = read_module_metadata(agent, canister_id, "candid:service").await;
             if let Some(candid) = &candid {
                 match check_candid_compatibility(canister_info, candid) {
@@ -85,7 +87,8 @@ pub async fn install_canister(
                 }
             }
         }
-        if !skip_consent && canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade) {
+        if !skip_consent && canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade { .. })
+        {
             let stable_types =
                 read_module_metadata(agent, canister_id, "motoko:stable-types").await;
             if let Some(stable_types) = &stable_types {
@@ -120,7 +123,7 @@ pub async fn install_canister(
     let new_hash = Sha256::digest(&wasm_module);
     debug!(log, "New wasm module hash: {}", hex::encode(new_hash));
 
-    if mode == InstallMode::Upgrade
+    if matches!(mode, InstallMode::Upgrade { .. })
         && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash[..])
         && !upgrade_unchanged
     {

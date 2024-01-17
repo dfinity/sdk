@@ -1,0 +1,10 @@
+{
+    "canisters": {
+        "large": {
+            "type": "custom",
+            "wasm": "large.wasm",
+            "candid": "large.did",
+            "build": []
+        } 
+    }
+}

@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: large canister modules now supported
+
+When using `dfx deploy` or `dfx canister install`, previously WASM modules larger than 2MiB would be rejected.
+They are now automatically submitted via the chunking API if they are large enough.
+From a user perspective the limitation will simply have been lifted.
+
 ### feat!: update `dfx cycles` commands with mainnet `cycles-ledger` canister ID
 
 The `dfx cycles` command no longer needs nor accepts the `--cycles-ledger-canister-id <canister id>` parameter.
