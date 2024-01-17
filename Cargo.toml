@@ -9,12 +9,13 @@ members = [
     "src/canisters/frontend/ic-frontend-canister",
 ]
 default-members = ["src/dfx"]
+resolver = "2"
 
 [workspace.package]
 authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
 edition = "2021"
 repository = "https://github.com/dfinity/sdk"
-rust-version = "1.71.1"
+rust-version = "1.75.0"
 license = "Apache-2.0"
 
 [workspace.dependencies]
