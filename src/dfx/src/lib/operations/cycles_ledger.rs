@@ -9,17 +9,18 @@ use crate::lib::operations::canister::create_canister::{
     CANISTER_CREATE_FEE, CANISTER_INITIAL_CYCLE_BALANCE,
 };
 use crate::lib::retryable::retryable;
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use backoff::future::retry;
 use backoff::ExponentialBackoff;
 use candid::{CandidType, Decode, Encode, Nat, Principal};
+use dfx_core::canister::build_wallet_canister;
 use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::call::SyncCall;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
-use ic_utils::Canister;
+use ic_utils::{Argument, Canister};
 use icrc_ledger_types::icrc1;
-use icrc_ledger_types::icrc1::account::Subaccount;
+use icrc_ledger_types::icrc1::account::{Account, Subaccount};
 use icrc_ledger_types::icrc1::transfer::{BlockIndex, TransferError};
 use serde::Deserialize;
 use slog::{info, Logger};
@@ -33,6 +34,7 @@ const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
 const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
 const SEND_METHOD: &str = "send";
 const CREATE_CANISTER_METHOD: &str = "create_canister";
+const CYCLES_LEDGER_DEPOSIT_METHOD: &str = "deposit";
 const CYCLES_LEDGER_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x02, 0x10, 0x00, 0x02, 0x01, 0x01]);
 
@@ -318,6 +320,32 @@ pub async fn create_with_cycles_ledger(
         }
         Err(err) => bail!(err),
     }
+}
+
+pub async fn wallet_deposit_to_cycles_ledger(
+    agent: &Agent,
+    wallet_id: Principal,
+    cycles_to_withdraw: u128,
+    to: Account,
+) -> DfxResult {
+    // TODO(FI-1022): Import types from cycles ledger crate once available
+    #[derive(CandidType)]
+    pub struct DepositArg {
+        pub to: Account,
+        pub memo: Option<Vec<u8>>,
+    }
+
+    build_wallet_canister(wallet_id, agent)
+        .await?
+        .call128(
+            CYCLES_LEDGER_CANISTER_ID,
+            CYCLES_LEDGER_DEPOSIT_METHOD,
+            Argument::from_candid((DepositArg { to, memo: None },)),
+            cycles_to_withdraw,
+        )
+        .call_and_wait()
+        .await
+        .context("Failed deposit call.")
 }
 
 #[test]
