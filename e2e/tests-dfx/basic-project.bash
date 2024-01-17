@@ -47,7 +47,9 @@ teardown() {
   assert_eq \
 '(
   variant {
-    17_724 = record { 153_986_224 = blob "DIDL\00\01q\11Hello, Blueberry!" }
+    17_724 = record {
+      153_986_224 = blob "\44\49\44\4c\00\01\71\11\48\65\6c\6c\6f\2c\20\42\6c\75\65\62\65\72\72\79\21";
+    }
   },
 )'
 }
@@ -100,7 +102,12 @@ teardown() {
   # Call using the wallet's call forwarding
   assert_command dfx canister call hello_backend read --async --wallet="$(dfx identity get-wallet)"
   assert_command dfx canister request-status "$stdout" "$(dfx identity get-wallet)"
-  assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01}\b9\0a" } })'
+  assert_eq \
+'(
+  variant {
+    17_724 = record { 153_986_224 = blob "\44\49\44\4c\00\01\7d\b9\0a" }
+  },
+)'
 
 }
 
