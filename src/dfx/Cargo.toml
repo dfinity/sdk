@@ -39,7 +39,8 @@ backoff.workspace = true
 base64.workspace = true
 byte-unit = { workspace = true, features = ["serde"] }
 bytes.workspace = true
-candid = { workspace = true, features = ["random"] }
+candid = { workspace = true }
+candid_parser = { workspace = true, features = ["random"] }
 clap = { workspace = true, features = [
     "derive",
     "env",
@@ -66,8 +67,8 @@ ic-asset.workspace = true
 ic-cdk.workspace = true
 ic-identity-hsm = { workspace = true }
 ic-utils = { workspace = true }
-ic-wasm = "0.4.0"
-icrc-ledger-types = "0.1.1"
+ic-wasm = "0.7.0"
+icrc-ledger-types = "0.1.5"
 indicatif = "0.16.0"
 itertools.workspace = true
 json-patch = "1.0.0"

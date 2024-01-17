@@ -23,6 +23,10 @@ Now they are stored with nanosecond precision on Windows too.
 
 Updated Motoko to [0.10.4](https://github.com/dfinity/motoko/releases/tag/0.10.4)
 
+### Frontend canister
+
+Module hash: 657938477f1dee46db70b5a9f0bd167ec5ffcd2f930a1d96593c17dcddef61b3
+
 # 0.15.3
 
 ### fix: allow `http://localhost:*` as `connect-src` in the asset canister's CSP
@@ -1352,7 +1356,7 @@ Additionally, after build step, the `.wasm` file is archived with `gzip`.
 ### chore: Move all `frontend canister`-related code into the SDK repo
 
 | from (`repository` `path`)                  | to (path in `dfinity/sdk` repository)          | summary                                                                                     |
-| :------------------------------------------ | :--------------------------------------------- | :------------------------------------------------------------------------------------------ |
+|:--------------------------------------------|:-----------------------------------------------|:--------------------------------------------------------------------------------------------|
 | `dfinity/cdk-rs` `/src/ic-certified-assets` | `/src/canisters/frontend/ic-certified-asset`   | the core of the frontend canister                                                           |
 | `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-frontend-canister` | wraps `ic-certified-assets` to build the canister wasm                                      |
 | `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`             | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |
