@@ -8,6 +8,8 @@ use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use slog::info;
 
+const SECONDS_PER_DAY: u128 = 24 * 60 * 60;
+
 /// Returns the current status of a canister: Running, Stopping, or Stopped. Also carries information like balance, current settings, memory used and everything returned by 'info'.
 #[derive(Parser)]
 pub struct CanisterStatusOpts {
@@ -47,19 +49,30 @@ async fn canister_status(
         "Not Set".to_string()
     };
 
-    info!(log, "Canister status call result for {}.\nStatus: {}\nControllers: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nReserved: {} Cycles\nReserved Cycles Limit: {}\nModule hash: {}",
+    let freezing_limit_cycles = (status.idle_cycles_burned_per_day
+        * status.settings.freezing_threshold.clone()
+        / SECONDS_PER_DAY)
+        - status.reserved_cycles.clone();
+
+    info!(log, "Canister status call result for {}.\nStatus: {}\nControllers: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold in seconds: {}\nFreezing limit in cycles: {}\nMemory Size: {:?}\nBalance: {} Cycles\nReserved: {} Cycles\nReserved Cycles Limit: {}\nModule hash: {}",
         canister,
         status.status,
         controllers.join(" "),
         status.settings.memory_allocation,
         status.settings.compute_allocation,
         status.settings.freezing_threshold,
+        freezing_limit_cycles,
         status.memory_size,
         status.cycles,
         status.reserved_cycles,
         reserved_cycles_limit,
         status.module_hash.map_or_else(|| "None".to_string(), |v| format!("0x{}", hex::encode(v)))
     );
+
+    if status.cycles < freezing_limit_cycles {
+        info!(log, "\nCanister {} is frozen. Please top it up with at least {} cycles to unfreeze it. Then top it up with enough cycles to account for processing calls.", canister, freezing_limit_cycles - status.cycles);
+    }
+
     Ok(())
 }
 
