@@ -180,17 +180,16 @@ Failed to download from url: http://example.com/c.wasm."
   assert_command dfx deps pull --network local -vvv
   assert_contains "The canister wasm was found in the cache." # cache hit
 
-  # sad path 1: wasm hash doesn't match on chain
+  # warning: hash mismatch
   rm -r "${PULLED_DIR:?}/"
   cd ../onchain
   cp .dfx/local/canisters/c/c.wasm ../www/a.wasm
 
   cd ../app
-  assert_command_fail dfx deps pull --network local
-  assert_contains "Failed to pull canister $CANISTER_ID_A."
-  assert_contains "Hash mismatch."
+  assert_command dfx deps pull --network local
+  assert_contains "WARN: Canister $CANISTER_ID_A has different hash between on chain and download."
 
-  # sad path 2: url server doesn't have the file
+  # sad path: url server doesn't have the file
   rm -r "${PULLED_DIR:?}/"
   rm ../www/a.wasm
 
@@ -198,7 +197,6 @@ Failed to download from url: http://example.com/c.wasm."
   assert_contains "Failed to pull canister $CANISTER_ID_A."
   assert_contains "Failed to download from url:"
 }
-
 
 @test "dfx deps pull can check hash when dfx:wasm_hash specified" {
   use_test_specific_cache_root # dfx deps pull will download files to cache
@@ -244,17 +242,16 @@ Failed to download from url: http://example.com/c.wasm."
   assert_command dfx deps pull --network local -vvv
   assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
 
-  # error case: hash mismatch
+  # warning: hash mismatch
   PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
   rm -r "${PULLED_DIR:?}/"
   cd ../onchain
   cp .dfx/local/canisters/a/a.wasm ../www/a.wasm # now the webserver has the onchain version of canister_a which won't match wasm_hash
 
   cd ../app
-  assert_command_fail dfx deps pull --network local -vvv
+  assert_command dfx deps pull --network local -vvv
   assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
-  assert_contains "Failed to pull canister $CANISTER_ID_A."
-  assert_contains "Hash mismatch."
+  assert_contains "WARN: Canister $CANISTER_ID_A has different hash between on chain and download."
 }
 
 @test "dfx deps init works" {

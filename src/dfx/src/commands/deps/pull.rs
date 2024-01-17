@@ -21,7 +21,7 @@ use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
 use ic_wasm::metadata::get_metadata;
 use sha2::{Digest, Sha256};
-use slog::{error, info, trace, Logger};
+use slog::{error, info, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::io::Write;
 use std::path::Path;
@@ -205,10 +205,12 @@ async fn download_and_generate_pulled_canister(
         // hash check
         let hash_download = Sha256::digest(&content);
         if hash_download.as_slice() != hash_on_chain {
-            bail!(
-                "Hash mismatch.
+            warn!(
+                logger,
+                "Canister {} has different hash between on chain and download.
 on chain: {}
 download: {}",
+                canister_id,
                 hex::encode(hash_on_chain),
                 hex::encode(hash_download.as_slice())
             );
