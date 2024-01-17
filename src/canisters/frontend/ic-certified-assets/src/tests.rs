@@ -962,7 +962,7 @@ fn uses_streaming_for_multichunk_assets() {
             .http_request_streaming_callback(StreamingCallbackToken {
                 key: "/index.html".to_string(),
                 content_encoding: "identity".to_string(),
-                index: Nat::from(1),
+                index: Nat::from(1_u8),
                 sha256: None,
             })
             .unwrap_err(),
@@ -1005,7 +1005,7 @@ fn get_and_get_chunk_for_multichunk_assets() {
         .get_chunk(GetChunkArg {
             key: "/index.html".to_string(),
             content_encoding: "identity".to_string(),
-            index: Nat::from(1),
+            index: Nat::from(1_u8),
             sha256: chunk_0.sha256,
         })
         .unwrap();
@@ -1017,7 +1017,7 @@ fn get_and_get_chunk_for_multichunk_assets() {
             .get_chunk(GetChunkArg {
                 key: "/index.html".to_string(),
                 content_encoding: "identity".to_string(),
-                index: Nat::from(1),
+                index: Nat::from(1_u8),
                 sha256: None,
             })
             .unwrap_err(),
@@ -3347,7 +3347,7 @@ mod validate_commit_proposed_batch {
         let time_now = 100_000_000_000;
 
         match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
-            batch_id: 1.into(),
+            batch_id: 1_u8.into(),
             evidence: Default::default(),
         }) {
             Err(err) if err.contains("batch not found") => (),
@@ -3356,7 +3356,7 @@ mod validate_commit_proposed_batch {
 
         match state.commit_proposed_batch(
             CommitProposedBatchArguments {
-                batch_id: 1.into(),
+                batch_id: 1_u8.into(),
                 evidence: Default::default(),
             },
             time_now,
