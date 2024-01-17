@@ -279,7 +279,6 @@ async fn fetch_metadata(
 // If `wasm_hash` is specified in dfx metadata, use it.
 // If `wasm_hash_url` is specified in dfx metadata, download the hash from the url.
 // Otherwise, get the hash of the on chain canister.
-#[context("Failed to get hash of canister {canister_id}.")]
 async fn get_hash_on_chain(
     agent: &Agent,
     logger: &Logger,
@@ -294,16 +293,22 @@ async fn get_hash_on_chain(
             logger,
             "Canister {canister_id} specified a custom hash: {wasm_hash_str}"
         );
-        Ok(hex::decode(wasm_hash_str)?)
+        Ok(hex::decode(wasm_hash_str)
+            .with_context(|| format!("Failed to decode {wasm_hash_str} as sha256 hash."))?)
     } else if let Some(wasm_hash_url) = &pullable.wasm_hash_url {
         trace!(
             logger,
             "Canister {canister_id} specified a custom hash via url: {wasm_hash_url}"
         );
-        let wasm_hash_url = reqwest::Url::parse(wasm_hash_url)?;
-        let wasm_hash_content = download_file(&wasm_hash_url).await?;
-        let wasm_hash_encoded = String::from_utf8(wasm_hash_content)?;
-        Ok(hex::decode(wasm_hash_encoded)?)
+        let wasm_hash_url = reqwest::Url::parse(wasm_hash_url)
+            .with_context(|| format!("{wasm_hash_url} is not a valid URL."))?;
+        let wasm_hash_content = download_file(&wasm_hash_url)
+            .await
+            .with_context(|| format!("Failed to download wasm_hash from {wasm_hash_url}."))?;
+        let wasm_hash_encoded = String::from_utf8(wasm_hash_content)
+            .with_context(|| format!("Content from {wasm_hash_url} is not valid text."))?;
+        Ok(hex::decode(&wasm_hash_encoded)
+            .with_context(|| format!("Failed to decode {wasm_hash_encoded} as sha256 hash."))?)
     } else {
         match read_state_tree_canister_module_hash(agent, canister_id).await? {
             Some(hash_on_chain) => Ok(hash_on_chain),

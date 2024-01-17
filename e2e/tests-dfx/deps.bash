@@ -150,8 +150,6 @@ Failed to download from url: http://example.com/c.wasm."
 
   setup_onchain
 
-  # TODO: test gzipped wasm can be pulled when we have "gzip" option in dfx.json (SDK-1102)
-
   # pull canisters in app project
   cd app
   assert_file_not_exists "deps/pulled.json"
@@ -198,7 +196,7 @@ Failed to download from url: http://example.com/c.wasm."
   assert_contains "Failed to download from url:"
 }
 
-@test "dfx deps pull can check hash when dfx:wasm_hash specified" {
+@test "dfx deps pull works when wasm_hash or wasm_hash_url specified" {
   use_test_specific_cache_root # dfx deps pull will download files to cache
 
   # start a "mainnet" replica which host the onchain canisters
@@ -226,11 +224,20 @@ Failed to download from url: http://example.com/c.wasm."
   cp .dfx/local/canisters/b/b.wasm.gz ../www/b.wasm.gz
   cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
 
-  CUSTOM_HASH="$(sha256sum .dfx/local/canisters/a/a.wasm | cut -d " " -f 1)"
-  jq '.canisters.a.pullable.wasm_hash="'"$CUSTOM_HASH"'"' dfx.json | sponge dfx.json
-  dfx build a # .dfx/local/canisters/a/a.wasm is replaced. The new wasm has wasm_hash defined and will be installed.
+  # A: set dfx:wasm_hash
+  CUSTOM_HASH_A="$(sha256sum .dfx/local/canisters/a/a.wasm | cut -d " " -f 1)"
+  jq '.canisters.a.pullable.wasm_hash="'"$CUSTOM_HASH_A"'"' dfx.json | sponge dfx.json
+  # B: set dfx:wasm_hash_url
+  echo -n "$(sha256sum .dfx/local/canisters/b/b.wasm.gz | cut -d " " -f 1)" > ../www/b.wasm.gz.sha256
+  jq '.canisters.b.pullable.wasm_hash_url="'"http://localhost:$E2E_WEB_SERVER_PORT/b.wasm.gz.sha256"'"' dfx.json | sponge dfx.json
+  # C: set both dfx:wasm_hash and dfx:wasm_hash_url. This should be avoided by providers.
+  CUSTOM_HASH_C="$(sha256sum .dfx/local/canisters/c/c.wasm | cut -d " " -f 1)"
+  jq '.canisters.c.pullable.wasm_hash="'"$CUSTOM_HASH_C"'"' dfx.json | sponge dfx.json
+  echo -n $CUSTOM_HASH_C > ../www/c.wasm.sha256
+  jq '.canisters.c.pullable.wasm_hash_url="'"http://localhost:$E2E_WEB_SERVER_PORT/c.wasm.sha256"'"' dfx.json | sponge dfx.json
 
-  # cd ../../../
+  dfx build
+
   dfx canister install a --argument 1
   dfx canister install b
   dfx canister install c --argument 3
@@ -241,6 +248,9 @@ Failed to download from url: http://example.com/c.wasm."
 
   assert_command dfx deps pull --network local -vvv
   assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
+  assert_contains "Canister $CANISTER_ID_B specified a custom hash via url:"
+  assert_contains "WARN: Canister $CANISTER_ID_C specified both \`wasm_hash\` and \`wasm_hash_url\`. \`wasm_hash\` will be used."
+  assert_contains "Canister $CANISTER_ID_C specified a custom hash:"
 
   # warning: hash mismatch
   PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
