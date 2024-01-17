@@ -8,6 +8,12 @@ When using `dfx deploy` or `dfx canister install`, previously WASM modules large
 They are now automatically submitted via the chunking API if they are large enough.
 From a user perspective the limitation will simply have been lifted.
 
+### feat: dfx deps: wasm_hash_url and loose the hash check
+
+Providers can provide the hash through `wasm_hash_url` instead of hard coding the hash directly.
+
+If the hash of downloaded wasm doesn’t match the provided hash (`wasm_hash`, `wasm_hash_url` or read from mainnet state tree), dfx deps won’t abort. Instead, it will print a warning message.
+
 ### feat!: update `dfx cycles` commands with mainnet `cycles-ledger` canister ID
 
 The `dfx cycles` command no longer needs nor accepts the `--cycles-ledger-canister-id <canister id>` parameter.

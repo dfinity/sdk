@@ -53,6 +53,14 @@ In most cases, the wasm module at `wasm_url` will be the same as the on-chain wa
 
 In other cases, the wasm module at `wasm_url` is not the same as the on-chain wasm module. For example, the Internet Identity canister provides Development flavor to be integrated locally. In these cases, `wasm_hash` provides the expected hash, and dfx verifies the downloaded wasm against this.
 
+### `wasm_hash_url` 
+
+A URL to get the SHA256 hash of the wasm module located at `wasm_url`.
+
+This field is optional.
+
+Aside from specifying SHA256 hash of the wasm module directly using `wasm_hash`, providers can also specify the hash with this URL. If both are defined, the `wasm_hash_url` field will be ignored.
+
 ### `dependencies`
 
 An array of Canister IDs (`Principal`) of direct dependencies.
