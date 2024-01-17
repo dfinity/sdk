@@ -1,10 +1,9 @@
 {
     "canisters": {
         "large": {
-            "type": "custom",
-            "wasm": "large.wasm",
-            "candid": "large.did",
-            "build": []
+            "type": "rust",
+            "package": "large",
+            "candid": "large.did"
         } 
     }
 }
