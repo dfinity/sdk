@@ -33,6 +33,22 @@ Updated Motoko to [0.10.4](https://github.com/dfinity/motoko/releases/tag/0.10.4
 
 Module hash: b625e04115725038808dcd6db1e398def28e981f8d6de464bb8438b2656864c8
 
+### Replica
+
+Updated replica to elected commit 072b2a6586c409efa88f2244d658307ff3a645d8.
+This incorporates the following executed proposals:
+
+- [127034](https://dashboard.internetcomputer.org/proposal/127034)
+- [127031](https://dashboard.internetcomputer.org/proposal/127031)
+- [126879](https://dashboard.internetcomputer.org/proposal/126879)
+- [126878](https://dashboard.internetcomputer.org/proposal/126878)
+- [126730](https://dashboard.internetcomputer.org/proposal/126730)
+- [126729](https://dashboard.internetcomputer.org/proposal/126729)
+- [126727](https://dashboard.internetcomputer.org/proposal/126727)
+- [126366](https://dashboard.internetcomputer.org/proposal/126366)
+- [126365](https://dashboard.internetcomputer.org/proposal/126365)
+- [126293](https://dashboard.internetcomputer.org/proposal/126293)
+
 # 0.15.3
 
 ### fix: allow `http://localhost:*` as `connect-src` in the asset canister's CSP
