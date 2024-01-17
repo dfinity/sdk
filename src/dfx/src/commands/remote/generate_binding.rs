@@ -73,16 +73,22 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                 let (type_env, did_types) = check_candid_file(&candid)?;
                 let extension = main.extension().unwrap_or_default();
                 let bindings = if extension == "mo" {
-                    Some(candid::bindings::motoko::compile(&type_env, &did_types))
+                    Some(candid_parser::bindings::motoko::compile(
+                        &type_env, &did_types,
+                    ))
                 } else if extension == "rs" {
-                    let config = candid::bindings::rust::Config::new();
-                    Some(candid::bindings::rust::compile(
+                    let config = candid_parser::bindings::rust::Config::new();
+                    Some(candid_parser::bindings::rust::compile(
                         &config, &type_env, &did_types,
                     ))
                 } else if extension == "js" {
-                    Some(candid::bindings::javascript::compile(&type_env, &did_types))
+                    Some(candid_parser::bindings::javascript::compile(
+                        &type_env, &did_types,
+                    ))
                 } else if extension == "ts" {
-                    Some(candid::bindings::typescript::compile(&type_env, &did_types))
+                    Some(candid_parser::bindings::typescript::compile(
+                        &type_env, &did_types,
+                    ))
                 } else {
                     info!(
                         log,

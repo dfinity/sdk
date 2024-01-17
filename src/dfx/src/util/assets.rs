@@ -7,7 +7,7 @@ use std::io::Read;
 include!(concat!(env!("OUT_DIR"), "/load_assets.rs"));
 
 pub fn dfinity_logo() -> String {
-    let colors = supports_color::on(atty::Stream::Stdout);
+    let colors = supports_color::on(supports_color::Stream::Stdout);
     if let Some(colors) = colors {
         //Some terminals, notably MacOS's Terminal.app, do not support Truecolor (RGB-colored characters) properly.
         //Therefore we use xterm256 coloring when the program is running in such a terminal.

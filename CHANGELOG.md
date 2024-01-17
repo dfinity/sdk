@@ -6,6 +6,10 @@
 
 The `dfx cycles` command no longer needs nor accepts the `--cycles-ledger-canister-id <canister id>` parameter.
 
+### chore: removed the dfx start --emulator mode
+
+This was deprecated in dfx 0.15.1.
+
 ### chore: removed ic-ref from the binary cache
 
 ### chore: updated dependencies for new rust projects
@@ -22,6 +26,10 @@ Now they are stored with nanosecond precision on Windows too.
 ### Motoko
 
 Updated Motoko to [0.10.4](https://github.com/dfinity/motoko/releases/tag/0.10.4)
+
+### Frontend canister
+
+Module hash: b625e04115725038808dcd6db1e398def28e981f8d6de464bb8438b2656864c8
 
 # 0.15.3
 
@@ -1352,7 +1360,7 @@ Additionally, after build step, the `.wasm` file is archived with `gzip`.
 ### chore: Move all `frontend canister`-related code into the SDK repo
 
 | from (`repository` `path`)                  | to (path in `dfinity/sdk` repository)          | summary                                                                                     |
-| :------------------------------------------ | :--------------------------------------------- | :------------------------------------------------------------------------------------------ |
+|:--------------------------------------------|:-----------------------------------------------|:--------------------------------------------------------------------------------------------|
 | `dfinity/cdk-rs` `/src/ic-certified-assets` | `/src/canisters/frontend/ic-certified-asset`   | the core of the frontend canister                                                           |
 | `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-frontend-canister` | wraps `ic-certified-assets` to build the canister wasm                                      |
 | `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`             | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |

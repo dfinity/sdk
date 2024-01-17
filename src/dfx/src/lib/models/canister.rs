@@ -12,9 +12,12 @@ use crate::util::{assets, check_candid_file};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
-use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
+use dfx_core::config::model::dfinity::{
+    CanisterMetadataSection, Config, MetadataVisibility, WasmOptLevel,
+};
 use fn_error_context::context;
 use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
+use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
@@ -128,8 +131,14 @@ impl Canister {
         // optimize or shrink
         if let Some(level) = info.get_optimize() {
             trace!(logger, "Optimizing WASM at level {}", level);
-            ic_wasm::shrink::shrink_with_wasm_opt(&mut m, &level.to_string(), false)
-                .context("Failed to optimize the WASM module.")?;
+            ic_wasm::optimize::optimize(
+                &mut m,
+                &wasm_opt_level_convert(level),
+                false,
+                &None,
+                false,
+            )
+            .context("Failed to optimize the WASM module.")?;
             modified = true;
         } else if info.get_shrink() == Some(true)
             || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
@@ -311,15 +320,32 @@ impl Canister {
     }
 }
 
+fn wasm_opt_level_convert(opt_level: WasmOptLevel) -> OptLevel {
+    use WasmOptLevel::*;
+    match opt_level {
+        O0 => OptLevel::O0,
+        O1 => OptLevel::O1,
+        O2 => OptLevel::O2,
+        O3 => OptLevel::O3,
+        O4 => OptLevel::O4,
+        Os => OptLevel::Os,
+        Oz => OptLevel::Oz,
+        Size => OptLevel::Oz,
+        Cycles => OptLevel::O3,
+    }
+}
+
 fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
     let (env, actor) = check_candid_file(path)?;
     let actor = actor.ok_or_else(|| anyhow!("provided candid file contains no main service"))?;
     if let candid::types::internal::TypeInner::Class(args, ty) = actor.as_ref() {
-        use candid::bindings::candid::pp_ty;
-        use candid::pretty::{concat, enclose};
+        use candid_parser::pretty::{
+            candid::{compile, pp_ty},
+            utils::{concat, enclose},
+        };
 
         let actor = Some(ty.clone());
-        let service_did = candid::bindings::candid::compile(&env, &actor);
+        let service_did = compile(&env, &actor);
         let doc = concat(args.iter().map(pp_ty), ",");
         let init_args = enclose("(", doc, ")").pretty(80).to_string();
         Ok((service_did, init_args))
@@ -785,14 +811,14 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
         .with_extension("did.d.ts");
 
     let (env, ty) = check_candid_file(&canister_info.get_service_idl_path())?;
-    let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
+    let content = ensure_trailing_newline(candid_parser::bindings::javascript::compile(&env, &ty));
     std::fs::write(&output_did_js_path, content).with_context(|| {
         format!(
             "Failed to write to {}.",
             output_did_js_path.to_string_lossy()
         )
     })?;
-    let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
+    let content = ensure_trailing_newline(candid_parser::bindings::typescript::compile(&env, &ty));
     std::fs::write(&output_did_ts_path, content).with_context(|| {
         format!(
             "Failed to write to {}.",

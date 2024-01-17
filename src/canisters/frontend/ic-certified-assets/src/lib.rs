@@ -445,7 +445,7 @@ pub fn post_upgrade(stable_state: StableState, args: Option<AssetCanisterArgs>) 
 
 #[test]
 fn candid_interface_compatibility() {
-    use candid::utils::{service_compatible, CandidSource};
+    use candid_parser::utils::{service_compatible, CandidSource};
     use std::path::PathBuf;
 
     candid::export_service!();

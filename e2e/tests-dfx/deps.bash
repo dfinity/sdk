@@ -127,7 +127,7 @@ Failed to download from url: http://example.com/c.wasm."
 
   cd ../onchain
   dfx canister stop a
-  dfx canister delete a
+  dfx canister delete a --no-withdrawal
 
   cd ../app
   assert_command_fail dfx deps pull --network local
@@ -332,11 +332,11 @@ candid:args => (nat)"
   # delete onchain canisters so that the replica has no canisters as a clean local replica
   cd ../onchain
   dfx canister stop a
-  dfx canister delete a
+  dfx canister delete a --no-withdrawal
   dfx canister stop b
-  dfx canister delete b
+  dfx canister delete b --no-withdrawal
   dfx canister stop c
-  dfx canister delete c
+  dfx canister delete c --no-withdrawal
 
   cd ../app
   assert_command dfx deps init # b is set here
@@ -362,10 +362,10 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 
   # deployed pull dependencies can be stopped and deleted
   assert_command dfx canister stop dep_b --identity anonymous
-  assert_command dfx canister delete dep_b --identity anonymous
+  assert_command dfx canister delete dep_b --identity anonymous --no-withdrawal
 
   assert_command dfx canister stop $CANISTER_ID_A --identity anonymous
-  assert_command dfx canister delete $CANISTER_ID_A --identity anonymous
+  assert_command dfx canister delete $CANISTER_ID_A --identity anonymous --no-withdrawal
 
   # error cases
   ## set wrong init argument
@@ -404,11 +404,11 @@ Installing canister: $CANISTER_ID_C (dep_c)"
   # delete onchain canisters so that the replica has no canisters as a clean local replica
   cd ../onchain
   dfx canister stop a
-  dfx canister delete a
+  dfx canister delete a --no-withdrawal
   dfx canister stop b
-  dfx canister delete b
+  dfx canister delete b --no-withdrawal
   dfx canister stop c
-  dfx canister delete c
+  dfx canister delete c --no-withdrawal
 
   cd ../app
   assert_command_fail dfx canister create dep_b
@@ -441,7 +441,7 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 
   # start a clean local replica
   dfx canister stop app
-  dfx canister delete app
+  dfx canister delete app --no-withdrawal
   assert_command dfx deploy # only deploy app canister
 }
 
@@ -450,8 +450,8 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 
   # verify the help message
   assert_command dfx deps pull -h
-  assert_contains "Pull canisters upon which the project depends. This command connects to the \"ic\" mainnet by default.
-You can still choose other network by setting \`--network\`"
+  assert_contains "Pull canisters upon which the project depends. This command connects to the \"ic\" mainnet by default."
+  assert_contains "You can still choose other network by setting \`--network\`"
 
   assert_command dfx deps pull
   assert_contains "There are no pull dependencies defined in dfx.json"
