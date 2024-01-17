@@ -16,6 +16,7 @@ use crate::util::download_file;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
+use dfx_core::config::model::dfinity::Pullable;
 use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
 use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
@@ -150,24 +151,7 @@ async fn download_and_generate_pulled_canister(
     let dfx_metadata = fetch_dfx_metadata(agent, &canister_id).await?;
     let pullable = dfx_metadata.get_pullable()?;
 
-    // lookup `wasm_hash` in dfx metadata. If not available, get the hash of the on chain canister.
-    let hash_on_chain = match &pullable.wasm_hash {
-        Some(wasm_hash_str) => {
-            trace!(
-                logger,
-                "Canister {canister_id} specified a custom hash: {wasm_hash_str}"
-            );
-            hex::decode(wasm_hash_str)?
-        }
-        None => {
-            match read_state_tree_canister_module_hash(agent, canister_id).await? {
-                Some(hash_on_chain) => hash_on_chain,
-                None => {
-                    bail!("Canister {canister_id} doesn't have module hash. Perhaps it's not installed.");
-                }
-            }
-        }
-    };
+    let hash_on_chain = get_hash_on_chain(agent, logger, canister_id, pullable).await?;
 
     pulled_canister.wasm_hash = hex::encode(&hash_on_chain);
 
@@ -288,6 +272,47 @@ async fn fetch_metadata(
                 bail!(agent_error)
             }
         },
+    }
+}
+
+// Get expected hash of the canister wasm.
+// If `wasm_hash` is specified in dfx metadata, use it.
+// If `wasm_hash_url` is specified in dfx metadata, download the hash from the url.
+// Otherwise, get the hash of the on chain canister.
+#[context("Failed to get hash of canister {canister_id}.")]
+async fn get_hash_on_chain(
+    agent: &Agent,
+    logger: &Logger,
+    canister_id: Principal,
+    pullable: &Pullable,
+) -> DfxResult<Vec<u8>> {
+    if pullable.wasm_hash.is_some() && pullable.wasm_hash_url.is_some() {
+        warn!(logger, "Canister {canister_id} specified both `wasm_hash` and `wasm_hash_url`. `wasm_hash` will be used.");
+    };
+    if let Some(wasm_hash_str) = &pullable.wasm_hash {
+        trace!(
+            logger,
+            "Canister {canister_id} specified a custom hash: {wasm_hash_str}"
+        );
+        Ok(hex::decode(wasm_hash_str)?)
+    } else if let Some(wasm_hash_url) = &pullable.wasm_hash_url {
+        trace!(
+            logger,
+            "Canister {canister_id} specified a custom hash via url: {wasm_hash_url}"
+        );
+        let wasm_hash_url = reqwest::Url::parse(wasm_hash_url)?;
+        let wasm_hash_content = download_file(&wasm_hash_url).await?;
+        let wasm_hash_encoded = String::from_utf8(wasm_hash_content)?;
+        Ok(hex::decode(wasm_hash_encoded)?)
+    } else {
+        match read_state_tree_canister_module_hash(agent, canister_id).await? {
+            Some(hash_on_chain) => Ok(hash_on_chain),
+            None => {
+                bail!(
+                    "Canister {canister_id} doesn't have module hash. Perhaps it's not installed."
+                );
+            }
+        }
     }
 }
 
