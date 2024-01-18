@@ -13,10 +13,11 @@ argon2.workspace = true
 bip32 = "0.4.0"
 byte-unit = { workspace = true, features = ["serde"] }
 bytes.workspace = true
-candid = { workspace = true, features = ["random"] }
+candid = { workspace = true }
 clap = { workspace = true, features = ["string"] }
-dialoguer = "0.10.0"
+dialoguer = { workspace = true }
 directories-next.workspace = true
+dunce = "1.0"
 flate2 = { workspace = true, default-features = false, features = ["zlib-ng"] }
 hex = { workspace = true, features = ["serde"] }
 humantime-serde = "1.1.1"

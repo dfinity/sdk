@@ -9,23 +9,25 @@ members = [
     "src/canisters/frontend/ic-frontend-canister",
 ]
 default-members = ["src/dfx"]
+resolver = "2"
 
 [workspace.package]
 authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
 edition = "2021"
 repository = "https://github.com/dfinity/sdk"
-rust-version = "1.71.1"
+rust-version = "1.75.0"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-candid = { version = "0.9.0", features = ["parser"] }
-ic-agent = "0.30.2"
+candid = "0.10.0"
+candid_parser = "0.1.2"
+ic-agent = { git = "https://github.com/dfinity/agent-rs.git", rev = "6b02f649a569f354a0a1b370368ba28d31dd8702" }
 ic-asset = { path = "src/canisters/frontend/ic-asset" }
-ic-cdk = "0.10.0"
-ic-identity-hsm = "0.30.2"
-ic-utils = "0.30.2"
+ic-cdk = "0.12.0"
+ic-identity-hsm = { git = "https://github.com/dfinity/agent-rs.git", rev = "6b02f649a569f354a0a1b370368ba28d31dd8702" }
+ic-utils = { git = "https://github.com/dfinity/agent-rs.git", rev = "6b02f649a569f354a0a1b370368ba28d31dd8702" }
 
-aes-gcm = "0.9.4"
+aes-gcm = "0.10.3"
 anyhow = "1.0.56"
 anstyle = "1.0.0"
 argon2 = "0.4.0"
@@ -34,7 +36,7 @@ base64 = "0.13.0"
 byte-unit = "4.0.14"
 bytes = "1.2.1"
 clap = "4.2.0"
-dialoguer = "0.10.0"
+dialoguer = "0.11.0"
 directories-next = "2.0.0"
 flate2 = { version = "1.0.11", default-features = false }
 futures = "0.3.21"
@@ -64,24 +66,9 @@ semver = "1.0.6"
 tempfile = "3.3.0"
 thiserror = "1.0.24"
 time = "0.3.9"
-tokio = "1.24.2"
+tokio = "1.35"
 url = "2.1.0"
 walkdir = "2.3.2"
-
-[patch.crates-io.ic-agent]
-version = "0.30.2"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "ed0862a45d5973ff123cbabc4ac40a89821b18c6"
-
-[patch.crates-io.ic-identity-hsm]
-version = "0.30.2"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "ed0862a45d5973ff123cbabc4ac40a89821b18c6"
-
-[patch.crates-io.ic-utils]
-version = "0.30.2"
-git = "https://github.com/dfinity/agent-rs.git"
-rev = "ed0862a45d5973ff123cbabc4ac40a89821b18c6"
 
 [profile.release]
 panic = 'abort'

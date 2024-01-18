@@ -17,12 +17,7 @@ pub async fn ping_and_wait(url: &str) -> DfxResult {
         let status = agent.status().await;
         match status {
             Ok(status) => {
-                let healthy = match &status.replica_health_status {
-                    Some(status) if status == "healthy" => true,
-                    None => true, // emulator doesn't report replica_health_status
-                    _ => false,
-                };
-                if healthy {
+                if matches!(&status.replica_health_status, Some(status) if status == "healthy") {
                     break;
                 }
             }

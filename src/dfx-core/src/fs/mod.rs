@@ -11,7 +11,7 @@ use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
 
 pub fn canonicalize(path: &Path) -> Result<PathBuf, FsError> {
-    path.canonicalize()
+    dunce::canonicalize(path)
         .map_err(|err| FsError::new(CanonicalizePathFailed(path.to_path_buf(), err)))
 }
 

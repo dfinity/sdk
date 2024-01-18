@@ -4,7 +4,6 @@ pub mod notify_top_up;
 pub mod project;
 
 pub use build::BuildError;
-pub use dfx_core::error::extension::ExtensionError;
 pub use notify_create_canister::NotifyCreateCanisterError;
 pub use notify_top_up::NotifyTopUpError;
 pub use project::ProjectError;

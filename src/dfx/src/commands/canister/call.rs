@@ -183,7 +183,10 @@ pub fn get_effective_canister_id(
             | MgmtMethod::DeleteCanister
             | MgmtMethod::DepositCycles
             | MgmtMethod::UninstallCode
-            | MgmtMethod::ProvisionalTopUpCanister => {
+            | MgmtMethod::ProvisionalTopUpCanister
+            | MgmtMethod::UploadChunk
+            | MgmtMethod::ClearChunkStore
+            | MgmtMethod::StoredChunks => {
                 #[derive(CandidType, Deserialize)]
                 struct In {
                     canister_id: CanisterId,
@@ -194,6 +197,15 @@ pub fn get_effective_canister_id(
             }
             MgmtMethod::ProvisionalCreateCanisterWithCycles => {
                 Ok(CanisterId::management_canister())
+            }
+            MgmtMethod::InstallChunkedCode => {
+                #[derive(CandidType, Deserialize)]
+                struct In {
+                    target_canister: Principal,
+                }
+                let in_args = Decode!(arg_value, In)
+                    .context("Argument is not valid for InstallChunkedCode")?;
+                Ok(in_args.target_canister)
             }
         }
     } else {
