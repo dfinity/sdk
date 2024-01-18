@@ -3,6 +3,7 @@ use crate::lib::ledger_types::NotifyError::Refunded;
 use crate::lib::operations::cmc::notify_create;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, error::DfxResult};
+use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
 use anyhow::bail;
 use candid::Principal;
 use clap::Parser;
@@ -15,12 +16,8 @@ pub struct NotifyCreateOpts {
     /// The controller of the created canister.
     controller: Principal,
 
-    //todo
-    /// Specify the optional subnet type to create the canister on. If no
-    /// subnet type is provided, the canister will be created on a random
-    /// default application subnet.
-    #[arg(long)]
-    subnet_type: Option<String>,
+    #[command(flatten)]
+    subnet_selection: SubnetSelectionOpt,
 }
 
 pub async fn exec(env: &dyn Environment, opts: NotifyCreateOpts) -> DfxResult {
@@ -32,7 +29,8 @@ pub async fn exec(env: &dyn Environment, opts: NotifyCreateOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
 
-    let result = notify_create(agent, controller, block_height, opts.subnet_type).await;
+    let subnet_selection = opts.subnet_selection.to_subnet_selection();
+    let result = notify_create(agent, controller, block_height, subnet_selection).await;
 
     match result {
         Ok(principal) => {
