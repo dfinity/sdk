@@ -1,4 +1,3 @@
-import './App.css';
 import { html, render } from 'lit-html';
 import { {project_name}_backend } from 'declarations/{project_name}_backend';
 import logo from './logo2.svg';
