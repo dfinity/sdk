@@ -159,7 +159,8 @@ teardown() {
   assert_command dfx build
   assert_command dfx canister install --all
   assert_command dfx canister info large
-  assert_match "Module hash: 0x$(sha2sum .dfx/local/canisters/large/large.wasm.gz | head -c 64)"
+  HASH="$(sha256sum .dfx/local/canisters/large/large.wasm | head -c 64)"
+  assert_match "Module hash: 0x$HASH"
 }
 
 @test "--mode=auto selects install or upgrade automatically" {
