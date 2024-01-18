@@ -7,6 +7,18 @@ actor class Coupon() = self {
     type Management = actor {
       deposit_cycles : ({canister_id : Principal}) -> async ();
     };
+    type CyclesLedger = actor {
+        deposit : ({code: Text; account: Account}) -> async (DepositResult);
+    };
+    type DepositResult = {
+        balance : Nat;
+        block_index : Nat;
+    };
+    type Account = {
+        owner : Principal;
+        subaccount : ?Blob;
+    };
+
 
     // Uploading wasm is hard. This is much easier to handle.
     var wallet_to_hand_out: ?Principal = null;
@@ -39,5 +51,19 @@ actor class Coupon() = self {
         Cycles.add(amount);
         await IC0.deposit_cycles({ canister_id = wallet });
         return amount;
+    };
+
+    // Redeem coupon code to cycle ledger
+    public shared (args) func redeem_to_cycles_ledger(code: Text, account: Account) : async DepositResult {
+        if (code == "invalid") {
+            throw(Error.reject("Code is expired or not redeemable"));
+        };
+        let CyclesLedgerCanister : CyclesLedger = actor("um5iw-rqaaa-aaaaq-qaaba-cai");
+        var amount = 10000000000000;
+        Cycles.add(amount);
+        return await CyclesLedgerCanister.deposit({
+            code = code;
+            account = account
+        });
     };
 };
