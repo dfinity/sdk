@@ -1,6 +1,10 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::lib::cycles_ledger_types;
+use crate::lib::cycles_ledger_types::create_canister::{
+    CmcCreateCanisterArgs, CreateCanisterArgs, CreateCanisterError, CreateCanisterSuccess,
+};
+use crate::lib::cycles_ledger_types::deposit::DepositArg;
 use crate::lib::cycles_ledger_types::send::SendError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -12,19 +16,16 @@ use crate::lib::retryable::retryable;
 use anyhow::{anyhow, bail, Context};
 use backoff::future::retry;
 use backoff::ExponentialBackoff;
-use candid::{CandidType, Decode, Encode, Nat, Principal};
+use candid::{Decode, Encode, Nat, Principal};
 use dfx_core::canister::build_wallet_canister;
 use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::call::SyncCall;
-use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::{Argument, Canister};
 use icrc_ledger_types::icrc1;
 use icrc_ledger_types::icrc1::account::{Account, Subaccount};
 use icrc_ledger_types::icrc1::transfer::{BlockIndex, TransferError};
-use serde::Deserialize;
 use slog::{info, Logger};
-use thiserror::Error;
 
 /// Cycles ledger feature flag to turn off behavior that would be confusing while cycles ledger is not enabled yet.
 //TODO(SDK-1331): feature flag can be removed
@@ -199,61 +200,6 @@ pub async fn create_with_cycles_ledger(
     settings: DfxCanisterSettings,
     created_at_time: Option<u64>,
 ) -> DfxResult<Principal> {
-    #[derive(CandidType, Clone, Debug)]
-    // TODO(FI-1022): Import types from cycles ledger crate once available
-    struct CreateCanisterArgs {
-        pub from_subaccount: Option<icrc_ledger_types::icrc1::account::Subaccount>,
-        pub created_at_time: Option<u64>,
-        pub amount: u128,
-        pub creation_args: Option<CmcCreateCanisterArgs>,
-    }
-    #[derive(CandidType, Clone, Debug)]
-    struct CmcCreateCanisterArgs {
-        pub subnet_selection: Option<SubnetSelection>,
-        pub settings: Option<CanisterSettings>,
-    }
-    #[derive(CandidType, Clone, Debug)]
-    #[allow(dead_code)]
-    enum SubnetSelection {
-        /// Choose a random subnet that satisfies the specified properties
-        Filter(SubnetFilter),
-        /// Choose a specific subnet
-        Subnet { subnet: Principal },
-    }
-    #[derive(CandidType, Clone, Debug)]
-    struct SubnetFilter {
-        pub subnet_type: Option<String>,
-    }
-    #[derive(CandidType, Clone, Debug, Deserialize, Error)]
-    enum CreateCanisterError {
-        #[error("Insufficient funds. Current balance: {balance}")]
-        InsufficientFunds { balance: u128 },
-        #[error("Local clock too far behind.")]
-        TooOld,
-        #[error("Local clock too far ahead.")]
-        CreatedInFuture { ledger_time: u64 },
-        #[error("Cycles ledger temporarily unavailable.")]
-        TemporarilyUnavailable,
-        #[error("Duplicate of block {duplicate_of}.")]
-        Duplicate {
-            duplicate_of: Nat,
-            canister_id: Option<Principal>,
-        },
-        #[error("Cycles ledger failed to create canister: {error}")]
-        FailedToCreate {
-            fee_block: Option<Nat>,
-            refund_block: Option<Nat>,
-            error: String,
-        },
-        #[error("Ledger error {error_code}: {message}")]
-        GenericError { error_code: Nat, message: String },
-    }
-    #[derive(Deserialize, CandidType, Clone, Debug, PartialEq, Eq)]
-    struct CreateCanisterSuccess {
-        pub block_id: Nat,
-        pub canister_id: Principal,
-    }
-
     let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
     let created_at_time = created_at_time.or_else(|| {
         let now = SystemTime::now()
@@ -328,13 +274,6 @@ pub async fn wallet_deposit_to_cycles_ledger(
     cycles_to_withdraw: u128,
     to: Account,
 ) -> DfxResult {
-    // TODO(FI-1022): Import types from cycles ledger crate once available
-    #[derive(CandidType)]
-    pub struct DepositArg {
-        pub to: Account,
-        pub memo: Option<Vec<u8>>,
-    }
-
     build_wallet_canister(wallet_id, agent)
         .await?
         .call128(
