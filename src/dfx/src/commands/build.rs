@@ -112,8 +112,8 @@ fn collect_extra_canisters(env: &AgentEnvironment, config: &Config) -> Vec<Strin
                 .map(|canisters| {
                     canisters
                         .keys()
-                        .cloned()
                         .filter(|canister| store.get(canister).is_ok())
+                        .cloned()
                         .collect::<Vec<_>>()
                 })
                 .unwrap_or_default()

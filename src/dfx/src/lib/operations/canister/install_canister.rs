@@ -420,7 +420,7 @@ fn run_post_install_task(
     let canonicalized = dfx_core::fs::canonicalize(&cwd.join(&words[0]))
         .or_else(|_| which::which(&words[0]))
         .map_err(|_| anyhow!("Cannot find command or file {}", &words[0]))?;
-    let mut command = Command::new(&canonicalized);
+    let mut command = Command::new(canonicalized);
     command.args(&words[1..]);
     let vars =
         get_and_write_environment_variables(canister, &network.name, pool, dependencies, env_file)?;

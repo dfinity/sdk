@@ -26,6 +26,8 @@ pub struct MotokoBuilder {
     logger: slog::Logger,
     cache: Arc<dyn Cache>,
 }
+unsafe impl Send for MotokoBuilder {}
+unsafe impl Sync for MotokoBuilder {}
 
 impl MotokoBuilder {
     #[context("Failed to create MotokoBuilder.")]
