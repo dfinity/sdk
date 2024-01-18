@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: large canister modules now supported
+
+When using `dfx deploy` or `dfx canister install`, previously WASM modules larger than 2MiB would be rejected.
+They are now automatically submitted via the chunking API if they are large enough.
+From a user perspective the limitation will simply have been lifted.
+
 ### feat: dfx deps: wasm_hash_url and loose the hash check
 
 Providers can provide the hash through `wasm_hash_url` instead of hard coding the hash directly.
@@ -36,6 +42,22 @@ Updated Motoko to [0.10.4](https://github.com/dfinity/motoko/releases/tag/0.10.4
 ### Frontend canister
 
 Module hash: 3c86d912ead6de7133b9f787df4ca9feee07bea8835d3ed594b47ee89e6cb730
+
+### Replica
+
+Updated replica to elected commit 072b2a6586c409efa88f2244d658307ff3a645d8.
+This incorporates the following executed proposals:
+
+- [127034](https://dashboard.internetcomputer.org/proposal/127034)
+- [127031](https://dashboard.internetcomputer.org/proposal/127031)
+- [126879](https://dashboard.internetcomputer.org/proposal/126879)
+- [126878](https://dashboard.internetcomputer.org/proposal/126878)
+- [126730](https://dashboard.internetcomputer.org/proposal/126730)
+- [126729](https://dashboard.internetcomputer.org/proposal/126729)
+- [126727](https://dashboard.internetcomputer.org/proposal/126727)
+- [126366](https://dashboard.internetcomputer.org/proposal/126366)
+- [126365](https://dashboard.internetcomputer.org/proposal/126365)
+- [126293](https://dashboard.internetcomputer.org/proposal/126293)
 
 # 0.15.3
 
