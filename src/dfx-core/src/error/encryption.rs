@@ -15,7 +15,7 @@ pub enum EncryptionError {
     NonceGenerationFailed(ring::error::Unspecified),
 
     #[error("Failed to read user input: {0}")]
-    ReadUserPasswordFailed(std::io::Error),
+    ReadUserPasswordFailed(dialoguer::Error),
 
     #[error("Failed to generate salt: {0}")]
     SaltGenerationFailed(ring::error::Unspecified),

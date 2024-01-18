@@ -328,7 +328,7 @@ pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult
     let canonicalized = dfx_core::fs::canonicalize(&cwd.join(command_name))
         .or_else(|_| which::which(command_name))
         .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
-    let mut cmd = Command::new(&canonicalized);
+    let mut cmd = Command::new(canonicalized);
 
     cmd.args(arguments)
         .current_dir(cwd)

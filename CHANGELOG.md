@@ -35,7 +35,7 @@ Updated Motoko to [0.10.4](https://github.com/dfinity/motoko/releases/tag/0.10.4
 
 ### Frontend canister
 
-Module hash: b625e04115725038808dcd6db1e398def28e981f8d6de464bb8438b2656864c8
+Module hash: 3c86d912ead6de7133b9f787df4ca9feee07bea8835d3ed594b47ee89e6cb730
 
 # 0.15.3
 

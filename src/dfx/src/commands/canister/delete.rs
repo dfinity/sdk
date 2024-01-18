@@ -138,7 +138,10 @@ async fn delete_canister(
                         match wallet_canister_id(network, &identity_name)? {
                             Some(canister_id) => WithdrawTarget::Canister { canister_id },
                             None if CYCLES_LEDGER_ENABLED => {
-                                let Some(my_principal)  =  env.get_selected_identity_principal() else { bail!("Identity has no principal attached") };
+                                let Some(my_principal) = env.get_selected_identity_principal()
+                                else {
+                                    bail!("Identity has no principal attached")
+                                };
                                 WithdrawTarget::CyclesLedger {
                                     to: Account {
                                         owner: my_principal,

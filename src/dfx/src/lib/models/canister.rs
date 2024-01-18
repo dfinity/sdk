@@ -41,6 +41,8 @@ pub struct Canister {
     builder: Arc<dyn CanisterBuilder>,
     output: RefCell<Option<BuildOutput>>,
 }
+unsafe impl Send for Canister {}
+unsafe impl Sync for Canister {}
 
 impl Canister {
     /// Create a new canister.
