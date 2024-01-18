@@ -8,7 +8,7 @@
 
 ### fix: --no-frontend no longer creates a frontend
 
-Previously --no-frontend still created a frontend canister. This behavior is now accessed via `--frontend simple-assets`.
+Previously `dfx new --no-frontend` still created a frontend canister. This behavior is now accessed via `--frontend simple-assets`.
 
 ### feat!: update `dfx cycles` commands with mainnet `cycles-ledger` canister ID
 
