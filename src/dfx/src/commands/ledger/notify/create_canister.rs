@@ -15,6 +15,7 @@ pub struct NotifyCreateOpts {
     /// The controller of the created canister.
     controller: Principal,
 
+    //todo
     /// Specify the optional subnet type to create the canister on. If no
     /// subnet type is provided, the canister will be created on a random
     /// default application subnet.
