@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - master
-      - ens/pipefail
   pull_request:
 
 concurrency:
