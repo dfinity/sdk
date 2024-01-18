@@ -108,7 +108,6 @@ teardown() {
     17_724 = record { 153_986_224 = blob "\44\49\44\4c\00\01\7d\b9\0a" }
   },
 )'
-
 }
 
 @test "build + install + call -- counter_idl_mo" {

@@ -2,9 +2,19 @@
 
 # UNRELEASED
 
+### feat: dfx deps: wasm_hash_url and loose the hash check
+
+Providers can provide the hash through `wasm_hash_url` instead of hard coding the hash directly.
+
+If the hash of downloaded wasm doesn’t match the provided hash (`wasm_hash`, `wasm_hash_url` or read from mainnet state tree), dfx deps won’t abort. Instead, it will print a warning message.
+
 ### feat!: update `dfx cycles` commands with mainnet `cycles-ledger` canister ID
 
 The `dfx cycles` command no longer needs nor accepts the `--cycles-ledger-canister-id <canister id>` parameter.
+
+### chore: removed the dfx start --emulator mode
+
+This was deprecated in dfx 0.15.1.
 
 ### chore: removed ic-ref from the binary cache
 
@@ -25,7 +35,7 @@ Updated Motoko to [0.10.4](https://github.com/dfinity/motoko/releases/tag/0.10.4
 
 ### Frontend canister
 
-Module hash: b625e04115725038808dcd6db1e398def28e981f8d6de464bb8438b2656864c8
+Module hash: 3c86d912ead6de7133b9f787df4ca9feee07bea8835d3ed594b47ee89e6cb730
 
 # 0.15.3
 
