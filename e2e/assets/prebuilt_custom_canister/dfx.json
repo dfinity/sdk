@@ -29,6 +29,15 @@
       "candid": "custom_with_build_step.did",
       "wasm": "main.wasm",
       "build": "echo just a build step"
+    },
+    "prebuilt_local_import": {
+       "type": "custom",
+       "candid": "local_import.did",
+       "wasm": "main.wasm",
+       "build": [],
+       "metadata": [
+         { "name": "candid:service" }
+       ]
     }
   },
   "networks": {
