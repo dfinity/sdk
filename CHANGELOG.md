@@ -47,6 +47,12 @@ Updated Motoko to [0.10.4](https://github.com/dfinity/motoko/releases/tag/0.10.4
 
 Module hash: 3c86d912ead6de7133b9f787df4ca9feee07bea8835d3ed594b47ee89e6cb730
 
+### Candid UI
+
+Module hash: 6704b9cf7fe9661a251628e24eb9e6381f0844e1e52537e09a783709d00f0d99
+
+Fix the routing error when deploying to gitpod/github workspace.
+
 ### Replica
 
 Updated replica to elected commit 072b2a6586c409efa88f2244d658307ff3a645d8.
