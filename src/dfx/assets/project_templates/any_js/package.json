@@ -2,9 +2,10 @@
     "name": "{project_name}",
     "type": "module",
     "scripts": {
-        "start": "npm start --workspaces",
-        "build": "npm run build --workspaces",
-        "test": "npm test --workspaces"
+        "start": "npm start --workspaces --if-present",
+        "prebuild": "npm run prebuild --workspaces --if-present",
+        "build": "npm run build --workspaces --if-present",
+        "test": "npm test --workspaces --if-present"
     },
     "engines": {
         "node": ">=16.0.0",

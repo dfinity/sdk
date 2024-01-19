@@ -5,4 +5,8 @@ function dummyActor() {
     return new Proxy({}, { get() { throw new Error("Canister invoked while building"); } });
 }
 
-export const backend = building ? dummyActor() : createActor(canisterId);
+const buildingOrTesting = building || process.env.NODE_ENV === "test";
+
+export const backend = buildingOrTesting
+  ? dummyActor()
+  : createActor(canisterId);
