@@ -33,6 +33,10 @@ Updated to candid 0.10, ic-cdk 0.12, and ic-cdk-timers 0.6
 They've always been stored with nanosecond precisions on Linux and Macos.
 Now they are stored with nanosecond precision on Windows too.
 
+### fix: dfx canister delete, when using an HSM identity, no longer fails by trying to open two sessions to the HSM
+
+Previously, this would fail with a PKCS#11: CKR_CRYPTOKI_ALREADY_INITIALIZED error.
+
 ## Dependencies
 
 ### Motoko
