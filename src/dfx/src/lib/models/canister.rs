@@ -345,7 +345,7 @@ fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
         types::{Dec, IDLProg},
     };
     let did = dfx_core::fs::read_to_string(path)?;
-    let prog = pretty_parse::<IDLProg>(path.to_str().unwrap(), &did)?;
+    let prog = pretty_parse::<IDLProg>(&format!("{}", path.display()), &did)?;
     let has_imports = prog
         .decs
         .iter()
