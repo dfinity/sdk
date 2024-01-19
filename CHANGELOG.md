@@ -33,6 +33,10 @@ Updated to candid 0.10, ic-cdk 0.12, and ic-cdk-timers 0.6
 They've always been stored with nanosecond precisions on Linux and Macos.
 Now they are stored with nanosecond precision on Windows too.
 
+### fix: support `import` for local did file
+
+### fix: subtyping check reports the special opt rule as error
+
 ## Dependencies
 
 ### Motoko
