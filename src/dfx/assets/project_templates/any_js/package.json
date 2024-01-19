@@ -1,5 +1,14 @@
 {
     "name": "{project_name}",
     "type": "module",
+    "scripts": {
+        "start": "npm start --workspaces",
+        "build": "npm run build --workspaces",
+        "test": "npm test --workspaces"
+    },
+    "engines": {
+        "node": ">=16.0.0",
+        "npm": ">=7.0.0"
+    },
     "workspaces": [ ]
 }
