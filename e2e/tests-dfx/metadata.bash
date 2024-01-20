@@ -168,7 +168,7 @@ teardown() {
 
   # this canister has a local import in did file, the metadata should flatten the definitions
   dfx canister metadata prebuilt_local_import candid:service >from_canister.txt
-  diff prebuilt_custom_no_build.did from_canister.txt
+  assert_eq "service : { getCanisterId : () -> (principal) query }"
 }
 
 @test "can read canister metadata from replica" {

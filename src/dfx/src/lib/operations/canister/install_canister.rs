@@ -250,6 +250,7 @@ fn check_candid_compatibility(
     candid: &str,
 ) -> anyhow::Result<Option<String>> {
     use crate::util::check_candid_file;
+    use candid::types::subtype::{subtype_with_config, OptReport};
     let candid_path = canister_info.get_constructor_idl_path();
     let deployed_path = canister_info
         .get_constructor_idl_path()
@@ -269,7 +270,7 @@ fn check_candid_compatibility(
         .ok_or_else(|| anyhow!("Deployed did file should contain some service interface"))?;
     let mut gamma = HashSet::new();
     let old_type = env.merge_type(env2, old_type);
-    let result = candid::types::subtype::subtype(&mut gamma, &env, &new_type, &old_type);
+    let result = subtype_with_config(OptReport::Error, &mut gamma, &env, &new_type, &old_type);
     Ok(match result {
         Ok(_) => None,
         Err(e) => Some(e.to_string()),
