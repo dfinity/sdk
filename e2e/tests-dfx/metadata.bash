@@ -167,7 +167,7 @@ teardown() {
   diff main.did from_canister.txt
 
   # this canister has a local import in did file, the metadata should flatten the definitions
-  dfx canister metadata prebuilt_local_import candid:service
+  assert_command dfx canister metadata prebuilt_local_import candid:service
   assert_eq "service : { getCanisterId : () -> (principal) query }"
 }
 
