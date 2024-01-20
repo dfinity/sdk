@@ -5,6 +5,7 @@
         "start": "npm start --workspaces --if-present",
         "prebuild": "npm run prebuild --workspaces --if-present",
         "build": "npm run build --workspaces --if-present",
+        "pretest": "npm run prebuild --workspaces --if-present",
         "test": "npm test --workspaces --if-present"
     },
     "engines": {
