@@ -281,8 +281,6 @@ pub async fn exec(
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
     let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)?;
-    let agent = env.get_agent();
-    fetch_root_key_if_needed(env).await?;
 
     // amount has been validated by cycle_amount_validator
     let cycles = opts.with_cycles.unwrap_or(0);

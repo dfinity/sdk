@@ -37,6 +37,10 @@ Now they are stored with nanosecond precision on Windows too.
 
 Previously, this would fail with a PKCS#11: CKR_CRYPTOKI_ALREADY_INITIALIZED error.
 
+### fix!: always fetch did file from canister when making canister calls
+
+`dfx canister call` will always fetch did file from the canister metadata. This is especially helpful for calling remote canisters. It's a breaking change in the sense that if the canister doesn't have the `candid:service` metadata, we will not read the local did file from build artifact, and dfx will issue a warning in this case to encourage canister developers to put the did file into canister metadata.
+
 ## Dependencies
 
 ### Motoko
@@ -963,10 +967,6 @@ Added validate_grant_permission() and validate_revoke_permission() methods per S
 # 0.13.0
 
 ## DFX
-
-### fix: always fetch did file from canister when making canister calls
-
-`dfx canister call` will always fetch did file from the canister metadata. This is especially helpful for calling remote canisters.
 
 ### feat: Add dfx sns download
 
