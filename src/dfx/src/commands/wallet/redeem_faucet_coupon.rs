@@ -5,13 +5,13 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::set_wallet_id;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
-
 use anyhow::{anyhow, bail, Context};
 use candid::{encode_args, Decode, Principal};
 use clap::Parser;
 use slog::{info, warn};
 
-const DEFAULT_FAUCET_PRINCIPAL: &str = "fg7gi-vyaaa-aaaal-qadca-cai";
+pub const DEFAULT_FAUCET_PRINCIPAL: Principal =
+    Principal::from_slice(&[0, 0, 0, 0, 1, 112, 0, 196, 1, 1]);
 
 /// Redeem a code at the cycles faucet.
 #[derive(Parser)]
@@ -20,7 +20,7 @@ pub struct RedeemFaucetCouponOpts {
     coupon_code: String,
 
     /// Alternative faucet address. If not set, this uses the DFINITY faucet.
-    #[clap(long)]
+    #[arg(long)]
     faucet: Option<String>,
 }
 
@@ -32,11 +32,9 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         Principal::from_text(&alternative_faucet)
             .or_else(|_| canister_id_store.get(&alternative_faucet))?
     } else {
-        Principal::from_text(DEFAULT_FAUCET_PRINCIPAL).unwrap()
+        DEFAULT_FAUCET_PRINCIPAL
     };
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
     if fetch_root_key_if_needed(env).await.is_err() {
         bail!("Failed to connect to the local replica. Did you forget to use '--network ic'?");
     } else if !env.get_network_descriptor().is_ic {
@@ -102,5 +100,18 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
             info!(log, "New wallet set.");
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_faucet_canister_id() {
+        assert_eq!(
+            DEFAULT_FAUCET_PRINCIPAL,
+            Principal::from_text("fg7gi-vyaaa-aaaal-qadca-cai").unwrap()
+        );
     }
 }

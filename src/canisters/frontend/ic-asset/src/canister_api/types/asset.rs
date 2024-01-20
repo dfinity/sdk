@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use candid::CandidType;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 /// Information about a content encoding stored for an asset.
 #[derive(CandidType, Debug, Deserialize)]
@@ -39,7 +38,7 @@ pub struct AssetProperties {
 }
 
 /// Sets the asset with the given properties.
-#[derive(Debug, CandidType, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, CandidType, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SetAssetPropertiesArguments {
     pub key: String,
     pub max_age: Option<Option<u64>>,

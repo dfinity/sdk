@@ -1,10 +1,9 @@
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::Manifest;
 use crate::{error_invalid_argument, error_invalid_data};
+use anyhow::Context;
 #[cfg(windows)]
 use dfx_core::config::directories::project_dirs;
-
-use anyhow::Context;
 use flate2::read::GzDecoder;
 use fn_error_context::context;
 use indicatif::{ProgressBar, ProgressDrawTarget};
@@ -72,7 +71,7 @@ pub fn install_version(version: &Version) -> DfxResult<()> {
         fs::create_dir_all(&download_dir)
             .with_context(|| format!("Failed to create dir {}.", download_dir.to_string_lossy()))?;
     }
-    let download_file = download_dir.join(&format!("dfx-{}.tar.gz", version));
+    let download_file = download_dir.join(format!("dfx-{}.tar.gz", version));
     if download_file.exists() {
         println!("Found downloaded file {}", download_file.to_string_lossy());
     } else {

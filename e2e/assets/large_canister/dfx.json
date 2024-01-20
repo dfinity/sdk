@@ -1,0 +1,9 @@
+{
+    "canisters": {
+        "large": {
+            "type": "rust",
+            "package": "large",
+            "candid": "large.did"
+        } 
+    }
+}

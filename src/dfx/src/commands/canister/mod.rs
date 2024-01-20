@@ -1,10 +1,10 @@
 use crate::lib::agent::create_agent_environment;
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::{lib::environment::Environment, NetworkOpt};
-use dfx_core::identity::CallSender;
-
+use crate::lib::network::network_opt::NetworkOpt;
 use anyhow::anyhow;
 use clap::{Parser, Subcommand};
+use dfx_core::identity::CallSender;
 use tokio::runtime::Runtime;
 
 mod call;
@@ -26,17 +26,17 @@ mod update_settings;
 
 /// Manages canisters deployed on a network replica.
 #[derive(Parser)]
-#[clap(name("canister"))]
+#[command(name = "canister")]
 pub struct CanisterOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
     /// Specify a wallet canister id to perform the call.
     /// If none specified, defaults to use the selected Identity's wallet canister.
-    #[clap(long, global(true))]
+    #[arg(long, global = true)]
     wallet: Option<String>,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 
@@ -61,31 +61,35 @@ pub enum SubCommand {
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network.network)?;
+    let agent_env;
+    let env = if matches!(&opts.subcmd, SubCommand::Id(_)) {
+        env
+    } else {
+        agent_env = create_agent_environment(env, opts.network.to_network_name())?;
+        &agent_env
+    };
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(async {
         let call_sender = CallSender::from(&opts.wallet)
             .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
         match opts.subcmd {
-            SubCommand::Call(v) => call::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Create(v) => create::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Delete(v) => delete::exec(&agent_env, v, &call_sender).await,
-            SubCommand::DepositCycles(v) => deposit_cycles::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Id(v) => id::exec(&agent_env, v).await,
-            SubCommand::Install(v) => install::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Info(v) => info::exec(&agent_env, v).await,
-            SubCommand::Metadata(v) => metadata::exec(&agent_env, v).await,
-            SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
-            SubCommand::Send(v) => send::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Sign(v) => sign::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Start(v) => start::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Status(v) => status::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Stop(v) => stop::exec(&agent_env, v, &call_sender).await,
-            SubCommand::UninstallCode(v) => uninstall_code::exec(&agent_env, v, &call_sender).await,
-            SubCommand::UpdateSettings(v) => {
-                update_settings::exec(&agent_env, v, &call_sender).await
-            }
+            SubCommand::Call(v) => call::exec(env, v, &call_sender).await,
+            SubCommand::Create(v) => create::exec(env, v, &call_sender).await,
+            SubCommand::Delete(v) => delete::exec(env, v, &call_sender).await,
+            SubCommand::DepositCycles(v) => deposit_cycles::exec(env, v, &call_sender).await,
+            SubCommand::Id(v) => id::exec(env, v).await,
+            SubCommand::Install(v) => install::exec(env, v, &call_sender).await,
+            SubCommand::Info(v) => info::exec(env, v).await,
+            SubCommand::Metadata(v) => metadata::exec(env, v).await,
+            SubCommand::RequestStatus(v) => request_status::exec(env, v).await,
+            SubCommand::Send(v) => send::exec(env, v, &call_sender).await,
+            SubCommand::Sign(v) => sign::exec(env, v, &call_sender).await,
+            SubCommand::Start(v) => start::exec(env, v, &call_sender).await,
+            SubCommand::Status(v) => status::exec(env, v, &call_sender).await,
+            SubCommand::Stop(v) => stop::exec(env, v, &call_sender).await,
+            SubCommand::UninstallCode(v) => uninstall_code::exec(env, v, &call_sender).await,
+            SubCommand::UpdateSettings(v) => update_settings::exec(env, v, &call_sender).await,
         }
     })
 }

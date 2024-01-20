@@ -3,7 +3,7 @@ use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
-    plumbing::{make_project_assets, AssetDescriptor, ChunkUploadTarget},
+    plumbing::{make_project_assets, AssetDescriptor, ChunkUploader},
 };
 use crate::canister_api::methods::{
     api_version::api_version,
@@ -11,8 +11,9 @@ use crate::canister_api::methods::{
     list::list_assets,
 };
 use crate::canister_api::types::batch_upload::v0;
-
-use anyhow::anyhow;
+use crate::error::CompatibilityError::DowngradeV1TOV0Failed;
+use crate::error::UploadError;
+use crate::error::UploadError::{CommitBatchFailed, CreateBatchFailed, ListAssetsFailed};
 use ic_utils::Canister;
 use slog::{info, Logger};
 use std::collections::HashMap;
@@ -23,7 +24,7 @@ pub async fn upload(
     canister: &Canister<'_>,
     files: HashMap<String, PathBuf>,
     logger: &Logger,
-) -> anyhow::Result<()> {
+) -> Result<(), UploadError> {
     let asset_descriptors: Vec<AssetDescriptor> = files
         .iter()
         .map(|x| AssetDescriptor {
@@ -33,18 +34,15 @@ pub async fn upload(
         })
         .collect();
 
-    let canister_assets = list_assets(canister).await?;
+    let canister_assets = list_assets(canister).await.map_err(ListAssetsFailed)?;
 
     info!(logger, "Starting batch.");
 
-    let batch_id = create_batch(canister).await?;
+    let batch_id = create_batch(canister).await.map_err(CreateBatchFailed)?;
 
     info!(logger, "Staging contents of new and changed assets:");
 
-    let chunk_upload_target = ChunkUploadTarget {
-        canister,
-        batch_id: &batch_id,
-    };
+    let chunk_upload_target = ChunkUploader::new(canister.clone(), batch_id.clone());
 
     let project_assets = make_project_assets(
         Some(&chunk_upload_target),
@@ -64,15 +62,13 @@ pub async fn upload(
 
     let canister_api_version = api_version(canister).await;
     info!(logger, "Committing batch.");
-    let response = match canister_api_version {
+    match canister_api_version {
         0 => {
             let commit_batch_args_v0 = v0::CommitBatchArguments::try_from(commit_batch_args)
-                .map_err(|e| anyhow!("Failed to downgrade from v1::CommitBatchArguments to v0::CommitBatchArguments: {}. Please upgrade your asset canister, or use older tooling (dfx<=v-0.13.1 or icx-asset<=0.20.0)", e))?;
+                .map_err(DowngradeV1TOV0Failed)?;
             commit_batch(canister, commit_batch_args_v0).await
         }
         BATCH_UPLOAD_API_VERSION.. => commit_batch(canister, commit_batch_args).await,
-    };
-    response.map_err(|e| anyhow!("Failed to upload project assets to frontend canister: {e}"))?;
-
-    Ok(())
+    }
+    .map_err(CommitBatchFailed)
 }

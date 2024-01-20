@@ -22,6 +22,12 @@
       "title": "Bitcoin Adapter Configuration",
       "type": "object",
       "properties": {
+        "canister_init_arg": {
+          "title": "Initialization Argument",
+          "description": "The initialization argument for the bitcoin canister.",
+          "default": "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 0 : nat; get_utxos_cycles_per_ten_instructions = 0 : nat; get_utxos_maximum = 0 : nat; get_balance = 0 : nat; get_balance_maximum = 0 : nat; get_current_fee_percentiles = 0 : nat; get_current_fee_percentiles_maximum = 0 : nat;  send_transaction_base = 0 : nat; send_transaction_per_byte = 0 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})",
+          "type": "string"
+        },
         "enabled": {
           "title": "Enable Bitcoin Adapter",
           "default": false,
@@ -53,6 +59,7 @@
     },
     "ConfigDefaultsBootstrap": {
       "title": "Bootstrap Server Configuration",
+      "description": "The bootstrap command has been removed.  All of these fields are ignored.",
       "type": "object",
       "properties": {
         "ip": {
@@ -93,6 +100,23 @@
           "allOf": [
             {
               "$ref": "#/definitions/HttpAdapterLogLevel"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigDefaultsProxy": {
+      "description": "Configuration for icx-proxy.",
+      "type": "object",
+      "required": [
+        "domain"
+      ],
+      "properties": {
+        "domain": {
+          "description": "A list of domains that can be served. These are used for canister resolution [default: localhost]",
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
             }
           ]
         }
@@ -177,6 +201,26 @@
             }
           ]
         },
+        "playground": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PlaygroundConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proxy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsProxy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "replica": {
           "anyOf": [
             {
@@ -215,6 +259,16 @@
         "providers"
       ],
       "properties": {
+        "playground": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PlaygroundConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "providers": {
           "description": "The URL(s) this network can be reached at.",
           "type": "array",
@@ -254,6 +308,26 @@
         "persistent"
       ]
     },
+    "PlaygroundConfig": {
+      "description": "Playground config to borrow canister from instead of creating new canisters.",
+      "type": "object",
+      "required": [
+        "playground_canister"
+      ],
+      "properties": {
+        "playground_canister": {
+          "description": "Canister ID of the playground canister",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "description": "How many seconds a canister can be borrowed for",
+          "default": 1200,
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
     "ReplicaLogLevel": {
       "type": "string",
       "enum": [
@@ -271,6 +345,19 @@
         "system",
         "application",
         "verifiedapplication"
+      ]
+    },
+    "SerdeVec_for_String": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       ]
     }
   }

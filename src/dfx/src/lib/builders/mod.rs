@@ -1,15 +1,14 @@
 use crate::config::dfx_version_str;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
+use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use crate::util::{check_candid_source, CandidSource};
+use anyhow::{anyhow, bail, Context};
+use candid::Principal as CanisterId;
+use candid_parser::utils::CandidSource;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
-
-use anyhow::{bail, Context};
-use candid::Principal as CanisterId;
 use fn_error_context::context;
 use handlebars::Handlebars;
 use std::borrow::Cow;
@@ -19,6 +18,7 @@ use std::fmt::Write;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 use std::sync::Arc;
 
 mod assets;
@@ -33,6 +33,8 @@ pub use custom::custom_download;
 pub enum WasmBuildOutput {
     // Wasm(Vec<u8>),
     File(PathBuf),
+    // pull dependencies has no wasm output to be installed by `dfx canister install` or `dfx deploy`
+    None,
 }
 
 #[derive(Debug)]
@@ -42,6 +44,7 @@ pub enum IdlBuildOutput {
 }
 
 /// The output of a build.
+#[derive(Debug)]
 pub struct BuildOutput {
     pub canister_id: CanisterId,
     pub wasm: WasmBuildOutput,
@@ -101,12 +104,13 @@ pub trait CanisterBuilder {
             .context("`output` must not be None")?;
 
         if generate_output_dir.exists() {
-            let generate_output_dir = generate_output_dir.canonicalize().with_context(|| {
-                format!(
-                    "Failed to canonicalize output dir {}.",
-                    generate_output_dir.to_string_lossy()
-                )
-            })?;
+            let generate_output_dir = dfx_core::fs::canonicalize(generate_output_dir)
+                .with_context(|| {
+                    format!(
+                        "Failed to canonicalize output dir {}.",
+                        generate_output_dir.to_string_lossy()
+                    )
+                })?;
             if !generate_output_dir.starts_with(info.get_workspace_root()) {
                 bail!(
                     "Directory at '{}' is outside the workspace root.",
@@ -146,14 +150,15 @@ pub trait CanisterBuilder {
 
         let generated_idl_path = self.generate_idl(pool, info, config)?;
 
-        let (env, ty) = check_candid_source(CandidSource::Path(generated_idl_path.as_path()))?;
+        let (env, ty) = CandidSource::File(generated_idl_path.as_path()).load()?;
 
         // Typescript
         if bindings.contains(&"ts".to_string()) {
             let output_did_ts_path = generate_output_dir
                 .join(info.get_name())
                 .with_extension("did.d.ts");
-            let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
+            let content =
+                ensure_trailing_newline(candid_parser::bindings::typescript::compile(&env, &ty));
             std::fs::write(&output_did_ts_path, content).with_context(|| {
                 format!(
                     "Failed to write to {}.",
@@ -171,7 +176,8 @@ pub trait CanisterBuilder {
             let output_did_js_path = generate_output_dir
                 .join(info.get_name())
                 .with_extension("did.js");
-            let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
+            let content =
+                ensure_trailing_newline(candid_parser::bindings::javascript::compile(&env, &ty));
             std::fs::write(&output_did_js_path, content).with_context(|| {
                 format!(
                     "Failed to write to {}.",
@@ -188,7 +194,8 @@ pub trait CanisterBuilder {
             let output_mo_path = generate_output_dir
                 .join(info.get_name())
                 .with_extension("mo");
-            let content = ensure_trailing_newline(candid::bindings::motoko::compile(&env, &ty));
+            let content =
+                ensure_trailing_newline(candid_parser::bindings::motoko::compile(&env, &ty));
             std::fs::write(&output_mo_path, content).with_context(|| {
                 format!("Failed to write to {}.", output_mo_path.to_string_lossy())
             })?;
@@ -265,7 +272,7 @@ fn compile_handlebars_files(
                 format!(
                     r#"
 
-export const {0} = createActor(canisterId);"#,
+export const {0} = canisterId ? createActor(canisterId) : undefined;"#,
                     canister_name
                 )
                 .to_string()
@@ -274,18 +281,26 @@ export const {0} = createActor(canisterId);"#,
             data.insert("canister_name".to_string(), canister_name);
             data.insert("actor_export".to_string(), &actor_export);
 
-            let process_string: String = match &info.get_declarations_config().env_override {
+            // Switches to prefixing the canister id with the env variable for frontend declarations as new default
+            let process_string_prefix: String = match &info.get_declarations_config().env_override {
                 Some(s) => format!(r#""{}""#, s.clone()),
                 None => {
                     format!(
-                        "process.env.{}{}",
+                        "process.env.{}{} ||\n  process.env.{}{}",
+                        "CANISTER_ID_",
                         &canister_name.to_ascii_uppercase(),
-                        "_CANISTER_ID"
+                        // TODO: remove this fallback in 0.16.x
+                        // https://dfinity.atlassian.net/browse/SDK-1083
+                        &canister_name.to_ascii_uppercase(),
+                        "_CANISTER_ID",
                     )
                 }
             };
 
-            data.insert("canister_name_process_env".to_string(), &process_string);
+            data.insert(
+                "canister_name_process_env".to_string(),
+                &process_string_prefix,
+            );
 
             let new_file_contents = handlebars.render_template(&file_contents, &data).unwrap();
             let new_path = generate_output_dir.join(pathname.with_extension(""));
@@ -308,23 +323,32 @@ fn ensure_trailing_newline(s: String) -> String {
     }
 }
 
-/// Set the permission of the given file to be writeable.
-pub fn set_perms_readwrite(file_path: &PathBuf) -> DfxResult<()> {
-    let mut perms = std::fs::metadata(file_path)
-        .with_context(|| {
-            format!(
-                "Failed to read metadata for file {}.",
-                file_path.to_string_lossy()
-            )
-        })?
-        .permissions();
-    perms.set_readonly(false);
-    std::fs::set_permissions(file_path, perms).with_context(|| {
-        format!(
-            "Failed to set permissions for file {}.",
-            file_path.to_string_lossy()
-        )
-    })
+pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult<()> {
+    let (command_name, arguments) = args.split_first().unwrap();
+    let canonicalized = dfx_core::fs::canonicalize(&cwd.join(command_name))
+        .or_else(|_| which::which(command_name))
+        .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
+    let mut cmd = Command::new(canonicalized);
+
+    cmd.args(arguments)
+        .current_dir(cwd)
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+
+    for (key, value) in vars {
+        cmd.env(key.as_ref(), value);
+    }
+
+    let output = cmd
+        .output()
+        .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
+    if output.status.success() {
+        Ok(())
+    } else {
+        Err(DfxError::new(BuildError::CustomToolError(
+            output.status.code(),
+        )))
+    }
 }
 
 type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);
@@ -359,9 +383,31 @@ pub fn get_and_write_environment_variables<'a>(
                 )),
                 Borrowed(candid_path),
             ));
+            vars.push((
+                Owned(format!(
+                    "CANISTER_CANDID_PATH_{}",
+                    canister.get_name().replace('-', "_").to_ascii_uppercase()
+                )),
+                Borrowed(candid_path),
+            ));
         }
     }
     for canister in pool.get_canister_list() {
+        // Insert both suffixed and prefixed versions of the canister name for backwards compatibility
+        vars.push((
+            Owned(format!(
+                "{}_CANISTER_ID",
+                canister.get_name().replace('-', "_").to_ascii_uppercase(),
+            )),
+            Owned(canister.canister_id().to_text().into()),
+        ));
+        vars.push((
+            Owned(format!(
+                "CANISTER_ID_{}",
+                canister.get_name().replace('-', "_").to_ascii_uppercase(),
+            )),
+            Owned(canister.canister_id().to_text().into()),
+        ));
         vars.push((
             Owned(format!(
                 "CANISTER_ID_{}",
@@ -404,7 +450,7 @@ fn write_environment_variables(vars: &[Env<'_>], write_path: &Path) -> DfxResult
                 // the section is correctly formed
                 let end_pos = end_pos + END_TAG.len() + start_pos + START_TAG.len();
                 existing_file.replace_range(start_pos..end_pos, &write_string);
-                fs::write(write_path, existing_file)?;
+                dfx_core::fs::write(write_path, existing_file)?;
                 return Ok(());
             } else {
                 // the file has been edited, so we don't know how much to delete, so we append instead
@@ -412,10 +458,10 @@ fn write_environment_variables(vars: &[Env<'_>], write_path: &Path) -> DfxResult
         }
         // append to the existing file
         existing_file.push_str(&write_string);
-        fs::write(write_path, existing_file)?;
+        dfx_core::fs::write(write_path, existing_file)?;
     } else {
         // no existing file, okay to clobber
-        fs::write(write_path, write_string)?;
+        dfx_core::fs::write(write_path, write_string)?;
     }
     Ok(())
 }
@@ -425,6 +471,7 @@ pub struct BuildConfig {
     profile: Profile,
     pub build_mode_check: bool,
     pub network_name: String,
+    pub network_is_playground: bool,
 
     /// The root of all IDL files.
     pub idl_root: PathBuf,
@@ -441,7 +488,7 @@ pub struct BuildConfig {
 
 impl BuildConfig {
     #[context("Failed to create build config.")]
-    pub fn from_config(config: &Config) -> DfxResult<Self> {
+    pub fn from_config(config: &Config, network_is_playground: bool) -> DfxResult<Self> {
         let config_intf = config.get_config();
         let network_name = util::network_to_pathcompat(&get_network_context()?);
         let network_root = config.get_temp_path().join(&network_name);
@@ -449,13 +496,14 @@ impl BuildConfig {
 
         Ok(BuildConfig {
             network_name,
+            network_is_playground,
             profile: config_intf.profile.unwrap_or(Profile::Debug),
             build_mode_check: false,
             build_root: canister_root.clone(),
             idl_root: canister_root.join("idl/"), // TODO: possibly move to `network_root.join("idl/")`
             lsp_root: network_root.join("lsp/"),
             canisters_to_build: None,
-            env_file: config_intf.output_env_file.clone(),
+            env_file: config.get_output_env_file(None)?,
         })
     }
 
@@ -476,17 +524,6 @@ impl BuildConfig {
     pub fn with_env_file(self, env_file: Option<PathBuf>) -> Self {
         Self { env_file, ..self }
     }
-}
-
-#[context("Failed to shrink wasm at {}.", &wasm_path.as_ref().display())]
-fn shrink_wasm(wasm_path: impl AsRef<Path>) -> DfxResult {
-    let wasm_path = wasm_path.as_ref();
-    let wasm = std::fs::read(wasm_path).context("Could not read the WASM module.")?;
-    let shrinked_wasm =
-        ic_wasm::shrink::shrink(&wasm).context("Could not shrink the WASM module.")?;
-    std::fs::write(wasm_path, &shrinked_wasm)
-        .with_context(|| format!("Could not write shrinked WASM to {:?}", wasm_path))?;
-    Ok(())
 }
 
 pub struct BuilderPool {

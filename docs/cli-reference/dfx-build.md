@@ -16,24 +16,25 @@ dfx build [flag] [option] [--all | canister_name]
 
 You can use the following optional flags with the `dfx build` command.
 
-| Flag              | Description                                                                                                                                                      |
-|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--check`         | Builds canisters using a temporary, hard-coded, locally-defined canister identifier for testing that your program compiles without connecting to the IC. |
+| Flag      | Description                                                                                                                                              |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--check` | Builds canisters using a temporary, hard-coded, locally-defined canister identifier for testing that your program compiles without connecting to the IC. |
 
 ## Options
 
-You can specify the following option for the `dfx build` command.
+You can specify the following options for the `dfx build` command.
 
 | Option                | Description                                                                                                                                                |
-|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--network <network>` | Specifies the network alias or URL you want to connect to. You can use this option to override the network specified in the `dfx.json` configuration file. |
+| `--output-env-file`   | Writes dfx environment variables to a provided path. Overrides the `output_env_file` configuration from `dfx.json` if passed.                              |
 
 ## Arguments
 
 You can specify the following arguments for the `dfx build` command.
 
 | Argument        | Description                                                                                                                                                                                                                                                                                                                              |
-|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--all`         | Builds all of the canisters configured in the project’s `dfx.json` file.                                                                                                                                                                                                                                                                 |
 | `canister_name` | Specifies the name of the canister you want to build. If you are not using the `--all` option, you can continue to use `dfx build` or provide a canister name as an argument (the canister name must match at least one name that you have configured in the `canisters` section of the `dfx.json` configuration file for your project.) |
 
@@ -56,3 +57,7 @@ To test whether a canister compiles without connecting to the IC or the local ca
 ``` bash
 dfx build --check
 ```
+
+## Management Canister
+
+If `dfx` detects that your Motoko project is importing the Management Canister (e.g. `import Management "ic:aaaaa-aa";`) it will automatically provide the Candid interface for the Management Canister during the build.

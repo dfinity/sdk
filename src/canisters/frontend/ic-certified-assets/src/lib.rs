@@ -1,10 +1,7 @@
 //! This module declares canister methods expected by the assets canister client.
-mod certification_types;
+pub mod asset_certification;
 pub mod evidence;
-pub mod http;
-pub mod rc_bytes;
 pub mod state_machine;
-mod tree;
 pub mod types;
 mod url_decode;
 
@@ -13,19 +10,17 @@ mod tests;
 
 pub use crate::state_machine::StableState;
 use crate::{
-    http::{HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken},
-    rc_bytes::RcBytes,
+    asset_certification::types::http::{
+        CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
+        StreamingCallbackToken,
+    },
     state_machine::{AssetDetails, CertifiedTree, EncodedAsset, State},
     types::*,
 };
+use asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use candid::{candid_method, Principal};
-use ic_cdk::api::{
-    call::ManualReply,
-    caller, data_certificate,
-    management_canister::{main::canister_status, provisional::CanisterIdRecord},
-    set_certified_data, time, trap,
-};
-use ic_cdk_macros::{query, update};
+use ic_cdk::api::{call::ManualReply, caller, data_certificate, set_certified_data, time, trap};
+use ic_cdk::{query, update};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 
@@ -43,25 +38,19 @@ fn api_version() -> u16 {
     1
 }
 
-#[update]
+#[update(guard = "is_manager_or_controller")]
 #[candid_method(update)]
-async fn authorize(other: Principal) {
-    match has_permission_or_is_controller(&Permission::ManagePermissions).await {
-        Err(e) => trap(&e),
-        Ok(_) => STATE.with(|s| s.borrow_mut().grant_permission(other, &Permission::Commit)),
-    }
+fn authorize(other: Principal) {
+    STATE.with(|s| s.borrow_mut().grant_permission(other, &Permission::Commit))
 }
 
-#[update]
+#[update(guard = "is_manager_or_controller")]
 #[candid_method(update)]
-async fn grant_permission(arg: GrantPermissionArguments) {
-    match has_permission_or_is_controller(&Permission::ManagePermissions).await {
-        Err(e) => trap(&e),
-        Ok(_) => STATE.with(|s| {
-            s.borrow_mut()
-                .grant_permission(arg.to_principal, &arg.permission)
-        }),
-    }
+fn grant_permission(arg: GrantPermissionArguments) {
+    STATE.with(|s| {
+        s.borrow_mut()
+            .grant_permission(arg.to_principal, &arg.permission)
+    })
 }
 
 #[update]
@@ -79,9 +68,9 @@ async fn deauthorize(other: Principal) {
     let check_access_result = if other == caller() {
         // this isn't "ManagePermissions" because these legacy methods only
         // deal with the Commit permission
-        has_permission_or_is_controller(&Permission::Commit).await
+        has_permission_or_is_controller(&Permission::Commit)
     } else {
-        is_controller().await
+        is_controller()
     };
     match check_access_result {
         Err(e) => trap(&e),
@@ -93,9 +82,9 @@ async fn deauthorize(other: Principal) {
 #[candid_method(update)]
 async fn revoke_permission(arg: RevokePermissionArguments) {
     let check_access_result = if arg.of_principal == caller() {
-        has_permission_or_is_controller(&arg.permission).await
+        has_permission_or_is_controller(&arg.permission)
     } else {
-        has_permission_or_is_controller(&Permission::ManagePermissions).await
+        has_permission_or_is_controller(&Permission::ManagePermissions)
     };
     match check_access_result {
         Err(e) => trap(&e),
@@ -115,27 +104,25 @@ async fn validate_revoke_permission(arg: RevokePermissionArguments) -> Result<St
     ))
 }
 
-#[query(manual_reply = true)]
-#[candid_method(query)]
+#[update(manual_reply = true)]
+#[candid_method(update)]
 fn list_authorized() -> ManualReply<Vec<Principal>> {
     STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&Permission::Commit)))
 }
 
-#[query(manual_reply = true)]
-#[candid_method(query)]
+#[update(manual_reply = true)]
+#[candid_method(update)]
 fn list_permitted(arg: ListPermittedArguments) -> ManualReply<Vec<Principal>> {
     STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&arg.permission)))
 }
 
-#[update]
+#[update(guard = "is_controller")]
 #[candid_method(update)]
 async fn take_ownership() {
-    let caller = caller();
-    match is_controller().await {
-        Err(e) => trap(&e),
-        Ok(_) => STATE.with(|s| s.borrow_mut().take_ownership(caller)),
-    }
+    let caller = ic_cdk::api::caller();
+    STATE.with(|s| s.borrow_mut().take_ownership(caller))
 }
+
 #[update]
 #[candid_method(update)]
 async fn validate_take_ownership() -> Result<String, String> {
@@ -165,8 +152,9 @@ fn store(arg: StoreArg) {
 #[update(guard = "can_prepare")]
 #[candid_method(update)]
 fn create_batch() -> CreateBatchResponse {
-    STATE.with(|s| CreateBatchResponse {
-        batch_id: s.borrow_mut().create_batch(time()),
+    STATE.with(|s| match s.borrow_mut().create_batch(time()) {
+        Ok(batch_id) => CreateBatchResponse { batch_id },
+        Err(msg) => trap(&msg),
     })
 }
 
@@ -271,7 +259,7 @@ fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
     });
 }
 
-#[update(guard = "can_commit")]
+#[update]
 #[candid_method(update)]
 fn validate_commit_proposed_batch(arg: CommitProposedBatchArguments) -> Result<String, String> {
     STATE.with(|s| s.borrow_mut().validate_commit_proposed_batch(arg))
@@ -328,10 +316,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
         s.borrow().http_request(
             req,
             &certificate,
-            candid::Func {
-                method: "http_request_streaming_callback".to_string(),
-                principal: ic_cdk::id(),
-            },
+            CallbackFunc::new(ic_cdk::id(), "http_request_streaming_callback".to_string()),
         )
     })
 }
@@ -366,6 +351,24 @@ fn set_asset_properties(arg: SetAssetPropertiesArguments) {
     })
 }
 
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn get_configuration() -> ConfigurationResponse {
+    STATE.with(|s| s.borrow().get_configuration())
+}
+
+#[update(guard = "can_commit")]
+#[candid_method(update)]
+fn configure(arg: ConfigureArguments) {
+    STATE.with(|s| s.borrow_mut().configure(arg))
+}
+
+#[update]
+#[candid_method(update)]
+fn validate_configure(arg: ConfigureArguments) -> Result<String, String> {
+    Ok(format!("configure: {:?}", arg))
+}
+
 fn can(permission: Permission) -> Result<(), String> {
     STATE.with(|s| {
         s.borrow()
@@ -383,55 +386,39 @@ fn can_prepare() -> Result<(), String> {
     can(Permission::Prepare)
 }
 
-async fn has_permission_or_is_controller(permission: &Permission) -> Result<(), String> {
+fn has_permission_or_is_controller(permission: &Permission) -> Result<(), String> {
     let caller = caller();
     let has_permission = STATE.with(|s| s.borrow().has_permission(&caller, permission));
-    if has_permission {
+    let is_controller = ic_cdk::api::is_controller(&caller);
+    if has_permission || is_controller {
         Ok(())
     } else {
-        match canister_status(CanisterIdRecord {
-            canister_id: ic_cdk::api::id(),
-        })
-        .await
-        {
-            Err((code, msg)) => trap(&format!(
-                "Caller does not have {} permission. Failed to determine if caller is canister controller with code {:?} and message '{}'",
-                permission,
-                code, msg
-            )),
-            Ok((a,)) => {
-                if a.settings.controllers.contains(&caller) {
-                    Ok(())
-                } else {
-                    Err(format!("Caller does not have {} permission and is not a controller.", permission))
-                }
-            }
-        }
+        Err(format!(
+            "Caller does not have {} permission and is not a controller.",
+            permission
+        ))
     }
 }
 
-async fn is_controller() -> Result<(), String> {
+fn is_manager_or_controller() -> Result<(), String> {
+    has_permission_or_is_controller(&Permission::ManagePermissions)
+}
+
+fn is_controller() -> Result<(), String> {
     let caller = caller();
-    match canister_status(CanisterIdRecord {
-        canister_id: ic_cdk::api::id(),
-    })
-    .await
-    {
-        Err((code, msg)) => trap(&format!(
-            "Failed to determine if caller is canister controller with code {:?} and message '{}'",
-            code, msg
-        )),
-        Ok((a,)) => {
-            if a.settings.controllers.contains(&caller) {
-                Ok(())
-            } else {
-                Err("Caller is not a controller.".to_string())
-            }
-        }
+    if ic_cdk::api::is_controller(&caller) {
+        Ok(())
+    } else {
+        Err("Caller is not a controller.".to_string())
     }
 }
 
-pub fn init() {
+pub fn init(args: Option<AssetCanisterArgs>) {
+    if let Some(upgrade_arg) = args {
+        let AssetCanisterArgs::Init(InitArgs {}) = upgrade_arg else {
+            ic_cdk::trap("Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.")
+        };
+    }
     STATE.with(|s| {
         let mut s = s.borrow_mut();
         s.clear();
@@ -443,16 +430,24 @@ pub fn pre_upgrade() -> StableState {
     STATE.with(|s| s.take().into())
 }
 
-pub fn post_upgrade(stable_state: StableState) {
+pub fn post_upgrade(stable_state: StableState, args: Option<AssetCanisterArgs>) {
+    let set_permissions = args.and_then(|args| {
+        let AssetCanisterArgs::Upgrade(UpgradeArgs { set_permissions }) = args else {ic_cdk::trap("Cannot upgrade the canister with an Init argument. Please provide an Upgrade argument.")};
+        set_permissions
+    });
+
     STATE.with(|s| {
         *s.borrow_mut() = State::from(stable_state);
         set_certified_data(&s.borrow().root_hash());
+        if let Some(set_permissions) = set_permissions {
+            s.borrow_mut().set_permissions(set_permissions);
+        }
     });
 }
 
 #[test]
 fn candid_interface_compatibility() {
-    use candid::utils::{service_compatible, CandidSource};
+    use candid_parser::utils::{service_compatible, CandidSource};
     use std::path::PathBuf;
 
     candid::export_service!();

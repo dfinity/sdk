@@ -26,7 +26,7 @@ dfx cache delete --help
 
 ## dfx cache delete
 
-Use the `dfx cache delete` command to delete a specified version of `dfx` from the version cache on the local computer.
+Use the `dfx cache delete` command to delete a specified version of the IC SDK from the version cache on the local computer.
 
 ### Basic usage
 
@@ -44,7 +44,7 @@ You can specify the following argument for the `dfx cache delete` command.
 
 ### Examples
 
-You can use the `dfx cache delete` command to permanently delete versions of `dfx` that you no longer want to use. For example, you can run the following command to delete `dfx` version `0.6.2`:
+You can use the `dfx cache delete` command to permanently delete versions of the IC SDK that you no longer want to use. For example, you can run the following command to delete the IC SDK version `0.6.2`:
 
 ``` bash
 dfx cache delete 0.6.2
@@ -52,7 +52,7 @@ dfx cache delete 0.6.2
 
 ## dfx cache install
 
-Use the `dfx cache install` command to install `dfx` using the version currently found in the `dfx` cache.
+Use the `dfx cache install` command to install the IC SDK using the version currently found in the `dfx` cache.
 
 ### Basic usage
 
@@ -70,9 +70,9 @@ dfx cache install
 
 ## dfx cache list
 
-Use the `dfx cache list` command to list the `dfx` versions you have currently installed and used in projects.
+Use the `dfx cache list` command to list the IC SDK versions you have currently installed and used in projects.
 
-If you have multiple versions of `dfx` installed, the cache list displays an asterisk (\*) to indicate the currently active version.
+If you have multiple versions of the IC SDK installed, the cache list displays an asterisk (\*) to indicate the currently active version.
 
 ### Basic usage
 
@@ -82,13 +82,13 @@ dfx cache list [flag]
 
 ### Examples
 
-You can use the `dfx cache list` command to list the `dfx` versions you have currently installed and used in projects. For example, you can run the following command to list versions of `dfx` found in the cache:
+You can use the `dfx cache list` command to list the IC SDK versions you have currently installed and used in projects. For example, you can run the following command to list versions of the IC SDK found in the cache:
 
 ``` bash
 dfx cache list
 ```
 
-This command displays the list of `dfx` versions found similar to the following:
+This command displays the list of the IC SDK versions found similar to the following:
 
 ``` bash
 0.6.4 *
@@ -98,7 +98,7 @@ This command displays the list of `dfx` versions found similar to the following:
 
 ## dfx cache show
 
-Use the `dfx cache show` command to display the full path to the cache used by the `dfx` version you are currently using.
+Use the `dfx cache show` command to display the full path to the cache used by the IC SDK version you are currently using.
 
 ### Basic usage
 
@@ -108,13 +108,13 @@ dfx cache show [flag]
 
 ### Examples
 
-You can use the `dfx cache show` command to display the path to the cache used by the `dfx` version you are currently using:
+You can use the `dfx cache show` command to display the path to the cache used by the IC SDK version you are currently using:
 
 ``` bash
 dfx cache show
 ```
 
-This command displays the path to the cache used by the `dfx` version you are currently using:
+This command displays the path to the cache used by the IC SDK version you are currently using:
 
 ``` bash
 /Users/pubs/.cache/dfinity/versions/0.6.4

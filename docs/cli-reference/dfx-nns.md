@@ -1,3 +1,6 @@
+:::caution
+The `dfx nns` command is no longer part of dfx, and has now been turned into the dfx extension. In order to obtain it, please run `dfx extension install nns`.
+:::
 
 Use the `dfx nns` subcommands to interact with the Network Nervous System.
 

@@ -1,4 +1,3 @@
-use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
@@ -7,36 +6,36 @@ use crate::lib::operations::canister;
 use crate::lib::operations::canister::{
     deposit_cycles, start_canister, stop_canister, update_settings,
 };
+use crate::lib::operations::cycles_ledger::{
+    wallet_deposit_to_cycles_ledger, CYCLES_LEDGER_ENABLED,
+};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::util::blob_from_arguments;
-use dfx_core::canister::build_wallet_canister;
-use dfx_core::identity::CallSender;
-
-use fn_error_context::context;
-use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::attributes::{
-    ComputeAllocation, FreezingThreshold, MemoryAllocation,
-};
-use ic_utils::interfaces::management_canister::CanisterStatus;
-use ic_utils::Argument;
-
-use anyhow::{anyhow, Context};
+use crate::util::clap::parsers::icrc_subaccount_parser;
+use anyhow::{bail, Context};
 use candid::Principal;
 use clap::Parser;
+use dfx_core::canister::build_wallet_canister;
+use dfx_core::cli::ask_for_consent;
+use dfx_core::identity::CallSender;
+use fn_error_context::context;
+use ic_utils::call::AsyncCall;
+use ic_utils::interfaces::management_canister::attributes::FreezingThreshold;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
+use ic_utils::interfaces::management_canister::CanisterStatus;
 use ic_utils::interfaces::ManagementCanister;
+use ic_utils::Argument;
+use icrc_ledger_types::icrc1::account::{Account, Subaccount};
 use num_traits::cast::ToPrimitive;
 use slog::info;
 use std::convert::TryFrom;
 
-#[allow(deprecated)]
 const DANK_PRINCIPAL: Principal =
     Principal::from_slice(&[0, 0, 0, 0, 0, 0xe0, 1, 0x11, 0x01, 0x01]); // Principal: aanaa-xaaaa-aaaah-aaeiq-cai
 
 // "Couldn't send message" when deleting a canister: increase WITHDRAWAL_COST
 const WITHDRAWAL_COST: u128 = 10_606_030_000; // 5% higher than a value observed ok locally
-const MAX_MEMORY_ALLOCATION: u64 = 8589934592;
 
 /// Deletes a currently stopped canister.
 #[derive(Parser)]
@@ -46,32 +45,41 @@ pub struct CanisterDeleteOpts {
     canister: Option<String>,
 
     /// Deletes all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 
     /// Do not withdrawal cycles, just delete the canister.
-    #[clap(long)]
+    #[arg(long)]
     no_withdrawal: bool,
 
     /// Withdraw cycles from canister(s) to the specified canister/wallet before deleting.
-    #[clap(long, conflicts_with("no-withdrawal"))]
+    #[arg(long, conflicts_with("no_withdrawal"))]
     withdraw_cycles_to_canister: Option<String>,
 
     /// Withdraw cycles to dank with the current principal.
-    #[clap(
+    #[arg(
         long,
-        conflicts_with("withdraw-cycles-to-canister"),
-        conflicts_with("no-withdrawal")
+        conflicts_with("withdraw_cycles_to_canister"),
+        conflicts_with("no_withdrawal")
     )]
     withdraw_cycles_to_dank: bool,
 
     /// Withdraw cycles to dank with the given principal.
-    #[clap(
+    #[arg(
         long,
-        conflicts_with("withdraw-cycles-to-canister"),
-        conflicts_with("no-withdrawal")
+        conflicts_with("withdraw_cycles_to_canister"),
+        conflicts_with("no_withdrawal")
     )]
     withdraw_cycles_to_dank_principal: Option<String>,
+
+    /// Auto-confirm deletion for a non-stopped canister.
+    #[arg(long, short)]
+    yes: bool,
+
+    /// Subaccount of the selected identity to deposit cycles to.
+    //TODO(SDK-1331): unhide
+    #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
+    to_subaccount: Option<Subaccount>,
 }
 
 #[context("Failed to delete canister '{}'.", canister)]
@@ -80,77 +88,106 @@ async fn delete_canister(
     canister: &str,
     call_sender: &CallSender,
     no_withdrawal: bool,
+    skip_confirmation: bool,
     withdraw_cycles_to_canister: Option<String>,
     withdraw_cycles_to_dank: bool,
     withdraw_cycles_to_dank_principal: Option<String>,
+    to_cycles_ledger_subaccount: Option<Subaccount>,
 ) -> DfxResult {
     let log = env.get_logger();
     let mut canister_id_store = env.get_canister_id_store()?;
-    let canister_id =
-        Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
-    let mut call_sender = call_sender;
-    let to_dank = withdraw_cycles_to_dank || withdraw_cycles_to_dank_principal.is_some();
+    let (canister_id, canister_name_to_delete) = match Principal::from_text(canister) {
+        Ok(canister_id) => (
+            canister_id,
+            canister_id_store.get_name_in_project(canister).cloned(),
+        ),
+        Err(_) => (canister_id_store.get(canister)?, Some(canister.to_string())),
+    };
 
-    // Get the canister to transfer the cycles to.
-    let target_canister_id = if no_withdrawal {
-        None
-    } else if to_dank {
-        Some(DANK_PRINCIPAL)
-    } else {
-        match withdraw_cycles_to_canister {
-            Some(ref target_canister_id) => {
-                Some(Principal::from_text(target_canister_id).with_context(|| {
-                    format!("Failed to read canister id {:?}.", target_canister_id)
-                })?)
-            }
-            None => match call_sender {
-                CallSender::Wallet(wallet_id) => Some(*wallet_id),
-                CallSender::SelectedId => {
-                    let network = env.get_network_descriptor();
-                    let agent_env = create_agent_environment(env, Some(network.name.clone()))?;
-                    let identity_name = agent_env
-                        .get_selected_identity()
-                        .expect("No selected identity.")
-                        .to_string();
-                    // If there is no wallet, then do not attempt to withdraw the cycles.
-                    wallet_canister_id(network, &identity_name)?
+    if !env.get_network_descriptor().is_playground() {
+        let mut call_sender = call_sender;
+        let to_dank = withdraw_cycles_to_dank || withdraw_cycles_to_dank_principal.is_some();
+
+        // Get the canister to transfer the cycles to.
+        let withdraw_target = if no_withdrawal {
+            WithdrawTarget::NoWithdrawal
+        } else if to_dank {
+            WithdrawTarget::Dank
+        } else {
+            match withdraw_cycles_to_canister {
+                Some(ref target_canister_id) => {
+                    let canister_id =
+                        Principal::from_text(target_canister_id).with_context(|| {
+                            format!("Failed to read canister id {:?}.", target_canister_id)
+                        })?;
+                    WithdrawTarget::Canister { canister_id }
                 }
-            },
-        }
-    };
-    let principal = env
-        .get_selected_identity_principal()
-        .expect("Selected identity not instantiated.");
-    let dank_target_principal = match withdraw_cycles_to_dank_principal {
-        None => principal,
-        Some(principal) => Principal::from_text(&principal)
-            .with_context(|| format!("Failed to read principal {:?}.", &principal))?,
-    };
-    fetch_root_key_if_needed(env).await?;
+                None => match call_sender {
+                    CallSender::Wallet(wallet_id) => WithdrawTarget::Canister {
+                        canister_id: *wallet_id,
+                    },
+                    CallSender::SelectedId => {
+                        let network = env.get_network_descriptor();
+                        let identity_name = env
+                            .get_selected_identity()
+                            .expect("No selected identity.")
+                            .to_string();
+                        // If there is no wallet, then do not attempt to withdraw the cycles.
+                        match wallet_canister_id(network, &identity_name)? {
+                            Some(canister_id) => WithdrawTarget::Canister { canister_id },
+                            None if CYCLES_LEDGER_ENABLED => {
+                                let Some(my_principal) = env.get_selected_identity_principal()
+                                else {
+                                    bail!("Identity has no principal attached")
+                                };
+                                WithdrawTarget::CyclesLedger {
+                                    to: Account {
+                                        owner: my_principal,
+                                        subaccount: to_cycles_ledger_subaccount,
+                                    },
+                                }
+                            }
+                            _ => WithdrawTarget::NoWithdrawal,
+                        }
+                    }
+                },
+            }
+        };
+        let principal = env
+            .get_selected_identity_principal()
+            .expect("Selected identity not instantiated.");
+        let dank_target_principal = match withdraw_cycles_to_dank_principal {
+            None => principal,
+            Some(principal) => Principal::from_text(&principal)
+                .with_context(|| format!("Failed to read principal {:?}.", &principal))?,
+        };
+        fetch_root_key_if_needed(env).await?;
 
-    if let Some(target_canister_id) = target_canister_id {
-        info!(
-            log,
-            "Beginning withdrawal of cycles to canister {}; on failure try --no-wallet --no-withdrawal.",
-            target_canister_id
-        );
+        if withdraw_target != WithdrawTarget::NoWithdrawal {
+            info!(
+                log,
+                "Beginning withdrawal of cycles; on failure try --no-wallet --no-withdrawal."
+            );
 
-        // Determine how many cycles we can withdraw.
-        let status = canister::get_canister_status(env, canister_id, call_sender).await?;
-        if status.status == CanisterStatus::Stopped {
-            let agent = env
-                .get_agent()
-                .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+            // Determine how many cycles we can withdraw.
+            let status = canister::get_canister_status(env, canister_id, call_sender).await?;
+            if status.status != CanisterStatus::Stopped && !skip_confirmation {
+                ask_for_consent(&format!(
+                    "Canister {canister} has not been stopped. Delete anyway?"
+                ))?;
+            }
+            let agent = env.get_agent();
             let mgr = ManagementCanister::create(agent);
             let canister_id =
                 Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
 
-            // Set this principal to be a controller and default the other settings.
+            // Set this principal to be a controller and minimize the freezing threshold to free up as many cycles as possible.
             let settings = CanisterSettings {
                 controllers: Some(vec![principal]),
-                compute_allocation: Some(ComputeAllocation::try_from(0u8).unwrap()),
-                memory_allocation: Some(MemoryAllocation::try_from(MAX_MEMORY_ALLOCATION).unwrap()),
+                compute_allocation: None,
+                memory_allocation: None,
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
+                reserved_cycles_limit: None,
             };
             info!(log, "Setting the controller to identity principal.");
             update_settings(env, canister_id, settings, call_sender).await?;
@@ -187,40 +224,55 @@ async fn delete_canister(
                         break;
                     }
                     let cycles_to_withdraw = cycles - margin;
-                    let result = if !to_dank {
-                        info!(
-                            log,
-                            "Attempting to transfer {} cycles to canister {}.",
-                            cycles_to_withdraw,
-                            target_canister_id
-                        );
-                        // Transfer cycles from the source canister to the target canister using the temporary wallet.
-                        deposit_cycles(
-                            env,
-                            target_canister_id,
-                            &CallSender::Wallet(canister_id),
-                            cycles_to_withdraw,
-                        )
-                        .await
-                    } else {
-                        info!(
-                            log,
-                            "Attempting to transfer {} cycles to dank principal {}.",
-                            cycles_to_withdraw,
-                            dank_target_principal
-                        );
-                        let wallet = build_wallet_canister(canister_id, agent).await?;
-                        let opt_principal = Some(dank_target_principal);
-                        wallet
-                            .call(
+                    let result = match withdraw_target {
+                        WithdrawTarget::NoWithdrawal => Ok(()),
+                        WithdrawTarget::Dank => {
+                            info!(
+                                log,
+                                "Attempting to transfer {} cycles to dank principal {}.",
+                                cycles_to_withdraw,
+                                dank_target_principal
+                            );
+                            let wallet = build_wallet_canister(canister_id, agent).await?;
+                            let opt_principal = Some(dank_target_principal);
+                            wallet
+                                .call(
+                                    DANK_PRINCIPAL,
+                                    "mint",
+                                    Argument::from_candid((opt_principal,)),
+                                    cycles_to_withdraw,
+                                )
+                                .call_and_wait()
+                                .await
+                                .context("Failed mint call.")
+                        }
+                        WithdrawTarget::Canister {
+                            canister_id: target_canister_id,
+                        } => {
+                            info!(
+                                log,
+                                "Attempting to transfer {} cycles to canister {}.",
+                                cycles_to_withdraw,
+                                target_canister_id
+                            );
+                            // Transfer cycles from the source canister to the target canister using the temporary wallet.
+                            deposit_cycles(
+                                env,
                                 target_canister_id,
-                                "mint",
-                                Argument::from_candid((opt_principal,)),
+                                &CallSender::Wallet(canister_id),
                                 cycles_to_withdraw,
                             )
-                            .call_and_wait()
                             .await
-                            .context("Failed mint call.")
+                        }
+                        WithdrawTarget::CyclesLedger { to } => {
+                            wallet_deposit_to_cycles_ledger(
+                                agent,
+                                canister_id,
+                                cycles_to_withdraw,
+                                to,
+                            )
+                            .await
+                        }
                     };
                     if result.is_ok() {
                         info!(log, "Successfully withdrew {} cycles.", cycles_to_withdraw);
@@ -229,7 +281,7 @@ async fn delete_canister(
                         info!(log, "Not enough margin. Trying again with more margin.");
                         attempts += 1;
                     } else {
-                        // Unforseen error. Report it back to user
+                        // Unforeseen error. Report it back to user
                         result?;
                     }
                 }
@@ -239,26 +291,27 @@ async fn delete_canister(
                     log,
                     "Failed to install temporary wallet, deleting without withdrawal."
                 );
+                if status.status != CanisterStatus::Stopped {
+                    info!(log, "Stopping canister.")
+                }
+                stop_canister(env, canister_id, &CallSender::SelectedId).await?;
             }
             call_sender = &CallSender::SelectedId;
-        } else {
-            info!(
-                log,
-                "Canister {} must be stopped before it is deleted.", canister_id
-            );
         }
+
+        info!(
+            log,
+            "Deleting canister {}, with canister_id {}",
+            canister,
+            canister_id.to_text(),
+        );
+
+        canister::delete_canister(env, canister_id, call_sender).await?;
     }
 
-    info!(
-        log,
-        "Deleting canister {}, with canister_id {}",
-        canister,
-        canister_id.to_text(),
-    );
-
-    canister::delete_canister(env, canister_id, call_sender).await?;
-
-    canister_id_store.remove(canister)?;
+    if let Some(canister_name) = canister_name_to_delete {
+        canister_id_store.remove(&canister_name)?;
+    }
 
     Ok(())
 }
@@ -278,9 +331,11 @@ pub async fn exec(
             canister,
             call_sender,
             opts.no_withdrawal,
+            opts.yes,
             opts.withdraw_cycles_to_canister,
             opts.withdraw_cycles_to_dank,
             opts.withdraw_cycles_to_dank_principal,
+            opts.to_subaccount,
         )
         .await
     } else if opts.all {
@@ -291,9 +346,11 @@ pub async fn exec(
                     canister,
                     call_sender,
                     opts.no_withdrawal,
+                    opts.yes,
                     opts.withdraw_cycles_to_canister.clone(),
                     opts.withdraw_cycles_to_dank,
                     opts.withdraw_cycles_to_dank_principal.clone(),
+                    opts.to_subaccount,
                 )
                 .await?;
             }
@@ -302,4 +359,12 @@ pub async fn exec(
     } else {
         unreachable!()
     }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum WithdrawTarget {
+    NoWithdrawal,
+    Dank,
+    CyclesLedger { to: Account },
+    Canister { canister_id: Principal },
 }

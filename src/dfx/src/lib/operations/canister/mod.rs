@@ -1,31 +1,28 @@
-mod create_canister;
-mod deploy_canisters;
-mod install_canister;
-
+pub(crate) mod create_canister;
+pub(crate) mod deploy_canisters;
+pub(crate) mod install_canister;
 pub use create_canister::create_canister;
-pub use deploy_canisters::deploy_canisters;
-pub use deploy_canisters::DeployMode;
-pub use install_canister::{install_canister, install_wallet};
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
-pub use dfx_core::canister::install_canister_wasm;
-use dfx_core::identity::CallSender;
-
-use anyhow::{anyhow, Context};
+use anyhow::{bail, Context};
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
+use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
+pub use install_canister::install_wallet;
 use std::path::PathBuf;
+
+pub mod motoko_playground;
 
 #[context(
     "Failed to call update function '{}' regarding canister '{}'.",
@@ -44,14 +41,12 @@ where
     A: CandidType + Sync + Send,
     O: for<'de> ArgumentDecoder<'de> + Sync + Send,
 {
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
     let out = match call_sender {
         CallSender::SelectedId => {
             let mgr = ManagementCanister::create(agent);
 
-            mgr.update_(method)
+            mgr.update(method)
                 .with_arg(arg)
                 .with_effective_canister_id(destination_canister)
                 .build()
@@ -130,6 +125,10 @@ pub async fn stop_canister(
     canister_id: Principal,
     call_sender: &CallSender,
 ) -> DfxResult {
+    if env.get_network_descriptor().is_playground() {
+        bail!("Canisters borrowed from a playground cannot be stopped.");
+    }
+
     #[derive(CandidType)]
     struct In {
         canister_id: Principal,
@@ -165,21 +164,7 @@ pub async fn update_settings(
         MgmtMethod::UpdateSettings.as_ref(),
         In {
             canister_id,
-            settings: CanisterSettings {
-                controllers: settings.controllers,
-                compute_allocation: settings
-                    .compute_allocation
-                    .map(u8::from)
-                    .map(candid::Nat::from),
-                memory_allocation: settings
-                    .memory_allocation
-                    .map(u64::from)
-                    .map(candid::Nat::from),
-                freezing_threshold: settings
-                    .freezing_threshold
-                    .map(u64::from)
-                    .map(candid::Nat::from),
-            },
+            settings: settings.into(),
         },
         call_sender,
         0,

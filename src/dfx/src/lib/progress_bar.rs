@@ -1,6 +1,5 @@
-use std::borrow::Cow;
-
 use indicatif::{ProgressBar as IndicatifProgressBar, ProgressDrawTarget};
+use std::borrow::Cow;
 
 pub struct ProgressBar {
     bar: Option<IndicatifProgressBar>,

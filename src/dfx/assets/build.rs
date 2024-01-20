@@ -138,7 +138,7 @@ fn add_assets_from_directory(fn_name: &str, f: &mut File, path: &str) {
     let out_dir = env::var("OUT_DIR").unwrap();
     let tgz_path = Path::new(&out_dir).join(format!("{}.tgz", fn_name));
 
-    let tar_gz = File::create(&tgz_path).unwrap();
+    let tar_gz = File::create(tgz_path).unwrap();
     let enc = GzEncoder::new(tar_gz, Compression::default());
     let mut tar = tar::Builder::new(enc);
     tar.append_dir_all("", path).unwrap();
@@ -219,7 +219,7 @@ fn get_git_hash() -> Result<String, std::io::Error> {
 fn add_assets(sources: Sources) {
     let out_dir = env::var("OUT_DIR").unwrap();
     let loader_path = Path::new(&out_dir).join("load_assets.rs");
-    let mut f = File::create(&loader_path).unwrap();
+    let mut f = File::create(loader_path).unwrap();
 
     f.write_all(
         b"
@@ -237,6 +237,7 @@ fn add_assets(sources: Sources) {
     add_asset_archive("assetstorage_canister", &mut f, &dfx_assets);
     add_asset_archive("wallet_canister", &mut f, &dfx_assets);
     add_asset_archive("ui_canister", &mut f, &dfx_assets);
+    add_asset_archive("btc_canister", &mut f, &dfx_assets);
     add_assets_from_directory("language_bindings", &mut f, "assets/language_bindings");
     add_assets_from_directory(
         "new_project_motoko_files",
@@ -252,6 +253,16 @@ fn add_assets(sources: Sources) {
         "new_project_rust_files",
         &mut f,
         "assets/new_project_rust_files",
+    );
+    add_assets_from_directory(
+        "new_project_no_frontend_files",
+        &mut f,
+        "assets/new_project_no_frontend_files",
+    );
+    add_assets_from_directory(
+        "new_project_base_files",
+        &mut f,
+        "assets/new_project_base_files",
     );
 }
 

@@ -1,5 +1,5 @@
 use crate::asset::content_encoder::ContentEncoder;
-
+use dfx_core::error::fs::FsError;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use mime::Mime;
@@ -13,8 +13,8 @@ pub(crate) struct Content {
 }
 
 impl Content {
-    pub fn load(path: &Path) -> anyhow::Result<Content> {
-        let data = std::fs::read(path)?;
+    pub fn load(path: &Path) -> Result<Content, FsError> {
+        let data = dfx_core::fs::read(path)?;
 
         // todo: check contents if mime_guess fails https://github.com/dfinity/sdk/issues/1594
         let media_type = mime_guess::from_path(path)
@@ -24,13 +24,13 @@ impl Content {
         Ok(Content { data, media_type })
     }
 
-    pub fn encode(&self, encoder: &ContentEncoder) -> anyhow::Result<Content> {
+    pub fn encode(&self, encoder: &ContentEncoder) -> Result<Content, std::io::Error> {
         match encoder {
             ContentEncoder::Gzip => self.to_gzip(),
         }
     }
 
-    pub fn to_gzip(&self) -> anyhow::Result<Content> {
+    pub fn to_gzip(&self) -> Result<Content, std::io::Error> {
         let mut e = GzEncoder::new(Vec::new(), Compression::default());
         e.write_all(&self.data)?;
         let data = e.finish()?;

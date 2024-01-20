@@ -2,6 +2,7 @@ pub mod canister;
 pub mod cli;
 pub mod config;
 pub mod error;
+pub mod extension;
 pub mod foundation;
 pub mod fs;
 pub mod identity;

@@ -1,16 +1,28 @@
 //! This module defines types shared by the certified assets state machine and the canister
 //! endpoints.
-use std::collections::HashMap;
-
-use crate::rc_bytes::RcBytes;
+use crate::asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde_bytes::ByteBuf;
+use std::collections::HashMap;
 
 pub type BatchId = Nat;
 pub type ChunkId = Nat;
-pub type AssetKey = String;
 
 // IDL Types
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct ConfigureArguments {
+    pub max_batches: Option<Option<u64>>,
+    pub max_chunks: Option<Option<u64>>,
+    pub max_bytes: Option<Option<u64>>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct ConfigurationResponse {
+    pub max_batches: Option<u64>,
+    pub max_chunks: Option<u64>,
+    pub max_bytes: Option<u64>,
+}
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct CreateAssetArguments {
@@ -171,4 +183,28 @@ pub struct RevokePermissionArguments {
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct ListPermittedArguments {
     pub permission: Permission,
+}
+
+/// The argument to `init` and `post_upgrade` needs to have the same argument type by definition.
+/// `AssetCanisterArgs` is there so that the two functions can take different argument types.
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub enum AssetCanisterArgs {
+    Init(InitArgs),
+    Upgrade(UpgradeArgs),
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct InitArgs {}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct UpgradeArgs {
+    pub set_permissions: Option<SetPermissions>,
+}
+
+/// Sets the list of principals with a certain permission for every permission that is `Some`.
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct SetPermissions {
+    pub prepare: Vec<Principal>,
+    pub commit: Vec<Principal>,
+    pub manage_permissions: Vec<Principal>,
 }

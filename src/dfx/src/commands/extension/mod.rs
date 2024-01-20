@@ -1,8 +1,6 @@
 #![allow(dead_code)]
-
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-
 use clap::{Parser, Subcommand};
 
 mod install;
@@ -12,9 +10,9 @@ mod uninstall;
 
 /// Manages the dfx extensions.
 #[derive(Parser)]
-#[clap(name("extension"))]
+#[command(name = "extension")]
 pub struct ExtensionOpts {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

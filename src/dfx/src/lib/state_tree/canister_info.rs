@@ -1,5 +1,4 @@
 use crate::lib::error::DfxResult;
-
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use ic_agent::{Agent, AgentError};
@@ -13,7 +12,7 @@ pub async fn read_state_tree_canister_controllers(
         .read_state_canister_info(canister_id, "controllers")
         .await
     {
-        Err(AgentError::LookupPathUnknown(_) | AgentError::LookupPathAbsent(_)) => {
+        Err(AgentError::LookupPathAbsent(_)) => {
             return Ok(None);
         }
         r => r.with_context(|| format!("Failed to read controllers of canister {canister_id}."))?,
@@ -58,10 +57,7 @@ pub async fn read_state_tree_canister_module_hash(
         .await
     {
         Ok(blob) => Some(blob),
-        // If the canister is empty, this path does not exist.
-        // The replica doesn't support negative lookups, therefore if the canister
-        // is empty, the replica will return lookup_path([], Pruned _) = Unknown
-        Err(AgentError::LookupPathUnknown(_)) | Err(AgentError::LookupPathAbsent(_)) => None,
+        Err(AgentError::LookupPathAbsent(_)) => None,
         Err(x) => bail!(x),
     };
 

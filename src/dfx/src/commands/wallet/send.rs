@@ -1,8 +1,7 @@
 use crate::commands::wallet::get_wallet;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::util::clap::validators::cycle_amount_validator;
-
+use crate::util::clap::parsers::cycle_amount_parser;
 use anyhow::{anyhow, Context};
 use candid::CandidType;
 use candid::Principal;
@@ -16,8 +15,8 @@ pub struct SendOpts {
 
     /// Specifies the amount of cycles to send.
     /// Deducted from the wallet.
-    #[clap(validator(cycle_amount_validator))]
-    amount: String,
+    #[arg(value_parser = cycle_amount_parser)]
+    amount: u128,
 }
 
 pub async fn exec(env: &dyn Environment, opts: SendOpts) -> DfxResult {
@@ -32,8 +31,7 @@ pub async fn exec(env: &dyn Environment, opts: SendOpts) -> DfxResult {
             &opts.destination
         )
     })?;
-    // amount has been validated by cycle_amount_validator
-    let amount = opts.amount.parse::<u128>().unwrap();
+    let amount = opts.amount;
     let res = get_wallet(env).await?.wallet_send(canister, amount).await;
     res.map_err(|err| {
         anyhow!(

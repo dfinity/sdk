@@ -1,7 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::NetworkOpt;
-
+use crate::lib::network::network_opt::NetworkOpt;
 use clap::Parser;
 
 mod generate_binding;
@@ -9,10 +8,10 @@ mod generate_binding;
 /// Commands used to work with remote canisters
 #[derive(Parser)]
 pub struct RemoteOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

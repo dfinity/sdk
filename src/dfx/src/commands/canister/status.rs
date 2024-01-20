@@ -2,10 +2,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use dfx_core::identity::CallSender;
-
 use candid::Principal;
 use clap::Parser;
+use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use slog::info;
 
@@ -17,7 +16,7 @@ pub struct CanisterStatusOpts {
     canister: Option<String>,
 
     /// Returns status information for all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 }
 
@@ -42,7 +41,13 @@ async fn canister_status(
         .collect();
     controllers.sort();
 
-    info!(log, "Canister status call result for {}.\nStatus: {}\nControllers: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nModule hash: {}",
+    let reserved_cycles_limit = if let Some(limit) = status.settings.reserved_cycles_limit {
+        format!("{} Cycles", limit)
+    } else {
+        "Not Set".to_string()
+    };
+
+    info!(log, "Canister status call result for {}.\nStatus: {}\nControllers: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nReserved: {} Cycles\nReserved Cycles Limit: {}\nModule hash: {}",
         canister,
         status.status,
         controllers.join(" "),
@@ -51,6 +56,8 @@ async fn canister_status(
         status.settings.freezing_threshold,
         status.memory_size,
         status.cycles,
+        status.reserved_cycles,
+        reserved_cycles_limit,
         status.module_hash.map_or_else(|| "None".to_string(), |v| format!("0x{}", hex::encode(v)))
     );
     Ok(())

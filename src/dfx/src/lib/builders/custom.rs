@@ -4,25 +4,16 @@ use crate::lib::builders::{
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-
-use crate::lib::wasm::file::is_wasm_format;
-use anyhow::{anyhow, bail, Context};
-use backoff::backoff::Backoff;
-use backoff::ExponentialBackoff;
-use bytes::Bytes;
+use crate::util::download_file_to_path;
+use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use console::style;
 use fn_error_context::context;
-use hyper_rustls::ConfigBuilderExt;
-use reqwest::{Client, StatusCode};
 use slog::info;
 use slog::Logger;
-use std::fs;
-use std::fs::create_dir_all;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::path::PathBuf;
 use url::Url;
 
 /// Set of extras that can be specified in the dfx.json.
@@ -141,16 +132,9 @@ impl CanisterBuilder for CustomBuilder {
                 .with_context(|| format!("Cannot parse command '{}'.", command))?;
             // No commands, noop.
             if !args.is_empty() {
-                run_command(args, &vars, info.get_workspace_root())
+                super::run_command(args, &vars, info.get_workspace_root())
                     .with_context(|| format!("Failed to run {}.", command))?;
             }
-        }
-
-        let shrink = info.get_shrink().unwrap_or(false);
-        // Custom canister may have WASM gzipped
-        if shrink && is_wasm_format(&wasm)? {
-            info!(self.logger, "Shrink WASM module size.");
-            super::shrink_wasm(&wasm)?;
         }
 
         Ok(BuildOutput {
@@ -186,45 +170,10 @@ impl CanisterBuilder for CustomBuilder {
         // get the path to candid file
         let CustomBuilderExtra { candid, .. } = CustomBuilderExtra::try_from(info, pool)?;
 
-        std::fs::copy(&candid, &output_idl_path).with_context(|| {
-            format!(
-                "Failed to copy canidid from {} to {}.",
-                candid.to_string_lossy(),
-                output_idl_path.to_string_lossy()
-            )
-        })?;
+        dfx_core::fs::copy(&candid, &output_idl_path)?;
+        dfx_core::fs::set_permissions_readwrite(&output_idl_path)?;
 
         Ok(output_idl_path)
-    }
-}
-
-fn run_command(args: Vec<String>, vars: &[super::Env<'_>], cwd: &Path) -> DfxResult<()> {
-    let (command_name, arguments) = args.split_first().unwrap();
-    let canonicalized = cwd
-        .join(command_name)
-        .canonicalize()
-        .or_else(|_| which::which(command_name))
-        .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
-    let mut cmd = Command::new(&canonicalized);
-
-    cmd.args(arguments)
-        .current_dir(cwd)
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
-
-    for (key, value) in vars {
-        cmd.env(key.as_ref(), value);
-    }
-
-    let output = cmd
-        .output()
-        .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
-    if output.status.success() {
-        Ok(())
-    } else {
-        Err(DfxError::new(BuildError::CustomToolError(
-            output.status.code(),
-        )))
     }
 }
 
@@ -239,60 +188,11 @@ pub async fn custom_download(info: &CanisterInfo, pool: &CanisterPool) -> DfxRes
     } = CustomBuilderExtra::try_from(info, pool)?;
 
     if let Some(url) = input_wasm_url {
-        download_file(&url, &wasm).await?;
+        download_file_to_path(&url, &wasm).await?;
     }
     if let Some(url) = input_candid_url {
-        download_file(&url, &candid).await?;
+        download_file_to_path(&url, &candid).await?;
     }
 
     Ok(())
-}
-
-#[context("Failed to download {} to {}.", from, to.display())]
-async fn download_file(from: &Url, to: &Path) -> DfxResult {
-    let parent_dir = to.parent().unwrap();
-    create_dir_all(parent_dir).with_context(|| {
-        format!(
-            "Failed to create output directory {}.",
-            parent_dir.display()
-        )
-    })?;
-
-    let tls_config = rustls::ClientConfig::builder()
-        .with_safe_defaults()
-        .with_webpki_roots()
-        .with_no_client_auth();
-
-    let client = reqwest::Client::builder()
-        .use_preconfigured_tls(tls_config)
-        .build()
-        .context("Could not create HTTP client.")?;
-
-    let mut retry_policy = ExponentialBackoff::default();
-
-    let body = loop {
-        match attempt_download(&client, from).await {
-            Ok(Some(body)) => break body,
-            Ok(None) => bail!("Not found: {}", from),
-            Err(request_error) => match retry_policy.next_backoff() {
-                Some(duration) => tokio::time::sleep(duration).await,
-                None => bail!(request_error),
-            },
-        }
-    };
-
-    fs::write(to, body).with_context(|| format!("Failed to write {}", to.display()))?;
-
-    Ok(())
-}
-
-async fn attempt_download(client: &Client, url: &Url) -> DfxResult<Option<Bytes>> {
-    let response = client.get(url.clone()).send().await?;
-
-    if response.status() == StatusCode::NOT_FOUND {
-        Ok(None)
-    } else {
-        let body = response.error_for_status()?.bytes().await?;
-        Ok(Some(body))
-    }
 }

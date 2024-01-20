@@ -1,3 +1,25 @@
+use crate::lib::error::NotifyCreateCanisterError::Notify;
+use crate::lib::ledger_types::NotifyError::Refunded;
+use crate::{
+    commands::ledger::create_canister::MEMO_CREATE_CANISTER,
+    lib::{
+        agent::create_agent_environment,
+        environment::Environment,
+        error::DfxResult,
+        identity::wallet::{set_wallet_id, wallet_canister_id},
+        ledger_types::Memo,
+        nns_types::{
+            account_identifier::AccountIdentifier,
+            icpts::{ICPTs, TRANSACTION_FEE},
+        },
+        operations::{
+            canister::install_canister::install_wallet,
+            cmc::{notify_create, transfer_cmc},
+            ledger::{balance, xdr_permyriad_per_icp},
+        },
+    },
+    util::assets::wallet_wasm,
+};
 use anyhow::{bail, Context};
 use candid::Principal;
 use clap::Parser;
@@ -9,27 +31,8 @@ use ic_utils::interfaces::{
 use indicatif::ProgressBar;
 use num_traits::Inv;
 use rust_decimal::Decimal;
+use slog::Logger;
 use tokio::runtime::Runtime;
-
-use crate::{
-    commands::ledger::{create_canister::MEMO_CREATE_CANISTER, notify_create, transfer_cmc},
-    lib::{
-        agent::create_agent_environment,
-        environment::Environment,
-        error::DfxResult,
-        identity::wallet::{set_wallet_id, wallet_canister_id},
-        ledger_types::{Memo, NotifyError},
-        nns_types::{
-            account_identifier::AccountIdentifier,
-            icpts::{ICPTs, TRANSACTION_FEE},
-        },
-        operations::{
-            canister::install_wallet,
-            ledger::{balance, xdr_permyriad_per_icp},
-        },
-    },
-    util::assets::wallet_wasm,
-};
 
 /// Use the `dfx quickstart` command to perform initial one time setup for your identity and/or wallet. This command
 /// can be run anytime to repeat the setup process or to be used as an informational command, printing
@@ -43,7 +46,7 @@ pub struct QuickstartOpts;
 
 pub fn exec(env: &dyn Environment, _: QuickstartOpts) -> DfxResult {
     let env = create_agent_environment(env, Some("ic".to_string()))?;
-    let agent = env.get_agent().expect("Unable to create agent");
+    let agent = env.get_agent();
     let ident = env.get_selected_identity().unwrap();
     let principal = env.get_selected_identity_principal().unwrap();
     eprintln!("Your DFX user principal: {principal}");
@@ -149,13 +152,14 @@ async fn step_deploy_wallet(
         eprintln!("Run this command again at any time to continue from here.");
         return Ok(());
     }
-    let wallet = step_interact_ledger(agent, ident_principal, rounded).await?;
+    let wallet = step_interact_ledger(agent, env.get_logger(), ident_principal, rounded).await?;
     step_finish_wallet(env, agent, wallet, ident).await?;
     Ok(())
 }
 
 async fn step_interact_ledger(
     agent: &Agent,
+    logger: &Logger,
     ident_principal: Principal,
     to_spend: Decimal,
 ) -> DfxResult<Principal> {
@@ -167,6 +171,7 @@ async fn step_interact_ledger(
     let icpts = ICPTs::from_decimal(to_spend)?;
     let height = transfer_cmc(
         agent,
+        logger,
         Memo(MEMO_CREATE_CANISTER /* 👽 */),
         icpts,
         TRANSACTION_FEE,
@@ -180,16 +185,15 @@ async fn step_interact_ledger(
         "Sent {icpts} to the cycles minting canister at height {height}"
     ));
     let notify_spinner = ProgressBar::new_spinner();
-    notify_spinner.set_message("Notifying the the cycles minting canister...");
+    notify_spinner.set_message("Notifying the cycles minting canister...");
     notify_spinner.enable_steady_tick(100);
-    let res = notify_create(agent, ident_principal, height, None).await
-        .with_context(|| format!("Failed to notify the CMC of the transfer. Write down that height ({height}), and once the error is fixed, use `dfx ledger notify create-canister`."))?;
+    let res = notify_create(agent, ident_principal, height, None).await;
     let wallet = match res {
-        Ok(principal) => principal,
-        Err(NotifyError::Refunded {
+        Ok(principal) => Ok(principal),
+        Err(Notify(Refunded {
             reason,
             block_index,
-        }) => {
+        })) => {
             match block_index {
                 Some(height) => {
                     bail!("Refunded at block height {height} with message: {reason}")
@@ -197,8 +201,9 @@ async fn step_interact_ledger(
                 None => bail!("Refunded with message: {reason}"),
             };
         }
-        Err(err) => bail!("{err:?}"),
-    };
+        Err(err) => Err(err),
+    }.with_context(|| format!("Failed to notify the CMC of the transfer. Write down that height ({height}), and once the error is fixed, use `dfx ledger notify create-canister`."))?;
+
     notify_spinner.finish_with_message(format!(
         "Created wallet canister with principal ID {wallet}"
     ));

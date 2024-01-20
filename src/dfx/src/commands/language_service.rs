@@ -3,16 +3,16 @@ use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::package_arguments::{self, PackageArguments};
+use anyhow::{anyhow, bail, Context};
+use candid::Principal;
+use clap::Parser;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{
     ConfigCanistersCanister, ConfigInterface, CONFIG_FILE_NAME,
 };
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
-
-use anyhow::{anyhow, bail, Context};
-use candid::Principal;
-use clap::Parser;
 use fn_error_context::context;
+use std::io::{stdout, IsTerminal};
 use std::path::PathBuf;
 use std::process::Stdio;
 
@@ -21,14 +21,14 @@ const CANISTER_ARG: &str = "canister";
 /// Starts the Motoko IDE Language Server. This is meant to be run by editor plugins not the
 /// end-user.
 #[derive(Parser)]
-#[clap(hide(true))]
+#[command(hide = true)]
 pub struct LanguageServiceOpts {
     /// Specifies the canister name. If you don't specify this argument, all canisters are
     /// processed.
     canister: Option<String>,
 
     /// Forces the language server to start even when run from a terminal.
-    #[clap(long)]
+    #[arg(long)]
     force_tty: bool,
 }
 
@@ -37,7 +37,7 @@ pub struct LanguageServiceOpts {
 pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
     let force_tty = opts.force_tty;
     // Are we being run from a terminal? That's most likely not what we want
-    if atty::is(atty::Stream::Stdout) && !force_tty {
+    if stdout().is_terminal() && !force_tty {
         Err(anyhow!("The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag."))
     } else if let Some(config) = env.get_config() {
         let main_path = get_main_path(config.get_config(), opts.canister)?;
@@ -56,11 +56,12 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
         let network_descriptor = create_network_descriptor(
             env.get_config(),
             env.get_networks_config(),
-            None, /* opts.network */
+            None,
             None,
             LocalBindDetermination::ApplyRunningWebserverPort,
         )?;
-        let canister_id_store = CanisterIdStore::new(&network_descriptor, env.get_config())?;
+        let canister_id_store =
+            CanisterIdStore::new(env.get_logger(), &network_descriptor, env.get_config())?;
         for canister_name in canister_names {
             match canister_id_store.get(&canister_name) {
                 Ok(canister_id) => package_arguments.append(&mut vec![
@@ -73,7 +74,8 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
         }
 
         // Add IDL directory flag
-        let build_config = BuildConfig::from_config(&config)?;
+        let build_config =
+            BuildConfig::from_config(&config, env.get_network_descriptor().is_playground())?;
         package_arguments.append(&mut vec![
             "--actor-idl".to_owned(),
             (*build_config.lsp_root.to_string_lossy()).to_owned(),

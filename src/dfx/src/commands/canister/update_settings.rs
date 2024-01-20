@@ -2,68 +2,88 @@ use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
-    get_compute_allocation, get_freezing_threshold, get_memory_allocation, CanisterSettings,
+    get_compute_allocation, get_freezing_threshold, get_memory_allocation,
+    get_reserved_cycles_limit, CanisterSettings,
 };
 use crate::lib::operations::canister::{get_canister_status, update_settings};
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::validators::{
-    compute_allocation_validator, freezing_threshold_validator, memory_allocation_validator,
+use crate::util::clap::parsers::{
+    compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
+    reserved_cycles_limit_parser,
 };
-use dfx_core::error::identity::IdentityError::GetIdentityPrincipalFailed;
-use dfx_core::identity::CallSender;
-
 use anyhow::{bail, Context};
+use byte_unit::Byte;
 use candid::Principal as CanisterId;
-use clap::Parser;
+use clap::{ArgAction, Parser};
+use dfx_core::cli::ask_for_consent;
+use dfx_core::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
+use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::identity::Identity;
 
 /// Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.)
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 pub struct UpdateSettingsOpts {
     /// Specifies the canister name or id to update. You must specify either canister name/id or the --all option.
     canister: Option<String>,
 
     /// Updates the settings of all canisters configured in the project dfx.json files.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 
     /// Specifies the identity name or the principal of the new controller.
     /// Can be specified more than once, indicating the canister will have multiple controllers.
     /// If any controllers are set with this parameter, any other controllers will be removed.
-    #[clap(long, multiple_occurrences(true))]
+    #[arg(long, action = ArgAction::Append)]
     set_controller: Option<Vec<String>>,
 
     /// Add a principal to the list of controllers of the canister.
-    #[clap(long, multiple_occurrences(true), conflicts_with("set-controller"))]
+    #[arg(long, action = ArgAction::Append, conflicts_with("set_controller"))]
     add_controller: Option<Vec<String>>,
 
     /// Removes a principal from the list of controllers of the canister.
-    #[clap(long, multiple_occurrences(true), conflicts_with("set-controller"))]
+    #[arg(long, action = ArgAction::Append, conflicts_with("set_controller"))]
     remove_controller: Option<Vec<String>>,
 
     /// Specifies the canister's compute allocation. This should be a percent in the range [0..100]
-    #[clap(long, short('c'), validator(compute_allocation_validator))]
-    compute_allocation: Option<String>,
+    #[arg(long, short, value_parser = compute_allocation_parser)]
+    compute_allocation: Option<u64>,
 
     /// Specifies how much memory the canister is allowed to use in total.
     /// This should be a value in the range [0..12 GiB].
     /// A setting of 0 means the canister will have access to memory on a “best-effort” basis:
     /// It will only be charged for the memory it uses, but at any point in time may stop running
     /// if it tries to allocate more memory when there isn’t space available on the subnet.
-    #[clap(long, validator(memory_allocation_validator))]
-    memory_allocation: Option<String>,
+    #[arg(long, value_parser = memory_allocation_parser)]
+    memory_allocation: Option<Byte>,
 
     /// Sets the freezing_threshold in SECONDS.
     /// A canister is considered frozen whenever the IC estimates that the canister would be depleted of cycles
     /// before freezing_threshold seconds pass, given the canister's current size and the IC's current cost for storage.
     /// A frozen canister rejects any calls made to it.
-    #[clap(long, validator(freezing_threshold_validator))]
-    freezing_threshold: Option<String>,
+    #[arg(long, value_parser = freezing_threshold_parser)]
+    freezing_threshold: Option<u64>,
+
+    /// Sets the upper limit of the canister's reserved cycles balance.
+    ///
+    /// Reserved cycles are cycles that the system sets aside for future use by the canister.
+    /// If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes,
+    /// the system sets aside some amount of cycles from the main balance of the canister.
+    /// These reserved cycles will be used to cover future payments for the newly allocated bytes.
+    /// The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.
+    ///
+    /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.
+    #[arg(long, value_parser = reserved_cycles_limit_parser)]
+    reserved_cycles_limit: Option<u128>,
 
     /// Freezing thresholds above ~1.5 years require this flag as confirmation.
-    #[clap(long)]
+    #[arg(long)]
     confirm_very_long_freezing_threshold: bool,
+
+    /// Skips yes/no checks by answering 'yes'. Such checks can result in loss of control,
+    /// so this is not recommended outside of CI.
+    #[arg(long, short)]
+    yes: bool,
 }
 
 pub async fn exec(
@@ -72,10 +92,7 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     // sanity checks
-    if let Some(ref threshold_string) = opts.freezing_threshold {
-        let threshold_in_seconds = threshold_string
-            .parse::<u128>()
-            .expect("freezing_threshold_validator did not properly validate.");
+    if let Some(threshold_in_seconds) = opts.freezing_threshold {
         if threshold_in_seconds > 50_000_000 /* ~1.5 years */ && !opts.confirm_very_long_freezing_threshold
         {
             return Err(DiagnosedError::new(
@@ -86,6 +103,10 @@ pub async fn exec(
     }
 
     fetch_root_key_if_needed(env).await?;
+
+    if !opts.yes && user_is_removing_themselves_as_controller(env, call_sender, &opts)? {
+        ask_for_consent("You are trying to remove yourself as a controller of this canister. This may leave this canister un-upgradeable.")?
+    }
 
     let controllers: Option<DfxResult<Vec<_>>> = opts.set_controller.as_ref().map(|controllers| {
         let y: DfxResult<Vec<_>> = controllers
@@ -109,21 +130,14 @@ pub async fn exec(
         let textual_cid = canister_id.to_text();
         let canister_name = canister_id_store.get_name(&textual_cid).map(|x| &**x);
 
-        let compute_allocation = get_compute_allocation(
-            opts.compute_allocation.clone(),
-            config_interface,
-            canister_name,
-        )?;
-        let memory_allocation = get_memory_allocation(
-            opts.memory_allocation.clone(),
-            config_interface,
-            canister_name,
-        )?;
-        let freezing_threshold = get_freezing_threshold(
-            opts.freezing_threshold.clone(),
-            config_interface,
-            canister_name,
-        )?;
+        let compute_allocation =
+            get_compute_allocation(opts.compute_allocation, config_interface, canister_name)?;
+        let memory_allocation =
+            get_memory_allocation(opts.memory_allocation, config_interface, canister_name)?;
+        let freezing_threshold =
+            get_freezing_threshold(opts.freezing_threshold, config_interface, canister_name)?;
+        let reserved_cycles_limit =
+            get_reserved_cycles_limit(opts.reserved_cycles_limit, config_interface, canister_name)?;
         if let Some(added) = &opts.add_controller {
             let status = get_canister_status(env, canister_id, call_sender).await?;
             let mut existing_controllers = status.settings.controllers;
@@ -155,6 +169,7 @@ pub async fn exec(
             compute_allocation,
             memory_allocation,
             freezing_threshold,
+            reserved_cycles_limit,
         };
         update_settings(env, canister_id, settings, call_sender).await?;
         display_controller_update(&opts, canister_name_or_id);
@@ -167,7 +182,7 @@ pub async fn exec(
                 let mut controllers = controllers.clone();
                 let canister_id = canister_id_store.get(canister_name)?;
                 let compute_allocation = get_compute_allocation(
-                    opts.compute_allocation.clone(),
+                    opts.compute_allocation,
                     Some(config_interface),
                     Some(canister_name),
                 )
@@ -175,7 +190,7 @@ pub async fn exec(
                     format!("Failed to get compute allocation for {}.", canister_name)
                 })?;
                 let memory_allocation = get_memory_allocation(
-                    opts.memory_allocation.clone(),
+                    opts.memory_allocation,
                     Some(config_interface),
                     Some(canister_name),
                 )
@@ -183,12 +198,20 @@ pub async fn exec(
                     format!("Failed to get memory allocation for {}.", canister_name)
                 })?;
                 let freezing_threshold = get_freezing_threshold(
-                    opts.freezing_threshold.clone(),
+                    opts.freezing_threshold,
                     Some(config_interface),
                     Some(canister_name),
                 )
                 .with_context(|| {
                     format!("Failed to get freezing threshold for {}.", canister_name)
+                })?;
+                let reserved_cycles_limit = get_reserved_cycles_limit(
+                    opts.reserved_cycles_limit,
+                    Some(config_interface),
+                    Some(canister_name),
+                )
+                .with_context(|| {
+                    format!("Failed to get reserved cycles limit for {}.", canister_name)
                 })?;
                 if let Some(added) = &opts.add_controller {
                     let status = get_canister_status(env, canister_id, call_sender).await?;
@@ -221,6 +244,7 @@ pub async fn exec(
                     compute_allocation,
                     memory_allocation,
                     freezing_threshold,
+                    reserved_cycles_limit,
                 };
                 update_settings(env, canister_id, settings, call_sender).await?;
                 display_controller_update(&opts, canister_name);
@@ -231,6 +255,25 @@ pub async fn exec(
     }
 
     Ok(())
+}
+
+fn user_is_removing_themselves_as_controller(
+    env: &dyn Environment,
+    call_sender: &CallSender,
+    opts: &UpdateSettingsOpts,
+) -> DfxResult<bool> {
+    let caller_principal = match call_sender {
+        CallSender::SelectedId => env
+            .get_selected_identity_principal()
+            .context("Selected identity is not instantiated")?
+            .to_string(),
+        CallSender::Wallet(principal) => principal.to_string(),
+    };
+    let removes_themselves =
+        matches!(&opts.remove_controller, Some(remove) if remove.contains(&caller_principal));
+    let sets_without_themselves =
+        matches!(&opts.set_controller, Some(set) if !set.contains(&caller_principal));
+    Ok(removes_themselves || sets_without_themselves)
 }
 
 #[context("Failed to convert controller '{}' to a principal", controller)]

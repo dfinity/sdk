@@ -177,7 +177,7 @@ If no amount is specified, 10T cycles are used by default.
 If you are developing locally and want to add 8T cycles to all your canisters in your procject, you can do so like this:
 
 ```
-dfx ledger fabricate-cycles --all --amount 8000000000000
+dfx ledger fabricate-cycles --all --cycles 8000000000000
 ```
 
 The command displays output similar to the following:
@@ -185,8 +185,6 @@ The command displays output similar to the following:
 ```
 Fabricating 8000000000000 cycles onto hello_backend
 Fabricated 8000000000000 cycles, updated balance: 11_899_662_119_932 cycles
-Fabricating 8000000000000 cycles onto hello_frontend
-Fabricated 8000000000000 cycles, updated balance: 11_899_075_504_924 cycles
 ```
 
 If you would rather only add the cycles to the canister called 'hello' and don't want to type all the zeros, you can do it like this:
@@ -276,9 +274,9 @@ dfx ledger top-up [options] canister [flag] --network ic
 
 You can specify the following argument for the `dfx ledger top-up` command.
 
-| Argument   | Description                                                      |
-|------------|------------------------------------------------------------------|
-| `canister` | Specifies the canister identifier that you would like to top up. |
+| Argument   | Description                                                              |
+|------------|--------------------------------------------------------------------------|
+| `canister` | Specifies the canister identifier or name that you would like to top up. |
 
 ### Options
 

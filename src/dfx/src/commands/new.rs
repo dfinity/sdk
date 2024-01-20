@@ -2,13 +2,14 @@ use crate::config::cache::DiskBasedCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
+use crate::lib::program;
 use crate::util::assets;
-use crate::util::clap::validators::project_name_validator;
-use dfx_core::config::model::dfinity::CONFIG_FILE_NAME;
-
-use anyhow::{anyhow, bail, Context};
+use crate::util::clap::parsers::project_name_parser;
+use anyhow::{anyhow, bail, ensure, Context};
 use clap::Parser;
 use console::{style, Style};
+use dfx_core::config::model::dfinity::CONFIG_FILE_NAME;
+use dfx_core::json::{load_json_file, save_json_file};
 use fn_error_context::context;
 use indicatif::HumanBytes;
 use lazy_static::lazy_static;
@@ -43,28 +44,28 @@ lazy_static! {
 #[derive(Parser)]
 pub struct NewOpts {
     /// Specifies the name of the project to create.
-    #[clap(validator(project_name_validator))]
+    #[arg(value_parser = project_name_parser)]
     project_name: String,
 
     /// Choose the type of canister in the starter project. Default to be motoko.
-    #[clap(long, possible_values(&["motoko", "rust"]), default_value = "motoko")]
+    #[arg(long, value_parser = ["motoko", "rust"], default_value = "motoko")]
     r#type: String,
 
     /// Provides a preview the directories and files to be created without adding them to the file system.
-    #[clap(long)]
+    #[arg(long)]
     dry_run: bool,
 
     /// Installs the frontend code example for the default canister. This defaults to true if Node is installed, or false if it isn't.
-    #[clap(long)]
+    #[arg(long)]
     frontend: bool,
 
     /// Skip installing the frontend code example.
-    #[clap(long, conflicts_with = "frontend")]
+    #[arg(long, conflicts_with = "frontend")]
     no_frontend: bool,
 
     /// Overrides which version of the JavaScript Agent to install. By default, will contact
     /// NPM to decide.
-    #[clap(long, requires("frontend"))]
+    #[arg(long, requires("frontend"))]
     agent_version: Option<String>,
 }
 
@@ -106,6 +107,44 @@ pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> 
     }
 
     info!(log, "{}", Status::Create(path, content.len()));
+    Ok(())
+}
+
+fn json_patch_file(
+    _log: &Logger,
+    patch_path: &Path,
+    patch_content: &[u8],
+    dry_run: bool,
+) -> DfxResult {
+    if !dry_run {
+        let patch: json_patch::Patch = serde_json::from_slice(patch_content)
+            .with_context(|| format!("Failed to parse {}", patch_path.display()))?;
+        let to_patch = patch_path.with_extension("json");
+        ensure!(
+            to_patch.exists(),
+            "Failed to patch {}: not found",
+            to_patch.display()
+        );
+        let mut value = load_json_file(&to_patch)?;
+        json_patch::patch(&mut value, &patch)
+            .with_context(|| format!("Failed to patch {}", to_patch.display()))?;
+        save_json_file(&to_patch, &value)?;
+    }
+    Ok(())
+}
+
+fn patch_file(_log: &Logger, patch_path: &Path, patch_content: &[u8], dry_run: bool) -> DfxResult {
+    if !dry_run {
+        let patch_content = std::str::from_utf8(patch_content)
+            .with_context(|| format!("Failed to parse {}", patch_path.display()))?;
+        let patch = patch::Patch::from_single(patch_content)
+            .map_err(|e| anyhow!("Failed to parse {}: {e}", patch_path.display()))?;
+        let to_patch = patch_path.with_extension("");
+        let existing_content = dfx_core::fs::read_to_string(&to_patch)?;
+        let patched_content = apply_patch::apply_to(&patch, &existing_content)
+            .with_context(|| format!("Failed to patch {}", to_patch.display()))?;
+        dfx_core::fs::write(&to_patch, patched_content)?;
+    }
     Ok(())
 }
 
@@ -197,7 +236,13 @@ fn write_files_from_entries<R: Sized + Read>(
         });
 
         let p = PathBuf::from(p);
-        create_file(log, p.as_path(), &v, dry_run)?;
+        if p.extension() == Some("json-patch".as_ref()) {
+            json_patch_file(log, &p, &v, dry_run)?;
+        } else if p.extension() == Some("patch".as_ref()) {
+            patch_file(log, &p, &v, dry_run)?;
+        } else {
+            create_file(log, p.as_path(), &v, dry_run)?;
+        }
     }
 
     Ok(())
@@ -205,12 +250,12 @@ fn write_files_from_entries<R: Sized + Read>(
 
 #[context("Failed to run 'npm install'.")]
 fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
-    std::process::Command::new("npm")
+    Command::new(program::NPM)
         .arg("install")
         .arg("--quiet")
         .arg("--no-progress")
-        .stdout(std::process::Stdio::inherit())
-        .stderr(std::process::Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .current_dir(location)
         .spawn()
         .map_err(DfxError::from)
@@ -227,7 +272,7 @@ fn scaffold_frontend_code(
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
     let log = env.get_logger();
-    let node_installed = std::process::Command::new("node")
+    let node_installed = Command::new(program::NODE)
         .arg("--version")
         .output()
         .is_ok();
@@ -315,27 +360,36 @@ fn scaffold_frontend_code(
                 }
             }
         }
-    } else if !arg_frontend && !node_installed {
-        warn!(
+    } else {
+        if !arg_frontend && !node_installed {
+            warn!(
+                log,
+                "Node could not be found. Skipping installing the frontend example code."
+            );
+            warn!(
+                log,
+                "You can bypass this check by using the --frontend flag."
+            );
+        }
+        write_files_from_entries(
             log,
-            "Node could not be found. Skipping installing the frontend example code."
-        );
-        warn!(
-            log,
-            "You can bypass this check by using the --frontend flag."
-        );
+            &mut assets::new_project_no_frontend_files()?,
+            project_name,
+            dry_run,
+            variables,
+        )?;
     }
 
     Ok(())
 }
 
 fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
-    std::process::Command::new("npm")
+    Command::new(program::NPM)
         .arg("show")
         .arg("@dfinity/agent")
         .arg(&format!("dist-tags.{}", dist_tag))
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::inherit())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
         .spawn()
         .map_err(DfxError::from)
         .and_then(|child| {
@@ -395,6 +449,14 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
     .iter()
     .cloned()
     .collect();
+
+    write_files_from_entries(
+        log,
+        &mut assets::new_project_base_files().context("Failed to get base project archive.")?,
+        project_name,
+        dry_run,
+        &variables,
+    )?;
 
     // Default to start with motoko
     let mut new_project_files = match opts.r#type.as_str() {
@@ -517,28 +579,28 @@ mod tests {
 
     #[test]
     fn project_name_is_valid() {
-        assert!(project_name_validator("a").is_ok());
-        assert!(project_name_validator("a_").is_ok());
-        assert!(project_name_validator("a_1").is_ok());
-        assert!(project_name_validator("A").is_ok());
-        assert!(project_name_validator("A1").is_ok());
-        assert!(project_name_validator("a_good_name_").is_ok());
-        assert!(project_name_validator("a_good_name").is_ok());
+        assert!(project_name_parser("a").is_ok());
+        assert!(project_name_parser("a_").is_ok());
+        assert!(project_name_parser("a_1").is_ok());
+        assert!(project_name_parser("A").is_ok());
+        assert!(project_name_parser("A1").is_ok());
+        assert!(project_name_parser("a_good_name_").is_ok());
+        assert!(project_name_parser("a_good_name").is_ok());
     }
 
     #[test]
     fn project_name_is_invalid() {
-        assert!(project_name_validator("_a_good_name_").is_err());
-        assert!(project_name_validator("__also_good").is_err());
-        assert!(project_name_validator("_1").is_err());
-        assert!(project_name_validator("_a").is_err());
-        assert!(project_name_validator("1").is_err());
-        assert!(project_name_validator("1_").is_err());
-        assert!(project_name_validator("-").is_err());
-        assert!(project_name_validator("_").is_err());
-        assert!(project_name_validator("a-b-c").is_err());
-        assert!(project_name_validator("🕹").is_err());
-        assert!(project_name_validator("不好").is_err());
-        assert!(project_name_validator("a:b").is_err());
+        assert!(project_name_parser("_a_good_name_").is_err());
+        assert!(project_name_parser("__also_good").is_err());
+        assert!(project_name_parser("_1").is_err());
+        assert!(project_name_parser("_a").is_err());
+        assert!(project_name_parser("1").is_err());
+        assert!(project_name_parser("1_").is_err());
+        assert!(project_name_parser("-").is_err());
+        assert!(project_name_parser("_").is_err());
+        assert!(project_name_parser("a-b-c").is_err());
+        assert!(project_name_parser("🕹").is_err());
+        assert!(project_name_parser("不好").is_err());
+        assert!(project_name_parser("a:b").is_err());
     }
 }

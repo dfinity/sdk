@@ -1,12 +1,9 @@
 #[cfg(windows)]
 use crate::config::directories::project_dirs;
+use crate::error::cache::CacheError;
 #[cfg(not(windows))]
 use crate::foundation::get_user_home;
-
-use crate::error::cache::CacheError;
-
 use semver::Version;
-
 use std::{path::PathBuf, process::ExitStatus};
 
 pub trait Cache {
@@ -31,11 +28,15 @@ pub fn get_cache_root() -> Result<PathBuf, CacheError> {
         Some(var) => PathBuf::from(var),
         None => project_dirs()?.cache_dir().to_owned(),
     };
-    if !p.exists() {
-        crate::fs::create_dir_all(&p).map_err(CacheError::CreateCacheDirectoryFailed)?;
-    } else if !p.is_dir() {
+    if p.exists() && !p.is_dir() {
         return Err(CacheError::FindCacheDirectoryFailed(p));
     }
+    Ok(p)
+}
+
+/// Constructs and returns <cache root>/versions/<version> without creating any directories.
+pub fn get_cache_path_for_version(v: &str) -> Result<PathBuf, CacheError> {
+    let p = get_cache_root()?.join("versions").join(v);
     Ok(p)
 }
 

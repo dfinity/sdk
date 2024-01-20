@@ -1,14 +1,14 @@
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
+use crate::lib::canister_info::pull::PullCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-
+use anyhow::bail;
 use candid::Principal as CanisterId;
 use fn_error_context::context;
-
 use slog::o;
 use std::path::PathBuf;
 
@@ -44,19 +44,30 @@ impl CanisterBuilder for PullBuilder {
         canister_info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
+        let pull_info = canister_info.as_info::<PullCanisterInfo>()?;
         Ok(BuildOutput {
-            canister_id: candid::Principal::management_canister(),
-            wasm: WasmBuildOutput::File(PathBuf::new()),
-            idl: IdlBuildOutput::File(PathBuf::new()),
+            canister_id: *pull_info.get_canister_id(),
+            // It's impossible to know if the downloaded wasm is gzip or not with only the info in `dfx.json`.
+            wasm: WasmBuildOutput::None,
+            idl: IdlBuildOutput::File(pull_info.get_output_idl_path().to_path_buf()),
         })
     }
 
     fn generate_idl(
         &self,
         _pool: &CanisterPool,
-        _info: &CanisterInfo,
+        info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
-        Ok(PathBuf::new())
+        let pull_info = info.as_info::<PullCanisterInfo>()?;
+        let output_idl_path = pull_info.get_output_idl_path();
+        if output_idl_path.exists() {
+            Ok(output_idl_path.to_path_buf())
+        } else {
+            bail!(
+                "Candid file: {} doesn't exist.",
+                output_idl_path.to_string_lossy()
+            );
+        }
     }
 }

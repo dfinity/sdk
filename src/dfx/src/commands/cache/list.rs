@@ -1,14 +1,13 @@
 use crate::config::dfx_version;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-
 use clap::Parser;
 use dfx_core::config::cache::list_versions;
 use std::io::Write;
 
 /// Lists installed and used version.
 #[derive(Parser)]
-#[clap(name("list"))]
+#[command(name = "list")]
 pub struct CacheListOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: CacheListOpts) -> DfxResult {

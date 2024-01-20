@@ -1,11 +1,10 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-
 use clap::Parser;
 
 /// Shows the path of the cache used by this version.
 #[derive(Parser)]
-#[clap(name("show"))]
+#[command(name = "show")]
 pub struct CacheShowOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: CacheShowOpts) -> DfxResult {

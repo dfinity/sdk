@@ -1,27 +1,24 @@
+use crate::lib::error::DfxResult;
+use anyhow::Context;
+use clap::{Parser, ValueEnum};
+use dfx_core::config::model::dfinity::{ConfigInterface, TopLevelConfigNetworks};
+use schemars::schema_for;
 use std::path::PathBuf;
 
-use crate::lib::error::DfxResult;
-use dfx_core::config::model::dfinity::{ConfigInterface, TopLevelConfigNetworks};
-
-use anyhow::Context;
-use clap::{arg_enum, Parser};
-use schemars::schema_for;
-
-arg_enum! {
-    enum ForFile {
-        Dfx,
-        Networks
-    }
+#[derive(ValueEnum, Clone)]
+enum ForFile {
+    Dfx,
+    Networks,
 }
 
 /// Prints the schema for dfx.json.
 #[derive(Parser)]
 pub struct SchemaOpts {
-    #[clap(long, case_insensitive(true))]
+    #[arg(long, value_enum)]
     r#for: Option<ForFile>,
 
     /// Outputs the schema to the specified file.
-    #[clap(long)]
+    #[arg(long)]
     outfile: Option<PathBuf>,
 }
 

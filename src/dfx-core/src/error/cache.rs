@@ -1,14 +1,18 @@
-use thiserror::Error;
-
 use super::{
     archive::ArchiveError, fs::FsError, structured_file::StructuredFileError,
     unified_io::UnifiedIoError,
 };
+use crate::error::get_current_exe::GetCurrentExeError;
+use crate::error::get_user_home::GetUserHomeError;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CacheError {
     #[error(transparent)]
-    FoundationError(#[from] crate::error::foundation::FoundationError),
+    GetCurrentExeError(#[from] GetCurrentExeError),
+
+    #[error(transparent)]
+    GetUserHomeError(#[from] GetUserHomeError),
 
     #[error(transparent)]
     UnifiedIo(#[from] crate::error::unified_io::UnifiedIoError),

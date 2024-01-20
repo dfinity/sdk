@@ -1,6 +1,5 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-
 use clap::Parser;
 
 mod default;
@@ -10,9 +9,9 @@ mod uninstall;
 
 /// Manage the dfx toolchains
 #[derive(Parser)]
-#[clap(name("toolchain"))]
+#[command(name = "toolchain")]
 pub struct ToolchainOpts {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 

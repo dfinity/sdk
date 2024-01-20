@@ -2,7 +2,6 @@
 // Do not modify this file arbitrarily.
 // The contents are borrowed from:
 // https://gitlab.com/dfinity-lab/public/ic/-/blob/master/rs/rosetta-api/ledger_canister/src/lib.rs
-
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::ICPTs;
 use candid::CandidType;
@@ -11,11 +10,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Id of the ledger canister on the IC.
-#[allow(deprecated)]
 pub const MAINNET_LEDGER_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x01]);
 
-#[allow(deprecated)]
 pub const MAINNET_CYCLE_MINTER_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01]);
 

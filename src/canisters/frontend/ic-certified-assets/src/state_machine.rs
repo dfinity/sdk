@@ -3,25 +3,29 @@
 // NB. This module should not depend on ic_cdk, it contains only pure state transition functions.
 // All the environment (time, certificates, etc.) is passed to the state transition functions
 // as formal arguments.  This approach makes it very easy to test the state machine.
-
 use crate::{
-    certification_types::{
-        AssetHashes, AssetPath, CertificateExpression, HashTreePath, NestedTreeKey,
+    asset_certification::{
+        types::{
+            certification::{
+                AssetKey, AssetPath, CertificateExpression, HashTreePath, NestedTreeKey,
+                RequestHash, ResponseHash, WitnessResult,
+            },
+            http::{
+                build_ic_certificate_expression_from_headers_and_encoding,
+                build_ic_certificate_expression_header, response_hash, CallbackFunc, HttpRequest,
+                HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken, FALLBACK_FILE,
+            },
+            rc_bytes::RcBytes,
+        },
+        CertifiedResponses,
     },
     evidence::{EvidenceComputation, EvidenceComputation::Computed},
-    http::{
-        build_ic_certificate_expression_from_headers_and_encoding, witness_to_header_v1,
-        witness_to_header_v2, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
-        StreamingCallbackToken,
-    },
-    rc_bytes::RcBytes,
-    tree::merge_hash_trees,
     types::*,
     url_decode::url_decode,
 };
-use candid::{CandidType, Deserialize, Func, Int, Nat, Principal};
-use ic_certified_map::{AsHashTree, Hash};
-use ic_response_verification::hash::{representation_independent_hash, Value};
+use candid::{CandidType, Deserialize, Int, Nat, Principal};
+use ic_certification::{AsHashTree, Hash};
+use ic_representation_independent_hash::Value;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
@@ -54,9 +58,6 @@ pub fn encoding_certification_order<'a>(
     encoding_order
 }
 
-/// The file to serve if the requested file wasn't found.
-const INDEX_FILE: &str = "/index.html";
-
 /// Default aliasing behavior.
 const DEFAULT_ALIAS_ENABLED: bool = true;
 
@@ -80,22 +81,11 @@ pub struct AssetEncoding {
 }
 
 impl AssetEncoding {
-    fn asset_hash_path_v2(
-        &self,
-        AssetPath(path): &AssetPath,
-        status_code: u16,
-    ) -> Option<HashTreePath> {
+    fn asset_hash_path_v2(&self, path: &AssetPath, status_code: u16) -> Option<HashTreePath> {
         self.certificate_expression.as_ref().and_then(|ce| {
             self.response_hashes.as_ref().and_then(|hashes| {
                 hashes.get(&status_code).map(|response_hash| {
-                    let mut path: Vec<NestedTreeKey> =
-                        path.iter().map(|segment| segment.as_str().into()).collect();
-                    path.insert(0, "http_expr".into());
-                    path.push("<$>".into()); // asset path terminator
-                    path.push(ce.hash.as_slice().into());
-                    path.push("".into()); // no request certification - use empty node
-                    path.push(response_hash.as_slice().into());
-                    path.into()
+                    path.hash_tree_path(ce, &RequestHash::default(), response_hash.into())
                 })
             })
         })
@@ -110,7 +100,7 @@ impl AssetEncoding {
                     HashTreePath::from(Vec::<NestedTreeKey>::from([
                         "http_expr".into(),
                         "<*>".into(), // 404 not found wildcard segment
-                        ce.hash.as_slice().into(),
+                        ce.expression_hash.as_slice().into(),
                         "".into(), // no request certification - use empty node
                         response_hash.as_slice().into(),
                     ]))
@@ -125,49 +115,24 @@ impl AssetEncoding {
         content_type: &str,
         encoding_name: &str,
     ) -> HashMap<u16, [u8; 32]> {
-        fn compute_response_hash(
-            base_headers: &[(String, Value)],
-            status_code: u16,
-            body_hash: &[u8; 32],
-        ) -> [u8; 32] {
-            // certification v2 spec:
-            // Response hash is the hash of the concatenation of
-            //   - representation-independent hash of headers
-            //   - hash of the response body
-            //
-            // The representation-independent hash of headers consist of
-            //    - all certified headers (here all headers), plus
-            //    - synthetic header `:ic-cert-status` with value <HTTP status code of response>
-
-            let mut headers = Vec::from(base_headers);
-            headers.push((
-                ":ic-cert-status".to_string(),
-                Value::Number(status_code.into()),
-            ));
-            let header_hash = representation_independent_hash(&headers);
-            sha2::Sha256::digest(&[header_hash.as_ref(), body_hash].concat()).into()
-        }
-
         // Collect all user-defined headers
         let base_headers: Vec<(String, Value)> = build_headers(
             headers.as_ref().map(|h| h.iter()),
             max_age,
             content_type,
             encoding_name,
-            self.certificate_expression
-                .as_ref()
-                .map(|ce| &ce.expression),
+            self.certificate_expression.as_ref(),
         )
         .into_iter()
         .map(|(k, v)| (k, Value::String(v)))
         .collect();
 
         // HTTP 200
-        let response_hash_200 = compute_response_hash(&base_headers, 200, &self.sha256);
+        let ResponseHash(response_hash_200) = response_hash(&base_headers, 200, &self.sha256);
 
         // HTTP 304
         let empty_body_hash: [u8; 32] = sha2::Sha256::digest([]).into();
-        let response_hash_304 = compute_response_hash(&base_headers, 304, &empty_body_hash);
+        let ResponseHash(response_hash_304) = response_hash(&base_headers, 304, &empty_body_hash);
 
         let mut response_hashes = HashMap::new();
         response_hashes.insert(200, response_hash_200);
@@ -230,11 +195,20 @@ pub struct Batch {
     pub expires_at: Timestamp,
     pub commit_batch_arguments: Option<CommitBatchArguments>,
     pub evidence_computation: Option<EvidenceComputation>,
+    pub chunk_content_total_size: usize,
+}
+
+#[derive(Clone, Debug, Default, CandidType, Deserialize)]
+pub struct Configuration {
+    pub max_batches: Option<u64>,
+    pub max_chunks: Option<u64>,
+    pub max_bytes: Option<u64>,
 }
 
 #[derive(Default)]
 pub struct State {
     assets: HashMap<AssetKey, Asset>,
+    configuration: Configuration,
 
     chunks: HashMap<ChunkId, Chunk>,
     next_chunk_id: ChunkId,
@@ -247,7 +221,7 @@ pub struct State {
     prepare_principals: BTreeSet<Principal>,
     manage_permissions_principals: BTreeSet<Principal>,
 
-    asset_hashes: AssetHashes,
+    asset_hashes: CertifiedResponses,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -264,30 +238,31 @@ pub struct StableState {
     stable_assets: HashMap<String, Asset>,
 
     next_batch_id: Option<BatchId>,
+    configuration: Option<Configuration>,
 }
 
 impl Asset {
     fn allow_raw_access(&self) -> bool {
-        self.allow_raw_access.unwrap_or(false)
+        self.allow_raw_access.unwrap_or(true)
     }
 
     fn update_ic_certificate_expressions(&mut self) {
         // gather all headers
-        let mut header_names = vec![];
+        let mut headers: Vec<(String, Value)> = vec![];
 
         if self.max_age.is_some() {
-            header_names.push("cache-control");
+            headers.push(("cache-control".to_string(), Value::String("".to_string())));
         }
         if let Some(custom_headers) = &self.headers {
-            for (k, _) in custom_headers.iter() {
-                header_names.push(k);
+            for h in custom_headers.iter() {
+                headers.push((h.0.into(), Value::String(h.1.into())));
             }
         }
 
         // update
         for (enc_name, encoding) in self.encodings.iter_mut() {
             encoding.certificate_expression = Some(
-                build_ic_certificate_expression_from_headers_and_encoding(&header_names, enc_name),
+                build_ic_certificate_expression_from_headers_and_encoding(&headers, Some(enc_name)),
             );
         }
     }
@@ -300,7 +275,7 @@ impl Asset {
         let ce = if cert_version != 1 {
             self.encodings
                 .get(encoding_name)
-                .and_then(|e| e.certificate_expression.as_ref().map(|ce| &ce.expression))
+                .and_then(|e| e.certificate_expression.as_ref())
         } else {
             None
         };
@@ -345,6 +320,20 @@ impl State {
             .ok_or_else(|| "asset not found".to_string())
     }
 
+    pub fn set_permissions(
+        &mut self,
+        SetPermissions {
+            prepare,
+            commit,
+            manage_permissions,
+        }: SetPermissions,
+    ) {
+        *self.get_mut_permission_list(&Permission::Prepare) = prepare.into_iter().collect();
+        *self.get_mut_permission_list(&Permission::Commit) = commit.into_iter().collect();
+        *self.get_mut_permission_list(&Permission::ManagePermissions) =
+            manage_permissions.into_iter().collect();
+    }
+
     pub fn grant_permission(&mut self, principal: Principal, permission: &Permission) {
         let permitted = self.get_mut_permission_list(permission);
         permitted.insert(principal);
@@ -371,23 +360,20 @@ impl State {
     }
 
     pub fn create_asset(&mut self, arg: CreateAssetArguments) -> Result<(), String> {
-        if let Some(asset) = self.assets.get(&arg.key) {
-            if asset.content_type != arg.content_type {
-                return Err("create_asset: content type mismatch".to_string());
-            }
-        } else {
-            self.assets.insert(
-                arg.key,
-                Asset {
-                    content_type: arg.content_type,
-                    encodings: HashMap::new(),
-                    max_age: arg.max_age,
-                    headers: arg.headers,
-                    is_aliased: arg.enable_aliasing,
-                    allow_raw_access: arg.allow_raw_access,
-                },
-            );
+        if self.assets.contains_key(&arg.key) {
+            return Err("asset already exists".to_string());
         }
+        self.assets.insert(
+            arg.key,
+            Asset {
+                content_type: arg.content_type,
+                encodings: HashMap::new(),
+                max_age: arg.max_age,
+                headers: arg.headers,
+                is_aliased: arg.enable_aliasing,
+                allow_raw_access: arg.allow_raw_access,
+            },
+        );
         Ok(())
     }
 
@@ -462,12 +448,23 @@ impl State {
     pub fn delete_asset(&mut self, arg: DeleteAssetArguments) {
         if self.assets.contains_key(&arg.key) {
             for dependent in self.dependent_keys(&arg.key) {
-                let path = AssetPath::from(dependent);
-                self.asset_hashes.delete(path.asset_hash_path_v1().as_vec());
-                self.asset_hashes
-                    .delete(path.asset_hash_path_root_v2().as_vec());
+                self.asset_hashes.remove_responses_for_path(&dependent);
+                self.asset_hashes.remove_responses_for_path_v1(&dependent);
+                if dependent == FALLBACK_FILE {
+                    self.asset_hashes.remove_fallback_responses();
+                    self.asset_hashes.remove_fallback_responses_v1();
+                }
             }
             self.assets.remove(&arg.key);
+        }
+        for key in aliases_of(&arg.key) {
+            // if an existing file can be aliased to the deleted file it has to become a valid alias again
+            if self.assets.contains_key(&key) {
+                let dependent_keys = self.dependent_keys(&key);
+                if let Some(asset) = self.assets.get_mut(&key) {
+                    on_asset_change(&mut self.asset_hashes, &key, asset, dependent_keys);
+                }
+            }
         }
     }
 
@@ -475,8 +472,8 @@ impl State {
         self.assets.clear();
         self.batches.clear();
         self.chunks.clear();
-        self.next_batch_id = Nat::from(1);
-        self.next_chunk_id = Nat::from(1);
+        self.next_batch_id = Nat::from(1_u8);
+        self.next_chunk_id = Nat::from(1_u8);
     }
 
     pub fn has_permission(&self, principal: &Principal, permission: &Permission) -> bool {
@@ -544,9 +541,32 @@ impl State {
         Ok(())
     }
 
-    pub fn create_batch(&mut self, now: u64) -> BatchId {
+    pub fn create_batch(&mut self, now: u64) -> Result<BatchId, String> {
+        self.batches.retain(|_, b| {
+            b.expires_at > now || matches!(b.evidence_computation, Some(Computed(_)))
+        });
+        self.chunks
+            .retain(|_, c| self.batches.contains_key(&c.batch_id));
+
+        if let Some((batch_id, batch)) = self
+            .batches
+            .iter()
+            .find(|(_batch_id, batch)| batch.commit_batch_arguments.is_some())
+        {
+            let message = match batch.evidence_computation {
+                Some(Computed(_)) => format!("Batch {} is already proposed.  Delete or execute it to propose another.", batch_id),
+                _ => format!("Batch {} has not completed evidence computation.  Wait for it to expire or delete it to propose another.", batch_id),
+            };
+            return Err(message);
+        }
+
+        if let Some(max_batches) = self.configuration.max_batches {
+            if self.batches.len() as u64 >= max_batches {
+                return Err("batch limit exceeded".to_string());
+            }
+        }
         let batch_id = self.next_batch_id.clone();
-        self.next_batch_id += 1;
+        self.next_batch_id += 1_u8;
 
         self.batches.insert(
             batch_id.clone(),
@@ -554,22 +574,29 @@ impl State {
                 expires_at: Int::from(now + BATCH_EXPIRY_NANOS),
                 commit_batch_arguments: None,
                 evidence_computation: None,
+                chunk_content_total_size: 0,
             },
         );
-        self.chunks.retain(|_, c| {
-            self.batches
-                .get(&c.batch_id)
-                .map(|b| b.expires_at > now || b.commit_batch_arguments.is_some())
-                .unwrap_or(false)
-        });
-        self.batches
-            .retain(|_, b| b.expires_at > now || b.commit_batch_arguments.is_some());
 
-        batch_id
+        Ok(batch_id)
     }
 
     pub fn create_chunk(&mut self, arg: CreateChunkArg, now: u64) -> Result<ChunkId, String> {
-        let mut batch = self
+        if let Some(max_chunks) = self.configuration.max_chunks {
+            if self.chunks.len() + 1 > max_chunks as usize {
+                return Err("chunk limit exceeded".to_string());
+            }
+        }
+        if let Some(max_bytes) = self.configuration.max_bytes {
+            let current_total_bytes = &self.batches.iter().fold(0, |acc, (_batch_id, batch)| {
+                acc + batch.chunk_content_total_size
+            });
+
+            if current_total_bytes + arg.content.as_ref().len() > max_bytes as usize {
+                return Err("byte limit exceeded".to_string());
+            }
+        }
+        let batch = self
             .batches
             .get_mut(&arg.batch_id)
             .ok_or_else(|| "batch not found".to_string())?;
@@ -580,7 +607,8 @@ impl State {
         batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
 
         let chunk_id = self.next_chunk_id.clone();
-        self.next_chunk_id += 1;
+        self.next_chunk_id += 1_u8;
+        batch.chunk_content_total_size += arg.content.as_ref().len();
 
         self.chunks.insert(
             chunk_id.clone(),
@@ -606,6 +634,7 @@ impl State {
             }
         }
         self.batches.remove(&batch_id);
+        self.certify_404_if_required();
         Ok(())
     }
 
@@ -773,11 +802,11 @@ impl State {
             .get(&arg.content_encoding)
             .ok_or_else(|| "no such encoding".to_string())?;
 
-        if let Some(expected_hash) = arg.sha256 {
-            if expected_hash != enc.sha256 {
-                return Err("sha256 mismatch".to_string());
-            }
+        let expected_hash = arg.sha256.ok_or("sha256 required")?;
+        if expected_hash != enc.sha256 {
+            return Err("sha256 mismatch".to_string());
         }
+
         if arg.index >= enc.content_chunks.len() {
             return Err("chunk index out of bounds".to_string());
         }
@@ -792,55 +821,43 @@ impl State {
         path: &str,
         requested_encodings: Vec<String>,
         chunk_index: usize,
-        callback: Func,
+        callback: CallbackFunc,
         etags: Vec<Hash>,
         req: HttpRequest,
     ) -> HttpResponse {
-        let (asset_hash_path, not_found_hash_path) = if req.get_certificate_version() == 1 {
-            let path = AssetPath::from(path);
-            let v1_path = path.asset_hash_path_v1();
+        if let Ok(asset) = self.get_asset(&path.into()) {
+            if !asset.allow_raw_access() && req.is_raw_domain() {
+                return req.redirect_from_raw_to_certified_domain();
+            }
+        } else if let Ok(asset) = self.get_asset(&FALLBACK_FILE.to_string()) {
+            if !asset.allow_raw_access() && req.is_raw_domain() {
+                return req.redirect_from_raw_to_certified_domain();
+            }
+        }
 
-            let not_found_path = AssetPath::from(INDEX_FILE);
-            let v1_not_found = not_found_path.asset_hash_path_v1();
-
-            (v1_path, v1_not_found)
+        let (certificate_header, witness_result) = if req.get_certificate_version() == 1 {
+            self.asset_hashes.witness_to_header_v1(path, certificate)
         } else {
-            let path = AssetPath::from(path);
-            let v2_root_path = path.asset_hash_path_root_v2();
-
-            let v2_not_found_root = HashTreePath::from(Vec::from([
-                NestedTreeKey::String("http_expr".into()),
-                NestedTreeKey::String("<*>".into()),
-            ]));
-
-            (v2_root_path, v2_not_found_root)
+            self.asset_hashes.witness_to_header(path, certificate)
         };
 
-        let index_redirect_certificate =
-            if !self.asset_hashes.contains_path(asset_hash_path.as_vec())
-                && self
-                    .asset_hashes
-                    .contains_path(not_found_hash_path.as_vec())
-            {
-                let absence_proof = self.asset_hashes.witness(asset_hash_path.as_vec());
-                let not_found_proof = self.asset_hashes.witness(not_found_hash_path.as_vec());
-                let combined_proof = merge_hash_trees(absence_proof, not_found_proof);
-
-                if req.get_certificate_version() == 1 {
-                    Some(witness_to_header_v1(combined_proof, certificate))
-                } else {
-                    Some(witness_to_header_v2(
-                        combined_proof,
-                        certificate,
-                        &asset_hash_path.expr_path(),
-                    ))
+        if witness_result == WitnessResult::FallbackFound {
+            if let Ok(asset) = self.get_asset(&FALLBACK_FILE.to_string()) {
+                if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
+                    asset,
+                    &requested_encodings,
+                    path,
+                    chunk_index,
+                    Some(&certificate_header),
+                    &callback,
+                    &etags,
+                    req.get_certificate_version(),
+                ) {
+                    return response;
                 }
-            } else {
-                None
-            };
-
-        if let Some(certificate_header) = index_redirect_certificate.as_ref() {
-            if let Ok(asset) = self.get_asset(&INDEX_FILE.to_string()) {
+            }
+        } else if witness_result == WitnessResult::PathFound {
+            if let Ok(asset) = self.get_asset(&path.into()) {
                 if !asset.allow_raw_access() && req.is_raw_domain() {
                     return req.redirect_from_raw_to_certified_domain();
                 }
@@ -849,7 +866,7 @@ impl State {
                     &requested_encodings,
                     path,
                     chunk_index,
-                    Some(certificate_header),
+                    Some(&certificate_header),
                     &callback,
                     &etags,
                     req.get_certificate_version(),
@@ -858,46 +875,14 @@ impl State {
                 }
             }
         }
-
-        let certificate_header = if req.get_certificate_version() == 1 {
-            witness_to_header_v1(
-                self.asset_hashes.witness(asset_hash_path.as_vec()),
-                certificate,
-            )
-        } else {
-            witness_to_header_v2(
-                self.asset_hashes.witness(asset_hash_path.as_vec()),
-                certificate,
-                &asset_hash_path.expr_path(),
-            )
-        };
-
-        if let Ok(asset) = self.get_asset(&path.into()) {
-            if !asset.allow_raw_access() && req.is_raw_domain() {
-                return req.redirect_from_raw_to_certified_domain();
-            }
-            if let Some(response) = HttpResponse::build_ok_from_requested_encodings(
-                asset,
-                &requested_encodings,
-                path,
-                chunk_index,
-                Some(&certificate_header),
-                &callback,
-                &etags,
-                req.get_certificate_version(),
-            ) {
-                return response;
-            }
-        }
-
-        HttpResponse::build_404(certificate_header)
+        HttpResponse::build_404(certificate_header, req.get_certificate_version())
     }
 
     pub fn http_request(
         &self,
         req: HttpRequest,
         certificate: &[u8],
-        callback: Func,
+        callback: CallbackFunc,
     ) -> HttpResponse {
         let mut encodings = vec![];
         // waiting for https://dfinity.atlassian.net/browse/BOUN-446
@@ -926,6 +911,7 @@ impl State {
                     "failed to decode path '{}': {}",
                     path, err
                 ))),
+                upgrade: None,
                 streaming_strategy: None,
             },
         }
@@ -948,10 +934,9 @@ impl State {
             .get(&content_encoding)
             .ok_or_else(|| "Invalid token on streaming: encoding not found.".to_string())?;
 
-        if let Some(expected_hash) = sha256 {
-            if expected_hash != enc.sha256 {
-                return Err("sha256 mismatch".to_string());
-            }
+        let expected_hash = sha256.ok_or("sha256 required")?;
+        if expected_hash != enc.sha256 {
+            return Err("sha256 mismatch".to_string());
         }
 
         // MAX is good enough. This means a chunk would be above 64-bits, which is impossible...
@@ -1025,6 +1010,49 @@ impl State {
             Vec::new()
         }
     }
+
+    pub fn get_configuration(&self) -> ConfigurationResponse {
+        let max_batches = self.configuration.max_batches;
+        let max_chunks = self.configuration.max_chunks;
+        let max_bytes = self.configuration.max_bytes;
+        ConfigurationResponse {
+            max_batches,
+            max_chunks,
+            max_bytes,
+        }
+    }
+
+    pub fn configure(&mut self, args: ConfigureArguments) {
+        if let Some(max_batches) = args.max_batches {
+            self.configuration.max_batches = max_batches;
+        }
+        if let Some(max_chunks) = args.max_chunks {
+            self.configuration.max_chunks = max_chunks;
+        }
+        if let Some(max_bytes) = args.max_bytes {
+            self.configuration.max_bytes = max_bytes;
+        }
+    }
+
+    fn certify_404_if_required(&mut self) {
+        if !self
+            .asset_hashes
+            .contains_path(HashTreePath::not_found_base_path_v2().as_vec())
+        {
+            let response = HttpResponse::uncertified_404();
+            let headers: Vec<_> = response
+                .headers
+                .into_iter()
+                .map(|(k, v)| (k, Value::String(v)))
+                .collect();
+            self.asset_hashes.certify_fallback_response(
+                response.status_code,
+                &headers,
+                &response.body,
+                None,
+            );
+        }
+    }
 }
 
 impl From<State> for StableState {
@@ -1039,6 +1067,7 @@ impl From<State> for StableState {
             permissions: Some(permissions),
             stable_assets: state.assets,
             next_batch_id: Some(state.next_batch_id),
+            configuration: Some(state.configuration),
         }
     }
 }
@@ -1064,7 +1093,10 @@ impl From<StableState> for State {
             prepare_principals,
             manage_permissions_principals,
             assets: stable_state.stable_assets,
-            next_batch_id: stable_state.next_batch_id.unwrap_or_else(|| Nat::from(1)),
+            next_batch_id: stable_state
+                .next_batch_id
+                .unwrap_or_else(|| Nat::from(1_u8)),
+            configuration: stable_state.configuration.unwrap_or_default(),
             ..Self::default()
         };
 
@@ -1089,7 +1121,7 @@ fn build_headers(
     max_age: &Option<u64>,
     content_type: impl Into<String>,
     encoding_name: impl Into<String>,
-    cert_expr: Option<impl Into<String>>,
+    cert_expr: Option<&CertificateExpression>,
 ) -> HashMap<String, String> {
     let mut headers = HashMap::from([("content-type".to_string(), content_type.into())]);
     if let Some(max_age) = max_age {
@@ -1105,13 +1137,14 @@ fn build_headers(
         }
     }
     if let Some(expr) = cert_expr {
-        headers.insert("ic-certificateexpression".to_string(), expr.into());
+        let (k, v) = build_ic_certificate_expression_header(expr);
+        headers.insert(k, v);
     }
     headers
 }
 
 fn on_asset_change(
-    asset_hashes: &mut AssetHashes,
+    asset_hashes: &mut CertifiedResponses,
     key: &str,
     asset: &mut Asset,
     dependent_keys: Vec<AssetKey>,
@@ -1157,36 +1190,35 @@ fn on_asset_change(
     }
 }
 
-fn delete_preexisting_asset_hashes(asset_hashes: &mut AssetHashes, affected_keys: &[String]) {
+fn delete_preexisting_asset_hashes(
+    asset_hashes: &mut CertifiedResponses,
+    affected_keys: &[String],
+) {
     for key in affected_keys.iter() {
-        let key_path = AssetPath::from(key);
-        asset_hashes.delete(key_path.asset_hash_path_root_v2().as_vec());
-        asset_hashes.delete(key_path.asset_hash_path_v1().as_vec());
-        if key == INDEX_FILE {
-            asset_hashes.delete(&[
-                NestedTreeKey::String("http_expr".into()),
-                NestedTreeKey::String("<*>".into()),
-            ]);
+        asset_hashes.remove_responses_for_path(key);
+        asset_hashes.remove_responses_for_path_v1(key);
+        if key == FALLBACK_FILE {
+            asset_hashes.remove_fallback_responses();
+            asset_hashes.remove_fallback_responses_v1();
         }
     }
 }
 
 fn insert_new_response_hashes_for_encoding(
-    asset_hashes: &mut AssetHashes,
+    asset_hashes: &mut CertifiedResponses,
     enc: &AssetEncoding,
     affected_keys: &Vec<String>,
     is_most_important_encoding: bool,
 ) {
+    let affected_keys_slice: Vec<&str> = affected_keys.iter().map(|s| s.as_str()).collect();
+    if is_most_important_encoding {
+        asset_hashes.certify_response_v1(affected_keys_slice.as_slice(), &[], Some(enc.sha256));
+    }
     for key in affected_keys {
         let key_path = AssetPath::from(&key);
-        let v1_path = key_path.asset_hash_path_v1();
-        if is_most_important_encoding {
-            // v1 can only certify one encoding, therefore we only certify the most important one
-            asset_hashes.insert(v1_path.as_vec(), enc.sha256.into());
-        }
         for status_code in STATUS_CODES_TO_CERTIFY {
             if let Some(hash_path) = enc.asset_hash_path_v2(&key_path, status_code) {
-                asset_hashes.insert(hash_path.as_vec(), Vec::new());
+                asset_hashes.certify_response_precomputed(&hash_path);
             } else {
                 unreachable!(
                     "Could not create a hash path for a status code {} and key {} - did you forget to compute a response hash for this status code?",
@@ -1194,9 +1226,9 @@ fn insert_new_response_hashes_for_encoding(
                 );
             }
         }
-        if key == INDEX_FILE {
+        if key == FALLBACK_FILE {
             if let Some(not_found_hash_path) = enc.not_found_hash_path() {
-                asset_hashes.insert(not_found_hash_path.as_vec(), Vec::new());
+                asset_hashes.certify_response_precomputed(&not_found_hash_path);
             }
         }
     }

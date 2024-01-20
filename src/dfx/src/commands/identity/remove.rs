@@ -1,6 +1,5 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-
 use clap::Parser;
 use slog::info;
 
@@ -11,7 +10,7 @@ pub struct RemoveOpts {
     removed_identity: String,
 
     /// Required if the identity has wallets configured so that users do not accidentally lose access to wallets.
-    #[clap(long)]
+    #[arg(long)]
     drop_wallets: bool,
 }
 

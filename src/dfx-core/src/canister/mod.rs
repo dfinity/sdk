@@ -1,7 +1,11 @@
+use crate::{
+    cli::ask_for_consent,
+    error::canister::{CanisterBuilderError, CanisterInstallError},
+    identity::CallSender,
+};
 use candid::Principal;
 use ic_agent::Agent;
 use ic_utils::{
-    call::AsyncCall,
     interfaces::{
         management_canister::builders::{CanisterInstall, InstallMode},
         ManagementCanister, WalletCanister,
@@ -9,12 +13,6 @@ use ic_utils::{
     Argument,
 };
 use slog::{info, Logger};
-
-use crate::{
-    cli::ask_for_consent,
-    error::canister::{CanisterBuilderError, CanisterInstallError},
-    identity::CallSender,
-};
 
 pub async fn build_wallet_canister(
     id: Principal,
@@ -59,7 +57,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.
     let mode_str = match mode {
         InstallMode::Install => "Installing",
         InstallMode::Reinstall => "Reinstalling",
-        InstallMode::Upgrade => "Upgrading",
+        InstallMode::Upgrade { .. } => "Upgrading",
     };
     if let Some(name) = canister_name {
         info!(
@@ -72,15 +70,13 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.
     match call_sender {
         CallSender::SelectedId => {
             let install_builder = mgr
-                .install_code(&canister_id, &wasm_module)
+                .install(&canister_id, &wasm_module)
                 .with_raw_arg(args.to_vec())
                 .with_mode(mode);
             install_builder
-                .build()
-                .map_err(CanisterBuilderError::CallSenderBuildError)?
                 .call_and_wait()
                 .await
-                .map_err(CanisterInstallError::InstallWasmError)?;
+                .map_err(CanisterInstallError::InstallWasmError)
         }
         CallSender::Wallet(wallet_id) => {
             let wallet = build_wallet_canister(*wallet_id, agent).await?;
@@ -99,8 +95,7 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.
                 )
                 .call_and_wait()
                 .await
-                .map_err(CanisterInstallError::InstallWasmError)?;
+                .map_err(CanisterInstallError::InstallWasmError)
         }
     }
-    Ok(())
 }

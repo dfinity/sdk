@@ -214,6 +214,16 @@
             "type"
           ],
           "properties": {
+            "build": {
+              "title": "Build Commands",
+              "description": "Commands that are executed in order to produce this canister's assets. Expected to produce assets in one of the paths specified by the 'source' field. Optional if there is no build necessary or the assets can be built using the default `npm run build` command.",
+              "default": [],
+              "allOf": [
+                {
+                  "$ref": "#/definitions/SerdeVec_for_String"
+                }
+              ]
+            },
             "source": {
               "title": "Asset Source Folder",
               "description": "Folders from which assets are uploaded.",
@@ -348,13 +358,22 @@
             "type": "string"
           }
         },
+        "gzip": {
+          "title": "Gzip Canister WASM",
+          "description": "Disabled by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "initialization_values": {
           "title": "Resource Allocation Settings",
           "description": "Defines initial values for resource allocation settings.",
           "default": {
             "compute_allocation": null,
             "freezing_threshold": null,
-            "memory_allocation": null
+            "memory_allocation": null,
+            "reserved_cycles_limit": null
           },
           "allOf": [
             {
@@ -379,6 +398,19 @@
             "$ref": "#/definitions/CanisterMetadataSection"
           }
         },
+        "optimize": {
+          "title": "Optimize Canister WASM",
+          "description": "Invoke wasm level optimizations after building the canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default. If this option is specified, the `shrink` option will be ignored.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WasmOptLevel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "post_install": {
           "title": "Post-Install Commands",
           "description": "One or more commands to run post canister installation.",
@@ -389,11 +421,18 @@
             }
           ]
         },
-        "pull_ready": {
-          "title": "Ready for dfx Pull",
-          "description": "Whether or not to make this canister ready for dfx pull by other project. If true, several required metadata fields must be also set with the correct format.",
-          "default": false,
-          "type": "boolean"
+        "pullable": {
+          "title": "Pullable",
+          "description": "Defines required properties so that this canister is ready for `dfx deps pull` by other projects.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Pullable"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "remote": {
           "title": "Remote Configuration",
@@ -488,6 +527,16 @@
             }
           ]
         },
+        "proxy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsProxy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "replica": {
           "anyOf": [
             {
@@ -504,6 +553,12 @@
       "title": "Bitcoin Adapter Configuration",
       "type": "object",
       "properties": {
+        "canister_init_arg": {
+          "title": "Initialization Argument",
+          "description": "The initialization argument for the bitcoin canister.",
+          "default": "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 0 : nat; get_utxos_cycles_per_ten_instructions = 0 : nat; get_utxos_maximum = 0 : nat; get_balance = 0 : nat; get_balance_maximum = 0 : nat; get_current_fee_percentiles = 0 : nat; get_current_fee_percentiles_maximum = 0 : nat;  send_transaction_base = 0 : nat; send_transaction_per_byte = 0 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})",
+          "type": "string"
+        },
         "enabled": {
           "title": "Enable Bitcoin Adapter",
           "default": false,
@@ -535,6 +590,7 @@
     },
     "ConfigDefaultsBootstrap": {
       "title": "Bootstrap Server Configuration",
+      "description": "The bootstrap command has been removed.  All of these fields are ignored.",
       "type": "object",
       "properties": {
         "ip": {
@@ -595,6 +651,23 @@
           "allOf": [
             {
               "$ref": "#/definitions/HttpAdapterLogLevel"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigDefaultsProxy": {
+      "description": "Configuration for icx-proxy.",
+      "type": "object",
+      "required": [
+        "domain"
+      ],
+      "properties": {
+        "domain": {
+          "description": "A list of domains that can be served. These are used for canister resolution [default: localhost]",
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
             }
           ]
         }
@@ -679,6 +752,26 @@
             }
           ]
         },
+        "playground": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PlaygroundConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proxy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsProxy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "replica": {
           "anyOf": [
             {
@@ -717,6 +810,16 @@
         "providers"
       ],
       "properties": {
+        "playground": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PlaygroundConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "providers": {
           "description": "The URL(s) this network can be reached at.",
           "type": "array",
@@ -783,6 +886,17 @@
           ],
           "format": "uint64",
           "minimum": 0.0
+        },
+        "reserved_cycles_limit": {
+          "title": "Reserved Cycles Limit",
+          "description": "Specifies the upper limit of the canister's reserved cycles balance.\n\nReserved cycles are cycles that the system sets aside for future use by the canister. If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes, the system sets aside some amount of cycles from the main balance of the canister. These reserved cycles will be used to cover future payments for the newly allocated bytes. The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.\n\nA setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.",
+          "default": null,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint128",
+          "minimum": 0.0
         }
       }
     },
@@ -813,6 +927,26 @@
         "persistent"
       ]
     },
+    "PlaygroundConfig": {
+      "description": "Playground config to borrow canister from instead of creating new canisters.",
+      "type": "object",
+      "required": [
+        "playground_canister"
+      ],
+      "properties": {
+        "playground_canister": {
+          "description": "Canister ID of the playground canister",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "description": "How many seconds a canister can be borrowed for",
+          "default": 1200,
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
     "PossiblyStr_for_uint64": {
       "type": "integer",
       "format": "uint64",
@@ -824,6 +958,50 @@
         "Debug",
         "Release"
       ]
+    },
+    "Pullable": {
+      "type": "object",
+      "required": [
+        "dependencies",
+        "init_guide",
+        "wasm_url"
+      ],
+      "properties": {
+        "dependencies": {
+          "title": "dependencies",
+          "description": "Canister IDs (Principal) of direct dependencies.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "init_guide": {
+          "title": "init_guide",
+          "description": "A message to guide consumers how to initialize the canister.",
+          "type": "string"
+        },
+        "wasm_hash": {
+          "title": "wasm_hash",
+          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified via a URL using the `wasm_hash_url` field. If both are defined, the `wasm_hash_url` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wasm_hash_url": {
+          "title": "wasm_hash_url",
+          "description": "Specify the SHA256 hash of the wasm module via this URL. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified directly using the `wasm_hash` field. If both are defined, the `wasm_hash_url` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wasm_url": {
+          "title": "wasm_url",
+          "description": "The Url to download canister wasm.",
+          "type": "string"
+        }
+      }
     },
     "ReplicaLogLevel": {
       "type": "string",
@@ -855,6 +1033,22 @@
             "type": "string"
           }
         }
+      ]
+    },
+    "WasmOptLevel": {
+      "title": "Wasm Optimization Levels",
+      "description": "Wasm optimization levels that are passed to `wasm-opt`. \"cycles\" defaults to O3, \"size\" defaults to Oz. O4 through O0 focus on performance (with O0 performing no optimizations), and Oz and Os focus on reducing binary size, where Oz is more aggressive than Os. O3 and Oz empirically give best cycle savings and code size savings respectively.",
+      "type": "string",
+      "enum": [
+        "cycles",
+        "size",
+        "O4",
+        "O3",
+        "O2",
+        "O1",
+        "O0",
+        "Oz",
+        "Os"
       ]
     }
   }

@@ -26,8 +26,9 @@ fi
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
      brew install mitmproxy
 fi
-if [ "$E2E_TEST" = "tests-dfx/pull.bash" ]; then
-     cargo install ic-wasm
+if [ "$E2E_TEST" = "tests-dfx/deps.bash" ]; then
+     cargo install cargo-binstall
+     cargo binstall -y ic-wasm
 fi
 
 # Exit temporary directory.

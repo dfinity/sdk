@@ -3,11 +3,11 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::identity::wallet::set_wallet_id;
-use dfx_core::canister::build_wallet_canister;
-
+use crate::lib::network::network_opt::NetworkOpt;
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;
+use dfx_core::canister::build_wallet_canister;
 use ic_utils::interfaces::wallet::BalanceResult;
 use slog::{error, info};
 use tokio::runtime::Runtime;
@@ -19,12 +19,12 @@ pub struct SetWalletOpts {
     canister_name: String,
 
     /// Skip verification that the ID points to a correct wallet canister. Only useful for the local network.
-    #[clap(long)]
+    #[arg(long)]
     force: bool,
 }
 
-pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>) -> DfxResult {
-    let agent_env = create_agent_environment(env, network)?;
+pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: NetworkOpt) -> DfxResult {
+    let agent_env = create_agent_environment(env, network.to_network_name())?;
     let env = &agent_env;
     let log = env.get_logger();
 
@@ -57,9 +57,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: Option<String>)
             "Skipping verification of availability of the canister on the network due to --force..."
         );
     } else {
-        let agent = env
-            .get_agent()
-            .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+        let agent = env.get_agent();
 
         runtime
             .block_on(async {

@@ -1,27 +1,23 @@
-use crate::actors;
 use crate::actors::btc_adapter::signals::BtcAdapterReadySubscribe;
 use crate::actors::btc_adapter::BtcAdapter;
 use crate::actors::canister_http_adapter::signals::CanisterHttpAdapterReadySubscribe;
 use crate::actors::canister_http_adapter::CanisterHttpAdapter;
-use crate::actors::emulator::Emulator;
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
-use crate::actors::replica::Replica;
+use crate::actors::replica::{BitcoinIntegrationConfig, Replica};
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::replica_config::ReplicaConfig;
-use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
-
 use actix::{Actor, Addr, Recipient};
 use anyhow::Context;
+use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 use fn_error_context::context;
 use std::fs;
 use std::path::PathBuf;
 
 pub mod btc_adapter;
 pub mod canister_http_adapter;
-pub mod emulator;
 pub mod icx_proxy;
 pub mod replica;
 mod shutdown;
@@ -68,7 +64,7 @@ pub fn start_canister_http_adapter_actor(
 ) -> DfxResult<Recipient<CanisterHttpAdapterReadySubscribe>> {
     let adapter_path = env
         .get_cache()
-        .get_binary_command_path("ic-canister-http-adapter")?;
+        .get_binary_command_path("ic-https-outcalls-adapter")?;
 
     let actor_config = canister_http_adapter::Config {
         adapter_path,
@@ -83,34 +79,6 @@ pub fn start_canister_http_adapter_actor(
     Ok(CanisterHttpAdapter::new(actor_config).start().recipient())
 }
 
-#[context("Failed to start emulator actor.")]
-pub fn start_emulator_actor(
-    env: &dyn Environment,
-    shutdown_controller: Addr<ShutdownController>,
-    emulator_port_path: PathBuf,
-) -> DfxResult<Addr<Emulator>> {
-    let ic_ref_path = env.get_cache().get_binary_command_path("ic-ref")?;
-
-    // Touch the port file. This ensures it is empty prior to
-    // handing it over to ic-ref. If we read the file and it has
-    // contents we shall assume it is due to our spawned ic-ref
-    // process.
-    std::fs::write(&emulator_port_path, "").with_context(|| {
-        format!(
-            "Failed to write/clear emulator port file {}.",
-            emulator_port_path.to_string_lossy()
-        )
-    })?;
-
-    let actor_config = actors::emulator::Config {
-        ic_ref_path,
-        write_port_to: emulator_port_path,
-        shutdown_controller,
-        logger: Some(env.get_logger().clone()),
-    };
-    Ok(actors::emulator::Emulator::new(actor_config).start())
-}
-
 #[context("Failed to setup replica environment.")]
 fn setup_replica_env(
     local_server_descriptor: &LocalServerDescriptor,
@@ -120,7 +88,7 @@ fn setup_replica_env(
     let replica_configuration_dir = local_server_descriptor.replica_configuration_dir();
     fs::create_dir_all(&replica_configuration_dir).with_context(|| {
         format!(
-            "Failed to create replica config direcory {}.",
+            "Failed to create replica config directory {}.",
             replica_configuration_dir.to_string_lossy()
         )
     })?;
@@ -166,9 +134,17 @@ pub fn start_replica_actor(
     setup_replica_env(local_server_descriptor, &replica_config)?;
     let replica_pid_path = local_server_descriptor.replica_pid_path();
 
+    let bitcoin_integration_config = if local_server_descriptor.bitcoin.enabled {
+        let canister_init_arg = local_server_descriptor.bitcoin.canister_init_arg.clone();
+        Some(BitcoinIntegrationConfig { canister_init_arg })
+    } else {
+        None
+    };
+
     let actor_config = replica::Config {
         ic_starter_path,
         replica_config,
+        bitcoin_integration_config,
         replica_path,
         shutdown_controller,
         logger: Some(env.get_logger().clone()),

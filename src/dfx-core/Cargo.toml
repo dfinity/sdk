@@ -12,9 +12,12 @@ aes-gcm.workspace = true
 argon2.workspace = true
 bip32 = "0.4.0"
 byte-unit = { workspace = true, features = ["serde"] }
-candid = { workspace = true, features = ["random"] }
-dialoguer = "0.10.0"
+bytes.workspace = true
+candid = { workspace = true }
+clap = { workspace = true, features = ["string"] }
+dialoguer = { workspace = true }
 directories-next.workspace = true
+dunce = "1.0"
 flate2 = { workspace = true, default-features = false, features = ["zlib-ng"] }
 hex = { workspace = true, features = ["serde"] }
 humantime-serde = "1.1.1"
@@ -24,16 +27,19 @@ ic-identity-hsm = { workspace = true }
 k256 = { version = "0.11.4", features = ["pem"] }
 keyring.workspace = true
 lazy_static.workspace = true
+reqwest = { version = "0.11.9", features = ["blocking", "json"] }
 ring.workspace = true
 schemars.workspace = true
 sec1 = { workspace = true, features = ["std"] }
-semver.workspace = true
+semver = { workspace = true, features = ["serde"] }
 serde.workspace = true
 serde_json.workspace = true
 slog = { workspace = true, features = ["max_level_trace"] }
 tar.workspace = true
+tempfile.workspace = true
 thiserror.workspace = true
 tiny-bip39 = "1.0.0"
+time.workspace = true
 url.workspace = true
 
 [dev-dependencies]

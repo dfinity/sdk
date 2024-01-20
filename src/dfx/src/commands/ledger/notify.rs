@@ -11,7 +11,7 @@ mod top_up;
 /// for some reason the subsequent notify failed.
 #[derive(Parser)]
 pub struct NotifyOpts {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: Subcmd,
 }
 

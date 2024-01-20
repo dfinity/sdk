@@ -4,7 +4,6 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::state_tree::canister_info::{
     read_state_tree_canister_controllers, read_state_tree_canister_module_hash,
 };
-
 use anyhow::anyhow;
 use candid::Principal;
 use clap::Parser;
@@ -18,9 +17,7 @@ pub struct InfoOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     let callee_canister = opts.canister.as_str();
     let canister_id_store = env.get_canister_id_store()?;
@@ -40,7 +37,7 @@ pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
 
     let module_hash_hex = match read_state_tree_canister_module_hash(agent, canister_id).await? {
         None => "None".to_string(),
-        Some(blob) => format!("0x{}", hex::encode(&blob)),
+        Some(blob) => format!("0x{}", hex::encode(blob)),
     };
 
     println!(

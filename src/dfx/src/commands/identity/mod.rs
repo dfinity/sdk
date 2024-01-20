@@ -1,7 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::NetworkOpt;
-
+use crate::lib::network::network_opt::NetworkOpt;
 use clap::Parser;
 
 mod deploy_wallet;
@@ -20,12 +19,12 @@ mod whoami;
 /// Manages identities used to communicate with the Internet Computer network.
 /// Setting an identity enables you to test user-based access controls.
 #[derive(Parser)]
-#[clap(name("identity"))]
+#[command(name = "identity")]
 pub struct IdentityOpts {
-    #[clap(flatten)]
+    #[command(flatten)]
     network: NetworkOpt,
 
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 
@@ -47,16 +46,16 @@ enum SubCommand {
 
 pub fn exec(env: &dyn Environment, opts: IdentityOpts) -> DfxResult {
     match opts.subcmd {
-        SubCommand::DeployWallet(v) => deploy_wallet::exec(env, v, opts.network.network),
+        SubCommand::DeployWallet(v) => deploy_wallet::exec(env, v, opts.network),
         SubCommand::Export(v) => export::exec(env, v),
-        SubCommand::GetWallet(v) => get_wallet::exec(env, v, opts.network.network),
+        SubCommand::GetWallet(v) => get_wallet::exec(env, v, opts.network),
         SubCommand::List(v) => list::exec(env, v),
         SubCommand::New(v) => new::exec(env, v),
         SubCommand::GetPrincipal(v) => principal::exec(env, v),
         SubCommand::Import(v) => import::exec(env, v),
         SubCommand::Remove(v) => remove::exec(env, v),
         SubCommand::Rename(v) => rename::exec(env, v),
-        SubCommand::SetWallet(v) => set_wallet::exec(env, v, opts.network.network),
+        SubCommand::SetWallet(v) => set_wallet::exec(env, v, opts.network),
         SubCommand::Use(v) => r#use::exec(env, v),
         SubCommand::Whoami(v) => whoami::exec(env, v),
     }

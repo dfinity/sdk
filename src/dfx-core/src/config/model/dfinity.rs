@@ -1,15 +1,21 @@
 #![allow(dead_code)]
 #![allow(clippy::should_implement_trait)] // for from_str.  why now?
-
-use crate::config::directories::get_config_dfx_dir_path;
+use crate::config::directories::get_user_dfx_config_dir;
 use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
-use crate::config::model::dfinity::MetadataVisibility::Public;
-use crate::error::dfx_config::DfxConfigError;
-use crate::error::dfx_config::DfxConfigError::{
-    CanisterCircularDependency, CanisterNotFound, CanistersFieldDoesNotExist,
-    GetCanistersWithDependenciesFailed, GetComputeAllocationFailed, GetFreezingThresholdFailed,
-    GetMemoryAllocationFailed, GetRemoteCanisterIdFailed,
+use crate::error::config::GetOutputEnvFileError;
+use crate::error::dfx_config::AddDependenciesError::CanisterCircularDependency;
+use crate::error::dfx_config::GetCanisterNamesWithDependenciesError::AddDependenciesFailed;
+use crate::error::dfx_config::GetComputeAllocationError::GetComputeAllocationFailed;
+use crate::error::dfx_config::GetFreezingThresholdError::GetFreezingThresholdFailed;
+use crate::error::dfx_config::GetMemoryAllocationError::GetMemoryAllocationFailed;
+use crate::error::dfx_config::GetPullCanistersError::PullCanistersSameId;
+use crate::error::dfx_config::GetRemoteCanisterIdError::GetRemoteCanisterIdFailed;
+use crate::error::dfx_config::GetReservedCyclesLimitError::GetReservedCyclesLimitFailed;
+use crate::error::dfx_config::{
+    AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError,
+    GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError,
+    GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError,
 };
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
@@ -29,7 +35,6 @@ use crate::error::structured_file::StructuredFileError::{
 };
 use crate::json::save_json_file;
 use crate::json::structure::{PossiblyStr, SerdeVec};
-
 use byte_unit::Byte;
 use candid::Principal;
 use schemars::JsonSchema;
@@ -43,6 +48,8 @@ use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+use super::network_descriptor::MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS;
+
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
@@ -50,6 +57,7 @@ const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     bootstrap: None,
     build: None,
     canister_http: None,
+    proxy: None,
     replica: None,
 };
 
@@ -75,20 +83,39 @@ pub struct ConfigCanistersCanisterRemote {
     pub id: BTreeMap<String, Principal>,
 }
 
+/// # Wasm Optimization Levels
+/// Wasm optimization levels that are passed to `wasm-opt`. "cycles" defaults to O3, "size" defaults to Oz.
+/// O4 through O0 focus on performance (with O0 performing no optimizations), and Oz and Os focus on reducing binary size, where Oz is more aggressive than Os.
+/// O3 and Oz empirically give best cycle savings and code size savings respectively.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub enum WasmOptLevel {
+    #[serde(rename = "cycles")]
+    Cycles,
+    #[serde(rename = "size")]
+    Size,
+    O4,
+    O3,
+    O2,
+    O1,
+    O0,
+    Oz,
+    Os,
+}
+impl std::fmt::Display for WasmOptLevel {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        std::fmt::Debug::fmt(self, f)
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum MetadataVisibility {
     /// Anyone can query the metadata
+    #[default]
     Public,
 
     /// Only the controllers of the canister can query the metadata.
     Private,
-}
-
-impl Default for MetadataVisibility {
-    fn default() -> Self {
-        Public
-    }
 }
 
 /// # Canister Metadata Configuration
@@ -132,6 +159,32 @@ impl CanisterMetadataSection {
             .map(|networks| networks.contains(network))
             .unwrap_or(true)
     }
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct Pullable {
+    /// # wasm_url
+    /// The Url to download canister wasm.
+    pub wasm_url: String,
+    /// # wasm_hash
+    /// SHA256 hash of the wasm module located at wasm_url.
+    /// Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.
+    /// The hash can also be specified via a URL using the `wasm_hash_url` field.
+    /// If both are defined, the `wasm_hash_url` field will be ignored.
+    pub wasm_hash: Option<String>,
+    /// # wasm_hash_url
+    /// Specify the SHA256 hash of the wasm module via this URL.
+    /// Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.
+    /// The hash can also be specified directly using the `wasm_hash` field.
+    /// If both are defined, the `wasm_hash_url` field will be ignored.
+    pub wasm_hash_url: Option<String>,
+    /// # dependencies
+    /// Canister IDs (Principal) of direct dependencies.
+    #[schemars(with = "Vec::<String>")]
+    pub dependencies: Vec<Principal>,
+    /// # init_guide
+    /// A message to guide consumers how to initialize the canister.
+    pub init_guide: String,
 }
 
 pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
@@ -195,17 +248,26 @@ pub struct ConfigCanistersCanister {
     /// Disabled by default for custom canisters.
     pub shrink: Option<bool>,
 
+    /// # Optimize Canister WASM
+    /// Invoke wasm level optimizations after building the canister. Optimization level can be set to "cycles" to optimize for cycle usage, "size" to optimize for binary size, or any of "O4, O3, O2, O1, O0, Oz, Os".
+    /// Disabled by default.
+    /// If this option is specified, the `shrink` option will be ignored.
+    #[serde(default)]
+    pub optimize: Option<WasmOptLevel>,
+
     /// # Metadata
     /// Defines metadata sections to set in the canister .wasm
     #[serde(default)]
     pub metadata: Vec<CanisterMetadataSection>,
 
-    /// # Ready for dfx Pull
-    /// Whether or not to make this canister ready for dfx pull by other project.
-    /// If true, several required metadata fields must be also set with the correct format.
-    // TODO: Add a link to `dfx pull` document.
+    /// # Pullable
+    /// Defines required properties so that this canister is ready for `dfx deps pull` by other projects.
     #[serde(default)]
-    pub pull_ready: bool,
+    pub pullable: Option<Pullable>,
+
+    /// # Gzip Canister WASM
+    /// Disabled by default.
+    pub gzip: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
@@ -226,6 +288,13 @@ pub enum CanisterTypeProperties {
         /// # Asset Source Folder
         /// Folders from which assets are uploaded.
         source: Vec<PathBuf>,
+
+        /// # Build Commands
+        /// Commands that are executed in order to produce this canister's assets.
+        /// Expected to produce assets in one of the paths specified by the 'source' field.
+        /// Optional if there is no build necessary or the assets can be built using the default `npm run build` command.
+        #[schemars(default)]
+        build: SerdeVec<String>,
     },
     /// # Custom-Specific Properties
     Custom {
@@ -252,7 +321,7 @@ pub enum CanisterTypeProperties {
         /// # Canister ID
         /// Principal of the canister on the ic network.
         #[schemars(with = "String")]
-        id: candid::Principal,
+        id: Principal,
     },
 }
 
@@ -288,6 +357,19 @@ pub struct InitializationValues {
     #[serde(with = "humantime_serde")]
     #[schemars(with = "Option<String>")]
     pub freezing_threshold: Option<Duration>,
+
+    /// # Reserved Cycles Limit
+    /// Specifies the upper limit of the canister's reserved cycles balance.
+    ///
+    /// Reserved cycles are cycles that the system sets aside for future use by the canister.
+    /// If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes,
+    /// the system sets aside some amount of cycles from the main balance of the canister.
+    /// These reserved cycles will be used to cover future payments for the newly allocated bytes.
+    /// The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.
+    ///
+    /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.
+    #[schemars(with = "Option<u128>")]
+    pub reserved_cycles_limit: Option<u128>,
 }
 
 /// # Declarations Configuration
@@ -332,8 +414,21 @@ pub struct ConfigDefaultsBitcoin {
 
     /// # Logging Level
     /// The logging level of the adapter.
-    #[serde(default)]
+    #[serde(default = "default_bitcoin_log_level")]
     pub log_level: BitcoinAdapterLogLevel,
+
+    /// # Initialization Argument
+    /// The initialization argument for the bitcoin canister.
+    #[serde(default = "default_bitcoin_canister_init_arg")]
+    pub canister_init_arg: String,
+}
+
+pub fn default_bitcoin_log_level() -> BitcoinAdapterLogLevel {
+    BitcoinAdapterLogLevel::Info
+}
+
+pub fn default_bitcoin_canister_init_arg() -> String {
+    "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 0 : nat; get_utxos_cycles_per_ten_instructions = 0 : nat; get_utxos_maximum = 0 : nat; get_balance = 0 : nat; get_balance_maximum = 0 : nat; get_current_fee_percentiles = 0 : nat; get_current_fee_percentiles_maximum = 0 : nat;  send_transaction_base = 0 : nat; send_transaction_per_byte = 0 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})".to_string()
 }
 
 impl Default for ConfigDefaultsBitcoin {
@@ -341,7 +436,8 @@ impl Default for ConfigDefaultsBitcoin {
         ConfigDefaultsBitcoin {
             enabled: false,
             nodes: None,
-            log_level: BitcoinAdapterLogLevel::Info,
+            log_level: default_bitcoin_log_level(),
+            canister_init_arg: default_bitcoin_canister_init_arg(),
         }
     }
 }
@@ -374,6 +470,7 @@ fn default_as_true() -> bool {
 }
 
 /// # Bootstrap Server Configuration
+/// The bootstrap command has been removed.  All of these fields are ignored.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBootstrap {
     /// Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.
@@ -466,26 +563,26 @@ pub struct ConfigDefaultsReplica {
     pub log_level: Option<ReplicaLogLevel>,
 }
 
+/// Configuration for icx-proxy.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ConfigDefaultsProxy {
+    /// A list of domains that can be served. These are used for canister resolution [default: localhost]
+    pub domain: SerdeVec<String>,
+}
+
 // Schemars doesn't add the enum value's docstrings. Therefore the explanations have to be up here.
 /// # Network Type
 /// Type 'ephemeral' is used for networks that are regularly reset.
 /// Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum NetworkType {
     // We store ephemeral canister ids in .dfx/{network}/canister_ids.json
+    #[default]
     Ephemeral,
 
     // We store persistent canister ids in canister_ids.json (adjacent to dfx.json)
     Persistent,
-}
-
-impl Default for NetworkType {
-    // This is just needed for the Default trait on NetworkType,
-    // but nothing will ever call it, due to field defaults.
-    fn default() -> Self {
-        NetworkType::Ephemeral
-    }
 }
 
 impl NetworkType {
@@ -497,18 +594,13 @@ impl NetworkType {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ReplicaSubnetType {
     System,
+    #[default]
     Application,
     VerifiedApplication,
-}
-
-impl Default for ReplicaSubnetType {
-    fn default() -> Self {
-        ReplicaSubnetType::Application
-    }
 }
 
 impl ReplicaSubnetType {
@@ -522,6 +614,21 @@ impl ReplicaSubnetType {
     }
 }
 
+fn default_playground_timeout_seconds() -> u64 {
+    MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS
+}
+
+/// Playground config to borrow canister from instead of creating new canisters.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct PlaygroundConfig {
+    /// Canister ID of the playground canister
+    pub playground_canister: String,
+
+    /// How many seconds a canister can be borrowed for
+    #[serde(default = "default_playground_timeout_seconds")]
+    pub timeout_seconds: u64,
+}
+
 /// # Custom Network Configuration
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigNetworkProvider {
@@ -531,6 +638,7 @@ pub struct ConfigNetworkProvider {
     /// Persistence type of this network.
     #[serde(default = "NetworkType::persistent")]
     pub r#type: NetworkType,
+    pub playground: Option<PlaygroundConfig>,
 }
 
 /// # Local Replica Configuration
@@ -549,6 +657,8 @@ pub struct ConfigLocalProvider {
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
     pub replica: Option<ConfigDefaultsReplica>,
+    pub playground: Option<PlaygroundConfig>,
+    pub proxy: Option<ConfigDefaultsProxy>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, JsonSchema)]
@@ -573,6 +683,7 @@ pub struct ConfigDefaults {
     pub bootstrap: Option<ConfigDefaultsBootstrap>,
     pub build: Option<ConfigDefaultsBuild>,
     pub canister_http: Option<ConfigDefaultsCanisterHttp>,
+    pub proxy: Option<ConfigDefaultsProxy>,
     pub replica: Option<ConfigDefaultsReplica>,
 }
 
@@ -677,21 +788,19 @@ impl ConfigInterface {
     pub fn get_canister_names_with_dependencies(
         &self,
         some_canister: Option<&str>,
-    ) -> Result<Vec<String>, DfxConfigError> {
+    ) -> Result<Vec<String>, GetCanisterNamesWithDependenciesError> {
         self.canisters
             .as_ref()
-            .ok_or(CanistersFieldDoesNotExist())
+            .ok_or(GetCanisterNamesWithDependenciesError::CanistersFieldDoesNotExist())
             .and_then(|canister_map| match some_canister {
                 Some(specific_canister) => {
                     let mut names = HashSet::new();
                     let mut path = vec![];
                     add_dependencies(canister_map, &mut names, &mut path, specific_canister)
                         .map(|_| names.into_iter().collect())
+                        .map_err(|err| AddDependenciesFailed(specific_canister.to_string(), err))
                 }
                 None => Ok(canister_map.keys().cloned().collect()),
-            })
-            .map_err(|cause| {
-                GetCanistersWithDependenciesFailed(some_canister.map(String::from), Box::new(cause))
             })
     }
 
@@ -699,14 +808,14 @@ impl ConfigInterface {
         &self,
         canister: &str,
         network: &str,
-    ) -> Result<Option<Principal>, DfxConfigError> {
+    ) -> Result<Option<Principal>, GetRemoteCanisterIdError> {
         let maybe_principal = self
             .get_canister_config(canister)
             .map_err(|e| {
                 GetRemoteCanisterIdFailed(
                     Box::new(canister.to_string()),
                     Box::new(network.to_string()),
-                    Box::new(e),
+                    e,
                 )
             })?
             .remote
@@ -721,17 +830,17 @@ impl ConfigInterface {
         &self,
         canister: &str,
         network: &str,
-    ) -> Result<bool, DfxConfigError> {
+    ) -> Result<bool, GetRemoteCanisterIdError> {
         Ok(self.get_remote_canister_id(canister, network)?.is_some())
     }
 
     pub fn get_compute_allocation(
         &self,
         canister_name: &str,
-    ) -> Result<Option<u64>, DfxConfigError> {
+    ) -> Result<Option<u64>, GetComputeAllocationError> {
         Ok(self
             .get_canister_config(canister_name)
-            .map_err(|e| GetComputeAllocationFailed(canister_name.to_string(), Box::new(e)))?
+            .map_err(|e| GetComputeAllocationFailed(canister_name.to_string(), e))?
             .initialization_values
             .compute_allocation
             .map(|x| x.0))
@@ -740,10 +849,10 @@ impl ConfigInterface {
     pub fn get_memory_allocation(
         &self,
         canister_name: &str,
-    ) -> Result<Option<Byte>, DfxConfigError> {
+    ) -> Result<Option<Byte>, GetMemoryAllocationError> {
         Ok(self
             .get_canister_config(canister_name)
-            .map_err(|e| GetMemoryAllocationFailed(canister_name.to_string(), Box::new(e)))?
+            .map_err(|e| GetMemoryAllocationFailed(canister_name.to_string(), e))?
             .initialization_values
             .memory_allocation)
     }
@@ -751,23 +860,51 @@ impl ConfigInterface {
     pub fn get_freezing_threshold(
         &self,
         canister_name: &str,
-    ) -> Result<Option<Duration>, DfxConfigError> {
+    ) -> Result<Option<Duration>, GetFreezingThresholdError> {
         Ok(self
             .get_canister_config(canister_name)
-            .map_err(|e| GetFreezingThresholdFailed(canister_name.to_string(), Box::new(e)))?
+            .map_err(|e| GetFreezingThresholdFailed(canister_name.to_string(), e))?
             .initialization_values
             .freezing_threshold)
+    }
+
+    pub fn get_reserved_cycles_limit(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<u128>, GetReservedCyclesLimitError> {
+        Ok(self
+            .get_canister_config(canister_name)
+            .map_err(|e| GetReservedCyclesLimitFailed(canister_name.to_string(), e))?
+            .initialization_values
+            .reserved_cycles_limit)
     }
 
     fn get_canister_config(
         &self,
         canister_name: &str,
-    ) -> Result<&ConfigCanistersCanister, DfxConfigError> {
+    ) -> Result<&ConfigCanistersCanister, GetCanisterConfigError> {
         self.canisters
             .as_ref()
-            .ok_or(CanistersFieldDoesNotExist())?
+            .ok_or(GetCanisterConfigError::CanistersFieldDoesNotExist())?
             .get(canister_name)
-            .ok_or_else(|| CanisterNotFound(canister_name.to_string()))
+            .ok_or_else(|| GetCanisterConfigError::CanisterNotFound(canister_name.to_string()))
+    }
+
+    pub fn get_pull_canisters(&self) -> Result<BTreeMap<String, Principal>, GetPullCanistersError> {
+        let mut res = BTreeMap::new();
+        let mut id_to_name: BTreeMap<Principal, &String> = BTreeMap::new();
+        if let Some(map) = &self.canisters {
+            for (k, v) in map {
+                if let CanisterTypeProperties::Pull { id } = v.type_specific {
+                    if let Some(other_name) = id_to_name.get(&id) {
+                        return Err(PullCanistersSameId(other_name.to_string(), k.clone(), id));
+                    }
+                    res.insert(k.clone(), id);
+                    id_to_name.insert(id, k);
+                }
+            }
+        };
+        Ok(res)
     }
 }
 
@@ -776,7 +913,7 @@ fn add_dependencies(
     names: &mut HashSet<String>,
     path: &mut Vec<String>,
     canister_name: &str,
-) -> Result<(), DfxConfigError> {
+) -> Result<(), AddDependenciesError> {
     let inserted = names.insert(String::from(canister_name));
 
     if !inserted {
@@ -790,7 +927,7 @@ fn add_dependencies(
 
     let canister_config = all_canisters
         .get(canister_name)
-        .ok_or_else(|| CanisterNotFound(canister_name.to_string()))?;
+        .ok_or_else(|| AddDependenciesError::CanisterNotFound(canister_name.to_string()))?;
 
     path.push(String::from(canister_name));
 
@@ -803,7 +940,7 @@ fn add_dependencies(
     Ok(())
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Config {
     path: PathBuf,
     json: Value,
@@ -894,6 +1031,35 @@ impl Config {
         )
     }
 
+    // returns the path to the output env file if any, guaranteed to be
+    // a child relative to the project root
+    pub fn get_output_env_file(
+        &self,
+        from_cmdline: Option<PathBuf>,
+    ) -> Result<Option<PathBuf>, GetOutputEnvFileError> {
+        from_cmdline
+            .or(self.config.output_env_file.clone())
+            .map(|p| {
+                if p.is_relative() {
+                    let p = self.get_project_root().join(p);
+
+                    // cannot canonicalize a path that doesn't exist, but the parent should exist
+                    let env_parent =
+                        crate::fs::parent(&p).map_err(GetOutputEnvFileError::Parent)?;
+                    let env_parent = crate::fs::canonicalize(&env_parent)
+                        .map_err(GetOutputEnvFileError::Canonicalize)?;
+                    if !env_parent.starts_with(self.get_project_root()) {
+                        Err(GetOutputEnvFileError::OutputEnvFileMustBeInProjectRoot(p))
+                    } else {
+                        Ok(self.get_project_root().join(p))
+                    }
+                } else {
+                    Err(GetOutputEnvFileError::OutputEnvFileMustBeRelative(p))
+                }
+            })
+            .transpose()
+    }
+
     pub fn save(&self) -> Result<(), StructuredFileError> {
         save_json_file(&self.path, &self.json)
     }
@@ -948,6 +1114,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
             },
             Some("assets") => CanisterTypeProperties::Assets {
                 source: source.ok_or_else(|| missing_field("source"))?,
+                build: build.unwrap_or_default(),
             },
             Some("custom") => CanisterTypeProperties::Custom {
                 build: build.unwrap_or_default(),
@@ -985,7 +1152,7 @@ impl NetworksConfig {
     }
 
     pub fn new() -> Result<NetworksConfig, LoadNetworksConfigError> {
-        let dir = get_config_dfx_dir_path().map_err(GetConfigPathFailed)?;
+        let dir = get_user_dfx_config_dir().map_err(GetConfigPathFailed)?;
 
         let path = dir.join("networks.json");
         if path.exists() {
@@ -1163,6 +1330,7 @@ mod tests {
             &ConfigNetwork::ConfigNetworkProvider(ConfigNetworkProvider {
                 providers: vec![String::from("https://1.2.3.4:5000")],
                 r#type: NetworkType::Ephemeral,
+                playground: None,
             })
         );
     }

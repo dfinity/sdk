@@ -12,9 +12,10 @@ categories = ["command-line-interface"]
 keywords = ["internet-computer", "agent", "icp", "dfinity", "asset"]
 
 [dependencies]
+anstyle.workspace = true
 anyhow.workspace = true
 candid = { workspace = true }
-clap = { workspace = true, features = ["derive", "cargo"] }
+clap = { workspace = true, features = ["derive", "cargo", "unstable-styles", "wrap_help" ] }
 delay = "0.3.1"
 humantime.workspace = true
 ic-agent = { workspace = true }

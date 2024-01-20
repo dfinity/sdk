@@ -2,10 +2,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use dfx_core::identity::CallSender;
-
 use candid::Principal;
 use clap::Parser;
+use dfx_core::identity::CallSender;
 use slog::info;
 
 /// Uninstalls a canister, removing its code and state.
@@ -17,7 +16,7 @@ pub struct UninstallCodeOpts {
     canister: Option<String>,
 
     /// Uninstalls all of the canisters configured in the dfx.json file.
-    #[clap(long, required_unless_present("canister"))]
+    #[arg(long, required_unless_present("canister"))]
     all: bool,
 }
 

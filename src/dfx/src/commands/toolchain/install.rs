@@ -1,16 +1,15 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::toolchain::Toolchain;
-
 use anyhow::Context;
 use clap::Parser;
 
 /// Install or update given toolchain(s)
 #[derive(Parser)]
-#[clap(name("install"))]
+#[command(name = "install")]
 pub struct ToolchainInstall {
     /// Toolchain name, such as '0.6.22', '0.6', 'latest'
-    #[clap(required = true, min_values = 1)]
+    #[arg(required = true, num_args = 1..)]
     toolchains: Vec<String>,
 }
 

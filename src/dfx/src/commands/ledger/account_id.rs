@@ -1,7 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
-
 use anyhow::{anyhow, Context};
 use candid::Principal;
 use clap::Parser;
@@ -9,15 +8,15 @@ use clap::Parser;
 /// Prints the ledger account identifier corresponding to a principal.
 #[derive(Parser)]
 pub struct AccountIdOpts {
-    #[clap(long, value_name = "PRINCIPAL")]
+    #[arg(long, value_name = "PRINCIPAL")]
     /// Principal controlling the account.
     pub of_principal: Option<Principal>,
 
-    #[clap(long, value_name = "ALIAS")]
+    #[arg(long, value_name = "ALIAS")]
     /// Alias or principal of the canister controlling the account.
     pub of_canister: Option<String>,
 
-    #[clap(long, value_name = "SUBACCOUNT")]
+    #[arg(long, value_name = "SUBACCOUNT")]
     /// Subaccount identifier (64 character long hex string).
     pub subaccount: Option<Subaccount>,
 }
