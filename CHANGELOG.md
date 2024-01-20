@@ -37,6 +37,10 @@ Now they are stored with nanosecond precision on Windows too.
 
 ### fix: subtyping check reports the special opt rule as error
 
+### fix: dfx canister delete, when using an HSM identity, no longer fails by trying to open two sessions to the HSM
+
+Previously, this would fail with a PKCS#11: CKR_CRYPTOKI_ALREADY_INITIALIZED error.
+
 ## Dependencies
 
 ### Motoko
@@ -46,6 +50,12 @@ Updated Motoko to [0.10.4](https://github.com/dfinity/motoko/releases/tag/0.10.4
 ### Frontend canister
 
 Module hash: 3c86d912ead6de7133b9f787df4ca9feee07bea8835d3ed594b47ee89e6cb730
+
+### Candid UI
+
+Module hash: 6704b9cf7fe9661a251628e24eb9e6381f0844e1e52537e09a783709d00f0d99
+
+Fix the routing error when deploying to gitpod/github workspace.
 
 ### Replica
 
