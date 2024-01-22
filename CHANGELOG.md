@@ -51,9 +51,10 @@ Module hash: 3c86d912ead6de7133b9f787df4ca9feee07bea8835d3ed594b47ee89e6cb730
 
 ### Candid UI
 
-Module hash: 6704b9cf7fe9661a251628e24eb9e6381f0844e1e52537e09a783709d00f0d99
+Module hash: b91e3dd381aedb002633352f8ebad03b6eee330b7e30c3d15a5657e6f428d815
 
 Fix the routing error when deploying to gitpod/github workspace.
+Fix that Candid UI cannot be opened using localhost URL.
 
 ### Replica
 
