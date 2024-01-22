@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### fix!: always fetch did file from canister when making canister calls
+
+`dfx canister call` will always fetch did file from the canister metadata. This is especially helpful for calling remote canisters. It's a breaking change in the sense that if the canister doesn't have the `candid:service` metadata, we will not read the local did file from build artifact, and dfx will issue a warning in this case to encourage canister developers to put the did file into canister metadata.
+
 # 0.16.0
 
 ### feat: large canister modules now supported
@@ -38,10 +42,6 @@ Now they are stored with nanosecond precision on Windows too.
 ### fix: dfx canister delete, when using an HSM identity, no longer fails by trying to open two sessions to the HSM
 
 Previously, this would fail with a PKCS#11: CKR_CRYPTOKI_ALREADY_INITIALIZED error.
-
-### fix!: always fetch did file from canister when making canister calls
-
-`dfx canister call` will always fetch did file from the canister metadata. This is especially helpful for calling remote canisters. It's a breaking change in the sense that if the canister doesn't have the `candid:service` metadata, we will not read the local did file from build artifact, and dfx will issue a warning in this case to encourage canister developers to put the did file into canister metadata.
 
 ## Dependencies
 
