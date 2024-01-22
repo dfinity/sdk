@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.16.0
+
 ### feat: large canister modules now supported
 
 When using `dfx deploy` or `dfx canister install`, previously WASM modules larger than 2MiB would be rejected.
