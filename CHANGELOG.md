@@ -2,6 +2,14 @@
 
 # UNRELEASED
 
+### fix: support `import` for local did file
+
+If the local did file contains `import` or init args, dfx will rewrite the did file when storing in canister metadata.
+Due to current limitations of the Candid parser, comments will be dropped during rewriting. 
+If the local did file doesn't contain `import` or init args, we will not perform the rewriting, thus preserving the comments.
+
+### fix: subtyping check reports the special opt rule as error
+
 # 0.16.0
 
 ### feat: large canister modules now supported
@@ -34,10 +42,6 @@ Updated to candid 0.10, ic-cdk 0.12, and ic-cdk-timers 0.6
 
 They've always been stored with nanosecond precisions on Linux and Macos.
 Now they are stored with nanosecond precision on Windows too.
-
-### fix: support `import` for local did file
-
-### fix: subtyping check reports the special opt rule as error
 
 ### fix: dfx canister delete, when using an HSM identity, no longer fails by trying to open two sessions to the HSM
 
