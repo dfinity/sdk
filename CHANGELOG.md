@@ -55,9 +55,11 @@ Fix the routing error when deploying to gitpod/github workspace.
 
 ### Replica
 
-Updated replica to elected commit 072b2a6586c409efa88f2244d658307ff3a645d8.
+Updated replica to elected commit 324eb99eb7531369a5ef75560f1a1a652d123714.
 This incorporates the following executed proposals:
 
+- [127096](https://dashboard.internetcomputer.org/proposal/127096)
+- [127094](https://dashboard.internetcomputer.org/proposal/127094)
 - [127034](https://dashboard.internetcomputer.org/proposal/127034)
 - [127031](https://dashboard.internetcomputer.org/proposal/127031)
 - [126879](https://dashboard.internetcomputer.org/proposal/126879)
