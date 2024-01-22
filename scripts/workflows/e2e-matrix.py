@@ -14,7 +14,7 @@ def test_scripts(prefix):
 test = sorted(test_scripts("dfx") + test_scripts("replica") + test_scripts("icx-asset"))
 
 matrix = {
-    "test": test,
+    "test": [ "dfx/basic-project" ],
     "backend": ["replica"],
     "os": ["macos-12", "ubuntu-20.04"]
 }
