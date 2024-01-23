@@ -48,6 +48,9 @@ enum SubCommand {
     Custodians(custodians::CustodiansOpts),
     Deauthorize(deauthorize::DeauthorizeOpts),
     Name(name::NameOpts),
+    #[deprecated(
+        note = "This command is deprecated and will be removed in a future version. Eventually, the wallet canister will become an dfx extension."
+    )]
     RedeemFaucetCoupon(redeem_faucet_coupon::RedeemFaucetCouponOpts),
     RemoveController(remove_controller::RemoveControllerOpts),
     Send(send::SendOpts),
