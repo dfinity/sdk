@@ -14,6 +14,14 @@ If the local did file doesn't contain `import` or init args, we will not perform
 
 ### fix: subtyping check reports the special opt rule as error
 
+### fix: can now run several dfx canister commands outside of a project
+
+The following commands now work outside of a project:
+- `dfx canister start <specific canister id>`
+- `dfx canister stop <specific canister id>`
+- `dfx canister deposit-cycles <amount> <specific canister id>`
+- `dfx canister uninstall-code <specific canister id>`
+
 # 0.16.0
 
 ### feat: large canister modules now supported
