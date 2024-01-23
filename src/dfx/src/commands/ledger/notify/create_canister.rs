@@ -10,7 +10,7 @@ use clap::Parser;
 
 #[derive(Parser)]
 pub struct NotifyCreateOpts {
-    /// BlockHeight at which the send transation was recorded.
+    /// BlockHeight at which the send transaction was recorded.
     block_height: u64,
 
     /// The controller of the created canister.

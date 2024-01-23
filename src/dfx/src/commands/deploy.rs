@@ -9,6 +9,7 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
+use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
@@ -111,6 +112,9 @@ pub struct DeployOpts {
     //TODO(SDK-1331): unhide
     #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
     from_subaccount: Option<Subaccount>,
+
+    #[command(flatten)]
+    subnet_selection: SubnetSelectionOpt,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -128,7 +132,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         .context("Failed to parse InstallMode.")?;
     let config = env.get_config_or_anyhow()?;
     let env_file = config.get_output_env_file(opts.output_env_file)?;
-
+    let subnet_selection = opts.subnet_selection.to_subnet_selection();
     let with_cycles = opts.with_cycles;
 
     let deploy_mode = match (mode, canister_name) {
@@ -187,6 +191,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         opts.yes,
         env_file,
         opts.no_asset_upgrade,
+        subnet_selection,
     ))?;
 
     if matches!(deploy_mode, NormalDeploy | ForceReinstallSingleCanister(_)) {

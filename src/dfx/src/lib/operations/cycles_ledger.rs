@@ -3,6 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::lib::cycles_ledger_types;
 use crate::lib::cycles_ledger_types::create_canister::{
     CmcCreateCanisterArgs, CreateCanisterArgs, CreateCanisterError, CreateCanisterSuccess,
+    SubnetSelection,
 };
 use crate::lib::cycles_ledger_types::deposit::DepositArg;
 use crate::lib::cycles_ledger_types::send::SendError;
@@ -199,6 +200,7 @@ pub async fn create_with_cycles_ledger(
     from_subaccount: Option<Subaccount>,
     settings: DfxCanisterSettings,
     created_at_time: Option<u64>,
+    subnet_selection: Option<SubnetSelection>,
 ) -> DfxResult<Principal> {
     let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
     let created_at_time = created_at_time.or_else(|| {
@@ -213,21 +215,20 @@ pub async fn create_with_cycles_ledger(
         Some(now)
     });
 
+    let arg = Encode!(&CreateCanisterArgs {
+        from_subaccount,
+        created_at_time,
+        amount: cycles,
+        creation_args: Some(CmcCreateCanisterArgs {
+            settings: Some(settings.into()),
+            subnet_selection,
+        }),
+    })
+    .unwrap();
     let result = loop {
         match agent
             .update(&CYCLES_LEDGER_CANISTER_ID, CREATE_CANISTER_METHOD)
-            .with_arg(
-                Encode!(&CreateCanisterArgs {
-                    from_subaccount,
-                    created_at_time,
-                    amount: cycles,
-                    creation_args: Some(CmcCreateCanisterArgs {
-                        settings: Some(settings.clone().into()),
-                        subnet_selection: None,
-                    }),
-                })
-                .unwrap(),
-            )
+            .with_arg(arg.clone())
             .call_and_wait()
             .await
         {
