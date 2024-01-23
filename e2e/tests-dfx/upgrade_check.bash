@@ -64,3 +64,17 @@ teardown() {
   assert_command dfx canister call hello_backend read2 '()'
   assert_match "(1 : int)"
 }
+
+@test "warning for using special opt rule" {
+  install_asset upgrade
+  dfx_start
+  dfx deploy
+  dfx canister call hello_backend f '()'
+  jq '.canisters.hello_backend.main="v4_bad.mo"' dfx.json | sponge dfx.json
+  echo yes | (
+  assert_command dfx deploy
+  assert_match "Candid interface compatibility check failed"
+  )
+  assert_command dfx canister call hello_backend f '()'
+  assert_match "(opt \"\")"
+}

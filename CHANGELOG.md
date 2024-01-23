@@ -2,6 +2,18 @@
 
 # UNRELEASED
 
+### fix!: always fetch did file from canister when making canister calls
+
+`dfx canister call` will always fetch did file from the canister metadata. This is especially helpful for calling remote canisters. It's a breaking change in the sense that if the canister doesn't have the `candid:service` metadata, we will not read the local did file from build artifact, and dfx will issue a warning in this case to encourage canister developers to put the did file into canister metadata.
+
+### fix: support `import` for local did file
+
+If the local did file contains `import` or init args, dfx will rewrite the did file when storing in canister metadata.
+Due to current limitations of the Candid parser, comments will be dropped during rewriting. 
+If the local did file doesn't contain `import` or init args, we will not perform the rewriting, thus preserving the comments.
+
+### fix: subtyping check reports the special opt rule as error
+
 # 0.16.0
 
 ### feat: large canister modules now supported
