@@ -4,6 +4,9 @@ actor {
     state += 1;
     return state;
   };
+  public func f() : async ?Int {
+    return ?42;
+  };
   public query func read() : async Nat { return state; };
 }
 
