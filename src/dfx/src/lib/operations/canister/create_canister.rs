@@ -1,5 +1,5 @@
 use crate::lib::cycles_ledger_types::create_canister::{
-    CmcCreateCanisterArgs, CreateCanisterSuccess, SubnetSelection,
+    CmcCreateCanisterArgs, CmcCreateCanisterError, SubnetSelection,
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -8,7 +8,7 @@ use crate::lib::ledger_types::MAINNET_CYCLE_MINTER_CANISTER_ID;
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::operations::cycles_ledger::{create_with_cycles_ledger, CYCLES_LEDGER_ENABLED};
 use anyhow::{anyhow, bail, Context};
-use candid::{CandidType, Decode, Principal};
+use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::identity::CallSender;
 use dfx_core::network::provider::get_network_context;
@@ -20,7 +20,6 @@ use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use icrc_ledger_types::icrc1::account::Subaccount;
-use serde::Deserialize;
 use slog::info;
 use std::format;
 
@@ -180,23 +179,29 @@ async fn create_with_wallet(
     settings: DfxCanisterSettings,
     subnet_selection: Option<SubnetSelection>,
 ) -> DfxResult<Principal> {
-    #[derive(CandidType, Deserialize)]
-    struct WalletOk {
-        r#return: Vec<u8>,
-    }
-    #[derive(CandidType, Deserialize)]
-    enum WalletResult {
-        Ok(WalletOk),
-        Err(String),
-    }
-
     let wallet = build_wallet_canister(*wallet_id, agent).await?;
     let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
 
     if let Some(subnet_selection) = subnet_selection {
         // `wallet_create_canister` only calls the management canister, which means that canisters only get created on the subnet the wallet is on.
         // For any other targeting we need to use the CMC.
-        let call_result: Result<(Result<WalletOk, String>,), ic_agent::AgentError> = wallet
+
+        let settings = if settings.controllers.is_some() {
+            settings
+        } else {
+            let identity = agent
+                .get_principal()
+                .map_err(|err| anyhow!("Failed to get selected identity principal: {err}"))?;
+            DfxCanisterSettings {
+                controllers: Some(vec![*wallet_id, identity]),
+                ..settings
+            }
+        };
+
+        let call_result: Result<
+            (Result<Principal, CmcCreateCanisterError>,),
+            ic_agent::AgentError,
+        > = wallet
             .call128(
                 MAINNET_CYCLE_MINTER_CANISTER_ID,
                 CMC_CREATE_CANISTER_METHOD,
@@ -209,12 +214,8 @@ async fn create_with_wallet(
             .call_and_wait()
             .await;
         match call_result {
-            Ok((Ok(wallet_ok),)) => {
-                let result = Decode!(&wallet_ok.r#return, CreateCanisterSuccess)
-                    .context("Failed to decode response")?;
-                Ok(result.canister_id)
-            }
-            Ok((Err(err),)) => bail!("Canister creation failed: {err}"),
+            Ok((Ok(canister_id),)) => Ok(canister_id),
+            Ok((Err(err),)) => Err(anyhow!(err)),
             Err(AgentError::WalletUpgradeRequired(s)) => Err(anyhow!(
                 "{}\nTo upgrade, run dfx wallet upgrade.",
                 AgentError::WalletUpgradeRequired(s)

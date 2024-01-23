@@ -15,6 +15,21 @@ pub struct CmcCreateCanisterArgs {
     pub subnet_selection: Option<SubnetSelection>,
     pub settings: Option<CanisterSettings>,
 }
+
+#[derive(Deserialize, CandidType, Clone, Debug, PartialEq, Eq, Error)]
+pub enum CmcCreateCanisterError {
+    #[error("Failed to create canister: {create_error}\n{refund_amount} cycles refunded.")]
+    Refunded {
+        refund_amount: u128,
+        create_error: String,
+    },
+    #[error("Failed to create canister: {create_error}\nRefund failed: {refund_error}")]
+    RefundFailed {
+        create_error: String,
+        refund_error: String,
+    },
+}
+
 #[derive(CandidType, Clone, Debug)]
 #[allow(dead_code)]
 pub enum SubnetSelection {
