@@ -351,6 +351,7 @@ fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
         .decs
         .iter()
         .any(|dec| matches!(dec, Dec::ImportType(_) | Dec::ImportServ(_)));
+    eprintln!("{}", path.display());
     let (env, actor) = CandidSource::File(path).load()?;
     let actor = actor.ok_or_else(|| anyhow!("provided candid file contains no main service"))?;
     let actor = env.trace_type(&actor)?;
