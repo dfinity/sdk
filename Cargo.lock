@@ -2231,9 +2231,9 @@ dependencies = [
 
 [[package]]
 name = "h2"
-version = "0.3.21"
+version = "0.3.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91fc23aa11be92976ef4729127f1a74adf36d8436f7816b185d18df956790833"
+checksum = "bb2c4422095b67ee78da96fbb51a4cc413b3b25883c7717ff7ca1ab31022c9c9"
 dependencies = [
  "bytes",
  "fnv",
@@ -2241,7 +2241,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "http",
- "indexmap 1.9.3",
+ "indexmap 2.1.0",
  "slab",
  "tokio",
  "tokio-util",
@@ -2494,7 +2494,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.31.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=a7f44ad05e77fc89b8447dd65b345e7a62fd1042#a7f44ad05e77fc89b8447dd65b345e7a62fd1042"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=6b02f649a569f354a0a1b370368ba28d31dd8702#6b02f649a569f354a0a1b370368ba28d31dd8702"
 dependencies = [
  "backoff",
  "cached 0.46.1",
@@ -2930,7 +2930,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.31.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=a7f44ad05e77fc89b8447dd65b345e7a62fd1042#a7f44ad05e77fc89b8447dd65b345e7a62fd1042"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=6b02f649a569f354a0a1b370368ba28d31dd8702#6b02f649a569f354a0a1b370368ba28d31dd8702"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3030,7 +3030,7 @@ dependencies = [
 [[package]]
 name = "ic-transport-types"
 version = "0.31.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=a7f44ad05e77fc89b8447dd65b345e7a62fd1042#a7f44ad05e77fc89b8447dd65b345e7a62fd1042"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=6b02f649a569f354a0a1b370368ba28d31dd8702#6b02f649a569f354a0a1b370368ba28d31dd8702"
 dependencies = [
  "candid",
  "hex",
@@ -3099,15 +3099,17 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.31.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=a7f44ad05e77fc89b8447dd65b345e7a62fd1042#a7f44ad05e77fc89b8447dd65b345e7a62fd1042"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=6b02f649a569f354a0a1b370368ba28d31dd8702#6b02f649a569f354a0a1b370368ba28d31dd8702"
 dependencies = [
  "async-trait",
  "candid",
+ "futures-util",
  "ic-agent",
  "once_cell",
  "semver",
  "serde",
  "serde_bytes",
+ "sha2 0.10.8",
  "strum 0.24.1",
  "strum_macros 0.24.3",
  "thiserror",

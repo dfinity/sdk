@@ -1,4 +1,3 @@
-use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
@@ -129,8 +128,7 @@ async fn delete_canister(
                     },
                     CallSender::SelectedId => {
                         let network = env.get_network_descriptor();
-                        let agent_env = create_agent_environment(env, Some(network.name.clone()))?;
-                        let identity_name = agent_env
+                        let identity_name = env
                             .get_selected_identity()
                             .expect("No selected identity.")
                             .to_string();

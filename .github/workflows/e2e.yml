@@ -156,6 +156,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: [build_dfx]
     strategy:
+      fail-fast: false
       matrix:
         os: [macos-12, ubuntu-20.04, ubuntu-22.04]
     steps:
@@ -190,6 +191,12 @@ jobs:
           python scripts/test-uis.py \
             --frontend_url "$FRONTEND_URL" \
             --candid_url "$CANDID_URL" \
+            --browser chromium firefox webkit
+          export FRONTEND_URL_LOCALHOST="${FRONTEND_URL/127\.0\.0\.1/localhost}"
+          export CANDID_URL_LOCALHOST="${CANDID_URL/127\.0\.0\.1/localhost}"
+          python scripts/test-uis.py \
+            --frontend_url "$FRONTEND_URL_LOCALHOST" \
+            --candid_url "$CANDID_URL_LOCALHOST" \
             --browser chromium firefox webkit
 
   aggregate:

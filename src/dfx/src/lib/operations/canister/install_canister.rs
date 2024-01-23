@@ -63,13 +63,15 @@ pub async fn install_canister(
     );
     let mode = mode.unwrap_or_else(|| {
         if installed_module_hash.is_some() {
-            InstallMode::Upgrade
+            InstallMode::Upgrade {
+                skip_pre_upgrade: false,
+            }
         } else {
             InstallMode::Install
         }
     });
     if let Some(canister_info) = canister_info {
-        if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade) {
+        if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade { .. }) {
             let candid = read_module_metadata(agent, canister_id, "candid:service").await;
             if let Some(candid) = &candid {
                 match check_candid_compatibility(canister_info, candid) {
@@ -85,7 +87,8 @@ pub async fn install_canister(
                 }
             }
         }
-        if !skip_consent && canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade) {
+        if !skip_consent && canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade { .. })
+        {
             let stable_types =
                 read_module_metadata(agent, canister_id, "motoko:stable-types").await;
             if let Some(stable_types) = &stable_types {
@@ -120,7 +123,7 @@ pub async fn install_canister(
     let new_hash = Sha256::digest(&wasm_module);
     debug!(log, "New wasm module hash: {}", hex::encode(new_hash));
 
-    if mode == InstallMode::Upgrade
+    if matches!(mode, InstallMode::Upgrade { .. })
         && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash[..])
         && !upgrade_unchanged
     {
@@ -246,7 +249,8 @@ fn check_candid_compatibility(
     canister_info: &CanisterInfo,
     candid: &str,
 ) -> anyhow::Result<Option<String>> {
-    use crate::util::check_candid_file;
+    use candid::types::subtype::{subtype_with_config, OptReport};
+    use candid_parser::utils::CandidSource;
     let candid_path = canister_info.get_constructor_idl_path();
     let deployed_path = canister_info
         .get_constructor_idl_path()
@@ -257,16 +261,19 @@ fn check_candid_compatibility(
             deployed_path.to_string_lossy()
         )
     })?;
-    let (mut env, opt_new) =
-        check_candid_file(&candid_path).context("Checking generated did file.")?;
+    let (mut env, opt_new) = CandidSource::File(&candid_path)
+        .load()
+        .context("Checking generated did file.")?;
     let new_type = opt_new
         .ok_or_else(|| anyhow!("Generated did file should contain some service interface"))?;
-    let (env2, opt_old) = check_candid_file(&deployed_path).context("Checking old candid file.")?;
+    let (env2, opt_old) = CandidSource::File(&deployed_path)
+        .load()
+        .context("Checking old candid file.")?;
     let old_type = opt_old
         .ok_or_else(|| anyhow!("Deployed did file should contain some service interface"))?;
     let mut gamma = HashSet::new();
     let old_type = env.merge_type(env2, old_type);
-    let result = candid::types::subtype::subtype(&mut gamma, &env, &new_type, &old_type);
+    let result = subtype_with_config(OptReport::Error, &mut gamma, &env, &new_type, &old_type);
     Ok(match result {
         Ok(_) => None,
         Err(e) => Some(e.to_string()),
