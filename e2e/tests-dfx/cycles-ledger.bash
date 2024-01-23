@@ -545,3 +545,40 @@ current_time_nanoseconds() {
   assert_command dfx cycles balance
   assert_eq "22.379 TC (trillion cycles)."
 }
+
+@test "create canister on specific subnet" {
+  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  dfx_new temporary
+  add_cycles_ledger_canisters_to_project
+  install_cycles_ledger_canisters
+
+  ALICE=$(dfx identity get-principal --identity alice)
+
+  assert_command deploy_cycles_ledger
+  CYCLES_LEDGER_ID=$(dfx canister id cycles-ledger)
+  echo "Cycles ledger deployed at id $CYCLES_LEDGER_ID"
+  assert_command dfx deploy depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})"
+  echo "Cycles depositor deployed at id $(dfx canister id depositor)"
+  assert_command dfx ledger fabricate-cycles --canister depositor --t 9999
+
+  assert_command dfx deploy
+
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 13_400_000_000_000;})" --identity cycle-giver
+  cd ..
+  dfx_new 
+
+  dfx identity use alice
+  # shellcheck disable=SC2030
+  export DFX_DISABLE_AUTO_WALLET=1
+  # setup done
+
+  # use --subnet <principal>
+  SUBNET_ID="5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae" # a random, valid principal
+  assert_command_fail dfx canister create e2e_project_backend --subnet "$SUBNET_ID"
+  assert_contains "Subnet $SUBNET_ID does not exist"
+  
+  # use --subnet-type
+  cd ../e2e_project
+  assert_command_fail dfx canister create e2e_project_frontend --subnet-type custom_subnet_type
+  assert_contains "Provided subnet type custom_subnet_type does not exist"
+}
