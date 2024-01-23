@@ -276,14 +276,14 @@ impl Canister {
 
         let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
 
-        // 1. Copy the complete IDL file to .dfx/local/canisters/NAME/constructor.did.
+        // 1. Separate into constructor.did, service.did and init_args
+        let (constructor_did, service_did, init_args) = separate_candid(build_idl_path)?;
+
+        // 2. Copy the constructor IDL file to .dfx/local/canisters/NAME/constructor.did.
         let constructor_idl_path = self.info.get_constructor_idl_path();
         dfx_core::fs::composite::ensure_parent_dir_exists(&constructor_idl_path)?;
-        dfx_core::fs::copy(build_idl_path, &constructor_idl_path)?;
+        dfx_core::fs::write(&constructor_idl_path, constructor_did)?;
         dfx_core::fs::set_permissions_readwrite(&constructor_idl_path)?;
-
-        // 2. Separate into service.did and init_args
-        let (service_did, init_args) = separate_candid(build_idl_path)?;
 
         // 3. Save service.did into following places in .dfx/local/:
         //   - canisters/NAME/service.did
@@ -338,7 +338,7 @@ fn wasm_opt_level_convert(opt_level: WasmOptLevel) -> OptLevel {
     }
 }
 
-fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
+fn separate_candid(path: &Path) -> DfxResult<(String, String, String)> {
     use candid::pretty::candid::{compile, pp_args};
     use candid::types::internal::TypeInner;
     use candid_parser::{
@@ -351,7 +351,6 @@ fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
         .decs
         .iter()
         .any(|dec| matches!(dec, Dec::ImportType(_) | Dec::ImportServ(_)));
-    eprintln!("{}", path.display());
     let (env, actor) = CandidSource::File(path).load()?;
     let actor = actor.ok_or_else(|| anyhow!("provided candid file contains no main service"))?;
     let actor = env.trace_type(&actor)?;
@@ -359,15 +358,16 @@ fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
     if has_imports || has_init_args {
         let (init_args, serv) = match actor.as_ref() {
             TypeInner::Class(args, ty) => (args.clone(), ty.clone()),
-            TypeInner::Service(_) => (vec![], actor),
+            TypeInner::Service(_) => (vec![], actor.clone()),
             _ => unreachable!(),
         };
         let init_args = pp_args(&init_args).pretty(80).to_string();
         let service = compile(&env, &Some(serv));
-        Ok((service, init_args))
+        let constructor = compile(&env, &Some(actor));
+        Ok((constructor, service, init_args))
     } else {
         // Keep the original did file to preserve comments
-        Ok((did, "()".to_string()))
+        Ok((did.clone(), did, "()".to_string()))
     }
 }
 
