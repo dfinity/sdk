@@ -85,7 +85,7 @@ impl NetworkDescriptor {
         let provider_match = {
             providers.len() == 1
                 && matches!(
-                    providers.get(0).unwrap().as_str(),
+                    providers.first().unwrap().as_str(),
                     DEFAULT_IC_GATEWAY | DEFAULT_IC_GATEWAY_TRAILING_SLASH
                 )
         };

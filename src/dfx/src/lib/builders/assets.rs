@@ -56,6 +56,8 @@ pub struct AssetsBuilder {
     _cache: Arc<dyn Cache>,
     logger: Logger,
 }
+unsafe impl Send for AssetsBuilder {}
+unsafe impl Sync for AssetsBuilder {}
 
 impl AssetsBuilder {
     #[context("Failed to create AssetBuilder.")]

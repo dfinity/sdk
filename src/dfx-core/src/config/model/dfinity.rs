@@ -101,7 +101,6 @@ pub enum WasmOptLevel {
     Oz,
     Os,
 }
-
 impl std::fmt::Display for WasmOptLevel {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         std::fmt::Debug::fmt(self, f)

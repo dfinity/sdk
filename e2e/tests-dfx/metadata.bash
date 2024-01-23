@@ -169,6 +169,10 @@ teardown() {
   # this canister has a build step, but it is an empty array, so dfx leaves the candid:service metadata as-is
   dfx canister metadata prebuilt_custom_empty_build candid:service >from_canister.txt
   diff main.did from_canister.txt
+
+  # this canister has a local import in did file, the metadata should flatten the definitions
+  assert_command dfx canister metadata prebuilt_local_import candid:service
+  assert_eq "service : { getCanisterId : () -> (principal) query }"
 }
 
 @test "can read canister metadata from replica" {

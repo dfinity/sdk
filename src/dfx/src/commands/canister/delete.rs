@@ -1,4 +1,3 @@
-use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
@@ -129,8 +128,7 @@ async fn delete_canister(
                     },
                     CallSender::SelectedId => {
                         let network = env.get_network_descriptor();
-                        let agent_env = create_agent_environment(env, Some(network.name.clone()))?;
-                        let identity_name = agent_env
+                        let identity_name = env
                             .get_selected_identity()
                             .expect("No selected identity.")
                             .to_string();
@@ -138,7 +136,10 @@ async fn delete_canister(
                         match wallet_canister_id(network, &identity_name)? {
                             Some(canister_id) => WithdrawTarget::Canister { canister_id },
                             None if CYCLES_LEDGER_ENABLED => {
-                                let Some(my_principal)  =  env.get_selected_identity_principal() else { bail!("Identity has no principal attached") };
+                                let Some(my_principal) = env.get_selected_identity_principal()
+                                else {
+                                    bail!("Identity has no principal attached")
+                                };
                                 WithdrawTarget::CyclesLedger {
                                     to: Account {
                                         owner: my_principal,
