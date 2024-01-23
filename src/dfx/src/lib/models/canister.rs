@@ -339,30 +339,40 @@ fn wasm_opt_level_convert(opt_level: WasmOptLevel) -> OptLevel {
 }
 
 fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
+    use candid::pretty::candid::{compile, pp_args};
+    use candid::types::internal::TypeInner;
+    use candid_parser::{
+        pretty_parse,
+        types::{Dec, IDLProg},
+    };
+    let did = dfx_core::fs::read_to_string(path)?;
+    let prog = pretty_parse::<IDLProg>(&format!("{}", path.display()), &did)?;
+    let has_imports = prog
+        .decs
+        .iter()
+        .any(|dec| matches!(dec, Dec::ImportType(_) | Dec::ImportServ(_)));
     let (env, actor) = CandidSource::File(path).load()?;
     let actor = actor.ok_or_else(|| anyhow!("provided candid file contains no main service"))?;
-    if let candid::types::internal::TypeInner::Class(args, ty) = actor.as_ref() {
-        use candid_parser::pretty::{
-            candid::{compile, pp_ty},
-            utils::{concat, enclose},
+    let actor = env.trace_type(&actor)?;
+    let has_init_args = matches!(actor.as_ref(), TypeInner::Class(_, _));
+    if has_imports || has_init_args {
+        let (init_args, serv) = match actor.as_ref() {
+            TypeInner::Class(args, ty) => (args.clone(), ty.clone()),
+            TypeInner::Service(_) => (vec![], actor),
+            _ => unreachable!(),
         };
-
-        let actor = Some(ty.clone());
-        let service_did = compile(&env, &actor);
-        let doc = concat(args.iter().map(pp_ty), ",");
-        let init_args = enclose("(", doc, ")").pretty(80).to_string();
-        Ok((service_did, init_args))
+        let init_args = pp_args(&init_args).pretty(80).to_string();
+        let service = compile(&env, &Some(serv));
+        Ok((service, init_args))
     } else {
-        // The original candid from builder output doesn't contain init_args
-        // Use it directly to avoid items reordering
-        let service_did = dfx_core::fs::read_to_string(path)?;
-        let init_args = String::from("()");
-        Ok((service_did, init_args))
+        // Keep the original did file to preserve comments
+        Ok((did, "()".to_string()))
     }
 }
 
 #[context("{} is not a valid subtype of {}", specified_idl_path.display(), compiled_idl_path.display())]
 fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> DfxResult {
+    use candid::types::subtype::{subtype_with_config, OptReport};
     let (mut env, opt_specified) = CandidSource::File(specified_idl_path)
         .load()
         .context("Checking specified candid file.")?;
@@ -375,7 +385,13 @@ fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> D
         opt_compiled.expect("Compiled did file should contain some service interface");
     let mut gamma = HashSet::new();
     let specified_type = env.merge_type(env2, specified_type);
-    candid::types::subtype::subtype(&mut gamma, &env, &compiled_type, &specified_type)?;
+    subtype_with_config(
+        OptReport::Error,
+        &mut gamma,
+        &env,
+        &compiled_type,
+        &specified_type,
+    )?;
     Ok(())
 }
 
