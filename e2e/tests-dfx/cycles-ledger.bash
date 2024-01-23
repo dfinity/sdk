@@ -525,7 +525,7 @@ current_time_nanoseconds() {
   # setup done
 
   dfx identity use alice
-  # shellcheck disable=SC2031
+  # shellcheck disable=SC2030,SC2031
   export DFX_DISABLE_AUTO_WALLET=1
   assert_command dfx canister create --all --with-cycles 10T
   assert_command dfx cycles balance --precise
@@ -568,7 +568,7 @@ current_time_nanoseconds() {
   dfx_new 
 
   dfx identity use alice
-  # shellcheck disable=SC2030
+  # shellcheck disable=SC2030,SC2031
   export DFX_DISABLE_AUTO_WALLET=1
   # setup done
 
