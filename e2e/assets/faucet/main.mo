@@ -2,22 +2,25 @@ import Cycles "mo:base/ExperimentalCycles";
 import Error "mo:base/Error";
 import Principal "mo:base/Principal";
 import Text "mo:base/Text";
+import Debug "mo:base/Debug";
+
 
 actor class Coupon() = self {
     type Management = actor {
-      deposit_cycles : ({canister_id : Principal}) -> async ();
+        deposit_cycles : ({canister_id : Principal}) -> async ();
     };
     type CyclesLedger = actor {
-        deposit : ({code: Text; account: Account}) -> async (DepositResult);
-    };
-    type DepositResult = {
-        balance : Nat;
-        block_index : Nat;
+        deposit : (DepositArgs) -> async (DepositResult);
     };
     type Account = {
         owner : Principal;
         subaccount : ?Blob;
     };
+    type DepositArgs = {
+        to : Account;
+        memo : ?Blob;
+    };
+    type DepositResult = { balance : Nat; block_index : Nat };
 
 
     // Uploading wasm is hard. This is much easier to handle.
@@ -61,9 +64,10 @@ actor class Coupon() = self {
         let CyclesLedgerCanister : CyclesLedger = actor("um5iw-rqaaa-aaaaq-qaaba-cai");
         var amount = 10000000000000;
         Cycles.add(amount);
-        return await CyclesLedgerCanister.deposit({
-            code = code;
-            account = account
+        let result = await CyclesLedgerCanister.deposit({
+                to = account;
+                memo = null
         });
+        return result;
     };
 };

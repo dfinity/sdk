@@ -186,3 +186,43 @@ teardown() {
   assert_match "There is no wallet defined for identity 'default' on network 'local'.  Nothing to do."
 }
 
+@test "redeem-faucet-coupon can set a new wallet and top up an existing one" {
+  dfx_new hello
+  dfx_start
+  install_asset faucet
+  dfx deploy
+  dfx ledger fabricate-cycles --canister faucet --t 1000
+
+  dfx identity new --storage-mode plaintext faucet_testing
+  dfx identity use faucet_testing
+
+  # prepare wallet to hand out
+  dfx wallet balance # this creates a new wallet with user faucet_testing as controller
+  dfx canister call faucet set_wallet_to_hand_out "(principal \"$(dfx identity get-wallet)\")" # register the wallet as the wallet that the faucet will return
+  rm "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json" # forget about the currently configured wallet
+
+  # assert: no wallet configured
+  export DFX_DISABLE_AUTO_WALLET=1
+  assert_command_fail dfx wallet balance
+  assert_match "No wallet configured"
+
+  assert_command dfx wallet redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'valid-coupon'
+  assert_match "Redeemed coupon valid-coupon for a new wallet"
+  assert_match "New wallet set."
+
+  # only succeeds if wallet is correctly set
+  assert_command dfx wallet balance
+  # checking only balance before the dot, rest may fluctuate
+  # balance may be 99.??? TC if cycles accounting is done, or 100.000 TC if not
+  assert_match "99\.|100\."
+
+  unset DFX_DISABLE_AUTO_WALLET
+
+  assert_command dfx wallet redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon'
+  assert_match "Redeemed coupon code another-valid-coupon for 10.000 TC"
+
+  assert_command dfx wallet balance
+  # checking only balance before the dot, rest may fluctuate
+  # balance may be 109.??? TC if cycles accounting is done, or 110.000 TC if not
+  assert_match "109\.|110\."
+}

@@ -21,6 +21,7 @@ mod custodians;
 mod deauthorize;
 mod list_addresses;
 mod name;
+mod redeem_faucet_coupon;
 mod remove_controller;
 mod send;
 mod set_name;
@@ -47,6 +48,7 @@ enum SubCommand {
     Custodians(custodians::CustodiansOpts),
     Deauthorize(deauthorize::DeauthorizeOpts),
     Name(name::NameOpts),
+    RedeemFaucetCoupon(redeem_faucet_coupon::RedeemFaucetCouponOpts),
     RemoveController(remove_controller::RemoveControllerOpts),
     Send(send::SendOpts),
     SetName(set_name::SetNameOpts),
@@ -66,6 +68,7 @@ pub fn exec(env: &dyn Environment, opts: WalletOpts) -> DfxResult {
             SubCommand::Custodians(v) => custodians::exec(&agent_env, v).await,
             SubCommand::Deauthorize(v) => deauthorize::exec(&agent_env, v).await,
             SubCommand::Name(v) => name::exec(&agent_env, v).await,
+            SubCommand::RedeemFaucetCoupon(v) => redeem_faucet_coupon::exec(&agent_env, v).await,
             SubCommand::RemoveController(v) => remove_controller::exec(&agent_env, v).await,
             SubCommand::Send(v) => send::exec(&agent_env, v).await,
             SubCommand::SetName(v) => set_name::exec(&agent_env, v).await,
@@ -115,7 +118,7 @@ where
 }
 
 #[context("Failed to setup wallet caller.")]
-pub(crate) async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
+async fn get_wallet(env: &dyn Environment) -> DfxResult<WalletCanister<'_>> {
     let identity_name = env
         .get_selected_identity()
         .expect("No selected identity.")

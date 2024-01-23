@@ -525,7 +525,7 @@ current_time_nanoseconds() {
   # setup done
 
   dfx identity use alice
-  # shellcheck disable=SC2031
+  # shellcheck disable=SC2031,SC2030
   export DFX_DISABLE_AUTO_WALLET=1
   assert_command dfx canister create --all --with-cycles 10T
   assert_command dfx cycles balance --precise
@@ -546,47 +546,7 @@ current_time_nanoseconds() {
   assert_eq "22.379 TC (trillion cycles)."
 }
 
-@test "redeem-faucet-coupon can set a new wallet and top up an existing one" {
-  dfx_new hello
-  install_asset faucet
-  dfx deploy
-  dfx ledger fabricate-cycles --canister faucet --t 1000
-
-  dfx identity new --storage-mode plaintext faucet_testing
-  dfx identity use faucet_testing
-
-  # prepare wallet to hand out
-  dfx wallet balance # this creates a new wallet with user faucet_testing as controller
-  dfx canister call faucet set_wallet_to_hand_out "(principal \"$(dfx identity get-wallet)\")" # register the wallet as the wallet that the faucet will return
-  rm "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json" # forget about the currently configured wallet
-
-  # assert: no wallet configured
-  # shellcheck disable=SC2031
-  export DFX_DISABLE_AUTO_WALLET=1
-  assert_command_fail dfx wallet balance
-  assert_match "No wallet configured"
-
-  assert_command dfx cycles redeem-faucet-coupon --new-cycles-wallet --faucet "$(dfx canister id faucet)" 'valid-coupon'
-  assert_match "Redeemed coupon valid-coupon for 100.000 TC .* to a new wallet"
-
-  # only succeeds if wallet is correctly set
-  assert_command dfx wallet balance
-  # checking only balance before the dot, rest may fluctuate
-  # balance may be 99.??? TC if cycles accounting is done, or 100.000 TC if not
-  assert_match "99\.|100\."
-
-  unset DFX_DISABLE_AUTO_WALLET
-
-  assert_command dfx cycles redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon'
-  assert_match "Redeemed coupon code another-valid-coupon for 10.000 TC .* to the existing wallet"
-
-  assert_command dfx wallet balance
-  # checking only balance before the dot, rest may fluctuate
-  # balance may be 109.??? TC if cycles accounting is done, or 110.000 TC if not
-  assert_match "109\.|110\."
-}
-
-@test "redeem-faucet-coupon without --new-cycles-wallet redeems into the cycles ledger when no wallet exists" {
+@test "redeem-faucet-coupon without redeems into the cycles ledger" {
   assert_command deploy_cycles_ledger
   dfx_new hello
   install_asset faucet
@@ -596,50 +556,6 @@ current_time_nanoseconds() {
   dfx identity new --storage-mode plaintext no_wallet_identity
   dfx identity use no_wallet_identity
 
-  # ensure no wallet is set for the identity
-  # rm "$DFX_CONFIG_ROOT/.config/dfx/identity/no_wallet_identity/wallets.json"
-
-  # redeem a faucet coupon without specifying --new-cycles-wallet
   assert_command dfx cycles redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'valid-coupon'
-  assert_match "Redeemed coupon code valid-coupon for .* TC .* to the cycles ledger.",
-}
-
-@test "redeem-faucet-coupon without specifying --new-cycles-wallet redeems into existing wallet" {
-  dfx_new hello
-  install_asset faucet
-  dfx deploy
-  dfx ledger fabricate-cycles --canister faucet --t 1000
-
-  dfx identity new --storage-mode plaintext wallet_identity
-  dfx identity use wallet_identity
-
-  # create a new wallet for wallet_identity
-  assert_command dfx wallet balance
-
-  # ensure a wallet is configured for the identity
-  assert_command dfx identity get-wallet
-
-  # redeem a faucet coupon without specifying --new-cycles-wallet
-  assert_command dfx cycles redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'valid-coupon'
-  assert_match "Redeemed coupon code valid-coupon for .* TC .* to the existing wallet .*",
-}
-
-@test "redeem-faucet-coupon with --new-cycles-wallet fails when wallet already exists" {
-  dfx_new hello
-  install_asset faucet
-  dfx deploy
-  dfx ledger fabricate-cycles --canister faucet --t 1000
-
-  dfx identity new --storage-mode plaintext existing_wallet_identity
-  dfx identity use existing_wallet_identity
-
-  # create a new wallet for existing_wallet_identity
-  assert_command dfx wallet balance
-
-  # ensure a wallet is configured for the identity
-  assert_command dfx identity get-wallet
-
-  # try to redeem a faucet coupon with the --new-cycles-wallet flag set to 'true'
-  assert_command_fail dfx cycles redeem-faucet-coupon --faucet "$(dfx canister id faucet)" --new-cycles-wallet 'valid-coupon'
-  assert_match "A cycles wallet already exists for the current identity."
+  assert_match "Redeemed coupon 'valid-coupon' to the cycles ledger, current balance: .* TC .* for identity '$(dfx identity get-principal)'"
 }
