@@ -2679,7 +2679,7 @@ dependencies = [
 [[package]]
 name = "ic-certification"
 version = "2.3.0"
-source = "git+https://github.com/dfinity/response-verification.git?rev=a65009624b61736df6d2dc17756bdbd02a84f599#a65009624b61736df6d2dc17756bdbd02a84f599"
+source = "git+https://github.com/dfinity/response-verification.git?rev=165f10dfe46a49e8e3d14d8100e5c33781ccbd50#165f10dfe46a49e8e3d14d8100e5c33781ccbd50"
 dependencies = [
  "hex",
  "serde",
@@ -2690,7 +2690,7 @@ dependencies = [
 [[package]]
 name = "ic-certification-testing"
 version = "2.3.0"
-source = "git+https://github.com/dfinity/response-verification.git?rev=a65009624b61736df6d2dc17756bdbd02a84f599#a65009624b61736df6d2dc17756bdbd02a84f599"
+source = "git+https://github.com/dfinity/response-verification.git?rev=165f10dfe46a49e8e3d14d8100e5c33781ccbd50#165f10dfe46a49e8e3d14d8100e5c33781ccbd50"
 dependencies = [
  "console_error_panic_hook",
  "getrandom",
@@ -2992,12 +2992,12 @@ dependencies = [
 [[package]]
 name = "ic-response-verification-test-utils"
 version = "2.3.0"
-source = "git+https://github.com/dfinity/response-verification.git?rev=a65009624b61736df6d2dc17756bdbd02a84f599#a65009624b61736df6d2dc17756bdbd02a84f599"
+source = "git+https://github.com/dfinity/response-verification.git?rev=165f10dfe46a49e8e3d14d8100e5c33781ccbd50#165f10dfe46a49e8e3d14d8100e5c33781ccbd50"
 dependencies = [
  "base64 0.21.5",
  "flate2",
  "hex",
- "ic-certification 2.3.0 (git+https://github.com/dfinity/response-verification.git?rev=a65009624b61736df6d2dc17756bdbd02a84f599)",
+ "ic-certification 2.3.0 (git+https://github.com/dfinity/response-verification.git?rev=165f10dfe46a49e8e3d14d8100e5c33781ccbd50)",
  "ic-certification-testing",
  "ic-types",
  "leb128",
