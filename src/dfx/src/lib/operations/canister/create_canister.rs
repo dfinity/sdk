@@ -206,7 +206,7 @@ async fn create_with_wallet(
                 MAINNET_CYCLE_MINTER_CANISTER_ID,
                 CMC_CREATE_CANISTER_METHOD,
                 Argument::from_candid((CmcCreateCanisterArgs {
-                    settings: Some(CanisterSettings::try_from(settings)?),
+                    settings: Some(CanisterSettings::from(settings)),
                     subnet_selection: Some(subnet_selection),
                 },)),
                 cycles,
