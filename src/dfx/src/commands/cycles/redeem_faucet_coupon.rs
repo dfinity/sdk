@@ -1,11 +1,12 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::util::clap::parsers::icrc_subaccount_parser;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
 use anyhow::{anyhow, bail, Context};
 use candid::{encode_args, CandidType, Decode, Deserialize, Principal};
 use clap::Parser;
-use icrc_ledger_types::icrc1::account::Account;
+use icrc_ledger_types::icrc1::account::{Account, Subaccount};
 use slog::{info, warn};
 
 pub const DEFAULT_FAUCET_PRINCIPAL: Principal =
@@ -20,6 +21,10 @@ pub struct RedeemFaucetCouponOpts {
     /// Alternative faucet address. If not set, this uses the DFINITY faucet.
     #[arg(long)]
     faucet: Option<String>,
+
+    /// Subaccount to redeem the coupon to.
+    #[arg(long, value_parser = icrc_subaccount_parser)]
+    to_subaccount: Option<Subaccount>,
 }
 
 pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxResult {
@@ -50,7 +55,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
                 opts.coupon_code.clone(),
                 Account {
                     owner: identity,
-                    subaccount: None,
+                    subaccount: opts.to_subaccount,
                 },
             ))
             .context("Failed to serialize 'redeem_to_cycles_ledger' arguments.")?,
@@ -71,7 +76,9 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         "Redeemed coupon '{}' to the cycles ledger, current balance: {} TC (trillions of cycles) for identity '{}'.",
         opts.coupon_code.clone(),
         pretty_thousand_separators(format_as_trillions(redeemed_cycles)),
-        identity,
+        env
+        .get_selected_identity()
+        .with_context(|| anyhow!("No identity selected."))?,
     );
     Ok(())
 }

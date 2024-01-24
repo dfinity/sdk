@@ -65,8 +65,8 @@ actor class Coupon() = self {
         var amount = 10000000000000;
         Cycles.add(amount);
         let result = await CyclesLedgerCanister.deposit({
-                to = account;
-                memo = null
+            to = account;
+            memo = null
         });
         return result;
     };

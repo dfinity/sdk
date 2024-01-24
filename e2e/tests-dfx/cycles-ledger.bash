@@ -494,7 +494,7 @@ current_time_nanoseconds() {
   assert_eq "1599800000000 cycles."
   dfx canister stop e2e_project_backend
   dfx canister delete e2e_project_backend
-  
+
   assert_command dfx deploy --with-cycles 1T
   assert_command dfx canister id e2e_project_backend
   assert_command dfx canister id e2e_project_frontend
@@ -546,7 +546,7 @@ current_time_nanoseconds() {
   assert_eq "22.379 TC (trillion cycles)."
 }
 
-@test "redeem-faucet-coupon without redeems into the cycles ledger" {
+@test "redeem-faucet-coupon redeems into the cycles ledger" {
   assert_command deploy_cycles_ledger
   dfx_new hello
   install_asset faucet
@@ -555,7 +555,25 @@ current_time_nanoseconds() {
 
   dfx identity new --storage-mode plaintext no_wallet_identity
   dfx identity use no_wallet_identity
+  SUBACCOUNT="7C7B7A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+
+  assert_command dfx cycles balance --identity no_wallet_identity
+  assert_eq "0.000 TC (trillion cycles)."
+  assert_command dfx cycles balance --identity no_wallet_identity --subaccount "$SUBACCOUNT"
+  assert_eq "0.000 TC (trillion cycles)."
 
   assert_command dfx cycles redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'valid-coupon'
-  assert_match "Redeemed coupon 'valid-coupon' to the cycles ledger, current balance: .* TC .* for identity '$(dfx identity get-principal)'"
+  assert_match "Redeemed coupon 'valid-coupon' to the cycles ledger, current balance: 10.000 TC .* for identity 'no_wallet_identity'"
+  assert_command dfx cycles redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon'
+  assert_match "Redeemed coupon 'another-valid-coupon' to the cycles ledger, current balance: 20.000 TC .* for identity 'no_wallet_identity'"
+
+  # with subaccount
+  assert_command dfx cycles redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon' --to-subaccount "$SUBACCOUNT"
+  assert_match "Redeemed coupon 'another-valid-coupon' to the cycles ledger, current balance: 10.000 TC .* for identity 'no_wallet_identity'"
+
+  assert_command dfx cycles balance --identity no_wallet_identity
+  assert_eq "20.000 TC (trillion cycles)."
+  assert_command dfx cycles balance --identity no_wallet_identity --subaccount "$SUBACCOUNT"
+  assert_eq "10.000 TC (trillion cycles)."
 }
+
