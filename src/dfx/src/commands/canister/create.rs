@@ -174,7 +174,7 @@ pub async fn exec(
         })
         .transpose()
         .context("Failed to determine controllers.")?;
-    let subnet_selection = opts.subnet_selection.to_subnet_selection();
+    let subnet_selection = opts.subnet_selection.into_subnet_selection();
 
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     if let Some(canister_name) = opts.canister_name.as_deref() {

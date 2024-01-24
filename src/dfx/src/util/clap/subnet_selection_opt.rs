@@ -20,15 +20,13 @@ pub struct SubnetSelectionOpt {
 }
 
 impl SubnetSelectionOpt {
-    pub fn to_subnet_selection(self) -> Option<SubnetSelection> {
-        if let Some(subnet_type) = self.subnet_type {
-            Some(SubnetSelection::Filter(SubnetFilter {
-                subnet_type: Some(subnet_type),
-            }))
-        } else if let Some(subnet) = self.subnet {
-            Some(SubnetSelection::Subnet { subnet })
-        } else {
-            None
-        }
+    pub fn into_subnet_selection(self) -> Option<SubnetSelection> {
+        self.subnet_type
+            .map(|subnet_type| {
+                SubnetSelection::Filter(SubnetFilter {
+                    subnet_type: Some(subnet_type),
+                })
+            })
+            .or_else(|| self.subnet.map(|subnet| SubnetSelection::Subnet { subnet }))
     }
 }
