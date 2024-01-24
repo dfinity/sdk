@@ -4,10 +4,13 @@ use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{cycle_amount_parser, file_or_stdin_parser};
-use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob};
+use crate::util::{
+    arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob, read_module_metadata,
+};
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::{CandidType, Decode, Deserialize, Principal};
+use candid_parser::utils::CandidSource;
 use clap::Parser;
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::identity::CallSender;
@@ -183,7 +186,10 @@ pub fn get_effective_canister_id(
             | MgmtMethod::DeleteCanister
             | MgmtMethod::DepositCycles
             | MgmtMethod::UninstallCode
-            | MgmtMethod::ProvisionalTopUpCanister => {
+            | MgmtMethod::ProvisionalTopUpCanister
+            | MgmtMethod::UploadChunk
+            | MgmtMethod::ClearChunkStore
+            | MgmtMethod::StoredChunks => {
                 #[derive(CandidType, Deserialize)]
                 struct In {
                     canister_id: CanisterId,
@@ -194,6 +200,15 @@ pub fn get_effective_canister_id(
             }
             MgmtMethod::ProvisionalCreateCanisterWithCycles => {
                 Ok(CanisterId::management_canister())
+            }
+            MgmtMethod::InstallChunkedCode => {
+                #[derive(CandidType, Deserialize)]
+                struct In {
+                    target_canister: Principal,
+                }
+                let in_args = Decode!(arg_value, In)
+                    .context("Argument is not valid for InstallChunkedCode")?;
+                Ok(in_args.target_canister)
             }
         }
     } else {
@@ -206,29 +221,32 @@ pub async fn exec(
     opts: CanisterCallOpts,
     call_sender: &CallSender,
 ) -> DfxResult {
+    let agent = env.get_agent();
+    fetch_root_key_if_needed(env).await?;
+
     let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
     let canister_id_store = env.get_canister_id_store()?;
 
-    let (canister_id, maybe_candid_path) = match CanisterId::from_text(callee_canister) {
-        Ok(id) => {
-            if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
-                get_local_cid_and_candid_path(env, canister_name, Some(id))?
-            } else {
-                // TODO fetch candid file from remote canister
-                (id, None)
-            }
-        }
+    let canister_id = match CanisterId::from_text(callee_canister) {
+        Ok(id) => id,
         Err(_) => {
             let canister_id = canister_id_store.get(callee_canister)?;
-            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
+            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?.0
         }
     };
-    let maybe_candid_path = opts.candid.or(maybe_candid_path);
+    let method_type = if let Some(path) = opts.candid {
+        get_candid_type(CandidSource::File(&path), method_name)
+    } else {
+        read_module_metadata(agent, canister_id, "candid:service")
+            .await
+            .and_then(|did| get_candid_type(CandidSource::Text(&did), method_name))
+    };
+    if method_type.is_none() {
+        eprintln!("Cannot fetch Candid interface from canister metadata, sending arguments with inferred types.");
+    }
 
     let is_management_canister = canister_id == CanisterId::management_canister();
-
-    let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments_from_file = opts
@@ -263,9 +281,6 @@ pub async fn exec(
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
     let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)?;
-    let agent = env.get_agent();
-
-    fetch_root_key_if_needed(env).await?;
 
     // amount has been validated by cycle_amount_validator
     let cycles = opts.with_cycles.unwrap_or(0);

@@ -45,9 +45,36 @@ impl CanisterInfo {
 pub struct InstallArgs<'a> {
     pub arg: &'a [u8],
     pub wasm_module: &'a [u8],
-    pub mode: InstallMode,
+    pub mode: PlaygroundInstallMode,
     pub canister_id: Principal,
 }
+
+#[derive(CandidType, Deserialize, Debug)]
+pub enum PlaygroundInstallMode {
+    #[serde(rename = "install")]
+    Install,
+    #[serde(rename = "upgrade")]
+    Upgrade,
+    #[serde(rename = "reinstall")]
+    Reinstall,
+}
+
+impl TryFrom<InstallMode> for PlaygroundInstallMode {
+    type Error = anyhow::Error;
+    fn try_from(m: InstallMode) -> DfxResult<Self> {
+        match m {
+            InstallMode::Install => Ok(Self::Install),
+            InstallMode::Reinstall => Ok(Self::Reinstall),
+            InstallMode::Upgrade {
+                skip_pre_upgrade: false,
+            } => Ok(Self::Upgrade),
+            InstallMode::Upgrade {
+                skip_pre_upgrade: true,
+            } => bail!("Cannot skip pre-upgrade on the playground"),
+        }
+    }
+}
+
 #[derive(CandidType)]
 struct InstallConfig<'a> {
     profiling: bool,
@@ -167,7 +194,7 @@ pub async fn playground_install_code(
     let install_arg = InstallArgs {
         arg,
         wasm_module,
-        mode,
+        mode: mode.try_into()?,
         canister_id: canister_info.id,
     };
     let install_config = InstallConfig {

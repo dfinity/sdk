@@ -7,7 +7,7 @@ use bytes::Bytes;
 use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
 use candid::IDLArgs;
 use candid_parser::error::pretty_diagnose;
-use candid_parser::typing::pretty_check_file;
+use candid_parser::utils::CandidSource;
 use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
 #[cfg(unix)]
@@ -112,18 +112,15 @@ pub async fn read_module_metadata(
 /// Parse IDL file into TypeEnv. This is a best effort function: it will succeed if
 /// the IDL file can be parsed and type checked in Rust parser, and has an
 /// actor in the IDL file. If anything fails, it returns None.
-pub fn get_candid_type(
-    idl_path: &std::path::Path,
-    method_name: &str,
-) -> Option<(TypeEnv, Function)> {
-    let (env, ty) = check_candid_file(idl_path).ok()?;
+pub fn get_candid_type(candid: CandidSource, method_name: &str) -> Option<(TypeEnv, Function)> {
+    let (env, ty) = candid.load().ok()?;
     let actor = ty?;
     let method = env.get_method(&actor, method_name).ok()?.clone();
     Some((env, method))
 }
 
 pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Function)> {
-    let (env, ty) = check_candid_file(idl_path).ok()?;
+    let (env, ty) = CandidSource::File(idl_path).load().ok()?;
     let actor = ty?;
     let args = match actor.as_ref() {
         TypeInner::Class(args, _) => args.clone(),
@@ -135,16 +132,6 @@ pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Func
         modes: vec![],
     };
     Some((env, res))
-}
-
-pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {
-    //context macro does not work for the returned error type
-    pretty_check_file(idl_path).with_context(|| {
-        format!(
-            "Candid file check failed for {}.",
-            idl_path.to_string_lossy()
-        )
-    })
 }
 
 pub fn arguments_from_file(file_name: &Path) -> DfxResult<String> {
