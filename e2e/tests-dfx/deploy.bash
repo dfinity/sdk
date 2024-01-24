@@ -167,18 +167,18 @@ teardown() {
   install_cycles_ledger_canisters
   dfx_start
   assert_command dfx deploy fake-cmc --specified-id "rkp4c-7iaaa-aaaaa-aaaca-cai" # CMC canister id
-  cd ../e2e_project
+  cd ../hello
 
   # use --subnet <principal>
   SUBNET_ID="5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae" # a random, valid principal
-  assert_command dfx deploy e2e_project_backend --subnet "$SUBNET_ID"
+  assert_command dfx deploy hello_backend --subnet "$SUBNET_ID"
   cd ../fake_cmc
   assert_command dfx canister call fake-cmc last_create_canister_args
   assert_contains "subnet = principal \"$SUBNET_ID\";"
   
   # use --subnet-type
-  cd ../e2e_project
-  assert_command dfx deploy e2e_project_frontend --subnet-type custom_subnet_type
+  cd ../hello
+  assert_command dfx deploy hello_frontend --subnet-type custom_subnet_type
   cd ../fake_cmc
   assert_command dfx canister call fake-cmc last_create_canister_args
   assert_contains 'subnet_type = opt "custom_subnet_type"'
