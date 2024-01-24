@@ -31,7 +31,6 @@ pub enum CmcCreateCanisterError {
 }
 
 #[derive(CandidType, Clone, Debug)]
-#[allow(dead_code)]
 pub enum SubnetSelection {
     /// Choose a random subnet that satisfies the specified properties
     Filter(SubnetFilter),
