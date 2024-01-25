@@ -1,5 +1,5 @@
 use crate::lib::error::DfxResult;
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, Context, Error};
 use byte_unit::Byte;
 use candid::Principal;
 use dfx_core::config::model::dfinity::ConfigInterface;
@@ -7,6 +7,7 @@ use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit,
 };
+use num_traits::ToPrimitive;
 use std::convert::TryFrom;
 
 #[derive(Default, Debug, Clone)]
@@ -41,6 +42,53 @@ impl From<CanisterSettings>
                 .map(u128::from)
                 .map(candid::Nat::from),
         }
+    }
+}
+
+impl TryFrom<ic_utils::interfaces::management_canister::builders::CanisterSettings>
+    for CanisterSettings
+{
+    type Error = Error;
+    fn try_from(
+        value: ic_utils::interfaces::management_canister::builders::CanisterSettings,
+    ) -> Result<Self, anyhow::Error> {
+        Ok(Self {
+            controllers: value.controllers,
+            compute_allocation: value
+                .compute_allocation
+                .and_then(|alloc| alloc.0.to_u8())
+                .map(|alloc| {
+                    ComputeAllocation::try_from(alloc)
+                        .context("Compute allocation must be a percentage.")
+                })
+                .transpose()?,
+            memory_allocation: value
+                .memory_allocation
+                .and_then(|alloc| alloc.0.to_u64())
+                .map(|alloc| {
+                    MemoryAllocation::try_from(alloc).context(
+                        "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
+                    )
+                })
+                .transpose()?,
+            freezing_threshold: value
+                .freezing_threshold
+                .and_then(|threshold| threshold.0.to_u64())
+                .map(|threshold| {
+                    FreezingThreshold::try_from(threshold)
+                        .context("Freezing threshold must be between 0 and 2^64-1, inclusively.")
+                })
+                .transpose()?,
+            reserved_cycles_limit: value
+                .reserved_cycles_limit
+                .and_then(|limit| limit.0.to_u128())
+                .map(|limit| {
+                    ReservedCyclesLimit::try_from(limit).context(
+                        "Reserved cycles limit must be between 0 and 2^128-1, inclusively.",
+                    )
+                })
+                .transpose()?,
+        })
     }
 }
 
