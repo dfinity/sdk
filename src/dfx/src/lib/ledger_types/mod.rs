@@ -9,6 +9,8 @@ use candid::Principal;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+use super::cycles_ledger_types::create_canister::SubnetSelection;
+
 /// Id of the ledger canister on the IC.
 pub const MAINNET_LEDGER_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x01]);
@@ -127,7 +129,7 @@ pub struct TimeStamp {
 pub struct NotifyCreateCanisterArg {
     pub block_index: BlockIndex,
     pub controller: Principal,
-    pub subnet_type: Option<String>,
+    pub subnet_selection: Option<SubnetSelection>,
 }
 
 #[derive(CandidType)]
