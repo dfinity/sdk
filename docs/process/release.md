@@ -12,6 +12,7 @@
 1. Open a PR to update the Motoko Playground allow-list
 1. Promote the release
 1. Post to the forum
+1. Open a PR to update the examples repo
 
 ## Details
 
@@ -112,7 +113,17 @@ Merge all three PRs.
 
 Post a message to the forum, linking to the GitHub release notes.
 
+### Open a PR to update the examples repo
+
+Open a PR in the examples repo to update the dfx version used by default in the examples.
+The PR should update DFX_VERSION in these two files:
+
+- [provision-darwin.sh]
+- [provision-linux.sh]
+
 [broadcast-frontend-hash-workflow]: https://github.com/dfinity/sdk/actions/workflows/broadcast-frontend-hash.yml
+[provision-darwin.sh]: https://github.com/dfinity/examples/blob/master/.github/workflows/provision-darwin.sh
+[provision-linux.sh]: https://github.com/dfinity/examples/blob/master/.github/workflows/provision-linux.sh
 [public-manifest]: https://github.com/dfinity/sdk/blob/master/public/manifest.json
 [publish-workflow]: https://github.com/dfinity/sdk/blob/master/.github/workflows/publish.yml
 [release-notes-table]: https://github.com/dfinity/portal/blob/master/docs/other/updates/release-notes/release-notes.md
