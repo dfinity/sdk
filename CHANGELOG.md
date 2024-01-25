@@ -36,6 +36,13 @@ Providers can provide the hash through `wasm_hash_url` instead of hard coding th
 
 If the hash of downloaded wasm doesn’t match the provided hash (`wasm_hash`, `wasm_hash_url` or read from mainnet state tree), dfx deps won’t abort. Instead, it will print a warning message.
 
+### feat: create canister on specific subnets or subnet types
+
+`dfx deploy`, `dfx canister create`, and `dfx ledger create-canister` now support the option `--subnet <subnet principal>` to create canisters on specific subnets.
+
+`dfx canister create` and `dfx deploy` now support the option `--subnet-type <subnet type>` to create canisters on a random subnet of a certain type.
+Use `dfx ledger show-subnet-types` to list the available subnet types
+
 ### feat!: update `dfx cycles` commands with mainnet `cycles-ledger` canister ID
 
 The `dfx cycles` command no longer needs nor accepts the `--cycles-ledger-canister-id <canister id>` parameter.

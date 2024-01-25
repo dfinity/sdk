@@ -1,3 +1,4 @@
+use crate::lib::cycles_ledger_types::create_canister::SubnetSelection;
 use crate::lib::error::{DfxResult, NotifyCreateCanisterError, NotifyTopUpError};
 use crate::lib::ledger_types::{
     BlockHeight, Memo, NotifyCreateCanisterArg, NotifyCreateCanisterResult, NotifyTopUpArg,
@@ -44,7 +45,7 @@ pub async fn notify_create(
     agent: &Agent,
     controller: Principal,
     block_height: BlockHeight,
-    subnet_type: Option<String>,
+    subnet_selection: Option<SubnetSelection>,
 ) -> Result<Principal, NotifyCreateCanisterError> {
     let result = agent
         .update(
@@ -55,7 +56,7 @@ pub async fn notify_create(
             Encode!(&NotifyCreateCanisterArg {
                 block_index: block_height,
                 controller,
-                subnet_type,
+                subnet_selection,
             })
             .map_err(NotifyCreateCanisterError::EncodeArguments)?,
         )

@@ -57,7 +57,7 @@ pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> 
         .context("Failed to set linger duration of tcp listener.")?;
     listener
         .local_addr()
-        .context("Failed to fectch local address.")
+        .context("Failed to fetch local address.")
 }
 
 /// Deserialize and print return values from canister method.
