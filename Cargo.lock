@@ -1479,7 +1479,7 @@ dependencies = [
  "ic-asset",
  "ic-cdk",
  "ic-identity-hsm",
- "ic-utils 0.31.0",
+ "ic-utils 0.32.0",
  "ic-wasm",
  "icrc-ledger-types",
  "indicatif",
@@ -1550,7 +1550,7 @@ dependencies = [
  "humantime-serde",
  "ic-agent",
  "ic-identity-hsm",
- "ic-utils 0.31.0",
+ "ic-utils 0.32.0",
  "k256 0.11.6",
  "keyring",
  "lazy_static",
@@ -2493,8 +2493,9 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.31.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=6b02f649a569f354a0a1b370368ba28d31dd8702#6b02f649a569f354a0a1b370368ba28d31dd8702"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "410a8c1bdd647dfc43978497e8f794378a18eeb3ec7c768b92c3885c999e1d1b"
 dependencies = [
  "backoff",
  "cached 0.46.1",
@@ -2543,7 +2544,7 @@ dependencies = [
  "globset",
  "hex",
  "ic-agent",
- "ic-utils 0.31.0",
+ "ic-utils 0.32.0",
  "itertools 0.10.5",
  "json5",
  "mime",
@@ -2929,8 +2930,9 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.31.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=6b02f649a569f354a0a1b370368ba28d31dd8702#6b02f649a569f354a0a1b370368ba28d31dd8702"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "478f1fb56cdda5959ac4a685dbe74c56f25226212defb34ab5cf136f4b919344"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3029,8 +3031,9 @@ dependencies = [
 
 [[package]]
 name = "ic-transport-types"
-version = "0.31.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=6b02f649a569f354a0a1b370368ba28d31dd8702#6b02f649a569f354a0a1b370368ba28d31dd8702"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2cb030f03ef8332fbf8eda6bb25e80d8354d2bef88b27e671b3c167d9ee8e7a7"
 dependencies = [
  "candid",
  "hex",
@@ -3098,8 +3101,9 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.31.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=6b02f649a569f354a0a1b370368ba28d31dd8702#6b02f649a569f354a0a1b370368ba28d31dd8702"
+version = "0.32.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2921308283f89a431872ba63f5ece9ffe6eadf7bc4cc5d12239eae146c7db8f0"
 dependencies = [
  "async-trait",
  "candid",
@@ -3210,7 +3214,7 @@ dependencies = [
  "humantime",
  "ic-agent",
  "ic-asset",
- "ic-utils 0.31.0",
+ "ic-utils 0.32.0",
  "libflate",
  "num-traits",
  "pem 1.1.1",
