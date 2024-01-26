@@ -62,7 +62,7 @@ jobs:
           strip dfx
         if: contains(matrix.os, 'ubuntu')
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
           path: ${{ matrix.binary_path }}/dfx
@@ -90,7 +90,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Download dfx binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
           path: /usr/local/bin
@@ -123,7 +123,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Download dfx binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
           path: /usr/local/bin
@@ -163,7 +163,7 @@ jobs:
       - name: Checking out repo
         uses: actions/checkout@v4
       - name: Setting up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Installing playwright
@@ -172,7 +172,7 @@ jobs:
           playwright install
           playwright install-deps
       - name: Download dfx binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
           path: /usr/local/bin
