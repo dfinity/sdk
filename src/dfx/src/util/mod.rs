@@ -16,7 +16,7 @@ use net2::{TcpBuilder, TcpListenerExt};
 use num_traits::FromPrimitive;
 use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
-use std::io::{stdin, Read};
+use std::io::{stdin, IsTerminal, Read};
 use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
 use std::time::Duration;
@@ -174,19 +174,6 @@ pub fn blob_from_arguments(
                 Some((env, func)) => {
                     if let Some(arguments) = arguments {
                         fuzzy_parse_argument(arguments, env, &func.args)
-                    } else if func.args.is_empty() {
-                        use candid::Encode;
-                        Encode!()
-                    } else if func
-                        .args
-                        .iter()
-                        .all(|t| matches!(t.as_ref(), TypeInner::Opt(_)))
-                    {
-                        // If the user provided no arguments, and if all the expected arguments are
-                        // optional, then use null values.
-                        let nulls = vec![IDLValue::Null; func.args.len()];
-                        let args = IDLArgs::new(&nulls);
-                        args.to_bytes_with_types(env, &func.args)
                     } else if let Some(random) = random {
                         let random = if random.is_empty() {
                             eprintln!("Random schema is empty, using any random value instead.");
@@ -202,6 +189,18 @@ pub fn blob_from_arguments(
                         let args = candid_parser::random::any(&seed, &config, env, &func.args)
                             .context("Failed to create idl args.")?;
                         eprintln!("Sending the following random argument:\n{}\n", args);
+                        args.to_bytes_with_types(env, &func.args)
+                    } else if stdin().is_terminal() {
+                        use candid_parser::assist::{input_args, Context};
+                        let mut ctx = Context::new(env.clone());
+                        let args = input_args(&mut ctx, &func.args)?;
+                        eprintln!("Sending the following argument:\n{}\n", args);
+                        eprintln!("Do you want to send this message? [y/N]");
+                        let mut input = String::new();
+                        stdin().read_line(&mut input)?;
+                        if !["y", "Y", "yes", "Yes", "YES"].contains(&input.trim()) {
+                            return Err(error_invalid_data!("User cancelled."));
+                        }
                         args.to_bytes_with_types(env, &func.args)
                     } else {
                         return Err(error_invalid_data!("Expected arguments but found none."));
