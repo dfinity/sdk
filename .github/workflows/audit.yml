@@ -19,7 +19,7 @@ env:
 
 jobs:
   test:
-    name: required:audit
+    name: audit:required
     runs-on: ubuntu-latest
     permissions:
       contents: read
