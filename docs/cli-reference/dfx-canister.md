@@ -220,6 +220,8 @@ You can use the following options with the `dfx canister create` command.
 | `--no-wallet`                             | Performs the call with the user Identity as the Sender of messages. Bypasses the Wallet canister. Enabled by default.                                                                                                                                                                                                                                                                    |
 | `--with-cycles <number-of-cycles>`        | Specifies the initial cycle balance to deposit into the newly created canister. The specified amount needs to take the canister create fee into account. This amount is deducted from the wallet's cycle balance.                                                                                                                                                                        |
 | `--specified-id <PRINCIPAL>`              | Attempts to create the canister with this Canister ID |
+| `--subnet-type <subnet-type>`             | Specify the subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                      |
+| `--subnet <subnet-principal>`             | Specify the subnet to create the canister on. If no subnet is provided, the canister will be created on a random default application subnet.                                |
 
 ### Arguments
 

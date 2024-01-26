@@ -1,4 +1,4 @@
-set -e
+set -eo pipefail
 load ../utils/bats-support/load
 load ../utils/assertions
 load ../utils/webserver

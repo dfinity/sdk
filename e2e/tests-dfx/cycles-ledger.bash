@@ -31,7 +31,7 @@ add_cycles_ledger_canisters_to_project() {
 
 deploy_cycles_ledger() {
   assert_command dfx deploy cycles-ledger --specified-id "um5iw-rqaaa-aaaaq-qaaba-cai" --argument '(variant { Init = record { max_transactions_per_request = 100; index_id = null; } })'
-  assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})" --with-cycles 10000000000000 --specified-id "ul4oc-4iaaa-aaaaq-qaabq-cai"
+  assert_command dfx deploy depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})" --with-cycles 10000000000000 --specified-id "ul4oc-4iaaa-aaaaq-qaabq-cai"
 }
 
 current_time_nanoseconds() {
@@ -61,16 +61,16 @@ current_time_nanoseconds() {
   assert_eq "0.000 TC (trillion cycles)."
 
 
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 1_700_400_200_150;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 1_700_400_200_150;})" --identity cycle-giver
   assert_eq "(record { balance = 1_700_400_200_150 : nat; block_index = 0 : nat })"
 
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 3_750_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 3_750_000_000_000;})" --identity cycle-giver
   assert_eq "(record { balance = 3_750_000_000_000 : nat; block_index = 1 : nat })"
 
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT2_CANDID\"};cycles = 760_500_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT2_CANDID\"};cycles = 760_500_000_000;})" --identity cycle-giver
   assert_eq "(record { balance = 760_500_000_000 : nat; block_index = 2 : nat })"
 
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$BOB\";};cycles = 2_900_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\";};cycles = 2_900_000_000_000;})" --identity cycle-giver
   assert_eq "(record { balance = 2_900_000_000_000 : nat; block_index = 3 : nat })"
 
 
@@ -122,9 +122,9 @@ current_time_nanoseconds() {
 
   deploy_cycles_ledger
 
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 3_000_000_000_000;})" --identity cycle-giver
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 2_000_000_000_000;})" --identity cycle-giver
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT2_CANDID\"};cycles = 1_000_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 3_000_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 2_000_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT2_CANDID\"};cycles = 1_000_000_000_000;})" --identity cycle-giver
 
   # account to account
   assert_command dfx cycles balance --precise --identity alice
@@ -195,7 +195,7 @@ current_time_nanoseconds() {
 
   deploy_cycles_ledger
 
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 3_000_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 3_000_000_000_000;})" --identity cycle-giver
 
   assert_command dfx cycles balance --precise --identity alice
   assert_eq "3000000000000 cycles."
@@ -272,9 +272,9 @@ current_time_nanoseconds() {
 
   assert_command dfx deploy
 
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$BOB\";};cycles = 2_400_000_000_000;})" --identity cycle-giver
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$BOB\"; subaccount = opt blob \"$BOB_SUBACCT1_CANDID\"};cycles = 2_600_000_000_000;})" --identity cycle-giver
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$BOB\"; subaccount = opt blob \"$BOB_SUBACCT2_CANDID\"};cycles = 2_700_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\";};cycles = 2_400_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\"; subaccount = opt blob \"$BOB_SUBACCT1_CANDID\"};cycles = 2_600_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\"; subaccount = opt blob \"$BOB_SUBACCT2_CANDID\"};cycles = 2_700_000_000_000;})" --identity cycle-giver
 
   # account to canister
   assert_command dfx cycles balance --precise --identity bob
@@ -331,9 +331,9 @@ current_time_nanoseconds() {
 
   assert_command dfx deploy
 
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$BOB\";};cycles = 2_400_000_000_000;})" --identity cycle-giver
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$BOB\"; subaccount = opt blob \"$BOB_SUBACCT1_CANDID\"};cycles = 2_600_000_000_000;})" --identity cycle-giver
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$BOB\"; subaccount = opt blob \"$BOB_SUBACCT2_CANDID\"};cycles = 2_700_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\";};cycles = 2_400_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\"; subaccount = opt blob \"$BOB_SUBACCT1_CANDID\"};cycles = 2_600_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\"; subaccount = opt blob \"$BOB_SUBACCT2_CANDID\"};cycles = 2_700_000_000_000;})" --identity cycle-giver
 
   # account to canister
   assert_command dfx cycles balance --precise --identity bob
@@ -376,10 +376,10 @@ current_time_nanoseconds() {
   assert_command dfx ledger balance --identity cycle-giver
   assert_eq "1000000000.00000000 ICP"
 
-  assert_command dfx canister status cycles-depositor
+  assert_command dfx canister status depositor
   assert_contains "Balance: 10_000_000_000_000 Cycles"
 
-  dfx canister status cycles-depositor
+  dfx canister status depositor
 
   assert_command dfx cycles balance --identity alice --precise
   assert_eq "0 cycles."
@@ -388,10 +388,10 @@ current_time_nanoseconds() {
   assert_eq "0 cycles."
 
 
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 500_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 500_000_000;})" --identity cycle-giver
   assert_eq "(record { balance = 500_000_000 : nat; block_index = 0 : nat })"
 
-  assert_command dfx canister status cycles-depositor
+  assert_command dfx canister status depositor
   assert_contains "Balance: 9_999_500_000_000 Cycles"
 
   assert_command dfx cycles balance --identity alice --precise
@@ -406,13 +406,13 @@ current_time_nanoseconds() {
   assert_command dfx cycles balance --identity bob --precise
   assert_eq "100000 cycles."
 
-  assert_command dfx cycles top-up cycles-depositor 100000 --identity alice
+  assert_command dfx cycles top-up depositor 100000 --identity alice
   assert_eq "Transfer sent at block index 2"
 
   assert_command dfx cycles balance --identity alice --precise
   assert_eq "299800000 cycles."
 
-  assert_command dfx canister status cycles-depositor
+  assert_command dfx canister status depositor
   assert_contains "Balance: 9_999_500_100_000 Cycles"
 }
 
@@ -429,14 +429,14 @@ current_time_nanoseconds() {
   assert_command deploy_cycles_ledger
   CYCLES_LEDGER_ID=$(dfx canister id cycles-ledger)
   echo "Cycles ledger deployed at id $CYCLES_LEDGER_ID"
-  assert_command dfx deploy cycles-depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})"
-  echo "Cycles depositor deployed at id $(dfx canister id cycles-depositor)"
-  assert_command dfx ledger fabricate-cycles --canister cycles-depositor --t 9999
+  assert_command dfx deploy depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})"
+  echo "Cycles depositor deployed at id $(dfx canister id depositor)"
+  assert_command dfx ledger fabricate-cycles --canister depositor --t 9999
 
   assert_command dfx deploy
 
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 13_400_000_000_000;})" --identity cycle-giver
-  assert_command dfx canister call cycles-depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 2_600_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 13_400_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 2_600_000_000_000;})" --identity cycle-giver
 
   cd ..
   dfx_new
@@ -444,6 +444,7 @@ current_time_nanoseconds() {
 
   # using dfx canister create
   dfx identity use alice
+  # shellcheck disable=SC2030
   export DFX_DISABLE_AUTO_WALLET=1
   t=$(current_time_nanoseconds)
   assert_command dfx canister create e2e_project_backend --with-cycles 1T --created-at-time "$t"
@@ -500,4 +501,84 @@ current_time_nanoseconds() {
   assert_not_contains "$(dfx canister id e2e_project_backend)"
   assert_command dfx cycles balance --precise
   assert_eq "9399600000000 cycles."
+}
+
+@test "canister deletion" {
+  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  dfx_new temporary
+  add_cycles_ledger_canisters_to_project
+  install_cycles_ledger_canisters
+
+  ALICE=$(dfx identity get-principal --identity alice)
+
+  assert_command deploy_cycles_ledger
+  CYCLES_LEDGER_ID=$(dfx canister id cycles-ledger)
+  echo "Cycles ledger deployed at id $CYCLES_LEDGER_ID"
+  assert_command dfx deploy depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})"
+  echo "Cycles depositor deployed at id $(dfx canister id depositor)"
+  assert_command dfx ledger fabricate-cycles --canister depositor --t 9999
+  assert_command dfx deploy
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 22_400_000_000_000;})" --identity cycle-giver
+
+  cd ..
+  dfx_new
+  # setup done
+
+  dfx identity use alice
+  # shellcheck disable=SC2030,SC2031
+  export DFX_DISABLE_AUTO_WALLET=1
+  assert_command dfx canister create --all --with-cycles 10T
+  assert_command dfx cycles balance --precise
+  assert_eq "2399800000000 cycles."
+
+  # delete by name
+  assert_command dfx canister stop --all
+  assert_command dfx canister delete e2e_project_backend
+  assert_command dfx cycles balance
+  assert_eq "12.389 TC (trillion cycles)."
+
+  # delete by id
+  FRONTEND_ID=$(dfx canister id e2e_project_frontend)
+  rm .dfx/local/canister_ids.json
+  assert_command dfx canister stop "${FRONTEND_ID}"
+  assert_command dfx canister delete "${FRONTEND_ID}"
+  assert_command dfx cycles balance
+  assert_eq "22.379 TC (trillion cycles)."
+}
+
+@test "create canister on specific subnet" {
+  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  dfx_new temporary
+  add_cycles_ledger_canisters_to_project
+  install_cycles_ledger_canisters
+
+  ALICE=$(dfx identity get-principal --identity alice)
+
+  assert_command deploy_cycles_ledger
+  CYCLES_LEDGER_ID=$(dfx canister id cycles-ledger)
+  echo "Cycles ledger deployed at id $CYCLES_LEDGER_ID"
+  assert_command dfx deploy depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})"
+  echo "Cycles depositor deployed at id $(dfx canister id depositor)"
+  assert_command dfx ledger fabricate-cycles --canister depositor --t 9999
+
+  assert_command dfx deploy
+
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 13_400_000_000_000;})" --identity cycle-giver
+  cd ..
+  dfx_new 
+
+  dfx identity use alice
+  # shellcheck disable=SC2030,SC2031
+  export DFX_DISABLE_AUTO_WALLET=1
+  # setup done
+
+  # use --subnet <principal>
+  SUBNET_ID="5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae" # a random, valid principal
+  assert_command_fail dfx canister create e2e_project_backend --subnet "$SUBNET_ID"
+  assert_contains "Subnet $SUBNET_ID does not exist"
+  
+  # use --subnet-type
+  cd ../e2e_project
+  assert_command_fail dfx canister create e2e_project_frontend --subnet-type custom_subnet_type
+  assert_contains "Provided subnet type custom_subnet_type does not exist"
 }

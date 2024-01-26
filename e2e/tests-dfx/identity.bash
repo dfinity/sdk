@@ -146,16 +146,17 @@ teardown() {
   assert_eq '(false)'
 
   # these all fail (other identities are not initializer; cannot store assets):
-  assert_command_fail dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})' --identity bob
-  assert_command_fail dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})' --identity default
-  assert_command_fail dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
+  assert_command_fail dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob"XWV"})' --identity bob
+  assert_command_fail dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob"XWV"})' --identity default
+  assert_command_fail dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob"XWV"})'
   assert_command_fail dfx canister call e2e_project_frontend retrieve '("B")'
 
   # but alice, the initializer, can store assets:
-  assert_command dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})' --identity alice
+  assert_command dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob"XWV"})' --identity alice
   assert_eq '()'
   assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
-  assert_eq '(blob "XWV")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "XWV")' "$stdout"
 }
 
 @test "after renaming an identity, the renamed identity is still initializer" {
@@ -181,7 +182,8 @@ teardown() {
   assert_command dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob "hello"})' --identity bob
   assert_eq '()'
   assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
-  assert_eq '(blob "hello")'
+    # shellcheck disable=SC2154
+  assert_eq '(blob "hello")' "$stdout"
 }
 
 @test "using an unencrypted identity on mainnet provokes a warning" {

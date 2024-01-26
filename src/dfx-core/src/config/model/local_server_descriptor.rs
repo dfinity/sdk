@@ -98,11 +98,6 @@ impl LocalServerDescriptor {
         self.data_directory.join("icx-proxy-pid")
     }
 
-    /// This file contains the listening port of the ic-ref process
-    pub fn ic_ref_port_path(&self) -> PathBuf {
-        self.data_directory.join("ic-ref.port")
-    }
-
     /// This file contains the pid of the ic-btc-adapter process
     pub fn btc_adapter_pid_path(&self) -> PathBuf {
         self.data_directory.join("ic-btc-adapter-pid")
@@ -297,12 +292,11 @@ impl LocalServerDescriptor {
     /// Gets the port of a local replica.
     ///
     /// # Prerequisites
-    /// - A local replica or emulator needs to be running, e.g. with `dfx start`.
+    /// - A local replica needs to be running, e.g. with `dfx start`.
     pub fn get_running_replica_port(
         &self,
         logger: Option<&Logger>,
     ) -> Result<Option<u16>, NetworkConfigError> {
-        let emulator_port_path = self.ic_ref_port_path();
         let replica_port_path = self.replica_port_path();
 
         match read_port_from(&replica_port_path)? {
@@ -312,15 +306,7 @@ impl LocalServerDescriptor {
                 }
                 Ok(Some(port))
             }
-            None => match read_port_from(&emulator_port_path)? {
-                Some(port) => {
-                    if let Some(logger) = logger {
-                        info!(logger, "Found local emulator running on port {}", port);
-                    }
-                    Ok(Some(port))
-                }
-                None => Ok(self.replica.port),
-            },
+            None => Ok(self.replica.port),
         }
     }
 }

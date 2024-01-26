@@ -990,7 +990,15 @@
         },
         "wasm_hash": {
           "title": "wasm_hash",
-          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.",
+          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified via a URL using the `wasm_hash_url` field. If both are defined, the `wasm_hash_url` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wasm_hash_url": {
+          "title": "wasm_hash_url",
+          "description": "Specify the SHA256 hash of the wasm module via this URL. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified directly using the `wasm_hash` field. If both are defined, the `wasm_hash_url` field will be ignored.",
           "type": [
             "string",
             "null"

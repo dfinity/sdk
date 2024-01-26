@@ -3,7 +3,7 @@ ARG RUST_VERSION
 FROM scratch AS registry
 FROM rust:${RUST_VERSION} AS builder
 COPY --from=registry . ${CARGO_HOME}/registry/index
-RUN cargo install ic-wasm --version 0.2.0
+RUN cargo install ic-wasm --version 0.7.0
 COPY . /build
 # defined in update-frontend-canister.sh
 WORKDIR /build

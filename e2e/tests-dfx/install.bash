@@ -152,6 +152,17 @@ teardown() {
   assert_eq "$BUILD_HASH" "$ONCHAIN_HASH"
 }
 
+@test "can install >2MiB wasm" {
+  install_asset large_canister
+  dfx_start
+  dfx canister create --all
+  assert_command dfx build
+  assert_command dfx canister install --all
+  assert_command dfx canister info large
+  HASH="$(sha256sum .dfx/local/canisters/large/large.wasm | head -c 64)"
+  assert_match "Module hash: 0x$HASH"
+}
+
 @test "--mode=auto selects install or upgrade automatically" {
   dfx_start
   assert_command dfx canister create e2e_project_backend

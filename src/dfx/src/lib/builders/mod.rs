@@ -3,9 +3,9 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use crate::util::check_candid_file;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
+use candid_parser::utils::CandidSource;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
@@ -150,14 +150,15 @@ pub trait CanisterBuilder {
 
         let generated_idl_path = self.generate_idl(pool, info, config)?;
 
-        let (env, ty) = check_candid_file(generated_idl_path.as_path())?;
+        let (env, ty) = CandidSource::File(generated_idl_path.as_path()).load()?;
 
         // Typescript
         if bindings.contains(&"ts".to_string()) {
             let output_did_ts_path = generate_output_dir
                 .join(info.get_name())
                 .with_extension("did.d.ts");
-            let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
+            let content =
+                ensure_trailing_newline(candid_parser::bindings::typescript::compile(&env, &ty));
             std::fs::write(&output_did_ts_path, content).with_context(|| {
                 format!(
                     "Failed to write to {}.",
@@ -175,7 +176,8 @@ pub trait CanisterBuilder {
             let output_did_js_path = generate_output_dir
                 .join(info.get_name())
                 .with_extension("did.js");
-            let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
+            let content =
+                ensure_trailing_newline(candid_parser::bindings::javascript::compile(&env, &ty));
             std::fs::write(&output_did_js_path, content).with_context(|| {
                 format!(
                     "Failed to write to {}.",
@@ -192,7 +194,8 @@ pub trait CanisterBuilder {
             let output_mo_path = generate_output_dir
                 .join(info.get_name())
                 .with_extension("mo");
-            let content = ensure_trailing_newline(candid::bindings::motoko::compile(&env, &ty));
+            let content =
+                ensure_trailing_newline(candid_parser::bindings::motoko::compile(&env, &ty));
             std::fs::write(&output_mo_path, content).with_context(|| {
                 format!("Failed to write to {}.", output_mo_path.to_string_lossy())
             })?;
@@ -325,7 +328,7 @@ pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult
     let canonicalized = dfx_core::fs::canonicalize(&cwd.join(command_name))
         .or_else(|_| which::which(command_name))
         .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
-    let mut cmd = Command::new(&canonicalized);
+    let mut cmd = Command::new(canonicalized);
 
     cmd.args(arguments)
         .current_dir(cwd)

@@ -101,7 +101,6 @@ pub enum WasmOptLevel {
     Oz,
     Os,
 }
-
 impl std::fmt::Display for WasmOptLevel {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         std::fmt::Debug::fmt(self, f)
@@ -170,7 +169,15 @@ pub struct Pullable {
     /// # wasm_hash
     /// SHA256 hash of the wasm module located at wasm_url.
     /// Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.
+    /// The hash can also be specified via a URL using the `wasm_hash_url` field.
+    /// If both are defined, the `wasm_hash_url` field will be ignored.
     pub wasm_hash: Option<String>,
+    /// # wasm_hash_url
+    /// Specify the SHA256 hash of the wasm module via this URL.
+    /// Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.
+    /// The hash can also be specified directly using the `wasm_hash` field.
+    /// If both are defined, the `wasm_hash_url` field will be ignored.
+    pub wasm_hash_url: Option<String>,
     /// # dependencies
     /// Canister IDs (Principal) of direct dependencies.
     #[schemars(with = "Vec::<String>")]

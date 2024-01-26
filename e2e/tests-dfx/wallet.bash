@@ -12,6 +12,28 @@ teardown() {
   standard_teardown
 }
 
+@test "deposit cycles inside a project" {
+    dfx_start
+
+    dfx_new
+    assert_command dfx deploy
+    assert_command dfx canister deposit-cycles 47 e2e_project_backend
+    assert_contains "Deposited 47 cycles"
+}
+
+@test "deposit cycles outside a project" {
+    dfx_start
+
+    mkdir subdir
+    cd subdir || exit 1
+    dfx_new
+    assert_command dfx deploy
+    CANISTER_ID="$(dfx canister id e2e_project_backend)"
+    cd ..
+    assert_command dfx canister deposit-cycles 42 "$CANISTER_ID"
+    assert_contains "Deposited 42 cycles"
+}
+
 @test "DFX_WALLET_WASM environment variable overrides wallet module wasm at installation" {
   dfx_new hello
   dfx_start
@@ -131,7 +153,8 @@ teardown() {
 
   assert_command dfx canister call "$WALLET" wallet_call \
     "(record { canister = principal \"$(dfx canister id e2e_project_backend)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
-  assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
+  # shellcheck disable=SC2154
+  assert_eq '(variant { 17_724 = record { 153_986_224 = blob "\44\49\44\4c\00\01\7e\01" } })' "$stdout"  # True in DIDL.
 }
 
 @test "forward user call through wallet: deploy" {
@@ -147,7 +170,8 @@ teardown() {
   assert_command dfx canister call e2e_project_backend amInitializer
   assert_command dfx canister call "$WALLET" wallet_call \
     "(record { canister = principal \"$(dfx canister id e2e_project_backend)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
-  assert_eq '(variant { 17_724 = record { 153_986_224 = blob "DIDL\00\01~\01" } })'  # True in DIDL.
+  # shellcheck disable=SC2154
+  assert_eq '(variant { 17_724 = record { 153_986_224 = blob "\44\49\44\4c\00\01\7e\01" } })' "$stdout"  # True in DIDL.
 }
 
 @test "a 64-bit wallet can still be called in the 128-bit context" {

@@ -4,9 +4,10 @@ use anyhow::{bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use bytes::Bytes;
-use candid::parser::typing::pretty_check_file;
 use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
 use candid::IDLArgs;
+use candid_parser::error::pretty_diagnose;
+use candid_parser::utils::CandidSource;
 use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
 #[cfg(unix)]
@@ -56,7 +57,7 @@ pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> 
         .context("Failed to set linger duration of tcp listener.")?;
     listener
         .local_addr()
-        .context("Failed to fectch local address.")
+        .context("Failed to fetch local address.")
 }
 
 /// Deserialize and print return values from canister method.
@@ -111,18 +112,15 @@ pub async fn read_module_metadata(
 /// Parse IDL file into TypeEnv. This is a best effort function: it will succeed if
 /// the IDL file can be parsed and type checked in Rust parser, and has an
 /// actor in the IDL file. If anything fails, it returns None.
-pub fn get_candid_type(
-    idl_path: &std::path::Path,
-    method_name: &str,
-) -> Option<(TypeEnv, Function)> {
-    let (env, ty) = check_candid_file(idl_path).ok()?;
+pub fn get_candid_type(candid: CandidSource, method_name: &str) -> Option<(TypeEnv, Function)> {
+    let (env, ty) = candid.load().ok()?;
     let actor = ty?;
     let method = env.get_method(&actor, method_name).ok()?.clone();
     Some((env, method))
 }
 
 pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Function)> {
-    let (env, ty) = check_candid_file(idl_path).ok()?;
+    let (env, ty) = CandidSource::File(idl_path).load().ok()?;
     let actor = ty?;
     let args = match actor.as_ref() {
         TypeInner::Class(args, _) => args.clone(),
@@ -134,16 +132,6 @@ pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Func
         modes: vec![],
     };
     Some((env, res))
-}
-
-pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {
-    //context macro does not work for the returned error type
-    pretty_check_file(idl_path).with_context(|| {
-        format!(
-            "Candid file check failed for {}.",
-            idl_path.to_string_lossy()
-        )
-    })
 }
 
 pub fn arguments_from_file(file_name: &Path) -> DfxResult<String> {
@@ -178,7 +166,8 @@ pub fn blob_from_arguments(
             let typed_args = match method_type {
                 None => {
                     let arguments = arguments.unwrap_or("()");
-                    candid::pretty_parse::<IDLArgs>("Candid argument", arguments)
+                    candid_parser::parse_idl_args(arguments)
+                        .or_else(|e| pretty_wrap("Candid argument", arguments, e))
                         .map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
                         .to_bytes()
                 }
@@ -208,9 +197,9 @@ pub fn blob_from_arguments(
                         use rand::Rng;
                         let mut rng = rand::thread_rng();
                         let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
-                        let config = candid::parser::configs::Configs::from_dhall(random)
+                        let config = candid_parser::configs::Configs::from_dhall(random)
                             .context("Failed to create candid parser config.")?;
-                        let args = IDLArgs::any(&seed, &config, env, &func.args)
+                        let args = candid_parser::random::any(&seed, &config, env, &func.args)
                             .context("Failed to create idl args.")?;
                         eprintln!("Sending the following random argument:\n{}\n", args);
                         args.to_bytes_with_types(env, &func.args)
@@ -235,17 +224,19 @@ pub fn fuzzy_parse_argument(
     let is_candid_format = first_char.map_or(false, |c| c == '(');
     // If parsing fails and method expects a single value, try parsing as IDLValue.
     // If it still fails, and method expects a text type, send arguments as text.
-    let args = arg_str.parse::<IDLArgs>().or_else(|_| {
+    let args = candid_parser::parse_idl_args(arg_str).or_else(|_| {
         if types.len() == 1 && !is_candid_format {
             let is_quote = first_char.map_or(false, |c| c == '"');
             if &TypeInner::Text == types[0].as_ref() && !is_quote {
                 Ok(IDLValue::Text(arg_str.to_string()))
             } else {
-                candid::pretty_parse::<IDLValue>("Candid argument", arg_str)
+                candid_parser::parse_idl_value(arg_str)
+                    .or_else(|e| pretty_wrap("Candid argument", arg_str, e))
             }
             .map(|v| IDLArgs::new(&[v]))
         } else {
-            candid::pretty_parse::<IDLArgs>("Candid argument", arg_str)
+            candid_parser::parse_idl_args(arg_str)
+                .or_else(|e| pretty_wrap("Candid argument", arg_str, e))
         }
     });
     let bytes = args
@@ -253,6 +244,15 @@ pub fn fuzzy_parse_argument(
         .to_bytes_with_types(env, types)
         .map_err(|e| error_invalid_data!("Unable to serialize Candid values: {}", e))?;
     Ok(bytes)
+}
+
+fn pretty_wrap<T>(
+    file_name: &str,
+    source: &str,
+    e: candid_parser::Error,
+) -> Result<T, candid_parser::Error> {
+    pretty_diagnose(file_name, source, &e)?;
+    Err(e)
 }
 
 pub fn format_as_trillions(amount: u128) -> String {

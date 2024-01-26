@@ -1,6 +1,7 @@
 use crate::lib::builders::BuildConfig;
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
+use crate::lib::cycles_ledger_types::create_canister::SubnetSelection;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
@@ -53,6 +54,7 @@ pub async fn deploy_canisters(
     skip_consent: bool,
     env_file: Option<PathBuf>,
     no_asset_upgrade: bool,
+    subnet_selection: Option<SubnetSelection>,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -143,6 +145,7 @@ pub async fn deploy_canisters(
             from_subaccount,
             created_at_time,
             &config,
+            subnet_selection,
         )
         .await?;
     } else {
@@ -215,6 +218,7 @@ async fn register_canisters(
     from_subaccount: Option<Subaccount>,
     created_at_time: Option<u64>,
     config: &Config,
+    subnet_selection: Option<SubnetSelection>,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -279,6 +283,7 @@ async fn register_canisters(
                     reserved_cycles_limit,
                 },
                 created_at_time,
+                subnet_selection.clone(),
             )
             .await?;
         }

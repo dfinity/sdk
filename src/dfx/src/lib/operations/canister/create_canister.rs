@@ -1,6 +1,10 @@
+use crate::lib::cycles_ledger_types::create_canister::{
+    CmcCreateCanisterArgs, CmcCreateCanisterError, SubnetSelection,
+};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
+use crate::lib::ledger_types::MAINNET_CYCLE_MINTER_CANISTER_ID;
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::operations::cycles_ledger::{create_with_cycles_ledger, CYCLES_LEDGER_ENABLED};
 use anyhow::{anyhow, bail, Context};
@@ -12,7 +16,9 @@ use fn_error_context::context;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
+use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::ManagementCanister;
+use ic_utils::Argument;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 use std::format;
@@ -22,6 +28,7 @@ pub const CANISTER_CREATE_FEE: u128 = 100_000_000_000_u128;
 // We do not know the minimum cycle balance a canister should have.
 // For now create the canister with 3T cycle balance.
 pub const CANISTER_INITIAL_CYCLE_BALANCE: u128 = 3_000_000_000_000_u128;
+pub const CMC_CREATE_CANISTER_METHOD: &str = "create_canister";
 
 #[context("Failed to create canister '{}'.", canister_name)]
 pub async fn create_canister(
@@ -33,6 +40,7 @@ pub async fn create_canister(
     from_subaccount: Option<Subaccount>,
     settings: DfxCanisterSettings,
     created_at_time: Option<u64>,
+    subnet_selection: Option<SubnetSelection>,
 ) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {}...", canister_name);
@@ -91,6 +99,7 @@ pub async fn create_canister(
                     from_subaccount,
                     settings,
                     created_at_time,
+                    subnet_selection,
                 )
                 .await
             } else {
@@ -99,7 +108,7 @@ pub async fn create_canister(
             }
         }
         CallSender::Wallet(wallet_id) => {
-            create_with_wallet(agent, wallet_id, with_cycles, settings).await
+            create_with_wallet(agent, wallet_id, with_cycles, settings, subnet_selection).await
         }
     }?;
     let canister_id = cid.to_text();
@@ -168,28 +177,72 @@ async fn create_with_wallet(
     wallet_id: &Principal,
     with_cycles: Option<u128>,
     settings: DfxCanisterSettings,
+    subnet_selection: Option<SubnetSelection>,
 ) -> DfxResult<Principal> {
     let wallet = build_wallet_canister(*wallet_id, agent).await?;
     let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
-    if settings.reserved_cycles_limit.is_some() {
-        bail!(
-            "Cannot create a canister using a wallet if the reserved_cycles_limit is set. Please create with --no-wallet or use dfx canister update-settings instead.")
-    }
-    match wallet
-        .wallet_create_canister(
-            cycles,
-            settings.controllers,
-            settings.compute_allocation,
-            settings.memory_allocation,
-            settings.freezing_threshold,
-        )
-        .await
-    {
-        Ok(result) => Ok(result.canister_id),
-        Err(AgentError::WalletUpgradeRequired(s)) => Err(anyhow!(
-            "{}\nTo upgrade, run dfx wallet upgrade.",
-            AgentError::WalletUpgradeRequired(s)
-        )),
-        Err(other) => Err(anyhow!(other)),
+
+    if let Some(subnet_selection) = subnet_selection {
+        // `wallet_create_canister` only calls the management canister, which means that canisters only get created on the subnet the wallet is on.
+        // For any other targeting we need to use the CMC.
+
+        let settings = if settings.controllers.is_some() {
+            settings
+        } else {
+            let identity = agent
+                .get_principal()
+                .map_err(|err| anyhow!("Failed to get selected identity principal: {err}"))?;
+            DfxCanisterSettings {
+                controllers: Some(vec![*wallet_id, identity]),
+                ..settings
+            }
+        };
+
+        let call_result: Result<
+            (Result<Principal, CmcCreateCanisterError>,),
+            ic_agent::AgentError,
+        > = wallet
+            .call128(
+                MAINNET_CYCLE_MINTER_CANISTER_ID,
+                CMC_CREATE_CANISTER_METHOD,
+                Argument::from_candid((CmcCreateCanisterArgs {
+                    settings: Some(CanisterSettings::from(settings)),
+                    subnet_selection: Some(subnet_selection),
+                },)),
+                cycles,
+            )
+            .call_and_wait()
+            .await;
+        match call_result {
+            Ok((Ok(canister_id),)) => Ok(canister_id),
+            Ok((Err(err),)) => Err(anyhow!(err)),
+            Err(AgentError::WalletUpgradeRequired(s)) => Err(anyhow!(
+                "{}\nTo upgrade, run dfx wallet upgrade.",
+                AgentError::WalletUpgradeRequired(s)
+            )),
+            Err(other) => Err(anyhow!(other)),
+        }
+    } else {
+        if settings.reserved_cycles_limit.is_some() {
+            bail!(
+                "Cannot create a canister using a wallet if the reserved_cycles_limit is set. Please create with --no-wallet or use dfx canister update-settings instead.")
+        }
+        match wallet
+            .wallet_create_canister(
+                cycles,
+                settings.controllers,
+                settings.compute_allocation,
+                settings.memory_allocation,
+                settings.freezing_threshold,
+            )
+            .await
+        {
+            Ok(result) => Ok(result.canister_id),
+            Err(AgentError::WalletUpgradeRequired(s)) => Err(anyhow!(
+                "{}\nTo upgrade, run dfx wallet upgrade.",
+                AgentError::WalletUpgradeRequired(s)
+            )),
+            Err(other) => Err(anyhow!(other)),
+        }
     }
 }

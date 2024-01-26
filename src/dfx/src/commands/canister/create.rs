@@ -14,6 +14,7 @@ use crate::util::clap::parsers::{
     reserved_cycles_limit_parser,
 };
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
+use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
 use anyhow::{bail, Context};
 use byte_unit::Byte;
 use candid::Principal as CanisterId;
@@ -93,6 +94,9 @@ pub struct CanisterCreateOpts {
     //TODO(SDK-1331): unhide
     #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
     from_subaccount: Option<Subaccount>,
+
+    #[command(flatten)]
+    subnet_selection: SubnetSelectionOpt,
 }
 
 pub async fn exec(
@@ -170,6 +174,7 @@ pub async fn exec(
         })
         .transpose()
         .context("Failed to determine controllers.")?;
+    let subnet_selection = opts.subnet_selection.into_subnet_selection();
 
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     if let Some(canister_name) = opts.canister_name.as_deref() {
@@ -224,6 +229,7 @@ pub async fn exec(
                 reserved_cycles_limit,
             },
             opts.created_at_time,
+            subnet_selection,
         )
         .await?;
         Ok(())
@@ -294,6 +300,7 @@ pub async fn exec(
                         reserved_cycles_limit,
                     },
                     opts.created_at_time,
+                    subnet_selection.clone(),
                 )
                 .await?;
             }

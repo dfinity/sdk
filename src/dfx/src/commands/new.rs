@@ -15,7 +15,6 @@ use dialoguer::theme::ColorfulTheme;
 use dialoguer::{FuzzySelect, MultiSelect};
 use fn_error_context::context;
 use indicatif::HumanBytes;
-use lazy_static::lazy_static;
 use semver::Version;
 use slog::{info, warn, Logger};
 use std::collections::BTreeMap;
@@ -33,15 +32,12 @@ const RELEASE_ROOT: &str = "https://sdk.dfinity.org";
 // The dist-tag to use when getting the version from NPM.
 const AGENT_JS_DEFAULT_INSTALL_DIST_TAG: &str = "latest";
 
-lazy_static! {
 // Tested on a phone tethering connection. This should be fine with
 // little impact to the user, given that "new" is supposedly a
 // heavy-weight operation. Thus, worst case we are utilizing the user
 // expectation for the duration to have a more expensive version
 // check.
-    static ref CHECK_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
-
-}
+const CHECK_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
 
 /// Creates a new project.
 #[derive(Parser)]
@@ -484,7 +480,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
 
     // It is fine for the following command to timeout or fail. We
     // drop the error.
-    let latest_version = get_latest_version(RELEASE_ROOT, Some(*CHECK_VERSION_TIMEOUT)).ok();
+    let latest_version = get_latest_version(RELEASE_ROOT, Some(CHECK_VERSION_TIMEOUT)).ok();
 
     if is_upgrade_necessary(latest_version.as_ref(), current_version) {
         warn_upgrade(log, latest_version.as_ref(), current_version);
