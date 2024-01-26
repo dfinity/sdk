@@ -22,6 +22,8 @@ The following commands now work outside of a project:
 - `dfx canister deposit-cycles <amount> <specific canister id>`
 - `dfx canister uninstall-code <specific canister id>`
 
+### chore: bump `ic-agent`, `ic-utils` and `ic-identity-hsm` to 0.32.0
+
 # 0.16.0
 
 ### feat: large canister modules now supported
