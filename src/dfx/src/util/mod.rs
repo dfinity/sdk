@@ -18,7 +18,7 @@ use num_traits::FromPrimitive;
 use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
 use std::collections::BTreeMap;
-use std::io::{stdin, IsTerminal, Read};
+use std::io::{stdin, stdout, IsTerminal, Read};
 use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
 use std::time::Duration;
@@ -175,6 +175,7 @@ pub fn blob_from_arguments(
                         .to_bytes()
                 }
                 Some((env, func)) => {
+                    let is_terminal = stdin().is_terminal() && stdout().is_terminal();
                     if let Some(arguments) = arguments {
                         fuzzy_parse_argument(arguments, env, &func.args)
                     } else if func.args.is_empty() {
@@ -184,7 +185,7 @@ pub fn blob_from_arguments(
                         .args
                         .iter()
                         .all(|t| matches!(t.as_ref(), TypeInner::Opt(_)))
-                        && !stdin().is_terminal()
+                        && !is_terminal
                     {
                         // If the user provided no arguments, and if all the expected arguments are
                         // optional, then use null values.
@@ -207,11 +208,12 @@ pub fn blob_from_arguments(
                             .context("Failed to create idl args.")?;
                         eprintln!("Sending the following random argument:\n{}\n", args);
                         args.to_bytes_with_types(env, &func.args)
-                    } else if stdin().is_terminal() {
+                    } else if is_terminal {
                         use candid_parser::assist::{input_args, Context};
                         let mut ctx = Context::new(env.clone());
                         if let Some(env) = dfx_env {
-                            if let Some(principals) = gather_principals_from_env(env) {
+                            let principals = gather_principals_from_env(env);
+                            if !principals.is_empty() {
                                 let mut map = BTreeMap::new();
                                 map.insert("principal".to_string(), principals);
                                 ctx.set_completion(map);
@@ -238,24 +240,28 @@ pub fn blob_from_arguments(
     }
 }
 
-pub fn gather_principals_from_env(env: &dyn Environment) -> Option<BTreeMap<String, String>> {
+pub fn gather_principals_from_env(env: &dyn Environment) -> BTreeMap<String, String> {
     use ic_agent::Identity;
-    let mgr = env.new_identity_manager().ok()?;
-    let logger = env.get_logger();
-    let names = mgr.get_identity_names(logger).ok()?;
-    let mut map: BTreeMap<String, String> = names
-        .iter()
-        .filter_map(|name| {
-            let id = mgr.load_identity(name, logger).ok()?;
-            let sender = id.sender().ok()?;
-            Some((name.clone(), sender.to_text()))
-        })
-        .collect();
-    let canisters = env.get_canister_id_store().ok()?;
-    let mut canisters = canisters.get_name_id_map();
-    map.append(&mut canisters);
-    //println!("{}", serde_json::to_string_pretty(&map).ok()?);
-    Some(map)
+    let mut res: BTreeMap<String, String> = BTreeMap::new();
+    if let Ok(mgr) = env.new_identity_manager() {
+        let logger = env.get_logger();
+        if let Ok(names) = mgr.get_identity_names(logger) {
+            let mut map = names
+                .iter()
+                .filter_map(|name| {
+                    let id = mgr.load_identity(name, logger).ok()?;
+                    let sender = id.sender().ok()?;
+                    Some((name.clone(), sender.to_text()))
+                })
+                .collect();
+            res.append(&mut map);
+        }
+    }
+    if let Ok(canisters) = env.get_canister_id_store() {
+        let mut canisters = canisters.get_name_id_map();
+        res.append(&mut canisters);
+    }
+    res
 }
 
 pub fn fuzzy_parse_argument(

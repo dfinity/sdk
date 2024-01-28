@@ -254,24 +254,22 @@ impl CanisterIdStore {
         let mut ids: BTreeMap<_, _> = self
             .ids
             .iter()
-            .map(|(name, network_to_id)| {
-                (
+            .filter_map(|(name, network_to_id)| {
+                Some((
                     name.clone(),
-                    network_to_id.get(&self.network_descriptor.name).cloned(),
-                )
+                    network_to_id.get(&self.network_descriptor.name).cloned()?,
+                ))
             })
-            .filter_map(|(name, id)| id.map(|id| (name, id)))
             .collect();
         if let Some(remote_ids) = &self.remote_ids {
             let mut remote = remote_ids
                 .iter()
-                .map(|(name, network_to_id)| {
-                    (
+                .filter_map(|(name, network_to_id)| {
+                    Some((
                         name.clone(),
-                        network_to_id.get(&self.network_descriptor.name).cloned(),
-                    )
+                        network_to_id.get(&self.network_descriptor.name).cloned()?,
+                    ))
                 })
-                .filter_map(|(name, id)| id.map(|id| (name, id)))
                 .collect();
             ids.append(&mut remote);
         }
