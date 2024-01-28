@@ -1,3 +1,4 @@
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 use anyhow::{bail, Context};
@@ -16,6 +17,7 @@ use net2::{TcpBuilder, TcpListenerExt};
 use num_traits::FromPrimitive;
 use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
+use std::collections::BTreeMap;
 use std::io::{stdin, IsTerminal, Read};
 use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
@@ -149,6 +151,7 @@ pub fn arguments_from_file(file_name: &Path) -> DfxResult<String> {
 
 #[context("Failed to create argument blob.")]
 pub fn blob_from_arguments(
+    dfx_env: Option<&dyn Environment>,
     arguments: Option<&str>,
     random: Option<&str>,
     arg_type: Option<&str>,
@@ -174,6 +177,20 @@ pub fn blob_from_arguments(
                 Some((env, func)) => {
                     if let Some(arguments) = arguments {
                         fuzzy_parse_argument(arguments, env, &func.args)
+                    } else if func.args.is_empty() {
+                        use candid::Encode;
+                        Encode!()
+                    } else if func
+                        .args
+                        .iter()
+                        .all(|t| matches!(t.as_ref(), TypeInner::Opt(_)))
+                        && !stdin().is_terminal()
+                    {
+                        // If the user provided no arguments, and if all the expected arguments are
+                        // optional, then use null values.
+                        let nulls = vec![IDLValue::Null; func.args.len()];
+                        let args = IDLArgs::new(&nulls);
+                        args.to_bytes_with_types(env, &func.args)
                     } else if let Some(random) = random {
                         let random = if random.is_empty() {
                             eprintln!("Random schema is empty, using any random value instead.");
@@ -193,7 +210,14 @@ pub fn blob_from_arguments(
                     } else if stdin().is_terminal() {
                         use candid_parser::assist::{input_args, Context};
                         let mut ctx = Context::new(env.clone());
-                        let args = input_args(&mut ctx, &func.args)?;
+                        if let Some(env) = dfx_env {
+                            if let Some(principals) = gather_principals_from_env(env) {
+                                let mut map = BTreeMap::new();
+                                map.insert("principal".to_string(), principals);
+                                ctx.set_completion(map);
+                            }
+                        }
+                        let args = input_args(&ctx, &func.args)?;
                         eprintln!("Sending the following argument:\n{}\n", args);
                         eprintln!("Do you want to send this message? [y/N]");
                         let mut input = String::new();
@@ -212,6 +236,26 @@ pub fn blob_from_arguments(
         }
         v => Err(error_unknown!("Invalid type: {}", v)),
     }
+}
+
+pub fn gather_principals_from_env(env: &dyn Environment) -> Option<BTreeMap<String, String>> {
+    use ic_agent::Identity;
+    let mgr = env.new_identity_manager().ok()?;
+    let logger = env.get_logger();
+    let names = mgr.get_identity_names(logger).ok()?;
+    let mut map: BTreeMap<String, String> = names
+        .iter()
+        .filter_map(|name| {
+            let id = mgr.load_identity(name, logger).ok()?;
+            let sender = id.sender().ok()?;
+            Some((name.clone(), sender.to_text()))
+        })
+        .collect();
+    let canisters = env.get_canister_id_store().ok()?;
+    let mut canisters = canisters.get_name_id_map();
+    map.append(&mut canisters);
+    //println!("{}", serde_json::to_string_pretty(&map).ok()?);
+    Some(map)
 }
 
 pub fn fuzzy_parse_argument(

@@ -277,7 +277,11 @@ impl IdentityManager {
         Ok(identity)
     }
 
-    fn load_identity(&self, name: &str, log: &Logger) -> Result<DfxIdentity, LoadIdentityError> {
+    pub fn load_identity(
+        &self,
+        name: &str,
+        log: &Logger,
+    ) -> Result<DfxIdentity, LoadIdentityError> {
         let config = self
             .get_identity_config_or_default(name)
             .map_err(LoadIdentityError::GetIdentityConfigOrDefaultFailed)?;

@@ -347,7 +347,8 @@ async fn install_canisters(
 
         let idl_path = canister_info.get_constructor_idl_path();
         let init_type = get_candid_init_type(&idl_path);
-        let install_args = || blob_from_arguments(argument, None, argument_type, &init_type);
+        let install_args =
+            || blob_from_arguments(Some(env), argument, None, argument_type, &init_type);
 
         install_canister(
             env,
