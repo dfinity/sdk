@@ -2,7 +2,7 @@
 
 # UNRELEASED
 
-# 0.16.1
+# 0.17.0
 
 ### fix: Candid parser when parsing `vec {number}` with `blob` type
 
