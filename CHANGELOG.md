@@ -2,7 +2,7 @@
 
 # UNRELEASED
 
-# 0.16.1
+# 0.17.0
 
 ### fix!: always fetch did file from canister when making canister calls
 
