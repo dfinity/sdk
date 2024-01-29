@@ -22,6 +22,17 @@ The following commands now work outside of a project:
 - `dfx canister deposit-cycles <amount> <specific canister id>`
 - `dfx canister uninstall-code <specific canister id>`
 
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 044cfd5147fc97d7e5a214966941b6580c325d72.
+This incorporates the following executed proposals:
+
+- [127463](https://dashboard.internetcomputer.org/proposal/127463)
+- [127461](https://dashboard.internetcomputer.org/proposal/127461)
+- [127104](https://dashboard.internetcomputer.org/proposal/127104)
+
 # 0.16.0
 
 ### feat: large canister modules now supported
