@@ -1443,7 +1443,7 @@ checksum = "6a1abaf4d861455be59f64fd2b55606cb151fce304ede7165f410243ce96bde6"
 
 [[package]]
 name = "dfx"
-version = "0.16.0"
+version = "0.17.0-beta.0"
 dependencies = [
  "actix",
  "aes-gcm",
