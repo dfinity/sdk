@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: query stats support
+
+When using `dfx canister status`, the output now includes the new query statistics. Those might initially be 0, if the feature is not yet enabled on the subnet the canister is installed in.
+
 # 0.17.0
 
 ### fix!: always fetch did file from canister when making canister calls
