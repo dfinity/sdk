@@ -19,8 +19,8 @@ rust-version = "1.75.0"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-candid = "0.10.0"
-candid_parser = "0.1.2"
+candid = "0.10.3"
+candid_parser = "0.1.3"
 ic-agent = { git = "https://github.com/dfinity/agent-rs.git", rev = "6b02f649a569f354a0a1b370368ba28d31dd8702" }
 ic-asset = { path = "src/canisters/frontend/ic-asset" }
 ic-cdk = "0.12.0"
