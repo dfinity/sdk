@@ -677,7 +677,7 @@ impl IdentityManager {
             names
                 .iter()
                 .filter_map(|name| {
-                    let config = self.get_identity_config_or_default(&name).ok()?;
+                    let config = self.get_identity_config_or_default(name).ok()?;
                     if let IdentityConfiguration {
                         encryption: None,
                         keyring_identity_suffix: None,
