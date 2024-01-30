@@ -8,6 +8,10 @@ When using `dfx canister status`, the output now includes the new query statisti
 
 # 0.17.0
 
+### fix: Candid parser when parsing `vec {number}` with `blob` type
+
+Fix the bug that when parsing `vec {1;2;3}` with `blob` type, dfx silently ignores the numbers.
+
 ### fix!: always fetch did file from canister when making canister calls
 
 `dfx canister call` will always fetch did file from the canister metadata. This is especially helpful for calling remote canisters. It's a breaking change in the sense that if the canister doesn't have the `candid:service` metadata, we will not read the local did file from build artifact, and dfx will issue a warning in this case to encourage canister developers to put the did file into canister metadata.
@@ -38,6 +42,12 @@ This incorporates the following executed proposals:
 - [127463](https://dashboard.internetcomputer.org/proposal/127463)
 - [127461](https://dashboard.internetcomputer.org/proposal/127461)
 - [127104](https://dashboard.internetcomputer.org/proposal/127104)
+
+### Candid UI
+
+Module hash: e5f049a97041217554c1849791c093c4103a6844625be3d6453df2e91abeed35
+
+Fix the HTTP header for deploying in remote environments
 
 # 0.16.0
 
