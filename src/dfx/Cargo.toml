@@ -19,7 +19,7 @@ flate2 = { version = "1.0.11", default-features = false, features = [
     "zlib-ng",
 ] }
 hex = "0.4.3"
-reqwest = "0.11.9"
+reqwest.workspace = true
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10.6"
 tar = "0.4.26"
@@ -83,12 +83,7 @@ pem.workspace = true
 petgraph = "0.6.0"
 rand = "0.8.5"
 regex = "1.5.5"
-reqwest = { version = "0.11.9", default-features = false, features = [
-    "blocking",
-    "json",
-    "rustls-tls",
-    "native-tls-vendored",
-] }
+reqwest = { workspace = true, features = ["blocking", "json"] }
 ring.workspace = true
 rust_decimal = "1.22.0"
 rustls-webpki = "0.101.4"
