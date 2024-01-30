@@ -18,7 +18,7 @@ use num_traits::FromPrimitive;
 use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
 use std::collections::BTreeMap;
-use std::io::{stdin, stdout, IsTerminal, Read};
+use std::io::{stderr, stdin, stdout, IsTerminal, Read};
 use std::net::{IpAddr, SocketAddr};
 use std::path::Path;
 use std::time::Duration;
@@ -175,7 +175,8 @@ pub fn blob_from_arguments(
                         .to_bytes()
                 }
                 Some((env, func)) => {
-                    let is_terminal = stdin().is_terminal() && stdout().is_terminal();
+                    let is_terminal =
+                        stdin().is_terminal() && stdout().is_terminal() && stderr().is_terminal();
                     if let Some(arguments) = arguments {
                         fuzzy_parse_argument(arguments, env, &func.args)
                     } else if func.args.is_empty() {
@@ -241,21 +242,11 @@ pub fn blob_from_arguments(
 }
 
 pub fn gather_principals_from_env(env: &dyn Environment) -> BTreeMap<String, String> {
-    use ic_agent::Identity;
     let mut res: BTreeMap<String, String> = BTreeMap::new();
     if let Ok(mgr) = env.new_identity_manager() {
         let logger = env.get_logger();
-        if let Ok(names) = mgr.get_identity_names(logger) {
-            let mut map = names
-                .iter()
-                .filter_map(|name| {
-                    let id = mgr.load_identity(name, logger).ok()?;
-                    let sender = id.sender().ok()?;
-                    Some((name.clone(), sender.to_text()))
-                })
-                .collect();
-            res.append(&mut map);
-        }
+        let mut map = mgr.get_unencrypted_principal_map(logger);
+        res.append(&mut map);
     }
     if let Ok(canisters) = env.get_canister_id_store() {
         let mut canisters = canisters.get_name_id_map();
