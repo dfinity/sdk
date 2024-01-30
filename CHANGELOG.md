@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.17.0
+
 ### fix!: always fetch did file from canister when making canister calls
 
 `dfx canister call` will always fetch did file from the canister metadata. This is especially helpful for calling remote canisters. It's a breaking change in the sense that if the canister doesn't have the `candid:service` metadata, we will not read the local did file from build artifact, and dfx will issue a warning in this case to encourage canister developers to put the did file into canister metadata.
@@ -21,6 +23,17 @@ The following commands now work outside of a project:
 - `dfx canister stop <specific canister id>`
 - `dfx canister deposit-cycles <amount> <specific canister id>`
 - `dfx canister uninstall-code <specific canister id>`
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 044cfd5147fc97d7e5a214966941b6580c325d72.
+This incorporates the following executed proposals:
+
+- [127463](https://dashboard.internetcomputer.org/proposal/127463)
+- [127461](https://dashboard.internetcomputer.org/proposal/127461)
+- [127104](https://dashboard.internetcomputer.org/proposal/127104)
 
 # 0.16.0
 
