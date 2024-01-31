@@ -2,11 +2,11 @@
 
 # UNRELEASED
 
+# 0.16.1
+
 ### feat: query stats support
 
 When using `dfx canister status`, the output now includes the new query statistics. Those might initially be 0, if the feature is not yet enabled on the subnet the canister is installed in.
-
-# 0.17.0
 
 ### fix: Candid parser when parsing `vec {number}` with `blob` type
 
