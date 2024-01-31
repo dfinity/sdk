@@ -2,6 +2,26 @@
 
 # UNRELEASED
 
+### feat: fetch did file from canister metadata when making canister calls
+
+`dfx canister call` will always fetch did file from the canister metadata. If the canister doesn't have the `candid:service` metadata, dfx will fallback to the current behavior of reading did file from the local build artifact. In a future release, we will deprecate this fallback option. This should not affect Motoko and Rust canisters built from dfx, as `dfx build` automatically write the Candid metadata into the canister.
+
+If you build with custom canister type, add the following into `dfx.json`:
+
+```
+"metadata": [
+  { 
+    "name": "candid:service"
+  }
+]
+```
+
+If you build the canister without using `dfx`, you can use [ic-wasm](https://github.com/dfinity/ic-wasm/releases) to store the metadata:
+
+```
+ic-wasm canister.wasm -o canister.wasm metadata candid:service -f service.did -v public
+```
+
 # 0.16.1
 
 ### feat: query stats support
