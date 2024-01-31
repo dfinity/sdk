@@ -1,7 +1,10 @@
 use crate::lib::cycles_ledger_types::create_canister::SubnetSelection;
-use crate::lib::error::{DfxResult, NotifyCreateCanisterError, NotifyTopUpError};
+use crate::lib::error::{
+    DfxResult, NotifyCreateCanisterError, NotifyMintCyclesError, NotifyTopUpError,
+};
 use crate::lib::ledger_types::{
-    BlockHeight, Memo, NotifyCreateCanisterArg, NotifyCreateCanisterResult, NotifyTopUpArg,
+    BlockHeight, BlockIndex, Memo, NotifyCreateCanisterArg, NotifyCreateCanisterResult,
+    NotifyMintCyclesArg, NotifyMintCyclesResult, NotifyMintCyclesSuccess, NotifyTopUpArg,
     NotifyTopUpResult, MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
 };
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
@@ -9,6 +12,8 @@ use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::operations::ledger::transfer;
 use candid::{Decode, Encode, Principal};
 use ic_agent::Agent;
+use icrc_ledger_types::icrc1::account::Subaccount as ICRCSubaccount;
+use icrc_ledger_types::icrc1::transfer::Memo as ICRCMemo;
 use slog::Logger;
 
 const NOTIFY_CREATE_CANISTER_METHOD: &str = "notify_create_canister";
@@ -88,4 +93,28 @@ pub async fn notify_top_up(
     Decode!(&result, NotifyTopUpResult)
         .map_err(NotifyTopUpError::DecodeResponse)?
         .map_err(NotifyTopUpError::Notify)
+}
+
+pub async fn notify_mint_cycles(
+    agent: &Agent,
+    deposit_memo: Option<ICRCMemo>,
+    to_subaccount: Option<ICRCSubaccount>,
+    block_index: BlockIndex,
+) -> Result<NotifyMintCyclesSuccess, NotifyMintCyclesError> {
+    let result = agent
+        .update(&MAINNET_CYCLE_MINTER_CANISTER_ID, NOTIFY_TOP_UP_METHOD)
+        .with_arg(
+            Encode!(&NotifyMintCyclesArg {
+                block_index,
+                to_subaccount,
+                deposit_memo: deposit_memo.map(|memo| memo.0.as_ref().into()),
+            })
+            .map_err(NotifyMintCyclesError::EncodeArguments)?,
+        )
+        .call_and_wait()
+        .await
+        .map_err(NotifyMintCyclesError::Call)?;
+    Decode!(&result, NotifyMintCyclesResult)
+        .map_err(NotifyMintCyclesError::DecodeResponse)?
+        .map_err(NotifyMintCyclesError::Notify)
 }
