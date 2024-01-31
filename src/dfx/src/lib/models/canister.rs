@@ -8,9 +8,10 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
-use crate::util::{assets, check_candid_file};
+use crate::util::assets;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
+use candid_parser::utils::CandidSource;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{
     CanisterMetadataSection, Config, MetadataVisibility, WasmOptLevel,
@@ -275,14 +276,14 @@ impl Canister {
 
         let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
 
-        // 1. Copy the complete IDL file to .dfx/local/canisters/NAME/constructor.did.
+        // 1. Separate into constructor.did, service.did and init_args
+        let (constructor_did, service_did, init_args) = separate_candid(build_idl_path)?;
+
+        // 2. Copy the constructor IDL file to .dfx/local/canisters/NAME/constructor.did.
         let constructor_idl_path = self.info.get_constructor_idl_path();
         dfx_core::fs::composite::ensure_parent_dir_exists(&constructor_idl_path)?;
-        dfx_core::fs::copy(build_idl_path, &constructor_idl_path)?;
+        dfx_core::fs::write(build_idl_path, constructor_did)?;
         dfx_core::fs::set_permissions_readwrite(&constructor_idl_path)?;
-
-        // 2. Separate into service.did and init_args
-        let (service_did, init_args) = separate_candid(build_idl_path)?;
 
         // 3. Save service.did into following places in .dfx/local/:
         //   - canisters/NAME/service.did
@@ -337,7 +338,7 @@ fn wasm_opt_level_convert(opt_level: WasmOptLevel) -> OptLevel {
     }
 }
 
-fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
+fn separate_candid(path: &Path) -> DfxResult<(String, String, String)> {
     use candid::pretty::candid::{compile, pp_args};
     use candid::types::internal::TypeInner;
     use candid_parser::{
@@ -350,34 +351,37 @@ fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
         .decs
         .iter()
         .any(|dec| matches!(dec, Dec::ImportType(_) | Dec::ImportServ(_)));
-    let (env, actor) = check_candid_file(path)?;
+    let (env, actor) = CandidSource::File(path).load()?;
     let actor = actor.ok_or_else(|| anyhow!("provided candid file contains no main service"))?;
     let actor = env.trace_type(&actor)?;
     let has_init_args = matches!(actor.as_ref(), TypeInner::Class(_, _));
     if has_imports || has_init_args {
         let (init_args, serv) = match actor.as_ref() {
             TypeInner::Class(args, ty) => (args.clone(), ty.clone()),
-            TypeInner::Service(_) => (vec![], actor),
+            TypeInner::Service(_) => (vec![], actor.clone()),
             _ => unreachable!(),
         };
         let init_args = pp_args(&init_args).pretty(80).to_string();
         let service = compile(&env, &Some(serv));
-        Ok((service, init_args))
+        let constructor = compile(&env, &Some(actor));
+        Ok((constructor, service, init_args))
     } else {
         // Keep the original did file to preserve comments
-        Ok((did, "()".to_string()))
+        Ok((did.clone(), did, "()".to_string()))
     }
 }
 
 #[context("{} is not a valid subtype of {}", specified_idl_path.display(), compiled_idl_path.display())]
 fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> DfxResult {
     use candid::types::subtype::{subtype_with_config, OptReport};
-    let (mut env, opt_specified) =
-        check_candid_file(specified_idl_path).context("Checking specified candid file.")?;
+    let (mut env, opt_specified) = CandidSource::File(specified_idl_path)
+        .load()
+        .context("Checking specified candid file.")?;
     let specified_type =
         opt_specified.expect("Specified did file should contain some service interface");
-    let (env2, opt_compiled) =
-        check_candid_file(compiled_idl_path).context("Checking compiled candid file.")?;
+    let (env2, opt_compiled) = CandidSource::File(compiled_idl_path)
+        .load()
+        .context("Checking compiled candid file.")?;
     let compiled_type =
         opt_compiled.expect("Compiled did file should contain some service interface");
     let mut gamma = HashSet::new();
@@ -828,7 +832,7 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
         .get_service_idl_path()
         .with_extension("did.d.ts");
 
-    let (env, ty) = check_candid_file(&canister_info.get_service_idl_path())?;
+    let (env, ty) = CandidSource::File(&canister_info.get_constructor_idl_path()).load()?;
     let content = ensure_trailing_newline(candid_parser::bindings::javascript::compile(&env, &ty));
     std::fs::write(&output_did_js_path, content).with_context(|| {
         format!(
