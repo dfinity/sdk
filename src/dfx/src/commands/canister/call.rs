@@ -261,7 +261,7 @@ pub async fn exec(
         None
     };
     if method_type.is_none() {
-        eprintln!("Cannot fetch Candid interface from canister metadata, sending arguments with inferred types.");
+        eprintln!("Cannot fetch Candid interface for {method_name}, sending arguments with inferred types.");
     }
 
     let is_management_canister = canister_id == CanisterId::management_canister();
