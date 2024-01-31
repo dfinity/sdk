@@ -2,8 +2,8 @@ use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
+use crate::util::check_candid_file;
 use anyhow::Context;
-use candid_parser::utils::CandidSource;
 use clap::Parser;
 use slog::info;
 
@@ -70,7 +70,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                         continue;
                     }
                 }
-                let (type_env, did_types) = CandidSource::File(&candid).load()?;
+                let (type_env, did_types) = check_candid_file(&candid)?;
                 let extension = main.extension().unwrap_or_default();
                 let bindings = if extension == "mo" {
                     Some(candid_parser::bindings::motoko::compile(
