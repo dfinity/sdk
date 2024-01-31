@@ -282,7 +282,7 @@ impl Canister {
         // 2. Copy the constructor IDL file to .dfx/local/canisters/NAME/constructor.did.
         let constructor_idl_path = self.info.get_constructor_idl_path();
         dfx_core::fs::composite::ensure_parent_dir_exists(&constructor_idl_path)?;
-        dfx_core::fs::write(build_idl_path, constructor_did)?;
+        dfx_core::fs::write(&constructor_idl_path, constructor_did)?;
         dfx_core::fs::set_permissions_readwrite(&constructor_idl_path)?;
 
         // 3. Save service.did into following places in .dfx/local/:
