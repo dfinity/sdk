@@ -2,9 +2,17 @@
 
 # UNRELEASED
 
-### fix!: always fetch did file from canister when making canister calls
+### chore: bump `ic-agent`, `ic-utils` and `ic-identity-hsm` to 0.32.0
 
-`dfx canister call` will always fetch did file from the canister metadata. This is especially helpful for calling remote canisters. It's a breaking change in the sense that if the canister doesn't have the `candid:service` metadata, we will not read the local did file from build artifact, and dfx will issue a warning in this case to encourage canister developers to put the did file into canister metadata.
+# 0.16.1
+
+### feat: query stats support
+
+When using `dfx canister status`, the output now includes the new query statistics. Those might initially be 0, if the feature is not yet enabled on the subnet the canister is installed in.
+
+### fix: Candid parser when parsing `vec {number}` with `blob` type
+
+Fix the bug that when parsing `vec {1;2;3}` with `blob` type, dfx silently ignores the numbers.
 
 ### fix: support `import` for local did file
 
@@ -22,7 +30,22 @@ The following commands now work outside of a project:
 - `dfx canister deposit-cycles <amount> <specific canister id>`
 - `dfx canister uninstall-code <specific canister id>`
 
-### chore: bump `ic-agent`, `ic-utils` and `ic-identity-hsm` to 0.32.0
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 044cfd5147fc97d7e5a214966941b6580c325d72.
+This incorporates the following executed proposals:
+
+- [127463](https://dashboard.internetcomputer.org/proposal/127463)
+- [127461](https://dashboard.internetcomputer.org/proposal/127461)
+- [127104](https://dashboard.internetcomputer.org/proposal/127104)
+
+### Candid UI
+
+Module hash: e5f049a97041217554c1849791c093c4103a6844625be3d6453df2e91abeed35
+
+Fix the HTTP header for deploying in remote environments
 
 # 0.16.0
 

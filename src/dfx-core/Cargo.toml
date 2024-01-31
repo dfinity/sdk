@@ -27,7 +27,7 @@ ic-identity-hsm = { workspace = true }
 k256 = { version = "0.11.4", features = ["pem"] }
 keyring.workspace = true
 lazy_static.workspace = true
-reqwest = { version = "0.11.9", features = ["blocking", "json"] }
+reqwest = { workspace = true, features = ["blocking", "json"] }
 ring.workspace = true
 schemars.workspace = true
 sec1 = { workspace = true, features = ["std"] }

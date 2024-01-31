@@ -26,7 +26,7 @@ jobs:
         run: sudo apt-get install --yes moreutils
 
       - name: Checkout dfinity/sdk repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 # workaround to fetch all tags: https://github.com/actions/checkout/issues/701
           path: sdk
@@ -40,7 +40,7 @@ jobs:
           echo "NEW_HASH=$(shasum -a 256 src/distributed/assetstorage.wasm.gz | cut -f1 -d" ")" >> $GITHUB_ENV
 
       - name: Checkout dfinity/motoko-playground repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.NIV_UPDATER_TOKEN }}
           repository: ${{ env.PLAYGROUND_REPO }}

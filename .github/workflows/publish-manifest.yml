@@ -21,7 +21,7 @@ jobs:
     name: install-script-shellcheck:required
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install shfmt
         run: go install mvdan.cc/sh/v3/cmd/shfmt@latest
       - name: Generate

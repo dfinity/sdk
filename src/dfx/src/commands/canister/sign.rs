@@ -8,7 +8,6 @@ use crate::util::clap::parsers::file_or_stdin_parser;
 use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
-use candid_parser::utils::CandidSource;
 use clap::Parser;
 use dfx_core::identity::CallSender;
 use ic_agent::AgentError;
@@ -87,7 +86,7 @@ pub async fn exec(
             if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
                 get_local_cid_and_candid_path(env, canister_name, Some(id))?
             } else {
-                // Sign works in offline mode, cannot fetch candid file from remote canister
+                // TODO fetch candid file from remote canister
                 (id, None)
             }
         }
@@ -97,8 +96,7 @@ pub async fn exec(
         }
     };
 
-    let method_type =
-        maybe_candid_path.and_then(|path| get_candid_type(CandidSource::File(&path), method_name));
+    let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments_from_file = opts
