@@ -227,12 +227,11 @@ Failed to download from url: http://example.com/c.wasm."
   # A: set dfx:wasm_hash
   CUSTOM_HASH_A="$(sha256sum .dfx/local/canisters/a/a.wasm | cut -d " " -f 1)"
   jq '.canisters.a.pullable.wasm_hash="'"$CUSTOM_HASH_A"'"' dfx.json | sponge dfx.json
-  # B: set dfx:wasm_hash_url
+  # B: set dfx:wasm_hash_url with output of sha256sum
   echo -n "$(sha256sum .dfx/local/canisters/b/b.wasm.gz)" > ../www/b.wasm.gz.sha256
   jq '.canisters.b.pullable.wasm_hash_url="'"http://localhost:$E2E_WEB_SERVER_PORT/b.wasm.gz.sha256"'"' dfx.json | sponge dfx.json
-  # C: set both dfx:wasm_hash and dfx:wasm_hash_url. This should be avoided by providers.
+  # C: set dfx:wasm_hash_url with the hash only
   CUSTOM_HASH_C="$(sha256sum .dfx/local/canisters/c/c.wasm | cut -d " " -f 1)"
-  jq '.canisters.c.pullable.wasm_hash="'"$CUSTOM_HASH_C"'"' dfx.json | sponge dfx.json
   echo -n "$CUSTOM_HASH_C" > ../www/c.wasm.sha256
   jq '.canisters.c.pullable.wasm_hash_url="'"http://localhost:$E2E_WEB_SERVER_PORT/c.wasm.sha256"'"' dfx.json | sponge dfx.json
 
@@ -249,11 +248,21 @@ Failed to download from url: http://example.com/c.wasm."
   assert_command dfx deps pull --network local -vvv
   assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
   assert_contains "Canister $CANISTER_ID_B specified a custom hash via url:"
+  assert_contains "Canister $CANISTER_ID_C specified a custom hash via url:"
+ 
+  # warning: specified both `wasm_hash` and `wasm_hash_url`. Providers should avoid this.
+  PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
+  rm -r "${PULLED_DIR:?}/"
+  cd ../onchain
+  jq '.canisters.c.pullable.wasm_hash="'"$CUSTOM_HASH_C"'"' dfx.json | sponge dfx.json
+  dfx build
+  dfx canister install c -m reinstall --argument 3 --yes
+
+  cd ../app
+  assert_command dfx deps pull --network local -vvv
   assert_contains "WARN: Canister $CANISTER_ID_C specified both \`wasm_hash\` and \`wasm_hash_url\`. \`wasm_hash\` will be used."
-  assert_contains "Canister $CANISTER_ID_C specified a custom hash:"
 
   # warning: hash mismatch
-  PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
   rm -r "${PULLED_DIR:?}/"
   cd ../onchain
   cp .dfx/local/canisters/a/a.wasm ../www/a.wasm # now the webserver has the onchain version of canister_a which won't match wasm_hash
