@@ -64,6 +64,14 @@ teardown() {
   assert_match "error: the argument '--all' cannot be used with '--specified-id <PRINCIPAL>'"
 }
 
+@test "create succeeds when specify canister ID in dfx.json" {
+  dfx_start
+  jq '.canisters.e2e_project_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
+  assert_command dfx canister create e2e_project_backend
+  assert_command dfx canister id e2e_project_backend
+  assert_match n5n4y-3aaaa-aaaaa-p777q-cai
+}
+
 @test "create generates the canister_ids.json" {
   dfx_start
   assert_command dfx canister create --all

@@ -23,7 +23,7 @@ use dfx_core::error::identity::instantiate_identity_from_name::InstantiateIdenti
 use dfx_core::identity::CallSender;
 use ic_agent::Identity as _;
 use icrc_ledger_types::icrc1::account::Subaccount;
-use slog::{debug, info};
+use slog::{debug, info, warn};
 
 /// Creates an empty canister and associates the assigned Canister ID to the canister name.
 #[derive(Parser)]
@@ -45,6 +45,7 @@ pub struct CanisterCreateOpts {
     ///
     /// This option only works with non-mainnet replica.
     /// This option implies the --no-wallet flag.
+    /// This option overwrites the specified_id field in dfx.json.
     #[arg(long, value_name = "PRINCIPAL", conflicts_with = "all")]
     specified_id: Option<CanisterId>,
 
@@ -184,12 +185,34 @@ pub async fn exec(
                 canister_name
             );
         }
-        let canister_is_remote = config
-            .get_config()
-            .is_remote_canister(canister_name, &network.name)?;
+        let canister_is_remote =
+            config_interface.is_remote_canister(canister_name, &network.name)?;
         if canister_is_remote {
             bail!("Canister '{}' is a remote canister on network '{}', and cannot be created from here.", canister_name, &network.name)
         }
+        // Specified ID from the command line takes precedence over the one in dfx.json.
+        let specified_id = match (
+            config_interface.get_specified_id(canister_name)?,
+            opts.specified_id,
+        ) {
+            (Some(specified_id), Some(opts_specified_id)) => {
+                if specified_id != opts_specified_id {
+                    warn!(
+                        env.get_logger(),
+                        "Canister '{0}' has a specified ID in dfx.json: {1},
+which is different from the one specified in the command line: {2}.
+The command line value will be used.",
+                        canister_name,
+                        specified_id,
+                        opts_specified_id
+                    );
+                }
+                Some(opts_specified_id)
+            }
+            (Some(specified_id), None) => Some(specified_id),
+            (None, Some(opts_specified_id)) => Some(opts_specified_id),
+            (None, None) => None,
+        };
         let compute_allocation = get_compute_allocation(
             opts.compute_allocation,
             Some(config_interface),
@@ -218,7 +241,7 @@ pub async fn exec(
             env,
             canister_name,
             with_cycles,
-            opts.specified_id,
+            specified_id,
             call_sender,
             opts.from_subaccount,
             CanisterSettings {
@@ -235,14 +258,13 @@ pub async fn exec(
         Ok(())
     } else if opts.all {
         // Create all canisters.
-        if let Some(canisters) = &config.get_config().canisters {
+        if let Some(canisters) = &config_interface.canisters {
             for canister_name in canisters.keys() {
                 if pull_canisters_in_config.contains_key(canister_name) {
                     continue;
                 }
-                let canister_is_remote = config
-                    .get_config()
-                    .is_remote_canister(canister_name, &network.name)?;
+                let canister_is_remote =
+                    config_interface.is_remote_canister(canister_name, &network.name)?;
                 if canister_is_remote {
                     info!(
                         env.get_logger(),
@@ -253,6 +275,7 @@ pub async fn exec(
 
                     continue;
                 }
+                let specified_id = config_interface.get_specified_id(canister_name)?;
                 let compute_allocation = get_compute_allocation(
                     opts.compute_allocation,
                     Some(config_interface),
@@ -289,7 +312,7 @@ pub async fn exec(
                     env,
                     canister_name,
                     with_cycles,
-                    None,
+                    specified_id,
                     call_sender,
                     opts.from_subaccount,
                     CanisterSettings {

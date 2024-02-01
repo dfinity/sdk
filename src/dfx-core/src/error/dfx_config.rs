@@ -63,3 +63,9 @@ pub enum GetRemoteCanisterIdError {
     #[error("Failed to figure out if canister '{0}' has a remote id on network '{1}': {2}")]
     GetRemoteCanisterIdFailed(Box<String>, Box<String>, GetCanisterConfigError),
 }
+
+#[derive(Error, Debug)]
+pub enum GetSpecifiedIdError {
+    #[error("Failed to get specified_id for canister '{0}': {1}")]
+    GetSpecifiedIdFailed(String, GetCanisterConfigError),
+}

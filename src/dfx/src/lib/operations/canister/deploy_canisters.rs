@@ -25,7 +25,7 @@ use ic_utils::interfaces::management_canister::attributes::{
 };
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use icrc_ledger_types::icrc1::account::Subaccount;
-use slog::info;
+use slog::{info, warn};
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 
@@ -236,6 +236,29 @@ async fn register_canisters(
         info!(env.get_logger(), "Creating canisters...");
         for canister_name in &canisters_to_create {
             let config_interface = config.get_config();
+            // Specified ID from the command line takes precedence over the one in dfx.json.
+            let specified_id = match (
+                config_interface.get_specified_id(canister_name)?,
+                specified_id,
+            ) {
+                (Some(specified_id), Some(opts_specified_id)) => {
+                    if specified_id != opts_specified_id {
+                        warn!(
+                            env.get_logger(),
+                            "Canister '{0}' has a specified ID in dfx.json: {1},
+which is different from the one specified in the command line: {2}.
+The command line value will be used.",
+                            canister_name,
+                            specified_id,
+                            opts_specified_id
+                        );
+                    }
+                    Some(opts_specified_id)
+                }
+                (Some(specified_id), None) => Some(specified_id),
+                (None, Some(opts_specified_id)) => Some(opts_specified_id),
+                (None, None) => None,
+            };
             let compute_allocation = config_interface
                 .get_compute_allocation(canister_name)?
                 .map(|arg| {
