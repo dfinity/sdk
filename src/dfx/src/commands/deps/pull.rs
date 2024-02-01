@@ -305,8 +305,11 @@ async fn get_hash_on_chain(
         let wasm_hash_content = download_file(&wasm_hash_url)
             .await
             .with_context(|| format!("Failed to download wasm_hash from {wasm_hash_url}."))?;
-        let wasm_hash_encoded = String::from_utf8(wasm_hash_content)
+        let wasm_hash_str = String::from_utf8(wasm_hash_content)
             .with_context(|| format!("Content from {wasm_hash_url} is not valid text."))?;
+        // The content might contain the file name (usually from tools like shasum or sha256sum).
+        // We only need the hash part.
+        let wasm_hash_encoded = wasm_hash_str.split_whitespace().next().unwrap();
         Ok(hex::decode(&wasm_hash_encoded)
             .with_context(|| format!("Failed to decode {wasm_hash_encoded} as sha256 hash."))?)
     } else {

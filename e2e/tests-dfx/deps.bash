@@ -228,7 +228,7 @@ Failed to download from url: http://example.com/c.wasm."
   CUSTOM_HASH_A="$(sha256sum .dfx/local/canisters/a/a.wasm | cut -d " " -f 1)"
   jq '.canisters.a.pullable.wasm_hash="'"$CUSTOM_HASH_A"'"' dfx.json | sponge dfx.json
   # B: set dfx:wasm_hash_url
-  echo -n "$(sha256sum .dfx/local/canisters/b/b.wasm.gz | cut -d " " -f 1)" > ../www/b.wasm.gz.sha256
+  echo -n "$(sha256sum .dfx/local/canisters/b/b.wasm.gz)" > ../www/b.wasm.gz.sha256
   jq '.canisters.b.pullable.wasm_hash_url="'"http://localhost:$E2E_WEB_SERVER_PORT/b.wasm.gz.sha256"'"' dfx.json | sponge dfx.json
   # C: set both dfx:wasm_hash and dfx:wasm_hash_url. This should be avoided by providers.
   CUSTOM_HASH_C="$(sha256sum .dfx/local/canisters/c/c.wasm | cut -d " " -f 1)"
