@@ -18,6 +18,7 @@ use slog::Logger;
 
 const NOTIFY_CREATE_CANISTER_METHOD: &str = "notify_create_canister";
 const NOTIFY_TOP_UP_METHOD: &str = "notify_top_up";
+const NOTIFY_MINT_CYCLES_METHOD: &str = "notify_mint_cycles";
 
 pub async fn transfer_cmc(
     agent: &Agent,
@@ -102,7 +103,7 @@ pub async fn notify_mint_cycles(
     block_index: BlockIndex,
 ) -> Result<NotifyMintCyclesSuccess, NotifyMintCyclesError> {
     let result = agent
-        .update(&MAINNET_CYCLE_MINTER_CANISTER_ID, NOTIFY_TOP_UP_METHOD)
+        .update(&MAINNET_CYCLE_MINTER_CANISTER_ID, NOTIFY_MINT_CYCLES_METHOD)
         .with_arg(
             Encode!(&NotifyMintCyclesArg {
                 block_index,

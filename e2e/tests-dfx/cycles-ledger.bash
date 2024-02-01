@@ -15,7 +15,7 @@ setup() {
 
   dfx_start_for_nns_install
 
-  dfx extension install nns --version 0.2.1 || true
+  dfx extension install nns --version 0.3.0 || true
   dfx nns install --ledger-accounts "$(dfx ledger account-id --identity cycle-giver)"
 }
 
@@ -581,4 +581,29 @@ current_time_nanoseconds() {
   cd ../e2e_project
   assert_command_fail dfx canister create e2e_project_frontend --subnet-type custom_subnet_type
   assert_contains "Provided subnet type custom_subnet_type does not exist"
+}
+
+@test "convert" {
+  ALICE=$(dfx identity get-principal --identity alice)
+  ALICE_SUBACCT1="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+  ALICE_SUBACCT1_CANDID="\00\01\02\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
+
+  deploy_cycles_ledger
+
+  assert_command dfx --identity cycle-giver ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal $ALICE)"
+  assert_command dfx --identity cycle-giver ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal $ALICE --subaccount $ALICE_SUBACCT1)"
+
+  dfx identity use alice
+  assert_command dfx ledger balance
+  assert_eq "100.00000000 ICP"
+  assert_command dfx ledger balance --subaccount "$ALICE_SUBACCT1"
+  assert_eq "100.00000000 ICP"
+  assert_command dfx cycles balance --precise
+  assert_eq "0 cycles."
+
+  dfx canister call rrkah-fqaaa-aaaaa-aaaaq-cai get_proposal_info '(3 : nat64)'
+
+  assert_command dfx cycles convert --amount 12.5
+  assert_contains "asrt"
+
 }
