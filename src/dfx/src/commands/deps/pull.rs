@@ -309,8 +309,11 @@ async fn get_hash_on_chain(
             .with_context(|| format!("Content from {wasm_hash_url} is not valid text."))?;
         // The content might contain the file name (usually from tools like shasum or sha256sum).
         // We only need the hash part.
-        let wasm_hash_encoded = wasm_hash_str.split_whitespace().next().unwrap();
-        Ok(hex::decode(&wasm_hash_encoded)
+        let wasm_hash_encoded = wasm_hash_str
+            .split_whitespace()
+            .next()
+            .with_context(|| format!("Content from {wasm_hash_url} is empty."))?;
+        Ok(hex::decode(wasm_hash_encoded)
             .with_context(|| format!("Failed to decode {wasm_hash_encoded} as sha256 hash."))?)
     } else {
         match read_state_tree_canister_module_hash(agent, canister_id).await? {
