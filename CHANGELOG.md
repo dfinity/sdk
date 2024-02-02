@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: `dfx cycles redeem-faucet-coupon`
+
+It is now possible to redeem faucet coupons to cycles ledger accounts.
+
 ### fix!: always fetch did file from canister when making canister calls
 
 `dfx canister call` will always fetch did file from the canister metadata. This is especially helpful for calling remote canisters. It's a breaking change in the sense that if the canister doesn't have the `candid:service` metadata, we will not read the local did file from build artifact, and dfx will issue a warning in this case to encourage canister developers to put the did file into canister metadata.
