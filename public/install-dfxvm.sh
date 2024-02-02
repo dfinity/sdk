@@ -135,40 +135,40 @@ check_help_for() {
 
     local _category
     if "$_cmd" --help | grep -q 'For all options use the manual or "--help all".'; then
-      _category="all"
+        _category="all"
     else
-      _category=""
+        _category=""
     fi
 
     case "$_arch" in
 
         *darwin*)
-        if check_cmd sw_vers; then
-            case $(sw_vers -productVersion) in
-                10.*)
-                    # If we're running on macOS, older than 10.13, then we always
-                    # fail to find these options to force fallback
-                    if [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
-                        # Older than 10.13
-                        echo "Warning: Detected macOS platform older than 10.13"
-                        return 1
-                    fi
-                    ;;
+            if check_cmd sw_vers; then
+                case $(sw_vers -productVersion) in
+                    10.*)
+                        # If we're running on macOS, older than 10.13, then we always
+                        # fail to find these options to force fallback
+                        if [ "$(sw_vers -productVersion | cut -d. -f2)" -lt 13 ]; then
+                            # Older than 10.13
+                            echo "Warning: Detected macOS platform older than 10.13"
+                            return 1
+                        fi
+                        ;;
 
-                    # We assume these will be OK for now
-                11.*) ;; # Big Sur
-                12.*) ;; # Monterey
-                13.*) ;; # Ventura
-                14.*) ;; # Sonoma
+                        # We assume these will be OK for now
+                    11.*) ;; # Big Sur
+                    12.*) ;; # Monterey
+                    13.*) ;; # Ventura
+                    14.*) ;; # Sonoma
 
-                *)
-                    # Unknown product version, warn and continue
-                    echo "Warning: Detected unknown macOS major version: $(sw_vers -productVersion)"
-                    echo "Warning TLS capabilities detection may fail"
-                    ;;
-            esac
-        fi
-        ;;
+                    *)
+                        # Unknown product version, warn and continue
+                        echo "Warning: Detected unknown macOS major version: $(sw_vers -productVersion)"
+                        echo "Warning TLS capabilities detection may fail"
+                        ;;
+                esac
+            fi
+            ;;
 
     esac
 
@@ -240,7 +240,7 @@ downloader() {
         fi
         return $_status
     elif [ "$_dld" = wget ]; then
-        if [ "$(wget -V 2>&1|head -2|tail -1|cut -f1 -d" ")" = "BusyBox" ]; then
+        if [ "$(wget -V 2>&1 | head -2 | tail -1 | cut -f1 -d" ")" = "BusyBox" ]; then
             echo "Warning: using the BusyBox version of wget.  Not enforcing strong cipher suites for TLS or TLS v1.2, this is potentially less secure"
             _err=$(wget "$1" -O "$2" 2>&1)
             _status=$?
@@ -270,7 +270,7 @@ downloader() {
         fi
         return $_status
     else
-        err "Unknown downloader"   # should not reach here
+        err "Unknown downloader" # should not reach here
     fi
 }
 
