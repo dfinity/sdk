@@ -7,7 +7,6 @@ use crate::lib::program;
 use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
 use anyhow::{anyhow, bail, ensure, Context};
-use atty::Stream;
 use clap::{Parser, ValueEnum};
 use console::{style, Style};
 use dfx_core::json::{load_json_file, save_json_file};
@@ -19,7 +18,7 @@ use semver::Version;
 use slog::{info, warn, Logger};
 use std::collections::BTreeMap;
 use std::fmt::{self, Display, Formatter};
-use std::io::Read;
+use std::io::{self, IsTerminal, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
@@ -463,7 +462,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
 
     let r#type = if let Some(r#type) = opts.r#type {
         r#type
-    } else if opts.frontend.is_none() && opts.extras.is_empty() && atty::is(Stream::Stdout) {
+    } else if opts.frontend.is_none() && opts.extras.is_empty() && io::stdout().is_terminal() {
         opts = get_opts_interactively(opts)?;
         opts.r#type.unwrap()
     } else {
