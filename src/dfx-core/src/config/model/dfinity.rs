@@ -14,7 +14,10 @@ use crate::error::dfx_config::GetRemoteCanisterIdError::GetRemoteCanisterIdFaile
 use crate::error::dfx_config::GetReservedCyclesLimitError::GetReservedCyclesLimitFailed;
 use crate::error::dfx_config::GetSpecifiedIdError::GetSpecifiedIdFailed;
 use crate::error::dfx_config::{
-    AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError, GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError, GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError, GetSpecifiedIdError
+    AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError,
+    GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError,
+    GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError,
+    GetSpecifiedIdError,
 };
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
