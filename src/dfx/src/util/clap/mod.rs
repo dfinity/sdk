@@ -2,6 +2,7 @@ use anstyle::{AnsiColor, Style};
 use clap::builder::Styles;
 
 pub mod parsers;
+pub mod subnet_selection_opt;
 
 pub fn style() -> Styles {
     let green = Style::new().fg_color(Some(AnsiColor::Green.into()));

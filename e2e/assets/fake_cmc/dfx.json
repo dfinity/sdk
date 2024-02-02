@@ -1,0 +1,9 @@
+{
+  "canisters": {
+    "fake-cmc": {
+      "type": "custom",
+      "wasm": "fake-cmc.wasm.gz",
+      "candid": "fake-cmc.did"
+    }
+  }
+}

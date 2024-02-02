@@ -42,7 +42,7 @@ jobs:
             name: x86_64-linux
             tar: tar
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup environment variables
         run: |
@@ -57,7 +57,7 @@ jobs:
           echo "SHA256_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz.sha256" >> $GITHUB_ENV
 
       - name: Cache Cargo
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -112,7 +112,7 @@ jobs:
 
       - name: Upload Artifacts
         if: github.ref_type == 'tag'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-${{ matrix.name }}
           path: |
@@ -138,13 +138,13 @@ jobs:
       matrix:
         name: [ 'x86_64-darwin', 'x86_64-linux' ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup environment variables
         run: echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-${{ matrix.name }}
 
