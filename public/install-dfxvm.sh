@@ -156,24 +156,6 @@ check_help_for() {
     test "$_ok" = "y"
 }
 
-# Check for an error message in the output of a command.
-# Arguments:
-#   $1 - The error message to look for.
-#   $2... - The command and arguments to run.
-# Returns:
-#   Whether false if the error message was not found, or true if it wasn't (so the feature is
-#   supported.
-# TODO: move this logic to execute once during install.sh run.
-check_support_for() {
-    local err="$1"
-    shift
-    local cmd="$*"
-
-    # Run the command, grep for the error message, if it is found returns false, if it
-    # is not found, returns true.
-    ! ($cmd 2>&1 | grep "$err" >/dev/null)
-}
-
 # This wraps curl or wget. Try curl first, if not installed, use wget instead.
 # Arguments:
 #   $1 - URL to download.
