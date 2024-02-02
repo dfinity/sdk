@@ -556,7 +556,6 @@ current_time_nanoseconds() {
   dfx identity new --storage-mode plaintext no_wallet_identity
   dfx identity use no_wallet_identity
   SUBACCOUNT="7C7B7A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-  SUBACCOUNT_CANDID="\7C\7B\7A\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
 
   assert_command dfx cycles balance --identity no_wallet_identity
   assert_eq "0.000 TC (trillion cycles)."
