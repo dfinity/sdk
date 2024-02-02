@@ -181,6 +181,10 @@ check_help_for() {
     true # not strictly needed
 }
 
+is_zsh() {
+    [ -n "${ZSH_VERSION-}" ]
+}
+
 # This wraps curl or wget. Try curl first, if not installed,
 # use wget instead.
 # Arguments:
@@ -188,6 +192,9 @@ check_help_for() {
 #   $2 - Path to output the download. Use - to output to stdout.
 #   $3 - The architecture, used to determine TLS capabilities.
 downloader() {
+    # zsh does not split words by default, Required for curl retry arguments below.
+    is_zsh && setopt local_options shwordsplit
+
     local _dld
     local _ciphersuites
     local _err
