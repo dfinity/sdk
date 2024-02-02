@@ -5,9 +5,7 @@ use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation,
     get_reserved_cycles_limit, CanisterSettings,
 };
-use crate::lib::identity::wallet::{get_or_create_wallet_canister, GetOrCreateWalletCanisterError};
 use crate::lib::operations::canister::create_canister;
-use crate::lib::operations::cycles_ledger::CYCLES_LEDGER_ENABLED;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
@@ -23,7 +21,7 @@ use dfx_core::error::identity::instantiate_identity_from_name::InstantiateIdenti
 use dfx_core::identity::CallSender;
 use ic_agent::Identity as _;
 use icrc_ledger_types::icrc1::account::Subaccount;
-use slog::{debug, info, warn};
+use slog::{info, warn};
 
 /// Creates an empty canister and associates the assigned Canister ID to the canister name.
 #[derive(Parser)]
@@ -103,7 +101,7 @@ pub struct CanisterCreateOpts {
 pub async fn exec(
     env: &dyn Environment,
     opts: CanisterCreateOpts,
-    mut call_sender: &CallSender,
+    call_sender: &CallSender,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
 
@@ -113,38 +111,6 @@ pub async fn exec(
 
     let config_interface = config.get_config();
     let network = env.get_network_descriptor();
-
-    let proxy_sender;
-    if opts.specified_id.is_none()
-        && !opts.no_wallet
-        && !matches!(call_sender, CallSender::Wallet(_))
-        && !network.is_playground()
-    {
-        match get_or_create_wallet_canister(
-            env,
-            env.get_network_descriptor(),
-            env.get_selected_identity().expect("No selected identity"),
-        )
-        .await
-        {
-            Ok(wallet) => {
-                proxy_sender = CallSender::Wallet(*wallet.canister_id_());
-                call_sender = &proxy_sender;
-            }
-            Err(err) => {
-                if CYCLES_LEDGER_ENABLED
-                    && matches!(
-                        err,
-                        GetOrCreateWalletCanisterError::NoWalletConfigured { .. }
-                    )
-                {
-                    debug!(env.get_logger(), "No wallet configured.");
-                } else {
-                    bail!(err)
-                }
-            }
-        };
-    }
 
     let controllers: Option<Vec<_>> = opts
         .controller
@@ -243,6 +209,7 @@ The command line value will be used.",
             with_cycles,
             specified_id,
             call_sender,
+            opts.no_wallet,
             opts.from_subaccount,
             CanisterSettings {
                 controllers,
@@ -314,6 +281,7 @@ The command line value will be used.",
                     with_cycles,
                     specified_id,
                     call_sender,
+                    opts.no_wallet,
                     opts.from_subaccount,
                     CanisterSettings {
                         controllers: controllers.clone(),
