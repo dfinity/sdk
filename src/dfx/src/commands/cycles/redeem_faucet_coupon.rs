@@ -64,21 +64,19 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         .await
         .context("Failed 'redeem_to_cycles_ledger' call.")?;
     #[derive(CandidType, Deserialize)]
-    struct DepositResponse {
+    struct RedeemResponse {
         balance: u128,
+        cycles: u128,
         block_index: u128,
     }
-    let result = Decode!(&response, DepositResponse)
+    let result = Decode!(&response, RedeemResponse)
         .context("Failed to decode 'redeem_to_cycles_ledger' response.")?;
-    let redeemed_cycles = result.balance;
     info!(
         log,
-        "Redeemed coupon '{}' to the cycles ledger, current balance: {} TC (trillions of cycles) for identity '{}'.",
-        opts.coupon_code.clone(),
-        pretty_thousand_separators(format_as_trillions(redeemed_cycles)),
-        env
-        .get_selected_identity()
-        .with_context(|| anyhow!("No identity selected."))?,
+        "Redeemed coupon '{}' to the cycles ledger for {} TC (trillions of cycles). New balance: {} TC.",
+        opts.coupon_code,
+        pretty_thousand_separators(format_as_trillions(result.cycles)),
+        pretty_thousand_separators(format_as_trillions(result.balance)),
     );
     Ok(())
 }

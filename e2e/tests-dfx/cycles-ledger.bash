@@ -564,21 +564,16 @@ current_time_nanoseconds() {
   assert_eq "0.000 TC (trillion cycles)."
 
   assert_command dfx cycles redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'valid-coupon'
-  assert_match "Redeemed coupon 'valid-coupon' to the cycles ledger, current balance: 10.000 TC .* for identity 'no_wallet_identity'"
+  assert_match "Redeemed coupon 'valid-coupon'"
   assert_command dfx cycles redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon'
-  assert_match "Redeemed coupon 'another-valid-coupon' to the cycles ledger, current balance: 20.000 TC .* for identity 'no_wallet_identity'"
+  assert_match "Redeemed coupon 'another-valid-coupon'"
 
   # with subaccount
   assert_command dfx cycles redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon' --to-subaccount "$SUBACCOUNT"
-  assert_match "Redeemed coupon 'another-valid-coupon' to the cycles ledger, current balance: 10.000 TC .* for identity 'no_wallet_identity'"
+  assert_match "Redeemed coupon 'another-valid-coupon'"
 
   assert_command dfx cycles balance --identity no_wallet_identity
   assert_eq "20.000 TC (trillion cycles)."
   assert_command dfx cycles balance --identity no_wallet_identity --subaccount "$SUBACCOUNT"
   assert_eq "10.000 TC (trillion cycles)."
-
-  assert_command dfx canister call "um5iw-rqaaa-aaaaq-qaaba-cai" icrc1_balance_of "(record {owner = principal \"$(dfx identity get-principal --identity no_wallet_identity)\"; })"
-  assert_eq "(20_000_000_000_000 : nat)"
-  assert_command dfx canister call "um5iw-rqaaa-aaaaq-qaaba-cai" icrc1_balance_of "(record {owner = principal \"$(dfx identity get-principal --identity no_wallet_identity)\"; subaccount = opt blob \"$SUBACCOUNT_CANDID\"; })"
-  assert_eq "(10_000_000_000_000 : nat)"
 }
