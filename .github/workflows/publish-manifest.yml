@@ -26,23 +26,13 @@ jobs:
         run: go install mvdan.cc/sh/v3/cmd/shfmt@latest
       - name: Generate
         run: |
-          shellcheck --shell=sh public/install/*.sh --exclude SC2154,SC2034,SC3003,SC3014,SC3043
-          ~/go/bin/shfmt -d -p -i 4 -ci -bn -s public/install/*.sh
-          sed -i "s/@revision@/${GITHUB_SHA}/" public/install/999_footer.sh
-          mkdir _out
-          cat public/install/*.sh > _out/install.sh
-          sed -i "
-            /#!.*/p
-            /##.*/p
-            /^ *$/d
-            /^ *#/d
-            s/ *#.*//
-          " _out/install.sh
-          cp public/manifest.json _out/manifest.json
+          shellcheck --shell=sh public/install.sh --exclude SC2154,SC2034,SC3003,SC3014,SC3043
+          ~/go/bin/shfmt -d -p -i 4 -ci -bn -s public/install.sh
+          sed -i "s/@revision@/${GITHUB_SHA}/" public/install.sh
       - name: Upload Artifacts
         if: github.event_name == 'push'
         uses: JamesIves/github-pages-deploy-action@releases/v3
         with:
           single_commit: yes
           branch: public-manifest
-          folder: _out/
+          folder: public/
