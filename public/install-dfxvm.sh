@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-## 000_header.sh
+
 ##
 ## Borrowed from rustup (https://sh.rustup.rs)
 ##
@@ -10,7 +10,7 @@
 ## You are NOT AUTHORIZED to remove any license agreements or prompts from the following script.
 ##
 set -u
-## install/010_manifest.sh
+
 #   Functions useful for dealing with the manifest (which is JSON).
 
 # Get the version of a tag from the manifest JSON file.
@@ -28,7 +28,6 @@ get_tag_from_manifest_json() {
         | grep -o "\"$1\":[[:space:]]*\"[a-zA-Z0-9.]*" \
         | grep -o "[0-9.]*$"
 }
-## 020_flags.sh
 
 # A newline separated list of boolean flags. See the read_flags function to see how it's parsed.
 DFX_BOOL_FLAGS=""
@@ -87,7 +86,6 @@ read_flags() {
         done
     done
 }
-## 100_log.sh
 
 log() {
     if "$_ansi_escapes_are_valid"; then
@@ -142,7 +140,6 @@ ensure() {
 ignore() {
     "$@"
 }
-## 200_downloader.sh
 
 define_flag_BOOL "insecure" "Allows downloading from insecure URLs, either using HTTP or TLS 1.2 or less."
 
@@ -234,7 +231,6 @@ downloader() {
         err "Unknown downloader" # should not reach here
     fi
 }
-## 999_footer.sh
 
 DFXVM_GITHUB_LATEST_RELEASE_ROOT="${DFXVM_GITHUB_LATEST_RELEASE_ROOT:-https://github.com/dfinity/dfxvm/releases/latest/download}"
 DFX_VERSION="${DFX_VERSION-}"
