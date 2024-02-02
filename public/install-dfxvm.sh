@@ -399,8 +399,7 @@ download_and_install() {
     log "Checking integrity of tarball..."
     ensure "$SHASUM" -c "${_sha256_filename}"
 
-    ensure tar -xzf "${_tarball_filename}"
-    ensure cd "${_archive}" >/dev/null
+    ensure tar -xzf "${_tarball_filename}" --strip-components=1 "${_archive}/dfxvm"
     ensure chmod u+x dfxvm
     ensure mv dfxvm dfxvm-init
 
@@ -461,7 +460,9 @@ main() {
     )
     local _subshell_exit_code=$?
 
-    ignore rm -rf "${_dir}"
+    ignore rm "${_dir}"/dfxvm*
+    ignore rmdir "${_dir}"
+
     exit $_subshell_exit_code
 }
 
