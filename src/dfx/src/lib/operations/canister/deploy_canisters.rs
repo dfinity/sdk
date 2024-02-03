@@ -24,7 +24,7 @@ use ic_utils::interfaces::management_canister::attributes::{
 };
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use icrc_ledger_types::icrc1::account::Subaccount;
-use slog::{info, warn};
+use slog::info;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 
@@ -46,7 +46,7 @@ pub async fn deploy_canisters(
     upgrade_unchanged: bool,
     with_cycles: Option<u128>,
     created_at_time: Option<u64>,
-    specified_id: Option<Principal>,
+    specified_id_from_cli: Option<Principal>,
     call_sender: &CallSender,
     from_subaccount: Option<Subaccount>,
     no_wallet: bool,
@@ -114,7 +114,7 @@ pub async fn deploy_canisters(
             &canisters_to_load,
             &initial_canister_id_store,
             with_cycles,
-            specified_id,
+            specified_id_from_cli,
             call_sender,
             no_wallet,
             from_subaccount,
@@ -188,7 +188,7 @@ async fn register_canisters(
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
     with_cycles: Option<u128>,
-    specified_id: Option<Principal>,
+    specified_id_from_cli: Option<Principal>,
     call_sender: &CallSender,
     no_wallet: bool,
     from_subaccount: Option<Subaccount>,
@@ -212,29 +212,6 @@ async fn register_canisters(
         info!(env.get_logger(), "Creating canisters...");
         for canister_name in &canisters_to_create {
             let config_interface = config.get_config();
-            // Specified ID from the command line takes precedence over the one in dfx.json.
-            let specified_id = match (
-                config_interface.get_specified_id(canister_name)?,
-                specified_id,
-            ) {
-                (Some(specified_id), Some(opts_specified_id)) => {
-                    if specified_id != opts_specified_id {
-                        warn!(
-                            env.get_logger(),
-                            "Canister '{0}' has a specified ID in dfx.json: {1},
-which is different from the one specified in the command line: {2}.
-The command line value will be used.",
-                            canister_name,
-                            specified_id,
-                            opts_specified_id
-                        );
-                    }
-                    Some(opts_specified_id)
-                }
-                (Some(specified_id), None) => Some(specified_id),
-                (None, Some(opts_specified_id)) => Some(opts_specified_id),
-                (None, None) => None,
-            };
             let compute_allocation = config_interface
                 .get_compute_allocation(canister_name)?
                 .map(|arg| {
@@ -271,7 +248,7 @@ The command line value will be used.",
                 env,
                 canister_name,
                 with_cycles,
-                specified_id,
+                specified_id_from_cli,
                 call_sender,
                 no_wallet,
                 from_subaccount,

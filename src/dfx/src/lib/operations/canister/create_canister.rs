@@ -21,7 +21,7 @@ use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use icrc_ledger_types::icrc1::account::Subaccount;
-use slog::{debug, info};
+use slog::{debug, info, warn};
 use std::format;
 
 // The cycle fee for create request is 0.1T cycles.
@@ -36,7 +36,7 @@ pub async fn create_canister(
     env: &dyn Environment,
     canister_name: &str,
     with_cycles: Option<u128>,
-    specified_id: Option<Principal>,
+    specified_id_from_cli: Option<Principal>,
     call_sender: &CallSender,
     no_wallet: bool,
     from_subaccount: Option<Subaccount>,
@@ -48,13 +48,13 @@ pub async fn create_canister(
     info!(log, "Creating canister {}...", canister_name);
 
     let config = env.get_config_or_anyhow()?;
+    let config_interface = config.get_config();
 
     let mut canister_id_store = env.get_canister_id_store()?;
 
     let network_name = get_network_context()?;
 
-    if let Some(remote_canister_id) = config
-        .get_config()
+    if let Some(remote_canister_id) = config_interface
         .get_remote_canister_id(canister_name, &network_name)
         .unwrap_or_default()
     {
@@ -86,6 +86,30 @@ pub async fn create_canister(
     if env.get_network_descriptor().is_playground() {
         return reserve_canister_with_playground(env, canister_name).await;
     }
+
+    // Specified ID from the command line takes precedence over the one in dfx.json.
+    let specified_id = match (
+        config_interface.get_specified_id(canister_name)?,
+        specified_id_from_cli,
+    ) {
+        (Some(specified_id_from_json), Some(specified_id_from_cli)) => {
+            if specified_id_from_json != specified_id_from_cli {
+                warn!(
+                    env.get_logger(),
+                    "Canister '{0}' has a specified ID in dfx.json: {1},
+which is different from the one specified in the command line: {2}.
+The command line value will be used.",
+                    canister_name,
+                    specified_id_from_json,
+                    specified_id_from_cli
+                );
+            }
+            Some(specified_id_from_cli)
+        }
+        (Some(specified_id_from_json), None) => Some(specified_id_from_json),
+        (None, Some(specified_id_from_cli)) => Some(specified_id_from_cli),
+        (None, None) => None,
+    };
 
     // Replace call_sender with wallet canister when necessary.
     let call_sender =
