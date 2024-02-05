@@ -324,7 +324,7 @@ async fn install_canisters(
 
         let idl_path = canister_info.get_constructor_idl_path();
         let init_type = get_candid_init_type(&idl_path);
-        let install_args = || blob_from_arguments(argument, None, argument_type, &init_type);
+        let install_args = blob_from_arguments(argument, None, argument_type, &init_type)?;
 
         install_canister(
             env,
@@ -332,7 +332,7 @@ async fn install_canisters(
             canister_id,
             Some(&canister_info),
             None,
-            install_args,
+            &install_args,
             install_mode,
             call_sender,
             upgrade_unchanged,

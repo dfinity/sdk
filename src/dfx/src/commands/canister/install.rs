@@ -134,14 +134,14 @@ pub async fn exec(
         if let Some(wasm_path) = opts.wasm {
             // streamlined version, we can ignore most of the environment
             let mode = mode.context("The install mode cannot be auto when using --wasm")?;
-            let install_args = || blob_from_arguments(arguments, None, arg_type, &None);
+            let install_args = blob_from_arguments(arguments, None, arg_type, &None)?;
             install_canister(
                 env,
                 &mut canister_id_store,
                 canister_id,
                 canister_info.ok().as_ref(),
                 Some(&wasm_path),
-                install_args,
+                &install_args,
                 Some(mode),
                 call_sender,
                 opts.upgrade_unchanged,
@@ -158,14 +158,14 @@ pub async fn exec(
             let env_file = config.get_output_env_file(opts.output_env_file)?;
             let idl_path = canister_info.get_constructor_idl_path();
             let init_type = get_candid_init_type(&idl_path);
-            let install_args = || blob_from_arguments(arguments, None, arg_type, &init_type);
+            let install_args = blob_from_arguments(arguments, None, arg_type, &init_type)?;
             install_canister(
                 env,
                 &mut canister_id_store,
                 canister_id,
                 Some(&canister_info),
                 None,
-                install_args,
+                &install_args,
                 mode,
                 call_sender,
                 opts.upgrade_unchanged,
@@ -205,7 +205,7 @@ pub async fn exec(
 
                 let idl_path = canister_info.get_constructor_idl_path();
                 let init_type = get_candid_init_type(&idl_path);
-                let install_args = || blob_from_arguments(None, None, None, &init_type);
+                let install_args = blob_from_arguments(None, None, None, &init_type)?;
 
                 install_canister(
                     env,
@@ -213,7 +213,7 @@ pub async fn exec(
                     canister_id,
                     Some(&canister_info),
                     None,
-                    install_args,
+                    &install_args,
                     mode,
                     call_sender,
                     opts.upgrade_unchanged,
