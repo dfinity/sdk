@@ -154,4 +154,6 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: dfx-*.tar.*
           file_glob: true
+          prerelease: true
+          make_latest: false
           tag: ${{ env.VERSION }}
