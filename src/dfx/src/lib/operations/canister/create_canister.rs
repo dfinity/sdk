@@ -88,7 +88,7 @@ pub async fn create_canister(
     }
 
     // Specified ID from the command line takes precedence over the one in dfx.json.
-    let specified_id = match (
+    let mut specified_id = match (
         config_interface.get_specified_id(canister_name)?,
         specified_id_from_cli,
     ) {
@@ -111,9 +111,23 @@ The command line value will be used.",
         (None, None) => None,
     };
 
-    // Replace call_sender with wallet canister when necessary.
+    // If the network is IC mainnet, the specified ID will be overwritten by None.
+    if env.get_network_descriptor().is_ic && specified_id.is_some() {
+        warn!(
+            env.get_logger(),
+            "Specified ID is ignored on the IC mainnet."
+        );
+        specified_id = None;
+    }
+
+    // Replace call_sender with wallet canister unless:
+    // 1. specified_id is in effect OR
+    // 2. --no-wallet is set explicitly OR
+    // 3. call_sender is already wallet
     let call_sender =
-        if specified_id.is_none() && !no_wallet && !matches!(call_sender, CallSender::Wallet(_)) {
+        if specified_id.is_some() || no_wallet || matches!(call_sender, CallSender::Wallet(_)) {
+            *call_sender
+        } else {
             match get_or_create_wallet_canister(
                 env,
                 env.get_network_descriptor(),
@@ -136,8 +150,6 @@ The command line value will be used.",
                     }
                 }
             }
-        } else {
-            *call_sender
         };
 
     let agent = env.get_agent();
