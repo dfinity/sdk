@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.16.1"
+version = "0.16.1-cargodist.2"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
