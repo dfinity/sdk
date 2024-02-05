@@ -44,10 +44,10 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         warn!(log, "Trying to redeem a wallet coupon on a local replica. Did you forget to use '--network ic'?");
     }
 
-    info!(log, "Redeeming coupon. This may take up to 30 seconds...");
     let identity = env
         .get_selected_identity_principal()
         .with_context(|| anyhow!("No identity selected."))?;
+    info!(log, "Redeeming coupon. This may take up to 30 seconds...");
     let response = agent
         .update(&faucet_principal, "redeem_to_cycles_ledger")
         .with_arg(

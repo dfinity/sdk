@@ -226,7 +226,7 @@ teardown() {
   assert_command_fail dfx wallet balance
   assert_match "No wallet configured"
 
-  assert_command dfx wallet redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'valid-coupon' --yes
+  assert_command dfx wallet redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'valid-coupon'
   assert_match "Redeemed coupon valid-coupon for a new wallet"
   assert_match "New wallet set."
 
@@ -238,7 +238,7 @@ teardown() {
 
   unset DFX_DISABLE_AUTO_WALLET
 
-  assert_command dfx wallet redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon' --yes
+  assert_command dfx wallet redeem-faucet-coupon --faucet "$(dfx canister id faucet)" 'another-valid-coupon'
   assert_match "Redeemed coupon code another-valid-coupon for 10.000 TC"
 
   assert_command dfx wallet balance
