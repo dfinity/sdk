@@ -4,7 +4,7 @@
 
 ### feat: specified_id in dfx.json
 
-Aside from passing `--specified-id` in `dfx deploy` and `dfx canister create`, `specified_id` can be set in `dfx.json`.
+In addition to passing `--specified-id` in `dfx deploy` and `dfx canister create`, `specified_id` can be set in `dfx.json`.
 
 If it is set in both places, the specified ID from the command line takes precedence over the one in dfx.json.
 

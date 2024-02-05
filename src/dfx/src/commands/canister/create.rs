@@ -43,7 +43,7 @@ pub struct CanisterCreateOpts {
     ///
     /// This option only works with non-mainnet replica.
     /// This option implies the --no-wallet flag.
-    /// This option overwrites the specified_id field in dfx.json.
+    /// This option takes precedence over the specified_id field in dfx.json.
     #[arg(long, value_name = "PRINCIPAL", conflicts_with = "all")]
     specified_id: Option<CanisterId>,
 
