@@ -97,7 +97,6 @@ opt-level = 3
 # The profile that 'cargo dist' will build with
 [profile.dist]
 inherits = "release"
-lto = "thin"
 
 [profile.release.package.ic-frontend-canister]
 opt-level = 'z'
