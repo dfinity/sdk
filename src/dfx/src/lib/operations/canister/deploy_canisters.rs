@@ -5,7 +5,6 @@ use crate::lib::cycles_ledger_types::create_canister::SubnetSelection;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::wallet::{get_or_create_wallet_canister, GetOrCreateWalletCanisterError};
 use crate::lib::installers::assets::prepare_assets_for_proposal;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
@@ -47,7 +46,7 @@ pub async fn deploy_canisters(
     upgrade_unchanged: bool,
     with_cycles: Option<u128>,
     created_at_time: Option<u64>,
-    specified_id: Option<Principal>,
+    specified_id_from_cli: Option<Principal>,
     call_sender: &CallSender,
     from_subaccount: Option<Subaccount>,
     no_wallet: bool,
@@ -110,38 +109,14 @@ pub async fn deploy_canisters(
         .iter()
         .any(|canister| initial_canister_id_store.find(canister).is_none())
     {
-        let proxy_sender;
-        let create_call_sender = if no_wallet
-            || specified_id.is_some()
-            || matches!(call_sender, CallSender::Wallet(_))
-            || env.get_network_descriptor().is_playground()
-        {
-            call_sender
-        } else {
-            match get_or_create_wallet_canister(
-                env,
-                env.get_network_descriptor(),
-                env.get_selected_identity().expect("No selected identity"),
-            )
-            .await
-            {
-                Ok(wallet) => {
-                    proxy_sender = CallSender::Wallet(*wallet.canister_id_());
-                    &proxy_sender
-                }
-                Err(err) => match err {
-                    GetOrCreateWalletCanisterError::NoWalletConfigured { .. } => call_sender,
-                    _ => bail!(err),
-                },
-            }
-        };
         register_canisters(
             env,
             &canisters_to_load,
             &initial_canister_id_store,
             with_cycles,
-            specified_id,
-            create_call_sender,
+            specified_id_from_cli,
+            call_sender,
+            no_wallet,
             from_subaccount,
             created_at_time,
             &config,
@@ -213,8 +188,9 @@ async fn register_canisters(
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
     with_cycles: Option<u128>,
-    specified_id: Option<Principal>,
+    specified_id_from_cli: Option<Principal>,
     call_sender: &CallSender,
+    no_wallet: bool,
     from_subaccount: Option<Subaccount>,
     created_at_time: Option<u64>,
     config: &Config,
@@ -272,8 +248,9 @@ async fn register_canisters(
                 env,
                 canister_name,
                 with_cycles,
-                specified_id,
+                specified_id_from_cli,
                 call_sender,
+                no_wallet,
                 from_subaccount,
                 CanisterSettings {
                     controllers,
