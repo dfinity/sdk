@@ -9,6 +9,7 @@ use crate::{
     lib::canister_info::CanisterInfo,
     util::{arguments_from_file, blob_from_arguments},
 };
+use dfx_core::canister::install_canister_wasm;
 use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
@@ -98,84 +99,109 @@ pub async fn exec(
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
 
     if let Some(canister) = opts.canister.as_deref() {
-        if pull_canisters_in_config.contains_key(canister) {
-            bail!(
-                "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
-                canister
-            );
-        }
-        let config = env.get_config();
-        let is_remote = config
-            .as_ref()
-            .map_or(Ok(false), |config| {
-                config
-                    .get_config()
-                    .is_remote_canister(canister, &network.name)
-            })
-            .unwrap_or(false);
-        if is_remote {
-            bail!("Canister '{}' is a remote canister on network '{}', and cannot be installed from here.", canister, &network.name)
-        }
-
-        let canister_id =
-            Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
-
         let arguments_from_file = opts
             .argument_file
             .map(|v| arguments_from_file(&v))
             .transpose()?;
         let arguments = opts.argument.as_deref();
-        let arguments = arguments_from_file.as_deref().or(arguments);
-
+        let argument_from_cli = arguments_from_file.as_deref().or(arguments);
         let arg_type = opts.argument_type.as_deref();
-        let canister_info = config.as_ref()
+
+        // Install a single canister with canister_id
+        if let Ok(canister_id) = Principal::from_text(canister) {
+            if let Some(wasm_path) = &opts.wasm {
+                let args = blob_from_arguments(argument_from_cli, None, arg_type, &None)?;
+                let wasm_module = std::fs::read(&wasm_path)
+                    .with_context(|| format!("Failed to read {}.", &wasm_path.display()))?;
+                install_canister_wasm(
+                    env.get_agent(),
+                    canister_id,
+                    None,
+                    &args,
+                    mode.unwrap_or(InstallMode::Install),
+                    call_sender,
+                    wasm_module,
+                    opts.yes,
+                    env.get_logger(),
+                )
+                .await?;
+                Ok(())
+            } else {
+                bail!("When installing a canister by its ID, you must specify `--wasm` option.")
+            }
+        } else {
+            if pull_canisters_in_config.contains_key(canister) {
+                bail!(
+                    "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
+                    canister
+                );
+            }
+            let config = env.get_config();
+            let is_remote = config
+                .as_ref()
+                .map_or(Ok(false), |config| {
+                    config
+                        .get_config()
+                        .is_remote_canister(canister, &network.name)
+                })
+                .unwrap_or(false);
+            if is_remote {
+                bail!("Canister '{}' is a remote canister on network '{}', and cannot be installed from here.", canister, &network.name)
+            }
+
+            let canister_id =
+                Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
+
+            let canister_info = config.as_ref()
             .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))
             .and_then(|config| CanisterInfo::load(config, canister, Some(canister_id)));
-        if let Some(wasm_path) = opts.wasm {
-            // streamlined version, we can ignore most of the environment
-            let mode = mode.context("The install mode cannot be auto when using --wasm")?;
-            let install_args = || blob_from_arguments(arguments, None, arg_type, &None);
-            install_canister(
-                env,
-                &mut canister_id_store,
-                canister_id,
-                canister_info.ok().as_ref(),
-                Some(&wasm_path),
-                install_args,
-                Some(mode),
-                call_sender,
-                opts.upgrade_unchanged,
-                None,
-                opts.yes,
-                None,
-                opts.no_asset_upgrade,
-            )
-            .await
-            .map_err(Into::into)
-        } else {
-            let canister_info = canister_info?;
-            let config = config.unwrap();
-            let env_file = config.get_output_env_file(opts.output_env_file)?;
-            let idl_path = canister_info.get_constructor_idl_path();
-            let init_type = get_candid_init_type(&idl_path);
-            let install_args = || blob_from_arguments(arguments, None, arg_type, &init_type);
-            install_canister(
-                env,
-                &mut canister_id_store,
-                canister_id,
-                Some(&canister_info),
-                None,
-                install_args,
-                mode,
-                call_sender,
-                opts.upgrade_unchanged,
-                None,
-                opts.yes,
-                env_file.as_deref(),
-                opts.no_asset_upgrade,
-            )
-            .await
-            .map_err(Into::into)
+            if let Some(wasm_path) = opts.wasm {
+                // streamlined version, we can ignore most of the environment
+                let mode = mode.context("The install mode cannot be auto when using --wasm")?;
+                let install_args = || blob_from_arguments(argument_from_cli, None, arg_type, &None);
+                install_canister(
+                    env,
+                    &mut canister_id_store,
+                    canister_id,
+                    canister_info.ok().as_ref(),
+                    Some(&wasm_path),
+                    install_args,
+                    Some(mode),
+                    call_sender,
+                    opts.upgrade_unchanged,
+                    None,
+                    opts.yes,
+                    None,
+                    opts.no_asset_upgrade,
+                )
+                .await
+                .map_err(Into::into)
+            } else {
+                let canister_info = canister_info?;
+                let config = config.unwrap();
+                let env_file = config.get_output_env_file(opts.output_env_file)?;
+                let idl_path = canister_info.get_constructor_idl_path();
+                let init_type = get_candid_init_type(&idl_path);
+                let install_args =
+                    || blob_from_arguments(argument_from_cli, None, arg_type, &init_type);
+                install_canister(
+                    env,
+                    &mut canister_id_store,
+                    canister_id,
+                    Some(&canister_info),
+                    None,
+                    install_args,
+                    mode,
+                    call_sender,
+                    opts.upgrade_unchanged,
+                    None,
+                    opts.yes,
+                    env_file.as_deref(),
+                    opts.no_asset_upgrade,
+                )
+                .await
+                .map_err(Into::into)
+            }
         }
     } else if opts.all {
         // Install all canisters.
