@@ -380,7 +380,7 @@ DFXVM_GITHUB_LATEST_RELEASE_ROOT="${DFXVM_GITHUB_LATEST_RELEASE_ROOT:-https://gi
 DFX_VERSION="${DFX_VERSION-}"
 
 # The SHA and the time of the last commit that touched this file.
-SCRIPT_COMMIT_DESC="42eb375f778aea1f6aa4db68b97a1686bc1a3af3"
+SCRIPT_COMMIT_DESC="5057983cff697ba507a1286dc4508407086824cd"
 
 download_and_install() {
     SHASUM="$1"
