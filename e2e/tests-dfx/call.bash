@@ -26,13 +26,18 @@ teardown() {
   CANISTER_ID=$(dfx canister id hello_backend)
   rm .dfx/local/canister_ids.json
 
-  # given a canister id, fetch the did file form metadata
-  assert_command dfx canister call "$CANISTER_ID" make_struct '("A", "B")'
+  # if no candid file known, then no field names
+  assert_command dfx canister call "$CANISTER_ID" make_struct '("A", "B")' --identity anonymous
+  # shellcheck disable=SC2154
+  assert_eq '(record { 99 = "A"; 100 = "B" })' "$stdout"
+
+  # if passing the candid file, field names available
+  assert_command dfx canister call --candid .dfx/local/canisters/hello_backend/hello_backend.did "$CANISTER_ID" make_struct '("A", "B")' --identity anonymous
   assert_eq '(record { c = "A"; d = "B" })'
 
-  # if passing the candid file, dfx will not fetch from metadata, only showing field c
-  assert_command dfx canister call --candid empty.did "$CANISTER_ID" make_struct '("A", "B")'
-  assert_eq '(record { c = "A" })'
+  # given a canister id, fetch the did file from metadata
+  assert_command dfx canister call "$CANISTER_ID" make_struct '("A", "B")'
+  assert_eq '(record { c = "A"; d = "B" })'
 }
 
 @test "call subcommand accepts canister identifier as canister name" {
