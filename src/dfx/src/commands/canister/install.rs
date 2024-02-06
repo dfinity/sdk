@@ -4,7 +4,6 @@ use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::install_canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::file_or_stdin_parser;
-use crate::util::get_candid_init_type;
 use crate::{
     lib::canister_info::CanisterInfo,
     util::{arguments_from_file, blob_from_arguments},
@@ -110,7 +109,7 @@ pub async fn exec(
         let argument_from_cli = arguments_from_file.as_deref().or(arguments);
         let arg_type = opts.argument_type.as_deref();
 
-        // Install a single canister with canister_id
+        // opts.canister is canister_id
         if let Ok(canister_id) = Principal::from_text(canister) {
             if let Some(wasm_path) = &opts.wasm {
                 let args = blob_from_arguments(argument_from_cli, None, arg_type, &None)?;
@@ -133,6 +132,7 @@ pub async fn exec(
                 bail!("When installing a canister by its ID, you must specify `--wasm` option.")
             }
         } else {
+            // opts.canister is a canister name
             if pull_canisters_in_config.contains_key(canister) {
                 bail!(
                     "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
@@ -149,14 +149,14 @@ pub async fn exec(
             if let Some(wasm_path) = opts.wasm {
                 // streamlined version, we can ignore most of the environment
                 let mode = mode.context("The install mode cannot be auto when using --wasm")?;
-                let install_args = || blob_from_arguments(argument_from_cli, None, arg_type, &None);
                 install_canister(
                     env,
                     &mut canister_id_store,
                     canister_id,
                     &canister_info,
                     Some(&wasm_path),
-                    install_args,
+                    argument_from_cli,
+                    arg_type,
                     Some(mode),
                     call_sender,
                     opts.upgrade_unchanged,
@@ -169,17 +169,14 @@ pub async fn exec(
                 .map_err(Into::into)
             } else {
                 let env_file = config.get_output_env_file(opts.output_env_file)?;
-                let idl_path = canister_info.get_constructor_idl_path();
-                let init_type = get_candid_init_type(&idl_path);
-                let install_args =
-                    || blob_from_arguments(argument_from_cli, None, arg_type, &init_type);
                 install_canister(
                     env,
                     &mut canister_id_store,
                     canister_id,
                     &canister_info,
                     None,
-                    install_args,
+                    argument_from_cli,
+                    arg_type,
                     mode,
                     call_sender,
                     opts.upgrade_unchanged,
@@ -200,34 +197,26 @@ pub async fn exec(
                 if pull_canisters_in_config.contains_key(canister) {
                     continue;
                 }
-                let canister_is_remote = config
-                    .get_config()
-                    .is_remote_canister(canister, &network.name)?;
-                if canister_is_remote {
+                if config_interface.is_remote_canister(canister, &network.name)? {
                     info!(
                         env.get_logger(),
                         "Skipping canister '{}' because it is remote for network '{}'",
                         canister,
                         &network.name,
                     );
-
                     continue;
                 }
-                let canister_id =
-                    Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
+
+                let canister_id = canister_id_store.get(canister)?;
                 let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
-
-                let idl_path = canister_info.get_constructor_idl_path();
-                let init_type = get_candid_init_type(&idl_path);
-                let install_args = || blob_from_arguments(None, None, None, &init_type);
-
                 install_canister(
                     env,
                     &mut canister_id_store,
                     canister_id,
                     &canister_info,
                     None,
-                    install_args,
+                    None,
+                    None,
                     mode,
                     call_sender,
                     opts.upgrade_unchanged,

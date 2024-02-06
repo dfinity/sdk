@@ -12,7 +12,6 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
 };
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::operations::canister::{create_canister, install_canister::install_canister};
-use crate::util::{blob_from_arguments, get_candid_init_type};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
@@ -322,17 +321,14 @@ async fn install_canisters(
         let canister_id = canister_id_store.get(canister_name)?;
         let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
 
-        let idl_path = canister_info.get_constructor_idl_path();
-        let init_type = get_candid_init_type(&idl_path);
-        let install_args = || blob_from_arguments(argument, None, argument_type, &init_type);
-
         install_canister(
             env,
             &mut canister_id_store,
             canister_id,
             &canister_info,
             None,
-            install_args,
+            argument,
+            argument_type,
             install_mode,
             call_sender,
             upgrade_unchanged,

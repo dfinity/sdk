@@ -8,7 +8,7 @@ use crate::lib::named_canister;
 use crate::lib::operations::canister::motoko_playground::authorize_asset_uploader;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::util::assets::wallet_wasm;
-use crate::util::read_module_metadata;
+use crate::util::{blob_from_arguments, get_candid_init_type, read_module_metadata};
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -40,7 +40,8 @@ pub async fn install_canister(
     canister_id: Principal,
     canister_info: &CanisterInfo,
     wasm_path_override: Option<&Path>,
-    args: impl FnOnce() -> DfxResult<Vec<u8>>,
+    argument_from_cli: Option<&str>,
+    argument_type: Option<&str>,
     mode: Option<InstallMode>,
     call_sender: &CallSender,
     upgrade_unchanged: bool,
@@ -126,12 +127,19 @@ pub async fn install_canister(
             hex::encode(installed_module_hash.as_ref().unwrap())
         );
     } else if !(canister_info.is_assets() && no_asset_upgrade) {
+        let idl_path = canister_info.get_constructor_idl_path();
+        let init_type = if wasm_path_override.is_some() {
+            None
+        } else {
+            get_candid_init_type(&idl_path)
+        };
+        let install_args = blob_from_arguments(argument_from_cli, None, argument_type, &init_type)?;
         if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
             let new_timestamp = playground_install_code(
                 env,
                 canister_id,
                 timestamp,
-                &args()?,
+                &install_args,
                 &wasm_module,
                 mode,
                 canister_info.is_assets(),
@@ -147,7 +155,7 @@ pub async fn install_canister(
                 agent,
                 canister_id,
                 Some(canister_info.get_name()),
-                &args()?,
+                &install_args,
                 mode,
                 call_sender,
                 wasm_module,
