@@ -247,7 +247,7 @@ pub async fn exec(
     } else if let Some(did) = fetch_remote_did_file(agent, canister_id).await {
         get_candid_type(CandidSource::Text(&did), method_name)
     } else if let Some(path) = maybe_local_candid_path {
-        eprintln!("DEPRECATION WARNING: Cannot fetch Candid interface from canister metadata, reading Candid interface from the local build artifact. In a future dfx release, we will only read candid interface from canister metadata.");
+        warn!(env.get_logger(), "DEPRECATION WARNING: Cannot fetch Candid interface from canister metadata, reading Candid interface from the local build artifact. In a future dfx release, we will only read candid interface from canister metadata.");
         eprintln!(
             r#"Please add the following to dfx.json to store local candid file into metadata:
 "metadata": [
@@ -261,7 +261,7 @@ pub async fn exec(
         None
     };
     if method_type.is_none() {
-        eprintln!("Cannot fetch Candid interface for {method_name}, sending arguments with inferred types.");
+        warn!(env.get_logger(), "Cannot fetch Candid interface for {method_name}, sending arguments with inferred types.");
     }
 
     let is_management_canister = canister_id == CanisterId::management_canister();
