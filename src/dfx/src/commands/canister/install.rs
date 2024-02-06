@@ -110,12 +110,11 @@ pub async fn exec(
         let argument_from_cli = arguments_from_file.as_deref().or(arguments);
         let arg_type = opts.argument_type.as_deref();
 
-        // opts.canister is canister_id
+        // `opts.canister` is a Principal (canister ID)
         if let Ok(canister_id) = Principal::from_text(canister) {
             if let Some(wasm_path) = &opts.wasm {
                 let args = blob_from_arguments(argument_from_cli, None, arg_type, &None)?;
-                let wasm_module = std::fs::read(wasm_path)
-                    .with_context(|| format!("Failed to read {}.", wasm_path.display()))?;
+                let wasm_module = dfx_core::fs::read(wasm_path)?;
                 let mode = mode.context("The install mode cannot be auto when using --wasm")?;
                 install_canister_wasm(
                     env.get_agent(),
@@ -134,7 +133,7 @@ pub async fn exec(
                 bail!("When installing a canister by its ID, you must specify `--wasm` option.")
             }
         } else {
-            // opts.canister is a canister name
+            // `opts.canister` is not a canister ID, but a canister name
             if pull_canisters_in_config.contains_key(canister) {
                 bail!(
                     "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",

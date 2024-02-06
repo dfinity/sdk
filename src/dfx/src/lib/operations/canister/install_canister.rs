@@ -113,8 +113,7 @@ pub async fn install_canister(
         }
         build_wasm_path
     };
-    let wasm_module = std::fs::read(&wasm_path)
-        .with_context(|| format!("Failed to read {}.", &wasm_path.display()))?;
+    let wasm_module = dfx_core::fs::read(&wasm_path)?;
     let new_hash = Sha256::digest(&wasm_module);
     debug!(log, "New wasm module hash: {}", hex::encode(new_hash));
 
