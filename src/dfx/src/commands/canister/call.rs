@@ -21,6 +21,7 @@ use ic_utils::interfaces::management_canister::builders::{CanisterInstall, Canis
 use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
+use slog::warn;
 use std::option::Option;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -248,7 +249,8 @@ pub async fn exec(
         get_candid_type(CandidSource::Text(&did), method_name)
     } else if let Some(path) = maybe_local_candid_path {
         warn!(env.get_logger(), "DEPRECATION WARNING: Cannot fetch Candid interface from canister metadata, reading Candid interface from the local build artifact. In a future dfx release, we will only read candid interface from canister metadata.");
-        eprintln!(
+        warn!(
+            env.get_logger(),
             r#"Please add the following to dfx.json to store local candid file into metadata:
 "metadata": [
    {{
