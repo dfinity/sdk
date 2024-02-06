@@ -99,6 +99,7 @@ pub async fn exec(
 
     let config = env.get_config_or_anyhow()?;
     let config_interface = config.get_config();
+    let env_file = config.get_output_env_file(opts.output_env_file)?;
 
     if let Some(canister) = opts.canister.as_deref() {
         let arguments_from_file = opts
@@ -115,12 +116,13 @@ pub async fn exec(
                 let args = blob_from_arguments(argument_from_cli, None, arg_type, &None)?;
                 let wasm_module = std::fs::read(wasm_path)
                     .with_context(|| format!("Failed to read {}.", wasm_path.display()))?;
+                let mode = mode.context("The install mode cannot be auto when using --wasm")?;
                 install_canister_wasm(
                     env.get_agent(),
                     canister_id,
                     None,
                     &args,
-                    mode.unwrap_or(InstallMode::Install),
+                    mode,
                     call_sender,
                     wasm_module,
                     opts.yes,
@@ -144,7 +146,6 @@ pub async fn exec(
             }
 
             let canister_id = canister_id_store.get(canister)?;
-
             let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
             if let Some(wasm_path) = opts.wasm {
                 // streamlined version, we can ignore most of the environment
@@ -168,7 +169,6 @@ pub async fn exec(
                 .await
                 .map_err(Into::into)
             } else {
-                let env_file = config.get_output_env_file(opts.output_env_file)?;
                 install_canister(
                     env,
                     &mut canister_id_store,
@@ -191,7 +191,6 @@ pub async fn exec(
         }
     } else if opts.all {
         // Install all canisters.
-        let env_file = config.get_output_env_file(opts.output_env_file)?;
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
                 if pull_canisters_in_config.contains_key(canister) {
