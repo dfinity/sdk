@@ -114,8 +114,8 @@ pub async fn exec(
         if let Ok(canister_id) = Principal::from_text(canister) {
             if let Some(wasm_path) = &opts.wasm {
                 let args = blob_from_arguments(argument_from_cli, None, arg_type, &None)?;
-                let wasm_module = std::fs::read(&wasm_path)
-                    .with_context(|| format!("Failed to read {}.", &wasm_path.display()))?;
+                let wasm_module = std::fs::read(wasm_path)
+                    .with_context(|| format!("Failed to read {}.", wasm_path.display()))?;
                 install_canister_wasm(
                     env.get_agent(),
                     canister_id,
