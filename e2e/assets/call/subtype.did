@@ -1,0 +1,3 @@
+service : {
+  make_struct : (Text, Text) -> record { c: Text } query
+}

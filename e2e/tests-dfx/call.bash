@@ -30,10 +30,9 @@ teardown() {
   assert_command dfx canister call "$CANISTER_ID" make_struct '("A", "B")'
   assert_eq '(record { c = "A"; d = "B" })'
 
-  # if passing the candid (empty) file, dfx will not fetch from metadata, no field names
+  # if passing the candid file, dfx will not fetch from metadata, only showing field c
   assert_command dfx canister call --candid empty.did "$CANISTER_ID" make_struct '("A", "B")'
-  # shellcheck disable=SC2154
-  assert_eq '(record { 99 = "A"; 100 = "B" })' "$stdout"
+  assert_eq '(record { c = "A" })'
 }
 
 @test "call subcommand accepts canister identifier as canister name" {
