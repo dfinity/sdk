@@ -345,6 +345,7 @@ You can use the following optional flags with the `dfx wallet redeem-faucet-coup
 |Flag |Description|
 |-----|-----------|
 |`--faucet`|Alternative faucet address. If not set, this uses the DFINITY faucet.|
+|`--yes`|Skips yes/no checks by answering 'yes'. Not recommended outside of CI.|
 
 ### Example
 
