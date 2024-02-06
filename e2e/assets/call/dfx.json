@@ -1,14 +1,9 @@
 {
   "canisters": {
     "hello_backend": {
-      "main": "call.mo",
-      "type": "motoko",
-      "metadata" : [
-       { 
-          "name": "candid:service", 
-          "visibility": "private" 
-       }
-      ]
+      "type": "custom",
+      "candid": "partial.did",
+      "wasm": "call.wasm"
     }
   }
 }
