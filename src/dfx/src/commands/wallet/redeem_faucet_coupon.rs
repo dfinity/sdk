@@ -76,7 +76,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         // identity has no wallet yet - faucet will provide one
         _ => {
             if CYCLES_LEDGER_ENABLED && !opts.yes {
-                ask_for_consent("`dfx cycles` is now recommended instead of `dfx wallet`. Are you sure you want to create a new cycles wallet anyways?")?;
+                ask_for_consent("`dfx cycles` is now recommended instead of `dfx wallet`. Are you sure you want to create a new cycles wallet anyway?")?;
             }
             let identity = env
                 .get_selected_identity()
