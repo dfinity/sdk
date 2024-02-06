@@ -109,8 +109,8 @@ jobs:
         if: github.ref_type == 'tag'
         run: |
           mkdir dfx-${{ matrix.target }}
-          cp dfx dfx-${{ matrix.target }}
-          ${{ matrix.tar }} -zcC ${{ matrix.binary_path }} -f ${{ env.TARBALL_2_FILENAME }} ${{ matrix.target }}
+          cp ${{ matrix.binary_path }}/dfx dfx-${{ matrix.target }}
+          ${{ matrix.tar }} -zc -f ${{ env.TARBALL_2_FILENAME }} ${{ matrix.target }}
           shasum -a 256 ${{ env.TARBALL_2_FILENAME }} > ${{ env.SHA256_2_FILENAME }}
           shasum -c ${{ env.SHA256_2_FILENAME }}
 
