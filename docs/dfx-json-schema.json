@@ -454,6 +454,14 @@
             "boolean",
             "null"
           ]
+        },
+        "specified_id": {
+          "title": "Specified Canister ID",
+          "description": "Attempts to create the canister with this Canister ID. This option only works with non-mainnet replica. If the `--specified-id` argument is also provided, this `specified_id` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
