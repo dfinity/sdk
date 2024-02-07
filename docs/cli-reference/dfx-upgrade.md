@@ -1,5 +1,7 @@
 # dfx upgrade
 
+> :warning: `dfx upgrade` will be disabled once the [dfx version manager][dfxvm] is released.
+
 Use the `dfx upgrade` command to upgrade the SDK components running on your local computer. This command checks the version of the SDK that you have currently installed against the latest publicly-available version specified in the `manifest.json` file. If an older version of the SDK is detected locally, the `dfx upgrade` command automatically fetches the latest version from the CDN.
 
 ## Basic usage
@@ -31,3 +33,5 @@ Current version: 0.6.8
 Fetching manifest \https://sdk.dfinity.org/manifest.json
 Already up to date
 ```
+
+[dfxvm]: https://github.com/dfinity/dfxvm
