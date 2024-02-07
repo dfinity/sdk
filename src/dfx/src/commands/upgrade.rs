@@ -19,7 +19,9 @@ pub struct UpgradeOpts {
 
 pub fn exec(env: &dyn Environment, opts: UpgradeOpts) -> DfxResult {
     if dfxvm_released()? {
-        println!("dfx upgrade has been disabled. Please use the dfx version manager (dfxvm) to upgrade.");
+        println!(
+            "dfx upgrade has been disabled. Please use the dfx version manager (dfxvm) to upgrade."
+        );
         println!("You can install dfxvm by running the following command:");
         println!();
         println!(r#"    sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)""#);
