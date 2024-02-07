@@ -1,7 +1,8 @@
+use crate::lib::dfxvm::dfxvm_released;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::manifest::{get_latest_release, get_latest_version};
-use anyhow::Context;
+use anyhow::{bail, Context};
 use clap::Parser;
 use semver::Version;
 
@@ -17,6 +18,17 @@ pub struct UpgradeOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: UpgradeOpts) -> DfxResult {
+    if dfxvm_released()? {
+        println!(
+            "dfx upgrade has been disabled. Please use the dfx version manager (dfxvm) to upgrade."
+        );
+        println!("You can install dfxvm by running the following command:");
+        println!();
+        println!(r#"    sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)""#);
+        println!();
+        bail!("dfx upgrade is disabled");
+    }
+
     // Find OS architecture.
     let os_arch = match std::env::consts::OS {
         "linux" => "x86_64-linux",
