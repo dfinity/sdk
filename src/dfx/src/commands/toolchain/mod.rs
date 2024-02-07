@@ -1,4 +1,4 @@
-use crate::lib::dfxvm::dfxvm_released;
+use crate::lib::dfxvm::{dfxvm_released, display_dfxvm_installation_instructions};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use anyhow::bail;
@@ -19,12 +19,7 @@ pub fn exec(_env: &dyn Environment, _opts: ToolchainOpts) -> DfxResult {
     println!("Please use the dfx version manager (dfxvm) to manage dfx versions.");
     println!();
     if dfxvm_released()? {
-        println!("You can install dfxvm by running the following command:");
-        println!();
-        let command = Style::new()
-            .cyan()
-            .apply_to(r#"sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)""#);
-        println!("    {command}");
+        display_dfxvm_installation_instructions();
     } else {
         println!("For installation instructions, see:");
         let url = Style::new()
@@ -35,3 +30,4 @@ pub fn exec(_env: &dyn Environment, _opts: ToolchainOpts) -> DfxResult {
     println!();
     bail!("toolchain command removed");
 }
+
