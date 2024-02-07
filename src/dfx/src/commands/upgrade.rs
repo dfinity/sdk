@@ -1,4 +1,4 @@
-use crate::lib::dfxvm::dfxvm_released;
+use crate::lib::dfxvm::{dfxvm_released, display_dfxvm_installation_instructions};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::manifest::{get_latest_release, get_latest_version};
@@ -22,9 +22,8 @@ pub fn exec(env: &dyn Environment, opts: UpgradeOpts) -> DfxResult {
         println!(
             "dfx upgrade has been disabled. Please use the dfx version manager (dfxvm) to upgrade."
         );
-        println!("You can install dfxvm by running the following command:");
         println!();
-        println!(r#"    sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)""#);
+        display_dfxvm_installation_instructions();
         println!();
         bail!("dfx upgrade is disabled");
     }
