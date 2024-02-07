@@ -8,7 +8,7 @@ use crate::lib::named_canister;
 use crate::lib::operations::canister::motoko_playground::authorize_asset_uploader;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::util::assets::wallet_wasm;
-use crate::util::read_module_metadata;
+use crate::util::{blob_from_arguments, get_candid_init_type, read_module_metadata};
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -33,14 +33,15 @@ use std::process::{Command, Stdio};
 
 use super::motoko_playground::playground_install_code;
 
-#[context("Failed to install wasm module to canister '{}'.", canister_info.map(|info|info.get_name()).unwrap_or(&canister_id.to_string()))]
+#[context("Failed to install wasm module to canister '{}'.", canister_info.get_name())]
 pub async fn install_canister(
     env: &dyn Environment,
     canister_id_store: &mut CanisterIdStore,
     canister_id: Principal,
-    canister_info: Option<&CanisterInfo>,
+    canister_info: &CanisterInfo,
     wasm_path_override: Option<&Path>,
-    args: impl FnOnce() -> DfxResult<Vec<u8>>,
+    argument_from_cli: Option<&str>,
+    argument_type: Option<&str>,
     mode: Option<InstallMode>,
     call_sender: &CallSender,
     upgrade_unchanged: bool,
@@ -70,38 +71,34 @@ pub async fn install_canister(
             InstallMode::Install
         }
     });
-    if let Some(canister_info) = canister_info {
-        if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade { .. }) {
-            let candid = read_module_metadata(agent, canister_id, "candid:service").await;
-            if let Some(candid) = &candid {
-                match check_candid_compatibility(canister_info, candid) {
-                    Ok(None) => (),
-                    Ok(Some(err)) => {
-                        let msg = format!("Candid interface compatibility check failed for canister '{}'.\nYou are making a BREAKING change. Other canisters or frontend clients relying on your canister may stop working.\n\n", canister_info.get_name()) + &err;
-                        ask_for_consent(&msg)?;
-                    }
-                    Err(e) => {
-                        let msg = format!("An error occurred during Candid interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
-                        ask_for_consent(&msg)?;
-                    }
+    if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade { .. }) {
+        let candid = read_module_metadata(agent, canister_id, "candid:service").await;
+        if let Some(candid) = &candid {
+            match check_candid_compatibility(canister_info, candid) {
+                Ok(None) => (),
+                Ok(Some(err)) => {
+                    let msg = format!("Candid interface compatibility check failed for canister '{}'.\nYou are making a BREAKING change. Other canisters or frontend clients relying on your canister may stop working.\n\n", canister_info.get_name()) + &err;
+                    ask_for_consent(&msg)?;
+                }
+                Err(e) => {
+                    let msg = format!("An error occurred during Candid interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
+                    ask_for_consent(&msg)?;
                 }
             }
         }
-        if !skip_consent && canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade { .. })
-        {
-            let stable_types =
-                read_module_metadata(agent, canister_id, "motoko:stable-types").await;
-            if let Some(stable_types) = &stable_types {
-                match check_stable_compatibility(canister_info, env, stable_types) {
-                    Ok(None) => (),
-                    Ok(Some(err)) => {
-                        let msg = format!("Stable interface compatibility check failed for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &err;
-                        ask_for_consent(&msg)?;
-                    }
-                    Err(e) => {
-                        let msg = format!("An error occurred during stable interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
-                        ask_for_consent(&msg)?;
-                    }
+    }
+    if !skip_consent && canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade { .. }) {
+        let stable_types = read_module_metadata(agent, canister_id, "motoko:stable-types").await;
+        if let Some(stable_types) = &stable_types {
+            match check_stable_compatibility(canister_info, env, stable_types) {
+                Ok(None) => (),
+                Ok(Some(err)) => {
+                    let msg = format!("Stable interface compatibility check failed for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &err;
+                    ask_for_consent(&msg)?;
+                }
+                Err(e) => {
+                    let msg = format!("An error occurred during stable interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
+                    ask_for_consent(&msg)?;
                 }
             }
         }
@@ -110,16 +107,13 @@ pub async fn install_canister(
     let wasm_path: PathBuf = if let Some(wasm_override) = wasm_path_override {
         wasm_override.into()
     } else {
-        let build_wasm_path = canister_info
-            .map(|info| info.get_build_wasm_path())
-            .context("Failed to find wasm")?;
+        let build_wasm_path = canister_info.get_build_wasm_path();
         if !build_wasm_path.exists() {
             bail!("The canister must be built before install. Please run `dfx build`.");
         }
         build_wasm_path
     };
-    let wasm_module = std::fs::read(&wasm_path)
-        .with_context(|| format!("Failed to read {}.", &wasm_path.display()))?;
+    let wasm_module = dfx_core::fs::read(&wasm_path)?;
     let new_hash = Sha256::digest(&wasm_module);
     debug!(log, "New wasm module hash: {}", hex::encode(new_hash));
 
@@ -131,53 +125,46 @@ pub async fn install_canister(
             "Module hash {} is already installed.",
             hex::encode(installed_module_hash.as_ref().unwrap())
         );
-    } else if let Some(canister_info) = canister_info {
-        if !(canister_info.is_assets() && no_asset_upgrade) {
-            if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
-                let new_timestamp = playground_install_code(
-                    env,
-                    canister_id,
-                    timestamp,
-                    &args()?,
-                    &wasm_module,
-                    mode,
-                    canister_info.is_assets(),
-                )
-                .await?;
-                canister_id_store.add(
-                    canister_info.get_name(),
-                    &canister_id.to_string(),
-                    Some(new_timestamp),
-                )?;
-            } else {
-                install_canister_wasm(
-                    agent,
-                    canister_id,
-                    Some(canister_info.get_name()),
-                    &args()?,
-                    mode,
-                    call_sender,
-                    wasm_module,
-                    skip_consent,
-                    env.get_logger(),
-                )
-                .await?;
-            }
+    } else if !(canister_info.is_assets() && no_asset_upgrade) {
+        let idl_path = canister_info.get_constructor_idl_path();
+        let init_type = if wasm_path_override.is_some() {
+            None
+        } else {
+            get_candid_init_type(&idl_path)
+        };
+        let install_args = blob_from_arguments(argument_from_cli, None, argument_type, &init_type)?;
+        if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
+            let new_timestamp = playground_install_code(
+                env,
+                canister_id,
+                timestamp,
+                &install_args,
+                &wasm_module,
+                mode,
+                canister_info.is_assets(),
+            )
+            .await?;
+            canister_id_store.add(
+                canister_info.get_name(),
+                &canister_id.to_string(),
+                Some(new_timestamp),
+            )?;
+        } else {
+            install_canister_wasm(
+                agent,
+                canister_id,
+                Some(canister_info.get_name()),
+                &install_args,
+                mode,
+                call_sender,
+                wasm_module,
+                skip_consent,
+                env.get_logger(),
+            )
+            .await?;
         }
-    } else {
-        install_canister_wasm(
-            agent,
-            canister_id,
-            None,
-            &args()?,
-            mode,
-            call_sender,
-            wasm_module,
-            skip_consent,
-            env.get_logger(),
-        )
-        .await?;
     }
+
     wait_for_module_hash(
         env,
         agent,
@@ -187,35 +174,32 @@ pub async fn install_canister(
     )
     .await?;
 
-    if let Some(canister_info) = canister_info {
-        if canister_info.is_assets() {
-            if let Some(canister_timeout) =
-                canister_id_store.get_timestamp(canister_info.get_name())
-            {
-                // playground installed the code, so playground has to authorize call_sender to upload files
-                let uploader_principal = env
-                    .get_selected_identity_principal()
-                    .context("Failed to figure out selected identity's principal.")?;
-                authorize_asset_uploader(
-                    env,
-                    canister_info.get_canister_id()?,
-                    canister_timeout,
-                    &uploader_principal,
-                )
-                .await?;
-            }
-            if let CallSender::Wallet(wallet_id) = call_sender {
-                let wallet = build_wallet_canister(*wallet_id, agent).await?;
-                let identity_name = env.get_selected_identity().expect("No selected identity.");
-                info!(
-                    log,
-                    "Authorizing our identity ({}) to the asset canister...", identity_name
-                );
-                let self_id = env
-                    .get_selected_identity_principal()
-                    .expect("Selected identity not instantiated.");
-                // Before storing assets, make sure the DFX principal is in there first.
-                wallet
+    if canister_info.is_assets() {
+        if let Some(canister_timeout) = canister_id_store.get_timestamp(canister_info.get_name()) {
+            // playground installed the code, so playground has to authorize call_sender to upload files
+            let uploader_principal = env
+                .get_selected_identity_principal()
+                .context("Failed to figure out selected identity's principal.")?;
+            authorize_asset_uploader(
+                env,
+                canister_info.get_canister_id()?,
+                canister_timeout,
+                &uploader_principal,
+            )
+            .await?;
+        }
+        if let CallSender::Wallet(wallet_id) = call_sender {
+            let wallet = build_wallet_canister(*wallet_id, agent).await?;
+            let identity_name = env.get_selected_identity().expect("No selected identity.");
+            info!(
+                log,
+                "Authorizing our identity ({}) to the asset canister...", identity_name
+            );
+            let self_id = env
+                .get_selected_identity_principal()
+                .expect("Selected identity not instantiated.");
+            // Before storing assets, make sure the DFX principal is in there first.
+            wallet
                 .call(
                     canister_id,
                     "authorize",
@@ -225,21 +209,20 @@ pub async fn install_canister(
                 .call_and_wait()
                 .await
                 .context("Failed to authorize your principal with the canister. You can still control the canister by using your wallet with the --wallet flag.")?;
-            };
+        };
 
-            info!(log, "Uploading assets to asset canister...");
-            post_install_store_assets(canister_info, agent, log).await?;
-        }
-        if !canister_info.get_post_install().is_empty() {
-            let config = env.get_config();
-            run_post_install_tasks(
-                env,
-                canister_info,
-                network,
-                pool,
-                env_file.or_else(|| config.as_ref()?.get_config().output_env_file.as_deref()),
-            )?;
-        }
+        info!(log, "Uploading assets to asset canister...");
+        post_install_store_assets(canister_info, agent, log).await?;
+    }
+    if !canister_info.get_post_install().is_empty() {
+        let config = env.get_config();
+        run_post_install_tasks(
+            env,
+            canister_info,
+            network,
+            pool,
+            env_file.or_else(|| config.as_ref()?.get_config().output_env_file.as_deref()),
+        )?;
     }
 
     Ok(())
@@ -249,8 +232,8 @@ fn check_candid_compatibility(
     canister_info: &CanisterInfo,
     candid: &str,
 ) -> anyhow::Result<Option<String>> {
-    use crate::util::check_candid_file;
     use candid::types::subtype::{subtype_with_config, OptReport};
+    use candid_parser::utils::CandidSource;
     let candid_path = canister_info.get_constructor_idl_path();
     let deployed_path = canister_info
         .get_constructor_idl_path()
@@ -261,11 +244,14 @@ fn check_candid_compatibility(
             deployed_path.to_string_lossy()
         )
     })?;
-    let (mut env, opt_new) =
-        check_candid_file(&candid_path).context("Checking generated did file.")?;
+    let (mut env, opt_new) = CandidSource::File(&candid_path)
+        .load()
+        .context("Checking generated did file.")?;
     let new_type = opt_new
         .ok_or_else(|| anyhow!("Generated did file should contain some service interface"))?;
-    let (env2, opt_old) = check_candid_file(&deployed_path).context("Checking old candid file.")?;
+    let (env2, opt_old) = CandidSource::File(&deployed_path)
+        .load()
+        .context("Checking old candid file.")?;
     let old_type = opt_old
         .ok_or_else(|| anyhow!("Deployed did file should contain some service interface"))?;
     let mut gamma = HashSet::new();
