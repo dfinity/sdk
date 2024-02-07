@@ -1,4 +1,6 @@
-use crate::lib::dfxvm::{dfxvm_released, display_dfxvm_installation_instructions};
+use crate::lib::dfxvm::{
+    dfxvm_released, display_dfxvm_installation_instructions, display_link_to_dfxvm_readme,
+};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use anyhow::bail;
@@ -21,13 +23,8 @@ pub fn exec(_env: &dyn Environment, _opts: ToolchainOpts) -> DfxResult {
     if dfxvm_released()? {
         display_dfxvm_installation_instructions();
     } else {
-        println!("For installation instructions, see:");
-        let url = Style::new()
-            .green()
-            .apply_to("https://github.com/dfinity/dfxvm/blob/main/README.md");
-        println!("    {url}");
+        display_link_to_dfxvm_readme();
     }
     println!();
     bail!("toolchain command removed");
 }
-

@@ -25,6 +25,14 @@ pub fn display_dfxvm_installation_instructions() {
     println!("    {command}");
 }
 
+pub fn display_link_to_dfxvm_readme() {
+    println!("For installation instructions, see:");
+    let url = Style::new()
+        .green()
+        .apply_to("https://github.com/dfinity/dfxvm/blob/main/README.md");
+    println!("    {url}");
+}
+
 #[derive(Deserialize, Debug)]
 struct Release {
     app_name: String,
