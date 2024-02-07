@@ -6,7 +6,7 @@ use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use bytes::Bytes;
 use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
-use candid::IDLArgs;
+use candid::{Decode, Encode, IDLArgs, Principal};
 use candid_parser::error::pretty_diagnose;
 use candid_parser::utils::CandidSource;
 use dfx_core::fs::create_dir_all;
@@ -108,6 +108,26 @@ pub async fn read_module_metadata(
                 .ok()?,
         )
         .into(),
+    )
+}
+
+pub async fn fetch_remote_did_file(
+    agent: &ic_agent::Agent,
+    canister_id: Principal,
+) -> Option<String> {
+    Some(
+        match read_module_metadata(agent, canister_id, "candid:service").await {
+            Some(candid) => candid,
+            None => {
+                let bytes = agent
+                    .query(&canister_id, "__get_candid_interface_tmp_hack")
+                    .with_arg(Encode!().ok()?)
+                    .call()
+                    .await
+                    .ok()?;
+                Decode!(&bytes, String).ok()?
+            }
+        },
     )
 }
 

@@ -33,7 +33,7 @@ For reference information and examples that illustrate using `dfx wallet` comman
 |[`name`](#dfx-wallet-name) |Returns the name of the cycles wallet if you've used the `dfx wallet set-name` command.
 |[`redeem-faucet-coupon`](#redeem-faucet-coupon) | Redeem a code at the cycles faucet. |
 |[`remove-controller`](#dfx-wallet-remove-controller) |Removes a specified controller from the selected identity's cycles wallet. 
-|[`send`](#dfx-wallet-send) |Sends a specified amount of cycles from the selected identity's cycles wallet to another cycles wallet using the destination wallet canister ID.
+|[`send`](#dfx-wallet-send) |Sends a specified amount of cycles from the selected identity's cycles wallet to another canister.
 |[`set-name`](#dfx-wallet-set-name) |Specify a name for your cycles wallet. 
 |[`upgrade`](#dfx-wallet-upgrade) |Upgrade the cycles wallet's Wasm module to the current Wasm bundled with DFX.
 
@@ -404,7 +404,7 @@ Removed dheus-mqf6t-xafkj-d3tuo-gh4ng-7t2kn-7ikxy-vvwad-dfpgu-em25m-2ae as a con
 
 ## dfx wallet send
 
-Use the `dfx wallet send` command to send cycles from the selected identity's cycles wallet to another cycles wallet using the destination cycle wallet's Canister ID. Keep in mind that the receiving canister must be a cycles wallet or have a `wallet_receive` method to accept the cycles.
+Use the `dfx wallet send` command to send cycles from the selected identity's cycles wallet to canister.
 
 ### Basic usage
 
@@ -427,7 +427,7 @@ You must specify the following arguments for the `dfx wallet send` command.
 
 |Argument |Description
 -----------|----------
-|`<destination>` |Specify the destination cycle wallet using its Canister ID.
+|`<destination>` |Specify the destination canister using its Canister ID.
 |`<amount>` |Specify the number of cycles to send.
 
 ### Examples

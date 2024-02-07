@@ -3,6 +3,7 @@ pub mod builders;
 pub mod canister_info;
 pub mod cycles_ledger_types;
 pub mod deps;
+pub mod dfxvm;
 pub mod diagnosis;
 pub mod dist;
 pub mod environment;
