@@ -5,7 +5,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use anyhow::bail;
 use clap::Parser;
-use console::Style;
 use std::ffi::OsString;
 
 /// Manage the dfx toolchains (obsolete)
