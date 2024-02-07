@@ -41,7 +41,7 @@ pub async fn install_canister(
     canister_info: &CanisterInfo,
     wasm_path_override: Option<&Path>,
     argument_from_cli: Option<&str>,
-    argument_type: Option<&str>,
+    argument_type_from_cli: Option<&str>,
     mode: Option<InstallMode>,
     call_sender: &CallSender,
     upgrade_unchanged: bool,
@@ -132,7 +132,13 @@ pub async fn install_canister(
         } else {
             get_candid_init_type(&idl_path)
         };
-        let install_args = blob_from_arguments(argument_from_cli, None, argument_type, &init_type)?;
+        // The argument and argument_type from the CLI take precedence over the ones defined in dfx.json
+        let (argument, argument_type) = if argument_from_cli.is_some() {
+            (argument_from_cli, argument_type_from_cli)
+        } else {
+            (canister_info.get_init_arg(), Some("idl"))
+        };
+        let install_args = blob_from_arguments(argument, None, argument_type, &init_type)?;
         if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
             let new_timestamp = playground_install_code(
                 env,
