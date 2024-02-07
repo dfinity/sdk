@@ -10,8 +10,7 @@ Please use the [dfx version manager][dfxvm] to manage dfx versions instead.
 
 The `dfx upgrade` command is deprecated.  After the release of the
 [dfx version manager][dfxvm], the `dfx upgrade` command will no longer be
-available for use. Attempting to execute it after this release will
-result in an error message, and the command will not be executed.
+available for use. It will instead print an error message and exit.
 
 ## Release tarball format
 
