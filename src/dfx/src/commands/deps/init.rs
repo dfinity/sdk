@@ -5,10 +5,10 @@ use crate::lib::deps::{
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::util::{check_candid_file, fuzzy_parse_argument};
+use crate::util::fuzzy_parse_argument;
 use anyhow::{anyhow, bail};
 use candid::Principal;
-use candid_parser::{types::IDLTypes, typing::ast_to_type};
+use candid_parser::{types::IDLTypes, typing::ast_to_type, utils::CandidSource};
 use clap::Parser;
 use slog::{info, warn, Logger};
 
@@ -68,7 +68,7 @@ fn set_init(
         .ok_or_else(|| anyhow!("Failed to find {canister_id} entry in pulled.json"))?;
     let canister_prompt = get_canister_prompt(canister_id, pulled_canister);
     let idl_path = get_pulled_service_candid_path(canister_id)?;
-    let (env, _) = check_candid_file(&idl_path)?;
+    let (env, _) = CandidSource::File(&idl_path).load()?;
     let candid_args = pulled_json.get_candid_args(canister_id)?;
     let candid_args_idl_types: IDLTypes = candid_args.parse()?;
     let mut types = vec![];
