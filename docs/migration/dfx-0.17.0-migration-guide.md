@@ -6,6 +6,13 @@ We've removed the `dfx toolchain` command.
 
 Please use the [dfx version manager][dfxvm] to manage dfx versions instead.
 
+## Deprecation of `dfx upgrade`
+
+The `dfx upgrade` command is deprecated.  After the release of the
+[dfx version manager][dfxvm], the `dfx upgrade` command will no longer be
+available for use. Attempting to execute it after this release will
+result in an error message, and the command will not be executed.
+
 ## Release tarball format
 
 If you've been manually downloading release tarballs, please note that
