@@ -43,6 +43,10 @@ If you build the canister without using `dfx`, you can use [ic-wasm](https://git
 ic-wasm canister.wasm -o canister.wasm metadata candid:service -f service.did -v public
 ```
 
+### fix: removed the `dfx toolchain` command
+
+Please use the [dfx version manager](https://github.com/dfinity/dfxvm) instead.
+
 ### chore: bump `ic-agent`, `ic-utils` and `ic-identity-hsm` to 0.32.0
 
 

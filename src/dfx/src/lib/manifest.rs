@@ -54,21 +54,6 @@ pub struct Manifest {
     versions: Vec<Version>,
 }
 
-impl Manifest {
-    #[allow(dead_code)]
-    pub fn get_tags(&self) -> Vec<&String> {
-        self.tags.keys().collect()
-    }
-
-    pub fn get_versions(&self) -> Vec<Version> {
-        self.versions.clone()
-    }
-
-    pub fn get_tag_version(&self, tag: &str) -> Option<&Version> {
-        self.tags.get(tag)
-    }
-}
-
 pub fn is_upgrade_necessary(latest_version: Option<&Version>, current: &Version) -> bool {
     match latest_version {
         Some(latest) => latest > current && current.pre.is_empty(),
