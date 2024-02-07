@@ -10,14 +10,12 @@ use candid_parser::error::pretty_diagnose;
 use candid_parser::utils::CandidSource;
 use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
-#[cfg(unix)]
-use net2::unix::UnixTcpBuilderExt;
-use net2::{TcpBuilder, TcpListenerExt};
 use num_traits::FromPrimitive;
 use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
+use socket2::{Domain, Socket};
 use std::io::{stdin, Read};
-use std::net::{IpAddr, SocketAddr};
+use std::net::{IpAddr, SocketAddr, TcpListener};
 use std::path::Path;
 use std::time::Duration;
 
@@ -34,27 +32,30 @@ const DECIMAL_POINT: char = '.';
 // the Actix HttpServer in webserver.rs will bind to this SocketAddr.
 #[context("Failed to find reusable socket address")]
 pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> {
-    let tcp_builder = if ip.is_ipv4() {
-        TcpBuilder::new_v4().context("Failed to create IPv4 builder.")?
+    let socket = if ip.is_ipv4() {
+        Socket::new(Domain::IPV4, socket2::Type::STREAM, None)
+            .context("Failed to create IPv4 socket.")?
     } else {
-        TcpBuilder::new_v6().context("Failed to create IPv6 builder.")?
+        Socket::new(Domain::IPV6, socket2::Type::STREAM, None)
+            .context("Failed to create IPv6 socket.")?
     };
-    let tcp_builder = tcp_builder
-        .reuse_address(true)
+    socket
+        .set_reuse_address(true)
         .context("Failed to set option reuse_address of tcp builder.")?;
     // On Windows, SO_REUSEADDR without SO_EXCLUSIVEADDRUSE acts like SO_REUSEPORT (among other things), so this is only necessary on *nix.
     #[cfg(unix)]
-    let tcp_builder = tcp_builder
-        .reuse_port(true)
+    socket
+        .set_reuse_port(true)
         .context("Failed to set option reuse_port of tcp builder.")?;
-    let listener = tcp_builder
-        .bind(SocketAddr::new(ip, port))
-        .with_context(|| format!("Failed to set socket of tcp builder to {}:{}.", ip, port))?
-        .to_tcp_listener()
-        .context("Failed to create TcpListener.")?;
-    listener
+    socket
         .set_linger(Some(Duration::from_secs(10)))
         .context("Failed to set linger duration of tcp listener.")?;
+    socket
+        .bind(&SocketAddr::new(ip, port).into())
+        .with_context(|| format!("Failed to bind socket to {}:{}.", ip, port))?;
+    socket.listen(128).context("Failed to listen on socket.")?;
+
+    let listener: TcpListener = socket.into();
     listener
         .local_addr()
         .context("Failed to fetch local address.")
