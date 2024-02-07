@@ -13,7 +13,7 @@ pub fn dfxvm_released() -> DfxResult<bool> {
     let latest_version = lookup_latest_version()?;
     let latest_version = semver::Version::parse(&latest_version)
         .with_context(|| format!("Failed to parse latest version '{latest_version}'"))?;
-    Ok(latest_version.minor >= 2)
+    Ok(latest_version.major >= 1)
 }
 
 pub fn display_dfxvm_installation_instructions() {
