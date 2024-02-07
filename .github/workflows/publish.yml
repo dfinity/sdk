@@ -42,7 +42,7 @@ jobs:
             name: x86_64-linux
             tar: tar
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup environment variables
         run: |
@@ -53,11 +53,13 @@ jobs:
         if: github.ref_type == 'tag'
         run: |
           echo "DFX_VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
-          echo "TARBALL_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz" >> $GITHUB_ENV
-          echo "SHA256_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz.sha256" >> $GITHUB_ENV
+          echo "TARBALL_1_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz" >> $GITHUB_ENV
+          echo "SHA256_1_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz.sha256" >> $GITHUB_ENV
+          echo "TARBALL_2_FILENAME=dfx-${{ matrix.target }}.tar.gz" >> $GITHUB_ENV
+          echo "SHA256_2_FILENAME=dfx-${{ matrix.target }}.tar.gz.sha256" >> $GITHUB_ENV
 
       - name: Cache Cargo
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -106,18 +108,27 @@ jobs:
       - name: Create tarball of binaries and sha256 of tarball
         if: github.ref_type == 'tag'
         run: |
-          ${{ matrix.tar }} -zcC ${{ matrix.binary_path }} -f ${{ env.TARBALL_FILENAME }} dfx
-          shasum -a 256 ${{ env.TARBALL_FILENAME }} > $SHA256_FILENAME
-          shasum -c $SHA256_FILENAME
+          mkdir dfx-${{ matrix.target }}
+          cp ${{ matrix.binary_path }}/dfx dfx-${{ matrix.target }}
+          cp LICENSE dfx-${{ matrix.target }}
+          ${{ matrix.tar }} -zc -f ${{ env.TARBALL_2_FILENAME }} dfx-${{ matrix.target }}
+          shasum -a 256 ${{ env.TARBALL_2_FILENAME }} > ${{ env.SHA256_2_FILENAME }}
+          shasum -c ${{ env.SHA256_2_FILENAME }}
+
+          ${{ matrix.tar }} -zcC ${{ matrix.binary_path }} -f ${{ env.TARBALL_1_FILENAME }} dfx
+          shasum -a 256 ${{ env.TARBALL_1_FILENAME }} > $SHA256_1_FILENAME
+          shasum -c $SHA256_1_FILENAME
 
       - name: Upload Artifacts
         if: github.ref_type == 'tag'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-${{ matrix.name }}
           path: |
-            ${{ env.TARBALL_FILENAME }}
-            ${{ env.SHA256_FILENAME }}
+            ${{ env.TARBALL_1_FILENAME }}
+            ${{ env.SHA256_1_FILENAME }}
+            ${{ env.TARBALL_2_FILENAME }}
+            ${{ env.SHA256_2_FILENAME }}
 
   aggregate:
     name: publishable:required
@@ -138,13 +149,13 @@ jobs:
       matrix:
         name: [ 'x86_64-darwin', 'x86_64-linux' ]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup environment variables
         run: echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-${{ matrix.name }}
 

@@ -296,7 +296,7 @@ impl AsRef<Identity> for Identity {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum CallSender {
     SelectedId,
     Wallet(Principal),

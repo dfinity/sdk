@@ -79,11 +79,11 @@ pub async fn exec(
     // amount has been validated by cycle_amount_validator
     let cycles = opts.cycles;
 
-    let config = env.get_config_or_anyhow()?;
-
     if let Some(canister) = opts.canister.as_deref() {
         deposit_cycles(env, canister, call_sender, cycles).await
     } else if opts.all {
+        let config = env.get_config_or_anyhow()?;
+
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
                 deposit_cycles(env, canister, call_sender, cycles)

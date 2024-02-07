@@ -184,6 +184,12 @@ tc_to_num() {
   assert_contains "Using transfer at block height $block_height" "$stdout"
   # shellcheck disable=SC2154
   assert_contains "Canister was topped up with" "$stdout"
+
+  # Top up canister by name instead of principal
+  dfx_new
+  assert_command dfx canister create e2e_project_backend
+  assert_command dfx ledger top-up e2e_project_backend --amount 5
+  assert_contains "Canister was topped up with 617283500000000 cycles"
 }
 
 @test "ledger create-canister" {
@@ -192,6 +198,12 @@ tc_to_num() {
   assert_match "Transfer sent at block height"
   assert_match "Refunded at block height"
   assert_match "with message: Provided subnet type type1 does not exist"
+
+  SUBNET_ID="5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae" # a random, valid principal
+  assert_command dfx ledger create-canister --amount=100 --subnet "$SUBNET_ID" "$(dfx identity get-principal)"
+  assert_match "Transfer sent at block height"
+  assert_match "Refunded at block height"
+  assert_match "with message: Subnet $SUBNET_ID does not exist"
 
   # Transaction Deduplication
   t=$(current_time_nanoseconds)

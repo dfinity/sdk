@@ -6,6 +6,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::program;
 use crate::util;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
@@ -55,6 +56,8 @@ pub struct AssetsBuilder {
     _cache: Arc<dyn Cache>,
     logger: Logger,
 }
+unsafe impl Send for AssetsBuilder {}
+unsafe impl Sync for AssetsBuilder {}
 
 impl AssetsBuilder {
     #[context("Failed to create AssetBuilder.")]
@@ -218,7 +221,7 @@ fn build_frontend(
     } else if build_frontend {
         // Frontend build.
         slog::info!(logger, "Building frontend...");
-        let mut cmd = std::process::Command::new("npm");
+        let mut cmd = std::process::Command::new(program::NPM);
 
         // Provide DFX_NETWORK at build time
         cmd.env("DFX_NETWORK", network_name);

@@ -12,6 +12,85 @@ teardown() {
   standard_teardown
 }
 
+@test "start and stop outside project" {
+  dfx_start
+
+  mkdir subdir
+  cd subdir || exit 1
+  dfx_new
+  assert_command dfx deploy
+  CANISTER_ID="$(dfx canister id e2e_project_backend)"
+  cd ..
+  assert_command dfx canister status "$CANISTER_ID"
+  assert_contains "Status: Running"
+  assert_command dfx canister stop "$CANISTER_ID"
+  assert_command dfx canister status "$CANISTER_ID"
+  assert_contains "Status: Stopped"
+  assert_command dfx canister start "$CANISTER_ID"
+  assert_command dfx canister status "$CANISTER_ID"
+  assert_contains "Status: Running"
+}
+
+@test "uninstall-code outside of a project" {
+  dfx_start
+
+  mkdir subdir
+  cd subdir || exit 1
+  dfx_new
+  assert_command dfx deploy
+  CANISTER_ID="$(dfx canister id e2e_project_backend)"
+  cd ..
+  assert_command dfx canister status "$CANISTER_ID"
+  assert_contains "Module hash: 0x"
+  assert_command dfx canister uninstall-code "$CANISTER_ID"
+  assert_contains "Uninstalling code for canister $CANISTER_ID"
+  assert_command dfx canister status "$CANISTER_ID"
+  assert_contains "Module hash: None"
+}
+
+
+@test "icx-proxy domain configuration in string form" {
+  create_networks_json
+  jq '.local.proxy.domain="xyz.domain"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+
+  dfx_start
+
+  assert_command ps aux
+  assert_match "icx-proxy.*--domain xyz.domain"
+}
+
+@test "icx-proxy domain configuration in vector form" {
+  create_networks_json
+  jq '.local.proxy.domain=["xyz.domain", "abc.something"]' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+
+  dfx_start
+
+  assert_command ps aux
+  assert_match "icx-proxy.*--domain xyz.domain"
+  assert_match "icx-proxy.*--domain abc.something"
+}
+
+@test "icx-proxy domain configuration from project defaults" {
+  dfx_new
+  define_project_network
+
+  jq '.defaults.proxy.domain=["xyz.domain", "abc.something"]' dfx.json | sponge dfx.json
+
+  dfx_start
+
+  assert_command ps aux
+  assert_match "icx-proxy.*--domain xyz.domain"
+  assert_match "icx-proxy.*--domain abc.something"
+}
+
+@test "icx-proxy domain configuration from command-line" {
+  dfx_start --domain xyz.domain --domain def.somewhere
+
+  assert_command ps aux
+  assert_match "icx-proxy.*--domain xyz.domain"
+  assert_match "icx-proxy.*--domain def.somewhere"
+}
+
 @test "dfx restarts the replica" {
   dfx_new hello
   dfx_start

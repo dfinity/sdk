@@ -1,4 +1,4 @@
-mod create_canister;
+pub(crate) mod create_canister;
 pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
 pub use create_canister::create_canister;
@@ -12,17 +12,14 @@ use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
-pub use deploy_canisters::deploy_canisters;
-pub use deploy_canisters::DeployMode;
 use dfx_core::canister::build_wallet_canister;
-pub use dfx_core::canister::install_canister_wasm;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
-pub use install_canister::{install_canister, install_wallet};
+pub use install_canister::install_wallet;
 use std::path::PathBuf;
 
 pub mod motoko_playground;
@@ -167,25 +164,7 @@ pub async fn update_settings(
         MgmtMethod::UpdateSettings.as_ref(),
         In {
             canister_id,
-            settings: CanisterSettings {
-                controllers: settings.controllers,
-                compute_allocation: settings
-                    .compute_allocation
-                    .map(u8::from)
-                    .map(candid::Nat::from),
-                memory_allocation: settings
-                    .memory_allocation
-                    .map(u64::from)
-                    .map(candid::Nat::from),
-                freezing_threshold: settings
-                    .freezing_threshold
-                    .map(u64::from)
-                    .map(candid::Nat::from),
-                reserved_cycles_limit: settings
-                    .reserved_cycles_limit
-                    .map(u128::from)
-                    .map(candid::Nat::from),
-            },
+            settings: settings.into(),
         },
         call_sender,
         0,

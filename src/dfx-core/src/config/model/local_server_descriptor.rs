@@ -1,12 +1,14 @@
 use crate::config::model::bitcoin_adapter;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
 use crate::config::model::dfinity::{
-    to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsReplica,
-    ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
+    to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsProxy,
+    ConfigDefaultsReplica, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
+    DEFAULT_SHARED_LOCAL_BIND,
 };
 use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
+use crate::json::structure::SerdeVec;
 use slog::{debug, info, Logger};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -30,6 +32,7 @@ pub struct LocalServerDescriptor {
 
     pub bitcoin: ConfigDefaultsBitcoin,
     pub canister_http: ConfigDefaultsCanisterHttp,
+    pub proxy: ConfigDefaultsProxy,
     pub replica: ConfigDefaultsReplica,
 
     pub scope: LocalNetworkScopeDescriptor,
@@ -51,6 +54,7 @@ impl LocalServerDescriptor {
         bind: String,
         bitcoin: ConfigDefaultsBitcoin,
         canister_http: ConfigDefaultsCanisterHttp,
+        proxy: ConfigDefaultsProxy,
         replica: ConfigDefaultsReplica,
         scope: LocalNetworkScopeDescriptor,
         legacy_pid_path: Option<PathBuf>,
@@ -61,6 +65,7 @@ impl LocalServerDescriptor {
             bind_address,
             bitcoin,
             canister_http,
+            proxy,
             replica,
             scope,
             legacy_pid_path,
@@ -91,11 +96,6 @@ impl LocalServerDescriptor {
     /// This file contains the pid of the icx-proxy process
     pub fn icx_proxy_pid_path(&self) -> PathBuf {
         self.data_directory.join("icx-proxy-pid")
-    }
-
-    /// This file contains the listening port of the ic-ref process
-    pub fn ic_ref_port_path(&self) -> PathBuf {
-        self.data_directory.join("ic-ref.port")
     }
 
     /// This file contains the pid of the ic-btc-adapter process
@@ -199,6 +199,13 @@ impl LocalServerDescriptor {
         };
         Self { bitcoin, ..self }
     }
+
+    pub fn with_proxy_domains(self, domains: Vec<String>) -> LocalServerDescriptor {
+        let proxy = ConfigDefaultsProxy {
+            domain: SerdeVec::Many(domains),
+        };
+        Self { proxy, ..self }
+    }
 }
 
 impl LocalServerDescriptor {
@@ -285,12 +292,11 @@ impl LocalServerDescriptor {
     /// Gets the port of a local replica.
     ///
     /// # Prerequisites
-    /// - A local replica or emulator needs to be running, e.g. with `dfx start`.
+    /// - A local replica needs to be running, e.g. with `dfx start`.
     pub fn get_running_replica_port(
         &self,
         logger: Option<&Logger>,
     ) -> Result<Option<u16>, NetworkConfigError> {
-        let emulator_port_path = self.ic_ref_port_path();
         let replica_port_path = self.replica_port_path();
 
         match read_port_from(&replica_port_path)? {
@@ -300,15 +306,7 @@ impl LocalServerDescriptor {
                 }
                 Ok(Some(port))
             }
-            None => match read_port_from(&emulator_port_path)? {
-                Some(port) => {
-                    if let Some(logger) = logger {
-                        info!(logger, "Found local emulator running on port {}", port);
-                    }
-                    Ok(Some(port))
-                }
-                None => Ok(self.replica.port),
-            },
+            None => Ok(self.replica.port),
         }
     }
 }

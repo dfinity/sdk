@@ -3,8 +3,11 @@ name: Audit
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron: "0 14 * * *"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -13,59 +16,15 @@ concurrency:
 env:
   # When getting Rust dependencies, retry on network error:
   CARGO_NET_RETRY: 10
-  # Use the local .curlrc
-  CURL_HOME: .
 
 jobs:
-  build_matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v3
-      - id: set-matrix
-        run: echo "matrix=$(scripts/workflows/audit-matrix.py)" >> $GITHUB_OUTPUT
-
   test:
-    name: audit
-    runs-on: ${{ matrix.os }}
-    needs: [ build_matrix ]
-    strategy:
-      matrix: ${{fromJson(needs.build_matrix.outputs.matrix)}}
-
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          path: sdk
-      - uses: actions/checkout@v3
-        with:
-          repository: 'RustSec/advisory-db'
-          path: advisory-db
-          ref: ${{ matrix.advisory-db-rev }}
-
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install Rust
-        run: rustup show
-      - name: Audit
-        # ignores RUSTSEC-2020-0071 because it is 'only' in a dev dependency (ic-certified-responses -> ic-types -> chrono -> time)
-        run: |
-          cd sdk
-          cargo audit --no-fetch --db "${GITHUB_WORKSPACE}"/advisory-db --ignore RUSTSEC-2020-0071
-        env:
-          RUST_BACKTRACE: 1
-
-  aggregate:
     name: audit:required
-    if: ${{ always() }}
-    needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
     steps:
-      - name: check step result directly
-        if: ${{ needs.test.result != 'success' }}
-        run: exit 1
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/audit@v1

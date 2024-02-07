@@ -5,10 +5,10 @@
       "wasm": "cycles-ledger.wasm.gz",
       "candid": "cycles-ledger.did"
     },
-    "cycles-depositor": {
+    "depositor": {
       "type": "custom",
-      "wasm": "cycles-depositor.wasm.gz",
-      "candid": "cycles-depositor.did"
+      "wasm": "depositor.wasm.gz",
+      "candid": "depositor.did"
     }
   }
 }

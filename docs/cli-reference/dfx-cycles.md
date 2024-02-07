@@ -41,11 +41,8 @@ You can specify the following arguments for the `dfx cycles balance` command.
 | `--owner <principal>`                       | Display the balance of this principal                               |
 | `--subaccount <subaccount>`                 | Display the balance of this subaccount                              |
 | `--precise`                                 | Displays the exact balance, without scaling to trillions of cycles. |
-| `--cycles-ledger-canister-id <canister id>` | Specify the ID of the cycles ledger canister.                       |
 
 ### Examples
-
-> **NOTE**: None of the examples below specify the `--cycles-ledger-canister-id` option, but it is required until the cycles ledger canister ID is known.
 
 Check the cycles balance of the selected identity.
 

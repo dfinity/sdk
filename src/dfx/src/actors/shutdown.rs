@@ -17,7 +17,7 @@ pub fn wait_for_child_or_receiver(
     loop {
         // Check if either the child exited or a shutdown has been requested.
         // These can happen in either order in response to Ctrl-C, so increase the chance
-        // to notice a shutdown request even if the emulator exited quickly.
+        // to notice a shutdown request even if the replica exited quickly.
         let child_try_wait = child.try_wait();
         let receiver_signalled = receiver.recv_timeout(std::time::Duration::from_millis(100));
 

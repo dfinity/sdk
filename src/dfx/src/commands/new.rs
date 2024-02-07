@@ -2,6 +2,7 @@ use crate::config::cache::DiskBasedCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
+use crate::lib::program;
 use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
 use anyhow::{anyhow, bail, ensure, Context};
@@ -11,7 +12,6 @@ use dfx_core::config::model::dfinity::CONFIG_FILE_NAME;
 use dfx_core::json::{load_json_file, save_json_file};
 use fn_error_context::context;
 use indicatif::HumanBytes;
-use lazy_static::lazy_static;
 use semver::Version;
 use serde_json::Value;
 use slog::{info, warn, Logger};
@@ -29,15 +29,12 @@ const RELEASE_ROOT: &str = "https://sdk.dfinity.org";
 // The dist-tag to use when getting the version from NPM.
 const AGENT_JS_DEFAULT_INSTALL_DIST_TAG: &str = "latest";
 
-lazy_static! {
 // Tested on a phone tethering connection. This should be fine with
 // little impact to the user, given that "new" is supposedly a
 // heavy-weight operation. Thus, worst case we are utilizing the user
 // expectation for the duration to have a more expensive version
 // check.
-    static ref CHECK_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
-
-}
+const CHECK_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
 
 /// Creates a new project.
 #[derive(Parser)]
@@ -249,12 +246,12 @@ fn write_files_from_entries<R: Sized + Read>(
 
 #[context("Failed to run 'npm install'.")]
 fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
-    std::process::Command::new("npm")
+    Command::new(program::NPM)
         .arg("install")
         .arg("--quiet")
         .arg("--no-progress")
-        .stdout(std::process::Stdio::inherit())
-        .stderr(std::process::Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .current_dir(location)
         .spawn()
         .map_err(DfxError::from)
@@ -271,7 +268,7 @@ fn scaffold_frontend_code(
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
     let log = env.get_logger();
-    let node_installed = std::process::Command::new("node")
+    let node_installed = Command::new(program::NODE)
         .arg("--version")
         .output()
         .is_ok();
@@ -383,12 +380,12 @@ fn scaffold_frontend_code(
 }
 
 fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
-    std::process::Command::new("npm")
+    Command::new(program::NPM)
         .arg("show")
         .arg("@dfinity/agent")
         .arg(&format!("dist-tags.{}", dist_tag))
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::inherit())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
         .spawn()
         .map_err(DfxError::from)
         .and_then(|child| {
@@ -416,7 +413,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
 
     // It is fine for the following command to timeout or fail. We
     // drop the error.
-    let latest_version = get_latest_version(RELEASE_ROOT, Some(*CHECK_VERSION_TIMEOUT)).ok();
+    let latest_version = get_latest_version(RELEASE_ROOT, Some(CHECK_VERSION_TIMEOUT)).ok();
 
     if is_upgrade_necessary(latest_version.as_ref(), current_version) {
         warn_upgrade(log, latest_version.as_ref(), current_version);

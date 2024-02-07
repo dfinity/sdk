@@ -127,7 +127,7 @@ Failed to download from url: http://example.com/c.wasm."
 
   cd ../onchain
   dfx canister stop a
-  dfx canister delete a
+  dfx canister delete a --no-withdrawal
 
   cd ../app
   assert_command_fail dfx deps pull --network local
@@ -149,8 +149,6 @@ Failed to download from url: http://example.com/c.wasm."
   dfx_start
 
   setup_onchain
-
-  # TODO: test gzipped wasm can be pulled when we have "gzip" option in dfx.json (SDK-1102)
 
   # pull canisters in app project
   cd app
@@ -180,17 +178,16 @@ Failed to download from url: http://example.com/c.wasm."
   assert_command dfx deps pull --network local -vvv
   assert_contains "The canister wasm was found in the cache." # cache hit
 
-  # sad path 1: wasm hash doesn't match on chain
+  # warning: hash mismatch
   rm -r "${PULLED_DIR:?}/"
   cd ../onchain
   cp .dfx/local/canisters/c/c.wasm ../www/a.wasm
 
   cd ../app
-  assert_command_fail dfx deps pull --network local
-  assert_contains "Failed to pull canister $CANISTER_ID_A."
-  assert_contains "Hash mismatch."
+  assert_command dfx deps pull --network local
+  assert_contains "WARN: Canister $CANISTER_ID_A has different hash between on chain and download."
 
-  # sad path 2: url server doesn't have the file
+  # sad path: url server doesn't have the file
   rm -r "${PULLED_DIR:?}/"
   rm ../www/a.wasm
 
@@ -199,8 +196,7 @@ Failed to download from url: http://example.com/c.wasm."
   assert_contains "Failed to download from url:"
 }
 
-
-@test "dfx deps pull can check hash when dfx:wasm_hash specified" {
+@test "dfx deps pull works when wasm_hash or wasm_hash_url specified" {
   use_test_specific_cache_root # dfx deps pull will download files to cache
 
   # start a "mainnet" replica which host the onchain canisters
@@ -228,11 +224,19 @@ Failed to download from url: http://example.com/c.wasm."
   cp .dfx/local/canisters/b/b.wasm.gz ../www/b.wasm.gz
   cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
 
-  CUSTOM_HASH="$(sha256sum .dfx/local/canisters/a/a.wasm | cut -d " " -f 1)"
-  jq '.canisters.a.pullable.wasm_hash="'"$CUSTOM_HASH"'"' dfx.json | sponge dfx.json
-  dfx build a # .dfx/local/canisters/a/a.wasm is replaced. The new wasm has wasm_hash defined and will be installed.
+  # A: set dfx:wasm_hash
+  CUSTOM_HASH_A="$(sha256sum .dfx/local/canisters/a/a.wasm | cut -d " " -f 1)"
+  jq '.canisters.a.pullable.wasm_hash="'"$CUSTOM_HASH_A"'"' dfx.json | sponge dfx.json
+  # B: set dfx:wasm_hash_url with output of sha256sum
+  echo -n "$(sha256sum .dfx/local/canisters/b/b.wasm.gz)" > ../www/b.wasm.gz.sha256
+  jq '.canisters.b.pullable.wasm_hash_url="'"http://localhost:$E2E_WEB_SERVER_PORT/b.wasm.gz.sha256"'"' dfx.json | sponge dfx.json
+  # C: set dfx:wasm_hash_url with the hash only
+  CUSTOM_HASH_C="$(sha256sum .dfx/local/canisters/c/c.wasm | cut -d " " -f 1)"
+  echo -n "$CUSTOM_HASH_C" > ../www/c.wasm.sha256
+  jq '.canisters.c.pullable.wasm_hash_url="'"http://localhost:$E2E_WEB_SERVER_PORT/c.wasm.sha256"'"' dfx.json | sponge dfx.json
 
-  # cd ../../../
+  dfx build
+
   dfx canister install a --argument 1
   dfx canister install b
   dfx canister install c --argument 3
@@ -243,18 +247,30 @@ Failed to download from url: http://example.com/c.wasm."
 
   assert_command dfx deps pull --network local -vvv
   assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
-
-  # error case: hash mismatch
+  assert_contains "Canister $CANISTER_ID_B specified a custom hash via url:"
+  assert_contains "Canister $CANISTER_ID_C specified a custom hash via url:"
+ 
+  # warning: specified both `wasm_hash` and `wasm_hash_url`. Providers should avoid this.
   PULLED_DIR="$DFX_CACHE_ROOT/.cache/dfinity/pulled/"
+  rm -r "${PULLED_DIR:?}/"
+  cd ../onchain
+  jq '.canisters.c.pullable.wasm_hash="'"$CUSTOM_HASH_C"'"' dfx.json | sponge dfx.json
+  dfx build
+  dfx canister install c -m reinstall --argument 3 --yes
+
+  cd ../app
+  assert_command dfx deps pull --network local -vvv
+  assert_contains "WARN: Canister $CANISTER_ID_C specified both \`wasm_hash\` and \`wasm_hash_url\`. \`wasm_hash\` will be used."
+
+  # warning: hash mismatch
   rm -r "${PULLED_DIR:?}/"
   cd ../onchain
   cp .dfx/local/canisters/a/a.wasm ../www/a.wasm # now the webserver has the onchain version of canister_a which won't match wasm_hash
 
   cd ../app
-  assert_command_fail dfx deps pull --network local -vvv
+  assert_command dfx deps pull --network local -vvv
   assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
-  assert_contains "Failed to pull canister $CANISTER_ID_A."
-  assert_contains "Hash mismatch."
+  assert_contains "WARN: Canister $CANISTER_ID_A has different hash between on chain and download."
 }
 
 @test "dfx deps init works" {
@@ -325,11 +341,11 @@ candid:args => (nat)"
   # delete onchain canisters so that the replica has no canisters as a clean local replica
   cd ../onchain
   dfx canister stop a
-  dfx canister delete a
+  dfx canister delete a --no-withdrawal
   dfx canister stop b
-  dfx canister delete b
+  dfx canister delete b --no-withdrawal
   dfx canister stop c
-  dfx canister delete c
+  dfx canister delete c --no-withdrawal
 
   cd ../app
   assert_command dfx deps init # b is set here
@@ -355,10 +371,10 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 
   # deployed pull dependencies can be stopped and deleted
   assert_command dfx canister stop dep_b --identity anonymous
-  assert_command dfx canister delete dep_b --identity anonymous
+  assert_command dfx canister delete dep_b --identity anonymous --no-withdrawal
 
   assert_command dfx canister stop $CANISTER_ID_A --identity anonymous
-  assert_command dfx canister delete $CANISTER_ID_A --identity anonymous
+  assert_command dfx canister delete $CANISTER_ID_A --identity anonymous --no-withdrawal
 
   # error cases
   ## set wrong init argument
@@ -397,11 +413,11 @@ Installing canister: $CANISTER_ID_C (dep_c)"
   # delete onchain canisters so that the replica has no canisters as a clean local replica
   cd ../onchain
   dfx canister stop a
-  dfx canister delete a
+  dfx canister delete a --no-withdrawal
   dfx canister stop b
-  dfx canister delete b
+  dfx canister delete b --no-withdrawal
   dfx canister stop c
-  dfx canister delete c
+  dfx canister delete c --no-withdrawal
 
   cd ../app
   assert_command_fail dfx canister create dep_b
@@ -434,7 +450,7 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 
   # start a clean local replica
   dfx canister stop app
-  dfx canister delete app
+  dfx canister delete app --no-withdrawal
   assert_command dfx deploy # only deploy app canister
 }
 
@@ -443,8 +459,8 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 
   # verify the help message
   assert_command dfx deps pull -h
-  assert_contains "Pull canisters upon which the project depends. This command connects to the \"ic\" mainnet by default.
-You can still choose other network by setting \`--network\`"
+  assert_contains "Pull canisters upon which the project depends. This command connects to the \"ic\" mainnet by default."
+  assert_contains "You can still choose other network by setting \`--network\`"
 
   assert_command dfx deps pull
   assert_contains "There are no pull dependencies defined in dfx.json"

@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 load ../utils/_
+load ../utils/cycles-ledger
 
 setup() {
   standard_setup
@@ -108,6 +109,26 @@ teardown() {
   <CANISTER_NAME>"
 }
 
+@test "deploy succeeds when specify canister ID in dfx.json" {
+  dfx_start
+  jq '.canisters.hello_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
+  assert_command dfx deploy hello_backend
+  assert_command dfx canister id hello_backend
+  assert_match n5n4y-3aaaa-aaaaa-p777q-cai
+}
+
+@test "deploy succeeds when specify canister ID both in dfx.json and cli; warning if different; cli value takes effect" {
+  dfx_start
+  jq '.canisters.hello_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
+  assert_command dfx deploy hello_backend --specified-id hhn2s-5l777-77777-7777q-cai
+  assert_contains "WARN: Canister 'hello_backend' has a specified ID in dfx.json: n5n4y-3aaaa-aaaaa-p777q-cai,"
+  assert_contains "which is different from the one specified in the command line: hhn2s-5l777-77777-7777q-cai."
+  assert_contains "The command line value will be used."
+
+  assert_command dfx canister id hello_backend
+  assert_match hhn2s-5l777-77777-7777q-cai
+}
+
 @test "deploy does not require wallet if all canisters are created" {
   dfx_start
   dfx canister create --all --no-wallet
@@ -156,4 +177,29 @@ teardown() {
   jq 'del(.canisters.hello_frontend.frontend)' dfx.json | sponge dfx.json
   assert_command dfx deploy
   assert_contains "hello_frontend: http://127.0.0.1"
+}
+
+@test "subnet targetting" {
+  # fake cmc setup
+  cd ..
+  dfx_new fake_cmc
+  install_asset fake_cmc
+  install_cycles_ledger_canisters
+  dfx_start
+  assert_command dfx deploy fake-cmc --specified-id "rkp4c-7iaaa-aaaaa-aaaca-cai" # CMC canister id
+  cd ../hello
+
+  # use --subnet <principal>
+  SUBNET_ID="5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae" # a random, valid principal
+  assert_command dfx deploy hello_backend --subnet "$SUBNET_ID"
+  cd ../fake_cmc
+  assert_command dfx canister call fake-cmc last_create_canister_args
+  assert_contains "subnet = principal \"$SUBNET_ID\";"
+  
+  # use --subnet-type
+  cd ../hello
+  assert_command dfx deploy hello_frontend --subnet-type custom_subnet_type
+  cd ../fake_cmc
+  assert_command dfx canister call fake-cmc last_create_canister_args
+  assert_contains 'subnet_type = opt "custom_subnet_type"'
 }

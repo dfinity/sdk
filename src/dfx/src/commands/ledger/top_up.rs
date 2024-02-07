@@ -17,7 +17,7 @@ const MEMO_TOP_UP_CANISTER: u64 = 1347768404_u64;
 /// Top up a canister with cycles minted from ICP
 #[derive(Parser)]
 pub struct TopUpOpts {
-    /// Specify the canister id to top up
+    /// Specify the canister id or name to top up
     canister: String,
 
     /// Subaccount to withdraw from
@@ -58,12 +58,14 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
 
     let memo = Memo(MEMO_TOP_UP_CANISTER);
 
-    let to = Principal::from_text(&opts.canister).with_context(|| {
-        format!(
-            "Failed to parse {:?} as target canister principal.",
-            &opts.canister
-        )
-    })?;
+    let to = Principal::from_text(&opts.canister)
+        .or_else(|_| env.get_canister_id_store()?.get(&opts.canister))
+        .with_context(|| {
+            format!(
+                "Failed to parse {:?} as target canister principal or name.",
+                &opts.canister
+            )
+        })?;
 
     let agent = env.get_agent();
 

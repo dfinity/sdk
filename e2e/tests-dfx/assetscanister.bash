@@ -266,7 +266,7 @@ check_permission_failure() {
   FE_CANISTER_ID="$(dfx canister id e2e_project_frontend)"
   rm .dfx/local/canister_ids.json
   assert_command_fail dfx canister call "$FE_CANISTER_ID" validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { FlyBeFree }; })"
-  assert_contains "trapped"
+  assert_contains "FlyBeFree not found"
 }
 
 @test "access control - fine-grained" {
@@ -884,13 +884,12 @@ check_permission_failure() {
 
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/text-with-newlines.txt";accept_encodings=vec{"identity"}})'
 
-  assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
+  assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt blob "\f3\bf\72\b1\53\12\90\79\83\26\6d\b7\59\f4\78\88\35\bb\0e\4a\08\70\56\64\73\08\b3\9b\45\4e\5f\a0" })'
   assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
   assert_match 'sha256 required'
-  assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
+  assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt blob "XWV" })'
   assert_match 'sha256 mismatch'
 
-  assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
   assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt blob "\f3\bf\72\b1\53\12\90\79\83\26\6d\b7\59\f4\78\88\35\bb\0e\4a\08\70\56\64\73\08\b3\9b\45\4e\5f\a0"})'
   assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
   assert_match 'sha256 mismatch'
@@ -906,24 +905,29 @@ check_permission_failure() {
   dfx canister install e2e_project_frontend
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("/binary/noise.txt")' --output idl
-  assert_eq '(blob "\b8\01 \80\0aw12 \00xy\0aKL\0b\0ajk")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "\b8\01\20\80\0a\77\31\32\20\00\78\79\0a\4b\4c\0b\0a\6a\6b")' "$stdout"
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("/text-with-newlines.txt")' --output idl
-  assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")' "$stdout"
 
   assert_command dfx canister call --update e2e_project_frontend store '(record{key="AA"; content_type="text/plain"; content_encoding="identity"; content=blob "hello, world!"})'
   assert_eq '()'
-  assert_command dfx canister call --update e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
+  assert_command dfx canister call --update e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob"XWV"})'
   assert_eq '()'
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
-  assert_eq '(blob "XWV")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "XWV")' "$stdout"
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("AA")' --output idl
-  assert_eq '(blob "hello, world!")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "hello, world!")' "$stdout"
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
-  assert_eq '(blob "XWV")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "XWV")' "$stdout"
 
   assert_command_fail dfx canister call --query e2e_project_frontend retrieve '("C")'
 }

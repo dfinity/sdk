@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 load ../utils/_
+load ../utils/cycles-ledger
 
 setup() {
   standard_setup
@@ -61,6 +62,26 @@ teardown() {
   dfx_start
   assert_command_fail dfx canister create --all --specified-id xbgkv-fyaaa-aaaaa-aaava-cai
   assert_match "error: the argument '--all' cannot be used with '--specified-id <PRINCIPAL>'"
+}
+
+@test "create succeeds when specify canister ID in dfx.json" {
+  dfx_start
+  jq '.canisters.e2e_project_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
+  assert_command dfx canister create e2e_project_backend
+  assert_command dfx canister id e2e_project_backend
+  assert_match n5n4y-3aaaa-aaaaa-p777q-cai
+}
+
+@test "create succeeds when specify canister ID both in dfx.json and cli; warning if different; cli value takes effect" {
+  dfx_start
+  jq '.canisters.e2e_project_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
+  assert_command dfx canister create e2e_project_backend --specified-id hhn2s-5l777-77777-7777q-cai
+  assert_contains "WARN: Canister 'e2e_project_backend' has a specified ID in dfx.json: n5n4y-3aaaa-aaaaa-p777q-cai,"
+  assert_contains "which is different from the one specified in the command line: hhn2s-5l777-77777-7777q-cai."
+  assert_contains "The command line value will be used."
+
+  assert_command dfx canister id e2e_project_backend
+  assert_match hhn2s-5l777-77777-7777q-cai
 }
 
 @test "create generates the canister_ids.json" {
@@ -270,7 +291,27 @@ teardown() {
   assert_command dfx canister create --all --controller alice --controller bob --identity alice
 }
 
-@test "canister-create on mainnet without wallet does not propagate the 404" {
-  assert_command_fail dfx deploy --network ic --no-wallet
-  assert_match 'dfx ledger create-canister'
+@test "create canister - subnet targetting" {
+  # fake cmc setup
+  cd ..
+  dfx_new fake_cmc
+  install_asset fake_cmc
+  install_cycles_ledger_canisters
+  dfx_start
+  assert_command dfx deploy fake-cmc --specified-id "rkp4c-7iaaa-aaaaa-aaaca-cai" # CMC canister id
+  cd ../e2e_project
+
+  # use --subnet <principal>
+  SUBNET_ID="5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae" # a random, valid principal
+  assert_command dfx canister create e2e_project_backend --subnet "$SUBNET_ID"
+  cd ../fake_cmc
+  assert_command dfx canister call fake-cmc last_create_canister_args
+  assert_contains "subnet = principal \"$SUBNET_ID\";"
+  
+  # use --subnet-type
+  cd ../e2e_project
+  assert_command dfx canister create e2e_project_frontend --subnet-type custom_subnet_type
+  cd ../fake_cmc
+  assert_command dfx canister call fake-cmc last_create_canister_args
+  assert_contains 'subnet_type = opt "custom_subnet_type"'
 }
