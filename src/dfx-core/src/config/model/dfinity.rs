@@ -277,6 +277,11 @@ pub struct ConfigCanistersCanister {
     /// If the `--specified-id` argument is also provided, this `specified_id` field will be ignored.
     #[schemars(with = "Option<String>")]
     pub specified_id: Option<Principal>,
+
+    /// # Init Arg
+    /// The Candid initialization argument for installing the canister.
+    /// If the `--argument` or `--argument-file` argument is also provided, this `init_arg` field will be ignored.
+    pub init_arg: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
