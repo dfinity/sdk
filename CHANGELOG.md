@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: `dfx cycles redeem-faucet-coupon`
+
+It is now possible to redeem faucet coupons to cycles ledger accounts.
+
 ### feat: specified_id in dfx.json
 
 In addition to passing `--specified-id` in `dfx deploy` and `dfx canister create`, `specified_id` can be set in `dfx.json`.
