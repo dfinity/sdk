@@ -286,13 +286,9 @@ export const {0} = canisterId ? createActor(canisterId) : undefined;"#,
                 Some(s) => format!(r#""{}""#, s.clone()),
                 None => {
                     format!(
-                        "process.env.{}{} ||\n  process.env.{}{}",
+                        "process.env.{}{}",
                         "CANISTER_ID_",
                         &canister_name.to_ascii_uppercase(),
-                        // TODO: remove this fallback in 0.16.x
-                        // https://dfinity.atlassian.net/browse/SDK-1083
-                        &canister_name.to_ascii_uppercase(),
-                        "_CANISTER_ID",
                     )
                 }
             };
@@ -396,22 +392,8 @@ pub fn get_and_write_environment_variables<'a>(
         // Insert both suffixed and prefixed versions of the canister name for backwards compatibility
         vars.push((
             Owned(format!(
-                "{}_CANISTER_ID",
-                canister.get_name().replace('-', "_").to_ascii_uppercase(),
-            )),
-            Owned(canister.canister_id().to_text().into()),
-        ));
-        vars.push((
-            Owned(format!(
                 "CANISTER_ID_{}",
                 canister.get_name().replace('-', "_").to_ascii_uppercase(),
-            )),
-            Owned(canister.canister_id().to_text().into()),
-        ));
-        vars.push((
-            Owned(format!(
-                "CANISTER_ID_{}",
-                canister.get_name().replace('-', "_")
             )),
             Owned(canister.canister_id().to_text().into()),
         ));

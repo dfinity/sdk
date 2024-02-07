@@ -2,6 +2,13 @@
 
 # UNRELEASED
 
+## Removed the deprecated <canister_name>_CANISTER_ID environment variables
+
+In dfx 0.14.0, we standardized on `CANISTER_ID_<canister_name_uppercase>` for
+environment variables for canister IDs and deprecated the old formats.  This
+version removes the old formats. The removed formats are
+`<canister_name>_CANISTER_ID` and `<canister_name_uppercase>_CANISTER_ID`.
+
 ### feat: candid assist feature
 
 Ask for user input when Candid argument is not provided in `dfx canister call`, `dfx canister install` and `dfx deploy`. 
