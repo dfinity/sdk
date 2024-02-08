@@ -239,7 +239,7 @@ DFX_MANIFEST_JSON_URL="${DFX_MANIFEST_JSON_URL:-$SDK_WEBSITE/manifest.json}"
 DFX_VERSION="${DFX_VERSION-}"
 
 # The SHA and the time of the last commit that touched this file.
-SCRIPT_COMMIT_DESC="5405fe506f38ef1f8f6c2b3a009088062d9b0a54"
+SCRIPT_COMMIT_DESC="13f611a1168a45ff039308fe7ffeb3c246a6e2f0"
 
 # Get the version of a tag from the manifest JSON file.
 # Arguments:
