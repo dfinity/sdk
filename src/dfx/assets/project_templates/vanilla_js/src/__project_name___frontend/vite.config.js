@@ -34,7 +34,7 @@ export default defineConfig({
       {
         find: "declarations",
         replacement: fileURLToPath(
-          new URL("./src/declarations", import.meta.url)
+          new URL("../declarations", import.meta.url)
         ),
       },
     ],
