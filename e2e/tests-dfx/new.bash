@@ -7,8 +7,8 @@ setup() {
 }
 
 teardown() {
-  standard_teardown
   dfx_stop
+  standard_teardown
 }
 
 @test "dfx new - good names" {
