@@ -92,7 +92,7 @@ impl Display for BackendType {
 
 #[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq)]
 enum FrontendType {
-    Svelte,
+    SvelteKit,
     Vanilla,
     Vue,
     React,
@@ -103,7 +103,7 @@ enum FrontendType {
 impl Display for FrontendType {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Svelte => "Svelte",
+            Self::SvelteKit => "SvelteKit",
             Self::Vanilla => "Vanilla JS",
             Self::Vue => "Vue",
             Self::React => "React",
@@ -370,7 +370,7 @@ fn scaffold_frontend_code(
 
         let mut new_project_files = match frontend {
             FrontendType::Vanilla => assets::new_project_vanillajs_files(),
-            FrontendType::Svelte => assets::new_project_svelte_files(),
+            FrontendType::SvelteKit => assets::new_project_svelte_files(),
             FrontendType::Vue => assets::new_project_vue_files(),
             FrontendType::React => assets::new_project_react_files(),
             FrontendType::SimpleAssets => assets::new_project_assets_files(),
@@ -385,7 +385,7 @@ fn scaffold_frontend_code(
         )?;
         if extras.contains(&Extra::FrontendTests) {
             let mut test_files = match frontend {
-                FrontendType::Svelte => assets::new_project_svelte_test_files(),
+                FrontendType::SvelteKit => assets::new_project_svelte_test_files(),
                 FrontendType::React => assets::new_project_react_test_files(),
                 FrontendType::Vue => assets::new_project_vue_test_files(),
                 FrontendType::Vanilla => assets::new_project_vanillajs_test_files(),
@@ -661,7 +661,7 @@ fn get_opts_interactively(opts: NewOpts) -> DfxResult<NewOpts> {
         .with_prompt("Select a backend language:")
         .interact()?;
     let backend = backends_list[backend];
-    let frontends_list = [Svelte, React, Vue, Vanilla, SimpleAssets, None];
+    let frontends_list = [SvelteKit, React, Vue, Vanilla, SimpleAssets, None];
     let frontend = FuzzySelect::with_theme(&theme)
         .items(&frontends_list)
         .default(0)
