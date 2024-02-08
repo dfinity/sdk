@@ -26,7 +26,7 @@ use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
 use sha2::{Digest, Sha256};
-use slog::{debug, info};
+use slog::{debug, info, warn};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -41,7 +41,7 @@ pub async fn install_canister(
     canister_info: &CanisterInfo,
     wasm_path_override: Option<&Path>,
     argument_from_cli: Option<&str>,
-    argument_type: Option<&str>,
+    argument_type_from_cli: Option<&str>,
     mode: Option<InstallMode>,
     call_sender: &CallSender,
     upgrade_unchanged: bool,
@@ -132,7 +132,32 @@ pub async fn install_canister(
         } else {
             get_candid_init_type(&idl_path)
         };
-        let install_args = blob_from_arguments(argument_from_cli, None, argument_type, &init_type)?;
+        // The argument and argument_type from the CLI take precedence over the `init_arg` field in dfx.json
+        let argument_from_json = canister_info.get_init_arg();
+        let (argument, argument_type) = match (argument_from_cli, argument_from_json) {
+            (Some(a_cli), Some(a_json)) => {
+                // We want to warn the user when the argument from CLI and json are different.
+                // There are two cases to consider:
+                // 1. The argument from CLI is in raw format, while the argument from json is always in Candid format.
+                // 2. Both arguments are in Candid format, but they are different.
+                if argument_type_from_cli == Some("raw") || a_cli != a_json {
+                    warn!(
+                        log,
+                        "Canister '{0}' has init_arg in dfx.json: {1},
+which is different from the one specified in the command line: {2}.
+The command line value will be used.",
+                        canister_info.get_name(),
+                        a_json,
+                        a_cli
+                    );
+                }
+                (argument_from_cli, argument_type_from_cli)
+            }
+            (Some(_), None) => (argument_from_cli, argument_type_from_cli),
+            (None, Some(_)) => (argument_from_json, Some("idl")), // `init_arg` in dfx.json is always in Candid format
+            (None, None) => (None, None),
+        };
+        let install_args = blob_from_arguments(argument, None, argument_type, &init_type)?;
         if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
             let new_timestamp = playground_install_code(
                 env,
@@ -232,8 +257,8 @@ fn check_candid_compatibility(
     canister_info: &CanisterInfo,
     candid: &str,
 ) -> anyhow::Result<Option<String>> {
-    use crate::util::check_candid_file;
     use candid::types::subtype::{subtype_with_config, OptReport};
+    use candid_parser::utils::CandidSource;
     let candid_path = canister_info.get_constructor_idl_path();
     let deployed_path = canister_info
         .get_constructor_idl_path()
@@ -244,11 +269,14 @@ fn check_candid_compatibility(
             deployed_path.to_string_lossy()
         )
     })?;
-    let (mut env, opt_new) =
-        check_candid_file(&candid_path).context("Checking generated did file.")?;
+    let (mut env, opt_new) = CandidSource::File(&candid_path)
+        .load()
+        .context("Checking generated did file.")?;
     let new_type = opt_new
         .ok_or_else(|| anyhow!("Generated did file should contain some service interface"))?;
-    let (env2, opt_old) = check_candid_file(&deployed_path).context("Checking old candid file.")?;
+    let (env2, opt_old) = CandidSource::File(&deployed_path)
+        .load()
+        .context("Checking old candid file.")?;
     let old_type = opt_old
         .ok_or_else(|| anyhow!("Deployed did file should contain some service interface"))?;
     let mut gamma = HashSet::new();

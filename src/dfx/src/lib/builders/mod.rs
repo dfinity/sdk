@@ -3,9 +3,9 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use crate::util::check_candid_file;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
+use candid_parser::utils::CandidSource;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
@@ -150,7 +150,7 @@ pub trait CanisterBuilder {
 
         let generated_idl_path = self.generate_idl(pool, info, config)?;
 
-        let (env, ty) = check_candid_file(generated_idl_path.as_path())?;
+        let (env, ty) = CandidSource::File(generated_idl_path.as_path()).load()?;
 
         // Typescript
         if bindings.contains(&"ts".to_string()) {

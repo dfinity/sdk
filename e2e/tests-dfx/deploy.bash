@@ -87,6 +87,22 @@ teardown() {
   assert_match "Hello, dfx!"
 }
 
+@test "deploy succeeds if init_arg is defined in dfx.json" {
+  install_asset deploy_deps
+  dfx_start
+  jq '.canisters.dependency.init_arg="(\"dfx\")"' dfx.json | sponge dfx.json
+  assert_command dfx deploy dependency
+  assert_command dfx canister call dependency greet
+  assert_match "Hello, dfx!"
+
+  assert_command dfx deploy dependency --mode reinstall --yes --argument '("icp")'
+  assert_contains "Canister 'dependency' has init_arg in dfx.json: (\"dfx\"),"
+  assert_contains "which is different from the one specified in the command line: (\"icp\")."
+  assert_contains "The command line value will be used."
+  assert_command dfx canister call dependency greet
+  assert_match "Hello, icp!"
+}
+
 @test "reinstalling a single Motoko canister with imported dependency works" {
   install_asset import_canister
   dfx_start

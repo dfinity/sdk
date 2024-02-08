@@ -378,6 +378,7 @@ get_strong_ciphersuites_for() {
 
 DFXVM_GITHUB_LATEST_RELEASE_ROOT="${DFXVM_GITHUB_LATEST_RELEASE_ROOT:-https://github.com/dfinity/dfxvm/releases/latest/download}"
 DFX_VERSION="${DFX_VERSION-}"
+DFXVM_INIT_YES="${DFXVM_INIT_YES-}"
 
 # The SHA and the time of the last commit that touched this file.
 SCRIPT_COMMIT_DESC="@revision@"
@@ -406,11 +407,17 @@ download_and_install() {
     ensure chmod u+x dfxvm
     ensure mv dfxvm dfxvm-init
 
+    command="./dfxvm-init"
+
     if [ -n "${DFX_VERSION}" ]; then
-        ./dfxvm-init --dfx-version "${DFX_VERSION}"
-    else
-        ./dfxvm-init
+        command="${command} --dfx-version \"${DFX_VERSION}\""
     fi
+
+    if [ -n "${DFXVM_INIT_YES}" ]; then
+        command="${command} --yes"
+    fi
+
+    eval "${command}"
 }
 
 main() {

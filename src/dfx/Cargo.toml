@@ -75,7 +75,6 @@ keyring.workspace = true
 lazy_static.workspace = true
 mime.workspace = true
 mime_guess.workspace = true
-net2 = "0.2.34"
 num-traits.workspace = true
 os_str_bytes = { version = "6.3.0", features = ["conversions"] }
 patch = "0.7.0"
@@ -99,6 +98,7 @@ shell-words = "1.1.0"
 slog = { workspace = true, features = ["max_level_trace"] }
 slog-async.workspace = true
 slog-term.workspace = true
+socket2 = "0.5.5"
 supports-color = "2.1.0"
 sysinfo = "0.28.4"
 tar.workspace = true

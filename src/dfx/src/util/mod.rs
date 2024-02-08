@@ -5,19 +5,17 @@ use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use bytes::Bytes;
 use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
-use candid::IDLArgs;
+use candid::{Decode, Encode, IDLArgs, Principal};
 use candid_parser::error::pretty_diagnose;
-use candid_parser::typing::pretty_check_file;
+use candid_parser::utils::CandidSource;
 use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
-#[cfg(unix)]
-use net2::unix::UnixTcpBuilderExt;
-use net2::{TcpBuilder, TcpListenerExt};
 use num_traits::FromPrimitive;
 use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
+use socket2::{Domain, Socket};
 use std::io::{stdin, Read};
-use std::net::{IpAddr, SocketAddr};
+use std::net::{IpAddr, SocketAddr, TcpListener};
 use std::path::Path;
 use std::time::Duration;
 
@@ -34,27 +32,30 @@ const DECIMAL_POINT: char = '.';
 // the Actix HttpServer in webserver.rs will bind to this SocketAddr.
 #[context("Failed to find reusable socket address")]
 pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> {
-    let tcp_builder = if ip.is_ipv4() {
-        TcpBuilder::new_v4().context("Failed to create IPv4 builder.")?
+    let socket = if ip.is_ipv4() {
+        Socket::new(Domain::IPV4, socket2::Type::STREAM, None)
+            .context("Failed to create IPv4 socket.")?
     } else {
-        TcpBuilder::new_v6().context("Failed to create IPv6 builder.")?
+        Socket::new(Domain::IPV6, socket2::Type::STREAM, None)
+            .context("Failed to create IPv6 socket.")?
     };
-    let tcp_builder = tcp_builder
-        .reuse_address(true)
+    socket
+        .set_reuse_address(true)
         .context("Failed to set option reuse_address of tcp builder.")?;
     // On Windows, SO_REUSEADDR without SO_EXCLUSIVEADDRUSE acts like SO_REUSEPORT (among other things), so this is only necessary on *nix.
     #[cfg(unix)]
-    let tcp_builder = tcp_builder
-        .reuse_port(true)
+    socket
+        .set_reuse_port(true)
         .context("Failed to set option reuse_port of tcp builder.")?;
-    let listener = tcp_builder
-        .bind(SocketAddr::new(ip, port))
-        .with_context(|| format!("Failed to set socket of tcp builder to {}:{}.", ip, port))?
-        .to_tcp_listener()
-        .context("Failed to create TcpListener.")?;
-    listener
+    socket
         .set_linger(Some(Duration::from_secs(10)))
         .context("Failed to set linger duration of tcp listener.")?;
+    socket
+        .bind(&SocketAddr::new(ip, port).into())
+        .with_context(|| format!("Failed to bind socket to {}:{}.", ip, port))?;
+    socket.listen(128).context("Failed to listen on socket.")?;
+
+    let listener: TcpListener = socket.into();
     listener
         .local_addr()
         .context("Failed to fetch local address.")
@@ -109,21 +110,38 @@ pub async fn read_module_metadata(
     )
 }
 
+pub async fn fetch_remote_did_file(
+    agent: &ic_agent::Agent,
+    canister_id: Principal,
+) -> Option<String> {
+    Some(
+        match read_module_metadata(agent, canister_id, "candid:service").await {
+            Some(candid) => candid,
+            None => {
+                let bytes = agent
+                    .query(&canister_id, "__get_candid_interface_tmp_hack")
+                    .with_arg(Encode!().ok()?)
+                    .call()
+                    .await
+                    .ok()?;
+                Decode!(&bytes, String).ok()?
+            }
+        },
+    )
+}
+
 /// Parse IDL file into TypeEnv. This is a best effort function: it will succeed if
 /// the IDL file can be parsed and type checked in Rust parser, and has an
 /// actor in the IDL file. If anything fails, it returns None.
-pub fn get_candid_type(
-    idl_path: &std::path::Path,
-    method_name: &str,
-) -> Option<(TypeEnv, Function)> {
-    let (env, ty) = check_candid_file(idl_path).ok()?;
+pub fn get_candid_type(candid: CandidSource, method_name: &str) -> Option<(TypeEnv, Function)> {
+    let (env, ty) = candid.load().ok()?;
     let actor = ty?;
     let method = env.get_method(&actor, method_name).ok()?.clone();
     Some((env, method))
 }
 
 pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Function)> {
-    let (env, ty) = check_candid_file(idl_path).ok()?;
+    let (env, ty) = CandidSource::File(idl_path).load().ok()?;
     let actor = ty?;
     let args = match actor.as_ref() {
         TypeInner::Class(args, _) => args.clone(),
@@ -135,16 +153,6 @@ pub fn get_candid_init_type(idl_path: &std::path::Path) -> Option<(TypeEnv, Func
         modes: vec![],
     };
     Some((env, res))
-}
-
-pub fn check_candid_file(idl_path: &std::path::Path) -> DfxResult<(TypeEnv, Option<Type>)> {
-    //context macro does not work for the returned error type
-    pretty_check_file(idl_path).with_context(|| {
-        format!(
-            "Candid file check failed for {}.",
-            idl_path.to_string_lossy()
-        )
-    })
 }
 
 pub fn arguments_from_file(file_name: &Path) -> DfxResult<String> {
