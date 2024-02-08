@@ -1,5 +1,6 @@
 use crate::lib::error::DfxResult;
 use anyhow::Context;
+use console::Style;
 use fn_error_context::context;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -13,6 +14,23 @@ pub fn dfxvm_released() -> DfxResult<bool> {
     let latest_version = semver::Version::parse(&latest_version)
         .with_context(|| format!("Failed to parse latest version '{latest_version}'"))?;
     Ok(latest_version.major >= 1)
+}
+
+pub fn display_dfxvm_installation_instructions() {
+    println!("You can install dfxvm by running the following command:");
+    println!();
+    let command = Style::new()
+        .cyan()
+        .apply_to(r#"sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)""#);
+    println!("    {command}");
+}
+
+pub fn display_link_to_dfxvm_readme() {
+    println!("For installation instructions, see:");
+    let url = Style::new()
+        .green()
+        .apply_to("https://github.com/dfinity/dfxvm/blob/main/README.md");
+    println!("    {url}");
 }
 
 #[derive(Deserialize, Debug)]

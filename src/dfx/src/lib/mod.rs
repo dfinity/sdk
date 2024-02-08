@@ -5,7 +5,6 @@ pub mod cycles_ledger_types;
 pub mod deps;
 pub mod dfxvm;
 pub mod diagnosis;
-pub mod dist;
 pub mod environment;
 pub mod error;
 pub mod error_code;
