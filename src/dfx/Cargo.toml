@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.16.0"
+version = "0.16.1"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
@@ -19,7 +19,7 @@ flate2 = { version = "1.0.11", default-features = false, features = [
     "zlib-ng",
 ] }
 hex = "0.4.3"
-reqwest = "0.11.9"
+reqwest.workspace = true
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10.6"
 tar = "0.4.26"
@@ -75,7 +75,6 @@ keyring.workspace = true
 lazy_static.workspace = true
 mime.workspace = true
 mime_guess.workspace = true
-net2 = "0.2.34"
 num-traits.workspace = true
 os_str_bytes = { version = "6.3.0", features = ["conversions"] }
 patch = "0.7.0"
@@ -83,12 +82,7 @@ pem.workspace = true
 petgraph = "0.6.0"
 rand = "0.8.5"
 regex = "1.5.5"
-reqwest = { version = "0.11.9", default-features = false, features = [
-    "blocking",
-    "json",
-    "rustls-tls",
-    "native-tls-vendored",
-] }
+reqwest = { workspace = true, features = ["blocking", "json"] }
 ring.workspace = true
 rust_decimal = "1.22.0"
 rustls-webpki = "0.101.4"
@@ -104,6 +98,7 @@ shell-words = "1.1.0"
 slog = { workspace = true, features = ["max_level_trace"] }
 slog-async.workspace = true
 slog-term.workspace = true
+socket2 = "0.5.5"
 supports-color = "2.1.0"
 sysinfo = "0.28.4"
 tar.workspace = true

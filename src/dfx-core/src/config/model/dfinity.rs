@@ -12,10 +12,12 @@ use crate::error::dfx_config::GetMemoryAllocationError::GetMemoryAllocationFaile
 use crate::error::dfx_config::GetPullCanistersError::PullCanistersSameId;
 use crate::error::dfx_config::GetRemoteCanisterIdError::GetRemoteCanisterIdFailed;
 use crate::error::dfx_config::GetReservedCyclesLimitError::GetReservedCyclesLimitFailed;
+use crate::error::dfx_config::GetSpecifiedIdError::GetSpecifiedIdFailed;
 use crate::error::dfx_config::{
     AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError,
     GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError,
     GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError,
+    GetSpecifiedIdError,
 };
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
@@ -268,6 +270,18 @@ pub struct ConfigCanistersCanister {
     /// # Gzip Canister WASM
     /// Disabled by default.
     pub gzip: Option<bool>,
+
+    /// # Specified Canister ID
+    /// Attempts to create the canister with this Canister ID.
+    /// This option only works with non-mainnet replica.
+    /// If the `--specified-id` argument is also provided, this `specified_id` field will be ignored.
+    #[schemars(with = "Option<String>")]
+    pub specified_id: Option<Principal>,
+
+    /// # Init Arg
+    /// The Candid initialization argument for installing the canister.
+    /// If the `--argument` or `--argument-file` argument is also provided, this `init_arg` field will be ignored.
+    pub init_arg: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
@@ -909,6 +923,16 @@ impl ConfigInterface {
             }
         };
         Ok(res)
+    }
+
+    pub fn get_specified_id(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<Principal>, GetSpecifiedIdError> {
+        Ok(self
+            .get_canister_config(canister_name)
+            .map_err(|e| GetSpecifiedIdFailed(canister_name.to_string(), e))?
+            .specified_id)
     }
 }
 

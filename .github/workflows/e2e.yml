@@ -23,7 +23,7 @@ jobs:
       matrix:
         # We build a dynamic-linked linux binary because otherwise HSM support fails with:
         #   Error: IO: Dynamic loading not supported
-        os: [ macos-12, ubuntu-20.04, ubuntu-22.04 ]
+        os: [ macos-12, ubuntu-20.04, ubuntu-22.04, windows-2022 ]
         include:
           - os: macos-12
             target: x86_64-apple-darwin
@@ -34,15 +34,18 @@ jobs:
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             binary_path: target/x86_64-unknown-linux-gnu/release
+          - os: windows-2022
+            target: x86_64-pc-windows-msvc
+            binary_path: target/x86_64-pc-windows-msvc/release
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Setup environment variables
         run: |
           echo "RUSTFLAGS=--remap-path-prefix=${GITHUB_WORKSPACE}=/builds/dfinity" >> $GITHUB_ENV
       - name: Cache Cargo
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -62,7 +65,7 @@ jobs:
           strip dfx
         if: contains(matrix.os, 'ubuntu')
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
           path: ${{ matrix.binary_path }}/dfx
@@ -72,7 +75,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: set-matrix
         run: echo "matrix=$(scripts/workflows/e2e-matrix.py)" >> $GITHUB_OUTPUT
 
@@ -88,9 +91,9 @@ jobs:
         #     /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.29' not found
         os: [macos-12, ubuntu-20.04, ubuntu-22.04]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Download dfx binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
           path: /usr/local/bin
@@ -121,9 +124,9 @@ jobs:
     env:
       E2E_TEST: tests-${{ matrix.test }}.bash
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Download dfx binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
           path: /usr/local/bin
@@ -144,7 +147,7 @@ jobs:
       - name: Download bats-support as a git submodule
         run: git submodule update --init --recursive
       - name: Cache mops files
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             e2e/assets/playground_backend/.mops
@@ -163,7 +166,7 @@ jobs:
       - name: Checking out repo
         uses: actions/checkout@v4
       - name: Setting up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
       - name: Installing playwright
@@ -172,7 +175,7 @@ jobs:
           playwright install
           playwright install-deps
       - name: Download dfx binary
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
           path: /usr/local/bin

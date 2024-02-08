@@ -5,7 +5,8 @@ use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{cycle_amount_parser, file_or_stdin_parser};
 use crate::util::{
-    arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob, read_module_metadata,
+    arguments_from_file, blob_from_arguments, fetch_remote_did_file, get_candid_type,
+    print_idl_blob,
 };
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
@@ -20,6 +21,7 @@ use ic_utils::interfaces::management_canister::builders::{CanisterInstall, Canis
 use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
+use slog::warn;
 use std::option::Option;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -228,25 +230,44 @@ pub async fn exec(
     let method_name = opts.method_name.as_str();
     let canister_id_store = env.get_canister_id_store()?;
 
-    let canister_id = match CanisterId::from_text(callee_canister) {
-        Ok(id) => id,
+    let (canister_id, maybe_local_candid_path) = match CanisterId::from_text(callee_canister) {
+        Ok(id) => {
+            if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
+                get_local_cid_and_candid_path(env, canister_name, Some(id))?
+            } else {
+                (id, None)
+            }
+        }
         Err(_) => {
             let canister_id = canister_id_store.get(callee_canister)?;
-            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?.0
+            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
         }
     };
     let method_type = if let Some(path) = opts.candid {
         get_candid_type(CandidSource::File(&path), method_name)
+    } else if let Some(did) = fetch_remote_did_file(agent, canister_id).await {
+        get_candid_type(CandidSource::Text(&did), method_name)
+    } else if let Some(path) = maybe_local_candid_path {
+        warn!(env.get_logger(), "DEPRECATION WARNING: Cannot fetch Candid interface from canister metadata, reading Candid interface from the local build artifact. In a future dfx release, we will only read candid interface from canister metadata.");
+        warn!(
+            env.get_logger(),
+            r#"Please add the following to dfx.json to store local candid file into metadata:
+"metadata": [
+   {{
+     "name": "candid:service"
+   }}
+]"#
+        );
+        get_candid_type(CandidSource::File(&path), method_name)
     } else {
-        read_module_metadata(agent, canister_id, "candid:service")
-            .await
-            .and_then(|did| get_candid_type(CandidSource::Text(&did), method_name))
+        None
     };
     if method_type.is_none() {
-        eprintln!("Cannot fetch Candid interface from canister metadata, sending arguments with inferred types.");
+        warn!(env.get_logger(), "Cannot fetch Candid interface for {method_name}, sending arguments with inferred types.");
     }
 
     let is_management_canister = canister_id == CanisterId::management_canister();
+
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let arguments_from_file = opts

@@ -57,6 +57,10 @@ In other cases, the wasm module at `wasm_url` is not the same as the on-chain wa
 
 A URL to get the SHA256 hash of the wasm module located at `wasm_url`.
 
+The content of this URL can be the SHA256 hash only.
+
+It can also be the output of `shasum` or `sha256sum` which contains the hash and the file name.
+
 This field is optional.
 
 Aside from specifying SHA256 hash of the wasm module directly using `wasm_hash`, providers can also specify the hash with this URL. If both are defined, the `wasm_hash_url` field will be ignored.

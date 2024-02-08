@@ -26,11 +26,12 @@ You can use the following optional flags with the `dfx new` command:
 
 ## Arguments
 
-You must specify the following argument for the `dfx new` command.
+You can specify the following argument for the `dfx new` command.
 
 | Argument       | Description                                                             |
 |----------------|-------------------------------------------------------------------------|
 | `project_name` | Specifies the name of the project to create. This argument is required. |
+| `--type`       | Choose the canister type in the starter project, motoko and rust are available. The default is motoko. |
 
 ## Examples
 
