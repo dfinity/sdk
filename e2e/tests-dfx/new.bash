@@ -53,7 +53,7 @@ teardown() {
 }
 
 @test "frontend templates apply successfully" {
-  for frontend in svelte vue react vanilla simple-assets none; do
+  for frontend in sveltekit vue react vanilla simple-assets none; do
     assert_command dfx new e2e_${frontend/-/_} --frontend $frontend
   done
   assert_file_not_exists e2e_none/src/e2e_none_frontend
@@ -61,7 +61,7 @@ teardown() {
 
 @test "frontend templates pass the frontend tests" {
   dfx_start
-  for frontend in svelte vue react vanilla; do
+  for frontend in sveltekit vue react vanilla; do
     assert_command dfx new e2e_$frontend --frontend $frontend --extras frontend-tests
     pushd e2e_$frontend
     assert_command dfx deploy

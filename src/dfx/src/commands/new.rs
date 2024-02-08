@@ -92,6 +92,7 @@ impl Display for BackendType {
 
 #[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq)]
 enum FrontendType {
+    #[value(name = "sveltekit")]
     SvelteKit,
     Vanilla,
     Vue,
