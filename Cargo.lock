@@ -2448,8 +2448,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.32.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "410a8c1bdd647dfc43978497e8f794378a18eeb3ec7c768b92c3885c999e1d1b"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=82dda155d22c9fafe032ac2cf66cffb6a76e97c1#82dda155d22c9fafe032ac2cf66cffb6a76e97c1"
 dependencies = [
  "backoff",
  "cached 0.46.1",
@@ -2464,6 +2463,7 @@ dependencies = [
  "ic-verify-bls-signature",
  "k256 0.13.3",
  "leb128",
+ "p256",
  "pem 2.0.1",
  "pkcs8 0.10.2",
  "rand",
@@ -2885,8 +2885,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.32.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "478f1fb56cdda5959ac4a685dbe74c56f25226212defb34ab5cf136f4b919344"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=82dda155d22c9fafe032ac2cf66cffb6a76e97c1#82dda155d22c9fafe032ac2cf66cffb6a76e97c1"
 dependencies = [
  "hex",
  "ic-agent",
@@ -2986,8 +2985,7 @@ dependencies = [
 [[package]]
 name = "ic-transport-types"
 version = "0.32.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cb030f03ef8332fbf8eda6bb25e80d8354d2bef88b27e671b3c167d9ee8e7a7"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=82dda155d22c9fafe032ac2cf66cffb6a76e97c1#82dda155d22c9fafe032ac2cf66cffb6a76e97c1"
 dependencies = [
  "candid",
  "hex",
@@ -3056,8 +3054,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.32.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2921308283f89a431872ba63f5ece9ffe6eadf7bc4cc5d12239eae146c7db8f0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=82dda155d22c9fafe032ac2cf66cffb6a76e97c1#82dda155d22c9fafe032ac2cf66cffb6a76e97c1"
 dependencies = [
  "async-trait",
  "candid",
@@ -3933,6 +3930,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "p256"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c9863ad85fa8f4460f9c48cb909d38a0d689dba1f6f6988a5e3e0d31071bcd4b"
+dependencies = [
+ "ecdsa 0.16.9",
+ "elliptic-curve 0.13.8",
+ "primeorder",
+ "sha2 0.10.8",
+]
+
+[[package]]
 name = "pairing"
 version = "0.22.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4296,6 +4305,15 @@ checksum = "af7cee1a6c8a5b9208b3cb1061f10c0cb689087b3d8ce85fb9d2dd7a29b6ba66"
 dependencies = [
  "diff",
  "yansi",
+]
+
+[[package]]
+name = "primeorder"
+version = "0.13.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "353e1ca18966c16d9deb1c69278edbc5f194139612772bd9537af60ac231e1e6"
+dependencies = [
+ "elliptic-curve 0.13.8",
 ]
 
 [[package]]
