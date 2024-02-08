@@ -53,6 +53,10 @@ ic-wasm canister.wasm -o canister.wasm metadata candid:service -f service.did -v
 
 Please use the [dfx version manager](https://github.com/dfinity/dfxvm) instead.
 
+### feat: allow dfxvm install script to bypass confirmation
+
+The dfxvm install script now accepts `DFXVM_INIT_YES=<non empty string>` to skip confirmation.
+
 ### chore: bump `ic-agent`, `ic-utils` and `ic-identity-hsm` to 0.32.0
 
 
