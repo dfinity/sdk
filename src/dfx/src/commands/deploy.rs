@@ -120,6 +120,7 @@ pub struct DeployOpts {
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let env = create_agent_environment(env, opts.network.to_network_name())?;
+    let runtime = Runtime::new().expect("Unable to create a runtime");
 
     let canister_name = opts.canister_name.as_deref();
     let argument = opts.argument.as_deref();
@@ -133,7 +134,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         .context("Failed to parse InstallMode.")?;
     let config = env.get_config_or_anyhow()?;
     let env_file = config.get_output_env_file(opts.output_env_file)?;
-    let subnet_selection = opts.subnet_selection.into_subnet_selection();
+    let subnet_selection = runtime.block_on(opts.subnet_selection.into_subnet_selection(&env))?;
     let with_cycles = opts.with_cycles;
 
     let deploy_mode = match (mode, canister_name) {
@@ -168,8 +169,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         }
         (None, _) => NormalDeploy,
     };
-
-    let runtime = Runtime::new().expect("Unable to create a runtime");
 
     let call_sender = CallSender::from(&opts.wallet)
         .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
