@@ -39,7 +39,7 @@ When consumers run `dfx deps init` without `--argument`, the value in `init_arg`
 
 Consumers won't have to figure out the init argument by themselves. It can be overwritten by `dfx deps init --argument`.
 
-### fix(deps): dfx deps init set "(null)" init argument for canisters
+### fix(deps): dfx deps init will try to set "(null)" init argument
 
 For pulled canisters which have no `init_arg` in `pullable` metadata, `dfx deps init` without `--argument` will try to set `"(null)"` automatically.
 
