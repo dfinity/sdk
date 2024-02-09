@@ -616,6 +616,7 @@ current_time_nanoseconds() {
 @test "convert icp to cycles" {
   ALICE=$(dfx identity get-principal --identity alice)
   ALICE_SUBACCT1="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+  ALICE_SUBACCT2="6C6B6A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
 
   deploy_cycles_ledger
 
@@ -632,13 +633,32 @@ current_time_nanoseconds() {
 
   dfx canister call rrkah-fqaaa-aaaaa-aaaaq-cai get_proposal_info '(3 : nat64)'
 
+  # base case
   assert_command dfx cycles convert --amount 12.5
   assert_contains "Account was topped up with 1_543_208_750_000_000 cycles!"
+  assert_command dfx ledger balance
+  assert_eq "87.49990000 ICP"
   assert_command dfx cycles balance --precise
   assert_eq "1543208750000000 cycles."
 
-  assert_command dfx cycles convert --amount 10 --to-subaccount "$ALICE_SUBACCT1"
+  # to-subaccount and from-subaccount
+  assert_command dfx cycles convert --amount 10 --from-subaccount "$ALICE_SUBACCT1" --to-subaccount "$ALICE_SUBACCT2"
   assert_contains "Account was topped up with 1_234_567_000_000_000 cycles!"
-  assert_command dfx cycles balance --precise --subaccount "$ALICE_SUBACCT1"
+  assert_command dfx ledger balance --subaccount "$ALICE_SUBACCT1"
+  assert_eq "89.99990000 ICP"
+  assert_command dfx cycles balance --precise --subaccount "$ALICE_SUBACCT2"
   assert_eq "1234567000000000 cycles."
+
+  # deduplication
+  t=$(current_time_nanoseconds)
+  assert_command dfx cycles convert --amount 10 --created-at-time "$t"
+  assert_contains "Transfer sent at block height 12"
+  assert_command dfx cycles balance --precise
+  assert_eq "2777775750000000 cycles."
+  # same created-at-time: dupe
+  assert_command dfx cycles convert --amount 10 --created-at-time "$t"
+  # shellcheck disable=SC2154
+  assert_contains "transaction is a duplicate of another transaction in block 12" "$stderr"
+  # shellcheck disable=SC2154
+  assert_contains "Transfer sent at block height 12"
 }

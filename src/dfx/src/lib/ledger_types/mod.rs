@@ -7,6 +7,8 @@ use crate::lib::nns_types::icpts::ICPTs;
 use candid::CandidType;
 use candid::Nat;
 use candid::Principal;
+use icrc_ledger_types::icrc1::account::Subaccount as ICRCSubaccount;
+use icrc_ledger_types::icrc1::transfer::BlockIndex as ICRCBlockIndex;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
@@ -157,14 +159,14 @@ pub enum NotifyError {
 #[derive(Serialize, Deserialize, CandidType, Clone, Hash, Debug, PartialEq, Eq)]
 pub struct NotifyMintCyclesArg {
     pub block_index: BlockIndex,
-    pub to_subaccount: Option<icrc_ledger_types::icrc1::account::Subaccount>,
+    pub to_subaccount: Option<ICRCSubaccount>,
     pub deposit_memo: Option<Vec<u8>>,
 }
 
 #[derive(Serialize, Deserialize, CandidType, Clone, Hash, Debug, PartialEq, Eq)]
 pub struct NotifyMintCyclesSuccess {
     /// Cycles ledger block index of deposit
-    pub block_index: icrc_ledger_types::icrc1::transfer::BlockIndex,
+    pub block_index: ICRCBlockIndex,
     /// Amount of cycles that were minted and deposited to the cycles ledger
     pub minted: Nat,
     /// New balance of the cycles ledger account
