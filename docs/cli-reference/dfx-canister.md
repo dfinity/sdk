@@ -222,6 +222,7 @@ You can use the following options with the `dfx canister create` command.
 | `--specified-id <PRINCIPAL>`              | Attempts to create the canister with this Canister ID |
 | `--subnet-type <subnet-type>`             | Specify the subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                      |
 | `--subnet <subnet-principal>`             | Specify the subnet to create the canister on. If no subnet is provided, the canister will be created on a random default application subnet.                                |
+| `--next-to <canister-principal>`          | Create canisters on the same subnet as this canister. |
 
 ### Arguments
 

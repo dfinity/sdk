@@ -29,7 +29,7 @@ pub async fn exec(env: &dyn Environment, opts: NotifyCreateOpts) -> DfxResult {
 
     fetch_root_key_if_needed(env).await?;
 
-    let subnet_selection = opts.subnet_selection.into_subnet_selection();
+    let subnet_selection = opts.subnet_selection.into_subnet_selection(env).await?;
     let result = notify_create(agent, controller, block_height, subnet_selection).await;
 
     match result {
