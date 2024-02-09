@@ -166,33 +166,3 @@ The following info might be helpful:
     }
     Ok(())
 }
-
-// fn try_set_empty_init_for_all(
-//     logger: &Logger,
-//     init_json: &mut InitJson,
-//     pulled_json: &PulledJson,
-// ) -> DfxResult {
-//     let mut canisters_require_init = vec![];
-//     for (canister_id, pulled_canister) in &pulled_json.canisters {
-//         let canister_prompt = get_canister_prompt(canister_id, pulled_canister);
-//         if init_json.contains(canister_id) {
-//             info!(logger, "{canister_prompt} already set init argument.");
-//         } else {
-//             let candid_args = pulled_json.get_candid_args(canister_id)?;
-//             let candid_args_idl_types: IDLTypes = candid_args.parse()?;
-//             if candid_args_idl_types.args.is_empty() {
-//                 init_json.set_empty_init(canister_id);
-//             } else {
-//                 canisters_require_init.push(canister_prompt);
-//             }
-//         }
-//     }
-//     if !canisters_require_init.is_empty() {
-//         let mut message = "The following canister(s) require an init argument. Please run `dfx deps init <NAME/PRINCIPAL>` to set them individually:".to_string();
-//         for canister_prompt in canisters_require_init {
-//             message.push_str(&format!("\n{canister_prompt}"));
-//         }
-//         warn!(logger, "{message}");
-//     }
-//     Ok(())
-// }
