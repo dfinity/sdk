@@ -80,7 +80,7 @@ You can specify the following arguments for the `dfx cycles convert` command.
 
 | Option                                      | Description |
 |---------------------------------------------|-------------|
-| `--amount <amount>`            | Specify the number of ICP tokens to mint into cycles and deposit into destination canister. You can specify an amount as a number with up to eight (8) decimal places. |
+| `--amount <amount>`            | Specify the number of ICP tokens to mint into cycles and deposit into your cycles ledger account. You can specify an amount as a number with up to eight (8) decimal places. |
 | `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
 | `--e8s <e8s>`                  | Specify ICP token fractional units—called e8s—as a whole number, where one e8 is smallest partition of an ICP token. For example, 1.05000000 is 1 ICP and 5000000 e8s. You can use this option on its own or in conjunction with the `--icp` option. |
 | `--fee <fee>`                  | Specify a transaction fee. The default is 10000 e8s. |

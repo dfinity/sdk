@@ -33,7 +33,7 @@ pub struct ConvertOpts {
     #[arg(long)]
     created_at_time: Option<u64>,
 
-    /// ICP to mint into cycles and deposit into destination canister
+    /// ICP to mint into cycles and deposit into your cycles ledger account
     /// Can be specified as a Decimal with the fractional portion up to 8 decimal places
     /// i.e. 100.012
     #[arg(long)]
