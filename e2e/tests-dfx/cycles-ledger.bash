@@ -15,7 +15,7 @@ setup() {
 
   dfx_start_for_nns_install
 
-  dfx extension install nns --version 0.3.0 || true
+  dfx extension install nns --version 0.3.1 || true
   dfx nns install --ledger-accounts "$(dfx ledger account-id --identity cycle-giver)"
 }
 
@@ -583,10 +583,9 @@ current_time_nanoseconds() {
   assert_contains "Provided subnet type custom_subnet_type does not exist"
 }
 
-@test "convert" {
+@test "convert icp to cycles" {
   ALICE=$(dfx identity get-principal --identity alice)
   ALICE_SUBACCT1="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-  ALICE_SUBACCT1_CANDID="\00\01\02\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
 
   deploy_cycles_ledger
 
@@ -604,6 +603,13 @@ current_time_nanoseconds() {
   dfx canister call rrkah-fqaaa-aaaaa-aaaaq-cai get_proposal_info '(3 : nat64)'
 
   assert_command dfx cycles convert --amount 12.5
-  assert_contains "asrt"
+  assert_contains "Canister was topped up with 1_543_208_750_000_000 cycles!"
+  assert_command dfx cycles balance --precise
+  assert_eq "1543208750000000 cycles."
+
+  assert_command dfx cycles convert --amount 10 --to-subaccount "$ALICE_SUBACCT1"
+  assert_contains "Canister was topped up with 1_234_567_000_000_000 cycles!"
+  assert_command dfx cycles balance --precise --subaccount "$ALICE_SUBACCT1"
+  assert_eq "1234567000000000 cycles."
 
 }
