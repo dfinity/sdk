@@ -88,7 +88,7 @@ pub async fn exec(env: &dyn Environment, opts: ConvertOpts) -> DfxResult {
             minted, balance, ..
         }) => {
             println!(
-                "Canister was topped up with {minted} cycles! New balance is {balance} cycles."
+                "Account was topped up with {minted} cycles! New balance is {balance} cycles."
             );
         }
         Err(NotifyMintCyclesError::Notify(NotifyError::Refunded {

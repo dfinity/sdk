@@ -14,6 +14,10 @@ Previously `dfx new --no-frontend` still created a frontend canister. This behav
 
 It is now possible to redeem faucet coupons to cycles ledger accounts.
 
+### feat: `dfx cycles convert`
+
+It is now possible to turn ICP into cycles that are stored on the cycles ledger using `dfx cycles convert --amount <amount of ICP>`
+
 ### feat: specified_id in dfx.json
 
 In addition to passing `--specified-id` in `dfx deploy` and `dfx canister create`, `specified_id` can be set in `dfx.json`.

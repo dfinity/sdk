@@ -633,12 +633,12 @@ current_time_nanoseconds() {
   dfx canister call rrkah-fqaaa-aaaaa-aaaaq-cai get_proposal_info '(3 : nat64)'
 
   assert_command dfx cycles convert --amount 12.5
-  assert_contains "Canister was topped up with 1_543_208_750_000_000 cycles!"
+  assert_contains "Account was topped up with 1_543_208_750_000_000 cycles!"
   assert_command dfx cycles balance --precise
   assert_eq "1543208750000000 cycles."
 
   assert_command dfx cycles convert --amount 10 --to-subaccount "$ALICE_SUBACCT1"
-  assert_contains "Canister was topped up with 1_234_567_000_000_000 cycles!"
+  assert_contains "Account was topped up with 1_234_567_000_000_000 cycles!"
   assert_command dfx cycles balance --precise --subaccount "$ALICE_SUBACCT1"
   assert_eq "1234567000000000 cycles."
 }
