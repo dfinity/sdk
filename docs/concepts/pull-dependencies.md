@@ -73,6 +73,12 @@ An array of Canister IDs (`Principal`) of direct dependencies.
 
 A message to guide consumers how to initialize the canister.
 
+### `init_arg`
+
+A default initialization argument for the canister that consumers can use.
+
+This field is optional.
+
 ## Canister Metadata Requirements
 
 The "production" canister running on the mainnet should have public `dfx` metadata.
@@ -133,13 +139,14 @@ For the example project, you will find following files in `deps/`:
 - `yhgn4-myaaa-aaaaa-aabta-cai.did` and `yahli-baaaa-aaaaa-aabtq-cai.did`: candid files that can be imported by "app";
 - `pulled.json` which has following content:
 
-```
+```json
 {
   "canisters": {
     "yofga-2qaaa-aaaaa-aabsq-cai": {
       "dependencies": [],
       "wasm_hash": "e9b8ba2ad28fa1403cf6e776db531cdd6009a8e5cac2b1097d09bfc65163d56f",
       "init_guide": "A natural number, e.g. 10.",
+      "init_arg" : "10",
       "candid_args": "(nat)"
     },
     "yhgn4-myaaa-aaaaa-aabta-cai": {
@@ -157,8 +164,8 @@ For the example project, you will find following files in `deps/`:
         "yofga-2qaaa-aaaaa-aabsq-cai"
       ],
       "wasm_hash": "016df9800dc5760785646373bcb6e6bb530fc17f844600991a098ef4d486cf0b",
-      "init_guide": "A natural number, e.g. 20.",
-      "candid_args": "(nat)"
+      "init_guide": "An optional natural number, e.g. \"(opt 20)\".",
+      "candid_args": "(opt nat)"
     }
   }
 }
@@ -177,29 +184,30 @@ You can choose other network as usual, e.g. `--network local`.
 
 ### 3. Set init arguments using `dfx deps init`
 
-Running `dfx deps init` will iterate over all dependencies in `pulled.json`, set an empty argument for the ones that need no init argument and print the list of dependencies that do require an init argument.
+Running `dfx deps init` will iterate over all dependencies in `pulled.json`, try to set init arguments in the following order:
+
+- For canisters that require no init argument, set empty
+- For canisters that do require init arguments:
+  - Use `init_arg` in pullable metadata if it is set
+  - use `"(null)"` if the canister's init type has a top-level `opt`
+
+The command will also print the list of dependencies that do require an init argument.
 
 Then running `dfx deps init <CANISTER> --argument <ARGUMENT>` will set the init argument for an individual dependency.
 
 The init arguments will be recorded in `deps/init.json`.
 
-For our example, we should run:
+For the example, simply running `dfx deps init` to set init arguments for all three pulled canisters.
+
+- "yofga-2qaaa-aaaaa-aabsq-cai" ("a"): set with `init_arg`;
+- "yhgn4-myaaa-aaaaa-aabta-cai" ("dep_b"): requires no argument, set empty;
+- "yahli-baaaa-aaaaa-aabtq-cai" ("dep_c"): init type `(opt nat)` which has a top-level `opt`, set `"(null)"`;
+
+The init arguments can be overwritten:
 
 ```
-> dfx deps init
-WARN: The following canister(s) require an init argument. Please run `dfx deps init <NAME/PRINCIPAL>` to set them individually:
-yofga-2qaaa-aaaaa-aabsq-cai
-yahli-baaaa-aaaaa-aabtq-cai (dep_c)
-> dfx deps init yofga-2qaaa-aaaaa-aabsq-cai
-Error: Canister yofga-2qaaa-aaaaa-aabsq-cai requires an init argument. The following info might be helpful:
-init_guide => A natural number, e.g. 10.
-candid:args => (nat)
-> dfx deps init yofga-2qaaa-aaaaa-aabsq-cai --argument 10
-> dfx deps init deps_c
-Error: Canister yahli-baaaa-aaaaa-aabtq-cai (dep_c) requires an init argument. The following info might be helpful:
-init_guide => A natural number, e.g. 20.
-candid:args => (nat)
-> dfx deps init deps_c --argument 20
+> dfx deps init yofga-2qaaa-aaaaa-aabsq-cai --argument 11
+> dfx deps init deps_c --argument "(opt 22)"
 ```
 
 The generated `init.json` has following content:
@@ -208,16 +216,16 @@ The generated `init.json` has following content:
 {
   "canisters": {
     "yofga-2qaaa-aaaaa-aabsq-cai": {
-      "arg_str": "10",
-      "arg_raw": "4449444c00017d0a"
+      "arg_str": "11",
+      "arg_raw": "4449444c00017d0b"
     },
     "yhgn4-myaaa-aaaaa-aabta-cai": {
       "arg_str": null,
       "arg_raw": null
     },
     "yahli-baaaa-aaaaa-aabtq-cai": {
-      "arg_str": "20",
-      "arg_raw": "4449444c00017d14"
+      "arg_str": "(opt 22)",
+      "arg_raw": "4449444c016e7d01000116"
     }
   }
 }
