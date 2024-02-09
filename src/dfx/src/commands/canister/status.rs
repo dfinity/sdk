@@ -47,7 +47,7 @@ async fn canister_status(
         "Not Set".to_string()
     };
 
-    info!(log, "Canister status call result for {}.\nStatus: {}\nControllers: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nReserved: {} Cycles\nReserved Cycles Limit: {}\nModule hash: {}",
+    info!(log, "Canister status call result for {}.\nStatus: {}\nControllers: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nReserved: {} Cycles\nReserved Cycles Limit: {}\nModule hash: {}\nNumber of queries: {}\nInstructions spent in queries: {}\nTotal query request paylod size (bytes): {}\nTotal query response payload size (bytes): {}",
         canister,
         status.status,
         controllers.join(" "),
@@ -58,7 +58,11 @@ async fn canister_status(
         status.cycles,
         status.reserved_cycles,
         reserved_cycles_limit,
-        status.module_hash.map_or_else(|| "None".to_string(), |v| format!("0x{}", hex::encode(v)))
+        status.module_hash.map_or_else(|| "None".to_string(), |v| format!("0x{}", hex::encode(v))),
+        status.query_stats.num_calls_total,
+        status.query_stats.num_instructions_total,
+        status.query_stats.request_payload_bytes_total,
+        status.query_stats.response_payload_bytes_total,
     );
     Ok(())
 }

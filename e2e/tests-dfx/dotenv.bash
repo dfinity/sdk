@@ -5,7 +5,7 @@ load ../utils/_
 setup() {
   standard_setup
 
-  dfx_new
+  dfx_new_assets
 }
 
 teardown() {

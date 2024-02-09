@@ -237,6 +237,14 @@
               "enum": [
                 "assets"
               ]
+            },
+            "workspace": {
+              "title": "NPM workspace",
+              "description": "The workspace in package.json that this canister is in, if it is not in the root workspace.",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         },
@@ -366,6 +374,14 @@
             "null"
           ]
         },
+        "init_arg": {
+          "title": "Init Arg",
+          "description": "The Candid initialization argument for installing the canister. If the `--argument` or `--argument-file` argument is also provided, this `init_arg` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "initialization_values": {
           "title": "Resource Allocation Settings",
           "description": "Defines initial values for resource allocation settings.",
@@ -452,6 +468,14 @@
           "description": "Whether run `ic-wasm shrink` after building the Canister. Enabled by default for Rust/Motoko canisters. Disabled by default for custom canisters.",
           "type": [
             "boolean",
+            "null"
+          ]
+        },
+        "specified_id": {
+          "title": "Specified Canister ID",
+          "description": "Attempts to create the canister with this Canister ID. This option only works with non-mainnet replica. If the `--specified-id` argument is also provided, this `specified_id` field will be ignored.",
+          "type": [
+            "string",
             "null"
           ]
         }

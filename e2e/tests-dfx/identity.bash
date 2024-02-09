@@ -5,7 +5,7 @@ load ../utils/_
 setup() {
   standard_setup
 
-  dfx_new
+  dfx_new_assets
 }
 
 teardown() {
@@ -182,7 +182,7 @@ teardown() {
   assert_command dfx canister call e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob "hello"})' --identity bob
   assert_eq '()'
   assert_command dfx canister call --output idl e2e_project_frontend retrieve '("B")'
-    # shellcheck disable=SC2154
+  # shellcheck disable=SC2154
   assert_eq '(blob "hello")' "$stdout"
 }
 

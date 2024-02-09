@@ -4,6 +4,8 @@ Use the `dfx new` command to create a new project for the IC. This command creat
 
 You can use the `--dry-run` option to preview the directories and files to be created without adding them to the file system.
 
+If called without any arguments besides the project name, it will interactively prompt you for the values of `--type`, `--frontend`, and `--extras`.
+
 ## Basic usage
 
 ``` bash
@@ -14,19 +16,22 @@ dfx new _project_name_ [flag]
 
 You can use the following optional flags with the `dfx new` command:
 
-| Flag              | Description                                                                                                                                                                                                                                                                                                                                                                                                                         |
-|-------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--dry-run`       | Generates a preview the directories and files to be created for a new project without adding them to the file system.                                                                                                                                                                                                                                                                                                               |
-| `--frontend`      | Installs the template frontend code for the default project canister. The default value for the flag is `true` if `node.js` is currently installed on your local computer. If `node.js` is not currently installed, you can set this flag to `true` to attempt to install `node.js` and the template file when creating the project or you can set the flag to `false` to skip the installation of template frontend code entirely. |                                                                                                                                                                                                                                                                                    |
-| `--no-frontend`      | Skips installing the frontend template code and instead creates an asset canister with a dummy `.txt` file. This is the default behavior if `node.js` is currently not installed on your computer. |
+| Flag                    | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--dry-run`             | Generates a preview of the directories and files to be created for a new project without adding them to the file system.                                                                                                                                                                                                                                                                                                                                                                                  |
+| `--extras <EXTRAS>`     | Comma-separated list of additional features to add to the project template. `bitcoin` and `internet-identity` will insert the appropriate boilerplate into `dfx.json`, and `frontend-tests` adds a `vitest` skeleton to the frontend project.                                                                                                                                                                                                                                                             |
+| `--frontend <FRONTEND>` | Installs the template frontend code for the default project canister. The default value for the flag is `vanilla` if `node.js` is currently installed on your local computer. If `node.js` is not currently installed, you can set this flag to attempt to install `node.js` and the template file when creating the project or you can set the flag to `none` to skip the installation of template frontend code entirely. Possible values: `svelte`, `react`, `vue`, `vanilla`, `plain-assets`, `none`. |
+| `--no-frontend`         | Skips installing the frontend template code. This is the default behavior if `node.js` is currently not installed on your computer. Equivalent to `--frontend none`.                                                                                                                                                                                                                                                                                                                                      |
+| `--type <TYPE>`         | Selects the template backend code for the default project canister. The default value for the flag is `motoko`. Possible values: `motoko`, `rust`, `azle`, `kybra`.                                                                                                                                                                                                                                                                                                                                       |
 
 ## Arguments
 
-You must specify the following argument for the `dfx new` command.
+You can specify the following argument for the `dfx new` command.
 
 | Argument       | Description                                                             |
 |----------------|-------------------------------------------------------------------------|
 | `project_name` | Specifies the name of the project to create. This argument is required. |
+| `--type`       | Choose the canister type in the starter project, motoko and rust are available. The default is motoko. |
 
 ## Examples
 

@@ -7,6 +7,7 @@ use tokio::runtime::Runtime;
 
 mod balance;
 mod convert;
+mod redeem_faucet_coupon;
 pub mod top_up;
 mod transfer;
 
@@ -27,6 +28,7 @@ enum SubCommand {
     Convert(convert::ConvertOpts),
     TopUp(top_up::TopUpOpts),
     Transfer(transfer::TransferOpts),
+    RedeemFaucetCoupon(redeem_faucet_coupon::RedeemFaucetCouponOpts),
 }
 
 pub fn exec(env: &dyn Environment, opts: CyclesOpts) -> DfxResult {
@@ -38,6 +40,7 @@ pub fn exec(env: &dyn Environment, opts: CyclesOpts) -> DfxResult {
             SubCommand::Convert(v) => convert::exec(&agent_env, v).await,
             SubCommand::TopUp(v) => top_up::exec(&agent_env, v).await,
             SubCommand::Transfer(v) => transfer::exec(&agent_env, v).await,
+            SubCommand::RedeemFaucetCoupon(v) => redeem_faucet_coupon::exec(&agent_env, v).await,
         }
     })
 }

@@ -87,7 +87,7 @@ pub async fn exec(
             if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
                 get_local_cid_and_candid_path(env, canister_name, Some(id))?
             } else {
-                // Sign works in offline mode, cannot fetch candid file from remote canister
+                // Sign works in offline mode, cannot fetch from remote canister
                 (id, None)
             }
         }

@@ -23,7 +23,7 @@ by running the [update-replica] workflow.
 
 ### Create the Release Branch
 
-Create a release branch from `master`, for example `release-0.15.3`.
+Create a release branch from `master`, for example `release-0.15.3`. If you create a new patch version make sure there will be no breaking changes included.
 
 This branch will be used to create beta releases as well as the final release.
 
