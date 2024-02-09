@@ -999,6 +999,14 @@
             "type": "string"
           }
         },
+        "init_arg": {
+          "title": "init_arg",
+          "description": "A default initialization argument for the canister that consumers can use.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "init_guide": {
           "title": "init_guide",
           "description": "A message to guide consumers how to initialize the canister.",
