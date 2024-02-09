@@ -620,8 +620,8 @@ current_time_nanoseconds() {
 
   deploy_cycles_ledger
 
-  assert_command dfx --identity cycle-giver ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal $ALICE)"
-  assert_command dfx --identity cycle-giver ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal $ALICE --subaccount $ALICE_SUBACCT1)"
+  assert_command dfx --identity cycle-giver ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE")"
+  assert_command dfx --identity cycle-giver ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE" --subaccount "$ALICE_SUBACCT1")"
 
   dfx identity use alice
   assert_command dfx ledger balance
