@@ -2,6 +2,14 @@
 
 # UNRELEASED
 
+### feat: new starter templates
+
+`dfx new` now has a new set of customizable project templates and an interactive menu for selecting them. Supports the Svelte, Vue, and React frameworks, and Azle and Kybra backends.
+
+### fix: --no-frontend no longer creates a frontend
+
+Previously `dfx new --no-frontend` still created a frontend canister. This behavior is now accessed via `--frontend simple-assets`.
+
 ### feat: `dfx cycles redeem-faucet-coupon`
 
 It is now possible to redeem faucet coupons to cycles ledger accounts.
@@ -57,6 +65,10 @@ ic-wasm canister.wasm -o canister.wasm metadata candid:service -f service.did -v
 ### fix: removed the `dfx toolchain` command
 
 Please use the [dfx version manager](https://github.com/dfinity/dfxvm) instead.
+
+### feat: allow dfxvm install script to bypass confirmation
+
+The dfxvm install script now accepts `DFXVM_INIT_YES=<non empty string>` to skip confirmation.
 
 ### chore: bump `ic-agent`, `ic-utils` and `ic-identity-hsm` to 0.32.0
 

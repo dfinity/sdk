@@ -6,7 +6,7 @@ load ../utils/cycles-ledger
 setup() {
   standard_setup
 
-  dfx_new
+  dfx_new_assets
 }
 
 teardown() {

@@ -65,8 +65,8 @@ teardown() {
   assert_match "Connection refused"
 }
 
-@test "dfx uses .ic-assets.json file provided in src/__project_name__frontend/src" {
-  echo '[{"match": "*", "headers": {"x-key": "x-value"}}]' > src/e2e_project_frontend/src/.ic-assets.json
+@test "dfx uses .ic-assets.json file provided in src/__project_name__frontend/assets" {
+  echo '[{"match": "*", "headers": {"x-key": "x-value"}}]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   dfx_start
   dfx canister create --all
@@ -77,14 +77,14 @@ teardown() {
   PORT=$(get_webserver_port)
   assert_command curl -vv http://localhost:"$PORT"/?canisterId="$ID"
   assert_match "< x-key: x-value"
-  assert_command curl -vv http://localhost:"$PORT"/index.js?canisterId="$ID"
+  assert_command curl -vv http://localhost:"$PORT"/favicon.ico?canisterId="$ID"
   assert_match "< x-key: x-value"
 }
 
 @test "dfx uses a custom build command if one is provided" {
-  jq '.canisters.e2e_project_frontend.source = ["dist/e2e_project_frontend/"]' dfx.json | sponge dfx.json
-  jq '.canisters.e2e_project_frontend.build = ["npm run custom-build"]' dfx.json | sponge dfx.json
-  jq '.scripts["custom-build"] = "mkdir -p ./dist/e2e_project_frontend/assets/ && cp -r ./src/e2e_project_frontend/assets/* ./dist/e2e_project_frontend"' package.json | sponge package.json
+  jq '.canisters.e2e_project_frontend.source = ["src/e2e_project_frontend/dist2"]' dfx.json | sponge dfx.json
+  jq '.canisters.e2e_project_frontend.build = ["npm run custom-build --workspace e2e_project_frontend"]' dfx.json | sponge dfx.json
+  jq '.scripts["custom-build"] = "npm run build && mkdir -p ./dist2/ && cp -r ./dist/* ./dist2"' src/e2e_project_frontend/package.json | sponge src/e2e_project_frontend/package.json
 
   dfx_start
   dfx canister create --all
@@ -94,6 +94,6 @@ teardown() {
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
 
-  assert_command curl -vv http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
-  assert_match "This is a sample asset!"
+  assert_command curl -vv http://localhost:"$PORT"/index.html?canisterId="$ID"
+  assert_match "IC Hello Starter"
 }

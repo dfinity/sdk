@@ -123,7 +123,7 @@ impl CanisterInfo {
         let declarations_config = CanisterDeclarationsConfig {
             output: declarations_config_pre
                 .output
-                .or_else(|| Some(PathBuf::from("src/declarations").join(name))),
+                .or_else(|| Some(workspace_root.join("src/declarations").join(name))),
             bindings: declarations_config_pre
                 .bindings
                 .or_else(|| Some(vec!["js".to_string(), "ts".to_string(), "did".to_string()])),
