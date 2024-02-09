@@ -24,6 +24,11 @@ In addition to passing `--specified-id` in `dfx deploy` and `dfx canister create
 
 If it is set in both places, the specified ID from the command line takes precedence over the one in dfx.json.
 
+### feat: create canister on same subnet as other canisters
+
+`dfx deploy`, `dfx canister create`, and `dfx ledger create-canister` now support the option `--next-to <canister principal>` to create canisters on the same subnet as other canisters.
+The [registry canister](https://dashboard.internetcomputer.org/canister/rwlgt-iiaaa-aaaaa-aaaaa-cai#get_subnet_for_canister) is used as the source of truth to figure out the subnet id.
+
 ### feat: init_arg in dfx.json
 
 In addition to passing `--argument` or `--argument-file` in `dfx deploy` and `dfx canister install`, `init_arg` can be set in `dfx.json`.

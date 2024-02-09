@@ -33,5 +33,6 @@ pub mod retryable;
 pub mod root_key;
 pub mod sign;
 pub mod state_tree;
+pub mod subnet;
 pub mod warning;
 pub mod wasm;
