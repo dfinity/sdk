@@ -6,7 +6,7 @@ use crate::lib::deps::{
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::fuzzy_parse_argument;
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use candid_parser::{types::IDLTypes, typing::ast_to_type, utils::CandidSource};
 use clap::Parser;
@@ -47,9 +47,41 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
         Some(canister) => {
             let canister_id =
                 get_pull_canister_or_principal(canister, &pull_canisters_in_config, &pulled_json)?;
-            set_init(&canister_id, &mut init_json, &pulled_json, &opts)?;
+            set_init(
+                logger,
+                &canister_id,
+                &mut init_json,
+                &pulled_json,
+                opts.argument.as_deref(),
+                opts.argument_type.as_deref(),
+            )?;
         }
-        None => try_set_empty_init_for_all(logger, &mut init_json, &pulled_json)?,
+        None => {
+            // try_set_empty_init_for_all(logger, &mut init_json, &pulled_json)?,
+            let mut canisters_require_init = vec![];
+            for (canister_id, pulled_canister) in &pulled_json.canisters {
+                if set_init(
+                    logger,
+                    canister_id,
+                    &mut init_json,
+                    &pulled_json,
+                    None,
+                    None,
+                )
+                .is_err()
+                {
+                    let canister_prompt = get_canister_prompt(canister_id, pulled_canister);
+                    canisters_require_init.push(canister_prompt);
+                }
+            }
+            if !canisters_require_init.is_empty() {
+                let mut message = "The following canister(s) require an init argument. Please run `dfx deps init <NAME/PRINCIPAL>` to set them individually:".to_string();
+                for canister_prompt in canisters_require_init {
+                    message.push_str(&format!("\n{canister_prompt}"));
+                }
+                warn!(logger, "{message}");
+            }
+        }
     }
 
     save_init_json(&project_root, &init_json)?;
@@ -57,10 +89,12 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
 }
 
 fn set_init(
+    logger: &Logger,
     canister_id: &Principal,
     init_json: &mut InitJson,
     pulled_json: &PulledJson,
-    opts: &DepsInitOpts,
+    argument_from_cli: Option<&str>,
+    argument_type_from_cli: Option<&str>,
 ) -> DfxResult {
     let pulled_canister = pulled_json
         .canisters
@@ -76,12 +110,9 @@ fn set_init(
         types.push(ast_to_type(&env, ty)?);
     }
 
-    let arguments = opts.argument.as_deref();
-    let arg_type = opts.argument_type.as_deref();
-
-    match (arguments, types.is_empty()) {
+    match (argument_from_cli, types.is_empty()) {
         (Some(arg_str), false) => {
-            if arg_type == Some("raw") {
+            if argument_type_from_cli == Some("raw") {
                 let bytes = hex::decode(arg_str)
                     .map_err(|e| anyhow!("Argument is not a valid hex string: {}", e))?;
                 init_json.set_init_arg(canister_id, None, &bytes);
@@ -94,14 +125,40 @@ fn set_init(
             bail!("Canister {canister_prompt} takes no init argument. Please rerun without `--argument`");
         }
         (None, false) => {
-            let mut message = format!("Canister {canister_prompt} requires an init argument. The following info might be helpful:");
-            let init = pulled_json.get_init(canister_id)?;
-            message.push_str(&format!("\ninit => {init}"));
-
+            // No argument provided from CLI but the canister requires an init argument.
+            // Try to set the init argument in the following order:
+            // 1. If `init.json` already contains the canister, do nothing.
+            // 2. If the canister provides an `init_arg`, use it.
+            // 3. Try "(null)" which works for canisters with top-level `opt`. This behavior is consistent with `dfx deploy`.
+            // 4. Bail.
+            let init_guide = pulled_json.get_init_guide(canister_id)?;
             let candid_args = pulled_json.get_candid_args(canister_id)?;
-            message.push_str(&format!("\ncandid:args => {candid_args}"));
+            let help_message = format!("init_guide => {init_guide}\ncandid:args => {candid_args}");
 
-            bail!(message);
+            if init_json.contains(canister_id) {
+                info!(
+                    logger,
+                    "Canister {canister_prompt} already set init argument."
+                );
+            } else if let Some(init_arg) = pulled_json.get_init_arg(canister_id)? {
+                let bytes = fuzzy_parse_argument(init_arg, &env, &types).with_context(|| {
+                    format!(
+                        "Pulled canister {canister_prompt} provided an invalid `init_arg`.
+Please try to set an init argument with `--argument` option.
+The following info might be helpful:
+{help_message}"
+                    )
+                })?;
+                init_json.set_init_arg(canister_id, Some(init_arg.to_string()), &bytes);
+            } else if let Ok(bytes) = fuzzy_parse_argument("(null)", &env, &types) {
+                init_json.set_init_arg(canister_id, Some("(null)".to_string()), &bytes);
+                info!(
+                    logger,
+                    "Canister {canister_prompt} set to empty init argument."
+                );
+            } else {
+                bail!("Canister {canister_prompt} requires an init argument. The following info might be helpful:\n{help_message}");
+            }
         }
         (None, true) => {
             init_json.set_empty_init(canister_id);
@@ -110,32 +167,32 @@ fn set_init(
     Ok(())
 }
 
-fn try_set_empty_init_for_all(
-    logger: &Logger,
-    init_json: &mut InitJson,
-    pulled_json: &PulledJson,
-) -> DfxResult {
-    let mut canisters_require_init = vec![];
-    for (canister_id, pulled_canister) in &pulled_json.canisters {
-        let canister_prompt = get_canister_prompt(canister_id, pulled_canister);
-        if init_json.contains(canister_id) {
-            info!(logger, "{canister_prompt} already set init argument.");
-        } else {
-            let candid_args = pulled_json.get_candid_args(canister_id)?;
-            let candid_args_idl_types: IDLTypes = candid_args.parse()?;
-            if candid_args_idl_types.args.is_empty() {
-                init_json.set_empty_init(canister_id);
-            } else {
-                canisters_require_init.push(canister_prompt);
-            }
-        }
-    }
-    if !canisters_require_init.is_empty() {
-        let mut message = "The following canister(s) require an init argument. Please run `dfx deps init <NAME/PRINCIPAL>` to set them individually:".to_string();
-        for canister_prompt in canisters_require_init {
-            message.push_str(&format!("\n{canister_prompt}"));
-        }
-        warn!(logger, "{message}");
-    }
-    Ok(())
-}
+// fn try_set_empty_init_for_all(
+//     logger: &Logger,
+//     init_json: &mut InitJson,
+//     pulled_json: &PulledJson,
+// ) -> DfxResult {
+//     let mut canisters_require_init = vec![];
+//     for (canister_id, pulled_canister) in &pulled_json.canisters {
+//         let canister_prompt = get_canister_prompt(canister_id, pulled_canister);
+//         if init_json.contains(canister_id) {
+//             info!(logger, "{canister_prompt} already set init argument.");
+//         } else {
+//             let candid_args = pulled_json.get_candid_args(canister_id)?;
+//             let candid_args_idl_types: IDLTypes = candid_args.parse()?;
+//             if candid_args_idl_types.args.is_empty() {
+//                 init_json.set_empty_init(canister_id);
+//             } else {
+//                 canisters_require_init.push(canister_prompt);
+//             }
+//         }
+//     }
+//     if !canisters_require_init.is_empty() {
+//         let mut message = "The following canister(s) require an init argument. Please run `dfx deps init <NAME/PRINCIPAL>` to set them individually:".to_string();
+//         for canister_prompt in canisters_require_init {
+//             message.push_str(&format!("\n{canister_prompt}"));
+//         }
+//         warn!(logger, "{message}");
+//     }
+//     Ok(())
+// }
