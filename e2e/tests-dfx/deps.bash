@@ -9,7 +9,7 @@ setup() {
 teardown() {
   stop_webserver
   dfx_stop
-  standard_teardown
+  # standard_teardown
 }
 
 CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"
@@ -289,9 +289,9 @@ Failed to download from url: http://example.com/c.wasm."
   dfx_stop
 
   assert_command dfx deps init
-  assert_contains "The following canister(s) require an init argument. Please run \`dfx deps init <NAME/PRINCIPAL>\` to set them individually:"
-  assert_contains "$CANISTER_ID_A"
-  assert_contains "$CANISTER_ID_C (dep_c)"
+  assert_contains "Canister $CANISTER_ID_C (dep_c) set init argument with \"(null)\"."
+  assert_contains "WARN: The following canister(s) require an init argument. Please run \`dfx deps init <NAME/PRINCIPAL>\` to set them individually:
+$CANISTER_ID_A"
 
   assert_command dfx deps init "$CANISTER_ID_A" --argument 11
 
@@ -362,6 +362,40 @@ candid:args => (nat)"
   assert_command dfx deps init "$CANISTER_ID_A" --argument 37
   assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".arg_str' deps/init.json
   assert_match "37" "$output"
+}
+
+@test "dfx deps init errors when init_arg in pullable metadata has wrong type" {
+  use_test_specific_cache_root # dfx deps pull will download files to cache
+
+  # start a "mainnet" replica which host the onchain canisters
+  dfx_start
+
+  setup_onchain
+  cd onchain
+  # Canister A: set init_arg in pullable metadata then redeploy and copy wasm file to web server dir
+  jq '.canisters.a.pullable.init_arg="(\"abc\")"' dfx.json | sponge dfx.json
+  dfx build a
+  dfx canister install a --argument 1 --mode=reinstall --yes
+  cp .dfx/local/canisters/a/a.wasm ../www/a.wasm
+
+  # pull canisters in app project
+  cd ../app
+  assert_command dfx deps pull --network local
+
+  # stop the "mainnet" replica
+  dfx_stop
+
+  assert_command_fail dfx deps init "$CANISTER_ID_A"
+  assert_contains "Pulled canister $CANISTER_ID_A provided an invalid \`init_arg\`.
+Please try to set an init argument with \`--argument\` option.
+The following info might be helpful:
+init_guide => A natural number, e.g. 10.
+candid:args => (nat)"
+
+  # Consumer set correct init_arg
+  assert_command dfx deps init "$CANISTER_ID_A" --argument 10
+  assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".arg_str' deps/init.json
+  assert_match "10" "$output"
 }
 
 @test "dfx deps deploy works" {

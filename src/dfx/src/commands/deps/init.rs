@@ -154,7 +154,7 @@ The following info might be helpful:
                 init_json.set_init_arg(canister_id, Some("(null)".to_string()), &bytes);
                 info!(
                     logger,
-                    "Canister {canister_prompt} set to empty init argument."
+                    "Canister {canister_prompt} set init argument with \"(null)\"."
                 );
             } else {
                 bail!("Canister {canister_prompt} requires an init argument. The following info might be helpful:\n{help_message}");
