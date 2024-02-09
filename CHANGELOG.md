@@ -2,6 +2,14 @@
 
 # UNRELEASED
 
+### feat: new starter templates
+
+`dfx new` now has a new set of customizable project templates and an interactive menu for selecting them. Supports the Svelte, Vue, and React frameworks, and Azle and Kybra backends.
+
+### fix: --no-frontend no longer creates a frontend
+
+Previously `dfx new --no-frontend` still created a frontend canister. This behavior is now accessed via `--frontend simple-assets`.
+
 ### feat: `dfx cycles redeem-faucet-coupon`
 
 It is now possible to redeem faucet coupons to cycles ledger accounts.
