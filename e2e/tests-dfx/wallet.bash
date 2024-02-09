@@ -79,7 +79,7 @@ teardown() {
 }
 
 @test "'dfx identity set-wallet --force' bypasses wallet canister verification" {
-  dfx_new hello
+  dfx_new_assets hello
   dfx_start
   setup_actuallylocal_shared_network
 
@@ -102,7 +102,7 @@ teardown() {
 }
 
 @test "deploy wallet" {
-  dfx_new hello
+  dfx_new_assets hello
   dfx_start
   setup_actuallylocal_shared_network
 

@@ -2,6 +2,14 @@
 
 # UNRELEASED
 
+### feat: new starter templates
+
+`dfx new` now has a new set of customizable project templates and an interactive menu for selecting them. Supports the Svelte, Vue, and React frameworks, and Azle and Kybra backends.
+
+### fix: --no-frontend no longer creates a frontend
+
+Previously `dfx new --no-frontend` still created a frontend canister. This behavior is now accessed via `--frontend simple-assets`.
+
 ### feat: `dfx cycles redeem-faucet-coupon`
 
 It is now possible to redeem faucet coupons to cycles ledger accounts.
@@ -11,6 +19,11 @@ It is now possible to redeem faucet coupons to cycles ledger accounts.
 In addition to passing `--specified-id` in `dfx deploy` and `dfx canister create`, `specified_id` can be set in `dfx.json`.
 
 If it is set in both places, the specified ID from the command line takes precedence over the one in dfx.json.
+
+### feat: create canister on same subnet as other canisters
+
+`dfx deploy`, `dfx canister create`, and `dfx ledger create-canister` now support the option `--next-to <canister principal>` to create canisters on the same subnet as other canisters.
+The [registry canister](https://dashboard.internetcomputer.org/canister/rwlgt-iiaaa-aaaaa-aaaaa-cai#get_subnet_for_canister) is used as the source of truth to figure out the subnet id.
 
 ### feat: init_arg in dfx.json
 

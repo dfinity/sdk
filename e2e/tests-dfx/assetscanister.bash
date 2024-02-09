@@ -5,7 +5,7 @@ load ../utils/_
 setup() {
   standard_setup
 
-  dfx_new
+  dfx_new_assets
 }
 
 teardown() {
@@ -91,6 +91,7 @@ check_permission_failure() {
   PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
   COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
 
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
   # Prep for a DeleteAsset operation
   echo "to-be-deleted" >src/e2e_project_frontend/assets/to-be-deleted.txt
@@ -196,6 +197,7 @@ check_permission_failure() {
   PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
   COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
 
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
   dfx_start
   mkdir tmp
@@ -1626,6 +1628,7 @@ WARN: {
 }
 
 @test "asset configuration via .ic-assets.json5 - pretty printing when deploying" {
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
 
   dfx_start
@@ -1668,6 +1671,7 @@ WARN: {
 }
 
 @test "syncs asset properties when redeploying" {
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
   dfx_start
   assert_command dfx deploy

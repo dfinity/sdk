@@ -186,7 +186,7 @@ teardown() {
 }
 
 @test "asset canister provides candid:service metadata" {
-  dfx_new hello
+  dfx_new_assets hello
   dfx_start
 
   assert_command dfx deploy

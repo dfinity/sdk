@@ -130,7 +130,7 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy" {
-  dfx_new hello
+  dfx_new_assets hello
   dfx_start
 
   install_asset greet
@@ -155,7 +155,7 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy when the replica restarts" {
-  dfx_new hello
+  dfx_new_assets hello
   dfx_start
 
   install_asset greet
