@@ -57,7 +57,6 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
             )?;
         }
         None => {
-            // try_set_empty_init_for_all(logger, &mut init_json, &pulled_json)?,
             let mut canisters_require_init = vec![];
             for (canister_id, pulled_canister) in &pulled_json.canisters {
                 if set_init(

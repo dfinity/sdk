@@ -186,8 +186,8 @@ You can choose other network as usual, e.g. `--network local`.
 
 Running `dfx deps init` will iterate over all dependencies in `pulled.json`, try to set init arguments in the following order:
 
-- For canisters require no init argument, set empty
-- For canisters do require init arguments:
+- For canisters that require no init argument, set empty
+- For canisters that do require init arguments:
   - Use `init_arg` in pullable metadata if it is set
   - use `"(null)"` if the canister's init type has a top-level `opt`
 
