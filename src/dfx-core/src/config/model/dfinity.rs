@@ -187,6 +187,9 @@ pub struct Pullable {
     /// # init_guide
     /// A message to guide consumers how to initialize the canister.
     pub init_guide: String,
+    /// # init_arg
+    /// A default initialization argument for the canister that consumers can use.
+    pub init_arg: Option<String>,
 }
 
 pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"

@@ -1,7 +1,10 @@
 import a "canister:a";
 
-actor class c(num : Nat) {
-    stable var NUM : Nat = num;
+actor class c(num : ?Nat) {
+    stable var NUM : Nat = switch (num) {
+        case (?n) { n };
+        case (null) { 3 };
+    };
 
     public query func get() : async Nat {
         return NUM;
