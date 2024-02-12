@@ -15,7 +15,7 @@ pub struct ConvertOpts {
     /// BlockHeight at which the send transaction was recorded.
     block_height: u64,
 
-    /// Subaccount to mint cycles to.
+    /// Subaccount where the minted cycles are deposited.
     #[arg(long, value_parser = icrc_subaccount_parser)]
     to_subaccount: Option<ICRCSubaccount>,
 
