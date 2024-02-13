@@ -205,7 +205,7 @@ Fabricated 8000000000000 cycles, updated balance: 11_899_662_119_932 cycles
 
 ## dfx ledger notify
 
-Use the `dfx ledger notify` command to notify the ledger about a send transaction to the cycles minting canister. This command should only be used if `dfx ledger create-canister` or `dfx ledger top-up` successfully sent a message to the ledger, and a transaction was recorded at some block height, but for some reason the subsequent notify failed.
+Use the `dfx ledger notify` command to notify the ledger about a transaction sent to the cycles minting canister. This command should only be used if `dfx ledger create-canister`, `dfx ledger top-up`, or `dfx cycles convert` successfully sent a message to the ledger, and a transaction was recorded at some block height, but for some reason the subsequent notify failed.
 
 ### Basic usage
 
