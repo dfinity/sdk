@@ -5,7 +5,7 @@ load ../utils/_
 setup() {
   standard_setup
   setup_playground
-  dfx_new hello
+  dfx_new_assets hello
 }
 
 teardown() {

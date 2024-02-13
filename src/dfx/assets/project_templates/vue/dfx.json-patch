@@ -1,0 +1,16 @@
+[
+    {
+        "op": "add",
+        "path": "/canisters/{project_name}_frontend",
+        "value": {
+            "type": "assets",
+            "dependencies": [
+                "{project_name}_backend"
+            ],
+            "source": [
+                "src/{project_name}_frontend/dist"
+            ],
+            "workspace": "{project_name}_frontend"
+        }
+    }
+]

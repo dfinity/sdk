@@ -26,7 +26,7 @@ use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
 use sha2::{Digest, Sha256};
-use slog::{debug, info};
+use slog::{debug, info, warn};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -41,7 +41,7 @@ pub async fn install_canister(
     canister_info: &CanisterInfo,
     wasm_path_override: Option<&Path>,
     argument_from_cli: Option<&str>,
-    argument_type: Option<&str>,
+    argument_type_from_cli: Option<&str>,
     mode: Option<InstallMode>,
     call_sender: &CallSender,
     upgrade_unchanged: bool,
@@ -132,13 +132,34 @@ pub async fn install_canister(
         } else {
             get_candid_init_type(&idl_path)
         };
-        let install_args = blob_from_arguments(
-            Some(env),
-            argument_from_cli,
-            None,
-            argument_type,
-            &init_type,
-        )?;
+
+        // The argument and argument_type from the CLI take precedence over the `init_arg` field in dfx.json
+        let argument_from_json = canister_info.get_init_arg();
+        let (argument, argument_type) = match (argument_from_cli, argument_from_json) {
+            (Some(a_cli), Some(a_json)) => {
+                // We want to warn the user when the argument from CLI and json are different.
+                // There are two cases to consider:
+                // 1. The argument from CLI is in raw format, while the argument from json is always in Candid format.
+                // 2. Both arguments are in Candid format, but they are different.
+                if argument_type_from_cli == Some("raw") || a_cli != a_json {
+                    warn!(
+                        log,
+                        "Canister '{0}' has init_arg in dfx.json: {1},
+which is different from the one specified in the command line: {2}.
+The command line value will be used.",
+                        canister_info.get_name(),
+                        a_json,
+                        a_cli
+                    );
+                }
+                (argument_from_cli, argument_type_from_cli)
+            }
+            (Some(_), None) => (argument_from_cli, argument_type_from_cli),
+            (None, Some(_)) => (argument_from_json, Some("idl")), // `init_arg` in dfx.json is always in Candid format
+            (None, None) => (None, None),
+        };
+        let install_args =
+            blob_from_arguments(Some(env), argument, None, argument_type, &init_type)?;
         if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
             let new_timestamp = playground_install_code(
                 env,

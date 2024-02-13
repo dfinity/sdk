@@ -187,6 +187,9 @@ pub struct Pullable {
     /// # init_guide
     /// A message to guide consumers how to initialize the canister.
     pub init_guide: String,
+    /// # init_arg
+    /// A default initialization argument for the canister that consumers can use.
+    pub init_arg: Option<String>,
 }
 
 pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
@@ -277,6 +280,11 @@ pub struct ConfigCanistersCanister {
     /// If the `--specified-id` argument is also provided, this `specified_id` field will be ignored.
     #[schemars(with = "Option<String>")]
     pub specified_id: Option<Principal>,
+
+    /// # Init Arg
+    /// The Candid initialization argument for installing the canister.
+    /// If the `--argument` or `--argument-file` argument is also provided, this `init_arg` field will be ignored.
+    pub init_arg: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
@@ -304,6 +312,10 @@ pub enum CanisterTypeProperties {
         /// Optional if there is no build necessary or the assets can be built using the default `npm run build` command.
         #[schemars(default)]
         build: SerdeVec<String>,
+
+        /// # NPM workspace
+        /// The workspace in package.json that this canister is in, if it is not in the root workspace.
+        workspace: Option<String>,
     },
     /// # Custom-Specific Properties
     Custom {
@@ -1113,6 +1125,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         let mut build = None;
         let mut r#type = None;
         let mut id = None;
+        let mut workspace = None;
         while let Some(key) = map.next_key::<String>()? {
             match &*key {
                 "package" => package = Some(map.next_value()?),
@@ -1122,6 +1135,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
                 "wasm" => wasm = Some(map.next_value()?),
                 "type" => r#type = Some(map.next_value::<String>()?),
                 "id" => id = Some(map.next_value()?),
+                "workspace" => workspace = Some(map.next_value()?),
                 _ => continue,
             }
         }
@@ -1134,6 +1148,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
             Some("assets") => CanisterTypeProperties::Assets {
                 source: source.ok_or_else(|| missing_field("source"))?,
                 build: build.unwrap_or_default(),
+                workspace,
             },
             Some("custom") => CanisterTypeProperties::Custom {
                 build: build.unwrap_or_default(),

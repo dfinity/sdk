@@ -27,6 +27,8 @@ struct AssetsBuilderExtra {
     /// the canister does not have a frontend or can be built using the default
     /// `npm run build` command.
     build: Vec<String>,
+    /// The NPM workspace that the project is located in.
+    workspace: Option<String>,
 }
 
 impl AssetsBuilderExtra {
@@ -45,10 +47,12 @@ impl AssetsBuilderExtra {
             .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
         let info = info.as_info::<AssetsCanisterInfo>()?;
         let build = info.get_build_tasks().to_owned();
+        let workspace = info.get_npm_workspace().map(str::to_owned);
 
         Ok(AssetsBuilderExtra {
             dependencies,
             build,
+            workspace,
         })
     }
 }
@@ -109,6 +113,7 @@ impl CanisterBuilder for AssetsBuilder {
         let AssetsBuilderExtra {
             build,
             dependencies,
+            workspace,
         } = AssetsBuilderExtra::try_from(info, pool)?;
 
         let vars = super::get_and_write_environment_variables(
@@ -125,6 +130,7 @@ impl CanisterBuilder for AssetsBuilder {
             &config.network_name,
             vars,
             &build,
+            workspace.as_deref(),
         )?;
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
@@ -195,6 +201,7 @@ fn build_frontend(
     network_name: &str,
     vars: Vec<super::Env<'_>>,
     build: &[String],
+    workspace: Option<&str>,
 ) -> DfxResult {
     let custom_build_frontend = !build.is_empty();
     let build_frontend = project_root.join("package.json").exists();
@@ -227,6 +234,10 @@ fn build_frontend(
         cmd.env("DFX_NETWORK", network_name);
 
         cmd.arg("run").arg("build");
+
+        if let Some(workspace) = workspace {
+            cmd.arg("--workspace").arg(workspace);
+        }
 
         if NetworkDescriptor::is_ic(network_name, &vec![]) {
             cmd.env("NODE_ENV", "production");

@@ -2,11 +2,58 @@
 
 # UNRELEASED
 
+### feat: candid assist feature
+
+Ask for user input when Candid argument is not provided in `dfx canister call`, `dfx canister install` and `dfx deploy`. 
+Previously, we cannot call `dfx deploy --all` when multiple canisters require init args. With the Candid assist feature,
+dfx now asks for init args in terminal when a canister requires init args.
+
+# 0.17.0
+
+### feat: new starter templates
+
+`dfx new` now has a new set of customizable project templates and an interactive menu for selecting them. Supports the Svelte, Vue, and React frameworks, and Azle and Kybra backends.
+
+### fix: --no-frontend no longer creates a frontend
+
+Previously `dfx new --no-frontend` still created a frontend canister. This behavior is now accessed via `--frontend simple-assets`.
+
+### feat: `dfx cycles redeem-faucet-coupon`
+
+It is now possible to redeem faucet coupons to cycles ledger accounts.
+
 ### feat: specified_id in dfx.json
 
 In addition to passing `--specified-id` in `dfx deploy` and `dfx canister create`, `specified_id` can be set in `dfx.json`.
 
 If it is set in both places, the specified ID from the command line takes precedence over the one in dfx.json.
+
+### feat: create canister on same subnet as other canisters
+
+`dfx deploy`, `dfx canister create`, and `dfx ledger create-canister` now support the option `--next-to <canister principal>` to create canisters on the same subnet as other canisters.
+The [registry canister](https://dashboard.internetcomputer.org/canister/rwlgt-iiaaa-aaaaa-aaaaa-cai#get_subnet_for_canister) is used as the source of truth to figure out the subnet id.
+
+### feat: init_arg in dfx.json
+
+In addition to passing `--argument` or `--argument-file` in `dfx deploy` and `dfx canister install`, `init_arg` can be set in `dfx.json`.
+
+If it is set in both places, the argument from the command line takes precedence over the one in dfx.json.
+
+### feat(deps): init_arg in pullable metadata
+
+Providers can set an optional `init_arg` field in `pullable` metadata.
+
+When consumers run `dfx deps init` without `--argument`, the value in `init_arg` will be used automatically.
+
+Consumers won't have to figure out the init argument by themselves. It can be overwritten by `dfx deps init --argument`.
+
+### fix(deps): dfx deps init will try to set "(null)" init argument
+
+For pulled canisters which have no `init_arg` in `pullable` metadata, `dfx deps init` without `--argument` will try to set `"(null)"` automatically.
+
+This works for canisters with top-level `opt` in init argument. This behavior is consistent with `dfx deploy` and `dfx canister install`.
+
+The init argument can be overwritten by `dfx deps init --argument`.
 
 ### fix(deps): content of wasm_hash_url can have extra fields than the hash
 
@@ -39,11 +86,15 @@ If you build the canister without using `dfx`, you can use [ic-wasm](https://git
 ic-wasm canister.wasm -o canister.wasm metadata candid:service -f service.did -v public
 ```
 
-### feat: candid assist feature
+### fix: removed the `dfx toolchain` command
 
-Ask for user input when Candid argument is not provided in `dfx canister call`, `dfx canister install` and `dfx deploy`. 
-Previously, we cannot call `dfx deploy --all` when multiple canisters require init args. With the Candid assist feature,
-dfx now asks for init args in terminal when a canister requires init args.
+Please use the [dfx version manager](https://github.com/dfinity/dfxvm) instead.
+
+### feat: allow dfxvm install script to bypass confirmation
+
+The dfxvm install script now accepts `DFXVM_INIT_YES=<non empty string>` to skip confirmation.
+
+### chore: bump `ic-agent`, `ic-utils` and `ic-identity-hsm` to 0.32.0
 
 # 0.16.1
 

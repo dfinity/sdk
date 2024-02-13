@@ -225,6 +225,7 @@ download: {}",
     let pullable = dfx_metadata.get_pullable()?;
     pulled_canister.dependencies = pullable.dependencies.clone();
     pulled_canister.init_guide = pullable.init_guide.clone();
+    pulled_canister.init_arg = pullable.init_arg.clone();
 
     Ok(pulled_canister)
 }

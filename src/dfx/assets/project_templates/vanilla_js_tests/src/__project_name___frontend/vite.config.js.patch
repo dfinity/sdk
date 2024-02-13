@@ -1,0 +1,11 @@
+--- a/src/{project_name}_frontend/vite.config.js
++++ b/src/{project_name}_frontend/vite.config.js
+@@ -1,1 +1,2 @@
++/// <reference types="vitest" />
+ import { defineConfig } from 'vite';
+@@ -32,1 +32,5 @@
++  test: {
++    environment: 'jsdom',
++    setupFiles: 'src/setupTests.js',
++  },
+   resolve: {

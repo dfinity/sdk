@@ -122,6 +122,7 @@ You can specify the following argument for the `dfx ledger create-canister` comm
 | `--max-fee <max-fee>`         | Specify a maximum transaction fee. The default is 10000 e8s.                                                                                                                                                                                         |
 | `--subnet-type <subnet-type>` | Specify the optional subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                                                                                      |
 | `--subnet <subnet-principal>` | Specify the optional subnet to create the canister on. If no subnet is provided, the canister will be created on a random default application subnet.                                                                                                |
+| `--next-to <canister-principal>` | Create canisters on the same subnet as this canister. |
 | `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
 
 ### Examples

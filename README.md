@@ -69,7 +69,7 @@ dfx help
 
 ## Contributing to the DFINITY SDK
 
-See our contributing guidelines [here](.github/CONTRIBUTING.md).
+See our contributing guidelines [here](./CONTRIBUTING.md).
 
 ### Building the IC SDK
 

@@ -12,6 +12,7 @@ pub struct AssetsCanisterInfo {
     output_wasm_path: PathBuf,
     output_idl_path: PathBuf,
     build: Vec<String>,
+    workspace: Option<String>,
 }
 
 impl AssetsCanisterInfo {
@@ -26,6 +27,9 @@ impl AssetsCanisterInfo {
     }
     pub fn get_build_tasks(&self) -> &[String] {
         &self.build
+    }
+    pub fn get_npm_workspace(&self) -> Option<&str> {
+        self.workspace.as_deref()
     }
 
     #[context("Failed to assert source paths.")]
@@ -55,15 +59,19 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
     fn create(info: &CanisterInfo) -> DfxResult<Self> {
         let input_root = info.get_workspace_root().to_path_buf();
         // If there are no "source" field, we just ignore this.
-        let (source_paths, build) =
-            if let CanisterTypeProperties::Assets { source, build } = info.type_specific.clone() {
-                (source, build.into_vec())
-            } else {
-                bail!(
-                    "Attempted to construct an assets canister from a type:{} canister config",
-                    info.type_specific.name()
-                )
-            };
+        let (source_paths, build, workspace) = if let CanisterTypeProperties::Assets {
+            source,
+            build,
+            workspace,
+        } = info.type_specific.clone()
+        {
+            (source, build.into_vec(), workspace)
+        } else {
+            bail!(
+                "Attempted to construct an assets canister from a type:{} canister config",
+                info.type_specific.name()
+            )
+        };
 
         let output_root = info.get_output_root();
 
@@ -76,6 +84,7 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
             output_wasm_path,
             output_idl_path,
             build,
+            workspace,
         })
     }
 }

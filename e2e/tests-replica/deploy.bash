@@ -23,7 +23,7 @@ teardown() {
 }
 
 @test "deploy a canister without dependencies" {
-  dfx_new hello
+  dfx_new_assets hello
   dfx_start
   install_asset greet
   assert_command dfx deploy hello_backend
@@ -32,7 +32,7 @@ teardown() {
 }
 
 @test "deploy a canister with dependencies" {
-  dfx_new hello
+  dfx_new_assets hello
   dfx_start
   install_asset greet
   assert_command dfx deploy hello_frontend

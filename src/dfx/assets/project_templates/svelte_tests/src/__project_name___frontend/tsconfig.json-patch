@@ -1,0 +1,7 @@
+[
+    {
+        "op": "add",
+        "path": "/compilerOptions/types/-",
+        "value": "@testing-library/jest-dom"
+    }
+]
