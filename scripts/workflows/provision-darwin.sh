@@ -4,9 +4,6 @@ set -ex
 
 export
 
-# Enter temporary directory.
-pushd /tmp
-
 # Install Bats + moreutils.
 brew install coreutils moreutils
 
@@ -30,9 +27,6 @@ if [ "$E2E_TEST" = "tests-dfx/deps.bash" ]; then
      cargo install cargo-binstall
      cargo binstall -y ic-wasm
 fi
-
-# Exit temporary directory.
-popd
 
 if [ "$E2E_TEST" = "tests-icx-asset/icx-asset.bash" ]; then
     cargo build -p icx-asset

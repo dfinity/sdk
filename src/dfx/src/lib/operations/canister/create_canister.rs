@@ -4,6 +4,7 @@ use crate::lib::cycles_ledger_types::create_canister::{
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
+use crate::lib::identity::wallet::{get_or_create_wallet_canister, GetOrCreateWalletCanisterError};
 use crate::lib::ledger_types::MAINNET_CYCLE_MINTER_CANISTER_ID;
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::operations::cycles_ledger::{create_with_cycles_ledger, CYCLES_LEDGER_ENABLED};
@@ -20,7 +21,7 @@ use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use icrc_ledger_types::icrc1::account::Subaccount;
-use slog::info;
+use slog::{debug, info, warn};
 use std::format;
 
 // The cycle fee for create request is 0.1T cycles.
@@ -35,8 +36,9 @@ pub async fn create_canister(
     env: &dyn Environment,
     canister_name: &str,
     with_cycles: Option<u128>,
-    specified_id: Option<Principal>,
+    specified_id_from_cli: Option<Principal>,
     call_sender: &CallSender,
+    no_wallet: bool,
     from_subaccount: Option<Subaccount>,
     settings: DfxCanisterSettings,
     created_at_time: Option<u64>,
@@ -46,13 +48,13 @@ pub async fn create_canister(
     info!(log, "Creating canister {}...", canister_name);
 
     let config = env.get_config_or_anyhow()?;
+    let config_interface = config.get_config();
 
     let mut canister_id_store = env.get_canister_id_store()?;
 
     let network_name = get_network_context()?;
 
-    if let Some(remote_canister_id) = config
-        .get_config()
+    if let Some(remote_canister_id) = config_interface
         .get_remote_canister_id(canister_name, &network_name)
         .unwrap_or_default()
     {
@@ -85,6 +87,71 @@ pub async fn create_canister(
         return reserve_canister_with_playground(env, canister_name).await;
     }
 
+    // Specified ID from the command line takes precedence over the one in dfx.json.
+    let mut specified_id = match (
+        config_interface.get_specified_id(canister_name)?,
+        specified_id_from_cli,
+    ) {
+        (Some(specified_id_from_json), Some(specified_id_from_cli)) => {
+            if specified_id_from_json != specified_id_from_cli {
+                warn!(
+                    env.get_logger(),
+                    "Canister '{0}' has a specified ID in dfx.json: {1},
+which is different from the one specified in the command line: {2}.
+The command line value will be used.",
+                    canister_name,
+                    specified_id_from_json,
+                    specified_id_from_cli
+                );
+            }
+            Some(specified_id_from_cli)
+        }
+        (Some(specified_id_from_json), None) => Some(specified_id_from_json),
+        (None, Some(specified_id_from_cli)) => Some(specified_id_from_cli),
+        (None, None) => None,
+    };
+
+    // If the network is IC mainnet, the specified ID will be overwritten by None.
+    if env.get_network_descriptor().is_ic && specified_id.is_some() {
+        warn!(
+            env.get_logger(),
+            "Specified ID is ignored on the IC mainnet."
+        );
+        specified_id = None;
+    }
+
+    // Replace call_sender with wallet canister unless:
+    // 1. specified_id is in effect OR
+    // 2. --no-wallet is set explicitly OR
+    // 3. call_sender is already wallet
+    let call_sender =
+        if specified_id.is_some() || no_wallet || matches!(call_sender, CallSender::Wallet(_)) {
+            *call_sender
+        } else {
+            match get_or_create_wallet_canister(
+                env,
+                env.get_network_descriptor(),
+                env.get_selected_identity().expect("No selected identity"),
+            )
+            .await
+            {
+                Ok(wallet) => CallSender::Wallet(*wallet.canister_id_()),
+                Err(err) => {
+                    if CYCLES_LEDGER_ENABLED
+                        && matches!(
+                            err,
+                            GetOrCreateWalletCanisterError::NoWalletConfigured { .. }
+                        )
+                    {
+                        debug!(env.get_logger(), "No wallet configured.");
+                        *call_sender
+                    } else {
+                        bail!(err)
+                    }
+                }
+            }
+        };
+
     let agent = env.get_agent();
     let cid = match call_sender {
         CallSender::SelectedId => {
@@ -108,7 +175,7 @@ pub async fn create_canister(
             }
         }
         CallSender::Wallet(wallet_id) => {
-            create_with_wallet(agent, wallet_id, with_cycles, settings, subnet_selection).await
+            create_with_wallet(agent, &wallet_id, with_cycles, settings, subnet_selection).await
         }
     }?;
     let canister_id = cid.to_text();

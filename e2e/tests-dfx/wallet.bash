@@ -79,7 +79,7 @@ teardown() {
 }
 
 @test "'dfx identity set-wallet --force' bypasses wallet canister verification" {
-  dfx_new hello
+  dfx_new_assets hello
   dfx_start
   setup_actuallylocal_shared_network
 
@@ -102,7 +102,7 @@ teardown() {
 }
 
 @test "deploy wallet" {
-  dfx_new hello
+  dfx_new_assets hello
   dfx_start
   setup_actuallylocal_shared_network
 
@@ -153,7 +153,8 @@ teardown() {
 
   assert_command dfx canister call "$WALLET" wallet_call \
     "(record { canister = principal \"$(dfx canister id e2e_project_backend)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
-  assert_eq '(variant { 17_724 = record { 153_986_224 = blob "\44\49\44\4c\00\01\7e\01" } })'  # True in DIDL.
+  # shellcheck disable=SC2154
+  assert_eq '(variant { 17_724 = record { 153_986_224 = blob "\44\49\44\4c\00\01\7e\01" } })' "$stdout"  # True in DIDL.
 }
 
 @test "forward user call through wallet: deploy" {
@@ -169,7 +170,8 @@ teardown() {
   assert_command dfx canister call e2e_project_backend amInitializer
   assert_command dfx canister call "$WALLET" wallet_call \
     "(record { canister = principal \"$(dfx canister id e2e_project_backend)\"; method_name = \"amInitializer\"; args = blob \"DIDL\00\00\"; cycles = (0:nat64)})"
-  assert_eq '(variant { 17_724 = record { 153_986_224 = blob "\44\49\44\4c\00\01\7e\01" } })'  # True in DIDL.
+  # shellcheck disable=SC2154
+  assert_eq '(variant { 17_724 = record { 153_986_224 = blob "\44\49\44\4c\00\01\7e\01" } })' "$stdout" # True in DIDL.
 }
 
 @test "a 64-bit wallet can still be called in the 128-bit context" {

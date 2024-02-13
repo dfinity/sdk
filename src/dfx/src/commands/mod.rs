@@ -57,6 +57,7 @@ pub enum DfxCommand {
     Schema(schema::SchemaOpts),
     Start(start::StartOpts),
     Stop(stop::StopOpts),
+    #[command(hide = true)]
     Toolchain(toolchain::ToolchainOpts),
     Upgrade(upgrade::UpgradeOpts),
     Wallet(wallet::WalletOpts),

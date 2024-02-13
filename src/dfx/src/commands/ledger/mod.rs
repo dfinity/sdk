@@ -58,7 +58,7 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
 }
 
 #[context("Failed to determine icp amount from supplied arguments.")]
-fn get_icpts_from_args(
+pub(crate) fn get_icpts_from_args(
     amount: Option<ICPTs>,
     icp: Option<u64>,
     e8s: Option<u64>,

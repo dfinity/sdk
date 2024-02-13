@@ -46,7 +46,7 @@ set_shared_local_network_canister_http_empty() {
 }
 
 @test "dfx restarts replica when ic-https-outcalls-adapter restarts" {
-  dfx_new hello
+  dfx_new_assets hello
   dfx_start
 
   install_asset greet

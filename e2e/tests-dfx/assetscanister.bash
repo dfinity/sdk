@@ -5,7 +5,7 @@ load ../utils/_
 setup() {
   standard_setup
 
-  dfx_new
+  dfx_new_assets
 }
 
 teardown() {
@@ -91,6 +91,7 @@ check_permission_failure() {
   PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
   COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
 
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
   # Prep for a DeleteAsset operation
   echo "to-be-deleted" >src/e2e_project_frontend/assets/to-be-deleted.txt
@@ -196,6 +197,7 @@ check_permission_failure() {
   PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
   COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
 
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
   dfx_start
   mkdir tmp
@@ -266,7 +268,7 @@ check_permission_failure() {
   FE_CANISTER_ID="$(dfx canister id e2e_project_frontend)"
   rm .dfx/local/canister_ids.json
   assert_command_fail dfx canister call "$FE_CANISTER_ID" validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { FlyBeFree }; })"
-  assert_contains "trapped"
+  assert_contains "FlyBeFree not found"
 }
 
 @test "access control - fine-grained" {
@@ -905,10 +907,12 @@ check_permission_failure() {
   dfx canister install e2e_project_frontend
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("/binary/noise.txt")' --output idl
-  assert_eq '(blob "\b8\01\20\80\0a\77\31\32\20\00\78\79\0a\4b\4c\0b\0a\6a\6b")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "\b8\01\20\80\0a\77\31\32\20\00\78\79\0a\4b\4c\0b\0a\6a\6b")' "$stdout"
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("/text-with-newlines.txt")' --output idl
-  assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")' "$stdout"
 
   assert_command dfx canister call --update e2e_project_frontend store '(record{key="AA"; content_type="text/plain"; content_encoding="identity"; content=blob "hello, world!"})'
   assert_eq '()'
@@ -916,13 +920,16 @@ check_permission_failure() {
   assert_eq '()'
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
-  assert_eq '(blob "XWV")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "XWV")' "$stdout"
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("AA")' --output idl
-  assert_eq '(blob "hello, world!")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "hello, world!")' "$stdout"
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
-  assert_eq '(blob "XWV")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "XWV")' "$stdout"
 
   assert_command_fail dfx canister call --query e2e_project_frontend retrieve '("C")'
 }
@@ -1621,6 +1628,7 @@ WARN: {
 }
 
 @test "asset configuration via .ic-assets.json5 - pretty printing when deploying" {
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
 
   dfx_start
@@ -1663,6 +1671,7 @@ WARN: {
 }
 
 @test "syncs asset properties when redeploying" {
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
   dfx_start
   assert_command dfx deploy

@@ -22,11 +22,11 @@ publish = false
 [workspace.dependencies]
 candid = "0.10.3"
 candid_parser = "0.1.3"
-ic-agent = { git = "https://github.com/dfinity/agent-rs.git", rev = "6b02f649a569f354a0a1b370368ba28d31dd8702" }
+ic-agent = "0.33.0"
 ic-asset = { path = "src/canisters/frontend/ic-asset" }
 ic-cdk = "0.12.0"
-ic-identity-hsm = { git = "https://github.com/dfinity/agent-rs.git", rev = "6b02f649a569f354a0a1b370368ba28d31dd8702" }
-ic-utils = { git = "https://github.com/dfinity/agent-rs.git", rev = "6b02f649a569f354a0a1b370368ba28d31dd8702" }
+ic-identity-hsm = "0.33.0"
+ic-utils = "0.33.0"
 
 aes-gcm = "0.10.3"
 anyhow = "1.0.56"
@@ -51,7 +51,9 @@ mime_guess = "2.0.4"
 num-traits = "0.2.14"
 pem = "1.0.2"
 proptest = "1.0.0"
-reqwest = { version = "0.11.23", default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.11.23", default-features = false, features = [
+    "rustls-tls",
+] }
 ring = "0.16.11"
 schemars = "0.8"
 sec1 = "0.3.0"
