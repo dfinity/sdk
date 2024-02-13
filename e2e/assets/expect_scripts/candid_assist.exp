@@ -1,0 +1,47 @@
+#!/usr/bin/expect -df
+
+set timeout 30
+match_max 100000
+spawn dfx canister call hello_backend echo
+
+send -- "\r"
+# principal auto-completion
+send "hello	"
+expect "bkyz2-fmaaa-aaaaa-qaaaq-cai"
+send "\r"
+# opt nat8
+send "y"
+send "20"
+send "\r"
+# variant down arrow: user
+send "\[B"
+send "\[B"
+send "\r"
+send "n"
+expect "Sending the following argument:\r
+(\r
+  record {\r
+    record {\r
+      id = principal \"bkyz2-fmaaa-aaaaa-qaaaq-cai\";\r
+      age = opt (20 : nat8);\r
+      role = variant { user };\r
+    };\r
+    null;\r
+  },\r
+)\r
+\r
+Do you want to send this message? \[y/N\]\r
+"
+send "y\r"
+expect "y\r
+(\r
+  record {\r
+    record {\r
+      id = principal \"bkyz2-fmaaa-aaaaa-qaaaq-cai\";\r
+      age = opt (20 : nat8);\r
+      role = variant { user };\r
+    };\r
+    null;\r
+  },\r
+)\r"
+expect eof
