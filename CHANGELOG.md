@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.17.0
+
 ### feat: new starter templates
 
 `dfx new` now has a new set of customizable project templates and an interactive menu for selecting them. Supports the Svelte, Vue, and React frameworks, and Azle and Kybra backends.
