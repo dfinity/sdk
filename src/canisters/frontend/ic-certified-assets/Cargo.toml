@@ -10,6 +10,7 @@ description = "Rust support for asset certification."
 documentation = "https://docs.rs/ic-certified-assets"
 categories = ["wasm", "filesystem", "data-structures"]
 keywords = ["internet-computer", "dfinity"]
+publish = false
 
 [dependencies]
 base64.workspace = true

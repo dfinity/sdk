@@ -10,6 +10,7 @@ description = "CLI tool to manage assets on an asset canister on the Internet Co
 documentation = "https://docs.rs/icx-asset"
 categories = ["command-line-interface"]
 keywords = ["internet-computer", "agent", "icp", "dfinity", "asset"]
+publish = false
 
 [dependencies]
 anstyle.workspace = true
