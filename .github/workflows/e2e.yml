@@ -239,7 +239,7 @@ jobs:
 
   aggregate:
     name: e2e:required
-    if: ${{ always() }}
+    if: needs.changes.outputs.sources == 'true'
     needs: [changes, test, smoke, ui_test]
     runs-on: ubuntu-latest
     steps:
@@ -250,11 +250,11 @@ jobs:
           echo "ui_test result: ${{ needs.ui_test.result }}"
           echo "test result: ${{ needs.test.result }}"
       - name: check smoke test result
-        if: ${{ needs.smoke.result != 'skipped' && needs.smoke.result != 'success' }}
+        if: ${{ needs.smoke.result != 'success' }}
         run: exit 1
       - name: check UI test result
-        if: ${{ needs.smoke.result != 'skipped'  && needs.ui_test.result != 'success' }}
+        if: ${{ needs.ui_test.result != 'success' }}
         run: exit 1
       - name: check e2e test result
-        if: ${{ needs.smoke.result != 'skipped'  && needs.test.result != 'success' }}
+        if: ${{ needs.test.result != 'success' }}
         run: exit 1
