@@ -45,6 +45,7 @@ jobs:
               - Cargo.tml
               - rust-toolchain.toml
   build_dfx:
+    needs: changes
     if: needs.changes.outputs.sources == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
@@ -100,6 +101,7 @@ jobs:
           path: ${{ matrix.binary_path }}/dfx
 
   list_tests:
+    needs: changes
     if: needs.changes.outputs.sources == 'true'
     runs-on: ubuntu-latest
     outputs:
@@ -112,7 +114,7 @@ jobs:
   smoke:
     if: needs.changes.outputs.sources == 'true'
     runs-on: ${{ matrix.os }}
-    needs: build_dfx
+    needs: [changes, build_dfx]
     strategy:
       fail-fast: false
       matrix:
@@ -149,7 +151,7 @@ jobs:
   test:
     if: needs.changes.outputs.sources == 'true'
     runs-on: ${{ matrix.os }}
-    needs: [build_dfx, list_tests]
+    needs: [changes, build_dfx, list_tests]
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.list_tests.outputs.matrix)}}
@@ -190,7 +192,7 @@ jobs:
   ui_test:
     if: needs.changes.outputs.sources == 'true'
     runs-on: ${{ matrix.os }}
-    needs: [build_dfx]
+    needs: [changes, build_dfx]
     strategy:
       fail-fast: false
       matrix:
@@ -238,7 +240,7 @@ jobs:
   aggregate:
     name: e2e:required
     if: ${{ always() }}
-    needs: [test, smoke, ui_test]
+    needs: [changes, test, smoke, ui_test]
     runs-on: ubuntu-latest
     steps:
       - name: check smoke test result
