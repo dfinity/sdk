@@ -27,7 +27,7 @@ jobs:
         with:
           filters: |
             sources:
-              - .github/workflows/lint.yml
+              - .github/workflows/fmt.yml
               - src/**
               - Cargo.lock
               - Cargo.toml
