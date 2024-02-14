@@ -57,7 +57,7 @@ sha256 = '09f5647a45ff6d5d05b2b0ed48613fb2365b5fe6573ba0e901509c39fb9564ac'
 
 [x86_64-linux.icx-proxy]
 url = 'https://download.dfinity.systems/ic/69e1408347723dbaa7a6cd2faa9b65c42abbe861/binaries/x86_64-linux/icx-proxy-dev.gz'
-sha256 = '2bff6952a65e2d94f49ffa5ce03bfbd0eef0fb6ca82a839844c84fd3efa8b280'
+sha256 = '2cd30cca1818b86785b3d9b808612b7c286252363806c70d196c2fcfa48d1188'
 
 [x86_64-linux.ic-admin]
 url = 'https://download.dfinity.systems/ic/044cfd5147fc97d7e5a214966941b6580c325d72/binaries/x86_64-linux/ic-admin.gz'
