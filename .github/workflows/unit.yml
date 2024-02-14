@@ -60,7 +60,7 @@ jobs:
 
   aggregate:
     name: unit:required
-    if: ${{ always() }}
+    if: needs.changes.outputs.sources == 'true'
     needs: [changes, test]
     runs-on: ubuntu-latest
     steps:
