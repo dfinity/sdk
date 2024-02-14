@@ -2,6 +2,15 @@
 
 # UNRELEASED
 
+### fix: restored access to URLs like http://localhost:8080/api/v2/status through icx-proxy
+
+Pinned icx-proxy at 69e1408347723dbaa7a6cd2faa9b65c42abbe861, shipped with dfx 0.15.2
+
+This means commands like the following will work again:
+```
+curl -v --http2-prior-knowledge "http://localhost:$(dfx info webserver-port)/api/v2/status" --output -
+```
+
 # 0.17.0
 
 ### feat: new starter templates
@@ -93,7 +102,6 @@ Please use the [dfx version manager](https://github.com/dfinity/dfxvm) instead.
 The dfxvm install script now accepts `DFXVM_INIT_YES=<non empty string>` to skip confirmation.
 
 ### chore: bump `ic-agent`, `ic-utils` and `ic-identity-hsm` to 0.32.0
-
 
 # 0.16.1
 
