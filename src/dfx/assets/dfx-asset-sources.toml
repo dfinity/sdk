@@ -2,8 +2,8 @@
 replica-rev = '044cfd5147fc97d7e5a214966941b6580c325d72'
 
 [x86_64-darwin.icx-proxy]
-url = 'https://download.dfinity.systems/ic/044cfd5147fc97d7e5a214966941b6580c325d72/binaries/x86_64-darwin/icx-proxy-dev.gz'
-sha256 = 'd7e83fbf8e3cd97be3736d7e1c68973e860d1b04e37a1a979c472507e7380b74'
+url = 'https://download.dfinity.systems/ic/69e1408347723dbaa7a6cd2faa9b65c42abbe861/binaries/x86_64-darwin/icx-proxy-dev.gz'
+sha256 = 'b07f2784abddcb54f0b0d3ce7585b9283cf814870905d58c26a1c8823ead2fdd'
 
 [x86_64-darwin.ic-admin]
 url = 'https://download.dfinity.systems/ic/044cfd5147fc97d7e5a214966941b6580c325d72/binaries/x86_64-darwin/ic-admin.gz'
@@ -56,8 +56,8 @@ url = 'https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2
 sha256 = '09f5647a45ff6d5d05b2b0ed48613fb2365b5fe6573ba0e901509c39fb9564ac'
 
 [x86_64-linux.icx-proxy]
-url = 'https://download.dfinity.systems/ic/044cfd5147fc97d7e5a214966941b6580c325d72/binaries/x86_64-linux/icx-proxy-dev.gz'
-sha256 = 'c2822a8a16d37d8084792803b357fd5cd9d7fa3af7d046bce45880ac5c59e3e4'
+url = 'https://download.dfinity.systems/ic/69e1408347723dbaa7a6cd2faa9b65c42abbe861/binaries/x86_64-linux/icx-proxy-dev.gz'
+sha256 = '2bff6952a65e2d94f49ffa5ce03bfbd0eef0fb6ca82a839844c84fd3efa8b280'
 
 [x86_64-linux.ic-admin]
 url = 'https://download.dfinity.systems/ic/044cfd5147fc97d7e5a214966941b6580c325d72/binaries/x86_64-linux/ic-admin.gz'
