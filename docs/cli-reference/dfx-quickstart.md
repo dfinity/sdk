@@ -1,4 +1,5 @@
 # dfx quickstart
+##
 
 Use the `dfx quickstart` command to perform initial one time setup for your identity and/or wallet. This command
 can be run anytime to repeat the setup process or to be used as an informational command, printing
