@@ -243,6 +243,12 @@ jobs:
     needs: [changes, test, smoke, ui_test]
     runs-on: ubuntu-latest
     steps:
+      - name: debug
+        run: |
+          echo "needs.changes.outputs.sources: ${{ needs.changes.outputs.sources }}"
+          echo "smoke result: ${{ needs.smoke.result }}"
+          echo "ui_test result: ${{ needs.ui_test.result }}"
+          echo "test result: ${{ needs.test.result }}"
       - name: check smoke test result
         if: ${{ needs.changes.outputs.sources != 'true' && needs.smoke.result != 'success' }}
         run: exit 1
