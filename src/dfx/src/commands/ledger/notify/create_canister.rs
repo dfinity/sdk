@@ -21,7 +21,6 @@ pub struct NotifyCreateOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: NotifyCreateOpts) -> DfxResult {
-    // validated by e8s_validator
     let block_height = opts.block_height;
     let controller = opts.controller;
 
