@@ -35,8 +35,8 @@ jobs:
 
   test:
     name: lint
-    needs: changes
     if: needs.changes.outputs.sources == 'true'
+    needs: changes
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -62,8 +62,8 @@ jobs:
 
   aggregate:
     name: lint:required
-    needs: [changes, test]
     if: needs.changes.outputs.sources == 'true'
+    needs: [changes, test]
     runs-on: ubuntu-latest
     steps:
       - name: check step result directly

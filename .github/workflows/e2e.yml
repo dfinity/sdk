@@ -45,8 +45,8 @@ jobs:
               - Cargo.toml
               - rust-toolchain.toml
   build_dfx:
-    needs: changes
     if: needs.changes.outputs.sources == 'true'
+    needs: changes
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -101,8 +101,8 @@ jobs:
           path: ${{ matrix.binary_path }}/dfx
 
   list_tests:
-    needs: changes
     if: needs.changes.outputs.sources == 'true'
+    needs: changes
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -112,8 +112,8 @@ jobs:
         run: echo "matrix=$(scripts/workflows/e2e-matrix.py)" >> $GITHUB_OUTPUT
 
   smoke:
-    if: needs.changes.outputs.sources == 'true'
     runs-on: ${{ matrix.os }}
+    if: needs.changes.outputs.sources == 'true'
     needs: [changes, build_dfx]
     strategy:
       fail-fast: false
@@ -149,8 +149,8 @@ jobs:
           time dfx stop
 
   test:
-    if: needs.changes.outputs.sources == 'true'
     runs-on: ${{ matrix.os }}
+    if: needs.changes.outputs.sources == 'true'
     needs: [changes, build_dfx, list_tests]
     strategy:
       fail-fast: false
@@ -190,8 +190,8 @@ jobs:
         run: timeout 2400 bats "e2e/$E2E_TEST"
 
   ui_test:
-    if: needs.changes.outputs.sources == 'true'
     runs-on: ${{ matrix.os }}
+    if: needs.changes.outputs.sources == 'true'
     needs: [changes, build_dfx]
     strategy:
       fail-fast: false

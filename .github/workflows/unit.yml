@@ -37,8 +37,8 @@ jobs:
               - rust-toolchain.toml
 
   test:
-    needs: changes
     if: needs.changes.outputs.sources == 'true'
+    needs: changes
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
