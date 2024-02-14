@@ -207,7 +207,6 @@ pub fn blob_from_arguments(
                         .args
                         .iter()
                         .all(|t| matches!(t.as_ref(), TypeInner::Opt(_)))
-                        && !is_terminal
                     {
                         // If the user provided no arguments, and if all the expected arguments are
                         // optional, then use null values.
