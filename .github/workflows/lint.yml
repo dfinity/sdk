@@ -13,8 +13,30 @@ env:
   CURL_HOME: .
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      sources: ${{ steps.filter.outputs.sources }}
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'push'
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            sources:
+              - .github/workflows/lint.yml
+              - src/**
+              - Cargo.lock
+              - Cargo.toml
+              - rust-toolchain.toml
+
   test:
     name: lint
+    needs: changes
+    if: needs.changes.outputs.sources == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -40,8 +62,8 @@ jobs:
 
   aggregate:
     name: lint:required
-    if: ${{ always() }}
-    needs: test
+    needs: [changes, test]
+    if: needs.changes.outputs.sources == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: check step result directly

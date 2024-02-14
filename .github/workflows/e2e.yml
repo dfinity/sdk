@@ -30,7 +30,7 @@ jobs:
         with:
           filters: |
             sources:
-              - .github/workflows/e2e.yaml
+              - .github/workflows/e2e.yml
               - e2e/**
               - scripts/workflows/e2e-matrix.py
               - scripts/workflows/provision-darwin.sh
@@ -42,7 +42,7 @@ jobs:
               - src/distributed/**
               - src/lib/**
               - Cargo.lock
-              - Cargo.tml
+              - Cargo.toml
               - rust-toolchain.toml
   build_dfx:
     needs: changes
