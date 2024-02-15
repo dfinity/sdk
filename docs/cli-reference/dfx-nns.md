@@ -132,6 +132,10 @@ $ openssl ec -in ident-1.pem -noout -text
 ``` bash
 $ dfx identity import ident-1 ident-1.pem
 ```
+* Switch to the identity you just imported
+```bash
+$ dfx identity use ident-1
+```
 * Now you can use the (toy) funds:
 ``` bash
 $ dfx ledger balance
