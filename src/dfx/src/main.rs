@@ -2,6 +2,7 @@
 use crate::config::{dfx_version, dfx_version_str};
 use crate::lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
 use crate::lib::environment::{Environment, EnvironmentImpl};
+use crate::lib::error::DfxResult;
 use crate::lib::logger::{create_root_logger, LoggingMode};
 use crate::lib::warning::{is_warning_disabled, DfxWarning::VersionCheck};
 use anyhow::Error;
@@ -160,31 +161,33 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
     }
 }
 
-fn main() {
+fn get_args_altered_for_extension_run() -> DfxResult<Vec<OsString>> {
     let mut args = std::env::args_os().collect::<Vec<OsString>>();
-    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
+    let em = ExtensionManager::new(dfx_version())?;
 
-    let mut extension_manager = ExtensionManager::new(dfx_version())
-        .and_then(|em| {
-            let installed_extensions = em.installed_extensions_as_clap_commands()?;
-            if !installed_extensions.is_empty() {
-                let mut app = CliOpts::command_for_update().subcommands(&installed_extensions);
-                sort_clap_commands(&mut app);
-                // here clap will display the help message if no subcommand was provided...
-                let app = app.get_matches();
-                // ...therefore we can safely unwrap here because we know a subcommand was provided
-                let subcmd = app.subcommand().unwrap().0;
-                if em.is_extension_installed(subcmd) {
-                    let idx = args.iter().position(|arg| arg == subcmd).unwrap();
-                    args.splice(idx..idx, ["extension", "run"].iter().map(OsString::from));
-                }
-            }
-            Ok(em)
-        })
-        .unwrap_or_else(|err| {
-            print_error_and_diagnosis(err.into(), error_diagnosis.clone());
-            std::process::exit(255);
-        });
+    let installed_extensions = em.installed_extensions_as_clap_commands()?;
+    if !installed_extensions.is_empty() {
+        let mut app = CliOpts::command_for_update().subcommands(&installed_extensions);
+        sort_clap_commands(&mut app);
+        // here clap will display the help message if no subcommand was provided...
+        let app = app.get_matches();
+        // ...therefore we can safely unwrap here because we know a subcommand was provided
+        let subcmd = app.subcommand().unwrap().0;
+        if em.is_extension_installed(subcmd) {
+            let idx = args.iter().position(|arg| arg == subcmd).unwrap();
+            args.splice(idx..idx, ["extension", "run"].iter().map(OsString::from));
+        }
+    }
+    Ok(args)
+}
+
+fn main() {
+    let args = get_args_altered_for_extension_run().unwrap_or_else(|err| {
+        print_error_and_diagnosis(err, NULL_DIAGNOSIS);
+        std::process::exit(255);
+    });
+
+    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
 
     let cli_opts = CliOpts::parse_from(args);
     let (verbose_level, log) = setup_logging(&cli_opts);
