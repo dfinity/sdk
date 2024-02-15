@@ -1,4 +1,4 @@
-set -e
+set -eo pipefail
 load ../utils/bats-support/load
 load ../utils/assertions
 load ../utils/webserver
@@ -54,7 +54,17 @@ standard_teardown() {
 
 dfx_new_frontend() {
     local project_name=${1:-e2e_project}
-    dfx new "${project_name}" --frontend
+    dfx new "${project_name}" --frontend vanilla
+    test -d "${project_name}"
+    test -f "${project_name}"/dfx.json
+    cd "${project_name}"
+
+    echo PWD: "$(pwd)" >&2
+}
+
+dfx_new_assets() {
+    local project_name=${1:-e2e_project}
+    dfx new "${project_name}" --frontend simple-assets
     test -d "${project_name}"
     test -f "${project_name}"/dfx.json
     cd "${project_name}"

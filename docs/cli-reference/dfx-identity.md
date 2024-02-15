@@ -22,6 +22,7 @@ For reference information and examples that illustrate using `dfx identity` comm
 | [`get-principal`](#dfx-identity-get-principal) | Shows the textual representation of the principal associated with the current identity.                                   |
 | [`get-wallet`](#dfx-identity-get-wallet)       | Shows the canister identifier for the wallet associated with your current identity principal.                             |
 | `help`                                          | Displays this usage message or the help of the given subcommand(s).                                                       |
+| [`export`](#dfx-identity-export)               | Exports the PEM definition for an identity. |
 | [`import`](#dfx-identity-import)               | Creates a new identity by importing a PEM file that contains the key information or security certificate for a principal. |
 | [`list`](#dfx-identity-list)                   | Lists existing identities.                                                                                                |
 | [`new`](#dfx-identity-new)                     | Creates a new identity.                                                                                                   |
@@ -108,6 +109,25 @@ To display the canister identifier for the wallet canister associated with your 
 
 ``` bash
 dfx identity get-wallet --network=https://192.168.74.4
+```
+
+## dfx identity export
+
+Use the `dfx identity export` command to export the PEM definition of an existing identity.  You can import this definition elsewhere using [`dfx identity import`](#dfx-identity-import).
+
+### Basic usage
+
+``` bash
+dfx identity export identity-name
+```
+
+### Examples
+
+The following will export a PEM file for an existing identity.  If you transferred this file to another computer, the
+example below for `dfx identity import` would import it.
+
+``` bash
+dfx identity export alice >generated-id.pem
 ```
 
 ## dfx identity import

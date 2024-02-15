@@ -27,9 +27,12 @@ You can use the following options with the `dfx deploy` command.
 | `--ic               `              | Alias for `--network ic`.                                                                                                                                                   |
 | `--argument <argument>`            | Specifies an argument using Candid syntax to pass to the canister during deployment. Note that this option requires you to define an actor class in the Motoko program. |
 | `--with-cycles <number-of-cycles>` | Enables you to specify the initial number of cycles for a canister in a project.                                                                                            |
-| `--specified-id <PRINCIPAL>`       | Attempts to create the canister with this Canister ID                                                                                 |
+| `--specified-id <PRINCIPAL>`       | Attempts to create the canister with this Canister ID                                                                                                                       |
 | `--by-proposal`                    | Upload proposed changed assets, but do not commit them.  Follow up by calling either commit_proposed_batch() or delete_batch().                                             |
 | `--compute-evidence`               | Build a frontend canister, determine batch operations required to synchronize asset canister contents, and compute a hash over those operations.  Displays this hash ("evidence"), which should match the evidence displayed by `dfx deploy --by-proposal`. |
+| `--subnet-type <subnet-type>`      | Specify the subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                      |
+| `--subnet <subnet-principal>`      | Specify the subnet to create the canister on. If no subnet is provided, the canister will be created on a random default application subnet.                                |
+| `--next-to <canister-principal>`   | Create canisters on the same subnet as this canister.                                                                                                                       |
 
 ### Arguments
 

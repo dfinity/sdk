@@ -37,6 +37,8 @@ pub struct PulledCanister {
     pub wasm_hash: String,
     /// From the dfx metadata of the downloaded wasm module
     pub init_guide: String,
+    /// From the dfx metadata of the downloaded wasm module
+    pub init_arg: Option<String>,
     /// From the candid:args metadata of the downloaded wasm module
     pub candid_args: String,
     /// The downloaded wasm is gzip or not
@@ -44,9 +46,16 @@ pub struct PulledCanister {
 }
 
 impl PulledJson {
-    pub fn get_init(&self, canister_id: &Principal) -> DfxResult<&str> {
+    pub fn get_init_guide(&self, canister_id: &Principal) -> DfxResult<&str> {
         match self.canisters.get(canister_id) {
             Some(o) => Ok(&o.init_guide),
+            None => bail!("Failed to find {canister_id} in pulled.json"),
+        }
+    }
+
+    pub fn get_init_arg(&self, canister_id: &Principal) -> DfxResult<Option<&str>> {
+        match self.canisters.get(canister_id) {
+            Some(o) => Ok(o.init_arg.as_deref()),
             None => bail!("Failed to find {canister_id} in pulled.json"),
         }
     }

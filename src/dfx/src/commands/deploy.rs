@@ -8,7 +8,8 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
-use crate::util::clap::parsers::cycle_amount_parser;
+use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
+use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
@@ -17,6 +18,7 @@ use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
+use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -66,6 +68,7 @@ pub struct DeployOpts {
     ///
     /// This option only works with non-mainnet replica.
     /// This option implies the --no-wallet flag.
+    /// This option takes precedence over the specified_id field in dfx.json.
     #[arg(long, value_name = "PRINCIPAL", requires = "canister_name")]
     specified_id: Option<Principal>,
 
@@ -99,10 +102,25 @@ pub struct DeployOpts {
     /// Compute evidence and compare it against expected evidence
     #[arg(long, conflicts_with("by_proposal"))]
     compute_evidence: bool,
+
+    /// Transaction timestamp, in nanoseconds, for use in controlling transaction deduplication, default is system time.
+    /// https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
+    //TODO(SDK-1331): unhide
+    #[arg(long, hide = true, requires = "canister_name")]
+    created_at_time: Option<u64>,
+
+    /// Subaccount of the selected identity to spend cycles from.
+    //TODO(SDK-1331): unhide
+    #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
+    from_subaccount: Option<Subaccount>,
+
+    #[command(flatten)]
+    subnet_selection: SubnetSelectionOpt,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let env = create_agent_environment(env, opts.network.to_network_name())?;
+    let runtime = Runtime::new().expect("Unable to create a runtime");
 
     let canister_name = opts.canister_name.as_deref();
     let argument = opts.argument.as_deref();
@@ -116,7 +134,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         .context("Failed to parse InstallMode.")?;
     let config = env.get_config_or_anyhow()?;
     let env_file = config.get_output_env_file(opts.output_env_file)?;
-
+    let subnet_selection = runtime.block_on(opts.subnet_selection.into_subnet_selection(&env))?;
     let with_cycles = opts.with_cycles;
 
     let deploy_mode = match (mode, canister_name) {
@@ -152,8 +170,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         (None, _) => NormalDeploy,
     };
 
-    let runtime = Runtime::new().expect("Unable to create a runtime");
-
     let call_sender = CallSender::from(&opts.wallet)
         .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
 
@@ -167,12 +183,15 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         &deploy_mode,
         opts.upgrade_unchanged,
         with_cycles,
+        opts.created_at_time,
         opts.specified_id,
         &call_sender,
+        opts.from_subaccount,
         opts.no_wallet,
         opts.yes,
         env_file,
         opts.no_asset_upgrade,
+        subnet_selection,
     ))?;
 
     if matches!(deploy_mode, NormalDeploy | ForceReinstallSingleCanister(_)) {

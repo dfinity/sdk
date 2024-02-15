@@ -237,6 +237,14 @@
               "enum": [
                 "assets"
               ]
+            },
+            "workspace": {
+              "title": "NPM workspace",
+              "description": "The workspace in package.json that this canister is in, if it is not in the root workspace.",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         },
@@ -366,6 +374,14 @@
             "null"
           ]
         },
+        "init_arg": {
+          "title": "Init Arg",
+          "description": "The Candid initialization argument for installing the canister. If the `--argument` or `--argument-file` argument is also provided, this `init_arg` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "initialization_values": {
           "title": "Resource Allocation Settings",
           "description": "Defines initial values for resource allocation settings.",
@@ -454,6 +470,14 @@
             "boolean",
             "null"
           ]
+        },
+        "specified_id": {
+          "title": "Specified Canister ID",
+          "description": "Attempts to create the canister with this Canister ID. This option only works with non-mainnet replica. If the `--specified-id` argument is also provided, this `specified_id` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -521,6 +545,16 @@
           "anyOf": [
             {
               "$ref": "#/definitions/ConfigDefaultsCanisterHttp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proxy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsProxy"
             },
             {
               "type": "null"
@@ -646,6 +680,23 @@
         }
       }
     },
+    "ConfigDefaultsProxy": {
+      "description": "Configuration for icx-proxy.",
+      "type": "object",
+      "required": [
+        "domain"
+      ],
+      "properties": {
+        "domain": {
+          "description": "A list of domains that can be served. These are used for canister resolution [default: localhost]",
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
+            }
+          ]
+        }
+      }
+    },
     "ConfigDefaultsReplica": {
       "title": "Local Replica Configuration",
       "type": "object",
@@ -729,6 +780,16 @@
           "anyOf": [
             {
               "$ref": "#/definitions/PlaygroundConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proxy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsProxy"
             },
             {
               "type": "null"
@@ -938,6 +999,14 @@
             "type": "string"
           }
         },
+        "init_arg": {
+          "title": "init_arg",
+          "description": "A default initialization argument for the canister that consumers can use.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "init_guide": {
           "title": "init_guide",
           "description": "A message to guide consumers how to initialize the canister.",
@@ -945,7 +1014,15 @@
         },
         "wasm_hash": {
           "title": "wasm_hash",
-          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.",
+          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified via a URL using the `wasm_hash_url` field. If both are defined, the `wasm_hash_url` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wasm_hash_url": {
+          "title": "wasm_hash_url",
+          "description": "Specify the SHA256 hash of the wasm module via this URL. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified directly using the `wasm_hash` field. If both are defined, the `wasm_hash_url` field will be ignored.",
           "type": [
             "string",
             "null"

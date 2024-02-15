@@ -1,22 +1,24 @@
 use crate::config::cache::DiskBasedCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::info::replica_rev;
 use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
+use crate::lib::program;
 use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
 use anyhow::{anyhow, bail, ensure, Context};
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use console::{style, Style};
-use dfx_core::config::model::dfinity::CONFIG_FILE_NAME;
 use dfx_core::json::{load_json_file, save_json_file};
+use dialoguer::theme::ColorfulTheme;
+use dialoguer::{FuzzySelect, MultiSelect};
 use fn_error_context::context;
 use indicatif::HumanBytes;
-use lazy_static::lazy_static;
 use semver::Version;
-use serde_json::Value;
 use slog::{info, warn, Logger};
 use std::collections::BTreeMap;
-use std::io::Read;
+use std::fmt::{self, Display, Formatter};
+use std::io::{self, IsTerminal, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
@@ -29,15 +31,12 @@ const RELEASE_ROOT: &str = "https://sdk.dfinity.org";
 // The dist-tag to use when getting the version from NPM.
 const AGENT_JS_DEFAULT_INSTALL_DIST_TAG: &str = "latest";
 
-lazy_static! {
 // Tested on a phone tethering connection. This should be fine with
 // little impact to the user, given that "new" is supposedly a
 // heavy-weight operation. Thus, worst case we are utilizing the user
 // expectation for the duration to have a more expensive version
 // check.
-    static ref CHECK_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
-
-}
+const CHECK_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
 
 /// Creates a new project.
 #[derive(Parser)]
@@ -46,17 +45,17 @@ pub struct NewOpts {
     #[arg(value_parser = project_name_parser)]
     project_name: String,
 
-    /// Choose the type of canister in the starter project. Default to be motoko.
-    #[arg(long, value_parser = ["motoko", "rust"], default_value = "motoko")]
-    r#type: String,
+    /// Choose the type of canister in the starter project.
+    #[arg(long, value_enum)]
+    r#type: Option<BackendType>,
 
     /// Provides a preview the directories and files to be created without adding them to the file system.
     #[arg(long)]
     dry_run: bool,
 
-    /// Installs the frontend code example for the default canister. This defaults to true if Node is installed, or false if it isn't.
-    #[arg(long)]
-    frontend: bool,
+    /// Choose the type of frontend in the starter project. Defaults to vanilla.
+    #[arg(long, value_enum, default_missing_value = "vanilla")]
+    frontend: Option<FrontendType>,
 
     /// Skip installing the frontend code example.
     #[arg(long, conflicts_with = "frontend")]
@@ -66,6 +65,78 @@ pub struct NewOpts {
     /// NPM to decide.
     #[arg(long, requires("frontend"))]
     agent_version: Option<String>,
+
+    #[arg(long, value_enum)]
+    extras: Vec<Extra>,
+}
+
+#[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq)]
+enum BackendType {
+    Motoko,
+    Rust,
+    Azle,
+    Kybra,
+}
+
+impl Display for BackendType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Motoko => "Motoko",
+            Self::Rust => "Rust",
+            Self::Azle => "TypeScript (Azle)",
+            Self::Kybra => "Python (Kybra)",
+        }
+        .fmt(f)
+    }
+}
+
+#[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq)]
+enum FrontendType {
+    #[value(name = "sveltekit")]
+    SvelteKit,
+    Vanilla,
+    Vue,
+    React,
+    SimpleAssets,
+    None,
+}
+
+impl Display for FrontendType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::SvelteKit => "SvelteKit",
+            Self::Vanilla => "Vanilla JS",
+            Self::Vue => "Vue",
+            Self::React => "React",
+            Self::SimpleAssets => "No JS template",
+            Self::None => "No frontend canister",
+        }
+        .fmt(f)
+    }
+}
+
+impl FrontendType {
+    fn has_js(&self) -> bool {
+        !matches!(self, Self::None | Self::SimpleAssets)
+    }
+}
+
+#[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq)]
+enum Extra {
+    InternetIdentity,
+    Bitcoin,
+    FrontendTests,
+}
+
+impl Display for Extra {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InternetIdentity => "Internet Identity",
+            Self::Bitcoin => "Bitcoin (Regtest)",
+            Self::FrontendTests => "Frontend tests",
+        }
+        .fmt(f)
+    }
 }
 
 enum Status<'a> {
@@ -249,12 +320,14 @@ fn write_files_from_entries<R: Sized + Read>(
 
 #[context("Failed to run 'npm install'.")]
 fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
-    std::process::Command::new("npm")
+    Command::new(program::NPM)
         .arg("install")
         .arg("--quiet")
         .arg("--no-progress")
-        .stdout(std::process::Stdio::inherit())
-        .stderr(std::process::Stdio::inherit())
+        .arg("--workspaces")
+        .arg("--if-present")
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
         .current_dir(location)
         .spawn()
         .map_err(DfxError::from)
@@ -265,13 +338,13 @@ fn scaffold_frontend_code(
     env: &dyn Environment,
     dry_run: bool,
     project_name: &Path,
-    arg_no_frontend: bool,
-    arg_frontend: bool,
+    frontend: FrontendType,
+    extras: &[Extra],
     agent_version: &Option<String>,
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
     let log = env.get_logger();
-    let node_installed = std::process::Command::new("node")
+    let node_installed = Command::new(program::NODE)
         .arg("--version")
         .output()
         .is_ok();
@@ -280,7 +353,7 @@ fn scaffold_frontend_code(
         .to_str()
         .ok_or_else(|| anyhow!("Invalid argument: project_name"))?;
 
-    if (node_installed && !arg_no_frontend) || arg_frontend {
+    if node_installed {
         // Check if node is available, and if it is create the files for the frontend build.
         let js_agent_version = if let Some(v) = agent_version {
             v.clone()
@@ -296,56 +369,37 @@ fn scaffold_frontend_code(
             project_name_str.to_uppercase(),
         );
 
-        let mut new_project_node_files = assets::new_project_node_files()?;
+        let mut new_project_files = match frontend {
+            FrontendType::Vanilla => assets::new_project_vanillajs_files(),
+            FrontendType::SvelteKit => assets::new_project_svelte_files(),
+            FrontendType::Vue => assets::new_project_vue_files(),
+            FrontendType::React => assets::new_project_react_files(),
+            FrontendType::SimpleAssets => assets::new_project_assets_files(),
+            FrontendType::None => unreachable!(),
+        }?;
         write_files_from_entries(
             log,
-            &mut new_project_node_files,
+            &mut new_project_files,
             project_name,
             dry_run,
             &variables,
         )?;
+        if extras.contains(&Extra::FrontendTests) {
+            let mut test_files = match frontend {
+                FrontendType::SvelteKit => assets::new_project_svelte_test_files(),
+                FrontendType::React => assets::new_project_react_test_files(),
+                FrontendType::Vue => assets::new_project_vue_test_files(),
+                FrontendType::Vanilla => assets::new_project_vanillajs_test_files(),
+                FrontendType::SimpleAssets => {
+                    bail!("Cannot add frontend tests to --frontend-type simple-assets")
+                }
+                FrontendType::None => bail!("Cannot add frontend tests to --no-frontend"),
+            }?;
+            write_files_from_entries(log, &mut test_files, project_name, dry_run, &variables)?;
+        }
 
-        let dfx_path = project_name.join(CONFIG_FILE_NAME);
-        let content =
-            std::fs::read(&dfx_path).with_context(|| format!("Failed to read {:?}.", &dfx_path))?;
-        let mut config_json: Value = serde_json::from_slice(&content)
-            .map_err(std::io::Error::from)
-            .with_context(|| format!("Failed to parse {}.", dfx_path.to_string_lossy()))?;
-
-        let frontend_value: serde_json::Map<String, Value> = [(
-            "entrypoint".to_string(),
-            ("src/".to_owned() + project_name_str + "_frontend/src/index.html").into(),
-        )]
-        .iter()
-        .cloned()
-        .collect();
-
-        // Only update the dfx.json and install node dependencies if we're not running in dry run.
-        if !dry_run {
-            let assets_canister_json = config_json
-                .pointer_mut(("/canisters/".to_owned() + project_name_str + "_frontend").as_str())
-                .unwrap();
-            assets_canister_json
-                .as_object_mut()
-                .unwrap()
-                .insert("frontend".to_string(), Value::from(frontend_value));
-
-            assets_canister_json
-                .as_object_mut()
-                .unwrap()
-                .get_mut("source")
-                .unwrap()
-                .as_array_mut()
-                .unwrap()
-                .push(Value::from(
-                    "dist/".to_owned() + project_name_str + "_frontend/",
-                ));
-
-            let pretty = serde_json::to_string_pretty(&config_json)
-                .context("Invalid data: Cannot serialize configuration file.")?;
-            std::fs::write(&dfx_path, pretty)
-                .with_context(|| format!("Failed to write to {}.", dfx_path.to_string_lossy()))?;
-
+        // Only install node dependencies if we're not running in dry run.
+        if !dry_run && frontend != FrontendType::SimpleAssets {
             // Install node modules. Error is not blocking, we just show a message instead.
             if node_installed {
                 let b = env.new_spinner("Installing node dependencies...".into());
@@ -360,7 +414,7 @@ fn scaffold_frontend_code(
             }
         }
     } else {
-        if !arg_frontend && !node_installed {
+        if !node_installed {
             warn!(
                 log,
                 "Node could not be found. Skipping installing the frontend example code."
@@ -372,7 +426,7 @@ fn scaffold_frontend_code(
         }
         write_files_from_entries(
             log,
-            &mut assets::new_project_no_frontend_files()?,
+            &mut assets::new_project_assets_files()?,
             project_name,
             dry_run,
             variables,
@@ -383,12 +437,12 @@ fn scaffold_frontend_code(
 }
 
 fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
-    std::process::Command::new("npm")
+    Command::new(program::NPM)
         .arg("show")
         .arg("@dfinity/agent")
         .arg(&format!("dist-tags.{}", dist_tag))
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::inherit())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::inherit())
         .spawn()
         .map_err(DfxError::from)
         .and_then(|child| {
@@ -402,11 +456,21 @@ fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
         })
 }
 
-pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
+pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
+    use BackendType::*;
     let log = env.get_logger();
     let dry_run = opts.dry_run;
-    let project_name = Path::new(opts.project_name.as_str());
 
+    let r#type = if let Some(r#type) = opts.r#type {
+        r#type
+    } else if opts.frontend.is_none() && opts.extras.is_empty() && io::stdout().is_terminal() {
+        opts = get_opts_interactively(opts)?;
+        opts.r#type.unwrap()
+    } else {
+        Motoko
+    };
+
+    let project_name = Path::new(opts.project_name.as_str());
     if project_name.exists() {
         bail!("Cannot create a new project because the directory already exists.");
     }
@@ -416,7 +480,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
 
     // It is fine for the following command to timeout or fail. We
     // drop the error.
-    let latest_version = get_latest_version(RELEASE_ROOT, Some(*CHECK_VERSION_TIMEOUT)).ok();
+    let latest_version = get_latest_version(RELEASE_ROOT, Some(CHECK_VERSION_TIMEOUT)).ok();
 
     if is_upgrade_necessary(latest_version.as_ref(), current_version) {
         warn_upgrade(log, latest_version.as_ref(), current_version);
@@ -444,6 +508,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         ("project_name".to_string(), project_name_str.to_string()),
         ("dfx_version".to_string(), version_str.clone()),
         ("dot".to_string(), ".".to_string()),
+        ("ic_commit".to_string(), replica_rev().to_string()),
     ]
     .iter()
     .cloned()
@@ -457,11 +522,28 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         &variables,
     )?;
 
+    let frontend = if opts.no_frontend {
+        FrontendType::None
+    } else {
+        opts.frontend.unwrap_or(FrontendType::Vanilla)
+    };
+
+    if r#type == Azle || frontend.has_js() {
+        write_files_from_entries(
+            log,
+            &mut assets::new_project_js_files().context("Failed to get JS config archive.")?,
+            project_name,
+            dry_run,
+            &variables,
+        )?;
+    }
+
     // Default to start with motoko
-    let mut new_project_files = match opts.r#type.as_str() {
-        "rust" => assets::new_project_rust_files().context("Failed to get rust archive.")?,
-        "motoko" => assets::new_project_motoko_files().context("Failed to get motoko archive.")?,
-        t => bail!("Unsupported canister type: {}", t),
+    let mut new_project_files = match r#type {
+        Rust => assets::new_project_rust_files().context("Failed to get rust archive.")?,
+        Motoko => assets::new_project_motoko_files().context("Failed to get motoko archive.")?,
+        Azle => assets::new_project_azle_files().context("Failed to get azle archive.")?,
+        Kybra => assets::new_project_kybra_files().context("Failed to get kybra archive.")?,
     };
     write_files_from_entries(
         log,
@@ -471,15 +553,35 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
         &variables,
     )?;
 
-    scaffold_frontend_code(
-        env,
-        dry_run,
-        project_name,
-        opts.no_frontend,
-        opts.frontend,
-        &opts.agent_version,
-        &variables,
-    )?;
+    if opts.extras.contains(&Extra::InternetIdentity) {
+        write_files_from_entries(
+            log,
+            &mut assets::new_project_internet_identity_files()?,
+            project_name,
+            dry_run,
+            &variables,
+        )?;
+    }
+    if opts.extras.contains(&Extra::Bitcoin) {
+        write_files_from_entries(
+            log,
+            &mut assets::new_project_bitcoin_files()?,
+            project_name,
+            dry_run,
+            &variables,
+        )?;
+    }
+    if frontend != FrontendType::None {
+        scaffold_frontend_code(
+            env,
+            dry_run,
+            project_name,
+            frontend,
+            &opts.extras,
+            &opts.agent_version,
+            &variables,
+        )?;
+    }
 
     if !dry_run {
         // If on mac, we should validate that XCode toolchain was installed.
@@ -511,7 +613,7 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
             init_git(log, project_name)?;
         }
 
-        if opts.r#type == "rust" {
+        if r#type == Rust {
             // dfx build will use --locked, so update the lockfile beforehand
             const MSG: &str = "You will need to run it yourself (or a similar command like `cargo vendor`), because `dfx build` will use the --locked flag with Cargo.";
             if let Ok(code) = Command::new("cargo")
@@ -546,6 +648,45 @@ pub fn exec(env: &dyn Environment, opts: NewOpts) -> DfxResult {
     );
 
     Ok(())
+}
+
+fn get_opts_interactively(opts: NewOpts) -> DfxResult<NewOpts> {
+    use BackendType::*;
+    use Extra::*;
+    use FrontendType::*;
+    let theme = ColorfulTheme::default();
+    let backends_list = [Motoko, Rust, Azle, Kybra];
+    let backend = FuzzySelect::with_theme(&theme)
+        .items(&backends_list)
+        .default(0)
+        .with_prompt("Select a backend language:")
+        .interact()?;
+    let backend = backends_list[backend];
+    let frontends_list = [SvelteKit, React, Vue, Vanilla, SimpleAssets, None];
+    let frontend = FuzzySelect::with_theme(&theme)
+        .items(&frontends_list)
+        .default(0)
+        .with_prompt("Select a frontend framework:")
+        .interact()?;
+    let frontend = frontends_list[frontend];
+    let mut extras_list = vec![InternetIdentity, Bitcoin];
+    if frontend != None && frontend != SimpleAssets {
+        extras_list.push(FrontendTests);
+    }
+    let extras = MultiSelect::with_theme(&theme)
+        .items(&extras_list)
+        .with_prompt("Add extra features (space to select, enter to confirm)")
+        .interact()?;
+
+    let extras = extras.into_iter().map(|x| extras_list[x]).collect();
+
+    let opts = NewOpts {
+        extras,
+        frontend: Some(frontend),
+        r#type: Some(backend),
+        ..opts
+    };
+    Ok(opts)
 }
 
 fn warn_upgrade(log: &Logger, latest_version: Option<&Version>, current_version: &Version) {

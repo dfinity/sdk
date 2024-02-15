@@ -15,6 +15,7 @@ The following subcommands are available:
 | Command                               | Description                                                                          |
 |---------------------------------------|--------------------------------------------------------------------------------------|
 | [`balance`](#dfx-cycles-balance)      | Prints the account balance of the user.                                              |
+| [`convert`](#dfx-cycles-convert)      | Convert some of the user's ICP balance into cycles.                                  |
 | [`transfer`](#dfx-cycles-transfer)    | Send cycles to another account.                                                      |
 | `help`                                | Displays usage information message for a specified subcommand.                       |
 
@@ -41,11 +42,8 @@ You can specify the following arguments for the `dfx cycles balance` command.
 | `--owner <principal>`                       | Display the balance of this principal                               |
 | `--subaccount <subaccount>`                 | Display the balance of this subaccount                              |
 | `--precise`                                 | Displays the exact balance, without scaling to trillions of cycles. |
-| `--cycles-ledger-canister-id <canister id>` | Specify the ID of the cycles ledger canister.                       |
 
 ### Examples
-
-> **NOTE**: None of the examples below specify the `--cycles-ledger-canister-id` option, but it is required until the cycles ledger canister ID is known.
 
 Check the cycles balance of the selected identity.
 
@@ -64,6 +62,46 @@ You can use the `dfx cycles balance` command to check the balance of another pri
 
 ``` bash
 dfx cycles balance --owner raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae --network ic
+```
+
+## dfx cycles convert
+
+Use the `dfx cycles convert` command to convert ICP into cycles that are stored on the cycles ledger.
+
+### Basic usage
+
+``` bash
+dfx cycles convert [flag] --network ic
+```
+
+### Options
+
+You can specify the following arguments for the `dfx cycles convert` command.
+
+| Option                                      | Description |
+|---------------------------------------------|-------------|
+| `--amount <amount>`            | Specify the number of ICP tokens to convert to cycles and deposit into your cycles ledger account. You can specify an amount as a number with up to eight (8) decimal places. |
+| `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for transaction deduplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
+| `--e8s <e8s>`                  | Specify ICP token fractional units—called e8s—as a whole number, where one e8 is the smallest fraction of an ICP token. For example, 1.05000000 is 1 ICP and 5000000 e8s. You can use this option on its own or in conjunction with the `--icp` option. |
+| `--fee <fee>`                  | Specify a transaction fee. The default is 10000 e8s. |
+| `--icp <icp>`                  | Specify ICP tokens as a whole number. You can use this option on its own or in conjunction with `--e8s`. |
+| `--memo <memo>`                | Memo used when depositing the minted cycles. |
+| `--to-subaccount <subaccount>` | Subaccount where the cycles are deposited. |
+
+### Examples
+
+Convert 10 ICP into cycles.
+
+```
+$ dfx cycles convert --network ic --amount 10
+Account was topped up with 1_234_567_000_000_000 cycles! New balance is 1_234_567_000_000_000 cycles.
+```
+
+To have the cycles deposited into a different subaccount, use the `--to-subaccount` option.
+
+```
+$ dfx cycles convert --network ic --amount 10 --to-subaccount 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
+Account was topped up with 1_234_567_000_000_000 cycles! New balance is 1_234_567_000_000_000 cycles.
 ```
 
 ## dfx cycles transfer

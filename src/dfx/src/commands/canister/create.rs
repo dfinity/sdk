@@ -5,14 +5,14 @@ use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation,
     get_reserved_cycles_limit, CanisterSettings,
 };
-use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::parsers::cycle_amount_parser;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
     reserved_cycles_limit_parser,
 };
+use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
+use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
 use anyhow::{bail, Context};
 use byte_unit::Byte;
 use candid::Principal as CanisterId;
@@ -20,6 +20,7 @@ use clap::{ArgAction, Parser};
 use dfx_core::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
 use ic_agent::Identity as _;
+use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 
 /// Creates an empty canister and associates the assigned Canister ID to the canister name.
@@ -42,6 +43,7 @@ pub struct CanisterCreateOpts {
     ///
     /// This option only works with non-mainnet replica.
     /// This option implies the --no-wallet flag.
+    /// This option takes precedence over the specified_id field in dfx.json.
     #[arg(long, value_name = "PRINCIPAL", conflicts_with = "all")]
     specified_id: Option<CanisterId>,
 
@@ -80,12 +82,26 @@ pub struct CanisterCreateOpts {
     /// Bypasses the Wallet canister.
     #[arg(long)]
     no_wallet: bool,
+
+    /// Transaction timestamp, in nanoseconds, for use in controlling transaction deduplication, default is system time.
+    /// https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
+    //TODO(SDK-1331): unhide
+    #[arg(long, hide = true, conflicts_with = "all")]
+    created_at_time: Option<u64>,
+
+    /// Subaccount of the selected identity to spend cycles from.
+    //TODO(SDK-1331): unhide
+    #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
+    from_subaccount: Option<Subaccount>,
+
+    #[command(flatten)]
+    subnet_selection: SubnetSelectionOpt,
 }
 
 pub async fn exec(
     env: &dyn Environment,
     opts: CanisterCreateOpts,
-    mut call_sender: &CallSender,
+    call_sender: &CallSender,
 ) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
 
@@ -95,22 +111,6 @@ pub async fn exec(
 
     let config_interface = config.get_config();
     let network = env.get_network_descriptor();
-
-    let proxy_sender;
-    if opts.specified_id.is_none()
-        && !opts.no_wallet
-        && !matches!(call_sender, CallSender::Wallet(_))
-        && !network.is_playground()
-    {
-        let wallet = get_or_create_wallet_canister(
-            env,
-            env.get_network_descriptor(),
-            env.get_selected_identity().expect("No selected identity"),
-        )
-        .await?;
-        proxy_sender = CallSender::Wallet(*wallet.canister_id_());
-        call_sender = &proxy_sender;
-    }
 
     let controllers: Option<Vec<_>> = opts
         .controller
@@ -141,6 +141,7 @@ pub async fn exec(
         })
         .transpose()
         .context("Failed to determine controllers.")?;
+    let subnet_selection = opts.subnet_selection.into_subnet_selection(env).await?;
 
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     if let Some(canister_name) = opts.canister_name.as_deref() {
@@ -150,9 +151,8 @@ pub async fn exec(
                 canister_name
             );
         }
-        let canister_is_remote = config
-            .get_config()
-            .is_remote_canister(canister_name, &network.name)?;
+        let canister_is_remote =
+            config_interface.is_remote_canister(canister_name, &network.name)?;
         if canister_is_remote {
             bail!("Canister '{}' is a remote canister on network '{}', and cannot be created from here.", canister_name, &network.name)
         }
@@ -186,6 +186,8 @@ pub async fn exec(
             with_cycles,
             opts.specified_id,
             call_sender,
+            opts.no_wallet,
+            opts.from_subaccount,
             CanisterSettings {
                 controllers,
                 compute_allocation,
@@ -193,19 +195,20 @@ pub async fn exec(
                 freezing_threshold,
                 reserved_cycles_limit,
             },
+            opts.created_at_time,
+            subnet_selection,
         )
         .await?;
         Ok(())
     } else if opts.all {
         // Create all canisters.
-        if let Some(canisters) = &config.get_config().canisters {
+        if let Some(canisters) = &config_interface.canisters {
             for canister_name in canisters.keys() {
                 if pull_canisters_in_config.contains_key(canister_name) {
                     continue;
                 }
-                let canister_is_remote = config
-                    .get_config()
-                    .is_remote_canister(canister_name, &network.name)?;
+                let canister_is_remote =
+                    config_interface.is_remote_canister(canister_name, &network.name)?;
                 if canister_is_remote {
                     info!(
                         env.get_logger(),
@@ -216,6 +219,7 @@ pub async fn exec(
 
                     continue;
                 }
+                let specified_id = config_interface.get_specified_id(canister_name)?;
                 let compute_allocation = get_compute_allocation(
                     opts.compute_allocation,
                     Some(config_interface),
@@ -252,8 +256,10 @@ pub async fn exec(
                     env,
                     canister_name,
                     with_cycles,
-                    None,
+                    specified_id,
                     call_sender,
+                    opts.no_wallet,
+                    opts.from_subaccount,
                     CanisterSettings {
                         controllers: controllers.clone(),
                         compute_allocation,
@@ -261,6 +267,8 @@ pub async fn exec(
                         freezing_threshold,
                         reserved_cycles_limit,
                     },
+                    opts.created_at_time,
+                    subnet_selection.clone(),
                 )
                 .await?;
             }

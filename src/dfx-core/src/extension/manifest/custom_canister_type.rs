@@ -206,6 +206,16 @@ impl CustomCanisterTypeDeclaration {
 }
 
 #[cfg(test)]
+pub struct NoopTransformConfiguration;
+#[cfg(test)]
+impl TransformConfiguration for NoopTransformConfiguration {
+    fn transform(&mut self, _: &mut serde_json::Value) -> Result<(), ExtensionError> {
+        // Do nothing
+        Ok(())
+    }
+}
+
+#[cfg(test)]
 mod custom_canister_type_declaration_tests {
     use super::*;
 
@@ -642,15 +652,5 @@ mod custom_canister_type_declaration_tests {
         }
         "#
         );
-    }
-}
-
-#[cfg(test)]
-pub struct NoopTransformConfiguration;
-#[cfg(test)]
-impl TransformConfiguration for NoopTransformConfiguration {
-    fn transform(&mut self, _: &mut serde_json::Value) -> Result<(), ExtensionError> {
-        // Do nothing
-        Ok(())
     }
 }

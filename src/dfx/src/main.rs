@@ -193,7 +193,8 @@ fn main() {
     let command = cli_opts.command;
     let result = match EnvironmentImpl::new(&mut extension_manager) {
         Ok(env) => {
-            maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
+            #[allow(clippy::let_unit_value)]
+            let _ = maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
             match EnvironmentImpl::new(&mut extension_manager).map(|env| {
                 env.with_logger(log)
                     .with_identity_override(identity)

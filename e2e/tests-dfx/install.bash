@@ -5,7 +5,7 @@ load ../utils/_
 setup() {
   standard_setup
 
-  dfx_new
+  dfx_new_assets
 }
 
 teardown() {
@@ -152,6 +152,17 @@ teardown() {
   assert_eq "$BUILD_HASH" "$ONCHAIN_HASH"
 }
 
+@test "can install >2MiB wasm" {
+  install_asset large_canister
+  dfx_start
+  dfx canister create --all
+  assert_command dfx build
+  assert_command dfx canister install --all
+  assert_command dfx canister info large
+  HASH="$(sha256sum .dfx/local/canisters/large/large.wasm | head -c 64)"
+  assert_match "Module hash: 0x$HASH"
+}
+
 @test "--mode=auto selects install or upgrade automatically" {
   dfx_start
   assert_command dfx canister create e2e_project_backend
@@ -217,4 +228,23 @@ teardown() {
   dfx canister create --all
   assert_command_fail dfx canister install e2e_project_backend
   assert_contains "The canister must be built before install. Please run \`dfx build\`."
+}
+
+@test "install succeeds if init_arg is defined in dfx.json" {
+  install_asset deploy_deps
+  dfx_start
+  jq '.canisters.dependency.init_arg="(\"dfx\")"' dfx.json | sponge dfx.json
+
+  dfx canister create dependency
+  dfx build dependency
+  assert_command dfx canister install dependency
+  assert_command dfx canister call dependency greet
+  assert_match "Hello, dfx!"
+
+  assert_command dfx canister install dependency --mode reinstall --yes --argument '("icp")'
+  assert_contains "Canister 'dependency' has init_arg in dfx.json: (\"dfx\"),"
+  assert_contains "which is different from the one specified in the command line: (\"icp\")."
+  assert_contains "The command line value will be used."
+  assert_command dfx canister call dependency greet
+  assert_match "Hello, icp!"
 }

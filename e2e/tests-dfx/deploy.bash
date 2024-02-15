@@ -1,11 +1,12 @@
 #!/usr/bin/env bats
 
 load ../utils/_
+load ../utils/cycles-ledger
 
 setup() {
   standard_setup
 
-  dfx_new hello
+  dfx_new_assets hello
 }
 
 teardown() {
@@ -86,6 +87,22 @@ teardown() {
   assert_match "Hello, dfx!"
 }
 
+@test "deploy succeeds if init_arg is defined in dfx.json" {
+  install_asset deploy_deps
+  dfx_start
+  jq '.canisters.dependency.init_arg="(\"dfx\")"' dfx.json | sponge dfx.json
+  assert_command dfx deploy dependency
+  assert_command dfx canister call dependency greet
+  assert_match "Hello, dfx!"
+
+  assert_command dfx deploy dependency --mode reinstall --yes --argument '("icp")'
+  assert_contains "Canister 'dependency' has init_arg in dfx.json: (\"dfx\"),"
+  assert_contains "which is different from the one specified in the command line: (\"icp\")."
+  assert_contains "The command line value will be used."
+  assert_command dfx canister call dependency greet
+  assert_match "Hello, icp!"
+}
+
 @test "reinstalling a single Motoko canister with imported dependency works" {
   install_asset import_canister
   dfx_start
@@ -106,6 +123,26 @@ teardown() {
   assert_match \
 "error: the following required arguments were not provided:
   <CANISTER_NAME>"
+}
+
+@test "deploy succeeds when specify canister ID in dfx.json" {
+  dfx_start
+  jq '.canisters.hello_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
+  assert_command dfx deploy hello_backend
+  assert_command dfx canister id hello_backend
+  assert_match n5n4y-3aaaa-aaaaa-p777q-cai
+}
+
+@test "deploy succeeds when specify canister ID both in dfx.json and cli; warning if different; cli value takes effect" {
+  dfx_start
+  jq '.canisters.hello_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
+  assert_command dfx deploy hello_backend --specified-id hhn2s-5l777-77777-7777q-cai
+  assert_contains "WARN: Canister 'hello_backend' has a specified ID in dfx.json: n5n4y-3aaaa-aaaaa-p777q-cai,"
+  assert_contains "which is different from the one specified in the command line: hhn2s-5l777-77777-7777q-cai."
+  assert_contains "The command line value will be used."
+
+  assert_command dfx canister id hello_backend
+  assert_match hhn2s-5l777-77777-7777q-cai
 }
 
 @test "deploy does not require wallet if all canisters are created" {
@@ -156,4 +193,29 @@ teardown() {
   jq 'del(.canisters.hello_frontend.frontend)' dfx.json | sponge dfx.json
   assert_command dfx deploy
   assert_contains "hello_frontend: http://127.0.0.1"
+}
+
+@test "subnet targetting" {
+  # fake cmc setup
+  cd ..
+  dfx_new fake_cmc
+  install_asset fake_cmc
+  install_cycles_ledger_canisters
+  dfx_start
+  assert_command dfx deploy fake-cmc --specified-id "rkp4c-7iaaa-aaaaa-aaaca-cai" # CMC canister id
+  cd ../hello
+
+  # use --subnet <principal>
+  SUBNET_ID="5kdm2-62fc6-fwnja-hutkz-ycsnm-4z33i-woh43-4cenu-ev7mi-gii6t-4ae" # a random, valid principal
+  assert_command dfx deploy hello_backend --subnet "$SUBNET_ID"
+  cd ../fake_cmc
+  assert_command dfx canister call fake-cmc last_create_canister_args
+  assert_contains "subnet = principal \"$SUBNET_ID\";"
+  
+  # use --subnet-type
+  cd ../hello
+  assert_command dfx deploy hello_frontend --subnet-type custom_subnet_type
+  cd ../fake_cmc
+  assert_command dfx canister call fake-cmc last_create_canister_args
+  assert_contains 'subnet_type = opt "custom_subnet_type"'
 }

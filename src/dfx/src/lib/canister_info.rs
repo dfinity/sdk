@@ -58,6 +58,7 @@ pub struct CanisterInfo {
     pullable: Option<Pullable>,
     pull_dependencies: Vec<(String, CanisterId)>,
     gzip: bool,
+    init_arg: Option<String>,
 }
 
 impl CanisterInfo {
@@ -122,7 +123,7 @@ impl CanisterInfo {
         let declarations_config = CanisterDeclarationsConfig {
             output: declarations_config_pre
                 .output
-                .or_else(|| Some(PathBuf::from("src/declarations").join(name))),
+                .or_else(|| Some(workspace_root.join("src/declarations").join(name))),
             bindings: declarations_config_pre
                 .bindings
                 .or_else(|| Some(vec!["js".to_string(), "ts".to_string(), "did".to_string()])),
@@ -143,6 +144,7 @@ impl CanisterInfo {
         let metadata = CanisterMetadataConfig::new(&canister_config.metadata, &network_name);
 
         let gzip = canister_config.gzip.unwrap_or(false);
+        let init_arg = canister_config.init_arg.clone();
 
         let canister_info = CanisterInfo {
             name: name.to_string(),
@@ -164,6 +166,7 @@ impl CanisterInfo {
             pullable: canister_config.pullable.clone(),
             pull_dependencies,
             gzip,
+            init_arg,
         };
 
         Ok(canister_info)
@@ -359,5 +362,9 @@ impl CanisterInfo {
 
     pub fn get_gzip(&self) -> bool {
         self.gzip
+    }
+
+    pub fn get_init_arg(&self) -> Option<&str> {
+        self.init_arg.as_deref()
     }
 }
