@@ -1,8 +1,12 @@
 use super::custom_canister_type::CustomCanisterTypeDeclaration;
-use crate::{error::extension::ExtensionError, extension::manager::ExtensionManager};
+use crate::error::extension::ConvertExtensionSubcommandArgError::ExtensionSubcommandArgMissingDescription;
+use crate::error::extension::{
+    ConvertExtensionSubcommandArgError, ConvertExtensionSubcommandIntoClapCommandError,
+    GetExtensionByNameError,
+};
+use crate::extension::manager::ExtensionManager;
 use serde::{Deserialize, Deserializer};
 use std::collections::{BTreeMap, HashMap};
-use crate::error::extension::GetExtensionByNameError;
 
 pub static MANIFEST_FILE_NAME: &str = "extension.json";
 
@@ -42,7 +46,9 @@ impl ExtensionManifest {
         Ok(m)
     }
 
-    pub fn into_clap_commands(self) -> Result<Vec<clap::Command>, ExtensionError> {
+    pub fn into_clap_commands(
+        self,
+    ) -> Result<Vec<clap::Command>, ConvertExtensionSubcommandIntoClapCommandError> {
         self.subcommands
             .unwrap_or_default()
             .0
@@ -132,14 +138,15 @@ impl<'de> Deserialize<'de> for ArgNumberOfValues {
 }
 
 impl ExtensionSubcommandArgOpts {
-    pub fn into_clap_arg(self, name: String) -> Result<clap::Arg, ExtensionError> {
+    pub fn into_clap_arg(
+        self,
+        name: String,
+    ) -> Result<clap::Arg, ConvertExtensionSubcommandArgError> {
         let mut arg = clap::Arg::new(name.clone());
         if let Some(about) = self.about {
             arg = arg.help(about);
         } else {
-            return Err(ExtensionError::ExtensionSubcommandArgMissingDescription(
-                name,
-            ));
+            return Err(ExtensionSubcommandArgMissingDescription(name));
         }
         if let Some(l) = self.long {
             arg = arg.long(l);
@@ -166,7 +173,10 @@ impl ExtensionSubcommandArgOpts {
 }
 
 impl ExtensionSubcommandOpts {
-    pub fn into_clap_command(self, name: String) -> Result<clap::Command, ExtensionError> {
+    pub fn into_clap_command(
+        self,
+        name: String,
+    ) -> Result<clap::Command, ConvertExtensionSubcommandIntoClapCommandError> {
         let mut cmd = clap::Command::new(name);
 
         if let Some(about) = self.about {

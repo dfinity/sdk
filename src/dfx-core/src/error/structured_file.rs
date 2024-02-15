@@ -16,4 +16,3 @@ pub enum StructuredFileError {
     #[error("Failed to write JSON file: {0}")]
     WriteJsonFileFailed(FsError),
 }
-

@@ -1,4 +1,9 @@
-use crate::error::extension::{ProcessCanisterDeclarationError};
+use crate::error::extension::ProcessCanisterDeclarationError;
+use crate::error::extension::ProcessCanisterDeclarationError::{
+    CustomCanisterTypeTemplateError, ExtensionDoesNotSupportAnyCustomCanisterTypes,
+    ExtensionDoesNotSupportSpecificCustomCanisterType,
+};
+use crate::error::load_dfx_config::TransformConfigurationError;
 use crate::extension::manager::ExtensionManager;
 use crate::extension::manifest::ExtensionManifest;
 use handlebars::Handlebars;
@@ -6,11 +11,12 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::collections::BTreeMap;
-use crate::error::extension::ProcessCanisterDeclarationError::{CustomCanisterTypeTemplateError, ExtensionDoesNotSupportAnyCustomCanisterTypes, ExtensionDoesNotSupportSpecificCustomCanisterType};
-use crate::error::load_dfx_config::TransformConfigurationError;
 
 pub trait TransformConfiguration {
-    fn transform(&mut self, json: &mut serde_json::Value) -> Result<(), TransformConfigurationError>;
+    fn transform(
+        &mut self,
+        json: &mut serde_json::Value,
+    ) -> Result<(), TransformConfigurationError>;
 }
 
 impl TransformConfiguration for ExtensionManager {
@@ -77,12 +83,10 @@ pub(super) fn process_canister_declaration(
     let custom_canister_declaration = match extension_manifest_canister_type {
         Some(val) => val,
         None => {
-            return Err(
-                ExtensionDoesNotSupportSpecificCustomCanisterType(
-                    canister_type.into(),
-                    extension_name.into(),
-                ),
-            );
+            return Err(ExtensionDoesNotSupportSpecificCustomCanisterType(
+                canister_type.into(),
+                extension_name.into(),
+            ));
         }
     };
     let mut values: BTreeMap<String, JsonValue> = canister_declaration

@@ -1,7 +1,7 @@
-use crate::error::fs::FsError;
-use crate::error::structured_file::{StructuredFileError};
-use thiserror::Error;
 use crate::error::extension::{GetExtensionByNameError, ProcessCanisterDeclarationError};
+use crate::error::fs::FsError;
+use crate::error::structured_file::StructuredFileError;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum LoadDfxConfigError {
@@ -29,5 +29,5 @@ pub enum TransformConfigurationError {
     GetExtensionByName(#[from] GetExtensionByNameError),
 
     #[error(transparent)]
-    ProcessCanisterDeclarationError(#[from] ProcessCanisterDeclarationError)
+    ProcessCanisterDeclarationError(#[from] ProcessCanisterDeclarationError),
 }

@@ -2,7 +2,7 @@
 
 pub mod manager;
 pub mod manifest;
-use crate::error::extension::ExtensionError;
+use crate::error::extension::ConvertExtensionSubcommandIntoClapCommandError;
 use crate::extension::{manager::ExtensionManager, manifest::ExtensionManifest};
 use clap::Command;
 use std::{
@@ -32,7 +32,7 @@ impl Extension {
     pub fn into_clap_command(
         self,
         manager: &ExtensionManager,
-    ) -> Result<clap::Command, ExtensionError> {
+    ) -> Result<clap::Command, ConvertExtensionSubcommandIntoClapCommandError> {
         let manifest = ExtensionManifest::get_by_extension_name(&self.name, manager)?;
         let cmd = Command::new(&self.name)
             .bin_name(&self.name)

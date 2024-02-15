@@ -1,6 +1,6 @@
 #![allow(dead_code)]
-use thiserror::Error;
 use crate::error::structured_file::StructuredFileError;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ExtensionError {
@@ -10,9 +10,6 @@ pub enum ExtensionError {
 
     #[error("Cannot get extensions directory: {0}")]
     EnsureExtensionDirExistsFailed(crate::error::fs::FsError),
-
-    #[error("Extension directory '{0}' does not exist.")]
-    ExtensionDirDoesNotExist(std::path::PathBuf),
 
     #[error("Extension '{0}' not installed.")]
     ExtensionNotInstalled(String),
@@ -64,19 +61,9 @@ pub enum ExtensionError {
     #[error("Cannot uninstall extension: {0}")]
     InsufficientPermissionsToDeleteExtensionDirectory(crate::error::fs::FsError),
 
-    // errors related to listing extensions
-    #[error("Cannot list extensions: {0}")]
-    ExtensionsDirectoryIsNotReadable(crate::error::fs::FsError),
-
-    #[error("Cannot load extension manifest: {0}")]
-    LoadExtensionManifestFailed(crate::error::structured_file::StructuredFileError),
-
     // errors related to executing extensions
     #[error("Invalid extension name '{0:?}'.")]
     InvalidExtensionName(std::ffi::OsString),
-
-    #[error("Extension's subcommand argument '{0}' is missing description.")]
-    ExtensionSubcommandArgMissingDescription(String),
 
     #[error("Cannot find extension binary at '{0}'.")]
     ExtensionBinaryDoesNotExist(std::path::PathBuf),
@@ -117,4 +104,56 @@ pub enum ProcessCanisterDeclarationError {
 
     #[error("Failed to load custom canister type template for canister type '{0}' from extension '{1}': {2}")]
     CustomCanisterTypeTemplateError(String, String, String),
+}
+
+#[derive(Error, Debug)]
+pub enum BuildClapCommandsForExtensionsError {
+    #[error(transparent)]
+    ListInstalledExtensions(#[from] ListInstalledExtensionsError),
+
+    // #[error(transparent)]
+    // ConvertExtensionIntoClapCommand(#[from] ConvertExtensionIntoClapCommandError),
+    #[error(transparent)]
+    ConvertExtensionSubcommandIntoClapCommand(
+        #[from] ConvertExtensionSubcommandIntoClapCommandError,
+    ),
+}
+
+#[derive(Error, Debug)]
+pub enum ListInstalledExtensionsError {
+    // errors related to listing extensions
+    #[error("Cannot list extensions: {0}")]
+    ExtensionsDirectoryIsNotReadable(crate::error::fs::FsError),
+}
+
+#[derive(Error, Debug)]
+pub enum ConvertExtensionIntoClapCommandError {
+    #[error(transparent)]
+    InstantiateExtensionManifest(#[from] InstantiateExtensionManifestError),
+
+    #[error(transparent)]
+    ConvertExtensionSubcommandIntoClapCommand(
+        #[from] ConvertExtensionSubcommandIntoClapCommandError,
+    ),
+}
+
+#[derive(Error, Debug)]
+#[error(transparent)]
+pub struct InstantiateExtensionManifestError {
+    pub source: StructuredFileError,
+}
+
+#[derive(Error, Debug)]
+pub enum ConvertExtensionSubcommandIntoClapCommandError {
+    #[error(transparent)]
+    ConvertExtensionSubcommandArg(#[from] ConvertExtensionSubcommandArgError),
+
+    #[error(transparent)]
+    GetExtensionByName(#[from] GetExtensionByNameError),
+}
+
+#[derive(Error, Debug)]
+pub enum ConvertExtensionSubcommandArgError {
+    #[error("Extension's subcommand argument '{0}' is missing description.")]
+    ExtensionSubcommandArgMissingDescription(String),
 }

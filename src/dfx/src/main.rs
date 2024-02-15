@@ -161,7 +161,7 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
     }
 }
 
-fn get_args_altered_for_extension_run() -> DfxResult<Vec<OsString>> {
+fn get_args_altered_for_extension_run() -> DfxResult<(Vec<OsString>, ExtensionManager)> {
     let mut args = std::env::args_os().collect::<Vec<OsString>>();
     let em = ExtensionManager::new(dfx_version())?;
 
@@ -178,14 +178,15 @@ fn get_args_altered_for_extension_run() -> DfxResult<Vec<OsString>> {
             args.splice(idx..idx, ["extension", "run"].iter().map(OsString::from));
         }
     }
-    Ok(args)
+    Ok((args, em))
 }
 
 fn main() {
-    let args = get_args_altered_for_extension_run().unwrap_or_else(|err| {
-        print_error_and_diagnosis(err, NULL_DIAGNOSIS);
-        std::process::exit(255);
-    });
+    let (args, mut extension_manager) =
+        get_args_altered_for_extension_run().unwrap_or_else(|err| {
+            print_error_and_diagnosis(err, NULL_DIAGNOSIS);
+            std::process::exit(255);
+        });
 
     let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
 

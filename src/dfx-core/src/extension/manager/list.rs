@@ -1,13 +1,17 @@
 use super::ExtensionManager;
-use crate::{error::extension::ExtensionError, extension::Extension};
+use crate::error::extension::ListInstalledExtensionsError::ExtensionsDirectoryIsNotReadable;
+use crate::error::extension::{BuildClapCommandsForExtensionsError, ListInstalledExtensionsError};
+use crate::extension::Extension;
 
 impl ExtensionManager {
-    pub fn list_installed_extensions(&self) -> Result<Vec<Extension>, ExtensionError> {
+    pub fn list_installed_extensions(
+        &self,
+    ) -> Result<Vec<Extension>, ListInstalledExtensionsError> {
         if !&self.dir.exists() {
             return Ok(vec![]);
         }
-        let dir_content = crate::fs::read_dir(&self.dir)
-            .map_err(ExtensionError::ExtensionsDirectoryIsNotReadable)?;
+        let dir_content =
+            crate::fs::read_dir(&self.dir).map_err(ExtensionsDirectoryIsNotReadable)?;
 
         Ok(dir_content
             .filter_map(|v| {
@@ -25,7 +29,7 @@ impl ExtensionManager {
 
     pub fn installed_extensions_as_clap_commands(
         &self,
-    ) -> Result<Vec<clap::Command>, ExtensionError> {
+    ) -> Result<Vec<clap::Command>, BuildClapCommandsForExtensionsError> {
         let mut extensions = vec![];
         for ext in self.list_installed_extensions()? {
             extensions.push(ext.into_clap_command(self)?);
