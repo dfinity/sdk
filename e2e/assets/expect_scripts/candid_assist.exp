@@ -10,7 +10,7 @@ send "42\r"
 expect "Sending the following argument:\r
 (record { x = 42 : nat; y = 42 : int })\r
 \r
-Do you want to initialize canister with this argument? [y/N]\r
+Do you want to initialize the canister with this argument? \[y/N\]\r
 "
 send "y\r"
 expect eof

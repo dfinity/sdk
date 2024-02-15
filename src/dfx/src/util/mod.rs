@@ -252,7 +252,7 @@ pub fn blob_from_arguments(
                         eprintln!("Sending the following argument:\n{}\n", args);
                         if is_init_arg {
                             eprintln!(
-                                "Do you want to initialize canister with this argument? [y/N]"
+                                "Do you want to initialize the canister with this argument? [y/N]"
                             );
                         } else {
                             eprintln!("Do you want to send this message? [y/N]");
