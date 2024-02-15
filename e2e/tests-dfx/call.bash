@@ -42,7 +42,6 @@ teardown() {
 @test "call without argument, using candid assistant" {
   install_asset echo
   dfx_start
-  dfx deploy
   assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/candid_assist.exp"
 }
 

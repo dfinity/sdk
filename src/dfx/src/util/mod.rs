@@ -177,6 +177,7 @@ pub fn blob_from_arguments(
     random: Option<&str>,
     arg_type: Option<&str>,
     method_type: &Option<(TypeEnv, Function)>,
+    is_init_arg: bool,
 ) -> DfxResult<Vec<u8>> {
     let arg_type = arg_type.unwrap_or("idl");
     match arg_type {
@@ -240,9 +241,22 @@ pub fn blob_from_arguments(
                                 ctx.set_completion(map);
                             }
                         }
+                        if is_init_arg {
+                            eprintln!(
+                                "This canister requires the following initialization argument."
+                            );
+                        } else {
+                            eprintln!("This method requires the following arguments.");
+                        }
                         let args = input_args(&ctx, &func.args)?;
                         eprintln!("Sending the following argument:\n{}\n", args);
-                        eprintln!("Do you want to send this message? [y/N]");
+                        if is_init_arg {
+                            eprintln!(
+                                "Do you want to initialize canister with this argument? [y/N]"
+                            );
+                        } else {
+                            eprintln!("Do you want to send this message? [y/N]");
+                        }
                         let mut input = String::new();
                         stdin().read_line(&mut input)?;
                         if !["y", "Y", "yes", "Yes", "YES"].contains(&input.trim()) {

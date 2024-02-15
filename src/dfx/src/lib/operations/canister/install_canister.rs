@@ -165,7 +165,7 @@ The command line value will be used.",
             (None, None) => (None, None),
         };
         let install_args =
-            blob_from_arguments(Some(env), argument, None, argument_type, &init_type)?;
+            blob_from_arguments(Some(env), argument, None, argument_type, &init_type, true)?;
         if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
             let new_timestamp = playground_install_code(
                 env,

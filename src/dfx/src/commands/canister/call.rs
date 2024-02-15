@@ -307,6 +307,7 @@ pub async fn exec(
         opts.random.as_deref(),
         arg_type,
         &method_type,
+        false,
     )?;
 
     // amount has been validated by cycle_amount_validator

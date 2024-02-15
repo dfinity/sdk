@@ -279,7 +279,9 @@ impl CanisterIdStore {
             .map(|(name, id)| (name.clone(), id.to_text()))
             .collect();
         ids.append(&mut pull_ids);
-        ids
+        ids.into_iter()
+            .filter(|(name, _)| !name.starts_with("__"))
+            .collect()
     }
 
     fn find_in(&self, canister_name: &str, canister_ids: &CanisterIds) -> Option<CanisterId> {

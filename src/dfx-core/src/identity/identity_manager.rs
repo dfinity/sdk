@@ -673,7 +673,7 @@ impl IdentityManager {
     /// In the future, we may refactor the code to include encrypted principals as well.
     pub fn get_unencrypted_principal_map(&self, log: &Logger) -> BTreeMap<String, String> {
         use ic_agent::Identity;
-        if let Ok(names) = self.get_identity_names(log) {
+        let mut res = if let Ok(names) = self.get_identity_names(log) {
             names
                 .iter()
                 .filter_map(|name| {
@@ -693,7 +693,12 @@ impl IdentityManager {
                 .collect()
         } else {
             BTreeMap::new()
-        }
+        };
+        res.insert(
+            ANONYMOUS_IDENTITY_NAME.to_string(),
+            Principal::anonymous().to_string(),
+        );
+        res
     }
 
     pub fn get_identity_config_or_default(

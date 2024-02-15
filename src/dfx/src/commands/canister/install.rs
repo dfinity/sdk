@@ -113,7 +113,7 @@ pub async fn exec(
         if let Ok(canister_id) = Principal::from_text(canister) {
             if let Some(wasm_path) = &opts.wasm {
                 let args =
-                    blob_from_arguments(Some(env), argument_from_cli, None, arg_type, &None)?;
+                    blob_from_arguments(Some(env), argument_from_cli, None, arg_type, &None, true)?;
                 let wasm_module = dfx_core::fs::read(wasm_path)?;
                 let mode = mode.context("The install mode cannot be auto when using --wasm")?;
                 info!(

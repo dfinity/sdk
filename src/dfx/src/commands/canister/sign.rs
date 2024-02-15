@@ -132,6 +132,7 @@ pub async fn exec(
         opts.random.as_deref(),
         arg_type,
         &method_type,
+        false,
     )?;
     let agent = env.get_agent();
 
