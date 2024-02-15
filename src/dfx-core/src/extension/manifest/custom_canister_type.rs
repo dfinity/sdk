@@ -1,4 +1,4 @@
-use crate::error::extension::ExtensionError;
+use crate::error::extension::{ProcessCanisterDeclarationError};
 use crate::extension::manager::ExtensionManager;
 use crate::extension::manifest::ExtensionManifest;
 use handlebars::Handlebars;
@@ -6,13 +6,15 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::collections::BTreeMap;
+use crate::error::extension::ProcessCanisterDeclarationError::{CustomCanisterTypeTemplateError, ExtensionDoesNotSupportAnyCustomCanisterTypes, ExtensionDoesNotSupportSpecificCustomCanisterType};
+use crate::error::load_dfx_config::TransformConfigurationError;
 
 pub trait TransformConfiguration {
-    fn transform(&mut self, json: &mut serde_json::Value) -> Result<(), ExtensionError>;
+    fn transform(&mut self, json: &mut serde_json::Value) -> Result<(), TransformConfigurationError>;
 }
 
 impl TransformConfiguration for ExtensionManager {
-    fn transform(&mut self, json: &mut JsonValue) -> Result<(), ExtensionError> {
+    fn transform(&mut self, json: &mut JsonValue) -> Result<(), TransformConfigurationError> {
         let canisters = match json.get_mut("canisters").and_then(|v| v.as_object_mut()) {
             Some(canisters) => canisters,
             None => return Ok(()),
@@ -66,9 +68,9 @@ pub(super) fn process_canister_declaration(
     extension_manifest: &ExtensionManifest,
     canister_name: &str,
     canister_type: &str,
-) -> Result<JsonMap<String, JsonValue>, ExtensionError> {
+) -> Result<JsonMap<String, JsonValue>, ProcessCanisterDeclarationError> {
     let extension_manifest_canister_type = extension_manifest.canister_types.as_ref().ok_or(
-        ExtensionError::ExtensionDoesNotSupportAnyCustomCanisterTypes(extension_name.into()),
+        ExtensionDoesNotSupportAnyCustomCanisterTypes(extension_name.into()),
     )?;
     let extension_manifest_canister_type = extension_manifest_canister_type.get(canister_type);
 
@@ -76,7 +78,7 @@ pub(super) fn process_canister_declaration(
         Some(val) => val,
         None => {
             return Err(
-                ExtensionError::ExtensionDoesNotSupportSpecificCustomCanisterType(
+                ExtensionDoesNotSupportSpecificCustomCanisterType(
                     canister_type.into(),
                     extension_name.into(),
                 ),
@@ -98,7 +100,7 @@ pub(super) fn process_canister_declaration(
     custom_canister_declaration
         .apply_template(values)
         .map_err(|e| {
-            ExtensionError::CustomCanisterTypeTemplateError(
+            CustomCanisterTypeTemplateError(
                 extension_name.to_string(),
                 canister_type.to_string(),
                 e.to_string(),
@@ -209,7 +211,7 @@ impl CustomCanisterTypeDeclaration {
 pub struct NoopTransformConfiguration;
 #[cfg(test)]
 impl TransformConfiguration for NoopTransformConfiguration {
-    fn transform(&mut self, _: &mut serde_json::Value) -> Result<(), ExtensionError> {
+    fn transform(&mut self, _: &mut serde_json::Value) -> Result<(), TransformConfigurationError> {
         // Do nothing
         Ok(())
     }

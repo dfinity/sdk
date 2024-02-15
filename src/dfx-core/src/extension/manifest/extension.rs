@@ -2,6 +2,7 @@ use super::custom_canister_type::CustomCanisterTypeDeclaration;
 use crate::{error::extension::ExtensionError, extension::manager::ExtensionManager};
 use serde::{Deserialize, Deserializer};
 use std::collections::{BTreeMap, HashMap};
+use crate::error::extension::GetExtensionByNameError;
 
 pub static MANIFEST_FILE_NAME: &str = "extension.json";
 
@@ -28,15 +29,15 @@ impl ExtensionManifest {
     pub fn get_by_extension_name(
         extension_name: &str,
         extension_manager: &ExtensionManager,
-    ) -> Result<Self, ExtensionError> {
+    ) -> Result<Self, GetExtensionByNameError> {
         if !extension_manager.is_extension_installed(extension_name) {
-            return Err(ExtensionError::ExtensionNotInstalled(extension_name.into()));
+            return Err(GetExtensionByNameError::NotInstalled(extension_name.into()));
         }
         let manifest_path = extension_manager
             .get_extension_directory(extension_name)
             .join(MANIFEST_FILE_NAME);
         let mut m: ExtensionManifest = crate::json::load_json_file(&manifest_path)
-            .map_err(ExtensionError::LoadExtensionManifestFailed)?;
+            .map_err(GetExtensionByNameError::LoadManifestFailed)?;
         m.name = extension_name.to_string();
         Ok(m)
     }

@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use thiserror::Error;
+use crate::error::structured_file::StructuredFileError;
 
 #[derive(Error, Debug)]
 pub enum ExtensionError {
@@ -94,7 +95,19 @@ pub enum ExtensionError {
 
     #[error("Extension exited with non-zero status code '{0}'.")]
     ExtensionExitedWithNonZeroStatus(i32),
+}
 
+#[derive(Error, Debug)]
+pub enum GetExtensionByNameError {
+    #[error("Extension '{0}' not found.")]
+    NotInstalled(String),
+
+    #[error(transparent)]
+    LoadManifestFailed(#[from] StructuredFileError),
+}
+
+#[derive(Error, Debug)]
+pub enum ProcessCanisterDeclarationError {
     // errors related to custom canister types
     #[error("Extension '{0}' does not support any custom canister types.")]
     ExtensionDoesNotSupportAnyCustomCanisterTypes(String),

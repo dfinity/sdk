@@ -19,7 +19,7 @@ use crate::error::dfx_config::{
     GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError,
     GetSpecifiedIdError,
 };
-use crate::error::load_dfx_config::{LoadDfxConfigError, ReadConfigurationError, TransformConfigurationError};
+use crate::error::load_dfx_config::{LoadDfxConfigError, ReadConfigurationError};
 use crate::error::load_dfx_config::LoadDfxConfigError::{
     DetermineCurrentWorkingDirFailed, LoadFromFileFailed, ResolveConfigPathFailed,
 };
@@ -1038,8 +1038,7 @@ impl Config {
             .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
 
         transformer
-            .transform(&mut json)
-            .map_err(TransformConfigurationError::from)?;
+            .transform(&mut json)?;
 
         let config = serde_json::from_value(json.clone())
             .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
