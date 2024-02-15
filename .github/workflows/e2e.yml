@@ -16,7 +16,37 @@ env:
   CURL_HOME: .
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      sources: ${{ steps.filter.outputs.sources }}
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'push'
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            sources:
+              - .github/workflows/e2e.yml
+              - e2e/**
+              - scripts/workflows/e2e-matrix.py
+              - scripts/workflows/provision-darwin.sh
+              - scripts/workflows/provision-linux.sh
+              - scripts/test-uis.py
+              - src/canisters/frontend/**
+              - src/dfx/**
+              - src/dfx-core/**
+              - src/distributed/**
+              - src/lib/**
+              - Cargo.lock
+              - Cargo.toml
+              - rust-toolchain.toml
   build_dfx:
+    if: needs.changes.outputs.sources == 'true'
+    needs: changes
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -71,6 +101,8 @@ jobs:
           path: ${{ matrix.binary_path }}/dfx
 
   list_tests:
+    if: needs.changes.outputs.sources == 'true'
+    needs: changes
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -81,7 +113,8 @@ jobs:
 
   smoke:
     runs-on: ${{ matrix.os }}
-    needs: build_dfx
+    if: needs.changes.outputs.sources == 'true'
+    needs: [changes, build_dfx]
     strategy:
       fail-fast: false
       matrix:
@@ -117,7 +150,8 @@ jobs:
 
   test:
     runs-on: ${{ matrix.os }}
-    needs: [build_dfx, list_tests]
+    if: needs.changes.outputs.sources == 'true'
+    needs: [changes, build_dfx, list_tests]
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.list_tests.outputs.matrix)}}
@@ -157,7 +191,8 @@ jobs:
 
   ui_test:
     runs-on: ${{ matrix.os }}
-    needs: [build_dfx]
+    if: needs.changes.outputs.sources == 'true'
+    needs: [changes, build_dfx]
     strategy:
       fail-fast: false
       matrix:
@@ -204,8 +239,8 @@ jobs:
 
   aggregate:
     name: e2e:required
-    if: ${{ always() }}
-    needs: [test, smoke, ui_test]
+    if: needs.changes.outputs.sources == 'true'
+    needs: [changes, test, smoke, ui_test]
     runs-on: ubuntu-latest
     steps:
       - name: check smoke test result
