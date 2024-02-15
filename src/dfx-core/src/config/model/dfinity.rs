@@ -19,7 +19,7 @@ use crate::error::dfx_config::{
     GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError,
     GetSpecifiedIdError,
 };
-use crate::error::load_dfx_config::LoadDfxConfigError;
+use crate::error::load_dfx_config::{LoadDfxConfigError, ReadConfigurationError, TransformConfigurationError};
 use crate::error::load_dfx_config::LoadDfxConfigError::{
     DetermineCurrentWorkingDirFailed, LoadFromFileFailed, ResolveConfigPathFailed,
 };
@@ -35,7 +35,7 @@ use crate::error::structured_file::StructuredFileError::{
     DeserializeJsonFileFailed, ReadJsonFileFailed,
 };
 use crate::error::structured_file::{
-    ReadConfigurationError, StructuredFileError, TransformConfigurationError,
+    StructuredFileError
 };
 use crate::extension::manifest::custom_canister_type::TransformConfiguration;
 use crate::json::save_json_file;
