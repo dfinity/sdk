@@ -20,8 +20,11 @@ niv update ic-nns-init-x86_64-darwin -a rev=$SHA
 niv update ic-nns-init-x86_64-linux -a rev=$SHA
 niv update ic-starter-x86_64-darwin -a rev=$SHA
 niv update ic-starter-x86_64-linux -a rev=$SHA
-niv update icx-proxy-x86_64-darwin -a rev=$SHA
-niv update icx-proxy-x86_64-linux -a rev=$SHA
+
+# icx-proxy is pinned at 69e1408347723dbaa7a6cd2faa9b65c42abbe861
+# niv update icx-proxy-x86_64-darwin -a rev=$SHA
+# niv update icx-proxy-x86_64-linux -a rev=$SHA
+
 niv update replica-x86_64-darwin -a rev=$SHA
 niv update replica-x86_64-linux -a rev=$SHA
 niv update canister_sandbox-x86_64-darwin -a rev=$SHA
