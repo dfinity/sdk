@@ -1,3 +1,4 @@
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 use anyhow::{bail, Context};
@@ -14,7 +15,8 @@ use num_traits::FromPrimitive;
 use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
 use socket2::{Domain, Socket};
-use std::io::{stdin, Read};
+use std::collections::BTreeMap;
+use std::io::{stderr, stdin, stdout, IsTerminal, Read};
 use std::net::{IpAddr, SocketAddr, TcpListener};
 use std::path::Path;
 use std::time::Duration;
@@ -170,10 +172,12 @@ pub fn arguments_from_file(file_name: &Path) -> DfxResult<String> {
 
 #[context("Failed to create argument blob.")]
 pub fn blob_from_arguments(
+    dfx_env: Option<&dyn Environment>,
     arguments: Option<&str>,
     random: Option<&str>,
     arg_type: Option<&str>,
     method_type: &Option<(TypeEnv, Function)>,
+    is_init_arg: bool,
 ) -> DfxResult<Vec<u8>> {
     let arg_type = arg_type.unwrap_or("idl");
     match arg_type {
@@ -193,6 +197,8 @@ pub fn blob_from_arguments(
                         .to_bytes()
                 }
                 Some((env, func)) => {
+                    let is_terminal =
+                        stdin().is_terminal() && stdout().is_terminal() && stderr().is_terminal();
                     if let Some(arguments) = arguments {
                         fuzzy_parse_argument(arguments, env, &func.args)
                     } else if func.args.is_empty() {
@@ -224,6 +230,37 @@ pub fn blob_from_arguments(
                             .context("Failed to create idl args.")?;
                         eprintln!("Sending the following random argument:\n{}\n", args);
                         args.to_bytes_with_types(env, &func.args)
+                    } else if is_terminal {
+                        use candid_parser::assist::{input_args, Context};
+                        let mut ctx = Context::new(env.clone());
+                        if let Some(env) = dfx_env {
+                            let principals = gather_principals_from_env(env);
+                            if !principals.is_empty() {
+                                let mut map = BTreeMap::new();
+                                map.insert("principal".to_string(), principals);
+                                ctx.set_completion(map);
+                            }
+                        }
+                        if is_init_arg {
+                            eprintln!("This canister requires an initialization argument.");
+                        } else {
+                            eprintln!("This method requires arguments.");
+                        }
+                        let args = input_args(&ctx, &func.args)?;
+                        eprintln!("Sending the following argument:\n{}\n", args);
+                        if is_init_arg {
+                            eprintln!(
+                                "Do you want to initialize the canister with this argument? [y/N]"
+                            );
+                        } else {
+                            eprintln!("Do you want to send this message? [y/N]");
+                        }
+                        let mut input = String::new();
+                        stdin().read_line(&mut input)?;
+                        if !["y", "Y", "yes", "Yes", "YES"].contains(&input.trim()) {
+                            return Err(error_invalid_data!("User cancelled."));
+                        }
+                        args.to_bytes_with_types(env, &func.args)
                     } else {
                         return Err(error_invalid_data!("Expected arguments but found none."));
                     }
@@ -234,6 +271,20 @@ pub fn blob_from_arguments(
         }
         v => Err(error_unknown!("Invalid type: {}", v)),
     }
+}
+
+pub fn gather_principals_from_env(env: &dyn Environment) -> BTreeMap<String, String> {
+    let mut res: BTreeMap<String, String> = BTreeMap::new();
+    if let Ok(mgr) = env.new_identity_manager() {
+        let logger = env.get_logger();
+        let mut map = mgr.get_unencrypted_principal_map(logger);
+        res.append(&mut map);
+    }
+    if let Ok(canisters) = env.get_canister_id_store() {
+        let mut canisters = canisters.get_name_id_map();
+        res.append(&mut canisters);
+    }
+    res
 }
 
 pub fn fuzzy_parse_argument(

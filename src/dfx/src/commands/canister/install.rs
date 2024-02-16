@@ -8,7 +8,7 @@ use crate::{
     lib::canister_info::CanisterInfo,
     util::{arguments_from_file, blob_from_arguments},
 };
-use dfx_core::canister::install_canister_wasm;
+use dfx_core::canister::{install_canister_wasm, install_mode_to_prompt};
 use dfx_core::identity::CallSender;
 
 use anyhow::{anyhow, bail, Context};
@@ -109,13 +109,19 @@ pub async fn exec(
         let arguments = opts.argument.as_deref();
         let argument_from_cli = arguments_from_file.as_deref().or(arguments);
         let arg_type = opts.argument_type.as_deref();
-
         // `opts.canister` is a Principal (canister ID)
         if let Ok(canister_id) = Principal::from_text(canister) {
             if let Some(wasm_path) = &opts.wasm {
-                let args = blob_from_arguments(argument_from_cli, None, arg_type, &None)?;
+                let args =
+                    blob_from_arguments(Some(env), argument_from_cli, None, arg_type, &None, true)?;
                 let wasm_module = dfx_core::fs::read(wasm_path)?;
                 let mode = mode.context("The install mode cannot be auto when using --wasm")?;
+                info!(
+                    env.get_logger(),
+                    "{} code for canister {}",
+                    install_mode_to_prompt(&mode),
+                    canister_id,
+                );
                 install_canister_wasm(
                     env.get_agent(),
                     canister_id,
@@ -125,7 +131,6 @@ pub async fn exec(
                     call_sender,
                     wasm_module,
                     opts.yes,
-                    env.get_logger(),
                 )
                 .await?;
                 Ok(())

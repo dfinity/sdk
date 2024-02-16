@@ -39,6 +39,12 @@ teardown() {
   assert_eq '(record { c = "A"; d = "B" })'
 }
 
+@test "call without argument, using candid assistant" {
+  install_asset echo
+  dfx_start
+  assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/candid_assist.exp"
+}
+
 @test "call subcommand accepts canister identifier as canister name" {
   install_asset greet
   dfx_start
