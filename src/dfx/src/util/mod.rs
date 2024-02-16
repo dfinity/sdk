@@ -242,11 +242,9 @@ pub fn blob_from_arguments(
                             }
                         }
                         if is_init_arg {
-                            eprintln!(
-                                "This canister requires the following initialization argument."
-                            );
+                            eprintln!("This canister requires an initialization argument.");
                         } else {
-                            eprintln!("This method requires the following arguments.");
+                            eprintln!("This method requires arguments.");
                         }
                         let args = input_args(&ctx, &func.args)?;
                         eprintln!("Sending the following argument:\n{}\n", args);
