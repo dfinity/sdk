@@ -2,6 +2,13 @@
 
 # UNRELEASED
 
+### feat: display local asset canister URLs in subdomain format
+
+Locally, canisters can either be accessed via `<canister_id>.localhost:<port>` or `localhost:<port>?canisterId=<canister_id>`.
+The query parameter format is annoying to handle in SPAs, therefore the subdomain format is now displayed alongside the subdomain version after deployments.
+
+The query parameter format is not removed because Safari does not support localhost subdomains.
+
 ### fix: restored access to URLs like http://localhost:8080/api/v2/status through icx-proxy
 
 Pinned icx-proxy at 69e1408347723dbaa7a6cd2faa9b65c42abbe861, shipped with dfx 0.15.2

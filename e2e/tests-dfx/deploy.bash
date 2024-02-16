@@ -174,7 +174,9 @@ teardown() {
   dfx_new_frontend hello
   dfx_start
   assert_command dfx deploy
-  assert_contains "hello_frontend: http://127.0.0.1"
+  frontend_id=$(dfx canister id hello_frontend)
+  assert_match "- http://127.0.0.1.+${frontend_id}"
+  assert_match "${frontend_id}.localhost"
 }
 
 @test "prints the frontend url if 'frontend' section is not present in dfx.json" {
@@ -182,17 +184,23 @@ teardown() {
   jq 'del(.canisters.hello_frontend.frontend)' dfx.json | sponge dfx.json
   dfx_start
   assert_command dfx deploy
-  assert_contains "hello_frontend: http://127.0.0.1"
+  frontend_id=$(dfx canister id hello_frontend)
+  assert_match "- http://127.0.0.1.+${frontend_id}"
+  assert_match "${frontend_id}.localhost"
 }
 
 @test "prints the frontend url if the frontend section has been removed after initial deployment" {
   dfx_new_frontend hello
   dfx_start
   assert_command dfx deploy
-  assert_contains "hello_frontend: http://127.0.0.1"
+  frontend_id=$(dfx canister id hello_frontend)
+  assert_match "- http://127.0.0.1.+${frontend_id}"
+  assert_match "${frontend_id}.localhost"
   jq 'del(.canisters.hello_frontend.frontend)' dfx.json | sponge dfx.json
   assert_command dfx deploy
-  assert_contains "hello_frontend: http://127.0.0.1"
+  frontend_id=$(dfx canister id hello_frontend)
+  assert_match "- http://127.0.0.1.+${frontend_id}"
+  assert_match "${frontend_id}.localhost"
 }
 
 @test "subnet targetting" {
