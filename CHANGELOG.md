@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### chore: updated management canister .did file
+
 ### fix: restored access to URLs like http://localhost:8080/api/v2/status through icx-proxy
 
 Pinned icx-proxy at 69e1408347723dbaa7a6cd2faa9b65c42abbe861, shipped with dfx 0.15.2
