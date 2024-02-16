@@ -11,11 +11,6 @@ This means commands like the following will work again:
 curl -v --http2-prior-knowledge "http://localhost:$(dfx info webserver-port)/api/v2/status" --output -
 ```
 
-### feat: cut over to dfxvm
-
-The script at https://internetcomputer.org/install.sh now installs
-the [dfxvm version manager](https://github.com/dfinity/dfxvm) instead of the dfx binary.
-
 # 0.17.0
 
 ### feat: new starter templates
