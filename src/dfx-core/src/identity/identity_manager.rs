@@ -72,6 +72,7 @@ use sec1::EncodeEcPrivateKey;
 use serde::{Deserialize, Serialize};
 use slog::{debug, trace, Logger};
 use std::boxed::Box;
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use thiserror::Error;
@@ -666,6 +667,38 @@ impl IdentityManager {
     /// Returns the path where an identity's `IdentityConfiguration` is stored.
     pub fn get_identity_json_path(&self, identity: &str) -> PathBuf {
         self.get_identity_dir_path(identity).join(IDENTITY_JSON)
+    }
+
+    /// Returns a map of (name, principal) pairs for unencrypted identities.
+    /// In the future, we may refactor the code to include encrypted principals as well.
+    pub fn get_unencrypted_principal_map(&self, log: &Logger) -> BTreeMap<String, String> {
+        use ic_agent::Identity;
+        let mut res = if let Ok(names) = self.get_identity_names(log) {
+            names
+                .iter()
+                .filter_map(|name| {
+                    let config = self.get_identity_config_or_default(name).ok()?;
+                    if let IdentityConfiguration {
+                        encryption: None,
+                        keyring_identity_suffix: None,
+                        hsm: None,
+                    } = config
+                    {
+                        let sender = self.load_identity(name, log).ok()?.sender().ok()?;
+                        Some((name.clone(), sender.to_text()))
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        } else {
+            BTreeMap::new()
+        };
+        res.insert(
+            ANONYMOUS_IDENTITY_NAME.to_string(),
+            Principal::anonymous().to_string(),
+        );
+        res
     }
 
     pub fn get_identity_config_or_default(

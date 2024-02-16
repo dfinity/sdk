@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: candid assist feature
+
+Ask for user input when Candid argument is not provided in `dfx canister call`, `dfx canister install` and `dfx deploy`. 
+Previously, we cannot call `dfx deploy --all` when multiple canisters require init args, unless the init args are specified in `dfx.json`. With the Candid assist feature, dfx now asks for init args in terminal when a canister requires init args.
+
 ### fix: restored access to URLs like http://localhost:8080/api/v2/status through icx-proxy
 
 Pinned icx-proxy at 69e1408347723dbaa7a6cd2faa9b65c42abbe861, shipped with dfx 0.15.2
