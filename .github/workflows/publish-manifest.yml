@@ -24,32 +24,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install shfmt
         run: go install mvdan.cc/sh/v3/cmd/shfmt@latest
-      - name: Generate (dfx)
-        run: |
-          shellcheck --shell=sh public/install-dfx.sh --exclude SC2154,SC2034,SC3003,SC3014,SC3043
-          ~/go/bin/shfmt -d -p -i 4 -ci -bn -s public/install-dfx.sh
-          sed -i "s/@revision@/${GITHUB_SHA}/" public/install-dfx.sh
-          mkdir _out-dfx
-          cp public/install-dfx.sh _out-dfx/install.sh
-          cp public/manifest.json _out-dfx/manifest.json
-      - name: Generate (dfxvm)
+      - name: Generate
         run: |
           shellcheck --shell=sh public/install-dfxvm.sh --exclude SC2154,SC2034,SC3003,SC3014,SC3043
           ~/go/bin/shfmt -d -p -i 4 -ci -bn -s public/install-dfxvm.sh
           sed -i "s/@revision@/${GITHUB_SHA}/" public/install-dfxvm.sh
-          mkdir _out-dfxvm
-          cp public/install-dfxvm.sh _out-dfxvm/install.sh
-      - name: Upload Artifacts (dfx)
+          mkdir _out
+          cp public/install-dfx.sh _out/install.sh
+          cp public/manifest.json _out/manifest.json
+      - name: Upload Artifacts
         if: github.event_name == 'push'
         uses: JamesIves/github-pages-deploy-action@releases/v3
         with:
           single_commit: yes
           branch: public-manifest
-          folder: _out-dfx/
-      - name: Upload Artifacts (dfxvm)
-        if: github.event_name == 'push'
-        uses: JamesIves/github-pages-deploy-action@releases/v3
-        with:
-          single_commit: yes
-          branch: dfxvm-install-script
-          folder: _out-dfxvm/
+          folder: _out/
