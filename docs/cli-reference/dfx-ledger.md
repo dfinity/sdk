@@ -295,7 +295,7 @@ You can specify the following options for the `dfx ledger top-up` command.
 
 ### Examples
 
-You can use the `dfx ledger top-up` command to top up the cycles of a specific canister from the balance of ICP tokens you control. The canister identifier must be associated with a cycles wallet canister that is able to receive cycles. Alternatively, you can modify a non-cycles wallet canister to implement a method to receive cycles using system APIs described in the [Internet Computer Interface Specification](../ic-interface-spec).
+You can use the `dfx ledger top-up` command to top up the cycles of a specific canister from the balance of ICP tokens you control. The canister identifier must be associated with a cycles wallet canister that is able to receive cycles. Alternatively, you can modify a non-cycles wallet canister to implement a method to receive cycles using system APIs described in the [Internet Computer Interface Specification](/docs/current/references/ic-interface-spec).
 
 For example, you can run the following command to top-up a cycles wallet canister deployed on the Internet Computer with 1 ICP worth of cycles:
 
