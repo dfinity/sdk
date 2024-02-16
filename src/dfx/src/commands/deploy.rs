@@ -282,7 +282,7 @@ fn construct_frontend_url(
             &network.providers[0]
         )
     })?;
-    // For localhost defined by IP address we suggest `<canister_id>.localhost` as an alternate way of accessing the canister.
+    // For localhost defined by IP address we suggest `<canister_id>.localhost` as an alternate way of accessing the canister because it plays nicer with SPAs.
     // We still display `<IP>?canisterId=<canister_id>` because Safari does not support localhost subdomains
     let url2 = if url.host() == Some(Ipv4(Ipv4Addr::LOCALHOST))
         || url.host() == Some(Ipv6(Ipv6Addr::LOCALHOST))

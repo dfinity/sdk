@@ -175,7 +175,7 @@ teardown() {
   dfx_start
   assert_command dfx deploy
   frontend_id=$(dfx canister id hello_frontend)
-  assert_match "- http://127.0.0.1.+${frontend_id}"
+  assert_match "http://127.0.0.1.+${frontend_id}"
   assert_match "${frontend_id}.localhost"
 }
 
@@ -185,7 +185,7 @@ teardown() {
   dfx_start
   assert_command dfx deploy
   frontend_id=$(dfx canister id hello_frontend)
-  assert_match "- http://127.0.0.1.+${frontend_id}"
+  assert_match "http://127.0.0.1.+${frontend_id}"
   assert_match "${frontend_id}.localhost"
 }
 
@@ -194,12 +194,11 @@ teardown() {
   dfx_start
   assert_command dfx deploy
   frontend_id=$(dfx canister id hello_frontend)
-  assert_match "- http://127.0.0.1.+${frontend_id}"
+  assert_match "http://127.0.0.1.+${frontend_id}"
   assert_match "${frontend_id}.localhost"
   jq 'del(.canisters.hello_frontend.frontend)' dfx.json | sponge dfx.json
   assert_command dfx deploy
-  frontend_id=$(dfx canister id hello_frontend)
-  assert_match "- http://127.0.0.1.+${frontend_id}"
+  assert_match "http://127.0.0.1.+${frontend_id}"
   assert_match "${frontend_id}.localhost"
 }
 
