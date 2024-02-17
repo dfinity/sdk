@@ -40,7 +40,7 @@ You can specify the following arguments for the `dfx build` command.
 
 ## Examples
 
-You can use the `dfx build` command to build one or more WebAssembly modules from the programs specified in the `dfx.json` configuration file under the `canisters` key. For example, if your `dfx.json` configuration file defines one `hello_world_backend` canister and one `hello_world_frontend` canister [like this](../_attachments/sample-dfx.json), then running `dfx build` compiles two WebAssembly modules.
+You can use the `dfx build` command to build one or more WebAssembly modules from the programs specified in the `dfx.json` configuration file under the `canisters` key. For example, if your `dfx.json` configuration file defines one `hello_world_backend` canister and one `hello_world_frontend` canister, then running `dfx build` compiles two WebAssembly modules.
 
 Note that the file name and path to the programs on your file system must match the information specified in the `dfx.json` configuration file.
 
@@ -58,6 +58,6 @@ To test whether a canister compiles without connecting to the IC or the local ca
 dfx build --check
 ```
 
-## Management Canister
+## Management canister
 
 If `dfx` detects that your Motoko project is importing the Management Canister (e.g. `import Management "ic:aaaaa-aa";`) it will automatically provide the Candid interface for the Management Canister during the build.
