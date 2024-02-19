@@ -439,7 +439,7 @@ fn display_approve_err(err: ApproveError) -> String {
             ),
         ApproveError::Expired { ledger_time } =>
             format!("the transaction expired before the ledger had a chance to apply it, current time is {}", ledger_time),
-        ApproveError::TooOld {} => format!("transaction's created_at_time is too far in the past"),
+        ApproveError::TooOld {} => "transaction's created_at_time is too far in the past".to_string(),
         ApproveError::CreatedInFuture { ledger_time } => format!(
             "transaction's created_at_time is in future, current ledger time is {}",
             ledger_time
@@ -448,7 +448,7 @@ fn display_approve_err(err: ApproveError) -> String {
             "transaction is a duplicate of another transaction in block {}",
             duplicate_of
         ),
-        ApproveError::TemporarilyUnavailable {} => format!("the ledger is temporarily unavailable"),
+        ApproveError::TemporarilyUnavailable {} => "the ledger is temporarily unavailable".to_string(),
         ApproveError::GenericError {
             error_code,
             message,
@@ -472,7 +472,7 @@ fn display_transfer_from_err(err: TransferFromError) -> String {
                 balance
             ),
         TransferFromError::InsufficientAllowance { allowance } => format!("the spender account does not have sufficient allowance, current allowance is {}", allowance),
-        TransferFromError::TooOld {} => format!("transaction's created_at_time is too far in the past"),
+        TransferFromError::TooOld {} => "transaction's created_at_time is too far in the past".to_string(),
         TransferFromError::CreatedInFuture { ledger_time } => format!(
             "transaction's created_at_time is in future, current ledger time is {}",
             ledger_time
@@ -481,7 +481,7 @@ fn display_transfer_from_err(err: TransferFromError) -> String {
             "transaction is a duplicate of another transaction in block {}",
             duplicate_of
         ),
-        TransferFromError::TemporarilyUnavailable {} => format!("the ledger is temporarily unavailable"),
+        TransferFromError::TemporarilyUnavailable {} => "the ledger is temporarily unavailable".to_string(),
         TransferFromError::GenericError {
             error_code,
             message,
