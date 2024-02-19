@@ -11,7 +11,9 @@ setup() {
 
   dfx identity new --storage-mode plaintext cycle-giver
   dfx identity new --storage-mode plaintext alice
+  echo "Alice principal: $(dfx identity get-principal --identity alice)"
   dfx identity new --storage-mode plaintext bob
+  echo "Bob principal: $(dfx identity get-principal --identity bob)"
 
   dfx_start_for_nns_install
 
@@ -246,6 +248,77 @@ current_time_nanoseconds() {
 
   assert_command dfx cycles balance --precise --identity bob
   assert_eq "300000 cycles."
+}
+
+@test "approve and transfer_from" {
+  ALICE=$(dfx identity get-principal --identity alice)
+  ALICE_SUBACCT1="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+  ALICE_SUBACCT1_CANDID="\00\01\02\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
+  ALICE_SUBACCT2="9C9B9A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+  ALICE_SUBACCT2_CANDID="\9C\9B\9A\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
+  BOB=$(dfx identity get-principal --identity bob)
+  BOB_SUBACCT1="7C7B7A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+
+  deploy_cycles_ledger
+
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 3_000_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 2_000_000_000_000;})" --identity cycle-giver
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT2_CANDID\"};cycles = 1_000_000_000_000;})" --identity cycle-giver
+
+  # account to account
+  assert_command dfx cycles balance --precise --identity alice
+  assert_eq "3000000000000 cycles."
+  assert_command dfx cycles balance --precise --identity bob
+  assert_eq "0 cycles."
+
+  t=$(current_time_nanoseconds)
+  assert_command dfx cycles approve "$BOB" 2000000000 --created-at-time "$t" --memo 123 --identity alice
+  assert_eq "Approval sent at block index 3"
+  assert_command dfx cycles approve "$BOB" 2000000000 --created-at-time "$t" --memo 123 --identity alice
+  assert_contains "Approval is a duplicate of block 3"
+  assert_command dfx cycles transfer "$BOB" 100000 --from "$ALICE" --identity bob
+  assert_eq "Transfer sent at block index 4"
+
+  assert_command dfx cycles balance --precise --identity alice
+  assert_eq "2999799900000 cycles."
+
+  assert_command dfx cycles balance --precise --identity bob
+  assert_eq "100000 cycles."
+
+  # account to subaccount
+  assert_command dfx cycles balance --precise --identity alice
+  assert_eq "2999799900000 cycles."
+  assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
+  assert_eq "0 cycles."
+
+  t=$(current_time_nanoseconds)
+  assert_command dfx cycles transfer "$BOB" 100000 --from "$ALICE" --to-subaccount "$BOB_SUBACCT1" --created-at-time "$t" --identity bob
+  assert_eq "Transfer sent at block index 5"
+  assert_command dfx cycles transfer "$BOB" 100000 --from "$ALICE" --to-subaccount "$BOB_SUBACCT1" --created-at-time "$t" --identity bob
+  assert_contains "Transfer is a duplicate of block index 5"
+
+  assert_command dfx cycles balance --precise --identity alice
+  assert_eq "2999699800000 cycles."
+
+  assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
+  assert_eq "100000 cycles."
+
+  # subaccount to account
+  assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT2"
+  assert_eq "1000000000000 cycles."
+  assert_command dfx cycles balance --precise --identity bob
+  assert_eq "100000 cycles."
+
+  assert_command dfx cycles approve "$BOB" 200000000000 --from-subaccount "$ALICE_SUBACCT2" --identity alice
+  assert_eq "Approval sent at block index 6"
+  assert_command dfx cycles transfer "$BOB" 700000 --from "$ALICE" --from-subaccount "$ALICE_SUBACCT2" --identity bob
+  assert_eq "Transfer sent at block index 7"
+
+  assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT2"
+  assert_eq "999799300000 cycles."
+
+  assert_command dfx cycles balance --precise --identity bob
+  assert_eq "800000 cycles."
 }
 
 @test "top up canister principal check" {
