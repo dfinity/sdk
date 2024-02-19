@@ -456,6 +456,7 @@ fn display_approve_err(err: ApproveError) -> String {
     }
 }
 
+// TODO once icrc_ledger_types > 0.1.5 is released: function can be removed because ApproveError implements Display
 fn display_transfer_from_err(err: TransferFromError) -> String {
     match err {
         TransferFromError::BadFee { expected_fee } => {
