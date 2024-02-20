@@ -1,7 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use bytes::Bytes;
@@ -11,6 +11,7 @@ use candid_parser::error::pretty_wrap;
 use candid_parser::utils::CandidSource;
 use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
+use idl2json::{idl2json, Idl2JsonOptions};
 use num_traits::FromPrimitive;
 use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
@@ -76,7 +77,7 @@ pub fn print_idl_blob(
             let hex_string = hex::encode(blob);
             println!("{}", hex_string);
         }
-        "idl" | "pp" => {
+        "idl" | "pp" | "json" => {
             let result = match method_type {
                 None => candid::IDLArgs::from_bytes(blob),
                 Some((env, func)) => candid::IDLArgs::from_bytes_with_types(blob, env, &func.rets),
@@ -87,6 +88,9 @@ pub fn print_idl_blob(
             }
             if output_type == "idl" {
                 println!("{:?}", result?);
+            } else if output_type == "json" {
+                let json = convert_all(&result?, &Idl2JsonOptions::default())?;
+                println!("{}", json);
             } else {
                 println!("{}", result?);
             }
@@ -94,6 +98,26 @@ pub fn print_idl_blob(
         v => return Err(error_unknown!("Invalid output type: {}", v)),
     }
     Ok(())
+}
+
+/// Candid typically comes as a tuple of values.  This converts a single value in such a tuple.
+fn convert_one(idl_value: &IDLValue, idl2json_options: &Idl2JsonOptions) -> DfxResult<String> {
+    let json_value = idl2json(idl_value, idl2json_options);
+    (if idl2json_options.compact {
+        serde_json::to_string
+    } else {
+        serde_json::to_string_pretty
+    })(&json_value)
+    .with_context(|| anyhow!("Cannot print to stderr"))
+}
+
+fn convert_all(idl_args: &IDLArgs, idl2json_options: &Idl2JsonOptions) -> DfxResult<String> {
+    let json_structures = idl_args
+        .args
+        .iter()
+        .map(|idl_value| convert_one(idl_value, idl2json_options))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(json_structures.join("\n"))
 }
 
 pub async fn read_module_metadata(

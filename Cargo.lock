@@ -874,9 +874,9 @@ checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
 
 [[package]]
 name = "chrono"
-version = "0.4.34"
+version = "0.4.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bc015644b92d5890fab7489e49d21f879d5c990186827d42ec511919404f38b"
+checksum = "8eaf5903dcbc0a39312feb77df2ff4c76387d591b9fc7b04a238dcf8bb62639a"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
@@ -917,9 +917,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.1"
+version = "4.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c918d541ef2913577a0f9566e9ce27cb35b6df072075769e0b26cb5a554520da"
+checksum = "b230ab84b0ffdf890d5a10abdbc8b83ae1c4918275daea1ab8801f71536b2651"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -927,9 +927,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.1"
+version = "4.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f3e7391dad68afb0c2ede1bf619f579a3dc9c2ec67f089baa397123a2f3d1eb"
+checksum = "ae129e2e766ae0ec03484e609954119f123cc1fe650337e155d03b022f24f7b4"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1264,9 +1264,9 @@ dependencies = [
 
 [[package]]
 name = "cxx"
-version = "1.0.118"
+version = "1.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2673ca5ae28334544ec2a6b18ebe666c42a2650abfb48abbd532ed409a44be2b"
+checksum = "635179be18797d7e10edb9cd06c859580237750c7351f39ed9b298bfc17544ad"
 dependencies = [
  "cc",
  "cxxbridge-flags",
@@ -1276,9 +1276,9 @@ dependencies = [
 
 [[package]]
 name = "cxx-build"
-version = "1.0.118"
+version = "1.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9df46fe0eb43066a332586114174c449a62c25689f85a08f28fdcc8e12c380b9"
+checksum = "9324397d262f63ef77eb795d900c0d682a34a43ac0932bec049ed73055d52f63"
 dependencies = [
  "cc",
  "codespan-reporting",
@@ -1291,15 +1291,15 @@ dependencies = [
 
 [[package]]
 name = "cxxbridge-flags"
-version = "1.0.118"
+version = "1.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "886acf875df67811c11cd015506b3392b9e1820b1627af1a6f4e93ccdfc74d11"
+checksum = "a87ff7342ffaa54b7c61618e0ce2bbcf827eba6d55b923b83d82551acbbecfe5"
 
 [[package]]
 name = "cxxbridge-macro"
-version = "1.0.118"
+version = "1.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d151cc139c3080e07f448f93a1284577ab2283d2a44acd902c6fba9ec20b6de"
+checksum = "70b5b86cf65fa0626d85720619d80b288013477a91a0389fa8bc716bf4903ad1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1489,6 +1489,7 @@ dependencies = [
  "ic-utils 0.33.0",
  "ic-wasm",
  "icrc-ledger-types",
+ "idl2json",
  "indicatif",
  "itertools 0.10.5",
  "json-patch",
@@ -3218,6 +3219,18 @@ name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
+
+[[package]]
+name = "idl2json"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96c98794e1d7ff2814db503a7fb3aed059b8c816cbaaaa7cf7420ab39edbca41"
+dependencies = [
+ "candid",
+ "candid_parser",
+ "serde_json",
+ "sha2 0.10.8",
+]
 
 [[package]]
 name = "idna"

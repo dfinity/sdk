@@ -120,7 +120,7 @@ You can use the following options with the `dfx canister call` command.
 | `--argument-file <argument-file>` | Specifies the file from which to read the argument to pass to the method.  Stdin may be referred to as `-`.                                                                                                                    |
 | `--async`                         | Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.                                                                                                          |
 | `--candid <file.did>`             | Provide the .did file with which to decode the response. Overrides value from dfx.json for project canisters.                                                                                                                  |
-| `--output <output>`               | Specifies the output format to use when displaying a method’s return result. The valid values are `idl`, `pp` and `raw`. The `pp` option is equivalent to `idl`, but is pretty-printed.                                        |
+| `--output <output>`               | Specifies the output format to use when displaying a method’s return result. The valid values are `idl`, 'json', `pp` and `raw`. The `pp` option is equivalent to `idl`, but is pretty-printed.                                |
 | `--query`                         | Sends a query request instead of an update request. For information about the difference between query and update calls, see [Canisters include both program and state](/docs/current/concepts/canisters-code#canister-state). |
 | `--random <random>`               | Specifies the config for generating random arguments.                                                                                                                                                                          |
 | `--type <type>`                   | Specifies the data format for the argument when making the call using an argument. The valid values are `idl` and `raw`.                                                                                                       |
@@ -192,6 +192,10 @@ dfx canister call hello greet --type raw '4449444c00017103e29883'
 ```
 
 This example uses the raw data type to pass a hexadecimal to the `greet` function of the `hello` canister.
+
+### JSON output
+
+todo
 
 ## dfx canister create
 

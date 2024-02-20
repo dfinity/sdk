@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: dfx canister call ... --output json
+
+This is the same as `dfx canister call ... | idl2json`, but more convenient.
+
+See: https://github.com/dfinity/idl2json
+
 ### fix fetching canister logs to be grep & tail compatible
 
 `dfx canister logs` now outputs to stdout, rather than stderr, so that its output is `grep` and `tail` compatible.

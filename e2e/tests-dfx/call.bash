@@ -14,6 +14,68 @@ teardown() {
   standard_teardown
 }
 
+@test "call --output json" {
+  install_asset method_signatures
+
+  dfx_start
+  dfx deploy
+
+  assert_command dfx canister call hello_backend returns_string '("you")' --output json
+  assert_eq '"Hello, you!"'
+
+  # int is unbounded, so formatted as a string
+  assert_command dfx canister call hello_backend returns_int '(67)' --output json
+  assert_eq '"67"'
+  assert_command dfx canister call hello_backend returns_int '(111222333444555666777888999 : int)' --output json
+  assert_eq '"111_222_333_444_555_666_777_888_999"'
+
+  assert_command dfx canister call hello_backend returns_int32 '(67)' --output json
+  assert_eq '67'
+
+  assert_command dfx canister call hello_backend returns_principal '(principal "fg7gi-vyaaa-aaaal-qadca-cai")' --output json
+  assert_eq '"fg7gi-vyaaa-aaaal-qadca-cai"'
+
+  # variant
+  assert_command dfx canister call hello_backend returns_variant '(0)' --output json
+  assert_eq '{
+  "foo": null
+}'
+  assert_command dfx canister call hello_backend returns_variant '(1)' --output json
+  assert_eq '{
+  "bar": "a bar"
+}'
+  assert_command dfx canister call hello_backend returns_variant '(2)' --output json
+  assert_eq '{
+  "baz": {
+    "a": 51
+  }
+}'
+
+  assert_command dfx canister call hello_backend returns_strings '()' --output json
+  assert_eq '[
+  "Hello, world!",
+  "Hello, Mars!"
+]'
+
+  assert_command dfx canister call hello_backend returns_object '()' --output json
+  assert_eq '{
+  "bar": "42",
+  "foo": "baz"
+}'
+
+  assert_command dfx canister call hello_backend returns_blob '("abd")' --output json
+  assert_eq '[
+  97,
+  98,
+  100
+]'
+
+  assert_command dfx canister call hello_backend returns_tuple '()' --output json
+  assert_eq '"the first element"
+42
+"the third element"'
+}
+
 @test "call --candid <path to candid file>" {
   install_asset call
 
