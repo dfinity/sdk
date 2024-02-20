@@ -39,7 +39,7 @@ teardown() {
   assert_not_match "Module hash.*is already installed"
 }
 
-@test "deploy without arguments sets wallet and self as the controllers" {
+@test "deploy without --no-wallet sets wallet and self as the controllers" {
   dfx_start
   WALLET=$(dfx identity get-wallet)
   PRINCIPAL=$(dfx identity get-principal)
@@ -75,6 +75,28 @@ teardown() {
   assert_command dfx deploy
   assert_not_match "Installing code for"
   assert_match "is already installed"
+}
+
+@test "deploying multiple canisters with arguments fails" {
+  assert_command_fail dfx deploy --argument hello
+  assert_contains "The init argument can only be set when deploying a single canister."
+}
+
+@test "deploy one canister with an argument" {
+  dfx_start
+  assert_command dfx deploy hello_backend --argument '()'
+}
+
+@test "deploy one canister specifying raw argument" {
+  dfx_start
+  assert_command dfx deploy hello_backend --argument '4449444c0000' --argument-type raw
+}
+
+@test "deploy with an argument in a file" {
+  dfx_start
+  TMPFILE="$(mktemp)"
+  echo '()' >"$TMPFILE"
+  assert_command dfx deploy hello_backend --argument-file "$TMPFILE"
 }
 
 @test "deploying a dependent doesn't require already-installed dependencies to take args" {
@@ -152,13 +174,6 @@ teardown() {
   assert_not_contains "Creating a wallet canister"
   assert_command dfx identity get-wallet
   assert_contains "Creating a wallet canister"
-}
-
-@test "deploying multiple canisters with arguments fails" {
-  assert_command_fail dfx deploy --argument hello
-  assert_contains \
-"error: the following required arguments were not provided:
-  <CANISTER_NAME>"
 }
 
 @test "can deploy gzip wasm" {
