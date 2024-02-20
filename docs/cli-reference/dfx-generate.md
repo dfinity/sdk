@@ -43,8 +43,6 @@ Outputs from `dfx generate`:
 
 ## Examples
 
-[This](../_attachments/sample-generate-dfx.json) is a sample output of `dfx generate`.
-
 Note that the file name and path to the programs on your file system must match the information specified in the `dfx.json` configuration file.
 
 In this example, the `hello_world` canister itself is written in Motoko. The `declarations` section specifies that type declarations for all four languages will be generated and stored at `src/declarations/`.
