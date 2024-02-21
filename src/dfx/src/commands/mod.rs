@@ -59,6 +59,7 @@ pub enum DfxCommand {
     Stop(stop::StopOpts),
     #[command(hide = true)]
     Toolchain(toolchain::ToolchainOpts),
+    #[command(hide = true)]
     Upgrade(upgrade::UpgradeOpts),
     Wallet(wallet::WalletOpts),
 }
