@@ -8,7 +8,7 @@ use crate::util::{
     arguments_from_file, blob_from_arguments, fetch_remote_did_file, get_candid_type,
     print_idl_blob,
 };
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use candid::{CandidType, Decode, Deserialize, Principal};
 use candid_parser::utils::CandidSource;
@@ -211,6 +211,12 @@ pub fn get_effective_canister_id(
                 let in_args = Decode!(arg_value, In)
                     .context("Argument is not valid for InstallChunkedCode")?;
                 Ok(in_args.target_canister)
+            }
+            MgmtMethod::BitcoinGetBalance | MgmtMethod::BitcoinGetBalanceQuery
+            | MgmtMethod::BitcoinGetUtxos | MgmtMethod::BitcoinGetUtxosQuery
+            | MgmtMethod::BitcoinSendTransaction | MgmtMethod::BitcoinGetCurrentFeePercentiles
+            | MgmtMethod::EcdsaPublicKey | MgmtMethod::SignWithEcdsa => {
+                bail!("Management canister method {method_name} can only be run from canisters");
             }
         }
     } else {
