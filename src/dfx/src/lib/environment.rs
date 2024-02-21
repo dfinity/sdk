@@ -107,32 +107,7 @@ impl EnvironmentImpl {
             })?;
         }
 
-        // Figure out which version of DFX we should be running. This will use the following
-        // fallback sequence:
-        //   1. DFX_VERSION environment variable
-        //   2. dfx.json "dfx" field
-        //   3. this binary's version
-        // If any of those are empty string, we stop the fallback and use the current version.
-        // If any of those are a valid version, we try to use that directly as is.
-        // If any of those are an invalid version, we will show an error to the user.
-        let version = match std::env::var("DFX_VERSION") {
-            Err(_) => match &config {
-                None => dfx_version().clone(),
-                Some(c) => match &c.get_config().get_dfx() {
-                    None => dfx_version().clone(),
-                    Some(v) => Version::parse(v)
-                        .with_context(|| format!("Failed to parse version from '{}'.", v))?,
-                },
-            },
-            Ok(v) => {
-                if v.is_empty() {
-                    dfx_version().clone()
-                } else {
-                    Version::parse(&v)
-                        .with_context(|| format!("Failed to parse version from '{}'.", &v))?
-                }
-            }
-        };
+        let version = dfx_version().clone();
 
         Ok(EnvironmentImpl {
             cache: Arc::new(DiskBasedCache::with_version(&version)),

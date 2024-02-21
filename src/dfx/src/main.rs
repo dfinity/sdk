@@ -4,11 +4,9 @@ use crate::lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::DfxResult;
 use crate::lib::logger::{create_root_logger, LoggingMode};
-use crate::lib::warning::{is_warning_disabled, DfxWarning::VersionCheck};
 use anyhow::Error;
 use clap::{ArgAction, CommandFactory, Parser};
 use dfx_core::extension::manager::ExtensionManager;
-use semver::Version;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -49,45 +47,6 @@ pub struct CliOpts {
 
     #[command(subcommand)]
     command: commands::DfxCommand,
-}
-
-/// In some cases, redirect the dfx execution to the proper version.
-/// This will ALWAYS return None, OR WILL TERMINATE THE PROCESS. There is no Ok()
-/// version of this (nor should there be).
-///
-/// Note: the right return type for communicating this would be [Option<!>], but since the
-/// never type is experimental, we just assert on the calling site.
-fn maybe_redirect_dfx(version: &Version) -> Option<()> {
-    // Verify we're using the same version as the dfx.json, and if not just redirect the
-    // call to the cache.
-    if dfx_version() != version {
-        // Show a warning to the user.
-        if !is_warning_disabled(VersionCheck) {
-            eprintln!(
-                concat!(
-                    "Warning: The version of DFX used ({}) is different than the version ",
-                    "being run ({}).\n",
-                    "This might happen because your dfx.json specifies an older version, or ",
-                    "DFX_VERSION is set in your environment.\n",
-                    "We are forwarding the command line to the old version. To disable this ",
-                    "warning, set the DFX_WARNING=-version_check environment variable.\n"
-                ),
-                version,
-                dfx_version()
-            );
-        }
-
-        match dfx_core::config::cache::call_cached_dfx(version) {
-            Ok(status) => std::process::exit(status.code().unwrap_or(0)),
-            Err(e) => {
-                eprintln!("Error when trying to forward to project dfx:\n{:?}", e);
-                eprintln!("Installed executable: {}", dfx_version());
-                std::process::exit(1)
-            }
-        };
-    }
-
-    None
 }
 
 /// Setup a logger with the proper configuration, based on arguments.
@@ -194,30 +153,23 @@ fn main() {
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
     let command = cli_opts.command;
-    let result = match EnvironmentImpl::new() {
+    let result = match EnvironmentImpl::new().map(|env| {
+        env.with_logger(log)
+            .with_identity_override(identity)
+            .with_verbose_level(verbose_level)
+            .with_effective_canister_id(effective_canister_id)
+    }) {
         Ok(env) => {
-            #[allow(clippy::let_unit_value)]
-            let _ = maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
-            match EnvironmentImpl::new().map(|env| {
-                env.with_logger(log)
-                    .with_identity_override(identity)
-                    .with_verbose_level(verbose_level)
-                    .with_effective_canister_id(effective_canister_id)
-            }) {
-                Ok(env) => {
-                    slog::trace!(
-                        env.get_logger(),
-                        "Trace mode enabled. Lots of logs coming up."
-                    );
-                    match commands::exec(&env, command) {
-                        Err(e) => {
-                            error_diagnosis = diagnose(&env, &e);
-                            Err(e)
-                        }
-                        ok => ok,
-                    }
+            slog::trace!(
+                env.get_logger(),
+                "Trace mode enabled. Lots of logs coming up."
+            );
+            match commands::exec(&env, command) {
+                Err(e) => {
+                    error_diagnosis = diagnose(&env, &e);
+                    Err(e)
                 }
-                Err(e) => Err(e),
+                ok => ok,
             }
         }
         Err(e) => match command {
