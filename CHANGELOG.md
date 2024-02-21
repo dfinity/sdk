@@ -21,6 +21,10 @@ curl -v --http2-prior-knowledge "http://localhost:$(dfx info webserver-port)/api
 The script at https://internetcomputer.org/install.sh now installs
 the [dfxvm version manager](https://github.com/dfinity/dfxvm) instead of the dfx binary.
 
+### fix!: removed the `dfx upgrade` command
+
+The `dfx upgrade` command now prints a message directing the user to install dfxvm.
+
 # 0.17.0
 
 ### feat: new starter templates
