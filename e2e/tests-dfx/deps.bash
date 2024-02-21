@@ -302,6 +302,10 @@ $CANISTER_ID_A"
   # overwrite the empty argument with a valid one
   assert_command dfx deps init dep_c --argument "(opt 33)"
 
+  # can also set with --argument-file
+  echo "(opt 44)" > arg.txt
+  assert_command dfx deps init dep_c --argument-file arg.txt
+
   # The argument is the hex string of '("abc")' which doesn't type check
   # However, passing raw argument will bypass the type check so following command succeed
   assert_command dfx deps init "$CANISTER_ID_A" --argument "4449444c00017103616263" --argument-type raw
