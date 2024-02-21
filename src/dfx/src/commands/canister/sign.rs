@@ -4,8 +4,8 @@ use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::sign::sign_transport::SignTransport;
 use crate::lib::sign::signed_message::SignedMessageV1;
-use crate::util::clap::parsers::file_or_stdin_parser;
-use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type};
+use crate::util::clap::argument_from_cli::ArgumentFromCliOpt2;
+use crate::util::{blob_from_arguments, get_candid_type};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use candid_parser::utils::CandidSource;
@@ -31,6 +31,9 @@ pub struct CanisterSignOpts {
     /// Specifies the method name to call on the canister.
     method_name: String,
 
+    #[command(flatten)]
+    argument_from_cli: ArgumentFromCliOpt2,
+
     /// Sends a query request to a canister.
     #[arg(long)]
     query: bool,
@@ -39,25 +42,9 @@ pub struct CanisterSignOpts {
     #[arg(long, conflicts_with("query"))]
     update: bool,
 
-    /// Specifies the argument to pass to the method.
-    argument: Option<String>,
-
-    /// Specifies the file from which to read the argument to pass to the method.
-    #[arg(
-        long,
-        value_parser = file_or_stdin_parser,
-        conflicts_with("random"),
-        conflicts_with("argument")
-    )]
-    argument_file: Option<PathBuf>,
-
     /// Specifies the config for generating random argument.
-    #[arg(long, conflicts_with("argument"))]
+    #[arg(long, conflicts_with("argument"), conflicts_with("argument_file"))]
     random: Option<String>,
-
-    /// Specifies the data type for the argument when making the call using an argument.
-    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
-    r#type: Option<String>,
 
     /// Specifies how long the message will be valid in seconds, default to be 300s (5 minutes)
     #[arg(long, default_value = "5m")]
@@ -101,14 +88,7 @@ pub async fn exec(
         maybe_candid_path.and_then(|path| get_candid_type(CandidSource::File(&path), method_name));
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
-    let arguments_from_file = opts
-        .argument_file
-        .map(|v| arguments_from_file(&v))
-        .transpose()?;
-    let arguments = opts.argument.as_deref();
-    let arguments = arguments_from_file.as_deref().or(arguments);
-
-    let arg_type = opts.r#type.as_deref();
+    let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument_and_type()?;
     let is_query = match is_query_method {
         Some(true) => !opts.update,
         Some(false) => {
@@ -128,9 +108,9 @@ pub async fn exec(
     // an error if any of it doesn't work.
     let arg_value = blob_from_arguments(
         Some(env),
-        arguments,
+        argument_from_cli.as_deref(),
         opts.random.as_deref(),
-        arg_type,
+        argument_type.as_deref(),
         &method_type,
         false,
     )?;

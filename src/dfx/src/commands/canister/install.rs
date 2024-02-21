@@ -5,7 +5,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::install_canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::blob_from_arguments;
-use crate::util::clap::argument_from_cli::ArgumentFromCliOpt;
+use crate::util::clap::argument_from_cli::ArgumentFromCliOpt1;
 use dfx_core::canister::{install_canister_wasm, install_mode_to_prompt};
 use dfx_core::identity::CallSender;
 
@@ -42,7 +42,7 @@ pub struct CanisterInstallOpts {
     upgrade_unchanged: bool,
 
     #[command(flatten)]
-    argument_from_cli: ArgumentFromCliOpt,
+    argument_from_cli: ArgumentFromCliOpt1,
 
     /// Specifies a particular WASM file to install, bypassing the dfx.json project settings.
     #[arg(long, conflicts_with("all"))]
@@ -87,7 +87,7 @@ pub async fn exec(
     let env_file = config.get_output_env_file(opts.output_env_file)?;
 
     if let Some(canister) = opts.canister.as_deref() {
-        let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument()?;
+        let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument_and_type()?;
         // `opts.canister` is a Principal (canister ID)
         if let Ok(canister_id) = Principal::from_text(canister) {
             if let Some(wasm_path) = &opts.wasm {

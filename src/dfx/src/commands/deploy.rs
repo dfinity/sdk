@@ -8,7 +8,7 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
-use crate::util::clap::argument_from_cli::ArgumentFromCliOpt;
+use crate::util::clap::argument_from_cli::ArgumentFromCliOpt1;
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
 use anyhow::{anyhow, bail, Context};
@@ -38,7 +38,7 @@ pub struct DeployOpts {
     canister_name: Option<String>,
 
     #[command(flatten)]
-    argument_from_cli: ArgumentFromCliOpt,
+    argument_from_cli: ArgumentFromCliOpt1,
 
     /// Force the type of deployment to be reinstall, which overwrites the module.
     /// In other words, this erases all data in the canister.
@@ -119,7 +119,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     let canister_name = opts.canister_name.as_deref();
-    let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument()?;
+    let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument_and_type()?;
     if argument_from_cli.is_some() && canister_name.is_none() {
         bail!("The init argument can only be set when deploying a single canister.");
     }

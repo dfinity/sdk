@@ -3,8 +3,8 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::argument_from_cli::get_argument_from_cli;
-use crate::util::clap::parsers::{cycle_amount_parser, file_or_stdin_parser};
+use crate::util::clap::argument_from_cli::ArgumentFromCliOpt2;
+use crate::util::clap::parsers::cycle_amount_parser;
 use crate::util::{blob_from_arguments, fetch_remote_did_file, get_candid_type, print_idl_blob};
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
@@ -34,17 +34,8 @@ pub struct CanisterCallOpts {
     /// Specifies the method name to call on the canister.
     method_name: String,
 
-    /// Specifies the argument to pass to the method.
-    #[arg(conflicts_with("random"), conflicts_with("argument_file"))]
-    argument: Option<String>,
-
-    /// Specifies the data type for the argument when making the call using an argument.
-    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
-    r#type: Option<String>,
-
-    /// Specifies the file from which to read the argument to pass to the method.
-    #[arg(long, value_parser = file_or_stdin_parser, conflicts_with("random"), conflicts_with("argument"))]
-    argument_file: Option<PathBuf>,
+    #[command(flatten)]
+    argument_from_cli: ArgumentFromCliOpt2,
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica.
     /// Instead return a response ID.
@@ -263,8 +254,7 @@ pub async fn exec(
 
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
-    let (argument_from_cli, argument_type) =
-        get_argument_from_cli(&opts.argument, &opts.r#type, &opts.argument_file)?;
+    let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument_and_type()?;
 
     let output_type = opts.output.as_deref();
     let is_query = if opts.r#async {
