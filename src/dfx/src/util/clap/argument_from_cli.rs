@@ -15,7 +15,7 @@
 //! They are different in two points:
 //! - `argument`
 //!   - In Opt1, it is a "long" option, it must be set with `--argument <ARGUMENT>` or `--argument=<ARGUMENT>`.
-//!   - In Opt2, it is a "positional" option, e.g. dfx canister call <CANISTER_NAME> <METHOD_NAME> [ARGUMENT]
+//!   - In Opt2, it is a "positional" option, e.g. `dfx canister call <CANISTER_NAME> <METHOD_NAME> [ARGUMENT]`
 //! - name of the field for the argument type
 //!   - In Opt1, it is `argument_type`.
 //!   - In Opt2, it is `type`.
