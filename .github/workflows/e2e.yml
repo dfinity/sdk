@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - test-cdk-standard-env-vars
   pull_request:
 
 concurrency:
