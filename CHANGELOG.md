@@ -13,8 +13,6 @@ The notable changes are:
 - `dfx deploy` now accepts `--argument-file`.
 - `dfx deps init` now accepts `--argument-file`.
 
-The related CLI documentation is also updated.
-
 ### feat: candid assist feature
 
 Ask for user input when Candid argument is not provided in `dfx canister call`, `dfx canister install` and `dfx deploy`. 
