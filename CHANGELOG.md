@@ -2,6 +2,17 @@
 
 # UNRELEASED
 
+### feat: unify CLI options to specify arguments
+
+There are a few subcommands that take `--argument`/`--argument-file` options to set canister call/init arguments.
+
+We unify the related logic to provide consistent user experience.
+ 
+The notable changes are:
+
+- `dfx deploy` now accepts `--argument-file`.
+- `dfx deps init` now accepts `--argument-file`.
+
 ### feat: candid assist feature
 
 Ask for user input when Candid argument is not provided in `dfx canister call`, `dfx canister install` and `dfx deploy`. 
