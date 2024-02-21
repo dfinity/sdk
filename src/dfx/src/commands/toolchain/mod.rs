@@ -1,6 +1,4 @@
-use crate::lib::dfxvm::{
-    dfxvm_released, display_dfxvm_installation_instructions, display_link_to_dfxvm_readme,
-};
+use crate::lib::dfxvm::display_dfxvm_installation_instructions;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use anyhow::bail;
@@ -19,11 +17,7 @@ pub fn exec(_env: &dyn Environment, _opts: ToolchainOpts) -> DfxResult {
     println!("The toolchain command has been removed.");
     println!("Please use the dfx version manager (dfxvm) to manage dfx versions.");
     println!();
-    if dfxvm_released()? {
-        display_dfxvm_installation_instructions();
-    } else {
-        display_link_to_dfxvm_readme();
-    }
+    display_dfxvm_installation_instructions();
     println!();
     bail!("toolchain command removed");
 }

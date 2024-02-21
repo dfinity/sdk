@@ -1,14 +1,11 @@
 use crate::lib::error::{DfxError, DfxResult};
 use crate::{error_invalid_argument, error_invalid_data};
 use anyhow::Context;
-use flate2::read::GzDecoder;
 use fn_error_context::context;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use semver::Version;
 use serde::{Deserialize, Deserializer};
 use std::collections::BTreeMap;
-use std::env;
-use tar::Archive;
 
 fn parse_semver<'de, D>(version: &str) -> Result<Version, D::Error>
 where
@@ -104,57 +101,6 @@ pub fn get_latest_version(
         .get("latest")
         .ok_or_else(|| error_invalid_data!("expected field 'latest' in 'tags'"))
         .map(|v| v.clone())
-}
-
-#[context(
-    "Failed to get latest release for version {} and architecture {}.",
-    version,
-    arch
-)]
-pub fn get_latest_release(release_root: &str, version: &Version, arch: &str) -> DfxResult<()> {
-    let url = reqwest::Url::parse(&format!(
-        "{0}/downloads/dfx/{1}/{2}/dfx-{1}.tar.gz",
-        release_root, version, arch
-    ))
-    .map_err(|e| error_invalid_argument!("invalid release root: {}", e))?;
-
-    let b = ProgressBar::new_spinner();
-    b.set_draw_target(ProgressDrawTarget::stderr());
-
-    b.set_message(format!("Downloading {}", url));
-    b.enable_steady_tick(80);
-    let mut response = reqwest::blocking::get(url).map_err(DfxError::new)?;
-    let mut decoder = GzDecoder::new(&mut response);
-    let mut archive = Archive::new(&mut decoder);
-    let current_exe_path = env::current_exe().map_err(DfxError::new)?;
-    let current_exe_dir = current_exe_path.parent().unwrap(); // This should not fail
-    b.set_message("Unpacking");
-    archive
-        .unpack(current_exe_dir)
-        .with_context(|| format!("Failed to unpack to {}.", current_exe_dir.to_string_lossy()))?;
-    // On *nix we need to set the execute permission as the tgz doesn't include it
-    #[cfg(unix)]
-    {
-        use std::{fs, os::unix::fs::PermissionsExt};
-        b.set_message("Setting permissions");
-        let mut permissions = fs::metadata(&current_exe_path)
-            .with_context(|| {
-                format!(
-                    "Failed to read metadata for {}.",
-                    current_exe_path.to_string_lossy()
-                )
-            })?
-            .permissions();
-        permissions.set_mode(permissions.mode() | 0o755);
-        fs::set_permissions(&current_exe_path, permissions).with_context(|| {
-            format!(
-                "Failed to set metadata for {}.",
-                current_exe_path.to_string_lossy()
-            )
-        })?;
-    }
-    b.finish_with_message("Done");
-    Ok(())
 }
 
 #[cfg(test)]
