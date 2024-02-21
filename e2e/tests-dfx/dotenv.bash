@@ -65,9 +65,7 @@ teardown() {
   env=$(< .env)
   assert_contains "DFX_NETWORK='local'" "$env"
   assert_contains "CANISTER_ID_E2E_PROJECT_BACKEND='$backend_canister'" "$env"
-  assert_contains "E2E_PROJECT_BACKEND_CANISTER_ID='$backend_canister'" "$env"
   assert_contains "CANISTER_ID_E2E_PROJECT_FRONTEND='$frontend_canister'" "$env"
-  assert_contains "E2E_PROJECT_FRONTEND_CANISTER_ID='$frontend_canister'" "$env"
 
   setup_actuallylocal_project_network
   dfx canister create --all --network actuallylocal
