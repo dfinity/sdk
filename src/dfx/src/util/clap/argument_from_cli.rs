@@ -1,24 +1,24 @@
 //! This module contains the CLI options for specifying an argument to pass to a method.
 //!
 //! # Notice
-//! There are two variants: `ArgumentFromCliOpt1` and `ArgumentFromCliOpt2`.
+//! There are two variants: [ArgumentFromCliLongOpt] and [ArgumentFromCliPositionalOpt].
 //!
-//! Opt1 is used in:
+//! [ArgumentFromCliLongOpt] is used in:
 //! - `dfx deploy`
 //! - `dfx canister install`
 //! - `dfx deps init`
 //!
-//! Opt2 is used in:
+//! [ArgumentFromCliPositionalOpt] is used in:
 //! - `dfx canister call`
 //! - `dfx canister sign`
 //!
-//! They are different in two points:
-//! - `argument`
-//!   - In Opt1, it is a "long" option, it must be set with `--argument <ARGUMENT>` or `--argument=<ARGUMENT>`.
-//!   - In Opt2, it is a "positional" option, e.g. `dfx canister call <CANISTER_NAME> <METHOD_NAME> [ARGUMENT]`
-//! - name of the field for the argument type
-//!   - In Opt1, it is `argument_type`.
-//!   - In Opt2, it is `type`.
+//! As can be seen from the names, the major difference between the two variants is how the `argument` is specified.
+//!   - In [ArgumentFromCliLongOpt], it is a "long" option, it must be set with `--argument <ARGUMENT>` or `--argument=<ARGUMENT>`.
+//!   - In [ArgumentFromCliPositionalOpt], it is a "positional" option, e.g. `dfx canister call <CANISTER_NAME> <METHOD_NAME> [ARGUMENT]`
+//!
+//! Beyond that, the name of the field for the argument type is also different:
+//!   - In [ArgumentFromCliLongOpt], it is [argument_type](ArgumentFromCliLongOpt::argument_type).
+//!   - In [ArgumentFromCliPositionalOpt], it is [type](ArgumentFromCliPositionalOpt::type).
 use std::path::PathBuf;
 
 use clap::Args;
@@ -27,11 +27,12 @@ use crate::lib::error::DfxResult;
 use crate::util::arguments_from_file;
 use crate::util::clap::parsers::file_or_stdin_parser;
 
-/// CLI options for specifying an argument to pass to a method (Variant 1).
+/// CLI options for specifying an argument to pass to a method.
+/// In which, [argument](Self::argument) is a "long" option.
 ///
 /// Check the module level documentation for more details.
 #[derive(Args, Clone, Debug, Default)]
-pub struct ArgumentFromCliOpt1 {
+pub struct ArgumentFromCliLongOpt {
     /// Specifies the argument to pass to the method.
     #[arg(long, conflicts_with("argument_file"))]
     argument: Option<String>,
@@ -45,17 +46,18 @@ pub struct ArgumentFromCliOpt1 {
     argument_file: Option<PathBuf>,
 }
 
-impl ArgumentFromCliOpt1 {
+impl ArgumentFromCliLongOpt {
     pub fn get_argument_and_type(&self) -> DfxResult<(Option<String>, Option<String>)> {
         get_argument_from_cli(&self.argument, &self.argument_type, &self.argument_file)
     }
 }
 
-/// CLI options for specifying an argument to pass to a method (Variant 2).
+/// CLI options for specifying an argument to pass to a method.
+/// In which, [argument](Self::argument) is a "positional" option.
 ///
 /// Check the module level documentation for more details.
 #[derive(Args, Clone, Debug, Default)]
-pub struct ArgumentFromCliOpt2 {
+pub struct ArgumentFromCliPositionalOpt {
     /// Specifies the argument to pass to the method.
     #[arg(conflicts_with("argument_file"))]
     argument: Option<String>,
@@ -69,7 +71,7 @@ pub struct ArgumentFromCliOpt2 {
     argument_file: Option<PathBuf>,
 }
 
-impl ArgumentFromCliOpt2 {
+impl ArgumentFromCliPositionalOpt {
     pub fn get_argument_and_type(&self) -> DfxResult<(Option<String>, Option<String>)> {
         get_argument_from_cli(&self.argument, &self.r#type, &self.argument_file)
     }

@@ -4,7 +4,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::sign::sign_transport::SignTransport;
 use crate::lib::sign::signed_message::SignedMessageV1;
-use crate::util::clap::argument_from_cli::ArgumentFromCliOpt2;
+use crate::util::clap::argument_from_cli::ArgumentFromCliPositionalOpt;
 use crate::util::{blob_from_arguments, get_candid_type};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -32,7 +32,7 @@ pub struct CanisterSignOpts {
     method_name: String,
 
     #[command(flatten)]
-    argument_from_cli: ArgumentFromCliOpt2,
+    argument_from_cli: ArgumentFromCliPositionalOpt,
 
     /// Sends a query request to a canister.
     #[arg(long)]

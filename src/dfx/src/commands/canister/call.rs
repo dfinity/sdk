@@ -3,7 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::argument_from_cli::ArgumentFromCliOpt2;
+use crate::util::clap::argument_from_cli::ArgumentFromCliPositionalOpt;
 use crate::util::clap::parsers::cycle_amount_parser;
 use crate::util::{blob_from_arguments, fetch_remote_did_file, get_candid_type, print_idl_blob};
 use anyhow::{anyhow, Context};
@@ -35,7 +35,7 @@ pub struct CanisterCallOpts {
     method_name: String,
 
     #[command(flatten)]
-    argument_from_cli: ArgumentFromCliOpt2,
+    argument_from_cli: ArgumentFromCliPositionalOpt,
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica.
     /// Instead return a response ID.

@@ -5,7 +5,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::install_canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::blob_from_arguments;
-use crate::util::clap::argument_from_cli::ArgumentFromCliOpt1;
+use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
 use dfx_core::canister::{install_canister_wasm, install_mode_to_prompt};
 use dfx_core::identity::CallSender;
 
@@ -42,7 +42,7 @@ pub struct CanisterInstallOpts {
     upgrade_unchanged: bool,
 
     #[command(flatten)]
-    argument_from_cli: ArgumentFromCliOpt1,
+    argument_from_cli: ArgumentFromCliLongOpt,
 
     /// Specifies a particular WASM file to install, bypassing the dfx.json project settings.
     #[arg(long, conflicts_with("all"))]

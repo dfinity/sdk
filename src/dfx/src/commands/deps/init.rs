@@ -5,7 +5,7 @@ use crate::lib::deps::{
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::util::clap::argument_from_cli::ArgumentFromCliOpt1;
+use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
 use crate::util::fuzzy_parse_argument;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -21,7 +21,7 @@ pub struct DepsInitOpts {
     canister: Option<String>,
 
     #[command(flatten)]
-    argument_from_cli: ArgumentFromCliOpt1,
+    argument_from_cli: ArgumentFromCliLongOpt,
 }
 
 pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {

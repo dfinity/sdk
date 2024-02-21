@@ -55,7 +55,7 @@ teardown() {
   assert_match '("Hello, Names are difficult!")'
 }
 
-@test "call subcommand accepts raw argument from stdin" {
+@test "call subcommand accepts raw argument" {
   install_asset greet
   dfx_start
   dfx canister create --all

@@ -8,7 +8,7 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
-use crate::util::clap::argument_from_cli::ArgumentFromCliOpt1;
+use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
 use anyhow::{anyhow, bail, Context};
@@ -38,7 +38,7 @@ pub struct DeployOpts {
     canister_name: Option<String>,
 
     #[command(flatten)]
-    argument_from_cli: ArgumentFromCliOpt1,
+    argument_from_cli: ArgumentFromCliLongOpt,
 
     /// Force the type of deployment to be reinstall, which overwrites the module.
     /// In other words, this erases all data in the canister.
