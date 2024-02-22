@@ -27,7 +27,7 @@ pub async fn exec(env: &dyn Environment, opts: TailOpts, call_sender: &CallSende
 
     let logs = canister::get_canister_logs(env, canister_id, call_sender).await?;
 
-    info!(log, "Canister tail call result for {canister_id}: {logs}");
+    info!(log, "{logs}");
 
     Ok(())
 }
