@@ -50,7 +50,8 @@ You can specify the following options for the `dfx cycles transfer` command.
 |-------------------------------------|----------------------------------------------------------------------------------------|
 | `--created-at-time <timestamp>`     | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
 | `--expected-allowance <cycles>`     | The number of previously approved cycles. See [ICRC-2 specification](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-2/README.md) for details. |
-| `--expires-at <nanoseconds>`        | Timestamp until which the approval is valid. None means that the approval is valid indefinitely. |
+| `--expires-at <timestamp>`        | Timestamp-nanoseconds until which the approval is valid. None means that the approval is valid indefinitely. |
+``
 | `--from-subaccount <subaccount>`    | Approve cycles to be spent from this subaccount.                                       |
 | `--memo <memo>`                     | Specifies a numeric memo for this transaction. |
 | `--spender-subaccount <subaccount>` | Allow this subaccount to spend cycles.                                                 |
