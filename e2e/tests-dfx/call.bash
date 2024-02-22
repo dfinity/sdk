@@ -55,6 +55,17 @@ teardown() {
   assert_match '("Hello, Names are difficult!")'
 }
 
+@test "call subcommand accepts raw argument" {
+  install_asset greet
+  dfx_start
+  dfx canister create --all
+  dfx build
+  dfx canister install hello_backend
+  # The encoded raw argument was generated with `didc encode '("raw")'`
+  assert_command dfx canister call hello_backend greet '4449444c00017103726177' --type raw
+  assert_match '("Hello, raw!")'
+}
+
 @test "call subcommand accepts argument from a file" {
   install_asset greet
   dfx_start
