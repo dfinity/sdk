@@ -42,6 +42,12 @@ the [dfxvm version manager](https://github.com/dfinity/dfxvm) instead of the dfx
 
 The `dfx upgrade` command now prints a message directing the user to install dfxvm.
 
+### fix(deps): init/deploy still requires hash check
+
+`dfx deps pull` recently allows hash mismatch wasm. But `init` and `deploy` weren't change accordingly.
+
+Also the warning of hash mismatch is removed since it scares users and users can't fix it locally.
+
 # 0.17.0
 
 ### feat: new starter templates
