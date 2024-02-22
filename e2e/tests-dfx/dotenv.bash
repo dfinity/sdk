@@ -99,6 +99,37 @@ teardown() {
   assert_contains "DFX_NETWORK='actuallylocal'" "$(< .env)"
 }
 
+@test "install writes all environment variables to .env" {
+  dfx_start
+  dfx canister create --all
+  dfx build
+
+  # .env should also include canisters that are not explicit dependencies
+  jq 'del(.canisters.e2e_project_frontend.dependencies)' dfx.json  | sponge dfx.json
+  # set a post-install script so the install will create a .env file
+  jq '.canisters.e2e_project_frontend.post_install="echo post install"' dfx.json | sponge dfx.json
+  backend_canister=$(dfx canister id e2e_project_backend)
+  frontend_canister=$(dfx canister id e2e_project_frontend)
+
+  rm .env
+  assert_command dfx canister install e2e_project_frontend
+
+  cat .env
+
+  assert_file_exists .env
+  env=$(< .env)
+  assert_contains "DFX_NETWORK='local'" "$env"
+  assert_contains "CANISTER_ID_E2E_PROJECT_BACKEND='$backend_canister'" "$env"
+  assert_contains "E2E_PROJECT_BACKEND_CANISTER_ID='$backend_canister'" "$env"
+  assert_contains "CANISTER_ID_E2E_PROJECT_FRONTEND='$frontend_canister'" "$env"
+  assert_contains "E2E_PROJECT_FRONTEND_CANISTER_ID='$frontend_canister'" "$env"
+
+  setup_actuallylocal_project_network
+  dfx canister create --all --network actuallylocal
+  assert_command dfx build --network actuallylocal
+  assert_contains "DFX_NETWORK='actuallylocal'" "$(< .env)"
+}
+
 @test "writes all environment variables to .env" {
   dfx_start
   cat dfx.json

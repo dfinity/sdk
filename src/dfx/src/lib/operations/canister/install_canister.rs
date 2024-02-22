@@ -30,6 +30,7 @@ use slog::{debug, info, warn};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use crate::lib::operations::canister::canisters_with_assigned_ids;
 
 use super::motoko_playground::playground_install_code;
 
@@ -403,10 +404,17 @@ fn run_post_install_tasks(
     let pool = match pool {
         Some(pool) => pool,
         None => {
-            let deps = env
-                .get_config_or_anyhow()?
+            let config = env.get_config_or_anyhow()?;
+            let mut deps = config
                 .get_config()
                 .get_canister_names_with_dependencies(Some(canister.get_name()))?;
+
+            let extra_canisters: Vec<_> = canisters_with_assigned_ids(env, &config)
+                .into_iter()
+                .filter(|extra| !deps.contains(extra))
+                .collect();
+
+            deps.extend_from_slice(extra_canisters.as_slice());
 
             tmp = CanisterPool::load(env, false, &deps)
                 .context("Error collecting canisters for post-install task")?;
