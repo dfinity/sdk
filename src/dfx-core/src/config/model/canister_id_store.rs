@@ -4,6 +4,7 @@ use crate::error::canister_id_store::CanisterIdStoreError;
 use crate::error::unified_io::UnifiedIoError;
 use crate::network::directory::ensure_cohesive_network_directory;
 use candid::Principal as CanisterId;
+use ic_agent::export::Principal;
 use serde::{Deserialize, Serialize, Serializer};
 use slog::{warn, Logger};
 use std::collections::BTreeMap;
@@ -398,6 +399,17 @@ impl CanisterIdStore {
         }
 
         Ok(())
+    }
+
+    pub fn non_remote_ids(&self) -> Vec<Principal> {
+        self.ids
+            .iter()
+            .filter_map(|(_, network_to_id)| {
+                network_to_id
+                    .get(&self.network_descriptor.name)
+                    .and_then(|principal| Principal::from_text(principal).ok())
+            })
+            .collect()
     }
 }
 
