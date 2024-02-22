@@ -35,7 +35,7 @@ dfx cycles approve [options] <spender> <amount>
 
 ### Arguments
 
-You must specify the following arguments for the `dfx cycles transfer` command.
+You must specify the following arguments for the `dfx cycles approve` command.
 
 | Argument   | Description                           |
 |------------|---------------------------------------|
@@ -44,7 +44,7 @@ You must specify the following arguments for the `dfx cycles transfer` command.
 
 ### Options
 
-You can specify the following options for the `dfx cycles transfer` command.
+You can specify the following options for the `dfx cycles approve` command.
 
 | Option                              | Description                                                                            |
 |-------------------------------------|----------------------------------------------------------------------------------------|
