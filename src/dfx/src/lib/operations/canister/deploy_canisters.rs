@@ -11,7 +11,9 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
-use crate::lib::operations::canister::{canisters_with_assigned_ids, create_canister, install_canister::install_canister};
+use crate::lib::operations::canister::{
+    add_canisters_with_ids, create_canister, install_canister::install_canister,
+};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
@@ -126,14 +128,7 @@ pub async fn deploy_canisters(
         info!(env.get_logger(), "All canisters have already been created.");
     }
 
-    let extra_canisters: Vec<_> = canisters_with_assigned_ids(env, &config)
-        .into_iter()
-        .filter(|extra| !canisters_to_deploy.contains(extra))
-        .collect();
-
-    let mut canisters_to_load = canisters_to_deploy.clone();
-    canisters_to_load.extend_from_slice(extra_canisters.as_slice());
-
+    let canisters_to_load = add_canisters_with_ids(&canisters_to_deploy, env, &config);
 
     let pool = build_canisters(
         env,

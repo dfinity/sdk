@@ -1,10 +1,12 @@
 pub(crate) mod create_canister;
 pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
+
 pub use create_canister::create_canister;
+use std::collections::HashSet;
 
 use crate::lib::canister_info::CanisterInfo;
-use crate::lib::environment::{AgentEnvironment, Environment};
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
 use anyhow::{bail, Context};
@@ -13,6 +15,7 @@ use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
+use dfx_core::config::model::dfinity::Config;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
@@ -21,7 +24,6 @@ use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 pub use install_canister::install_wallet;
 use std::path::PathBuf;
-use dfx_core::config::model::dfinity::Config;
 
 pub mod motoko_playground;
 
@@ -295,8 +297,51 @@ pub fn get_local_cid_and_candid_path(
     ))
 }
 
-/// Produces all canister names that have canister IDs assigned
-pub fn canisters_with_assigned_ids(env: &dyn Environment, config: &Config) -> Vec<String> {
+pub fn add_canisters_with_ids0(
+    start_with: &[String],
+    env: &dyn Environment,
+    config: &Config,
+) -> Vec<String> {
+    let mut canister_names: HashSet<_> = start_with.iter().cloned().collect();
+
+    if let Ok(store) = env.get_canister_id_store() {
+        if let Some(canisters) = config.get_config().canisters.as_ref() {
+            for canister_name in canisters.keys() {
+                if store.get(canister_name).is_ok() {
+                    canister_names.insert(canister_name.clone());
+                }
+            }
+        }
+    }
+
+    canister_names.into_iter().collect()
+}
+
+pub fn add_canisters_with_ids(
+    _start_with: &[String],
+    env: &dyn Environment,
+    config: &Config,
+) -> Vec<String> {
+    all_project_canisters_with_ids(env, config)
+}
+
+pub fn all_project_canisters_with_ids1(env: &dyn Environment, config: &Config) -> Vec<String> {
+    let mut canister_names: HashSet<_> = HashSet::new();
+
+    if let Ok(store) = env.get_canister_id_store() {
+        if let Some(canisters) = config.get_config().canisters.as_ref() {
+            for canister_name in canisters.keys() {
+                if store.get(canister_name).is_ok() {
+                    canister_names.insert(canister_name.clone());
+                }
+            }
+        }
+    }
+
+    canister_names.into_iter().collect()
+}
+
+pub fn all_project_canisters_with_ids(env: &dyn Environment, config: &Config) -> Vec<String> {
     env.get_canister_id_store()
         .map(|store| {
             config
@@ -315,13 +360,21 @@ pub fn canisters_with_assigned_ids(env: &dyn Environment, config: &Config) -> Ve
         .unwrap_or_default()
 }
 
-pub fn add_canisters_with_ids(start_with: &[String], env: &dyn Environment, config: &Config) -> Vec<String> {
-    let mut canister_names = start_with.to_vec();
-    let extra_canisters: Vec<_> = canisters_with_assigned_ids(env, config)
-        .into_iter()
-        .filter(|extra| !canister_names.contains(extra))
-        .collect();
+pub fn all_project_canisters_with_ids3(env: &dyn Environment, config: &Config) -> Vec<String> {
+    let mut canister_names: HashSet<_> = HashSet::new();
 
-    canister_names.extend_from_slice(extra_canisters.as_slice());
-    canister_names
+    if let Ok(store) = env.get_canister_id_store() {
+        if let Some(canisters) = config.get_config().canisters.as_ref() {
+            let canister_names_with_ids = canisters.keys().filter_map(|canister_name| {
+                store.get(canister_name).ok().map(|_| canister_name.clone())
+            });
+            for canister_name in canisters.keys() {
+                if store.get(canister_name).is_ok() {
+                    canister_names.insert(canister_name.clone());
+                }
+            }
+        }
+    }
+
+    canister_names.into_iter().collect()
 }

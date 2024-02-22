@@ -1,15 +1,14 @@
 use crate::config::cache::DiskBasedCache;
 use crate::lib::agent::create_agent_environment;
 use crate::lib::builders::BuildConfig;
-use crate::lib::environment::{AgentEnvironment, Environment};
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::network::network_opt::NetworkOpt;
+use crate::lib::operations::canister::add_canisters_with_ids;
 use clap::Parser;
-use dfx_core::config::model::dfinity::Config;
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
-use crate::lib::operations::canister::canisters_with_assigned_ids;
 
 /// Builds all or specific canisters from the code in your project. By default, all canisters are built.
 #[derive(Parser)]
@@ -53,13 +52,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     let required_canisters = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
-    let extra_canisters: Vec<_> = canisters_with_assigned_ids(&env, &config)
-        .into_iter()
-        .filter(|extra| !required_canisters.contains(extra))
-        .collect();
-
-    let mut canisters_to_load = required_canisters.clone();
-    canisters_to_load.extend_from_slice(extra_canisters.as_slice());
+    let canisters_to_load = add_canisters_with_ids(&required_canisters, &env, &config);
 
     let canisters_to_build = required_canisters
         .into_iter()
@@ -101,4 +94,3 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
 
     Ok(())
 }
-

@@ -5,6 +5,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::named_canister;
+use crate::lib::operations::canister::add_canisters_with_ids;
 use crate::lib::operations::canister::motoko_playground::authorize_asset_uploader;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::util::assets::wallet_wasm;
@@ -30,7 +31,6 @@ use slog::{debug, info, warn};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use crate::lib::operations::canister::{add_canisters_with_ids, canisters_with_assigned_ids};
 
 use super::motoko_playground::playground_install_code;
 
