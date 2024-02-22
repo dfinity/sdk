@@ -34,7 +34,8 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
 
     let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
     let pulled_json = load_pulled_json(&project_root)?;
-    validate_pulled(&pulled_json, &pull_canisters_in_config)?;
+    validate_pulled(&pulled_json, &pull_canisters_in_config)
+        .with_context(|| "Please rerun `dfx deps pull`.")?;
 
     create_init_json_if_not_existed(&project_root)?;
     let mut init_json = load_init_json(&project_root)?;

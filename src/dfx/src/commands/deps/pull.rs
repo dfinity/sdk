@@ -152,7 +152,6 @@ async fn download_and_generate_pulled_canister(
     let pullable = dfx_metadata.get_pullable()?;
 
     let hash_on_chain = get_hash_on_chain(agent, logger, canister_id, pullable).await?;
-
     pulled_canister.wasm_hash = hex::encode(&hash_on_chain);
 
     // skip download if cache hit
@@ -188,17 +187,7 @@ async fn download_and_generate_pulled_canister(
 
         // hash check
         let hash_download = Sha256::digest(&content);
-        if hash_download.as_slice() != hash_on_chain {
-            warn!(
-                logger,
-                "Canister {} has different hash between on chain and download.
-on chain: {}
-download: {}",
-                canister_id,
-                hex::encode(hash_on_chain),
-                hex::encode(hash_download.as_slice())
-            );
-        }
+        pulled_canister.wasm_hash_download = hex::encode(hash_download);
 
         let gzip = decompress_bytes(&content).is_ok();
         pulled_canister.gzip = gzip;
