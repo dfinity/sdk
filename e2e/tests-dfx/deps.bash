@@ -283,7 +283,7 @@ Failed to download from url: http://example.com/c.wasm."
   assert_command dfx deps pull --network local -vvv
   assert_contains "WARN: Canister $CANISTER_ID_C specified both \`wasm_hash\` and \`wasm_hash_url\`. \`wasm_hash\` will be used."
 
-  # warning: hash mismatch
+  # hash mismatch is ok
   rm -r "${PULLED_DIR:?}/"
   cd ../onchain
   cp .dfx/local/canisters/a/a.wasm ../www/a.wasm # now the webserver has the onchain version of canister_a which won't match wasm_hash
@@ -291,7 +291,6 @@ Failed to download from url: http://example.com/c.wasm."
   cd ../app
   assert_command dfx deps pull --network local -vvv
   assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
-  assert_contains "WARN: Canister $CANISTER_ID_A has different hash between on chain and download."
 }
 
 @test "dfx deps init works" {
