@@ -5,7 +5,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::network::network_opt::NetworkOpt;
-use crate::lib::operations::canister::add_canisters_with_ids;
+use crate::lib::operations::canister::all_project_canisters_with_ids;
 use clap::Parser;
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
@@ -52,7 +52,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     let required_canisters = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
-    let canisters_to_load = add_canisters_with_ids(&required_canisters, &env, &config);
+    let canisters_to_load = all_project_canisters_with_ids(&env, &config);
 
     let canisters_to_build = required_canisters
         .into_iter()

@@ -12,7 +12,7 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
 };
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::operations::canister::{
-    add_canisters_with_ids, create_canister, install_canister::install_canister,
+    all_project_canisters_with_ids, create_canister, install_canister::install_canister,
 };
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -128,7 +128,7 @@ pub async fn deploy_canisters(
         info!(env.get_logger(), "All canisters have already been created.");
     }
 
-    let canisters_to_load = add_canisters_with_ids(&canisters_to_deploy, env, &config);
+    let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
     let pool = build_canisters(
         env,

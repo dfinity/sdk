@@ -3,7 +3,6 @@ pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
 
 pub use create_canister::create_canister;
-use std::collections::HashSet;
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -297,50 +296,6 @@ pub fn get_local_cid_and_candid_path(
     ))
 }
 
-pub fn add_canisters_with_ids0(
-    start_with: &[String],
-    env: &dyn Environment,
-    config: &Config,
-) -> Vec<String> {
-    let mut canister_names: HashSet<_> = start_with.iter().cloned().collect();
-
-    if let Ok(store) = env.get_canister_id_store() {
-        if let Some(canisters) = config.get_config().canisters.as_ref() {
-            for canister_name in canisters.keys() {
-                if store.get(canister_name).is_ok() {
-                    canister_names.insert(canister_name.clone());
-                }
-            }
-        }
-    }
-
-    canister_names.into_iter().collect()
-}
-
-pub fn add_canisters_with_ids(
-    _start_with: &[String],
-    env: &dyn Environment,
-    config: &Config,
-) -> Vec<String> {
-    all_project_canisters_with_ids(env, config)
-}
-
-pub fn all_project_canisters_with_ids1(env: &dyn Environment, config: &Config) -> Vec<String> {
-    let mut canister_names: HashSet<_> = HashSet::new();
-
-    if let Ok(store) = env.get_canister_id_store() {
-        if let Some(canisters) = config.get_config().canisters.as_ref() {
-            for canister_name in canisters.keys() {
-                if store.get(canister_name).is_ok() {
-                    canister_names.insert(canister_name.clone());
-                }
-            }
-        }
-    }
-
-    canister_names.into_iter().collect()
-}
-
 pub fn all_project_canisters_with_ids(env: &dyn Environment, config: &Config) -> Vec<String> {
     env.get_canister_id_store()
         .map(|store| {
@@ -358,23 +313,4 @@ pub fn all_project_canisters_with_ids(env: &dyn Environment, config: &Config) ->
                 .unwrap_or_default()
         })
         .unwrap_or_default()
-}
-
-pub fn all_project_canisters_with_ids3(env: &dyn Environment, config: &Config) -> Vec<String> {
-    let mut canister_names: HashSet<_> = HashSet::new();
-
-    if let Ok(store) = env.get_canister_id_store() {
-        if let Some(canisters) = config.get_config().canisters.as_ref() {
-            let canister_names_with_ids = canisters.keys().filter_map(|canister_name| {
-                store.get(canister_name).ok().map(|_| canister_name.clone())
-            });
-            for canister_name in canisters.keys() {
-                if store.get(canister_name).is_ok() {
-                    canister_names.insert(canister_name.clone());
-                }
-            }
-        }
-    }
-
-    canister_names.into_iter().collect()
 }
