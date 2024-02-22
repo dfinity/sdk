@@ -314,3 +314,14 @@ pub fn canisters_with_assigned_ids(env: &dyn Environment, config: &Config) -> Ve
         })
         .unwrap_or_default()
 }
+
+pub fn add_canisters_with_ids(start_with: &[String], env: &dyn Environment, config: &Config) -> Vec<String> {
+    let mut canister_names = start_with.to_vec();
+    let extra_canisters: Vec<_> = canisters_with_assigned_ids(env, config)
+        .into_iter()
+        .filter(|extra| !canister_names.contains(extra))
+        .collect();
+
+    canister_names.extend_from_slice(extra_canisters.as_slice());
+    canister_names
+}
