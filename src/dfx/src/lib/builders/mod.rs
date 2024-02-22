@@ -392,6 +392,9 @@ pub fn get_and_write_environment_variables<'a>(
             ));
         }
     }
+    let canister_names =
+    pool.get_canister_list().iter().map(|c|c.get_name().to_string()).collect::<Vec<String>>();
+    eprintln!("**\n\n\ncanister_names: {:?}\n\n\n**\n", canister_names);
     for canister in pool.get_canister_list() {
         // Insert both suffixed and prefixed versions of the canister name for backwards compatibility
         vars.push((

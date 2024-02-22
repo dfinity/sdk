@@ -4,7 +4,7 @@ pub(crate) mod install_canister;
 pub use create_canister::create_canister;
 
 use crate::lib::canister_info::CanisterInfo;
-use crate::lib::environment::Environment;
+use crate::lib::environment::{AgentEnvironment, Environment};
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
 use anyhow::{bail, Context};
@@ -21,6 +21,7 @@ use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 pub use install_canister::install_wallet;
 use std::path::PathBuf;
+use dfx_core::config::model::dfinity::Config;
 
 pub mod motoko_playground;
 
@@ -292,4 +293,24 @@ pub fn get_local_cid_and_candid_path(
         canister_info.get_canister_id()?,
         canister_info.get_output_idl_path(),
     ))
+}
+
+/// Produces all canister names that have canister IDs assigned
+pub fn canisters_with_assigned_ids(env: &dyn Environment, config: &Config) -> Vec<String> {
+    env.get_canister_id_store()
+        .map(|store| {
+            config
+                .get_config()
+                .canisters
+                .as_ref()
+                .map(|canisters| {
+                    canisters
+                        .keys()
+                        .filter(|canister| store.get(canister).is_ok())
+                        .cloned()
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default()
+        })
+        .unwrap_or_default()
 }

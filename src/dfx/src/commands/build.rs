@@ -9,6 +9,7 @@ use clap::Parser;
 use dfx_core::config::model::dfinity::Config;
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
+use crate::lib::operations::canister::canisters_with_assigned_ids;
 
 /// Builds all or specific canisters from the code in your project. By default, all canisters are built.
 #[derive(Parser)]
@@ -52,7 +53,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     let required_canisters = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
-    let extra_canisters: Vec<_> = collect_extra_canisters(&env, &config)
+    let extra_canisters: Vec<_> = canisters_with_assigned_ids(&env, &config)
         .into_iter()
         .filter(|extra| !required_canisters.contains(extra))
         .collect();
@@ -101,22 +102,3 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     Ok(())
 }
 
-/// Produces all canister names that have canister IDs assigned
-fn collect_extra_canisters(env: &AgentEnvironment, config: &Config) -> Vec<String> {
-    env.get_canister_id_store()
-        .map(|store| {
-            config
-                .get_config()
-                .canisters
-                .as_ref()
-                .map(|canisters| {
-                    canisters
-                        .keys()
-                        .filter(|canister| store.get(canister).is_ok())
-                        .cloned()
-                        .collect::<Vec<_>>()
-                })
-                .unwrap_or_default()
-        })
-        .unwrap_or_default()
-}
