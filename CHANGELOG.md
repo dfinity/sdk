@@ -44,7 +44,7 @@ The `dfx upgrade` command now prints a message directing the user to install dfx
 
 ### fix(deps): init/deploy still requires hash check
 
-`dfx deps pull` recently allows hash mismatch wasm. But `init` and `deploy` weren't change accordingly.
+`dfx deps pull` was recently changed to allow hash mismatch wasm. But `init` and `deploy` weren't change accordingly.
 
 Also the warning of hash mismatch is removed since it scares users and users can't fix it locally.
 
