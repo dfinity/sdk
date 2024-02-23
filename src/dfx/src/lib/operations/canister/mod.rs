@@ -1,7 +1,6 @@
 pub(crate) mod create_canister;
 pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
-
 pub use create_canister::create_canister;
 
 use crate::lib::canister_info::CanisterInfo;
