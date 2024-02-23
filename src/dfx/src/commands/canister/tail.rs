@@ -6,7 +6,6 @@ use candid::Principal;
 use clap::Parser;
 use dfx_core::identity::CallSender;
 use ic_utils::interfaces::management_canister::FetchCanisterLogsResponse;
-use itertools::Itertools;
 use slog::info;
 
 /// Get the canister logs.
@@ -14,10 +13,6 @@ use slog::info;
 pub struct TailOpts {
     /// Specifies the name or id of the canister to get its canister information.
     canister: String,
-}
-
-fn format_bytes(bytes: &[u8]) -> String {
-    format!("[{}]", bytes.iter().map(|&v| v.to_string()).join(", "))
 }
 
 fn format_canister_logs(logs: FetchCanisterLogsResponse) -> Vec<String> {
@@ -29,12 +24,12 @@ fn format_canister_logs(logs: FetchCanisterLogsResponse) -> Vec<String> {
 
             let message = if let Ok(s) = String::from_utf8(r.content.clone()) {
                 if format!("{s:?}").contains("\\u{") {
-                    format_bytes(&r.content)
+                    format!("{:?}", r.content)
                 } else {
                     s
                 }
             } else {
-                format_bytes(&r.content)
+                format!("{:?}", r.content)
             };
 
             format!(
