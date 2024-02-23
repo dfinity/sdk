@@ -55,14 +55,14 @@ teardown() {
   dfx_start
   dfx canister create --all
 
-  writes_all_environment_variables_to_env build
+  assert_dotenv_contains_all_variables_after_command build
 }
 
 @test "deploy writes all environment variables to .env" {
   dfx_start
   dfx canister create --all
 
-  writes_all_environment_variables_to_env deploy
+  assert_dotenv_contains_all_variables_after_command deploy
 }
 
 @test "canister install writes all environment variables to .env" {
@@ -72,10 +72,10 @@ teardown() {
   # set a post-install script so the install will create a .env file
   jq '.canisters.e2e_project_frontend.post_install="echo post install"' dfx.json | sponge dfx.json
 
-  writes_all_environment_variables_to_env canister install
+  assert_dotenv_contains_all_variables_after_command canister install
 }
 
-writes_all_environment_variables_to_env() {
+assert_dotenv_contains_all_variables_after_command() {
   install_asset wasm/identity
   jq '.canisters."nns-cycles-minting".remote.id.local="rkp4c-7iaaa-aaaaa-aaaca-cai"' dfx.json | sponge dfx.json
   jq '.canisters."nns-cycles-minting".type="custom"' dfx.json | sponge dfx.json
