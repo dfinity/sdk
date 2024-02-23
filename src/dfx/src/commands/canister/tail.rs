@@ -20,7 +20,7 @@ fn format_bytes(bytes: &[u8]) -> String {
         "[{}]",
         bytes
             .iter()
-            .map(|&v| format!("{}", v))
+            .map(|&v| v.to_string())
             .collect::<Vec<_>>()
             .join(", ")
     )
