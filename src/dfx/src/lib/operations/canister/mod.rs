@@ -1,10 +1,12 @@
 pub(crate) mod create_canister;
 pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
+pub mod motoko_playground;
 
 pub use create_canister::create_canister;
-use std::collections::HashSet;
+pub use install_canister::install_wallet;
 
+use std::collections::HashSet;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -22,10 +24,7 @@ use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
-pub use install_canister::install_wallet;
 use std::path::PathBuf;
-
-pub mod motoko_playground;
 
 #[context(
     "Failed to call update function '{}' regarding canister '{}'.",
@@ -298,14 +297,14 @@ pub fn get_local_cid_and_candid_path(
 }
 
 pub fn add_canisters_with_ids(
-    start_with: &[String],
+    canister_names: &[String],
     env: &dyn Environment,
     config: &Config,
 ) -> Vec<String> {
-    let mut canister_names: HashSet<_> = start_with.iter().cloned().collect();
+    let mut canister_names: HashSet<_> = canister_names.iter().cloned().collect();
 
     for canister_name in all_project_canisters_with_ids(env, config) {
-        canister_names.insert(canister_name.clone());
+        canister_names.insert(canister_name);
     }
 
     canister_names.into_iter().collect()

@@ -96,6 +96,14 @@ teardown() {
   assert_match "syntax error"
 }
 
+@test "build --check fails on invalid motoko" {
+  install_asset invalid
+  dfx_start
+  # --check does not need create --all
+  assert_command_fail dfx build --check
+  assert_match "syntax error"
+}
+
 @test "build supports relative imports" {
   install_asset import
   dfx_start
