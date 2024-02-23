@@ -15,32 +15,34 @@ pub struct TailOpts {
     canister: String,
 }
 
+fn format_bytes(bytes: &[u8]) -> String {
+    format!(
+        "[{}]",
+        bytes
+            .iter()
+            .map(|&v| format!("{}", v))
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
+}
+
 fn format_canister_logs(logs: FetchCanisterLogsResponse) -> Vec<String> {
     logs.canister_log_records
         .into_iter()
         .map(|r| {
             let time = chrono::NaiveDateTime::from_timestamp_nanos(r.timestamp_nanos as i64)
                 .expect("invalid timestamp");
-            fn format_bytes(bytes: &[u8]) -> String {
-                format!(
-                    "[{}]",
-                    bytes
-                        .iter()
-                        .map(|&v| format!("{}", v))
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )
-            }
-            let message = match String::from_utf8(r.content.clone()) {
-                Ok(s) => {
-                    if format!("{s:?}").contains("\\u{") {
-                        format_bytes(&r.content)
-                    } else {
-                        s
-                    }
+
+            let message = if let Ok(s) = String::from_utf8(r.content.clone()) {
+                if format!("{s:?}").contains("\\u{") {
+                    format_bytes(&r.content)
+                } else {
+                    s
                 }
-                Err(_) => format_bytes(&r.content),
+            } else {
+                format_bytes(&r.content)
             };
+
             format!("[{}. {}]: {}", r.idx, time, message)
         })
         .collect()
