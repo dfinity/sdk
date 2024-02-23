@@ -179,7 +179,7 @@ pub fn get_effective_canister_id(
             | MgmtMethod::ProvisionalTopUpCanister
             | MgmtMethod::UploadChunk
             | MgmtMethod::ClearChunkStore
-            | MgmtMethod::StoredChunks 
+            | MgmtMethod::StoredChunks
             | MgmtMethod::FetchCanisterLogs => {
                 #[derive(CandidType, Deserialize)]
                 struct In {
