@@ -303,9 +303,7 @@ pub fn add_canisters_with_ids(
 ) -> Vec<String> {
     let mut canister_names: HashSet<_> = canister_names.iter().cloned().collect();
 
-    for canister_name in all_project_canisters_with_ids(env, config) {
-        canister_names.insert(canister_name);
-    }
+    canister_names.extend(all_project_canisters_with_ids(env, config));
 
     canister_names.into_iter().collect()
 }
