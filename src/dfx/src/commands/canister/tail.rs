@@ -6,6 +6,7 @@ use candid::Principal;
 use clap::Parser;
 use dfx_core::identity::CallSender;
 use ic_utils::interfaces::management_canister::FetchCanisterLogsResponse;
+use itertools::Itertools;
 use slog::info;
 
 /// Get the canister logs.
@@ -16,14 +17,7 @@ pub struct TailOpts {
 }
 
 fn format_bytes(bytes: &[u8]) -> String {
-    format!(
-        "[{}]",
-        bytes
-            .iter()
-            .map(|&v| v.to_string())
-            .collect::<Vec<_>>()
-            .join(", ")
-    )
+    format!("[{}]", bytes.iter().map(|&v| v.to_string()).join(", "))
 }
 
 fn format_canister_logs(logs: FetchCanisterLogsResponse) -> Vec<String> {
