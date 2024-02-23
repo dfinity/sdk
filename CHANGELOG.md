@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### fix: .env files sometimes missing some canister ids
+
+Made it so `dfx deploy` and `dfx canister install` will always write canister ids for
+all canisters in the project to the .env file, even if they aren't being deployed/installed or
+a dependency of a canister being deployed/installed.
+
 ### feat: unify CLI options to specify arguments
 
 There are a few subcommands that take `--argument`/`--argument-file` options to set canister call/init arguments.
