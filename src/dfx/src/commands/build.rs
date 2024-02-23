@@ -55,7 +55,8 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     //let canisters_to_load = add_canisters_with_ids(&required_canisters, &env, &config);
     let canisters_to_load = all_project_canisters_with_ids(&env, &config);
 
-    let canisters_to_build = required_canisters.clone()
+    let canisters_to_build = required_canisters
+        .clone()
         .into_iter()
         .filter(|canister_name| {
             !config

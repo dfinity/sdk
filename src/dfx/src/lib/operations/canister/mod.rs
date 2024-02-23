@@ -2,8 +2,8 @@ pub(crate) mod create_canister;
 pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
 
-use std::collections::HashSet;
 pub use create_canister::create_canister;
+use std::collections::HashSet;
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
