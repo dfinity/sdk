@@ -1,5 +1,7 @@
+use anyhow::bail;
 use candid::Principal;
 use clap::{ArgGroup, Args};
+use fn_error_context::context;
 
 use crate::lib::{
     cycles_ledger_types::create_canister::{SubnetFilter, SubnetSelection},
@@ -29,24 +31,100 @@ pub struct SubnetSelectionOpt {
 }
 
 impl SubnetSelectionOpt {
-    pub async fn into_subnet_selection(
+    pub async fn into_subnet_selection_type(
         self,
         env: &dyn Environment,
-    ) -> DfxResult<Option<SubnetSelection>> {
+    ) -> DfxResult<SubnetSelectionType> {
         if let Some(sibling) = self.next_to {
             let next_to = Principal::from_text(&sibling)
                 .or_else(|_| env.get_canister_id_store()?.get(&sibling))?;
             let subnet = get_subnet_for_canister(env.get_agent(), next_to).await?;
-            Ok(Some(SubnetSelection::Subnet { subnet }))
+            Ok(SubnetSelectionType::Explicit {
+                user_choice: SubnetSelection::Subnet { subnet },
+            })
+        } else if let Some(subnet_type) = self.subnet_type {
+            Ok(SubnetSelectionType::Explicit {
+                user_choice: SubnetSelection::Filter(SubnetFilter {
+                    subnet_type: Some(subnet_type),
+                }),
+            })
+        } else if let Some(subnet) = self.subnet {
+            Ok(SubnetSelectionType::Explicit {
+                user_choice: SubnetSelection::Subnet { subnet },
+            })
         } else {
-            Ok(self
-                .subnet_type
-                .map(|subnet_type| {
-                    SubnetSelection::Filter(SubnetFilter {
-                        subnet_type: Some(subnet_type),
-                    })
-                })
-                .or_else(|| self.subnet.map(|subnet| SubnetSelection::Subnet { subnet })))
+            Ok(SubnetSelectionType::Automatic {
+                selected_subnet: None,
+            })
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum SubnetSelectionType {
+    Automatic {
+        selected_subnet: Option<SubnetSelection>,
+    },
+    Explicit {
+        user_choice: SubnetSelection,
+    },
+}
+
+impl Default for SubnetSelectionType {
+    fn default() -> Self {
+        Self::Automatic {
+            selected_subnet: None,
+        }
+    }
+}
+
+impl SubnetSelectionType {
+    pub fn get_user_choice(&self) -> Option<SubnetSelection> {
+        match self {
+            SubnetSelectionType::Explicit { user_choice } => Some(user_choice.clone()),
+            _ => None,
+        }
+    }
+
+    #[context("Failed to figure out subnet to create canister on.")]
+    pub async fn resolve(&mut self, env: &dyn Environment) -> DfxResult<Option<SubnetSelection>> {
+        match self {
+            SubnetSelectionType::Explicit { user_choice } => return Ok(Some(user_choice.clone())),
+            SubnetSelectionType::Automatic {
+                selected_subnet: Some(resolved_subnet_selection),
+            } => return Ok(Some(resolved_subnet_selection.clone())),
+            SubnetSelectionType::Automatic {
+                selected_subnet: None,
+            } => { /* proceed with resolving a selection below */ }
+        }
+
+        let canisters = env.get_canister_id_store()?.non_remote_ids();
+        let subnets: Vec<_> = futures::future::try_join_all(
+            canisters
+                .into_iter()
+                .map(|canister| get_subnet_for_canister(env.get_agent(), canister.clone())),
+        )
+        .await?;
+
+        let mut subnet_iter = subnets.into_iter();
+        let mut selected_subnet = None;
+        loop {
+            match subnet_iter.next() {
+                None => match selected_subnet {
+                    None => return Ok(None),
+                    Some(subnet) => {
+                        let selection = SubnetSelection::Subnet { subnet };
+                        *self = Self::Automatic {
+                            selected_subnet: Some(selection.clone()),
+                        };
+                        return Ok(Some(selection));
+                    }
+                },
+                Some(new_subnet) => match selected_subnet {
+                    None => selected_subnet = Some(new_subnet),
+                    Some(_) => bail!("Cannot automatically decide which subnet to target. Please explicitly specify --subnet or --subnet-type."),
+                },
+            }
         }
     }
 }

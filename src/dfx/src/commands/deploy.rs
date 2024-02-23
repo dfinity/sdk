@@ -134,7 +134,8 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         .context("Failed to parse InstallMode.")?;
     let config = env.get_config_or_anyhow()?;
     let env_file = config.get_output_env_file(opts.output_env_file)?;
-    let subnet_selection = runtime.block_on(opts.subnet_selection.into_subnet_selection(&env))?;
+    let mut subnet_selection =
+        runtime.block_on(opts.subnet_selection.into_subnet_selection_type(&env))?;
     let with_cycles = opts.with_cycles;
 
     let deploy_mode = match (mode, canister_name) {
@@ -191,7 +192,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         opts.yes,
         env_file,
         opts.no_asset_upgrade,
-        subnet_selection,
+        &mut subnet_selection,
     ))?;
 
     if matches!(deploy_mode, NormalDeploy | ForceReinstallSingleCanister(_)) {

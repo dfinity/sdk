@@ -1,5 +1,5 @@
 use crate::lib::cycles_ledger_types::create_canister::{
-    CmcCreateCanisterArgs, CmcCreateCanisterError, SubnetSelection,
+    CmcCreateCanisterArgs, CmcCreateCanisterError,
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -8,6 +8,7 @@ use crate::lib::identity::wallet::{get_or_create_wallet_canister, GetOrCreateWal
 use crate::lib::ledger_types::MAINNET_CYCLE_MINTER_CANISTER_ID;
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::operations::cycles_ledger::{create_with_cycles_ledger, CYCLES_LEDGER_ENABLED};
+use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
@@ -42,7 +43,7 @@ pub async fn create_canister(
     from_subaccount: Option<Subaccount>,
     settings: DfxCanisterSettings,
     created_at_time: Option<u64>,
-    subnet_selection: Option<SubnetSelection>,
+    subnet_selection: &mut SubnetSelectionType,
 ) -> DfxResult {
     let log = env.get_logger();
     info!(log, "Creating canister {}...", canister_name);
@@ -244,14 +245,14 @@ async fn create_with_wallet(
     wallet_id: &Principal,
     with_cycles: Option<u128>,
     settings: DfxCanisterSettings,
-    subnet_selection: Option<SubnetSelection>,
+    subnet_selection: &SubnetSelectionType,
 ) -> DfxResult<Principal> {
     let wallet = build_wallet_canister(*wallet_id, agent).await?;
     let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
 
-    if let Some(subnet_selection) = subnet_selection {
+    if let Some(subnet_selection) = subnet_selection.get_user_choice() {
         // `wallet_create_canister` only calls the management canister, which means that canisters only get created on the subnet the wallet is on.
-        // For any other targeting we need to use the CMC.
+        // For any explicit targeting we need to use the CMC.
 
         let settings = if settings.controllers.is_some() {
             settings

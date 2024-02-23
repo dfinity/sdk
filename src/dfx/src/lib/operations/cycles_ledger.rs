@@ -3,7 +3,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::lib::cycles_ledger_types;
 use crate::lib::cycles_ledger_types::create_canister::{
     CmcCreateCanisterArgs, CreateCanisterArgs, CreateCanisterError, CreateCanisterSuccess,
-    SubnetSelection,
 };
 use crate::lib::cycles_ledger_types::deposit::DepositArg;
 use crate::lib::cycles_ledger_types::send::SendError;
@@ -14,12 +13,12 @@ use crate::lib::operations::canister::create_canister::{
     CANISTER_CREATE_FEE, CANISTER_INITIAL_CYCLE_BALANCE,
 };
 use crate::lib::retryable::retryable;
+use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use backoff::future::retry;
 use backoff::ExponentialBackoff;
 use candid::{Decode, Encode, Nat, Principal};
 use dfx_core::canister::build_wallet_canister;
-use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::call::SyncCall;
@@ -27,7 +26,6 @@ use ic_utils::{Argument, Canister};
 use icrc_ledger_types::icrc1;
 use icrc_ledger_types::icrc1::account::{Account, Subaccount};
 use icrc_ledger_types::icrc1::transfer::{BlockIndex, TransferError};
-use itertools::Itertools;
 use slog::{info, Logger};
 
 /// Cycles ledger feature flag to turn off behavior that would be confusing while cycles ledger is not enabled yet.
@@ -202,14 +200,10 @@ pub async fn create_with_cycles_ledger(
     from_subaccount: Option<Subaccount>,
     settings: DfxCanisterSettings,
     created_at_time: Option<u64>,
-    subnet_selection: Option<SubnetSelection>,
+    subnet_selection: &mut SubnetSelectionType,
 ) -> DfxResult<Principal> {
     let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
-    let subnet_selection = if subnet_selection.is_some() {
-        subnet_selection
-    } else {
-        get_subnet_selection_from_existing_canisters(env.get_canister_id_store()?).await?
-    };
+    let resolved_subnet_selection = subnet_selection.resolve(env).await?;
     let created_at_time = created_at_time.or_else(|| {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -228,7 +222,7 @@ pub async fn create_with_cycles_ledger(
         amount: cycles,
         creation_args: Some(CmcCreateCanisterArgs {
             settings: Some(settings.into()),
-            subnet_selection,
+            subnet_selection: resolved_subnet_selection,
         }),
     })
     .unwrap();
@@ -293,14 +287,6 @@ pub async fn wallet_deposit_to_cycles_ledger(
         .call_and_wait()
         .await
         .context("Failed deposit call.")
-}
-
-pub async fn get_subnet_selection_from_existing_canisters(
-    store: CanisterIdStore,
-) -> DfxResult<Option<SubnetSelection>> {
-    let existing_ids = store.non_remote_ids();
-
-    todo!()
 }
 
 #[test]
