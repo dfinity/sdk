@@ -6,7 +6,6 @@ pub mod motoko_playground;
 pub use create_canister::create_canister;
 pub use install_canister::install_wallet;
 
-use std::collections::HashSet;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -24,6 +23,7 @@ use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 #[context(
