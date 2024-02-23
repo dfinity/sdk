@@ -214,6 +214,7 @@ pub trait CanisterBuilder {
                 .join(info.get_name())
                 .with_extension("did");
             dfx_core::fs::copy(&did_from_build, &output_did_path)?;
+            dfx_core::fs::set_permissions_readwrite(&output_did_path)?;
             eprintln!("  {}", &output_did_path.display());
         }
 
