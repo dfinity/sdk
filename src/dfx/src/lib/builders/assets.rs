@@ -139,7 +139,6 @@ impl CanisterBuilder for AssetsBuilder {
         Ok(())
     }
 
-    #[context("Failed to generate idl for canister '{}'.", info.get_name())]
     fn get_candid_path(
         &self,
         _pool: &CanisterPool,
