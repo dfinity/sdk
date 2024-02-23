@@ -43,7 +43,12 @@ fn format_canister_logs(logs: FetchCanisterLogsResponse) -> Vec<String> {
                 format_bytes(&r.content)
             };
 
-            format!("[{}. {}]: {}", r.idx, time, message)
+            format!(
+                "[{}. {}]: {}",
+                r.idx,
+                time.format("%Y-%m-%d %H:%M:%S%.3f"),
+                message
+            )
         })
         .collect()
 }
@@ -56,12 +61,12 @@ fn test_format_canister_logs() {
         canister_log_records: vec![
             CanisterLogRecord {
                 idx: 42,
-                timestamp_nanos: 1620328630000000001,
-                content: b"some text message".to_vec(),
+                timestamp_nanos: 1620328630000000000,
+                content: b"Some text message".to_vec(),
             },
             CanisterLogRecord {
                 idx: 43,
-                timestamp_nanos: 1620328630000000002,
+                timestamp_nanos: 1620328630001000000,
                 content: vec![1, 2, 3],
             },
         ],
@@ -69,8 +74,8 @@ fn test_format_canister_logs() {
     assert_eq!(
         format_canister_logs(logs),
         vec![
-            "[42. 2021-05-06 19:17:10.000000001]: some text message".to_string(),
-            "[43. 2021-05-06 19:17:10.000000002]: [1, 2, 3]".to_string(),
+            "[42. 2021-05-06 19:17:10.000]: Some text message".to_string(),
+            "[43. 2021-05-06 19:17:10.001]: [1, 2, 3]".to_string(),
         ],
     );
 }
