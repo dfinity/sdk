@@ -70,7 +70,7 @@ async fn migrate_wallet(
                 agent,
                 *wallet.canister_id_(),
                 InstallMode::Upgrade {
-                    skip_pre_upgrade: false,
+                    skip_pre_upgrade: Some(false),
                 },
             )
             .await?
