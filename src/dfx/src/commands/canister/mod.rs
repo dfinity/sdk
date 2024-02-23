@@ -23,6 +23,7 @@ mod status;
 mod stop;
 mod uninstall_code;
 mod update_settings;
+pub mod url;
 
 /// Manages canisters deployed on a network replica.
 #[derive(Parser)]
@@ -58,11 +59,12 @@ pub enum SubCommand {
     Stop(stop::CanisterStopOpts),
     UninstallCode(uninstall_code::UninstallCodeOpts),
     UpdateSettings(update_settings::UpdateSettingsOpts),
+    Url(url::CanisterURLOpts),
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env;
-    let env = if matches!(&opts.subcmd, SubCommand::Id(_)) {
+    let env = if matches!(&opts.subcmd, SubCommand::Id(_) | SubCommand::Url(_)) {
         env
     } else {
         agent_env = create_agent_environment(env, opts.network.to_network_name())?;
@@ -90,6 +92,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Stop(v) => stop::exec(env, v, &call_sender).await,
             SubCommand::UninstallCode(v) => uninstall_code::exec(env, v, &call_sender).await,
             SubCommand::UpdateSettings(v) => update_settings::exec(env, v, &call_sender).await,
+            SubCommand::Url(v) => url::exec(env, v),
         }
     })
 }
