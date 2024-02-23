@@ -12,7 +12,7 @@ Note that you can only run this command from within the project directory struct
 
 ## Basic usage
 
-``` bash
+```bash
 dfx deploy [options] [canister_name]
 ```
 
@@ -20,21 +20,22 @@ dfx deploy [options] [canister_name]
 
 You can use the following options with the `dfx deploy` command.
 
-| Option                             | Description                                                                                                                                                                                                                                                 |
-|------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--network <network>`              | Overrides the environment to connect to. By default, the local canister execution environment is used.                                                                                                                                                      |
-| `--playground       `              | Alias for `--network playground`. By default, canisters on this network are borrowed from the Motoko Playground.                                                                                                                                            |
-| `--ic               `              | Alias for `--network ic`.                                                                                                                                                                                                                                   |
-| `--argument <argument>`            | Specifies an argument to pass to the canister during installation.                                                                                                                                                                                          |
-| `--argument-type <argument-type>`  | Specifies the data type for the argument when making the call using an argument [possible values: idl, raw]                                                                                                                                                 |
-| `--argument-file <argument-file>`  | Specifies the file from which to read the argument to pass to the init method.  Stdin may be referred to as `-`.                                                                                                                                            |
-| `--with-cycles <number-of-cycles>` | Enables you to specify the initial number of cycles for a canister in a project.                                                                                                                                                                            |
-| `--specified-id <PRINCIPAL>`       | Attempts to create the canister with this Canister ID                                                                                                                                                                                                       |
-| `--by-proposal`                    | Upload proposed changed assets, but do not commit them.  Follow up by calling either commit_proposed_batch() or delete_batch().                                                                                                                             |
-| `--compute-evidence`               | Build a frontend canister, determine batch operations required to synchronize asset canister contents, and compute a hash over those operations.  Displays this hash ("evidence"), which should match the evidence displayed by `dfx deploy --by-proposal`. |
-| `--subnet-type <subnet-type>`      | Specify the subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                                                                                                      |
-| `--subnet <subnet-principal>`      | Specify the subnet to create the canister on. If no subnet is provided, the canister will be created on a random default application subnet.                                                                                                                |
-| `--next-to <canister-principal>`   | Create canisters on the same subnet as this canister.                                                                                                                                                                                                       |
+| Option                             | Description                                                                                                                                                                                                                                                |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--network <network>`              | Overrides the environment to connect to. By default, the local canister execution environment is used.                                                                                                                                                     |
+| `--playground       `              | Alias for `--network playground`. By default, canisters on this network are borrowed from the Motoko Playground.                                                                                                                                           |
+| `--ic               `              | Alias for `--network ic`.                                                                                                                                                                                                                                  |
+| `--argument <argument>`            | Specifies an argument to pass to the canister during installation.                                                                                                                                                                                         |
+| `--argument-type <argument-type>`  | Specifies the data type for the argument when making the call using an argument [possible values: idl, raw]                                                                                                                                                |
+| `--argument-file <argument-file>`  | Specifies the file from which to read the argument to pass to the init method. Stdin may be referred to as `-`.                                                                                                                                            |
+| `--with-cycles <number-of-cycles>` | Enables you to specify the initial number of cycles for a canister in a project.                                                                                                                                                                           |
+| `--specified-id <PRINCIPAL>`       | Attempts to create the canister with this Canister ID                                                                                                                                                                                                      |
+| `--by-proposal`                    | Upload proposed changed assets, but do not commit them. Follow up by calling either commit_proposed_batch() or delete_batch().                                                                                                                             |
+| `--compute-evidence`               | Build a frontend canister, determine batch operations required to synchronize asset canister contents, and compute a hash over those operations. Displays this hash ("evidence"), which should match the evidence displayed by `dfx deploy --by-proposal`. |
+| `--subnet-type <subnet-type>`      | Specify the subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                                                                                                     |
+| `--subnet <subnet-principal>`      | Specify the subnet to create the canister on. If no subnet is provided, the canister will be created on a random default application subnet.                                                                                                               |
+| `--next-to <canister-principal>`   | Create canisters on the same subnet as this canister.                                                                                                                                                                                                      |
+| `--open`                           | Automatically open the browser after deployment.                                                                                                                                                                                                           |
 
 ### Specifies the argument to pass to the init entrypoint
 
@@ -45,7 +46,7 @@ With `--argument-type`, you can specify the data format for the argument when yo
 You can specify the following arguments for the `dfx deploy` command.
 
 | Argument        | Description                                                                                                                                                                                                                                                                                                                                    |
-|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `canister_name` | Specifies the name of the canister you want to register, build, and deploy. Note that the canister name you specify must match at least one name in the `canisters` section of the `dfx.json` configuration file for the project. If you don’t specify a canister name, `dfx deploy` will deploy all canisters defined in the `dfx.json` file. |
 
 ## Examples
@@ -54,13 +55,13 @@ You can use the `dfx deploy` command to deploy all or specific canisters on the 
 
 For example, to deploy the `hello` project on the hypothetical `ic-pubs` testnet configured in the `dfx.json` configuration file, you can run the following command:
 
-``` bash
+```bash
 dfx deploy hello_backend --network ic-pubs
 ```
 
 To deploy a project on the local canister execution environment and pass a single argument to the installation step, you can run a command similar to the following:
 
-``` bash
+```bash
 dfx deploy hello_actor_class --argument '("from DFINITY")'
 ```
 
@@ -74,6 +75,6 @@ Note that currently you must use an actor class in your Motoko dapp. In this exa
 
 You can use the `dfx deploy` command with the `--with-cycles` option to specify the initial balance of a canister created by your wallet. If you don’t specify a canister, the number of cycles you specify will be added to all canisters by default. To avoid this, specify a specific canister by name. For example, to add an initial balance of 8000000000000 cycles to a canister called "hello-assets", run the following command:
 
-``` bash
+```bash
 dfx deploy --with-cycles 8000000000000 hello-assets
 ```
