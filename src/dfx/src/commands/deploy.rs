@@ -112,6 +112,10 @@ pub struct DeployOpts {
 
     #[command(flatten)]
     subnet_selection: SubnetSelectionOpt,
+
+    /// Automatically open the browser after deployment.
+    #[arg(long)]
+    open: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -193,12 +197,12 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     ))?;
 
     if matches!(deploy_mode, NormalDeploy | ForceReinstallSingleCanister(_)) {
-        display_urls(&env)?;
+        display_urls(&env, opts.open)?;
     }
     Ok(())
 }
 
-fn display_urls(env: &dyn Environment) -> DfxResult {
+fn display_urls(env: &dyn Environment, open_in_browser: bool) -> DfxResult {
     let config = env.get_config_or_anyhow()?;
     let network: &NetworkDescriptor = env.get_network_descriptor();
     let log = env.get_logger();
@@ -248,13 +252,25 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
         if !frontend_urls.is_empty() {
             info!(log, "  Frontend canister via browser");
             for (name, url) in frontend_urls {
-                info!(log, "    {}: {}", name, green.apply_to(url));
+                info!(log, "    {}: {}", name, green.apply_to(&url));
+
+                if open_in_browser {
+                    if let Err(e) = webbrowser::open(url.as_str()) {
+                        info!(log, "Failed to open browser: {}", e);
+                    }
+                }
             }
         }
         if !candid_urls.is_empty() {
             info!(log, "  Backend canister via Candid interface:");
             for (name, url) in candid_urls {
-                info!(log, "    {}: {}", name, green.apply_to(url));
+                info!(log, "    {}: {}", name, green.apply_to(&url));
+
+                if open_in_browser {
+                    if let Err(e) = webbrowser::open(url.as_str()) {
+                        info!(log, "Failed to open browser: {}", e);
+                    }
+                }
             }
         }
     }
