@@ -52,9 +52,10 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     let required_canisters = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
+    //let canisters_to_load = add_canisters_with_ids(&required_canisters, &env, &config);
     let canisters_to_load = all_project_canisters_with_ids(&env, &config);
 
-    let canisters_to_build = required_canisters
+    let canisters_to_build = required_canisters.clone()
         .into_iter()
         .filter(|canister_name| {
             !config
@@ -76,9 +77,8 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
         // CanisterIds would have been set in CanisterPool::load, if available.
         // This is just to display an error if trying to build before creating the canister.
         let store = env.get_canister_id_store()?;
-        for canister in canister_pool.get_canister_list() {
-            let canister_name = canister.get_name();
-            store.get(canister_name)?;
+        for canister_name in required_canisters {
+            store.get(&canister_name)?;
         }
     }
 

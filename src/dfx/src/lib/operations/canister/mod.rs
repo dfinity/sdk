@@ -1,6 +1,8 @@
 pub(crate) mod create_canister;
 pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
+
+use std::collections::HashSet;
 pub use create_canister::create_canister;
 
 use crate::lib::canister_info::CanisterInfo;
@@ -293,6 +295,20 @@ pub fn get_local_cid_and_candid_path(
         canister_info.get_canister_id()?,
         canister_info.get_output_idl_path(),
     ))
+}
+
+pub fn add_canisters_with_ids(
+    start_with: &[String],
+    env: &dyn Environment,
+    config: &Config,
+) -> Vec<String> {
+    let mut canister_names: HashSet<_> = start_with.iter().cloned().collect();
+
+    for canister_name in all_project_canisters_with_ids(env, config) {
+        canister_names.insert(canister_name.clone());
+    }
+
+    canister_names.into_iter().collect()
 }
 
 pub fn all_project_canisters_with_ids(env: &dyn Environment, config: &Config) -> Vec<String> {
