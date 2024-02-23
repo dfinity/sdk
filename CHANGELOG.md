@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: add `dfx canister tail <canister_id>` for fetching canister's logs
+
+There is a new subcomand `tail` to fetch canister's logs. 
+When printing the log entries it tries to guess if the content can be converted to UTF-8 text and prints an array of bytes if it fails.
+
 ### feat: unify CLI options to specify arguments
 
 There are a few subcommands that take `--argument`/`--argument-file` options to set canister call/init arguments.
@@ -1591,7 +1596,7 @@ Additionally, after build step, the `.wasm` file is archived with `gzip`.
 ### chore: Move all `frontend canister`-related code into the SDK repo
 
 | from (`repository` `path`)                  | to (path in `dfinity/sdk` repository)          | summary                                                                                     |
-|:--------------------------------------------|:-----------------------------------------------|:--------------------------------------------------------------------------------------------|
+| :------------------------------------------ | :--------------------------------------------- | :------------------------------------------------------------------------------------------ |
 | `dfinity/cdk-rs` `/src/ic-certified-assets` | `/src/canisters/frontend/ic-certified-asset`   | the core of the frontend canister                                                           |
 | `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-frontend-canister` | wraps `ic-certified-assets` to build the canister wasm                                      |
 | `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`             | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |
