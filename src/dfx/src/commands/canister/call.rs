@@ -141,7 +141,11 @@ pub fn get_effective_canister_id(
             )
         })?;
         match method_name {
-            MgmtMethod::CreateCanister | MgmtMethod::RawRand => {
+            MgmtMethod::CreateCanister | MgmtMethod::RawRand
+            | MgmtMethod::BitcoinGetBalance | MgmtMethod::BitcoinGetBalanceQuery
+            | MgmtMethod::BitcoinGetUtxos | MgmtMethod::BitcoinGetUtxosQuery
+            | MgmtMethod::BitcoinSendTransaction | MgmtMethod::BitcoinGetCurrentFeePercentiles
+            | MgmtMethod::EcdsaPublicKey | MgmtMethod::SignWithEcdsa => {
                 Err(DiagnosedError::new(
                     format!(
                         "{} can only be called by a canister, not by an external user.",

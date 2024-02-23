@@ -27,6 +27,12 @@ This means commands like the following will work again:
 curl -v --http2-prior-knowledge "http://localhost:$(dfx info webserver-port)/api/v2/status" --output -
 ```
 
+### feat: `dfx cycles approve` and `transfer --from`
+
+It is now possible to approve other principals to spend cycles on your behalf using `dfx cycles approve <spender> <amount>`.
+`dfx cycles transfer` now also supports `--from`, `--from-subaccount`, and `--spender-subaccount`.
+For detailed explanations on how these fields work please refer to the [ICRC-2 specification](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-2/README.md).
+
 ### feat: cut over to dfxvm
 
 The script at https://internetcomputer.org/install.sh now installs
@@ -35,6 +41,12 @@ the [dfxvm version manager](https://github.com/dfinity/dfxvm) instead of the dfx
 ### fix!: removed the `dfx upgrade` command
 
 The `dfx upgrade` command now prints a message directing the user to install dfxvm.
+
+### fix(deps): init/deploy still requires hash check
+
+`dfx deps pull` was recently changed to allow hash mismatch wasm. But `init` and `deploy` weren't change accordingly.
+
+Also the warning of hash mismatch is removed since it scares users and users can't fix it locally.
 
 # 0.17.0
 
