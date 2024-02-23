@@ -55,6 +55,10 @@ The `dfx upgrade` command now prints a message directing the user to install dfx
 
 Also the warning of hash mismatch is removed since it scares users and users can't fix it locally.
 
+### fix(generate): Rust canister source candid wrongly deleted
+
+Fixed a bug where `dfx generate` would delete a canister's source candid file if the `declarations.bindings` in `dfx.json` did not include "did".
+
 # 0.17.0
 
 ### feat: new starter templates
