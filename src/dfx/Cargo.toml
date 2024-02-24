@@ -28,6 +28,7 @@ toml = "0.7.3"
 walkdir = "2.3.2"
 
 [dependencies]
+webbrowser = "0.8.12"
 actix = "0.13.0"
 aes-gcm.workspace = true
 anstyle.workspace = true

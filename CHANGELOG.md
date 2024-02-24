@@ -2,12 +2,17 @@
 
 # UNRELEASED
 
+### feat: add --open flag to dfx deploy
+
+The `--open` flag will open the browser to the canister's URL after deployment.
+
 ### fix: .env files sometimes missing some canister ids
 
 Made it so `dfx deploy` and `dfx canister install` will always write 
 environment variables for all canisters in the project that have canister ids
 to the .env file, even if they aren't being deployed/installed
 or a dependency of a canister being deployed/installed.
+
 
 ### feat: unify CLI options to specify arguments
 
