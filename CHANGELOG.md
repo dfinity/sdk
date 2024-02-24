@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: add --open flag to dfx deploy
+
+The `--open` flag will open the browser to the canister's URL after deployment.
+
 ### feat: unify CLI options to specify arguments
 
 There are a few subcommands that take `--argument`/`--argument-file` options to set canister call/init arguments.
