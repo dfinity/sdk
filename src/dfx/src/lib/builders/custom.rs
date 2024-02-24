@@ -144,36 +144,15 @@ impl CanisterBuilder for CustomBuilder {
         })
     }
 
-    fn generate_idl(
+    fn get_candid_path(
         &self,
         pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
-        let generate_output_dir = &info
-            .get_declarations_config()
-            .output
-            .as_ref()
-            .context("output here must not be None")?;
-
-        std::fs::create_dir_all(generate_output_dir).with_context(|| {
-            format!(
-                "Failed to create {}.",
-                generate_output_dir.to_string_lossy()
-            )
-        })?;
-
-        let output_idl_path = generate_output_dir
-            .join(info.get_name())
-            .with_extension("did");
-
         // get the path to candid file
         let CustomBuilderExtra { candid, .. } = CustomBuilderExtra::try_from(info, pool)?;
-
-        dfx_core::fs::copy(&candid, &output_idl_path)?;
-        dfx_core::fs::set_permissions_readwrite(&output_idl_path)?;
-
-        Ok(output_idl_path)
+        Ok(candid)
     }
 }
 

@@ -148,3 +148,10 @@ teardown() {
   assert_command dfx generate --help
   assert_not_contains "--network"
 }
+
+@test "dfx generate does not delete source candid file of Rust canister when bindings contains no did" {
+  dfx_new_rust hello
+  jq '.canisters.hello_backend.declarations.bindings=["js"]' dfx.json | sponge dfx.json
+  assert_command dfx generate
+  assert_file_exists "src/hello_backend/hello_backend.did"
+}
