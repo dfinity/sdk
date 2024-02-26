@@ -23,7 +23,7 @@ teardown() {
   APP_ID=$(dfx canister id e2e_project_backend)
   ASSETS_ID=$(dfx canister id e2e_project_frontend)
   assert_match "e2e_project_backend: http://127.0.0.1:$PORT/\?canisterId=$CANDID_UI_ID&id=$APP_ID"
-  assert_match "e2e_project_frontend: http://127.0.0.1:$PORT/\?canisterId=$ASSETS_ID"
+  assert_match "http://127.0.0.1:$PORT/\?canisterId=$ASSETS_ID"
 
   # the urls are a little nicer if the bind address is localhost:8000 rather than 127.0.0.1:8000
   jq -n '.local.bind="localhost:'"$PORT"'"' >"$E2E_NETWORKS_JSON"

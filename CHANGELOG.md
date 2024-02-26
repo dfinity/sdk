@@ -2,6 +2,13 @@
 
 # UNRELEASED
 
+### feat: display local asset canister URLs in subdomain format
+
+Locally, canisters can either be accessed via `<canister_id>.localhost:<port>` or `localhost:<port>?canisterId=<canister_id>`.
+The query parameter format is annoying to handle in SPAs, therefore the subdomain format is now displayed alongside the subdomain version after deployments.
+
+The query parameter format is not removed because Safari does not support localhost subdomains.
+
 ### fix: .env files sometimes missing some canister ids
 
 Made it so `dfx deploy` and `dfx canister install` will always write 
