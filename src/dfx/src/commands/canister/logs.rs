@@ -62,7 +62,7 @@ fn test_format_canister_logs() {
             CanisterLogRecord {
                 idx: 43,
                 timestamp_nanos: 1_620_328_630_000_000_002,
-                content: vec![12, 0, 15, 15, 14, 14],
+                content: vec![192, 255, 238],
             },
         ],
     };
@@ -70,7 +70,7 @@ fn test_format_canister_logs() {
         format_canister_logs(logs),
         vec![
             "[42. 2021-05-06T19:17:10.000000001Z]: Some text message".to_string(),
-            "[43. 2021-05-06T19:17:10.000000002Z]: (bytes) 0x0c000f0f0e0e".to_string(),
+            "[43. 2021-05-06T19:17:10.000000002Z]: (bytes) 0xc0ffee".to_string(),
         ],
     );
 }
