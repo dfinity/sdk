@@ -3,11 +3,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::get_local_cid_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::parsers::{cycle_amount_parser, file_or_stdin_parser};
-use crate::util::{
-    arguments_from_file, blob_from_arguments, fetch_remote_did_file, get_candid_type,
-    print_idl_blob,
-};
+use crate::util::clap::argument_from_cli::ArgumentFromCliPositionalOpt;
+use crate::util::clap::parsers::cycle_amount_parser;
+use crate::util::{blob_from_arguments, fetch_remote_did_file, get_candid_type, print_idl_blob};
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::{CandidType, Decode, Deserialize, Principal};
@@ -36,6 +34,9 @@ pub struct CanisterCallOpts {
     /// Specifies the method name to call on the canister.
     method_name: String,
 
+    #[command(flatten)]
+    argument_from_cli: ArgumentFromCliPositionalOpt,
+
     /// Specifies not to wait for the result of the call to be returned by polling the replica.
     /// Instead return a response ID.
     #[arg(long)]
@@ -49,26 +50,9 @@ pub struct CanisterCallOpts {
     #[arg(long, conflicts_with("async"), conflicts_with("query"))]
     update: bool,
 
-    /// Specifies the argument to pass to the method.
-    #[arg(conflicts_with("random"), conflicts_with("argument_file"))]
-    argument: Option<String>,
-
-    /// Specifies the file from which to read the argument to pass to the method.
-    #[arg(
-        long,
-        value_parser = file_or_stdin_parser,
-        conflicts_with("random"),
-        conflicts_with("argument")
-    )]
-    argument_file: Option<PathBuf>,
-
     /// Specifies the config for generating random argument.
     #[arg(long, conflicts_with("argument"), conflicts_with("argument_file"))]
     random: Option<String>,
-
-    /// Specifies the data type for the argument when making the call using an argument.
-    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
-    r#type: Option<String>,
 
     /// Specifies the format for displaying the method's return result.
     #[arg(long, conflicts_with("async"),
@@ -157,7 +141,11 @@ pub fn get_effective_canister_id(
             )
         })?;
         match method_name {
-            MgmtMethod::CreateCanister | MgmtMethod::RawRand => {
+            MgmtMethod::CreateCanister | MgmtMethod::RawRand
+            | MgmtMethod::BitcoinGetBalance | MgmtMethod::BitcoinGetBalanceQuery
+            | MgmtMethod::BitcoinGetUtxos | MgmtMethod::BitcoinGetUtxosQuery
+            | MgmtMethod::BitcoinSendTransaction | MgmtMethod::BitcoinGetCurrentFeePercentiles
+            | MgmtMethod::EcdsaPublicKey | MgmtMethod::SignWithEcdsa => {
                 Err(DiagnosedError::new(
                     format!(
                         "{} can only be called by a canister, not by an external user.",
@@ -270,14 +258,8 @@ pub async fn exec(
 
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
-    let arguments_from_file = opts
-        .argument_file
-        .map(|v| arguments_from_file(&v))
-        .transpose()?;
-    let arguments = opts.argument.as_deref();
-    let arguments = arguments_from_file.as_deref().or(arguments);
+    let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument_and_type()?;
 
-    let arg_type = opts.r#type.as_deref();
     let output_type = opts.output.as_deref();
     let is_query = if opts.r#async {
         false
@@ -301,7 +283,14 @@ pub async fn exec(
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
-    let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)?;
+    let arg_value = blob_from_arguments(
+        Some(env),
+        argument_from_cli.as_deref(),
+        opts.random.as_deref(),
+        argument_type.as_deref(),
+        &method_type,
+        false,
+    )?;
 
     // amount has been validated by cycle_amount_validator
     let cycles = opts.with_cycles.unwrap_or(0);

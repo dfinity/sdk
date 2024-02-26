@@ -106,7 +106,7 @@ impl CanisterBuilder for RustBuilder {
         })
     }
 
-    fn generate_idl(
+    fn get_candid_path(
         &self,
         _pool: &CanisterPool,
         info: &CanisterInfo,
@@ -114,13 +114,6 @@ impl CanisterBuilder for RustBuilder {
     ) -> DfxResult<PathBuf> {
         let rust_info = info.as_info::<RustCanisterInfo>()?;
         let output_idl_path = rust_info.get_output_idl_path();
-        if output_idl_path.exists() {
-            Ok(output_idl_path.to_path_buf())
-        } else {
-            bail!(
-                "Candid file: {} doesn't exist.",
-                output_idl_path.to_string_lossy()
-            );
-        }
+        Ok(output_idl_path.to_path_buf())
     }
 }

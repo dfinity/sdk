@@ -8,6 +8,7 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
+use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
 use anyhow::{anyhow, bail, Context};
@@ -37,13 +38,8 @@ pub struct DeployOpts {
     /// If you don’t specify a canister name, all canisters defined in the dfx.json file are deployed.
     canister_name: Option<String>,
 
-    /// Specifies the argument to pass to the method.
-    #[arg(long, requires("canister_name"))]
-    argument: Option<String>,
-
-    /// Specifies the data type for the argument when making the call using an argument.
-    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
-    argument_type: Option<String>,
+    #[command(flatten)]
+    argument_from_cli: ArgumentFromCliLongOpt,
 
     /// Force the type of deployment to be reinstall, which overwrites the module.
     /// In other words, this erases all data in the canister.
@@ -124,8 +120,10 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     let canister_name = opts.canister_name.as_deref();
-    let argument = opts.argument.as_deref();
-    let argument_type = opts.argument_type.as_deref();
+    let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument_and_type()?;
+    if argument_from_cli.is_some() && canister_name.is_none() {
+        bail!("The init argument can only be set when deploying a single canister.");
+    }
     let mode = opts
         .mode
         .as_deref()
@@ -179,8 +177,8 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     runtime.block_on(deploy_canisters(
         &env,
         canister_name,
-        argument,
-        argument_type,
+        argument_from_cli.as_deref(),
+        argument_type.as_deref(),
         &deploy_mode,
         opts.upgrade_unchanged,
         with_cycles,

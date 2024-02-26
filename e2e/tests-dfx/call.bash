@@ -39,6 +39,12 @@ teardown() {
   assert_eq '(record { c = "A"; d = "B" })'
 }
 
+@test "call without argument, using candid assistant" {
+  install_asset echo
+  dfx_start
+  assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/candid_assist.exp"
+}
+
 @test "call subcommand accepts canister identifier as canister name" {
   install_asset greet
   dfx_start
@@ -47,6 +53,17 @@ teardown() {
   dfx canister install hello_backend
   assert_command dfx canister call "$(dfx canister id hello_backend)" greet '("Names are difficult")'
   assert_match '("Hello, Names are difficult!")'
+}
+
+@test "call subcommand accepts raw argument" {
+  install_asset greet
+  dfx_start
+  dfx canister create --all
+  dfx build
+  dfx canister install hello_backend
+  # The encoded raw argument was generated with `didc encode '("raw")'`
+  assert_command dfx canister call hello_backend greet '4449444c00017103726177' --type raw
+  assert_match '("Hello, raw!")'
 }
 
 @test "call subcommand accepts argument from a file" {
