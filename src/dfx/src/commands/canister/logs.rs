@@ -15,6 +15,10 @@ pub struct LogsOpts {
     canister: String,
 }
 
+fn format_bytes(bytes: &[u8]) -> String {
+    format!("(bytes) 0x{}", hex::encode(bytes))
+}
+
 fn format_canister_logs(logs: FetchCanisterLogsResponse) -> Vec<String> {
     logs.canister_log_records
         .into_iter()
@@ -24,12 +28,12 @@ fn format_canister_logs(logs: FetchCanisterLogsResponse) -> Vec<String> {
 
             let message = if let Ok(s) = String::from_utf8(r.content.clone()) {
                 if format!("{s:?}").contains("\\u{") {
-                    format!("{:?}", r.content)
+                    format_bytes(&r.content)
                 } else {
                     s
                 }
             } else {
-                format!("{:?}", r.content)
+                format_bytes(&r.content)
             };
 
             format!(
@@ -64,7 +68,7 @@ fn test_format_canister_logs() {
         format_canister_logs(logs),
         vec![
             "[42. 2021-05-06 19:17:10.000]: Some text message".to_string(),
-            "[43. 2021-05-06 19:17:10.001]: [1, 2, 3]".to_string(),
+            "[43. 2021-05-06 19:17:10.001]: (bytes) 0x010203".to_string(),
         ],
     );
 }
