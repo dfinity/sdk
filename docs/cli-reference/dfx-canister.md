@@ -925,7 +925,7 @@ subdirectories.
 ### Basic usage
 
 ``` bash
-dfx canister update-settings [options] [canister_name |---all]
+dfx canister update-settings [options] [canister_name | --all]
 ```
 
 ### Options
