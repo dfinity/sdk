@@ -90,6 +90,12 @@ The command below set the hex-encoded raw bytes for canister `dep_b`.
 dfx deps init dep_b --argument "4449444c00017103616263" --argument-type raw
 ```
 
+The command below set the init argument for canister `dep_c` with the content of file `init_c.txt`.
+
+```bash
+dfx deps init dep_c --argument-file init_c.txt
+```
+
 ## dfx deps deploy
 
 Use the `dfx deps deploy` command to deploy all dependencies.

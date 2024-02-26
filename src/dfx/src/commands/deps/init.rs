@@ -5,6 +5,7 @@ use crate::lib::deps::{
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
 use crate::util::fuzzy_parse_argument;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -19,13 +20,8 @@ pub struct DepsInitOpts {
     /// If not specified, all pulled canisters will be set.
     canister: Option<String>,
 
-    /// Specifies the init argument.
-    #[arg(long, requires("canister"))]
-    argument: Option<String>,
-
-    /// Specifies the data type of the init argument.
-    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
-    argument_type: Option<String>,
+    #[command(flatten)]
+    argument_from_cli: ArgumentFromCliLongOpt,
 }
 
 pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
@@ -38,13 +34,16 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
 
     let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
     let pulled_json = load_pulled_json(&project_root)?;
-    validate_pulled(&pulled_json, &pull_canisters_in_config)?;
+    validate_pulled(&pulled_json, &pull_canisters_in_config)
+        .with_context(|| "Please rerun `dfx deps pull`.")?;
 
     create_init_json_if_not_existed(&project_root)?;
     let mut init_json = load_init_json(&project_root)?;
 
     match &opts.canister {
         Some(canister) => {
+            let (argument_from_cli, argument_type_from_cli) =
+                opts.argument_from_cli.get_argument_and_type()?;
             let canister_id =
                 get_pull_canister_or_principal(canister, &pull_canisters_in_config, &pulled_json)?;
             set_init(
@@ -52,8 +51,8 @@ pub async fn exec(env: &dyn Environment, opts: DepsInitOpts) -> DfxResult {
                 &canister_id,
                 &mut init_json,
                 &pulled_json,
-                opts.argument.as_deref(),
-                opts.argument_type.as_deref(),
+                argument_from_cli.as_deref(),
+                argument_type_from_cli.as_deref(),
             )?;
         }
         None => {
