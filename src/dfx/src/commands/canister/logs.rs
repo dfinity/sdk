@@ -10,7 +10,7 @@ use slog::info;
 
 /// Get the canister logs.
 #[derive(Parser)]
-pub struct TailOpts {
+pub struct LogsOpts {
     /// Specifies the name or id of the canister to get its canister information.
     canister: String,
 }
@@ -69,7 +69,7 @@ fn test_format_canister_logs() {
     );
 }
 
-pub async fn exec(env: &dyn Environment, opts: TailOpts, call_sender: &CallSender) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: LogsOpts, call_sender: &CallSender) -> DfxResult {
     let log = env.get_logger();
 
     let callee_canister = opts.canister.as_str();

@@ -14,6 +14,7 @@ mod deposit_cycles;
 mod id;
 mod info;
 mod install;
+mod logs;
 mod metadata;
 mod request_status;
 mod send;
@@ -21,7 +22,6 @@ mod sign;
 mod start;
 mod status;
 mod stop;
-mod tail;
 mod uninstall_code;
 mod update_settings;
 
@@ -59,7 +59,7 @@ pub enum SubCommand {
     Stop(stop::CanisterStopOpts),
     UninstallCode(uninstall_code::UninstallCodeOpts),
     UpdateSettings(update_settings::UpdateSettingsOpts),
-    Tail(tail::TailOpts),
+    Logs(logs::LogsOpts),
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
@@ -92,7 +92,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Stop(v) => stop::exec(env, v, &call_sender).await,
             SubCommand::UninstallCode(v) => uninstall_code::exec(env, v, &call_sender).await,
             SubCommand::UpdateSettings(v) => update_settings::exec(env, v, &call_sender).await,
-            SubCommand::Tail(v) => tail::exec(env, v, &call_sender).await,
+            SubCommand::Logs(v) => logs::exec(env, v, &call_sender).await,
         }
     })
 }
