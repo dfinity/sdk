@@ -56,21 +56,21 @@ fn test_format_canister_logs() {
         canister_log_records: vec![
             CanisterLogRecord {
                 idx: 42,
-                timestamp_nanos: 1_620_328_630_010_000_000,
+                timestamp_nanos: 1_620_328_630_000_000_001,
                 content: b"Some text message".to_vec(),
             },
             CanisterLogRecord {
                 idx: 43,
-                timestamp_nanos: 1_620_328_630_020_000_000,
-                content: vec![1, 2, 3, 10, 11, 12],
+                timestamp_nanos: 1_620_328_630_000_000_002,
+                content: vec![0xc, 0x0, 0xf, 0xf, 0xe, 0xe],
             },
         ],
     };
     assert_eq!(
         format_canister_logs(logs),
         vec![
-            "[42. 2021-05-06T19:17:10.010Z]: Some text message".to_string(),
-            "[43. 2021-05-06T19:17:10.020Z]: (bytes) 0x0102030a0b0c".to_string(),
+            "[42. 2021-05-06T19:17:10.000000001Z]: Some text message".to_string(),
+            "[43. 2021-05-06T19:17:10.000000002Z]: (bytes) 0x0c000f0f0e0e".to_string(),
         ],
     );
 }
