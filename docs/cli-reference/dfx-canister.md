@@ -21,7 +21,7 @@ dfx canister call --help
 For reference information and examples that illustrate using `dfx canister` commands, select an appropriate command.
 
 | Command                                            | Description                                                                                                                                            |
-|----------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [`call`](#dfx-canister-call)                       | Calls a specified method on a deployed canister.                                                                                                       |
 | [`create`](#dfx-canister-create)                   | Creates an empty canister and associates the assigned Canister ID to the canister name.                                                                |
 | [`delete`](#dfx-canister-delete)                   | Deletes a currently stopped canister.                                                                                                                  |
@@ -30,6 +30,7 @@ For reference information and examples that illustrate using `dfx canister` comm
 | [`id`](#dfx-canister-id)                           | Displays the identifier of a canister.                                                                                                                 |
 | [`info`](#dfx-canister-info)                       | Get the hash of a canister’s WASM module and its current controller.                                                                                   |
 | [`install`](#dfx-canister-install)                 | Installs compiled code in a canister.                                                                                                                  |
+| [`logs`](#dfx-canister-logs)                       | Returns the logs from a canister.                                                                                                                      |
 | [`metadata`](#dfx-canister-metadata)               | Displays metadata in a canister.                                                                                                                       |
 | [`request-status`](#dfx-canister-request-status)   | Requests the status of a call to a canister.                                                                                                           |
 | [`send`](#dfx-canister-send)                       | Send a previously-signed message.                                                                                                                      |
@@ -111,7 +112,7 @@ dfx canister call [options] <canister_name> <method_name> [argument]
 You can use the following options with the `dfx canister call` command.
 
 | Option                            | Description                                                                                                                                                                                                                    |
-|-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `--argument-file <argument-file>` | Specifies the file from which to read the argument to pass to the method.  Stdin may be referred to as `-`.                                                                                                                    |
 | `--async`                         | Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.                                                                                                          |
 | `--candid <file.did>`             | Provide the .did file with which to decode the response. Overrides value from dfx.json for project canisters.                                                                                                                  |
@@ -127,7 +128,7 @@ You can use the following options with the `dfx canister call` command.
 You can specify the following arguments for the `dfx canister call` command.
 
 | Argument        | Description                                                                                                                                                                                                       |
-|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `canister_name` | Specifies the name of the canister to call. The canister name is a required argument and should match the name you have configured for a project in the `canisters` section of the `dfx.json` configuration file. |
 | `method_name`   | Specifies the method name to call on the canister. The canister method is a required argument.                                                                                                                    |
 | `argument`      | Specifies the argument to pass to the method                                                                                                                                                                      |
@@ -209,7 +210,7 @@ dfx canister create [options] [--all | canister_name]
 You can use the following options with the `dfx canister create` command.
 
 | Option                                    | Description                                                                                                                                                                                                                                                                                                                                                                              |
-|-------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `-c`, `--compute-allocation <allocation>` | Specifies the canister's compute allocation. This should be a percent in the range [0..100].                                                                                                                                                                                                                                                                                             |
 | `--controller <principal>`                | Specifies the identity name or the principal of the new controller.                                                                                                                                                                                                                                                                                                                      |
 | `--memory-allocation <memory>`            | Specifies how much memory the canister is allowed to use in total. This should be a value in the range [0..12 GiB]. A setting of 0 means the canister will have access to memory on a “best-effort” basis: It will only be charged for the memory it uses, but at any point in time may stop running if it tries to allocate more memory when there isn’t space available on the subnet. |
@@ -226,7 +227,7 @@ You can use the following options with the `dfx canister create` command.
 You can use the following argument with the `dfx canister create` command.
 
 | Argument        | Description                                                                                                                                                                                                                                                                                                    |
-|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--all`         | Enables you to create multiple canister identifiers at once if you have a project `dfx.json` file that defines multiple canisters. Note that you must specify `--all` or an individual canister name.                                                                                                          |
 | `canister_name` | Specifies the name of the canister for which you want to register an identifier. If you are not using the `--all` option, the canister name is a required argument and must match at least one name that you have configured in the `canisters` section of the `dfx.json` configuration file for your project. |
 
@@ -286,7 +287,7 @@ dfx canister delete [options] [--all | canister_name]
 You can use the following options with the `dfx canister delete` command.
 
 | Option                                            | Description                                                                        |
-|---------------------------------------------------|------------------------------------------------------------------------------------|
+| ------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | `--no-withdrawal`                                 | Do not withdrawal cycles, just delete the canister.                                |
 | `--withdraw-cycles-to-dank`                       | Withdraw cycles to dank with the current principal.                                |
 | `--withdraw-cycles-to-canister <principal>`       | Withdraw cycles from canister(s) to the specified canister/wallet before deleting. |
@@ -298,7 +299,7 @@ You can use the following options with the `dfx canister delete` command.
 You can use the following arguments with the `dfx canister delete` command.
 
 | Argument        | Description                                                                                                                        |
-|-----------------|------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `--all`         | Deletes all of the canisters configured in the `dfx.json` file. Note that you must specify `--all` or an individual canister name. |
 | `canister_name` | Specifies the name of the canister you want to delete. Note that you must specify either a canister name or the `--all` option.    |
 
@@ -336,7 +337,7 @@ dfx canister deposit-cycles <cycles> [--all | canister_name]
 You can use the following arguments with the `dfx canister deposit-cycles` command.
 
 | Argument        | Description                                                                                                                                             |
-|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--all`         | Deposits the specified amount of cycles into all canisters configured in `dfx.json`. Note that you must specify `--all` or an individual canister name. |
 | `canister_name` | Specifies the name of the canister you want to deposit cycles into. Note that you must specify either a canister name or the `--all` option.            |
 
@@ -386,7 +387,7 @@ dfx canister id <canister_name>
 You can use the following argument with the `dfx canister id` command.
 
 | Argument        | Description                                                                     |
-|-----------------|---------------------------------------------------------------------------------|
+| --------------- | ------------------------------------------------------------------------------- |
 | `canister_name` | Specifies the name of the canister for which you want to display an identifier. |
 
 ### Examples
@@ -420,7 +421,7 @@ dfx canister info <canister>
 You can use the following argument with the `dfx canister info` command.
 
 | Argument   | Description                                                                  |
-|------------|------------------------------------------------------------------------------|
+| ---------- | ---------------------------------------------------------------------------- |
 | `canister` | Specifies the name or id of the canister for which you want to display data. |
 
 ### Examples
@@ -456,7 +457,7 @@ dfx canister install [option] [--all | canister_name]
 You can use the following options with the `dfx canister install` command.
 
 | Option                            | Description                                                                                                                                                                                                                                                           |
-|-----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--argument <argument>`           | Specifies an argument to pass to the canister during installation.                                                                                                                                                                                                    |
 | `--argument-type <argument-type>` | Specifies the data type for the argument when making the call using an argument [possible values: idl, raw]                                                                                                                                                           |
 | `--argument-file <argument-file>` | Specifies the file from which to read the argument to pass to the init method.  Stdin may be referred to as `-`.                                                                                                                                                      |
@@ -476,7 +477,7 @@ With `--argument-type`, you can specify the data format for the argument when yo
 You can use the following arguments with the `dfx canister install` command.
 
 | Argument        | Description                                                                                                                                                                                                                                                  |
-|-----------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `--all`         | Enables you to install multiple canisters at once if you have a project `dfx.json` file that includes multiple canisters. Note that you must specify `--all` or an individual canister name.                                                                 |
 | `canister_name` | Specifies the name of the canister to deploy. If you are not using the `--all` option, the canister name is a required argument and should match the name you have configured for a project in the `canisters` section of the `dfx.json` configuration file. |
 
@@ -530,6 +531,31 @@ For example, you can specify a testnet URL by running a command similar to the f
 dfx canister install --all --network http://192.168.3.1:5678
 ```
 
+## dfx canister logs
+
+Use the `dfx canister logs` command to display the logs from a canister.
+
+### Basic usage
+
+``` bash
+dfx canister logs <canister-name>
+```
+
+### Examples
+
+To display the logs from the `hello_world` canister, you can run the following command:
+
+``` bash
+dfx canister logs hello_world
+```
+
+The command displays output similar to the following:
+
+``` log
+[42. 2021-05-06T19:17:10.000000001Z]: Some text message
+[43. 2021-05-06T19:17:10.000000002Z]: (bytes) 0xc0ffee
+```
+
 ## dfx canister metadata
 
 Use the `dfx canister metadata` command to display metadata stored in a canister's WASM module.
@@ -545,7 +571,7 @@ dfx canister metadata <canister-name> <metadata-name>
 You can use the following argument with the `dfx canister metadata` command.
 
 | Argument        | Description                                                                      |
-|-----------------|----------------------------------------------------------------------------------|
+| --------------- | -------------------------------------------------------------------------------- |
 | `canister`      | Specifies the name or id of the canister for which you want to display metadata. |
 | `metadata-name` | Specifies the name of the metadata which you want to display.                    |
 
@@ -582,7 +608,7 @@ dfx canister request-status [options] <request-id> <canister>
 You can use the following options with the `dfx canister request-status` command.
 
 | Option              | Description                                                                                                                                                          |
-|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--output <output>` | Specifies the format for displaying the method's return result. Possible values are `idl`, `raw` and `pp`, where `pp` is equivalent to `idl`, but is pretty-printed. |
 
 ### Arguments
@@ -590,7 +616,7 @@ You can use the following options with the `dfx canister request-status` command
 You can specify the following argument for the `dfx canister request-status` command.
 
 | Argument     | Description                                                                                                                                                                                                                                                                                                         |
-|--------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `request_id` | Specifies the hexadecimal string returned in response to a `dfx canister call` or `dfx canister install` command. This identifier is an hexadecimal string starting with 0x.                                                                                                                                        |
 | `canister`   | Specifies the name or id of the canister onto which the request was made. If the request was made to the Management canister, specify the id of the canister it is updating/querying. If the call was proxied by the wallet, i.e. a `dfx canister call --async --wallet=<ID>` flag, specify the wallet canister id. |
 
@@ -626,7 +652,7 @@ dfx canister send [options] <file_name>
 You can use the following options with the `dfx canister request-status` command.
 
 | Option     | Description                                         |
-|------------|-----------------------------------------------------|
+| ---------- | --------------------------------------------------- |
 | `--status` | Send the signed request-status call in the message. |
 
 ### Arguments
@@ -634,7 +660,7 @@ You can use the following options with the `dfx canister request-status` command
 You can specify the following argument for the `dfx canister send` command.
 
 | Argument    | Description                             |
-|-------------|-----------------------------------------|
+| ----------- | --------------------------------------- |
 | `file_name` | Specifies the file name of the message. |
 
 ### Examples
@@ -663,7 +689,7 @@ dfx canister sign [options] <canister-name> <method-name> [argument]
 You can specify the following options for the `dfx canister sign` command.
 
 | Option                     | Description                                                                                                                                      |
-|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `--argument-file <file>`   | Specifies the file from which to read the argument to pass to the method.  Stdin may be referred to as `-`.                                      |
 | `--expire-after <seconds>` | Specifies how long the message will be valid before it expires and cannot be sent. Specify in seconds. If not defined, the default is 300s (5m). |
 | `--file <output>`          | Specifies the output file name. The default is `message.json`.                                                                                   |
@@ -678,7 +704,7 @@ You can specify the following options for the `dfx canister sign` command.
 You can specify the following arguments for the `dfx canister sign` command.
 
 | Argument        | Description                                                                                                                                                                                                       |
-|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `canister_name` | Specifies the name of the canister to call. The canister name is a required argument and should match the name you have configured for a project in the `canisters` section of the `dfx.json` configuration file. |
 | `method_name`   | Specifies the method name to call on the canister. The canister method is a required argument.                                                                                                                    |
 | `argument`      | Specifies the argument to pass to the method                                                                                                                                                                      |
@@ -736,7 +762,7 @@ dfx canister start [--all | canister_name]
 You can use the following arguments with the `dfx canister start` command.
 
 | Argument        | Description                                                                                                                       |
-|-----------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `--all`         | Starts all of the canisters configured in the `dfx.json` file. Note that you must specify `--all` or an individual canister name. |
 | `canister_name` | Specifies the name of the canister you want to start. Note that you must specify either a canister name or the `--all` option.    |
 
@@ -776,7 +802,7 @@ dfx canister status [--all | canister_name]
 You can use the following arguments with the `dfx canister status` command.
 
 | Argument        | Description                                                                                                                                               |
-|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--all`         | Returns status information for all of the canisters configured in the `dfx.json` file. Note that you must specify `--all` or an individual canister name. |
 | `canister_name` | Specifies the name of the canister you want to return information for. Note that you must specify either a canister name or the `--all` option.           |
 
@@ -820,7 +846,7 @@ dfx canister stop [--all | canister_name]
 You can use the following arguments with the `dfx canister stop` command.
 
 | Argument        | Description                                                                                                                      |
-|-----------------|----------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `--all`         | Stops all of the canisters configured in the `dfx.json` file. Note that you must specify `--all` or an individual canister name. |
 | `canister_name` | Specifies the name of the canister you want to stop. Note that you must specify either a canister name or the `--all` option.    |
 
@@ -865,7 +891,7 @@ dfx canister uninstall-code [--all | canister_name]
 You can use the following arguments with the `dfx canister uninstall-code` command.
 
 | Argument        | Description                                                                                                                           |
-|-----------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `--all`         | Uninstalls all of the canisters configured in the `dfx.json` file. Note that you must specify `--all` or an individual canister name. |
 | `canister_name` | Specifies the name of the canister you want to uninstall. Note that you must specify either a canister name or the `--all` option.    |
 
@@ -907,7 +933,7 @@ dfx canister update-settings [options] [canister_name | --all]
 You can specify the following options for the `dfx canister update-settings` command.
 
 | Option                                    | Description                                                                                                                                                                                                                                                                                                                                                                              |
-|-------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `--add-controller <principal>`            | Add a principal to the list of controllers of the canister.                                                                                                                                                                                                                                                                                                                              |
 | `-c`, `--compute-allocation <allocation>` | Specifies the canister's compute allocation. This should be a percent in the range [0..100].                                                                                                                                                                                                                                                                                             |
 | `--confirm-very-long-freezing-threshold`  | Freezing thresholds above ~1.5 years require this option as confirmation.                                                                                                                                                                                                                                                                                                                |
@@ -923,7 +949,7 @@ You can specify the following options for the `dfx canister update-settings` com
 You can use the following arguments with the `dfx canister update-settings` command.
 
 | Argument        | Description                                                                                                           |
-|-----------------|-----------------------------------------------------------------------------------------------------------------------|
+| --------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `--all`         | Updates all canisters you have specified in `dfx.json`. You must specify either canister name/id or the --all option. |
 | `canister_name` | Specifies the name of the canister you want to update. You must specify either canister name/id or the --all option.  |
 
