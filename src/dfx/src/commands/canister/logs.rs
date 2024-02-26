@@ -26,7 +26,7 @@ fn format_canister_logs(logs: FetchCanisterLogsResponse) -> Vec<String> {
         .into_iter()
         .map(|r| {
             let time = OffsetDateTime::from_unix_timestamp_nanos(r.timestamp_nanos as i128)
-                .expect("invalid timestamp");
+                .expect("Invalid canister log record timestamp");
 
             let message = if let Ok(s) = String::from_utf8(r.content.clone()) {
                 if format!("{s:?}").contains("\\u{") {
@@ -41,7 +41,7 @@ fn format_canister_logs(logs: FetchCanisterLogsResponse) -> Vec<String> {
             format!(
                 "[{}. {}]: {}",
                 r.idx,
-                time.format(&Rfc3339).unwrap(),
+                time.format(&Rfc3339).expect("Failed to format timestamp"),
                 message
             )
         })
