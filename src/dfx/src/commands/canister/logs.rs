@@ -62,7 +62,7 @@ fn test_format_canister_logs() {
             CanisterLogRecord {
                 idx: 43,
                 timestamp_nanos: 1_620_328_630_000_000_002,
-                content: vec![0xc, 0x0, 0xf, 0xf, 0xe, 0xe],
+                content: vec![12, 0, 15, 15, 14, 14],
             },
         ],
     };
