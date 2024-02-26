@@ -1,7 +1,10 @@
 pub(crate) mod create_canister;
 pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
+pub mod motoko_playground;
+
 pub use create_canister::create_canister;
+pub use install_canister::install_wallet;
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -13,6 +16,7 @@ use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
+use dfx_core::config::model::dfinity::Config;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
@@ -21,10 +25,8 @@ use ic_utils::interfaces::management_canister::{
 };
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
-pub use install_canister::install_wallet;
+use std::collections::HashSet;
 use std::path::PathBuf;
-
-pub mod motoko_playground;
 
 #[context(
     "Failed to call update function '{}' regarding canister '{}'.",
@@ -317,4 +319,35 @@ pub fn get_local_cid_and_candid_path(
         canister_info.get_canister_id()?,
         canister_info.get_output_idl_path(),
     ))
+}
+
+pub fn add_canisters_with_ids(
+    canister_names: &[String],
+    env: &dyn Environment,
+    config: &Config,
+) -> Vec<String> {
+    let mut canister_names: HashSet<_> = canister_names.iter().cloned().collect();
+
+    canister_names.extend(all_project_canisters_with_ids(env, config));
+
+    canister_names.into_iter().collect()
+}
+
+pub fn all_project_canisters_with_ids(env: &dyn Environment, config: &Config) -> Vec<String> {
+    env.get_canister_id_store()
+        .map(|store| {
+            config
+                .get_config()
+                .canisters
+                .as_ref()
+                .map(|canisters| {
+                    canisters
+                        .keys()
+                        .filter(|canister| store.get(canister).is_ok())
+                        .cloned()
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default()
+        })
+        .unwrap_or_default()
 }

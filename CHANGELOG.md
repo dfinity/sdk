@@ -7,6 +7,20 @@
 There is a new subcomand `logs` to fetch canister's logs. 
 When printing the log entries it tries to guess if the content can be converted to UTF-8 text and prints an array of hex bytes if it fails.
 
+### feat: display local asset canister URLs in subdomain format
+
+Locally, canisters can either be accessed via `<canister_id>.localhost:<port>` or `localhost:<port>?canisterId=<canister_id>`.
+The query parameter format is annoying to handle in SPAs, therefore the subdomain format is now displayed alongside the subdomain version after deployments.
+
+The query parameter format is not removed because Safari does not support localhost subdomains.
+
+### fix: .env files sometimes missing some canister ids
+
+Made it so `dfx deploy` and `dfx canister install` will always write 
+environment variables for all canisters in the project that have canister ids
+to the .env file, even if they aren't being deployed/installed
+or a dependency of a canister being deployed/installed.
+
 ### feat: unify CLI options to specify arguments
 
 There are a few subcommands that take `--argument`/`--argument-file` options to set canister call/init arguments.
@@ -52,6 +66,10 @@ The `dfx upgrade` command now prints a message directing the user to install dfx
 `dfx deps pull` was recently changed to allow hash mismatch wasm. But `init` and `deploy` weren't change accordingly.
 
 Also the warning of hash mismatch is removed since it scares users and users can't fix it locally.
+
+### fix(generate): Rust canister source candid wrongly deleted
+
+Fixed a bug where `dfx generate` would delete a canister's source candid file if the `declarations.bindings` in `dfx.json` did not include "did".
 
 # 0.17.0
 

@@ -139,33 +139,14 @@ impl CanisterBuilder for AssetsBuilder {
         Ok(())
     }
 
-    #[context("Failed to generate idl for canister '{}'.", info.get_name())]
-    fn generate_idl(
+    fn get_candid_path(
         &self,
         _pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<std::path::PathBuf> {
-        let generate_output_dir = info
-            .get_declarations_config()
-            .output
-            .as_ref()
-            .context("`declarations.output` must not be None")?;
-
-        unpack_did(generate_output_dir)?;
-
-        let idl_path = generate_output_dir.join(Path::new("assetstorage.did"));
-        let idl_path_rename = generate_output_dir
-            .join(info.get_name())
-            .with_extension("")
-            .with_extension("did");
-        if idl_path.exists() {
-            std::fs::rename(&idl_path, &idl_path_rename)
-                .with_context(|| format!("Failed to rename {}.", idl_path.to_string_lossy()))?;
-            dfx_core::fs::set_permissions_readwrite(&idl_path_rename)?;
-        }
-
-        Ok(idl_path_rename)
+        let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
+        Ok(idl_path)
     }
 }
 
