@@ -7,6 +7,8 @@ use clap::Parser;
 use dfx_core::identity::CallSender;
 use ic_utils::interfaces::management_canister::FetchCanisterLogsResponse;
 use slog::info;
+use time::format_description::well_known::Rfc3339;
+use time::OffsetDateTime;
 
 /// Get the canister logs.
 #[derive(Parser)]
@@ -23,7 +25,7 @@ fn format_canister_logs(logs: FetchCanisterLogsResponse) -> Vec<String> {
     logs.canister_log_records
         .into_iter()
         .map(|r| {
-            let time = chrono::NaiveDateTime::from_timestamp_nanos(r.timestamp_nanos as i64)
+            let time = OffsetDateTime::from_unix_timestamp_nanos(r.timestamp_nanos as i128)
                 .expect("invalid timestamp");
 
             let message = if let Ok(s) = String::from_utf8(r.content.clone()) {
@@ -39,7 +41,7 @@ fn format_canister_logs(logs: FetchCanisterLogsResponse) -> Vec<String> {
             format!(
                 "[{}. {}]: {}",
                 r.idx,
-                time.format("%Y-%m-%d %H:%M:%S%.3f"),
+                time.format(&Rfc3339).unwrap(),
                 message
             )
         })
@@ -67,8 +69,8 @@ fn test_format_canister_logs() {
     assert_eq!(
         format_canister_logs(logs),
         vec![
-            "[42. 2021-05-06 19:17:10.000]: Some text message".to_string(),
-            "[43. 2021-05-06 19:17:10.001]: (bytes) 0x010203".to_string(),
+            "[42. 2021-05-06T19:17:10Z]: Some text message".to_string(),
+            "[43. 2021-05-06T19:17:10.001Z]: (bytes) 0x010203".to_string(),
         ],
     );
 }

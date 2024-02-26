@@ -1442,7 +1442,6 @@ dependencies = [
  "bytes",
  "candid",
  "candid_parser",
- "chrono",
  "ci_info",
  "clap",
  "console",
