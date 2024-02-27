@@ -104,10 +104,7 @@ impl SubnetSelectionType {
         }
     }
 
-    pub async fn resolve_automatic(
-        &mut self,
-        env: &dyn Environment,
-    ) -> DfxResult<Option<SubnetSelection>> {
+    pub async fn resolve_automatic(&mut self, env: &dyn Environment) -> DfxResult<()> {
         let canisters = env.get_canister_id_store()?.non_remote_user_canisters();
         let subnets: Vec<_> = futures::future::try_join_all(
             canisters
@@ -121,25 +118,18 @@ impl SubnetSelectionType {
         for next_subnet in subnets.into_iter() {
             match selected_subnet {
                 None => selected_subnet = Some(next_subnet),
-                Some(selected_subnet) => {
-                    if selected_subnet == next_subnet {
-                        continue;
-                    } else {
-                        bail!("Cannot automatically decide which subnet to target. Please explicitly specify --subnet or --subnet-type.")
-                    }
+                Some(selected_subnet) if selected_subnet == next_subnet => continue,
+                Some(_nonmatching_subnet) => {
+                    bail!("Cannot automatically decide which subnet to target. Please explicitly specify --subnet or --subnet-type.")
                 }
             }
         }
 
-        match selected_subnet {
-            None => Ok(None),
-            Some(subnet) => {
-                let selection = SubnetSelection::Subnet { subnet };
-                *self = Self::Automatic {
-                    selected_subnet: Some(selection.clone()),
-                };
-                Ok(Some(selection))
+        if let Some(subnet) = selected_subnet {
+            *self = Self::Automatic {
+                selected_subnet: Some(SubnetSelection::Subnet { subnet }),
             }
         }
+        Ok(())
     }
 }
