@@ -853,9 +853,9 @@ checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
 
 [[package]]
 name = "chrono"
-version = "0.4.33"
+version = "0.4.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f13690e35a5e4ace198e7beea2895d29f3a9cc55015fcebe6336bd2010af9eb"
+checksum = "5bc015644b92d5890fab7489e49d21f879d5c990186827d42ec511919404f38b"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
@@ -2461,7 +2461,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.33.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=d537a790a1d4d12f3882f5443a5c03d70ef9f4d8#d537a790a1d4d12f3882f5443a5c03d70ef9f4d8"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=fce6a8af021b5e4c9a4108cb12e5531330e893e8#fce6a8af021b5e4c9a4108cb12e5531330e893e8"
 dependencies = [
  "backoff",
  "cached 0.46.1",
@@ -2898,7 +2898,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.33.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=d537a790a1d4d12f3882f5443a5c03d70ef9f4d8#d537a790a1d4d12f3882f5443a5c03d70ef9f4d8"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=fce6a8af021b5e4c9a4108cb12e5531330e893e8#fce6a8af021b5e4c9a4108cb12e5531330e893e8"
 dependencies = [
  "hex",
  "ic-agent",
@@ -2998,7 +2998,7 @@ dependencies = [
 [[package]]
 name = "ic-transport-types"
 version = "0.33.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=d537a790a1d4d12f3882f5443a5c03d70ef9f4d8#d537a790a1d4d12f3882f5443a5c03d70ef9f4d8"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=fce6a8af021b5e4c9a4108cb12e5531330e893e8#fce6a8af021b5e4c9a4108cb12e5531330e893e8"
 dependencies = [
  "candid",
  "hex",
@@ -3067,7 +3067,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.33.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=d537a790a1d4d12f3882f5443a5c03d70ef9f4d8#d537a790a1d4d12f3882f5443a5c03d70ef9f4d8"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=fce6a8af021b5e4c9a4108cb12e5531330e893e8#fce6a8af021b5e4c9a4108cb12e5531330e893e8"
 dependencies = [
  "async-trait",
  "candid",

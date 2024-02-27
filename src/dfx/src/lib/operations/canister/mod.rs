@@ -20,7 +20,9 @@ use dfx_core::config::model::dfinity::Config;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
-use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
+use ic_utils::interfaces::management_canister::{
+    FetchCanisterLogsResponse, MgmtMethod, StatusCallResult,
+};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use std::collections::HashSet;
@@ -90,6 +92,29 @@ pub async fn get_canister_status(
         env,
         canister_id,
         MgmtMethod::CanisterStatus.as_ref(),
+        In { canister_id },
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(out)
+}
+
+#[context("Failed to get canister logs of {}.", canister_id)]
+pub async fn get_canister_logs(
+    env: &dyn Environment,
+    canister_id: Principal,
+    call_sender: &CallSender,
+) -> DfxResult<FetchCanisterLogsResponse> {
+    #[derive(CandidType)]
+    struct In {
+        canister_id: Principal,
+    }
+
+    let (out,): (FetchCanisterLogsResponse,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::FetchCanisterLogs.as_ref(),
         In { canister_id },
         call_sender,
         0,
