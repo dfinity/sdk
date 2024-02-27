@@ -7,6 +7,7 @@ use crate::lib::{
     cycles_ledger_types::create_canister::{SubnetFilter, SubnetSelection},
     environment::Environment,
     error::DfxResult,
+    named_canister::UI_CANISTER,
     subnet::get_subnet_for_canister,
 };
 
@@ -98,14 +99,16 @@ impl SubnetSelectionType {
             } => { /* proceed with resolving a selection below */ }
         }
 
-        let canisters = env.get_canister_id_store()?.non_remote_ids();
+        let canisters = env.get_canister_id_store()?.non_remote_user_canisters();
         let subnets: Vec<_> = futures::future::try_join_all(
             canisters
                 .into_iter()
-                .map(|canister| get_subnet_for_canister(env.get_agent(), canister.clone())),
+                .filter(|(name, _)| name != UI_CANISTER)
+                .map(|(_, canister)| get_subnet_for_canister(env.get_agent(), canister.clone())),
         )
         .await?;
 
+        println!("Found subnets: {:?}", subnets.iter().map(|p| p.to_string()));
         let mut subnet_iter = subnets.into_iter();
         let mut selected_subnet = None;
         loop {
@@ -120,9 +123,15 @@ impl SubnetSelectionType {
                         return Ok(Some(selection));
                     }
                 },
-                Some(new_subnet) => match selected_subnet {
-                    None => selected_subnet = Some(new_subnet),
-                    Some(_) => bail!("Cannot automatically decide which subnet to target. Please explicitly specify --subnet or --subnet-type."),
+                Some(next_subnet) => match selected_subnet {
+                    None => selected_subnet = Some(next_subnet),
+                    Some(selected_subnet) => {
+                        if selected_subnet == next_subnet {
+                            continue;
+                        } else {
+                            bail!("Cannot automatically decide which subnet to target. Please explicitly specify --subnet or --subnet-type.")
+                        }
+                    }
                 },
             }
         }

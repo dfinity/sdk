@@ -12,7 +12,7 @@ use super::retryable::retryable;
 pub const MAINNET_REGISTRY_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01]);
 
-#[derive(CandidType)]
+#[derive(CandidType, Debug)]
 pub struct GetSubnetForCanisterRequest {
     pub principal: Option<Principal>,
 }

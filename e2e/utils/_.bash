@@ -314,3 +314,9 @@ get_ephemeral_port() {
     script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
     python3 "$script_dir/get_ephemeral_port.py"
 }
+
+stop_and_delete() {
+    assert_command dfx canister stop $1
+    assert_command dfx canister delete -y --no-withdrawal $1
+    echo "Canister $1 deleted"
+}

@@ -12,17 +12,19 @@ setup() {
   dfx identity new --storage-mode plaintext cycle-giver
   dfx identity new --storage-mode plaintext alice
   dfx identity new --storage-mode plaintext bob
-
-  dfx_start_for_nns_install
-
-  dfx extension install nns --version 0.3.1 || true
-  dfx nns install --ledger-accounts "$(dfx ledger account-id --identity cycle-giver)"
 }
 
 teardown() {
   dfx_stop
 
   standard_teardown
+}
+
+start_and_install_nns() {
+  dfx_start_for_nns_install
+
+  dfx extension install nns --version 0.3.1 || true
+  dfx nns install --ledger-accounts "$(dfx ledger account-id --identity cycle-giver)"
 }
 
 add_cycles_ledger_canisters_to_project() {
@@ -39,6 +41,8 @@ current_time_nanoseconds() {
 }
 
 @test "balance" {
+  start_and_install_nns
+
   ALICE=$(dfx identity get-principal --identity alice)
   ALICE_SUBACCT1="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
   ALICE_SUBACCT1_CANDID="\00\01\02\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
@@ -112,6 +116,8 @@ current_time_nanoseconds() {
 }
 
 @test "transfer" {
+  start_and_install_nns
+
   ALICE=$(dfx identity get-principal --identity alice)
   ALICE_SUBACCT1="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
   ALICE_SUBACCT1_CANDID="\00\01\02\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
@@ -190,6 +196,8 @@ current_time_nanoseconds() {
 }
 
 @test "transfer deduplication" {
+  start_and_install_nns
+
   ALICE=$(dfx identity get-principal --identity alice)
   BOB=$(dfx identity get-principal --identity bob)
 
@@ -249,6 +257,8 @@ current_time_nanoseconds() {
 }
 
 @test "top up canister principal check" {
+  start_and_install_nns
+
   BOB=$(dfx identity get-principal --identity bob)
 
   deploy_cycles_ledger
@@ -258,6 +268,8 @@ current_time_nanoseconds() {
 }
 
 @test "top-up" {
+  start_and_install_nns
+
   dfx_new
   add_cycles_ledger_canisters_to_project
   install_cycles_ledger_canisters
@@ -317,6 +329,8 @@ current_time_nanoseconds() {
 }
 
 @test "top-up deduplication" {
+  start_and_install_nns
+
   dfx_new
   add_cycles_ledger_canisters_to_project
   install_cycles_ledger_canisters
@@ -367,6 +381,8 @@ current_time_nanoseconds() {
 }
 
 @test "howto" {
+  start_and_install_nns
+
   # This is the equivalent of https://www.notion.so/dfinityorg/How-to-install-and-test-the-cycles-ledger-521c9f3c410f4a438514a03e35464299
   ALICE=$(dfx identity get-principal --identity alice)
   BOB=$(dfx identity get-principal --identity bob)
@@ -417,6 +433,8 @@ current_time_nanoseconds() {
 }
 
 @test "canister creation" {
+  start_and_install_nns
+  
   skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
   dfx_new temporary
   add_cycles_ledger_canisters_to_project
@@ -505,6 +523,8 @@ current_time_nanoseconds() {
 
 @test "canister deletion" {
   skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  start_and_install_nns
+
   dfx_new temporary
   add_cycles_ledger_canisters_to_project
   install_cycles_ledger_canisters
@@ -547,6 +567,8 @@ current_time_nanoseconds() {
 }
 
 @test "redeem-faucet-coupon redeems into the cycles ledger" {
+  start_and_install_nns
+
   assert_command deploy_cycles_ledger
   dfx_new hello
   install_asset faucet
@@ -578,6 +600,8 @@ current_time_nanoseconds() {
 
 @test "create canister on specific subnet" {
   skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  start_and_install_nns
+  
   dfx_new temporary
   add_cycles_ledger_canisters_to_project
   install_cycles_ledger_canisters
@@ -613,7 +637,123 @@ current_time_nanoseconds() {
   assert_contains "Provided subnet type custom_subnet_type does not exist"
 }
 
+@test "automatically choose subnet" {
+  # skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  dfx_start
+
+  REGISTRY="rwlgt-iiaaa-aaaaa-aaaaa-cai"
+  CMC="rkp4c-7iaaa-aaaaa-aaaca-cai"
+  ALICE=$(dfx identity get-principal --identity alice)
+  dfx_new temporary
+  install_asset fake_registry
+  dfx deploy fake_registry --specified-id "$REGISTRY"
+  add_cycles_ledger_canisters_to_project
+  install_cycles_ledger_canisters
+  assert_command deploy_cycles_ledger
+  CYCLES_LEDGER_ID=$(dfx canister id cycles-ledger)
+  echo "Cycles ledger deployed at id $CYCLES_LEDGER_ID"
+  assert_command dfx deploy depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})"
+  echo "Cycles depositor deployed at id $(dfx canister id depositor)"
+  assert_command dfx ledger fabricate-cycles --canister depositor --t 9999
+  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 99_000_000_000_000;})"
+  install_asset fake_cmc
+  dfx deploy fake-cmc --specified-id "$CMC"
+  cd ..
+  # shellcheck disable=SC2030,SC2031
+  export DFX_DISABLE_AUTO_WALLET=1
+  dfx identity use alice
+  dfx_new
+
+  SUBNET1="iqd74-4xnai"
+  SUBNET2="2myss-nlbai"
+
+  jq '.canisters.one = { "main": "src/e2e_project_backend/main.mo", "type": "motoko" }' dfx.json | sponge dfx.json
+  jq '.canisters.two = { "main": "src/e2e_project_backend/main.mo", "type": "motoko" }' dfx.json | sponge dfx.json
+  # setup done
+
+
+  # no other canisters already exist
+  assert_command dfx canister create e2e_project_backend
+  assert_command dfx canister call "$CMC" last_create_canister_args --query
+  assert_contains "subnet_selection = null"
+  stop_and_delete e2e_project_backend
+
+  assert_command dfx deploy e2e_project_backend
+  assert_command dfx canister call "$CMC" last_create_canister_args --query
+  assert_contains "subnet_selection = null"
+  stop_and_delete e2e_project_backend
+
+  # one other canister already exists
+  assert_command dfx canister create one --subnet aaaaa-aa
+  ONE_ID="$(dfx canister id one)"
+  echo "Canister one: $ONE_ID"
+  assert_command dfx canister call "$REGISTRY" set_subnet_for_canister "(vec { record {0 = principal \"$ONE_ID\"; 1 = principal \"$SUBNET1\"} })"
+
+  assert_command dfx canister create e2e_project_backend
+  assert_command dfx canister call "$CMC" last_create_canister_args --query
+  assert_contains "subnet = principal \"$SUBNET1\""
+  stop_and_delete e2e_project_backend
+
+  assert_command dfx deploy e2e_project_backend
+  assert_command dfx canister call "$CMC" last_create_canister_args --query
+  assert_contains "subnet = principal \"$SUBNET1\""
+  stop_and_delete e2e_project_backend
+
+  # multiple other canisters already exist - all on same subnet
+  assert_command dfx canister create two --subnet aaaaa-aa
+  TWO_ID="$(dfx canister id two)"
+  echo "Canister two: $TWO_ID"
+  assert_command dfx canister call "$REGISTRY" set_subnet_for_canister "(vec { record {0 = principal \"$ONE_ID\"; 1 = principal \"$SUBNET1\"}; record { 0 = principal \"$TWO_ID\"; 1 = principal \"$SUBNET1\"} })"
+
+  assert_command dfx canister create e2e_project_backend
+  assert_command dfx canister call "$CMC" last_create_canister_args --query
+  assert_contains "subnet = principal \"$SUBNET1\""
+  stop_and_delete e2e_project_backend
+
+  assert_command dfx deploy e2e_project_backend
+  assert_command dfx canister call "$CMC" last_create_canister_args --query
+  assert_contains "subnet = principal \"$SUBNET1\""
+  stop_and_delete e2e_project_backend
+
+  # multiple other canisters already exist - not all on same subnet
+  assert_command dfx canister call "$REGISTRY" set_subnet_for_canister "(vec { record {0 = principal \"$ONE_ID\"; 1 = principal \"$SUBNET1\"}; record { 0 = principal \"$TWO_ID\"; 1 = principal \"$SUBNET2\"} })"
+
+  assert_command_fail dfx canister create e2e_project_backend
+  assert_contains "Cannot automatically decide which subnet to target."
+
+  assert_command_fail dfx deploy e2e_project_backend
+  assert_contains "Cannot automatically decide which subnet to target."
+  
+  # still can create if a subnet is specified
+  assert_command dfx canister create e2e_project_backend --subnet "$SUBNET2"
+  assert_command dfx canister call "$CMC" last_create_canister_args --query
+  assert_contains "subnet = principal \"$SUBNET2\""
+  stop_and_delete e2e_project_backend
+
+  assert_command dfx deploy e2e_project_backend --subnet "$SUBNET2"
+  assert_command dfx canister call "$CMC" last_create_canister_args --query
+  assert_contains "subnet = principal \"$SUBNET2\""
+  stop_and_delete e2e_project_backend
+
+  # remote canister exists on different subnet
+  THREE_ID="3333u-aiaaa-aaaar-avzbq-cai"
+  jq '.canisters.three = { "main": "src/e2e_project_backend/main.mo", "type": "motoko", "remote" : { "candid": "", "id": { "local": "'$THREE_ID'" } } }' dfx.json | sponge dfx.json
+  assert_command dfx canister call "$REGISTRY" set_subnet_for_canister "(vec { record {0 = principal \"$ONE_ID\"; 1 = principal \"$SUBNET1\"}; record { 0 = principal \"$TWO_ID\"; 1 = principal \"$SUBNET1\"}; record { 0 = principal \"$THREE_ID\"; 1 = principal \"$SUBNET2\"} })"
+
+  assert_command dfx canister create e2e_project_backend
+  assert_command dfx canister call "$CMC" last_create_canister_args --query
+  assert_contains "subnet = principal \"$SUBNET1\""
+  stop_and_delete e2e_project_backend
+
+  assert_command dfx deploy e2e_project_backend
+  assert_command dfx canister call "$CMC" last_create_canister_args --query
+  assert_contains "subnet = principal \"$SUBNET1\""
+  stop_and_delete e2e_project_backend
+}
+
 @test "convert icp to cycles" {
+  start_and_install_nns
+
   ALICE=$(dfx identity get-principal --identity alice)
   ALICE_SUBACCT1="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
   ALICE_SUBACCT2="6C6B6A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"

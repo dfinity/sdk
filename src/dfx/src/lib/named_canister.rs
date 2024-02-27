@@ -14,7 +14,7 @@ use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::io::Read;
 
-const UI_CANISTER: &str = "__Candid_UI";
+pub const UI_CANISTER: &str = "__Candid_UI";
 
 #[context("Failed to install candid UI canister.")]
 pub async fn install_ui_canister(

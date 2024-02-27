@@ -30,7 +30,7 @@ use slog::{info, Logger};
 
 /// Cycles ledger feature flag to turn off behavior that would be confusing while cycles ledger is not enabled yet.
 //TODO(SDK-1331): feature flag can be removed
-pub const CYCLES_LEDGER_ENABLED: bool = false;
+pub const CYCLES_LEDGER_ENABLED: bool = true;
 
 const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
 const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";

@@ -12,11 +12,11 @@ actor FakeRegistry {
         subnet_per_canister := mappings;
     };
 
-    public query func get_subnet_for_canister(arg : { principal : Principal }) : async ({
+    public query func get_subnet_for_canister(arg : { principal : ?Principal }) : async ({
         #Ok : { subnet_id : ?Principal };
         #Err : Text;
     }) {
-        switch (Array.find<(Principal, Principal)>(subnet_per_canister, func pair { pair.0 == arg.principal })) {
+        switch (Array.find<(Principal, Principal)>(subnet_per_canister, func pair { ?pair.0 == arg.principal })) {
             case (null) { #Err("mapping not defined") };
             case (?mapping) { #Ok { subnet_id = ?mapping.1 } };
         };

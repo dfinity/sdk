@@ -401,13 +401,14 @@ impl CanisterIdStore {
         Ok(())
     }
 
-    pub fn non_remote_ids(&self) -> Vec<Principal> {
+    pub fn non_remote_user_canisters(&self) -> Vec<(String, Principal)> {
         self.ids
             .iter()
-            .filter_map(|(_, network_to_id)| {
+            .filter_map(|(name, network_to_id)| {
                 network_to_id
                     .get(&self.network_descriptor.name)
                     .and_then(|principal| Principal::from_text(principal).ok())
+                    .map(|principal| (name.clone(), principal))
             })
             .collect()
     }
