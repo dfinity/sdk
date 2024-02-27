@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### chore: bump candid to 0.10.4
+
+Fix the Typescript binding for init args.
+
 ### feat: add `dfx canister logs <canister_id>` for fetching canister's logs
 
 There is a new subcomand `logs` to fetch canister's logs. 
