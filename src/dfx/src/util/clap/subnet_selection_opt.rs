@@ -89,16 +89,25 @@ impl SubnetSelectionType {
 
     #[context("Failed to figure out subnet to create canister on.")]
     pub async fn resolve(&mut self, env: &dyn Environment) -> DfxResult<Option<SubnetSelection>> {
-        match self {
-            SubnetSelectionType::Explicit { user_choice } => return Ok(Some(user_choice.clone())),
+        if matches!(
+            self,
             SubnetSelectionType::Automatic {
-                selected_subnet: Some(resolved_subnet_selection),
-            } => return Ok(Some(resolved_subnet_selection.clone())),
-            SubnetSelectionType::Automatic {
-                selected_subnet: None,
-            } => { /* proceed with resolving a selection below */ }
+                selected_subnet: None
+            }
+        ) {
+            self.resolve_automatic(env).await?;
         }
 
+        match self {
+            SubnetSelectionType::Explicit { user_choice } => Ok(Some(user_choice.clone())),
+            SubnetSelectionType::Automatic { selected_subnet } => Ok(selected_subnet.clone()),
+        }
+    }
+
+    pub async fn resolve_automatic(
+        &mut self,
+        env: &dyn Environment,
+    ) -> DfxResult<Option<SubnetSelection>> {
         let canisters = env.get_canister_id_store()?.non_remote_user_canisters();
         let subnets: Vec<_> = futures::future::try_join_all(
             canisters
@@ -108,30 +117,28 @@ impl SubnetSelectionType {
         )
         .await?;
 
-        let mut subnet_iter = subnets.into_iter();
         let mut selected_subnet = None;
-        loop {
-            match subnet_iter.next() {
-                None => match selected_subnet {
-                    None => return Ok(None),
-                    Some(subnet) => {
-                        let selection = SubnetSelection::Subnet { subnet };
-                        *self = Self::Automatic {
-                            selected_subnet: Some(selection.clone()),
-                        };
-                        return Ok(Some(selection));
+        for next_subnet in subnets.into_iter() {
+            match selected_subnet {
+                None => selected_subnet = Some(next_subnet),
+                Some(selected_subnet) => {
+                    if selected_subnet == next_subnet {
+                        continue;
+                    } else {
+                        bail!("Cannot automatically decide which subnet to target. Please explicitly specify --subnet or --subnet-type.")
                     }
-                },
-                Some(next_subnet) => match selected_subnet {
-                    None => selected_subnet = Some(next_subnet),
-                    Some(selected_subnet) => {
-                        if selected_subnet == next_subnet {
-                            continue;
-                        } else {
-                            bail!("Cannot automatically decide which subnet to target. Please explicitly specify --subnet or --subnet-type.")
-                        }
-                    }
-                },
+                }
+            }
+        }
+
+        match selected_subnet {
+            None => Ok(None),
+            Some(subnet) => {
+                let selection = SubnetSelection::Subnet { subnet };
+                *self = Self::Automatic {
+                    selected_subnet: Some(selection.clone()),
+                };
+                Ok(Some(selection))
             }
         }
     }
