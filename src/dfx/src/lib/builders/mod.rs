@@ -383,6 +383,7 @@ pub fn get_and_write_environment_variables<'a>(
                 )),
                 Borrowed(candid_path),
             ));
+            // still needed for cdk
             vars.push((
                 Owned(format!(
                     "CANISTER_CANDID_PATH_{}",
@@ -393,7 +394,6 @@ pub fn get_and_write_environment_variables<'a>(
         }
     }
     for canister in pool.get_canister_list() {
-        // Insert both suffixed and prefixed versions of the canister name for backwards compatibility
         vars.push((
             Owned(format!(
                 "CANISTER_ID_{}",
@@ -401,6 +401,7 @@ pub fn get_and_write_environment_variables<'a>(
             )),
             Owned(canister.canister_id().to_text().into()),
         ));
+        // still needed for cdk
         vars.push((
             Owned(format!(
                 "CANISTER_ID_{}",
