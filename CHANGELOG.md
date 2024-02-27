@@ -2,6 +2,36 @@
 
 # UNRELEASED
 
+### feat: add `dfx canister logs <canister_id>` for fetching canister's logs
+
+There is a new subcomand `logs` to fetch canister's logs. 
+When printing the log entries it tries to guess if the content can be converted to UTF-8 text and prints an array of hex bytes if it fails.
+
+### feat: display local asset canister URLs in subdomain format
+
+Locally, canisters can either be accessed via `<canister_id>.localhost:<port>` or `localhost:<port>?canisterId=<canister_id>`.
+The query parameter format is annoying to handle in SPAs, therefore the subdomain format is now displayed alongside the subdomain version after deployments.
+
+The query parameter format is not removed because Safari does not support localhost subdomains.
+
+### fix: .env files sometimes missing some canister ids
+
+Made it so `dfx deploy` and `dfx canister install` will always write 
+environment variables for all canisters in the project that have canister ids
+to the .env file, even if they aren't being deployed/installed
+or a dependency of a canister being deployed/installed.
+
+### feat: unify CLI options to specify arguments
+
+There are a few subcommands that take `--argument`/`--argument-file` options to set canister call/init arguments.
+
+We unify the related logic to provide consistent user experience.
+ 
+The notable changes are:
+
+- `dfx deploy` now accepts `--argument-file`.
+- `dfx deps init` now accepts `--argument-file`.
+
 ### feat: candid assist feature
 
 Ask for user input when Candid argument is not provided in `dfx canister call`, `dfx canister install` and `dfx deploy`. 
@@ -16,6 +46,12 @@ This means commands like the following will work again:
 curl -v --http2-prior-knowledge "http://localhost:$(dfx info webserver-port)/api/v2/status" --output -
 ```
 
+### feat: `dfx cycles approve` and `transfer --from`
+
+It is now possible to approve other principals to spend cycles on your behalf using `dfx cycles approve <spender> <amount>`.
+`dfx cycles transfer` now also supports `--from`, `--from-subaccount`, and `--spender-subaccount`.
+For detailed explanations on how these fields work please refer to the [ICRC-2 specification](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-2/README.md).
+
 ### feat: cut over to dfxvm
 
 The script at https://internetcomputer.org/install.sh now installs
@@ -24,6 +60,16 @@ the [dfxvm version manager](https://github.com/dfinity/dfxvm) instead of the dfx
 ### fix!: removed the `dfx upgrade` command
 
 The `dfx upgrade` command now prints a message directing the user to install dfxvm.
+
+### fix(deps): init/deploy still requires hash check
+
+`dfx deps pull` was recently changed to allow hash mismatch wasm. But `init` and `deploy` weren't change accordingly.
+
+Also the warning of hash mismatch is removed since it scares users and users can't fix it locally.
+
+### fix(generate): Rust canister source candid wrongly deleted
+
+Fixed a bug where `dfx generate` would delete a canister's source candid file if the `declarations.bindings` in `dfx.json` did not include "did".
 
 # 0.17.0
 

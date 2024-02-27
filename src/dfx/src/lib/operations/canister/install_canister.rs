@@ -5,6 +5,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::named_canister;
+use crate::lib::operations::canister::all_project_canisters_with_ids;
 use crate::lib::operations::canister::motoko_playground::authorize_asset_uploader;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::util::assets::wallet_wasm;
@@ -65,7 +66,7 @@ pub async fn install_canister(
     let mode = mode.unwrap_or_else(|| {
         if installed_module_hash.is_some() {
             InstallMode::Upgrade {
-                skip_pre_upgrade: false,
+                skip_pre_upgrade: Some(false),
             }
         } else {
             InstallMode::Install
@@ -403,12 +404,10 @@ fn run_post_install_tasks(
     let pool = match pool {
         Some(pool) => pool,
         None => {
-            let deps = env
-                .get_config_or_anyhow()?
-                .get_config()
-                .get_canister_names_with_dependencies(Some(canister.get_name()))?;
+            let config = env.get_config_or_anyhow()?;
+            let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
-            tmp = CanisterPool::load(env, false, &deps)
+            tmp = CanisterPool::load(env, false, &canisters_to_load)
                 .context("Error collecting canisters for post-install task")?;
             &tmp
         }

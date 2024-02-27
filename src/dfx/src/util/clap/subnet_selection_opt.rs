@@ -108,7 +108,6 @@ impl SubnetSelectionType {
         )
         .await?;
 
-        println!("Found subnets: {:?}", subnets.iter().map(|p| p.to_string()));
         let mut subnet_iter = subnets.into_iter();
         let mut selected_subnet = None;
         loop {

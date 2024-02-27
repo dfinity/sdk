@@ -33,8 +33,15 @@ pub struct PulledCanister {
     /// The expected module hash of the canister wasm
     /// Will be one of the following:
     ///   - wasm_hash if defined in the dfx metadata
+    ///   - wasm_hash_url content if defined in the dfx metadata
     ///   - otherwise read from canister_status
+    /// This field is kept here so that users can compare the hash of the downloaded wasm with it
+    /// If matched, we get extra confidence that the downloaded wasm is correct
+    /// If not matched, it is still acceptable
     pub wasm_hash: String,
+    /// The downloaded wasm hash when `dfx deps pull`
+    /// It is allowed to be different from `wasm_hash`
+    pub wasm_hash_download: String,
     /// From the dfx metadata of the downloaded wasm module
     pub init_guide: String,
     /// From the dfx metadata of the downloaded wasm module
@@ -138,7 +145,10 @@ pub fn get_pull_canisters_in_config(
 
 /// Validate following properties:
 ///   - whether `pulled.json` is consistent with `dfx.json`
-///   - whether downloaded wasm modules are consistent with `pulled.json`
+///     - pull canisters in `dfx.json` are in `pulled.json` with the same name
+///   - whether the wasm modules in pulled cache are consistent with `pulled.json`
+///     - This can happen when the user manually modifies the wasm file in the cache
+///     - Or the same canister was pulled in different projects and the downloaded wasm is different
 pub fn validate_pulled(
     pulled_json: &PulledJson,
     pull_canisters_in_config: &BTreeMap<String, Principal>,
@@ -164,16 +174,18 @@ pub fn validate_pulled(
         let pulled_canister_path = get_pulled_wasm_path(canister_id, pulled_canister.gzip)?;
         let bytes = dfx_core::fs::read(&pulled_canister_path)?;
         let hash_cache = Sha256::digest(bytes);
-        let hash_in_json = hex::decode(&pulled_canister.wasm_hash)?;
+        let hash_in_json = hex::decode(&pulled_canister.wasm_hash_download)
+            .with_context(|| format!{"In pulled.json, the `wasm_hash_download` field of {canister_id} is invalid."})?;
         if hash_cache.as_slice() != hash_in_json {
             let hash_cache = hex::encode(hash_cache.as_slice());
-            let hash_in_json = &pulled_canister.wasm_hash;
+            let hash_in_json = &pulled_canister.wasm_hash_download;
             bail!(
-                "The pulled wasm of {canister_id} has different hash than in pulled.json:
-    The pulled wasm is at {pulled_canister_path:?}. Its hash is:
+                "The wasm of {canister_id} in pulled cache has different hash than in pulled.json:
+    The pulled cache is at {pulled_canister_path:?}. Its hash is:
         {hash_cache}
-    The expected hash in pulled.json is:
-        {hash_in_json}"
+    The hash (wasm_hash_download) in pulled.json is:
+        {hash_in_json}
+The pulled cache may be modified manually or the same canister was pulled in different projects."
             );
         }
     }

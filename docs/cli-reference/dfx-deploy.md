@@ -13,28 +13,34 @@ Note that you can only run this command from within the project directory struct
 ## Basic usage
 
 ``` bash
-dfx deploy [flag] [option] [canister_name]
+dfx deploy [options] [canister_name]
 ```
 
 ## Options
 
 You can use the following options with the `dfx deploy` command.
 
-| Option                             | Description                                                                                                                                                                 |
-|------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--network <network>`              | Overrides the environment to connect to. By default, the local canister execution environment is used.                                                                      |
-| `--playground       `              | Alias for `--network playground`. By default, canisters on this network are borrowed from the Motoko Playground.                                                            |
-| `--ic               `              | Alias for `--network ic`.                                                                                                                                                   |
-| `--argument <argument>`            | Specifies an argument using Candid syntax to pass to the canister during deployment. Note that this option requires you to define an actor class in the Motoko program. |
-| `--with-cycles <number-of-cycles>` | Enables you to specify the initial number of cycles for a canister in a project.                                                                                            |
-| `--specified-id <PRINCIPAL>`       | Attempts to create the canister with this Canister ID                                                                                                                       |
-| `--by-proposal`                    | Upload proposed changed assets, but do not commit them.  Follow up by calling either commit_proposed_batch() or delete_batch().                                             |
+| Option                             | Description                                                                                                                                                                                                                                                 |
+|------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--network <network>`              | Overrides the environment to connect to. By default, the local canister execution environment is used.                                                                                                                                                      |
+| `--playground       `              | Alias for `--network playground`. By default, canisters on this network are borrowed from the Motoko Playground.                                                                                                                                            |
+| `--ic               `              | Alias for `--network ic`.                                                                                                                                                                                                                                   |
+| `--argument <argument>`            | Specifies an argument to pass to the canister during installation.                                                                                                                                                                                          |
+| `--argument-type <argument-type>`  | Specifies the data type for the argument when making the call using an argument [possible values: idl, raw]                                                                                                                                                 |
+| `--argument-file <argument-file>`  | Specifies the file from which to read the argument to pass to the init method.  Stdin may be referred to as `-`.                                                                                                                                            |
+| `--with-cycles <number-of-cycles>` | Enables you to specify the initial number of cycles for a canister in a project.                                                                                                                                                                            |
+| `--specified-id <PRINCIPAL>`       | Attempts to create the canister with this Canister ID                                                                                                                                                                                                       |
+| `--by-proposal`                    | Upload proposed changed assets, but do not commit them.  Follow up by calling either commit_proposed_batch() or delete_batch().                                                                                                                             |
 | `--compute-evidence`               | Build a frontend canister, determine batch operations required to synchronize asset canister contents, and compute a hash over those operations.  Displays this hash ("evidence"), which should match the evidence displayed by `dfx deploy --by-proposal`. |
-| `--subnet-type <subnet-type>`      | Specify the subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                      |
-| `--subnet <subnet-principal>`      | Specify the subnet to create the canister on. If no subnet is provided, the canister will be created on a random default application subnet.                                |
-| `--next-to <canister-principal>`   | Create canisters on the same subnet as this canister.                                                                                                                       |
+| `--subnet-type <subnet-type>`      | Specify the subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                                                                                                      |
+| `--subnet <subnet-principal>`      | Specify the subnet to create the canister on. If no subnet is provided, the canister will be created on a random default application subnet.                                                                                                                |
+| `--next-to <canister-principal>`   | Create canisters on the same subnet as this canister.                                                                                                                                                                                                       |
 
-### Arguments
+### Specifies the argument to pass to the init entrypoint
+
+With `--argument-type`, you can specify the data format for the argument when you install using the `--argument` option. The valid values are `idl` and `raw`. By default, you can specify arguments using the [Candid](/docs/current/developer-docs/smart-contracts/candid/index) (`idl`) syntax for data values. For information about using Candid and its supported types, see [Interact with a service in a terminal](/docs/current/developer-docs/smart-contracts/candid/candid-howto#idl-syntax) and [Supported types](/docs/current/references/candid-ref). You can use `raw` as the argument type if you want to pass raw bytes to a canister.
+
+## Arguments
 
 You can specify the following arguments for the `dfx deploy` command.
 
