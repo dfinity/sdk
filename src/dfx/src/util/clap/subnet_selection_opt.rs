@@ -104,7 +104,7 @@ impl SubnetSelectionType {
             canisters
                 .into_iter()
                 .filter(|(name, _)| name != UI_CANISTER)
-                .map(|(_, canister)| get_subnet_for_canister(env.get_agent(), canister.clone())),
+                .map(|(_, canister)| get_subnet_for_canister(env.get_agent(), canister)),
         )
         .await?;
 
