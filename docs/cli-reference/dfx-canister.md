@@ -30,6 +30,7 @@ For reference information and examples that illustrate using `dfx canister` comm
 | [`id`](#dfx-canister-id)                           | Displays the identifier of a canister.                                                                                                                 |
 | [`info`](#dfx-canister-info)                       | Get the hash of a canister’s WASM module and its current controller.                                                                                   |
 | [`install`](#dfx-canister-install)                 | Installs compiled code in a canister.                                                                                                                  |
+| [`logs`](#dfx-canister-logs)                       | Returns the logs from a canister.                                                                                                                      |
 | [`metadata`](#dfx-canister-metadata)               | Displays metadata in a canister.                                                                                                                       |
 | [`request-status`](#dfx-canister-request-status)   | Requests the status of a call to a canister.                                                                                                           |
 | [`send`](#dfx-canister-send)                       | Send a previously-signed message.                                                                                                                      |
@@ -528,6 +529,31 @@ For example, you can specify a testnet URL by running a command similar to the f
 
 ``` bash
 dfx canister install --all --network http://192.168.3.1:5678
+```
+
+## dfx canister logs
+
+Use the `dfx canister logs` command to display the logs from a canister.
+
+### Basic usage
+
+``` bash
+dfx canister logs <canister-name>
+```
+
+### Examples
+
+To display the logs from the `hello_world` canister, you can run the following command:
+
+``` bash
+dfx canister logs hello_world
+```
+
+The command displays output similar to the following:
+
+``` log
+[42. 2021-05-06T19:17:10.000000001Z]: Some text message
+[43. 2021-05-06T19:17:10.000000002Z]: (bytes) 0xc0ffee
 ```
 
 ## dfx canister metadata
