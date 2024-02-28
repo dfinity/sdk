@@ -1,4 +1,3 @@
-use crate::lib::cycles_ledger_types::create_canister::SubnetSelection;
 use crate::lib::error::{
     DfxResult, NotifyCreateCanisterError, NotifyMintCyclesError, NotifyTopUpError,
 };
@@ -10,6 +9,7 @@ use crate::lib::ledger_types::{
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::operations::ledger::transfer;
+use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use candid::{Decode, Encode, Principal};
 use ic_agent::Agent;
 use icrc_ledger_types::icrc1::account::Subaccount as ICRCSubaccount;
@@ -51,8 +51,9 @@ pub async fn notify_create(
     agent: &Agent,
     controller: Principal,
     block_height: BlockHeight,
-    subnet_selection: Option<SubnetSelection>,
+    subnet_selection: SubnetSelectionType,
 ) -> Result<Principal, NotifyCreateCanisterError> {
+    let user_subnet_selection = subnet_selection.get_user_choice();
     let result = agent
         .update(
             &MAINNET_CYCLE_MINTER_CANISTER_ID,
@@ -62,7 +63,7 @@ pub async fn notify_create(
             Encode!(&NotifyCreateCanisterArg {
                 block_index: block_height,
                 controller,
-                subnet_selection,
+                subnet_selection: user_subnet_selection,
             })
             .map_err(NotifyCreateCanisterError::EncodeArguments)?,
         )

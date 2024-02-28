@@ -1,7 +1,6 @@
 use crate::lib::builders::BuildConfig;
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
-use crate::lib::cycles_ledger_types::create_canister::SubnetSelection;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
@@ -14,6 +13,7 @@ use crate::lib::operations::canister::motoko_playground::reserve_canister_with_p
 use crate::lib::operations::canister::{
     all_project_canisters_with_ids, create_canister, install_canister::install_canister,
 };
+use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
@@ -54,7 +54,7 @@ pub async fn deploy_canisters(
     skip_consent: bool,
     env_file: Option<PathBuf>,
     no_asset_upgrade: bool,
-    subnet_selection: Option<SubnetSelection>,
+    subnet_selection: &mut SubnetSelectionType,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -197,7 +197,7 @@ async fn register_canisters(
     from_subaccount: Option<Subaccount>,
     created_at_time: Option<u64>,
     config: &Config,
-    subnet_selection: Option<SubnetSelection>,
+    subnet_selection: &mut SubnetSelectionType,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -263,7 +263,7 @@ async fn register_canisters(
                     reserved_cycles_limit,
                 },
                 created_at_time,
-                subnet_selection.clone(),
+                subnet_selection,
             )
             .await?;
         }
