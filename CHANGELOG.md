@@ -13,7 +13,6 @@ version removes the old formats. The removed formats are
 
 There is a new subcomand `logs` to fetch canister's logs. 
 When printing the log entries it tries to guess if the content can be converted to UTF-8 text and prints an array of hex bytes if it fails.
->>>>>>> origin/master
 
 ### feat: display local asset canister URLs in subdomain format
 
