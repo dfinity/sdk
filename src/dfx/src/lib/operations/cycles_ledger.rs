@@ -3,7 +3,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::lib::cycles_ledger_types;
 use crate::lib::cycles_ledger_types::create_canister::{
     CmcCreateCanisterArgs, CreateCanisterArgs, CreateCanisterError, CreateCanisterSuccess,
-    SubnetSelection,
 };
 use crate::lib::cycles_ledger_types::deposit::DepositArg;
 use crate::lib::cycles_ledger_types::send::SendError;
@@ -14,6 +13,7 @@ use crate::lib::operations::canister::create_canister::{
     CANISTER_CREATE_FEE, CANISTER_INITIAL_CYCLE_BALANCE,
 };
 use crate::lib::retryable::retryable;
+use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use backoff::future::retry;
 use backoff::ExponentialBackoff;
@@ -324,9 +324,10 @@ pub async fn create_with_cycles_ledger(
     from_subaccount: Option<Subaccount>,
     settings: DfxCanisterSettings,
     created_at_time: Option<u64>,
-    subnet_selection: Option<SubnetSelection>,
+    subnet_selection: &mut SubnetSelectionType,
 ) -> DfxResult<Principal> {
     let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
+    let resolved_subnet_selection = subnet_selection.resolve(env).await?;
     let created_at_time = created_at_time.or_else(|| {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -345,7 +346,7 @@ pub async fn create_with_cycles_ledger(
         amount: cycles,
         creation_args: Some(CmcCreateCanisterArgs {
             settings: Some(settings.into()),
-            subnet_selection,
+            subnet_selection: resolved_subnet_selection,
         }),
     })
     .unwrap();
