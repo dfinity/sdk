@@ -141,7 +141,10 @@ pub async fn exec(
         })
         .transpose()
         .context("Failed to determine controllers.")?;
-    let subnet_selection = opts.subnet_selection.into_subnet_selection(env).await?;
+    let mut subnet_selection = opts
+        .subnet_selection
+        .into_subnet_selection_type(env)
+        .await?;
 
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     if let Some(canister_name) = opts.canister_name.as_deref() {
@@ -196,7 +199,7 @@ pub async fn exec(
                 reserved_cycles_limit,
             },
             opts.created_at_time,
-            subnet_selection,
+            &mut subnet_selection,
         )
         .await?;
         Ok(())
@@ -268,7 +271,7 @@ pub async fn exec(
                         reserved_cycles_limit,
                     },
                     opts.created_at_time,
-                    subnet_selection.clone(),
+                    &mut subnet_selection,
                 )
                 .await?;
             }

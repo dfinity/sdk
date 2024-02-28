@@ -86,7 +86,10 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
     .await?;
     println!("Using transfer at block height {height}");
 
-    let subnet_selection = opts.subnet_selection.into_subnet_selection(env).await?;
+    let subnet_selection = opts
+        .subnet_selection
+        .into_subnet_selection_type(env)
+        .await?;
     let result = notify_create(agent, controller, height, subnet_selection).await;
 
     match result {
