@@ -159,6 +159,6 @@ teardown() {
   jq 'del(.canisters.hello_backend)' dfx.json | sponge dfx.json
   assert_command dfx canister call hello_backend greet '("you")'
   assert_match '("Hello, you!")'
-  assert_command dfx canister call $CANISTER_ID greet '("you")'
+  assert_command dfx canister call "$CANISTER_ID" greet '("you")'
   assert_match '("Hello, you!")'
 }
