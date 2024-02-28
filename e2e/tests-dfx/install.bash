@@ -255,3 +255,13 @@ teardown() {
   assert_command dfx canister call dependency greet
   assert_match "Hello, icp!"
 }
+
+@test "install succeeds when specify canister id and wasm, in dir without dfx.json" {
+  dfx_start
+
+  dfx canister create --all
+  CANISTER_ID=$(dfx canister id e2e_project_backend)
+  dfx build
+  rm dfx.json
+  assert_command dfx canister install "$CANISTER_ID" --wasm .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm
+}

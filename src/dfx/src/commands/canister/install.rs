@@ -24,7 +24,12 @@ pub struct CanisterInstallOpts {
     canister: Option<String>,
 
     /// Deploys all canisters configured in the project dfx.json files.
-    #[arg(long, required_unless_present("canister"), conflicts_with("argument"))]
+    #[arg(
+        long,
+        required_unless_present("canister"),
+        conflicts_with("argument"),
+        conflicts_with("argument_file")
+    )]
     all: bool,
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.
@@ -80,12 +85,6 @@ pub async fn exec(
         bail!("The --mode=reinstall is only valid when specifying a single canister, because reinstallation destroys all data in the canister.");
     }
 
-    let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
-
-    let config = env.get_config_or_anyhow()?;
-    let config_interface = config.get_config();
-    let env_file = config.get_output_env_file(opts.output_env_file)?;
-
     if let Some(canister) = opts.canister.as_deref() {
         let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument_and_type()?;
         // `opts.canister` is a Principal (canister ID)
@@ -124,6 +123,10 @@ pub async fn exec(
             }
         } else {
             // `opts.canister` is not a canister ID, but a canister name
+            let config = env.get_config_or_anyhow()?;
+            let config_interface = config.get_config();
+            let env_file = config.get_output_env_file(opts.output_env_file)?;
+            let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
             if pull_canisters_in_config.contains_key(canister) {
                 bail!(
                     "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
@@ -180,6 +183,10 @@ pub async fn exec(
         }
     } else if opts.all {
         // Install all canisters.
+        let config = env.get_config_or_anyhow()?;
+        let config_interface = config.get_config();
+        let env_file = config.get_output_env_file(opts.output_env_file)?;
+        let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
                 if pull_canisters_in_config.contains_key(canister) {
