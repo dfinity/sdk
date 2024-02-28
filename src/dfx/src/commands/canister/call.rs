@@ -27,8 +27,8 @@ use std::str::FromStr;
 /// Calls a method on a deployed canister.
 #[derive(Parser)]
 pub struct CanisterCallOpts {
-    /// Specifies the name of the canister to build.
-    /// You must specify either a canister name or the --all option.
+    /// Specifies the name/id of the canister to call.
+    /// You must specify either a canister or the --all option.
     canister_name: String,
 
     /// Specifies the method name to call on the canister.
@@ -220,6 +220,7 @@ pub async fn exec(
     let canister_id_store = env.get_canister_id_store()?;
 
     let (canister_id, maybe_local_candid_path) = match CanisterId::from_text(callee_canister) {
+        // callee_canister is an id
         Ok(id) => {
             if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
                 get_local_cid_and_candid_path(env, canister_name, Some(id))?
@@ -227,9 +228,16 @@ pub async fn exec(
                 (id, None)
             }
         }
+        // callee_canister is a name
         Err(_) => {
             let canister_id = canister_id_store.get(callee_canister)?;
-            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
+            match get_local_cid_and_candid_path(env, callee_canister, Some(canister_id)) {
+                Ok((id, path)) => (id, path),
+                // In a rare case that the canister was deployed and then removed from dfx.json,
+                // the canister_id_store can still resolve the canister id from the canister name.
+                // In such case, technically, we are still able to call the canister.
+                Err(_) => (canister_id, None),
+            }
         }
     };
     let method_type = if let Some(path) = opts.candid {

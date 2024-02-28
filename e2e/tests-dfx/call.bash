@@ -151,3 +151,11 @@ teardown() {
     assert_match '("Hello, you!")'
   )
 }
+
+@test "call a canister which is deployed then removed from dfx.json" {
+  dfx_start
+  dfx deploy
+  jq 'del(.canisters.hello_backend)' dfx.json | sponge dfx.json
+  assert_command dfx canister call hello_backend greet '("you")'
+  assert_match '("Hello, you!")'
+}
