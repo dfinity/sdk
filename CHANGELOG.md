@@ -71,6 +71,10 @@ Also the warning of hash mismatch is removed since it scares users and users can
 
 Fixed a bug where `dfx generate` would delete a canister's source candid file if the `declarations.bindings` in `dfx.json` did not include "did".
 
+### fix: failed to call a canister removed from dfx.json
+
+Fixed a bug where `dfx canister call` would fail when the deployed canister was removed from dfx.json.
+
 # 0.17.0
 
 ### feat: new starter templates
