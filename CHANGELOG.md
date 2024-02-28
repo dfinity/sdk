@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### chore: bump candid to 0.10.4
+
+Fix the Typescript binding for init args.
+
 ## fix!: Remove fallback .env formats
 
 In dfx 0.14.0, we standardized on `CANISTER_ID_<CANISTER_NAME_UPPERCASE>` and
@@ -17,7 +21,6 @@ all uppercase, with any '-' replaced by '_':
 For reference, these formats were removed (any '-' characters were replaced by '_'):
 - `CANISTER_CANDID_PATH_<canister_name_case_from_dfx_json>`
 - `<CANISTER_NAME_UPPERCASE>_CANISTER_ID`
-- `CANISTER_ID_<canister_name_case_from_dfx_json>`
 
 ### feat: add `dfx canister logs <canister_id>` for fetching canister's logs
 
