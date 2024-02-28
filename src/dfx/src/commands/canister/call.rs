@@ -1,7 +1,7 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::operations::canister::get_local_cid_and_candid_path;
+use crate::lib::operations::canister::get_canister_id_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::argument_from_cli::ArgumentFromCliPositionalOpt;
 use crate::util::clap::parsers::cycle_amount_parser;
@@ -215,31 +215,11 @@ pub async fn exec(
     let agent = env.get_agent();
     fetch_root_key_if_needed(env).await?;
 
-    let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
-    let canister_id_store = env.get_canister_id_store()?;
 
-    let (canister_id, maybe_local_candid_path) = match CanisterId::from_text(callee_canister) {
-        // callee_canister is an id
-        Ok(id) => {
-            if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
-                get_local_cid_and_candid_path(env, canister_name, Some(id))?
-            } else {
-                (id, None)
-            }
-        }
-        // callee_canister is a name
-        Err(_) => {
-            let canister_id = canister_id_store.get(callee_canister)?;
-            match get_local_cid_and_candid_path(env, callee_canister, Some(canister_id)) {
-                Ok((id, path)) => (id, path),
-                // In a rare case that the canister was deployed and then removed from dfx.json,
-                // the canister_id_store can still resolve the canister id from the canister name.
-                // In such case, technically, we are still able to call the canister.
-                Err(_) => (canister_id, None),
-            }
-        }
-    };
+    let (canister_id, maybe_local_candid_path) =
+        get_canister_id_and_candid_path(env, opts.canister_name.as_str())?;
+
     let method_type = if let Some(path) = opts.candid {
         get_candid_type(CandidSource::File(&path), method_name)
     } else if let Some(did) = fetch_remote_did_file(agent, canister_id).await {

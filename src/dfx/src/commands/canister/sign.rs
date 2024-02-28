@@ -1,7 +1,7 @@
 use crate::commands::canister::call::get_effective_canister_id;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::operations::canister::get_local_cid_and_candid_path;
+use crate::lib::operations::canister::get_canister_id_and_candid_path;
 use crate::lib::sign::sign_transport::SignTransport;
 use crate::lib::sign::signed_message::SignedMessageV1;
 use crate::util::clap::argument_from_cli::ArgumentFromCliPositionalOpt;
@@ -25,7 +25,7 @@ use time::OffsetDateTime;
 /// Sign a canister call and generate message file.
 #[derive(Parser)]
 pub struct CanisterSignOpts {
-    /// Specifies the name of the canister to call.
+    /// Specifies the name/id of the canister to call.
     canister_name: String,
 
     /// Specifies the method name to call on the canister.
@@ -65,24 +65,10 @@ pub async fn exec(
         bail!("`sign` currently doesn't support proxying through the wallet canister, please use `dfx canister sign --no-wallet ...`.");
     }
 
-    let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
-    let canister_id_store = env.get_canister_id_store()?;
 
-    let (canister_id, maybe_candid_path) = match Principal::from_text(callee_canister) {
-        Ok(id) => {
-            if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
-                get_local_cid_and_candid_path(env, canister_name, Some(id))?
-            } else {
-                // Sign works in offline mode, cannot fetch from remote canister
-                (id, None)
-            }
-        }
-        Err(_) => {
-            let canister_id = canister_id_store.get(callee_canister)?;
-            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
-        }
-    };
+    let (canister_id, maybe_candid_path) =
+        get_canister_id_and_candid_path(env, opts.canister_name.as_str())?;
 
     let method_type =
         maybe_candid_path.and_then(|path| get_candid_type(CandidSource::File(&path), method_name));
