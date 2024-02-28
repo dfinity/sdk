@@ -2,12 +2,22 @@
 
 # UNRELEASED
 
-## Removed the deprecated <canister_name>_CANISTER_ID environment variables
+## fix!: Remove fallback .env formats
 
-In dfx 0.14.0, we standardized on `CANISTER_ID_<canister_name_uppercase>` for
-environment variables for canister IDs and deprecated the old formats.  This
-version removes the old formats. The removed formats are
-`<canister_name>_CANISTER_ID` and `<canister_name_uppercase>_CANISTER_ID`.
+In dfx 0.14.0, we standardized on `CANISTER_ID_<CANISTER_NAME_UPPERCASE>` and
+`CANISTER_CANDID_PATH_<CANISTER_NAME_UPPERCASE>` for
+environment variables for canister IDs and candid paths respectively,
+and deprecated the old formats.  This version removes the old formats.
+
+The only variable names now provided are the following,
+all uppercase, with any '-' replaced by '_':
+- `CANISTER_CANDID_PATH_<CANISTER_NAME>`
+- `CANISTER_ID_<CANISTER_NAME>`
+
+For reference, these formats were removed (any '-' characters were replaced by '_'):
+- `CANISTER_CANDID_PATH_<canister_name_case_from_dfx_json>`
+- `<CANISTER_NAME_UPPERCASE>_CANISTER_ID`
+- `CANISTER_ID_<canister_name_case_from_dfx_json>`
 
 ### feat: add `dfx canister logs <canister_id>` for fetching canister's logs
 

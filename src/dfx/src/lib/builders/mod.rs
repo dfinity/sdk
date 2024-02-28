@@ -376,13 +376,6 @@ pub fn get_and_write_environment_variables<'a>(
                 IdlBuildOutput::File(p) => p.as_os_str(),
             };
 
-            // vars.push((
-            //     Owned(format!(
-            //         "CANISTER_CANDID_PATH_{}",
-            //         canister.get_name().replace('-', "_")
-            //     )),
-            //     Borrowed(candid_path),
-            // ));
             vars.push((
                 Owned(format!(
                     "CANISTER_CANDID_PATH_{}",
@@ -400,13 +393,6 @@ pub fn get_and_write_environment_variables<'a>(
             )),
             Owned(canister.canister_id().to_text().into()),
         ));
-        // vars.push((
-        //     Owned(format!(
-        //         "CANISTER_ID_{}",
-        //         canister.get_name().replace('-', "_")
-        //     )),
-        //     Owned(canister.canister_id().to_text().into()),
-        // ));
     }
     if let Ok(id) = info.get_canister_id() {
         vars.push((Borrowed("CANISTER_ID"), Owned(format!("{}", id).into())));
