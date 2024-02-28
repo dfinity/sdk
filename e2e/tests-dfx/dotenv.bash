@@ -98,13 +98,9 @@ assert_dotenv_contains_all_variables_after_command() {
   env=$(< .env)
   assert_contains "DFX_NETWORK='local'" "$env"
   assert_contains "CANISTER_ID_E2E_PROJECT_BACKEND='$backend_canister'" "$env"
-  assert_contains "E2E_PROJECT_BACKEND_CANISTER_ID='$backend_canister'" "$env"
   assert_contains "CANISTER_ID_E2E_PROJECT_FRONTEND='$frontend_canister'" "$env"
-  assert_contains "E2E_PROJECT_FRONTEND_CANISTER_ID='$frontend_canister'" "$env"
   assert_contains "CANISTER_ID_NNS_CYCLES_MINTING='rkp4c-7iaaa-aaaaa-aaaca-cai'" "$env"
-  assert_contains "NNS_CYCLES_MINTING_CANISTER_ID='rkp4c-7iaaa-aaaaa-aaaca-cai'" "$env"
   assert_contains "CANISTER_ID_LIFELINE='rno2w-sqaaa-aaaaa-aaacq-cai'" "$env"
-  assert_contains "LIFELINE_CANISTER_ID='rno2w-sqaaa-aaaaa-aaacq-cai'" "$env"
 
   setup_actuallylocal_project_network
   dfx canister create --all --network actuallylocal
