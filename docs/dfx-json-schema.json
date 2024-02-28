@@ -100,7 +100,7 @@
         },
         "env_override": {
           "title": "Canister ID ENV Override",
-          "description": "A string that will replace process.env.{canister_name_uppercase}_CANISTER_ID in the 'src/dfx/assets/language_bindings/canister.js' template.",
+          "description": "A string that will replace process.env.CANISTER_ID_{canister_name_uppercase} in the 'src/dfx/assets/language_bindings/canister.js' template.",
           "type": [
             "string",
             "null"

@@ -4,7 +4,7 @@
             "type": "custom",
             "candid": "main.did",
             "wasm": "main.wasm",
-            "build": "bash -c 'echo \"CANISTER_ID_remote: $CANISTER_ID_remote\"'",
+            "build": "bash -c 'echo \"CANISTER_ID_REMOTE: $CANISTER_ID_REMOTE\"'",
             "dependencies": [
                 "remote"
             ]

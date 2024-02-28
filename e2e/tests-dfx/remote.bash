@@ -316,5 +316,5 @@ teardown() {
   setup_actuallylocal_shared_network
 
   assert_command dfx deploy --network actuallylocal -vv
-  assert_match "CANISTER_ID_remote: qoctq-giaaa-aaaaa-aaaea-cai"
+  assert_match "CANISTER_ID_REMOTE: qoctq-giaaa-aaaaa-aaaea-cai"
 }

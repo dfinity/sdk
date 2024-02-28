@@ -2,6 +2,6 @@
 members = ["src/counter_rs", "src/inter_rs", "src/inter2_rs"]
 
 [workspace.dependencies]
-candid = "0.9"
-ic-cdk = "0.10"
+candid = "0.10"
+ic-cdk = "0.12"
 ic-cdk-bindgen = "0.1"
