@@ -95,6 +95,10 @@ Fixed a bug where `dfx generate` would delete a canister's source candid file if
 
 Fixed a bug where `dfx canister install` would fail when specify a canister id and there is no dfx.json.
 
+### fix: failed to call a canister removed from dfx.json
+
+Fixed a bug where `dfx canister call` would fail when the deployed canister was removed from dfx.json.
+
 # 0.17.0
 
 ### feat: new starter templates

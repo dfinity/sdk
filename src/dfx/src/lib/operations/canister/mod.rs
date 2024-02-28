@@ -304,21 +304,31 @@ pub async fn provisional_deposit_cycles(
     Ok(())
 }
 
-#[context(
-    "Failed to get canister id and path to its candid definitions for '{}'.",
-    canister_name
-)]
-pub fn get_local_cid_and_candid_path(
+/// Get the canister id and the path to the candid file for the given canister.
+/// The argument `canister` can be either a canister id or a canister name.
+pub fn get_canister_id_and_candid_path(
     env: &dyn Environment,
-    canister_name: &str,
-    maybe_canister_id: Option<CanisterId>,
+    canister: &str,
 ) -> DfxResult<(CanisterId, Option<PathBuf>)> {
+    let canister_id_store = env.get_canister_id_store()?;
+    let (canister_name, canister_id) = if let Ok(id) = Principal::from_text(canister) {
+        if let Some(canister_name) = canister_id_store.get_name(canister) {
+            (canister_name.to_string(), id)
+        } else {
+            return Ok((id, None));
+        }
+    } else {
+        (canister.to_string(), canister_id_store.get(canister)?)
+    };
     let config = env.get_config_or_anyhow()?;
-    let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)?;
-    Ok((
-        canister_info.get_canister_id()?,
-        canister_info.get_output_idl_path(),
-    ))
+    let candid_path = match CanisterInfo::load(&config, &canister_name, Some(canister_id)) {
+        Ok(info) => info.get_output_idl_path(),
+        // In a rare case that the canister was deployed and then removed from dfx.json,
+        // the canister_id_store can still resolve the canister id from the canister name.
+        // In such case, technically, we are still able to call the canister.
+        Err(_) => None,
+    };
+    Ok((canister_id, candid_path))
 }
 
 pub fn add_canisters_with_ids(
