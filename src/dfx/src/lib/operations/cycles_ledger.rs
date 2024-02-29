@@ -5,7 +5,7 @@ use crate::lib::cycles_ledger_types::create_canister::{
     CmcCreateCanisterArgs, CreateCanisterArgs, CreateCanisterError, CreateCanisterSuccess,
 };
 use crate::lib::cycles_ledger_types::deposit::DepositArg;
-use crate::lib::cycles_ledger_types::send::SendError;
+use crate::lib::cycles_ledger_types::withdraw::WithdrawError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
@@ -33,13 +33,13 @@ use slog::{info, Logger};
 
 /// Cycles ledger feature flag to turn off behavior that would be confusing while cycles ledger is not enabled yet.
 //TODO(SDK-1331): feature flag can be removed
-pub const CYCLES_LEDGER_ENABLED: bool = false;
+pub const CYCLES_LEDGER_ENABLED: bool = true;
 
 const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
 const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
 const ICRC2_APPROVE_METHOD: &str = "icrc2_approve";
 const ICRC2_TRANSFER_FROM_METHOD: &str = "icrc2_transfer_from";
-const SEND_METHOD: &str = "send";
+const WITHDRAW_METHOD: &str = "withdraw";
 const CREATE_CANISTER_METHOD: &str = "create_canister";
 const CYCLES_LEDGER_DEPOSIT_METHOD: &str = "deposit";
 const CYCLES_LEDGER_CANISTER_ID: Principal =
@@ -256,7 +256,7 @@ pub async fn approve(
     Ok(block_index)
 }
 
-pub async fn send(
+pub async fn withdraw(
     agent: &Agent,
     logger: &Logger,
     to: Principal,
@@ -271,30 +271,30 @@ pub async fn send(
 
     let retry_policy = ExponentialBackoff::default();
     let block_index: BlockIndex = retry(retry_policy, || async {
-        let arg = cycles_ledger_types::send::SendArgs {
+        let arg = cycles_ledger_types::withdraw::WithdrawArgs {
             from_subaccount,
             to,
             created_at_time: Some(created_at_time),
             amount: Nat::from(amount),
         };
         match canister
-            .update(SEND_METHOD)
+            .update(WITHDRAW_METHOD)
             .with_arg(arg)
             .build()
-            .map(|result: (Result<BlockIndex, SendError>,)| (result.0,))
+            .map(|result: (Result<BlockIndex, WithdrawError>,)| (result.0,))
             .call_and_wait()
             .await
             .map(|(result,)| result)
         {
             Ok(Ok(block_index)) => Ok(block_index),
-            Ok(Err(SendError::Duplicate { duplicate_of })) => {
+            Ok(Err(WithdrawError::Duplicate { duplicate_of })) => {
                 info!(
                     logger,
                     "transaction is a duplicate of another transaction in block {}", duplicate_of
                 );
                 Ok(duplicate_of)
             }
-            Ok(Err(SendError::InvalidReceiver { receiver })) => {
+            Ok(Err(WithdrawError::InvalidReceiver { receiver })) => {
                 Err(backoff::Error::permanent(anyhow!(
                     "Invalid receiver: {}.  Make sure the receiver is a canister.",
                     receiver

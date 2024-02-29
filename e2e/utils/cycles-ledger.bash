@@ -1,4 +1,4 @@
-CYCLES_LEDGER_VERSION="0.2.8"
+CYCLES_LEDGER_VERSION="0.3.0"
 
 build_artifact_url() {
     echo "https://github.com/dfinity/cycles-ledger/releases/download/cycles-ledger-v$CYCLES_LEDGER_VERSION/${1}"
