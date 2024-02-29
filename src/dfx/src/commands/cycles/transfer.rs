@@ -1,8 +1,8 @@
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::cycles_ledger;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::parsers::cycle_amount_parser;
-use crate::{lib::environment::Environment, util::clap::parsers::icrc_subaccount_parser};
+use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use candid::Principal;
 use clap::Parser;
 use icrc_ledger_types::icrc1::{self, account::Subaccount};
