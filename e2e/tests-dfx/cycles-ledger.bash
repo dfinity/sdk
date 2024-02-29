@@ -356,7 +356,7 @@ current_time_nanoseconds() {
 }
 
 @test "top-up and deposit-cycles" {
-  # skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
   start_and_install_nns
 
   dfx_new
