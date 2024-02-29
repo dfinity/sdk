@@ -569,7 +569,7 @@ current_time_nanoseconds() {
 
   # using dfx canister create
   dfx identity use alice
-  # shellcheck disable=SC2030
+  # shellcheck disable=SC2030,SC2031
   export DFX_DISABLE_AUTO_WALLET=1
   t=$(current_time_nanoseconds)
   assert_command dfx canister create e2e_project_backend --with-cycles 1T --created-at-time "$t"
