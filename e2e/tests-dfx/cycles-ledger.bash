@@ -356,7 +356,7 @@ current_time_nanoseconds() {
 }
 
 @test "top-up and deposit-cycles" {
-  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  # skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
   start_and_install_nns
 
   dfx_new
@@ -433,6 +433,25 @@ current_time_nanoseconds() {
   assert_eq "2699798800000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_100_002_000_000 Cycles"
+
+  # deduplication
+  t=$(current_time_nanoseconds)
+  assert_command dfx cycles balance --precise --identity bob
+  assert_eq "2399799800000 cycles."
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Balance: 3_100_002_000_000 Cycles"
+
+  assert_command dfx canister deposit-cycles 100000 e2e_project_backend --identity bob --created-at-time "$t"
+  assert_command dfx cycles balance --precise --identity bob
+  assert_eq "2399699700000 cycles."
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Balance: 3_100_002_100_000 Cycles"
+
+  assert_command dfx canister deposit-cycles 100000 e2e_project_backend --identity bob --created-at-time "$t"
+  assert_command dfx cycles balance --precise --identity bob
+  assert_eq "2399699700000 cycles."
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Balance: 3_100_002_100_000 Cycles"
 }
 
 @test "top-up deduplication" {
