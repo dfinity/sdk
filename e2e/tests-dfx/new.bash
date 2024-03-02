@@ -83,3 +83,10 @@ teardown() {
   assert_file_exists e2e_project/src/e2e_project_frontend/src/setupTests.js
   assert_command jq .canisters.internet_identity e2e_project/dfx.json
 }
+
+@test "hyphenated names" {
+  assert_command dfx new e2e-project --type motoko --frontend vanilla --extras frontend-tests
+  cd e2e-project
+  assert_command dfx deploy
+  assert_command npm test --workspaces
+}
