@@ -504,15 +504,16 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         .to_str()
         .ok_or_else(|| anyhow!("Invalid argument: project_name"))?;
 
-    let variables: BTreeMap<String, String> = [
+    let variables: BTreeMap<String, String> = BTreeMap::from([
         ("project_name".to_string(), project_name_str.to_string()),
+        (
+            "project_name_ident".to_string(),
+            project_name_str.replace('-', "_"),
+        ),
         ("dfx_version".to_string(), version_str.clone()),
         ("dot".to_string(), ".".to_string()),
         ("ic_commit".to_string(), replica_rev().to_string()),
-    ]
-    .iter()
-    .cloned()
-    .collect();
+    ]);
 
     write_files_from_entries(
         log,

@@ -261,6 +261,7 @@ fn compile_handlebars_files(
             let mut data: BTreeMap<String, &String> = BTreeMap::new();
 
             let canister_name = &info.get_name().to_string();
+            let canister_name_ident = &canister_name.replace('-', "_");
 
             let node_compatibility = info.get_declarations_config().node_compatibility;
 
@@ -279,6 +280,7 @@ export const {0} = canisterId ? createActor(canisterId) : undefined;"#,
             };
 
             data.insert("canister_name".to_string(), canister_name);
+            data.insert("canister_name_ident".to_string(), canister_name_ident);
             data.insert("actor_export".to_string(), &actor_export);
 
             // Switches to prefixing the canister id with the env variable for frontend declarations as new default
@@ -288,10 +290,10 @@ export const {0} = canisterId ? createActor(canisterId) : undefined;"#,
                     format!(
                         "process.env.{}{} ||\n  process.env.{}{}",
                         "CANISTER_ID_",
-                        &canister_name.to_ascii_uppercase(),
+                        &canister_name.to_ascii_uppercase().replace('-', "_"),
                         // TODO: remove this fallback in 0.16.x
                         // https://dfinity.atlassian.net/browse/SDK-1083
-                        &canister_name.to_ascii_uppercase(),
+                        &canister_name.to_ascii_uppercase().replace('-', "_"),
                         "_CANISTER_ID",
                     )
                 }

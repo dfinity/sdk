@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: hyphenated project names
+
+DFX no longer forbids hyphens in project names. Anywhere they appear as the name of a variable, e.g. environment variables or generated JS variables, they will be replaced with underscores.
+
 ### feat: candid assist feature
 
 Ask for user input when Candid argument is not provided in `dfx canister call`, `dfx canister install` and `dfx deploy`. 
