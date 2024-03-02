@@ -1,10 +1,10 @@
 [
   {
     "op": "add",
-    "path": "/canisters/{project_name}_backend",
+    "path": "/canisters/{backend_name}",
     "value": {
       "type": "motoko",
-      "main": "src/{project_name}_backend/main.mo"
+      "main": "src/{backend_name}/main.mo"
     }
   }
 ]

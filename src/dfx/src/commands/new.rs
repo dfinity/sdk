@@ -504,11 +504,33 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         .to_str()
         .ok_or_else(|| anyhow!("Invalid argument: project_name"))?;
 
+    let (backend_name, frontend_name) = if project_name_str.contains('-') {
+        (
+            format!("{project_name_str}-backend"),
+            format!("{project_name_str}-frontend"),
+        )
+    } else {
+        (
+            format!("{project_name_str}_backend"),
+            format!("{project_name_str}_frontend"),
+        )
+    };
+
     let variables: BTreeMap<String, String> = BTreeMap::from([
         ("project_name".to_string(), project_name_str.to_string()),
         (
             "project_name_ident".to_string(),
             project_name_str.replace('-', "_"),
+        ),
+        ("backend_name".to_string(), backend_name.clone()),
+        (
+            "backend_name_ident".to_string(),
+            backend_name.replace('-', "_"),
+        ),
+        ("frontend_name".to_string(), frontend_name.clone()),
+        (
+            "frontend_name_ident".to_string(),
+            frontend_name.replace('-', "_"),
         ),
         ("dfx_version".to_string(), version_str.clone()),
         ("dot".to_string(), ".".to_string()),

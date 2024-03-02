@@ -30,7 +30,6 @@ teardown() {
   assert_command_fail dfx new 1_
   assert_command_fail dfx new -
   assert_command_fail dfx new _
-  assert_command_fail dfx new a-b-c
   assert_command_fail dfx new '🕹'
   assert_command_fail dfx new '不好'
   assert_command_fail dfx new 'a:b'
@@ -87,6 +86,7 @@ teardown() {
 @test "hyphenated names" {
   assert_command dfx new e2e-project --type motoko --frontend vanilla --extras frontend-tests
   cd e2e-project
+  assert_command jq '.canisters.["e2e-project-backend","e2e-project-frontend"]' dfx.json
   assert_command dfx deploy
   assert_command npm test --workspaces
 }
