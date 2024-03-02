@@ -55,6 +55,17 @@ teardown() {
   assert_match '("Hello, Names are difficult!")'
 }
 
+@test "call subcommand accepts raw argument" {
+  install_asset greet
+  dfx_start
+  dfx canister create --all
+  dfx build
+  dfx canister install hello_backend
+  # The encoded raw argument was generated with `didc encode '("raw")'`
+  assert_command dfx canister call hello_backend greet '4449444c00017103726177' --type raw
+  assert_match '("Hello, raw!")'
+}
+
 @test "call subcommand accepts argument from a file" {
   install_asset greet
   dfx_start
@@ -139,4 +150,15 @@ teardown() {
     assert_command dfx canister call "$ID" greet '("you")' --network "$NETWORK"
     assert_match '("Hello, you!")'
   )
+}
+
+@test "call a canister which is deployed then removed from dfx.json" {
+  dfx_start
+  dfx deploy
+  CANISTER_ID=$(dfx canister id hello_backend)
+  jq 'del(.canisters.hello_backend)' dfx.json | sponge dfx.json
+  assert_command dfx canister call hello_backend greet '("you")'
+  assert_match '("Hello, you!")'
+  assert_command dfx canister call "$CANISTER_ID" greet '("you")'
+  assert_match '("Hello, you!")'
 }

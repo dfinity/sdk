@@ -66,10 +66,10 @@ impl TryFrom<InstallMode> for PlaygroundInstallMode {
             InstallMode::Install => Ok(Self::Install),
             InstallMode::Reinstall => Ok(Self::Reinstall),
             InstallMode::Upgrade {
-                skip_pre_upgrade: false,
+                skip_pre_upgrade: Some(false) | None,
             } => Ok(Self::Upgrade),
             InstallMode::Upgrade {
-                skip_pre_upgrade: true,
+                skip_pre_upgrade: Some(true),
             } => bail!("Cannot skip pre-upgrade on the playground"),
         }
     }

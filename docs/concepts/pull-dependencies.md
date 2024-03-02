@@ -127,8 +127,8 @@ Below is an example `dfx.json` in which the service consumer is developing the "
 Running `dfx deps pull` will:
 
 1. resolve the dependency graph by fetching `dependencies` field in `dfx` metadata recursively;
-2. download wasm of all direct and indirect dependencies from `wasm_url` into shared cache;
-3. verify the hash of the downloaded wasm against `wasm_hash` metadata or the hash of the canister deployed on mainnet;
+2. fetch the expected hash from `wasm_hash`,  `wasm_hash_url` in `dfx` metadata or canister status call;
+3. download wasm of all direct and indirect dependencies from their `wasm_url` into shared cache, skip if cached wasm has match hash;
 4. extract `candid:args`, `candid:service`, `dfx` metadata from the downloaded wasm;
 5. create `deps/` folder in project root;
 6. save `candid:service` of direct dependencies as `deps/candid/<CANISTER_ID>.did`;
@@ -136,36 +136,46 @@ Running `dfx deps pull` will:
 
 For the example project, you will find following files in `deps/`:
 
-- `yhgn4-myaaa-aaaaa-aabta-cai.did` and `yahli-baaaa-aaaaa-aabtq-cai.did`: candid files that can be imported by "app";
+- `candid/yhgn4-myaaa-aaaaa-aabta-cai.did` and `candid/yahli-baaaa-aaaaa-aabtq-cai.did`: candid files that can be imported by "app";
 - `pulled.json` which has following content:
 
 ```json
 {
   "canisters": {
     "yofga-2qaaa-aaaaa-aabsq-cai": {
-      "dependencies": [],
-      "wasm_hash": "e9b8ba2ad28fa1403cf6e776db531cdd6009a8e5cac2b1097d09bfc65163d56f",
+      "dependencies": [
+        "yofga-2qaaa-aaaaa-aabsq-cai"
+      ],
+      "wasm_hash": "616af3b750c80787f5f123cf7860206db3bb352ef1efe77afcce4d3ee9f2c7ab",
+      "wasm_hash_download": "6f053bb3d53d64409c6bddc9355eea658f3d79d510cf57c587bcc809c804bdea",
       "init_guide": "A natural number, e.g. 10.",
-      "init_arg" : "10",
-      "candid_args": "(nat)"
+      "init_arg": "10",
+      "candid_args": "(nat)",
+      "gzip": false
     },
     "yhgn4-myaaa-aaaaa-aabta-cai": {
       "name": "dep_b",
       "dependencies": [
         "yofga-2qaaa-aaaaa-aabsq-cai"
       ],
-      "wasm_hash": "f607c30727b0ee81317fc4547a8da3cda9bb9621f5d0740806ef973af5b479a2",
+      "wasm_hash": "5642fc8c6fcc0e975a48c87d8e5f21ad0781cb740e5230647754bde14e7f1569",
+      "wasm_hash_download": "5642fc8c6fcc0e975a48c87d8e5f21ad0781cb740e5230647754bde14e7f1569",
       "init_guide": "No init arguments required",
-      "candid_args": "()"
+      "init_arg": null,
+      "candid_args": "()",
+      "gzip": true
     },
     "yahli-baaaa-aaaaa-aabtq-cai": {
       "name": "dep_c",
       "dependencies": [
         "yofga-2qaaa-aaaaa-aabsq-cai"
       ],
-      "wasm_hash": "016df9800dc5760785646373bcb6e6bb530fc17f844600991a098ef4d486cf0b",
+      "wasm_hash": "6f053bb3d53d64409c6bddc9355eea658f3d79d510cf57c587bcc809c804bdea",
+      "wasm_hash_download": "6f053bb3d53d64409c6bddc9355eea658f3d79d510cf57c587bcc809c804bdea",
       "init_guide": "An optional natural number, e.g. \"(opt 20)\".",
-      "candid_args": "(opt nat)"
+      "init_arg": null,
+      "candid_args": "(opt nat)",
+      "gzip": false
     }
   }
 }
@@ -179,6 +189,12 @@ There are three dependencies:
 
 **Note**
 
+- In `pulled.json`, every dependency canister has the `wasm_hash` and `wasm_hash_download` fields.
+  - They are likely to be the same which means that the downloaded wasm passed integrity check.
+  - They can be different in one major circumstance:
+    the canister provider serves a customized wasm at `wasm_url` to be deployed locally.
+    But the corresponding `wasm_hash` or `wasm_hash_url` is not provided (or the content is wrong).
+    `dfx deps` is designed to accept the mismatch hash and will proceed in the following `dfx deps init/deploy`.
 -  `dfx deps pull` connects to the IC mainnet by default (`--network ic`).
 You can choose other network as usual, e.g. `--network local`.
 
@@ -188,7 +204,7 @@ Running `dfx deps init` will iterate over all dependencies in `pulled.json`, try
 
 - For canisters that require no init argument, set empty
 - For canisters that do require init arguments:
-  - Use `init_arg` in pullable metadata if it is set
+  - Use `init_arg` in `pulled.json` if it is set
   - use `"(null)"` if the canister's init type has a top-level `opt`
 
 The command will also print the list of dependencies that do require an init argument.

@@ -1,7 +1,10 @@
 pub(crate) mod create_canister;
 pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
+pub mod motoko_playground;
+
 pub use create_canister::create_canister;
+pub use install_canister::install_wallet;
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -13,16 +16,17 @@ use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
+use dfx_core::config::model::dfinity::Config;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
-use ic_utils::interfaces::management_canister::{MgmtMethod, StatusCallResult};
+use ic_utils::interfaces::management_canister::{
+    FetchCanisterLogsResponse, MgmtMethod, StatusCallResult,
+};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
-pub use install_canister::install_wallet;
+use std::collections::HashSet;
 use std::path::PathBuf;
-
-pub mod motoko_playground;
 
 #[context(
     "Failed to call update function '{}' regarding canister '{}'.",
@@ -88,6 +92,29 @@ pub async fn get_canister_status(
         env,
         canister_id,
         MgmtMethod::CanisterStatus.as_ref(),
+        In { canister_id },
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(out)
+}
+
+#[context("Failed to get canister logs of {}.", canister_id)]
+pub async fn get_canister_logs(
+    env: &dyn Environment,
+    canister_id: Principal,
+    call_sender: &CallSender,
+) -> DfxResult<FetchCanisterLogsResponse> {
+    #[derive(CandidType)]
+    struct In {
+        canister_id: Principal,
+    }
+
+    let (out,): (FetchCanisterLogsResponse,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::FetchCanisterLogs.as_ref(),
         In { canister_id },
         call_sender,
         0,
@@ -277,19 +304,60 @@ pub async fn provisional_deposit_cycles(
     Ok(())
 }
 
-#[context(
-    "Failed to get canister id and path to its candid definitions for '{}'.",
-    canister_name
-)]
-pub fn get_local_cid_and_candid_path(
+/// Get the canister id and the path to the candid file for the given canister.
+/// The argument `canister` can be either a canister id or a canister name.
+pub fn get_canister_id_and_candid_path(
     env: &dyn Environment,
-    canister_name: &str,
-    maybe_canister_id: Option<CanisterId>,
+    canister: &str,
 ) -> DfxResult<(CanisterId, Option<PathBuf>)> {
+    let canister_id_store = env.get_canister_id_store()?;
+    let (canister_name, canister_id) = if let Ok(id) = Principal::from_text(canister) {
+        if let Some(canister_name) = canister_id_store.get_name(canister) {
+            (canister_name.to_string(), id)
+        } else {
+            return Ok((id, None));
+        }
+    } else {
+        (canister.to_string(), canister_id_store.get(canister)?)
+    };
     let config = env.get_config_or_anyhow()?;
-    let canister_info = CanisterInfo::load(&config, canister_name, maybe_canister_id)?;
-    Ok((
-        canister_info.get_canister_id()?,
-        canister_info.get_output_idl_path(),
-    ))
+    let candid_path = match CanisterInfo::load(&config, &canister_name, Some(canister_id)) {
+        Ok(info) => info.get_output_idl_path(),
+        // In a rare case that the canister was deployed and then removed from dfx.json,
+        // the canister_id_store can still resolve the canister id from the canister name.
+        // In such case, technically, we are still able to call the canister.
+        Err(_) => None,
+    };
+    Ok((canister_id, candid_path))
+}
+
+pub fn add_canisters_with_ids(
+    canister_names: &[String],
+    env: &dyn Environment,
+    config: &Config,
+) -> Vec<String> {
+    let mut canister_names: HashSet<_> = canister_names.iter().cloned().collect();
+
+    canister_names.extend(all_project_canisters_with_ids(env, config));
+
+    canister_names.into_iter().collect()
+}
+
+pub fn all_project_canisters_with_ids(env: &dyn Environment, config: &Config) -> Vec<String> {
+    env.get_canister_id_store()
+        .map(|store| {
+            config
+                .get_config()
+                .canisters
+                .as_ref()
+                .map(|canisters| {
+                    canisters
+                        .keys()
+                        .filter(|canister| store.get(canister).is_ok())
+                        .cloned()
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default()
+        })
+        .unwrap_or_default()
 }

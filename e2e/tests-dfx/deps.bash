@@ -16,6 +16,7 @@ CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"
 CANISTER_ID_B="yhgn4-myaaa-aaaaa-aabta-cai"
 CANISTER_ID_C="yahli-baaaa-aaaaa-aabtq-cai"
 
+# only execute in project root (deps)
 setup_onchain() {
   install_asset deps
 
@@ -43,6 +44,18 @@ setup_onchain() {
   cp .dfx/local/canisters/b/b.wasm.gz ../www/b.wasm.gz
   cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
 
+  cd .. || exit
+}
+
+# only execute in project root (deps)
+cleanup_onchain() {
+  cd onchain || exit
+  dfx canister stop a
+  dfx canister delete a --no-withdrawal
+  dfx canister stop b
+  dfx canister delete b --no-withdrawal
+  dfx canister stop c
+  dfx canister delete c --no-withdrawal
   cd .. || exit
 }
 
@@ -178,14 +191,22 @@ Failed to download from url: http://example.com/c.wasm."
   assert_command dfx deps pull --network local -vvv
   assert_contains "The canister wasm was found in the cache." # cache hit
 
-  # warning: hash mismatch
+  # hash mismatch is ok
+  # the expected hash is written to pulled.json wasm_hash field
+  # the hash of downloaded wasm is written to pulled.json wasm_hash_download field
   rm -r "${PULLED_DIR:?}/"
   cd ../onchain
-  cp .dfx/local/canisters/c/c.wasm ../www/a.wasm
+  cp .dfx/local/canisters/c/c.wasm ../www/a.wasm # we will get wasm of canister_c when pulling canister_a
+  WASM_HASH_A="$(sha256sum .dfx/local/canisters/a/a.wasm | cut -d " " -f 1)"
+  WASM_HASH_DOWNLOAD_A="$(sha256sum .dfx/local/canisters/c/c.wasm | cut -d " " -f 1)"
 
   cd ../app
   assert_command dfx deps pull --network local
-  assert_contains "WARN: Canister $CANISTER_ID_A has different hash between on chain and download."
+  assert_not_contains "WARN"
+  assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".wasm_hash' deps/pulled.json
+  assert_match "$WASM_HASH_A" "$output"
+  assert_command jq -r '.canisters."'"$CANISTER_ID_A"'".wasm_hash_download' deps/pulled.json
+  assert_match "$WASM_HASH_DOWNLOAD_A" "$output"
 
   # sad path: url server doesn't have the file
   rm -r "${PULLED_DIR:?}/"
@@ -262,7 +283,7 @@ Failed to download from url: http://example.com/c.wasm."
   assert_command dfx deps pull --network local -vvv
   assert_contains "WARN: Canister $CANISTER_ID_C specified both \`wasm_hash\` and \`wasm_hash_url\`. \`wasm_hash\` will be used."
 
-  # warning: hash mismatch
+  # hash mismatch is ok
   rm -r "${PULLED_DIR:?}/"
   cd ../onchain
   cp .dfx/local/canisters/a/a.wasm ../www/a.wasm # now the webserver has the onchain version of canister_a which won't match wasm_hash
@@ -270,7 +291,6 @@ Failed to download from url: http://example.com/c.wasm."
   cd ../app
   assert_command dfx deps pull --network local -vvv
   assert_contains "Canister $CANISTER_ID_A specified a custom hash:"
-  assert_contains "WARN: Canister $CANISTER_ID_A has different hash between on chain and download."
 }
 
 @test "dfx deps init works" {
@@ -301,6 +321,10 @@ $CANISTER_ID_A"
   
   # overwrite the empty argument with a valid one
   assert_command dfx deps init dep_c --argument "(opt 33)"
+
+  # can also set with --argument-file
+  echo "(opt 44)" > arg.txt
+  assert_command dfx deps init dep_c --argument-file arg.txt
 
   # The argument is the hex string of '("abc")' which doesn't type check
   # However, passing raw argument will bypass the type check so following command succeed
@@ -411,15 +435,10 @@ candid:args => (nat)"
   assert_command dfx deps pull --network local
 
   # delete onchain canisters so that the replica has no canisters as a clean local replica
-  cd ../onchain
-  dfx canister stop a
-  dfx canister delete a --no-withdrawal
-  dfx canister stop b
-  dfx canister delete b --no-withdrawal
-  dfx canister stop c
-  dfx canister delete c --no-withdrawal
+  cd ../
+  cleanup_onchain
 
-  cd ../app
+  cd app
   assert_command dfx deps init # b is set here
   assert_command dfx deps init "$CANISTER_ID_A" --argument 11
   assert_command dfx deps init "$CANISTER_ID_C" --argument "(opt 33)"
@@ -470,6 +489,105 @@ Installing canister: $CANISTER_ID_C (dep_c)"
   assert_contains "Failed to find $CANISTER_ID_A entry in init.json. Please run \`dfx deps init $CANISTER_ID_A\`."
 }
 
+@test "dfx deps init/deploy works when hash mismatch" {
+  use_test_specific_cache_root # dfx deps pull will download files to cache
+
+  # start a "mainnet" replica which host the onchain canisters
+  dfx_start
+
+  setup_onchain
+  cd onchain
+  cp .dfx/local/canisters/c/c.wasm ../www/a.wasm # we will get wasm of canister_c when pulling canister_a
+
+  # pull canisters in app project
+  cd ../app
+  assert_command dfx deps pull --network local
+
+  # delete onchain canisters so that the replica has no canisters as a clean local replica
+  cd ../
+  cleanup_onchain
+
+  cd app
+  assert_command dfx deps init # b is set here
+  assert_command dfx deps init "$CANISTER_ID_A" --argument "(opt 11)" # the downloaded wasm need argument type as canister_c
+  assert_command dfx deps init "$CANISTER_ID_C" --argument "(opt 33)"  
+
+  # deploy all
+  assert_command dfx deps deploy
+}
+
+@test "dfx deps init/deploy abort when pulled.json and cache are invalid" {
+  use_test_specific_cache_root # dfx deps pull will download files to cache
+
+  # start a "mainnet" replica which host the onchain canisters
+  dfx_start
+
+  setup_onchain
+
+  # pull canisters in app project
+  cd app
+  assert_command dfx deps pull --network local
+  cp deps/pulled.json deps/pulled.json.bak
+
+  # 1. `pulled.json` is not consistent with `dfx.json`
+
+  ## 1.1. missing pull dependency in pulled.json
+  jq 'del(.canisters."'"$CANISTER_ID_B"'")' deps/pulled.json.bak > deps/pulled.json
+  assert_command_fail dfx deps init
+  assert_contains "Failed to find dep_b:$CANISTER_ID_B in pulled.json."
+  assert_contains "Please rerun \`dfx deps pull\`."
+  assert_command_fail dfx deps deploy
+  assert_contains "Failed to find dep_b:$CANISTER_ID_B in pulled.json."
+  assert_contains "Please rerun \`dfx deps pull\`."
+
+  ## 1.2. name mismatch in pulled.json and dfx.json
+  jq '.canisters."'"$CANISTER_ID_B"'".name="not_dep_b"' deps/pulled.json.bak > deps/pulled.json
+  assert_command_fail dfx deps init
+  assert_contains "$CANISTER_ID_B is \"dep_b\" in dfx.json, but it has name \"not_dep_b\" in pulled.json."
+  assert_command_fail dfx deps deploy
+  assert_contains "$CANISTER_ID_B is \"dep_b\" in dfx.json, but it has name \"not_dep_b\" in pulled.json."
+
+  ## 1.3. no name in pulled.json
+  jq 'del(.canisters."'"$CANISTER_ID_B"'".name)' deps/pulled.json.bak > deps/pulled.json
+  assert_command_fail dfx deps init
+  assert_contains "$CANISTER_ID_B is \"dep_b\" in dfx.json, but it doesn't have name in pulled.json."
+  assert_command_fail dfx deps deploy
+  assert_contains "$CANISTER_ID_B is \"dep_b\" in dfx.json, but it doesn't have name in pulled.json."
+
+  cp deps/pulled.json.bak deps/pulled.json
+
+  # 2. the wasm modules in pulled cache are not consistent with `pulled.json`
+
+  ## 2.1. missing wasm in cache
+  WASM_PATH_A="$DFX_CACHE_ROOT/.cache/dfinity/pulled/$CANISTER_ID_A/canister.wasm"
+  mv "$WASM_PATH_A" "$WASM_PATH_A.bak"
+  assert_command_fail dfx deps init
+  assert_contains "Failed to read $WASM_PATH_A"
+  assert_command_fail dfx deps deploy
+  assert_contains "Failed to read $WASM_PATH_A"
+  mv "$WASM_PATH_A.bak" "$WASM_PATH_A"
+
+  ## 2.2. wasm_hash_download is not valid hex string
+  jq '.canisters."'"$CANISTER_ID_B"'".wasm_hash_download="xyz"' deps/pulled.json.bak > deps/pulled.json
+  assert_command_fail dfx deps init
+  assert_contains "In pulled.json, the \`wasm_hash_download\` field of $CANISTER_ID_B is invalid."
+  assert_command_fail dfx deps deploy
+  assert_contains "In pulled.json, the \`wasm_hash_download\` field of $CANISTER_ID_B is invalid."
+
+  ## 2.3. hash mismatch
+  jq '.canisters."'"$CANISTER_ID_A"'".wasm_hash_download="0123456789abcdef"' deps/pulled.json.bak > deps/pulled.json
+  assert_command_fail dfx deps init
+  assert_contains "The wasm of $CANISTER_ID_A in pulled cache has different hash than in pulled.json:"
+  assert_contains "The pulled cache is at \"$WASM_PATH_A\". Its hash is:"
+  assert_contains "The hash (wasm_hash_download) in pulled.json is:"
+  assert_contains "The pulled cache may be modified manually or the same canister was pulled in different projects."
+  assert_command_fail dfx deps deploy
+  assert_contains "The wasm of $CANISTER_ID_A in pulled cache has different hash than in pulled.json:"
+  assert_contains "The pulled cache is at \"$WASM_PATH_A\". Its hash is:"
+  assert_contains "The hash (wasm_hash_download) in pulled.json is:"
+  assert_contains "The pulled cache may be modified manually or the same canister was pulled in different projects."
+}
+
 @test "dfx deps pulled dependencies work with app canister" {
   use_test_specific_cache_root # dfx deps pull will download files to cache
 
@@ -483,15 +601,10 @@ Installing canister: $CANISTER_ID_C (dep_c)"
   assert_command dfx deps pull --network local
 
   # delete onchain canisters so that the replica has no canisters as a clean local replica
-  cd ../onchain
-  dfx canister stop a
-  dfx canister delete a --no-withdrawal
-  dfx canister stop b
-  dfx canister delete b --no-withdrawal
-  dfx canister stop c
-  dfx canister delete c --no-withdrawal
+  cd ../
+  cleanup_onchain
 
-  cd ../app
+  cd app
   assert_command_fail dfx canister create dep_b
   assert_contains "dep_b is a pull dependency. Please deploy it using \`dfx deps deploy dep_b\`"
   assert_command dfx canister create app

@@ -1,7 +1,6 @@
 use crate::lib::builders::BuildConfig;
 use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
-use crate::lib::cycles_ledger_types::create_canister::SubnetSelection;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
@@ -11,7 +10,10 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
-use crate::lib::operations::canister::{create_canister, install_canister::install_canister};
+use crate::lib::operations::canister::{
+    all_project_canisters_with_ids, create_canister, install_canister::install_canister,
+};
+use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
@@ -52,7 +54,7 @@ pub async fn deploy_canisters(
     skip_consent: bool,
     env_file: Option<PathBuf>,
     no_asset_upgrade: bool,
-    subnet_selection: Option<SubnetSelection>,
+    subnet_selection: &mut SubnetSelectionType,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -71,7 +73,7 @@ pub async fn deploy_canisters(
         }
     }
 
-    let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
+    let canisters_to_deploy = canister_with_dependencies(&config, some_canister)?;
 
     let canisters_to_build = match deploy_mode {
         PrepareForProposal(canister_name) | ComputeEvidence(canister_name) => {
@@ -81,7 +83,7 @@ pub async fn deploy_canisters(
             // don't force-reinstall the dependencies too.
             vec![String::from(canister_name)]
         }
-        NormalDeploy => canisters_to_load
+        NormalDeploy => canisters_to_deploy
             .clone()
             .into_iter()
             .filter(|canister_name| {
@@ -104,13 +106,13 @@ pub async fn deploy_canisters(
     } else {
         info!(log, "Deploying all canisters.");
     }
-    if canisters_to_load
+    if canisters_to_deploy
         .iter()
         .any(|canister| initial_canister_id_store.find(canister).is_none())
     {
         register_canisters(
             env,
-            &canisters_to_load,
+            &canisters_to_deploy,
             &initial_canister_id_store,
             with_cycles,
             specified_id_from_cli,
@@ -125,6 +127,8 @@ pub async fn deploy_canisters(
     } else {
         info!(env.get_logger(), "All canisters have already been created.");
     }
+
+    let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
     let pool = build_canisters(
         env,
@@ -193,7 +197,7 @@ async fn register_canisters(
     from_subaccount: Option<Subaccount>,
     created_at_time: Option<u64>,
     config: &Config,
-    subnet_selection: Option<SubnetSelection>,
+    subnet_selection: &mut SubnetSelectionType,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -259,7 +263,7 @@ async fn register_canisters(
                     reserved_cycles_limit,
                 },
                 created_at_time,
-                subnet_selection.clone(),
+                subnet_selection,
             )
             .await?;
         }
@@ -270,7 +274,7 @@ async fn register_canisters(
 #[context("Failed to build all canisters.")]
 async fn build_canisters(
     env: &dyn Environment,
-    referenced_canisters: &[String],
+    canisters_to_load: &[String],
     canisters_to_build: &[String],
     config: &Config,
     env_file: Option<PathBuf>,
@@ -278,7 +282,7 @@ async fn build_canisters(
     let log = env.get_logger();
     info!(log, "Building canisters...");
     let build_mode_check = false;
-    let canister_pool = CanisterPool::load(env, build_mode_check, referenced_canisters)?;
+    let canister_pool = CanisterPool::load(env, build_mode_check, canisters_to_load)?;
 
     let build_config =
         BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?

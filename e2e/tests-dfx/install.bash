@@ -131,7 +131,7 @@ teardown() {
 @test "post-install tasks discover dependencies" {
   install_asset post_install
   dfx_start
-  echo "echo hello \$CANISTER_ID_postinstall" >> postinstall.sh
+  echo "echo hello \$CANISTER_ID_POSTINSTALL" >> postinstall.sh
 
   assert_command dfx canister create --all
   assert_command dfx build
@@ -200,6 +200,13 @@ teardown() {
   assert_command dfx canister install e2e_project_backend --argument '()'
 }
 
+@test "installing one canister specifying raw argument succeeds" {
+  dfx_start
+  assert_command dfx canister create e2e_project_backend
+  assert_command dfx build e2e_project_backend
+  assert_command dfx canister install e2e_project_backend --argument '4449444c0000' --argument-type raw
+}
+
 @test "installing with an argument in a file succeeds" {
   dfx_start
   assert_command dfx canister create e2e_project_backend
@@ -247,4 +254,14 @@ teardown() {
   assert_contains "The command line value will be used."
   assert_command dfx canister call dependency greet
   assert_match "Hello, icp!"
+}
+
+@test "install succeeds when specify canister id and wasm, in dir without dfx.json" {
+  dfx_start
+
+  dfx canister create --all
+  CANISTER_ID=$(dfx canister id e2e_project_backend)
+  dfx build
+  rm dfx.json
+  assert_command dfx canister install "$CANISTER_ID" --wasm .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm
 }
