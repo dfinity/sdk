@@ -964,7 +964,7 @@ mod with_tempdir {
                 }
             ]
 "#
-                .to_string(),
+            .to_string(),
         )]));
         let cfg2 = Some(HashMap::from([(
             "".to_string(),
@@ -986,7 +986,7 @@ mod with_tempdir {
                 }
             ]
             "#
-                .to_string(),
+            .to_string(),
         )]));
 
         let x = {
@@ -1037,7 +1037,7 @@ mod with_tempdir {
                 }
             ]
 "#
-                .to_string(),
+            .to_string(),
         )]));
         let cfg2 = Some(HashMap::from([(
             "".to_string(),
@@ -1059,7 +1059,7 @@ mod with_tempdir {
                 }
             ]
             "#
-                .to_string(),
+            .to_string(),
         )]));
 
         let x = {
