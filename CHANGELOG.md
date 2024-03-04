@@ -2,11 +2,13 @@
 
 # UNRELEASED
 
-### chore: bump candid to 0.10.4
+# 0.18.0
 
-Fix the Typescript binding for init args.
+### fix!: removed the `dfx upgrade` command
 
-## fix!: Remove fallback .env formats
+The `dfx upgrade` command now prints a message directing the user to install dfxvm.
+
+### fix!: Remove fallback .env formats
 
 In dfx 0.14.0, we standardized on `CANISTER_ID_<CANISTER_NAME_UPPERCASE>` and
 `CANISTER_CANDID_PATH_<CANISTER_NAME_UPPERCASE>` for
@@ -22,10 +24,14 @@ For reference, these formats were removed (any '-' characters were replaced by '
 - `CANISTER_CANDID_PATH_<canister_name_case_from_dfx_json>`
 - `<CANISTER_NAME_UPPERCASE>_CANISTER_ID`
 
-### feat: add `dfx canister logs <canister_id>` for fetching canister's logs
+### feat: add `dfx canister logs <canister_id>` for fetching canister's logs (preview)
 
-There is a new subcomand `logs` to fetch canister's logs. 
+There is a new subcommand `logs` to fetch canister's logs. 
 When printing the log entries it tries to guess if the content can be converted to UTF-8 text and prints an array of hex bytes if it fails.
+
+**Note**
+
+This feature is still in development. Changes may occur in following releases.
 
 ### feat: display local asset canister URLs in subdomain format
 
@@ -77,10 +83,6 @@ For detailed explanations on how these fields work please refer to the [ICRC-2 s
 The script at https://internetcomputer.org/install.sh now installs
 the [dfxvm version manager](https://github.com/dfinity/dfxvm) instead of the dfx binary.
 
-### fix!: removed the `dfx upgrade` command
-
-The `dfx upgrade` command now prints a message directing the user to install dfxvm.
-
 ### fix(deps): init/deploy still requires hash check
 
 `dfx deps pull` was recently changed to allow hash mismatch wasm. But `init` and `deploy` weren't change accordingly.
@@ -98,6 +100,10 @@ Fixed a bug where `dfx canister install` would fail when specify a canister id a
 ### fix: failed to call a canister removed from dfx.json
 
 Fixed a bug where `dfx canister call` would fail when the deployed canister was removed from dfx.json.
+
+### chore: bump candid to 0.10.4
+
+Fix the Typescript binding for init args.
 
 ## Dependencies
 
