@@ -101,6 +101,18 @@ Fixed a bug where `dfx canister call` would fail when the deployed canister was 
 
 ## Dependencies
 
+### Replica
+
+Updated replica to elected commit d966b2737ca75f1bfaa84f21e7f3f7c54b5d7f33.
+This incorporates the following executed proposals:
+
+- [128155](https://dashboard.internetcomputer.org/proposal/128155)
+- [128154](https://dashboard.internetcomputer.org/proposal/128154)
+- [128099](https://dashboard.internetcomputer.org/proposal/128099)
+- [128088](https://dashboard.internetcomputer.org/proposal/128088)
+- [127707](https://dashboard.internetcomputer.org/proposal/127707)
+- [127706](https://dashboard.internetcomputer.org/proposal/127706)
+
 ### Asset canister
 
 Module hash: 32e92f1190d8321e97f8d8f3e793019e4fd2812bfc595345d46d2c23f74c1ab5
