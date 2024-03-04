@@ -37,7 +37,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "dfx restarts replica when ic-btc-adapter restarts" {
-  dfx_new hello
+  dfx_new_assets hello
   dfx_start --enable-bitcoin
 
   install_asset greet

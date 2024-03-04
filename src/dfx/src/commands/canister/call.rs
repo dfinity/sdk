@@ -1,13 +1,15 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::operations::canister::get_local_cid_and_candid_path;
+use crate::lib::operations::canister::get_canister_id_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::parsers::{cycle_amount_parser, file_or_stdin_parser};
-use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type, print_idl_blob};
+use crate::util::clap::argument_from_cli::ArgumentFromCliPositionalOpt;
+use crate::util::clap::parsers::cycle_amount_parser;
+use crate::util::{blob_from_arguments, fetch_remote_did_file, get_candid_type, print_idl_blob};
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::{CandidType, Decode, Deserialize, Principal};
+use candid_parser::utils::CandidSource;
 use clap::Parser;
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::identity::CallSender;
@@ -17,6 +19,7 @@ use ic_utils::interfaces::management_canister::builders::{CanisterInstall, Canis
 use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
+use slog::warn;
 use std::option::Option;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -24,12 +27,15 @@ use std::str::FromStr;
 /// Calls a method on a deployed canister.
 #[derive(Parser)]
 pub struct CanisterCallOpts {
-    /// Specifies the name of the canister to build.
-    /// You must specify either a canister name or the --all option.
+    /// Specifies the name/id of the canister to call.
+    /// You must specify either a canister or the --all option.
     canister_name: String,
 
     /// Specifies the method name to call on the canister.
     method_name: String,
+
+    #[command(flatten)]
+    argument_from_cli: ArgumentFromCliPositionalOpt,
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica.
     /// Instead return a response ID.
@@ -44,26 +50,9 @@ pub struct CanisterCallOpts {
     #[arg(long, conflicts_with("async"), conflicts_with("query"))]
     update: bool,
 
-    /// Specifies the argument to pass to the method.
-    #[arg(conflicts_with("random"), conflicts_with("argument_file"))]
-    argument: Option<String>,
-
-    /// Specifies the file from which to read the argument to pass to the method.
-    #[arg(
-        long,
-        value_parser = file_or_stdin_parser,
-        conflicts_with("random"),
-        conflicts_with("argument")
-    )]
-    argument_file: Option<PathBuf>,
-
     /// Specifies the config for generating random argument.
     #[arg(long, conflicts_with("argument"), conflicts_with("argument_file"))]
     random: Option<String>,
-
-    /// Specifies the data type for the argument when making the call using an argument.
-    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
-    r#type: Option<String>,
 
     /// Specifies the format for displaying the method's return result.
     #[arg(long, conflicts_with("async"),
@@ -152,7 +141,11 @@ pub fn get_effective_canister_id(
             )
         })?;
         match method_name {
-            MgmtMethod::CreateCanister | MgmtMethod::RawRand => {
+            MgmtMethod::CreateCanister | MgmtMethod::RawRand
+            | MgmtMethod::BitcoinGetBalance | MgmtMethod::BitcoinGetBalanceQuery
+            | MgmtMethod::BitcoinGetUtxos | MgmtMethod::BitcoinGetUtxosQuery
+            | MgmtMethod::BitcoinSendTransaction | MgmtMethod::BitcoinGetCurrentFeePercentiles
+            | MgmtMethod::EcdsaPublicKey | MgmtMethod::SignWithEcdsa => {
                 Err(DiagnosedError::new(
                     format!(
                         "{} can only be called by a canister, not by an external user.",
@@ -183,7 +176,11 @@ pub fn get_effective_canister_id(
             | MgmtMethod::DeleteCanister
             | MgmtMethod::DepositCycles
             | MgmtMethod::UninstallCode
-            | MgmtMethod::ProvisionalTopUpCanister => {
+            | MgmtMethod::ProvisionalTopUpCanister
+            | MgmtMethod::UploadChunk
+            | MgmtMethod::ClearChunkStore
+            | MgmtMethod::StoredChunks
+            | MgmtMethod::FetchCanisterLogs => {
                 #[derive(CandidType, Deserialize)]
                 struct In {
                     canister_id: CanisterId,
@@ -194,6 +191,15 @@ pub fn get_effective_canister_id(
             }
             MgmtMethod::ProvisionalCreateCanisterWithCycles => {
                 Ok(CanisterId::management_canister())
+            }
+            MgmtMethod::InstallChunkedCode => {
+                #[derive(CandidType, Deserialize)]
+                struct In {
+                    target_canister: Principal,
+                }
+                let in_args = Decode!(arg_value, In)
+                    .context("Argument is not valid for InstallChunkedCode")?;
+                Ok(in_args.target_canister)
             }
         }
     } else {
@@ -206,39 +212,43 @@ pub async fn exec(
     opts: CanisterCallOpts,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let callee_canister = opts.canister_name.as_str();
-    let method_name = opts.method_name.as_str();
-    let canister_id_store = env.get_canister_id_store()?;
+    let agent = env.get_agent();
+    fetch_root_key_if_needed(env).await?;
 
-    let (canister_id, maybe_candid_path) = match CanisterId::from_text(callee_canister) {
-        Ok(id) => {
-            if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
-                get_local_cid_and_candid_path(env, canister_name, Some(id))?
-            } else {
-                // TODO fetch candid file from remote canister
-                (id, None)
-            }
-        }
-        Err(_) => {
-            let canister_id = canister_id_store.get(callee_canister)?;
-            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
-        }
+    let method_name = opts.method_name.as_str();
+
+    let (canister_id, maybe_local_candid_path) =
+        get_canister_id_and_candid_path(env, opts.canister_name.as_str())?;
+
+    let method_type = if let Some(path) = opts.candid {
+        get_candid_type(CandidSource::File(&path), method_name)
+    } else if let Some(did) = fetch_remote_did_file(agent, canister_id).await {
+        get_candid_type(CandidSource::Text(&did), method_name)
+    } else if let Some(path) = maybe_local_candid_path {
+        warn!(env.get_logger(), "DEPRECATION WARNING: Cannot fetch Candid interface from canister metadata, reading Candid interface from the local build artifact. In a future dfx release, we will only read candid interface from canister metadata.");
+        warn!(
+            env.get_logger(),
+            r#"Please add the following to dfx.json to store local candid file into metadata:
+"metadata": [
+   {{
+     "name": "candid:service"
+   }}
+]"#
+        );
+        get_candid_type(CandidSource::File(&path), method_name)
+    } else {
+        None
     };
-    let maybe_candid_path = opts.candid.or(maybe_candid_path);
+    if method_type.is_none() {
+        warn!(env.get_logger(), "Cannot fetch Candid interface for {method_name}, sending arguments with inferred types.");
+    }
 
     let is_management_canister = canister_id == CanisterId::management_canister();
 
-    let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
-    let arguments_from_file = opts
-        .argument_file
-        .map(|v| arguments_from_file(&v))
-        .transpose()?;
-    let arguments = opts.argument.as_deref();
-    let arguments = arguments_from_file.as_deref().or(arguments);
+    let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument_and_type()?;
 
-    let arg_type = opts.r#type.as_deref();
     let output_type = opts.output.as_deref();
     let is_query = if opts.r#async {
         false
@@ -262,10 +272,14 @@ pub async fn exec(
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
-    let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)?;
-    let agent = env.get_agent();
-
-    fetch_root_key_if_needed(env).await?;
+    let arg_value = blob_from_arguments(
+        Some(env),
+        argument_from_cli.as_deref(),
+        opts.random.as_deref(),
+        argument_type.as_deref(),
+        &method_type,
+        false,
+    )?;
 
     // amount has been validated by cycle_amount_validator
     let cycles = opts.with_cycles.unwrap_or(0);

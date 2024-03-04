@@ -1,16 +1,16 @@
 # dfx canister
 
-Use the `dfx canister` command with flags and subcommands to manage canister operations and interaction with the
+Use the `dfx canister` command with options and subcommands to manage canister operations and interaction with the
 Internet Computer or the local canister execution environment. In most cases, you use `dfx canister` subcommands after
 you compile a program to manage the canister lifecycle and to perform key tasks such as calling program functions.
 
 The basic syntax for running `dfx canister` commands is:
 
 ``` bash
-dfx canister <subcommand> [flags]
+dfx canister <subcommand> [options]
 ```
 
-Depending on the `dfx canister` subcommand you specify, additional arguments, options, and flags might apply or be
+Depending on the `dfx canister` subcommand you specify, additional arguments and options might apply or be
 required. To view usage information for a specific `dfx canister` subcommand, specify the subcommand and the `--help`
 flag. For example, to see usage information for `dfx canister call`, you can run the following command:
 
@@ -30,6 +30,7 @@ For reference information and examples that illustrate using `dfx canister` comm
 | [`id`](#dfx-canister-id)                           | Displays the identifier of a canister.                                                                                                                 |
 | [`info`](#dfx-canister-info)                       | Get the hash of a canister’s WASM module and its current controller.                                                                                   |
 | [`install`](#dfx-canister-install)                 | Installs compiled code in a canister.                                                                                                                  |
+| [`logs`](#dfx-canister-logs)                       | Returns the logs from a canister.                                                                                                                      |
 | [`metadata`](#dfx-canister-metadata)               | Displays metadata in a canister.                                                                                                                       |
 | [`request-status`](#dfx-canister-request-status)   | Requests the status of a call to a canister.                                                                                                           |
 | [`send`](#dfx-canister-send)                       | Send a previously-signed message.                                                                                                                      |
@@ -75,7 +76,7 @@ dfx canister call counter get --network http://192.168.3.1:5678
 By default, most `dfx canister` commands to the Internet Computer are signed by and sent from your own principal. (
 Exceptions are commands that require cycles: `dfx canister create` and `dfx canister deposit-cycles`. Those
 automatically go through the wallet.) Occasionally, you may want to make a call from your wallet, e.g. when only your
-wallet is allowed to call a certain function. To send a call through your wallet, you can use the `--wallet` flag like
+wallet is allowed to call a certain function. To send a call through your wallet, you can use the `--wallet` option like
 this:
 
 ``` bash
@@ -103,41 +104,38 @@ Use the `dfx canister call` command to call a specified method on a deployed can
 ### Basic usage
 
 ``` bash
-dfx canister call [option] canister_name method_name [argument] [flag]
+dfx canister call [options] <canister_name> <method_name> [argument]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx canister call` command.
-
-| Flag       | Description                                                                                                                                                                                                               |
-|------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--async`  | Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.                                                                                                     |
-| `--query`  | Sends a query request instead of an update request. For information about the difference between query and update calls, see [Canisters include both program and state](../../concepts/canisters-code.md#canister-state). |
-| `--update` | Sends an update request to a canister. This is the default if the method is not a query method.                                                                                                                           |
 
 ### Options
 
 You can use the following options with the `dfx canister call` command.
 
-| Option                   | Description                                                                                                                                                                             |
-|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--argument-file`        | Specifies the file from which to read the argument to pass to the method.  Stdin may be referred to as `-`.                                                                             |
-| `--candid <file.did>`    | Provide the .did file with which to decode the response. Overrides value from dfx.json for project canisters.                                                                           |
-| `--output <output>`      | Specifies the output format to use when displaying a method’s return result. The valid values are `idl`, `pp` and `raw`. The `pp` option is equivalent to `idl`, but is pretty-printed. |
-| `--random <random>`      | Specifies the config for generating random arguments.                                                                                                                                   |
-| `--type <type>`          | Specifies the data format for the argument when making the call using an argument. The valid values are `idl` and `raw`.                                                                |
-| `--with-cycles <amount>` | Specifies the amount of cycles to send on the call. Deducted from the wallet. Requires `--wallet` as a flag to `dfx canister`.                                                          |
+| Option                            | Description                                                                                                                                                                                                                    |
+|-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--argument-file <argument-file>` | Specifies the file from which to read the argument to pass to the method.  Stdin may be referred to as `-`.                                                                                                                    |
+| `--async`                         | Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.                                                                                                          |
+| `--candid <file.did>`             | Provide the .did file with which to decode the response. Overrides value from dfx.json for project canisters.                                                                                                                  |
+| `--output <output>`               | Specifies the output format to use when displaying a method’s return result. The valid values are `idl`, `pp` and `raw`. The `pp` option is equivalent to `idl`, but is pretty-printed.                                        |
+| `--query`                         | Sends a query request instead of an update request. For information about the difference between query and update calls, see [Canisters include both program and state](/docs/current/concepts/canisters-code#canister-state). |
+| `--random <random>`               | Specifies the config for generating random arguments.                                                                                                                                                                          |
+| `--type <type>`                   | Specifies the data format for the argument when making the call using an argument. The valid values are `idl` and `raw`.                                                                                                       |
+| `--update`                        | Sends an update request to a canister. This is the default if the method is not a query method.                                                                                                                                |
+| `--with-cycles <amount>`          | Specifies the amount of cycles to send on the call. Deducted from the wallet. Requires `--wallet` as an option to `dfx canister`.                                                                                              |
 
 ### Arguments
 
 You can specify the following arguments for the `dfx canister call` command.
 
-| Argument        | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `canister_name` | Specifies the name of the canister to call. The canister name is a required argument and should match the name you have configured for a project in the `canisters` section of the `dfx.json` configuration file.                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `method_name`   | Specifies the method name to call on the canister. The canister method is a required argument.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `argument`      | Specifies the argument to pass to the method. Depending on your program logic, the argument can be a required or optional argument. You can specify a data format type using the `--type` option if you pass an argument to the canister. By default, you can specify arguments using the [Candid](../../developer-docs/backend/candid/index.md) (`idl`) syntax for data values. For information about using Candid and its supported types, see [Interact with a service in a terminal](../../developer-docs/backend/candid/candid-howto.md#idl-syntax) and [Supported types](../candid-ref.md). You can use `raw` as the argument type if you want to pass raw bytes to a canister. |
+| Argument        | Description                                                                                                                                                                                                       |
+|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `canister_name` | Specifies the name of the canister to call. The canister name is a required argument and should match the name you have configured for a project in the `canisters` section of the `dfx.json` configuration file. |
+| `method_name`   | Specifies the method name to call on the canister. The canister method is a required argument.                                                                                                                    |
+| `argument`      | Specifies the argument to pass to the method                                                                                                                                                                      |
+
+#### Specifies the argument to pass to the method
+
+Depending on your program logic, the argument can be a required or optional argument. You can specify a data format type using the `--type` option if you pass an argument to the canister. By default, you can specify arguments using the [Candid](/docs/current/references/candid-ref) (`idl`) syntax for data values. For information about using Candid and its supported types, see [Interact with a service in a terminal](/docs/current/developer-docs/smart-contracts/candid/candid-howto#idl-syntax) and [supported types](/docs/current/references/candid-ref#supported-types). You can use `raw` as the argument type if you want to pass raw bytes.
 
 ### Examples
 
@@ -204,7 +202,7 @@ subdirectories.
 ### Basic usage
 
 ``` bash
-dfx canister create [option] [flag] [--all | canister_name]
+dfx canister create [options] [--all | canister_name]
 ```
 
 ### Options
@@ -216,10 +214,13 @@ You can use the following options with the `dfx canister create` command.
 | `-c`, `--compute-allocation <allocation>` | Specifies the canister's compute allocation. This should be a percent in the range [0..100].                                                                                                                                                                                                                                                                                             |
 | `--controller <principal>`                | Specifies the identity name or the principal of the new controller.                                                                                                                                                                                                                                                                                                                      |
 | `--memory-allocation <memory>`            | Specifies how much memory the canister is allowed to use in total. This should be a value in the range [0..12 GiB]. A setting of 0 means the canister will have access to memory on a “best-effort” basis: It will only be charged for the memory it uses, but at any point in time may stop running if it tries to allocate more memory when there isn’t space available on the subnet. |
-| `--reserved-cycles-limit <limit>`         | Specifies the upper limit for the canister's reserved cycles. |
+| `--reserved-cycles-limit <limit>`         | Specifies the upper limit for the canister's reserved cycles.                                                                                                                                                                                                                                                                                                                            |
 | `--no-wallet`                             | Performs the call with the user Identity as the Sender of messages. Bypasses the Wallet canister. Enabled by default.                                                                                                                                                                                                                                                                    |
 | `--with-cycles <number-of-cycles>`        | Specifies the initial cycle balance to deposit into the newly created canister. The specified amount needs to take the canister create fee into account. This amount is deducted from the wallet's cycle balance.                                                                                                                                                                        |
-| `--specified-id <PRINCIPAL>`              | Attempts to create the canister with this Canister ID |
+| `--specified-id <PRINCIPAL>`              | Attempts to create the canister with this Canister ID                                                                                                                                                                                                                                                                                                                                    |
+| `--subnet-type <subnet-type>`             | Specify the subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                                                                                                                                                                                                                                   |
+| `--subnet <subnet-principal>`             | Specify the subnet to create the canister on. If no subnet is provided, the canister will be created on a random default application subnet.                                                                                                                                                                                                                                             |
+| `--next-to <canister-principal>`          | Create canisters on the same subnet as this canister.                                                                                                                                                                                                                                                                                                                                    |
 
 ### Arguments
 
@@ -248,6 +249,24 @@ cycles for all canisters, run the following command:
 dfx canister create --with-cycles 8000000000000 --all
 ```
 
+#### Allocating message processing
+
+The `--compute-allocation` options allows you to allocate computing resources as a percentage in the range of 0 to 100
+to indicate how often your canister should be scheduled for execution.
+
+For example, assume you run the following command:
+
+``` bash
+dfx canister create --all --compute-allocation 50
+```
+
+With this setting, all of the canisters in the current projects are assigned a 50% allocation. When canisters in the
+project receive input messages to process, the messages are scheduled for execution. Over 100 execution cycles, each
+canister’s messages will be scheduled for processing at least 50 times.
+
+The default value for this option is 0—indicating that no specific allocation or scheduling is in effect. If all of your
+canisters use the default setting, processing occurs in a round-robin fashion.
+
 ## dfx canister delete
 
 Use the `dfx canister delete` command to delete a stopped canister from the local canister execution environment or the
@@ -260,28 +279,29 @@ subdirectories.
 ### Basic usage
 
 ``` bash
-dfx canister delete [flag] [--all | canister_name]
+dfx canister delete [options] [--all | canister_name]
 ```
 
-### Flags
+### Options
 
-You can use the following optional flags with the `dfx canister delete` command.
+You can use the following options with the `dfx canister delete` command.
 
-| Flag                        | Description                                         |
-|-----------------------------|-----------------------------------------------------|
-| `--no-withdrawal`           | Do not withdrawal cycles, just delete the canister. |
-| `--withdraw-cycles-to-dank` | Withdraw cycles to dank with the current principal. |
+| Option                                            | Description                                                                        |
+|---------------------------------------------------|------------------------------------------------------------------------------------|
+| `--no-withdrawal`                                 | Do not withdrawal cycles, just delete the canister.                                |
+| `--withdraw-cycles-to-dank`                       | Withdraw cycles to dank with the current principal.                                |
+| `--withdraw-cycles-to-canister <principal>`       | Withdraw cycles from canister(s) to the specified canister/wallet before deleting. |
+| `--withdraw-cycles-to-dank-principal <principal>` | Withdraw cycles to dank with the given principal.                                  |
+| `-y, --yes`                                       | Auto-confirm deletion for a non-stopped canister                                   |
 
 ### Arguments
 
 You can use the following arguments with the `dfx canister delete` command.
 
-| Argument                                          | Description                                                                                                                        |
-|---------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| `--all`                                           | Deletes all of the canisters configured in the `dfx.json` file. Note that you must specify `--all` or an individual canister name. |
-| `canister_name`                                   | Specifies the name of the canister you want to delete. Note that you must specify either a canister name or the `--all` option.    |
-| `--withdraw-cycles-to-canister <principal>`       | Withdraw cycles from canister(s) to the specified canister/wallet before deleting.                                                 |
-| `--withdraw-cycles-to-dank-principal <principal>` | Withdraw cycles to dank with the given principal.                                                                                  |
+| Argument        | Description                                                                                                                        |
+|-----------------|------------------------------------------------------------------------------------------------------------------------------------|
+| `--all`         | Deletes all of the canisters configured in the `dfx.json` file. Note that you must specify `--all` or an individual canister name. |
+| `canister_name` | Specifies the name of the canister you want to delete. Note that you must specify either a canister name or the `--all` option.    |
 
 ### Examples
 
@@ -297,7 +317,7 @@ To delete all of the canisters you have deployed on the `ic` Internet Computer a
 can run the following command:
 
 ``` bash
-dfx canister  delete --all--network=ic
+dfx canister delete --all --network=ic
 ```
 
 ## dfx canister deposit-cycles
@@ -309,7 +329,7 @@ Note that you must have your cycles wallet configured for this to work.
 ### Basic usage
 
 ``` bash
-dfx canister deposit-cycles [amount of cycles] [--all | canister_name]
+dfx canister deposit-cycles <cycles> [--all | canister_name]
 ```
 
 ### Arguments
@@ -359,7 +379,7 @@ ID for all networks that don't have a dedicated entry.
 ### Basic usage
 
 ``` bash
-dfx canister id [flag] canister_name
+dfx canister id <canister_name>
 ```
 
 ### Arguments
@@ -393,7 +413,7 @@ Use the `dfx canister info` command to output a canister's controller and instal
 ### Basic usage
 
 ``` bash
-dfx canister info canister
+dfx canister info <canister>
 ```
 
 ### Arguments
@@ -429,31 +449,28 @@ canister execution environment.
 ### Basic usage
 
 ``` bash
-dfx canister install [flag] [option] [--all | canister_name]
+dfx canister install [option] [--all | canister_name]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx canister install` command.
-
-| Flag                  | Description                                                                                                                                                             |
-|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--argument-file`     | Specifies the file from which to read the argument to pass to the init method.  Stdin may be referred to as `-`.                                                        |
-| `--async-call`        | Enables you to continue without waiting for the result of the installation to be returned by polling the Internet Computer or the local canister execution environment. |
-| `--upgrade-unchanged` | Upgrade the canister even if the .wasm did not change.                                                                                                                  |
 
 ### Options
 
 You can use the following options with the `dfx canister install` command.
 
-| Option                                            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-|---------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--argument <argument>`                           | Specifies an argument to pass to the canister during installation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `--argument-type <argument-type>`                 | Specifies the data format for the argument when you install using the `--argument` option. The valid values are `idl` and `raw`. By default, you can specify arguments using the [Candid](../../developer-docs/backend/candid/index.md) (`idl`) syntax for data values. For information about using Candid and its supported types, see [Interact with a service in a terminal](../../developer-docs/backend/candid/candid-howto.md#idl-syntax) and [Supported types](../candid-ref.md). You can use `raw` as the argument type if you want to pass raw bytes to a canister. |
-| `-c`, `--compute-allocation <compute-allocation>` | Defines a compute allocation—essentially the equivalent of setting a CPU allocation—for canister execution. You can set this value as a percentage in the range of 0 to 100.                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `--memory-allocation <memory-allocation>`         | Specifies how much memory the canister is allowed to use in total. You can set this value in the range of 0 to 8MB.                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| `-m`, `--mode <mode>`                             | Specifies whether you want to `install`, `reinstall`, or `upgrade` canisters. Defaults to `install`. For more information about installation modes and canister management, see [Managing canisters](../../developer-docs/setup/manage-canisters.md).                                                                                                                                                                                                                                                                                                                        |
-| `--wasm <file.wasm>`                              | Specifies a particular WASM file to install, bypassing the dfx.json project settings.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Option                            | Description                                                                                                                                                                                                                                                           |
+|-----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--argument <argument>`           | Specifies an argument to pass to the canister during installation.                                                                                                                                                                                                    |
+| `--argument-type <argument-type>` | Specifies the data type for the argument when making the call using an argument [possible values: idl, raw]                                                                                                                                                           |
+| `--argument-file <argument-file>` | Specifies the file from which to read the argument to pass to the init method.  Stdin may be referred to as `-`.                                                                                                                                                      |
+| `--async-call`                    | Enables you to continue without waiting for the result of the installation to be returned by polling the Internet Computer or the local canister execution environment.                                                                                               |
+| `-m`, `--mode <mode>`             | Specifies whether you want to `install`, `reinstall`, or `upgrade` canisters. Defaults to `install`. For more information about installation modes and canister management, see [managing canisters](/docs/current/developer-docs/smart-contracts/maintain/settings). |
+| `--no-wallet`                     | Performs the call with the user Identity as the Sender of messages. Bypasses the Wallet canister. Enabled by default.                                                                                                                                                 |
+| `--no-asset-upgrade`              | Skips upgrading the asset canister, to only install the assets themselves.                                                                                                                                                                                            |
+| `--upgrade-unchanged`             | Upgrade the canister even if the .wasm did not change.                                                                                                                                                                                                                |
+| `--wasm <file.wasm>`              | Specifies a particular WASM file to install, bypassing the dfx.json project settings.                                                                                                                                                                                 |
+
+#### Specifies the argument to pass to the init entrypoint
+
+With `--argument-type`, you can specify the data format for the argument when you install using the `--argument` option. The valid values are `idl` and `raw`. By default, you can specify arguments using the [Candid](/docs/current/developer-docs/smart-contracts/candid/index) (`idl`) syntax for data values. For information about using Candid and its supported types, see [Interact with a service in a terminal](/docs/current/developer-docs/smart-contracts/candid/candid-howto#idl-syntax) and [Supported types](/docs/current/references/candid-ref). You can use `raw` as the argument type if you want to pass raw bytes to a canister.
 
 ### Arguments
 
@@ -514,23 +531,30 @@ For example, you can specify a testnet URL by running a command similar to the f
 dfx canister install --all --network http://192.168.3.1:5678
 ```
 
-#### Allocating message processing
+## dfx canister logs
 
-The `--compute-allocation` options allows you to allocate computing resources as a percentage in the range of 0 to 100
-to indicate how often your canister should be scheduled for execution.
+Use the `dfx canister logs` command to display the logs from a canister.
 
-For example, assume you run the following command:
+### Basic usage
 
 ``` bash
-dfx canister install --all --compute-allocation 50
+dfx canister logs <canister-name>
 ```
 
-With this setting, all of the canisters in the current projects are assigned a 50% allocation. When canisters in the
-project receive input messages to process, the messages are scheduled for execution. Over 100 execution cycles, each
-canister’s messages will be scheduled for processing at least 50 times.
+### Examples
 
-The default value for this option is 0—indicating that no specific allocation or scheduling is in effect. If all of your
-canisters use the default setting, processing occurs in a round-robin fashion.
+To display the logs from the `hello_world` canister, you can run the following command:
+
+``` bash
+dfx canister logs hello_world
+```
+
+The command displays output similar to the following:
+
+``` log
+[42. 2021-05-06T19:17:10.000000001Z]: Some text message
+[43. 2021-05-06T19:17:10.000000002Z]: (bytes) 0xc0ffee
+```
 
 ## dfx canister metadata
 
@@ -539,7 +563,7 @@ Use the `dfx canister metadata` command to display metadata stored in a canister
 ### Basic usage
 
 ``` bash
-dfx canister metadata canister metadata-name
+dfx canister metadata <canister-name> <metadata-name>
 ```
 
 ### Arguments
@@ -576,7 +600,7 @@ identifier is an hexadecimal string starting with `0x`.
 ### Basic usage
 
 ``` bash
-dfx canister request-status request_id canister [option]
+dfx canister request-status [options] <request-id> <canister>
 ```
 
 ### Options
@@ -591,9 +615,10 @@ You can use the following options with the `dfx canister request-status` command
 
 You can specify the following argument for the `dfx canister request-status` command.
 
-| Argument     | Description                                                                                                                                                                  |
-|--------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `request_id` | Specifies the hexadecimal string returned in response to a `dfx canister call` or `dfx canister install` command. This identifier is an hexadecimal string starting with 0x. |
+| Argument     | Description                                                                                                                                                                                                                                                                                                         |
+|--------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `request_id` | Specifies the hexadecimal string returned in response to a `dfx canister call` or `dfx canister install` command. This identifier is an hexadecimal string starting with 0x.                                                                                                                                        |
+| `canister`   | Specifies the name or id of the canister onto which the request was made. If the request was made to the Management canister, specify the id of the canister it is updating/querying. If the call was proxied by the wallet, i.e. a `dfx canister call --async --wallet=<ID>` flag, specify the wallet canister id. |
 
 ### Examples
 
@@ -619,14 +644,14 @@ message.
 ### Basic usage
 
 ``` bash
-dfx canister send file_name
+dfx canister send [options] <file_name>
 ```
 
-### Flags
+### Options
 
-You can use the following optional flags with the `dfx canister request-status` command.
+You can use the following options with the `dfx canister request-status` command.
 
-| Flag       | Description                                         |
+| Option     | Description                                         |
 |------------|-----------------------------------------------------|
 | `--status` | Send the signed request-status call in the message. |
 
@@ -656,17 +681,8 @@ the signed message from a computer connected to the Internet Computer.
 ### Basic usage
 
 ``` bash
-dfx canister sign [flag] [option] canister-name method-name [argument]
+dfx canister sign [options] <canister-name> <method-name> [argument]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx canister sign` command.
-
-| Flag       | Description                                                                                              |
-|------------|----------------------------------------------------------------------------------------------------------|
-| `--query`  | Sends a query request to a canister.                                                                     |
-| `--update` | Sends an update request to the canister. This is the default method if the `--query` method is not used. |
 
 ### Options
 
@@ -677,18 +693,25 @@ You can specify the following options for the `dfx canister sign` command.
 | `--argument-file <file>`   | Specifies the file from which to read the argument to pass to the method.  Stdin may be referred to as `-`.                                      |
 | `--expire-after <seconds>` | Specifies how long the message will be valid before it expires and cannot be sent. Specify in seconds. If not defined, the default is 300s (5m). |
 | `--file <output>`          | Specifies the output file name. The default is `message.json`.                                                                                   |
+| `--query`                  | Sends a query request to a canister.                                                                                                             |
 | `--random <random>`        | Specifies the configuration for generating random arguments.                                                                                     |
 | `--type <type>`            | Specifies the data type for the argument when making a call using an argument. Possible values are `idl` and `raw`.                              |
+| `--update`                 | Sends an update request to the canister. This is the default method if the `--query` method is not used.                                         |
+
 
 ### Arguments
 
 You can specify the following arguments for the `dfx canister sign` command.
 
-| Argument        | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-|-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `canister_name` | Specifies the name of the canister to call. The canister name is a required argument and should match the name you have configured for a project in the `canisters` section of the `dfx.json` configuration file.                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `method_name`   | Specifies the method name to call on the canister. The canister method is a required argument.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `argument`      | Specifies the argument to pass to the method. Depending on your program logic, the argument can be a required or optional argument. You can specify a data format type using the `--type` option if you pass an argument to the canister. By default, you can specify arguments using the [Candid](../candid-ref.md) (`idl`) syntax for data values. For information about using Candid and its supported types, see [Interact with a service in a terminal](../../developer-docs/backend/candid/candid-howto.md#idl-syntax) and [Supported types](../candid-ref#supported-types). You can use `raw` as the argument type if you want to pass raw bytes. |
+| Argument        | Description                                                                                                                                                                                                       |
+|-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `canister_name` | Specifies the name of the canister to call. The canister name is a required argument and should match the name you have configured for a project in the `canisters` section of the `dfx.json` configuration file. |
+| `method_name`   | Specifies the method name to call on the canister. The canister method is a required argument.                                                                                                                    |
+| `argument`      | Specifies the argument to pass to the method                                                                                                                                                                      |
+
+#### Specifies the argument to pass to the method
+
+Depending on your program logic, the argument can be a required or optional argument. You can specify a data format type using the `--type` option if you pass an argument to the canister. By default, you can specify arguments using the [Candid](/docs/current/references/candid-ref) (`idl`) syntax for data values. For information about using Candid and its supported types, see [Interact with a service in a terminal](/docs/current/developer-docs/smart-contracts/candid/candid-howto#idl-syntax) and [supported types](/docs/current/references/candid-ref#supported-types). You can use `raw` as the argument type if you want to pass raw bytes.
 
 ### Examples
 
@@ -860,7 +883,7 @@ subdirectories.
 ### Basic usage
 
 ``` bash
-dfx canister uninstall-code [flag] [--all | canister_name]
+dfx canister uninstall-code [--all | canister_name]
 ```
 
 ### Arguments
@@ -902,16 +925,8 @@ subdirectories.
 ### Basic usage
 
 ``` bash
-dfx canister update-settings [flags] [options] [canister_name | --all]
+dfx canister update-settings [options] [canister_name | --all]
 ```
-
-### Flags
-
-You can use the following optional flags with the `dfx canister update-settings` command.
-
-| Flag                                     | Description                                                             |
-|------------------------------------------|-------------------------------------------------------------------------|
-| `--confirm-very-long-freezing-threshold` | Freezing thresholds above ~1.5 years require this flag as confirmation. |
 
 ### Options
 
@@ -921,11 +936,12 @@ You can specify the following options for the `dfx canister update-settings` com
 |-------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `--add-controller <principal>`            | Add a principal to the list of controllers of the canister.                                                                                                                                                                                                                                                                                                                              |
 | `-c`, `--compute-allocation <allocation>` | Specifies the canister's compute allocation. This should be a percent in the range [0..100].                                                                                                                                                                                                                                                                                             |
+| `--confirm-very-long-freezing-threshold`  | Freezing thresholds above ~1.5 years require this option as confirmation.                                                                                                                                                                                                                                                                                                                |
 | `--set-controller <principal>`            | Specifies the identity name or the principal of the new controller. Can be specified more than once, indicating the canister will have multiple controllers. If any controllers are set with this parameter, any other controllers will be removed.                                                                                                                                      |
 | `--memory-allocation <allocation>`        | Specifies how much memory the canister is allowed to use in total. This should be a value in the range [0..12 GiB]. A setting of 0 means the canister will have access to memory on a “best-effort” basis: It will only be charged for the memory it uses, but at any point in time may stop running if it tries to allocate more memory when there isn’t space available on the subnet. |
-| `--reserved-cycles-limit <limit>`         | Specifies the upper limit of the canister's reserved cycles. |
+| `--reserved-cycles-limit <limit>`         | Specifies the upper limit of the canister's reserved cycles.                                                                                                                                                                                                                                                                                                                             |
 | `--remove-controller <principal>`         | Removes a principal from the list of controllers of the canister.                                                                                                                                                                                                                                                                                                                        |
-| `--freezing-threshold <seconds>`          | Set the [freezing threshold](https://internetcomputer.org/docs/current/references/ic-interface-spec/#ic-create_canister) in seconds for a canister. This should be a value in the range [0..2^64^-1]. Very long thresholds require the `--confirm-very-long-freezing-threshold` flag.                                                                                                    |
+| `--freezing-threshold <seconds>`          | Set the [freezing threshold](https://internetcomputer.org/docs/current/references/ic-interface-spec/#ic-create_canister) in seconds for a canister. This should be a value in the range [0..2^64^-1]. Very long thresholds require the `--confirm-very-long-freezing-threshold` option.                                                                                                  |
 | `-y`, `--yes`                             | Skips yes/no checks by answering 'yes'. Such checks can result in loss of control, so this is not recommended outside of CI.                                                                                                                                                                                                                                                             |
 
 ### Arguments

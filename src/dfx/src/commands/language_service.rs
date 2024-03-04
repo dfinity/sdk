@@ -12,6 +12,7 @@ use dfx_core::config::model::dfinity::{
 };
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 use fn_error_context::context;
+use std::io::{stdout, IsTerminal};
 use std::path::PathBuf;
 use std::process::Stdio;
 
@@ -36,7 +37,7 @@ pub struct LanguageServiceOpts {
 pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
     let force_tty = opts.force_tty;
     // Are we being run from a terminal? That's most likely not what we want
-    if atty::is(atty::Stream::Stdout) && !force_tty {
+    if stdout().is_terminal() && !force_tty {
         Err(anyhow!("The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag."))
     } else if let Some(config) = env.get_config() {
         let main_path = get_main_path(config.get_config(), opts.canister)?;

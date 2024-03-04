@@ -4,7 +4,7 @@ use ic_cdk::{init, query, update};
 use std::cell::{Cell, RefCell};
 
 thread_local! {
-    static COUNTER: RefCell<candid::Nat> = RefCell::new(candid::Nat::from(0));
+    static COUNTER: RefCell<candid::Nat> = RefCell::new(candid::Nat::from(0u8));
     static OWNER: Cell<Principal> = Cell::new(Principal::from_slice(&[]));
 }
 

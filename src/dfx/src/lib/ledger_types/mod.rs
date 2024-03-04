@@ -5,16 +5,19 @@
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::ICPTs;
 use candid::CandidType;
+use candid::Nat;
 use candid::Principal;
+use icrc_ledger_types::icrc1::account::Subaccount as ICRCSubaccount;
+use icrc_ledger_types::icrc1::transfer::BlockIndex as ICRCBlockIndex;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+use super::cycles_ledger_types::create_canister::SubnetSelection;
+
 /// Id of the ledger canister on the IC.
-#[allow(deprecated)]
 pub const MAINNET_LEDGER_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0x01]);
 
-#[allow(deprecated)]
 pub const MAINNET_CYCLE_MINTER_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x01, 0x01]);
 
@@ -129,7 +132,7 @@ pub struct TimeStamp {
 pub struct NotifyCreateCanisterArg {
     pub block_index: BlockIndex,
     pub controller: Principal,
-    pub subnet_type: Option<String>,
+    pub subnet_selection: Option<SubnetSelection>,
 }
 
 #[derive(CandidType)]
@@ -152,6 +155,25 @@ pub enum NotifyError {
         error_message: String,
     },
 }
+
+#[derive(Serialize, Deserialize, CandidType, Clone, Hash, Debug, PartialEq, Eq)]
+pub struct NotifyMintCyclesArg {
+    pub block_index: BlockIndex,
+    pub to_subaccount: Option<ICRCSubaccount>,
+    pub deposit_memo: Option<Vec<u8>>,
+}
+
+#[derive(Serialize, Deserialize, CandidType, Clone, Hash, Debug, PartialEq, Eq)]
+pub struct NotifyMintCyclesSuccess {
+    /// Cycles ledger block index of deposit
+    pub block_index: ICRCBlockIndex,
+    /// Amount of cycles that were minted and deposited to the cycles ledger
+    pub minted: Nat,
+    /// New balance of the cycles ledger account
+    pub balance: Nat,
+}
+
+pub type NotifyMintCyclesResult = Result<NotifyMintCyclesSuccess, NotifyError>;
 
 pub type NotifyCreateCanisterResult = Result<Principal, NotifyError>;
 

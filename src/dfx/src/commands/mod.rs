@@ -36,6 +36,7 @@ pub enum DfxCommand {
     Build(build::CanisterBuildOpts),
     Cache(cache::CacheOpts),
     Canister(canister::CanisterOpts),
+    //TODO(SDK-1331): unhide
     #[command(hide = true)]
     Cycles(cycles::CyclesOpts),
     Deploy(deploy::DeployOpts),
@@ -56,7 +57,9 @@ pub enum DfxCommand {
     Schema(schema::SchemaOpts),
     Start(start::StartOpts),
     Stop(stop::StopOpts),
+    #[command(hide = true)]
     Toolchain(toolchain::ToolchainOpts),
+    #[command(hide = true)]
     Upgrade(upgrade::UpgradeOpts),
     Wallet(wallet::WalletOpts),
 }

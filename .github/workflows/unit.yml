@@ -16,15 +16,37 @@ env:
   CURL_HOME: .
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      sources: ${{ steps.filter.outputs.sources }}
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'push'
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            sources:
+              - .github/workflows/unit.yml
+              - src/**
+              - Cargo.lock
+              - Cargo.toml
+              - rust-toolchain.toml
+
   test:
+    if: needs.changes.outputs.sources == 'true'
+    needs: changes
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest, macos-latest ]
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
@@ -38,8 +60,8 @@ jobs:
 
   aggregate:
     name: unit:required
-    if: ${{ always() }}
-    needs: test
+    if: needs.changes.outputs.sources == 'true'
+    needs: [changes, test]
     runs-on: ubuntu-latest
     steps:
       - name: check unit test result

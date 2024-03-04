@@ -16,7 +16,6 @@ teardown() {
 
 @test "call --candid <path to candid file>" {
   install_asset call
-  cat dfx.json
 
   dfx_start
   dfx deploy
@@ -26,13 +25,24 @@ teardown() {
   CANISTER_ID=$(dfx canister id hello_backend)
   rm .dfx/local/canister_ids.json
 
-  # if no candid file known, then no field names
-  assert_command dfx canister call "$CANISTER_ID" make_struct '("A", "B")'
-  assert_eq '(record { 99 = "A"; 100 = "B" })'
+  # if no candid method known, then no field names
+  assert_command dfx canister call "$CANISTER_ID" make_struct2 '("A", "B")'
+  # shellcheck disable=SC2154
+  assert_eq '(record { 99 = "A"; 100 = "B" })' "$stdout"
 
   # if passing the candid file, field names available
-  assert_command dfx canister call --candid .dfx/local/canisters/hello_backend/hello_backend.did "$CANISTER_ID" make_struct '("A", "B")'
+  assert_command dfx canister call --candid full.did "$CANISTER_ID" make_struct2 '("A", "B")'
   assert_eq '(record { c = "A"; d = "B" })'
+
+  # given a canister id, fetch the did file from metadata
+  assert_command dfx canister call "$CANISTER_ID" make_struct '("A", "B")'
+  assert_eq '(record { c = "A"; d = "B" })'
+}
+
+@test "call without argument, using candid assistant" {
+  install_asset echo
+  dfx_start
+  assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/candid_assist.exp"
 }
 
 @test "call subcommand accepts canister identifier as canister name" {
@@ -43,6 +53,17 @@ teardown() {
   dfx canister install hello_backend
   assert_command dfx canister call "$(dfx canister id hello_backend)" greet '("Names are difficult")'
   assert_match '("Hello, Names are difficult!")'
+}
+
+@test "call subcommand accepts raw argument" {
+  install_asset greet
+  dfx_start
+  dfx canister create --all
+  dfx build
+  dfx canister install hello_backend
+  # The encoded raw argument was generated with `didc encode '("raw")'`
+  assert_command dfx canister call hello_backend greet '4449444c00017103726177' --type raw
+  assert_match '("Hello, raw!")'
 }
 
 @test "call subcommand accepts argument from a file" {
@@ -129,4 +150,15 @@ teardown() {
     assert_command dfx canister call "$ID" greet '("you")' --network "$NETWORK"
     assert_match '("Hello, you!")'
   )
+}
+
+@test "call a canister which is deployed then removed from dfx.json" {
+  dfx_start
+  dfx deploy
+  CANISTER_ID=$(dfx canister id hello_backend)
+  jq 'del(.canisters.hello_backend)' dfx.json | sponge dfx.json
+  assert_command dfx canister call hello_backend greet '("you")'
+  assert_match '("Hello, you!")'
+  assert_command dfx canister call "$CANISTER_ID" greet '("you")'
+  assert_match '("Hello, you!")'
 }

@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::fmt::Display;
 use std::str::FromStr;
 
-#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema)]
+#[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, PartialEq, Eq)]
 #[serde(untagged)]
 pub enum SerdeVec<T> {
     One(T),

@@ -30,7 +30,7 @@ The behavior of `dfx generate` is controlled by the `dfx.json` configuration fil
 |----------------|----------------------------------------------------------------------------------------------------------------------------------------------|
 | `output`       | Directory to place declarations for the canister. Default is `src/declarations/<canister_name>`.                                             |
 | `bindings`     | List of languages to generate type declarations. Options are `"js", "ts", "did", "mo"`. Default is `["js", "ts", "did"]`.                    |
-| `env_override` | String that will replace `process.env.{canister_name_uppercase}_CANISTER_ID` in the `src/dfx/assets/language_bindings/canister.js` template. |
+| `env_override` | String that will replace `process.env.CANISTER_ID_{canister_name_uppercase}` in the `src/dfx/assets/language_bindings/canister.js` template. |
 
 Outputs from `dfx generate`:
 
@@ -42,8 +42,6 @@ Outputs from `dfx generate`:
 | `Motoko(mo)`     | `<canister_name>.mo`                     |
 
 ## Examples
-
-[This](../_attachments/sample-generate-dfx.json) is a sample output of `dfx generate`.
 
 Note that the file name and path to the programs on your file system must match the information specified in the `dfx.json` configuration file.
 

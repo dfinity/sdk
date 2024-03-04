@@ -1,8 +1,8 @@
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{
-    start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
-    start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
+    start_btc_adapter_actor, start_canister_http_adapter_actor, start_icx_proxy_actor,
+    start_replica_actor, start_shutdown_controller,
 };
 use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
@@ -53,24 +53,20 @@ pub struct StartOpts {
     #[arg(long)]
     clean: bool,
 
-    /// Runs a dedicated emulator instead of the replica
-    #[arg(long)]
-    emulator: bool,
-
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[arg(long, conflicts_with("emulator"), action = ArgAction::Append)]
+    #[arg(long, action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[arg(long, conflicts_with("emulator"))]
+    #[arg(long)]
     enable_bitcoin: bool,
 
     /// enable canister http requests
-    #[arg(long, conflicts_with("emulator"))]
+    #[arg(long)]
     enable_canister_http: bool,
 
     /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
-    #[arg(long, conflicts_with("emulator"), default_value_t = 600)]
+    #[arg(long, default_value_t = 600)]
     artificial_delay: u32,
 
     /// Start even if the network config was modified.
@@ -80,6 +76,10 @@ pub struct StartOpts {
     /// Use old metering.
     #[arg(long)]
     use_old_metering: bool,
+
+    /// A list of domains that can be served. These are used for canister resolution [default: localhost]
+    #[arg(long)]
+    domain: Vec<String>,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -138,7 +138,6 @@ pub fn exec(
     StartOpts {
         host,
         background,
-        emulator,
         clean,
         force,
         bitcoin_node,
@@ -146,6 +145,7 @@ pub fn exec(
         enable_canister_http,
         artificial_delay,
         use_old_metering,
+        domain,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -178,7 +178,7 @@ pub fn exec(
         enable_bitcoin,
         bitcoin_node,
         enable_canister_http,
-        emulator,
+        domain,
     )?;
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
@@ -238,7 +238,6 @@ pub fn exec(
     })?;
 
     let replica_port_path = empty_writable_path(local_server_descriptor.replica_port_path())?;
-    let emulator_port_path = empty_writable_path(local_server_descriptor.ic_ref_port_path())?;
 
     if background {
         send_background()?;
@@ -292,6 +291,8 @@ pub fn exec(
         .log_level
         .unwrap_or_default();
 
+    let proxy_domains = local_server_descriptor.proxy.domain.clone().into_vec();
+
     let replica_config = {
         let replica_config = ReplicaConfig::new(
             &state_root,
@@ -320,11 +321,8 @@ pub fn exec(
         replica_config
     };
 
-    let effective_config = if emulator {
-        CachedConfig::emulator()
-    } else {
-        CachedConfig::replica(&replica_config)
-    };
+    let effective_config = CachedConfig::replica(&replica_config);
+
     if !clean && !force && previous_config_path.exists() {
         let previous_config = load_json_file(&previous_config_path)
             .context("Failed to read replica configuration. Rerun with `--clean`.")?;
@@ -341,15 +339,7 @@ pub fn exec(
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
 
-        let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
-            let emulator = start_emulator_actor(
-                env,
-                local_server_descriptor,
-                shutdown_controller.clone(),
-                emulator_port_path,
-            )?;
-            emulator.recipient()
-        } else {
+        let port_ready_subscribe: Recipient<PortReadySubscribe> = {
             let btc_adapter_ready_subscribe = btc_adapter_config
                 .map(|btc_adapter_config| {
                     start_btc_adapter_actor(
@@ -388,6 +378,7 @@ pub fn exec(
             bind: address_and_port,
             replica_urls: vec![], // will be determined after replica starts
             fetch_root_key: !network_descriptor.is_ic,
+            domains: proxy_domains,
             verbose: env.get_verbose_level() > 0,
         };
 
@@ -417,7 +408,6 @@ pub fn exec(
 #[allow(clippy::large_enum_variant)]
 pub enum CachedReplicaConfig<'a> {
     Replica { config: Cow<'a, ReplicaConfig> },
-    Emulator,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq)]
@@ -436,12 +426,6 @@ impl<'a> CachedConfig<'a> {
             },
         }
     }
-    pub fn emulator() -> Self {
-        Self {
-            replica_rev: replica_rev().into(),
-            config: CachedReplicaConfig::Emulator,
-        }
-    }
 }
 
 pub fn apply_command_line_parameters(
@@ -452,7 +436,7 @@ pub fn apply_command_line_parameters(
     enable_bitcoin: bool,
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
-    emulator: bool,
+    domain: Vec<String>,
 ) -> DfxResult<NetworkDescriptor> {
     if enable_canister_http {
         warn!(
@@ -460,13 +444,6 @@ pub fn apply_command_line_parameters(
             "The --enable-canister-http parameter is deprecated."
         );
         warn!(logger, "Canister HTTP suppport is enabled by default.  It can be disabled through dfx.json or networks.json.");
-    }
-
-    if emulator {
-        warn!(
-            logger,
-            "The --emulator parameter is deprecated and will be discontinued soon."
-        );
     }
 
     let _ = network_descriptor.local_server_descriptor()?;
@@ -490,6 +467,10 @@ pub fn apply_command_line_parameters(
 
     if !bitcoin_nodes.is_empty() {
         local_server_descriptor = local_server_descriptor.with_bitcoin_nodes(bitcoin_nodes)
+    }
+
+    if !domain.is_empty() {
+        local_server_descriptor = local_server_descriptor.with_proxy_domains(domain)
     }
 
     Ok(NetworkDescriptor {

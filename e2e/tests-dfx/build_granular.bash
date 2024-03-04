@@ -5,7 +5,7 @@ load ../utils/_
 setup() {
   standard_setup
 
-  dfx_new
+  dfx_new_assets
 }
 
 teardown() {
@@ -47,7 +47,7 @@ teardown() {
   dfx build e2e_project_backend
   # validate assets canister wasn't built and can't be installed
   assert_command_fail dfx canister install e2e_project_frontend
-  assert_match "No such file or directory"
+  assert_match "The canister must be built before install. Please run \`dfx build\`."
 }
 
 
@@ -67,10 +67,12 @@ teardown() {
   dfx canister install e2e_project_frontend
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("/binary/noise.txt")' --output idl
-  assert_eq '(blob "\b8\01 \80\0aw12 \00xy\0aKL\0b\0ajk")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "\b8\01\20\80\0a\77\31\32\20\00\78\79\0a\4b\4c\0b\0a\6a\6b")' "$stdout"
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("/text-with-newlines.txt")' --output idl
-  assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")' "$stdout"
 }
 
 @test "cyclic dependencies are detected" {

@@ -121,6 +121,8 @@ You can specify the following argument for the `dfx ledger create-canister` comm
 | `--icp <icp>`                 | Specify ICP tokens as a whole number. You can use this option on its own or in conjunction with `--e8s`.                                                                                                                                             |
 | `--max-fee <max-fee>`         | Specify a maximum transaction fee. The default is 10000 e8s.                                                                                                                                                                                         |
 | `--subnet-type <subnet-type>` | Specify the optional subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                                                                                      |
+| `--subnet <subnet-principal>` | Specify the optional subnet to create the canister on. If no subnet is provided, the canister will be created on a random default application subnet.                                                                                                |
+| `--next-to <canister-principal>` | Create canisters on the same subnet as this canister. |
 | `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
 
 ### Examples
@@ -177,7 +179,7 @@ If no amount is specified, 10T cycles are used by default.
 If you are developing locally and want to add 8T cycles to all your canisters in your procject, you can do so like this:
 
 ```
-dfx ledger fabricate-cycles --all --amount 8000000000000
+dfx ledger fabricate-cycles --all --cycles 8000000000000
 ```
 
 The command displays output similar to the following:
@@ -185,8 +187,6 @@ The command displays output similar to the following:
 ```
 Fabricating 8000000000000 cycles onto hello_backend
 Fabricated 8000000000000 cycles, updated balance: 11_899_662_119_932 cycles
-Fabricating 8000000000000 cycles onto hello_frontend
-Fabricated 8000000000000 cycles, updated balance: 11_899_075_504_924 cycles
 ```
 
 If you would rather only add the cycles to the canister called 'hello' and don't want to type all the zeros, you can do it like this:
@@ -205,7 +205,7 @@ Fabricated 8000000000000 cycles, updated balance: 11_899_662_119_932 cycles
 
 ## dfx ledger notify
 
-Use the `dfx ledger notify` command to notify the ledger about a send transaction to the cycles minting canister. This command should only be used if `dfx ledger create-canister` or `dfx ledger top-up` successfully sent a message to the ledger, and a transaction was recorded at some block height, but for some reason the subsequent notify failed.
+Use the `dfx ledger notify` command to notify the ledger about a transaction sent to the cycles minting canister. This command should only be used if `dfx ledger create-canister`, `dfx ledger top-up`, or `dfx cycles convert` successfully sent a message to the ledger, and a transaction was recorded at some block height, but for some reason the subsequent notify failed.
 
 ### Basic usage
 
@@ -276,9 +276,9 @@ dfx ledger top-up [options] canister [flag] --network ic
 
 You can specify the following argument for the `dfx ledger top-up` command.
 
-| Argument   | Description                                                      |
-|------------|------------------------------------------------------------------|
-| `canister` | Specifies the canister identifier that you would like to top up. |
+| Argument   | Description                                                              |
+|------------|--------------------------------------------------------------------------|
+| `canister` | Specifies the canister identifier or name that you would like to top up. |
 
 ### Options
 
@@ -295,7 +295,7 @@ You can specify the following options for the `dfx ledger top-up` command.
 
 ### Examples
 
-You can use the `dfx ledger top-up` command to top up the cycles of a specific canister from the balance of ICP tokens you control. The canister identifier must be associated with a cycles wallet canister that is able to receive cycles. Alternatively, you can modify a non-cycles wallet canister to implement a method to receive cycles using system APIs described in the [Internet Computer Interface Specification](../ic-interface-spec).
+You can use the `dfx ledger top-up` command to top up the cycles of a specific canister from the balance of ICP tokens you control. The canister identifier must be associated with a cycles wallet canister that is able to receive cycles. Alternatively, you can modify a non-cycles wallet canister to implement a method to receive cycles using system APIs described in the [Internet Computer Interface Specification](/docs/current/references/ic-interface-spec).
 
 For example, you can run the following command to top-up a cycles wallet canister deployed on the Internet Computer with 1 ICP worth of cycles:
 

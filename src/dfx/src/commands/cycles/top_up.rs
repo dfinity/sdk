@@ -1,11 +1,11 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::operations::cycles_ledger;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::parsers::cycle_amount_parser;
+use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use candid::Principal;
 use clap::Parser;
+use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::warn;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -20,19 +20,13 @@ pub struct TopUpOpts {
     amount: u128,
 
     /// Transfer cycles from this subaccount.
-    #[arg(long)]
+    #[arg(long, value_parser = icrc_subaccount_parser)]
     from_subaccount: Option<Subaccount>,
 
     /// Transaction timestamp, in nanoseconds, for use in controlling transaction deduplication, default is system time.
     /// https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
     #[arg(long)]
     created_at_time: Option<u64>,
-
-    /// Canister ID of the cycles ledger canister.
-    /// If not specified, the default cycles ledger canister ID will be used.
-    // todo: remove this.  See https://dfinity.atlassian.net/browse/SDK-1262
-    #[arg(long)]
-    cycles_ledger_canister_id: Principal,
 }
 
 pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
@@ -50,15 +44,13 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
     );
 
     let to = get_canister_id(env, &opts.to)?;
-    let from_subaccount = opts.from_subaccount.map(|x| x.0);
     let result = cycles_ledger::send(
         agent,
         env.get_logger(),
         to,
         amount,
         created_at_time,
-        from_subaccount,
-        opts.cycles_ledger_canister_id,
+        opts.from_subaccount,
     )
     .await;
     if result.is_err() && opts.created_at_time.is_none() {

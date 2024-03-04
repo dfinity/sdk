@@ -4,6 +4,7 @@ use crate::error::canister_id_store::CanisterIdStoreError;
 use crate::error::unified_io::UnifiedIoError;
 use crate::network::directory::ensure_cohesive_network_directory;
 use candid::Principal as CanisterId;
+use ic_agent::export::Principal;
 use serde::{Deserialize, Serialize, Serializer};
 use slog::{warn, Logger};
 use std::collections::BTreeMap;
@@ -23,11 +24,14 @@ pub type CanisterIds = BTreeMap<CanisterName, NetworkNametoCanisterId>;
 
 pub type CanisterTimestamps = BTreeMap<CanisterName, NetworkNametoCanisterTimestamp>;
 
+// OffsetDateTime has nanosecond precision, while SystemTime is OS-dependent (100ns on Windows)
+pub type AcquisitionDateTime = OffsetDateTime;
+
 #[derive(Debug, Clone, Default)]
-pub struct NetworkNametoCanisterTimestamp(BTreeMap<NetworkName, SystemTime>);
+pub struct NetworkNametoCanisterTimestamp(BTreeMap<NetworkName, AcquisitionDateTime>);
 
 impl Deref for NetworkNametoCanisterTimestamp {
-    type Target = BTreeMap<NetworkName, SystemTime>;
+    type Target = BTreeMap<NetworkName, AcquisitionDateTime>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -48,7 +52,7 @@ impl Serialize for NetworkNametoCanisterTimestamp {
         let out = self.0.iter().map(|(key, time)| {
             (
                 key,
-                OffsetDateTime::from(*time)
+                AcquisitionDateTime::from(*time)
                     .format(&Rfc3339)
                     .expect("Failed to serialise timestamp"),
             )
@@ -63,12 +67,12 @@ impl<'de> Deserialize<'de> for NetworkNametoCanisterTimestamp {
         D: serde::Deserializer<'de>,
     {
         let map: BTreeMap<NetworkName, String> = Deserialize::deserialize(deserializer)?;
-        let btree: BTreeMap<NetworkName, SystemTime> = map
+        let btree: BTreeMap<NetworkName, AcquisitionDateTime> = map
             .into_iter()
-            .map(|(key, timestamp)| (key, OffsetDateTime::parse(&timestamp, &Rfc3339)))
+            .map(|(key, timestamp)| (key, AcquisitionDateTime::parse(&timestamp, &Rfc3339)))
             .try_fold(BTreeMap::new(), |mut map, (key, result)| match result {
                 Ok(value) => {
-                    map.insert(key, SystemTime::from(value));
+                    map.insert(key, value);
                     Ok(map)
                 }
                 Err(err) => Err(err),
@@ -178,7 +182,7 @@ impl CanisterIdStore {
         Ok(store)
     }
 
-    pub fn get_timestamp(&self, canister_name: &str) -> Option<&SystemTime> {
+    pub fn get_timestamp(&self, canister_name: &str) -> Option<&AcquisitionDateTime> {
         self.acquisition_timestamps
             .get(canister_name)
             .and_then(|timestamp_map| timestamp_map.get(&self.network_descriptor.name))
@@ -188,8 +192,12 @@ impl CanisterIdStore {
         self.remote_ids
             .as_ref()
             .and_then(|remote_ids| self.get_name_in(canister_id, remote_ids))
-            .or_else(|| self.get_name_in(canister_id, &self.ids))
+            .or_else(|| self.get_name_in_project(canister_id))
             .or_else(|| self.get_name_in_pull_ids(canister_id))
+    }
+
+    pub fn get_name_in_project(&self, canister_id: &str) -> Option<&String> {
+        self.get_name_in(canister_id, &self.ids)
     }
 
     pub fn get_name_in<'a>(
@@ -243,6 +251,39 @@ impl CanisterIdStore {
             .or_else(|| self.find_in(canister_name, &self.ids))
             .or_else(|| self.pull_ids.get(canister_name).copied())
     }
+    pub fn get_name_id_map(&self) -> BTreeMap<String, String> {
+        let mut ids: BTreeMap<_, _> = self
+            .ids
+            .iter()
+            .filter_map(|(name, network_to_id)| {
+                Some((
+                    name.clone(),
+                    network_to_id.get(&self.network_descriptor.name).cloned()?,
+                ))
+            })
+            .collect();
+        if let Some(remote_ids) = &self.remote_ids {
+            let mut remote = remote_ids
+                .iter()
+                .filter_map(|(name, network_to_id)| {
+                    Some((
+                        name.clone(),
+                        network_to_id.get(&self.network_descriptor.name).cloned()?,
+                    ))
+                })
+                .collect();
+            ids.append(&mut remote);
+        }
+        let mut pull_ids = self
+            .pull_ids
+            .iter()
+            .map(|(name, id)| (name.clone(), id.to_text()))
+            .collect();
+        ids.append(&mut pull_ids);
+        ids.into_iter()
+            .filter(|(name, _)| !name.starts_with("__"))
+            .collect()
+    }
 
     fn find_in(&self, canister_name: &str, canister_ids: &CanisterIds) -> Option<CanisterId> {
         canister_ids
@@ -273,7 +314,7 @@ impl CanisterIdStore {
         &mut self,
         canister_name: &str,
         canister_id: &str,
-        timestamp: Option<SystemTime>,
+        timestamp: Option<AcquisitionDateTime>,
     ) -> Result<(), CanisterIdStoreError> {
         let network_name = &self.network_descriptor.name;
         match self.ids.get_mut(canister_name) {
@@ -358,6 +399,18 @@ impl CanisterIdStore {
         }
 
         Ok(())
+    }
+
+    pub fn non_remote_user_canisters(&self) -> Vec<(String, Principal)> {
+        self.ids
+            .iter()
+            .filter_map(|(name, network_to_id)| {
+                network_to_id
+                    .get(&self.network_descriptor.name)
+                    .and_then(|principal| Principal::from_text(principal).ok())
+                    .map(|principal| (name.clone(), principal))
+            })
+            .collect()
     }
 }
 

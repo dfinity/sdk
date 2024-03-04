@@ -43,7 +43,15 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
 
     let agent = env.get_agent();
 
-    install_wallet(env, agent, canister_id, InstallMode::Upgrade).await?;
+    install_wallet(
+        env,
+        agent,
+        canister_id,
+        InstallMode::Upgrade {
+            skip_pre_upgrade: Some(false),
+        },
+    )
+    .await?;
 
     println!("Upgraded the wallet wasm module.");
     Ok(())

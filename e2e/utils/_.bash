@@ -1,4 +1,4 @@
-set -e
+set -eo pipefail
 load ../utils/bats-support/load
 load ../utils/assertions
 load ../utils/webserver
@@ -54,7 +54,17 @@ standard_teardown() {
 
 dfx_new_frontend() {
     local project_name=${1:-e2e_project}
-    dfx new "${project_name}" --frontend
+    dfx new "${project_name}" --frontend vanilla
+    test -d "${project_name}"
+    test -f "${project_name}"/dfx.json
+    cd "${project_name}"
+
+    echo PWD: "$(pwd)" >&2
+}
+
+dfx_new_assets() {
+    local project_name=${1:-e2e_project}
+    dfx new "${project_name}" --frontend simple-assets
     test -d "${project_name}"
     test -f "${project_name}"/dfx.json
     cd "${project_name}"
@@ -303,4 +313,10 @@ get_ephemeral_port() {
     local script_dir
     script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
     python3 "$script_dir/get_ephemeral_port.py"
+}
+
+stop_and_delete() {
+    assert_command dfx canister stop "$1"
+    assert_command dfx canister delete -y --no-withdrawal "$1"
+    echo "Canister $1 deleted"
 }

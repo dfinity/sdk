@@ -11,7 +11,7 @@ setup() {
 
   standard_setup
 
-  dfx_new_frontend
+  dfx_new_assets
   dfx_start
 
   assert_command dfx deploy

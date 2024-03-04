@@ -24,7 +24,7 @@ use crate::{
     url_decode::url_decode,
 };
 use candid::{CandidType, Deserialize, Int, Nat, Principal};
-use ic_certified_map::{AsHashTree, Hash};
+use ic_certification::{AsHashTree, Hash};
 use ic_representation_independent_hash::Value;
 use num_traits::ToPrimitive;
 use serde::Serialize;
@@ -320,6 +320,20 @@ impl State {
             .ok_or_else(|| "asset not found".to_string())
     }
 
+    pub fn set_permissions(
+        &mut self,
+        SetPermissions {
+            prepare,
+            commit,
+            manage_permissions,
+        }: SetPermissions,
+    ) {
+        *self.get_mut_permission_list(&Permission::Prepare) = prepare.into_iter().collect();
+        *self.get_mut_permission_list(&Permission::Commit) = commit.into_iter().collect();
+        *self.get_mut_permission_list(&Permission::ManagePermissions) =
+            manage_permissions.into_iter().collect();
+    }
+
     pub fn grant_permission(&mut self, principal: Principal, permission: &Permission) {
         let permitted = self.get_mut_permission_list(permission);
         permitted.insert(principal);
@@ -458,8 +472,8 @@ impl State {
         self.assets.clear();
         self.batches.clear();
         self.chunks.clear();
-        self.next_batch_id = Nat::from(1);
-        self.next_chunk_id = Nat::from(1);
+        self.next_batch_id = Nat::from(1_u8);
+        self.next_chunk_id = Nat::from(1_u8);
     }
 
     pub fn has_permission(&self, principal: &Principal, permission: &Permission) -> bool {
@@ -552,7 +566,7 @@ impl State {
             }
         }
         let batch_id = self.next_batch_id.clone();
-        self.next_batch_id += 1;
+        self.next_batch_id += 1_u8;
 
         self.batches.insert(
             batch_id.clone(),
@@ -593,7 +607,7 @@ impl State {
         batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
 
         let chunk_id = self.next_chunk_id.clone();
-        self.next_chunk_id += 1;
+        self.next_chunk_id += 1_u8;
         batch.chunk_content_total_size += arg.content.as_ref().len();
 
         self.chunks.insert(
@@ -1079,7 +1093,9 @@ impl From<StableState> for State {
             prepare_principals,
             manage_permissions_principals,
             assets: stable_state.stable_assets,
-            next_batch_id: stable_state.next_batch_id.unwrap_or_else(|| Nat::from(1)),
+            next_batch_id: stable_state
+                .next_batch_id
+                .unwrap_or_else(|| Nat::from(1_u8)),
             configuration: stable_state.configuration.unwrap_or_default(),
             ..Self::default()
         };
