@@ -435,17 +435,17 @@ teardown() {
 }
 
 @test "flags count as configuration modification and require --clean" {
-  dfx_start
+  dfx start --background
   dfx stop
-  assert_command_fail dfx_start --enable-bitcoin
+  assert_command_fail dfx start --artificial-delay 100 --background
   assert_contains "The network configuration was changed. Rerun with \`--clean\`."
-  assert_command dfx_start --enable-bitcoin --clean
+  assert_command dfx start --artificial-delay 100 --clean --background
   dfx stop
-  assert_command dfx_start --enable-bitcoin
+  assert_command dfx start --artificial-delay 100 --background
   dfx stop
-  assert_command_fail dfx_start
+  assert_command_fail dfx start --background
   assert_contains "The network configuration was changed. Rerun with \`--clean\`."
-  assert_command dfx_start --force
+  assert_command dfx start --force --background
 }
 
 @test "dfx start then ctrl-c won't hang and panic but stop actors quickly" {
