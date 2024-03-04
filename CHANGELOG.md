@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.18.0
+
 ### chore: bump candid to 0.10.4
 
 Fix the Typescript binding for init args.
