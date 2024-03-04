@@ -34,10 +34,6 @@ pub(crate) struct CacheConfig {
     pub(crate) max_age: Option<u64>,
 }
 
-fn default_raw_access() -> Option<bool> {
-    Some(true)
-}
-
 /// A single configuration object, from `.ic-assets.json` config file
 #[derive(Derivative, Clone, Serialize)]
 #[derivative(Debug, PartialEq)]
@@ -348,7 +344,6 @@ mod rule_utils {
         headers: Maybe<HeadersConfig>,
         ignore: Option<bool>,
         enable_aliasing: Option<bool>,
-        #[serde(default = "super::default_raw_access")]
         allow_raw_access: Option<bool>,
     }
 
@@ -426,6 +421,16 @@ mod rule_utils {
                 if let Some(ref max_age) = cache.max_age {
                     s.push_str(&format!("  - HTTP cache max-age: {}\n", max_age));
                 }
+            }
+            if let Some(allow_raw_access) = self.allow_raw_access {
+                s.push_str(&format!(
+                    "  - enable raw access: {}\n",
+                    if allow_raw_access {
+                        "enabled"
+                    } else {
+                        "disabled"
+                    }
+                ));
             }
             if let Some(aliasing) = self.enable_aliasing {
                 s.push_str(&format!(
