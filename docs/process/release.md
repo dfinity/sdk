@@ -2,9 +2,20 @@
 
 ## Overview
 
-1. Update the replica version
-1. Create the release branch
-1. Update the changelog on master
+1. Stage 1: Preparation (day 1)
+  1. Update the replica version
+  1. Update the changelog on master
+  1. Create the release branch
+1. Stage 2: Beta releases (day 1~2)
+1. Stage 3: Final release (day 3)
+1. Stage 4: Create draft PRs to relevant repos (day 3)
+   1. Portal
+   1. Motoko Playground
+   1. dfx-extensions
+   1. 
+1. Stage 5: Promotion (day 4)
+
+
 1. Create beta releases
 1. Open a PR to update the Portal
 1. Create the final release
@@ -22,18 +33,18 @@
 Before making a new release, try to update the replica to the latest version
 by running the [update-replica] workflow.
 
-### Create the Release Branch
-
-Create a release branch from `master`, for example `release-0.15.3`. If you create a new patch version make sure there will be no breaking changes included.
-
-This branch will be used to create beta releases as well as the final release.
-
 ### Update the changelog
 
 Open a PR to master.  Roll the changelog by adding a new header for the
 new dfx version underneath the "# Unreleased" header.  Further changes to dfx
 should be added under the "#Unreleased" header, unless they are ported to
 the release branch.
+
+### Create the Release Branch
+
+Create a release branch from `master`, for example `release-0.15.3`. If you create a new patch version make sure there will be no breaking changes included.
+
+This branch will be used to create beta releases as well as the final release.
 
 ### Create Beta Releases
 
@@ -48,13 +59,13 @@ obtain CR approval, and merge the PR.
 from the last commit on the release branch.
 1. Update the GitHub release
     - Copy/paste the changelog section for the new version into the release notes
-    - Set the "Prerelease" flag
+    - Make sure that the "Pre-release" flag **is** set and the "Latest" flag is **NOT** set.
 1. Announce the release to #eng-sdk
     - Post a message like this, linking to the GitHub release notes:
         > dfx 0.15.3-beta.1 is available for manual installation and testing.
         >
         > ```bash
-        > DFX_VERSION=0.15.3-beta.1 sh -ci "$(curl -fsSL https://internetcomputer.org/install.sh)"
+        > dfxvm install 0.15.3-beta.1
         > ```
         >
         > See also release notes.
@@ -76,8 +87,8 @@ This PR is a draft in order to help remind the reviewer not to merge it.
 Once the beta releases are ready to be promoted:
 
 1. Check out the release branch
-2. Run the release script, for example `./scripts/release.sh 0.15.3`
-3. Follow the same steps as for the beta releases
+1. Run the release script, for example `./scripts/release.sh 0.15.3`
+1. Follow the same steps as for the beta releases
 
 ### Open a PR to promote the release
 
