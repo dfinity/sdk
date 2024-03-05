@@ -44,7 +44,7 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
     );
 
     let to = get_canister_id(env, &opts.to)?;
-    let result = cycles_ledger::send(
+    let result = cycles_ledger::withdraw(
         agent,
         env.get_logger(),
         to,
