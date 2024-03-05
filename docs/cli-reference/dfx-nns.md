@@ -27,7 +27,7 @@ $ dfx nns install --help
 
 ## dfx nns import
 
-Use the `dfx nns import` command to add the NNS canisters to the local `dfx.json`.  It also downloads the did files and sets the canister IDs of the NNS cansiters so that you can make API calls to NNS canisters.
+Use the `dfx nns import` command to add the NNS canisters to the local `dfx.json`.  It also downloads the did files and sets the canister IDs of the NNS canisters so that you can make API calls to NNS canisters.
 
 ### Basic usage
 
@@ -68,7 +68,7 @@ The local network needs to be set up with a very specific configuration:
 $ cat ~/.config/dfx/networks.json
 {
   "local": {
-    "bind": "127.0.0.1:8080",
+    "bind": "127.0.0.1:4943",
     "type": "ephemeral",
     "replica": {
       "subnet_type": "system"
@@ -131,6 +131,10 @@ $ openssl ec -in ident-1.pem -noout -text
 * Create an identity with that secret key:
 ``` bash
 $ dfx identity import ident-1 ident-1.pem
+```
+* Switch to the identity you just imported
+```bash
+$ dfx identity use ident-1
 ```
 * Now you can use the (toy) funds:
 ``` bash
