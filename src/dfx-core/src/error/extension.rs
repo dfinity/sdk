@@ -89,7 +89,7 @@ pub enum GetExtensionByNameError {
     #[error("Extension '{0}' not found.")]
     NotInstalled(String),
 
-    #[error(transparent)]
+    #[error("Failed to load extension manifest: {0}")]
     LoadManifestFailed(#[from] StructuredFileError),
 }
 
