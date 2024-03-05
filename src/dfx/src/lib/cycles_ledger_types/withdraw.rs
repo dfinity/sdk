@@ -8,7 +8,7 @@ use serde::Deserialize;
 pub type NumCycles = Nat;
 
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct SendArgs {
+pub struct WithdrawArgs {
     #[serde(default)]
     pub from_subaccount: Option<Subaccount>,
     pub to: Principal,
@@ -18,7 +18,7 @@ pub struct SendArgs {
 }
 
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub enum SendError {
+pub enum WithdrawError {
     BadFee {
         expected_fee: NumCycles,
     },
@@ -33,7 +33,7 @@ pub enum SendError {
     Duplicate {
         duplicate_of: BlockIndex,
     },
-    FailedToSend {
+    FailedToWithdraw {
         fee_block: Option<Nat>,
         rejection_code: RejectionCode,
         rejection_reason: String,
