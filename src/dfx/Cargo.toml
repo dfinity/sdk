@@ -39,7 +39,7 @@ base64.workspace = true
 byte-unit = { workspace = true, features = ["serde"] }
 bytes.workspace = true
 candid = { workspace = true }
-candid_parser = { workspace = true, features = ["random"] }
+candid_parser = { workspace = true, features = ["random", "assist"] }
 clap = { workspace = true, features = [
     "derive",
     "env",

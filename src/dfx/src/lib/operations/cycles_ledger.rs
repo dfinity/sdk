@@ -3,7 +3,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::lib::cycles_ledger_types;
 use crate::lib::cycles_ledger_types::create_canister::{
     CmcCreateCanisterArgs, CreateCanisterArgs, CreateCanisterError, CreateCanisterSuccess,
-    SubnetSelection,
 };
 use crate::lib::cycles_ledger_types::deposit::DepositArg;
 use crate::lib::cycles_ledger_types::send::SendError;
@@ -14,6 +13,7 @@ use crate::lib::operations::canister::create_canister::{
     CANISTER_CREATE_FEE, CANISTER_INITIAL_CYCLE_BALANCE,
 };
 use crate::lib::retryable::retryable;
+use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use backoff::future::retry;
 use backoff::ExponentialBackoff;
@@ -26,6 +26,9 @@ use ic_utils::{Argument, Canister};
 use icrc_ledger_types::icrc1;
 use icrc_ledger_types::icrc1::account::{Account, Subaccount};
 use icrc_ledger_types::icrc1::transfer::{BlockIndex, TransferError};
+use icrc_ledger_types::icrc2;
+use icrc_ledger_types::icrc2::approve::ApproveError;
+use icrc_ledger_types::icrc2::transfer_from::TransferFromError;
 use slog::{info, Logger};
 
 /// Cycles ledger feature flag to turn off behavior that would be confusing while cycles ledger is not enabled yet.
@@ -34,6 +37,8 @@ pub const CYCLES_LEDGER_ENABLED: bool = false;
 
 const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
 const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
+const ICRC2_APPROVE_METHOD: &str = "icrc2_approve";
+const ICRC2_TRANSFER_FROM_METHOD: &str = "icrc2_transfer_from";
 const SEND_METHOD: &str = "send";
 const CREATE_CANISTER_METHOD: &str = "create_canister";
 const CYCLES_LEDGER_DEPOSIT_METHOD: &str = "deposit";
@@ -132,6 +137,125 @@ pub async fn transfer(
     Ok(block_index)
 }
 
+pub async fn transfer_from(
+    agent: &Agent,
+    logger: &Logger,
+    spender_subaccount: Option<icrc1::account::Subaccount>,
+    from: icrc1::account::Account,
+    to: icrc1::account::Account,
+    amount: u128,
+    memo: Option<u64>,
+    created_at_time: u64,
+) -> DfxResult<BlockIndex> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(CYCLES_LEDGER_CANISTER_ID)
+        .build()?;
+
+    let retry_policy = ExponentialBackoff::default();
+
+    let block_index = retry(retry_policy, || async {
+        let arg = icrc2::transfer_from::TransferFromArgs {
+            spender_subaccount,
+            from,
+            to,
+            fee: None,
+            created_at_time: Some(created_at_time),
+            memo: memo.map(|v| v.into()),
+            amount: Nat::from(amount),
+        };
+        match canister
+            .update(ICRC2_TRANSFER_FROM_METHOD)
+            .with_arg(arg)
+            .build()
+            .map(|result: (Result<BlockIndex, TransferFromError>,)| (result.0,))
+            .call_and_wait()
+            .await
+            .map(|(result,)| result)
+        {
+            Ok(Ok(block_index)) => Ok(block_index),
+            Ok(Err(TransferFromError::Duplicate { duplicate_of })) => {
+                info!(
+                    logger,
+                    "Transfer is a duplicate of block index {}", duplicate_of
+                );
+                Ok(duplicate_of)
+            }
+            Ok(Err(transfer_from_err)) => Err(backoff::Error::permanent(anyhow!(
+                display_transfer_from_err(transfer_from_err)
+            ))),
+            Err(agent_err) if retryable(&agent_err) => {
+                Err(backoff::Error::transient(anyhow!(agent_err)))
+            }
+            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+        }
+    })
+    .await?;
+
+    Ok(block_index)
+}
+
+pub async fn approve(
+    agent: &Agent,
+    logger: &Logger,
+    amount: u128,
+    spender: Principal,
+    spender_subaccount: Option<icrc1::account::Subaccount>,
+    from_subaccount: Option<icrc1::account::Subaccount>,
+    expected_allowance: Option<u128>,
+    expires_at: Option<u64>,
+    created_at_time: u64,
+    memo: Option<u64>,
+) -> DfxResult<BlockIndex> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(CYCLES_LEDGER_CANISTER_ID)
+        .build()?;
+
+    let retry_policy = ExponentialBackoff::default();
+
+    let block_index = retry(retry_policy, || async {
+        let arg = icrc2::approve::ApproveArgs {
+            from_subaccount,
+            fee: None,
+            created_at_time: Some(created_at_time),
+            memo: memo.map(|v| v.into()),
+            amount: Nat::from(amount),
+            spender: icrc1::account::Account {
+                owner: spender,
+                subaccount: spender_subaccount,
+            },
+            expected_allowance: expected_allowance.map(Nat::from),
+            expires_at,
+        };
+        match canister
+            .update(ICRC2_APPROVE_METHOD)
+            .with_arg(arg)
+            .build()
+            .map(|result: (Result<BlockIndex, ApproveError>,)| (result.0,))
+            .call_and_wait()
+            .await
+            .map(|(result,)| result)
+        {
+            Ok(Ok(block_index)) => Ok(block_index),
+            Ok(Err(ApproveError::Duplicate { duplicate_of })) => {
+                info!(logger, "Approval is a duplicate of block {}", duplicate_of);
+                Ok(duplicate_of)
+            }
+            Ok(Err(approve_err)) => Err(backoff::Error::permanent(anyhow!(display_approve_err(
+                approve_err
+            )))),
+            Err(agent_err) if retryable(&agent_err) => {
+                Err(backoff::Error::transient(anyhow!(agent_err)))
+            }
+            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+        }
+    })
+    .await?;
+
+    Ok(block_index)
+}
+
 pub async fn send(
     agent: &Agent,
     logger: &Logger,
@@ -200,9 +324,10 @@ pub async fn create_with_cycles_ledger(
     from_subaccount: Option<Subaccount>,
     settings: DfxCanisterSettings,
     created_at_time: Option<u64>,
-    subnet_selection: Option<SubnetSelection>,
+    subnet_selection: &mut SubnetSelectionType,
 ) -> DfxResult<Principal> {
     let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
+    let resolved_subnet_selection = subnet_selection.resolve(env).await?;
     let created_at_time = created_at_time.or_else(|| {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -221,7 +346,7 @@ pub async fn create_with_cycles_ledger(
         amount: cycles,
         creation_args: Some(CmcCreateCanisterArgs {
             settings: Some(settings.into()),
-            subnet_selection,
+            subnet_selection: resolved_subnet_selection,
         }),
     })
     .unwrap();
@@ -294,4 +419,73 @@ fn ledger_canister_id_text_representation() {
         Principal::from_text("um5iw-rqaaa-aaaaq-qaaba-cai").unwrap(),
         CYCLES_LEDGER_CANISTER_ID
     );
+}
+
+// TODO once icrc_ledger_types > 0.1.5 is released: function can be removed because ApproveError implements Display
+fn display_approve_err(err: ApproveError) -> String {
+    match err {
+        ApproveError::BadFee { expected_fee } => {
+            format!("approve fee should be {}", expected_fee)
+        }
+        ApproveError::InsufficientFunds { balance } => {
+            format!(
+                "the debit account doesn't have enough funds to complete the transaction, current balance: {}",
+                balance
+            )
+        }
+        ApproveError::AllowanceChanged { current_allowance } =>
+            format!(
+                "expected_allowance does not match actual allowance, current allowance is {}",
+                current_allowance
+            ),
+        ApproveError::Expired { ledger_time } =>
+            format!("the transaction expired before the ledger had a chance to apply it, current time is {}", ledger_time),
+        ApproveError::TooOld {} => "transaction's created_at_time is too far in the past".to_string(),
+        ApproveError::CreatedInFuture { ledger_time } => format!(
+            "transaction's created_at_time is in future, current ledger time is {}",
+            ledger_time
+        ),
+        ApproveError::Duplicate { duplicate_of } => format!(
+            "transaction is a duplicate of another transaction in block {}",
+            duplicate_of
+        ),
+        ApproveError::TemporarilyUnavailable {} => "the ledger is temporarily unavailable".to_string(),
+        ApproveError::GenericError {
+            error_code,
+            message,
+        } => format!("{} {}", error_code, message)
+    }
+}
+
+// TODO once icrc_ledger_types > 0.1.5 is released: function can be removed because ApproveError implements Display
+fn display_transfer_from_err(err: TransferFromError) -> String {
+    match err {
+        TransferFromError::BadFee { expected_fee } => {
+            format!("transfer_from fee should be {}", expected_fee)
+        }
+        TransferFromError::BadBurn { min_burn_amount } => format!(
+            "the minimum number of tokens to be burned is {}",
+            min_burn_amount
+        ),
+        TransferFromError::InsufficientFunds { balance } =>
+            format!(
+                "the debit account doesn't have enough funds to complete the transaction, current balance: {}",
+                balance
+            ),
+        TransferFromError::InsufficientAllowance { allowance } => format!("the spender account does not have sufficient allowance, current allowance is {}", allowance),
+        TransferFromError::TooOld {} => "transaction's created_at_time is too far in the past".to_string(),
+        TransferFromError::CreatedInFuture { ledger_time } => format!(
+            "transaction's created_at_time is in future, current ledger time is {}",
+            ledger_time
+        ),
+        TransferFromError::Duplicate { duplicate_of } => format!(
+            "transaction is a duplicate of another transaction in block {}",
+            duplicate_of
+        ),
+        TransferFromError::TemporarilyUnavailable {} => "the ledger is temporarily unavailable".to_string(),
+        TransferFromError::GenericError {
+            error_code,
+            message,
+        } => format!("{} {}", error_code, message),
+    }
 }

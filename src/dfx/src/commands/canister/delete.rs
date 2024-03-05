@@ -199,7 +199,7 @@ async fn delete_canister(
                 "Installing temporary wallet in canister {} to enable transfer of cycles.",
                 canister
             );
-            let args = blob_from_arguments(None, None, None, &None)?;
+            let args = blob_from_arguments(None, None, None, None, &None, false)?;
             let mode = InstallMode::Reinstall;
             let install_builder = mgr
                 .install_code(&canister_id, &wasm_module)

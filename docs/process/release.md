@@ -10,6 +10,7 @@
 1. Create the final release
 1. Open a PR to promote the release
 1. Open a PR to update the Motoko Playground allow-list
+1. Open a PR to update dfx-extension compatibility
 1. Promote the release
 1. Post to the forum
 1. Open a PR to update the examples repo
@@ -99,15 +100,22 @@ gh workflow run "broadcast-frontend-hash.yml" -f dfx_version=<n.n.n>
 
 Obtain approval, but do not merge this PR yet.
 
+### Open a PR to update the dfx-extensions compatibility list
+
+Change [this file](https://github.com/dfinity/dfx-extensions/blob/main/compatibility.json) so that the new version of dfx is compatible with the latest release of dfx extensions.
+
+Obtain approval, but do not merge this PR yet.
+
 ### Promote the release
 
-You should now have three open, approved PRs:
+You should now have four open, approved PRs:
 
 - Update the portal
 - Promote the release
 - Update the Motoko Playground allow-list
+- Update the dfx-extensions compatibility list
 
-Merge all three PRs.
+Merge all four PRs.
 
 ### Post to the forum
 

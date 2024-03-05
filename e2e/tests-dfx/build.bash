@@ -61,8 +61,6 @@ teardown() {
 
 @test "build uses default build args" {
   install_asset default_args
-  dfx_start
-  dfx canister create --all
   assert_command_fail dfx build --check
   assert_match "unknown option"
   assert_match "compacting-gcX"
@@ -70,8 +68,6 @@ teardown() {
 
 @test "build uses canister build args" {
   install_asset canister_args
-  dfx_start
-  dfx canister create --all
   assert_command_fail dfx build --check
   assert_match "unknown option"
   assert_match "compacting-gcY"
@@ -80,8 +76,6 @@ teardown() {
 
 @test "empty canister build args don't shadow default" {
   install_asset empty_canister_args
-  dfx_start
-  dfx canister create --all
   assert_command_fail dfx build --check
   assert_match '"--error-detail" "5"'
   assert_match "unknown option"
@@ -93,6 +87,20 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command_fail dfx build
+  assert_match "syntax error"
+}
+
+@test "build --check fails on build error when there are no canister ids" {
+  install_asset invalid
+  assert_command_fail dfx build --check
+  assert_match "syntax error"
+}
+
+@test "build --check fails on build error when there are canister ids" {
+  dfx_start
+  dfx canister create --all
+  install_asset invalid
+  assert_command_fail dfx build --check
   assert_match "syntax error"
 }
 

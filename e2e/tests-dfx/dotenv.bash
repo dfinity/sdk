@@ -51,23 +51,56 @@ teardown() {
   assert_match "The output_env_file must be within the project root, but is .*/working-dir/e2e_project/../outside/.env"
 }
 
-@test "writes environment variables to .env" {
+@test "build writes all environment variables to .env" {
   dfx_start
   dfx canister create --all
+
+  assert_dotenv_contains_all_variables_after_command build
+}
+
+@test "deploy writes all environment variables to .env" {
+  dfx_start
+  dfx canister create --all
+
+  assert_dotenv_contains_all_variables_after_command deploy
+}
+
+@test "canister install writes all environment variables to .env" {
+  dfx_start
+  dfx canister create --all
+  dfx build e2e_project_frontend
+  # set a post-install script so the install will create a .env file
+  jq '.canisters.e2e_project_frontend.post_install="echo post install"' dfx.json | sponge dfx.json
+
+  assert_dotenv_contains_all_variables_after_command canister install
+}
+
+assert_dotenv_contains_all_variables_after_command() {
+  install_asset wasm/identity
+  jq '.canisters."nns-cycles-minting".remote.id.local="rkp4c-7iaaa-aaaaa-aaaca-cai"' dfx.json | sponge dfx.json
+  jq '.canisters."nns-cycles-minting".type="custom"' dfx.json | sponge dfx.json
+  jq '.canisters."nns-cycles-minting".candid="main.did"' dfx.json | sponge dfx.json
+  jq '.canisters."nns-cycles-minting".wasm="main.wasm"' dfx.json | sponge dfx.json
+  jq '.canisters.lifeline.type="pull"' dfx.json | sponge dfx.json
+  jq '.canisters.lifeline.id="rno2w-sqaaa-aaaaa-aaacq-cai"' dfx.json | sponge dfx.json
+  mkdir -p deps/candid
+  echo "service: {}" >deps/candid/rno2w-sqaaa-aaaaa-aaacq-cai.did
+
   # .env should also include canisters that are not explicit dependencies
   jq 'del(.canisters.e2e_project_frontend.dependencies)' dfx.json  | sponge dfx.json
   backend_canister=$(dfx canister id e2e_project_backend)
   frontend_canister=$(dfx canister id e2e_project_frontend)
 
-  assert_command dfx build e2e_project_frontend
+  rm .env || true
+  assert_command dfx "$@" e2e_project_frontend
 
   assert_file_exists .env
   env=$(< .env)
   assert_contains "DFX_NETWORK='local'" "$env"
   assert_contains "CANISTER_ID_E2E_PROJECT_BACKEND='$backend_canister'" "$env"
-  assert_contains "E2E_PROJECT_BACKEND_CANISTER_ID='$backend_canister'" "$env"
   assert_contains "CANISTER_ID_E2E_PROJECT_FRONTEND='$frontend_canister'" "$env"
-  assert_contains "E2E_PROJECT_FRONTEND_CANISTER_ID='$frontend_canister'" "$env"
+  assert_contains "CANISTER_ID_NNS_CYCLES_MINTING='rkp4c-7iaaa-aaaaa-aaaca-cai'" "$env"
+  assert_contains "CANISTER_ID_LIFELINE='rno2w-sqaaa-aaaaa-aaacq-cai'" "$env"
 
   setup_actuallylocal_project_network
   dfx canister create --all --network actuallylocal

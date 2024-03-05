@@ -4,6 +4,7 @@ use crate::error::canister_id_store::CanisterIdStoreError;
 use crate::error::unified_io::UnifiedIoError;
 use crate::network::directory::ensure_cohesive_network_directory;
 use candid::Principal as CanisterId;
+use ic_agent::export::Principal;
 use serde::{Deserialize, Serialize, Serializer};
 use slog::{warn, Logger};
 use std::collections::BTreeMap;
@@ -250,6 +251,39 @@ impl CanisterIdStore {
             .or_else(|| self.find_in(canister_name, &self.ids))
             .or_else(|| self.pull_ids.get(canister_name).copied())
     }
+    pub fn get_name_id_map(&self) -> BTreeMap<String, String> {
+        let mut ids: BTreeMap<_, _> = self
+            .ids
+            .iter()
+            .filter_map(|(name, network_to_id)| {
+                Some((
+                    name.clone(),
+                    network_to_id.get(&self.network_descriptor.name).cloned()?,
+                ))
+            })
+            .collect();
+        if let Some(remote_ids) = &self.remote_ids {
+            let mut remote = remote_ids
+                .iter()
+                .filter_map(|(name, network_to_id)| {
+                    Some((
+                        name.clone(),
+                        network_to_id.get(&self.network_descriptor.name).cloned()?,
+                    ))
+                })
+                .collect();
+            ids.append(&mut remote);
+        }
+        let mut pull_ids = self
+            .pull_ids
+            .iter()
+            .map(|(name, id)| (name.clone(), id.to_text()))
+            .collect();
+        ids.append(&mut pull_ids);
+        ids.into_iter()
+            .filter(|(name, _)| !name.starts_with("__"))
+            .collect()
+    }
 
     fn find_in(&self, canister_name: &str, canister_ids: &CanisterIds) -> Option<CanisterId> {
         canister_ids
@@ -365,6 +399,18 @@ impl CanisterIdStore {
         }
 
         Ok(())
+    }
+
+    pub fn non_remote_user_canisters(&self) -> Vec<(String, Principal)> {
+        self.ids
+            .iter()
+            .filter_map(|(name, network_to_id)| {
+                network_to_id
+                    .get(&self.network_descriptor.name)
+                    .and_then(|principal| Principal::from_text(principal).ok())
+                    .map(|principal| (name.clone(), principal))
+            })
+            .collect()
     }
 }
 

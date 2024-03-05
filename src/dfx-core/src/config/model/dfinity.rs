@@ -411,7 +411,7 @@ pub struct CanisterDeclarationsConfig {
     pub bindings: Option<Vec<String>>,
 
     /// # Canister ID ENV Override
-    /// A string that will replace process.env.{canister_name_uppercase}_CANISTER_ID
+    /// A string that will replace process.env.CANISTER_ID_{canister_name_uppercase}
     /// in the 'src/dfx/assets/language_bindings/canister.js' template.
     pub env_override: Option<String>,
 

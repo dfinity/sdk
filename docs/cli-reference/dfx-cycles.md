@@ -23,6 +23,53 @@ To view usage information for a specific subcommand, specify the subcommand and 
 
 `dfx cycles balance --help`
 
+## dfx cycles approve
+
+Use the `dfx cycles approve` command to approve a principal to spend cycles on your behalf.
+
+### Basic usage
+
+``` bash
+dfx cycles approve [options] <spender> <amount>
+```
+
+### Arguments
+
+You must specify the following arguments for the `dfx cycles approve` command.
+
+| Argument   | Description                           |
+|------------|---------------------------------------|
+| `<spender>`| Allow this principal to spend cycles. |
+| `<amount>` | The number of cycles to approve.      |
+
+### Options
+
+You can specify the following options for the `dfx cycles approve` command.
+
+| Option                              | Description                                                                            |
+|-------------------------------------|----------------------------------------------------------------------------------------|
+| `--created-at-time <timestamp>`     | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
+| `--expected-allowance <cycles>`     | The number of previously approved cycles. See [ICRC-2 specification](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-2/README.md) for details. |
+| `--expires-at <timestamp>`        | Timestamp-nanoseconds until which the approval is valid. None means that the approval is valid indefinitely. |
+``
+| `--from-subaccount <subaccount>`    | Approve cycles to be spent from this subaccount.                                       |
+| `--memo <memo>`                     | Specifies a numeric memo for this transaction. |
+| `--spender-subaccount <subaccount>` | Allow this subaccount to spend cycles.                                                 |
+
+### Examples
+
+Approve the principal `raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae` to spend 1 billion cycles:
+
+``` bash
+dfx cycles approve raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae 1000000000 --network ic
+```
+
+Approve from a subaccount:
+
+``` bash
+dfx cycles approve raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae 1000000000 --from-subaccount 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f --network ic
+```
+
 ## dfx cycles balance
 
 Use the `dfx cycles balance` command to print your account balance or that of another user.
@@ -127,12 +174,14 @@ You must specify the following arguments for the `dfx cycles transfer` command.
 
 You can specify the following options for the `dfx cycles transfer` command.
 
-| Option                           | Description                                                                            |
-|----------------------------------|----------------------------------------------------------------------------------------|
-| `--to-subaccount <subaccount>`   | The subaccount to which you want to transfer cycles.                                   |
-| `--from-subaccount <subaccount>` | The subaccount from which you want to transfer cycles.                                 |
-| `--memo <memo>`                  | Specifies a numeric memo for this transaction. |
-| `--created-at-time <timestamp>`  | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
+| Option                              | Description                                                                            |
+|-------------------------------------|----------------------------------------------------------------------------------------|
+| `--from <principal>`                |  Transfer cycles from this principal. Requires that principal's approval.              |
+| `--to-subaccount <subaccount>`      | The subaccount to which you want to transfer cycles.                                   |
+| `--from-subaccount <subaccount>`    | The subaccount from which you want to transfer cycles.                                 |
+| `--spender-subaccount <subaccount>` | Deduct allowance from this subaccount. Requires `--from` to be specified.              |
+| `--memo <memo>`                     | Specifies a numeric memo for this transaction. |
+| `--created-at-time <timestamp>`     | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
 
 ### Examples
 

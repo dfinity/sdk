@@ -1163,6 +1163,54 @@ CHERRIES" "$stdout"
   #   /.well-known/thing.json 1/1 (0 bytes)
 }
 
+@test "asset configuration via .ic-assets.json5 - default properties" {
+  install_asset assetscanister
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/binary/noise.txt")'
+  assert_contains '(
+  record {
+    headers = null;
+    is_aliased = null;
+    allow_raw_access = opt true;
+    max_age = null;
+  },
+)'
+}
+
+@test "asset configuration via .ic-assets.json5 - property override order does not matter" {
+  install_asset assetscanister
+  # Ensure that setting one property does not overwrite a different property set earlier
+  cat > src/e2e_project_frontend/assets/.ic-assets.json5 <<EOF
+[
+  {
+    "match": "**/binary/**/*",
+    "allow_raw_access": false
+  },
+  {
+    "match": "**/*",
+    "headers": {
+      "X-Anything": "Something"
+    }
+  }
+]
+EOF
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/binary/noise.txt")'
+  assert_contains '(
+  record {
+    headers = opt vec { record { "X-Anything"; "Something" } };
+    is_aliased = null;
+    allow_raw_access = opt false;
+    max_age = null;
+  },
+)'
+}
+
+
+
 @test "asset configuration via .ic-assets.json5 - nested dot directories" {
   install_asset assetscanister
 
@@ -1490,29 +1538,25 @@ CHERRIES" "$stdout"
   "match": "nevermatchme",
   "cache": {
     "max_age": 2000
-  },
-  "allow_raw_access": true
+  }
 }'
   assert_match 'WARN: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
   assert_contains 'WARN: {
   "match": "nevermatchme",
   "headers": {},
-  "ignore": false,
-  "allow_raw_access": true
+  "ignore": false
 }
 WARN: {
   "match": "nevermatchmetoo",
   "headers": {},
-  "ignore": false,
-  "allow_raw_access": true
+  "ignore": false
 }
 WARN: {
   "match": "non-matcher",
   "headers": {
     "x-header": "x-value"
   },
-  "ignore": false,
-  "allow_raw_access": true
+  "ignore": false
 }'
   # splitting this up into two checks, because the order is different on macos vs ubuntu
   assert_contains 'WARN: {
@@ -1520,8 +1564,7 @@ WARN: {
   "headers": {
     "x-header": "x-value"
   },
-  "ignore": false,
-  "allow_raw_access": true
+  "ignore": false
 }'
 }
 
