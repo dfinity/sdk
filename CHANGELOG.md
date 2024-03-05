@@ -147,6 +147,10 @@ This incorporates the following executed proposals:
 - [127707](https://dashboard.internetcomputer.org/proposal/127707)
 - [127706](https://dashboard.internetcomputer.org/proposal/127706)
 
+### Motoko
+
+Updated Motoko to [0.11.0](https://github.com/dfinity/motoko/releases/tag/0.11.0)
+
 ### Asset canister
 
 Module hash: 32e92f1190d8321e97f8d8f3e793019e4fd2812bfc595345d46d2c23f74c1ab5
@@ -158,7 +162,6 @@ bump ic-cdk to 0.13.1
 Module hash: 1208093dcc5b31286a073f00f748ac6612dbae17b66c22332762705960a8aaad
 
 bump ic-cdk to 0.13.1
-
 
 # 0.17.0
 
