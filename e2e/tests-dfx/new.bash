@@ -87,7 +87,7 @@ teardown() {
   dfx_start
   assert_command dfx new e2e-project --type motoko --frontend vanilla --extras frontend-tests
   cd e2e-project
-  assert_command jq '.canisters.["e2e-project-backend","e2e-project-frontend"]' dfx.json
+  assert_command jq '.canisters["e2e-project-backend","e2e-project-frontend"]' dfx.json
   assert_command dfx deploy
   assert_command npm test --workspaces
 }
