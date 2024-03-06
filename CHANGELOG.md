@@ -2,6 +2,34 @@
 
 # UNRELEASED
 
+# fix: .ic-assets.json configuration entries no longer overwrite the default for `allow_raw_access`
+
+Previously, any configuration element in .ic-assets.json functioned as if a setting of
+`"allow_raw_access": true` were present in the json object.
+
+For example, given the following configuration, all files would be configured
+with `allow_raw_access` set to `true`, as if the second entry specified
+`"allow_raw_access": true` (which is the default), even though it does not.
+
+```json
+[
+  {
+    "match": "**/*",
+    "allow_raw_access": false
+  },
+  {
+    "match": "**/*",
+    "headers": {
+      "X-Anything": "Something"
+    }
+  }
+]
+```
+
+Now, given the same configuration, all files would be configured with `allow_raw_access` set to false, as expected.
+
+Note that the default value of `allow_raw_access` is still `true`.
+
 # 0.18.0
 
 ### fix!: removed the `dfx upgrade` command
