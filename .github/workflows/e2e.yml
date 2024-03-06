@@ -30,7 +30,6 @@ jobs:
         with:
           filters: |
             sources:
-              - .github/workflows/e2e.yml
               - e2e/**
               - scripts/workflows/e2e-matrix.py
               - scripts/workflows/provision-darwin.sh
@@ -236,6 +235,17 @@ jobs:
             --frontend_url "$FRONTEND_URL_LOCALHOST" \
             --candid_url "$CANDID_URL_LOCALHOST" \
             --browser chromium firefox webkit
+
+  aggregate-debug:
+    needs: [changes, test, smoke, ui_test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: display outputs
+        run: |
+          echo "outputs: ${{ needs.changes.outputs.sources }}"
+          echo "smoke: ${{ needs.smoke.result }}"
+          echo "ui_test: ${{ needs.ui_test.result }}"
+          echo "test: ${{ needs.test.result }}"
 
   aggregate:
     name: e2e:required
