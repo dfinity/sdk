@@ -2,7 +2,11 @@
 
 # UNRELEASED
 
-# fix: .ic-assets.json configuration entries no longer overwrite the default for `allow_raw_access`
+### feat: hyphenated project names
+
+DFX no longer forbids hyphens in project names. Anywhere they appear as the name of a variable, e.g. environment variables or generated JS variables, they will be replaced with underscores.
+
+### fix: .ic-assets.json configuration entries no longer overwrite the default for `allow_raw_access`
 
 Previously, any configuration element in .ic-assets.json functioned as if a setting of
 `"allow_raw_access": true` were present in the json object.

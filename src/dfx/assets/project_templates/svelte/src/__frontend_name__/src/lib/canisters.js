@@ -1,4 +1,4 @@
-import { createActor, canisterId } from 'declarations/{project_name}_backend';
+import { createActor, canisterId } from 'declarations/{backend_name}';
 import { building } from '$app/environment';
 
 function dummyActor() {
@@ -8,5 +8,5 @@ function dummyActor() {
 const buildingOrTesting = building || process.env.NODE_ENV === "test";
 
 export const backend = buildingOrTesting
-  ? dummyActor()
-  : createActor(canisterId);
+    ? dummyActor()
+    : createActor(canisterId);

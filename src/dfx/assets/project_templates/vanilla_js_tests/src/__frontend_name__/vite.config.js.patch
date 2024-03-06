@@ -1,5 +1,5 @@
---- a/src/{project_name}_frontend/vite.config.js
-+++ b/src/{project_name}_frontend/vite.config.js
+--- a/src/{frontend_name}/vite.config.js
++++ b/src/{frontend_name}/vite.config.js
 @@ -1,1 +1,2 @@
 +/// <reference types="vitest" />
  import { defineConfig } from 'vite';

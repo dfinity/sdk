@@ -1,13 +1,13 @@
 <script setup>
 import { ref } from 'vue';
-import { {project_name}_backend } from 'declarations/{project_name}_backend/index';
+import { {backend_name_ident} } from 'declarations/{backend_name}/index';
 let greeting = ref('');
 
 async function handleSubmit(e) {
   e.preventDefault();
   const target = e.target;
   const name = target.querySelector('#name').value;
-  await {project_name}_backend.greet(name).then((response) => {
+  await {backend_name_ident}.greet(name).then((response) => {
     greeting.value = response;
   });
 }
