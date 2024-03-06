@@ -31,7 +31,6 @@ jobs:
           filters: |
             sources:
               - e2e/**
-              - scripts/workflows/e2e-matrix.py
               - scripts/workflows/provision-darwin.sh
               - scripts/workflows/provision-linux.sh
               - scripts/test-uis.py
@@ -236,8 +235,8 @@ jobs:
             --candid_url "$CANDID_URL_LOCALHOST" \
             --browser chromium firefox webkit
 
-  aggregate-debug:
-    if: ${{ always() }}
+  aggregate-debug1:
+    if: always()
     needs: [changes, test, smoke, ui_test]
     runs-on: ubuntu-latest
     steps:
@@ -248,18 +247,39 @@ jobs:
           echo "ui_test: ${{ needs.ui_test.result }}"
           echo "test: ${{ needs.test.result }}"
 
+  aggregate-debug2:
+    if: always() && needs.changes.outputs.sources == 'true'
+    needs: [changes, test, smoke, ui_test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: display outputs
+        run: |
+          echo "outputs: ${{ needs.changes.outputs.sources }}"
+          echo "smoke: ${{ needs.smoke.result }}"
+          echo "ui_test: ${{ needs.ui_test.result }}"
+          echo "test: ${{ needs.test.result }}"
+      - name: check smoke conditional
+        if: needs.smoke.result != 'success'
+        run: echo smoke failed
+      - name: check UI test conditional
+        if: needs.ui_test.result != 'success'
+        run: echo ui_test failed
+      - name: check e2e test conditional
+        if: needs.test.result != 'success'
+        run: echo e2e test failed
+
   aggregate:
     name: e2e:required
-    if: needs.changes.outputs.sources == 'true'
+    if: always() && needs.changes.outputs.sources == 'true'
     needs: [changes, test, smoke, ui_test]
     runs-on: ubuntu-latest
     steps:
       - name: check smoke test result
-        if: ${{ needs.smoke.result != 'success' }}
+        if: needs.smoke.result != 'success'
         run: exit 1
       - name: check UI test result
-        if: ${{ needs.ui_test.result != 'success' }}
+        if: needs.ui_test.result != 'success'
         run: exit 1
       - name: check e2e test result
-        if: ${{ needs.test.result != 'success' }}
+        if: needs.test.result != 'success'
         run: exit 1
