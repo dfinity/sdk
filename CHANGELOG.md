@@ -2,7 +2,11 @@
 
 # UNRELEASED
 
-# fix: .ic-assets.json configuration entries no longer overwrite the default for `allow_raw_access`
+### fix fetching canister logs
+
+The management canister method `fetch_canister_logs` can be called only as a query, not as an update call. Therefore, `dfx canister logs <canister_id>` now uses a query call for this purpose.
+
+### fix: .ic-assets.json configuration entries no longer overwrite the default for `allow_raw_access`
 
 Previously, any configuration element in .ic-assets.json functioned as if a setting of
 `"allow_raw_access": true` were present in the json object.
