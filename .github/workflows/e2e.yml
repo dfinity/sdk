@@ -237,6 +237,7 @@ jobs:
             --browser chromium firefox webkit
 
   aggregate-debug:
+    if: ${{ always() }}
     needs: [changes, test, smoke, ui_test]
     runs-on: ubuntu-latest
     steps:
