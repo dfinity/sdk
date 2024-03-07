@@ -79,3 +79,4 @@ jobs:
                        --base main \
                        --head broadcast-frontend-hash-${{ inputs.dfx_version }} \
                        --repo ${{ env.PLAYGROUND_REPO }}
+                       --draft

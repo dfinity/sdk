@@ -166,3 +166,5 @@ jobs:
           file: dfx-*.tar.*
           file_glob: true
           tag: ${{ env.VERSION }}
+          prerelease: true
+          make_latest: false
