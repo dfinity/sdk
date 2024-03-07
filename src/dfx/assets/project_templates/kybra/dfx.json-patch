@@ -1,13 +1,13 @@
 [
     {
-        "path": "/canisters/{project_name}_backend",
+        "path": "/canisters/{backend_name}",
         "op": "add",
         "value": {
             "type": "custom",
-            "build": "python -m kybra {project_name}_backend src/{project_name}_backend/src/main.py src/{project_name}_backend/{project_name}_backend.did",
-            "post_install": ".kybra/{project_name}_backend/post_install.sh",
-            "candid": "src/{project_name}_backend/{project_name}_backend.did",
-            "wasm": ".kybra/{project_name}_backend/{project_name}_backend.wasm",
+            "build": "python -m kybra {backend_name} src/{backend_name}/src/main.py src/{backend_name}/{backend_name}.did",
+            "post_install": ".kybra/{backend_name}/post_install.sh",
+            "candid": "src/{backend_name}/{backend_name}.did",
+            "wasm": ".kybra/{backend_name}/{backend_name}.wasm",
             "gzip": true
         }
     }

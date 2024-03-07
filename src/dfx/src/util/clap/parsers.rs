@@ -142,7 +142,7 @@ pub fn project_name_parser(name: &str) -> Result<String, String> {
             // Reverses the search here; if there is a character that is not compatible
             // it is found and an error is returned.
             let m: Vec<&str> = name
-                .matches(|x: char| !x.is_ascii_alphanumeric() && x != '_')
+                .matches(|x: char| !x.is_ascii_alphanumeric() && x != '_' && x != '-')
                 .collect();
 
             if m.is_empty() {

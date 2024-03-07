@@ -1,13 +1,13 @@
 [
     {
-        "path": "/canisters/{project_name}_backend",
+        "path": "/canisters/{backend_name}",
         "op": "add",
         "value": {
             "type": "custom",
-            "main": "src/{project_name}_backend/src/index.ts",
-            "candid": "src/{project_name}_backend/{project_name}_backend.did",
-            "build": "npx azle {project_name}_backend",
-            "wasm": ".azle/{project_name}_backend/{project_name}_backend.wasm",
+            "main": "src/{backend_name}/src/index.ts",
+            "candid": "src/{backend_name}/{backend_name}.did",
+            "build": "npx azle {backend_name}",
+            "wasm": ".azle/{backend_name}/{backend_name}.wasm",
             "gzip": true
         }
     }
