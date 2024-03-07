@@ -1,28 +1,28 @@
 {
-  "name": "{project_name}_frontend",
+  "name": "{frontend_name}",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "setup": "npm i && dfx canister create {project_name}_backend && dfx generate {project_name}_backend && dfx deploy",
+    "setup": "npm i && dfx canister create {backend_name} && dfx generate {backend_name} && dfx deploy",
     "start": "vite --port 3000",
     "prebuild": "dfx generate",
     "build": "tsc && vite build",
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss}\""
   },
   "dependencies": {
-    "@dfinity/agent": "^0.20.0",
-    "@dfinity/candid": "^0.20.0",
-    "@dfinity/principal": "^0.20.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@dfinity/agent": "^0.15.7",
+    "@dfinity/candid": "^0.15.7",
+    "@dfinity/principal": "^0.15.7"
   },
   "devDependencies": {
-    "@sveltejs/adapter-static": "^2.0.0",
-    "@sveltejs/kit": "^1.21.0",
-    "@sveltejs/vite-plugin-svelte": "^2.4.2",
+    "@types/react": "^18.2.14",
+    "@types/react-dom": "^18.2.6",
+    "@vitejs/plugin-react": "^4.0.1",
     "dotenv": "^16.3.1",
     "sass": "^1.63.6",
-    "svelte": "^4.0.1",
-    "svelte-check": "^3.4.4",
     "typescript": "^5.1.3",
     "vite": "^4.3.9",
     "vite-plugin-environment": "^1.1.3"

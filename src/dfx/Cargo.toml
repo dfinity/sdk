@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.16.1"
+version = "0.18.0"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
@@ -40,6 +40,7 @@ byte-unit = { workspace = true, features = ["serde"] }
 bytes.workspace = true
 candid = { workspace = true }
 candid_parser = { workspace = true, features = ["random", "assist"] }
+cargo_metadata = "0.18.1"
 clap = { workspace = true, features = [
     "derive",
     "env",
