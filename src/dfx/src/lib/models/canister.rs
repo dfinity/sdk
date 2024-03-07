@@ -859,13 +859,17 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
         let mut file_contents = String::new();
         file.read_to_string(&mut file_contents)
             .context("Failed to read file content.")?;
+        let canister_name = canister_info.get_name();
+        let canister_name_ident = canister_name.replace('-', "_");
 
         let new_file_contents = file_contents
             .replace("{canister_id}", &canister_id.to_text())
-            .replace("{canister_name}", canister_info.get_name())
+            .replace("{canister_name}", canister_name)
+            .replace("{canister_name_ident}", &canister_name_ident)
+            .replace("{canister_name_uppercase}", &canister_name.to_uppercase())
             .replace(
-                "{canister_name_uppercase}",
-                &canister_info.get_name().to_uppercase(),
+                "{canister_name_ident_uppercase}",
+                &canister_name_ident.to_uppercase(),
             );
 
         match decode_path_to_str(&file.path()?)? {

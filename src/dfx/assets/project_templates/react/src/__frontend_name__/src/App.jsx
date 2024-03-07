@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { {project_name}_backend } from 'declarations/{project_name}_backend';
+import { {backend_name_ident} } from 'declarations/{backend_name}';
 
 function App() {
   const [greeting, setGreeting] = useState('');
@@ -7,7 +7,7 @@ function App() {
   function handleSubmit(event) {
     event.preventDefault();
     const name = event.target.elements.name.value;
-    {project_name}_backend.greet(name).then((greeting) => {
+    {backend_name_ident}.greet(name).then((greeting) => {
       setGreeting(greeting);
     });
     return false;

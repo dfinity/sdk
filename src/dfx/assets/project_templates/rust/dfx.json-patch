@@ -1,11 +1,11 @@
 [
   {
     "op": "add",
-    "path": "/canisters/{project_name}_backend",
+    "path": "/canisters/{backend_name}",
     "value": {
       "type": "rust",
-      "package": "{project_name}_backend",
-      "candid": "src/{project_name}_backend/{project_name}_backend.did"
+      "package": "{backend_name}",
+      "candid": "src/{backend_name}/{backend_name}.did"
     }
   }
 ]

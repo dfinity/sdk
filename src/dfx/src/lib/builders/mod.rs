@@ -265,6 +265,7 @@ fn compile_handlebars_files(
             let mut data: BTreeMap<String, &String> = BTreeMap::new();
 
             let canister_name = &info.get_name().to_string();
+            let canister_name_ident = &canister_name.replace('-', "_");
 
             let node_compatibility = info.get_declarations_config().node_compatibility;
 
@@ -276,13 +277,13 @@ fn compile_handlebars_files(
                 format!(
                     r#"
 
-export const {0} = canisterId ? createActor(canisterId) : undefined;"#,
-                    canister_name
+export const {canister_name_ident} = canisterId ? createActor(canisterId) : undefined;"#,
                 )
                 .to_string()
             };
 
             data.insert("canister_name".to_string(), canister_name);
+            data.insert("canister_name_ident".to_string(), canister_name_ident);
             data.insert("actor_export".to_string(), &actor_export);
 
             // Switches to prefixing the canister id with the env variable for frontend declarations as new default
@@ -292,7 +293,7 @@ export const {0} = canisterId ? createActor(canisterId) : undefined;"#,
                     format!(
                         "process.env.{}{}",
                         "CANISTER_ID_",
-                        &canister_name.to_ascii_uppercase(),
+                        &canister_name_ident.to_ascii_uppercase(),
                     )
                 }
             };
