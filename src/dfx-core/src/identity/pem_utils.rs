@@ -12,7 +12,7 @@ pub fn validate_pem_file(pem_content: &[u8]) -> Result<(), ValidatePemFileError>
     if let Err(e) = secp_res {
         let basic_identity_res = BasicIdentity::from_pem(pem_content);
         match basic_identity_res {
-            Err(PemError::KeyRejected(rj)) if rj.description_() == "VersionNotSupported" => {
+            Err(PemError::KeyRejected(rj)) if rj.to_string() == "VersionNotSupported" => {
                 return Err(UnsupportedKeyVersion());
             }
             Err(_) => return Err(e),
