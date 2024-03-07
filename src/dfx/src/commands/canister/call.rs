@@ -16,7 +16,7 @@ use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
-use ic_utils::interfaces::management_canister::MgmtMethod;
+use ic_utils::interfaces::management_canister::{BitcoinNetwork, MgmtMethod};
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
 use slog::warn;
@@ -142,10 +142,10 @@ pub fn get_effective_canister_id(
         })?;
         match method_name {
             MgmtMethod::CreateCanister | MgmtMethod::RawRand
-            | MgmtMethod::BitcoinGetBalance | MgmtMethod::BitcoinGetBalanceQuery
-            | MgmtMethod::BitcoinGetUtxos | MgmtMethod::BitcoinGetUtxosQuery
+            | MgmtMethod::BitcoinGetBalance |  MgmtMethod::BitcoinGetUtxos
             | MgmtMethod::BitcoinSendTransaction | MgmtMethod::BitcoinGetCurrentFeePercentiles
-            | MgmtMethod::EcdsaPublicKey | MgmtMethod::SignWithEcdsa => {
+            | MgmtMethod::EcdsaPublicKey | MgmtMethod::SignWithEcdsa
+            | MgmtMethod::NodeMetricsHistory => {
                 Err(DiagnosedError::new(
                     format!(
                         "{} can only be called by a canister, not by an external user.",
@@ -200,6 +200,15 @@ pub fn get_effective_canister_id(
                 let in_args = Decode!(arg_value, In)
                     .context("Argument is not valid for InstallChunkedCode")?;
                 Ok(in_args.target_canister)
+            }
+            MgmtMethod::BitcoinGetUtxosQuery | MgmtMethod::BitcoinGetBalanceQuery => {
+                #[derive(CandidType, Deserialize)]
+                struct In {
+                    network: BitcoinNetwork,
+                }
+                let in_args = Decode!(arg_value, In)
+                    .with_context(|| format!("Argument is not valid for {method_name}"))?;
+                Ok(in_args.network.effective_canister_id())
             }
         }
     } else {
