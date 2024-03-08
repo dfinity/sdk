@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### fix fetching canister logs
+
+The management canister method `fetch_canister_logs` can be called only as a query, not as an update call. Therefore, `dfx canister logs <canister_id>` now uses a query call for this purpose.
+
 ### feat: hyphenated project names
 
 DFX no longer forbids hyphens in project names. Anywhere they appear as the name of a variable, e.g. environment variables or generated JS variables, they will be replaced with underscores.

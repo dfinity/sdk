@@ -19,6 +19,7 @@ use dfx_core::canister::build_wallet_canister;
 use dfx_core::config::model::dfinity::Config;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
+use ic_utils::call::SyncCall;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{
     FetchCanisterLogsResponse, MgmtMethod, StatusCallResult,
@@ -77,6 +78,52 @@ where
     Ok(out)
 }
 
+#[context(
+    "Failed to query call function '{}' regarding canister '{}'.",
+    method,
+    destination_canister
+)]
+async fn do_management_query_call<A, O>(
+    env: &dyn Environment,
+    destination_canister: Principal,
+    method: &str,
+    arg: A,
+    call_sender: &CallSender,
+) -> DfxResult<O>
+where
+    A: CandidType + Sync + Send,
+    O: for<'de> ArgumentDecoder<'de> + Sync + Send,
+{
+    let agent = env.get_agent();
+    let out = match call_sender {
+        CallSender::SelectedId => {
+            let mgr = ManagementCanister::create(agent);
+
+            mgr.query(method)
+                .with_arg(arg)
+                .with_effective_canister_id(destination_canister)
+                .build()
+                .call()
+                .await
+                .context("Query call (without wallet) failed.")?
+        }
+        CallSender::Wallet(wallet_id) => {
+            let wallet = build_wallet_canister(*wallet_id, agent).await?;
+            let out: O = wallet
+                .query(method)
+                .with_arg(arg)
+                .with_effective_canister_id(Principal::management_canister())
+                .build()
+                .call()
+                .await
+                .context("Query call using wallet failed.")?;
+            out
+        }
+    };
+
+    Ok(out)
+}
+
 #[context("Failed to get canister status of {}.", canister_id)]
 pub async fn get_canister_status(
     env: &dyn Environment,
@@ -111,13 +158,12 @@ pub async fn get_canister_logs(
         canister_id: Principal,
     }
 
-    let (out,): (FetchCanisterLogsResponse,) = do_management_call(
+    let (out,): (FetchCanisterLogsResponse,) = do_management_query_call(
         env,
         canister_id,
         MgmtMethod::FetchCanisterLogs.as_ref(),
         In { canister_id },
         call_sender,
-        0,
     )
     .await?;
     Ok(out)
