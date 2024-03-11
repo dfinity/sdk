@@ -3,9 +3,9 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use crate::util::check_candid_file;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
+use candid_parser::utils::CandidSource;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
@@ -104,12 +104,13 @@ pub trait CanisterBuilder {
             .context("`output` must not be None")?;
 
         if generate_output_dir.exists() {
-            let generate_output_dir = generate_output_dir.canonicalize().with_context(|| {
-                format!(
-                    "Failed to canonicalize output dir {}.",
-                    generate_output_dir.to_string_lossy()
-                )
-            })?;
+            let generate_output_dir = dfx_core::fs::canonicalize(generate_output_dir)
+                .with_context(|| {
+                    format!(
+                        "Failed to canonicalize output dir {}.",
+                        generate_output_dir.to_string_lossy()
+                    )
+                })?;
             if !generate_output_dir.starts_with(info.get_workspace_root()) {
                 bail!(
                     "Directory at '{}' is outside the workspace root.",
@@ -133,12 +134,12 @@ pub trait CanisterBuilder {
         if bindings.is_empty() {
             eprintln!("`{}.declarations.bindings` in dfx.json was set to be an empty list, so no type declarations will be generated.", &info.get_name());
             return Ok(());
-        } else {
-            eprintln!(
-                "Generating type declarations for canister {}:",
-                &info.get_name()
-            );
         }
+
+        eprintln!(
+            "Generating type declarations for canister {}:",
+            &info.get_name()
+        );
 
         std::fs::create_dir_all(generate_output_dir).with_context(|| {
             format!(
@@ -147,16 +148,23 @@ pub trait CanisterBuilder {
             )
         })?;
 
-        let generated_idl_path = self.generate_idl(pool, info, config)?;
+        let did_from_build = self.get_candid_path(pool, info, config)?;
+        if !did_from_build.exists() {
+            bail!(
+                "Candid file: {} doesn't exist.",
+                did_from_build.to_string_lossy()
+            );
+        }
 
-        let (env, ty) = check_candid_file(generated_idl_path.as_path())?;
+        let (env, ty) = CandidSource::File(did_from_build.as_path()).load()?;
 
         // Typescript
         if bindings.contains(&"ts".to_string()) {
             let output_did_ts_path = generate_output_dir
                 .join(info.get_name())
                 .with_extension("did.d.ts");
-            let content = ensure_trailing_newline(candid_parser::bindings::typescript::compile(&env, &ty));
+            let content =
+                ensure_trailing_newline(candid_parser::bindings::typescript::compile(&env, &ty));
             std::fs::write(&output_did_ts_path, content).with_context(|| {
                 format!(
                     "Failed to write to {}.",
@@ -174,7 +182,8 @@ pub trait CanisterBuilder {
             let output_did_js_path = generate_output_dir
                 .join(info.get_name())
                 .with_extension("did.js");
-            let content = ensure_trailing_newline(candid_parser::bindings::javascript::compile(&env, &ty));
+            let content =
+                ensure_trailing_newline(candid_parser::bindings::javascript::compile(&env, &ty));
             std::fs::write(&output_did_js_path, content).with_context(|| {
                 format!(
                     "Failed to write to {}.",
@@ -191,36 +200,35 @@ pub trait CanisterBuilder {
             let output_mo_path = generate_output_dir
                 .join(info.get_name())
                 .with_extension("mo");
-            let content = ensure_trailing_newline(candid_parser::bindings::motoko::compile(&env, &ty));
+            let content =
+                ensure_trailing_newline(candid_parser::bindings::motoko::compile(&env, &ty));
             std::fs::write(&output_mo_path, content).with_context(|| {
                 format!("Failed to write to {}.", output_mo_path.to_string_lossy())
             })?;
             eprintln!("  {}", &output_mo_path.display());
         }
 
-        // Candid, delete if not required
-        if !bindings.contains(&"did".to_string()) {
-            std::fs::remove_file(&generated_idl_path).with_context(|| {
-                format!("Failed to remove {}.", generated_idl_path.to_string_lossy())
-            })?;
-        } else {
-            let relative_idl_path = generated_idl_path
-                .strip_prefix(info.get_workspace_root())
-                .unwrap_or(&generated_idl_path);
-            eprintln!("  {}", &relative_idl_path.display());
+        // Candid
+        if bindings.contains(&"did".to_string()) {
+            let output_did_path = generate_output_dir
+                .join(info.get_name())
+                .with_extension("did");
+            dfx_core::fs::copy(&did_from_build, &output_did_path)?;
+            dfx_core::fs::set_permissions_readwrite(&output_did_path)?;
+            eprintln!("  {}", &output_did_path.display());
         }
 
         Ok(())
     }
 
-    fn generate_idl(
+    /// Get the path to the provided candid file for the canister.
+    /// No need to guarantee the file exists, as the caller will handle that.
+    fn get_candid_path(
         &self,
-        _pool: &CanisterPool,
-        _info: &CanisterInfo,
-        _config: &BuildConfig,
-    ) -> DfxResult<PathBuf> {
-        Ok(PathBuf::new())
-    }
+        pool: &CanisterPool,
+        info: &CanisterInfo,
+        config: &BuildConfig,
+    ) -> DfxResult<PathBuf>;
 }
 
 fn compile_handlebars_files(
@@ -257,6 +265,7 @@ fn compile_handlebars_files(
             let mut data: BTreeMap<String, &String> = BTreeMap::new();
 
             let canister_name = &info.get_name().to_string();
+            let canister_name_ident = &canister_name.replace('-', "_");
 
             let node_compatibility = info.get_declarations_config().node_compatibility;
 
@@ -268,13 +277,13 @@ fn compile_handlebars_files(
                 format!(
                     r#"
 
-export const {0} = canisterId ? createActor(canisterId) : undefined;"#,
-                    canister_name
+export const {canister_name_ident} = canisterId ? createActor(canisterId) : undefined;"#,
                 )
                 .to_string()
             };
 
             data.insert("canister_name".to_string(), canister_name);
+            data.insert("canister_name_ident".to_string(), canister_name_ident);
             data.insert("actor_export".to_string(), &actor_export);
 
             // Switches to prefixing the canister id with the env variable for frontend declarations as new default
@@ -282,13 +291,9 @@ export const {0} = canisterId ? createActor(canisterId) : undefined;"#,
                 Some(s) => format!(r#""{}""#, s.clone()),
                 None => {
                     format!(
-                        "process.env.{}{} ||\n  process.env.{}{}",
+                        "process.env.{}{}",
                         "CANISTER_ID_",
-                        &canister_name.to_ascii_uppercase(),
-                        // TODO: remove this fallback in 0.16.x
-                        // https://dfinity.atlassian.net/browse/SDK-1083
-                        &canister_name.to_ascii_uppercase(),
-                        "_CANISTER_ID",
+                        &canister_name_ident.to_ascii_uppercase(),
                     )
                 }
             };
@@ -321,12 +326,10 @@ fn ensure_trailing_newline(s: String) -> String {
 
 pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult<()> {
     let (command_name, arguments) = args.split_first().unwrap();
-    let canonicalized = cwd
-        .join(command_name)
-        .canonicalize()
+    let canonicalized = dfx_core::fs::canonicalize(&cwd.join(command_name))
         .or_else(|_| which::which(command_name))
         .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
-    let mut cmd = Command::new(&canonicalized);
+    let mut cmd = Command::new(canonicalized);
 
     cmd.args(arguments)
         .current_dir(cwd)
@@ -377,13 +380,6 @@ pub fn get_and_write_environment_variables<'a>(
             vars.push((
                 Owned(format!(
                     "CANISTER_CANDID_PATH_{}",
-                    canister.get_name().replace('-', "_")
-                )),
-                Borrowed(candid_path),
-            ));
-            vars.push((
-                Owned(format!(
-                    "CANISTER_CANDID_PATH_{}",
                     canister.get_name().replace('-', "_").to_ascii_uppercase()
                 )),
                 Borrowed(candid_path),
@@ -391,25 +387,10 @@ pub fn get_and_write_environment_variables<'a>(
         }
     }
     for canister in pool.get_canister_list() {
-        // Insert both suffixed and prefixed versions of the canister name for backwards compatibility
-        vars.push((
-            Owned(format!(
-                "{}_CANISTER_ID",
-                canister.get_name().replace('-', "_").to_ascii_uppercase(),
-            )),
-            Owned(canister.canister_id().to_text().into()),
-        ));
         vars.push((
             Owned(format!(
                 "CANISTER_ID_{}",
                 canister.get_name().replace('-', "_").to_ascii_uppercase(),
-            )),
-            Owned(canister.canister_id().to_text().into()),
-        ));
-        vars.push((
-            Owned(format!(
-                "CANISTER_ID_{}",
-                canister.get_name().replace('-', "_")
             )),
             Owned(canister.canister_id().to_text().into()),
         ));

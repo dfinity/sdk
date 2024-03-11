@@ -4,15 +4,16 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::installers::assets::prepare_assets_for_proposal;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
-use crate::lib::operations::canister::{create_canister, install_canister::install_canister};
-use crate::util::{blob_from_arguments, get_candid_init_type};
+use crate::lib::operations::canister::{
+    all_project_canisters_with_ids, create_canister, install_canister::install_canister,
+};
+use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
@@ -23,6 +24,7 @@ use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit,
 };
 use ic_utils::interfaces::management_canister::builders::InstallMode;
+use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
@@ -44,12 +46,15 @@ pub async fn deploy_canisters(
     deploy_mode: &DeployMode,
     upgrade_unchanged: bool,
     with_cycles: Option<u128>,
-    specified_id: Option<Principal>,
+    created_at_time: Option<u64>,
+    specified_id_from_cli: Option<Principal>,
     call_sender: &CallSender,
+    from_subaccount: Option<Subaccount>,
     no_wallet: bool,
     skip_consent: bool,
     env_file: Option<PathBuf>,
     no_asset_upgrade: bool,
+    subnet_selection: &mut SubnetSelectionType,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -68,7 +73,7 @@ pub async fn deploy_canisters(
         }
     }
 
-    let canisters_to_load = canister_with_dependencies(&config, some_canister)?;
+    let canisters_to_deploy = canister_with_dependencies(&config, some_canister)?;
 
     let canisters_to_build = match deploy_mode {
         PrepareForProposal(canister_name) | ComputeEvidence(canister_name) => {
@@ -78,7 +83,7 @@ pub async fn deploy_canisters(
             // don't force-reinstall the dependencies too.
             vec![String::from(canister_name)]
         }
-        NormalDeploy => canisters_to_load
+        NormalDeploy => canisters_to_deploy
             .clone()
             .into_iter()
             .filter(|canister_name| {
@@ -101,40 +106,29 @@ pub async fn deploy_canisters(
     } else {
         info!(log, "Deploying all canisters.");
     }
-    if canisters_to_load
+    if canisters_to_deploy
         .iter()
         .any(|canister| initial_canister_id_store.find(canister).is_none())
     {
-        let proxy_sender;
-        let create_call_sender = if no_wallet
-            || specified_id.is_some()
-            || matches!(call_sender, CallSender::Wallet(_))
-            || env.get_network_descriptor().is_playground()
-        {
-            call_sender
-        } else {
-            let wallet = get_or_create_wallet_canister(
-                env,
-                env.get_network_descriptor(),
-                env.get_selected_identity().expect("No selected identity"),
-            )
-            .await?;
-            proxy_sender = CallSender::Wallet(*wallet.canister_id_());
-            &proxy_sender
-        };
         register_canisters(
             env,
-            &canisters_to_load,
+            &canisters_to_deploy,
             &initial_canister_id_store,
             with_cycles,
-            specified_id,
-            create_call_sender,
+            specified_id_from_cli,
+            call_sender,
+            no_wallet,
+            from_subaccount,
+            created_at_time,
             &config,
+            subnet_selection,
         )
         .await?;
     } else {
         info!(env.get_logger(), "All canisters have already been created.");
     }
+
+    let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
     let pool = build_canisters(
         env,
@@ -197,9 +191,13 @@ async fn register_canisters(
     canister_names: &[String],
     canister_id_store: &CanisterIdStore,
     with_cycles: Option<u128>,
-    specified_id: Option<Principal>,
+    specified_id_from_cli: Option<Principal>,
     call_sender: &CallSender,
+    no_wallet: bool,
+    from_subaccount: Option<Subaccount>,
+    created_at_time: Option<u64>,
     config: &Config,
+    subnet_selection: &mut SubnetSelectionType,
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
@@ -253,8 +251,10 @@ async fn register_canisters(
                 env,
                 canister_name,
                 with_cycles,
-                specified_id,
+                specified_id_from_cli,
                 call_sender,
+                no_wallet,
+                from_subaccount,
                 CanisterSettings {
                     controllers,
                     compute_allocation,
@@ -262,6 +262,8 @@ async fn register_canisters(
                     freezing_threshold,
                     reserved_cycles_limit,
                 },
+                created_at_time,
+                subnet_selection,
             )
             .await?;
         }
@@ -272,7 +274,7 @@ async fn register_canisters(
 #[context("Failed to build all canisters.")]
 async fn build_canisters(
     env: &dyn Environment,
-    referenced_canisters: &[String],
+    canisters_to_load: &[String],
     canisters_to_build: &[String],
     config: &Config,
     env_file: Option<PathBuf>,
@@ -280,7 +282,7 @@ async fn build_canisters(
     let log = env.get_logger();
     info!(log, "Building canisters...");
     let build_mode_check = false;
-    let canister_pool = CanisterPool::load(env, build_mode_check, referenced_canisters)?;
+    let canister_pool = CanisterPool::load(env, build_mode_check, canisters_to_load)?;
 
     let build_config =
         BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
@@ -323,17 +325,14 @@ async fn install_canisters(
         let canister_id = canister_id_store.get(canister_name)?;
         let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
 
-        let idl_path = canister_info.get_constructor_idl_path();
-        let init_type = get_candid_init_type(&idl_path);
-        let install_args = || blob_from_arguments(argument, None, argument_type, &init_type);
-
         install_canister(
             env,
             &mut canister_id_store,
             canister_id,
-            Some(&canister_info),
+            &canister_info,
             None,
-            install_args,
+            argument,
+            argument_type,
             install_mode,
             call_sender,
             upgrade_unchanged,

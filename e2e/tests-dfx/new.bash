@@ -7,6 +7,7 @@ setup() {
 }
 
 teardown() {
+  dfx_stop
   standard_teardown
 }
 
@@ -29,7 +30,6 @@ teardown() {
   assert_command_fail dfx new 1_
   assert_command_fail dfx new -
   assert_command_fail dfx new _
-  assert_command_fail dfx new a-b-c
   assert_command_fail dfx new '🕹'
   assert_command_fail dfx new '不好'
   assert_command_fail dfx new 'a:b'
@@ -51,9 +51,43 @@ teardown() {
   assert_eq "motoko"
 }
 
-@test "dfx new always emits sample-asset.txt" {
-  assert_command dfx new e2e_frontend --frontend
-  assert_file_exists e2e_frontend/src/e2e_frontend_frontend/assets/sample-asset.txt
-  assert_command dfx new e2e_no_frontend --no-frontend
-  assert_file_exists e2e_no_frontend/src/e2e_no_frontend_frontend/assets/sample-asset.txt
+@test "frontend templates apply successfully" {
+  for frontend in sveltekit vue react vanilla simple-assets none; do
+    assert_command dfx new e2e_${frontend/-/_} --frontend $frontend
+  done
+  assert_file_not_exists e2e_none/src/e2e_none_frontend
+}
+
+@test "frontend templates pass the frontend tests" {
+  dfx_start
+  for frontend in sveltekit vue react vanilla; do
+    assert_command dfx new e2e_$frontend --frontend $frontend --extras frontend-tests
+    pushd e2e_$frontend
+    assert_command dfx deploy
+    assert_command npm test --workspaces
+    popd
+  done
+}
+
+@test "backend templates" {
+  for backend in motoko rust kybra azle; do
+    assert_command dfx new e2e_$backend --type $backend --no-frontend
+  done
+}
+
+@test "interactive template selection" {
+  assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/rust_svelte_with_tests_and_ii.exp"
+  assert_file_exists e2e_project/Cargo.toml
+  assert_file_exists e2e_project/src/e2e_project_frontend/src/routes/+page.svelte
+  assert_file_exists e2e_project/src/e2e_project_frontend/src/setupTests.js
+  assert_command jq .canisters.internet_identity e2e_project/dfx.json
+}
+
+@test "hyphenated names" {
+  dfx_start
+  assert_command dfx new e2e-project --type motoko --frontend vanilla --extras frontend-tests
+  cd e2e-project
+  assert_command jq '.canisters["e2e-project-backend","e2e-project-frontend"]' dfx.json
+  assert_command dfx deploy
+  assert_command npm test --workspaces
 }

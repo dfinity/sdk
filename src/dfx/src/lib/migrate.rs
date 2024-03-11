@@ -65,7 +65,13 @@ async fn migrate_wallet(
     if !wallet.version_supports_u128_cycles() {
         if fix {
             println!("Upgrading wallet... ");
-            install_wallet(env, agent, *wallet.canister_id_(), InstallMode::Upgrade(None)).await?
+            install_wallet(
+                env,
+                agent,
+                *wallet.canister_id_(),
+                InstallMode::Upgrade(None),
+            )
+            .await?
         } else {
             println!("The wallet is outdated; run `dfx wallet upgrade`");
         }

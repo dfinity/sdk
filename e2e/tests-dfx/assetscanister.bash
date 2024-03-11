@@ -5,7 +5,7 @@ load ../utils/_
 setup() {
   standard_setup
 
-  dfx_new
+  dfx_new_assets
 }
 
 teardown() {
@@ -91,6 +91,7 @@ check_permission_failure() {
   PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
   COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
 
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
   # Prep for a DeleteAsset operation
   echo "to-be-deleted" >src/e2e_project_frontend/assets/to-be-deleted.txt
@@ -196,6 +197,7 @@ check_permission_failure() {
   PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
   COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
 
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
   dfx_start
   mkdir tmp
@@ -266,7 +268,7 @@ check_permission_failure() {
   FE_CANISTER_ID="$(dfx canister id e2e_project_frontend)"
   rm .dfx/local/canister_ids.json
   assert_command_fail dfx canister call "$FE_CANISTER_ID" validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { FlyBeFree }; })"
-  assert_contains "trapped"
+  assert_contains "FlyBeFree not found"
 }
 
 @test "access control - fine-grained" {
@@ -884,13 +886,12 @@ check_permission_failure() {
 
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/text-with-newlines.txt";accept_encodings=vec{"identity"}})'
 
-  assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
+  assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt blob "\f3\bf\72\b1\53\12\90\79\83\26\6d\b7\59\f4\78\88\35\bb\0e\4a\08\70\56\64\73\08\b3\9b\45\4e\5f\a0" })'
   assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
   assert_match 'sha256 required'
-  assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
+  assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt blob "XWV" })'
   assert_match 'sha256 mismatch'
 
-  assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
   assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt blob "\f3\bf\72\b1\53\12\90\79\83\26\6d\b7\59\f4\78\88\35\bb\0e\4a\08\70\56\64\73\08\b3\9b\45\4e\5f\a0"})'
   assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
   assert_match 'sha256 mismatch'
@@ -906,24 +907,29 @@ check_permission_failure() {
   dfx canister install e2e_project_frontend
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("/binary/noise.txt")' --output idl
-  assert_eq '(blob "\b8\01 \80\0aw12 \00xy\0aKL\0b\0ajk")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "\b8\01\20\80\0a\77\31\32\20\00\78\79\0a\4b\4c\0b\0a\6a\6b")' "$stdout"
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("/text-with-newlines.txt")' --output idl
-  assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")' "$stdout"
 
   assert_command dfx canister call --update e2e_project_frontend store '(record{key="AA"; content_type="text/plain"; content_encoding="identity"; content=blob "hello, world!"})'
   assert_eq '()'
-  assert_command dfx canister call --update e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
+  assert_command dfx canister call --update e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob"XWV"})'
   assert_eq '()'
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
-  assert_eq '(blob "XWV")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "XWV")' "$stdout"
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("AA")' --output idl
-  assert_eq '(blob "hello, world!")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "hello, world!")' "$stdout"
 
   assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
-  assert_eq '(blob "XWV")'
+  # shellcheck disable=SC2154
+  assert_eq '(blob "XWV")' "$stdout"
 
   assert_command_fail dfx canister call --query e2e_project_frontend retrieve '("C")'
 }
@@ -1156,6 +1162,54 @@ CHERRIES" "$stdout"
   #   /binary/noise.txt 1/1 (19 bytes)
   #   /.well-known/thing.json 1/1 (0 bytes)
 }
+
+@test "asset configuration via .ic-assets.json5 - default properties" {
+  install_asset assetscanister
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/binary/noise.txt")'
+  assert_contains '(
+  record {
+    headers = null;
+    is_aliased = null;
+    allow_raw_access = opt true;
+    max_age = null;
+  },
+)'
+}
+
+@test "asset configuration via .ic-assets.json5 - property override order does not matter" {
+  install_asset assetscanister
+  # Ensure that setting one property does not overwrite a different property set earlier
+  cat > src/e2e_project_frontend/assets/.ic-assets.json5 <<EOF
+[
+  {
+    "match": "**/binary/**/*",
+    "allow_raw_access": false
+  },
+  {
+    "match": "**/*",
+    "headers": {
+      "X-Anything": "Something"
+    }
+  }
+]
+EOF
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/binary/noise.txt")'
+  assert_contains '(
+  record {
+    headers = opt vec { record { "X-Anything"; "Something" } };
+    is_aliased = null;
+    allow_raw_access = opt false;
+    max_age = null;
+  },
+)'
+}
+
+
 
 @test "asset configuration via .ic-assets.json5 - nested dot directories" {
   install_asset assetscanister
@@ -1484,29 +1538,25 @@ CHERRIES" "$stdout"
   "match": "nevermatchme",
   "cache": {
     "max_age": 2000
-  },
-  "allow_raw_access": true
+  }
 }'
   assert_match 'WARN: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
   assert_contains 'WARN: {
   "match": "nevermatchme",
   "headers": {},
-  "ignore": false,
-  "allow_raw_access": true
+  "ignore": false
 }
 WARN: {
   "match": "nevermatchmetoo",
   "headers": {},
-  "ignore": false,
-  "allow_raw_access": true
+  "ignore": false
 }
 WARN: {
   "match": "non-matcher",
   "headers": {
     "x-header": "x-value"
   },
-  "ignore": false,
-  "allow_raw_access": true
+  "ignore": false
 }'
   # splitting this up into two checks, because the order is different on macos vs ubuntu
   assert_contains 'WARN: {
@@ -1514,8 +1564,7 @@ WARN: {
   "headers": {
     "x-header": "x-value"
   },
-  "ignore": false,
-  "allow_raw_access": true
+  "ignore": false
 }'
 }
 
@@ -1622,6 +1671,7 @@ WARN: {
 }
 
 @test "asset configuration via .ic-assets.json5 - pretty printing when deploying" {
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
 
   dfx_start
@@ -1664,6 +1714,7 @@ WARN: {
 }
 
 @test "syncs asset properties when redeploying" {
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
   dfx_start
   assert_command dfx deploy

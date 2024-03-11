@@ -472,8 +472,8 @@ impl State {
         self.assets.clear();
         self.batches.clear();
         self.chunks.clear();
-        self.next_batch_id = Nat::from(1usize);
-        self.next_chunk_id = Nat::from(1usize);
+        self.next_batch_id = Nat::from(1_u8);
+        self.next_chunk_id = Nat::from(1_u8);
     }
 
     pub fn has_permission(&self, principal: &Principal, permission: &Permission) -> bool {
@@ -566,7 +566,7 @@ impl State {
             }
         }
         let batch_id = self.next_batch_id.clone();
-        self.next_batch_id += 1usize;
+        self.next_batch_id += 1_u8;
 
         self.batches.insert(
             batch_id.clone(),
@@ -607,7 +607,7 @@ impl State {
         batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
 
         let chunk_id = self.next_chunk_id.clone();
-        self.next_chunk_id += 1usize;
+        self.next_chunk_id += 1_u8;
         batch.chunk_content_total_size += arg.content.as_ref().len();
 
         self.chunks.insert(
@@ -1093,7 +1093,9 @@ impl From<StableState> for State {
             prepare_principals,
             manage_permissions_principals,
             assets: stable_state.stable_assets,
-            next_batch_id: stable_state.next_batch_id.unwrap_or_else(|| Nat::from(1usize)),
+            next_batch_id: stable_state
+                .next_batch_id
+                .unwrap_or_else(|| Nat::from(1_u8)),
             configuration: stable_state.configuration.unwrap_or_default(),
             ..Self::default()
         };

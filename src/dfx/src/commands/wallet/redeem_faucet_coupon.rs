@@ -3,11 +3,13 @@ use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::set_wallet_id;
+// use crate::lib::operations::cycles_ledger::CYCLES_LEDGER_ENABLED;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
 use anyhow::{anyhow, bail, Context};
 use candid::{encode_args, Decode, Principal};
 use clap::Parser;
+use dfx_core::cli::ask_for_consent;
 use slog::{info, warn};
 
 pub const DEFAULT_FAUCET_PRINCIPAL: Principal =
@@ -22,6 +24,10 @@ pub struct RedeemFaucetCouponOpts {
     /// Alternative faucet address. If not set, this uses the DFINITY faucet.
     #[arg(long)]
     faucet: Option<String>,
+
+    /// Skips yes/no checks by answering 'yes'. Not recommended outside of CI.
+    #[arg(long, short)]
+    yes: bool,
 }
 
 pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxResult {
@@ -69,36 +75,41 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         }
         // identity has no wallet yet - faucet will provide one
         _ => {
-            let identity = env
-                .get_selected_identity()
-                .with_context(|| anyhow!("No identity selected."))?;
-            let response = agent
-                .update(&faucet_principal, "redeem")
-                .with_arg(
-                    encode_args((opts.coupon_code.clone(),))
-                        .context("Failed to serialize 'redeem' arguments.")?,
-                )
-                .call_and_wait()
-                .await
-                .context("Failed 'redeem' call.")?;
-            let new_wallet_address =
-                Decode!(&response, Principal).context("Failed to decode 'redeem' response.")?;
-            info!(
-                log,
-                "Redeemed coupon {} for a new wallet: {}", opts.coupon_code, &new_wallet_address
-            );
-            set_wallet_id(env.get_network_descriptor(), identity, new_wallet_address)
-                .with_context(|| {
-                    DiagnosedError::new(
-                        format!(
-                            "dfx failed while trying to set your new wallet, '{}'",
-                            &new_wallet_address
-                        ),
-                        format!("Please save your new wallet's ID '{}' and set the wallet manually afterwards using 'dfx identity set-wallet'.", &new_wallet_address),
-                    )
-                })?;
-            info!(log, "New wallet set.");
-            Ok(())
+            // TODO: Reenable temporarily disabled code
+            todo!();     
+            // if CYCLES_LEDGER_ENABLED && !opts.yes {
+            //     ask_for_consent("`dfx cycles` is now recommended instead of `dfx wallet`. Are you sure you want to create a new cycles wallet anyway?")?;
+            // }
+            // let identity = env
+            //     .get_selected_identity()
+            //     .with_context(|| anyhow!("No identity selected."))?;
+            // let response = agent
+            //     .update(&faucet_principal, "redeem")
+            //     .with_arg(
+            //         encode_args((opts.coupon_code.clone(),))
+            //             .context("Failed to serialize 'redeem' arguments.")?,
+            //     )
+            //     .call_and_wait()
+            //     .await
+            //     .context("Failed 'redeem' call.")?;
+            // let new_wallet_address =
+            //     Decode!(&response, Principal).context("Failed to decode 'redeem' response.")?;
+            // info!(
+            //     log,
+            //     "Redeemed coupon {} for a new wallet: {}", opts.coupon_code, &new_wallet_address
+            // );
+            // set_wallet_id(env.get_network_descriptor(), identity, new_wallet_address)
+            //     .with_context(|| {
+            //         DiagnosedError::new(
+            //             format!(
+            //                 "dfx failed while trying to set your new wallet, '{}'",
+            //                 &new_wallet_address
+            //             ),
+            //             format!("Please save your new wallet's ID '{}' and set the wallet manually afterwards using 'dfx identity set-wallet'.", &new_wallet_address),
+            //         )
+            //     })?;
+            // info!(log, "New wallet set.");
+            // Ok(())
         }
     }
 }

@@ -138,7 +138,7 @@ async fn commit_in_stages(
         commit_batch(
             canister,
             CommitBatchArguments {
-                batch_id: Nat::from(0usize),
+                batch_id: Nat::from(0_u8),
                 operations: operations.into(),
             },
         )
@@ -156,7 +156,7 @@ async fn commit_in_stages(
         commit_batch(
             canister,
             CommitBatchArguments {
-                batch_id: Nat::from(0usize),
+                batch_id: Nat::from(0_u8),
                 operations: operations.into(),
             },
         )
@@ -239,7 +239,7 @@ pub(crate) fn gather_asset_descriptors(
         let entries = WalkDir::new(&dir)
             .into_iter()
             .filter_entry(|entry| {
-                if let Ok(canonical_path) = &entry.path().canonicalize() {
+                if let Ok(canonical_path) = &dfx_core::fs::canonicalize(entry.path()) {
                     let config = configuration
                         .get_asset_config(canonical_path)
                         .unwrap_or_default();

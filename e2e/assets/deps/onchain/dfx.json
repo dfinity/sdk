@@ -35,7 +35,7 @@
                 "dependencies": [
                     "yofga-2qaaa-aaaaa-aabsq-cai"
                 ],
-                "init_guide": "A natural number, e.g. 20."
+                "init_guide": "An optional natural number, e.g. \"(opt 20)\"."
             }
         }
     }

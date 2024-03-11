@@ -1,4 +1,5 @@
 use byte_unit::{Byte, ByteUnit};
+use icrc_ledger_types::icrc1::account::Subaccount;
 use rust_decimal::Decimal;
 use std::{path::PathBuf, str::FromStr};
 
@@ -141,7 +142,7 @@ pub fn project_name_parser(name: &str) -> Result<String, String> {
             // Reverses the search here; if there is a character that is not compatible
             // it is found and an error is returned.
             let m: Vec<&str> = name
-                .matches(|x: char| !x.is_ascii_alphanumeric() && x != '_')
+                .matches(|x: char| !x.is_ascii_alphanumeric() && x != '_' && x != '-')
                 .collect();
 
             if m.is_empty() {
@@ -158,6 +159,14 @@ pub fn project_name_parser(name: &str) -> Result<String, String> {
     } else {
         Err("Cannot be empty.".to_owned())
     }
+}
+
+pub fn icrc_subaccount_parser(subaccount: &str) -> Result<Subaccount, String> {
+    if let Ok(Ok(subaccount)) = hex::decode(subaccount).map(|bytes| bytes.try_into()) {
+        return Ok(subaccount);
+    }
+
+    Err("Failed to parse subaccount. Expected 32 bytes of hex-encoded data.".to_string())
 }
 
 pub fn hsm_key_id_parser(key_id: &str) -> Result<String, String> {

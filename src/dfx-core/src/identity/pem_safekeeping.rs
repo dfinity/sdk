@@ -20,7 +20,7 @@ use crate::error::identity::write_pem_to_file::WritePemToFileError::{
 use crate::identity::identity_file_locations::IdentityFileLocations;
 use crate::identity::keyring_mock;
 use crate::identity::pem_safekeeping::PromptMode::{DecryptingToUse, EncryptingToCreate};
-use aes_gcm::aead::{Aead, NewAead};
+use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 use argon2::{password_hash::PasswordHasher, Argon2};
 use slog::{debug, trace, Logger};
@@ -201,7 +201,7 @@ fn encrypt(
     let hash = argon2
         .hash_password(password.as_bytes(), &config.pw_salt)
         .map_err(EncryptionError::HashPasswordFailed)?;
-    let key = Key::clone_from_slice(hash.hash.unwrap().as_ref());
+    let key = Key::<Aes256Gcm>::clone_from_slice(hash.hash.unwrap().as_ref());
     let cipher = Aes256Gcm::new(&key);
     let nonce = Nonce::from_slice(config.file_nonce.as_slice());
 
@@ -225,7 +225,7 @@ fn decrypt(
     let hash = argon2
         .hash_password(password.as_bytes(), &config.pw_salt)
         .map_err(HashPasswordFailed)?;
-    let key = Key::clone_from_slice(hash.hash.unwrap().as_ref());
+    let key = Key::<Aes256Gcm>::clone_from_slice(hash.hash.unwrap().as_ref());
     let cipher = Aes256Gcm::new(&key);
     let nonce = Nonce::from_slice(config.file_nonce.as_slice());
 

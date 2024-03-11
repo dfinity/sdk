@@ -12,6 +12,43 @@ teardown() {
   standard_teardown
 }
 
+@test "start and stop outside project" {
+  dfx_start
+
+  mkdir subdir
+  cd subdir || exit 1
+  dfx_new
+  assert_command dfx deploy
+  CANISTER_ID="$(dfx canister id e2e_project_backend)"
+  cd ..
+  assert_command dfx canister status "$CANISTER_ID"
+  assert_contains "Status: Running"
+  assert_command dfx canister stop "$CANISTER_ID"
+  assert_command dfx canister status "$CANISTER_ID"
+  assert_contains "Status: Stopped"
+  assert_command dfx canister start "$CANISTER_ID"
+  assert_command dfx canister status "$CANISTER_ID"
+  assert_contains "Status: Running"
+}
+
+@test "uninstall-code outside of a project" {
+  dfx_start
+
+  mkdir subdir
+  cd subdir || exit 1
+  dfx_new
+  assert_command dfx deploy
+  CANISTER_ID="$(dfx canister id e2e_project_backend)"
+  cd ..
+  assert_command dfx canister status "$CANISTER_ID"
+  assert_contains "Module hash: 0x"
+  assert_command dfx canister uninstall-code "$CANISTER_ID"
+  assert_contains "Uninstalling code for canister $CANISTER_ID"
+  assert_command dfx canister status "$CANISTER_ID"
+  assert_contains "Module hash: None"
+}
+
+
 @test "icx-proxy domain configuration in string form" {
   create_networks_json
   jq '.local.proxy.domain="xyz.domain"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
@@ -93,7 +130,7 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy" {
-  dfx_new hello
+  dfx_new_assets hello
   dfx_start
 
   install_asset greet
@@ -118,7 +155,7 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy when the replica restarts" {
-  dfx_new hello
+  dfx_new_assets hello
   dfx_start
 
   install_asset greet
@@ -398,17 +435,17 @@ teardown() {
 }
 
 @test "flags count as configuration modification and require --clean" {
-  dfx_start
+  dfx start --background
   dfx stop
-  assert_command_fail dfx_start --enable-bitcoin
+  assert_command_fail dfx start --artificial-delay 100 --background
   assert_contains "The network configuration was changed. Rerun with \`--clean\`."
-  assert_command dfx_start --enable-bitcoin --clean
+  assert_command dfx start --artificial-delay 100 --clean --background
   dfx stop
-  assert_command dfx_start --enable-bitcoin
+  assert_command dfx start --artificial-delay 100 --background
   dfx stop
-  assert_command_fail dfx_start
+  assert_command_fail dfx start --background
   assert_contains "The network configuration was changed. Rerun with \`--clean\`."
-  assert_command dfx_start --force
+  assert_command dfx start --force --background
 }
 
 @test "dfx start then ctrl-c won't hang and panic but stop actors quickly" {

@@ -24,7 +24,7 @@ teardown() {
   #cache
   # create a new project to install dfx cache
   assert_command_fail ls "$DFX_CACHE_ROOT/.cache/dfinity/versions"
-  dfx new hello
+  dfx new hello --no-frontend
   assert_command ls "$DFX_CACHE_ROOT/.cache/dfinity/versions"
   assert_command_fail ls "$HOME/.cache/dfinity/versions"
   rm -rf hello
@@ -42,7 +42,7 @@ teardown() {
     #cache
     # create a new project to install dfx cache
     assert_command_fail ls "$HOME/.cache/dfinity/versions"
-    dfx new hello
+    dfx new hello --no-frontend
     assert_command ls "$HOME/.cache/dfinity/versions"
     rm -rf hello
   )

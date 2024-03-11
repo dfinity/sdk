@@ -5,7 +5,7 @@ load ../utils/_
 setup() {
   standard_setup
   setup_playground
-  dfx_new hello
+  dfx_new_assets hello
 }
 
 teardown() {
@@ -21,6 +21,9 @@ setup_playground() {
   dfx_new hello
   create_networks_json
   install_asset playground_backend
+  touch "$HOME/.bashrc" # required by following mops command
+  mops toolchain init   # install the pinned moc version defined in mops.toml
+  export DFX_MOC_PATH=moc-wrapper # use the moc-wrapper installed by mops
   dfx_start
   dfx deploy backend
   dfx ledger fabricate-cycles --t 9999999 --canister backend

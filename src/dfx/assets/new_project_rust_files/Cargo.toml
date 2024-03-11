@@ -1,4 +1,0 @@
-[workspace]
-members = [
-    "src/{project_name}_backend",
-]
