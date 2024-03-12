@@ -57,36 +57,36 @@ echo testoutput' > "$CACHE_DIR"/extensions/test_extension/test_extension
   chmod +x "$CACHE_DIR"/extensions/test_extension/test_extension
 
   assert_command_fail dfx extension list
-  assert_match "Error.*Cannot load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx extension run test_extension
-  assert_match "Error.*Cannot load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx test_extension
-  assert_match "Error.*Cannot load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx --help
-  assert_match "Error.*Cannot load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx test_extension --help
-  assert_match "Error.*Cannot load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   echo "{}" > "$CACHE_DIR"/extensions/test_extension/extension.json
 
   assert_command_fail dfx extension list
-  assert_match "Error.*Cannot load extension manifest.*Failed to parse contents of .*extensions/test_extension/extension.json as json.* missing field .* at line .* column .*"
+  assert_match "Error.*Failed to load extension manifest.*Failed to parse contents of .*extensions/test_extension/extension.json as json.* missing field .* at line .* column .*"
 
   assert_command_fail dfx extension run test_extension
-  assert_match "Error.*Cannot load extension manifest.*Failed to parse contents of .*extensions/test_extension/extension.json as json.* missing field .* at line .* column .*"
+  assert_match "Error.*Failed to load extension manifest.*Failed to parse contents of .*extensions/test_extension/extension.json as json.* missing field .* at line .* column .*"
 
   assert_command_fail dfx test_extension
-  assert_match "Error.*Cannot load extension manifest.*Failed to parse contents of .*extensions/test_extension/extension.json as json.* missing field .* at line .* column .*"
+  assert_match "Error.*Failed to load extension manifest.*Failed to parse contents of .*extensions/test_extension/extension.json as json.* missing field .* at line .* column .*"
 
   assert_command_fail dfx --help
-  assert_match "Error.*Cannot load extension manifest.*Failed to parse contents of .*extensions/test_extension/extension.json as json.* missing field .* at line .* column .*"
+  assert_match "Error.*Failed to load extension manifest.*Failed to parse contents of .*extensions/test_extension/extension.json as json.* missing field .* at line .* column .*"
 
   assert_command_fail dfx test_extension --help
-  assert_match "Error.*Cannot load extension manifest.*Failed to parse contents of .*extensions/test_extension/extension.json as json.* missing field .* at line .* column .*"
+  assert_match "Error.*Failed to load extension manifest.*Failed to parse contents of .*extensions/test_extension/extension.json as json.* missing field .* at line .* column .*"
 
   echo '{
   "name": "test_extension",
@@ -214,4 +214,66 @@ EOF
   assert_eq "abc --the-param 123 456 789 --the-another-param 464646 --dfx-cache-path $CACHE_DIR"
   assert_command dfx extension run test_extension abc --the-another-param 464646 --the-param 123 456 789
   assert_eq "abc --the-another-param 464646 --the-param 123 456 789 --dfx-cache-path $CACHE_DIR"
+}
+
+@test "custom canister types" {
+    dfx cache install
+
+    CACHE_DIR=$(dfx cache show)
+    mkdir -p "$CACHE_DIR"/extensions/playground
+    cat > "$CACHE_DIR"/extensions/playground/extension.json <<EOF
+{
+  "name": "playground",
+  "version": "0.1.0",
+  "homepage": "https://github.com/dfinity/playground",
+  "authors": "DFINITY",
+  "summary": "Motoko playground for the Internet Computer",
+  "categories": [],
+  "keywords": [],
+  "subcommands": {},
+  "canister_types": {
+    "playground": {
+      "type": "custom",
+      "build": "echo the wasm-utils canister is prebuilt",
+      "candid": "{{canister_name}}.did",
+      "wasm": "{{canister_name}}.wasm",
+      "gzip": true
+    }
+  }
+}
+EOF
+    cat > "$CACHE_DIR"/extensions/playground/playground <<EOF
+#!/usr/bin/env bash
+echo testoutput
+EOF
+    chmod +x "$CACHE_DIR"/extensions/playground/playground
+
+    assert_command dfx extension list
+    assert_match "playground"
+
+    dfx_new hello
+    create_networks_json
+    install_asset playground_backend
+
+    cat > dfx.json <<EOF
+{
+  "canisters": {
+      "wasm-utils": {
+          "type": "playground"
+      }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
+EOF
+
+    dfx_start
+    assert_command dfx deploy -v
+    assert_match 'Backend canister via Candid interface'
 }

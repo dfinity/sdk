@@ -595,7 +595,11 @@ mod tests {
             .unwrap();
         }
 
-        let config = Config::from_dir(&project_dir).unwrap().unwrap();
+        let mut no_op_transformer =
+            crate::extension::manifest::custom_canister_type::NoopTransformConfiguration;
+        let config = Config::from_dir(&project_dir, &mut no_op_transformer)
+            .unwrap()
+            .unwrap();
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
