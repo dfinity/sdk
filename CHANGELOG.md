@@ -38,6 +38,11 @@ Now, given the same configuration, all files would be configured with `allow_raw
 
 Note that the default value of `allow_raw_access` is still `true`.
 
+### fix: removed version switching logic
+
+Removed the logic for calling a different version of dfx based on DFX_VERSION or the `dfx` field in
+dfx.json.  This is now performed by dfxvm.
+
 ## Dependencies
 
 ### Replica

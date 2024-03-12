@@ -4,7 +4,7 @@ use crate::error::cache::CacheError;
 #[cfg(not(windows))]
 use crate::foundation::get_user_home;
 use semver::Version;
-use std::{path::PathBuf, process::ExitStatus};
+use std::path::PathBuf;
 
 pub trait Cache {
     fn version_str(&self) -> String;
@@ -115,18 +115,5 @@ pub fn list_versions() -> Result<Vec<Version>, CacheError> {
         }
     }
 
-    Ok(result)
-}
-
-pub fn call_cached_dfx(v: &Version) -> Result<ExitStatus, CacheError> {
-    let v = format!("{}", v);
-    let command_path = get_binary_path_from_version(&v, "dfx")?;
-    if command_path == crate::foundation::get_current_exe()? {
-        return Err(CacheError::InvalidCacheForDfxVersion(v));
-    }
-
-    let mut binding = std::process::Command::new(command_path);
-    let cmd = binding.args(std::env::args().skip(1));
-    let result = crate::process::execute_process(cmd)?;
     Ok(result)
 }
