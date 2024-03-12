@@ -38,6 +38,17 @@ Now, given the same configuration, all files would be configured with `allow_raw
 
 Note that the default value of `allow_raw_access` is still `true`.
 
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit fff20526e154f8b8d24373efd9b50f588d147e91.
+This incorporates the following executed proposals:
+
+- [128296](https://dashboard.internetcomputer.org/proposal/128296)
+- [128295](https://dashboard.internetcomputer.org/proposal/128295)
+- [128171](https://dashboard.internetcomputer.org/proposal/128171)
+
 # 0.18.0
 
 ### fix!: removed the `dfx upgrade` command
