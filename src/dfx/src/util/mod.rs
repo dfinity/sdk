@@ -393,6 +393,11 @@ pub async fn download_file(from: &Url) -> DfxResult<Vec<u8>> {
         .context("Could not create HTTP client.")?;
 
     let mut retry_policy = ExponentialBackoff::default();
+    // Retry at most 60 seconds
+    // When the server responds with errors not "404 not found" (e.g. "500 internal server error"),
+    // this function retries indefinitely.
+    // We arbitrarily set the maximum elapsed time to 60 seconds to avoid infinite retries.
+    retry_policy.max_elapsed_time = Some(Duration::from_secs(60));
 
     let body = loop {
         match attempt_download(&client, from).await {
