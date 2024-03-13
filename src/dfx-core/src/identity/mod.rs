@@ -23,7 +23,8 @@ use crate::json::{load_json_file, save_json_file};
 use candid::Principal;
 use ic_agent::agent::EnvelopeContent;
 use ic_agent::identity::{
-    AnonymousIdentity, BasicIdentity, DelegatedIdentity, Delegation, Secp256k1Identity, SignedDelegation, Identity as AgentIdentity,
+    AnonymousIdentity, BasicIdentity, DelegatedIdentity, Delegation, Identity as AgentIdentity,
+    Secp256k1Identity, SignedDelegation,
 };
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
@@ -35,6 +36,8 @@ use serde::{Deserialize, Serialize};
 use slog::{info, Logger};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+
+use self::identity_manager::{DelegatedIdentityConfiguration, DelegationSigningIdentityType};
 
 mod identity_file_locations;
 pub mod identity_manager;
@@ -136,12 +139,30 @@ impl Identity {
 
     fn delegated(
         name: &str,
-        from_key: Vec<u8>,
-        to: Box<dyn AgentIdentity>,
-        chain: Vec<SignedDelegation>
-        
+        config: DelegatedIdentityConfiguration,
     ) -> Result<Self, LoadPemIdentityError> {
-        let inner = DelegatedIdentity::new(from_key, to, chain);
+        let delegation_signing_identity = config.signing_identity;
+
+        let identity: Box<dyn AgentIdentity> = match delegation_signing_identity.key_type {
+            DelegationSigningIdentityType::Basic => {
+                let identity = Identity::basic(
+                    &delegation_signing_identity.name,
+                    &delegation_signing_identity.pem_content,
+                    delegation_signing_identity.was_encrypted,
+                )?;
+                identity.inner
+            }
+            DelegationSigningIdentityType::Secp256k1 => {
+                let identity = Identity::secp256k1(
+                    &delegation_signing_identity.name,
+                    &delegation_signing_identity.pem_content,
+                    delegation_signing_identity.was_encrypted,
+                )?;
+                identity.inner
+            }
+        };
+
+        let inner = DelegatedIdentity::new(config.from_public_key, identity, config.chain);
 
         Ok(Self {
             name: name.to_string(),
@@ -158,6 +179,8 @@ impl Identity {
     ) -> Result<Self, NewIdentityError> {
         if let Some(hsm) = config.hsm {
             Identity::hardware(name, hsm).map_err(NewIdentityError::NewHardwareIdentityFailed)
+        } else if let Some(delegation) = config.delegation {
+            Identity::delegated(name, delegation).map_err(NewIdentityError::LoadPemIdentityFailed)
         } else {
             let (pem_content, was_encrypted) =
                 pem_safekeeping::load_pem(log, locations, name, &config)

@@ -13,4 +13,7 @@ pub enum NewIdentityError {
 
     #[error("Failed to instantiate hardware identity: {0}")]
     NewHardwareIdentityFailed(NewHardwareIdentityError),
+
+    #[error("There was some issue with the identity creation")]
+    DelegatedIdentityCreationFailed,
 }
