@@ -23,7 +23,7 @@ use crate::json::{load_json_file, save_json_file};
 use candid::Principal;
 use ic_agent::agent::EnvelopeContent;
 use ic_agent::identity::{
-    AnonymousIdentity, BasicIdentity, Delegation, Secp256k1Identity, SignedDelegation,
+    AnonymousIdentity, BasicIdentity, DelegatedIdentity, Delegation, Secp256k1Identity, SignedDelegation, Identity as AgentIdentity,
 };
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
@@ -130,6 +130,22 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
+            insecure: false,
+        })
+    }
+
+    fn delegated(
+        name: &str,
+        from_key: Vec<u8>,
+        to: Box<dyn AgentIdentity>,
+        chain: Vec<SignedDelegation>
+        
+    ) -> Result<Self, LoadPemIdentityError> {
+        let inner = DelegatedIdentity::new(from_key, to, chain);
+
+        Ok(Self {
+            name: name.to_string(),
+            inner: Box::new(inner),
             insecure: false,
         })
     }
