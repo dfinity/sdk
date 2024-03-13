@@ -120,13 +120,13 @@ $CANISTER_ID_C"
   assert_occurs 1 "Fetching dependencies of canister $CANISTER_ID_A..." # common dependency onchain_a is pulled only once
   assert_contains "Pulling canister $CANISTER_ID_A...
 ERROR: Failed to pull canister $CANISTER_ID_A.
-Failed to download from url: http://example.com/a.wasm."
+Failed to download from url: http://httpbin.org/status/404."
   assert_contains "Pulling canister $CANISTER_ID_B...
 ERROR: Failed to pull canister $CANISTER_ID_B.
-Failed to download from url: http://example.com/b.wasm.gz."
+Failed to download from url: http://httpbin.org/status/404."
   assert_contains "Pulling canister $CANISTER_ID_C...
 ERROR: Failed to pull canister $CANISTER_ID_C.
-Failed to download from url: http://example.com/c.wasm."
+Failed to download from url: http://httpbin.org/status/404."
 
   # 3. sad path: if the canister is not present on-chain
   cd ../onchain
