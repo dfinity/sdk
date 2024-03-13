@@ -392,12 +392,15 @@ pub async fn download_file(from: &Url) -> DfxResult<Vec<u8>> {
         .build()
         .context("Could not create HTTP client.")?;
 
-    let mut retry_policy = ExponentialBackoff::default();
-    // Retry at most 60 seconds
-    // When the server responds with errors not "404 not found" (e.g. "500 internal server error"),
-    // this function retries indefinitely.
-    // We arbitrarily set the maximum elapsed time to 60 seconds to avoid infinite retries.
-    retry_policy.max_elapsed_time = Some(Duration::from_secs(60));
+    let mut retry_policy = ExponentialBackoff {
+        // Retry at most 60 seconds
+        // When the server responds with errors not "404 not found" (e.g. "500 internal server error"),
+        // this function retries indefinitely.
+        // We arbitrarily set the maximum elapsed time to 60 seconds to avoid infinite retries.
+        // See the test case at the bottom of this file.
+        max_elapsed_time: Some(Duration::from_secs(60)),
+        ..Default::default()
+    };
 
     let body = loop {
         match attempt_download(&client, from).await {
@@ -426,7 +429,7 @@ async fn attempt_download(client: &Client, url: &Url) -> DfxResult<Option<Bytes>
 
 #[cfg(test)]
 mod tests {
-    use super::{format_as_trillions, pretty_thousand_separators};
+    use super::{download_file, format_as_trillions, pretty_thousand_separators};
 
     #[test]
     fn prettify_balance_amount() {
@@ -491,5 +494,16 @@ mod tests {
             "340,282,366,920,938,463,463,374,607.431",
             pretty_thousand_separators(format_as_trillions(u128::MAX))
         );
+    }
+
+    #[test]
+    fn download_file_retry_at_most_60s() {
+        let url = reqwest::Url::parse("http://httpbin.org/status/500").unwrap();
+        let time0 = std::time::Instant::now();
+        let _res = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(download_file(&url));
+        let time1 = std::time::Instant::now();
+        assert!(time1 - time0 < std::time::Duration::from_secs(61));
     }
 }
