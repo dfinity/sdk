@@ -65,6 +65,7 @@ use crate::json::{load_json_file, save_json_file};
 use bip32::XPrv;
 use bip39::{Language, Mnemonic, MnemonicType, Seed};
 use candid::Principal;
+use ic_agent::identity::SignedDelegation;
 use k256::pkcs8::LineEnding;
 use k256::SecretKey;
 use ring::{rand, rand::SecureRandom};
@@ -98,6 +99,9 @@ pub struct IdentityConfiguration {
 
     /// If the identity's PEM file is stored in the system's keyring, this field contains the identity's name WITHOUT the common prefix.
     pub keyring_identity_suffix: Option<String>,
+
+    // If the identity is derived from a delegation chain, this field contains the delegation chain's configuration.
+    pub delegation: Option<DelegatedIdentityConfiguration>,
 }
 
 /// The information necessary to de- and encrypt (except the password) the identity's .pem file
@@ -143,6 +147,29 @@ pub struct HardwareIdentityConfiguration {
 
     /// A sequence of pairs of hex digits
     pub key_id: String,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub enum DelegationSigningIdentityType {
+    #[default]
+    Basic,
+    Secp256k1
+}
+
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct DelegationSigningIdentity {
+    pub name: String,
+    pub pem_content: Vec<u8>,
+    pub was_encrypted: bool,
+    pub key_type: DelegationSigningIdentityType,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct DelegatedIdentityConfiguration {
+    pub from_public_key: Vec<u8>,
+    pub signing_identity: DelegationSigningIdentity,
+    pub chain: Vec<SignedDelegation>
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq)]
@@ -682,6 +709,7 @@ impl IdentityManager {
                         encryption: None,
                         keyring_identity_suffix: None,
                         hsm: None,
+                        delegation: None,
                     } = config
                     {
                         let sender = self.load_identity(name, log).ok()?.sender().ok()?;
