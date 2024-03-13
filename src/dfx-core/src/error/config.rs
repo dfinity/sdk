@@ -1,5 +1,7 @@
+use crate::error::extension::ExtensionError;
 use crate::error::fs::FsError;
 use crate::error::get_user_home::GetUserHomeError;
+use handlebars::RenderError;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -34,4 +36,83 @@ pub enum GetOutputEnvFileError {
 pub enum GetTempPathError {
     #[error(transparent)]
     CreateDirAll(#[from] FsError),
+}
+
+#[derive(Error, Debug)]
+#[error("failed to render field '{field}' with value '{value}': {source}")]
+pub struct RenderErrorWithContext {
+    pub field: String,
+    pub value: String,
+    pub source: RenderError,
+}
+
+#[derive(Error, Debug)]
+#[error("failed to apply extension canister type '{extension}' to canister '{canister}': {source}")]
+pub struct ApplyExtensionCanisterTypeErrorWithContext {
+    pub canister: Box<String>,
+    pub extension: Box<String>,
+    pub source: ApplyExtensionCanisterTypeError,
+}
+
+#[derive(Error, Debug)]
+pub enum ApplyExtensionCanisterTypesError {
+    #[error("the canisters field in dfx.json must be an object")]
+    CanistersFieldIsNotAnObject(),
+
+    #[error("caniter '{0}' in dfx.json must be an object")]
+    CanisterIsNotAnObject(String),
+
+    #[error(transparent)]
+    ApplyExtensionCanisterType(#[from] ApplyExtensionCanisterTypeError),
+}
+
+#[derive(Error, Debug)]
+pub enum ApplyExtensionCanisterTypeError {
+    #[error(
+        "failed to apply defaults from extension '{extension}' to canister '{canister}': {source}"
+    )]
+    ApplyDefaults {
+        canister: Box<String>,
+        extension: Box<String>,
+        source: ApplyExtensionCanisterTypeDefaultsError,
+    },
+
+    #[error("canister '{canister}' has unknown type '{extension}' and there is no installed extension by that name which could define it")]
+    NoExtensionForUnknownCanisterType { canister: String, extension: String },
+
+    #[error(transparent)]
+    LoadExtensionManifest(ExtensionError),
+
+    #[error("canister '{canister}' has type '{extension}', but that extension does not define a canister type")]
+    ExtensionDoesNotDefineCanisterType { canister: String, extension: String },
+}
+
+#[derive(Error, Debug)]
+pub enum ApplyExtensionCanisterTypeDefaultsError {
+    #[error(transparent)]
+    AppendMetadata(#[from] AppendMetadataError),
+
+    #[error(transparent)]
+    MergeTechStackError(#[from] MergeTechStackError),
+
+    #[error(transparent)]
+    Render(Box<RenderErrorWithContext>),
+}
+
+#[derive(Error, Debug)]
+pub enum AppendMetadataError {
+    #[error("expected canister metadata to be an array")]
+    ExpectedCanisterMetadataArray,
+
+    #[error("expected extension canister type metadata to be an array")]
+    ExpectedExtensionCanisterTypeMetadataArray,
+}
+
+#[derive(Error, Debug)]
+pub enum MergeTechStackError {
+    #[error("expected canister tech_stack to be an object")]
+    ExpectedCanisterTechStackObject,
+
+    #[error("expected extension canister type tech_stack to be an object")]
+    ExpectedExtensionCanisterTypeTechStackObject,
 }

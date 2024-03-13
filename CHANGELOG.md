@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: extensions can define a canister type
+
+Please see [extension-defined-canister-types](docs/concepts/extension-defined-canister-types.md) for details.
+
 # 0.20.0
 
 ### fix: set `CANISTER_CANDID_PATH_<canister name>` properly for remote canisters

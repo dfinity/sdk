@@ -106,7 +106,6 @@ pub struct EnvironmentImpl {
 impl EnvironmentImpl {
     pub fn new(extension_manager: ExtensionManager) -> DfxResult<Self> {
         let shared_networks_config = NetworksConfig::new()?;
-
         let version = dfx_version().clone();
 
         Ok(EnvironmentImpl {
@@ -151,10 +150,11 @@ impl EnvironmentImpl {
     }
 
     fn load_config(&self) -> Result<(), LoadDfxConfigError> {
-        let project_config = Config::from_current_dir()?
-            .map_or(ProjectConfig::NoProject, |config| {
-                ProjectConfig::Loaded(Arc::new(config))
-            });
+        let config = Config::from_current_dir(Some(&self.extension_manager))?;
+
+        let project_config = config.map_or(ProjectConfig::NoProject, |config| {
+            ProjectConfig::Loaded(Arc::new(config))
+        });
         self.project_config.replace(project_config);
         Ok(())
     }

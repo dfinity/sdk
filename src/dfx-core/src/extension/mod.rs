@@ -27,10 +27,7 @@ impl Display for Extension {
 }
 
 impl Extension {
-    pub fn into_clap_command(
-        self,
-        manager: &ExtensionManager,
-    ) -> Result<Command, ExtensionError> {
+    pub fn into_clap_command(self, manager: &ExtensionManager) -> Result<Command, ExtensionError> {
         let manifest = ExtensionManifest::load(&self.name, &manager.dir)?;
         let cmd = Command::new(&self.name)
             // don't accept unknown options
