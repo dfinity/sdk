@@ -73,7 +73,7 @@ cleanup_onchain() {
 
   ic-wasm .dfx/local/canisters/c/c.wasm metadata dfx > c_dfx.json
   assert_command jq -r '.pullable.wasm_url' c_dfx.json
-  assert_eq "http://example.com/c.wasm" "$output"
+  assert_eq "http://httpbin.org/status/404" "$output"
   assert_command jq -r '.pullable.dependencies | length' c_dfx.json
   assert_eq 1 "$output"
   assert_command jq -r '.pullable.dependencies | first' c_dfx.json
