@@ -152,3 +152,10 @@ set_local_network_bitcoin_enabled() {
   assert_eq '("Hello, Alpha!")'
 }
 
+
+@test "bitcoin canister has decent amount of cycles" {
+  dfx_start --enable-bitcoin
+  # The canister is created with default amount of cycles: 100T
+  cycles_balance=$( dfx --identity anonymous canister status "$BITCOIN_CANISTER_ID" 2>&1 | grep 'Balance:' | sed 's/[^0-9]//g' )
+  assert_command test "$cycles_balance" -gt 99000000000000 # 99T
+}
