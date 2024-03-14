@@ -4,7 +4,7 @@
 
 ### fix fetching canister logs to be grep & tail compatible
 
-Fix fetching canister logs so that the DFX output is `grep` and `tail` compatible.
+`dfx canister logs` now outputs to stdout, rather than stderr, so that its output is `grep` and `tail` compatible.
 
 ### fix fetching canister logs
 
