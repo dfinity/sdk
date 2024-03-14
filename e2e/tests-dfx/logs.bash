@@ -47,6 +47,8 @@ dfx_canister_logs_grep_Alice() {
 }
 
 dfx_canister_logs_tail_n_1() {
+  # shellcheck disable=SC2005
+  # Extra echo is necessary to simulate file input for tail.
   echo "$(dfx canister logs e2e_project)" | tail -n 1
 }
 
