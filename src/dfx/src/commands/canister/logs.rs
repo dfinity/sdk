@@ -76,8 +76,6 @@ fn test_format_canister_logs() {
 }
 
 pub async fn exec(env: &dyn Environment, opts: LogsOpts, call_sender: &CallSender) -> DfxResult {
-    let log = env.get_logger();
-
     let callee_canister = opts.canister.as_str();
     let canister_id_store = env.get_canister_id_store()?;
 
@@ -88,7 +86,7 @@ pub async fn exec(env: &dyn Environment, opts: LogsOpts, call_sender: &CallSende
 
     let logs = canister::get_canister_logs(env, canister_id, call_sender).await?;
 
-    info!(log, "{}", format_canister_logs(logs).join("\n"));
+    println!("{}", format_canister_logs(logs).join("\n"));
 
     Ok(())
 }
