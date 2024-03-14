@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### fix fetching canister logs to be grep & tail compatible
+
+Fix fetching canister logs so that the DFX output is `grep` and `tail` compatible.
+
 ### fix fetching canister logs
 
 The management canister method `fetch_canister_logs` can be called only as a query, not as an update call. Therefore, `dfx canister logs <canister_id>` now uses a query call for this purpose.
