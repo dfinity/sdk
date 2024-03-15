@@ -202,13 +202,14 @@ pub fn get_effective_canister_id(
                 Ok(in_args.target_canister)
             }
             MgmtMethod::BitcoinGetUtxosQuery | MgmtMethod::BitcoinGetBalanceQuery => {
-                #[derive(CandidType, Deserialize)]
-                struct In {
-                    network: BitcoinNetwork,
-                }
-                let in_args = Decode!(arg_value, In)
-                    .with_context(|| format!("Argument is not valid for {method_name}"))?;
-                Ok(in_args.network.effective_canister_id())
+                // #[derive(CandidType, Deserialize)]
+                // struct In {
+                //     network: BitcoinNetwork,
+                // }
+                // let in_args = Decode!(arg_value, In)
+                //     .with_context(|| format!("Argument is not valid for {method_name}"))?;
+                // Ok(in_args.network.effective_canister_id())
+                Ok(CanisterId::management_canister())
             }
         }
     } else {
