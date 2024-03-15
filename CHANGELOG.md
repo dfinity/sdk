@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### fix canister status to be grep compatible
+
+`dfx canister status` now outputs to `stdout`, rather than `stderr`, so that its output is `grep` compatible.
+
 ### fix fetching canister logs to be grep & tail compatible
 
 `dfx canister logs` now outputs to stdout, rather than stderr, so that its output is `grep` and `tail` compatible.
@@ -1734,7 +1738,7 @@ Additionally, after build step, the `.wasm` file is archived with `gzip`.
 ### chore: Move all `frontend canister`-related code into the SDK repo
 
 | from (`repository` `path`)                  | to (path in `dfinity/sdk` repository)          | summary                                                                                     |
-|:--------------------------------------------|:-----------------------------------------------|:--------------------------------------------------------------------------------------------|
+| :------------------------------------------ | :--------------------------------------------- | :------------------------------------------------------------------------------------------ |
 | `dfinity/cdk-rs` `/src/ic-certified-assets` | `/src/canisters/frontend/ic-certified-asset`   | the core of the frontend canister                                                           |
 | `dfinity/certified-assets` `/`              | `/src/canisters/frontend/ic-frontend-canister` | wraps `ic-certified-assets` to build the canister wasm                                      |
 | `dfinity/agent-rs` `/ic-asset`              | `/src/canisters/frontend/ic-asset`             | library facilitating interactions with frontend canister (e.g. uploading or listing assets) |
