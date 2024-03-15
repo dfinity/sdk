@@ -4,9 +4,13 @@
 
 ### feat: dfx canister call ... --output json
 
-This is the same as `dfx canister call ... | idl2json`, but more convenient.
+This is the same as `dfx canister call ... | idl2json`, for convenience.
 
 See: https://github.com/dfinity/idl2json
+
+### fix canister status output to be grep compatible
+
+`dfx canister status` now outputs to `stdout`, rather than `stderr`, so that its output is `grep` compatible.
 
 ### fix fetching canister logs to be grep & tail compatible
 
@@ -63,6 +67,10 @@ This incorporates the following executed proposals:
 - [128296](https://dashboard.internetcomputer.org/proposal/128296)
 - [128295](https://dashboard.internetcomputer.org/proposal/128295)
 - [128171](https://dashboard.internetcomputer.org/proposal/128171)
+
+### Bitcoin canister
+
+Downgraded Bitcoin canister to [release/2023-10-13](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2023-10-13)
 
 # 0.18.0
 
@@ -196,6 +204,10 @@ bump ic-cdk to 0.13.1
 Module hash: 1208093dcc5b31286a073f00f748ac6612dbae17b66c22332762705960a8aaad
 
 bump ic-cdk to 0.13.1
+
+### Bitcoin canister
+
+Updated Bitcoin canister to [release/2024-01-22](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2024-01-22)
 
 # 0.17.0
 
