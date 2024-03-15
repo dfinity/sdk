@@ -16,7 +16,7 @@ use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
-use ic_utils::interfaces::management_canister::{BitcoinNetwork, MgmtMethod};
+use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
 use slog::warn;
@@ -202,13 +202,7 @@ pub fn get_effective_canister_id(
                 Ok(in_args.target_canister)
             }
             MgmtMethod::BitcoinGetUtxosQuery | MgmtMethod::BitcoinGetBalanceQuery => {
-                #[derive(CandidType, Deserialize)]
-                struct In {
-                    network: BitcoinNetwork,
-                }
-                let in_args = Decode!(arg_value, In)
-                    .with_context(|| format!("Argument is not valid for {method_name}"))?;
-                Ok(in_args.network.effective_canister_id())
+                Ok(CanisterId::management_canister())
             }
         }
     } else {
