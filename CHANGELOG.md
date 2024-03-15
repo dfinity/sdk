@@ -2,7 +2,7 @@
 
 # UNRELEASED
 
-### fix canister status to be grep compatible
+### fix canister status output to be grep compatible
 
 `dfx canister status` now outputs to `stdout`, rather than `stderr`, so that its output is `grep` compatible.
 
