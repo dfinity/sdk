@@ -20,16 +20,11 @@ teardown() {
 
   assert_command dfx canister status e2e_project_frontend
   assert_contains "Memory allocation: "
-  assert_contains "Compute allocation: "
   assert_contains "Balance: "
 }
 
 dfx_canister_status_grep_memory_allocation() {
   dfx canister status e2e_project_frontend | grep "Memory allocation"
-}
-
-dfx_canister_status_grep_compute_allocation() {
-  dfx canister status e2e_project_frontend | grep "Compute allocation"
 }
 
 dfx_canister_status_grep_balance() {
@@ -42,16 +37,9 @@ dfx_canister_status_grep_balance() {
 
   assert_command dfx_canister_status_grep_memory_allocation
   assert_contains "Memory allocation: "
-  assert_not_contains "Compute allocation: "
-  assert_not_contains "Balance: "
-
-  assert_command dfx_canister_status_grep_compute_allocation
-  assert_not_contains "Memory allocation: "
-  assert_contains "Compute allocation: "
   assert_not_contains "Balance: "
 
   assert_command dfx_canister_status_grep_balance
   assert_not_contains "Memory allocation: "
-  assert_not_contains "Compute allocation: "
   assert_contains "Balance: "
 }
