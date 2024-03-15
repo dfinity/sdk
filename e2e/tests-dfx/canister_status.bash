@@ -14,7 +14,7 @@ teardown() {
   standard_teardown
 }
 
-@test "dfx canister status" {
+@test "get canister status" {
   dfx_start
   assert_command dfx canister create e2e_project_frontend --no-wallet
 
@@ -36,7 +36,7 @@ dfx_canister_status_grep_balance() {
   dfx canister status e2e_project_frontend | grep "Balance"
 }
 
-@test "dfx canister status grep" {
+@test "canister status output is grep compatible" {
   dfx_start
   assert_command dfx canister create e2e_project_frontend --no-wallet
 

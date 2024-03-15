@@ -14,7 +14,7 @@ teardown() {
   standard_teardown
 }
 
-@test "fetching canister logs" {
+@test "get canister logs" {
   install_asset logs
   dfx_start
   dfx canister create --all
@@ -32,7 +32,7 @@ dfx_canister_logs_grep_Alice() {
   dfx canister logs e2e_project | grep Alice
 }
 
-@test "fetching canister logs output is grep-able" {
+@test "canister logs output is grep compatible" {
   install_asset logs
   dfx_start
   dfx canister create --all
@@ -52,7 +52,7 @@ dfx_canister_logs_tail_n_1() {
   echo "$(dfx canister logs e2e_project)" | tail -n 1
 }
 
-@test "fetching canister logs output is tail-able" {
+@test "canister logs output is tail compatible" {
   install_asset logs
   dfx_start
   dfx canister create --all
