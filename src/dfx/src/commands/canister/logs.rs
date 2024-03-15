@@ -6,7 +6,6 @@ use candid::Principal;
 use clap::Parser;
 use dfx_core::identity::CallSender;
 use ic_utils::interfaces::management_canister::FetchCanisterLogsResponse;
-use slog::info;
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 

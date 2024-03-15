@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### fix canister status output to be grep compatible
+
+`dfx canister status` now outputs to `stdout`, rather than `stderr`, so that its output is `grep` compatible.
+
 ### fix fetching canister logs to be grep & tail compatible
 
 `dfx canister logs` now outputs to stdout, rather than stderr, so that its output is `grep` and `tail` compatible.
