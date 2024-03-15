@@ -29,3 +29,6 @@ target/
 
 # DB repo for cargo-audit
 advisory-db/
+
+# mops
+**/.mops/
