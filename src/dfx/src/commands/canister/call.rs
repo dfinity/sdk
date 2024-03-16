@@ -202,7 +202,29 @@ pub fn get_effective_canister_id(
                 Ok(in_args.target_canister)
             }
             MgmtMethod::BitcoinGetUtxosQuery | MgmtMethod::BitcoinGetBalanceQuery => {
-                Ok(CanisterId::management_canister())
+                #[derive(CandidType, Deserialize)]
+                enum BitcoinNetwork {
+                    #[serde(rename = "mainnet")]
+                    Mainnet,
+                    #[serde(rename = "testnet")]
+                    Testnet,
+                    #[serde(rename = "regtest")]
+                    Regtest,
+                }
+                #[derive(CandidType, Deserialize)]
+                struct In {
+                    network: BitcoinNetwork,
+                }
+                let in_args = Decode!(arg_value, In)
+                    .with_context(|| format!("Argument is not valid for {method_name}"))?;
+                match in_args.network {
+                    BitcoinNetwork::Mainnet => Ok(Principal::from_text(
+                        "ghsi2-tqaaa-aaaan-aaaca-cai"
+                    )?),
+                    BitcoinNetwork::Testnet  | BitcoinNetwork::Regtest=> Ok(Principal::from_text(
+                        "g4xu7-jiaaa-aaaan-aaaaq-cai"
+                    )?),
+                }
             }
         }
     } else {
