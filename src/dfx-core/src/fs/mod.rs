@@ -100,18 +100,15 @@ pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), FsEr
         .map_err(|err| FsError::new(WritePermissionsFailed(path.to_path_buf(), err)))
 }
 
+#[cfg_attr(not(unix), allow(unused_variables))]
 pub fn set_permissions_readwrite(path: &Path) -> Result<(), FsError> {
-    let mut permissions = read_permissions(path)?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
+        let mut permissions = read_permissions(path)?;
         permissions.set_mode(permissions.mode() | 0o600);
+        set_permissions(path, permissions)?;
     }
-    #[cfg(not(unix))]
-    {
-        permissions.set_readonly(false);
-    }
-    set_permissions(path, permissions)?;
     Ok(())
 }
 
