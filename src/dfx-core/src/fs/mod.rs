@@ -100,6 +100,7 @@ pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), FsEr
         .map_err(|err| FsError::new(WritePermissionsFailed(path.to_path_buf(), err)))
 }
 
+#[cfg_attr(not(unix), allow(unused_variables))]
 pub fn set_permissions_readwrite(path: &Path) -> Result<(), FsError> {
     #[cfg(unix)]
     {
