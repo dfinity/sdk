@@ -167,7 +167,7 @@ pub async fn transfer(
 
 fn retryable(agent_error: &AgentError) -> bool {
     match agent_error {
-        AgentError::ReplicaError(RejectResponse {
+        AgentError::CertifiedReject(RejectResponse {
             reject_code: RejectCode::CanisterError,
             reject_message,
             ..
