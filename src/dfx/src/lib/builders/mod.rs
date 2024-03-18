@@ -324,27 +324,42 @@ fn ensure_trailing_newline(s: String) -> String {
     }
 }
 
-pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult<()> {
+/// Run a command and return its output.
+/// If the command is empty, None is returned.
+/// If the io_inherit is true, Some(vec![]) is returned.
+pub fn run_command(
+    command: &str,
+    vars: &[Env<'_>],
+    cwd: &Path,
+    io_inherit: bool,
+) -> DfxResult<Option<Vec<u8>>> {
+    // First separate everything as if it was read from a shell.
+    let args = shell_words::split(command)
+        .with_context(|| format!("Cannot parse command '{}'.", command))?;
+    // no commands, noop
+    if args.is_empty() {
+        return Ok(None);
+    }
     let (command_name, arguments) = args.split_first().unwrap();
     let canonicalized = dfx_core::fs::canonicalize(&cwd.join(command_name))
         .or_else(|_| which::which(command_name))
         .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
     let mut cmd = Command::new(canonicalized);
 
-    cmd.args(arguments)
-        .current_dir(cwd)
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
-
+    cmd.args(arguments).current_dir(cwd);
+    if io_inherit {
+        cmd.stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit());
+    }
     for (key, value) in vars {
         cmd.env(key.as_ref(), value);
     }
-
     let output = cmd
         .output()
         .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
     if output.status.success() {
-        Ok(())
+        Ok(Some(output.stdout))
     } else {
         Err(DfxError::new(BuildError::CustomToolError(
             output.status.code(),

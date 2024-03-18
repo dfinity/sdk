@@ -199,9 +199,13 @@ pub struct CDK {
     pub name: String,
     /// # version
     /// The version of the CDK.
+    /// This field conflicts with the `version_command` field.
     pub version: Option<String>,
     /// # version_command
     /// The command to run to get the version of the CDK.
+    /// It will be run from the workspace root.
+    /// The output will be trimmed and used as the CDK version.
+    /// This field conflicts with the `version` field.
     pub version_command: Option<String>,
 }
 

@@ -2,10 +2,10 @@
 //!
 //! The cli tool dfx should consolidate its usage of canister metadata into this single section
 //! It's originally for pulling dependencies. But open to extend for other usage.
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::Path};
 
-use crate::lib::error::DfxResult;
-use anyhow::bail;
+use crate::lib::{builders::run_command, error::DfxResult};
+use anyhow::{bail, Context};
 use dfx_core::config::model::dfinity::{Pullable, CDK};
 use serde::{Deserialize, Serialize};
 
@@ -37,7 +37,7 @@ impl DfxMetadata {
         }
     }
 
-    pub fn add_cdk(&mut self, cdk_entry: &CDK) -> DfxResult<()> {
+    pub fn add_cdk(&mut self, cdk_entry: &CDK, project_root: &Path) -> DfxResult<()> {
         let CDK {
             name,
             version,
@@ -55,8 +55,27 @@ impl DfxMetadata {
                 bail!("The cdk with name `{}` has both `version` and `version_command` defined. Please keep at most one of them.", name)
             }
             (Some(_), None) => version.clone(),
-            (None, Some(_)) => {
-                todo!("Run the version command to get the version of the cdk.")
+            (None, Some(command)) => {
+                let output = run_command(command, &[], project_root, false).with_context(|| {
+                    format!("Failed to run the version_command for cdk {}", name)
+                })?;
+                match output {
+                    Some(bytes) => Some(
+                        String::from_utf8(bytes)
+                            .with_context(|| {
+                                format!(
+                            "The version_command for cdk `{}` didn't return a valid utf8 string.",
+                            name
+                        )
+                            })?
+                            .trim()
+                            .to_string(),
+                    ),
+                    None => bail!(
+                        "The version_command for cdk `{}` didn't return a version.",
+                        name
+                    ),
+                }
             }
             (None, None) => None,
         };

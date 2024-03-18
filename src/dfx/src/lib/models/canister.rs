@@ -173,7 +173,7 @@ impl Canister {
 
         for cdk_entry in info.get_cdk() {
             set_dfx_metadata = true;
-            dfx_metadata.add_cdk(cdk_entry)?;
+            dfx_metadata.add_cdk(cdk_entry, info.get_workspace_root())?;
         }
 
         if set_dfx_metadata {
