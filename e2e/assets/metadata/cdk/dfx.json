@@ -1,0 +1,54 @@
+{
+    "canisters": {
+        "a": {
+            "type": "motoko",
+            "main": "main.mo"
+        },
+        "b": {
+            "type": "motoko",
+            "main": "main.mo",
+            "cdk": [
+                {
+                    "name": "ic-cdk",
+                    "version": "0.1.0"
+                }
+            ]
+        },
+        "c": {
+            "type": "motoko",
+            "main": "main.mo",
+            "cdk": [
+                {
+                    "name": "motoko-cdk",
+                    "version_command": "echo 0.2.0"
+                }
+            ]
+        },
+        "d": {
+            "type": "motoko",
+            "main": "main.mo",
+            "cdk": [
+                {
+                    "name": "community cdk"
+                }
+            ]
+        },
+        "e": {
+            "type": "motoko",
+            "main": "main.mo",
+            "cdk": [
+                {
+                    "name": "ic-cdk",
+                    "version": "0.1.0"
+                },
+                {
+                    "name": "motoko-cdk",
+                    "version_command": "echo 0.2.0"
+                },
+                {
+                    "name": "community cdk"
+                }
+            ]
+        }
+    }
+}
