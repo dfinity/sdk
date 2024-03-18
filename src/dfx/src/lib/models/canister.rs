@@ -163,9 +163,20 @@ impl Canister {
             public_candid = true;
         }
 
+        // dfx metadata
+        let mut set_dfx_metadata = false;
+        let mut dfx_metadata = DfxMetadata::default();
         if let Some(pullable) = info.get_pullable() {
-            let mut dfx_metadata = DfxMetadata::default();
+            set_dfx_metadata = true;
             dfx_metadata.set_pullable(pullable);
+        }
+
+        for cdk_entry in info.get_cdk() {
+            set_dfx_metadata = true;
+            dfx_metadata.add_cdk(cdk_entry)?;
+        }
+
+        if set_dfx_metadata {
             let content = serde_json::to_string_pretty(&dfx_metadata)
                 .with_context(|| "Failed to serialize `dfx` metadata.".to_string())?;
             metadata_sections.insert(

@@ -192,6 +192,19 @@ pub struct Pullable {
     pub init_arg: Option<String>,
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct CDK {
+    /// # name
+    /// The name of the CDK.
+    pub name: String,
+    /// # version
+    /// The version of the CDK.
+    pub version: Option<String>,
+    /// # version_command
+    /// The command to run to get the version of the CDK.
+    pub version_command: Option<String>,
+}
+
 pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
 pub const DEFAULT_PROJECT_LOCAL_BIND: &str = "127.0.0.1:8000";
 pub const DEFAULT_IC_GATEWAY: &str = "https://icp0.io";
@@ -269,6 +282,11 @@ pub struct ConfigCanistersCanister {
     /// Defines required properties so that this canister is ready for `dfx deps pull` by other projects.
     #[serde(default)]
     pub pullable: Option<Pullable>,
+
+    /// # CDK
+    /// Defines the CDK used to build this canister.
+    #[serde(default)]
+    pub cdk: Vec<CDK>,
 
     /// # Gzip Canister WASM
     /// Disabled by default.
