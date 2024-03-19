@@ -219,3 +219,38 @@ set_local_network_bitcoin_enabled() {
 )'
   assert_contains "tip_height = 0 : nat32;"
 }
+
+@test "can call bitcoin query API on the IC mainnet" {
+  install_asset bitcoin
+  # bitcoin_get_balance_query
+  ## bitcoin mainnet
+  assert_command dfx canister call --network ic --query aaaaa-aa --candid bitcoin.did bitcoin_get_balance_query '(
+  record {
+    network = variant { mainnet };
+    address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
+  }
+)'
+  ## bitcoin testnet
+  assert_command dfx canister call --network ic --query aaaaa-aa --candid bitcoin.did bitcoin_get_balance_query '(
+  record {
+    network = variant { testnet };
+    address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
+  }
+)'
+
+  # bitcoin_get_balance_query
+  ## bitcoin mainnet
+  assert_command dfx canister call --network ic --query aaaaa-aa --candid bitcoin.did bitcoin_get_utxos_query '(
+  record {
+    network = variant { mainnet };
+    address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
+  }
+)'
+  ## bitcoin testnet
+  assert_command dfx canister call --network ic --query aaaaa-aa --candid bitcoin.did bitcoin_get_utxos_query '(
+  record {
+    network = variant { testnet };
+    address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
+  }
+)'
+}
