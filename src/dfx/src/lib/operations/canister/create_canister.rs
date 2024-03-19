@@ -229,7 +229,7 @@ async fn create_with_management_canister(
         {
             Err(anyhow!(NEEDS_WALLET))
         }
-        Err(AgentError::ReplicaError(RejectResponse {
+        Err(AgentError::UncertifiedReject(RejectResponse {
             reject_code: RejectCode::CanisterReject,
             reject_message,
             ..

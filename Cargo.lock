@@ -874,9 +874,9 @@ checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
 
 [[package]]
 name = "chrono"
-version = "0.4.34"
+version = "0.4.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5bc015644b92d5890fab7489e49d21f879d5c990186827d42ec511919404f38b"
+checksum = "8eaf5903dcbc0a39312feb77df2ff4c76387d591b9fc7b04a238dcf8bb62639a"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
@@ -917,9 +917,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.5.1"
+version = "4.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c918d541ef2913577a0f9566e9ce27cb35b6df072075769e0b26cb5a554520da"
+checksum = "b230ab84b0ffdf890d5a10abdbc8b83ae1c4918275daea1ab8801f71536b2651"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -927,9 +927,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.5.1"
+version = "4.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f3e7391dad68afb0c2ede1bf619f579a3dc9c2ec67f089baa397123a2f3d1eb"
+checksum = "ae129e2e766ae0ec03484e609954119f123cc1fe650337e155d03b022f24f7b4"
 dependencies = [
  "anstream",
  "anstyle",
@@ -1264,9 +1264,9 @@ dependencies = [
 
 [[package]]
 name = "cxx"
-version = "1.0.118"
+version = "1.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2673ca5ae28334544ec2a6b18ebe666c42a2650abfb48abbd532ed409a44be2b"
+checksum = "635179be18797d7e10edb9cd06c859580237750c7351f39ed9b298bfc17544ad"
 dependencies = [
  "cc",
  "cxxbridge-flags",
@@ -1276,9 +1276,9 @@ dependencies = [
 
 [[package]]
 name = "cxx-build"
-version = "1.0.118"
+version = "1.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9df46fe0eb43066a332586114174c449a62c25689f85a08f28fdcc8e12c380b9"
+checksum = "9324397d262f63ef77eb795d900c0d682a34a43ac0932bec049ed73055d52f63"
 dependencies = [
  "cc",
  "codespan-reporting",
@@ -1291,15 +1291,15 @@ dependencies = [
 
 [[package]]
 name = "cxxbridge-flags"
-version = "1.0.118"
+version = "1.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "886acf875df67811c11cd015506b3392b9e1820b1627af1a6f4e93ccdfc74d11"
+checksum = "a87ff7342ffaa54b7c61618e0ce2bbcf827eba6d55b923b83d82551acbbecfe5"
 
 [[package]]
 name = "cxxbridge-macro"
-version = "1.0.118"
+version = "1.0.119"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1d151cc139c3080e07f448f93a1284577ab2283d2a44acd902c6fba9ec20b6de"
+checksum = "70b5b86cf65fa0626d85720619d80b288013477a91a0389fa8bc716bf4903ad1"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1486,9 +1486,10 @@ dependencies = [
  "ic-asset",
  "ic-cdk",
  "ic-identity-hsm",
- "ic-utils 0.33.0",
+ "ic-utils 0.34.0",
  "ic-wasm",
  "icrc-ledger-types",
+ "idl2json",
  "indicatif",
  "itertools 0.10.5",
  "json-patch",
@@ -1557,7 +1558,7 @@ dependencies = [
  "humantime-serde",
  "ic-agent",
  "ic-identity-hsm",
- "ic-utils 0.33.0",
+ "ic-utils 0.34.0",
  "k256 0.11.6",
  "keyring",
  "lazy_static",
@@ -2242,7 +2243,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "futures-util",
- "http",
+ "http 0.2.12",
  "indexmap 2.2.5",
  "slab",
  "tokio",
@@ -2369,14 +2370,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "http"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21b9ddb458710bc376481b842f5da65cdf31522de232c1ca8146abce2a358258"
+dependencies = [
+ "bytes",
+ "fnv",
+ "itoa",
+]
+
+[[package]]
 name = "http-body"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7ceab25649e9960c0311ea418d17bee82c0dcec1bd053b5f9a66e265a693bed2"
 dependencies = [
  "bytes",
- "http",
+ "http 0.2.12",
  "pin-project-lite",
+]
+
+[[package]]
+name = "http-body"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cac85db508abc24a2e48553ba12a996e87244a0395ce011e62b37158745d643"
+dependencies = [
+ "bytes",
+ "http 1.1.0",
 ]
 
 [[package]]
@@ -2418,8 +2440,8 @@ dependencies = [
  "futures-core",
  "futures-util",
  "h2",
- "http",
- "http-body",
+ "http 0.2.12",
+ "http-body 0.4.6",
  "httparse",
  "httpdate",
  "itoa",
@@ -2438,7 +2460,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec3efd23720e2049821a693cbc7e65ea87c72f1c58ff2f9522ff332b1491e590"
 dependencies = [
  "futures-util",
- "http",
+ "http 0.2.12",
  "hyper",
  "log",
  "rustls",
@@ -2473,8 +2495,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.33.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=a3cc081d829c6f9ba099a6fb09f6f2e65e827ffb#a3cc081d829c6f9ba099a6fb09f6f2e65e827ffb"
+version = "0.34.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=7869e06b048a69210849bd43ed939fe0c67df564#7869e06b048a69210849bd43ed939fe0c67df564"
 dependencies = [
  "backoff",
  "cached 0.46.1",
@@ -2482,8 +2504,8 @@ dependencies = [
  "ed25519-consensus",
  "futures-util",
  "hex",
- "http",
- "http-body",
+ "http 1.1.0",
+ "http-body 1.0.0",
  "ic-certification 2.4.0",
  "ic-transport-types",
  "ic-verify-bls-signature",
@@ -2524,7 +2546,7 @@ dependencies = [
  "globset",
  "hex",
  "ic-agent",
- "ic-utils 0.33.0",
+ "ic-utils 0.34.0",
  "itertools 0.10.5",
  "json5",
  "mime",
@@ -2881,7 +2903,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "03d4e5ef38b5315b0e619c8a50c2d3ce485d769dbe3eca88ef64165597056e24"
 dependencies = [
  "candid",
- "http",
+ "http 0.2.12",
  "ic-certification 2.4.0",
  "ic-representation-independent-hash",
  "serde",
@@ -2910,8 +2932,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.33.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=a3cc081d829c6f9ba099a6fb09f6f2e65e827ffb#a3cc081d829c6f9ba099a6fb09f6f2e65e827ffb"
+version = "0.34.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=7869e06b048a69210849bd43ed939fe0c67df564#7869e06b048a69210849bd43ed939fe0c67df564"
 dependencies = [
  "hex",
  "ic-agent",
@@ -2956,7 +2978,7 @@ dependencies = [
  "candid",
  "flate2",
  "hex",
- "http",
+ "http 0.2.12",
  "ic-cbor",
  "ic-certificate-verification",
  "ic-certification 2.4.0",
@@ -3010,8 +3032,8 @@ dependencies = [
 
 [[package]]
 name = "ic-transport-types"
-version = "0.33.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=a3cc081d829c6f9ba099a6fb09f6f2e65e827ffb#a3cc081d829c6f9ba099a6fb09f6f2e65e827ffb"
+version = "0.34.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=7869e06b048a69210849bd43ed939fe0c67df564#7869e06b048a69210849bd43ed939fe0c67df564"
 dependencies = [
  "candid",
  "hex",
@@ -3079,8 +3101,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.33.0"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=a3cc081d829c6f9ba099a6fb09f6f2e65e827ffb#a3cc081d829c6f9ba099a6fb09f6f2e65e827ffb"
+version = "0.34.0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=7869e06b048a69210849bd43ed939fe0c67df564#7869e06b048a69210849bd43ed939fe0c67df564"
 dependencies = [
  "async-trait",
  "candid",
@@ -3191,7 +3213,7 @@ dependencies = [
  "humantime",
  "ic-agent",
  "ic-asset",
- "ic-utils 0.33.0",
+ "ic-utils 0.34.0",
  "libflate",
  "num-traits",
  "pem 1.1.1",
@@ -3218,6 +3240,18 @@ name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
+
+[[package]]
+name = "idl2json"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96c98794e1d7ff2814db503a7fb3aed059b8c816cbaaaa7cf7420ab39edbca41"
+dependencies = [
+ "candid",
+ "candid_parser",
+ "serde_json",
+ "sha2 0.10.8",
+]
 
 [[package]]
 name = "idna"
@@ -4643,8 +4677,8 @@ dependencies = [
  "futures-core",
  "futures-util",
  "h2",
- "http",
- "http-body",
+ "http 0.2.12",
+ "http-body 0.4.6",
  "hyper",
  "hyper-rustls",
  "ipnet",

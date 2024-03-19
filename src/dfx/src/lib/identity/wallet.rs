@@ -126,7 +126,7 @@ pub async fn create_wallet(
         .call_and_wait()
         .await
     {
-        Err(AgentError::ReplicaError(RejectResponse {
+        Err(AgentError::CertifiedReject(RejectResponse {
             reject_code: RejectCode::CanisterError,
             reject_message,
             ..

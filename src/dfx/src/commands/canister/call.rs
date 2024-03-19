@@ -55,7 +55,7 @@ pub struct CanisterCallOpts {
 
     /// Specifies the format for displaying the method's return result.
     #[arg(long, conflicts_with("async"),
-        value_parser = ["idl", "raw", "pp"])]
+        value_parser = ["idl", "raw", "pp", "json"])]
     output: Option<String>,
 
     /// Specifies the amount of cycles to send on the call.
