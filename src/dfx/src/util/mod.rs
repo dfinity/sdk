@@ -89,7 +89,7 @@ pub fn print_idl_blob(
             if output_type == "idl" {
                 println!("{:?}", result?);
             } else if output_type == "json" {
-                let json = convert_all(&result?, &Idl2JsonOptions::default())?;
+                let json = convert_all(&result?)?;
                 println!("{}", json);
             } else {
                 println!("{}", result?);
@@ -101,21 +101,16 @@ pub fn print_idl_blob(
 }
 
 /// Candid typically comes as a tuple of values.  This converts a single value in such a tuple.
-fn convert_one(idl_value: &IDLValue, idl2json_options: &Idl2JsonOptions) -> DfxResult<String> {
-    let json_value = idl2json(idl_value, idl2json_options);
-    (if idl2json_options.compact {
-        serde_json::to_string
-    } else {
-        serde_json::to_string_pretty
-    })(&json_value)
-    .with_context(|| anyhow!("Cannot print to stderr"))
+fn convert_one(idl_value: &IDLValue) -> DfxResult<String> {
+    let json_value = idl2json(idl_value, &Idl2JsonOptions::default());
+    serde_json::to_string_pretty(&json_value).with_context(|| anyhow!("Cannot pretty-print json"))
 }
 
-fn convert_all(idl_args: &IDLArgs, idl2json_options: &Idl2JsonOptions) -> DfxResult<String> {
+fn convert_all(idl_args: &IDLArgs) -> DfxResult<String> {
     let json_structures = idl_args
         .args
         .iter()
-        .map(|idl_value| convert_one(idl_value, idl2json_options))
+        .map(convert_one)
         .collect::<Result<Vec<_>, _>>()?;
     Ok(json_structures.join("\n"))
 }
