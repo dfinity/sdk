@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: dfx canister call ... --output json
+
+This is the same as `dfx canister call ... | idl2json`, for convenience.
+
+See also: https://github.com/dfinity/idl2json
+
 ### fix: Output of dfx ping is now valid JSON
 
 Added commas in between fields, and newlines to improve formatting.
