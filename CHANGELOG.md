@@ -6,7 +6,11 @@
 
 This is the same as `dfx canister call ... | idl2json`, for convenience.
 
-See: https://github.com/dfinity/idl2json
+See also: https://github.com/dfinity/idl2json
+
+### fix: Output of dfx ping is now valid JSON
+
+Added commas in between fields, and newlines to improve formatting.
 
 ### fix canister status output to be grep compatible
 
@@ -19,6 +23,8 @@ See: https://github.com/dfinity/idl2json
 ### fix fetching canister logs
 
 The management canister method `fetch_canister_logs` can be called only as a query, not as an update call. Therefore, `dfx canister logs <canister_id>` now uses a query call for this purpose.
+
+### `dfx wallet set-name` now actually sets the name of the wallet
 
 ### feat: hyphenated project names
 
