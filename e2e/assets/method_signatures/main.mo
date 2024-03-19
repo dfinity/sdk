@@ -5,6 +5,13 @@ actor {
     return "Hello, " # name # "!";
   };
 
+  public query func returns_opt_string(name: ?Text) : async ?Text {
+    return switch (name) {
+      case null null;
+      case (?x) ?("Hello, " # x # "!");
+    };
+  };
+
   public query func returns_int(v: Int) : async Int {
     return v;
   };
@@ -47,5 +54,9 @@ actor {
 
   public query func returns_tuple(): async (Text, Nat32, Text) {
     return ("the first element", 42, "the third element");
+  };
+
+  public query func returns_single_elem_tuple(): async (Text) {
+    return ("the only element");
   };
 }

@@ -23,6 +23,14 @@ teardown() {
   assert_command dfx canister call hello_backend returns_string '("you")' --output json
   assert_eq '"Hello, you!"'
 
+  assert_command dfx canister call hello_backend returns_opt_string '(null)' --output json
+  assert_eq '[]'
+  assert_command dfx canister call hello_backend returns_opt_string '(opt "world")' --output json
+  assert_eq '[
+  "Hello, world!"
+]'
+
+
   # int is unbounded, so formatted as a string
   assert_command dfx canister call hello_backend returns_int '(67)' --output json
   assert_eq '"67"'
@@ -74,6 +82,10 @@ teardown() {
   assert_eq '"the first element"
 42
 "the third element"'
+
+
+  assert_command dfx canister call hello_backend returns_single_elem_tuple '()' --output json
+  assert_eq '"the only element"'
 }
 
 @test "call --candid <path to candid file>" {

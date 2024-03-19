@@ -195,7 +195,36 @@ This example uses the raw data type to pass a hexadecimal to the `greet` functio
 
 ### JSON output
 
-todo
+The `--output json` option formats the output as JSON.
+
+Candid types don't map 1:1 to JSON types.
+
+Notably, the following Candid types map to strings rather than numbers: nat, nat64, int, int64.
+
+These are the mappings:
+
+| Candid type | JSON type |
+|-------------|-----------|
+| `null`      | `null`    |
+| `bool`      | `boolean` |
+| `nat`       | `string`  |
+| `nat8`      | `number`  |
+| `nat16`     | `number`  |
+| `nat32`     | `number`  |
+| `nat64`     | `string`  |
+| `int`       | `string`  |
+| `int8`      | `number`  |
+| `int16`     | `number`  |
+| `int32`     | `number`  |
+| `int64`     | `string`  |
+| `float32`   | float or "NaN" |
+| `float64`   | float or "NaN" |
+| `text`      | `string`  |
+| `opt`       | array with 0 or 1 elements |
+| `vec`       | array     |
+| `record`    | object    |
+| `variant`   | object    |
+| `blob`      | array of numbers  |
 
 ## dfx canister create
 
