@@ -97,7 +97,11 @@ For Motoko canisters, if you specify a `path` for candid:service metadata (repla
 
 A json text for `dfx` usage.
 
-Currently it contains the [`pullable`](pull-dependencies.md#service-provider-workflow) object.
+#### `pullable`
+
+The `pullable` object is necessary for the canister to be pullable.
+
+Check [`pullable`](pull-dependencies.md#service-provider-workflow) for the procedure of setting this object.
 
 ```json
 {
@@ -108,6 +112,24 @@ Currently it contains the [`pullable`](pull-dependencies.md#service-provider-wor
       "yofga-2qaaa-aaaaa-aabsq-cai"
     ],
     "init_guide": "A natural number, e.g. 10."
+  }
+}
+```
+
+#### `tech_stack`
+
+The canister author can opt in to display the tech stack of the canister.
+
+The tech stack can include but not limit to the programming languages, CDKs, libraries, tools.
+
+Each item is a `"name" : "version"` pair in which the `"version"` is optional.
+
+```json
+{
+  "tech_stack": {
+    "rust": "1.76.0",
+    "ic-cdk": "0.13.0",
+    "wasm-tools": null
   }
 }
 ```

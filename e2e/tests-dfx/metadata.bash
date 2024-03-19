@@ -196,47 +196,47 @@ teardown() {
   assert_command diff "$REPO_ROOT/src/distributed/assetstorage.did" ./candid_service_metadata.txt
 }
 
-@test "cdk field of the standardized dfx metadata" {
+@test "can generate tech_stack field of the standardized dfx metadata" {
   dfx_new
-  install_asset metadata/cdk
+  install_asset metadata/tech_stack
 
   dfx_start
   assert_command dfx deploy
 
-  # a doesn't define a cdk field, the dfx metadata is not added
+  # a doesn't define the tech_stack object, the dfx metadata is not added
   assert_command_fail dfx canister metadata a dfx
 
-  # b defines a cdk with version
-  assert_command dfx canister metadata b dfx > b.json
+  # b defines a tech_stack item with version
+  assert_command dfx canister metadata b dfx
   assert_match '{
-  "cdk": {
-    "ic-cdk": "0.1.0"
+  "tech_stack": {
+    "ic-cdk": "0.13.0"
   }
 }'
 
-  # c defines a cdk with version_command
+  # c defines a tech_stack item with version_command
   assert_command dfx canister metadata c dfx
   assert_match '{
-  "cdk": {
-    "motoko-cdk": "0.2.0"
+  "tech_stack": {
+    "rust": "1.76.0"
   }
 }'
 
-  # d defines a cdk without version/version_command
+  # d defines a tech_stack item without version/version_command
   assert_command dfx canister metadata d dfx
   assert_match '{
-  "cdk": {
-    "community cdk": null
+  "tech_stack": {
+    "wasm-tools": null
   }
 }'
 
-  # e defines multiple cdk
+  # e defines multiple tech_stack items
   assert_command dfx canister metadata e dfx
   assert_match '{
-  "cdk": {
-    "community cdk": null,
-    "ic-cdk": "0.1.0",
-    "motoko-cdk": "0.2.0"
+  "tech_stack": {
+    "ic-cdk": "0.13.0",
+    "rust": "1.76.0",
+    "wasm-tools": null
   }
 }'
 }

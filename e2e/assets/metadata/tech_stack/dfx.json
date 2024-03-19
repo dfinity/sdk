@@ -7,46 +7,46 @@
         "b": {
             "type": "motoko",
             "main": "main.mo",
-            "cdk": [
+            "tech_stack": [
                 {
                     "name": "ic-cdk",
-                    "version": "0.1.0"
+                    "version": "0.13.0"
                 }
             ]
         },
         "c": {
             "type": "motoko",
             "main": "main.mo",
-            "cdk": [
+            "tech_stack": [
                 {
-                    "name": "motoko-cdk",
-                    "version_command": "echo 0.2.0"
+                    "name": "rust",
+                    "version_command": "echo 1.76.0"
                 }
             ]
         },
         "d": {
             "type": "motoko",
             "main": "main.mo",
-            "cdk": [
+            "tech_stack": [
                 {
-                    "name": "community cdk"
+                    "name": "wasm-tools"
                 }
             ]
         },
         "e": {
             "type": "motoko",
             "main": "main.mo",
-            "cdk": [
+            "tech_stack": [
                 {
                     "name": "ic-cdk",
-                    "version": "0.1.0"
+                    "version": "0.13.0"
                 },
                 {
-                    "name": "motoko-cdk",
-                    "version_command": "echo 0.2.0"
+                    "name": "rust",
+                    "version_command": "echo 1.76.0"
                 },
                 {
-                    "name": "community cdk"
+                    "name": "wasm-tools"
                 }
             ]
         }

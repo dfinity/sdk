@@ -7,7 +7,7 @@ use candid::Principal;
 use core::panic;
 use dfx_core::config::model::dfinity::{
     CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config, Pullable,
-    WasmOptLevel, CDK,
+    TechStackItem, WasmOptLevel,
 };
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
@@ -57,7 +57,7 @@ pub struct CanisterInfo {
     metadata: CanisterMetadataConfig,
     pullable: Option<Pullable>,
     pull_dependencies: Vec<(String, CanisterId)>,
-    cdk: Vec<CDK>,
+    tech_stack: Vec<TechStackItem>,
     gzip: bool,
     init_arg: Option<String>,
 }
@@ -165,7 +165,7 @@ impl CanisterInfo {
             optimize: canister_config.optimize,
             metadata,
             pullable: canister_config.pullable.clone(),
-            cdk: canister_config.cdk.clone(),
+            tech_stack: canister_config.tech_stack.clone(),
             pull_dependencies,
             gzip,
             init_arg,
@@ -362,8 +362,8 @@ impl CanisterInfo {
         &self.pull_dependencies
     }
 
-    pub fn get_cdk(&self) -> &[CDK] {
-        &self.cdk
+    pub fn get_tech_stack(&self) -> &[TechStackItem] {
+        &self.tech_stack
     }
 
     pub fn get_gzip(&self) -> bool {

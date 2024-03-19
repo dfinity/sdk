@@ -6,7 +6,7 @@ use std::{collections::BTreeMap, path::Path};
 
 use crate::lib::{builders::run_command, error::DfxResult};
 use anyhow::{bail, Context};
-use dfx_core::config::model::dfinity::{Pullable, CDK};
+use dfx_core::config::model::dfinity::{Pullable, TechStackItem};
 use serde::{Deserialize, Serialize};
 
 /// "dfx" metadata.
@@ -18,11 +18,11 @@ pub struct DfxMetadata {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pullable: Option<Pullable>,
 
-    /// # CDK
-    /// A map of the canister name to the cdk version.
-    /// The cdk version is optional.
+    /// # Tech Stack
+    /// A map of the canister name to the tech_stack item version.
+    /// The tech_stack item version is optional.
     #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub cdk: BTreeMap<String, Option<String>>,
+    pub tech_stack: BTreeMap<String, Option<String>>,
 }
 
 impl DfxMetadata {
@@ -37,34 +37,41 @@ impl DfxMetadata {
         }
     }
 
-    pub fn add_cdk(&mut self, cdk_entry: &CDK, project_root: &Path) -> DfxResult<()> {
-        let CDK {
+    pub fn add_tech_stack_item(
+        &mut self,
+        tech_stack_item: &TechStackItem,
+        project_root: &Path,
+    ) -> DfxResult<()> {
+        let TechStackItem {
             name,
             version,
             version_command,
-        } = cdk_entry;
-        if self.cdk.contains_key(name) {
+        } = tech_stack_item;
+        if self.tech_stack.contains_key(name) {
             bail!(
-                "The cdk with name `{}` is defined more than once in dfx.json.",
+                "The tech_stack item with name `{}` is defined more than once in dfx.json.",
                 name
             );
         }
 
         let version = match (version, version_command) {
             (Some(_), Some(_)) => {
-                bail!("The cdk with name `{}` has both `version` and `version_command` defined. Please keep at most one of them.", name)
+                bail!("The tech_stack item with name `{}` has both `version` and `version_command` defined. Please keep at most one of them.", name)
             }
             (Some(_), None) => version.clone(),
             (None, Some(command)) => {
                 let output = run_command(command, &[], project_root, false).with_context(|| {
-                    format!("Failed to run the version_command for cdk {}", name)
+                    format!(
+                        "Failed to run the version_command for tech_stack item {}",
+                        name
+                    )
                 })?;
                 match output {
                     Some(bytes) => Some(
                         String::from_utf8(bytes)
                             .with_context(|| {
                                 format!(
-                            "The version_command for cdk `{}` didn't return a valid utf8 string.",
+                            "The version_command for tech_stack item `{}` didn't return a valid utf8 string.",
                             name
                         )
                             })?
@@ -72,7 +79,7 @@ impl DfxMetadata {
                             .to_string(),
                     ),
                     None => bail!(
-                        "The version_command for cdk `{}` didn't return a version.",
+                        "The version_command for tech_stack item `{}` didn't return a version.",
                         name
                     ),
                 }
@@ -80,7 +87,7 @@ impl DfxMetadata {
             (None, None) => None,
         };
 
-        self.cdk.insert(name.clone(), version);
+        self.tech_stack.insert(name.clone(), version);
 
         Ok(())
     }

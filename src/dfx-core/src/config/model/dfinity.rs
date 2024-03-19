@@ -193,18 +193,18 @@ pub struct Pullable {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
-pub struct CDK {
+pub struct TechStackItem {
     /// # name
-    /// The name of the CDK.
+    /// The name of the tech_stack item.
     pub name: String,
     /// # version
-    /// The version of the CDK.
+    /// The version of the tech_stack item.
     /// This field conflicts with the `version_command` field.
     pub version: Option<String>,
     /// # version_command
-    /// The command to run to get the version of the CDK.
+    /// The command to run to get the version of the tech_stack item.
     /// It will be run from the workspace root.
-    /// The output will be trimmed and used as the CDK version.
+    /// The output will be trimmed and used as the tech_stack item version.
     /// This field conflicts with the `version` field.
     pub version_command: Option<String>,
 }
@@ -287,10 +287,10 @@ pub struct ConfigCanistersCanister {
     #[serde(default)]
     pub pullable: Option<Pullable>,
 
-    /// # CDK
-    /// Defines the CDK used to build this canister.
+    /// # Tech Stack
+    /// Defines the tech stack used to build this canister.
     #[serde(default)]
-    pub cdk: Vec<CDK>,
+    pub tech_stack: Vec<TechStackItem>,
 
     /// # Gzip Canister WASM
     /// Disabled by default.
