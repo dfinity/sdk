@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### fix: Output of dfx ping is now valid JSON
+
+Added commas in between fields, and newlines to improve formatting.
+
 ### fix canister status output to be grep compatible
 
 `dfx canister status` now outputs to `stdout`, rather than `stderr`, so that its output is `grep` compatible.

@@ -64,7 +64,7 @@ fn not_a_controller(err: &AgentError) -> bool {
     // Newer replicas include the error code in the reject response.
     if matches!(
         err,
-        AgentError::ReplicaError(RejectResponse {
+        AgentError::UncertifiedReject(RejectResponse {
             reject_code: RejectCode::CanisterError,
             error_code: Some(error_code),
             ..
