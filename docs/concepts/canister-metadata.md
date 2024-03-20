@@ -95,13 +95,14 @@ For Motoko canisters, if you specify a `path` for candid:service metadata (repla
 
 ### `dfx`
 
-A json text for `dfx` usage.
+A json text for `dfx` usage. It consists of independent optional objects.
 
 #### `pullable`
 
 The `pullable` object is necessary for the canister to be pullable.
 
-Check [`pullable`](pull-dependencies.md#service-provider-workflow) for the procedure of setting this object.
+Check [pull-dependencies](pull-dependencies.md#service-provider-workflow) for more details of each field
+and how to set it in `dfx.json`.
 
 ```json
 {
@@ -118,11 +119,9 @@ Check [`pullable`](pull-dependencies.md#service-provider-workflow) for the proce
 
 #### `tech_stack`
 
-The canister author can opt in to display the tech stack of the canister.
+The `tech_stack` object provides a standard format to show the technologies involved to build the canister.
 
-The tech stack can include but not limit to the programming languages, CDKs, libraries, tools.
-
-Each item is a `"name" : "version"` pair in which the `"version"` is optional.
+Check [tech-stack](tech-stack.md) for more details and how to set it in `dfx.json`.
 
 ```json
 {
