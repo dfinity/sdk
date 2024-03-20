@@ -20,7 +20,7 @@ pub fn create_agent_environment<'a>(
         LocalBindDetermination::ApplyRunningWebserverPort,
     )?;
     let timeout = expiry_duration();
-    AgentEnvironment::new(env, network_descriptor, timeout, None)
+    AgentEnvironment::new(env, network_descriptor, timeout, None, true)
 }
 
 pub fn create_anonymous_agent_environment<'a>(
@@ -40,5 +40,21 @@ pub fn create_anonymous_agent_environment<'a>(
         network_descriptor,
         timeout,
         Some(ANONYMOUS_IDENTITY_NAME),
+        true,
     )
+}
+
+pub fn create_non_verify_query_signatures_agent_environment<'a>(
+    env: &'a (dyn Environment + 'a),
+    network: Option<String>,
+) -> DfxResult<AgentEnvironment<'a>> {
+    let network_descriptor = create_network_descriptor(
+        env.get_config(),
+        env.get_networks_config(),
+        network,
+        None,
+        LocalBindDetermination::ApplyRunningWebserverPort,
+    )?;
+    let timeout = expiry_duration();
+    AgentEnvironment::new(env, network_descriptor, timeout, None, false)
 }

@@ -1,3 +1,4 @@
+use crate::lib::agent::create_non_verify_query_signatures_agent_environment;
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -194,7 +195,7 @@ pub async fn exec(
     opts: CanisterCallOpts,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let agent = env.get_agent();
+    let mut agent = env.get_agent();
     fetch_root_key_if_needed(env).await?;
 
     let method_name = opts.method_name.as_str();
@@ -238,68 +239,77 @@ pub async fn exec(
         false,
     )?;
 
-    let (effective_canister_id, management_method) =
-        if canister_id == CanisterId::management_canister() {
-            let management_method = MgmtMethod::from_str(method_name).map_err(|_| {
-                anyhow!(
-                    "Attempted to call an unsupported management canister method: {}",
-                    method_name
-                )
-            })?;
+    let non_verify_query_signatures_agent_env =
+        create_non_verify_query_signatures_agent_environment(
+            env,
+            Some(env.get_network_descriptor().name.clone()),
+        )?;
+    let non_verify_query_signatures_agent = non_verify_query_signatures_agent_env.get_agent();
+    let effective_canister_id = if canister_id == CanisterId::management_canister() {
+        let management_method = MgmtMethod::from_str(method_name).map_err(|_| {
+            anyhow!(
+                "Attempted to call an unsupported management canister method: {}",
+                method_name
+            )
+        })?;
 
-            if matches!(
-                management_method,
-                MgmtMethod::BitcoinGetBalanceQuery | MgmtMethod::BitcoinGetUtxosQuery
-            ) {
-                match call_sender {
-                    CallSender::SelectedId => todo!(),
-                    CallSender::Wallet(_) => {
-                        return Err(DiagnosedError::new(
-                            format!(
-                                "{} can only be called directly without a wallet proxy.",
-                                method_name
-                            ),
-                            "Please remove the `--wallet <wallet id>` option.".to_string(),
-                        ))
-                        .context("Method only callable without wallet proxy.")
-                    }
+        if matches!(
+            management_method,
+            MgmtMethod::BitcoinGetBalanceQuery | MgmtMethod::BitcoinGetUtxosQuery
+        ) {
+            match call_sender {
+                CallSender::SelectedId => {
+                    // Query calls to those two bitcoin query methods can not make a following read_state call.
+                    // We have to use a non-verify_query_signatures agent to make the call.
+                    // Rust's lifetime rule forces us to create the special env/agent outside this block.
+                    agent = non_verify_query_signatures_agent;
+                }
+                CallSender::Wallet(_) => {
+                    return Err(DiagnosedError::new(
+                        format!(
+                            "{} can only be called directly without a wallet proxy.",
+                            method_name
+                        ),
+                        "Please remove the `--wallet <wallet id>` option.".to_string(),
+                    ))
+                    .context("Method only callable without wallet proxy.");
                 }
             }
+        }
 
-            if matches!(call_sender, CallSender::SelectedId)
-                && matches!(
-                    management_method,
-                    MgmtMethod::CreateCanister
-                        | MgmtMethod::RawRand
-                        | MgmtMethod::BitcoinGetBalance
-                        | MgmtMethod::BitcoinGetUtxos
-                        | MgmtMethod::BitcoinSendTransaction
-                        | MgmtMethod::BitcoinGetCurrentFeePercentiles
-                        | MgmtMethod::EcdsaPublicKey
-                        | MgmtMethod::SignWithEcdsa
-                        | MgmtMethod::NodeMetricsHistory
-                )
-            {
-                return Err(DiagnosedError::new(
-                    format!(
-                        "{} can only be called by a canister, not by an external user.",
-                        method_name
-                    ),
-                    format!(
+        if matches!(call_sender, CallSender::SelectedId)
+            && matches!(
+                management_method,
+                MgmtMethod::CreateCanister
+                    | MgmtMethod::RawRand
+                    | MgmtMethod::BitcoinGetBalance
+                    | MgmtMethod::BitcoinGetUtxos
+                    | MgmtMethod::BitcoinSendTransaction
+                    | MgmtMethod::BitcoinGetCurrentFeePercentiles
+                    | MgmtMethod::EcdsaPublicKey
+                    | MgmtMethod::SignWithEcdsa
+                    | MgmtMethod::NodeMetricsHistory
+            )
+        {
+            return Err(DiagnosedError::new(
+                format!(
+                    "{} can only be called by a canister, not by an external user.",
+                    method_name
+                ),
+                format!(
                     "The easiest way to call {} externally is to proxy this call through a wallet.
 Try calling this with 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.
 To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)'.",
                     method_name
                 ),
-                ))
-                .context("Method only callable by a canister.");
-            }
+            ))
+            .context("Method only callable by a canister.");
+        }
 
-            let effective_canister_id = get_effective_canister_id(&management_method, &arg_value)?;
-            (effective_canister_id, Some(management_method))
-        } else {
-            (canister_id, None)
-        };
+        get_effective_canister_id(&management_method, &arg_value)?
+    } else {
+        canister_id
+    };
 
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
@@ -334,22 +344,13 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
 
     if is_query {
         let blob = match call_sender {
-            CallSender::SelectedId => {
-                if matches!(
-                    management_method,
-                    Some(MgmtMethod::BitcoinGetBalanceQuery)
-                        | Some(MgmtMethod::BitcoinGetUtxosQuery)
-                ) {
-                    todo!("disable replica signed queriesF")
-                }
-                agent
-                    .query(&canister_id, method_name)
-                    .with_effective_canister_id(effective_canister_id)
-                    .with_arg(arg_value)
-                    .call()
-                    .await
-                    .context("Failed query call.")?
-            }
+            CallSender::SelectedId => agent
+                .query(&canister_id, method_name)
+                .with_effective_canister_id(effective_canister_id)
+                .with_arg(arg_value)
+                .call()
+                .await
+                .context("Failed query call.")?,
             CallSender::Wallet(wallet_id) => {
                 let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 do_wallet_call(
@@ -411,7 +412,6 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                 .context("Failed to do wallet call.")?
             }
         };
-
         print_idl_blob(&blob, output_type, &method_type)?;
     }
 
