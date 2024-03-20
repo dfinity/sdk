@@ -2,6 +2,14 @@
 
 # UNRELEASED
 
+### feat: add tech_stack to the Canister Metadata Standard
+
+The standardized `dfx` metadata is extended with another object: `tech_stack`.
+
+It consists of name/version pairs corresponding to tech stack items.
+
+Please check [tech-stack](docs/concepts/tech-stack.md) for more details.
+
 ### feat: dfx canister call ... --output json
 
 This is the same as `dfx canister call ... | idl2json`, for convenience.
