@@ -24,7 +24,7 @@ pub(crate) async fn get_assets_properties(
             }
             // older canisters don't have get_assets_properties method
             // therefore we can break the loop
-            Err(AgentError::ReplicaError(RejectResponse {
+            Err(AgentError::UncertifiedReject(RejectResponse {
                 reject_code,
                 reject_message,
                 ..
