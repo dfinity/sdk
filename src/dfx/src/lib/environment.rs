@@ -367,9 +367,8 @@ pub fn create_agent(
             url,
         )?)
         .with_boxed_identity(identity)
-        .with_verify_query_signatures(!disable_query_verification)
+        .with_verify_query_signatures(!disable_query_verification && verify_query_signatures)
         .with_ingress_expiry(Some(timeout))
-        .with_verify_query_signatures(verify_query_signatures)
         .build()?;
     Ok(agent)
 }

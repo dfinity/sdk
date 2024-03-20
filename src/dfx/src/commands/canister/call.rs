@@ -194,6 +194,7 @@ pub async fn exec(
     env: &dyn Environment,
     opts: CanisterCallOpts,
     call_sender: &CallSender,
+    network_name: Option<String>,
 ) -> DfxResult {
     let mut agent = env.get_agent();
     fetch_root_key_if_needed(env).await?;
@@ -240,10 +241,8 @@ pub async fn exec(
     )?;
 
     let non_verify_query_signatures_agent_env =
-        create_non_verify_query_signatures_agent_environment(
-            env,
-            Some(env.get_network_descriptor().name.clone()),
-        )?;
+        create_non_verify_query_signatures_agent_environment(env, network_name)?;
+    fetch_root_key_if_needed(&non_verify_query_signatures_agent_env).await?;
     let non_verify_query_signatures_agent = non_verify_query_signatures_agent_env.get_agent();
     let effective_canister_id = if canister_id == CanisterId::management_canister() {
         let management_method = MgmtMethod::from_str(method_name).map_err(|_| {
