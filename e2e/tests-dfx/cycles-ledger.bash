@@ -356,7 +356,9 @@ current_time_nanoseconds() {
 }
 
 @test "top-up and deposit-cycles" {
-  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  # shellcheck disable=SC2030,SC2031
+  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
+
   start_and_install_nns
 
   dfx_new
@@ -559,9 +561,11 @@ current_time_nanoseconds() {
 }
 
 @test "canister creation" {
+  # shellcheck disable=SC2030,SC2031
+  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
+
   start_and_install_nns
   
-  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
   dfx_new temporary
   add_cycles_ledger_canisters_to_project
   install_cycles_ledger_canisters
@@ -648,7 +652,9 @@ current_time_nanoseconds() {
 }
 
 @test "canister deletion" {
-  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  # shellcheck disable=SC2030,SC2031
+  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
+
   start_and_install_nns
 
   dfx_new temporary
@@ -725,7 +731,9 @@ current_time_nanoseconds() {
 }
 
 @test "create canister on specific subnet" {
-  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  # shellcheck disable=SC2030,SC2031
+  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
+
   start_and_install_nns
   
   dfx_new temporary
@@ -764,7 +772,9 @@ current_time_nanoseconds() {
 }
 
 @test "automatically choose subnet" {
-  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  # shellcheck disable=SC2030,SC2031
+  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
+
   dfx_start
 
   REGISTRY="rwlgt-iiaaa-aaaaa-aaaaa-cai"

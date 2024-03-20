@@ -2,6 +2,18 @@
 
 # UNRELEASED
 
+### feat(beta): enable cycles ledger support
+
+If the environment variable `DFX_CYCLES_LEDGER_SUPPORT_ENABLE` is set and no cycles wallet is configured, then dfx will try to use the cycles ledger to perform any operation that the cycles wallet usually is used for.
+
+The following commands/options have been unhidden:
+- `dfx cycles`
+- `--from-subaccount` for `dfx deploy`, `dfx canister create`, `dfx canister deposit-cycles` to determine which cycles ledger subaccount the used cycles should be used from
+- `--created-at-time` for `dfx deploy`, `dfx create canister`, `dfx canister deposit-cycles` to control transaction deduplication on the cycles ledger
+- `--to-subaccount` for `dfx canister delete` to control into which subaccount cycles are withdrawn before the canister is deleted
+
+The cycles ledger will not be supported by default until the cycles ledger canister is under NNS control.
+
 ### feat: dfx canister call ... --output json
 
 This is the same as `dfx canister call ... | idl2json`, for convenience.

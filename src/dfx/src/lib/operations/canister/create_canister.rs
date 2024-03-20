@@ -7,7 +7,7 @@ use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
 use crate::lib::identity::wallet::{get_or_create_wallet_canister, GetOrCreateWalletCanisterError};
 use crate::lib::ledger_types::MAINNET_CYCLE_MINTER_CANISTER_ID;
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
-use crate::lib::operations::cycles_ledger::{create_with_cycles_ledger, CYCLES_LEDGER_ENABLED};
+use crate::lib::operations::cycles_ledger::{create_with_cycles_ledger, cycles_ledger_enabled};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -138,7 +138,7 @@ The command line value will be used.",
             {
                 Ok(wallet) => CallSender::Wallet(*wallet.canister_id_()),
                 Err(err) => {
-                    if CYCLES_LEDGER_ENABLED
+                    if cycles_ledger_enabled()
                         && matches!(
                             err,
                             GetOrCreateWalletCanisterError::NoWalletConfigured { .. }
@@ -158,7 +158,7 @@ The command line value will be used.",
         CallSender::SelectedId => {
             let auto_wallet_disabled = std::env::var("DFX_DISABLE_AUTO_WALLET").is_ok();
             let ic_network = env.get_network_descriptor().is_ic;
-            if CYCLES_LEDGER_ENABLED && (ic_network || auto_wallet_disabled) {
+            if cycles_ledger_enabled() && (ic_network || auto_wallet_disabled) {
                 create_with_cycles_ledger(
                     env,
                     agent,
