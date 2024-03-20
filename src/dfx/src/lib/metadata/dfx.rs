@@ -60,29 +60,23 @@ impl DfxMetadata {
             }
             (Some(_), None) => version.clone(),
             (None, Some(command)) => {
-                let output = run_command(command, &[], project_root, false).with_context(|| {
+                let bytes = run_command(command, &[], project_root, false).with_context(|| {
                     format!(
                         "Failed to run the version_command for tech_stack item {}",
                         name
                     )
                 })?;
-                match output {
-                    Some(bytes) => Some(
-                        String::from_utf8(bytes)
-                            .with_context(|| {
-                                format!(
-                            "The version_command for tech_stack item `{}` didn't return a valid utf8 string.",
-                            name
-                        )
-                            })?
-                            .trim()
-                            .to_string(),
-                    ),
-                    None => bail!(
-                        "The version_command for tech_stack item `{}` didn't return a version.",
+                Some(
+                    String::from_utf8(bytes)
+                        .with_context(|| {
+                            format!(
+                        "The version_command for tech_stack item `{}` didn't return a valid utf8 string.",
                         name
-                    ),
-                }
+                    )
+                        })?
+                        .trim()
+                        .to_string(),
+                )
             }
             (None, None) => None,
         };

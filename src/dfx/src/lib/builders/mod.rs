@@ -3,7 +3,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
 use dfx_core::config::model::dfinity::{Config, Profile};
@@ -325,28 +325,17 @@ fn ensure_trailing_newline(s: String) -> String {
 }
 
 /// Run a command and return its output.
-/// If the command is empty, None is returned.
-/// If the io_inherit is true, Some(vec![]) is returned.
+/// If the io_inherit is true, the return bytes will always be empty.
 pub fn run_command(
     command: &str,
     vars: &[Env<'_>],
     cwd: &Path,
     io_inherit: bool,
-) -> DfxResult<Option<Vec<u8>>> {
-    // First separate everything as if it was read from a shell.
-    let args = shell_words::split(command)
-        .with_context(|| format!("Cannot parse command '{}'.", command))?;
-    // no commands, noop
-    if args.is_empty() {
-        return Ok(None);
-    }
-    let (command_name, arguments) = args.split_first().unwrap();
-    let canonicalized = dfx_core::fs::canonicalize(&cwd.join(command_name))
-        .or_else(|_| which::which(command_name))
-        .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
-    let mut cmd = Command::new(canonicalized);
-
-    cmd.args(arguments).current_dir(cwd);
+) -> DfxResult<Vec<u8>> {
+    let mut cmd = Command::new("sh");
+    // equals to run `sh -c command`
+    // Therefore the command can have pipes, redirections, etc.
+    cmd.args(["-c", command]).current_dir(cwd);
     if io_inherit {
         cmd.stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
@@ -359,7 +348,7 @@ pub fn run_command(
         .output()
         .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
     if output.status.success() {
-        Ok(Some(output.stdout))
+        Ok(output.stdout)
     } else {
         Err(DfxError::new(BuildError::CustomToolError(
             output.status.code(),

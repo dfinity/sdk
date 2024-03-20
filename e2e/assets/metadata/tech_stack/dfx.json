@@ -43,7 +43,7 @@
                 },
                 {
                     "name": "rust",
-                    "version_command": "echo 1.76.0"
+                    "version_command": "rustc --version | cut -d \" \" -f 2"
                 },
                 {
                     "name": "wasm-tools"

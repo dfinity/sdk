@@ -197,6 +197,7 @@ teardown() {
 }
 
 @test "can generate tech_stack field of the standardized dfx metadata" {
+  rustup default 1.76.0
   dfx_new
   install_asset metadata/tech_stack
 
