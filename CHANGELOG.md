@@ -2,6 +2,16 @@
 
 # UNRELEASED
 
+### fix: call management canister Bitcoin query API without replica-signed query
+
+`dfx canister call --query` defaults to use "Replica-signed query" feature.
+
+It doesn't work with query calls to the management canister because the Boundary Nodes don't how to route the `read_state` call.
+
+For such query calls to the management canister, `dfx` will make the query calls without checking the replica signatures.
+
+If the response reliability is a concern, you can make update calls to the secure alternatives.
+
 ### feat: dfx canister call ... --output json
 
 This is the same as `dfx canister call ... | idl2json`, for convenience.
@@ -12,15 +22,15 @@ See also: https://github.com/dfinity/idl2json
 
 Added commas in between fields, and newlines to improve formatting.
 
-### fix canister status output to be grep compatible
+### fix: canister status output to be grep compatible
 
 `dfx canister status` now outputs to `stdout`, rather than `stderr`, so that its output is `grep` compatible.
 
-### fix fetching canister logs to be grep & tail compatible
+### fix: fetching canister logs to be grep & tail compatible
 
 `dfx canister logs` now outputs to stdout, rather than stderr, so that its output is `grep` and `tail` compatible.
 
-### fix fetching canister logs
+### fix: fetching canister logs
 
 The management canister method `fetch_canister_logs` can be called only as a query, not as an update call. Therefore, `dfx canister logs <canister_id>` now uses a query call for this purpose.
 
