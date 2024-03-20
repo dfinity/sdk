@@ -332,22 +332,28 @@ pub fn run_command(
     cwd: &Path,
     io_inherit: bool,
 ) -> DfxResult<Vec<u8>> {
-    let mut args = shell_words::split(command)
-        .with_context(|| format!("Cannot parse command '{}'.", command))?;
     // No commands, noop.
-    if args.is_empty() {
+    if command.is_empty() {
         return Ok(vec![]);
     }
-    let first = &args[0];
+    let (first, rest) = match command.split_once(' ') {
+        Some((first, rest)) => (first, rest),
+        None => (command, ""),
+    };
+
     let canonicalized = dfx_core::fs::canonicalize(&cwd.join(first))
         .or_else(|_| which::which(first))
         .map_err(|_| anyhow!("Cannot find command or file {first}"))?;
-    args[0] = canonicalized.to_string_lossy().to_string();
-
+    let canonicalized_command = [
+        canonicalized.to_string_lossy().to_string(),
+        rest.to_string(),
+    ]
+    .join(" ");
+    eprintln!("Running command: {}", canonicalized_command);
     let mut cmd = Command::new("sh");
     // equals to run `sh -c command`
-    // Therefore the command can have pipes, redirections, etc.
-    cmd.args(["-c", &args.join(" ")]).current_dir(cwd);
+    // Therefore the command can have pipes
+    cmd.args(["-c", &canonicalized_command]).current_dir(cwd);
     if io_inherit {
         cmd.stdin(Stdio::inherit())
             .stdout(Stdio::inherit())

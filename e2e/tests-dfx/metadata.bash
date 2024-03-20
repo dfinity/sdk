@@ -254,6 +254,7 @@ teardown() {
   assert_contains "Failed to run the \"version_command\" of tech_stack item \"rust\"."
 
   # h defines a version_command that returns a non-valid string
+  echo -e "\xc3\x28" > invalid_utf8.txt
   assert_command_fail dfx deploy h
   assert_contains "The \"version_command\" of tech_stack item \"rust\" didn't return a valid UTF-8 string."
 }

@@ -20,7 +20,7 @@
             "tech_stack": [
                 {
                     "name": "rust",
-                    "version_command": "echo 1.76.0"
+                    "version_command": "rustc --version | cut -d \" \" -f 2"
                 }
             ]
         },
@@ -77,7 +77,7 @@
             "tech_stack": [
                 {
                     "name": "rust",
-                    "version_command": "echo -e \"\\xc3\\x28\""
+                    "version_command": "cat invalid_utf8.txt"
                 }
             ]
         }
