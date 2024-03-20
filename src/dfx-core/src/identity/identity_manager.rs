@@ -153,9 +153,8 @@ pub struct HardwareIdentityConfiguration {
 pub enum DelegationSigningIdentityType {
     #[default]
     Basic,
-    Secp256k1
+    Secp256k1,
 }
-
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct DelegationSigningIdentity {
@@ -169,7 +168,7 @@ pub struct DelegationSigningIdentity {
 pub struct DelegatedIdentityConfiguration {
     pub from_public_key: Vec<u8>,
     pub signing_identity: DelegationSigningIdentity,
-    pub chain: Vec<SignedDelegation>
+    pub chain: Vec<SignedDelegation>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq)]

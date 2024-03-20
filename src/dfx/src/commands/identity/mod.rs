@@ -8,6 +8,7 @@ mod export;
 mod get_wallet;
 mod import;
 mod list;
+mod login;
 mod new;
 mod principal;
 mod remove;
@@ -35,6 +36,7 @@ enum SubCommand {
     GetWallet(get_wallet::GetWalletOpts),
     Import(import::ImportOpts),
     List(list::ListOpts),
+    Login(login::LoginOpts),
     New(new::NewIdentityOpts),
     GetPrincipal(principal::GetPrincipalOpts),
     Remove(remove::RemoveOpts),
@@ -50,6 +52,7 @@ pub fn exec(env: &dyn Environment, opts: IdentityOpts) -> DfxResult {
         SubCommand::Export(v) => export::exec(env, v),
         SubCommand::GetWallet(v) => get_wallet::exec(env, v, opts.network),
         SubCommand::List(v) => list::exec(env, v),
+        SubCommand::Login(v) => login::exec(env, v),
         SubCommand::New(v) => new::exec(env, v),
         SubCommand::GetPrincipal(v) => principal::exec(env, v),
         SubCommand::Import(v) => import::exec(env, v),

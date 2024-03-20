@@ -22,6 +22,25 @@ pub struct ImportOpts {
     #[arg(long, conflicts_with("pem_file"), required_unless_present("pem_file"))]
     seed_file: Option<PathBuf>,
 
+    // A JSON-encoded string containing an identity delegation chain, targeting an existing identity. Takes two keys:
+    // • baseIdentity - The identity to delegate to. If not specified, the identity is delegated to the default identity. Will accept a name or a principal.
+    // • delegations - An array of delegations, each containing an expiration, pubkey, targets, and signature.
+    // {
+    //   The identity to delegate to. If not specified, the identity is delegated to the default identity. Will accept a name or a principal.
+    //   baseIdentity: "default",
+    //   delegations: [
+    //     {
+    //       delegation: {
+    //         expiration: '1655f29d787c0000',
+    //         pubkey: '302a...',
+    //         targets: [ '00000000002000030101' ]
+    //       },
+    //       signature: 'ba46e...'
+    //     }
+    //   ],
+    // }
+
+    // delegation_string: Option<String>,
     /// DEPRECATED: Please use --storage-mode=plaintext instead
     #[arg(long)]
     disable_encryption: bool,
