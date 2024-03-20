@@ -196,7 +196,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12, ubuntu-20.04, ubuntu-22.04]
+        # os: [macos-12, ubuntu-20.04, ubuntu-22.04]
+        os: [macos-12, ubuntu-22.04] # ubuntu-20.04 started to fail when installing playwright
     steps:
       - name: Checking out repo
         uses: actions/checkout@v4
