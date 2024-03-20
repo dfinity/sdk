@@ -262,6 +262,14 @@ pub async fn exec(
                     // We have to use a non-verify_query_signatures agent to make the call.
                     // Rust's lifetime rule forces us to create the special env/agent outside this block.
                     agent = non_verify_query_signatures_agent;
+                    let secure_alt = match management_method {
+                        MgmtMethod::BitcoinGetBalanceQuery => "bitcoin_get_balance",
+                        MgmtMethod::BitcoinGetUtxosQuery => "bitcoin_get_utxos",
+                        _ => unreachable!(),
+                    };
+                    warn!(env.get_logger(), "Query calls to the management canister cannot be benefit from the \"Replica Signed Queries\" feature.
+The response might not be trustworthy.
+If you want to get reliable result, you can make an update call to the secure alternative: {secure_alt}");
                 }
                 CallSender::Wallet(_) => {
                     return Err(DiagnosedError::new(
