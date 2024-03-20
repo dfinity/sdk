@@ -49,20 +49,20 @@ impl DfxMetadata {
         } = tech_stack_item;
         if self.tech_stack.contains_key(name) {
             bail!(
-                "The tech_stack item with name `{}` is defined more than once in dfx.json.",
+                "The tech_stack item with name \"{}\" is defined more than once in dfx.json.",
                 name
             );
         }
 
         let version = match (version, version_command) {
             (Some(_), Some(_)) => {
-                bail!("The tech_stack item with name `{}` has both `version` and `version_command` defined. Please keep at most one of them.", name)
+                bail!("The tech_stack item with name \"{}\" defines both \"version\" and \"version_command\" defined. Please keep at most one of them.", name)
             }
             (Some(_), None) => version.clone(),
             (None, Some(command)) => {
                 let bytes = run_command(command, &[], project_root, false).with_context(|| {
                     format!(
-                        "Failed to run the version_command for tech_stack item {}",
+                        "Failed to run the \"version_command\" of tech_stack item \"{}\".",
                         name
                     )
                 })?;
@@ -70,7 +70,7 @@ impl DfxMetadata {
                     String::from_utf8(bytes)
                         .with_context(|| {
                             format!(
-                        "The version_command for tech_stack item `{}` didn't return a valid utf8 string.",
+                        "The \"version_command\" of tech_stack item \"{}\" didn't return a valid UTF-8 string.",
                         name
                     )
                         })?

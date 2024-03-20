@@ -49,6 +49,37 @@
                     "name": "wasm-tools"
                 }
             ]
+        },
+        "f": {
+            "type": "motoko",
+            "main": "main.mo",
+            "tech_stack": [
+                {
+                    "name": "rust",
+                    "version": "1.76.0",
+                    "version_command": "rustc --version | cut -d \" \" -f 2"
+                }
+            ]
+        },
+        "g": {
+            "type": "motoko",
+            "main": "main.mo",
+            "tech_stack": [
+                {
+                    "name": "rust",
+                    "version_command": "false"
+                }
+            ]
+        },
+        "h": {
+            "type": "motoko",
+            "main": "main.mo",
+            "tech_stack": [
+                {
+                    "name": "rust",
+                    "version_command": "echo -e \"\\xc3\\x28\""
+                }
+            ]
         }
     }
 }

@@ -202,12 +202,13 @@ teardown() {
   install_asset metadata/tech_stack
 
   dfx_start
-  assert_command dfx deploy
 
   # a doesn't define the tech_stack object, the dfx metadata is not added
+  assert_command dfx deploy a
   assert_command_fail dfx canister metadata a dfx
 
   # b defines a tech_stack item with version
+  assert_command dfx deploy b
   assert_command dfx canister metadata b dfx
   assert_match '{
   "tech_stack": {
@@ -216,6 +217,7 @@ teardown() {
 }'
 
   # c defines a tech_stack item with version_command
+  assert_command dfx deploy c
   assert_command dfx canister metadata c dfx
   assert_match '{
   "tech_stack": {
@@ -224,6 +226,7 @@ teardown() {
 }'
 
   # d defines a tech_stack item without version/version_command
+  assert_command dfx deploy d
   assert_command dfx canister metadata d dfx
   assert_match '{
   "tech_stack": {
@@ -232,6 +235,7 @@ teardown() {
 }'
 
   # e defines multiple tech_stack items
+  assert_command dfx deploy e
   assert_command dfx canister metadata e dfx
   assert_match '{
   "tech_stack": {
@@ -240,4 +244,16 @@ teardown() {
     "wasm-tools": null
   }
 }'
+
+  # f defines both version and version_command for the same tech_stack item
+  assert_command_fail dfx deploy f
+  assert_contains "The tech_stack item with name \"rust\" defines both \"version\" and \"version_command\" defined. Please keep at most one of them."
+
+  # g defines a version_command that fails
+  assert_command_fail dfx deploy g
+  assert_contains "Failed to run the \"version_command\" of tech_stack item \"rust\"."
+
+  # h defines a version_command that returns a non-valid string
+  assert_command_fail dfx deploy h
+  assert_contains "The \"version_command\" of tech_stack item \"rust\" didn't return a valid UTF-8 string."
 }
