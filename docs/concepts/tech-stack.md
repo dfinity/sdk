@@ -4,9 +4,9 @@
 
 Canister authors can opt in to display the tech stack of the canister.
 
-The tech stack can include but not limit to the programming languages, CDKs, libraries, tools.
+The tech stack includes but not limit to the programming languages, CDKs, libraries, tools.
 
-Providing a standard format of such information makes it easier to build tools like Canister Explorers.
+Providing a standard format of such information makes it easier to build tools like a Canister Explorer.
 
 ## JSON schema
 
@@ -33,21 +33,6 @@ Each key-value pair is a tech stack item.
 
 The example above was generated from the `dfx.json` configuration below.
 
-In `dfx.json`, the optional `"tech_stack"` field is a JSON array.
-
-Each element corresponding to one tech stack item.
-
-An element may be defined in three forms:
-
-* `"name"` and `"version"`:
-  * Their value directly map to the key/value above.
-* `"name"` and `"version_command"`:
-  * The value of `"version_command"` should be a CLI command
-  * The command will be run in workspace root (dir contains `dfx.json`)
-  * The stdout of the command will be stripped to get the version.
-* `"name"` only:
-  * The version will be `null`.
-
 ```json
 {
   "canisters": {
@@ -70,3 +55,21 @@ An element may be defined in three forms:
   }
 }
 ```
+
+In `dfx.json`, the optional `"tech_stack"` field is a JSON array.
+
+Each element corresponds to one tech stack item.
+
+An element may be defined in three forms:
+
+* `"name"` and `"version"`:
+  * Their value directly map to the key/value above.
+* `"name"` and `"version"`:
+  * The value of `"version_command"` should be a CLI command.
+  * The command will be run in workspace root (dir contains `dfx.json`).
+  * The stdout should be a valid UTF-8 string.
+  * The stdout will be stripped to get the version.
+* `"name"` only:
+  * The version will be `null`.
+
+Defining both `"version"` and `"version_command"` will result in an error.
