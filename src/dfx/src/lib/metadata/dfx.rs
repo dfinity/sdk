@@ -21,8 +21,8 @@ pub struct DfxMetadata {
     /// # Tech Stack
     /// A map of the canister name to the tech_stack item version.
     /// The tech_stack item version is optional.
-    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
-    pub tech_stack: BTreeMap<String, Option<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tech_stack: Option<BTreeMap<String, Option<String>>>,
 }
 
 impl DfxMetadata {
@@ -47,7 +47,8 @@ impl DfxMetadata {
             version,
             version_command,
         } = tech_stack_item;
-        if self.tech_stack.contains_key(name) {
+        let map = self.tech_stack.get_or_insert_with(BTreeMap::new);
+        if map.contains_key(name) {
             bail!(
                 "The tech_stack item with name \"{}\" is defined more than once in dfx.json.",
                 name
@@ -81,7 +82,7 @@ impl DfxMetadata {
             (None, None) => None,
         };
 
-        self.tech_stack.insert(name.clone(), version);
+        map.insert(name.clone(), version);
 
         Ok(())
     }

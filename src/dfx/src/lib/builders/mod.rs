@@ -3,7 +3,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
 use dfx_core::config::model::dfinity::{Config, Profile};
@@ -332,10 +332,22 @@ pub fn run_command(
     cwd: &Path,
     io_inherit: bool,
 ) -> DfxResult<Vec<u8>> {
+    let mut args = shell_words::split(command)
+        .with_context(|| format!("Cannot parse command '{}'.", command))?;
+    // No commands, noop.
+    if args.is_empty() {
+        return Ok(vec![]);
+    }
+    let first = &args[0];
+    let canonicalized = dfx_core::fs::canonicalize(&cwd.join(first))
+        .or_else(|_| which::which(first))
+        .map_err(|_| anyhow!("Cannot find command or file {first}"))?;
+    args[0] = canonicalized.to_string_lossy().to_string();
+
     let mut cmd = Command::new("sh");
     // equals to run `sh -c command`
     // Therefore the command can have pipes, redirections, etc.
-    cmd.args(["-c", command]).current_dir(cwd);
+    cmd.args(["-c", &args.join(" ")]).current_dir(cwd);
     if io_inherit {
         cmd.stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
