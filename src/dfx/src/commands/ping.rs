@@ -50,13 +50,7 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
 
     let timeout = expiry_duration();
     let identity = Box::new(Identity::anonymous());
-    let agent = create_agent(
-        env.get_logger().clone(),
-        &agent_url,
-        identity,
-        timeout,
-        true,
-    )?;
+    let agent = create_agent(env.get_logger().clone(), &agent_url, identity, timeout)?;
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {

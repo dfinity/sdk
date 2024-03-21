@@ -22,7 +22,7 @@ pub mod status;
 pub async fn create_integrations_agent(url: &str, logger: &Logger) -> DfxResult<Agent> {
     let timeout = expiry_duration();
     let identity = Box::new(Identity::anonymous());
-    let agent = create_agent(logger.clone(), url, identity, timeout, true).unwrap();
+    let agent = create_agent(logger.clone(), url, identity, timeout).unwrap();
     agent
         .fetch_root_key()
         .await

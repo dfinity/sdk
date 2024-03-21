@@ -1,4 +1,3 @@
-use crate::lib::agent::create_non_verify_query_signatures_agent_environment;
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -194,9 +193,8 @@ pub async fn exec(
     env: &dyn Environment,
     opts: CanisterCallOpts,
     call_sender: &CallSender,
-    network_name: Option<String>,
 ) -> DfxResult {
-    let mut agent = env.get_agent();
+    let agent = env.get_agent();
     fetch_root_key_if_needed(env).await?;
 
     let method_name = opts.method_name.as_str();
@@ -240,10 +238,7 @@ pub async fn exec(
         false,
     )?;
 
-    let non_verify_query_signatures_agent_env =
-        create_non_verify_query_signatures_agent_environment(env, network_name)?;
-    fetch_root_key_if_needed(&non_verify_query_signatures_agent_env).await?;
-    let non_verify_query_signatures_agent = non_verify_query_signatures_agent_env.get_agent();
+    let mut disable_verify_query_signatures = false;
     let effective_canister_id = if canister_id == CanisterId::management_canister() {
         let management_method = MgmtMethod::from_str(method_name).map_err(|_| {
             anyhow!(
@@ -261,12 +256,14 @@ pub async fn exec(
                     // Query calls to those two bitcoin query methods can not make a following read_state call.
                     // We have to use a non-verify_query_signatures agent to make the call.
                     // Rust's lifetime rule forces us to create the special env/agent outside this block.
-                    agent = non_verify_query_signatures_agent;
+                    // agent = non_verify_query_signatures_agent;
+                    disable_verify_query_signatures = true;
                     let secure_alt = match management_method {
                         MgmtMethod::BitcoinGetBalanceQuery => "bitcoin_get_balance",
                         MgmtMethod::BitcoinGetUtxosQuery => "bitcoin_get_utxos",
                         _ => unreachable!(),
                     };
+                    // TODO: narrow to the specific method
                     warn!(env.get_logger(), "Query calls to the management canister cannot be benefit from the \"Replica Signed Queries\" feature.
 The response might not be trustworthy.
 If you want to get reliable result, you can make an update call to the secure alternative: {secure_alt}");
@@ -351,13 +348,19 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
 
     if is_query {
         let blob = match call_sender {
-            CallSender::SelectedId => agent
-                .query(&canister_id, method_name)
-                .with_effective_canister_id(effective_canister_id)
-                .with_arg(arg_value)
-                .call()
-                .await
-                .context("Failed query call.")?,
+            CallSender::SelectedId => {
+                let query_builder = agent
+                    .query(&canister_id, method_name)
+                    .with_effective_canister_id(effective_canister_id)
+                    .with_arg(arg_value);
+                match disable_verify_query_signatures {
+                    true => query_builder
+                        .call_without_verification()
+                        .await
+                        .context("Failed query call.")?,
+                    false => query_builder.call().await.context("Failed query call.")?,
+                }
+            }
             CallSender::Wallet(wallet_id) => {
                 let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 do_wallet_call(

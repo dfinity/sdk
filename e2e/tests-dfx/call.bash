@@ -237,7 +237,6 @@ teardown() {
   assert_match '("Hello, you!")'
 }
 
-
 @test "call management canister - bitcoin query API on the IC mainnet" {
   WARNING="Query calls to the management canister cannot be benefit from the \"Replica Signed Queries\" feature.
 The response might not be trustworthy.

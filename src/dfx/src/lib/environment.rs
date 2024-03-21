@@ -249,7 +249,6 @@ impl<'a> AgentEnvironment<'a> {
         network_descriptor: NetworkDescriptor,
         timeout: Duration,
         use_identity: Option<&str>,
-        verify_query_signatures: bool,
     ) -> DfxResult<Self> {
         let logger = backend.get_logger().clone();
         let mut identity_manager = backend.new_identity_manager()?;
@@ -269,7 +268,7 @@ impl<'a> AgentEnvironment<'a> {
 
         Ok(AgentEnvironment {
             backend,
-            agent: create_agent(logger, url, identity, timeout, verify_query_signatures)?,
+            agent: create_agent(logger, url, identity, timeout)?,
             network_descriptor: network_descriptor.clone(),
             identity_manager,
         })
@@ -358,7 +357,6 @@ pub fn create_agent(
     url: &str,
     identity: Box<dyn Identity + Send + Sync>,
     timeout: Duration,
-    verify_query_signatures: bool,
 ) -> DfxResult<Agent> {
     let disable_query_verification =
         std::env::var("DFX_DISABLE_QUERY_VERIFICATION").is_ok_and(|x| !x.trim().is_empty());
@@ -367,7 +365,7 @@ pub fn create_agent(
             url,
         )?)
         .with_boxed_identity(identity)
-        .with_verify_query_signatures(!disable_query_verification && verify_query_signatures)
+        .with_verify_query_signatures(!disable_query_verification)
         .with_ingress_expiry(Some(timeout))
         .build()?;
     Ok(agent)

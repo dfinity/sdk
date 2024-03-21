@@ -64,11 +64,10 @@ pub enum SubCommand {
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env;
-    let network_name = opts.network.to_network_name();
     let env = if matches!(&opts.subcmd, SubCommand::Id(_)) {
         env
     } else {
-        agent_env = create_agent_environment(env, network_name.clone())?;
+        agent_env = create_agent_environment(env, opts.network.to_network_name())?;
         &agent_env
     };
     let runtime = Runtime::new().expect("Unable to create a runtime");
@@ -77,7 +76,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
         let call_sender = CallSender::from(&opts.wallet)
             .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
         match opts.subcmd {
-            SubCommand::Call(v) => call::exec(env, v, &call_sender, network_name).await,
+            SubCommand::Call(v) => call::exec(env, v, &call_sender).await,
             SubCommand::Create(v) => create::exec(env, v, &call_sender).await,
             SubCommand::Delete(v) => delete::exec(env, v, &call_sender).await,
             SubCommand::DepositCycles(v) => deposit_cycles::exec(env, v, &call_sender).await,
