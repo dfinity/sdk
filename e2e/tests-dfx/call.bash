@@ -238,7 +238,7 @@ teardown() {
 }
 
 @test "call management canister - bitcoin query API on the IC mainnet" {
-  WARNING="Query calls to the management canister cannot be benefit from the \"Replica Signed Queries\" feature.
+  WARNING="call to the management canister cannot be benefit from the \"Replica Signed Queries\" feature.
 The response might not be trustworthy.
 If you want to get reliable result, you can make an update call to the secure alternative:"
   # bitcoin_get_balance_query
@@ -249,7 +249,7 @@ If you want to get reliable result, you can make an update call to the secure al
     address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
   }
 )'
-  assert_contains "$WARNING bitcoin_get_balance"
+  assert_contains "bitcoin_get_balance_query $WARNING bitcoin_get_balance"
   ## bitcoin testnet
   assert_command dfx canister call --network ic --query aaaaa-aa bitcoin_get_balance_query '(
   record {
@@ -257,9 +257,9 @@ If you want to get reliable result, you can make an update call to the secure al
     address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
   }
 )'
-  assert_contains "$WARNING bitcoin_get_balance"
+  assert_contains "bitcoin_get_balance_query $WARNING bitcoin_get_balance"
 
-  # bitcoin_get_balance_query
+  # bitcoin_get_utxos_query
   ## bitcoin mainnet
   assert_command dfx canister call --network ic --query aaaaa-aa bitcoin_get_utxos_query '(
   record {
@@ -267,7 +267,7 @@ If you want to get reliable result, you can make an update call to the secure al
     address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
   }
 )'
-  assert_contains "$WARNING bitcoin_get_utxos"
+  assert_contains "bitcoin_get_utxos_query $WARNING bitcoin_get_utxos"
 
   ## bitcoin testnet
   assert_command dfx canister call --network ic --query aaaaa-aa bitcoin_get_utxos_query '(
@@ -276,5 +276,5 @@ If you want to get reliable result, you can make an update call to the secure al
     address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
   }
 )'
-  assert_contains "$WARNING bitcoin_get_utxos"
+  assert_contains "bitcoin_get_utxos_query $WARNING bitcoin_get_utxos"
 }

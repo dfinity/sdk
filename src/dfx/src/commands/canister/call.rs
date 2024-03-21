@@ -263,8 +263,7 @@ pub async fn exec(
                         MgmtMethod::BitcoinGetUtxosQuery => "bitcoin_get_utxos",
                         _ => unreachable!(),
                     };
-                    // TODO: narrow to the specific method
-                    warn!(env.get_logger(), "Query calls to the management canister cannot be benefit from the \"Replica Signed Queries\" feature.
+                    warn!(env.get_logger(), "{method_name} call to the management canister cannot be benefit from the \"Replica Signed Queries\" feature.
 The response might not be trustworthy.
 If you want to get reliable result, you can make an update call to the secure alternative: {secure_alt}");
                 }
