@@ -21,11 +21,11 @@ license = "Apache-2.0"
 [workspace.dependencies]
 candid = "0.10.4"
 candid_parser = "0.1.4"
-ic-agent = { git = "https://github.com/dfinity/agent-rs.git", rev = "5b8bf70871e23c53ee3bfe6d60911ecfa48abe48" }
+ic-agent = { git = "https://github.com/dfinity/agent-rs.git", rev = "8c39e26236e3e3db6db51ffa71e34140c19d207e" }
 ic-asset = { path = "src/canisters/frontend/ic-asset" }
 ic-cdk = "0.13.1"
-ic-identity-hsm = { git = "https://github.com/dfinity/agent-rs.git", rev = "5b8bf70871e23c53ee3bfe6d60911ecfa48abe48" }
-ic-utils = { git = "https://github.com/dfinity/agent-rs.git", rev = "5b8bf70871e23c53ee3bfe6d60911ecfa48abe48" }
+ic-identity-hsm = { git = "https://github.com/dfinity/agent-rs.git", rev = "8c39e26236e3e3db6db51ffa71e34140c19d207e" }
+ic-utils = { git = "https://github.com/dfinity/agent-rs.git", rev = "8c39e26236e3e3db6db51ffa71e34140c19d207e" }
 
 aes-gcm = "0.10.3"
 anyhow = "1.0.56"
