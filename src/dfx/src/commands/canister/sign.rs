@@ -44,7 +44,12 @@ pub struct CanisterSignOpts {
     update: bool,
 
     /// Specifies the config for generating random argument.
-    #[arg(long, conflicts_with("argument"), conflicts_with("argument_file"))]
+    #[arg(
+        long,
+        conflicts_with("argument"),
+        conflicts_with("argument_file"),
+        conflicts_with("always_assist")
+    )]
     random: Option<String>,
 
     /// Specifies how long the message will be valid in seconds, default to be 300s (5 minutes)
@@ -54,6 +59,15 @@ pub struct CanisterSignOpts {
     /// Specifies the output file name.
     #[arg(long, default_value = "message.json")]
     file: PathBuf,
+
+    /// Always use Candid assist when the argument types are all optional.
+    #[arg(
+        long,
+        conflicts_with("argument"),
+        conflicts_with("argument_file"),
+        conflicts_with("random")
+    )]
+    always_assist: bool,
 }
 
 pub async fn exec(
@@ -100,6 +114,7 @@ pub async fn exec(
         argument_type.as_deref(),
         &method_type,
         false,
+        opts.always_assist,
     )?;
     let agent = env.get_agent();
 

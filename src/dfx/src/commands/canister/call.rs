@@ -50,7 +50,12 @@ pub struct CanisterCallOpts {
     update: bool,
 
     /// Specifies the config for generating random argument.
-    #[arg(long, conflicts_with("argument"), conflicts_with("argument_file"))]
+    #[arg(
+        long,
+        conflicts_with("argument"),
+        conflicts_with("argument_file"),
+        conflicts_with("always_assist")
+    )]
     random: Option<String>,
 
     /// Specifies the format for displaying the method's return result.
@@ -68,6 +73,15 @@ pub struct CanisterCallOpts {
     /// for project canisters.
     #[arg(long)]
     candid: Option<PathBuf>,
+
+    /// Always use Candid assist when the argument types are all optional.
+    #[arg(
+        long,
+        conflicts_with("argument"),
+        conflicts_with("argument_file"),
+        conflicts_with("random")
+    )]
+    always_assist: bool,
 }
 
 #[derive(Clone, CandidType, Deserialize, Debug)]
@@ -236,6 +250,7 @@ pub async fn exec(
         argument_type.as_deref(),
         &method_type,
         false,
+        opts.always_assist,
     )?;
 
     let mut disable_verify_query_signatures = false;
