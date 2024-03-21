@@ -121,7 +121,7 @@ async fn request_id_via_wallet_call(
         .map_err(|err| anyhow!("Agent error {}", err))
 }
 
-// TODO: move to ic_utils
+// TODO: move to ic_utils? SDKTG-302
 pub fn get_effective_canister_id(
     method_name: &MgmtMethod,
     arg_value: &[u8],
