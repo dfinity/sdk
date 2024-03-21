@@ -207,6 +207,7 @@ set_local_network_bitcoin_enabled() {
     min_confirmations = opt (1 : nat32);
   }
 )'
+  # shellcheck disable=SC2154
   assert_eq "(0 : nat64)" "$stdout"
 
   # bitcoin_get_balance_query
