@@ -50,6 +50,7 @@ pub async fn install_canister(
     skip_consent: bool,
     env_file: Option<&Path>,
     no_asset_upgrade: bool,
+    always_assist: bool,
 ) -> DfxResult {
     let log = env.get_logger();
     let agent = env.get_agent();
@@ -165,8 +166,15 @@ The command line value will be used.",
             (None, Some(_)) => (argument_from_json, Some("idl")), // `init_arg` in dfx.json is always in Candid format
             (None, None) => (None, None),
         };
-        let install_args =
-            blob_from_arguments(Some(env), argument, None, argument_type, &init_type, true)?;
+        let install_args = blob_from_arguments(
+            Some(env),
+            argument,
+            None,
+            argument_type,
+            &init_type,
+            true,
+            always_assist,
+        )?;
         if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
             let new_timestamp = playground_install_code(
                 env,

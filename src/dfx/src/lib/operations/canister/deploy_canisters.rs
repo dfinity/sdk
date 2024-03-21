@@ -38,6 +38,7 @@ pub enum DeployMode {
 }
 
 #[context("Failed while trying to deploy canisters.")]
+#[allow(clippy::too_many_arguments)]
 pub async fn deploy_canisters(
     env: &dyn Environment,
     some_canister: Option<&str>,
@@ -55,6 +56,7 @@ pub async fn deploy_canisters(
     env_file: Option<PathBuf>,
     no_asset_upgrade: bool,
     subnet_selection: &mut SubnetSelectionType,
+    always_assist: bool,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -156,6 +158,7 @@ pub async fn deploy_canisters(
                 skip_consent,
                 env_file.as_deref(),
                 no_asset_upgrade,
+                always_assist,
             )
             .await?;
             info!(log, "Deployed canisters.");
@@ -307,6 +310,7 @@ async fn install_canisters(
     skip_consent: bool,
     env_file: Option<&Path>,
     no_asset_upgrade: bool,
+    always_assist: bool,
 ) -> DfxResult {
     info!(env.get_logger(), "Installing canisters...");
 
@@ -340,6 +344,7 @@ async fn install_canisters(
             skip_consent,
             env_file,
             no_asset_upgrade,
+            always_assist,
         )
         .await?;
     }

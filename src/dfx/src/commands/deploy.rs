@@ -113,6 +113,15 @@ pub struct DeployOpts {
 
     #[command(flatten)]
     subnet_selection: SubnetSelectionOpt,
+
+    /// Always use Candid assist when the argument types are all optional.
+    #[arg(
+        long,
+        conflicts_with("argument"),
+        conflicts_with("argument_file"),
+        conflicts_with("yes")
+    )]
+    always_assist: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
@@ -192,6 +201,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         env_file,
         opts.no_asset_upgrade,
         &mut subnet_selection,
+        opts.always_assist,
     ))?;
 
     if matches!(deploy_mode, NormalDeploy | ForceReinstallSingleCanister(_)) {
