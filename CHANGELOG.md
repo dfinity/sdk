@@ -6,9 +6,9 @@
 
 `dfx canister call --query` defaults to use "Replica-signed query" feature.
 
-It doesn't work with query calls to the management canister because the Boundary Nodes don't how to route the `read_state` call.
+It doesn't work with bitcoin query calls to the management canister because the Boundary Nodes cannot route the `read_state` call.
 
-For such query calls to the management canister, `dfx` will make the query calls without checking the replica signatures.
+Only for these particular queries, `dfx` will make the query calls without checking the replica signatures.
 
 If the response reliability is a concern, you can make update calls to the secure alternatives.
 
