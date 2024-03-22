@@ -20,7 +20,7 @@
             "tech_stack": [
                 {
                     "name": "rust",
-                    "version_command": "rustc --version | cut -d \" \" -f 2"
+                    "version_command": "echo 'rustc 1.75.0 (82e1608df 2023-12-21)' | cut -d ' ' -f 2"
                 }
             ]
         },
@@ -43,7 +43,7 @@
                 },
                 {
                     "name": "rust",
-                    "version_command": "rustc --version | cut -d \" \" -f 2"
+                    "version_command": "echo 'rustc 1.75.0 (82e1608df 2023-12-21)' | cut -d ' ' -f 2"
                 },
                 {
                     "name": "wasm-tools"
@@ -57,7 +57,7 @@
                 {
                     "name": "rust",
                     "version": "1.76.0",
-                    "version_command": "rustc --version | cut -d \" \" -f 2"
+                    "version_command": "echo 'rustc 1.75.0 (82e1608df 2023-12-21)' | cut -d ' ' -f 2"
                 }
             ]
         },

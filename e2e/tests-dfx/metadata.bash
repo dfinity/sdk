@@ -197,7 +197,6 @@ teardown() {
 }
 
 @test "can generate tech_stack field of the standardized dfx metadata" {
-  rustup default 1.76.0
   dfx_new
   install_asset metadata/tech_stack
 
@@ -210,7 +209,7 @@ teardown() {
   # b defines a tech_stack item with version
   assert_command dfx deploy b
   assert_command dfx canister metadata b dfx
-  assert_match '{
+  assert_eq '{
   "tech_stack": {
     "ic-cdk": "0.13.0"
   }
@@ -219,16 +218,16 @@ teardown() {
   # c defines a tech_stack item with version_command
   assert_command dfx deploy c
   assert_command dfx canister metadata c dfx
-  assert_match '{
+  assert_eq '{
   "tech_stack": {
-    "rust": "1.76.0"
+    "rust": "1.75.0"
   }
 }'
 
   # d defines a tech_stack item without version/version_command
   assert_command dfx deploy d
   assert_command dfx canister metadata d dfx
-  assert_match '{
+  assert_eq '{
   "tech_stack": {
     "wasm-tools": null
   }
@@ -237,10 +236,10 @@ teardown() {
   # e defines multiple tech_stack items
   assert_command dfx deploy e
   assert_command dfx canister metadata e dfx
-  assert_match '{
+  assert_eq '{
   "tech_stack": {
     "ic-cdk": "0.13.0",
-    "rust": "1.76.0",
+    "rust": "1.75.0",
     "wasm-tools": null
   }
 }'
