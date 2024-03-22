@@ -197,6 +197,7 @@ pub fn blob_from_arguments(
     arg_type: Option<&str>,
     method_type: &Option<(TypeEnv, Function)>,
     is_init_arg: bool,
+    always_assist: bool,
 ) -> DfxResult<Vec<u8>> {
     let arg_type = arg_type.unwrap_or("idl");
     match arg_type {
@@ -226,6 +227,7 @@ pub fn blob_from_arguments(
                         .args
                         .iter()
                         .all(|t| matches!(t.as_ref(), TypeInner::Opt(_)))
+                        && !always_assist
                     {
                         // If the user provided no arguments, and if all the expected arguments are
                         // optional, then use null values.

@@ -71,6 +71,11 @@ Note that the default value of `allow_raw_access` is still `true`.
 Removed the logic for calling a different version of dfx based on DFX_VERSION or the `dfx` field in
 dfx.json.  This is now performed by dfxvm.
 
+### feat: --always-assist flag for `dfx canister call/install/sign and dfx deploy`
+
+When all the arguments are optional, dfx automatically provides a `null` value when no arguments are provided.
+`--always-assist` flag enables the candid assist feature for optional arguments, instead of providing a default `null` value.
+
 ## Dependencies
 
 ### Replica

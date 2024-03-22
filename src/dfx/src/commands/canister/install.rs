@@ -64,6 +64,15 @@ pub struct CanisterInstallOpts {
     /// Skips upgrading the asset canister, to only install the assets themselves.
     #[arg(long)]
     no_asset_upgrade: bool,
+
+    /// Always use Candid assist when the argument types are all optional.
+    #[arg(
+        long,
+        conflicts_with("argument"),
+        conflicts_with("argument_file"),
+        conflicts_with("yes")
+    )]
+    always_assist: bool,
 }
 
 pub async fn exec(
@@ -97,6 +106,7 @@ pub async fn exec(
                     argument_type.as_deref(),
                     &None,
                     true,
+                    opts.always_assist,
                 )?;
                 let wasm_module = dfx_core::fs::read(wasm_path)?;
                 let mode = mode.context("The install mode cannot be auto when using --wasm")?;
@@ -157,6 +167,7 @@ pub async fn exec(
                     opts.yes,
                     None,
                     opts.no_asset_upgrade,
+                    opts.always_assist,
                 )
                 .await
                 .map_err(Into::into)
@@ -176,6 +187,7 @@ pub async fn exec(
                     opts.yes,
                     env_file.as_deref(),
                     opts.no_asset_upgrade,
+                    opts.always_assist,
                 )
                 .await
                 .map_err(Into::into)
@@ -219,6 +231,7 @@ pub async fn exec(
                     opts.yes,
                     env_file.as_deref(),
                     opts.no_asset_upgrade,
+                    opts.always_assist,
                 )
                 .await?;
             }
