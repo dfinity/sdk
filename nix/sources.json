@@ -129,27 +129,27 @@
         "builtin": false,
         "description": "The Motoko base library",
         "owner": "dfinity",
-        "sha256": "1hk2ldsbgyg2qxf5qkn8gjjhx9m3wg5rsvc5mj5fw1lx1ln9nf74",
+        "sha256": "00nz3d2r7rs5gm500fzk370g8vrj89cw7qmck64zp7c4b8yybgah",
         "type": "tarball",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.11.0/motoko-base-library.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.11.1/motoko-base-library.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-base-library.tar.gz",
-        "version": "0.11.0"
+        "version": "0.11.1"
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
-        "sha256": "1xdj01hpvxmvmlwqh46psks80n57rm4fls6k3vkm4j3w08hjnkci",
+        "sha256": "0kx2wcn01fa9n4ff885bq158jahjrb2h3nzigqa2d0m0zsh1mis1",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.11.0/motoko-Darwin-x86_64-0.11.0.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.11.1/motoko-Darwin-x86_64-0.11.1.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Darwin-x86_64-<version>.tar.gz",
-        "version": "0.11.0"
+        "version": "0.11.1"
     },
     "motoko-x86_64-linux": {
         "builtin": false,
-        "sha256": "0l9fd5cp2h65r6zs3r49bg1h83cq21zj52s6pd8y8as24h019mql",
+        "sha256": "0w0awvzdl5rqqwvwzfmascnvznmh80dwbhar12s4kfv9knfinv3a",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.11.0/motoko-Linux-x86_64-0.11.0.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.11.1/motoko-Linux-x86_64-0.11.1.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Linux-x86_64-<version>.tar.gz",
-        "version": "0.11.0"
+        "version": "0.11.1"
     },
     "replica-x86_64-darwin": {
         "builtin": false,
