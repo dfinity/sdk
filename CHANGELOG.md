@@ -68,6 +68,12 @@ dfx.json.  This is now performed by dfxvm.
 When all the arguments are optional, dfx automatically provides a `null` value when no arguments are provided.
 `--always-assist` flag enables the candid assist feature for optional arguments, instead of providing a default `null` value.
 
+### fix(deps): the second pull forget to set wasm_hash_download in pulled.json
+
+When the dependency has been in the cache, `dfx deps pull` forgot to set correct `wasm_hash_download` in `pulled.json`.
+
+It caused the following `init/deploy` commands to fail.
+
 ## Dependencies
 
 ### Replica
