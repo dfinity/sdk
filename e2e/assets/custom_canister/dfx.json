@@ -11,7 +11,7 @@
       "type": "custom",
       "candid": "main.did",
       "wasm": "main.wasm",
-      "build": "./build.sh"
+      "build": "build.sh"
     },
     "custom3": {
       "type": "custom",
