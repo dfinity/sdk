@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister;
-use crate::lib::operations::cycles_ledger::CYCLES_LEDGER_ENABLED;
+use crate::lib::operations::cycles_ledger::cycles_ledger_enabled;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, operations::cycles_ledger};
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
@@ -31,14 +31,12 @@ pub struct DepositCyclesOpts {
     all: bool,
 
     /// Use cycles from this subaccount.
-    //TODO(SDK-1331): unhide
-    #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
+    #[arg(long, value_parser = icrc_subaccount_parser)]
     from_subaccount: Option<Subaccount>,
 
     /// Transaction timestamp, in nanoseconds, for use in controlling transaction deduplication, default is system time.
     /// https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
-    //TODO(SDK-1331): unhide
-    #[arg(long, hide = true)]
+    #[arg(long)]
     created_at_time: Option<u64>,
 }
 
@@ -59,7 +57,7 @@ async fn deposit_cycles(
 
     match call_sender {
         CallSender::SelectedId => {
-            if !CYCLES_LEDGER_ENABLED {
+            if !cycles_ledger_enabled() {
                 // should be unreachable
                 bail!("No wallet configured");
             }
@@ -113,7 +111,7 @@ pub async fn exec(
                 call_sender = &proxy_sender;
             }
             Err(err) => {
-                if CYCLES_LEDGER_ENABLED && matches!(err, crate::lib::identity::wallet::GetOrCreateWalletCanisterError::NoWalletConfigured { .. }) {
+                if cycles_ledger_enabled() && matches!(err, crate::lib::identity::wallet::GetOrCreateWalletCanisterError::NoWalletConfigured { .. }) {
                     debug!(env.get_logger(), "No wallet configured");
                 } else {
                     bail!(err)

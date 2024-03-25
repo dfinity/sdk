@@ -656,3 +656,22 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 
   assert_directory_not_exists "deps"
 }
+
+@test "dfx deps pull can set correct pulled.json when the dependency is already in cache" {
+  use_test_specific_cache_root # dfx deps pull will download files to cache
+
+  # start a "mainnet" replica which host the onchain canisters
+  dfx_start
+
+  setup_onchain
+
+  # pull canisters in app project and the dependencies are cached
+  cd app
+  assert_command dfx deps pull --network local
+
+  # the second pull should be able to set the correct pulled.json
+  assert_command dfx deps pull --network local
+
+  # this command will fail if the pulled.json is not correct
+  assert_command dfx deps init
+}
