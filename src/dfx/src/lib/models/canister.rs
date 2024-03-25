@@ -171,9 +171,9 @@ impl Canister {
             dfx_metadata.set_pullable(pullable);
         }
 
-        for tech_stack_item in info.get_tech_stack() {
+        if let Some(tech_stack_config) = info.get_tech_stack() {
             set_dfx_metadata = true;
-            dfx_metadata.add_tech_stack_item(tech_stack_item, info.get_workspace_root())?;
+            dfx_metadata.set_tech_stack(tech_stack_config, info.get_workspace_root())?;
         }
 
         if set_dfx_metadata {

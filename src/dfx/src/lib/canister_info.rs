@@ -7,11 +7,12 @@ use candid::Principal;
 use core::panic;
 use dfx_core::config::model::dfinity::{
     CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config, Pullable,
-    TechStackItem, WasmOptLevel,
+    TechStackCategory, TechStackConfigItem, WasmOptLevel,
 };
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 use fn_error_context::context;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 pub mod assets;
@@ -57,7 +58,7 @@ pub struct CanisterInfo {
     metadata: CanisterMetadataConfig,
     pullable: Option<Pullable>,
     pull_dependencies: Vec<(String, CanisterId)>,
-    tech_stack: Vec<TechStackItem>,
+    tech_stack: Option<HashMap<TechStackCategory, Vec<TechStackConfigItem>>>,
     gzip: bool,
     init_arg: Option<String>,
 }
@@ -362,8 +363,8 @@ impl CanisterInfo {
         &self.pull_dependencies
     }
 
-    pub fn get_tech_stack(&self) -> &[TechStackItem] {
-        &self.tech_stack
+    pub fn get_tech_stack(&self) -> Option<&HashMap<TechStackCategory, Vec<TechStackConfigItem>>> {
+        self.tech_stack.as_ref()
     }
 
     pub fn get_gzip(&self) -> bool {

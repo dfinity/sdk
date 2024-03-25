@@ -206,54 +206,69 @@ teardown() {
   assert_command dfx deploy a
   assert_command_fail dfx canister metadata a dfx
 
-  # b defines a tech_stack item with version
+  # b defines one cdk item
   assert_command dfx deploy b
   assert_command dfx canister metadata b dfx
-  assert_eq '{
-  "tech_stack": {
-    "ic-cdk": "0.13.0"
-  }
-}'
+  echo "$stdout" > b.json
+  assert_command jq -r '.tech_stack.cdk.[0].name' b.json
+  assert_eq "ic-cdk"
 
-  # c defines a tech_stack item with version_command
+  # c defines language->rust version
   assert_command dfx deploy c
   assert_command dfx canister metadata c dfx
-  assert_eq '{
-  "tech_stack": {
-    "rust": "1.75.0"
-  }
-}'
+  echo "$stdout" > c.json
+  assert_command jq -r '.tech_stack.language.[0].name' c.json
+  assert_eq "rust"
+  assert_command jq -r '.tech_stack.language.[0].version' c.json
+  assert_eq "1.75.0"
 
-  # d defines a tech_stack item without version/version_command
+  # d defines language->rust version with value_command
   assert_command dfx deploy d
   assert_command dfx canister metadata d dfx
-  assert_eq '{
-  "tech_stack": {
-    "wasm-tools": null
-  }
-}'
+  echo "$stdout" > d.json
+  assert_command jq -r '.tech_stack.language.[0].name' d.json
+  assert_eq "rust"
+  assert_command jq -r '.tech_stack.language.[0].version' d.json
+  assert_eq "1.75.0"
 
-  # e defines multiple tech_stack items
+  # e defines multiple lib items
   assert_command dfx deploy e
   assert_command dfx canister metadata e dfx
-  assert_eq '{
-  "tech_stack": {
-    "ic-cdk": "0.13.0",
-    "rust": "1.75.0",
-    "wasm-tools": null
-  }
-}'
+  echo "$stdout" > e.json
+  assert_command jq -r '.tech_stack.lib.[0].name' e.json
+  assert_eq "ic-cdk-timers"
+  assert_command jq -r '.tech_stack.lib.[1].name' e.json
+  assert_eq "ic-stable-structures"
 
-  # f defines both version and version_command for the same tech_stack item
-  assert_command_fail dfx deploy f
-  assert_contains "The tech_stack item with name \"rust\" defines both \"version\" and \"version_command\" defined. Please keep at most one of them."
+  # f defines all 5 categories
+  assert_command dfx deploy f
+  assert_command dfx canister metadata f dfx
+  echo "$stdout" > f.json
+  assert_command jq -r '.tech_stack.cdk.[0].name' f.json
+  assert_eq "ic-cdk"
+  assert_command jq -r '.tech_stack.language.[0].name' f.json
+  assert_eq "rust"
+  assert_command jq -r '.tech_stack.lib.[0].name' f.json
+  assert_eq "ic-cdk-timers"
+  assert_command jq -r '.tech_stack.tool.[0].name' f.json
+  assert_eq "dfx"
+  assert_command jq -r '.tech_stack.other.[0].name' f.json
+  assert_eq "bitcoin"
 
-  # g defines a version_command that fails
+  # g defines both value and value_command
   assert_command_fail dfx deploy g
-  assert_contains "Failed to run the \"version_command\" of tech_stack item \"rust\"."
+  assert_contains "A custom_field should define only one of value/value_command: language->rust->version."
 
-  # h defines a version_command that returns a non-valid string
-  echo -e "\xc3\x28" > invalid_utf8.txt
+  # h defines neither value nor value_command
   assert_command_fail dfx deploy h
-  assert_contains "The \"version_command\" of tech_stack item \"rust\" didn't return a valid UTF-8 string."
+  assert_contains "A custom_field should define only one of value/value_command: language->rust->version."
+
+  # i defines a value_command that fails
+  assert_command_fail dfx deploy i
+  assert_contains "Failed to run the value_command: language->rust->version."
+
+  # j defines a value_command that returns a non-valid string
+  echo -e "\xc3\x28" > invalid_utf8.txt
+  assert_command_fail dfx deploy j
+  assert_contains "The value_command didn't return a valid UTF-8 string: language->rust->version."
 }

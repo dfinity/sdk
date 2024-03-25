@@ -7,79 +7,160 @@
         "b": {
             "type": "motoko",
             "main": "main.mo",
-            "tech_stack": [
-                {
-                    "name": "ic-cdk",
-                    "version": "0.13.0"
-                }
-            ]
+            "tech_stack": {
+                "cdk": [
+                    {
+                        "name": "ic-cdk"
+                    }
+                ]
+            }
         },
         "c": {
             "type": "motoko",
             "main": "main.mo",
-            "tech_stack": [
-                {
-                    "name": "rust",
-                    "version_command": "echo 'rustc 1.75.0 (82e1608df 2023-12-21)' | cut -d ' ' -f 2"
-                }
-            ]
+            "tech_stack": {
+                "language": [
+                    {
+                        "name": "rust",
+                        "custom_fields": [
+                            {
+                                "field": "version",
+                                "value": "1.75.0"
+                            }
+                        ]
+                    }
+                ]
+            }
         },
         "d": {
             "type": "motoko",
             "main": "main.mo",
-            "tech_stack": [
-                {
-                    "name": "wasm-tools"
-                }
-            ]
+            "tech_stack": {
+                "language": [
+                    {
+                        "name": "rust",
+                        "custom_fields": [
+                            {
+                                "field": "version",
+                                "value_command": "echo 'rustc 1.75.0 (82e1608df 2023-12-21)' | cut -d ' ' -f 2"
+                            }
+                        ]
+                    }
+                ]
+            }
         },
         "e": {
             "type": "motoko",
             "main": "main.mo",
-            "tech_stack": [
-                {
-                    "name": "ic-cdk",
-                    "version": "0.13.0"
-                },
-                {
-                    "name": "rust",
-                    "version_command": "echo 'rustc 1.75.0 (82e1608df 2023-12-21)' | cut -d ' ' -f 2"
-                },
-                {
-                    "name": "wasm-tools"
-                }
-            ]
+            "tech_stack": {
+                "lib": [
+                    {
+                        "name": "ic-cdk-timers"
+                    },
+                    {
+                        "name": "ic-stable-structures"
+                    }
+                ]
+            }
         },
         "f": {
             "type": "motoko",
             "main": "main.mo",
-            "tech_stack": [
-                {
-                    "name": "rust",
-                    "version": "1.76.0",
-                    "version_command": "echo 'rustc 1.75.0 (82e1608df 2023-12-21)' | cut -d ' ' -f 2"
-                }
-            ]
+            "tech_stack": {
+                "cdk": [
+                    {
+                        "name": "ic-cdk"
+                    }
+                ],
+                "language": [
+                    {
+                        "name": "rust"
+                    }
+                ],
+                "lib": [
+                    {
+                        "name": "ic-cdk-timers"
+                    }
+                ],
+                "tool": [
+                    {
+                        "name": "dfx"
+                    }
+                ],
+                "other": [
+                    {
+                        "name": "bitcoin"
+                    }
+                ]
+            }
         },
         "g": {
             "type": "motoko",
             "main": "main.mo",
-            "tech_stack": [
-                {
-                    "name": "rust",
-                    "version_command": "false"
-                }
-            ]
+            "tech_stack": {
+                "language": [
+                    {
+                        "name": "rust",
+                        "custom_fields": [
+                            {
+                                "field": "version",
+                                "value": "1.75.0",
+                                "value_command": "echo 'rustc 1.75.0 (82e1608df 2023-12-21)' | cut -d ' ' -f 2"
+                            }
+                        ]
+                    }
+                ]
+            }
         },
         "h": {
             "type": "motoko",
             "main": "main.mo",
-            "tech_stack": [
-                {
-                    "name": "rust",
-                    "version_command": "cat invalid_utf8.txt"
-                }
-            ]
+            "tech_stack": {
+                "language": [
+                    {
+                        "name": "rust",
+                        "custom_fields": [
+                            {
+                                "field": "version"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "i": {
+            "type": "motoko",
+            "main": "main.mo",
+            "tech_stack": {
+                "language": [
+                    {
+                        "name": "rust",
+                        "custom_fields": [
+                            {
+                                "field": "version",
+                                "value_command": "false"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        "j": {
+            "type": "motoko",
+            "main": "main.mo",
+            "tech_stack": {
+                "language": [
+                    {
+                        "name": "rust",
+                        "custom_fields": [
+                            {
+                                "field": "version",
+                                "value_command": "cat invalid_utf8.txt"
+                            }
+                        ]
+                    }
+                ]
+            }
         }
     }
 }

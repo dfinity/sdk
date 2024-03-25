@@ -43,7 +43,7 @@ use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::default::Default;
 use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
@@ -192,21 +192,49 @@ pub struct Pullable {
     pub init_arg: Option<String>,
 }
 
+/// # Tech Stack Category
+/// The category of the tech_stack item.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[allow(non_camel_case_types)]
+pub enum TechStackCategory {
+    /// # cdk
+    #[default]
+    cdk,
+    /// # language
+    language,
+    /// # lib
+    lib,
+    /// # tool
+    tool,
+    /// # other
+    other,
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
-pub struct TechStackItem {
+pub struct TechStackConfigItem {
     /// # name
     /// The name of the tech_stack item.
     pub name: String,
-    /// # version
-    /// The version of the tech_stack item.
-    /// This field conflicts with the `version_command` field.
-    pub version: Option<String>,
-    /// # version_command
-    /// The command to run to get the version of the tech_stack item.
-    /// It will be run from the workspace root.
-    /// The output will be trimmed and used as the tech_stack item version.
-    /// This field conflicts with the `version` field.
-    pub version_command: Option<String>,
+
+    /// # custom_fields
+    /// Custom fields for the tech_stack item.
+    #[serde(default)]
+    pub custom_fields: Vec<TechStackField>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct TechStackField {
+    /// # field
+    /// The name of the filed.
+    pub field: String,
+
+    /// # value
+    /// The value of the field.
+    pub value: Option<String>,
+
+    /// # value_command
+    /// The command to get the value of the field.
+    pub value_command: Option<String>,
 }
 
 pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
@@ -290,7 +318,7 @@ pub struct ConfigCanistersCanister {
     /// # Tech Stack
     /// Defines the tech stack used to build this canister.
     #[serde(default)]
-    pub tech_stack: Vec<TechStackItem>,
+    pub tech_stack: Option<HashMap<TechStackCategory, Vec<TechStackConfigItem>>>,
 
     /// # Gzip Canister WASM
     /// Disabled by default.
