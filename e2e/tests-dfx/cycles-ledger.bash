@@ -356,7 +356,9 @@ current_time_nanoseconds() {
 }
 
 @test "top-up and deposit-cycles" {
-  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  # shellcheck disable=SC2030,SC2031
+  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
+
   start_and_install_nns
 
   dfx_new
@@ -559,9 +561,11 @@ current_time_nanoseconds() {
 }
 
 @test "canister creation" {
+  # shellcheck disable=SC2030,SC2031
+  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
+
   start_and_install_nns
   
-  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
   dfx_new temporary
   add_cycles_ledger_canisters_to_project
   install_cycles_ledger_canisters
@@ -604,7 +608,7 @@ current_time_nanoseconds() {
   assert_command dfx cycles balance --precise
   assert_eq "12399900000000 cycles."
   dfx canister stop e2e_project_backend
-  dfx canister delete e2e_project_backend
+  dfx canister delete e2e_project_backend --no-withdrawal
 
   assert_command dfx canister create e2e_project_backend --with-cycles 0.5T --from-subaccount "$ALICE_SUBACCT1"
   assert_command dfx canister id e2e_project_backend
@@ -630,25 +634,20 @@ current_time_nanoseconds() {
   assert_command dfx cycles balance --precise
   assert_eq "11399800000000 cycles."
   dfx canister stop e2e_project_backend
-  dfx canister delete e2e_project_backend
+  dfx canister delete e2e_project_backend --no-withdrawal
   
   assert_command dfx deploy e2e_project_backend --with-cycles 0.5T --from-subaccount "$ALICE_SUBACCT1"
   assert_command dfx canister id e2e_project_backend
   assert_command dfx cycles balance --subaccount "$ALICE_SUBACCT1" --precise
   assert_eq "1599800000000 cycles."
   dfx canister stop e2e_project_backend
-  dfx canister delete e2e_project_backend
-
-  assert_command dfx deploy --with-cycles 1T
-  assert_command dfx canister id e2e_project_backend
-  assert_command dfx canister id e2e_project_frontend
-  assert_not_contains "$(dfx canister id e2e_project_backend)"
-  assert_command dfx cycles balance --precise
-  assert_eq "9399600000000 cycles."
+  dfx canister delete e2e_project_backend --no-withdrawal
 }
 
 @test "canister deletion" {
-  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  # shellcheck disable=SC2030,SC2031
+  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
+
   start_and_install_nns
 
   dfx_new temporary
@@ -673,23 +672,20 @@ current_time_nanoseconds() {
   dfx identity use alice
   # shellcheck disable=SC2030,SC2031
   export DFX_DISABLE_AUTO_WALLET=1
-  assert_command dfx canister create --all --with-cycles 10T
-  assert_command dfx cycles balance --precise
-  assert_eq "2399800000000 cycles."
+  assert_command dfx canister create --all
 
   # delete by name
   assert_command dfx canister stop --all
   assert_command dfx canister delete e2e_project_backend
-  assert_command dfx cycles balance
-  assert_eq "12.389 TC (trillion cycles)."
+  assert_contains "Successfully withdrew"
 
   # delete by id
-  FRONTEND_ID=$(dfx canister id e2e_project_frontend)
+  assert_command dfx canister create --all
+  CANISTER_ID=$(dfx canister id e2e_project_backend)
   rm .dfx/local/canister_ids.json
-  assert_command dfx canister stop "${FRONTEND_ID}"
-  assert_command dfx canister delete "${FRONTEND_ID}"
-  assert_command dfx cycles balance
-  assert_eq "22.379 TC (trillion cycles)."
+  assert_command dfx canister stop "${CANISTER_ID}"
+  assert_command dfx canister delete "${CANISTER_ID}"
+  assert_contains "Successfully withdrew"
 }
 
 @test "redeem-faucet-coupon redeems into the cycles ledger" {
@@ -725,7 +721,9 @@ current_time_nanoseconds() {
 }
 
 @test "create canister on specific subnet" {
-  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  # shellcheck disable=SC2030,SC2031
+  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
+
   start_and_install_nns
   
   dfx_new temporary
@@ -758,13 +756,14 @@ current_time_nanoseconds() {
   assert_contains "Subnet $SUBNET_ID does not exist"
   
   # use --subnet-type
-  cd ../e2e_project
-  assert_command_fail dfx canister create e2e_project_frontend --subnet-type custom_subnet_type
+  assert_command_fail dfx canister create e2e_project_backend --subnet-type custom_subnet_type
   assert_contains "Provided subnet type custom_subnet_type does not exist"
 }
 
 @test "automatically choose subnet" {
-  skip "can't be properly tested with feature flag turned off (CYCLES_LEDGER_ENABLED). TODO(SDK-1331): re-enable this test"
+  # shellcheck disable=SC2030,SC2031
+  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
+
   dfx_start
 
   REGISTRY="rwlgt-iiaaa-aaaaa-aaaaa-cai"

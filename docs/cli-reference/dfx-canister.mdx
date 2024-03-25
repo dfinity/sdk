@@ -250,6 +250,8 @@ You can use the following options with the `dfx canister create` command.
 |-------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `-c`, `--compute-allocation <allocation>` | Specifies the canister's compute allocation. This should be a percent in the range [0..100].                                                                                                                                                                                                                                                                                             |
 | `--controller <principal>`                | Specifies the identity name or the principal of the new controller.                                                                                                                                                                                                                                                                                                                      |
+| `--created-at-time <timestamp>`           |  Transaction timestamp, in nanoseconds, for use in controlling transaction deduplication, default is system time. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-                                                                                                                                                               |
+| `--from-subaccount <subaccount>`          | Subaccount of the selected identity to spend cycles from.                                                                                                                                                                                                                                                                                                                                |
 | `--memory-allocation <memory>`            | Specifies how much memory the canister is allowed to use in total. This should be a value in the range [0..12 GiB]. A setting of 0 means the canister will have access to memory on a “best-effort” basis: It will only be charged for the memory it uses, but at any point in time may stop running if it tries to allocate more memory when there isn’t space available on the subnet. |
 | `--reserved-cycles-limit <limit>`         | Specifies the upper limit for the canister's reserved cycles.                                                                                                                                                                                                                                                                                                                            |
 | `--no-wallet`                             | Performs the call with the user Identity as the Sender of messages. Bypasses the Wallet canister. Enabled by default.                                                                                                                                                                                                                                                                    |
@@ -326,6 +328,7 @@ You can use the following options with the `dfx canister delete` command.
 | Option                                            | Description                                                                        |
 |---------------------------------------------------|------------------------------------------------------------------------------------|
 | `--no-withdrawal`                                 | Do not withdrawal cycles, just delete the canister.                                |
+| `--to-subaccount`                                 | Subaccount of the selected identity to deposit cycles to.                          |
 | `--withdraw-cycles-to-dank`                       | Withdraw cycles to dank with the current principal.                                |
 | `--withdraw-cycles-to-canister <principal>`       | Withdraw cycles from canister(s) to the specified canister/wallet before deleting. |
 | `--withdraw-cycles-to-dank-principal <principal>` | Withdraw cycles to dank with the given principal.                                  |
@@ -377,6 +380,16 @@ You can use the following arguments with the `dfx canister deposit-cycles` comma
 |-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `--all`         | Deposits the specified amount of cycles into all canisters configured in `dfx.json`. Note that you must specify `--all` or an individual canister name. |
 | `canister_name` | Specifies the name of the canister you want to deposit cycles into. Note that you must specify either a canister name or the `--all` option.            |
+
+### Options
+
+You can use the following options with the `dfx canister deposit-cycles` command.
+
+| Option                                    | Description                                                                                                                                                                                                                 |
+|-------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--created-at-time <timestamp>`           |  Transaction timestamp, in nanoseconds, for use in controlling transaction deduplication, default is system time. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
+| `--from-subaccount <subaccount>`          | Subaccount of the selected identity to spend cycles from.                                                                                                                                                                   |
+
 
 ### Examples
 
