@@ -178,6 +178,23 @@
                     }
                 ]
             }
+        },
+        "l": {
+            "type": "motoko",
+            "main": "main.mo",
+            "tech_stack": {
+                "language": [
+                    {
+                        "name": "rust",
+                        "custom_fields": [
+                            {
+                                "field": "version",
+                                "value_command": "./a\\ custom\\ script.sh"
+                            }
+                        ]
+                    }
+                ]
+            }
         }
     }
 }

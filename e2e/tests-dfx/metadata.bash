@@ -279,4 +279,11 @@ teardown() {
   echo "$stdout" > k.json
   assert_command jq -r '.tech_stack.language[0].version' k.json
   assert_eq "1.75.0"
+
+  # l defines a value_command that is a local command(prefix "./") contains whitespace
+  assert_command dfx deploy l
+  assert_command dfx canister metadata l dfx
+  echo "$stdout" > l.json
+  assert_command jq -r '.tech_stack.language[0].version' l.json
+  assert_eq "1.75.0"
 }
