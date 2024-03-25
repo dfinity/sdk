@@ -196,6 +196,7 @@ teardown() {
   assert_command diff "$REPO_ROOT/src/distributed/assetstorage.did" ./candid_service_metadata.txt
 }
 
+# shellcheck disable=SC2154
 @test "can generate tech_stack field of the standardized dfx metadata" {
   dfx_new
   install_asset metadata/tech_stack
