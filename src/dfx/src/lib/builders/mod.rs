@@ -3,7 +3,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
 use dfx_core::config::model::dfinity::{Config, Profile};
@@ -324,37 +324,33 @@ fn ensure_trailing_newline(s: String) -> String {
     }
 }
 
-/// Run a command and return its output.
-/// If the io_inherit is true, the return bytes will always be empty.
-pub fn run_command(
+/// Execute a command and return its output bytes.
+/// If the catch_output is false, the return bytes will always be empty.
+pub fn execute_command(
     command: &str,
     vars: &[Env<'_>],
     cwd: &Path,
-    io_inherit: bool,
+    catch_output: bool,
 ) -> DfxResult<Vec<u8>> {
     // No commands, noop.
     if command.is_empty() {
         return Ok(vec![]);
     }
-    let (first, rest) = match command.split_once(' ') {
-        Some((first, rest)) => (first, rest),
-        None => (command, ""),
+    let words = shell_words::split(command)
+        .with_context(|| format!("Cannot parse command '{}'.", command))?;
+    let canonical_result = dfx_core::fs::canonicalize(&cwd.join(&words[0]));
+    let mut cmd = if words.len() == 1 && canonical_result.is_ok() {
+        // If the command is a file, execute it directly.
+        let file = canonical_result.unwrap();
+        Command::new(file)
+    } else {
+        // Execute the command in `sh -c` to allow pipes.
+        let mut sh_cmd = Command::new("sh");
+        sh_cmd.args(["-c", command]);
+        sh_cmd
     };
 
-    let canonicalized = dfx_core::fs::canonicalize(&cwd.join(first))
-        .or_else(|_| which::which(first))
-        .map_err(|_| anyhow!("Cannot find command or file {first}"))?;
-    let canonicalized_command = [
-        canonicalized.to_string_lossy().to_string(),
-        rest.to_string(),
-    ]
-    .join(" ");
-    eprintln!("Running command: {}", canonicalized_command);
-    let mut cmd = Command::new("sh");
-    // equals to run `sh -c command`
-    // Therefore the command can have pipes
-    cmd.args(["-c", &canonicalized_command]).current_dir(cwd);
-    if io_inherit {
+    if !catch_output {
         cmd.stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit());
@@ -372,6 +368,15 @@ pub fn run_command(
             output.status.code(),
         )))
     }
+}
+
+pub fn run_command(command: &str, vars: &[Env<'_>], cwd: &Path) -> DfxResult<()> {
+    execute_command(command, vars, cwd, false)?;
+    Ok(())
+}
+
+pub fn command_output(command: &str, vars: &[Env<'_>], cwd: &Path) -> DfxResult<Vec<u8>> {
+    execute_command(command, vars, cwd, true)
 }
 
 type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);

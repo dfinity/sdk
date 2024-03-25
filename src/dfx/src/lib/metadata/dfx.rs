@@ -4,7 +4,7 @@
 //! It's originally for pulling dependencies. But open to extend for other usage.
 use std::{collections::HashMap, path::Path};
 
-use crate::lib::{builders::run_command, error::DfxResult};
+use crate::lib::{builders::command_output, error::DfxResult};
 use anyhow::{bail, Context};
 use dfx_core::config::model::dfinity::{Pullable, TechStackCategory, TechStackConfigItem};
 use serde::{Deserialize, Serialize};
@@ -57,8 +57,8 @@ impl DfxMetadata {
                     let value = match (&custom_field.value, &custom_field.value_command) {
                         (Some(value), None) => value.to_string(),
                         (None, Some(command)) => {
-                            let bytes = run_command(command, &[], project_root, false)
-                                .with_context(|| {
+                            let bytes =
+                                command_output(command, &[], project_root).with_context(|| {
                                     format!("Failed to run the value_command: {triple}.")
                                 })?;
                             String::from_utf8(bytes)

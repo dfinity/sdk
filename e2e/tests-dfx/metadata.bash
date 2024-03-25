@@ -272,4 +272,11 @@ teardown() {
   echo -e "\xc3\x28" > invalid_utf8.txt
   assert_command_fail dfx deploy j
   assert_contains "The value_command didn't return a valid UTF-8 string: language->rust->version."
+
+  # k defines a value_command that is a local file without "./" prefix and the file name contains whitespace
+  assert_command dfx deploy k
+  assert_command dfx canister metadata k dfx
+  echo "$stdout" > k.json
+  assert_command jq -r '.tech_stack.language[0].version' k.json
+  assert_eq "1.75.0"
 }

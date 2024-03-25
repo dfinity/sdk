@@ -197,7 +197,7 @@ fn build_frontend(
                 command
             );
 
-            super::run_command(command, &vars, project_root, true)
+            super::run_command(command, &vars, project_root)
                 .with_context(|| format!("Failed to run {}.", command))?;
         }
     } else if build_frontend {
