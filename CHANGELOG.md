@@ -6,8 +6,6 @@
 
 The standardized `dfx` metadata is extended with another object: `tech_stack`.
 
-It consists of name/version pairs corresponding to tech stack items.
-
 Please check [tech-stack](docs/concepts/tech-stack.md) for more details.
 
 ### feat(beta): enable cycles ledger support
