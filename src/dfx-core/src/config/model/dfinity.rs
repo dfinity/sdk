@@ -210,6 +210,7 @@ pub enum TechStackCategory {
     other,
 }
 
+/// # Tech Stack Configuration Item
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct TechStackConfigItem {
     /// # name
@@ -222,6 +223,7 @@ pub struct TechStackConfigItem {
     pub custom_fields: Vec<TechStackField>,
 }
 
+/// # Tech Stack Field
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct TechStackField {
     /// # field

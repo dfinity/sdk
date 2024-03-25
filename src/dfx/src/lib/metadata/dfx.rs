@@ -9,7 +9,7 @@ use anyhow::{bail, Context};
 use dfx_core::config::model::dfinity::{Pullable, TechStackCategory, TechStackConfigItem};
 use serde::{Deserialize, Serialize};
 
-/// "dfx" metadata.
+/// # "dfx" metadata.
 /// Standardized metadata for dfx usage.
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct DfxMetadata {
@@ -19,6 +19,7 @@ pub struct DfxMetadata {
     pub pullable: Option<Pullable>,
 
     /// # Tech Stack
+    /// The tech stack information of the canister.
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     #[serde(default)]
     pub tech_stack: HashMap<TechStackCategory, Vec<TechStackItem>>,
