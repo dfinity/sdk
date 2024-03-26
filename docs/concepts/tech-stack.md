@@ -129,4 +129,4 @@ The value of the field can be defined in two ways:
   - This should be a CLI command.
   - The command will be run in the workspace root (the dir contains `dfx.json`). 
   - The stdout should be a valid UTF-8 string.
-  - The stdout will be stripped to get the version.
+  - The stdout will be stripped to get the field value.
