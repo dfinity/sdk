@@ -47,7 +47,8 @@ Each tech stack item must have a `"name"` field and can optionally define some c
     ],
     "other": [
       {
-        "name": "bitcoin"
+        "name": "bitcoin",
+        "address": "bcrt1qfe264m0ycx2vcqvqyhs0gpxk6tw8ug6hqeps2d"
       }
     ],
     "tool": [
@@ -105,7 +106,13 @@ The example above was generated from the `dfx.json` configuration below.
     ],
     "other": [
       {
-        "name": "bitcoin"
+        "name": "bitcoin",
+        "custom_fields": [
+          {
+            "field": "address",
+            "value": "bcrt1qfe264m0ycx2vcqvqyhs0gpxk6tw8ug6hqeps2d"
+          }
+        ]
       }
     ]
   }
