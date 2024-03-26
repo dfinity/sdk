@@ -8,7 +8,7 @@ Providing a standard format of such information makes it easier to build tools l
 
 ## JSON schema
 
-`tech_stack` has 5 top optional categories.
+`tech_stack` has 5 top-level optional categories.
 
 - cdk
 - language
@@ -136,4 +136,4 @@ The value of the field can be defined in two ways:
   - This should be a CLI command.
   - The command will be run in the workspace root (the dir contains `dfx.json`). 
   - The stdout should be a valid UTF-8 string.
-  - The stdout will be stripped to get the field value.
+  - The stdout will be trimmed (leading and trailing whitespace removed) to get the field value.
