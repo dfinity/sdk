@@ -9,6 +9,7 @@ use dfx_core::config::model::dfinity::{
     CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config, Pullable,
     WasmOptLevel,
 };
+use dfx_core::json::structure::SerdeVec;
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 use fn_error_context::context;
@@ -143,11 +144,16 @@ impl CanisterInfo {
         let mut pull = None;
         let mut common_output_idl_path = None;
 
-        let type_specific = canister_config.type_specific.clone();
+        let mut type_specific = canister_config.type_specific.clone();
         if let CanisterTypeProperties::Pull { id } = type_specific {
             common_output_idl_path = Some(get_candid_path_in_project(workspace_root, &id));
 
             pull = Some(PullInfo { id });
+            type_specific = CanisterTypeProperties::Custom {
+                wasm: "".to_string(),
+                build: SerdeVec::Many(vec![]),
+                candid: "".to_string(),
+            }
         }
 
         let args = match &canister_config.args {

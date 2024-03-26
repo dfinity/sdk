@@ -1,5 +1,6 @@
 use crate::lib::builders::{
-    BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
+    get_pull_build_output, BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput,
+    WasmBuildOutput,
 };
 use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
@@ -101,6 +102,10 @@ impl CanisterBuilder for CustomBuilder {
         info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
+        if let Some(pull_info) = info.get_pull_info() {
+            return get_pull_build_output(info, pull_info);
+        }
+
         let CustomBuilderExtra {
             input_candid_url: _,
             candid,
