@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.19.0
+
 ### fix: call management canister Bitcoin query API without replica-signed query
 
 `dfx canister call --query` defaults to use "Replica-signed query" feature.
