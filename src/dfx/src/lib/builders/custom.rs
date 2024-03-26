@@ -127,14 +127,8 @@ impl CanisterBuilder for CustomBuilder {
                 command
             );
 
-            // First separate everything as if it was read from a shell.
-            let args = shell_words::split(&command)
-                .with_context(|| format!("Cannot parse command '{}'.", command))?;
-            // No commands, noop.
-            if !args.is_empty() {
-                super::run_command(args, &vars, info.get_workspace_root())
-                    .with_context(|| format!("Failed to run {}.", command))?;
-            }
+            super::run_command(&command, &vars, info.get_workspace_root())
+                .with_context(|| format!("Failed to run {}.", command))?;
         }
 
         Ok(BuildOutput {

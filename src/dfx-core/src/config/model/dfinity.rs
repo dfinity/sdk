@@ -43,7 +43,7 @@ use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::default::Default;
 use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
@@ -192,6 +192,53 @@ pub struct Pullable {
     pub init_arg: Option<String>,
 }
 
+/// # Tech Stack Category
+/// The category of the tech_stack item.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[allow(non_camel_case_types)]
+pub enum TechStackCategory {
+    /// # cdk
+    #[default]
+    cdk,
+    /// # language
+    language,
+    /// # lib
+    lib,
+    /// # tool
+    tool,
+    /// # other
+    other,
+}
+
+/// # Tech Stack Configuration Item
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct TechStackConfigItem {
+    /// # name
+    /// The name of the tech_stack item.
+    pub name: String,
+
+    /// # custom_fields
+    /// Custom fields for the tech_stack item.
+    #[serde(default)]
+    pub custom_fields: Vec<TechStackField>,
+}
+
+/// # Tech Stack Field
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct TechStackField {
+    /// # field
+    /// The name of the filed.
+    pub field: String,
+
+    /// # value
+    /// The value of the field.
+    pub value: Option<String>,
+
+    /// # value_command
+    /// The command to get the value of the field.
+    pub value_command: Option<String>,
+}
+
 pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
 pub const DEFAULT_PROJECT_LOCAL_BIND: &str = "127.0.0.1:8000";
 pub const DEFAULT_IC_GATEWAY: &str = "https://icp0.io";
@@ -269,6 +316,11 @@ pub struct ConfigCanistersCanister {
     /// Defines required properties so that this canister is ready for `dfx deps pull` by other projects.
     #[serde(default)]
     pub pullable: Option<Pullable>,
+
+    /// # Tech Stack
+    /// Defines the tech stack used to build this canister.
+    #[serde(default)]
+    pub tech_stack: Option<HashMap<TechStackCategory, Vec<TechStackConfigItem>>>,
 
     /// # Gzip Canister WASM
     /// Disabled by default.

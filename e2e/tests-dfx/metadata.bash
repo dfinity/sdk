@@ -195,3 +195,95 @@ teardown() {
   dfx canister metadata hello_frontend candid:service >candid_service_metadata.txt
   assert_command diff "$REPO_ROOT/src/distributed/assetstorage.did" ./candid_service_metadata.txt
 }
+
+# shellcheck disable=SC2154
+@test "can generate tech_stack field of the standardized dfx metadata" {
+  dfx_new
+  install_asset metadata/tech_stack
+
+  dfx_start
+
+  # a doesn't define the tech_stack object, the dfx metadata is not added
+  assert_command dfx deploy a
+  assert_command_fail dfx canister metadata a dfx
+
+  # b defines one cdk item
+  assert_command dfx deploy b
+  assert_command dfx canister metadata b dfx
+  echo "$stdout" > b.json
+  assert_command jq -r '.tech_stack.cdk[0].name' b.json
+  assert_eq "ic-cdk"
+
+  # c defines language->rust version
+  assert_command dfx deploy c
+  assert_command dfx canister metadata c dfx
+  echo "$stdout" > c.json
+  assert_command jq -r '.tech_stack.language[0].name' c.json
+  assert_eq "rust"
+  assert_command jq -r '.tech_stack.language[0].version' c.json
+  assert_eq "1.75.0"
+
+  # d defines language->rust version with value_command
+  assert_command dfx deploy d
+  assert_command dfx canister metadata d dfx
+  echo "$stdout" > d.json
+  assert_command jq -r '.tech_stack.language[0].name' d.json
+  assert_eq "rust"
+  assert_command jq -r '.tech_stack.language[0].version' d.json
+  assert_eq "1.75.0"
+
+  # e defines multiple lib items
+  assert_command dfx deploy e
+  assert_command dfx canister metadata e dfx
+  echo "$stdout" > e.json
+  assert_command jq -r '.tech_stack.lib[0].name' e.json
+  assert_eq "ic-cdk-timers"
+  assert_command jq -r '.tech_stack.lib[1].name' e.json
+  assert_eq "ic-stable-structures"
+
+  # f defines all 5 categories
+  assert_command dfx deploy f
+  assert_command dfx canister metadata f dfx
+  echo "$stdout" > f.json
+  assert_command jq -r '.tech_stack.cdk[0].name' f.json
+  assert_eq "ic-cdk"
+  assert_command jq -r '.tech_stack.language[0].name' f.json
+  assert_eq "rust"
+  assert_command jq -r '.tech_stack.lib[0].name' f.json
+  assert_eq "ic-cdk-timers"
+  assert_command jq -r '.tech_stack.tool[0].name' f.json
+  assert_eq "dfx"
+  assert_command jq -r '.tech_stack.other[0].name' f.json
+  assert_eq "bitcoin"
+
+  # g defines both value and value_command
+  assert_command_fail dfx deploy g
+  assert_contains "A custom_field should define only one of value/value_command: language->rust->version."
+
+  # h defines neither value nor value_command
+  assert_command_fail dfx deploy h
+  assert_contains "A custom_field should define only one of value/value_command: language->rust->version."
+
+  # i defines a value_command that fails
+  assert_command_fail dfx deploy i
+  assert_contains "Failed to run the value_command: language->rust->version."
+
+  # j defines a value_command that returns a non-valid string
+  echo -e "\xc3\x28" > invalid_utf8.txt
+  assert_command_fail dfx deploy j
+  assert_contains "The value_command didn't return a valid UTF-8 string: language->rust->version."
+
+  # k defines a value_command that is a local file without "./" prefix and the file name contains whitespace
+  assert_command dfx deploy k
+  assert_command dfx canister metadata k dfx
+  echo "$stdout" > k.json
+  assert_command jq -r '.tech_stack.language[0].version' k.json
+  assert_eq "1.75.0"
+
+  # l defines a value_command that is a local command(prefix "./") contains whitespace
+  assert_command dfx deploy l
+  assert_command dfx canister metadata l dfx
+  echo "$stdout" > l.json
+  assert_command jq -r '.tech_stack.language[0].version' l.json
+  assert_eq "1.75.0"
+}

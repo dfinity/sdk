@@ -173,7 +173,7 @@ teardown() {
   # expect to see the name of the canister
   assert_match "custom_bad_build_step"
   # expect to see the underlying cause
-  assert_match "Cannot find command or file"
+  assert_match "The custom tool failed"
 }
 
 @test "invalid optimization level" {

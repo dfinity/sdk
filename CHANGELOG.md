@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: add tech_stack to the Canister Metadata Standard
+
+The standardized `dfx` metadata is extended with another object: `tech_stack`.
+
+Please check [tech-stack](docs/concepts/tech-stack.md) for more details.
+
 # 0.19.0
 
 ### fix: call management canister Bitcoin query API without replica-signed query
