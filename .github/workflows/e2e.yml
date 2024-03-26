@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ens/poc-pull-info-custom-canister
   pull_request:
 
 concurrency:
