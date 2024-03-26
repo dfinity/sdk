@@ -17,9 +17,8 @@ use std::path::{Path, PathBuf};
 pub mod assets;
 pub mod custom;
 pub mod motoko;
-pub mod pull;
 pub mod rust;
-use self::pull::PullCanisterInfo;
+use crate::lib::deps::get_candid_path_in_project;
 use assets::AssetsCanisterInfo;
 use custom::CustomCanisterInfo;
 use motoko::MotokoCanisterInfo;
@@ -59,6 +58,14 @@ pub struct CanisterInfo {
     pull_dependencies: Vec<(String, CanisterId)>,
     gzip: bool,
     init_arg: Option<String>,
+
+    pull: Option<PullInfo>,
+    common_output_idl_path: Option<PathBuf>,
+}
+
+#[derive(Debug)]
+pub struct PullInfo {
+    id: Principal,
 }
 
 impl CanisterInfo {
@@ -133,7 +140,15 @@ impl CanisterInfo {
 
         let output_root = build_root.join(name);
 
+        let mut pull = None;
+        let mut common_output_idl_path = None;
+
         let type_specific = canister_config.type_specific.clone();
+        if let CanisterTypeProperties::Pull { id } = type_specific {
+            common_output_idl_path = Some(get_candid_path_in_project(workspace_root, &id));
+
+            pull = Some(PullInfo { id });
+        }
 
         let args = match &canister_config.args {
             Some(args) if !args.is_empty() => canister_config.args.clone(),
@@ -167,6 +182,8 @@ impl CanisterInfo {
             pull_dependencies,
             gzip,
             init_arg,
+            pull,
+            common_output_idl_path,
         };
 
         Ok(canister_info)
@@ -294,6 +311,10 @@ impl CanisterInfo {
     ///
     /// To be separated into service.did and init_args.
     pub fn get_output_idl_path(&self) -> Option<PathBuf> {
+        if let Some(common_output_idl_path) = &self.common_output_idl_path {
+            return Some(common_output_idl_path.clone());
+        }
+
         match &self.type_specific {
             CanisterTypeProperties::Motoko { .. } => self
                 .as_info::<MotokoCanisterInfo>()
@@ -307,9 +328,7 @@ impl CanisterInfo {
             CanisterTypeProperties::Rust { .. } => self
                 .as_info::<RustCanisterInfo>()
                 .map(|x| x.get_output_idl_path().to_path_buf()),
-            CanisterTypeProperties::Pull { .. } => self
-                .as_info::<PullCanisterInfo>()
-                .map(|x| x.get_output_idl_path().to_path_buf()),
+            CanisterTypeProperties::Pull { .. } => unreachable!(),
         }
         .ok()
         .or_else(|| self.remote_candid.clone())
@@ -366,5 +385,19 @@ impl CanisterInfo {
 
     pub fn get_init_arg(&self) -> Option<&str> {
         self.init_arg.as_deref()
+    }
+
+    pub fn get_pull_info(&self) -> Option<&PullInfo> {
+        self.pull.as_ref()
+    }
+
+    pub fn get_common_output_idl_path(&self) -> Option<PathBuf> {
+        self.common_output_idl_path.as_ref().cloned()
+    }
+}
+
+impl PullInfo {
+    pub fn get_canister_id(&self) -> &Principal {
+        &self.id
     }
 }

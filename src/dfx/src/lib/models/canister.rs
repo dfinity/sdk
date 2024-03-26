@@ -1,6 +1,6 @@
 use crate::lib::builders::{
-    custom_download, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput,
-    WasmBuildOutput,
+    custom_download, get_pull_build_output, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder,
+    IdlBuildOutput, WasmBuildOutput,
 };
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
@@ -65,7 +65,11 @@ impl Canister {
         pool: &CanisterPool,
         build_config: &BuildConfig,
     ) -> DfxResult<&BuildOutput> {
-        let output = self.builder.build(pool, &self.info, build_config)?;
+        let output = if let Some(pull_info) = self.info.get_pull_info() {
+            get_pull_build_output(&self.info, pull_info)
+        } else {
+            self.builder.build(pool, &self.info, build_config)
+        }?;
 
         // Ignore the old output, and return a reference.
         let _ = self.output.replace(Some(output));

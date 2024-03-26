@@ -28,6 +28,7 @@ mod pull;
 mod rust;
 
 pub use custom::custom_download;
+pub use pull::get_pull_build_output;
 
 #[derive(Debug)]
 pub enum WasmBuildOutput {
@@ -148,7 +149,11 @@ pub trait CanisterBuilder {
             )
         })?;
 
-        let did_from_build = self.get_candid_path(pool, info, config)?;
+        let did_from_build = match info.get_common_output_idl_path() {
+            Some(p) => p,
+            None => self.get_candid_path(pool, info, config)?,
+        };
+
         if !did_from_build.exists() {
             bail!(
                 "Candid file: {} doesn't exist.",
