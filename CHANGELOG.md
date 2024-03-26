@@ -8,6 +8,18 @@ The standardized `dfx` metadata is extended with another object: `tech_stack`.
 
 Please check [tech-stack](docs/concepts/tech-stack.md) for more details.
 
+# 0.19.0
+
+### fix: call management canister Bitcoin query API without replica-signed query
+
+`dfx canister call --query` defaults to use "Replica-signed query" feature.
+
+It doesn't work with bitcoin query calls to the management canister because the Boundary Nodes cannot route the `read_state` call.
+
+Only for these particular queries, `dfx` will make the query calls without checking the replica signatures.
+
+If the response reliability is a concern, you can make update calls to the secure alternatives.
+
 ### feat(beta): enable cycles ledger support
 
 If the environment variable `DFX_CYCLES_LEDGER_SUPPORT_ENABLE` is set and no cycles wallet is configured, then dfx will try to use the cycles ledger to perform any operation that the cycles wallet usually is used for.
@@ -30,15 +42,15 @@ See also: https://github.com/dfinity/idl2json
 
 Added commas in between fields, and newlines to improve formatting.
 
-### fix canister status output to be grep compatible
+### fix: canister status output to be grep compatible
 
 `dfx canister status` now outputs to `stdout`, rather than `stderr`, so that its output is `grep` compatible.
 
-### fix fetching canister logs to be grep & tail compatible
+### fix: fetching canister logs to be grep & tail compatible
 
 `dfx canister logs` now outputs to stdout, rather than stderr, so that its output is `grep` and `tail` compatible.
 
-### fix fetching canister logs
+### fix: fetching canister logs
 
 The management canister method `fetch_canister_logs` can be called only as a query, not as an update call. Therefore, `dfx canister logs <canister_id>` now uses a query call for this purpose.
 
@@ -96,9 +108,11 @@ It caused the following `init/deploy` commands to fail.
 
 ### Replica
 
-Updated replica to elected commit fff20526e154f8b8d24373efd9b50f588d147e91.
+Updated replica to elected commit 425a0012aeb40008e2e72d913318bc9dbdf3b4f4.
 This incorporates the following executed proposals:
 
+- [128806](https://dashboard.internetcomputer.org/proposal/128806)
+- [128805](https://dashboard.internetcomputer.org/proposal/128805)
 - [128296](https://dashboard.internetcomputer.org/proposal/128296)
 - [128295](https://dashboard.internetcomputer.org/proposal/128295)
 - [128171](https://dashboard.internetcomputer.org/proposal/128171)
