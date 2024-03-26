@@ -100,9 +100,11 @@ It caused the following `init/deploy` commands to fail.
 
 ### Replica
 
-Updated replica to elected commit fff20526e154f8b8d24373efd9b50f588d147e91.
+Updated replica to elected commit 425a0012aeb40008e2e72d913318bc9dbdf3b4f4.
 This incorporates the following executed proposals:
 
+- [128806](https://dashboard.internetcomputer.org/proposal/128806)
+- [128805](https://dashboard.internetcomputer.org/proposal/128805)
 - [128296](https://dashboard.internetcomputer.org/proposal/128296)
 - [128295](https://dashboard.internetcomputer.org/proposal/128295)
 - [128171](https://dashboard.internetcomputer.org/proposal/128171)
