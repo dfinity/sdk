@@ -28,7 +28,7 @@ There are a few components above worth expanding on:
 1. **dfx** - `dfx` is the command-line interface for the `IC SDK`. This is why many commands for the IC SDK start with the command "`dfx ..`" such as `dfx new` or `dfx stop`.
 
 2. **Canister Development Kit (CDK)** - A CDK is an adapter used by the IC SDK so a programming language has the features needed to create and manage canisters. 
-The IC SDK comes with a few CDKs already installed for you so you can use them in the language of yoru choice. That is why there is a [Rust CDK](https://github.com/dfinity/cdk-rs), [Python CDK](https://demergent-labs.github.io/kybra/), 
+The IC SDK comes with a few CDKs already installed for you so you can use them in the language of your choice. That is why there is a [Rust CDK](https://github.com/dfinity/cdk-rs), [Python CDK](https://demergent-labs.github.io/kybra/), 
 [TypeScript CDK](https://demergent-labs.github.io/azle/), etc... Since CDKs are components used the SDK, some developer choose to use the CDK directly (without the `IC SDK`), 
 but typically are used as part of the whole `IC SDK`.
 
