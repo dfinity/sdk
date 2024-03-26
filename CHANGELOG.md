@@ -12,6 +12,18 @@ Only for these particular queries, `dfx` will make the query calls without check
 
 If the response reliability is a concern, you can make update calls to the secure alternatives.
 
+### feat(beta): enable cycles ledger support
+
+If the environment variable `DFX_CYCLES_LEDGER_SUPPORT_ENABLE` is set and no cycles wallet is configured, then dfx will try to use the cycles ledger to perform any operation that the cycles wallet usually is used for.
+
+The following commands/options have been unhidden:
+- `dfx cycles`
+- `--from-subaccount` for `dfx deploy`, `dfx canister create`, `dfx canister deposit-cycles` to determine which cycles ledger subaccount the used cycles should be used from
+- `--created-at-time` for `dfx deploy`, `dfx create canister`, `dfx canister deposit-cycles` to control transaction deduplication on the cycles ledger
+- `--to-subaccount` for `dfx canister delete` to control into which subaccount cycles are withdrawn before the canister is deleted
+
+The cycles ledger will not be supported by default until the cycles ledger canister is under NNS control.
+
 ### feat: dfx canister call ... --output json
 
 This is the same as `dfx canister call ... | idl2json`, for convenience.
@@ -77,6 +89,12 @@ dfx.json.  This is now performed by dfxvm.
 
 When all the arguments are optional, dfx automatically provides a `null` value when no arguments are provided.
 `--always-assist` flag enables the candid assist feature for optional arguments, instead of providing a default `null` value.
+
+### fix(deps): the second pull forget to set wasm_hash_download in pulled.json
+
+When the dependency has been in the cache, `dfx deps pull` forgot to set correct `wasm_hash_download` in `pulled.json`.
+
+It caused the following `init/deploy` commands to fail.
 
 ## Dependencies
 

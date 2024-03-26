@@ -165,6 +165,7 @@ async fn download_and_generate_pulled_canister(
             if hash_cache.as_slice() == hash_on_chain {
                 cache_hit = true;
                 pulled_canister.gzip = gzip;
+                pulled_canister.wasm_hash_download = hex::encode(hash_cache);
                 trace!(logger, "The canister wasm was found in the cache.");
             }
             break;
