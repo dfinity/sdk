@@ -207,7 +207,8 @@ set_local_network_bitcoin_enabled() {
     min_confirmations = opt (1 : nat32);
   }
 )'
-  assert_eq "(0 : nat64)"
+  # shellcheck disable=SC2154
+  assert_eq "(0 : nat64)" "$stdout"
 
   # bitcoin_get_balance_query
   assert_command dfx canister call --query aaaaa-aa --candid bitcoin.did bitcoin_get_utxos_query '(
