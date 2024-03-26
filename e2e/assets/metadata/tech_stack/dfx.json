@@ -189,7 +189,7 @@
                         "custom_fields": [
                             {
                                 "field": "version",
-                                "value_command": "./a\\ custom\\ script.sh"
+                                "value_command": "./a\\ custom\\ script.sh some_args"
                             }
                         ]
                     }
