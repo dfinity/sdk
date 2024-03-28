@@ -135,7 +135,7 @@ jobs:
             owner,
             repo,
             issue_number: pr_create_result.data.number,
-            labels: ['chore', 'automerge-squash']
+            labels: ['chore']
           });
           core.startGroup('new PR JSON object');
           core.info(JSON.stringify(pr_create_result, null, 2));
