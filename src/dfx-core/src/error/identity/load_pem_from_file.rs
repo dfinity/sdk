@@ -5,7 +5,7 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum LoadPemFromFileError {
-    #[error("Failed to decrypt PEM file: {0}")]
+    #[error("Failed to decrypt PEM file at {0}: {1}")]
     DecryptPemFileFailed(PathBuf, EncryptionError),
 
     #[error("Failed to read pem file: {0}")]

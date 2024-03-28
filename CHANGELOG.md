@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### fix: "Failed to decrypt PEM file" errors messages will now include the cause
+
 # 0.19.0
 
 ### fix: call management canister Bitcoin query API without replica-signed query
