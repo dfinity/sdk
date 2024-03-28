@@ -115,6 +115,10 @@ This incorporates the following executed proposals:
 
 Downgraded Bitcoin canister to [release/2023-10-13](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2023-10-13)
 
+### Motoko
+
+Updated Motoko to [0.11.1](https://github.com/dfinity/motoko/releases/tag/0.11.1)
+
 # 0.18.0
 
 ### fix!: removed the `dfx upgrade` command
