@@ -1,11 +1,11 @@
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
-use crate::lib::canister_info::pull::PullCanisterInfo;
-use crate::lib::canister_info::CanisterInfo;
+use crate::lib::canister_info::{CanisterInfo, PullInfo};
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
+use anyhow::anyhow;
 use candid::Principal as CanisterId;
 use fn_error_context::context;
 use slog::o;
@@ -43,23 +43,33 @@ impl CanisterBuilder for PullBuilder {
         canister_info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
-        let pull_info = canister_info.as_info::<PullCanisterInfo>()?;
-        Ok(BuildOutput {
-            canister_id: *pull_info.get_canister_id(),
-            // It's impossible to know if the downloaded wasm is gzip or not with only the info in `dfx.json`.
-            wasm: WasmBuildOutput::None,
-            idl: IdlBuildOutput::File(pull_info.get_output_idl_path().to_path_buf()),
-        })
+        unreachable!("call get_pull_build_output directly");
     }
 
+    #[context("Failed to get candid path for pull canister '{}'.", info.get_name())]
     fn get_candid_path(
         &self,
         _pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
-        let pull_info = info.as_info::<PullCanisterInfo>()?;
-        let output_idl_path = pull_info.get_output_idl_path();
-        Ok(output_idl_path.to_path_buf())
+        unreachable!("pull canister must provide common_output_idl_path")
     }
+}
+
+pub fn get_pull_build_output(
+    canister_info: &CanisterInfo,
+    pull_info: &PullInfo,
+) -> DfxResult<BuildOutput> {
+    let canister_id = *pull_info.get_canister_id();
+    let output_idl_path = canister_info
+        .get_common_output_idl_path()
+        .ok_or_else(|| anyhow!("no common output idl path"))?;
+
+    Ok(BuildOutput {
+        canister_id,
+        // It's impossible to know if the downloaded wasm is gzip or not with only the info in `dfx.json`.
+        wasm: WasmBuildOutput::None,
+        idl: IdlBuildOutput::File(output_idl_path),
+    })
 }

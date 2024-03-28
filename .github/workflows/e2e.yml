@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ens/poc-pull-info-unreachable
   pull_request:
 
 concurrency:
