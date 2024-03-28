@@ -36,8 +36,6 @@ pub enum DfxCommand {
     Build(build::CanisterBuildOpts),
     Cache(cache::CacheOpts),
     Canister(canister::CanisterOpts),
-    //TODO(SDK-1331): unhide
-    #[command(hide = true)]
     Cycles(cycles::CyclesOpts),
     Deploy(deploy::DeployOpts),
     Deps(deps::DepsOpts),

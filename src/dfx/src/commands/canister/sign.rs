@@ -13,6 +13,7 @@ use clap::Parser;
 use dfx_core::identity::CallSender;
 use ic_agent::AgentError;
 use ic_agent::RequestId;
+use ic_utils::interfaces::management_canister::MgmtMethod;
 use slog::info;
 use std::convert::TryInto;
 use std::fs::File;
@@ -160,9 +161,17 @@ pub async fn exec(
     let mut sign_agent = agent.clone();
     sign_agent.set_transport(SignTransport::new(file_name.clone(), message_template));
 
-    let is_management_canister = canister_id == Principal::management_canister();
-    let effective_canister_id =
-        get_effective_canister_id(is_management_canister, method_name, &arg_value, canister_id)?;
+    let effective_canister_id = if canister_id == Principal::management_canister() {
+        let management_method = MgmtMethod::from_str(method_name).map_err(|_| {
+            anyhow!(
+                "Attempted to call an unsupported management canister method: {}",
+                method_name
+            )
+        })?;
+        get_effective_canister_id(&management_method, &arg_value)?
+    } else {
+        canister_id
+    };
 
     if is_query {
         let res = sign_agent
