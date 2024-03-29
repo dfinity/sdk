@@ -1,6 +1,6 @@
 #![allow(special_module_name)]
 use crate::config::{dfx_version, dfx_version_str};
-use crate::lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
+use crate::lib::diagnosis::{diagnose, Diagnosis};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::DfxResult;
 use crate::lib::logger::{create_root_logger, LoggingMode};
@@ -140,44 +140,36 @@ fn get_args_altered_for_extension_run() -> DfxResult<Vec<OsString>> {
     Ok(args)
 }
 
-fn main() {
-    let args = get_args_altered_for_extension_run().unwrap_or_else(|err| {
-        print_error_and_diagnosis(err, NULL_DIAGNOSIS);
-        std::process::exit(255);
-    });
-
-    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
+fn inner_main() -> DfxResult {
+    let args = get_args_altered_for_extension_run()?;
 
     let cli_opts = CliOpts::parse_from(args);
+
+    if matches!(cli_opts.command, commands::DfxCommand::Schema(_)) {
+        return commands::exec_without_env(cli_opts.command);
+    }
+
     let (verbose_level, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
-    let command = cli_opts.command;
-    let result = match EnvironmentImpl::new().map(|env| {
-        env.with_logger(log)
-            .with_identity_override(identity)
-            .with_verbose_level(verbose_level)
-            .with_effective_canister_id(effective_canister_id)
-    }) {
-        Ok(env) => {
-            slog::trace!(
-                env.get_logger(),
-                "Trace mode enabled. Lots of logs coming up."
-            );
-            match commands::exec(&env, command) {
-                Err(e) => {
-                    error_diagnosis = diagnose(&env, &e);
-                    Err(e)
-                }
-                ok => ok,
-            }
-        }
-        Err(e) => match command {
-            commands::DfxCommand::Schema(_) => commands::exec_without_env(command),
-            _ => Err(e),
-        },
-    };
+
+    let env = EnvironmentImpl::new()?
+        .with_logger(log)
+        .with_identity_override(identity)
+        .with_verbose_level(verbose_level)
+        .with_effective_canister_id(effective_canister_id);
+
+    slog::trace!(
+        env.get_logger(),
+        "Trace mode enabled. Lots of logs coming up."
+    );
+    commands::exec(&env, cli_opts.command)
+}
+
+fn main() {
+    let result = inner_main();
     if let Err(err) = result {
+        let error_diagnosis = diagnose(&err);
         print_error_and_diagnosis(err, error_diagnosis);
         std::process::exit(255);
     }

@@ -1,4 +1,3 @@
-use super::environment::Environment;
 use crate::lib::error_code;
 use anyhow::Error as AnyhowError;
 use ic_agent::agent::{RejectCode, RejectResponse};
@@ -37,7 +36,7 @@ impl DiagnosedError {
 }
 
 /// Attempts to give helpful suggestions on how to resolve errors.
-pub fn diagnose(_env: &dyn Environment, err: &AnyhowError) -> Diagnosis {
+pub fn diagnose(err: &AnyhowError) -> Diagnosis {
     if let Some(diagnosed_error) = err.downcast_ref::<DiagnosedError>() {
         return (
             diagnosed_error.error_explanation.clone(),
