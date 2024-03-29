@@ -120,9 +120,8 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
     }
 }
 
-fn get_args_altered_for_extension_run() -> DfxResult<Vec<OsString>> {
+fn get_args_altered_for_extension_run(em: &ExtensionManager) -> DfxResult<Vec<OsString>> {
     let mut args = std::env::args_os().collect::<Vec<OsString>>();
-    let em = ExtensionManager::new(dfx_version())?;
 
     let installed_extensions = em.installed_extensions_as_clap_commands()?;
     if !installed_extensions.is_empty() {
@@ -141,7 +140,9 @@ fn get_args_altered_for_extension_run() -> DfxResult<Vec<OsString>> {
 }
 
 fn inner_main() -> DfxResult {
-    let args = get_args_altered_for_extension_run()?;
+    let em = ExtensionManager::new(dfx_version())?;
+
+    let args = get_args_altered_for_extension_run(&em)?;
 
     let cli_opts = CliOpts::parse_from(args);
 
@@ -153,7 +154,7 @@ fn inner_main() -> DfxResult {
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
 
-    let env = EnvironmentImpl::new()?
+    let env = EnvironmentImpl::new(em)?
         .with_logger(log)
         .with_identity_override(identity)
         .with_verbose_level(verbose_level)
