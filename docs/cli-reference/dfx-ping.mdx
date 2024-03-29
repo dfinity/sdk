@@ -2,7 +2,7 @@ import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
 
 # dfx ping
 
-<MarkdownChipRow labels={["Reference"]} />
+<MarkdownChipRow labels={["Reference"]}/>
 
 Use the `dfx ping` command to check connectivity to the IC or a testnet. This command enables you to verify that you can connect to the environment where you want to deploy to.
 
@@ -34,6 +34,8 @@ dfx ping https://testgw.dfinity.network
 
 If the IC is running on the specified network provider address, the command returns output similar to the following:
 
-    {
-      "ic_api_version": "0.8"
-    }
+```json
+{
+  "ic_api_version": "0.8"
+}
+```
