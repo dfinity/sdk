@@ -140,7 +140,7 @@ fn get_args_altered_for_extension_run() -> DfxResult<Vec<OsString>> {
     Ok(args)
 }
 
-fn inner_main() -> DfxResult<()> {
+fn inner_main() -> DfxResult {
     let args = get_args_altered_for_extension_run()?;
 
     let cli_opts = CliOpts::parse_from(args);
