@@ -83,7 +83,7 @@ pub fn exec(env: &dyn Environment, cmd: DfxCommand) -> DfxResult {
         DfxCommand::Ping(v) => ping::exec(env, v),
         DfxCommand::Quickstart(v) => quickstart::exec(env, v),
         DfxCommand::Remote(v) => remote::exec(env, v),
-        DfxCommand::Schema(v) => schema::exec(v),
+        DfxCommand::Schema(_v) => unreachable!("called through exec_without_env"),
         DfxCommand::Start(v) => start::exec(env, v),
         DfxCommand::Stop(v) => stop::exec(env, v),
         DfxCommand::Toolchain(v) => toolchain::exec(env, v),
