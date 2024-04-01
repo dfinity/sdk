@@ -175,7 +175,6 @@ build_release_branch() {
     $DRY_RUN_ECHO git push origin "$BRANCH"
 
     echo "Please open a pull request to the $FINAL_RELEASE_BRANCH branch, review and approve it, then merge it manually."
-    echo "  (The automerge-squash label will not work because the PR is not to the master branch)"
 
     wait_for_response 'PR merged'
 }

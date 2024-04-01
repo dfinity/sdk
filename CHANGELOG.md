@@ -354,9 +354,9 @@ The dfxvm install script now accepts `DFXVM_INIT_YES=<non empty string>` to skip
 
 When using `dfx canister status`, the output now includes the new query statistics. Those might initially be 0, if the feature is not yet enabled on the subnet the canister is installed in.
 
-### fix: Candid parser when parsing `vec {number}` with `blob` type
+### fix: Candid parser when parsing `vec \{number\}` with `blob` type
 
-Fix the bug that when parsing `vec {1;2;3}` with `blob` type, dfx silently ignores the numbers.
+Fix the bug that when parsing `vec \{1;2;3\}` with `blob` type, dfx silently ignores the numbers.
 
 ### fix: support `import` for local did file
 
@@ -1180,12 +1180,13 @@ Add option to specify an "optimize" field for canisters to invoke the `wasm-opt`
 This behavior is disabled by default.
 
 If you want to enable this behavior, you can do so in dfx.json:
-
-    "canisters" : {
-        "app" : {
-            "optimize" : "cycles"
-        }
-    }
+```json
+"canisters": {
+  "app": {
+    "optimize" : "cycles"
+  }
+}
+```
 
 The options are "cycles", "size", "O4", "O3", "O2", "O1", "O0", "Oz", and "Os".  The options starting with "O" are the optimization levels that `wasm-opt` provides. The "cycles" and "size" options are recommended defaults for optimizing for cycle usage and binary size respectively.
 
@@ -1637,12 +1638,13 @@ dfx --identity ident-1 ledger balance
 ### feat: default to run ic-wasm shrink when build canisters
 This behavior applies to Motoko, Rust and Custom canisters.
 If you want to disable this behavior, you can config it in dfx.json:
-
-    "canisters" : {
-        "app" : {
-            "shrink" : false,
-        }
-    }
+```json
+"canisters" : {
+  "app" : {
+    "shrink" : false,
+  }
+}
+```
 
 ### feat: configurable custom wasm sections
 
@@ -1669,7 +1671,7 @@ This changelog entry doesn't go into all of the details of the possible configur
 
 ### fix: Valid canister-based env vars
 
-Hyphens are not valid in shell environment variables, but do occur in canister names such as `smiley-dapp`. This poses a problem for vars with names such as `CANISTER_ID_${CANISTER_NAME}`.  With this change, hyphens are replaced with underscores in environment variables.  The canister id of `smiley-dapp` will be available as `CANISTER_ID_smiley_dapp`.  Other environment variables are unaffected.
+Hyphens are not valid in shell environment variables, but do occur in canister names such as `smiley-dapp`. This poses a problem for vars with names such as `CANISTER_ID_$\{CANISTER_NAME\}`.  With this change, hyphens are replaced with underscores in environment variables.  The canister id of `smiley-dapp` will be available as `CANISTER_ID_smiley_dapp`.  Other environment variables are unaffected.
 
 ### feat: Add dfx sns deploy
 
@@ -1735,11 +1737,12 @@ The network's port can be controlled by using the field `"provider"` in the netw
 ### feat: configure logging level of http adapter
 
 It is now possible to set the http adapter's log level in dfx.json or in networks.json:
-
-    "http": {
-      "enabled": true,
-      "log_level": "info"
-    }
+```
+"http": {
+  "enabled": true,
+  "log_level": "info"
+}
+```
 
 By default, a log level of "error" is used, in order to keep the output of a first-time `dfx start` minimal. Change it to "debug" for more verbose logging.
 
@@ -2266,11 +2269,13 @@ The bitcoin adapter's logging can be very verbose if debug logging is enabled, m
 
 To get the best of both worlds, this release adds support for an additional configuration option in dfx.json:
 
-    "bitcoin": {
-      "enabled": true,
-      "nodes": ["127.0.0.1:18444"],
-      "log_level": "info" <------- users can now configure the log level
-    }
+```
+"bitcoin": {
+  "enabled": true,
+  "nodes": ["127.0.0.1:18444"],
+  "log_level": "info" <------- users can now configure the log level
+}
+```
 
 By default, a log level of "info" is used, which is relatively quiet. Users can change it to "debug" for more verbose logging.
 
@@ -2309,7 +2314,7 @@ be detected and uploaded even without an intervening `dfx build`.
 
 ### fix: remove deprecated candid path environment variable
 
-The environment variable format `CANISTER_CANDID_{name}`, used in Rust projects, was deprecated in 0.9.2, to be unified with the variables `CANISTER_CANDID_PATH_{name}` which are used in other project types. It has now been removed. Note that you will need to update `ic-cdk-macros` if you use the `#[import]` macro.
+The environment variable format `CANISTER_CANDID_\{name\}`, used in Rust projects, was deprecated in 0.9.2, to be unified with the variables `CANISTER_CANDID_PATH_\{name\}` which are used in other project types. It has now been removed. Note that you will need to update `ic-cdk-macros` if you use the `#[import]` macro.
 
 ### feat: deprecate `dfx config` for removal
 
@@ -2822,11 +2827,11 @@ The three canister types that use a custom build tool - `assets`, `rust`, and `c
 
 * `DFX_VERSION` - The version of DFX that was used to build the canister.
 * `DFX_NETWORK` - The network name being built for. Usually `ic` or `local`.
-* `CANISTER_ID_{canister}` - The canister principal ID of the canister `{canister}` registered in `dfx.json`.
-* `CANISTER_CANDID_PATH_{canister}` - The path to the Candid interface file for the canister `{canister}` among your canister's dependencies.
-* `CANISTER_CANDID_{canister}` (deprecated) - the same as `CANISTER_CANDID_PATH_{canister}`.  This is provided for backwards compatibility with `rust` and `custom` canisters, and will be removed in dfx 0.10.0.
-* `CANISTER_ID` - Same as `CANISTER_ID_{self}`, where `{self}` is the name of _this_ canister.
-* `CANISTER_CANDID_PATH` - Same as `CANISTER_CANDID_PATH_{self}`, where `{self}` is the name of _this_ canister.
+* `CANISTER_ID_\{canister\}` - The canister principal ID of the canister `\{canister\}` registered in `dfx.json`.
+* `CANISTER_CANDID_PATH_\{canister\}` - The path to the Candid interface file for the canister `\{canister\}` among your canister's dependencies.
+* `CANISTER_CANDID_\{canister\}` (deprecated) - the same as `CANISTER_CANDID_PATH_\{canister\}`.  This is provided for backwards compatibility with `rust` and `custom` canisters, and will be removed in dfx 0.10.0.
+* `CANISTER_ID` - Same as `CANISTER_ID_\{self\}`, where `\{self\}` is the name of _this_ canister.
+* `CANISTER_CANDID_PATH` - Same as `CANISTER_CANDID_PATH_\{self\}`, where `\{self\}` is the name of _this_ canister.
 
 ### feat: Support for local ledger calls
 
@@ -3271,7 +3276,7 @@ Under dfx.json → "canisters" → "<canister_name>", developers can add a "decl
 
 * "bindings" → [] list of options, ("js", "ts", "did", "mo") | default is "js", "ts", "did"
 
-* "env_override" → a string that will replace process.env.{canister_name_uppercase}_CANISTER_ID in the "src/dfx/assets/language_bindings/canister.js" template.
+* "env_override" → a string that will replace process.env.\{canister_name_uppercase\}_CANISTER_ID in the "src/dfx/assets/language_bindings/canister.js" template.
 
 js declarations output
 
@@ -3340,7 +3345,7 @@ but ended up only writing to the wallets.json file if --force was passed.
 
 ### chore: updating dependencies
 
-* Support for the latest version of the {IC} specification and replica.
+* Support for the latest version of the \{IC\} specification and replica.
 
 * Updating to latest versions of Motoko, Candid, and agent-rs
 
