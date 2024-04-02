@@ -11,6 +11,7 @@ use dfx_core::config::model::dfinity::{Config, NetworksConfig};
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::identity::new_identity_manager::NewIdentityManagerError;
+use dfx_core::error::load_dfx_config::LoadDfxConfigError;
 use dfx_core::extension::manager::ExtensionManager;
 use dfx_core::identity::identity_manager::IdentityManager;
 use fn_error_context::context;
@@ -24,7 +25,7 @@ use std::time::Duration;
 
 pub trait Environment {
     fn get_cache(&self) -> Arc<dyn Cache>;
-    fn get_config(&self) -> Option<Arc<Config>>;
+    fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError>;
     fn get_networks_config(&self) -> Arc<NetworksConfig>;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
@@ -72,7 +73,7 @@ pub trait Environment {
         CanisterIdStore::new(
             self.get_logger(),
             self.get_network_descriptor(),
-            self.get_config(),
+            self.get_config()?,
         )
     }
 }
@@ -149,8 +150,8 @@ impl Environment for EnvironmentImpl {
         Arc::clone(&self.cache)
     }
 
-    fn get_config(&self) -> Option<Arc<Config>> {
-        self.config.as_ref().map(Arc::clone)
+    fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
+        Ok(self.config.as_ref().map(Arc::clone))
     }
 
     fn get_networks_config(&self) -> Arc<NetworksConfig> {
@@ -158,7 +159,7 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
-        self.get_config().ok_or_else(|| anyhow!(
+        self.get_config()?.ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
     }
@@ -274,7 +275,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_cache()
     }
 
-    fn get_config(&self) -> Option<Arc<Config>> {
+    fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
         self.backend.get_config()
     }
 
@@ -283,7 +284,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
-        self.get_config().ok_or_else(|| anyhow!(
+        self.get_config()?.ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
     }

@@ -122,7 +122,7 @@ pub async fn exec(
     let canister_id_store = env.get_canister_id_store()?;
 
     if let Some(canister_name_or_id) = opts.canister.as_deref() {
-        let config = env.get_config();
+        let config = env.get_config()?;
         let config_interface = config.as_ref().map(|config| config.get_config());
         let mut controllers = controllers;
         let canister_id = CanisterId::from_text(canister_name_or_id)
