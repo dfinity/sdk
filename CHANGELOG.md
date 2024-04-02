@@ -10,7 +10,7 @@ Describing how to install completion scripts is beyond the scope of this documen
 Here are two ways to enable completion in the current shell:
 
 ```bash
-source <(dfx completion --shell zsh)
+source <(dfx completion zsh)
 ```
 
 ```bash

@@ -9,41 +9,41 @@ Generate shell completion scripts for `dfx`.
 ## Basic usage
 
 ``` bash
-dfx completion [option] OUTPUT_FILE
+dfx completion [option] SHELL
 ```
-
-The `OUTPUT_FILE` parameter can either be a filename or `-` for stdout (the default).
 
 The command takes installed extensions into account when generating the
 completion script, so you should regenerate it after installing or removing
 extensions.
 
+The values supported for SHELL are `bash`, `elvish`, `fish`, `powershell`,
+and `zsh`. The default value is `bash`.
+
 ## Options
 
-You can use the following options with the `dfx completion` command.
+You can use the following option with the `dfx completion` command.
 
-| Option                | Description                                                                                                       -|
-|-----------------------|--------------------------------------------------------------------------------------------------------------------|
-| `--shell <shell>`     | Generate completion script for this shell. Options: `bash`, `elvish`, `fish`, `zsh`, `powershell`. (default: bash) |
-| `--bin-name <name>`   | Name of the binary.  Default `dfx`.                                                                                |
+| Option                | Description                        -|
+|-----------------------|-------------------------------------|
+| `--bin-name <name>`   | Name of the binary.  Default `dfx`. |
 
 ## Examples
 
 Generate a bash completion script:
 
 ``` bash
-dfx completion dfx-completion.bash
+dfx completion
 ```
 
 Generate a zsh completion script:
 
 ``` bash
-dfx completion --shell zsh dfx-completion.zsh
+dfx completion zsh
 ```
 
 Enable completion in zsh:
 ```bash
-source <(dfx completion --shell zsh)
+source <(dfx completion zsh)
 ```
 
 Enable completion in bash:
