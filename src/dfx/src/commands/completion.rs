@@ -20,7 +20,6 @@ pub struct CompletionOpts {
 
 pub fn exec(env: &dyn Environment, opts: CompletionOpts) -> DfxResult {
     let em = env.get_extension_manager();
-    let mut output = std::io::stdout();
     let installed_extensions = em.installed_extensions_as_clap_commands()?;
     let mut command = if installed_extensions.is_empty() {
         CliOpts::command()
@@ -28,6 +27,11 @@ pub fn exec(env: &dyn Environment, opts: CompletionOpts) -> DfxResult {
         CliOpts::command_for_update().subcommands(&installed_extensions)
     };
 
-    generate(opts.shell, &mut command, opts.bin_name, &mut output);
+    generate(
+        opts.shell,
+        &mut command,
+        opts.bin_name,
+        &mut std::io::stdout(),
+    );
     Ok(())
 }
