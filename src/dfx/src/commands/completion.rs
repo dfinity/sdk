@@ -9,7 +9,7 @@ use clap_complete::Shell;
 /// Generate a shell completion script.
 #[derive(Parser)]
 pub struct CompletionOpts {
-    /// The name of the binary
+    /// The name of the command. Only needed if referring to dfx by another name, such as with an alias.
     #[clap(long, default_value("dfx"))]
     bin_name: String,
 
