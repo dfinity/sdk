@@ -972,7 +972,7 @@ Added methods:
 - `get_configuration()`: to view limits
 
 Suggestions for configured limits:
-- dapps controlled by SNS: max_batches\=1; max_chunks and max_bytes based on asset composition.
+- dapps controlled by SNS: max_batches=1; max_chunks and max_bytes based on asset composition.
 - dapps not controlled by SNS: unlimited (which is the default)
 
 Note that as always, if `dfx deploy` does not completely upload and commit a batch, the asset canister will retain the batch until 5 minutes have passed since the last chunk was uploaded.  If you have configured limits and the combination of an unsuccessful deployment and a subsequent attempt would exceed those limits, you can either wait 5 minutes before running `dfx deploy` again, or delete the incomplete batch with `delete_batch()`.
