@@ -3,7 +3,7 @@ use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
 use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use candid::Principal;
 use dfx_core::config::cache::Cache;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
@@ -18,7 +18,6 @@ use ic_agent::{Agent, Identity};
 use semver::Version;
 use slog::{warn, Logger, Record};
 use std::borrow::Cow;
-use std::fs::create_dir_all;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -31,7 +30,7 @@ pub trait Environment {
 
     /// Return a temporary directory for the current project.
     /// If there is no project (no dfx.json), there is no project temp dir.
-    fn get_project_temp_dir(&self) -> Option<PathBuf>;
+    fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>>;
 
     fn get_version(&self) -> &Version;
 
@@ -100,12 +99,6 @@ impl EnvironmentImpl {
     pub fn new(extension_manager: ExtensionManager) -> DfxResult<Self> {
         let shared_networks_config = NetworksConfig::new()?;
         let config = Config::from_current_dir()?;
-        if let Some(ref config) = config {
-            let temp_dir = config.get_temp_path();
-            create_dir_all(&temp_dir).with_context(|| {
-                format!("Failed to create temp directory {}.", temp_dir.display())
-            })?;
-        }
 
         let version = dfx_version().clone();
 
@@ -170,8 +163,12 @@ impl Environment for EnvironmentImpl {
         ))
     }
 
-    fn get_project_temp_dir(&self) -> Option<PathBuf> {
-        self.config.as_ref().map(|c| c.get_temp_path())
+    fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
+        Ok(self
+            .config
+            .as_ref()
+            .map(|c| c.get_temp_path())
+            .transpose()?)
     }
 
     fn get_version(&self) -> &Version {
@@ -291,7 +288,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
         ))
     }
 
-    fn get_project_temp_dir(&self) -> Option<PathBuf> {
+    fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
         self.backend.get_project_temp_dir()
     }
 

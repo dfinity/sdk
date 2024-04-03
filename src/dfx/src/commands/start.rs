@@ -189,7 +189,7 @@ pub fn exec(
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
     if clean {
-        clean_state(local_server_descriptor, env.get_project_temp_dir())?;
+        clean_state(local_server_descriptor, env.get_project_temp_dir()?)?;
     }
 
     let (frontend_url, address_and_port) = frontend_address(local_server_descriptor, background)?;

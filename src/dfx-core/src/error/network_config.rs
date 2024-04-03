@@ -1,4 +1,4 @@
-use crate::error::config::ConfigError;
+use crate::error::config::{ConfigError, GetTempPathError};
 use crate::error::fs::FsError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError;
 use crate::error::uri::UriError;
@@ -24,6 +24,9 @@ pub enum NetworkConfigError {
         network_name: String,
         cause: UriError,
     },
+
+    #[error(transparent)]
+    GetTempPath(#[from] GetTempPathError),
 
     #[error("Network '{0}' does not specify any network providers.")]
     NetworkHasNoProviders(String),
