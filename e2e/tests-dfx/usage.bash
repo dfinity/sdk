@@ -46,5 +46,5 @@ teardown() {
 
 @test "does not unconditionally read dfx.json" {
   echo "garbage" >dfx.json
-  dfx identity get-principal
+  assert_command dfx identity get-principal
 }
