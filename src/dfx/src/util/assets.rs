@@ -162,7 +162,9 @@ type change = record {
     details : change_details;
 };
 
-type chunk_hash = blob;
+type chunk_hash = record {
+  hash : blob;
+};
 
 type http_header = record {
     name : text;
@@ -290,14 +292,16 @@ type stored_chunks_args = record {
     canister_id : canister_id;
 };
 
-type install_code_args = record {
-    mode : variant {
-        install;
-        reinstall;
-        upgrade : opt record {
-            skip_pre_upgrade : opt bool;
-        };
+type canister_install_mode = variant {
+    install;
+    reinstall;
+    upgrade : opt record {
+        skip_pre_upgrade : opt bool;
     };
+};
+
+type install_code_args = record {
+    mode : canister_install_mode;
     canister_id : canister_id;
     wasm_module : wasm_module;
     arg : blob;
@@ -305,15 +309,9 @@ type install_code_args = record {
 };
 
 type install_chunked_code_args = record {
-    mode : variant {
-        install;
-        reinstall;
-        upgrade : opt record {
-            skip_pre_upgrade : opt bool;
-        };
-    };
+    mode : canister_install_mode;
     target_canister : canister_id;
-    storage_canister : opt canister_id;
+    store_canister : opt canister_id;
     chunk_hashes_list : vec chunk_hash;
     wasm_module_hash : blob;
     arg : blob;
