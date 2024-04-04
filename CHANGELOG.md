@@ -21,6 +21,11 @@ In bash:
 source <(dfx completion)
 ```
 
+### fix: dfx no longer always creates .dfx directory if dfx.json is present
+
+Previously, `dfx` would always create a `.dfx` directory in the project root if `dfx.json` was present.
+Now, it only does so if the command accesses the .dfx directory in some way.
+
 # 0.19.0
 
 ### fix: call management canister Bitcoin query API without replica-signed query
