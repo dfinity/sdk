@@ -29,7 +29,6 @@ pub trait Environment {
     fn get_networks_config(&self) -> Arc<NetworksConfig>;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
-    fn is_in_project(&self) -> bool;
     /// Return a temporary directory for the current project.
     /// If there is no project (no dfx.json), there is no project temp dir.
     fn get_project_temp_dir(&self) -> Option<PathBuf>;
@@ -171,10 +170,6 @@ impl Environment for EnvironmentImpl {
         ))
     }
 
-    fn is_in_project(&self) -> bool {
-        self.config.is_some()
-    }
-
     fn get_project_temp_dir(&self) -> Option<PathBuf> {
         self.config.as_ref().map(|c| c.get_temp_path())
     }
@@ -294,10 +289,6 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.get_config().ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
-    }
-
-    fn is_in_project(&self) -> bool {
-        self.backend.is_in_project()
     }
 
     fn get_project_temp_dir(&self) -> Option<PathBuf> {
