@@ -126,36 +126,28 @@ Check [tech-stack](tech-stack.md) for more details and how to set it in `dfx.jso
 ```json
 {
   "tech_stack": {
-    "language": [
-      {
-        "name": "rust",
+    "language": {
+      "rust": {
         "version": "1.75.0"
       }
-    ],
-    "cdk": [
-      {
-        "name": "ic-cdk",
+    },
+    "cdk": {
+      "ic-cdk": {
         "version": "0.13.0"
       }
-    ],
-    "lib": [
-      {
-        "name": "ic-cdk-timers"
-      },
-      {
-        "name": "ic-stable-structures"
+    },
+    "lib": {
+      "ic-cdk-timers": {},
+      "ic-stable-structures": {}
+    },
+    "other": {
+      "bitcoin": {
+        "address": "bcrt1qfe264m0ycx2vcqvqyhs0gpxk6tw8ug6hqeps2d"
       }
-    ],
-    "other": [
-      {
-        "name": "bitcoin"
-      }
-    ],
-    "tool": [
-      {
-        "name": "dfx"
-      }
-    ]
+    },
+    "tool": {
+      "dfx": {}
+    }
   }
 }
 ```

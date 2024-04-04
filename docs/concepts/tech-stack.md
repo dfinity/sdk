@@ -16,46 +16,35 @@ Providing a standard format of such information makes it easier to build tools l
 - tool
 - other
 
-Each category contains an Array of tech stack items.
-
-Each tech stack item must have a `"name"` field and can optionally define some custom fields, e.g. `"version"`.
+Each category is a map keyed by the names of tech stack items, where each value is a map containing optional fields.
 
 ### Example
 
 ```json
 {
   "tech_stack": {
-    "language": [
-      {
-        "name": "rust",
+    "language": {
+      "rust": {
         "version": "1.75.0"
       }
-    ],
-    "cdk": [
-      {
-        "name": "ic-cdk",
+    },
+    "cdk": {
+      "ic-cdk": {
         "version": "0.13.0"
       }
-    ],
-    "lib": [
-      {
-        "name": "ic-cdk-timers"
-      },
-      {
-        "name": "ic-stable-structures"
-      }
-    ],
-    "other": [
-      {
-        "name": "bitcoin",
+    },
+    "lib": {
+      "ic-cdk-timers": {},
+      "ic-stable-structures": {}
+    },
+    "other": {
+      "bitcoin": {
         "address": "bcrt1qfe264m0ycx2vcqvqyhs0gpxk6tw8ug6hqeps2d"
       }
-    ],
-    "tool": [
-      {
-        "name": "dfx"
-      }
-    ]
+    },
+    "tool": {
+      "dfx": {}
+    }
   }
 }
 ```
@@ -66,74 +55,46 @@ The example above was generated from the `dfx.json` configuration below.
 
 ```json
 {
-  "type": "motoko",
-  "main": "main.mo",
-  "tech_stack": {
-    "cdk": [
-      {
-        "name": "ic-cdk",
-        "custom_fields": [
-          {
-              "field": "version",
-              "value": "0.13.0"
+  "canisters": {
+    "canister_foo": {
+      "type": "custom",
+      "tech_stack": {
+        "cdk": {
+          "ic-cdk": {
+            "version": "0.13.0"
           }
-      ]
-      }
-    ],
-    "language": [
-      {
-        "name": "rust",
-        "custom_fields": [
-          {
-            "field": "version",
-            "value_command": "rustc --version | cut -d ' ' -f 2"
+        },
+        "language": {
+          "rust": {
+            "version": "$(rustc --version | cut -d ' ' -f 2)"
           }
-        ]
-      }
-    ],
-    "lib": [
-      {
-        "name": "ic-cdk-timers"
-      },
-      {
-        "name": "ic-stable-structures"
-      }
-    ],
-    "tool": [
-      {
-        "name": "dfx"
-      }
-    ],
-    "other": [
-      {
-        "name": "bitcoin",
-        "custom_fields": [
-          {
-            "field": "address",
-            "value": "bcrt1qfe264m0ycx2vcqvqyhs0gpxk6tw8ug6hqeps2d"
+        },
+        "lib": {
+          "ic-cdk-timers": {},
+          "ic-stable-structures": {}
+        },
+        "tool": {
+          "dfx": {}
+        },
+        "other": {
+          "bitcoin": {
+            "address": "bcrt1qfe264m0ycx2vcqvqyhs0gpxk6tw8ug6hqeps2d"
           }
-        ]
+        }
       }
-    ]
+    }
   }
 }
 ```
 
-In `dfx.json`, the optional `"tech_stack"` object has 5 corresponding categories.
+The `"tech_stack"` object in `dfx.json` is almost the same as the generated metadata.
 
-Each category is a JSON array, in which each element defines a tech stack item.
+The only difference is that the `language->rust->version` field is `"$(rustc --version | cut -d ' ' -f 2)"` instead of `"1.75.0"`.
 
-Each item configuration must define a `"name"` and can optionally define `"custom_fields"`.
+Besides directly setting the value of custom fields, it's also possible to obtain the value by executing a command.
 
-The `"custom_fields"` is a JSON array, in which each element defines a custom field.
+If the content of a custom field value begins with the prefix `$(` and ends with the postfix `)`, the inner text will be interpreted as a command.
 
-Each custom field must define a `"field"` name.
-
-The value of the field can be defined in two ways:
-
-- `"value"`: This defines the value directly.
-- `"value_command"`:
-  - This should be a CLI command.
-  - The command will be run in the workspace root (the dir contains `dfx.json`). 
-  - The stdout should be a valid UTF-8 string.
-  - The stdout will be trimmed (leading and trailing whitespace removed) to get the field value.
+- The command will be executed in the workspace root directory, which contains the `dfx.json` file.
+- The stdout should be a valid UTF-8 string.
+- The field value will be obtained by trimming the stdout, removing any leading and trailing whitespace.
