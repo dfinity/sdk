@@ -43,3 +43,8 @@ teardown() {
   dfx identity get-principal
   assert_directory_not_exists .dfx
 }
+
+@test "does not unconditionally read dfx.json" {
+  echo "garbage" >dfx.json
+  dfx identity get-principal
+}
