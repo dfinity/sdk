@@ -28,6 +28,13 @@ source <(dfx completion)
 Previously, `dfx` would always create a `.dfx` directory in the project root if `dfx.json` was present.
 Now, it only does so if the command accesses the .dfx directory in some way.
 
+### fix: dfx only loads dfx.json for commands that need it
+
+For example, this will work now:
+```bash
+echo garbage >dfx.json && dfx identity get-principal
+```
+
 # 0.19.0
 
 ### fix: call management canister Bitcoin query API without replica-signed query

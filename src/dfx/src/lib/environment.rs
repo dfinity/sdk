@@ -19,6 +19,7 @@ use ic_agent::{Agent, Identity};
 use semver::Version;
 use slog::{warn, Logger, Record};
 use std::borrow::Cow;
+use std::cell::RefCell;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -78,8 +79,14 @@ pub trait Environment {
     }
 }
 
+pub enum ProjectConfig {
+    NotLoaded,
+    NoProject,
+    Loaded(Arc<Config>),
+}
+
 pub struct EnvironmentImpl {
-    config: Option<Arc<Config>>,
+    project_config: RefCell<ProjectConfig>,
     shared_networks_config: Arc<NetworksConfig>,
 
     cache: Arc<dyn Cache>,
@@ -99,13 +106,12 @@ pub struct EnvironmentImpl {
 impl EnvironmentImpl {
     pub fn new(extension_manager: ExtensionManager) -> DfxResult<Self> {
         let shared_networks_config = NetworksConfig::new()?;
-        let config = Config::from_current_dir()?;
 
         let version = dfx_version().clone();
 
         Ok(EnvironmentImpl {
             cache: Arc::new(DiskBasedCache::with_version(&version)),
-            config: config.map(Arc::new),
+            project_config: RefCell::new(ProjectConfig::NotLoaded),
             shared_networks_config: Arc::new(shared_networks_config),
             version: version.clone(),
             logger: None,
@@ -143,6 +149,15 @@ impl EnvironmentImpl {
             },
         }
     }
+
+    fn load_config(&self) -> Result<(), LoadDfxConfigError> {
+        let project_config = Config::from_current_dir()?
+            .map_or(ProjectConfig::NoProject, |config| {
+                ProjectConfig::Loaded(Arc::new(config))
+            });
+        self.project_config.replace(project_config);
+        Ok(())
+    }
 }
 
 impl Environment for EnvironmentImpl {
@@ -151,7 +166,16 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
-        Ok(self.config.as_ref().map(Arc::clone))
+        if matches!(*self.project_config.borrow(), ProjectConfig::NotLoaded) {
+            self.load_config()?;
+        }
+
+        let config = if let ProjectConfig::Loaded(ref config) = *self.project_config.borrow() {
+            Some(Arc::clone(config))
+        } else {
+            None
+        };
+        Ok(config)
     }
 
     fn get_networks_config(&self) -> Arc<NetworksConfig> {
@@ -165,11 +189,7 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
-        Ok(self
-            .config
-            .as_ref()
-            .map(|c| c.get_temp_path())
-            .transpose()?)
+        Ok(self.get_config()?.map(|c| c.get_temp_path()).transpose()?)
     }
 
     fn get_version(&self) -> &Version {

@@ -1,7 +1,7 @@
 use crate::error::{
-    config::GetTempPathError,
-    dfx_config::GetPullCanistersError, fs::FsError, load_dfx_config::LoadDfxConfigError,
-    structured_file::StructuredFileError, unified_io::UnifiedIoError,
+    config::GetTempPathError, dfx_config::GetPullCanistersError, fs::FsError,
+    load_dfx_config::LoadDfxConfigError, structured_file::StructuredFileError,
+    unified_io::UnifiedIoError,
 };
 use thiserror::Error;
 
