@@ -3,7 +3,7 @@
 use crate::config::directories::get_user_dfx_config_dir;
 use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
-use crate::error::config::GetOutputEnvFileError;
+use crate::error::config::{GetOutputEnvFileError, GetTempPathError};
 use crate::error::dfx_config::AddDependenciesError::CanisterCircularDependency;
 use crate::error::dfx_config::GetCanisterNamesWithDependenciesError::AddDependenciesFailed;
 use crate::error::dfx_config::GetComputeAllocationError::GetComputeAllocationFailed;
@@ -35,6 +35,7 @@ use crate::error::structured_file::StructuredFileError;
 use crate::error::structured_file::StructuredFileError::{
     DeserializeJsonFileFailed, ReadJsonFileFailed,
 };
+use crate::fs::create_dir_all;
 use crate::json::save_json_file;
 use crate::json::structure::{PossiblyStr, SerdeVec};
 use byte_unit::Byte;
@@ -1040,8 +1041,10 @@ impl Config {
     pub fn get_path(&self) -> &PathBuf {
         &self.path
     }
-    pub fn get_temp_path(&self) -> PathBuf {
-        self.get_path().parent().unwrap().join(".dfx")
+    pub fn get_temp_path(&self) -> Result<PathBuf, GetTempPathError> {
+        let path = self.get_path().parent().unwrap().join(".dfx");
+        create_dir_all(&path)?;
+        Ok(path)
     }
     pub fn get_json(&self) -> &Value {
         &self.json
