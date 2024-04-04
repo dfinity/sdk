@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### chore: updated management canister .did file
+
 ### feat: added `dfx completion` command
 
 This command generates shell completion scripts for `bash`, `elvish`, `fish`, `zsh`, or PowerShell.
