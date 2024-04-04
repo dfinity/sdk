@@ -2,6 +2,6 @@
     {
         "op": "add",
         "path": "/workspaces/-",
-        "value": "src/{project_name}_backend"
+        "value": "src/{backend_name}"
     }
 ]

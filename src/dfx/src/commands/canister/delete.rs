@@ -7,7 +7,7 @@ use crate::lib::operations::canister::{
     deposit_cycles, start_canister, stop_canister, update_settings,
 };
 use crate::lib::operations::cycles_ledger::{
-    wallet_deposit_to_cycles_ledger, CYCLES_LEDGER_ENABLED,
+    cycles_ledger_enabled, wallet_deposit_to_cycles_ledger,
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
@@ -77,8 +77,7 @@ pub struct CanisterDeleteOpts {
     yes: bool,
 
     /// Subaccount of the selected identity to deposit cycles to.
-    //TODO(SDK-1331): unhide
-    #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
+    #[arg(long, value_parser = icrc_subaccount_parser)]
     to_subaccount: Option<Subaccount>,
 }
 
@@ -135,7 +134,7 @@ async fn delete_canister(
                         // If there is no wallet, then do not attempt to withdraw the cycles.
                         match wallet_canister_id(network, &identity_name)? {
                             Some(canister_id) => WithdrawTarget::Canister { canister_id },
-                            None if CYCLES_LEDGER_ENABLED => {
+                            None if cycles_ledger_enabled() => {
                                 let Some(my_principal) = env.get_selected_identity_principal()
                                 else {
                                     bail!("Identity has no principal attached")
@@ -199,7 +198,7 @@ async fn delete_canister(
                 "Installing temporary wallet in canister {} to enable transfer of cycles.",
                 canister
             );
-            let args = blob_from_arguments(None, None, None, &None)?;
+            let args = blob_from_arguments(None, None, None, None, &None, false, false)?;
             let mode = InstallMode::Reinstall;
             let install_builder = mgr
                 .install_code(&canister_id, &wasm_module)

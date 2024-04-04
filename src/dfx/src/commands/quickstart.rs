@@ -1,5 +1,6 @@
 use crate::lib::error::NotifyCreateCanisterError::Notify;
 use crate::lib::ledger_types::NotifyError::Refunded;
+use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use crate::{
     commands::ledger::create_canister::MEMO_CREATE_CANISTER,
     lib::{
@@ -187,7 +188,13 @@ async fn step_interact_ledger(
     let notify_spinner = ProgressBar::new_spinner();
     notify_spinner.set_message("Notifying the cycles minting canister...");
     notify_spinner.enable_steady_tick(100);
-    let res = notify_create(agent, ident_principal, height, None).await;
+    let res = notify_create(
+        agent,
+        ident_principal,
+        height,
+        SubnetSelectionType::default(),
+    )
+    .await;
     let wallet = match res {
         Ok(principal) => Ok(principal),
         Err(Notify(Refunded {

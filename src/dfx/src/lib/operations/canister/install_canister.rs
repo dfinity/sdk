@@ -5,6 +5,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::installers::assets::post_install_store_assets;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::named_canister;
+use crate::lib::operations::canister::all_project_canisters_with_ids;
 use crate::lib::operations::canister::motoko_playground::authorize_asset_uploader;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::util::assets::wallet_wasm;
@@ -13,7 +14,7 @@ use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use candid::Principal;
-use dfx_core::canister::{build_wallet_canister, install_canister_wasm};
+use dfx_core::canister::{build_wallet_canister, install_canister_wasm, install_mode_to_prompt};
 use dfx_core::cli::ask_for_consent;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
@@ -49,6 +50,7 @@ pub async fn install_canister(
     skip_consent: bool,
     env_file: Option<&Path>,
     no_asset_upgrade: bool,
+    always_assist: bool,
 ) -> DfxResult {
     let log = env.get_logger();
     let agent = env.get_agent();
@@ -65,12 +67,18 @@ pub async fn install_canister(
     let mode = mode.unwrap_or_else(|| {
         if installed_module_hash.is_some() {
             InstallMode::Upgrade {
-                skip_pre_upgrade: false,
+                skip_pre_upgrade: Some(false),
             }
         } else {
             InstallMode::Install
         }
     });
+    let mode_str = install_mode_to_prompt(&mode);
+    let canister_name = canister_info.get_name();
+    info!(
+        log,
+        "{mode_str} code for canister {canister_name}, with canister ID {canister_id}",
+    );
     if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade { .. }) {
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;
         if let Some(candid) = &candid {
@@ -132,6 +140,7 @@ pub async fn install_canister(
         } else {
             get_candid_init_type(&idl_path)
         };
+
         // The argument and argument_type from the CLI take precedence over the `init_arg` field in dfx.json
         let argument_from_json = canister_info.get_init_arg();
         let (argument, argument_type) = match (argument_from_cli, argument_from_json) {
@@ -157,7 +166,15 @@ The command line value will be used.",
             (None, Some(_)) => (argument_from_json, Some("idl")), // `init_arg` in dfx.json is always in Candid format
             (None, None) => (None, None),
         };
-        let install_args = blob_from_arguments(argument, None, argument_type, &init_type)?;
+        let install_args = blob_from_arguments(
+            Some(env),
+            argument,
+            None,
+            argument_type,
+            &init_type,
+            true,
+            always_assist,
+        )?;
         if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
             let new_timestamp = playground_install_code(
                 env,
@@ -184,7 +201,6 @@ The command line value will be used.",
                 call_sender,
                 wasm_module,
                 skip_consent,
-                env.get_logger(),
             )
             .await?;
         }
@@ -396,12 +412,10 @@ fn run_post_install_tasks(
     let pool = match pool {
         Some(pool) => pool,
         None => {
-            let deps = env
-                .get_config_or_anyhow()?
-                .get_config()
-                .get_canister_names_with_dependencies(Some(canister.get_name()))?;
+            let config = env.get_config_or_anyhow()?;
+            let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
-            tmp = CanisterPool::load(env, false, &deps)
+            tmp = CanisterPool::load(env, false, &canisters_to_load)
                 .context("Error collecting canisters for post-install task")?;
             &tmp
         }

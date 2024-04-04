@@ -85,13 +85,11 @@ pub struct CanisterCreateOpts {
 
     /// Transaction timestamp, in nanoseconds, for use in controlling transaction deduplication, default is system time.
     /// https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
-    //TODO(SDK-1331): unhide
-    #[arg(long, hide = true, conflicts_with = "all")]
+    #[arg(long, conflicts_with = "all")]
     created_at_time: Option<u64>,
 
     /// Subaccount of the selected identity to spend cycles from.
-    //TODO(SDK-1331): unhide
-    #[arg(long, value_parser = icrc_subaccount_parser, hide = true)]
+    #[arg(long, value_parser = icrc_subaccount_parser)]
     from_subaccount: Option<Subaccount>,
 
     #[command(flatten)]
@@ -141,7 +139,10 @@ pub async fn exec(
         })
         .transpose()
         .context("Failed to determine controllers.")?;
-    let subnet_selection = opts.subnet_selection.into_subnet_selection(env).await?;
+    let mut subnet_selection = opts
+        .subnet_selection
+        .into_subnet_selection_type(env)
+        .await?;
 
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     if let Some(canister_name) = opts.canister_name.as_deref() {
@@ -196,7 +197,7 @@ pub async fn exec(
                 reserved_cycles_limit,
             },
             opts.created_at_time,
-            subnet_selection,
+            &mut subnet_selection,
         )
         .await?;
         Ok(())
@@ -268,7 +269,7 @@ pub async fn exec(
                         reserved_cycles_limit,
                     },
                     opts.created_at_time,
-                    subnet_selection.clone(),
+                    &mut subnet_selection,
                 )
                 .await?;
             }

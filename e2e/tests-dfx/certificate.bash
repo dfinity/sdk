@@ -56,8 +56,8 @@ setup() {
 
 teardown() {
   # Kill child processes of mitmdump. Otherwise they hang around way too long
-  pkill -P $MITMDUMP_PID
-  kill $MITMDUMP_PID
+  pkill -P "$MITMDUMP_PID"
+  kill "$MITMDUMP_PID"
 
   dfx_stop
 

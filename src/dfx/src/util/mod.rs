@@ -1,20 +1,23 @@
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use bytes::Bytes;
 use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
 use candid::{Decode, Encode, IDLArgs, Principal};
-use candid_parser::error::pretty_diagnose;
+use candid_parser::error::pretty_wrap;
 use candid_parser::utils::CandidSource;
 use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
+use idl2json::{idl2json, Idl2JsonOptions};
 use num_traits::FromPrimitive;
 use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
 use socket2::{Domain, Socket};
-use std::io::{stdin, Read};
+use std::collections::BTreeMap;
+use std::io::{stderr, stdin, stdout, IsTerminal, Read};
 use std::net::{IpAddr, SocketAddr, TcpListener};
 use std::path::Path;
 use std::time::Duration;
@@ -74,7 +77,7 @@ pub fn print_idl_blob(
             let hex_string = hex::encode(blob);
             println!("{}", hex_string);
         }
-        "idl" | "pp" => {
+        "idl" | "pp" | "json" => {
             let result = match method_type {
                 None => candid::IDLArgs::from_bytes(blob),
                 Some((env, func)) => candid::IDLArgs::from_bytes_with_types(blob, env, &func.rets),
@@ -85,6 +88,9 @@ pub fn print_idl_blob(
             }
             if output_type == "idl" {
                 println!("{:?}", result?);
+            } else if output_type == "json" {
+                let json = convert_all(&result?)?;
+                println!("{}", json);
             } else {
                 println!("{}", result?);
             }
@@ -92,6 +98,21 @@ pub fn print_idl_blob(
         v => return Err(error_unknown!("Invalid output type: {}", v)),
     }
     Ok(())
+}
+
+/// Candid typically comes as a tuple of values.  This converts a single value in such a tuple.
+fn convert_one(idl_value: &IDLValue) -> DfxResult<String> {
+    let json_value = idl2json(idl_value, &Idl2JsonOptions::default());
+    serde_json::to_string_pretty(&json_value).with_context(|| anyhow!("Cannot pretty-print json"))
+}
+
+fn convert_all(idl_args: &IDLArgs) -> DfxResult<String> {
+    let json_structures = idl_args
+        .args
+        .iter()
+        .map(convert_one)
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(json_structures.join("\n"))
 }
 
 pub async fn read_module_metadata(
@@ -170,10 +191,13 @@ pub fn arguments_from_file(file_name: &Path) -> DfxResult<String> {
 
 #[context("Failed to create argument blob.")]
 pub fn blob_from_arguments(
+    dfx_env: Option<&dyn Environment>,
     arguments: Option<&str>,
     random: Option<&str>,
     arg_type: Option<&str>,
     method_type: &Option<(TypeEnv, Function)>,
+    is_init_arg: bool,
+    always_assist: bool,
 ) -> DfxResult<Vec<u8>> {
     let arg_type = arg_type.unwrap_or("idl");
     match arg_type {
@@ -187,12 +211,13 @@ pub fn blob_from_arguments(
             let typed_args = match method_type {
                 None => {
                     let arguments = arguments.unwrap_or("()");
-                    candid_parser::parse_idl_args(arguments)
-                        .or_else(|e| pretty_wrap("Candid argument", arguments, e))
+                    pretty_wrap("Candid argument", arguments, candid_parser::parse_idl_args)
                         .map_err(|e| error_invalid_argument!("Invalid Candid values: {}", e))?
                         .to_bytes()
                 }
                 Some((env, func)) => {
+                    let is_terminal =
+                        stdin().is_terminal() && stdout().is_terminal() && stderr().is_terminal();
                     if let Some(arguments) = arguments {
                         fuzzy_parse_argument(arguments, env, &func.args)
                     } else if func.args.is_empty() {
@@ -202,6 +227,7 @@ pub fn blob_from_arguments(
                         .args
                         .iter()
                         .all(|t| matches!(t.as_ref(), TypeInner::Opt(_)))
+                        && !always_assist
                     {
                         // If the user provided no arguments, and if all the expected arguments are
                         // optional, then use null values.
@@ -224,6 +250,37 @@ pub fn blob_from_arguments(
                             .context("Failed to create idl args.")?;
                         eprintln!("Sending the following random argument:\n{}\n", args);
                         args.to_bytes_with_types(env, &func.args)
+                    } else if is_terminal {
+                        use candid_parser::assist::{input_args, Context};
+                        let mut ctx = Context::new(env.clone());
+                        if let Some(env) = dfx_env {
+                            let principals = gather_principals_from_env(env);
+                            if !principals.is_empty() {
+                                let mut map = BTreeMap::new();
+                                map.insert("principal".to_string(), principals);
+                                ctx.set_completion(map);
+                            }
+                        }
+                        if is_init_arg {
+                            eprintln!("This canister requires an initialization argument.");
+                        } else {
+                            eprintln!("This method requires arguments.");
+                        }
+                        let args = input_args(&ctx, &func.args)?;
+                        eprintln!("Sending the following argument:\n{}\n", args);
+                        if is_init_arg {
+                            eprintln!(
+                                "Do you want to initialize the canister with this argument? [y/N]"
+                            );
+                        } else {
+                            eprintln!("Do you want to send this message? [y/N]");
+                        }
+                        let mut input = String::new();
+                        stdin().read_line(&mut input)?;
+                        if !["y", "Y", "yes", "Yes", "YES"].contains(&input.trim()) {
+                            return Err(error_invalid_data!("User cancelled."));
+                        }
+                        args.to_bytes_with_types(env, &func.args)
                     } else {
                         return Err(error_invalid_data!("Expected arguments but found none."));
                     }
@@ -234,6 +291,20 @@ pub fn blob_from_arguments(
         }
         v => Err(error_unknown!("Invalid type: {}", v)),
     }
+}
+
+pub fn gather_principals_from_env(env: &dyn Environment) -> BTreeMap<String, String> {
+    let mut res: BTreeMap<String, String> = BTreeMap::new();
+    if let Ok(mgr) = env.new_identity_manager() {
+        let logger = env.get_logger();
+        let mut map = mgr.get_unencrypted_principal_map(logger);
+        res.append(&mut map);
+    }
+    if let Ok(canisters) = env.get_canister_id_store() {
+        let mut canisters = canisters.get_name_id_map();
+        res.append(&mut canisters);
+    }
+    res
 }
 
 pub fn fuzzy_parse_argument(
@@ -251,13 +322,11 @@ pub fn fuzzy_parse_argument(
             if &TypeInner::Text == types[0].as_ref() && !is_quote {
                 Ok(IDLValue::Text(arg_str.to_string()))
             } else {
-                candid_parser::parse_idl_value(arg_str)
-                    .or_else(|e| pretty_wrap("Candid argument", arg_str, e))
+                pretty_wrap("Candid argument", arg_str, candid_parser::parse_idl_value)
             }
             .map(|v| IDLArgs::new(&[v]))
         } else {
-            candid_parser::parse_idl_args(arg_str)
-                .or_else(|e| pretty_wrap("Candid argument", arg_str, e))
+            pretty_wrap("Candid argument", arg_str, candid_parser::parse_idl_args)
         }
     });
     let bytes = args
@@ -265,15 +334,6 @@ pub fn fuzzy_parse_argument(
         .to_bytes_with_types(env, types)
         .map_err(|e| error_invalid_data!("Unable to serialize Candid values: {}", e))?;
     Ok(bytes)
-}
-
-fn pretty_wrap<T>(
-    file_name: &str,
-    source: &str,
-    e: candid_parser::Error,
-) -> Result<T, candid_parser::Error> {
-    pretty_diagnose(file_name, source, &e)?;
-    Err(e)
 }
 
 pub fn format_as_trillions(amount: u128) -> String {
@@ -353,7 +413,15 @@ pub async fn download_file(from: &Url) -> DfxResult<Vec<u8>> {
         .build()
         .context("Could not create HTTP client.")?;
 
-    let mut retry_policy = ExponentialBackoff::default();
+    let mut retry_policy = ExponentialBackoff {
+        // Retry at most 60 seconds
+        // When the server responds with errors not "404 not found" (e.g. "500 internal server error"),
+        // this function retries indefinitely.
+        // We arbitrarily set the maximum elapsed time to 60 seconds to avoid infinite retries.
+        // See the test case at the bottom of this file.
+        max_elapsed_time: Some(Duration::from_secs(60)),
+        ..Default::default()
+    };
 
     let body = loop {
         match attempt_download(&client, from).await {
@@ -382,7 +450,7 @@ async fn attempt_download(client: &Client, url: &Url) -> DfxResult<Option<Bytes>
 
 #[cfg(test)]
 mod tests {
-    use super::{format_as_trillions, pretty_thousand_separators};
+    use super::{download_file, format_as_trillions, pretty_thousand_separators};
 
     #[test]
     fn prettify_balance_amount() {
@@ -447,5 +515,16 @@ mod tests {
             "340,282,366,920,938,463,463,374,607.431",
             pretty_thousand_separators(format_as_trillions(u128::MAX))
         );
+    }
+
+    #[test]
+    fn download_file_retry_at_most_60s() {
+        let url = reqwest::Url::parse("http://httpbin.org/status/500").unwrap();
+        let time0 = std::time::Instant::now();
+        let _res = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(download_file(&url));
+        let time1 = std::time::Instant::now();
+        assert!(time1 - time0 < std::time::Duration::from_secs(61));
     }
 }

@@ -56,13 +56,13 @@ jobs:
       - name: Install Rust
         run: rustup show
       - name: Run Lint
-        run: cargo clippy --verbose --tests --benches --workspace -- -D clippy::all
+        run: cargo clippy --verbose --tests --benches --workspace -- -D warnings
         env:
           RUST_BACKTRACE: 1
 
   aggregate:
     name: lint:required
-    if: needs.changes.outputs.sources == 'true'
+    if: always() && needs.changes.outputs.sources == 'true'
     needs: [changes, test]
     runs-on: ubuntu-latest
     steps:

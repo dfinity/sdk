@@ -19,13 +19,13 @@ rust-version = "1.75.0"
 license = "Apache-2.0"
 
 [workspace.dependencies]
-candid = "0.10.3"
-candid_parser = "0.1.3"
-ic-agent = "0.33.0"
+candid = "0.10.4"
+candid_parser = "0.1.4"
+ic-agent = { git = "https://github.com/dfinity/agent-rs.git", rev = "c3b7ad562f5d3baaead08e6439fd74018afb7e43" }
 ic-asset = { path = "src/canisters/frontend/ic-asset" }
-ic-cdk = "0.12.0"
-ic-identity-hsm = "0.33.0"
-ic-utils = "0.33.0"
+ic-cdk = "0.13.1"
+ic-identity-hsm = { git = "https://github.com/dfinity/agent-rs.git", rev = "c3b7ad562f5d3baaead08e6439fd74018afb7e43" }
+ic-utils = { git = "https://github.com/dfinity/agent-rs.git", rev = "c3b7ad562f5d3baaead08e6439fd74018afb7e43" }
 
 aes-gcm = "0.10.3"
 anyhow = "1.0.56"
@@ -35,7 +35,8 @@ backoff = { version = "0.4.0", features = ["futures", "tokio"] }
 base64 = "0.13.0"
 byte-unit = "4.0.14"
 bytes = "1.2.1"
-clap = "4.2.0"
+clap = "4.5"
+clap_complete = "4.5"
 dialoguer = "0.11.0"
 directories-next = "2.0.0"
 flate2 = { version = "1.0.11", default-features = false }

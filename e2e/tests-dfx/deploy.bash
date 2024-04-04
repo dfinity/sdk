@@ -39,7 +39,7 @@ teardown() {
   assert_not_match "Module hash.*is already installed"
 }
 
-@test "deploy without arguments sets wallet and self as the controllers" {
+@test "deploy without --no-wallet sets wallet and self as the controllers" {
   dfx_start
   WALLET=$(dfx identity get-wallet)
   PRINCIPAL=$(dfx identity get-principal)
@@ -75,6 +75,28 @@ teardown() {
   assert_command dfx deploy
   assert_not_match "Installing code for"
   assert_match "is already installed"
+}
+
+@test "deploying multiple canisters with arguments fails" {
+  assert_command_fail dfx deploy --argument hello
+  assert_contains "The init argument can only be set when deploying a single canister."
+}
+
+@test "deploy one canister with an argument" {
+  dfx_start
+  assert_command dfx deploy hello_backend --argument '()'
+}
+
+@test "deploy one canister specifying raw argument" {
+  dfx_start
+  assert_command dfx deploy hello_backend --argument '4449444c0000' --argument-type raw
+}
+
+@test "deploy with an argument in a file" {
+  dfx_start
+  TMPFILE="$(mktemp)"
+  echo '()' >"$TMPFILE"
+  assert_command dfx deploy hello_backend --argument-file "$TMPFILE"
 }
 
 @test "deploying a dependent doesn't require already-installed dependencies to take args" {
@@ -154,13 +176,6 @@ teardown() {
   assert_contains "Creating a wallet canister"
 }
 
-@test "deploying multiple canisters with arguments fails" {
-  assert_command_fail dfx deploy --argument hello
-  assert_contains \
-"error: the following required arguments were not provided:
-  <CANISTER_NAME>"
-}
-
 @test "can deploy gzip wasm" {
   jq '.canisters.hello_backend.gzip=true' dfx.json | sponge dfx.json
   dfx_start
@@ -174,7 +189,9 @@ teardown() {
   dfx_new_frontend hello
   dfx_start
   assert_command dfx deploy
-  assert_contains "hello_frontend: http://127.0.0.1"
+  frontend_id=$(dfx canister id hello_frontend)
+  assert_match "http://127.0.0.1.+${frontend_id}"
+  assert_match "${frontend_id}.localhost"
 }
 
 @test "prints the frontend url if 'frontend' section is not present in dfx.json" {
@@ -182,17 +199,22 @@ teardown() {
   jq 'del(.canisters.hello_frontend.frontend)' dfx.json | sponge dfx.json
   dfx_start
   assert_command dfx deploy
-  assert_contains "hello_frontend: http://127.0.0.1"
+  frontend_id=$(dfx canister id hello_frontend)
+  assert_match "http://127.0.0.1.+${frontend_id}"
+  assert_match "${frontend_id}.localhost"
 }
 
 @test "prints the frontend url if the frontend section has been removed after initial deployment" {
   dfx_new_frontend hello
   dfx_start
   assert_command dfx deploy
-  assert_contains "hello_frontend: http://127.0.0.1"
+  frontend_id=$(dfx canister id hello_frontend)
+  assert_match "http://127.0.0.1.+${frontend_id}"
+  assert_match "${frontend_id}.localhost"
   jq 'del(.canisters.hello_frontend.frontend)' dfx.json | sponge dfx.json
   assert_command dfx deploy
-  assert_contains "hello_frontend: http://127.0.0.1"
+  assert_match "http://127.0.0.1.+${frontend_id}"
+  assert_match "${frontend_id}.localhost"
 }
 
 @test "subnet targetting" {

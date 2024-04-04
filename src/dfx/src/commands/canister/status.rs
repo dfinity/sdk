@@ -6,7 +6,6 @@ use candid::Principal;
 use clap::Parser;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
-use slog::info;
 
 /// Returns the current status of a canister: Running, Stopping, or Stopped. Also carries information like balance, current settings, memory used and everything returned by 'info'.
 #[derive(Parser)]
@@ -26,7 +25,6 @@ async fn canister_status(
     canister: &str,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let log = env.get_logger();
     let canister_id_store = env.get_canister_id_store()?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
@@ -47,7 +45,7 @@ async fn canister_status(
         "Not Set".to_string()
     };
 
-    info!(log, "Canister status call result for {}.\nStatus: {}\nControllers: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nReserved: {} Cycles\nReserved Cycles Limit: {}\nModule hash: {}\nNumber of queries: {}\nInstructions spent in queries: {}\nTotal query request paylod size (bytes): {}\nTotal query response payload size (bytes): {}",
+    println!("Canister status call result for {}.\nStatus: {}\nControllers: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nReserved: {} Cycles\nReserved Cycles Limit: {}\nModule hash: {}\nNumber of queries: {}\nInstructions spent in queries: {}\nTotal query request paylod size (bytes): {}\nTotal query response payload size (bytes): {}",
         canister,
         status.status,
         controllers.join(" "),

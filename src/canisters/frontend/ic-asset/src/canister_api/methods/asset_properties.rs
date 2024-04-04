@@ -4,10 +4,7 @@ use crate::canister_api::{
 };
 use crate::error::GetAssetPropertiesError;
 use crate::error::GetAssetPropertiesError::GetAssetPropertiesFailed;
-use ic_agent::{
-    agent::{RejectCode, RejectResponse},
-    AgentError,
-};
+use ic_agent::{agent::RejectResponse, AgentError};
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
 use std::collections::HashMap;
@@ -24,14 +21,10 @@ pub(crate) async fn get_assets_properties(
             }
             // older canisters don't have get_assets_properties method
             // therefore we can break the loop
-            Err(AgentError::ReplicaError(RejectResponse {
-                reject_code,
-                reject_message,
-                ..
-            })) if reject_code == RejectCode::DestinationInvalid
-                && (reject_message
+            Err(AgentError::UncertifiedReject(RejectResponse { reject_message, .. }))
+                if reject_message
                     .contains(&format!("has no query method '{GET_ASSET_PROPERTIES}'"))
-                    || reject_message.contains("query method does not exist")) =>
+                    || reject_message.contains("query method does not exist") =>
             {
                 break;
             }

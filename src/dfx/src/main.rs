@@ -1,14 +1,12 @@
 #![allow(special_module_name)]
 use crate::config::{dfx_version, dfx_version_str};
-use crate::lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
+use crate::lib::diagnosis::{diagnose, Diagnosis};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::DfxResult;
 use crate::lib::logger::{create_root_logger, LoggingMode};
-use crate::lib::warning::{is_warning_disabled, DfxWarning::VersionCheck};
 use anyhow::Error;
 use clap::{ArgAction, CommandFactory, Parser};
 use dfx_core::extension::manager::ExtensionManager;
-use semver::Version;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -49,45 +47,6 @@ pub struct CliOpts {
 
     #[command(subcommand)]
     command: commands::DfxCommand,
-}
-
-/// In some cases, redirect the dfx execution to the proper version.
-/// This will ALWAYS return None, OR WILL TERMINATE THE PROCESS. There is no Ok()
-/// version of this (nor should there be).
-///
-/// Note: the right return type for communicating this would be [Option<!>], but since the
-/// never type is experimental, we just assert on the calling site.
-fn maybe_redirect_dfx(version: &Version) -> Option<()> {
-    // Verify we're using the same version as the dfx.json, and if not just redirect the
-    // call to the cache.
-    if dfx_version() != version {
-        // Show a warning to the user.
-        if !is_warning_disabled(VersionCheck) {
-            eprintln!(
-                concat!(
-                    "Warning: The version of DFX used ({}) is different than the version ",
-                    "being run ({}).\n",
-                    "This might happen because your dfx.json specifies an older version, or ",
-                    "DFX_VERSION is set in your environment.\n",
-                    "We are forwarding the command line to the old version. To disable this ",
-                    "warning, set the DFX_WARNING=-version_check environment variable.\n"
-                ),
-                version,
-                dfx_version()
-            );
-        }
-
-        match dfx_core::config::cache::call_cached_dfx(version) {
-            Ok(status) => std::process::exit(status.code().unwrap_or(0)),
-            Err(e) => {
-                eprintln!("Error when trying to forward to project dfx:\n{:?}", e);
-                eprintln!("Installed executable: {}", dfx_version());
-                std::process::exit(1)
-            }
-        };
-    }
-
-    None
 }
 
 /// Setup a logger with the proper configuration, based on arguments.
@@ -161,9 +120,8 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
     }
 }
 
-fn get_args_altered_for_extension_run() -> DfxResult<Vec<OsString>> {
+fn get_args_altered_for_extension_run(em: &ExtensionManager) -> DfxResult<Vec<OsString>> {
     let mut args = std::env::args_os().collect::<Vec<OsString>>();
-    let em = ExtensionManager::new(dfx_version())?;
 
     let installed_extensions = em.installed_extensions_as_clap_commands()?;
     if !installed_extensions.is_empty() {
@@ -181,51 +139,38 @@ fn get_args_altered_for_extension_run() -> DfxResult<Vec<OsString>> {
     Ok(args)
 }
 
-fn main() {
-    let args = get_args_altered_for_extension_run().unwrap_or_else(|err| {
-        print_error_and_diagnosis(err, NULL_DIAGNOSIS);
-        std::process::exit(255);
-    });
+fn inner_main() -> DfxResult {
+    let em = ExtensionManager::new(dfx_version())?;
 
-    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
+    let args = get_args_altered_for_extension_run(&em)?;
 
     let cli_opts = CliOpts::parse_from(args);
+
+    if matches!(cli_opts.command, commands::DfxCommand::Schema(_)) {
+        return commands::exec_without_env(cli_opts.command);
+    }
+
     let (verbose_level, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
-    let command = cli_opts.command;
-    let result = match EnvironmentImpl::new() {
-        Ok(env) => {
-            #[allow(clippy::let_unit_value)]
-            let _ = maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
-            match EnvironmentImpl::new().map(|env| {
-                env.with_logger(log)
-                    .with_identity_override(identity)
-                    .with_verbose_level(verbose_level)
-                    .with_effective_canister_id(effective_canister_id)
-            }) {
-                Ok(env) => {
-                    slog::trace!(
-                        env.get_logger(),
-                        "Trace mode enabled. Lots of logs coming up."
-                    );
-                    match commands::exec(&env, command) {
-                        Err(e) => {
-                            error_diagnosis = diagnose(&env, &e);
-                            Err(e)
-                        }
-                        ok => ok,
-                    }
-                }
-                Err(e) => Err(e),
-            }
-        }
-        Err(e) => match command {
-            commands::DfxCommand::Schema(_) => commands::exec_without_env(command),
-            _ => Err(e),
-        },
-    };
+
+    let env = EnvironmentImpl::new(em)?
+        .with_logger(log)
+        .with_identity_override(identity)
+        .with_verbose_level(verbose_level)
+        .with_effective_canister_id(effective_canister_id);
+
+    slog::trace!(
+        env.get_logger(),
+        "Trace mode enabled. Lots of logs coming up."
+    );
+    commands::exec(&env, cli_opts.command)
+}
+
+fn main() {
+    let result = inner_main();
     if let Err(err) = result {
+        let error_diagnosis = diagnose(&err);
         print_error_and_diagnosis(err, error_diagnosis);
         std::process::exit(255);
     }

@@ -10,7 +10,6 @@ use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{Config, NetworksConfig};
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
-use dfx_core::error::extension::ExtensionError;
 use dfx_core::error::identity::new_identity_manager::NewIdentityManagerError;
 use dfx_core::extension::manager::ExtensionManager;
 use dfx_core::identity::identity_manager::IdentityManager;
@@ -30,7 +29,6 @@ pub trait Environment {
     fn get_networks_config(&self) -> Arc<NetworksConfig>;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
-    fn is_in_project(&self) -> bool;
     /// Return a temporary directory for the current project.
     /// If there is no project (no dfx.json), there is no project temp dir.
     fn get_project_temp_dir(&self) -> Option<PathBuf>;
@@ -69,7 +67,7 @@ pub trait Environment {
 
     fn get_effective_canister_id(&self) -> Principal;
 
-    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError>;
+    fn get_extension_manager(&self) -> &ExtensionManager;
 
     fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
         CanisterIdStore::new(
@@ -94,10 +92,12 @@ pub struct EnvironmentImpl {
     identity_override: Option<String>,
 
     effective_canister_id: Principal,
+
+    extension_manager: ExtensionManager,
 }
 
 impl EnvironmentImpl {
-    pub fn new() -> DfxResult<Self> {
+    pub fn new(extension_manager: ExtensionManager) -> DfxResult<Self> {
         let shared_networks_config = NetworksConfig::new()?;
         let config = Config::from_current_dir()?;
         if let Some(ref config) = config {
@@ -107,32 +107,7 @@ impl EnvironmentImpl {
             })?;
         }
 
-        // Figure out which version of DFX we should be running. This will use the following
-        // fallback sequence:
-        //   1. DFX_VERSION environment variable
-        //   2. dfx.json "dfx" field
-        //   3. this binary's version
-        // If any of those are empty string, we stop the fallback and use the current version.
-        // If any of those are a valid version, we try to use that directly as is.
-        // If any of those are an invalid version, we will show an error to the user.
-        let version = match std::env::var("DFX_VERSION") {
-            Err(_) => match &config {
-                None => dfx_version().clone(),
-                Some(c) => match &c.get_config().get_dfx() {
-                    None => dfx_version().clone(),
-                    Some(v) => Version::parse(v)
-                        .with_context(|| format!("Failed to parse version from '{}'.", v))?,
-                },
-            },
-            Ok(v) => {
-                if v.is_empty() {
-                    dfx_version().clone()
-                } else {
-                    Version::parse(&v)
-                        .with_context(|| format!("Failed to parse version from '{}'.", &v))?
-                }
-            }
-        };
+        let version = dfx_version().clone();
 
         Ok(EnvironmentImpl {
             cache: Arc::new(DiskBasedCache::with_version(&version)),
@@ -143,6 +118,7 @@ impl EnvironmentImpl {
             verbose_level: 0,
             identity_override: None,
             effective_canister_id: Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 0, 1, 1]),
+            extension_manager,
         })
     }
 
@@ -192,10 +168,6 @@ impl Environment for EnvironmentImpl {
         self.get_config().ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
-    }
-
-    fn is_in_project(&self) -> bool {
-        self.config.is_some()
     }
 
     fn get_project_temp_dir(&self) -> Option<PathBuf> {
@@ -255,8 +227,8 @@ impl Environment for EnvironmentImpl {
         self.effective_canister_id
     }
 
-    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
-        ExtensionManager::new(self.get_version())
+    fn get_extension_manager(&self) -> &ExtensionManager {
+        &self.extension_manager
     }
 }
 
@@ -319,10 +291,6 @@ impl<'a> Environment for AgentEnvironment<'a> {
         ))
     }
 
-    fn is_in_project(&self) -> bool {
-        self.backend.is_in_project()
-    }
-
     fn get_project_temp_dir(&self) -> Option<PathBuf> {
         self.backend.get_project_temp_dir()
     }
@@ -371,8 +339,8 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_effective_canister_id()
     }
 
-    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
-        ExtensionManager::new(self.backend.get_version())
+    fn get_extension_manager(&self) -> &ExtensionManager {
+        self.backend.get_extension_manager()
     }
 }
 
