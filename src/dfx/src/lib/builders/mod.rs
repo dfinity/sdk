@@ -497,7 +497,7 @@ impl BuildConfig {
     pub fn from_config(config: &Config, network_is_playground: bool) -> DfxResult<Self> {
         let config_intf = config.get_config();
         let network_name = util::network_to_pathcompat(&get_network_context()?);
-        let network_root = config.get_temp_path().join(&network_name);
+        let network_root = config.get_temp_path()?.join(&network_name);
         let canister_root = network_root.join("canisters");
 
         Ok(BuildConfig {

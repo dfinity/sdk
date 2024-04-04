@@ -29,3 +29,9 @@ pub enum GetOutputEnvFileError {
     #[error(transparent)]
     Parent(FsError),
 }
+
+#[derive(Error, Debug)]
+pub enum GetTempPathError {
+    #[error(transparent)]
+    CreateDirAll(#[from] FsError),
+}

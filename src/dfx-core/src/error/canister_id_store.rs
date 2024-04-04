@@ -1,6 +1,6 @@
 use crate::error::{
-    dfx_config::GetPullCanistersError, fs::FsError, structured_file::StructuredFileError,
-    unified_io::UnifiedIoError,
+    config::GetTempPathError, dfx_config::GetPullCanistersError, fs::FsError,
+    structured_file::StructuredFileError, unified_io::UnifiedIoError,
 };
 use thiserror::Error;
 
@@ -38,6 +38,9 @@ pub enum CanisterIdStoreError {
 
     #[error(transparent)]
     GetPullCanistersFailed(#[from] GetPullCanistersError),
+
+    #[error(transparent)]
+    GetTempPath(#[from] GetTempPathError),
 }
 
 impl From<FsError> for CanisterIdStoreError {
