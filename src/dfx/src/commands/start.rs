@@ -155,7 +155,7 @@ pub fn exec(
             dfx_version_str()
         );
     }
-    let project_config = env.get_config();
+    let project_config = env.get_config()?;
 
     let network_descriptor_logger = if background {
         None // so we don't print it out twice

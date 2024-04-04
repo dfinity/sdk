@@ -61,7 +61,7 @@ pub async fn deploy_canisters(
     let log = env.get_logger();
 
     let config = env
-        .get_config()
+        .get_config()?
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = env.get_canister_id_store()?;
 
