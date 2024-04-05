@@ -42,9 +42,10 @@ impl MotokoBuilder {
 }
 
 #[context("Failed to find imports for canister at '{}'.", info.get_main_path().display())]
-fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo) -> DfxResult<BTreeSet<MotokoImport>> {
+fn get_imports(logger: &slog::Logger, cache: &dyn Cache, info: &MotokoCanisterInfo) -> DfxResult<BTreeSet<MotokoImport>> {
     #[context("Failed recursive dependency detection at {}.", file.display())]
     fn get_imports_recursive(
+        logger: &slog::Logger,
         cache: &dyn Cache,
         file: &Path,
         result: &mut BTreeSet<MotokoImport>,
@@ -61,13 +62,18 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo) -> DfxResult<BTreeS
             .output()
             .with_context(|| format!("Error executing {:#?}", command))?;
         let output = String::from_utf8_lossy(&output.stdout);
-
+        trace!(logger, r#"Running {}..."#, format!("{:?}", command));
         for line in output.lines() {
             let import = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
             match import {
                 MotokoImport::Relative(path) => {
-                    get_imports_recursive(cache, path.as_path(), result)?;
-                }
+                    get_imports_recursive(logger, cache, path.as_path(), result)?;
+                },
+                /*
+                MotokoImport::Lib(_) => {
+                },
+                MotokoImport::Ic(_) => {
+                },*/
                 _ => {
                     result.insert(import);
                 }
@@ -78,7 +84,7 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo) -> DfxResult<BTreeS
     }
 
     let mut result = BTreeSet::new();
-    get_imports_recursive(cache, info.get_main_path(), &mut result)?;
+    get_imports_recursive(logger, cache, info.get_main_path(), &mut result)?;
 
     Ok(result)
 }
@@ -90,8 +96,9 @@ impl CanisterBuilder for MotokoBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
+        info!(&self.logger, "get_dependencies{}", info.get_name());
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
-        let imports = get_imports(self.cache.as_ref(), &motoko_info)?;
+        let imports = get_imports(&self.logger, self.cache.as_ref(), &motoko_info)?;
 
         Ok(imports
             .iter()
@@ -136,7 +143,7 @@ impl CanisterBuilder for MotokoBuilder {
             .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
         // If the management canister is being imported, emit the candid file.
-        if get_imports(cache.as_ref(), &motoko_info)?
+        if get_imports(&self.logger, cache.as_ref(), &motoko_info)?
             .contains(&MotokoImport::Ic("aaaaa-aa".to_string()))
         {
             let management_idl_path = idl_dir_path.join("aaaaa-aa.did");
