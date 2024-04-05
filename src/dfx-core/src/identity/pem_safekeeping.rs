@@ -1,4 +1,5 @@
-use super::identity_manager::EncryptionConfiguration;
+use super::delegation::JSONDelegationChain;
+use super::identity_manager::{DelegatedIdentityConfiguration, EncryptionConfiguration};
 use super::IdentityConfiguration;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{DecryptContentFailed, HashPasswordFailed};
@@ -73,6 +74,17 @@ pub(crate) fn save_pem(
         write_pem_to_file(&path, Some(identity_config), pem_content)
             .map_err(SavePemError::WritePemToFileFailed)
     }
+}
+
+pub(crate) fn save_delegation(
+    log: &Logger,
+    locations: &IdentityFileLocations,
+    name: &str,
+    identity_config: DelegatedIdentityConfiguration,
+) -> Result<(), SavePemError> {
+    let path = locations.get_delegation_path(name, &identity_config);
+    write_(&path, &identity_config)
+        .map_err(SavePemError::WritePemToFileFailed)
 }
 
 /// Loads a pem file, no matter if it is a plaintext pem file or if it is encrypted with a password.
@@ -167,6 +179,19 @@ fn maybe_decrypt_pem(
         Ok((Vec::from(pem_content), false))
     }
 }
+
+fn write_delegation_to_file(
+    path: &Path,
+    config: &DelegatedIdentityConfiguration,
+) -> Result<(), FsError> {
+    let content = serde_json::to_vec(config).unwrap();
+}
+
+fn write_(path: &Path, config: &DelegatedIdentityConfiguration) -> Result<(), FsError> {
+    let content = serde_json::to_vec(config).unwrap();
+    write_pem_content(path, &content)
+}
+
 
 enum PromptMode {
     EncryptingToCreate,

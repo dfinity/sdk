@@ -6,7 +6,7 @@ use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGener
 use crate::error::fs::FsError;
 use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError;
 use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError::DeriveExtendedKeyFromPathFailed;
-use crate::error::identity::create_identity_config::CreateIdentityConfigError;
+use crate::error::identity::create_identity_config::{self, CreateIdentityConfigError};
 use crate::error::identity::create_identity_config::CreateIdentityConfigError::GenerateFreshEncryptionConfigurationFailed;
 use crate::error::identity::create_new_identity::CreateNewIdentityError;
 use crate::error::identity::create_new_identity::CreateNewIdentityError::{
@@ -104,6 +104,17 @@ pub struct IdentityConfiguration {
     pub delegation: Option<DelegatedIdentityConfiguration>,
 }
 
+// 
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct BaseIdentityConfiguration {
+    /// If the identity's PEM file is encrypted on disk this contains everything (except the password) to decrypt the file.
+    pub encryption: Option<EncryptionConfiguration>,
+
+    /// If the identity's PEM file is stored in the system's keyring, this field contains the identity's name WITHOUT the common prefix.
+    pub keyring_identity_suffix: Option<String>,
+}
+
+
 /// The information necessary to de- and encrypt (except the password) the identity's .pem file
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct EncryptionConfiguration {
@@ -156,6 +167,25 @@ pub enum DelegationSigningIdentityType {
     Secp256k1,
 }
 
+// into Into<DelegationSigningIdentity>` for `IdentityConfiguration`
+impl From<IdentityConfiguration> for DelegationSigningIdentity {
+    fn from(config: IdentityConfiguration) -> Self {
+        let key_type = if config.hsm.is_some() {
+            DelegationSigningIdentityType::Secp256k1
+        } else {
+            DelegationSigningIdentityType::Basic
+        };
+
+        DelegationSigningIdentity {
+            name: String::new(),
+            pem_content: Vec::new(),
+            was_encrypted: false,
+            key_type,
+        }
+    }
+}
+
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct DelegationSigningIdentity {
     pub name: String,
@@ -165,10 +195,16 @@ pub struct DelegationSigningIdentity {
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct SigningIdentity {
+    pub name: String,
+    pub config: BaseIdentityConfiguration,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct DelegatedIdentityConfiguration {
-    pub from_public_key: Vec<u8>,
-    pub signing_identity: DelegationSigningIdentity,
-    pub chain: Vec<SignedDelegation>,
+    pub signing_identity: SigningIdentity,
+    pub delegation_json: String,
+    pub was_encrypted: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Copy, PartialEq, Eq)]
@@ -218,6 +254,10 @@ pub enum IdentityCreationParameters {
     Hardware {
         hsm: HardwareIdentityConfiguration,
     },
+    Delegation {
+        base_identity_name: String,
+        delegation: DelegatedIdentityConfiguration, 
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -455,6 +495,10 @@ impl IdentityManager {
                     pem_content,
                 )
                 .map_err(CreateNewIdentityError::SavePemFailed)?;
+            }
+            IdentityCreationParameters::Delegation { base_identity_name, delegation } => {
+                identity_config = create_identity_config(log, IdentityStorageMode::default(), name, None).unwrap();
+                
             }
         }
         let identity_config_location = self.get_identity_json_path(&temp_identity_name);

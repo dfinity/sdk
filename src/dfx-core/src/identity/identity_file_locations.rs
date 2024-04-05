@@ -1,8 +1,12 @@
 use crate::identity::IdentityConfiguration;
 use std::path::{Path, PathBuf};
 
+use super::identity_manager::DelegatedIdentityConfiguration;
+
 pub const IDENTITY_PEM: &str = "identity.pem";
 pub const IDENTITY_PEM_ENCRYPTED: &str = "identity.pem.encrypted";
+pub const IDENTITY_DELEGATION: &str = "delegation.json";
+pub const IDENTITY_DELEGATION_ENCRYPTED: &str = "delegation.json.encrypted";
 
 #[derive(Clone, Debug)]
 pub(crate) struct IdentityFileLocations {
@@ -25,6 +29,18 @@ impl IdentityFileLocations {
         identity_config: &IdentityConfiguration,
     ) -> PathBuf {
         if identity_config.encryption.is_some() {
+            self.get_encrypted_identity_pem_path(identity_name)
+        } else {
+            self.get_plaintext_identity_pem_path(identity_name)
+        }
+    }
+
+    pub fn get_delegation_path(
+        &self,
+        identity_name: &str,
+        identity_config: &DelegatedIdentityConfiguration,
+    ) -> PathBuf {
+        if identity_config.was_encrypted {
             self.get_encrypted_identity_pem_path(identity_name)
         } else {
             self.get_plaintext_identity_pem_path(identity_name)

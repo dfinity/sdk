@@ -23,8 +23,7 @@ use crate::json::{load_json_file, save_json_file};
 use candid::Principal;
 use ic_agent::agent::EnvelopeContent;
 use ic_agent::identity::{
-    AnonymousIdentity, BasicIdentity, DelegatedIdentity, Delegation, Identity as AgentIdentity,
-    Secp256k1Identity, SignedDelegation,
+    AnonymousIdentity, BasicIdentity, DelegatedIdentity, Delegation, Identity as AgentIdentity, Secp256k1Identity, SignedDelegation
 };
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
@@ -40,6 +39,7 @@ use std::path::{Path, PathBuf};
 use self::identity_manager::{DelegatedIdentityConfiguration, DelegationSigningIdentityType};
 
 mod identity_file_locations;
+pub mod delegation;
 pub mod identity_manager;
 pub mod keyring_mock;
 pub mod pem_safekeeping;
@@ -62,6 +62,11 @@ pub struct WalletGlobalConfig {
     pub identities: BTreeMap<String, WalletNetworkMap>,
 }
 
+pub enum IdentityType {
+    Basic,
+    Secp256k1,
+}
+
 pub struct Identity {
     /// The name of this Identity.
     name: String,
@@ -72,6 +77,7 @@ pub struct Identity {
 
     /// Inner implementation of this identity.
     inner: Box<dyn ic_agent::Identity + Sync + Send>,
+    identity_type: Option<IdentityType>
 }
 
 impl Identity {
@@ -79,6 +85,7 @@ impl Identity {
         Self {
             name: ANONYMOUS_IDENTITY_NAME.to_string(),
             inner: Box::new(AnonymousIdentity {}),
+            identity_type: None,
             insecure: false,
         }
     }
@@ -96,6 +103,7 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
+            identity_type: Some(IdentityType::Basic),
             insecure: !was_encrypted,
         })
     }
@@ -113,6 +121,7 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
+            identity_type: Some(IdentityType::Secp256k1),
             insecure: !was_encrypted,
         })
     }
@@ -133,6 +142,7 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
+            identity_type: None,
             insecure: false,
         })
     }
@@ -140,17 +150,38 @@ impl Identity {
     fn delegated(
         name: &str,
         config: DelegatedIdentityConfiguration,
-    ) -> Result<Self, LoadPemIdentityError> {
+        locations: &IdentityFileLocations,
+        log: &Logger,
+    ) -> Result<Self, NewIdentityError> {
         let delegation_signing_identity = config.signing_identity;
 
-        let identity: Box<dyn AgentIdentity> = match delegation_signing_identity.key_type {
-            DelegationSigningIdentityType::Basic => {
-                let identity = Identity::basic(
-                    &delegation_signing_identity.name,
-                    &delegation_signing_identity.pem_content,
-                    delegation_signing_identity.was_encrypted,
-                )?;
-                identity.inner
+        let base_config = IdentityConfiguration {
+            delegation: None,
+            hsm: None,
+            encryption: delegation_signing_identity.config.encryption,
+            keyring_identity_suffix: delegation_signing_identity.config.keyring_identity_suffix,
+        };
+
+        let base_identity = match Identity::new(
+            &delegation_signing_identity.name,
+            base_config,
+            locations,
+            log,
+        ) {
+            Ok(identity) => identity,
+            Err(e) => {
+                return Err(e);
+            }
+        };
+
+        let identity: Box<dyn AgentIdentity> = match base_identity.identity_type {
+            Some(IdentityType::Basic) => {
+               DelegatedIdentity::new(
+                    config.from_public_key,
+                    BasicIdentity::from_pem(&delegation_signing_identity.pem_content)
+                        .map_err(|e| ReadIdentityFileFailed(name.into(), Box::new(e)))?,
+                    config.chain,
+                )
             }
             DelegationSigningIdentityType::Secp256k1 => {
                 let identity = Identity::secp256k1(

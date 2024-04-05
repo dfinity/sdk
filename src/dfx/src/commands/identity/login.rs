@@ -1,9 +1,11 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use clap::Parser;
+use dfx_core::identity::identity_manager::DelegatedIdentityConfiguration;
+use dfx_core::identity::IdentityCreationParameters;
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::{FuzzySelect, Input};
-use ic_agent::identity::Delegation;
+use ic_agent::identity::{Delegation, SignedDelegation};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -19,8 +21,9 @@ pub enum LoginError {
 pub struct LoginOpts {}
 
 pub fn exec(env: &dyn Environment, _opts: LoginOpts) -> DfxResult {
+    let log = env.get_logger();
     let mgr = env.new_identity_manager()?;
-    let identities = mgr.get_identity_names(env.get_logger())?;
+    let identities = mgr.get_identity_names(log)?;
     let current_identity = mgr.get_selected_identity_name();
     let current_identity_index = identities
         .iter()
@@ -33,86 +36,37 @@ pub fn exec(env: &dyn Environment, _opts: LoginOpts) -> DfxResult {
         .items(&identities)
         .interact_opt()?;
 
-    let base_identity = base_identity_index.map(|i| identities[i].to_string());
+    let base_identity_name = base_identity_index.map(|i| identities[i].to_string());
 
-    if let Some(base_identity) = base_identity {
-        println!("Using identity: {}", base_identity);
+    // if no base identity is selected reject with error
+    if base_identity_name.is_none() {
+        return Err(LoginError::IdentityError("No base identity selected".to_string()).into());
     }
+
+    let base_identity_configuration = mgr.get_identity_config_or_default(base_identity_name.unwrap().as_str())?;
 
     let delegation_json = Input::<String>::new()
         .with_prompt("Enter the JSON-encoded delegation chain")
         .interact()?;
 
-    let delegation = serde_json::from_str(&delegation_json)
+    let json = serde_json::from_str::<JSONDelegationChain>(&delegation_json)
         .map_err(|err| LoginError::IdentityError(err.to_string()))?;
 
+    let id = json.to_identity_delegation()?;
+
+    mgr.remove(log, "delegated_identity", false, Option::None)?;
+
+    // use parameters from base identity
+
+    let params : DelegatedIdentityConfiguration = DelegatedIdentityConfiguration {
+        from_public_key: id.delegations[0].delegation.pubkey.clone(),
+        signing_identity: base_identity_configuration.into(),
+        chain: id.delegations,
+    };
+
+    mgr.create_new_identity(log, "delegated_identity", IdentityCreationParameters::Delegated(params))?;
+    
     Ok(())
-}
-
-
-#[derive(Debug, candid::Deserialize, serde::Serialize)]
-struct IdentityDelegation {
-    base_identity: String,
-    delegations: Vec<Delegation>,
-}
-
-
-#[derive(Debug, candid::Deserialize, serde::Serialize)]
-struct JSONDelegation {
-    expiration: String,
-    pubkey: String,
-}
-
-#[derive(Debug, candid::Deserialize, serde::Serialize)]
-struct SignedJSONDelegation {
-   delegation: JSONDelegation,
-    signature: String,
-}
-#[derive(Debug, candid::Deserialize, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-struct JSONDelegationChain {
-    delegations: Vec<SignedJSONDelegation>,
-    public_key: String,
-}
-
-impl JSONDelegationChain {
-    pub fn to_identity_delegation(&self) -> Result<IdentityDelegation, LoginError> {
-        let base_identity = self.public_key.clone();
-        let delegations = self.delegations.iter().map(|d| {
-            // validate signature
-
-
-
-            // convert from string to u64
-            let expiration = u64::from_str_radix(&d.delegation.expiration, 16)
-                .map_err(|err| LoginError::IdentityError(err.to_string()))?;
-            // check if expiration is a valid timestamp (not in the past, not too far in the future)
-
-            let now_in_nanos = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map_err(|err| LoginError::IdentityError(err.to_string()))?
-                .as_nanos();
-
-            if expiration < now_in_nanos as u64 {
-                return Err(LoginError::IdentityError("Invalid delegation. This delegation has expired. Please request a fresh delegation and try again".to_string()));
-            }
-
-            let pubkey = hex::decode(&d.delegation.pubkey)
-                .map_err(|err| LoginError::IdentityError(err.to_string()))?;
-
-            let delegation = Delegation {
-                expiration: expiration,
-                pubkey: pubkey,
-                targets: Option::None,
-            };
-            Ok(delegation)
-        }).collect::<Result<Vec<Delegation>, LoginError>>()?;
-
-        Ok(IdentityDelegation {
-            base_identity,
-            delegations,
-        })
-    }
 }
 
 
