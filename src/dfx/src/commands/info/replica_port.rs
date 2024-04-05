@@ -5,7 +5,7 @@ use dfx_core::network::provider::{create_network_descriptor, LocalBindDeterminat
 
 pub(crate) fn get_replica_port(env: &dyn Environment) -> DfxResult<String> {
     let network_descriptor = create_network_descriptor(
-        env.get_config(),
+        env.get_config()?,
         env.get_networks_config(),
         None,
         None,

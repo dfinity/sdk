@@ -39,7 +39,7 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
     // Are we being run from a terminal? That's most likely not what we want
     if stdout().is_terminal() && !force_tty {
         Err(anyhow!("The `_language-service` command is meant to be run by editors to start a language service. You probably don't want to run it from a terminal.\nIf you _really_ want to, you can pass the --force-tty flag."))
-    } else if let Some(config) = env.get_config() {
+    } else if let Some(config) = env.get_config()? {
         let main_path = get_main_path(config.get_config(), opts.canister)?;
         let packtool = &config
             .get_config()
@@ -54,14 +54,14 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
             .get_config()
             .get_canister_names_with_dependencies(None)?;
         let network_descriptor = create_network_descriptor(
-            env.get_config(),
+            env.get_config()?,
             env.get_networks_config(),
             None,
             None,
             LocalBindDetermination::ApplyRunningWebserverPort,
         )?;
         let canister_id_store =
-            CanisterIdStore::new(env.get_logger(), &network_descriptor, env.get_config())?;
+            CanisterIdStore::new(env.get_logger(), &network_descriptor, env.get_config()?)?;
         for canister_name in canister_names {
             match canister_id_store.get(&canister_name) {
                 Ok(canister_id) => package_arguments.append(&mut vec![

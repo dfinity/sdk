@@ -11,6 +11,7 @@ use dfx_core::config::model::dfinity::{Config, NetworksConfig};
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::identity::new_identity_manager::NewIdentityManagerError;
+use dfx_core::error::load_dfx_config::LoadDfxConfigError;
 use dfx_core::extension::manager::ExtensionManager;
 use dfx_core::identity::identity_manager::IdentityManager;
 use fn_error_context::context;
@@ -18,13 +19,14 @@ use ic_agent::{Agent, Identity};
 use semver::Version;
 use slog::{warn, Logger, Record};
 use std::borrow::Cow;
+use std::cell::RefCell;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
 pub trait Environment {
     fn get_cache(&self) -> Arc<dyn Cache>;
-    fn get_config(&self) -> Option<Arc<Config>>;
+    fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError>;
     fn get_networks_config(&self) -> Arc<NetworksConfig>;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
@@ -72,13 +74,19 @@ pub trait Environment {
         CanisterIdStore::new(
             self.get_logger(),
             self.get_network_descriptor(),
-            self.get_config(),
+            self.get_config()?,
         )
     }
 }
 
+pub enum ProjectConfig {
+    NotLoaded,
+    NoProject,
+    Loaded(Arc<Config>),
+}
+
 pub struct EnvironmentImpl {
-    config: Option<Arc<Config>>,
+    project_config: RefCell<ProjectConfig>,
     shared_networks_config: Arc<NetworksConfig>,
 
     cache: Arc<dyn Cache>,
@@ -98,13 +106,12 @@ pub struct EnvironmentImpl {
 impl EnvironmentImpl {
     pub fn new(extension_manager: ExtensionManager) -> DfxResult<Self> {
         let shared_networks_config = NetworksConfig::new()?;
-        let config = Config::from_current_dir()?;
 
         let version = dfx_version().clone();
 
         Ok(EnvironmentImpl {
             cache: Arc::new(DiskBasedCache::with_version(&version)),
-            config: config.map(Arc::new),
+            project_config: RefCell::new(ProjectConfig::NotLoaded),
             shared_networks_config: Arc::new(shared_networks_config),
             version: version.clone(),
             logger: None,
@@ -142,6 +149,15 @@ impl EnvironmentImpl {
             },
         }
     }
+
+    fn load_config(&self) -> Result<(), LoadDfxConfigError> {
+        let project_config = Config::from_current_dir()?
+            .map_or(ProjectConfig::NoProject, |config| {
+                ProjectConfig::Loaded(Arc::new(config))
+            });
+        self.project_config.replace(project_config);
+        Ok(())
+    }
 }
 
 impl Environment for EnvironmentImpl {
@@ -149,8 +165,17 @@ impl Environment for EnvironmentImpl {
         Arc::clone(&self.cache)
     }
 
-    fn get_config(&self) -> Option<Arc<Config>> {
-        self.config.as_ref().map(Arc::clone)
+    fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
+        if matches!(*self.project_config.borrow(), ProjectConfig::NotLoaded) {
+            self.load_config()?;
+        }
+
+        let config = if let ProjectConfig::Loaded(ref config) = *self.project_config.borrow() {
+            Some(Arc::clone(config))
+        } else {
+            None
+        };
+        Ok(config)
     }
 
     fn get_networks_config(&self) -> Arc<NetworksConfig> {
@@ -158,17 +183,13 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
-        self.get_config().ok_or_else(|| anyhow!(
+        self.get_config()?.ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
     }
 
     fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
-        Ok(self
-            .config
-            .as_ref()
-            .map(|c| c.get_temp_path())
-            .transpose()?)
+        Ok(self.get_config()?.map(|c| c.get_temp_path()).transpose()?)
     }
 
     fn get_version(&self) -> &Version {
@@ -274,7 +295,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_cache()
     }
 
-    fn get_config(&self) -> Option<Arc<Config>> {
+    fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
         self.backend.get_config()
     }
 
@@ -283,7 +304,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
-        self.get_config().ok_or_else(|| anyhow!(
+        self.get_config()?.ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
     }
