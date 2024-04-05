@@ -6,7 +6,7 @@ use std::{collections::HashMap, path::Path};
 
 use crate::lib::{builders::command_output, error::DfxResult};
 use anyhow::{bail, Context};
-use dfx_core::config::model::dfinity::{Pullable, TechStackCategory, TechStackConfigItem};
+use dfx_core::config::model::dfinity::{Pullable, TechStack};
 use serde::{Deserialize, Serialize};
 
 /// # "dfx" metadata.
@@ -22,10 +22,8 @@ pub struct DfxMetadata {
     /// The tech stack information of the canister.
     #[serde(skip_serializing_if = "HashMap::is_empty")]
     #[serde(default)]
-    pub tech_stack: HashMap<TechStackCategory, Vec<TechStackItem>>,
+    pub tech_stack: TechStack,
 }
-
-type TechStackItem = HashMap<String, String>;
 
 impl DfxMetadata {
     pub fn set_pullable(&mut self, pullable: Pullable) {
@@ -41,44 +39,31 @@ impl DfxMetadata {
 
     pub fn set_tech_stack(
         &mut self,
-        tech_stack_config: &HashMap<TechStackCategory, Vec<TechStackConfigItem>>,
+        tech_stack_config: &TechStack,
         project_root: &Path,
     ) -> DfxResult<()> {
-        for (category, config_items) in tech_stack_config {
-            let mut items = vec![];
-            for config_item in config_items {
-                let mut fields = HashMap::new();
-                fields.insert("name".to_string(), config_item.name.clone());
-                for custom_field in &config_item.custom_fields {
-                    let triple = format!(
-                        "{:?}->{}->{}",
-                        category, config_item.name, custom_field.field
-                    );
-                    let value = match (&custom_field.value, &custom_field.value_command) {
-                        (Some(value), None) => value.to_string(),
-                        (None, Some(command)) => {
-                            let bytes =
-                                command_output(command, &[], project_root).with_context(|| {
-                                    format!("Failed to run the value_command: {triple}.")
-                                })?;
-                            String::from_utf8(bytes)
-                                .with_context(|| {
-                                      format!("The value_command didn't return a valid UTF-8 string: {triple}.")
-                                })?
-                                .trim()
-                                .to_string()
-                        }
-                        (_, _) => {
-                            bail!("A custom_field should define only one of value/value_command: {triple}.")
-                        }
-                    };
-                    fields.insert(custom_field.field.clone(), value);
+        self.tech_stack = tech_stack_config.clone();
+        for (category, config_items) in self.tech_stack.iter_mut() {
+            for (name, fields) in config_items.iter_mut() {
+                for (field, value) in fields.iter_mut() {
+                    if value.starts_with("$(") && value.ends_with(')') {
+                        let triple = format!("{:?}->{}->{}", category, name, field);
+                        let command = &value[2..value.len() - 1];
+                        let bytes =
+                            command_output(command, &[], project_root).with_context(|| {
+                                format!("Failed to run the value_command: {}.", triple)
+                            })?;
+                        let calculated_value = String::from_utf8(bytes).with_context(|| {
+                            format!(
+                                "The value_command didn't return a valid UTF-8 string: {}.",
+                                triple
+                            )
+                        })?;
+                        *value = calculated_value.trim().to_string();
+                    }
                 }
-                items.push(fields);
             }
-            self.tech_stack.insert(category.clone(), items);
         }
-
         Ok(())
     }
 }

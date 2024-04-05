@@ -8,192 +8,106 @@
             "type": "motoko",
             "main": "main.mo",
             "tech_stack": {
-                "cdk": [
-                    {
-                        "name": "ic-cdk"
-                    }
-                ]
+                "cdk": {
+                    "ic-cdk": {}
+                }
             }
         },
         "c": {
             "type": "motoko",
             "main": "main.mo",
             "tech_stack": {
-                "language": [
-                    {
-                        "name": "rust",
-                        "custom_fields": [
-                            {
-                                "field": "version",
-                                "value": "1.75.0"
-                            }
-                        ]
+                "language": {
+                    "rust": {
+                        "version": "1.75.0"
                     }
-                ]
+                }
             }
         },
         "d": {
             "type": "motoko",
             "main": "main.mo",
             "tech_stack": {
-                "language": [
-                    {
-                        "name": "rust",
-                        "custom_fields": [
-                            {
-                                "field": "version",
-                                "value_command": "echo 'rustc 1.75.0 (82e1608df 2023-12-21)' | cut -d ' ' -f 2"
-                            }
-                        ]
+                "language": {
+                    "rust": {
+                        "version": "$(echo 'rustc 1.75.0 (82e1608df 2023-12-21)' | cut -d ' ' -f 2)"
                     }
-                ]
+                }
             }
         },
         "e": {
             "type": "motoko",
             "main": "main.mo",
             "tech_stack": {
-                "lib": [
-                    {
-                        "name": "ic-cdk-timers"
-                    },
-                    {
-                        "name": "ic-stable-structures"
-                    }
-                ]
+                "lib": {
+                    "ic-cdk-timers": {},
+                    "ic-stable-structures": {}
+                }
             }
         },
         "f": {
             "type": "motoko",
             "main": "main.mo",
             "tech_stack": {
-                "cdk": [
-                    {
-                        "name": "ic-cdk"
-                    }
-                ],
-                "language": [
-                    {
-                        "name": "rust"
-                    }
-                ],
-                "lib": [
-                    {
-                        "name": "ic-cdk-timers"
-                    }
-                ],
-                "tool": [
-                    {
-                        "name": "dfx"
-                    }
-                ],
-                "other": [
-                    {
-                        "name": "bitcoin"
-                    }
-                ]
+                "cdk": {
+                    "ic-cdk": {}
+                },
+                "language": {
+                    "rust": {}
+                },
+                "lib": {
+                    "ic-cdk-timers": {}
+                },
+                "tool": {
+                    "dfx": {}
+                },
+                "other": {
+                    "bitcoin": {}
+                }
             }
         },
         "g": {
             "type": "motoko",
             "main": "main.mo",
             "tech_stack": {
-                "language": [
-                    {
-                        "name": "rust",
-                        "custom_fields": [
-                            {
-                                "field": "version",
-                                "value": "1.75.0",
-                                "value_command": "echo 'rustc 1.75.0 (82e1608df 2023-12-21)' | cut -d ' ' -f 2"
-                            }
-                        ]
+                "language": {
+                    "rust": {
+                        "version": "$(a\\ custom\\ script.sh)"
                     }
-                ]
+                }
             }
         },
         "h": {
             "type": "motoko",
             "main": "main.mo",
             "tech_stack": {
-                "language": [
-                    {
-                        "name": "rust",
-                        "custom_fields": [
-                            {
-                                "field": "version"
-                            }
-                        ]
+                "language": {
+                    "rust": {
+                        "version": "$(./a\\ custom\\ script.sh some_args)"
                     }
-                ]
+                }
             }
         },
         "i": {
             "type": "motoko",
             "main": "main.mo",
             "tech_stack": {
-                "language": [
-                    {
-                        "name": "rust",
-                        "custom_fields": [
-                            {
-                                "field": "version",
-                                "value_command": "false"
-                            }
-                        ]
+                "language": {
+                    "rust": {
+                        "version": "$(false)"
                     }
-                ]
+                }
             }
         },
         "j": {
             "type": "motoko",
             "main": "main.mo",
             "tech_stack": {
-                "language": [
-                    {
-                        "name": "rust",
-                        "custom_fields": [
-                            {
-                                "field": "version",
-                                "value_command": "cat invalid_utf8.txt"
-                            }
-                        ]
+                "language": {
+                    "rust": {
+                        "version": "$(cat invalid_utf8.txt)"
                     }
-                ]
-            }
-        },
-        "k": {
-            "type": "motoko",
-            "main": "main.mo",
-            "tech_stack": {
-                "language": [
-                    {
-                        "name": "rust",
-                        "custom_fields": [
-                            {
-                                "field": "version",
-                                "value_command": "a\\ custom\\ script.sh"
-                            }
-                        ]
-                    }
-                ]
-            }
-        },
-        "l": {
-            "type": "motoko",
-            "main": "main.mo",
-            "tech_stack": {
-                "language": [
-                    {
-                        "name": "rust",
-                        "custom_fields": [
-                            {
-                                "field": "version",
-                                "value_command": "./a\\ custom\\ script.sh some_args"
-                            }
-                        ]
-                    }
-                ]
+                }
             }
         }
     }

@@ -211,34 +211,7 @@ pub enum TechStackCategory {
     other,
 }
 
-/// # Tech Stack Configuration Item
-#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
-pub struct TechStackConfigItem {
-    /// # name
-    /// The name of the tech_stack item.
-    pub name: String,
-
-    /// # custom_fields
-    /// Custom fields for the tech_stack item.
-    #[serde(default)]
-    pub custom_fields: Vec<TechStackField>,
-}
-
-/// # Tech Stack Field
-#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
-pub struct TechStackField {
-    /// # field
-    /// The name of the filed.
-    pub field: String,
-
-    /// # value
-    /// The value of the field.
-    pub value: Option<String>,
-
-    /// # value_command
-    /// The command to get the value of the field.
-    pub value_command: Option<String>,
-}
+pub type TechStack = HashMap<TechStackCategory, HashMap<String, HashMap<String, String>>>;
 
 pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
 pub const DEFAULT_PROJECT_LOCAL_BIND: &str = "127.0.0.1:8000";
@@ -321,7 +294,7 @@ pub struct ConfigCanistersCanister {
     /// # Tech Stack
     /// Defines the tech stack used to build this canister.
     #[serde(default)]
-    pub tech_stack: Option<HashMap<TechStackCategory, Vec<TechStackConfigItem>>>,
+    pub tech_stack: Option<TechStack>,
 
     /// # Gzip Canister WASM
     /// Disabled by default.
