@@ -256,7 +256,7 @@ The command line value will be used.",
         post_install_store_assets(canister_info, agent, log).await?;
     }
     if !canister_info.get_post_install().is_empty() {
-        let config = env.get_config();
+        let config = env.get_config()?;
         run_post_install_tasks(
             env,
             canister_info,
