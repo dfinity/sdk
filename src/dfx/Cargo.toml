@@ -62,7 +62,10 @@ futures.workspace = true
 handlebars = "4.3.3"
 hex = { workspace = true, features = ["serde"] }
 humantime.workspace = true
-hyper-rustls = { version = "0.24.1", features = ["webpki-roots", "http2"] }
+hyper-rustls = { version = "0.24.1", default-features = false, features = [
+    "webpki-roots",
+    "http2",
+] }
 ic-agent = { workspace = true, features = ["reqwest"] }
 ic-asset.workspace = true
 ic-cdk.workspace = true
