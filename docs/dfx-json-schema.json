@@ -488,9 +488,12 @@
             "null"
           ],
           "additionalProperties": {
-            "type": "array",
-            "items": {
-              "$ref": "#/definitions/TechStackConfigItem"
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
             }
           }
         }
@@ -1081,59 +1084,6 @@
           }
         }
       ]
-    },
-    "TechStackConfigItem": {
-      "title": "Tech Stack Configuration Item",
-      "type": "object",
-      "required": [
-        "name"
-      ],
-      "properties": {
-        "custom_fields": {
-          "title": "custom_fields",
-          "description": "Custom fields for the tech_stack item.",
-          "default": [],
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/TechStackField"
-          }
-        },
-        "name": {
-          "title": "name",
-          "description": "The name of the tech_stack item.",
-          "type": "string"
-        }
-      }
-    },
-    "TechStackField": {
-      "title": "Tech Stack Field",
-      "type": "object",
-      "required": [
-        "field"
-      ],
-      "properties": {
-        "field": {
-          "title": "field",
-          "description": "The name of the filed.",
-          "type": "string"
-        },
-        "value": {
-          "title": "value",
-          "description": "The value of the field.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "value_command": {
-          "title": "value_command",
-          "description": "The command to get the value of the field.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      }
     },
     "WasmOptLevel": {
       "title": "Wasm Optimization Levels",
