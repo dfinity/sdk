@@ -109,6 +109,10 @@
                     }
                 }
             }
+        },
+        "k": {
+            "type": "motoko",
+            "main": "main.mo"
         }
     }
 }

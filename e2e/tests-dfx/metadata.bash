@@ -273,4 +273,27 @@ ic-stable-structures"
   echo -e "\xc3\x28" > invalid_utf8.txt
   assert_command_fail dfx deploy j
   assert_contains "The value_command didn't return a valid UTF-8 string: language->rust->version."
+
+  # TODO: remove this when we have motoko extension
+  # k is a motoko canister which doesn't define tech_stack
+  # tech_stack->language->motoko is added by default
+  assert_command dfx deploy k
+  assert_command dfx canister metadata k dfx
+  echo "$stdout" > k.json
+  assert_command jq -r '.tech_stack.language | keys[]' k.json
+  assert_eq "motoko"
+}
+
+# TODO: remove this when we have rust extension
+# shellcheck disable=SC2154
+@test "rust canister set default tech_stack" {
+  dfx_new_rust
+  dfx_start
+  assert_command dfx deploy e2e_project_backend
+  assert_command dfx canister metadata e2e_project_backend dfx
+  echo "$stdout" > e2e_project_backend.json
+  assert_command jq -r '.tech_stack.language.rust | keys[]' e2e_project_backend.json
+  assert_eq "version"
+  assert_command jq -r '.tech_stack.cdk."ic-cdk" | keys[]' e2e_project_backend.json
+  assert_eq "version"
 }
