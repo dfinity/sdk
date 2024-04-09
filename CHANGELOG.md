@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### fix: set `CANISTER_CANDID_PATH_<canister name>` properly for remote canisters
+
+In the remote canister declaration it is possible to set a candid file to use when the canister is remote on a specific network.
+`dfx` now correctly sets the `CANISTER_CANDID_PATH_<canister name>` environment variable during the build process on remote networks if the file exists.
+
 ### chore: updated management canister .did file
 
 ### feat: added `dfx completion` command
