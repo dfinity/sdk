@@ -41,6 +41,20 @@ For example, this will work now:
 echo garbage >dfx.json && dfx identity get-principal
 ```
 
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit ff10ea1dba07c0f66c66536a46a97146cf260e90.
+This incorporates the following executed proposals:
+
+- [129035](https://dashboard.internetcomputer.org/proposal/129035)
+- [128876](https://dashboard.internetcomputer.org/proposal/128876)
+- [128904](https://dashboard.internetcomputer.org/proposal/128904)
+- [128864](https://dashboard.internetcomputer.org/proposal/128864)
+- [128816](https://dashboard.internetcomputer.org/proposal/128816)
+- [128846](https://dashboard.internetcomputer.org/proposal/128846)
+
 # 0.19.0
 
 ### fix: call management canister Bitcoin query API without replica-signed query
