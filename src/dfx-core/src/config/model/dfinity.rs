@@ -193,25 +193,41 @@ pub struct Pullable {
     pub init_arg: Option<String>,
 }
 
-/// # Tech Stack Category
-/// The category of the tech_stack item.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
-#[allow(non_camel_case_types)]
-pub enum TechStackCategory {
-    /// # cdk
-    #[default]
-    cdk,
-    /// # language
-    language,
-    /// # lib
-    lib,
-    /// # tool
-    tool,
-    /// # other
-    other,
-}
+// /// # Tech Stack Category
+// /// The category of the tech_stack item.
+// #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+// #[allow(non_camel_case_types)]
+// pub enum TechStackCategory {
+//     /// # cdk
+//     #[default]
+//     cdk,
+//     /// # language
+//     language,
+//     /// # lib
+//     lib,
+//     /// # tool
+//     tool,
+//     /// # other
+//     other,
+// }
 
-pub type TechStack = HashMap<TechStackCategory, HashMap<String, HashMap<String, String>>>;
+pub type TechStackCategoryMap = HashMap<String, HashMap<String, String>>;
+
+/// # Tech Stack
+/// The tech stack used to build a canister.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct TechStack {
+    /// # cdk
+    pub cdk: Option<TechStackCategoryMap>,
+    /// # language
+    pub language: Option<TechStackCategoryMap>,
+    /// # lib
+    pub lib: Option<TechStackCategoryMap>,
+    /// # tool
+    pub tool: Option<TechStackCategoryMap>,
+
+    pub other: Option<TechStackCategoryMap>,
+}
 
 pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
 pub const DEFAULT_PROJECT_LOCAL_BIND: &str = "127.0.0.1:8000";
