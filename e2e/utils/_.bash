@@ -96,32 +96,6 @@ dfx_new_rust() {
     echo PWD: "$(pwd)" >&2
 }
 
-dfx_patchelf() {
-    # Don't run this function during github actions
-    [ "$GITHUB_ACTIONS" ] && return 0
-
-    # Only run this function on Linux
-    (uname -a | grep Linux) || return 0
-
-    local CACHE_DIR LD_LINUX_SO BINARY IS_STATIC USE_LIB64
-
-    echo dfx = "$(which dfx)"
-    CACHE_DIR="$(dfx cache show)"
-
-    dfx cache install
-
-    # Both ldd and iconv are providedin glibc.bin package
-    LD_LINUX_SO=$(ldd "$(which iconv)"|grep ld-linux-x86|cut -d' ' -f3)
-    for binary in ic-starter icx-proxy replica; do
-        BINARY="${CACHE_DIR}/${binary}"
-        test -f "$BINARY" || continue
-        IS_STATIC=$(ldd "${BINARY}" | grep 'not a dynamic executable')
-        USE_LIB64=$(ldd "${BINARY}" | grep '/lib64/ld-linux-x86-64.so.2')
-        chmod +rw "${BINARY}"
-        test -n "$IS_STATIC" || test -z "$USE_LIB64" || patchelf --set-interpreter "${LD_LINUX_SO}" "${BINARY}"
-    done
-}
-
 determine_network_directory() {
     # not perfect: dfx.json can actually exist in a parent
     if [ -f dfx.json ] && [ "$(jq .networks.local dfx.json)" != "null" ]; then
@@ -143,7 +117,6 @@ determine_network_directory() {
 # Start the replica in the background.
 dfx_start() {
     local port dfx_config_root webserver_port
-    dfx_patchelf
 
     # Start on random port for parallel test execution
     FRONTEND_HOST="127.0.0.1:0"

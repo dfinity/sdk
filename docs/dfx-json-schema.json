@@ -478,6 +478,19 @@
             "string",
             "null"
           ]
+        },
+        "tech_stack": {
+          "title": "Tech Stack",
+          "description": "Defines the tech stack used to build this canister.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TechStack"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -1066,6 +1079,78 @@
           }
         }
       ]
+    },
+    "TechStack": {
+      "title": "Tech Stack",
+      "description": "The tech stack used to build a canister.",
+      "type": "object",
+      "properties": {
+        "cdk": {
+          "title": "cdk",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "language": {
+          "title": "language",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "lib": {
+          "title": "lib",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "other": {
+          "title": "other",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "tool": {
+          "title": "tool",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      }
     },
     "WasmOptLevel": {
       "title": "Wasm Optimization Levels",

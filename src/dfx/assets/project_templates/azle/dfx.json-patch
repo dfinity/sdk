@@ -8,7 +8,15 @@
             "candid": "src/{backend_name}/{backend_name}.did",
             "build": "npx azle {backend_name}",
             "wasm": ".azle/{backend_name}/{backend_name}.wasm",
-            "gzip": true
+            "gzip": true,
+            "tech_stack": {
+                "language": {
+                    "typescript": {}
+                },
+                "cdk": {
+                    "azle": {}
+                }
+            }
         }
     }
 ]
