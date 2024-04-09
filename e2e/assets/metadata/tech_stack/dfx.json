@@ -1,8 +1,9 @@
 {
     "canisters": {
         "a": {
-            "type": "motoko",
-            "main": "main.mo"
+            "type": "custom",
+            "wasm": "a.wasm",
+            "candid": "a.did"
         },
         "b": {
             "type": "motoko",

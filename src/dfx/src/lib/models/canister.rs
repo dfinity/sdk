@@ -169,6 +169,8 @@ impl Canister {
         if let Some(pullable) = info.get_pullable() {
             set_dfx_metadata = true;
             dfx_metadata.set_pullable(pullable);
+            // pullable canisters must have public candid:service
+            public_candid = true;
         }
 
         if let Some(tech_stack_config) = info.get_tech_stack() {
@@ -215,7 +217,6 @@ impl Canister {
                     ..Default::default()
                 },
             );
-            public_candid = true;
         }
 
         if public_candid {

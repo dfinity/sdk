@@ -204,6 +204,7 @@ teardown() {
   dfx_start
 
   # a doesn't define the tech_stack object, the dfx metadata is not added
+  echo -ne '\0asm\x01\0\0\0' > a.wasm
   assert_command dfx deploy a
   assert_command_fail dfx canister metadata a dfx
 
