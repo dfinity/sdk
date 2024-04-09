@@ -49,7 +49,11 @@ Each category is a map keyed by the names of tech stack items, where each value 
 }
 ```
 
-## How to set it in `dfx.json`
+## Configuration in `dfx.json`
+
+While the only way to configure this is in `dfx.json`, we don't envision that canister developers will define these values in `dfx.json` by themselves.
+
+Upcoming work will enable CDK providers to set `tech_stack` fields for their users. Please check the Q&A below for more explanation.
 
 The example above was generated from the `dfx.json` configuration below.
 
@@ -98,3 +102,15 @@ If the content of a custom field value begins with the prefix `$(` and ends with
 - The command will be executed in the workspace root directory, which contains the `dfx.json` file.
 - The stdout should be a valid UTF-8 string.
 - The field value will be obtained by trimming the stdout, removing any leading and trailing whitespace.
+
+## Q&A
+
+### Who should set `tech_stack`?
+
+In the short future, CDK will be able to set `tech_stack` without requiring extra configuration in `dfx.json`.
+
+Currently, `dfx` sets `tech_stack` for Rust and Motoko canisters if they don't define `tech_stack` explicitly in `dfx.json`.
+
+For Azle and Kybra projects created with `dfx new`, the corresponding `tech_stack` configuration will be added `dfx.json` by default.
+
+Canister developers can always add/overwrite/remove the `tech_stack` fields set by CDK.
