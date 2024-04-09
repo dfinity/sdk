@@ -372,7 +372,15 @@ pub fn get_and_write_environment_variables<'a>(
     ];
     for dep in dependencies {
         let canister = pool.get_canister(dep).unwrap();
-        if let Some(output) = canister.get_build_output() {
+        if let Some(candid_path) = canister.get_info().get_remote_candid_if_remote() {
+            vars.push((
+                Owned(format!(
+                    "CANISTER_CANDID_PATH_{}",
+                    canister.get_name().replace('-', "_").to_ascii_uppercase()
+                )),
+                Owned(candid_path.as_os_str().to_owned()),
+            ));
+        } else if let Some(output) = canister.get_build_output() {
             let candid_path = match &output.idl {
                 IdlBuildOutput::File(p) => p.as_os_str(),
             };
