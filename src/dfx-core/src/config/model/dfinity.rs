@@ -225,7 +225,7 @@ pub struct TechStack {
     pub lib: Option<TechStackCategoryMap>,
     /// # tool
     pub tool: Option<TechStackCategoryMap>,
-
+    /// # other
     pub other: Option<TechStackCategoryMap>,
 }
 
