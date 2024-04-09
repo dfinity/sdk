@@ -107,7 +107,7 @@ If the content of a custom field value begins with the prefix `$(` and ends with
 
 ### Who should set `tech_stack`?
 
-In the short future, CDK will be able to set `tech_stack` without requiring extra configuration in `dfx.json`.
+In the near future, CDK will be able to set `tech_stack` without requiring extra configuration in `dfx.json`.
 
 Currently, `dfx` sets `tech_stack` for Rust and Motoko canisters if they don't define `tech_stack` explicitly in `dfx.json`.
 

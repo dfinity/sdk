@@ -193,24 +193,6 @@ pub struct Pullable {
     pub init_arg: Option<String>,
 }
 
-// /// # Tech Stack Category
-// /// The category of the tech_stack item.
-// #[derive(Clone, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
-// #[allow(non_camel_case_types)]
-// pub enum TechStackCategory {
-//     /// # cdk
-//     #[default]
-//     cdk,
-//     /// # language
-//     language,
-//     /// # lib
-//     lib,
-//     /// # tool
-//     tool,
-//     /// # other
-//     other,
-// }
-
 pub type TechStackCategoryMap = HashMap<String, HashMap<String, String>>;
 
 /// # Tech Stack
