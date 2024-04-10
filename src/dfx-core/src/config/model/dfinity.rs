@@ -44,7 +44,7 @@ use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::default::Default;
 use std::fmt;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
@@ -193,6 +193,24 @@ pub struct Pullable {
     pub init_arg: Option<String>,
 }
 
+pub type TechStackCategoryMap = HashMap<String, HashMap<String, String>>;
+
+/// # Tech Stack
+/// The tech stack used to build a canister.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
+pub struct TechStack {
+    /// # cdk
+    pub cdk: Option<TechStackCategoryMap>,
+    /// # language
+    pub language: Option<TechStackCategoryMap>,
+    /// # lib
+    pub lib: Option<TechStackCategoryMap>,
+    /// # tool
+    pub tool: Option<TechStackCategoryMap>,
+    /// # other
+    pub other: Option<TechStackCategoryMap>,
+}
+
 pub const DEFAULT_SHARED_LOCAL_BIND: &str = "127.0.0.1:4943"; // hex for "IC"
 pub const DEFAULT_PROJECT_LOCAL_BIND: &str = "127.0.0.1:8000";
 pub const DEFAULT_IC_GATEWAY: &str = "https://icp0.io";
@@ -270,6 +288,11 @@ pub struct ConfigCanistersCanister {
     /// Defines required properties so that this canister is ready for `dfx deps pull` by other projects.
     #[serde(default)]
     pub pullable: Option<Pullable>,
+
+    /// # Tech Stack
+    /// Defines the tech stack used to build this canister.
+    #[serde(default)]
+    pub tech_stack: Option<TechStack>,
 
     /// # Gzip Canister WASM
     /// Disabled by default.
