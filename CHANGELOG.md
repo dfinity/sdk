@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: display schema for dfx metadata json
+
+`dfx schema --for dfx-metadata` to display JSON schema of the "dfx" metadata.
+
 ### feat: add tech_stack to the Canister Metadata Standard
 
 The standardized `dfx` metadata is extended with another object: `tech_stack`.
