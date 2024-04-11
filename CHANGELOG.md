@@ -2,7 +2,7 @@
 
 # UNRELEASED
 
-### feat: output schema for dfx metadata json
+### feat: display schema for dfx metadata json
 
 `dfx schema --for dfx-metadata` to display JSON schema of the "dfx" metadata.
 
