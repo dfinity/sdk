@@ -212,6 +212,8 @@ teardown() {
   assert_command dfx deploy b
   assert_command dfx canister metadata b dfx
   echo "$stdout" > b.json
+  assert_command jq -r '.tech_stack | keys[]' b.json
+  assert_eq "cdk" # only cdk is defined
   assert_command jq -r '.tech_stack.cdk | keys[]' b.json
   assert_eq "ic-cdk"
 
