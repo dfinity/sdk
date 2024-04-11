@@ -200,14 +200,19 @@ pub type TechStackCategoryMap = HashMap<String, HashMap<String, String>>;
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct TechStack {
     /// # cdk
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cdk: Option<TechStackCategoryMap>,
     /// # language
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<TechStackCategoryMap>,
     /// # lib
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub lib: Option<TechStackCategoryMap>,
     /// # tool
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tool: Option<TechStackCategoryMap>,
     /// # other
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub other: Option<TechStackCategoryMap>,
 }
 
