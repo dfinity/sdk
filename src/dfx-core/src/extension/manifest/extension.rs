@@ -26,7 +26,7 @@ pub struct ExtensionManifest {
 }
 
 impl ExtensionManifest {
-    pub fn new(name: &str, extensions_root_dir: &Path) -> Result<Self, ExtensionError> {
+    pub fn load(name: &str, extensions_root_dir: &Path) -> Result<Self, ExtensionError> {
         let manifest_path = extensions_root_dir.join(name).join(MANIFEST_FILE_NAME);
         let mut m: ExtensionManifest = crate::json::load_json_file(&manifest_path)
             .map_err(ExtensionError::LoadExtensionManifestFailed)?;

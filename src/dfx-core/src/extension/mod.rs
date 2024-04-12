@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 pub mod manager;
 pub mod manifest;
 use crate::error::extension::ExtensionError;
@@ -32,8 +30,8 @@ impl Extension {
     pub fn into_clap_command(
         self,
         manager: &ExtensionManager,
-    ) -> Result<clap::Command, ExtensionError> {
-        let manifest = ExtensionManifest::new(&self.name, &manager.dir)?;
+    ) -> Result<Command, ExtensionError> {
+        let manifest = ExtensionManifest::load(&self.name, &manager.dir)?;
         let cmd = Command::new(&self.name)
             // don't accept unknown options
             .allow_missing_positional(false)
