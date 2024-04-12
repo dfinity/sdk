@@ -55,6 +55,8 @@ use super::network_descriptor::MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS;
 
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
 
+pub const BUILTIN_CANISTER_TYPES: [&str; 5] = ["rust", "motoko", "assets", "custom", "pull"];
+
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     bitcoin: None,
     bootstrap: None,
@@ -1192,7 +1194,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
             Some(x) => {
                 return Err(A::Error::unknown_variant(
                     x,
-                    &["motoko", "rust", "assets", "custom"],
+                    &BUILTIN_CANISTER_TYPES,
                 ))
             }
         };
