@@ -726,7 +726,13 @@ impl CanisterPool {
                         let wasm_file_time = wasm_file_metadata.modified()?;
                         let mut bfs = Bfs::new(&graph, idx);
                         loop {
-                            if let Some(node) = bfs.next(&graph) {
+                            if let Some(node_index) = bfs.next(&graph) {
+                                if let Some(node) = graph.node_weight(node_index) {
+                                    // FIXME: We need the graph of dependencies including `.mo` files, not only canisters.
+                                    // TODO
+                                } else {
+                                    panic!("cannot get canister");
+                                }
                             } else {
                                 break false;
                             }
