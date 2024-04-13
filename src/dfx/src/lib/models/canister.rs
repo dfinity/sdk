@@ -726,10 +726,10 @@ impl CanisterPool {
                         let wasm_file_time = wasm_file_metadata.modified()?;
                         let mut bfs = Bfs::new(&graph, idx);
                         loop {
-                            // if let Some(&node) = bfs.next(graph) {
-                            // } else {
+                            if let Some(node) = bfs.next(&graph) {
+                            } else {
                                 break false;
-                            // }
+                            }
                         };
                         true
                     }
