@@ -19,6 +19,7 @@ use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
 use std::fmt::Debug;
+use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::sync::Arc;
@@ -160,37 +161,49 @@ impl CanisterBuilder for MotokoBuilder {
         let mut import_iter = imports.iter();
         loop {
             if let Some(import) = import_iter.next() {
-                // FIXME: Is `build_root` correct below?
-                match import {
+                let imported_file = match import {
                     MotokoImport::Canister(canisterName) => {
-                        let wasm_file_name = config.build_root
-                            .join(Path::new(canisterName))
-                            .join(Path::new(&format!("{}.wasm", canisterName)));
+                        if let Some(canister) = pool.get_first_canister_with_name(canisterName) {
+                            let canister = canister.clone(); // TODO: remove?
+                            if let Some(main_file) = *canister.get_info().get_main_file() {
+                                Some(main_file.clone())
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
                     }
                     MotokoImport::Ic(canisterId) => {
                         if let Some(canisterName) = rev_id_map.get(canisterId) {
-                            let wasm_file_name = config.build_root
-                                .join(Path::new(canisterName))
-                                .join(Path::new(&format!("{}.wasm", canisterName)));
+                            if let Some(canister) = pool.get_first_canister_with_name(canisterName) {
+                                if let Some(main_file) = canister.get_info().get_main_file() {
+                                    Some(main_file)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
                         }
                     }
                     MotokoImport::Lib(path) => {
                         // FIXME: `lib` in name
-                        if let Some(canisterName) = Path::new(path).components().last() {
-                            let canisterName: &Path = canisterName.as_ref();
-                            let wasm_file_name = config.build_root
-                                .join(Path::new(canisterName))
-                                .join(Path::new(&format!("{}.wasm", canisterName.to_str().unwrap())));
-                        }
+                        Some(Path::new(path))
                     }
                     MotokoImport::Relative(path) => {
-                        let import_file_metadata = metadata(path)?;
-                        let import_file_time = import_file_metadata.modified()?;
-                        if import_file_time > wasm_file_time {
-                            break;
-                        };
+                        Some(Path::new(path))
                     }
-                }
+                };
+                if let Some(imported_file) = imported_file {
+                    let imported_file_metadata = metadata(imported_file)?;
+                    let imported_file_time = imported_file_metadata.modified()?;
+                    if imported_file_time > wasm_file_time {
+                        break;
+                    };
+                };
             } else {
                 return Err(anyhow!("already compiled")); // TODO: Ensure that `dfx` command doesn't return false because of this.
             }
