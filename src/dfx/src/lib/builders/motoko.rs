@@ -9,10 +9,11 @@ use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets::management_idl;
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use dfx_core::config::cache::Cache;
 use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
+use dfx_core::fs::metadata;
 use fn_error_context::context;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};
@@ -118,10 +119,17 @@ impl CanisterBuilder for MotokoBuilder {
         let input_path = motoko_info.get_main_path();
         let output_wasm_path = motoko_info.get_output_wasm_path();
 
+        // from name to principal:
         let id_map = pool
             .get_canister_list()
             .iter()
             .map(|c| (c.get_name().to_string(), c.canister_id().to_text()))
+            .collect();
+        // from principal to name:
+        let rev_id_map: BTreeMap<String, String> = pool
+            .get_canister_list()
+            .iter()
+            .map(|c| (c.canister_id().to_text(), c.get_name().to_string()))
             .collect();
 
         std::fs::create_dir_all(motoko_info.get_output_root()).with_context(|| {
@@ -135,9 +143,10 @@ impl CanisterBuilder for MotokoBuilder {
         std::fs::create_dir_all(idl_dir_path)
             .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
+        let imports = get_imports(cache.as_ref(), &motoko_info)?;
+
         // If the management canister is being imported, emit the candid file.
-        if get_imports(cache.as_ref(), &motoko_info)?
-            .contains(&MotokoImport::Ic("aaaaa-aa".to_string()))
+        if imports.contains(&MotokoImport::Ic("aaaaa-aa".to_string()))
         {
             let management_idl_path = idl_dir_path.join("aaaaa-aa.did");
             dfx_core::fs::write(management_idl_path, management_idl()?)?;
@@ -145,6 +154,47 @@ impl CanisterBuilder for MotokoBuilder {
 
         let package_arguments =
             package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
+
+        let wasm_file_metadata = metadata(output_wasm_path)?;
+        let wasm_file_time = wasm_file_metadata.modified()?;
+        let mut import_iter = imports.iter();
+        loop {
+            if let Some(import) = import_iter.next() {
+                // FIXME: Is `build_root` correct below?
+                match import {
+                    MotokoImport::Canister(canisterName) => {
+                        let wasm_file_name = config.build_root
+                            .join(Path::new(canisterName))
+                            .join(Path::new(&format!("{}.wasm", canisterName)));
+                    }
+                    MotokoImport::Ic(canisterId) => {
+                        if let Some(canisterName) = rev_id_map.get(canisterId) {
+                            let wasm_file_name = config.build_root
+                                .join(Path::new(canisterName))
+                                .join(Path::new(&format!("{}.wasm", canisterName)));
+                        }
+                    }
+                    MotokoImport::Lib(path) => {
+                        // FIXME: `lib` in name
+                        if let Some(canisterName) = Path::new(path).components().last() {
+                            let canisterName: &Path = canisterName.as_ref();
+                            let wasm_file_name = config.build_root
+                                .join(Path::new(canisterName))
+                                .join(Path::new(&format!("{}.wasm", canisterName.to_str().unwrap())));
+                        }
+                    }
+                    MotokoImport::Relative(path) => {
+                        let import_file_metadata = metadata(path)?;
+                        let import_file_time = import_file_metadata.modified()?;
+                        if import_file_time > wasm_file_time {
+                            break;
+                        };
+                    }
+                }
+            } else {
+                return Err(anyhow!("already compiled")); // TODO: Ensure that `dfx` command doesn't return false because of this.
+            }
+        }
 
         let moc_arguments = match motoko_info.get_args() {
             Some(args) => [
