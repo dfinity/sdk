@@ -163,7 +163,7 @@ impl CanisterBuilder for MotokoBuilder {
             if let Some(import) = import_iter.next() {
                 let imported_file = match import {
                     MotokoImport::Canister(canister_name) => {
-                        if let Some(canister) = pool.get_first_canister_with_name(canisterName) {
+                        if let Some(canister) = pool.get_first_canister_with_name(canister_name) {
                             let canister = canister.clone(); // TODO: remove?
                             let main_file = canister.get_info().get_main_file().clone();
                             if let Some(main_file) = main_file.clone() {
@@ -177,8 +177,8 @@ impl CanisterBuilder for MotokoBuilder {
                         }
                     }
                     MotokoImport::Ic(canister_id) => {
-                        if let Some(canister_name) = rev_id_map.get(canisterId) {
-                            if let Some(canister) = pool.get_first_canister_with_name(canisterName) {
+                        if let Some(canister_name) = rev_id_map.get(canister_id) {
+                            if let Some(canister) = pool.get_first_canister_with_name(canister_name) {
                                 if let Some(main_file) = canister.get_info().get_main_file() {
                                     Some(main_file.to_owned())
                                 } else {
