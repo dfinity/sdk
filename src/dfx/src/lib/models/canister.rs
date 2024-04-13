@@ -719,13 +719,11 @@ impl CanisterPool {
                     .contains(&canister.get_name())
                     && {
                         use dfx_core::fs::metadata;
-                        let wasm_file_name = format!(
-                            "{}/{}/{}.wasm",
-                            canister.get_info().get_output_root().display(), canister.get_name(), canister.get_name()
-                        );
-                        let wasm_file_metadata = metadata(Path::new(&wasm_file_name))?;
+                        let wasm_file_name = canister.get_info().get_output_root()
+                            .join(Path::new(canister.get_name()))
+                            .join(Path::new(&format!("{}.wasm", canister.get_name())));
+                        let wasm_file_metadata = metadata(wasm_file_name.as_path())?;
                         let wasm_file_time = wasm_file_metadata.modified()?;
-                        let need_build = false;
                         let mut bfs = Bfs::new(&graph, idx);
                         loop {
                             // if let Some(&node) = bfs.next(graph) {
