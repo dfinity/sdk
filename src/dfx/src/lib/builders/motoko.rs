@@ -165,8 +165,10 @@ impl CanisterBuilder for MotokoBuilder {
                     MotokoImport::Canister(canisterName) => {
                         if let Some(canister) = pool.get_first_canister_with_name(canisterName) {
                             let canister = canister.clone(); // TODO: remove?
-                            if let Some(main_file) = *canister.get_info().get_main_file() {
-                                Some(main_file.clone())
+                            let main_file = canister.get_info().get_main_file().clone();
+                            if let Some(main_file) = main_file.clone() {
+                                let main_file = main_file.to_owned();
+                                Some(main_file)
                             } else {
                                 None
                             }
@@ -178,7 +180,7 @@ impl CanisterBuilder for MotokoBuilder {
                         if let Some(canisterName) = rev_id_map.get(canisterId) {
                             if let Some(canister) = pool.get_first_canister_with_name(canisterName) {
                                 if let Some(main_file) = canister.get_info().get_main_file() {
-                                    Some(main_file)
+                                    Some(main_file.to_owned())
                                 } else {
                                     None
                                 }
@@ -191,14 +193,14 @@ impl CanisterBuilder for MotokoBuilder {
                     }
                     MotokoImport::Lib(path) => {
                         // FIXME: `lib` in name
-                        Some(Path::new(path))
+                        Some(Path::new(path).to_owned())
                     }
                     MotokoImport::Relative(path) => {
-                        Some(Path::new(path))
+                        Some(Path::new(path).to_owned())
                     }
                 };
                 if let Some(imported_file) = imported_file {
-                    let imported_file_metadata = metadata(imported_file)?;
+                    let imported_file_metadata = metadata(imported_file.as_ref())?;
                     let imported_file_time = imported_file_metadata.modified()?;
                     if imported_file_time > wasm_file_time {
                         break;
