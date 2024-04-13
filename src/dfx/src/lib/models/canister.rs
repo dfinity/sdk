@@ -774,7 +774,7 @@ impl CanisterPool {
             }
         }
 
-        self.step_postbuild_all(build_config, &order.iter().map(|e| e.1).collect::<Vec<CanisterId>>())
+        self.step_postbuild_all(build_config, &order.into_iter().map(|e| e.1).collect::<Vec<CanisterId>>())
             .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
 
         Ok(result)
