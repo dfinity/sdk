@@ -164,11 +164,9 @@ impl CanisterBuilder for MotokoBuilder {
                 let imported_file = match import {
                     MotokoImport::Canister(canister_name) => {
                         if let Some(canister) = pool.get_first_canister_with_name(canister_name) {
-                            let canister = canister.clone(); // TODO: remove?
-                            let main_file = canister.get_info().get_main_file().clone();
-                            if let Some(main_file) = main_file.clone() {
-                                let main_file = main_file.to_owned();
-                                Some(main_file)
+                            let main_file = canister.get_info().get_main_file();
+                            if let Some(main_file) = main_file {
+                                Some(main_file.to_owned())
                             } else {
                                 None
                             }
