@@ -6,7 +6,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
-use crate::lib::models::canister::CanisterPool;
+use crate::lib::models::canister::{CanisterPool, ImportsTracker, MotokoImport};
 use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets::management_idl;
 use crate::lib::builders::bail;
@@ -17,9 +17,8 @@ use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
 use dfx_core::fs::metadata;
 use fn_error_context::context;
 use slog::{info, o, trace, warn, Logger};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::convert::TryFrom;
-use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::sync::Arc;
@@ -43,19 +42,18 @@ impl MotokoBuilder {
     }
 }
 
+// TODO: Rename this function.
 #[context("Failed to find imports for canister at '{}'.", info.get_main_path().display())]
-fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo) -> DfxResult<BTreeSet<MotokoImport>> {
-    #[context("Failed recursive dependency detection at {}.", file.display())]
-    fn get_imports_recursive(
+fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut ImportsTracker) -> DfxResult<()> {
+    #[context("Failed recursive dependency detection at {}.", file.display())] // FIXME
+    fn get_imports_recursive (
         cache: &dyn Cache,
         file: &Path,
-        result: &mut BTreeSet<MotokoImport>,
+        imports: &mut ImportsTracker,
     ) -> DfxResult {
-        if result.contains(&MotokoImport::Relative(file.to_path_buf())) {
+        if imports.nodes.contains_key(&MotokoImport::Relative(file.to_path_buf())) {
             return Ok(());
         }
-
-        result.insert(MotokoImport::Relative(file.to_path_buf()));
 
         let mut command = cache.get_binary_command("moc")?;
         let command = command.arg("--print-deps").arg(file);
@@ -68,10 +66,15 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo) -> DfxResult<BTreeS
             let import = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
             match import {
                 MotokoImport::Relative(path) => {
-                    get_imports_recursive(cache, path.as_path(), result)?;
+                    get_imports_recursive(cache, path.as_path(), imports)?;
                 }
                 _ => {
-                    result.insert(import);
+                    let parent = MotokoImport::Relative(file.to_path_buf());
+                    // imports.insert(parent);
+            
+                    let parent_node = imports.graph.add_node(parent);
+                    let child_node = imports.graph.add_node(import);
+                    imports.graph.add_edge(parent_node, child_node, ());
                 }
             }
         }
@@ -79,10 +82,9 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo) -> DfxResult<BTreeS
         Ok(())
     }
 
-    let mut result = BTreeSet::new();
-    get_imports_recursive(cache, info.get_main_path(), &mut result)?;
+    get_imports_recursive(cache, info.get_main_path(), imports)?;
 
-    Ok(result)
+    Ok(())
 }
 
 impl CanisterBuilder for MotokoBuilder {
@@ -93,13 +95,13 @@ impl CanisterBuilder for MotokoBuilder {
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
-        let imports = get_imports(self.cache.as_ref(), &motoko_info)?; // TODO: slow operation
+        get_imports(self.cache.as_ref(), &motoko_info, &mut *pool.imports.borrow_mut())?; // TODO: slow operation
 
-        Ok(imports
+        Ok(pool.imports.borrow_mut().nodes
             .iter()
             .filter_map(|import| {
-                if let MotokoImport::Canister(name) = import {
-                    pool.get_first_canister_with_name(name)
+                if let MotokoImport::Canister(name) = import.0 {
+                    pool.get_first_canister_with_name(name.as_str())
                 } else {
                     None
                 }
@@ -144,10 +146,10 @@ impl CanisterBuilder for MotokoBuilder {
         std::fs::create_dir_all(idl_dir_path)
             .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
-        let imports = get_imports(cache.as_ref(), &motoko_info)?; // TODO: repeated slow operation
+        get_imports(cache.as_ref(), &motoko_info, &mut *pool.imports.borrow_mut())?; // TODO: repeated slow operation
 
         // If the management canister is being imported, emit the candid file.
-        if imports.contains(&MotokoImport::Ic("aaaaa-aa".to_string()))
+        if pool.imports.borrow().nodes.contains_key(&MotokoImport::Ic("aaaaa-aa".to_string()))
         {
             let management_idl_path = idl_dir_path.join("aaaaa-aa.did");
             dfx_core::fs::write(management_idl_path, management_idl()?)?;
@@ -171,12 +173,13 @@ impl CanisterBuilder for MotokoBuilder {
         // Check that one of the dependencies is newer than the target:
         if let Ok(wasm_file_metadata) = metadata(output_wasm_path) {
             let wasm_file_time = wasm_file_metadata.modified()?;
-            let mut import_iter = imports.iter();
+            let imports = pool.imports.borrow();
+            let mut import_iter = imports.nodes.iter();
             loop {
                 if let Some(import) = import_iter.next() {
-                    let imported_file = match import {
+                    let imported_file = match import.0 {
                         MotokoImport::Canister(canister_name) => {
-                            if let Some(canister) = pool.get_first_canister_with_name(canister_name) {
+                            if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {
                                 let main_file = canister.get_info().get_main_file();
                                 if let Some(main_file) = main_file {
                                     Some(main_file.to_owned())
@@ -188,7 +191,7 @@ impl CanisterBuilder for MotokoBuilder {
                             }
                         }
                         MotokoImport::Ic(canister_id) => {
-                            if let Some(canister_name) = rev_id_map.get(canister_id) {
+                            if let Some(canister_name) = rev_id_map.get(canister_id.as_str()) {
                                 if let Some(canister) = pool.get_first_canister_with_name(canister_name) {
                                     if let Some(main_file) = canister.get_info().get_main_file() {
                                         Some(main_file.to_owned())
@@ -210,7 +213,7 @@ impl CanisterBuilder for MotokoBuilder {
                                 );
                                 expanded.join(&path[i+1..])
                             } else {
-                                Path::new(path).to_owned()
+                                Path::new(path.as_str()).to_owned()
                             };
                             let path2 = pre_path.to_string_lossy() + ".mo"; // TODO: Is `lossy` OK?
                             let path2 = path2.to_string();
@@ -227,7 +230,7 @@ impl CanisterBuilder for MotokoBuilder {
                             }
                         }
                         MotokoImport::Relative(path) => {
-                            Some(Path::new(path).to_owned())
+                            Some(Path::new(&path).to_owned())
                         }
                     };
                     if let Some(imported_file) = imported_file {
@@ -362,14 +365,6 @@ fn motoko_compile(logger: &Logger, cache: &dyn Cache, params: &MotokoParams<'_>)
     params.to_args(&mut cmd);
     run_command(logger, &mut cmd, params.suppress_warning).context("Failed to run 'moc'.")?;
     Ok(())
-}
-
-#[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
-enum MotokoImport {
-    Canister(String),
-    Ic(String),
-    Lib(String),
-    Relative(PathBuf),
 }
 
 impl TryFrom<&str> for MotokoImport {

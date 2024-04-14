@@ -28,7 +28,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::convert::TryFrom;
 use std::ffi::OsStr;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 
@@ -435,10 +435,35 @@ fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> D
     Ok(())
 }
 
+/// TODO: Motoko-specific code not here
+#[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
+pub enum MotokoImport {
+    Canister(String),
+    Ic(String),
+    Lib(String),
+    Relative(PathBuf),
+}
+
+/// The graph of Motoko imports (TODO: Motoko-specific code not here)
+pub struct ImportsTracker {
+    pub nodes: HashMap<MotokoImport, ()>,
+    pub graph: DiGraph<MotokoImport, ()>,
+}
+
+impl ImportsTracker {
+    pub fn new() -> Self {
+        Self {
+            nodes: HashMap::new(),
+            graph: DiGraph::new(),
+        }
+    }
+}
+
 /// A canister pool is a list of canisters.
 pub struct CanisterPool {
     canisters: Vec<Arc<Canister>>,
     logger: Logger,
+    pub imports: RefCell<ImportsTracker>, // TODO: `pub` is a bad habit.
 }
 
 struct PoolConstructHelper<'a> {
@@ -493,6 +518,7 @@ impl CanisterPool {
         Ok(CanisterPool {
             canisters: canisters_map,
             logger,
+            imports: RefCell::new(ImportsTracker::new()),
         })
     }
 
