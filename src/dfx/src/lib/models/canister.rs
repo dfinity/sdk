@@ -549,18 +549,31 @@ impl CanisterPool {
             id_set.insert(canister_id, graph.add_node(canister_id));
         }
 
-        // Add all the edges.
-        for canister in &real_canisters_to_build {
-            let canister_id = canister.canister_id();
-            let canister_info = &canister.info;
-            let deps = canister.builder.get_dependencies(self, canister_info)?;
-            if let Some(node_ix) = id_set.get(&canister_id) {
-                for d in deps {
-                    if let Some(dep_ix) = id_set.get(&d) {
-                        graph.add_edge(*node_ix, *dep_ix, ());
+        // Traverse the graph of dependencies starting from `real_canisters_to_build` set.
+        let mut current_canisters_to_build =
+            HashMap::from_iter(real_canisters_to_build.iter().map(|c| (c.canister_id(), ())));
+        loop {
+            let mut current_canisters_to_build2 = HashMap::new();
+            for canister in &self.canisters {
+                if !current_canisters_to_build.contains_key(&canister.canister_id()) {
+                    break;
+                }
+                let canister_id = canister.canister_id();
+                let canister_info = &canister.info;
+                let deps = canister.builder.get_dependencies(self, canister_info)?;
+                if let Some(node_ix) = id_set.get(&canister_id) {
+                    for d in deps {
+                        if let Some(dep_ix) = id_set.get(&d) {
+                            graph.add_edge(*node_ix, *dep_ix, ());
+                            current_canisters_to_build2.insert(*graph.node_weight(*dep_ix).unwrap(), ());
+                        }
                     }
                 }
             }
+            if current_canisters_to_build2.is_empty() { // passed to the end of the graph
+                break;
+            }
+            current_canisters_to_build = current_canisters_to_build2;
         }
 
         // Verify the graph has no cycles.
