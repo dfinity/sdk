@@ -24,7 +24,7 @@ use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::convert::TryFrom;
 use std::ffi::OsStr;
 use std::io::Read;
@@ -528,9 +528,20 @@ impl CanisterPool {
     }
 
     #[context("Failed to build dependencies graph for canister pool.")]
-    fn build_dependencies_graph(&self) -> DfxResult<DiGraph<CanisterId, ()>> {
+    fn build_dependencies_graph(&self, canisters_to_build: Option<Vec<String>>) -> DfxResult<DiGraph<CanisterId, ()>> {
+        println!("build_dependencies_graph"); // FIXME: Remove.
         let mut graph: DiGraph<CanisterId, ()> = DiGraph::new();
         let mut id_set: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
+
+        // TODO: Can be done faster by not using `collect` and/or `clone`?
+        let real_canisters_to_build = if let Some(canisters_to_build) = canisters_to_build {
+            let canisters_to_build_map: HashMap<&str, ()> = canisters_to_build.iter().map(|e| (e.as_str(), ())).collect();
+            self.canisters.iter()
+                .filter(|c| canisters_to_build_map.contains_key(c.get_name()))
+                .map(|c| c.clone()).collect::<Vec<_>>()
+        } else {
+            self.canisters.iter().map(|c| c.clone()).collect::<Vec<_>>()
+        };
 
         // Add all the canisters as nodes.
         for canister in &self.canisters {
@@ -539,7 +550,7 @@ impl CanisterPool {
         }
 
         // Add all the edges.
-        for canister in &self.canisters {
+        for canister in &real_canisters_to_build {
             let canister_id = canister.canister_id();
             let canister_info = &canister.info;
             let deps = canister.builder.get_dependencies(self, canister_info)?;
@@ -692,7 +703,7 @@ impl CanisterPool {
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         trace!(log, "Building dependencies graph.");
-        let graph = self.build_dependencies_graph()?;
+        let graph = self.build_dependencies_graph(build_config.canisters_to_build.clone())?; // TODO: Can `clone` be eliminated?
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
