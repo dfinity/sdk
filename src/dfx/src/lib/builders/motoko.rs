@@ -58,6 +58,9 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut Impor
             return Ok(());
         }
         imports.nodes.insert(parent.clone(), ());
+        if let MotokoImport::Relative(path) = &parent {
+            println!("INSERTED: {}", path.display()); // FIXME
+        }
 
         let mut command = cache.get_binary_command("moc")?;
         let command = command.arg("--print-deps").arg(file);
@@ -244,6 +247,7 @@ impl CanisterBuilder for MotokoBuilder {
                     };
                     if let Some(imported_file) = imported_file {
                         let imported_file_metadata = metadata(imported_file.as_ref())?;
+                        println!("IMPORTED {}", imported_file.display()); // FIXME: Remove.
                         let imported_file_time = imported_file_metadata.modified()?;
                         if imported_file_time > wasm_file_time {
                             break;
