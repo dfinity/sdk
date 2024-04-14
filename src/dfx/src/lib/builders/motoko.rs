@@ -53,12 +53,12 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut Impor
         imports: &mut ImportsTracker,
         pool: &CanisterPool,
     ) -> DfxResult {
-        println!("CanisterInfo: {:#?}", file);
         let parent = MotokoImport::Relative(file.to_path_buf());
         if imports.nodes.contains_key(&parent) {
             return Ok(());
         }
-        imports.nodes.insert(parent.clone(), ());
+        let parent_node_index = *imports.nodes.entry(parent.clone()).or_insert_with(|| imports.graph.add_node(parent.clone()));
+        imports.nodes.insert(parent.clone(), parent_node_index);
         if let MotokoImport::Relative(path) = &parent {
             println!("INSERTED: {}", path.display()); // FIXME
         }
@@ -86,18 +86,21 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut Impor
                 }
                 _ => {}
             }
-            let parent_node = imports.graph.add_node(parent.clone());
-            if let MotokoImport::Relative(child) = &child {
-                println!("INSERTED CHILD: {}", child.display()); // FIXME
-            }
-                let child_node = imports.graph.add_node(child);
-            imports.graph.add_edge(parent_node, child_node, ());
+            let parent_node_index = *imports.nodes.entry(parent.clone()).or_insert_with(|| imports.graph.add_node(parent.clone()));
+            let child_node_index = *imports.nodes.entry(child.clone()).or_insert_with(|| imports.graph.add_node(child.clone()));
+            // if let MotokoImport::Relative(parent) = &parent {
+            //     println!("INSERTED PARENT: {} ({:?})", parent.display(), parent_node); // FIXME
+            // }
+            // let child_node = imports.graph.add_node(child.clone());
+            // if let MotokoImport::Relative(child) = &child {
+            //     println!("INSERTED CHILD: {} ({:?})", child.display(), child_node); // FIXME
+            // }
+            imports.graph.add_edge(parent_node_index, child_node_index, ());
         }
 
         Ok(())
     }
 
-    println!("CanisterInfo2: {:#?}", info.get_main_path());
     get_imports_recursive(cache, info.get_main_path(), imports, pool)?;
 
     Ok(())
@@ -136,7 +139,6 @@ impl CanisterBuilder for MotokoBuilder {
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
         let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?;
-        println!("motoko_info: {}", motoko_info.get_main_path().display());
         let profile = config.profile;
         let input_path = motoko_info.get_main_path();
         let output_wasm_path = motoko_info.get_output_wasm_path();
@@ -193,10 +195,20 @@ impl CanisterBuilder for MotokoBuilder {
         if let Ok(wasm_file_metadata) = metadata(output_wasm_path) {
             let wasm_file_time = wasm_file_metadata.modified()?;
             let mut imports = pool.imports.borrow_mut();
-            let start = imports.graph.add_node(MotokoImport::Relative(motoko_info.get_main_path().to_path_buf())); // Start with oput canister.
+            println!("START: {}", motoko_info.get_main_path().to_path_buf().display()); // FIXME
+            // let start = imports.graph.add_node(MotokoImport::Relative(motoko_info.get_main_path().to_path_buf())); // Start with oput canister.
+            let start = if let Some(node_index) = imports.nodes.get(&MotokoImport::Relative(motoko_info.get_main_path().to_path_buf())) {
+                *node_index
+            } else {
+                let node = MotokoImport::Relative(motoko_info.get_main_path().to_path_buf());
+                let node_index = imports.graph.add_node(node.clone());
+                imports.nodes.insert(node, node_index);
+                node_index
+            };
             let mut import_iter = Bfs::new(&imports.graph, start);
             loop {
                 if let Some(import) = import_iter.next(&imports.graph) {
+                    println!("NodeIndex {:?}", import);
                     let imported_file = match &imports.graph[import] {
                         MotokoImport::Canister(canister_name) => { // duplicate code
                             if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {

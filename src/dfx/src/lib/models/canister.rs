@@ -446,7 +446,7 @@ pub enum MotokoImport {
 
 /// The graph of Motoko imports (TODO: Motoko-specific code not here)
 pub struct ImportsTracker {
-    pub nodes: HashMap<MotokoImport, ()>,
+    pub nodes: HashMap<MotokoImport, NodeIndex>,
     pub graph: DiGraph<MotokoImport, ()>,
 }
 
@@ -483,7 +483,6 @@ impl CanisterPool {
             _ => None,
         };
         let info = CanisterInfo::load(pool_helper.config, canister_name, canister_id)?;
-        // println!("CanisterInfo: {:#?}", info);
         let builder = pool_helper.builder_pool.get(&info);
         pool_helper
             .canisters_map
