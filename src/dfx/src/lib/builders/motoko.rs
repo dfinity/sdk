@@ -16,6 +16,7 @@ use dfx_core::config::cache::Cache;
 use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
 use dfx_core::fs::metadata;
 use fn_error_context::context;
+use petgraph::visit::Bfs;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
@@ -45,7 +46,7 @@ impl MotokoBuilder {
 // TODO: Rename this function.
 #[context("Failed to find imports for canister at '{}'.", info.get_main_path().display())]
 fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut ImportsTracker) -> DfxResult<()> {
-    #[context("Failed recursive dependency detection at {}.", file.display())] // FIXME
+    #[context("Failed recursive dependency detection at {}.", file.display())]
     fn get_imports_recursive (
         cache: &dyn Cache,
         file: &Path,
@@ -94,7 +95,7 @@ impl CanisterBuilder for MotokoBuilder {
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
-        get_imports(self.cache.as_ref(), &motoko_info, &mut *pool.imports.borrow_mut())?; // TODO: slow operation
+        get_imports(self.cache.as_ref(), &motoko_info, &mut *pool.imports.borrow_mut())?;
 
         Ok(pool.imports.borrow().nodes
             .iter()
@@ -145,7 +146,7 @@ impl CanisterBuilder for MotokoBuilder {
         std::fs::create_dir_all(idl_dir_path)
             .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
-        get_imports(cache.as_ref(), &motoko_info, &mut *pool.imports.borrow_mut())?; // TODO: repeated slow operation
+        get_imports(cache.as_ref(), &motoko_info, &mut *pool.imports.borrow_mut())?;
 
         // If the management canister is being imported, emit the candid file.
         if pool.imports.borrow().nodes.contains_key(&MotokoImport::Ic("aaaaa-aa".to_string()))
@@ -172,11 +173,12 @@ impl CanisterBuilder for MotokoBuilder {
         // Check that one of the dependencies is newer than the target:
         if let Ok(wasm_file_metadata) = metadata(output_wasm_path) {
             let wasm_file_time = wasm_file_metadata.modified()?;
-            let imports = pool.imports.borrow();
-            let mut import_iter = imports.nodes.iter();
+            let mut imports = pool.imports.borrow_mut();
+            let start = imports.graph.add_node(MotokoImport::Relative(motoko_info.get_main_path().to_path_buf())); // Start with oput canister.
+            let mut import_iter = Bfs::new(&imports.graph, start);
             loop {
-                if let Some(import) = import_iter.next() {
-                    let imported_file = match import.0 {
+                if let Some(import) = import_iter.next(&imports.graph) {
+                    let imported_file = match &imports.graph[import] {
                         MotokoImport::Canister(canister_name) => {
                             if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {
                                 let main_file = canister.get_info().get_main_file();
@@ -214,7 +216,7 @@ impl CanisterBuilder for MotokoBuilder {
                             } else {
                                 Path::new(path.as_str()).to_owned()
                             };
-                            let path2 = pre_path.to_string_lossy() + ".mo"; // TODO: Is `lossy` OK?
+                            let path2 = pre_path.to_str().unwrap().to_owned() + ".mo";
                             let path2 = path2.to_string();
                             let path2 = Path::new(&path2);
                             if path2.exists() { // TODO: Is it correct order of two variants?
@@ -240,7 +242,7 @@ impl CanisterBuilder for MotokoBuilder {
                         };
                     };
                 } else {
-                    // trace!(log, "Canister {} already compiled", canister_info.get_name()); // TODO
+                    // println!("Canister {} already compiled.", canister_info.get_name()); // TODO
                     return Ok(BuildOutput { // duplicate code
                         canister_id: canister_info
                             .get_canister_id()
