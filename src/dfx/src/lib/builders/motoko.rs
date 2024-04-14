@@ -219,7 +219,6 @@ impl CanisterBuilder for MotokoBuilder {
                                 Some(Path::new(path2).to_owned())
                             } else {
                                 let path3 = pre_path.join(Path::new("lib.mo"));
-                                println!("path3: {}", &path3.to_string_lossy()); // FIXME
                                 if path3.exists() {
                                     Some(path3.to_owned())
                                 } else {
