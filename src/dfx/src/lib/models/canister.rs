@@ -21,7 +21,6 @@ use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
 use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::visit::Bfs;
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
@@ -703,42 +702,20 @@ impl CanisterPool {
             };
             BuildError::DependencyError(format!("Found circular dependency: {}", message))
         })?;
-        let order: Vec<(&NodeIndex, CanisterId)> = nodes
+        let order: Vec<CanisterId> = nodes
             .iter()
             .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
-            .map(|idx| (idx, *graph.node_weight(*idx).unwrap()))
+            .map(|idx| *graph.node_weight(*idx).unwrap())
             .collect();
 
         let canisters_to_build = self.canisters_to_build(build_config);
         let mut result = Vec::new();
-        for (&idx, canister_id) in &order {
+        for canister_id in &order {
             if let Some(canister) = self.get_canister(canister_id) {
                 if canisters_to_build
                     .iter()
                     .map(|c| c.get_name())
                     .contains(&canister.get_name())
-                    && {
-                        use dfx_core::fs::metadata;
-                        let wasm_file_name = canister.get_info().get_output_root()
-                            .join(Path::new(canister.get_name()))
-                            .join(Path::new(&format!("{}.wasm", canister.get_name())));
-                        let wasm_file_metadata = metadata(wasm_file_name.as_path())?;
-                        let wasm_file_time = wasm_file_metadata.modified()?;
-                        let mut bfs = Bfs::new(&graph, idx);
-                        loop {
-                            if let Some(node_index) = bfs.next(&graph) {
-                                if let Some(node) = graph.node_weight(node_index) {
-                                    // FIXME: We need the graph of dependencies including `.mo` files, not only canisters.
-                                    // TODO
-                                } else {
-                                    panic!("cannot get canister");
-                                }
-                            } else {
-                                break false;
-                            }
-                        };
-                        true
-                    }
                 {
                     trace!(log, "Building canister '{}'.", canister.get_name());
                 } else {
@@ -778,7 +755,7 @@ impl CanisterPool {
             }
         }
 
-        self.step_postbuild_all(build_config, &order.into_iter().map(|e| e.1).collect::<Vec<CanisterId>>())
+        self.step_postbuild_all(build_config, &order)
             .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
 
         Ok(result)
