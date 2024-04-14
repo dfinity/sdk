@@ -59,9 +59,6 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut Impor
         }
         let parent_node_index = *imports.nodes.entry(parent.clone()).or_insert_with(|| imports.graph.add_node(parent.clone()));
         imports.nodes.insert(parent.clone(), parent_node_index);
-        if let MotokoImport::Relative(path) = &parent {
-            println!("INSERTED: {}", path.display()); // FIXME
-        }
 
         let mut command = cache.get_binary_command("moc")?;
         let command = command.arg("--print-deps").arg(file);
@@ -88,13 +85,6 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut Impor
             }
             let parent_node_index = *imports.nodes.entry(parent.clone()).or_insert_with(|| imports.graph.add_node(parent.clone()));
             let child_node_index = *imports.nodes.entry(child.clone()).or_insert_with(|| imports.graph.add_node(child.clone()));
-            // if let MotokoImport::Relative(parent) = &parent {
-            //     println!("INSERTED PARENT: {} ({:?})", parent.display(), parent_node); // FIXME
-            // }
-            // let child_node = imports.graph.add_node(child.clone());
-            // if let MotokoImport::Relative(child) = &child {
-            //     println!("INSERTED CHILD: {} ({:?})", child.display(), child_node); // FIXME
-            // }
             imports.graph.add_edge(parent_node_index, child_node_index, ());
         }
 
@@ -114,9 +104,7 @@ impl CanisterBuilder for MotokoBuilder {
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
-        println!("CanisterInfo3: {:#?}", info.get_main_file()); // FIXME
         get_imports(self.cache.as_ref(), &motoko_info, &mut *pool.imports.borrow_mut(), pool)?;
-        println!("CanisterInfo4: {:#?}", motoko_info.get_main_path()); // FIXME
 
         Ok(pool.imports.borrow().nodes
             .iter()
@@ -195,8 +183,6 @@ impl CanisterBuilder for MotokoBuilder {
         if let Ok(wasm_file_metadata) = metadata(output_wasm_path) {
             let wasm_file_time = wasm_file_metadata.modified()?;
             let mut imports = pool.imports.borrow_mut();
-            println!("START: {}", motoko_info.get_main_path().to_path_buf().display()); // FIXME
-            // let start = imports.graph.add_node(MotokoImport::Relative(motoko_info.get_main_path().to_path_buf())); // Start with oput canister.
             let start = if let Some(node_index) = imports.nodes.get(&MotokoImport::Relative(motoko_info.get_main_path().to_path_buf())) {
                 *node_index
             } else {
@@ -208,7 +194,6 @@ impl CanisterBuilder for MotokoBuilder {
             let mut import_iter = Bfs::new(&imports.graph, start);
             loop {
                 if let Some(import) = import_iter.next(&imports.graph) {
-                    println!("NodeIndex {:?}", import);
                     let imported_file = match &imports.graph[import] {
                         MotokoImport::Canister(canister_name) => { // duplicate code
                             if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {
@@ -267,7 +252,6 @@ impl CanisterBuilder for MotokoBuilder {
                     };
                     if let Some(imported_file) = imported_file {
                         let imported_file_metadata = metadata(imported_file.as_ref())?;
-                        println!("IMPORTED {}", imported_file.display()); // FIXME: Remove.
                         let imported_file_time = imported_file_metadata.modified()?;
                         if imported_file_time > wasm_file_time {
                             break;
