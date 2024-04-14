@@ -168,28 +168,17 @@ impl CanisterBuilder for MotokoBuilder {
             };
         }
 
-        let wasm_file_metadata = metadata(output_wasm_path)?;
-        let wasm_file_time = wasm_file_metadata.modified()?;
-        let mut import_iter = imports.iter();
-        loop {
-            if let Some(import) = import_iter.next() {
-                let imported_file = match import {
-                    MotokoImport::Canister(canister_name) => {
-                        if let Some(canister) = pool.get_first_canister_with_name(canister_name) {
-                            let main_file = canister.get_info().get_main_file();
-                            if let Some(main_file) = main_file {
-                                Some(main_file.to_owned())
-                            } else {
-                                None
-                            }
-                        } else {
-                            None
-                        }
-                    }
-                    MotokoImport::Ic(canister_id) => {
-                        if let Some(canister_name) = rev_id_map.get(canister_id) {
+        // Check that one of the dependencies is newer than the target:
+        if let Ok(wasm_file_metadata) = metadata(output_wasm_path) {
+            let wasm_file_time = wasm_file_metadata.modified()?;
+            let mut import_iter = imports.iter();
+            loop {
+                if let Some(import) = import_iter.next() {
+                    let imported_file = match import {
+                        MotokoImport::Canister(canister_name) => {
                             if let Some(canister) = pool.get_first_canister_with_name(canister_name) {
-                                if let Some(main_file) = canister.get_info().get_main_file() {
+                                let main_file = canister.get_info().get_main_file();
+                                if let Some(main_file) = main_file {
                                     Some(main_file.to_owned())
                                 } else {
                                     None
@@ -197,49 +186,63 @@ impl CanisterBuilder for MotokoBuilder {
                             } else {
                                 None
                             }
-                        } else {
-                            None
                         }
-                    }
-                    MotokoImport::Lib(path) => {
-                        let i = path.find('/');
-                        let pre_path = if let Some(i) = i {
-                            let expanded = Path::new(
-                                package_arguments_map.get(&path[..i]).ok_or_else(|| anyhow!("nonexisting package"))?
-                            ).join(Path::new("src"));
-                            expanded.join(&path[i+1..])
-                        } else {
-                            Path::new(path).to_owned()
-                        };
-                        let path2 = pre_path.to_string_lossy() + ".mo"; // TODO: Is `lossy` OK?
-                        let path2 = path2.to_string();
-                        let path2 = Path::new(&path2);
-                        if path2.exists() { // TODO: Is it correct order of two variants?
-                            Some(Path::new(path2).to_owned())
-                        } else {
-                            let path3 = pre_path.join(Path::new("lib.mo"));
-                            if path3.exists() {
-                                Some(path3.to_owned())
+                        MotokoImport::Ic(canister_id) => {
+                            if let Some(canister_name) = rev_id_map.get(canister_id) {
+                                if let Some(canister) = pool.get_first_canister_with_name(canister_name) {
+                                    if let Some(main_file) = canister.get_info().get_main_file() {
+                                        Some(main_file.to_owned())
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
                             } else {
-                                bail!("source file has been deleted");
+                                None
                             }
                         }
-                    }
-                    MotokoImport::Relative(path) => {
-                        Some(Path::new(path).to_owned())
-                    }
-                };
-                if let Some(imported_file) = imported_file {
-                    let imported_file_metadata = metadata(imported_file.as_ref())?;
-                    let imported_file_time = imported_file_metadata.modified()?;
-                    if imported_file_time > wasm_file_time {
-                        break;
+                        MotokoImport::Lib(path) => {
+                            let i = path.find('/');
+                            let pre_path = if let Some(i) = i {
+                                let expanded = Path::new(
+                                    package_arguments_map.get(&path[..i]).ok_or_else(|| anyhow!("nonexisting package"))?
+                                );
+                                expanded.join(&path[i+1..])
+                            } else {
+                                Path::new(path).to_owned()
+                            };
+                            let path2 = pre_path.to_string_lossy() + ".mo"; // TODO: Is `lossy` OK?
+                            let path2 = path2.to_string();
+                            let path2 = Path::new(&path2);
+                            if path2.exists() { // TODO: Is it correct order of two variants?
+                                Some(Path::new(path2).to_owned())
+                            } else {
+                                let path3 = pre_path.join(Path::new("lib.mo"));
+                                println!("path3: {}", &path3.to_string_lossy()); // FIXME
+                                if path3.exists() {
+                                    Some(path3.to_owned())
+                                } else {
+                                    bail!("source file has been deleted");
+                                }
+                            }
+                        }
+                        MotokoImport::Relative(path) => {
+                            Some(Path::new(path).to_owned())
+                        }
                     };
-                };
-            } else {
-                bail!("already compiled"); // FIXME: Ensure that `dfx` command doesn't return false because of this.
+                    if let Some(imported_file) = imported_file {
+                        let imported_file_metadata = metadata(imported_file.as_ref())?;
+                        let imported_file_time = imported_file_metadata.modified()?;
+                        if imported_file_time > wasm_file_time {
+                            break;
+                        };
+                    };
+                } else {
+                    bail!("already compiled"); // FIXME: Ensure that `dfx` command doesn't return false because of this.
+                }
             }
-        }
+        };
 
         let moc_arguments = match motoko_info.get_args() {
             Some(args) => [
