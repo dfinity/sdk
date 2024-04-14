@@ -51,9 +51,11 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut Impor
         file: &Path,
         imports: &mut ImportsTracker,
     ) -> DfxResult {
-        if imports.nodes.contains_key(&MotokoImport::Relative(file.to_path_buf())) {
+        let parent = MotokoImport::Relative(file.to_path_buf());
+        if imports.nodes.contains_key(&parent) {
             return Ok(());
         }
+        imports.nodes.insert(parent.clone(), ());
 
         let mut command = cache.get_binary_command("moc")?;
         let command = command.arg("--print-deps").arg(file);
@@ -63,23 +65,17 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut Impor
         let output = String::from_utf8_lossy(&output.stdout);
 
         for line in output.lines() {
-            let import = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
-            match &import {
+            let child = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
+            // TODO: The code seems screwed: Why recompile onluy on `Relative`?
+            match &child {
                 MotokoImport::Relative(path) => {
-                    if !imports.nodes.contains_key(&import) { // Don't look up already looked up dependencies
-                        imports.nodes.insert(&import, ());
-                        get_imports_recursive(cache, path.as_path(), imports)?;
-                    }
+                    get_imports_recursive(cache, path.as_path(), imports)?;
                 }
-                _ => {
-                    let parent = MotokoImport::Relative(file.to_path_buf());
-                    // imports.insert(parent);
-            
-                    let parent_node = imports.graph.add_node(parent);
-                    let child_node = imports.graph.add_node(import);
-                    imports.graph.add_edge(parent_node, child_node, ());
-                }
+                _ => {}
             }
+            let parent_node = imports.graph.add_node(parent.clone());
+            let child_node = imports.graph.add_node(child);
+            imports.graph.add_edge(parent_node, child_node, ());
         }
 
         Ok(())

@@ -436,7 +436,7 @@ fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> D
 }
 
 /// TODO: Motoko-specific code not here
-#[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub enum MotokoImport {
     Canister(String),
     Ic(String),
