@@ -67,6 +67,7 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut Impor
             match &import {
                 MotokoImport::Relative(path) => {
                     if !imports.nodes.contains_key(&import) { // Don't look up already looked up dependencies
+                        imports.nodes.insert(&import, ());
                         get_imports_recursive(cache, path.as_path(), imports)?;
                     }
                 }
@@ -99,7 +100,7 @@ impl CanisterBuilder for MotokoBuilder {
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
         get_imports(self.cache.as_ref(), &motoko_info, &mut *pool.imports.borrow_mut())?; // TODO: slow operation
 
-        Ok(pool.imports.borrow_mut().nodes
+        Ok(pool.imports.borrow().nodes
             .iter()
             .filter_map(|import| {
                 if let MotokoImport::Canister(name) = import.0 {
