@@ -93,7 +93,7 @@ impl CanisterBuilder for MotokoBuilder {
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
-        let imports = get_imports(self.cache.as_ref(), &motoko_info)?;
+        let imports = get_imports(self.cache.as_ref(), &motoko_info)?; // TODO: slow operation
 
         Ok(imports
             .iter()

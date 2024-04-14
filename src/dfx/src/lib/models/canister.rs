@@ -691,6 +691,7 @@ impl CanisterPool {
         self.step_prebuild_all(log, build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
+        trace!(log, "Building dependencies graph.");
         let graph = self.build_dependencies_graph()?;
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
