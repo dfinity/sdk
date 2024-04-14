@@ -551,8 +551,22 @@ impl CanisterPool {
             id_set.insert(canister_id, graph.add_node(canister_id));
         }
 
+        // Verify the graph has no cycles.
+        if let Err(err) = petgraph::algo::toposort(&graph, None) {
+            let message = match graph.node_weight(err.node_id()) {
+                Some(canister_id) => match self.get_canister_info(canister_id) {
+                    Some(info) => info.get_name().to_string(),
+                    None => format!("<{}>", canister_id.to_text()),
+                },
+                None => "<Unknown>".to_string(),
+            };
+            return Err(DfxError::new(BuildError::DependencyError(format!(
+                "Found circular dependency: {}",
+                message
+            ))))
+        }
+
         // Traverse the graph of dependencies starting from `real_canisters_to_build` set.
-        // FIXME: This hangs if circular dependencies (see below).
         let mut current_canisters_to_build =
             HashMap::from_iter(real_canisters_to_build.iter().map(|c| (c.canister_id(), ())));
         loop {
@@ -579,22 +593,7 @@ impl CanisterPool {
             current_canisters_to_build = current_canisters_to_build2;
         }
 
-        // Verify the graph has no cycles.
-        if let Err(err) = petgraph::algo::toposort(&graph, None) {
-            let message = match graph.node_weight(err.node_id()) {
-                Some(canister_id) => match self.get_canister_info(canister_id) {
-                    Some(info) => info.get_name().to_string(),
-                    None => format!("<{}>", canister_id.to_text()),
-                },
-                None => "<Unknown>".to_string(),
-            };
-            Err(DfxError::new(BuildError::DependencyError(format!(
-                "Found circular dependency: {}",
-                message
-            ))))
-        } else {
-            Ok(graph)
-        }
+        Ok(graph)
     }
 
     #[context("Failed step_prebuild_all.")]
