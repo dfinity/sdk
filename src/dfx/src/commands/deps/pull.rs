@@ -82,7 +82,6 @@ async fn resolve_all_dependencies(
 ) -> DfxResult<Vec<Principal>> {
     let mut canisters_to_resolve: VecDeque<Principal> =
         pull_canisters_in_config.values().cloned().collect();
-    println!("canisters_to_resolve: {:?}", canisters_to_resolve); // FIXME: Remove.
     let mut checked = BTreeSet::new();
     while let Some(canister_id) = canisters_to_resolve.pop_front() {
         if !checked.contains(&canister_id) {

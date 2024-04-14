@@ -4,6 +4,8 @@
 
 ### feat: rebuild only necessary canisters
 
+Read only those `--print-deps` dependencies that are necessary to read.
+
 Don't compile canisters for which all dependencies are elder than the `.wasm` file.
 This results in big compilation speedups.
 

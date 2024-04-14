@@ -79,10 +79,6 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo) -> DfxResult<BTreeS
         Ok(())
     }
 
-    // FIXME: Remove.
-    println!("Getting imports for canister {}.", info.get_main_path().display());
-    // println!("Custom backtrace: {}", std::backtrace::Backtrace::force_capture());
-
     let mut result = BTreeSet::new();
     get_imports_recursive(cache, info.get_main_path(), &mut result)?;
 
@@ -97,7 +93,6 @@ impl CanisterBuilder for MotokoBuilder {
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
-        println!("get_dependencies: {}", info.get_name()); // FIXME: Remove.
         let imports = get_imports(self.cache.as_ref(), &motoko_info)?; // TODO: slow operation
 
         Ok(imports
