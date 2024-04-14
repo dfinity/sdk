@@ -238,7 +238,15 @@ impl CanisterBuilder for MotokoBuilder {
                         };
                     };
                 } else {
-                    bail!("already compiled"); // FIXME: Ensure that `dfx` command doesn't return false because of this.
+                    // trace!(log, "Canister {} already compiled", canister_info.get_name()); // TODO
+                    return Ok(BuildOutput { // duplicate code
+                        canister_id: canister_info
+                            .get_canister_id()
+                            .expect("Could not find canister ID."),
+                        wasm: WasmBuildOutput::File(motoko_info.get_output_wasm_path().to_path_buf()),
+                        idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
+                    })
+            
                 }
             }
         };
@@ -279,7 +287,7 @@ impl CanisterBuilder for MotokoBuilder {
         };
         motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
-        Ok(BuildOutput {
+        Ok(BuildOutput { // duplicate code
             canister_id: canister_info
                 .get_canister_id()
                 .expect("Could not find canister ID."),
