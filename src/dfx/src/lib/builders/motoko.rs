@@ -9,6 +9,7 @@ use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets::management_idl;
+use crate::lib::builders::bail;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use dfx_core::config::cache::Cache;
@@ -154,6 +155,18 @@ impl CanisterBuilder for MotokoBuilder {
 
         let package_arguments =
             package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
+        let mut package_arguments_map = BTreeMap::<String, String>::new(); // TODO: Can we deal without cloning strings?
+        { // block
+            let mut i = 0;
+            while i + 3 <= package_arguments.len() {
+                if package_arguments[i] == "--package" {
+                    package_arguments_map.insert(package_arguments[i+1].clone(), package_arguments[i+2].clone());
+                    i += 3;
+                } else {
+                    i += 1;
+                }
+            };
+        }
 
         let wasm_file_metadata = metadata(output_wasm_path)?;
         let wasm_file_time = wasm_file_metadata.modified()?;
@@ -189,8 +202,28 @@ impl CanisterBuilder for MotokoBuilder {
                         }
                     }
                     MotokoImport::Lib(path) => {
-                        // FIXME: `lib` in name
-                        Some(Path::new(path).to_owned())
+                        let i = path.find('/');
+                        let pre_path = if let Some(i) = i {
+                            let expanded = Path::new(
+                                package_arguments_map.get(&path[..i]).ok_or_else(|| anyhow!("nonexisting package"))?
+                            ).join(Path::new("src"));
+                            expanded.join(&path[i+1..])
+                        } else {
+                            Path::new(path).to_owned()
+                        };
+                        let path2 = pre_path.to_string_lossy() + ".mo"; // TODO: Is `lossy` OK?
+                        let path2 = path2.to_string();
+                        let path2 = Path::new(&path2);
+                        if path2.exists() { // TODO: Is it correct order of two variants?
+                            Some(Path::new(path2).to_owned())
+                        } else {
+                            let path3 = pre_path.join(Path::new("lib.mo"));
+                            if path3.exists() {
+                                Some(path3.to_owned())
+                            } else {
+                                bail!("source file has been deleted");
+                            }
+                        }
                     }
                     MotokoImport::Relative(path) => {
                         Some(Path::new(path).to_owned())
@@ -204,7 +237,7 @@ impl CanisterBuilder for MotokoBuilder {
                     };
                 };
             } else {
-                return Err(anyhow!("already compiled")); // TODO: Ensure that `dfx` command doesn't return false because of this.
+                bail!("already compiled"); // FIXME: Ensure that `dfx` command doesn't return false because of this.
             }
         }
 
