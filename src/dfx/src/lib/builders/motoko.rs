@@ -53,6 +53,7 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut Impor
         imports: &mut ImportsTracker,
         pool: &CanisterPool,
     ) -> DfxResult {
+        println!("CanisterInfo: {:#?}", file);
         let parent = MotokoImport::Relative(file.to_path_buf());
         if imports.nodes.contains_key(&parent) {
             return Ok(());
@@ -86,13 +87,17 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut Impor
                 _ => {}
             }
             let parent_node = imports.graph.add_node(parent.clone());
-            let child_node = imports.graph.add_node(child);
+            if let MotokoImport::Relative(child) = &child {
+                println!("INSERTED CHILD: {}", child.display()); // FIXME
+            }
+                let child_node = imports.graph.add_node(child);
             imports.graph.add_edge(parent_node, child_node, ());
         }
 
         Ok(())
     }
 
+    println!("CanisterInfo2: {:#?}", info.get_main_path());
     get_imports_recursive(cache, info.get_main_path(), imports, pool)?;
 
     Ok(())
@@ -106,7 +111,9 @@ impl CanisterBuilder for MotokoBuilder {
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
+        println!("CanisterInfo3: {:#?}", info.get_main_file()); // FIXME
         get_imports(self.cache.as_ref(), &motoko_info, &mut *pool.imports.borrow_mut(), pool)?;
+        println!("CanisterInfo4: {:#?}", motoko_info.get_main_path()); // FIXME
 
         Ok(pool.imports.borrow().nodes
             .iter()
@@ -129,6 +136,7 @@ impl CanisterBuilder for MotokoBuilder {
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
         let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?;
+        println!("motoko_info: {}", motoko_info.get_main_path().display());
         let profile = config.profile;
         let input_path = motoko_info.get_main_path();
         let output_wasm_path = motoko_info.get_output_wasm_path();

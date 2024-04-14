@@ -483,6 +483,7 @@ impl CanisterPool {
             _ => None,
         };
         let info = CanisterInfo::load(pool_helper.config, canister_name, canister_id)?;
+        // println!("CanisterInfo: {:#?}", info);
         let builder = pool_helper.builder_pool.get(&info);
         pool_helper
             .canisters_map
