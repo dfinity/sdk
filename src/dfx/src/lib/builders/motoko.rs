@@ -64,7 +64,7 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut Impor
 
         for line in output.lines() {
             let import = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
-            match import {
+            match &import {
                 MotokoImport::Relative(path) => {
                     if !imports.nodes.contains_key(&import) { // Don't look up already looked up dependencies
                         get_imports_recursive(cache, path.as_path(), imports)?;
