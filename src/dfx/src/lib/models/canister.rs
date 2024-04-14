@@ -550,6 +550,7 @@ impl CanisterPool {
         }
 
         // Traverse the graph of dependencies starting from `real_canisters_to_build` set.
+        // FIXME: This hangs if circular dependencies (see below).
         let mut current_canisters_to_build =
             HashMap::from_iter(real_canisters_to_build.iter().map(|c| (c.canister_id(), ())));
         loop {
