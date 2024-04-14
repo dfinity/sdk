@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: rebuild only necessary canisters
+
+Don't compile canisters for which all dependencies are elder than the `.wasm` file.
+This results in big compilation speedups.
+
 ### feat: display schema for dfx metadata json
 
 `dfx schema --for dfx-metadata` to display JSON schema of the "dfx" metadata.
