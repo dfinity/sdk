@@ -19,7 +19,6 @@ use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
 use std::fmt::Debug;
-use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::sync::Arc;
