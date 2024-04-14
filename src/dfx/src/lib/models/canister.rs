@@ -21,6 +21,7 @@ use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
 use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
+use petgraph::visit::Bfs;
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
@@ -527,6 +528,7 @@ impl CanisterPool {
         &self.logger
     }
 
+    /// Build only dependencies relevant for `canisters_to_build`.
     #[context("Failed to build dependencies graph for canister pool.")]
     fn build_dependencies_graph(&self, canisters_to_build: Option<Vec<String>>) -> DfxResult<DiGraph<CanisterId, ()>> {
         println!("build_dependencies_graph"); // FIXME: Remove.
@@ -734,6 +736,7 @@ impl CanisterPool {
             .map(|idx| *graph.node_weight(*idx).unwrap())
             .collect();
 
+        // let canisters_to_build = Bfs::new(graph, start);
         let canisters_to_build = self.canisters_to_build(build_config);
         let mut result = Vec::new();
         for canister_id in &order {
