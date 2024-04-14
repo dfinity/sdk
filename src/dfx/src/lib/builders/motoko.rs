@@ -144,7 +144,7 @@ impl CanisterBuilder for MotokoBuilder {
         std::fs::create_dir_all(idl_dir_path)
             .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
-        let imports = get_imports(cache.as_ref(), &motoko_info)?;
+        let imports = get_imports(cache.as_ref(), &motoko_info)?; // TODO: repeated slow operation
 
         // If the management canister is being imported, emit the candid file.
         if imports.contains(&MotokoImport::Ic("aaaaa-aa".to_string()))
