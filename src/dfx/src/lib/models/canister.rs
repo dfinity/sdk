@@ -595,7 +595,7 @@ impl CanisterPool {
         let mut current_canisters_to_build =
             HashMap::from_iter(real_canisters_to_build.iter().map(|c| (c.canister_id(), ())));
         for canister_id in current_canisters_to_build.keys() {
-            graph.add_node(*canister_id);
+            id_set.insert(*canister_id, graph.add_node(*canister_id));
         }
         loop {
             let mut current_canisters_to_build2 = HashMap::new();
@@ -621,6 +621,7 @@ impl CanisterPool {
             current_canisters_to_build = current_canisters_to_build2;
         }
 
+        println!("id_set: {:?}", id_set.keys());
         Ok(graph)
     }
 
