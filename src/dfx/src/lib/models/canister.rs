@@ -621,7 +621,7 @@ impl CanisterPool {
             current_canisters_to_build = current_canisters_to_build2;
         }
 
-        println!("id_set: {:?}", id_set.keys());
+        println!("id_set: {:?}", id_set.keys()); // FIXME: Remove.
         Ok(graph)
     }
 
