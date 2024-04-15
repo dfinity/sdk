@@ -575,6 +575,7 @@ impl CanisterPool {
             id_set.insert(canister_id, graph.add_node(canister_id));
         }
 
+        // FIXME: Verify after graph creation (and that creation does not stuck in an infinite loop).
         // Verify the graph has no cycles.
         if let Err(err) = petgraph::algo::toposort(&graph, None) {
             let message = match graph.node_weight(err.node_id()) {
@@ -590,7 +591,7 @@ impl CanisterPool {
             ))))
         }
 
-        // Traverse the graph of dependencies starting from `real_canisters_to_build` set.
+        // Traverse, creating the graph of dependencies starting from `real_canisters_to_build` set.
         let mut current_canisters_to_build =
             HashMap::from_iter(real_canisters_to_build.iter().map(|c| (c.canister_id(), ())));
         loop {
@@ -606,9 +607,8 @@ impl CanisterPool {
                     .into_iter().filter(|d| *d != canister_info.get_canister_id().unwrap()).collect(); // TODO: This is a hack.
                 if let Some(node_ix) = id_set.get(&canister_id) {
                     for d in deps {
-                        if let Some(dep_ix) = id_set.get(&d) {
-                            graph.add_edge(*node_ix, *dep_ix, ());
-                        }
+                        let dep_ix = id_set.get(&d).unwrap();
+                        graph.add_edge(*node_ix, *dep_ix, ());
                         current_canisters_to_build2.insert(d, ());
                     }
                 }
