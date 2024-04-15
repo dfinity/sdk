@@ -569,11 +569,11 @@ impl CanisterPool {
             self.canisters.iter().map(|c| c.clone()).collect::<Vec<_>>()
         };
 
-        // Add all the canisters as nodes.
-        for canister in &self.canisters {
-            let canister_id = canister.info.get_canister_id()?;
-            id_set.insert(canister_id, graph.add_node(canister_id));
-        }
+        // [DO NOT] Add all the canisters as nodes.
+        // for canister in &self.canisters {
+        //     let canister_id = canister.info.get_canister_id()?;
+        //     id_set.insert(canister_id, graph.add_node(canister_id));
+        // }
 
         // FIXME: Verify after graph creation (and that creation does not stuck in an infinite loop).
         // Verify the graph has no cycles.
@@ -605,12 +605,11 @@ impl CanisterPool {
                 // FIXME: Is `unwrap()` in the next operator correct?
                 let deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?
                     .into_iter().filter(|d| *d != canister_info.get_canister_id().unwrap()).collect(); // TODO: This is a hack.
-                if let Some(node_ix) = id_set.get(&canister_id) {
-                    for d in deps {
-                        let dep_ix = id_set.get(&d).unwrap();
-                        graph.add_edge(*node_ix, *dep_ix, ());
-                        current_canisters_to_build2.insert(d, ());
-                    }
+                let node_ix = *id_set.entry(canister_id).or_insert_with(|| graph.add_node(canister_id));
+                for d in deps {
+                    let dep_ix = *id_set.entry(d).or_insert_with(|| graph.add_node(d));
+                    graph.add_edge(node_ix, dep_ix, ());
+                    current_canisters_to_build2.insert(d, ());
                 }
             }
             if current_canisters_to_build2.is_empty() { // passed to the end of the graph
@@ -762,14 +761,16 @@ impl CanisterPool {
             .collect();
 
         // let canisters_to_build = Bfs::new(graph, start);
-        let canisters_to_build = self.canisters_to_build(build_config);
+        // let canisters_to_build = self.canisters_to_build(build_config); // FIXME
+        // TODO: The next line is slow and confusing code.
+        let canisters_to_build: Vec<&Arc<Canister>> = self.canisters.iter().filter(|c| order.contains(&c.canister_id())).collect();
         let mut result = Vec::new();
         for canister_id in &order {
             if let Some(canister) = self.get_canister(canister_id) {
                 if canisters_to_build
                     .iter()
                     .map(|c| c.get_name())
-                    .contains(&canister.get_name())
+                    .contains(&canister.get_name()) // TODO: slow
                 {
                     trace!(log, "Building canister '{}'.", canister.get_name());
                 } else {
@@ -893,6 +894,7 @@ impl CanisterPool {
         Ok(())
     }
 
+    // FIXME: Remove this function
     pub fn canisters_to_build(&self, build_config: &BuildConfig) -> Vec<&Arc<Canister>> {
         if let Some(canister_names) = &build_config.canisters_to_build {
             self.canisters
