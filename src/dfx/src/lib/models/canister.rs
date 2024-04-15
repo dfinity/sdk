@@ -560,6 +560,7 @@ impl CanisterPool {
         let mut id_set: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
 
         // TODO: Can be done faster by not using `collect` and/or `clone`?
+        // `real_canisters_to_build` are canisters that user explicitly requested to build.
         let real_canisters_to_build = if let Some(canisters_to_build) = canisters_to_build {
             let canisters_to_build_map: HashMap<&str, ()> = canisters_to_build.iter().map(|e| (e.as_str(), ())).collect();
             self.canisters.iter()
@@ -599,15 +600,20 @@ impl CanisterPool {
         }
         loop {
             let mut current_canisters_to_build2 = HashMap::new();
+            // println!("self.canisters.len(): {}", self.canisters.len());
             for canister in &self.canisters { // a little inefficient
+                // FIXME: Remove:
+                println!("current_canisters_to_build={:?} canister={}",
+                    current_canisters_to_build.keys().map(|c| c.to_text()).collect::<Vec<_>>(), canister.canister_id());
                 if !current_canisters_to_build.contains_key(&canister.canister_id()) {
-                    break;
+                    continue;
                 }
                 let canister_id = canister.canister_id();
                 let canister_info = &canister.info;
                 // FIXME: Is `unwrap()` in the next operator correct?
                 let deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?
                     .into_iter().filter(|d| *d != canister_info.get_canister_id().unwrap()).collect(); // TODO: This is a hack.
+                println!("deps.len(): {}", deps.len());
                 let node_ix = *id_set.entry(canister_id).or_insert_with(|| graph.add_node(canister_id));
                 for d in deps {
                     let dep_ix = *id_set.entry(d).or_insert_with(|| graph.add_node(d));
