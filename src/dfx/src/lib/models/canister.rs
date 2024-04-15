@@ -599,20 +599,19 @@ impl CanisterPool {
                 if !current_canisters_to_build.contains_key(&canister.canister_id()) {
                     break;
                 }
-                // let canister_id = canister.canister_id();
+                let canister_id = canister.canister_id();
                 let canister_info = &canister.info;
                 // FIXME: Is `unwrap()` in the next operator correct?
                 let deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?
                     .into_iter().filter(|d| *d != canister_info.get_canister_id().unwrap()).collect(); // TODO: This is a hack.
-                // if let Some(node_ix) = id_set.get(&canister_id) {
-                for d in deps {
-                    // if let Some(dep_ix) = id_set.get(&d) {
-                    // if graph.contains_edge(*node_ix, *dep_ix) {
-                    current_canisters_to_build2.insert(d/* *graph.node_weight(*dep_ix).unwrap() */, ());
-                    // }
-                    // }
+                if let Some(node_ix) = id_set.get(&canister_id) {
+                    for d in deps {
+                        if let Some(dep_ix) = id_set.get(&d) {
+                            graph.add_edge(*node_ix, *dep_ix, ());
+                        }
+                        current_canisters_to_build2.insert(d, ());
+                    }
                 }
-                // }
             }
             if current_canisters_to_build2.is_empty() { // passed to the end of the graph
                 break;
