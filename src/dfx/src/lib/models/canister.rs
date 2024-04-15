@@ -593,10 +593,9 @@ impl CanisterPool {
         // Traverse the graph of dependencies starting from `real_canisters_to_build` set.
         let mut current_canisters_to_build =
             HashMap::from_iter(real_canisters_to_build.iter().map(|c| (c.canister_id(), ())));
-        // FIXME: The loop hangs on `dfx deploy`.
         loop {
             let mut current_canisters_to_build2 = HashMap::new();
-            for canister in &self.canisters {
+            for canister in &self.canisters { // a little inefficient
                 if !current_canisters_to_build.contains_key(&canister.canister_id()) {
                     break;
                 }
@@ -605,7 +604,6 @@ impl CanisterPool {
                 // FIXME: Is `unwrap()` in the next operator correct?
                 let deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?
                     .into_iter().filter(|d| *d != canister_info.get_canister_id().unwrap()).collect(); // TODO: This is a hack.
-                println!("deps: {:?}", deps);
                 // if let Some(node_ix) = id_set.get(&canister_id) {
                 for d in deps {
                     // if let Some(dep_ix) = id_set.get(&d) {
