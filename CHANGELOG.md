@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.20.0
+
 ### fix: set `CANISTER_CANDID_PATH_<canister name>` properly for remote canisters
 
 In the remote canister declaration it is possible to set a candid file to use when the canister is remote on a specific network.
