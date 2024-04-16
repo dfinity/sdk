@@ -49,9 +49,11 @@ echo garbage >dfx.json && dfx identity get-principal
 
 ### Replica
 
-Updated replica to elected commit ff10ea1dba07c0f66c66536a46a97146cf260e90.
+Updated replica to elected commit 02dcaf3ccdfe46bd959d683d43c5513d37a1420d.
 This incorporates the following executed proposals:
 
+- [129084](https://dashboard.internetcomputer.org/proposal/129084)
+- [129081](https://dashboard.internetcomputer.org/proposal/129081)
 - [129035](https://dashboard.internetcomputer.org/proposal/129035)
 - [128876](https://dashboard.internetcomputer.org/proposal/128876)
 - [128904](https://dashboard.internetcomputer.org/proposal/128904)
