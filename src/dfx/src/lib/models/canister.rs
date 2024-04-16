@@ -824,7 +824,6 @@ impl CanisterPool {
             .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
             .map(|idx| *graph.node_weight(*idx).unwrap())
             .collect();
-        println!("ORDER: {:?}", order.iter().map(|c| c.to_text()).collect::<Vec<_>>());
 
         // let canisters_to_build = Bfs::new(graph, start);
         // let canisters_to_build = self.canisters_to_build(build_config); // FIXME
