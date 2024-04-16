@@ -134,17 +134,6 @@ impl CanisterBuilder for MotokoBuilder {
                 ))));    
             }
         }
-        // Ok(pool.imports.borrow().nodes
-        //     .iter()
-        //     .filter_map(|import| {
-        //         if let MotokoImport::Canister(name) = import.0 {
-        //             pool.get_first_canister_with_name(name.as_str())
-        //         } else {
-        //             None
-        //         }
-        //     })
-        //     .map(|canister| canister.canister_id())
-        //     .collect())
     }
 
     #[context("Failed to build Motoko canister '{}'.", canister_info.get_name())]
