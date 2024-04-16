@@ -200,8 +200,9 @@ impl CanisterBuilder for MotokoBuilder {
         if let Ok(wasm_file_metadata) = metadata(output_wasm_path) {
             let wasm_file_time = wasm_file_metadata.modified()?;
             let mut imports = pool.imports.borrow_mut();
-            let start = if let Some(node_index) = imports.nodes.get(&MotokoImport::Relative(motoko_info.get_main_path().to_path_buf())) {
-                *node_index
+            // TODO: ineffective to_string()
+            let start = if let Some(node_index) = imports.nodes.get(&MotokoImport::Canister(canister_info.get_name().to_string())) {
+                    *node_index
             } else {
                 let node = MotokoImport::Relative(motoko_info.get_main_path().to_path_buf());
                 let node_index = imports.graph.add_node(node.clone());
