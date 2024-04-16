@@ -132,6 +132,8 @@ impl CanisterBuilder for MotokoBuilder {
         }
     }
 
+    /// TODO: It supports Make-like dependencies for build, but not for "Post processing candid file"/"Shrinking WASM"/"Attaching metadata"
+    ///       Ideally, should make inter-canister dependencies to rely on `.did` file changed or not.
     #[context("Failed to build Motoko canister '{}'.", canister_info.get_name())]
     fn build(
         &self,
