@@ -556,7 +556,7 @@ impl CanisterPool {
     /// Build only dependencies relevant for `canisters_to_build`.
     #[context("Failed to build dependencies graph for canister pool.")]
     fn build_dependencies_graph(&self, canisters_to_build: Option<Vec<String>>) -> DfxResult<DiGraph<CanisterId, ()>> {
-        let mut graph: DiGraph<CanisterId, ()> = DiGraph::new();
+        let mut graph: DiGraph<CanisterId, ()> = DiGraph::new(); // TODO: hack: we below transform DiGraph<MotokoImport> to DiGraph<CanisterId>
         let mut id_set: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
 
         // TODO: Can be done faster by not using `collect` and/or `clone`?
@@ -593,43 +593,54 @@ impl CanisterPool {
         // }
 
         // Traverse, creating the graph of dependencies starting from `real_canisters_to_build` set.
-        let mut current_canisters_to_build =
-            HashMap::from_iter(real_canisters_to_build.iter().map(|c| (c.canister_id(), ())));
-        for canister_id in current_canisters_to_build.keys() {
-            id_set.entry(*canister_id).or_insert_with(|| graph.add_node(*canister_id));
-            // id_set.insert(*canister_id, graph.add_node(*canister_id)); // TODO: Use this, instead.
-        }
-        loop {
-            let mut current_canisters_to_build2 = HashMap::new();
-            // println!("self.canisters.len(): {}", self.canisters.len());
+        // let mut current_canisters_to_build =
+        //     HashMap::from_iter(real_canisters_to_build.iter().map(|c| (c.canister_id(), ())));
+        // for canister_id in current_canisters_to_build.keys() {
+        //     id_set.entry(*canister_id).or_insert_with(|| graph.add_node(*canister_id));
+        //     // id_set.insert(*canister_id, graph.add_node(*canister_id)); // TODO: Use this, instead.
+        // }
+        // loop {
+        //     let mut current_canisters_to_build2 = HashMap::new();
+        //     // println!("self.canisters.len(): {}", self.canisters.len());
             for canister in &self.canisters { // a little inefficient
-                // FIXME: Remove:
-                if !current_canisters_to_build.contains_key(&canister.canister_id()) {
-                    continue;
-                }
+                // if !current_canisters_to_build.contains_key(&canister.canister_id()) {
+                //     continue;
+                // }
                 let canister_id = canister.canister_id();
                 let canister_info = &canister.info;
                 // FIXME: Is `unwrap()` in the next operator correct?
                 let deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?
                     .into_iter().filter(|d| *d != canister_info.get_canister_id().unwrap()).collect(); // TODO: This is a hack.
                 // println!("PARENT: {}, DEPS: {:?}", canister.get_info().get_canister_id()?.to_text(), deps.iter().map(|c| c.to_text()).collect::<Vec<_>>()); // FIXME
-                let node_ix = *id_set.entry(canister_id).or_insert_with(|| graph.add_node(canister_id));
-                for d in deps {
-                    let dep_ix = *id_set.entry(d).or_insert_with(|| graph.add_node(d));
-                    graph.add_edge(node_ix, dep_ix, ());
-                    current_canisters_to_build2.insert(d, ());
-                    println!("canister_id={} -> d={}", canister_id, d);
-                }
+                // let node_ix = *id_set.entry(canister_id).or_insert_with(|| graph.add_node(canister_id));
+                // for d in deps {
+                //     let dep_ix = *id_set.entry(d).or_insert_with(|| graph.add_node(d));
+                //     graph.add_edge(node_ix, dep_ix, ());
+                //     current_canisters_to_build2.insert(d, ());
+                //     println!("canister_id={} -> d={}", canister_id, d);
+                // }
             }
-            println!("NEXT CYCLE"); // FIXME: Remove.
-            if current_canisters_to_build2.is_empty() { // passed to the end of the graph
-                break;
-            }
-            current_canisters_to_build = current_canisters_to_build2;
-        }
+            // println!("NEXT CYCLE"); // FIXME: Remove.
+            // if current_canisters_to_build2.is_empty() { // passed to the end of the graph
+            //     break;
+            // }
+        //     current_canisters_to_build = current_canisters_to_build2;
+        // }
 
-        println!("id_set: {:?}", id_set.keys()); // FIXME: Remove.
-        Ok(graph)
+        // Ok(graph)
+        Ok(self.imports.borrow().graph.filter_map(
+            |node_index, node_weight| {
+                // B::from(node_weight)
+                match node_weight {
+                    // TODO: `get_first_canister_with_name` is a hack
+                    MotokoImport::Canister(name) => Some(self.get_first_canister_with_name(&name).unwrap().canister_id()),
+                    _ => None,
+                }
+            },
+            |edge_index, edge_weight| {
+                Some(())
+            }
+        ))
     }
 
     #[context("Failed step_prebuild_all.")]
