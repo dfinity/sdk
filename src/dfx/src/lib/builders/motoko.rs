@@ -59,7 +59,6 @@ fn get_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTrac
         let parent = if let Some(top) = top {
             MotokoImport::Canister(top.get_name().to_string()) // a little inefficient
         } else {
-            println!("FILE: {}", file.to_path_buf().to_str().unwrap());
             MotokoImport::Relative(file.to_path_buf())
         };
         imports.nodes.entry(parent.clone()).or_insert_with(|| imports.graph.add_node(parent.clone()));
