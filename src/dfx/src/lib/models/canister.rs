@@ -825,8 +825,6 @@ impl CanisterPool {
             .map(|idx| *graph.node_weight(*idx).unwrap())
             .collect();
 
-        // let canisters_to_build = Bfs::new(graph, start);
-        // let canisters_to_build = self.canisters_to_build(build_config); // FIXME
         // TODO: The next line is slow and confusing code.
         let canisters_to_build: Vec<&Arc<Canister>> = self.canisters.iter().filter(|c| order.contains(&c.canister_id())).collect();
         let mut result = Vec::new();
