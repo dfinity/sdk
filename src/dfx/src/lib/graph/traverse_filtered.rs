@@ -16,7 +16,7 @@ impl<NodeId, VM> DfsFiltered<NodeId, VM> {
     }
 
     pub fn traverse<G, P, C, NodeWeight>(&mut self, graph: G, mut predicate: P, mut call: C)
-    where C: Fn(&NodeId, &NodeId) -> (),
+    where C: FnMut(&NodeId, &NodeId) -> (),
           G: IntoNeighbors<NodeId = NodeId> + DataMap<NodeWeight = NodeWeight>,
           P: FnMut(&NodeId) -> bool,
           NodeId: Copy + PartialEq,
