@@ -24,7 +24,7 @@ use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::ffi::OsStr;
 use std::io::Read;
@@ -554,82 +554,23 @@ impl CanisterPool {
     }
 
     /// Build only dependencies relevant for `canisters_to_build`.
+    ///
+    /// FIXME: unused argument.
     #[context("Failed to build dependencies graph for canister pool.")]
-    fn build_dependencies_graph(&self, canisters_to_build: Option<Vec<String>>) -> DfxResult<DiGraph<CanisterId, ()>> {
-        let mut graph: DiGraph<CanisterId, ()> = DiGraph::new(); // TODO: hack: we below transform DiGraph<MotokoImport> to DiGraph<CanisterId>
-        let mut id_set: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
-
-        // TODO: Can be done faster by not using `collect` and/or `clone`?
-        // `real_canisters_to_build` are canisters that user explicitly requested to build.
-        let real_canisters_to_build = if let Some(canisters_to_build) = canisters_to_build {
-            let canisters_to_build_map: HashMap<&str, ()> = canisters_to_build.iter().map(|e| (e.as_str(), ())).collect();
-            self.canisters.iter()
-                .filter(|c| canisters_to_build_map.contains_key(c.get_name()))
-                .map(|c| c.clone()).collect::<Vec<_>>()
-        } else {
-            self.canisters.iter().map(|c| c.clone()).collect::<Vec<_>>()
-        };
-
-        // [DO NOT] Add all the canisters as nodes.
-        // for canister in &self.canisters {
-        //     let canister_id = canister.info.get_canister_id()?;
-        //     id_set.insert(canister_id, graph.add_node(canister_id));
-        // }
-
-        // FIXME: Verify after graph creation (and that creation does not stuck in an infinite loop).
-        // Verify the graph has no cycles.
-        // if let Err(err) = petgraph::algo::toposort(&graph, None) {
-        //     let message = match graph.node_weight(err.node_id()) {
-        //         Some(canister_id) => match self.get_canister_info(canister_id) {
-        //             Some(info) => info.get_name().to_string(),
-        //             None => format!("<{}>", canister_id.to_text()),
-        //         },
-        //         None => "<Unknown>".to_string(),
-        //     };
-        //     return Err(DfxError::new(BuildError::DependencyError(format!(
-        //         "Found circular dependency: {}",
-        //         message
-        //     ))))
-        // }
-
-        // Traverse, creating the graph of dependencies starting from `real_canisters_to_build` set.
-        // let mut current_canisters_to_build =
-        //     HashMap::from_iter(real_canisters_to_build.iter().map(|c| (c.canister_id(), ())));
-        // for canister_id in current_canisters_to_build.keys() {
-        //     id_set.entry(*canister_id).or_insert_with(|| graph.add_node(*canister_id));
-        //     // id_set.insert(*canister_id, graph.add_node(*canister_id)); // TODO: Use this, instead.
-        // }
-        // loop {
-        //     let mut current_canisters_to_build2 = HashMap::new();
-        //     // println!("self.canisters.len(): {}", self.canisters.len());
-            for canister in &self.canisters { // a little inefficient
-                // if !current_canisters_to_build.contains_key(&canister.canister_id()) {
-                //     continue;
-                // }
-                let canister_id = canister.canister_id();
-                let canister_info = &canister.info;
-                // FIXME: Is `unwrap()` in the next operator correct?
-                let deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?
-                    .into_iter().filter(|d| *d != canister_info.get_canister_id().unwrap()).collect(); // TODO: This is a hack.
-                // println!("PARENT: {}, DEPS: {:?}", canister.get_info().get_canister_id()?.to_text(), deps.iter().map(|c| c.to_text()).collect::<Vec<_>>()); // FIXME
-                // let node_ix = *id_set.entry(canister_id).or_insert_with(|| graph.add_node(canister_id));
-                // for d in deps {
-                //     let dep_ix = *id_set.entry(d).or_insert_with(|| graph.add_node(d));
-                //     graph.add_edge(node_ix, dep_ix, ());
-                //     current_canisters_to_build2.insert(d, ());
-                //     println!("canister_id={} -> d={}", canister_id, d);
-                // }
-            }
-            // println!("NEXT CYCLE"); // FIXME: Remove.
-            // if current_canisters_to_build2.is_empty() { // passed to the end of the graph
-            //     break;
+    fn build_dependencies_graph(&self, _canisters_to_build: Option<Vec<String>>) -> DfxResult<DiGraph<CanisterId, ()>> {
+        for canister in &self.canisters { // a little inefficient
+            // if !current_canisters_to_build.contains_key(&canister.canister_id()) {
+            //     continue;
             // }
-        //     current_canisters_to_build = current_canisters_to_build2;
-        // }
+            let canister_info = &canister.info;
+            // FIXME: Is `unwrap()` in the next operator correct?
+            // TODO: Ignored return value is a hack
+            let _deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?
+                .into_iter().filter(|d| *d != canister_info.get_canister_id().unwrap()).collect(); // TODO: This is a hack.
+        }
 
-        // Ok(graph)
         Ok(self.imports.borrow().graph.filter_map(
-            |node_index, node_weight| {
+            |_node_index, node_weight| {
                 // B::from(node_weight)
                 match node_weight {
                     // TODO: `get_first_canister_with_name` is a hack
@@ -637,7 +578,7 @@ impl CanisterPool {
                     _ => None,
                 }
             },
-            |edge_index, edge_weight| {
+            |_edge_index, _edge_weight| {
                 Some(())
             }
         ))
