@@ -559,19 +559,15 @@ impl CanisterPool {
     #[context("Failed to build dependencies graph for canister pool.")]
     fn build_dependencies_graph(&self, _canisters_to_build: Option<Vec<String>>) -> DfxResult<DiGraph<CanisterId, ()>> {
         for canister in &self.canisters { // a little inefficient
-            // if !current_canisters_to_build.contains_key(&canister.canister_id()) {
-            //     continue;
-            // }
             let canister_info = &canister.info;
             // FIXME: Is `unwrap()` in the next operator correct?
-            // TODO: Ignored return value is a hack
+            // TODO: Ignored return value is a hack.
             let _deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?
                 .into_iter().filter(|d| *d != canister_info.get_canister_id().unwrap()).collect(); // TODO: This is a hack.
         }
 
         Ok(self.imports.borrow().graph.filter_map(
             |_node_index, node_weight| {
-                // B::from(node_weight)
                 match node_weight {
                     // TODO: `get_first_canister_with_name` is a hack
                     MotokoImport::Canister(name) => Some(self.get_first_canister_with_name(&name).unwrap().canister_id()),
