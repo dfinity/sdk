@@ -554,16 +554,22 @@ impl CanisterPool {
     }
 
     /// Build only dependencies relevant for `canisters_to_build`.
-    ///
-    /// FIXME: unused argument.
     #[context("Failed to build dependencies graph for canister pool.")]
-    fn build_dependencies_graph(&self, _canisters_to_build: Option<Vec<String>>) -> DfxResult<DiGraph<CanisterId, ()>> {
+    fn build_dependencies_graph(&self, canisters_to_build: Option<Vec<String>>) -> DfxResult<DiGraph<CanisterId, ()>> {
+        // println!("canisters_to_build: {:?}", canisters_to_build);
         for canister in &self.canisters { // a little inefficient
-            let canister_info = &canister.info;
-            // FIXME: Is `unwrap()` in the next operator correct?
-            // TODO: Ignored return value is a hack.
-            let _deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?
-                .into_iter().filter(|d| *d != canister_info.get_canister_id().unwrap()).collect(); // TODO: This is a hack.
+            let contains = if let Some(canisters_to_build) = &canisters_to_build {
+                canisters_to_build.iter().contains(&canister.get_info().get_name().to_string()) // TODO: a little slow
+            } else {
+                true // because user specified to build all canisters
+            };
+            if contains {
+                let canister_info = &canister.info;
+                // FIXME: Is `unwrap()` in the next operator correct?
+                // TODO: Ignored return value is a hack.
+                let _deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?
+                    .into_iter().filter(|d| *d != canister_info.get_canister_id().unwrap()).collect(); // TODO: This is a hack.
+            }
         }
 
         Ok(self.imports.borrow().graph.filter_map(
