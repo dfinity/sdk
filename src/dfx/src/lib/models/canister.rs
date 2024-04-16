@@ -575,8 +575,6 @@ impl CanisterPool {
             }
         }
 
-        println!("cans: {:?}", canisters_to_build);
-        println!("selfcans: {:?}", self.canisters.iter().map(|canister| canister.get_name().to_string()).collect::<Vec<_>>());
         let real_canisters_to_build: Vec<_> = match canisters_to_build {
             // TODO: (In below branches) isn't this check too strong? We can depend on a Rust canister for instance.
             Some(canisters_to_build) =>
@@ -592,8 +590,6 @@ impl CanisterPool {
         };
         let source_graph = &self.imports.borrow().graph;
         let source_ids = &self.imports.borrow().nodes;
-        println!("source_ids: {:?}", source_ids.keys());
-        println!("real: {:?}", real_canisters_to_build);
         let start: Vec<_> =
             real_canisters_to_build.iter().map(|name| MotokoImport::Canister(name.clone())).collect(); // `clone` is inefficient.
         // FIXME: Next line may fail on `dfx build -vv --all`.
