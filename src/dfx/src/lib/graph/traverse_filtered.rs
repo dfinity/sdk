@@ -58,9 +58,9 @@ impl<NodeId, VM> BfsFiltered<NodeId, VM> {
         if let Some(first_id) = self.base.next(graph) {
             while let Some(source_child_id) = &self.base.next(graph) {
                 if (&mut predicate)(source_child_id) {
+                    // TODO: Create a `petgraph` issue asking to explain the next line of code workings.
                     let source_parent_id = self.base.stack.iter().map(|e| *e).chain(once(first_id)).find(&mut predicate);
                     if let Some(source_parent_id) = &source_parent_id {
-                        println!("YYY: {:?} => {:?}", source_parent_id, &source_child_id);
                         (&mut call)(source_parent_id, &source_child_id);
                     }
                 }
