@@ -15,18 +15,18 @@ impl<NodeId, VM> DfsFiltered<NodeId, VM> {
         }
     }
 
-    pub fn traverse<G, P, C, NodeWeight>(&mut self, graph: G, predicate: P, call: C)
+    pub fn traverse<G, P, C, NodeWeight>(&mut self, graph: G, mut predicate: P, mut call: C)
     where C: Fn(&NodeId, &NodeId) -> (),
           G: IntoNeighbors<NodeId = NodeId> + DataMap<NodeWeight = NodeWeight>,
-          P: Fn(&NodeId) -> bool,
+          P: FnMut(&NodeId) -> bool,
           NodeId: Copy + PartialEq,
           VM: VisitMap<NodeId>,
     {
         while let Some(item) = &self.base.next(graph) {
-            if predicate(item) {
-                let parent = self.base.stack.iter().rev().find(predicate);
+            if (&mut predicate)(item) {
+                let parent = self.base.stack.iter().map(|e| *e).rev().find(&mut predicate);
                 if let Some(parent) = &parent {
-                    call(parent, item);
+                    (&mut call)(parent, item);
                 }
             }
         }
