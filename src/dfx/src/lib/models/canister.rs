@@ -580,6 +580,7 @@ impl CanisterPool {
         };
         // Transform the graph of file dependencies to graph of canister dependencies.
         // For this do DFS for each of `real_canisters_to_build`.
+        // TODO: Somebody, adopt this code to `pethgraph`.
         let source_graph = &self.imports.borrow().graph;
         let mut dest_graph: DiGraph<CanisterId, ()> = DiGraph::new();
         let mut dest_id_set = HashMap::new();
