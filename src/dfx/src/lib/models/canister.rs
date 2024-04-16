@@ -578,26 +578,32 @@ impl CanisterPool {
             Some(canisters_to_build) => canisters_to_build,
             None => self.canisters.iter().map(|canister| canister.get_name().to_string()).collect(),
         };
+        // let real_canisters_to_build = real_canisters_to_build.iter().collect(); // hack
+        let source_graph = &self.imports.borrow().graph;
+        let source_ids = &self.imports.borrow().nodes;
+        let start: Vec<_> =
+            real_canisters_to_build.iter().map(|name| &MotokoImport::Canister(name.clone())).collect(); // `clone` is inefficient.
+        let start = start.into_iter().map(|node| *source_ids.get(node).unwrap()).collect();
         // // Transform the graph of file dependencies to graph of canister dependencies.
         // // For this do DFS for each of `real_canisters_to_build`.
-        let source_graph = &self.imports.borrow().graph;
         let mut dest_graph: DiGraph<CanisterId, ()> = DiGraph::new();
         let mut dest_id_set = HashMap::new();
-        let dfs = Dfs::from_parts(real_canisters_to_build, HashMap::new()); // TODO: Use `FixedBitSet` instead of `HashMap`?
+        let dfs = Dfs::from_parts(start, HashSet::new()); // TODO: Use `FixedBitSet` instead of `HashMap`?
         let filtered_dfs = DfsFiltered::new(dfs);
         filtered_dfs.traverse(
             source_graph,
-            |s| {
-                if let Some(MotokoImport::Canister(_parent_name)) = source_graph.node_weight(*entry) {
+            |&s| {
+                let source_id = source_graph.node_weight(s);
+                if let Some(MotokoImport::Canister(_parent_name)) = source_id {
                     true
                 } else {
                     false
                 }
             },
-            |parent, child| {
-                let parent_id = *dest_id_set.entry(parent).or_insert_with(|| dest_graph.add_node(parent));
-                let child_id = *dest_id_set.entry(child).or_insert_with(|| dest_graph.add_node(child));
-                dest_graph.add_edge(parent_id, child_id, ());
+            |parent_id, child_id| {
+                let parent_id = *dest_id_set.entry(*parent_id).or_insert_with(|| parent_id);
+                let child_id = *dest_id_set.entry(*child_id).or_insert_with(|| child_id);
+                dest_graph.add_edge(*parent_id, *child_id, ());
             }
         );
         // let source_graph = &self.imports.borrow().graph;
