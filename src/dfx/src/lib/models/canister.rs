@@ -2,6 +2,7 @@ use crate::lib::builders::{
     custom_download, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput,
     WasmBuildOutput,
 };
+use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
@@ -576,13 +577,22 @@ impl CanisterPool {
 
         let real_canisters_to_build = match canisters_to_build {
             Some(canisters_to_build) => canisters_to_build,
-            None => self.canisters.iter().map(|canister| canister.get_name().to_string()).collect(),
+            None => self.canisters.iter().filter_map(
+                |canister| if canister.get_info().as_info::<MotokoCanisterInfo>().is_ok() { // TODO: Isn't this check too strong? We can depend on a Rust canister for instance.
+                    Some(canister.get_name().to_string())
+                } else {
+                    None
+                }).collect(),
         };
         // let real_canisters_to_build = real_canisters_to_build.iter().collect(); // hack
         let source_graph = &self.imports.borrow().graph;
         let source_ids = &self.imports.borrow().nodes;
+        println!("source_ids: {:?}", source_ids.keys());
+        println!("real: {:?}", real_canisters_to_build);
         let start: Vec<_> =
             real_canisters_to_build.iter().map(|name| MotokoImport::Canister(name.clone())).collect(); // `clone` is inefficient.
+        // FIXME: Next line may fail on `dfx build -vv --all`.
+        println!("start: {:?}", start);
         let start: Vec<_> = start.into_iter().map(|node| *source_ids.get(&node).unwrap()).collect();
         // Transform the graph of file dependencies to graph of canister dependencies.
         // For this do DFS for each of `real_canisters_to_build`.
