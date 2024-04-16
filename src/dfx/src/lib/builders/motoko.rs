@@ -106,17 +106,15 @@ impl CanisterBuilder for MotokoBuilder {
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
         get_imports(self.cache.as_ref(), &motoko_info, &mut *pool.imports.borrow_mut(), pool)?;
 
-        // let iter = Bfs::new(pool.imports.borrow().graph);
+        let graph = &pool.imports.borrow().graph;
         match petgraph::algo::toposort(&pool.imports.borrow().graph, None) {
             Ok(order) => {
-                let graph = &pool.imports.borrow().graph;
                 Ok(order.into_iter().filter_map(|id| match graph.node_weight(id) {
                     Some(MotokoImport::Canister(name)) => pool.get_first_canister_with_name(name.as_str()), // TODO: a little inefficient
                     _ => None,
                 }).map(|canister| canister.canister_id()).collect())
             }
             Err(err) => {
-                let graph = &pool.imports.borrow().graph;
                 let message = match graph.node_weight(err.node_id()) {
                     Some(canister_id) => match canister_id {
                         MotokoImport::Canister(name) => name.clone(), // TODO: Can deal without `clone()`?
