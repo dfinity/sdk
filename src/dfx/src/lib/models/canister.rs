@@ -572,9 +572,12 @@ impl CanisterPool {
             }
         }
 
+        println!("GRAPH2: {:?}", self.imports.borrow().graph);
+        // FIXME: Error on indirect dependencies.
         Ok(self.imports.borrow().graph.filter_map(
             |_node_index, node_weight| {
                 match node_weight {
+                    // FIXME: The "tops" of the digraph are `Relative()`, not `Canister()`
                     // TODO: `get_first_canister_with_name` is a hack
                     MotokoImport::Canister(name) => Some(self.get_first_canister_with_name(&name).unwrap().canister_id()),
                     _ => None,
@@ -709,6 +712,7 @@ impl CanisterPool {
 
         trace!(log, "Building dependencies graph.");
         let graph = self.build_dependencies_graph(build_config.canisters_to_build.clone())?; // TODO: Can `clone` be eliminated?
+        println!("GRAPH: {:?}", graph);
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
@@ -724,6 +728,7 @@ impl CanisterPool {
             .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
             .map(|idx| *graph.node_weight(*idx).unwrap())
             .collect();
+        println!("ORDER: {:?}", order.iter().map(|c| c.to_text()).collect::<Vec<_>>());
 
         // let canisters_to_build = Bfs::new(graph, start);
         // let canisters_to_build = self.canisters_to_build(build_config); // FIXME

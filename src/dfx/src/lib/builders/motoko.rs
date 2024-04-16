@@ -44,16 +44,23 @@ impl MotokoBuilder {
 }
 
 // TODO: Rename this function.
-#[context("Failed to find imports for canister at '{}'.", info.get_main_path().display())]
-fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut ImportsTracker, pool: &CanisterPool) -> DfxResult<()> {
+// TODO: Is `unwrap()` in the next line correct?
+#[context("Failed to find imports for canister at '{}'.", info.as_info::<MotokoCanisterInfo>().unwrap().get_main_path().display())]
+fn get_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTracker, pool: &CanisterPool) -> DfxResult<()> {
+    let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
     #[context("Failed recursive dependency detection at {}.", file.display())]
     fn get_imports_recursive (
         cache: &dyn Cache,
         file: &Path,
         imports: &mut ImportsTracker,
         pool: &CanisterPool,
+        top: Option<&CanisterInfo>, // hackish
     ) -> DfxResult {
-        let parent = MotokoImport::Relative(file.to_path_buf());
+        let parent = if let Some(top) = top {
+            MotokoImport::Canister(top.get_name().to_string()) // a little inefficient
+        } else {
+            MotokoImport::Relative(file.to_path_buf())
+        };
         if imports.nodes.contains_key(&parent) {
             return Ok(());
         }
@@ -71,13 +78,13 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut Impor
             let child = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
             match &child {
                 MotokoImport::Relative(path) => {
-                    get_imports_recursive(cache, path.as_path(), imports, pool)?;
+                    get_imports_recursive(cache, path.as_path(), imports, pool, None)?;
                 }
                 MotokoImport::Canister(canister_name) => { // duplicate code
                     if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {
                         let main_file = canister.get_info().get_main_file();
                         if let Some(main_file) = main_file {
-                            get_imports_recursive(cache, Path::new(main_file), imports, pool)?;
+                            get_imports_recursive(cache, Path::new(main_file), imports, pool, None)?;
                         }
                     }
                 }
@@ -91,7 +98,7 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo, imports: &mut Impor
         Ok(())
     }
 
-    get_imports_recursive(cache, info.get_main_path(), imports, pool)?;
+    get_imports_recursive(cache, motoko_info.get_main_path(), imports, pool, Some(info))?;
 
     Ok(())
 }
@@ -103,8 +110,7 @@ impl CanisterBuilder for MotokoBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
-        get_imports(self.cache.as_ref(), &motoko_info, &mut *pool.imports.borrow_mut(), pool)?;
+        get_imports(self.cache.as_ref(), info, &mut *pool.imports.borrow_mut(), pool)?;
 
         let graph = &pool.imports.borrow().graph;
         match petgraph::algo::toposort(&pool.imports.borrow().graph, None) {
@@ -177,7 +183,7 @@ impl CanisterBuilder for MotokoBuilder {
         std::fs::create_dir_all(idl_dir_path)
             .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
-        get_imports(cache.as_ref(), &motoko_info, &mut *pool.imports.borrow_mut(), pool)?;
+        get_imports(cache.as_ref(), canister_info, &mut *pool.imports.borrow_mut(), pool)?;
 
         // If the management canister is being imported, emit the candid file.
         if pool.imports.borrow().nodes.contains_key(&MotokoImport::Ic("aaaaa-aa".to_string()))
