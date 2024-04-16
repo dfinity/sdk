@@ -809,7 +809,6 @@ impl CanisterPool {
 
         trace!(log, "Building dependencies graph.");
         let graph = self.build_dependencies_graph(build_config.canisters_to_build.clone())?; // TODO: Can `clone` be eliminated?
-        println!("GRAPH: {:?}", graph);
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
