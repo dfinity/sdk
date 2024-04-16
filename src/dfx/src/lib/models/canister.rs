@@ -583,15 +583,25 @@ impl CanisterPool {
         let source_ids = &self.imports.borrow().nodes;
         let start: Vec<_> =
             real_canisters_to_build.iter().map(|name| MotokoImport::Canister(name.clone())).collect(); // `clone` is inefficient.
-        let start = start.into_iter().map(|node| *source_ids.get(&node).unwrap());
-        // // Transform the graph of file dependencies to graph of canister dependencies.
-        // // For this do DFS for each of `real_canisters_to_build`.
+        let start: Vec<_> = start.into_iter().map(|node| *source_ids.get(&node).unwrap()).collect();
+        // Transform the graph of file dependencies to graph of canister dependencies.
+        // For this do DFS for each of `real_canisters_to_build`.
         let mut dest_graph: DiGraph<CanisterId, ()> = DiGraph::new();
         let mut dest_id_set = HashMap::new();
-        for start_node in start {
+        for start_node in start.into_iter() {
+            // Initialize "mirrors" of the parent node of source graph in dest graph:
+            let parent = source_graph.node_weight(start_node).unwrap();
+            let parent_name = match parent {
+                MotokoImport::Canister(name) => name,
+                _ => {
+                    panic!("programming error");
+                }
+            };
+            let parent_canister = self.get_first_canister_with_name(&parent_name).unwrap().canister_id();
+            let _ = *dest_id_set.entry(start_node).or_insert_with(|| dest_graph.add_node(parent_canister));
+
             let bfs = Bfs::new(&source_graph, start_node);
             let mut filtered_bfs = BfsFiltered::new(bfs);
-            let mut nodes_map = HashMap::new(); // from source graph to dest graph
             filtered_bfs.traverse(
                 source_graph,
                 |&s| {
@@ -623,12 +633,7 @@ impl CanisterPool {
                     let child_canister = self.get_first_canister_with_name(&child_name).unwrap().canister_id();
 
                     let dest_parent_id = *dest_id_set.entry(source_parent_id).or_insert_with(|| dest_graph.add_node(parent_canister));
-                    nodes_map.insert(source_parent_id, dest_parent_id);
                     let dest_child_id = *dest_id_set.entry(source_child_id).or_insert_with(|| dest_graph.add_node(child_canister));
-                    nodes_map.insert(source_child_id, dest_child_id);
-                    nodes_map.entry(source_parent_id).or_insert_with(
-                        || dest_graph.add_node(*dest_graph.node_weight(source_parent_id).unwrap()) // FIXME: `unwrap()`?
-                    );
                     dest_graph.add_edge(dest_parent_id, dest_child_id, ());
                 }
             );
