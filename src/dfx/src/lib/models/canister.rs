@@ -5,9 +5,9 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::lib::graph::traverse_filtered::BfsFiltered;
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
-use crate::lib::graph::traverse_filtered::DfsFiltered;
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
 use crate::util::assets;
 use anyhow::{anyhow, bail, Context};
@@ -22,7 +22,7 @@ use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
 use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::visit::Dfs;
+use petgraph::visit::Bfs;
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
@@ -583,55 +583,56 @@ impl CanisterPool {
         let source_ids = &self.imports.borrow().nodes;
         let start: Vec<_> =
             real_canisters_to_build.iter().map(|name| MotokoImport::Canister(name.clone())).collect(); // `clone` is inefficient.
-        let start = start.into_iter().map(|node| *source_ids.get(&node).unwrap()).collect();
+        let start = start.into_iter().map(|node| *source_ids.get(&node).unwrap());
         // // Transform the graph of file dependencies to graph of canister dependencies.
         // // For this do DFS for each of `real_canisters_to_build`.
         let mut dest_graph: DiGraph<CanisterId, ()> = DiGraph::new();
         let mut dest_id_set = HashMap::new();
-        let dfs = Dfs::from_parts(start, HashSet::new()); // TODO: Use `FixedBitSet` instead of `HashMap`?
-        let mut filtered_dfs = DfsFiltered::new(dfs);
-        // let dest_id_set = &mut dest_id_set;
-        let mut nodes_map = HashMap::new(); // from source graph to dest graph
-        filtered_dfs.traverse(
-            source_graph,
-            |&s| {
-                let source_id = source_graph.node_weight(s);
-                if let Some(MotokoImport::Canister(_parent_name)) = source_id {
-                    true
-                } else {
-                    false
+        for start_node in start {
+            let bfs = Bfs::new(&source_graph, start_node);
+            let mut filtered_bfs = BfsFiltered::new(bfs);
+            let mut nodes_map = HashMap::new(); // from source graph to dest graph
+            filtered_bfs.traverse(
+                source_graph,
+                |&s| {
+                    let source_id = source_graph.node_weight(s);
+                    if let Some(MotokoImport::Canister(_parent_name)) = source_id {
+                        true
+                    } else {
+                        false
+                    }
+                },
+                |&source_parent_id, &source_child_id| {
+                    // FIXME: Is the chain of `unwrap`s and `panic`s correct?
+                    let parent = source_graph.node_weight(source_parent_id).unwrap();
+                    let parent_name = match parent {
+                        MotokoImport::Canister(name) => name,
+                        _ => {
+                            panic!("programming error");
+                        }
+                    };
+                    let parent_canister = self.get_first_canister_with_name(&parent_name).unwrap().canister_id();
+
+                    let child = source_graph.node_weight(source_child_id).unwrap();
+                    let child_name = match child {
+                        MotokoImport::Canister(name) => name,
+                        _ => {
+                            panic!("programming error");
+                        }
+                    };
+                    let child_canister = self.get_first_canister_with_name(&child_name).unwrap().canister_id();
+
+                    let dest_parent_id = *dest_id_set.entry(source_parent_id).or_insert_with(|| dest_graph.add_node(parent_canister));
+                    nodes_map.insert(source_parent_id, dest_parent_id);
+                    let dest_child_id = *dest_id_set.entry(source_child_id).or_insert_with(|| dest_graph.add_node(child_canister));
+                    nodes_map.insert(source_child_id, dest_child_id);
+                    nodes_map.entry(source_parent_id).or_insert_with(
+                        || dest_graph.add_node(*dest_graph.node_weight(source_parent_id).unwrap()) // FIXME: `unwrap()`?
+                    );
+                    dest_graph.add_edge(dest_parent_id, dest_child_id, ());
                 }
-            },
-            |&source_parent_id, &source_child_id| {
-                // FIXME: Is the chain of `unwrap`s and `panic`s correct?
-                let parent = source_graph.node_weight(source_parent_id).unwrap();
-                let parent_name = match parent {
-                    MotokoImport::Canister(name) => name,
-                    _ => {
-                        panic!("programming error");
-                    }
-                };
-                let parent_canister = self.get_first_canister_with_name(&parent_name).unwrap().canister_id();
-
-                let child = source_graph.node_weight(source_child_id).unwrap();
-                let child_name = match child {
-                    MotokoImport::Canister(name) => name,
-                    _ => {
-                        panic!("programming error");
-                    }
-                };
-                let child_canister = self.get_first_canister_with_name(&child_name).unwrap().canister_id();
-
-                let dest_parent_id = *dest_id_set.entry(source_parent_id).or_insert_with(|| dest_graph.add_node(parent_canister));
-                nodes_map.insert(source_parent_id, dest_parent_id);
-                let dest_child_id = *dest_id_set.entry(source_child_id).or_insert_with(|| dest_graph.add_node(child_canister));
-                nodes_map.insert(source_child_id, dest_child_id);
-                nodes_map.entry(source_parent_id).or_insert_with(
-                    || dest_graph.add_node(*dest_graph.node_weight(source_parent_id).unwrap()) // FIXME: `unwrap()`?
-                );
-                dest_graph.add_edge(dest_parent_id, dest_child_id, ());
-            }
-        );
+            );
+        }
         // let source_graph = &self.imports.borrow().graph;
         // let mut dest_graph: DiGraph<CanisterId, ()> = DiGraph::new();
         // let mut dest_id_set = HashMap::new();
