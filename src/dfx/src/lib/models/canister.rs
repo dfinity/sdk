@@ -592,8 +592,6 @@ impl CanisterPool {
         let source_ids = &self.imports.borrow().nodes;
         let start: Vec<_> =
             real_canisters_to_build.iter().map(|name| MotokoImport::Canister(name.clone())).collect(); // `clone` is inefficient.
-        // FIXME: Next line may fail on `dfx build -vv --all`.
-        println!("start: {:?}", start);
         let start: Vec<_> = start.into_iter().map(|node| *source_ids.get(&node).unwrap()).collect();
         // Transform the graph of file dependencies to graph of canister dependencies.
         // For this do DFS for each of `real_canisters_to_build`.
