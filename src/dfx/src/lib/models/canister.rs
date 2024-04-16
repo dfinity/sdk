@@ -591,6 +591,7 @@ impl CanisterPool {
         let dfs = Dfs::from_parts(start, HashSet::new()); // TODO: Use `FixedBitSet` instead of `HashMap`?
         let mut filtered_dfs = DfsFiltered::new(dfs);
         // let dest_id_set = &mut dest_id_set;
+        let mut nodes_map = HashMap::new(); // from source graph to dest graph
         filtered_dfs.traverse(
             source_graph,
             |&s| {
@@ -601,10 +602,34 @@ impl CanisterPool {
                     false
                 }
             },
-            |&parent_id, &child_id| {
-                let parent_id = *dest_id_set.entry(parent_id).or_insert_with(|| parent_id);
-                let child_id = *dest_id_set.entry(child_id).or_insert_with(|| child_id);
-                dest_graph.add_edge(parent_id, child_id, ());
+            |&source_parent_id, &source_child_id| {
+                // FIXME: Is the chain of `unwrap`s and `panic`s correct?
+                let parent = source_graph.node_weight(source_parent_id).unwrap();
+                let parent_name = match parent {
+                    MotokoImport::Canister(name) => name,
+                    _ => {
+                        panic!("programming error");
+                    }
+                };
+                let parent_canister = self.get_first_canister_with_name(&parent_name).unwrap().canister_id();
+
+                let child = source_graph.node_weight(source_child_id).unwrap();
+                let child_name = match child {
+                    MotokoImport::Canister(name) => name,
+                    _ => {
+                        panic!("programming error");
+                    }
+                };
+                let child_canister = self.get_first_canister_with_name(&child_name).unwrap().canister_id();
+
+                let dest_parent_id = *dest_id_set.entry(source_parent_id).or_insert_with(|| dest_graph.add_node(parent_canister));
+                nodes_map.insert(source_parent_id, dest_parent_id);
+                let dest_child_id = *dest_id_set.entry(source_child_id).or_insert_with(|| dest_graph.add_node(child_canister));
+                nodes_map.insert(source_child_id, dest_child_id);
+                nodes_map.entry(source_parent_id).or_insert_with(
+                    || dest_graph.add_node(*dest_graph.node_weight(source_parent_id).unwrap()) // FIXME: `unwrap()`?
+                );
+                dest_graph.add_edge(dest_parent_id, dest_child_id, ());
             }
         );
         // let source_graph = &self.imports.borrow().graph;
