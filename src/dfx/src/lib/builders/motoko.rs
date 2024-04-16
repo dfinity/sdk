@@ -92,7 +92,7 @@ fn get_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTrac
             }
             let parent_node_index = *imports.nodes.entry(parent.clone()).or_insert_with(|| imports.graph.add_node(parent.clone()));
             let child_node_index = *imports.nodes.entry(child.clone()).or_insert_with(|| imports.graph.add_node(child.clone()));
-            imports.graph.add_edge(parent_node_index, child_node_index, ());
+            imports.graph.update_edge(parent_node_index, child_node_index, ());
         }
 
         Ok(())

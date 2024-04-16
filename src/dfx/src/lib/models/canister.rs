@@ -634,7 +634,7 @@ impl CanisterPool {
 
                     let dest_parent_id = *dest_id_set.entry(source_parent_id).or_insert_with(|| dest_graph.add_node(parent_canister));
                     let dest_child_id = *dest_id_set.entry(source_child_id).or_insert_with(|| dest_graph.add_node(child_canister));
-                    dest_graph.add_edge(dest_parent_id, dest_child_id, ());
+                    dest_graph.update_edge(dest_parent_id, dest_child_id, ());
                 }
             );
         }
@@ -824,6 +824,7 @@ impl CanisterPool {
             .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
             .map(|idx| *graph.node_weight(*idx).unwrap())
             .collect();
+        println!("ORDER: {:?}", order.iter().map(|c| c.to_text()).collect::<Vec<_>>());
 
         // let canisters_to_build = Bfs::new(graph, start);
         // let canisters_to_build = self.canisters_to_build(build_config); // FIXME
