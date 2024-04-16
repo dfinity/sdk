@@ -638,52 +638,8 @@ impl CanisterPool {
                 }
             );
         }
-        // let source_graph = &self.imports.borrow().graph;
-        // let mut dest_graph: DiGraph<CanisterId, ()> = DiGraph::new();
-        // let mut dest_id_set = HashMap::new();
-        // let mut name_to_dest = HashMap::new();
-        // for start_name in real_canisters_to_build.iter() {
-        //     let dest_start = self.get_first_canister_with_name(&start_name).unwrap().canister_id();
-        //     let dest_start = *dest_id_set.entry(dest_start.clone()).or_insert_with(|| dest_graph.add_node(dest_start.clone())); // TODO: always inserts
-        //     name_to_dest.insert(start_name, dest_start);
-        //     let mut iter = Dfs::new(&source_graph, dest_start);
-        //     iter.next(&source_graph);
-        //     while let Some(cur_source_id) = iter.next(&source_graph) {
-        //         let cur_source_node = source_graph.node_weight(cur_source_id).unwrap();
-        //         if let MotokoImport::Canister(name) = cur_source_node {
-        //             let parent_in_source_id = *iter.stack.iter().rev().find(
-        //                 |&entry|
-        //                 if let Some(MotokoImport::Canister(_parent_name)) = source_graph.node_weight(*entry) {
-        //                     true
-        //                 } else {
-        //                     false
-        //                 }
-        //             ).unwrap();
-        //             // Both parent and current ancestor are `Canister` dependencies.
-        //             let parent_in_dest_id =
-        //                 name_to_dest.entry(parent_in_source_id).or_insert_with(|| dest_graph.add_node(cur_canister_id));
-        //             dest_graph.add_edge(parent_in_dest_id, b, ())
-        //             // let parent_in_source = source_graph.node_weight(*parent_in_source).unwrap();
-        //         }
-        //         // let cur_node_id = id_set.entry(cur_source_id).or_insert_with(|| id_set.insert(cur_source_id));
-        //     }
-        // }
         
         Ok(dest_graph)
-        // FIXME: Wrong behavior on indirect dependencies.
-        // Ok(self.imports.borrow().graph.filter_map(
-        //     |_node_index, node_weight| {
-        //         match node_weight {
-        //             // FIXME: The "tops" of the digraph are `Relative()`, not `Canister()`
-        //             // TODO: `get_first_canister_with_name` is a hack
-        //             MotokoImport::Canister(name) => Some(self.get_first_canister_with_name(&name).unwrap().canister_id()),
-        //             _ => None,
-        //         }
-        //     },
-        //     |_edge_index, _edge_weight| {
-        //         Some(())
-        //     }
-        // ))
     }
 
     #[context("Failed step_prebuild_all.")]
