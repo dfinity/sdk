@@ -317,4 +317,5 @@ teardown() {
 
   assert_command dfx deploy --network actuallylocal -vv
   assert_match "CANISTER_ID_REMOTE: qoctq-giaaa-aaaaa-aaaea-cai"
+  assert_contains "CANISTER_CANDID_PATH_REMOTE: $(pwd -P)/remotecandid.did"
 }

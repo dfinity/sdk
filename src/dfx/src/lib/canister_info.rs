@@ -9,6 +9,7 @@ use dfx_core::config::model::dfinity::{
     CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config, Pullable,
     TechStack, WasmOptLevel,
 };
+use dfx_core::fs::canonicalize;
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 use fn_error_context::context;
@@ -114,11 +115,11 @@ impl CanisterInfo {
             .as_ref()
             .and_then(|remote| remote.id.get(&network_name))
             .copied();
-        let remote_candid = canister_config
-            .remote
-            .as_ref()
-            .and_then(|r| r.candid.as_ref())
-            .cloned();
+        let remote_candid = canister_config.remote.as_ref().and_then(|r| {
+            r.candid
+                .as_ref()
+                .and_then(|candid| canonicalize(candid).ok())
+        });
 
         // Fill the default config values if None provided
         let declarations_config = CanisterDeclarationsConfig {
