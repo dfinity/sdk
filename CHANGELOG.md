@@ -7,6 +7,10 @@
 In the remote canister declaration it is possible to set a candid file to use when the canister is remote on a specific network.
 `dfx` now correctly sets the `CANISTER_CANDID_PATH_<canister name>` environment variable during the build process on remote networks if the file exists.
 
+### feat: display schema for dfx metadata json
+
+`dfx schema --for dfx-metadata` to display JSON schema of the "dfx" metadata.
+
 ### feat: add tech_stack to the Canister Metadata Standard
 
 The standardized `dfx` metadata is extended with another object: `tech_stack`.

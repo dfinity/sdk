@@ -163,6 +163,24 @@ teardown() {
   assert_match "Module hash: 0x$HASH"
 }
 
+@test "can install large wasm with non-empty chunk store" {
+  install_asset large_canister
+  dfx_start
+  dfx canister create --all
+  CANISTER_ID=$(dfx canister id large)
+  assert_command dfx canister call aaaaa-aa upload_chunk "(
+  record {
+    chunk = blob \"\\01\\02\";
+    canister_id = principal \"$CANISTER_ID\";
+  },
+)"
+  assert_command dfx build
+  assert_command dfx canister install --all
+  assert_command dfx canister info large
+  HASH="$(sha256sum .dfx/local/canisters/large/large.wasm | head -c 64)"
+  assert_match "Module hash: 0x$HASH"
+}
+
 @test "--mode=auto selects install or upgrade automatically" {
   dfx_start
   assert_command dfx canister create e2e_project_backend

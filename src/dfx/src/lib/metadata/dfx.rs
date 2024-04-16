@@ -5,12 +5,13 @@
 use crate::lib::{builders::command_output, error::DfxResult};
 use anyhow::{bail, Context};
 use dfx_core::config::model::dfinity::{Pullable, TechStack, TechStackCategoryMap};
+use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
 /// # "dfx" metadata.
 /// Standardized metadata for dfx usage.
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct DfxMetadata {
     /// # Pullable
     /// The required information so that the canister can be pulled using `dfx deps pull`.
