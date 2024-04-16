@@ -1,3 +1,5 @@
+use std::iter::once;
+
 // TODO: Somebody, adopt this code to `petgraph`.
 use petgraph::{data::DataMap, visit::{Bfs, Dfs, IntoNeighbors, VisitMap}};
 
@@ -25,7 +27,7 @@ impl<NodeId, VM> DfsFiltered<NodeId, VM> {
     {
         while let Some(source_item_id) = &self.base.next(graph) {
             if (&mut predicate)(source_item_id) {
-                let source_parent_id = self.base.stack.iter().map(|e| *e).rev().find(&mut predicate);
+                let source_parent_id = self.base.stack.iter().map(|e| *e).rev().find(&mut predicate); // FIXME: `rev()` here?
                 if let Some(source_parent_id) = &source_parent_id {
                     (&mut call)(source_parent_id, &source_item_id);
                 }
@@ -50,14 +52,17 @@ impl<NodeId, VM> BfsFiltered<NodeId, VM> {
     where C: FnMut(&NodeId, &NodeId) -> (),
           G: IntoNeighbors<NodeId = NodeId> + DataMap<NodeWeight = NodeWeight>,
           P: FnMut(&NodeId) -> bool,
-          NodeId: Copy + Eq,
+          NodeId: Copy + Eq + std::fmt::Debug, // TODO: Remove debug.
           VM: VisitMap<NodeId>,
     {
-        while let Some(source_item_id) = &self.base.next(graph) {
-            if (&mut predicate)(source_item_id) {
-                let source_parent_id = self.base.stack.iter().map(|e| *e).rev().find(&mut predicate);
-                if let Some(source_parent_id) = &source_parent_id {
-                    (&mut call)(source_parent_id, &source_item_id);
+        if let Some(first_id) = self.base.next(graph) {
+            while let Some(source_child_id) = &self.base.next(graph) {
+                if (&mut predicate)(source_child_id) {
+                    let source_parent_id = self.base.stack.iter().map(|e| *e).chain(once(first_id)).find(&mut predicate);
+                    if let Some(source_parent_id) = &source_parent_id {
+                        println!("YYY: {:?} => {:?}", source_parent_id, &source_child_id);
+                        (&mut call)(source_parent_id, &source_child_id);
+                    }
                 }
             }
         }
