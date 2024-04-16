@@ -45,6 +45,7 @@ impl MotokoBuilder {
 
 // TODO: Rename this function.
 // TODO: Is `unwrap()` in the next line correct?
+// TODO: We don't need library dependencies, because updated lib is always in a new dir. Speedup removing library dependencies.
 #[context("Failed to find imports for canister at '{}'.", info.as_info::<MotokoCanisterInfo>().unwrap().get_main_path().display())]
 fn get_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTracker, pool: &CanisterPool) -> DfxResult<()> {
     let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
