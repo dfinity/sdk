@@ -578,19 +578,19 @@ impl CanisterPool {
 
         // FIXME: Verify after graph creation (and that creation does not stuck in an infinite loop).
         // Verify the graph has no cycles.
-        if let Err(err) = petgraph::algo::toposort(&graph, None) {
-            let message = match graph.node_weight(err.node_id()) {
-                Some(canister_id) => match self.get_canister_info(canister_id) {
-                    Some(info) => info.get_name().to_string(),
-                    None => format!("<{}>", canister_id.to_text()),
-                },
-                None => "<Unknown>".to_string(),
-            };
-            return Err(DfxError::new(BuildError::DependencyError(format!(
-                "Found circular dependency: {}",
-                message
-            ))))
-        }
+        // if let Err(err) = petgraph::algo::toposort(&graph, None) {
+        //     let message = match graph.node_weight(err.node_id()) {
+        //         Some(canister_id) => match self.get_canister_info(canister_id) {
+        //             Some(info) => info.get_name().to_string(),
+        //             None => format!("<{}>", canister_id.to_text()),
+        //         },
+        //         None => "<Unknown>".to_string(),
+        //     };
+        //     return Err(DfxError::new(BuildError::DependencyError(format!(
+        //         "Found circular dependency: {}",
+        //         message
+        //     ))))
+        // }
 
         // Traverse, creating the graph of dependencies starting from `real_canisters_to_build` set.
         let mut current_canisters_to_build =
@@ -604,8 +604,6 @@ impl CanisterPool {
             // println!("self.canisters.len(): {}", self.canisters.len());
             for canister in &self.canisters { // a little inefficient
                 // FIXME: Remove:
-                println!("current_canisters_to_build={:?} canister={}",
-                    current_canisters_to_build.keys().map(|c| c.to_text()).collect::<Vec<_>>(), canister.canister_id());
                 if !current_canisters_to_build.contains_key(&canister.canister_id()) {
                     continue;
                 }
@@ -614,14 +612,16 @@ impl CanisterPool {
                 // FIXME: Is `unwrap()` in the next operator correct?
                 let deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?
                     .into_iter().filter(|d| *d != canister_info.get_canister_id().unwrap()).collect(); // TODO: This is a hack.
-                println!("deps.len(): {}", deps.len());
+                // println!("PARENT: {}, DEPS: {:?}", canister.get_info().get_canister_id()?.to_text(), deps.iter().map(|c| c.to_text()).collect::<Vec<_>>()); // FIXME
                 let node_ix = *id_set.entry(canister_id).or_insert_with(|| graph.add_node(canister_id));
                 for d in deps {
                     let dep_ix = *id_set.entry(d).or_insert_with(|| graph.add_node(d));
                     graph.add_edge(node_ix, dep_ix, ());
                     current_canisters_to_build2.insert(d, ());
+                    println!("canister_id={} -> d={}", canister_id, d);
                 }
             }
+            println!("NEXT CYCLE"); // FIXME: Remove.
             if current_canisters_to_build2.is_empty() { // passed to the end of the graph
                 break;
             }

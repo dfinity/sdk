@@ -106,17 +106,41 @@ impl CanisterBuilder for MotokoBuilder {
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
         get_imports(self.cache.as_ref(), &motoko_info, &mut *pool.imports.borrow_mut(), pool)?;
 
-        Ok(pool.imports.borrow().nodes
-            .iter()
-            .filter_map(|import| {
-                if let MotokoImport::Canister(name) = import.0 {
-                    pool.get_first_canister_with_name(name.as_str())
-                } else {
-                    None
-                }
-            })
-            .map(|canister| canister.canister_id())
-            .collect())
+        // let iter = Bfs::new(pool.imports.borrow().graph);
+        match petgraph::algo::toposort(&pool.imports.borrow().graph, None) {
+            Ok(order) => {
+                let graph = &pool.imports.borrow().graph;
+                Ok(order.into_iter().filter_map(|id| match graph.node_weight(id) {
+                    Some(MotokoImport::Canister(name)) => pool.get_first_canister_with_name(name.as_str()), // TODO: a little inefficient
+                    _ => None,
+                }).map(|canister| canister.canister_id()).collect())
+            }
+            Err(err) => {
+                let graph = &pool.imports.borrow().graph;
+                let message = match graph.node_weight(err.node_id()) {
+                    Some(canister_id) => match canister_id {
+                        MotokoImport::Canister(name) => name.clone(), // TODO: Can deal without `clone()`?
+                        _ => "<Unknown>".to_string(),
+                    },
+                    None => "<Unknown>".to_string(),
+                };
+                return Err(DfxError::new(BuildError::DependencyError(format!(
+                    "Found circular dependency: {}",
+                    message
+                ))));    
+            }
+        }
+        // Ok(pool.imports.borrow().nodes
+        //     .iter()
+        //     .filter_map(|import| {
+        //         if let MotokoImport::Canister(name) = import.0 {
+        //             pool.get_first_canister_with_name(name.as_str())
+        //         } else {
+        //             None
+        //         }
+        //     })
+        //     .map(|canister| canister.canister_id())
+        //     .collect())
     }
 
     #[context("Failed to build Motoko canister '{}'.", canister_info.get_name())]
