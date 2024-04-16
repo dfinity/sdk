@@ -606,7 +606,7 @@ impl CanisterPool {
                 source_graph,
                 |&s| {
                     let source_id = source_graph.node_weight(s);
-                    if let Some(MotokoImport::Canister(_parent_name)) = source_id {
+                    if let Some(MotokoImport::Canister(_)) = source_id {
                         true
                     } else {
                         false
