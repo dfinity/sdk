@@ -252,7 +252,7 @@ pub struct ConfigCanistersCanister {
     pub dependencies: Vec<String>,
 
     /// # Deploy
-    /// `false` value means not to deploy this canister (supposed use: canister that are created by other canisters).
+    /// `false` value means not to deploy this canister by `dfx deploy` (supposed use: canister that are created by other canisters).
     #[serde(default = "default_true")]
     pub deploy: bool,
 
