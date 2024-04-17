@@ -168,10 +168,10 @@ jobs:
         run: chmod +x /usr/local/bin/dfx
       - name: Provision Darwin
         if: contains(matrix.os, 'macos')
-        run: bash scripts/workflows/provision-darwin.sh
+        run: bash scripts/workflows/provision-darwin.sh || bash scripts/workflows/provision-darwin.sh
       - name: Provision Linux
         if: contains(matrix.os, 'ubuntu')
-        run: bash scripts/workflows/provision-linux.sh
+        run: bash scripts/workflows/provision-linux.sh || bash scripts/workflows/provision-linux.sh
       - name: Prepare environment
         run: |
           echo "archive=$(pwd)/e2e/archive" >> "$GITHUB_ENV"
