@@ -100,7 +100,15 @@ pub async fn deploy_canisters(
     let canisters_to_install: Vec<String> = canisters_to_build
         .clone()
         .into_iter()
-        .filter(|canister_name| !pull_canisters_in_config.contains_key(canister_name))
+        .filter(|canister_name|
+            !pull_canisters_in_config.contains_key(canister_name) &&
+                (some_canister == Some(canister_name) || // do deploy a canister that was explicitly specified
+                    // TODO: This if..else is a hack.
+                    if let Ok(canister_config) = config.get_config().get_canister_config(canister_name) {
+                        canister_config.deploy
+                    } else {
+                        true
+                    }))
         .collect();
 
     if some_canister.is_some() {

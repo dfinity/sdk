@@ -11,6 +11,8 @@ Read only those `--print-deps` dependencies that are necessary to read.
 Don't compile canisters for which all dependencies are elder than the `.wasm` file.
 This results in big compilation speedups.
 
+`"deploy": false` canister option makes it not to deploy, unless explicitly specified on the command line.
+
 # 0.20.0
 
 ### fix: set `CANISTER_CANDID_PATH_<canister name>` properly for remote canisters
