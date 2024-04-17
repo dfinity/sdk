@@ -72,7 +72,6 @@ fn get_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTrac
         let output = String::from_utf8_lossy(&output.stdout);
 
         for line in output.lines() {
-            println!("LINE: {}", line);
             let child = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
             match &child {
                 MotokoImport::Relative(path) => {
