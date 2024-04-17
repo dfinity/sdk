@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: specify canisters not to deploy
+
+`"deploy": false` canister option makes it not to deploy, unless explicitly specified on the command line.
+
 # 0.20.0
 
 ### fix: set `CANISTER_CANDID_PATH_<canister name>` properly for remote canisters
