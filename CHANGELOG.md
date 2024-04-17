@@ -8,6 +8,8 @@ Updated cycles wallet to a gzipped version of `20240410` release:
 - Module hash: `7745d3114e3e5fbafe8a7150a0a8c15a5b8dc9257f294d5ced67d41be76065bc`, in gzipped form: `664df1045e093084f4ebafedd3a793cc3b3be0a7ef1b245d8d3defe20b33057c`
 - https://github.com/dfinity/cycles-wallet/commit/b013764dd827560d8538ee2b7be9ecf66bed6be7
 
+# 0.20.0
+
 ### fix: set `CANISTER_CANDID_PATH_<canister name>` properly for remote canisters
 
 In the remote canister declaration it is possible to set a candid file to use when the canister is remote on a specific network.
