@@ -11,6 +11,13 @@ Read only those `--print-deps` dependencies that are necessary to read.
 Don't compile canisters for which all dependencies are elder than the `.wasm` file.
 This results in big compilation speedups.
 
+# 0.20.0
+
+### fix: set `CANISTER_CANDID_PATH_<canister name>` properly for remote canisters
+
+In the remote canister declaration it is possible to set a candid file to use when the canister is remote on a specific network.
+`dfx` now correctly sets the `CANISTER_CANDID_PATH_<canister name>` environment variable during the build process on remote networks if the file exists.
+
 ### feat: display schema for dfx metadata json
 
 `dfx schema --for dfx-metadata` to display JSON schema of the "dfx" metadata.
@@ -58,9 +65,11 @@ echo garbage >dfx.json && dfx identity get-principal
 
 ### Replica
 
-Updated replica to elected commit ff10ea1dba07c0f66c66536a46a97146cf260e90.
+Updated replica to elected commit 02dcaf3ccdfe46bd959d683d43c5513d37a1420d.
 This incorporates the following executed proposals:
 
+- [129084](https://dashboard.internetcomputer.org/proposal/129084)
+- [129081](https://dashboard.internetcomputer.org/proposal/129081)
 - [129035](https://dashboard.internetcomputer.org/proposal/129035)
 - [128876](https://dashboard.internetcomputer.org/proposal/128876)
 - [128904](https://dashboard.internetcomputer.org/proposal/128904)
