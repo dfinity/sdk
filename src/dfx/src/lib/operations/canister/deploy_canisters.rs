@@ -103,7 +103,7 @@ pub async fn deploy_canisters(
         .filter(|canister_name|
             !pull_canisters_in_config.contains_key(canister_name) &&
                 // TODO: This if..else is a hack.
-                (some_canister.map_or_else(|| None, |canister| Some(canister)) == Some(&canister_name) || // do deploy a canister that was explicitly specified
+                (some_canister == Some(&canister_name) || // do deploy a canister that was explicitly specified
                     if let Ok(canister_config) = config.get_config().get_canister_config(canister_name) {
                         canister_config.deploy
                     } else {
