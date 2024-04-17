@@ -443,7 +443,7 @@ fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> D
 pub enum MotokoImport {
     Canister(String),
     Ic(String),
-    Lib(String),
+    Lib(String), // TODO: Unused, because package manager never update existing files (but create new dirs)
     Relative(PathBuf),
 }
 

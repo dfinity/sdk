@@ -9,8 +9,7 @@ use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
 use crate::lib::models::canister::{CanisterPool, ImportsTracker, MotokoImport};
 use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets::management_idl;
-use crate::lib::builders::bail;
-use anyhow::{anyhow, Context};
+use anyhow::Context;
 use candid::Principal as CanisterId;
 use dfx_core::config::cache::Cache;
 use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
@@ -65,6 +64,7 @@ fn get_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTrac
         imports.nodes.entry(parent.clone()).or_insert_with(|| imports.graph.add_node(parent.clone()));
 
         let mut command = cache.get_binary_command("moc")?;
+        println!("FILE: {}", file.as_os_str().to_str().unwrap());
         let command = command.arg("--print-deps").arg(file);
         let output = command
             .output()
@@ -72,6 +72,7 @@ fn get_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTrac
         let output = String::from_utf8_lossy(&output.stdout);
 
         for line in output.lines() {
+            println!("LINE: {}", line);
             let child = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
             match &child {
                 MotokoImport::Relative(path) => {
@@ -240,29 +241,31 @@ impl CanisterBuilder for MotokoBuilder {
                                 None
                             }
                         }
-                        MotokoImport::Lib(path) => {
-                            let i = path.find('/');
-                            let pre_path = if let Some(i) = i {
-                                let expanded = Path::new(
-                                    package_arguments_map.get(&path[..i]).ok_or_else(|| anyhow!("nonexisting package"))?
-                                );
-                                expanded.join(&path[i+1..])
-                            } else {
-                                Path::new(path.as_str()).to_owned()
-                            };
-                            let path2 = pre_path.to_str().unwrap().to_owned() + ".mo";
-                            let path2 = path2.to_string();
-                            let path2 = Path::new(&path2);
-                            if path2.exists() { // TODO: Is it correct order of two variants?
-                                Some(Path::new(path2).to_owned())
-                            } else {
-                                let path3 = pre_path.join(Path::new("lib.mo"));
-                                if path3.exists() {
-                                    Some(path3.to_owned())
-                                } else {
-                                    bail!("source file has been deleted");
-                                }
-                            }
+                        MotokoImport::Lib(_path) => {
+                            // Skip libs, all changes by package managers don't modify existing directories but create new ones.
+                            continue;
+                        //     let i = path.find('/');
+                        //     let pre_path = if let Some(i) = i {
+                        //         let expanded = Path::new(
+                        //             package_arguments_map.get(&path[..i]).ok_or_else(|| anyhow!("nonexisting package"))?
+                        //         );
+                        //         expanded.join(&path[i+1..])
+                        //     } else {
+                        //         Path::new(path.as_str()).to_owned()
+                        //     };
+                        //     let path2 = pre_path.to_str().unwrap().to_owned() + ".mo";
+                        //     let path2 = path2.to_string();
+                        //     let path2 = Path::new(&path2);
+                        //     if path2.exists() { // TODO: Is it correct order of two variants?
+                        //         Some(Path::new(path2).to_owned())
+                        //     } else {
+                        //         let path3 = pre_path.join(Path::new("lib.mo"));
+                        //         if path3.exists() {
+                        //             Some(path3.to_owned())
+                        //         } else {
+                        //             bail!("source file has been deleted");
+                        //         }
+                        //     }
                         }
                         MotokoImport::Relative(path) => {
                             Some(Path::new(&path).to_owned())
