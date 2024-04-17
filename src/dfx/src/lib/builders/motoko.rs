@@ -61,10 +61,13 @@ fn get_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTrac
         } else {
             MotokoImport::Relative(file.to_path_buf())
         };
-        imports.nodes.entry(parent.clone()).or_insert_with(|| imports.graph.add_node(parent.clone()));
+        if let Some(_) = imports.nodes.get(&parent) { // The item is already in the graph.
+            return Ok(());
+        } else {
+            imports.nodes.insert(parent.clone(), imports.graph.add_node(parent.clone()),);
+        }
 
         let mut command = cache.get_binary_command("moc")?;
-        println!("FILE: {}", file.as_os_str().to_str().unwrap());
         let command = command.arg("--print-deps").arg(file);
         let output = command
             .output()
