@@ -277,7 +277,7 @@ impl CanisterBuilder for MotokoBuilder {
                         };
                     };
                 } else {
-                    // println!("Canister {} already compiled.", canister_info.get_name()); // TODO
+                    trace!(self.logger, "Canister {} already compiled.", canister_info.get_name());
                     return Ok(BuildOutput { // duplicate code
                         canister_id: canister_info
                             .get_canister_id()
