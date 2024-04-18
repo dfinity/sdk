@@ -121,10 +121,10 @@ impl CanisterBuilder for MotokoBuilder {
             Err(err) => {
                 let message = match graph.node_weight(err.node_id()) {
                     Some(canister_id) => match canister_id {
-                        MotokoImport::Canister(name) => name.clone(), // TODO: Can deal without `clone()`?
-                        _ => "<Unknown>".to_string(),
+                        MotokoImport::Canister(name) => &name,
+                        _ => "<Unknown>",
                     },
-                    None => "<Unknown>".to_string(),
+                    None => "<Unknown>",
                 };
                 return Err(DfxError::new(BuildError::DependencyError(format!(
                     "Found circular dependency: {}",
