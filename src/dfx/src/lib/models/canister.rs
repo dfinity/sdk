@@ -562,7 +562,7 @@ impl CanisterPool {
         // println!("canisters_to_build: {:?}", canisters_to_build);
         for canister in &self.canisters { // a little inefficient
             let contains = if let Some(canisters_to_build) = &canisters_to_build {
-                canisters_to_build.iter().contains(&canister.get_info().get_name().to_string()) // TODO: a little slow
+                canisters_to_build.iter().contains(&canister.get_info().get_name().to_string())
             } else {
                 true // because user specified to build all canisters
             };
