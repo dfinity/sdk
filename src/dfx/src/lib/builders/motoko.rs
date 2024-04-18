@@ -42,7 +42,6 @@ impl MotokoBuilder {
     }
 }
 
-// TODO: Is `unwrap()` in the next line correct?
 /// Add imports originating from canister `info` to the graph `imports` of dependencies.
 #[context("Failed to find imports for canister at '{}'.", info.as_info::<MotokoCanisterInfo>().unwrap().get_main_path().display())]
 fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTracker, pool: &CanisterPool) -> DfxResult<()> {
