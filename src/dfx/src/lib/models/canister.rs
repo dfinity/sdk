@@ -570,8 +570,7 @@ impl CanisterPool {
                 let canister_info = &canister.info;
                 // FIXME: Is `unwrap()` in the next operator correct?
                 // TODO: Ignored return value is a hack.
-                let _deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?
-                    .into_iter().filter(|d| *d != canister_info.get_canister_id().unwrap()).collect(); // TODO: This is a hack.
+                let _deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?;
             }
         }
 
