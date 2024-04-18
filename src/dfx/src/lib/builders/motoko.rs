@@ -206,7 +206,6 @@ impl CanisterBuilder for MotokoBuilder {
             let start = if let Some(node_index) = imports.nodes.get(&MotokoImport::Canister(canister_info.get_name().to_string())) {
                 *node_index
             } else {
-                println!("XILE: {}", motoko_info.get_main_path().to_str().unwrap());
                 let node = MotokoImport::Relative(motoko_info.get_main_path().to_path_buf());
                 let node_index = imports.graph.add_node(node.clone());
                 imports.nodes.insert(node, node_index);
