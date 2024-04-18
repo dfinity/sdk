@@ -37,7 +37,7 @@ pub fn wallet_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
                 .header()
                 .path()
                 .context("Failed to read archive entry path.")?
-                .ends_with("wallet.wasm")
+                .ends_with("wallet.wasm.gz")
             {
                 let mut wasm = vec![];
                 file.read_to_end(&mut wasm)
