@@ -42,11 +42,10 @@ impl MotokoBuilder {
     }
 }
 
-// TODO: Rename this function.
 // TODO: Is `unwrap()` in the next line correct?
-// TODO: We don't need library dependencies, because updated lib is always in a new dir. Speedup removing library dependencies.
+/// Add imports originating from canister `info` to the graph `imports` of dependencies.
 #[context("Failed to find imports for canister at '{}'.", info.as_info::<MotokoCanisterInfo>().unwrap().get_main_path().display())]
-fn get_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTracker, pool: &CanisterPool) -> DfxResult<()> {
+fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTracker, pool: &CanisterPool) -> DfxResult<()> {
     let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
     #[context("Failed recursive dependency detection at {}.", file.display())]
     fn get_imports_recursive (
@@ -110,7 +109,7 @@ impl CanisterBuilder for MotokoBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        get_imports(self.cache.as_ref(), info, &mut *pool.imports.borrow_mut(), pool)?;
+        add_imports(self.cache.as_ref(), info, &mut *pool.imports.borrow_mut(), pool)?;
 
         let graph = &pool.imports.borrow().graph;
         match petgraph::algo::toposort(&pool.imports.borrow().graph, None) {
@@ -174,7 +173,7 @@ impl CanisterBuilder for MotokoBuilder {
         std::fs::create_dir_all(idl_dir_path)
             .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
-        get_imports(cache.as_ref(), canister_info, &mut *pool.imports.borrow_mut(), pool)?;
+        add_imports(cache.as_ref(), canister_info, &mut *pool.imports.borrow_mut(), pool)?;
 
         // If the management canister is being imported, emit the candid file.
         if pool.imports.borrow().nodes.contains_key(&MotokoImport::Ic("aaaaa-aa".to_string()))
