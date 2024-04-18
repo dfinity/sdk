@@ -47,7 +47,7 @@ impl MotokoBuilder {
 fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTracker, pool: &CanisterPool) -> DfxResult<()> {
     let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
     #[context("Failed recursive dependency detection at {}.", file.display())]
-    fn get_imports_recursive (
+    fn add_imports_recursive (
         cache: &dyn Cache,
         file: &Path,
         imports: &mut ImportsTracker,
@@ -76,13 +76,13 @@ fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTrac
             let child = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
             match &child {
                 MotokoImport::Relative(path) => {
-                    get_imports_recursive(cache, path.as_path(), imports, pool, None)?;
+                    add_imports_recursive(cache, path.as_path(), imports, pool, None)?;
                 }
                 MotokoImport::Canister(canister_name) => { // duplicate code
                     if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {
                         let main_file = canister.get_info().get_main_file();
                         if let Some(main_file) = main_file {
-                            get_imports_recursive(cache, Path::new(main_file), imports, pool, None)?;
+                            add_imports_recursive(cache, Path::new(main_file), imports, pool, None)?;
                         }
                     }
                 }
@@ -96,7 +96,7 @@ fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTrac
         Ok(())
     }
 
-    get_imports_recursive(cache, motoko_info.get_main_path(), imports, pool, Some(info))?;
+    add_imports_recursive(cache, motoko_info.get_main_path(), imports, pool, Some(info))?;
 
     Ok(())
 }
