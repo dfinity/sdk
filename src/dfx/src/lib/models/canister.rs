@@ -920,7 +920,6 @@ impl CanisterPool {
         Ok(())
     }
 
-    // FIXME: Is this function miused?
     pub fn canisters_to_build(&self, build_config: &BuildConfig) -> Vec<&Arc<Canister>> {
         if let Some(canister_names) = &build_config.canisters_to_build {
             self.canisters
