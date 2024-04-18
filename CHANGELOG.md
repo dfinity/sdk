@@ -4,7 +4,7 @@
 
 ### feat: rebuild only necessary canisters
 
-Cache `get_imports()` results.
+Cache `get_imports()` (renamed to `add_imports()`) results.
 
 Read only those `--print-deps` dependencies that are necessary to read.
 
