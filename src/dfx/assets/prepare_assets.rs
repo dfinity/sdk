@@ -35,7 +35,7 @@ fn copy_canisters(out_dir: PathBuf) {
         ));
         for ext in [
             ".did",
-            if can == "assetstorage" {
+            if can == "assetstorage" || can == "wallet" {
                 ".wasm.gz"
             } else {
                 ".wasm"

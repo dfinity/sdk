@@ -21,7 +21,7 @@ const INPUTS: &[&str] = &[
     "src/distributed/ui.did",
     "src/distributed/ui.wasm",
     "src/distributed/wallet.did",
-    "src/distributed/wallet.wasm",
+    "src/distributed/wallet.wasm.gz",
 ];
 
 fn calculate_hash_of_inputs(project_root_path: &Path) -> String {
