@@ -52,7 +52,7 @@ impl<NodeId, VM> BfsFiltered<NodeId, VM> {
     where C: FnMut(&NodeId, &NodeId) -> (),
           G: IntoNeighbors<NodeId = NodeId> + DataMap<NodeWeight = NodeWeight>,
           P: FnMut(&NodeId) -> bool,
-          NodeId: Copy + Eq + std::fmt::Debug, // TODO: Remove debug.
+          NodeId: Copy + Eq,
           VM: VisitMap<NodeId>,
     {
         if let Some(first_id) = self.base.next(graph) {
