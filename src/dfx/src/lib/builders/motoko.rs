@@ -183,12 +183,12 @@ impl CanisterBuilder for MotokoBuilder {
 
         let package_arguments =
             package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
-        let mut package_arguments_map = BTreeMap::<String, String>::new(); // TODO: Can we deal without cloning strings?
+        let mut package_arguments_map = BTreeMap::<&str, &str>::new();
         { // block
             let mut i = 0;
             while i + 3 <= package_arguments.len() {
                 if package_arguments[i] == "--package" {
-                    package_arguments_map.insert(package_arguments[i+1].clone(), package_arguments[i+2].clone());
+                    package_arguments_map.insert(&package_arguments[i+1], &package_arguments[i+2]);
                     i += 3;
                 } else {
                     i += 1;
