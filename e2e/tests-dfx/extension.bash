@@ -136,8 +136,6 @@ EOF
     }
   }
 EOF
-  #echo "service: {}" >service.did
-
 
   assert_command dfx extension list
   assert_contains embera
