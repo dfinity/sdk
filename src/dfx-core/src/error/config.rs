@@ -59,7 +59,7 @@ pub enum ApplyExtensionCanisterTypesError {
     #[error("the canisters field in dfx.json must be an object")]
     CanistersFieldIsNotAnObject(),
 
-    #[error("caniter '{0}' in dfx.json must be an object")]
+    #[error("canister '{0}' in dfx.json must be an object")]
     CanisterIsNotAnObject(String),
 
     #[error(transparent)]
