@@ -3,6 +3,7 @@
 use crate::config::directories::get_user_dfx_config_dir;
 use crate::config::model::bitcoin_adapter::BitcoinAdapterLogLevel;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
+use crate::config::model::extension_canister_type::apply_extension_canister_types;
 use crate::error::config::{GetOutputEnvFileError, GetTempPathError};
 use crate::error::dfx_config::AddDependenciesError::CanisterCircularDependency;
 use crate::error::dfx_config::GetCanisterNamesWithDependenciesError::AddDependenciesFailed;
@@ -21,7 +22,7 @@ use crate::error::dfx_config::{
 };
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
-    DetermineCurrentWorkingDirFailed, LoadFromFileFailed, ResolveConfigPathFailed,
+    DetermineCurrentWorkingDirFailed, ResolveConfigPathFailed,
 };
 use crate::error::load_networks_config::LoadNetworksConfigError;
 use crate::error::load_networks_config::LoadNetworksConfigError::{
@@ -35,6 +36,7 @@ use crate::error::structured_file::StructuredFileError;
 use crate::error::structured_file::StructuredFileError::{
     DeserializeJsonFileFailed, ReadJsonFileFailed,
 };
+use crate::extension::manager::ExtensionManager;
 use crate::fs::create_dir_all;
 use crate::json::save_json_file;
 use crate::json::structure::{PossiblyStr, SerdeVec};
@@ -54,6 +56,8 @@ use std::time::Duration;
 use super::network_descriptor::MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS;
 
 pub const CONFIG_FILE_NAME: &str = "dfx.json";
+
+pub const BUILTIN_CANISTER_TYPES: [&str; 5] = ["rust", "motoko", "assets", "custom", "pull"];
 
 const EMPTY_CONFIG_DEFAULTS: ConfigDefaults = ConfigDefaults {
     bitcoin: None,
@@ -1028,34 +1032,48 @@ impl Config {
         Ok(None)
     }
 
-    fn from_file(path: &Path) -> Result<Config, StructuredFileError> {
-        let content = crate::fs::read(path).map_err(ReadJsonFileFailed)?;
-        Config::from_slice(path.to_path_buf(), &content)
+    fn from_file(
+        path: &Path,
+        extension_manager: Option<&ExtensionManager>,
+    ) -> Result<Config, LoadDfxConfigError> {
+        let content = crate::fs::read(path).map_err(LoadDfxConfigError::ReadFile)?;
+        Config::from_slice(path.to_path_buf(), &content, extension_manager)
     }
 
-    pub fn from_dir(working_dir: &Path) -> Result<Option<Config>, LoadDfxConfigError> {
+    pub fn from_dir(
+        working_dir: &Path,
+        extension_manager: Option<&ExtensionManager>,
+    ) -> Result<Option<Config>, LoadDfxConfigError> {
         let path = Config::resolve_config_path(working_dir)?;
-        path.map(|path| Config::from_file(&path))
+        path.map(|path| Config::from_file(&path, extension_manager))
             .transpose()
-            .map_err(LoadFromFileFailed)
     }
 
-    pub fn from_current_dir() -> Result<Option<Config>, LoadDfxConfigError> {
-        Config::from_dir(&std::env::current_dir().map_err(DetermineCurrentWorkingDirFailed)?)
+    pub fn from_current_dir(
+        extension_manager: Option<&ExtensionManager>,
+    ) -> Result<Option<Config>, LoadDfxConfigError> {
+        let working_dir = std::env::current_dir().map_err(DetermineCurrentWorkingDirFailed)?;
+        Config::from_dir(&working_dir, extension_manager)
     }
 
-    fn from_slice(path: PathBuf, content: &[u8]) -> Result<Config, StructuredFileError> {
-        let config = serde_json::from_slice(content)
-            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
-        let json = serde_json::from_slice(content)
-            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.clone()), e))?;
+    fn from_slice(
+        path: PathBuf,
+        content: &[u8],
+        extension_manager: Option<&ExtensionManager>,
+    ) -> Result<Config, LoadDfxConfigError> {
+        let json: Value = serde_json::from_slice(content)
+            .map_err(|e| LoadDfxConfigError::DeserializeValueFailed(Box::new(path.clone()), e))?;
+        let effective_json = apply_extension_canister_types(json.clone(), extension_manager)?;
+
+        let config = serde_json::from_value(effective_json)
+            .map_err(|e| LoadDfxConfigError::DeserializeValueFailed(Box::new(path.clone()), e))?;
         Ok(Config { path, json, config })
     }
 
     /// Create a configuration from a string.
     #[cfg(test)]
     pub(crate) fn from_str(content: &str) -> Result<Config, StructuredFileError> {
-        Config::from_slice(PathBuf::from("-"), content.as_bytes())
+        Ok(Config::from_slice(PathBuf::from("-"), content.as_bytes(), None).unwrap())
     }
 
     #[cfg(test)]
@@ -1063,7 +1081,7 @@ impl Config {
         path: PathBuf,
         content: &str,
     ) -> Result<Config, StructuredFileError> {
-        Config::from_slice(path, content.as_bytes())
+        Ok(Config::from_slice(path, content.as_bytes(), None).unwrap())
     }
 
     pub fn get_path(&self) -> &PathBuf {
@@ -1189,12 +1207,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
             Some("pull") => CanisterTypeProperties::Pull {
                 id: id.ok_or_else(|| missing_field("id"))?,
             },
-            Some(x) => {
-                return Err(A::Error::unknown_variant(
-                    x,
-                    &["motoko", "rust", "assets", "custom"],
-                ))
-            }
+            Some(x) => return Err(A::Error::unknown_variant(x, &BUILTIN_CANISTER_TYPES)),
         };
         Ok(props)
     }

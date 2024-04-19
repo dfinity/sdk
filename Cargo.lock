@@ -1564,6 +1564,7 @@ dependencies = [
  "directories-next",
  "dunce",
  "flate2",
+ "handlebars",
  "hex",
  "humantime-serde",
  "ic-agent",

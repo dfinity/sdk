@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: extensions can define a canister type
+
+Please see [extension-defined-canister-types](docs/concepts/extension-defined-canister-types.md) for details.
+
 ### Cycles wallet
 
 Updated cycles wallet to a gzipped version of `20240410` release:
