@@ -2,7 +2,6 @@ use crate::lib::builders::{
     custom_download, BuildConfig, BuildOutput, BuilderPool, CanisterBuilder, IdlBuildOutput,
     WasmBuildOutput,
 };
-use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
@@ -582,8 +581,8 @@ impl CanisterPool {
         let source_ids = &self.imports.borrow().nodes;
         let start: Vec<_> =
             real_canisters_to_build.iter().map(|name| MotokoImport::Canister(name.clone())).collect();
-        let start: Vec<_> = start.into_iter().filter_map(|node| if let Some(id) = source_ids.get(&node) {
-            Some(*id)
+        let start: Vec<_> = start.into_iter().filter_map(|node| if let Some(&id) = source_ids.get(&node) {
+            Some(id)
         } else {
             None
         }).collect();
