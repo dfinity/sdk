@@ -439,6 +439,7 @@ fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> D
 }
 
 /// TODO: Motoko-specific code not here
+/// TODO: Copying this type uses `String.clone()` what may be inefficient.
 #[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub enum MotokoImport {
     Canister(String),
@@ -589,7 +590,7 @@ impl CanisterPool {
         let source_graph = &self.imports.borrow().graph;
         let source_ids = &self.imports.borrow().nodes;
         let start: Vec<_> =
-            real_canisters_to_build.iter().map(|name| MotokoImport::Canister(name.clone())).collect(); // `clone` is inefficient.
+            real_canisters_to_build.iter().map(|name| MotokoImport::Canister(name.clone())).collect();
         let start: Vec<_> = start.into_iter().map(|node| *source_ids.get(&node).unwrap()).collect();
         // Transform the graph of file dependencies to graph of canister dependencies.
         // For this do DFS for each of `real_canisters_to_build`.
