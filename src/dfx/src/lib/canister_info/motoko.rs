@@ -54,7 +54,7 @@ impl MotokoCanisterInfo {
 
 impl CanisterInfoFactory for MotokoCanisterInfo {
     fn create(info: &CanisterInfo) -> DfxResult<MotokoCanisterInfo> {
-        // let workspace_root = info.get_workspace_root(); // FIXME: Is it correct that I commented it out? // I commented it out to have consistent relative paths.
+        // let workspace_root = info.get_workspace_root(); // I commented it out to have consistent relative paths.
         let name = info.get_name();
         ensure!(
             matches!(info.type_specific, CanisterTypeProperties::Motoko { .. }),
