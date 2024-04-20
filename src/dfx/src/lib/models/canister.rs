@@ -575,23 +575,18 @@ impl CanisterPool {
         }
 
         let real_canisters_to_build: Vec<_> = match canisters_to_build {
-            // TODO: (In below branches) isn't this check too strong? We can depend on a Rust canister for instance.
-            Some(canisters_to_build) =>
-                canisters_to_build.into_iter().filter(
-                    |name| self.get_first_canister_with_name(&name).unwrap().get_info().as_info::<MotokoCanisterInfo>().is_ok()
-                ).collect(),
-            None => self.canisters.iter().filter_map(
-                |canister| if canister.get_info().as_info::<MotokoCanisterInfo>().is_ok() {
-                    Some(canister.get_name().to_string())
-                } else {
-                    None
-                }).collect(),
+            Some(canisters_to_build) => canisters_to_build,
+            None => self.canisters.iter().map(|canister| canister.get_name().to_string()).collect(),
         };
         let source_graph = &self.imports.borrow().graph;
         let source_ids = &self.imports.borrow().nodes;
         let start: Vec<_> =
             real_canisters_to_build.iter().map(|name| MotokoImport::Canister(name.clone())).collect();
-        let start: Vec<_> = start.into_iter().map(|node| *source_ids.get(&node).unwrap()).collect();
+        let start: Vec<_> = start.into_iter().filter_map(|node| if let Some(id) = source_ids.get(&node) {
+            Some(*id)
+        } else {
+            None
+        }).collect();
         // Transform the graph of file dependencies to graph of canister dependencies.
         // For this do DFS for each of `real_canisters_to_build`.
         let mut dest_graph: DiGraph<CanisterId, ()> = DiGraph::new();
