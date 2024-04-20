@@ -448,7 +448,7 @@ pub enum Import {
     Relative(PathBuf),
 }
 
-/// The graph of Motoko imports (TODO: Motoko-specific code not here)
+/// The graph of imports (used mainly for Motoko)
 pub struct ImportsTracker {
     pub nodes: HashMap<Import, NodeIndex>,
     pub graph: DiGraph<Import, ()>,
