@@ -437,10 +437,11 @@ fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> D
     Ok(())
 }
 
-/// TODO: Motoko-specific code not here
+/// Used mainly for Motoko
+///
 /// TODO: Copying this type uses `String.clone()` what may be inefficient.
 #[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
-pub enum MotokoImport {
+pub enum Import {
     Canister(String),
     Ic(String),
     Lib(String), // TODO: Unused, because package manager never update existing files (but create new dirs)
@@ -449,8 +450,8 @@ pub enum MotokoImport {
 
 /// The graph of Motoko imports (TODO: Motoko-specific code not here)
 pub struct ImportsTracker {
-    pub nodes: HashMap<MotokoImport, NodeIndex>,
-    pub graph: DiGraph<MotokoImport, ()>,
+    pub nodes: HashMap<Import, NodeIndex>,
+    pub graph: DiGraph<Import, ()>,
 }
 
 impl ImportsTracker {
@@ -580,7 +581,7 @@ impl CanisterPool {
         let source_graph = &self.imports.borrow().graph;
         let source_ids = &self.imports.borrow().nodes;
         let start: Vec<_> =
-            real_canisters_to_build.iter().map(|name| MotokoImport::Canister(name.clone())).collect();
+            real_canisters_to_build.iter().map(|name| Import::Canister(name.clone())).collect();
         let start: Vec<_> = start.into_iter().filter_map(|node| if let Some(&id) = source_ids.get(&node) {
             Some(id)
         } else {
@@ -594,7 +595,7 @@ impl CanisterPool {
             // Initialize "mirrors" of the parent node of source graph in dest graph:
             let parent = source_graph.node_weight(start_node).unwrap();
             let parent_name = match parent {
-                MotokoImport::Canister(name) => name,
+                Import::Canister(name) => name,
                 _ => {
                     panic!("programming error");
                 }
@@ -608,7 +609,7 @@ impl CanisterPool {
                 source_graph,
                 |&s| {
                     let source_id = source_graph.node_weight(s);
-                    if let Some(MotokoImport::Canister(_)) = source_id {
+                    if let Some(Import::Canister(_)) = source_id {
                         true
                     } else {
                         false
@@ -617,7 +618,7 @@ impl CanisterPool {
                 |&source_parent_id, &source_child_id| {
                     let parent = source_graph.node_weight(source_parent_id).unwrap();
                     let parent_name = match parent {
-                        MotokoImport::Canister(name) => name,
+                        Import::Canister(name) => name,
                         _ => {
                             panic!("programming error");
                         }
@@ -626,7 +627,7 @@ impl CanisterPool {
 
                     let child = source_graph.node_weight(source_child_id).unwrap();
                     let child_name = match child {
-                        MotokoImport::Canister(name) => name,
+                        Import::Canister(name) => name,
                         _ => {
                             panic!("programming error");
                         }

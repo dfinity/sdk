@@ -6,7 +6,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
-use crate::lib::models::canister::{CanisterPool, ImportsTracker, MotokoImport};
+use crate::lib::models::canister::{CanisterPool, ImportsTracker, Import};
 use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets::management_idl;
 use anyhow::Context;
@@ -55,9 +55,9 @@ fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTrac
         top: Option<&CanisterInfo>, // hackish
     ) -> DfxResult {
         let parent = if let Some(top) = top {
-            MotokoImport::Canister(top.get_name().to_string()) // a little inefficient
+            Import::Canister(top.get_name().to_string()) // a little inefficient
         } else {
-            MotokoImport::Relative(file.to_path_buf())
+            Import::Relative(file.to_path_buf())
         };
         if let Some(_) = imports.nodes.get(&parent) { // The item is already in the graph.
             return Ok(());
@@ -73,12 +73,12 @@ fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTrac
         let output = String::from_utf8_lossy(&output.stdout);
 
         for line in output.lines() {
-            let child = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
+            let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
             match &child {
-                MotokoImport::Relative(path) => {
+                Import::Relative(path) => {
                     add_imports_recursive(cache, path.as_path(), imports, pool, None)?;
                 }
-                MotokoImport::Canister(canister_name) => { // duplicate code
+                Import::Canister(canister_name) => { // duplicate code
                     if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {
                         let main_file = canister.get_info().get_main_file();
                         if let Some(main_file) = main_file {
@@ -114,14 +114,14 @@ impl CanisterBuilder for MotokoBuilder {
         match petgraph::algo::toposort(&pool.imports.borrow().graph, None) {
             Ok(order) => {
                 Ok(order.into_iter().filter_map(|id| match graph.node_weight(id) {
-                    Some(MotokoImport::Canister(name)) => pool.get_first_canister_with_name(name.as_str()), // TODO: a little inefficient
+                    Some(Import::Canister(name)) => pool.get_first_canister_with_name(name.as_str()), // TODO: a little inefficient
                     _ => None,
                 }).map(|canister| canister.canister_id()).collect())
             }
             Err(err) => {
                 let message = match graph.node_weight(err.node_id()) {
                     Some(canister_id) => match canister_id {
-                        MotokoImport::Canister(name) => &name,
+                        Import::Canister(name) => &name,
                         _ => "<Unknown>",
                     },
                     None => "<Unknown>",
@@ -175,7 +175,7 @@ impl CanisterBuilder for MotokoBuilder {
         add_imports(cache.as_ref(), canister_info, &mut *pool.imports.borrow_mut(), pool)?;
 
         // If the management canister is being imported, emit the candid file.
-        if pool.imports.borrow().nodes.contains_key(&MotokoImport::Ic("aaaaa-aa".to_string()))
+        if pool.imports.borrow().nodes.contains_key(&Import::Ic("aaaaa-aa".to_string()))
         {
             let management_idl_path = idl_dir_path.join("aaaaa-aa.did");
             dfx_core::fs::write(management_idl_path, management_idl()?)?;
@@ -200,10 +200,10 @@ impl CanisterBuilder for MotokoBuilder {
         if let Ok(wasm_file_metadata) = metadata(output_wasm_path) {
             let wasm_file_time = wasm_file_metadata.modified()?;
             let mut imports = pool.imports.borrow_mut();
-            let start = if let Some(node_index) = imports.nodes.get(&MotokoImport::Canister(canister_info.get_name().to_string())) {
+            let start = if let Some(node_index) = imports.nodes.get(&Import::Canister(canister_info.get_name().to_string())) {
                 *node_index
             } else {
-                let node = MotokoImport::Relative(motoko_info.get_main_path().to_path_buf());
+                let node = Import::Relative(motoko_info.get_main_path().to_path_buf());
                 let node_index = imports.graph.add_node(node.clone());
                 imports.nodes.insert(node, node_index);
                 node_index
@@ -212,7 +212,7 @@ impl CanisterBuilder for MotokoBuilder {
             loop {
                 if let Some(import) = import_iter.next(&imports.graph) {
                     let imported_file = match &imports.graph[import] {
-                        MotokoImport::Canister(canister_name) => { // duplicate code
+                        Import::Canister(canister_name) => { // duplicate code
                             if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {
                                 let main_file = canister.get_info().get_main_file();
                                 if let Some(main_file) = main_file {
@@ -224,7 +224,7 @@ impl CanisterBuilder for MotokoBuilder {
                                 None
                             }
                         }
-                        MotokoImport::Ic(canister_id) => {
+                        Import::Ic(canister_id) => {
                             if let Some(canister_name) = rev_id_map.get(canister_id.as_str()) {
                                 if let Some(canister) = pool.get_first_canister_with_name(canister_name) {
                                     if let Some(main_file) = canister.get_info().get_main_file() {
@@ -239,7 +239,7 @@ impl CanisterBuilder for MotokoBuilder {
                                 None
                             }
                         }
-                        MotokoImport::Lib(_path) => {
+                        Import::Lib(_path) => {
                             // Skip libs, all changes by package managers don't modify existing directories but create new ones.
                             continue;
                         //     let i = path.find('/');
@@ -265,7 +265,7 @@ impl CanisterBuilder for MotokoBuilder {
                         //         }
                         //     }
                         }
-                        MotokoImport::Relative(path) => {
+                        Import::Relative(path) => {
                             Some(Path::new(&path).to_owned())
                         }
                     };
@@ -403,7 +403,7 @@ fn motoko_compile(logger: &Logger, cache: &dyn Cache, params: &MotokoParams<'_>)
     Ok(())
 }
 
-impl TryFrom<&str> for MotokoImport {
+impl TryFrom<&str> for Import {
     type Error = DfxError;
 
     fn try_from(line: &str) -> Result<Self, DfxError> {
@@ -430,9 +430,9 @@ impl TryFrom<&str> for MotokoImport {
                 }
                 let (prefix, name) = url.split_at(index + 1);
                 match prefix {
-                    "canister:" => MotokoImport::Canister(name.to_owned()),
-                    "ic:" => MotokoImport::Ic(name.to_owned()),
-                    "mo:" => MotokoImport::Lib(name.to_owned()),
+                    "canister:" => Import::Canister(name.to_owned()),
+                    "ic:" => Import::Ic(name.to_owned()),
+                    "mo:" => Import::Lib(name.to_owned()),
                     _ => {
                         return Err(DfxError::new(BuildError::DependencyError(format!(
                             "Unknown import {}",
@@ -450,7 +450,7 @@ impl TryFrom<&str> for MotokoImport {
                             path.display()
                         ))));
                     };
-                    MotokoImport::Relative(path)
+                    Import::Relative(path)
                 }
                 None => {
                     return Err(DfxError::new(BuildError::DependencyError(format!(
