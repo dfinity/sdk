@@ -1,6 +1,5 @@
 use std::iter::once;
 
-// TODO: Somebody, adopt this code (and DFS) to `petgraph`.
 use petgraph::{data::DataMap, visit::{Bfs, IntoNeighbors, VisitMap}};
 
 pub struct BfsFiltered<NodeId, VM> {
