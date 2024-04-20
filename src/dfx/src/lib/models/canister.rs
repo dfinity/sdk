@@ -620,7 +620,6 @@ impl CanisterPool {
                     }
                 },
                 |&source_parent_id, &source_child_id| {
-                    // FIXME: Is the chain of `unwrap`s and `panic`s correct?
                     let parent = source_graph.node_weight(source_parent_id).unwrap();
                     let parent_name = match parent {
                         MotokoImport::Canister(name) => name,
