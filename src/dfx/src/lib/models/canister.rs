@@ -605,7 +605,7 @@ impl CanisterPool {
                 }
             };
             let parent_canister = self.get_first_canister_with_name(&parent_name).unwrap().canister_id();
-            let _ = *dest_id_set.entry(start_node).or_insert_with(|| dest_graph.add_node(parent_canister));
+            dest_id_set.entry(start_node).or_insert_with(|| dest_graph.add_node(parent_canister));
 
             let bfs = Bfs::new(&source_graph, start_node);
             let mut filtered_bfs = BfsFiltered::new(bfs);
