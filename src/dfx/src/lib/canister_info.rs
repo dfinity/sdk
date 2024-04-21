@@ -383,8 +383,8 @@ impl CanisterInfo {
             }
             (Some(arg), None) => Some(arg.clone()),
             (None, Some(arg_file)) => {
-                // TODO: read the file with the right path.
-                Some(arguments_from_file(Path::new(arg_file))?)
+                // Trim the end of line that's read from the file.
+                Some(arguments_from_file(Path::new(arg_file))?.trim().into())
             }
             (None, None) => None
         };
