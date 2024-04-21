@@ -239,7 +239,7 @@ pub trait CanisterBuilder {
         let rev_id_map: BTreeMap<String, String> = pool
             .get_canister_list()
             .iter()
-            .map(|c| (c.canister_id().to_text(), c.get_name().to_string()))
+            .map(|&c| (c.canister_id().to_text(), c.get_name().to_string()))
             .collect();
 
         if canister_info.is_motoko() { // hack
