@@ -97,6 +97,28 @@ pub async fn deploy_canisters(
             .collect(),
     };
 
+    if canisters_to_deploy
+        .iter()
+        .any(|canister| initial_canister_id_store.find(canister).is_none())
+    {
+        register_canisters(
+            env,
+            &canisters_to_deploy,
+            &initial_canister_id_store,
+            with_cycles,
+            specified_id_from_cli,
+            call_sender,
+            no_wallet,
+            from_subaccount,
+            created_at_time,
+            &config,
+            subnet_selection,
+        )
+        .await?;
+    } else {
+        info!(env.get_logger(), "All canisters have already been created.");
+    }
+
     // TODO: `CanisterPool::load` is called at least two times (second time by `build_canisters`).
     let canister_pool = CanisterPool::load(env, false, canisters_to_build.as_slice())?;
     let canisters_to_install: Vec<String> = canisters_to_build
@@ -121,27 +143,6 @@ pub async fn deploy_canisters(
         info!(log, "Deploying: {}", canisters_to_install.join(" "));
     } else {
         info!(log, "Deploying all canisters.");
-    }
-    if canisters_to_deploy
-        .iter()
-        .any(|canister| initial_canister_id_store.find(canister).is_none())
-    {
-        register_canisters(
-            env,
-            &canisters_to_deploy,
-            &initial_canister_id_store,
-            with_cycles,
-            specified_id_from_cli,
-            call_sender,
-            no_wallet,
-            from_subaccount,
-            created_at_time,
-            &config,
-            subnet_selection,
-        )
-        .await?;
-    } else {
-        info!(env.get_logger(), "All canisters have already been created.");
     }
 
     let canisters_to_load = all_project_canisters_with_ids(env, &config);
