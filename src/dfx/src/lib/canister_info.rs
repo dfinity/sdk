@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 use crate::lib::error::DfxResult;
 use crate::lib::metadata::config::CanisterMetadataConfig;
+use crate::util::arguments_from_file;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::Principal;
@@ -61,6 +62,7 @@ pub struct CanisterInfo {
     tech_stack: Option<TechStack>,
     gzip: bool,
     init_arg: Option<String>,
+    init_arg_file: Option<String>,
 }
 
 impl CanisterInfo {
@@ -147,6 +149,7 @@ impl CanisterInfo {
 
         let gzip = canister_config.gzip.unwrap_or(false);
         let init_arg = canister_config.init_arg.clone();
+        let init_arg_file = canister_config.init_arg_file.clone();
 
         let canister_info = CanisterInfo {
             name: name.to_string(),
@@ -170,6 +173,7 @@ impl CanisterInfo {
             pull_dependencies,
             gzip,
             init_arg,
+            init_arg_file,
         };
 
         Ok(canister_info)
@@ -371,7 +375,20 @@ impl CanisterInfo {
         self.gzip
     }
 
-    pub fn get_init_arg(&self) -> Option<&str> {
-        self.init_arg.as_deref()
+    pub fn get_init_arg(&self) -> DfxResult<Option<String>> {
+        let init_arg_value = match (&self.init_arg, &self.init_arg_file) {
+            (Some(_), Some(_)) => {
+                // Return with error if `init_arg` and `init_arg_file` are defined in dfx.json.
+                return Err(anyhow!("Cannot provide both 'init_arg' and 'init_arg_file' in dfx.json."))
+            }
+            (Some(arg), None) => Some(arg.clone()),
+            (None, Some(arg_file)) => {
+                // TODO: read the file with the right path.
+                Some(arguments_from_file(Path::new(arg_file))?)
+            }
+            (None, None) => None
+        };
+
+        Ok(init_arg_value)
     }
 }

@@ -274,6 +274,32 @@ teardown() {
   assert_match "Hello, icp!"
 }
 
+@test "install succeeds if init_arg_file is defined in dfx.json" {
+  install_asset deploy_deps
+  dfx_start
+  echo 'dfx' >> args.txt
+  jq '.canisters.dependency.init_arg_file="(\"args.txt\")"' dfx.json | sponge dfx.json
+
+  dfx canister create dependency
+  dfx build dependency
+  assert_command dfx canister install dependency
+  assert_command dfx canister call dependency greet
+  assert_match "Hello, dfx!"
+}
+
+@test "install failed if both init_arg and init_arg_file are defined in dfx.json" {
+  install_asset deploy_deps
+  dfx_start
+  echo 'dfx' >> args.txt
+  jq '.canisters.dependency.init_arg="(\"dfx\")"' dfx.json | sponge dfx.json
+  jq '.canisters.dependency.init_arg_file="(\"args.txt\")"' dfx.json | sponge dfx.json
+
+  dfx canister create dependency
+  dfx build dependency
+  assert_command_fail dfx canister install dependency
+  assert_contains "Cannot provide both 'init_arg' and 'init_arg_file' in dfx.json."
+}
+
 @test "install succeeds when specify canister id and wasm, in dir without dfx.json" {
   dfx_start
 

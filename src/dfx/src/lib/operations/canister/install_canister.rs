@@ -141,9 +141,9 @@ pub async fn install_canister(
             get_candid_init_type(&idl_path)
         };
 
-        // The argument and argument_type from the CLI take precedence over the `init_arg` field in dfx.json
-        let argument_from_json = canister_info.get_init_arg();
-        let (argument, argument_type) = match (argument_from_cli, argument_from_json) {
+        // The argument and argument_type from the CLI take precedence over the `init_arg` or `init_arg_file` fields in dfx.json.
+        let argument_from_json = canister_info.get_init_arg()?;
+        let (argument, argument_type) = match (argument_from_cli, &argument_from_json) {
             (Some(a_cli), Some(a_json)) => {
                 // We want to warn the user when the argument from CLI and json are different.
                 // There are two cases to consider:
@@ -163,7 +163,7 @@ The command line value will be used.",
                 (argument_from_cli, argument_type_from_cli)
             }
             (Some(_), None) => (argument_from_cli, argument_type_from_cli),
-            (None, Some(_)) => (argument_from_json, Some("idl")), // `init_arg` in dfx.json is always in Candid format
+            (None, Some(a_json)) => (Some(a_json.as_str()), Some("idl")), // `init_arg` in dfx.json is always in Candid format
             (None, None) => (None, None),
         };
         let install_args = blob_from_arguments(
