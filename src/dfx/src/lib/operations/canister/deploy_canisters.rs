@@ -97,6 +97,8 @@ pub async fn deploy_canisters(
             .collect(),
     };
 
+    // TODO: `CanisterPool::load` is called at least two times (second time by `build_canisters`).
+    let canister_pool = CanisterPool::load(env, false, canisters_to_build.as_slice())?;
     let canisters_to_install: Vec<String> = canisters_to_build
         .clone()
         .into_iter()
@@ -106,6 +108,13 @@ pub async fn deploy_canisters(
                     // TODO: This is a hack.
                     config.get_config().get_canister_config(canister_name).map_or(
                         true, |canister_config| canister_config.deploy)))
+        .filter(|canister_name|
+            if let Some(canister) = canister_pool.get_first_canister_with_name(canister_name) {
+                canister.builder.should_build(&canister_pool, &canister.info, env.get_cache().as_ref()).unwrap() // FIXME: `unwrap()`
+            } else {
+                false
+            }
+        )
         .collect();
 
     if some_canister.is_some() {
@@ -296,7 +305,7 @@ async fn build_canisters(
         BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
             .with_canisters_to_build(canisters_to_build.into())
             .with_env_file(env_file);
-    canister_pool.build_or_fail(log, &build_config).await?;
+    canister_pool.build_or_fail(env, log, &build_config).await?;
     Ok(canister_pool)
 }
 

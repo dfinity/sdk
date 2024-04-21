@@ -20,8 +20,8 @@ pub struct GenerateOpts {
     network: Option<String>,
 }
 
-pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
-    let env = create_anonymous_agent_environment(env, None)?;
+pub fn exec(env1: &dyn Environment, opts: GenerateOpts) -> DfxResult {
+    let env = create_anonymous_agent_environment(env1, None)?;
     let log = env.get_logger();
 
     // Read the config.
@@ -74,7 +74,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
         let canister_pool_build = CanisterPool::load(&env, true, &build_dependees)?;
         slog::info!(log, "Building canisters before generate for Motoko");
         let runtime = Runtime::new().expect("Unable to create a runtime");
-        runtime.block_on(canister_pool_build.build_or_fail(log, &build_config))?;
+        runtime.block_on(canister_pool_build.build_or_fail(env1, log, &build_config))?;
     }
 
     for canister in canister_pool_load.canisters_to_build(&generate_config) {

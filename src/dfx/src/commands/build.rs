@@ -33,8 +33,8 @@ pub struct CanisterBuildOpts {
     network: NetworkOpt,
 }
 
-pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network.to_network_name())?;
+pub fn exec(env1: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
+    let env = create_agent_environment(env1, opts.network.to_network_name())?;
 
     let logger = env.get_logger();
 
@@ -90,7 +90,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
             .with_build_mode_check(build_mode_check)
             .with_canisters_to_build(canisters_to_build)
             .with_env_file(env_file);
-    runtime.block_on(canister_pool.build_or_fail(logger, &build_config))?;
+    runtime.block_on(canister_pool.build_or_fail(env1, logger, &build_config))?;
 
     Ok(())
 }

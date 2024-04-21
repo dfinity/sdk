@@ -146,16 +146,6 @@ impl CanisterBuilder for MotokoBuilder {
         let input_path = motoko_info.get_main_path();
         let output_wasm_path = canister_info.get_output_wasm_path();
 
-        if !self.should_build(pool, canister_info, self.cache.as_ref())? {
-            return Ok(BuildOutput { // duplicate code
-                canister_id: canister_info
-                    .get_canister_id()
-                    .expect("Could not find canister ID."),
-                wasm: WasmBuildOutput::File(canister_info.get_output_wasm_path().to_path_buf()),
-                idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
-            });
-        }
-
         // from name to principal:
         let id_map = pool
             .get_canister_list()

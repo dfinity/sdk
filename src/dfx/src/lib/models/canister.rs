@@ -40,8 +40,9 @@ use std::sync::Arc;
 /// Once an instance of a canister is built it is immutable. So for comparing
 /// two canisters one can use their ID.
 pub struct Canister {
-    info: CanisterInfo,
-    builder: Arc<dyn CanisterBuilder>,
+    // TODO: Two below `pubs` are a hack.
+    pub info: CanisterInfo,
+    pub builder: Arc<dyn CanisterBuilder>,
     output: RefCell<Option<BuildOutput>>,
 }
 unsafe impl Send for Canister {}
@@ -756,9 +757,12 @@ impl CanisterPool {
     }
 
     /// Build all canisters, returning a vector of results of each builds.
+    ///
+    /// TODO: `log` can be got from `env`, can't it?
     #[context("Failed while trying to build all canisters in the canister pool.")]
     pub fn build(
         &self,
+        env: &dyn Environment,
         log: &Logger,
         build_config: &BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
@@ -798,6 +802,10 @@ impl CanisterPool {
                     trace!(log, "Not building canister '{}'.", canister.get_name());
                     continue;
                 }
+                if !canister.builder.should_build(self, &canister.info, env.get_cache().as_ref())? {
+                    continue;
+                }
+        
                 result.push(
                     self.step_prebuild(build_config, canister)
                         .map_err(|e| {
@@ -839,10 +847,12 @@ impl CanisterPool {
 
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
+    ///
+    /// TODO: `log` can be got from `env`, can't it?
     #[context("Failed while trying to build all canisters.")]
-    pub async fn build_or_fail(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+    pub async fn build_or_fail(&self, env: &dyn Environment, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
         self.download(build_config).await?;
-        let outputs = self.build(log, build_config)?;
+        let outputs = self.build(env, log, build_config)?;
 
         for output in outputs {
             output.map_err(DfxError::new)?;
