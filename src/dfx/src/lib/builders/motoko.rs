@@ -263,7 +263,6 @@ impl CanisterBuilder for MotokoBuilder {
                         wasm: WasmBuildOutput::File(motoko_info.get_output_wasm_path().to_path_buf()),
                         idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
                     })
-            
                 }
             }
         };
