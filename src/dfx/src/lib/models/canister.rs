@@ -633,6 +633,7 @@ impl CanisterPool {
                             panic!("programming error");
                         }
                     };
+                    println!("child_name: {}", child_name);
                     let child_canister = self.get_first_canister_with_name(&child_name).unwrap().canister_id();
 
                     let dest_parent_id = *dest_id_set.entry(source_parent_id).or_insert_with(|| dest_graph.add_node(parent_canister));
@@ -756,6 +757,30 @@ impl CanisterPool {
         Ok(())
     }
 
+    fn build_order(
+        &self,
+        env: &dyn Environment,
+        build_config: &BuildConfig,
+    ) -> DfxResult<Vec<CanisterId>> {
+        trace!(env.get_logger(), "Building dependencies graph.");
+        let graph = self.build_dependencies_graph(build_config.canisters_to_build.clone())?; // TODO: Can `clone` be eliminated?
+        let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
+            let message = match graph.node_weight(cycle.node_id()) {
+                Some(canister_id) => match self.get_canister_info(canister_id) {
+                    Some(info) => info.get_name().to_string(),
+                    None => format!("<{}>", canister_id.to_text()),
+                },
+                None => "<Unknown>".to_string(),
+            };
+            BuildError::DependencyError(format!("Found circular dependency: {}", message))
+        })?;
+        Ok(nodes
+            .iter()
+            .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
+            .map(|idx| *graph.node_weight(*idx).unwrap())
+            .collect())
+    }
+
     /// Build all canisters, returning a vector of results of each builds.
     ///
     /// TODO: `log` can be got from `env`, can't it?
@@ -769,23 +794,7 @@ impl CanisterPool {
         self.step_prebuild_all(log, build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
-        trace!(log, "Building dependencies graph.");
-        let graph = self.build_dependencies_graph(build_config.canisters_to_build.clone())?; // TODO: Can `clone` be eliminated?
-        let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
-            let message = match graph.node_weight(cycle.node_id()) {
-                Some(canister_id) => match self.get_canister_info(canister_id) {
-                    Some(info) => info.get_name().to_string(),
-                    None => format!("<{}>", canister_id.to_text()),
-                },
-                None => "<Unknown>".to_string(),
-            };
-            BuildError::DependencyError(format!("Found circular dependency: {}", message))
-        })?;
-        let order: Vec<CanisterId> = nodes
-            .iter()
-            .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
-            .map(|idx| *graph.node_weight(*idx).unwrap())
-            .collect();
+        let order = self.build_order(env, build_config)?;
 
         // TODO: The next line is slow and confusing code.
         let canisters_to_build: Vec<&Arc<Canister>> = self.canisters.iter().filter(|c| order.contains(&c.canister_id())).collect();
