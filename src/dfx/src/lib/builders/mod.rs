@@ -3,19 +3,22 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::models::canister::Import;
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
+use dfx_core::config::cache::Cache;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 use fn_error_context::context;
 use handlebars::Handlebars;
+use petgraph::visit::Bfs;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::fmt::Write;
-use std::fs;
+use std::fs::{self, metadata};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -28,6 +31,8 @@ mod pull;
 mod rust;
 
 pub use custom::custom_download;
+
+use self::motoko::add_imports;
 
 #[derive(Debug)]
 pub enum WasmBuildOutput {
@@ -219,6 +224,118 @@ pub trait CanisterBuilder {
         }
 
         Ok(())
+    }
+
+    fn should_build(
+        &self,
+        pool: &CanisterPool,
+        canister_info: &CanisterInfo,
+        cache: &dyn Cache,
+    ) -> DfxResult<bool> {
+        // let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?;
+        let output_wasm_path = canister_info.get_output_wasm_path();
+
+        // from principal to name:
+        let rev_id_map: BTreeMap<String, String> = pool
+            .get_canister_list()
+            .iter()
+            .map(|c| (c.canister_id().to_text(), c.get_name().to_string()))
+            .collect();
+
+        if canister_info.is_motoko() { // hack
+            add_imports(cache, canister_info, &mut *pool.imports.borrow_mut(), pool)?;
+        }
+
+        // Check that one of the dependencies is newer than the target:
+        if let Ok(wasm_file_metadata) = metadata(output_wasm_path) {
+            let wasm_file_time = wasm_file_metadata.modified()?;
+            let imports = pool.imports.borrow_mut();
+            let start = if let Some(node_index) = imports.nodes.get(&Import::Canister(canister_info.get_name().to_string())) {
+                *node_index
+            } else {
+                panic!("programming error"); // FIXME: correct?
+                // let node = Import::Relative(canister_info.get_main_path().to_path_buf());
+                // let node_index = imports.graph.add_node(node.clone());
+                // imports.nodes.insert(node, node_index);
+                // node_index
+            };
+            let mut import_iter = Bfs::new(&imports.graph, start);
+            loop {
+                if let Some(import) = import_iter.next(&imports.graph) {
+                    let imported_file = match &imports.graph[import] {
+                        Import::Canister(canister_name) => { // duplicate code
+                            if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {
+                                let main_file = canister.get_info().get_main_file();
+                                if let Some(main_file) = main_file {
+                                    Some(main_file.to_owned())
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        }
+                        Import::Ic(canister_id) => {
+                            if let Some(canister_name) = rev_id_map.get(canister_id.as_str()) {
+                                if let Some(canister) = pool.get_first_canister_with_name(canister_name) {
+                                    if let Some(main_file) = canister.get_info().get_main_file() {
+                                        Some(main_file.to_owned())
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        }
+                        Import::Lib(_path) => {
+                            // Skip libs, all changes by package managers don't modify existing directories but create new ones.
+                            continue;
+                        //     let i = path.find('/');
+                        //     let pre_path = if let Some(i) = i {
+                        //         let expanded = Path::new(
+                        //             package_arguments_map.get(&path[..i]).ok_or_else(|| anyhow!("nonexisting package"))?
+                        //         );
+                        //         expanded.join(&path[i+1..])
+                        //     } else {
+                        //         Path::new(path.as_str()).to_owned()
+                        //     };
+                        //     let path2 = pre_path.to_str().unwrap().to_owned() + ".mo";
+                        //     let path2 = path2.to_string();
+                        //     let path2 = Path::new(&path2);
+                        //     if path2.exists() { // TODO: Is it correct order of two variants?
+                        //         Some(Path::new(path2).to_owned())
+                        //     } else {
+                        //         let path3 = pre_path.join(Path::new("lib.mo"));
+                        //         if path3.exists() {
+                        //             Some(path3.to_owned())
+                        //         } else {
+                        //             bail!("source file has been deleted");
+                        //         }
+                        //     }
+                        }
+                        Import::Relative(path) => {
+                            Some(Path::new(&path).to_owned())
+                        }
+                    };
+                    if let Some(imported_file) = imported_file {
+                        let imported_file_metadata = metadata(&imported_file)?;
+                        let imported_file_time = imported_file_metadata.modified()?;
+                        if imported_file_time > wasm_file_time {
+                            break;
+                        };
+                    };
+                } else {
+                    // FIXME: Uncomment:
+                    // trace!(self.logger, "Canister {} already compiled.", canister_info.get_name());
+                    return Ok(false);
+                }
+            }
+        };
+    
+        Ok(true)
     }
 
     /// Get the path to the provided candid file for the canister.

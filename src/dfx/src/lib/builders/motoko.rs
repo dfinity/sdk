@@ -41,13 +41,14 @@ impl MotokoBuilder {
         })
     }
 
+    // FIXME: Remove the function from here, because it has been copied to `lib::builders`
     fn should_build(
         &self,
         pool: &CanisterPool,
         canister_info: &CanisterInfo,
     ) -> DfxResult<bool> {
-        let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?;
-        let output_wasm_path = motoko_info.get_output_wasm_path();
+        let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?; // TODO: Remove.
+        let output_wasm_path = canister_info.get_output_wasm_path();
 
         // from principal to name:
         let rev_id_map: BTreeMap<String, String> = pool
@@ -154,7 +155,7 @@ impl MotokoBuilder {
 
 /// Add imports originating from canister `info` to the graph `imports` of dependencies.
 #[context("Failed to find imports for canister at '{}'.", info.as_info::<MotokoCanisterInfo>().unwrap().get_main_path().display())]
-fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTracker, pool: &CanisterPool) -> DfxResult<()> {
+pub fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTracker, pool: &CanisterPool) -> DfxResult<()> {
     let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
     #[context("Failed recursive dependency detection at {}.", file.display())]
     fn add_imports_recursive (
@@ -253,17 +254,17 @@ impl CanisterBuilder for MotokoBuilder {
         canister_info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
-        let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?;
+        let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?; // TODO: Remove.
         let profile = config.profile;
         let input_path = motoko_info.get_main_path();
-        let output_wasm_path = motoko_info.get_output_wasm_path();
+        let output_wasm_path = canister_info.get_output_wasm_path();
 
         if !self.should_build(pool, canister_info)? {
             return Ok(BuildOutput { // duplicate code
                 canister_id: canister_info
                     .get_canister_id()
                     .expect("Could not find canister ID."),
-                wasm: WasmBuildOutput::File(motoko_info.get_output_wasm_path().to_path_buf()),
+                wasm: WasmBuildOutput::File(canister_info.get_output_wasm_path().to_path_buf()),
                 idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
             });
         }
@@ -349,7 +350,7 @@ impl CanisterBuilder for MotokoBuilder {
             canister_id: canister_info
                 .get_canister_id()
                 .expect("Could not find canister ID."),
-            wasm: WasmBuildOutput::File(motoko_info.get_output_wasm_path().to_path_buf()),
+            wasm: WasmBuildOutput::File(canister_info.get_output_wasm_path().to_path_buf()),
             idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
         })
     }

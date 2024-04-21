@@ -8,7 +8,6 @@ pub struct MotokoCanisterInfo {
     input_path: PathBuf,
     output_root: PathBuf,
 
-    output_wasm_path: PathBuf,
     output_idl_path: PathBuf,
     output_stable_path: PathBuf,
     output_did_js_path: PathBuf,
@@ -22,9 +21,6 @@ pub struct MotokoCanisterInfo {
 impl MotokoCanisterInfo {
     pub fn get_main_path(&self) -> &Path {
         self.input_path.as_path()
-    }
-    pub fn get_output_wasm_path(&self) -> &Path {
-        self.output_wasm_path.as_path()
     }
     pub fn get_output_idl_path(&self) -> &Path {
         self.output_idl_path.as_path()
@@ -80,7 +76,6 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         Ok(MotokoCanisterInfo {
             input_path,
             output_root,
-            output_wasm_path,
             output_idl_path,
             output_stable_path,
             output_did_js_path,

@@ -5,6 +5,7 @@ use crate::error::cache::CacheError;
 use crate::foundation::get_user_home;
 use semver::Version;
 use std::path::PathBuf;
+use std::fmt::Debug;
 
 pub trait Cache {
     fn version_str(&self) -> String;
@@ -12,6 +13,12 @@ pub trait Cache {
     fn delete(&self) -> Result<(), CacheError>;
     fn get_binary_command_path(&self, binary_name: &str) -> Result<PathBuf, CacheError>;
     fn get_binary_command(&self, binary_name: &str) -> Result<std::process::Command, CacheError>;
+}
+
+impl Debug for dyn Cache {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[cache version {}]", self.version_str())
+    }
 }
 
 pub fn get_cache_root() -> Result<PathBuf, CacheError> {

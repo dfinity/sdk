@@ -61,6 +61,7 @@ pub struct CanisterInfo {
     tech_stack: Option<TechStack>,
     gzip: bool,
     init_arg: Option<String>,
+    output_wasm_path: PathBuf,
 }
 
 impl CanisterInfo {
@@ -148,6 +149,8 @@ impl CanisterInfo {
         let gzip = canister_config.gzip.unwrap_or(false);
         let init_arg = canister_config.init_arg.clone();
 
+        let output_wasm_path = output_root.join(name).with_extension("wasm");
+
         let canister_info = CanisterInfo {
             name: name.to_string(),
             declarations_config,
@@ -170,6 +173,7 @@ impl CanisterInfo {
             pull_dependencies,
             gzip,
             init_arg,
+            output_wasm_path,
         };
 
         Ok(canister_info)
@@ -202,6 +206,9 @@ impl CanisterInfo {
     }
     pub fn get_output_root(&self) -> &Path {
         &self.output_root
+    }
+    pub fn get_output_wasm_path(&self) -> &Path {
+        self.output_wasm_path.as_path()
     }
 
     #[context("Failed to get canister id for '{}'.", self.name)]
