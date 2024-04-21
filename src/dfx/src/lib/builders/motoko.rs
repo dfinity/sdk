@@ -161,25 +161,9 @@ impl CanisterBuilder for MotokoBuilder {
             .map(|c| (c.canister_id().to_text(), c.get_name().to_string()))
             .collect();
 
-        std::fs::create_dir_all(motoko_info.get_output_root()).with_context(|| {
-            format!(
-                "Failed to create {}.",
-                motoko_info.get_output_root().to_string_lossy()
-            )
-        })?;
         let cache = &self.cache;
-        let idl_dir_path = &config.idl_root;
-        std::fs::create_dir_all(idl_dir_path)
-            .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
         add_imports(cache.as_ref(), canister_info, &mut *pool.imports.borrow_mut(), pool)?;
-
-        // If the management canister is being imported, emit the candid file.
-        if pool.imports.borrow().nodes.contains_key(&Import::Ic("aaaaa-aa".to_string()))
-        {
-            let management_idl_path = idl_dir_path.join("aaaaa-aa.did");
-            dfx_core::fs::write(management_idl_path, management_idl()?)?;
-        }
 
         let package_arguments =
             package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
@@ -289,6 +273,23 @@ impl CanisterBuilder for MotokoBuilder {
                 }
             }
         };
+
+        std::fs::create_dir_all(motoko_info.get_output_root()).with_context(|| {
+            format!(
+                "Failed to create {}.",
+                motoko_info.get_output_root().to_string_lossy()
+            )
+        })?;
+        let idl_dir_path = &config.idl_root;
+        std::fs::create_dir_all(idl_dir_path)
+            .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
+
+        // If the management canister is being imported, emit the candid file.
+        if pool.imports.borrow().nodes.contains_key(&Import::Ic("aaaaa-aa".to_string()))
+        {
+            let management_idl_path = idl_dir_path.join("aaaaa-aa.did");
+            dfx_core::fs::write(management_idl_path, management_idl()?)?;
+        }
 
         let moc_arguments = match motoko_info.get_args() {
             Some(args) => [
