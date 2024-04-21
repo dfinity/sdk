@@ -148,12 +148,6 @@ impl CanisterBuilder for MotokoBuilder {
         let input_path = motoko_info.get_main_path();
         let output_wasm_path = motoko_info.get_output_wasm_path();
 
-        // from name to principal:
-        let id_map = pool
-            .get_canister_list()
-            .iter()
-            .map(|c| (c.get_name().to_string(), c.canister_id().to_text()))
-            .collect();
         // from principal to name:
         let rev_id_map: BTreeMap<String, String> = pool
             .get_canister_list()
@@ -273,6 +267,13 @@ impl CanisterBuilder for MotokoBuilder {
                 }
             }
         };
+
+        // from name to principal:
+        let id_map = pool
+            .get_canister_list()
+            .iter()
+            .map(|c| (c.get_name().to_string(), c.canister_id().to_text()))
+            .collect();
 
         std::fs::create_dir_all(motoko_info.get_output_root()).with_context(|| {
             format!(
