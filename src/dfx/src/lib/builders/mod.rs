@@ -260,9 +260,12 @@ pub trait CanisterBuilder {
                 // node_index
             };
             let mut import_iter = Bfs::new(&imports.graph, start);
+            println!("START {:?}", output_wasm_path);
             loop {
                 if let Some(import) = import_iter.next(&imports.graph) {
-                    let imported_file = match &imports.graph[import] {
+                    let subnode = &imports.graph[import];
+                    println!("NEXT {:?}", subnode);
+                    let imported_file = match subnode {
                         Import::Canister(canister_name) => { // duplicate code
                             if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {
                                 let main_file = canister.get_info().get_main_file();

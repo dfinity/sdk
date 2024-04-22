@@ -640,6 +640,7 @@ impl CanisterPool {
                     let child_canister = self.get_first_canister_with_name(&child_name)
                         .ok_or_else(|| anyhow!("A canister with the name '{}' was not found in the current project.", child_name.clone()))?
                         .canister_id();
+                    println!("ZZZ: {:?} => {:?}", parent, child);
 
                     let dest_parent_id = *dest_id_set.entry(source_parent_id).or_insert_with(|| dest_graph.add_node(parent_canister));
                     let dest_child_id = *dest_id_set.entry(source_child_id).or_insert_with(|| dest_graph.add_node(child_canister));

@@ -157,12 +157,14 @@ pub async fn deploy_canisters(
 
     // let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
-    let pool = build_canisters(
+    // let pool = canister_pool; // TODO
+    build_canisters(
         env,
-        &order_names,
+        // &order_names,
         &order_names,
         &config,
         env_file.clone(),
+        &canister_pool,
     )
     .await?;
 
@@ -179,7 +181,7 @@ pub async fn deploy_canisters(
                 force_reinstall,
                 upgrade_unchanged,
                 call_sender,
-                pool,
+                canister_pool,
                 skip_consent,
                 env_file.as_deref(),
                 no_asset_upgrade,
@@ -302,22 +304,23 @@ async fn register_canisters(
 #[context("Failed to build all canisters.")]
 async fn build_canisters(
     env: &dyn Environment,
-    canisters_to_load: &[String],
+    // canisters_to_load: &[String],
     canisters_to_build: &[String],
     config: &Config,
     env_file: Option<PathBuf>,
-) -> DfxResult<CanisterPool> {
+    canister_pool: &CanisterPool,
+) -> DfxResult<()> {
     let log = env.get_logger();
     info!(log, "Building canisters...");
-    let build_mode_check = false;
-    let canister_pool = CanisterPool::load(env, build_mode_check, canisters_to_load)?;
+    // let build_mode_check = false;
+    // let canister_pool = CanisterPool::load(env, build_mode_check, canisters_to_load)?;
 
     let build_config =
         BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
             .with_canisters_to_build(canisters_to_build.into())
             .with_env_file(env_file);
     canister_pool.build_or_fail(env, log, &build_config).await?;
-    Ok(canister_pool)
+    Ok(())
 }
 
 #[context("Failed while trying to install all canisters.")]

@@ -60,7 +60,7 @@ pub fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut Imports
         if let Some(_) = imports.nodes.get(&parent) { // The item is already in the graph.
             return Ok(());
         } else {
-            imports.nodes.insert(parent.clone(), imports.graph.add_node(parent.clone()),);
+            imports.nodes.insert(parent.clone(), imports.graph.add_node(parent.clone()));
         }
 
         let mut command = cache.get_binary_command("moc")?;
