@@ -97,31 +97,16 @@ pub async fn deploy_canisters(
             .collect(),
     };
 
-    if canisters_to_deploy
-        .iter()
-        .any(|canister| initial_canister_id_store.find(canister).is_none())
-    {
-        register_canisters(
-            env,
-            &canisters_to_deploy,
-            &initial_canister_id_store,
-            with_cycles,
-            specified_id_from_cli,
-            call_sender,
-            no_wallet,
-            from_subaccount,
-            created_at_time,
-            &config,
-            subnet_selection,
-        )
-        .await?;
-    } else {
-        info!(env.get_logger(), "All canisters have already been created.");
-    }
+    // TODO: `CanisterPool::load` is called at least three times (including by `build_canisters`).
+    let preliminary_canister_pool = CanisterPool::load(env, false, canisters_to_build.as_slice())?;
 
-    // TODO: `CanisterPool::load` is called at least two times (second time by `build_canisters`).
-    let canister_pool = CanisterPool::load(env, false, canisters_to_build.as_slice())?;
-    let canisters_to_install: Vec<String> = canisters_to_build
+    let order = preliminary_canister_pool.build_order(env, &Some(canisters_to_build.clone()))?; // FIXME: `Some` here is a hack. // TODO: Eliminate `clone`.
+    let order_names: Vec<String> = order.iter()
+        .map(|canister| preliminary_canister_pool.get_canister(canister).unwrap().get_name().to_owned()).collect(); // FIXME: Is `unwrap` here correct?
+
+    let canister_pool = CanisterPool::load(env, true, order_names.as_slice())?; // TODO: Is here `true` needed?
+
+    let canisters_to_install: &Vec<String> = &canisters_to_build
         .clone()
         .into_iter()
         .filter(|canister_name|
@@ -143,6 +128,27 @@ pub async fn deploy_canisters(
         info!(log, "Deploying: {}", canisters_to_install.join(" "));
     } else {
         info!(log, "Deploying all canisters.");
+    }
+    if canisters_to_install
+        .iter()
+        .any(|canister| canister_pool.get_first_canister_with_name(canister).is_none())
+    {
+        register_canisters(
+            env,
+            &canisters_to_deploy,
+            &initial_canister_id_store,
+            with_cycles,
+            specified_id_from_cli,
+            call_sender,
+            no_wallet,
+            from_subaccount,
+            created_at_time,
+            &config,
+            subnet_selection,
+        )
+        .await?;
+    } else {
+        info!(env.get_logger(), "All canisters have already been created.");
     }
 
     let canisters_to_load = all_project_canisters_with_ids(env, &config);

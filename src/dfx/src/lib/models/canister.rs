@@ -606,14 +606,14 @@ impl CanisterPool {
 
             let bfs = Bfs::new(&source_graph, start_node);
             let mut filtered_bfs = BfsFiltered::new(bfs);
-            filtered_bfs.traverse(
+            filtered_bfs.traverse2(
                 source_graph,
                 |&s| {
                     let source_id = source_graph.node_weight(s);
                     if let Some(Import::Canister(_)) = source_id {
-                        true
+                        Ok(true)
                     } else {
-                        false
+                        Ok(false)
                     }
                 },
                 |&source_parent_id, &source_child_id| {
@@ -634,13 +634,17 @@ impl CanisterPool {
                         }
                     };
                     println!("child_name: {}", child_name);
-                    let child_canister = self.get_first_canister_with_name(&child_name).unwrap().canister_id();
+                    let child_canister = self.get_first_canister_with_name(&child_name)
+                        .ok_or_else(|| anyhow!("A canister with the name '{}' was not found in the current project.", child_name.clone()))?
+                        .canister_id();
 
                     let dest_parent_id = *dest_id_set.entry(source_parent_id).or_insert_with(|| dest_graph.add_node(parent_canister));
                     let dest_child_id = *dest_id_set.entry(source_child_id).or_insert_with(|| dest_graph.add_node(child_canister));
                     dest_graph.update_edge(dest_parent_id, dest_child_id, ());
+
+                    Ok(())
                 }
-            );
+            )?;
         }
         
         Ok(dest_graph)
@@ -757,13 +761,13 @@ impl CanisterPool {
         Ok(())
     }
 
-    fn build_order(
+    pub fn build_order(
         &self,
         env: &dyn Environment,
-        build_config: &BuildConfig,
+        canisters_to_build: &Option<Vec<String>>,
     ) -> DfxResult<Vec<CanisterId>> {
         trace!(env.get_logger(), "Building dependencies graph.");
-        let graph = self.build_dependencies_graph(build_config.canisters_to_build.clone())?; // TODO: Can `clone` be eliminated?
+        let graph = self.build_dependencies_graph(canisters_to_build.clone())?; // TODO: Can `clone` be eliminated?
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
@@ -794,7 +798,7 @@ impl CanisterPool {
         self.step_prebuild_all(log, build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
-        let order = self.build_order(env, build_config)?;
+        let order = self.build_order(env, &build_config.canisters_to_build.clone())?; // TODO: Eliminate `clone`.`
 
         // TODO: The next line is slow and confusing code.
         let canisters_to_build: Vec<&Arc<Canister>> = self.canisters.iter().filter(|c| order.contains(&c.canister_id())).collect();
