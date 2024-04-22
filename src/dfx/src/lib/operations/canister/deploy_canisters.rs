@@ -110,8 +110,6 @@ pub async fn deploy_canisters(
     // let order_names: Vec<String> = order.iter()
     //     .map(|canister| canister_pool.get_canister(canister).unwrap().get_name().to_owned()).collect(); // FIXME: Is `unwrap` here correct?
 
-    // let canister_pool = CanisterPool::load(env, true, order_names.as_slice())?; // TODO: Is here `true` needed?
-
     let canisters_to_install: &Vec<String> = &canisters_to_build
         .clone()
         .into_iter()
