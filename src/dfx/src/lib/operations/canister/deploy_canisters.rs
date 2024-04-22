@@ -11,7 +11,7 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
 };
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::operations::canister::{
-    all_project_canisters_with_ids, create_canister, install_canister::install_canister,
+    create_canister, install_canister::install_canister,
 };
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
