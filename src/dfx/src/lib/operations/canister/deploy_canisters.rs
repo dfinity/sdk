@@ -79,6 +79,12 @@ pub async fn deploy_canisters(
 
     let canisters_to_deploy = canister_with_dependencies(&config, some_canister)?;
 
+    let required_canisters = config
+        .get_config()
+        .get_canister_names_with_dependencies(some_canister.as_deref())?;
+    let canisters_to_load = add_canisters_with_ids(&required_canisters, env, &config);
+    let canister_pool = CanisterPool::load(env, true, &canisters_to_load)?;
+
     let canisters_to_build = match deploy_mode {
         PrepareForProposal(canister_name) | ComputeEvidence(canister_name) => {
             vec![canister_name.clone()]
@@ -99,16 +105,10 @@ pub async fn deploy_canisters(
             .collect(),
     };
 
-    let required_canisters = config
-        .get_config()
-        .get_canister_names_with_dependencies(some_canister.as_deref())?;
-    let canisters_to_load = add_canisters_with_ids(&required_canisters, env, &config);
-    // TODO: `CanisterPool::load` is called at least three times (including by `build_canisters`).
-    let canister_pool = CanisterPool::load(env, true, &canisters_to_load)?;
-
+    // FIXME: `build_order` is called two times during deployment of a new canister.                                                                                                                                                                                                                                                                                
     let order = canister_pool.build_order(env, &Some(canisters_to_build.clone()))?; // FIXME: `Some` here is a hack. // TODO: Eliminate `clone`.
-    // let order_names: Vec<String> = order.iter()
-    //     .map(|canister| canister_pool.get_canister(canister).unwrap().get_name().to_owned()).collect(); // FIXME: Is `unwrap` here correct?
+    let order_names: Vec<String> = order.iter()
+        .map(|canister| canister_pool.get_canister(canister).unwrap().get_name().to_owned()).collect(); // FIXME: Is `unwrap` here correct?
 
     let canisters_to_install: &Vec<String> = &canisters_to_build
         .clone()
@@ -135,11 +135,11 @@ pub async fn deploy_canisters(
     }
     if canisters_to_install
         .iter()
-        .any(|canister| canister_pool.get_first_canister_with_name(canister).is_none())
+        .any(|canister| initial_canister_id_store.find(canister).is_none())
     {
         register_canisters(
             env,
-            &canisters_to_deploy,
+            &order_names,
             &initial_canister_id_store,
             with_cycles,
             specified_id_from_cli,
@@ -155,12 +155,12 @@ pub async fn deploy_canisters(
         info!(env.get_logger(), "All canisters have already been created.");
     }
 
-    let canisters_to_load = all_project_canisters_with_ids(env, &config);
+    // let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
     let pool = build_canisters(
         env,
-        &canisters_to_load,
-        &canisters_to_build,
+        &order_names,
+        &order_names,
         &config,
         env_file.clone(),
     )
