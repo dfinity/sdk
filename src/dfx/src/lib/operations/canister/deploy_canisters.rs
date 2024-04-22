@@ -29,6 +29,8 @@ use slog::info;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 
+use super::add_canisters_with_ids;
+
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub enum DeployMode {
     NormalDeploy,
@@ -97,8 +99,12 @@ pub async fn deploy_canisters(
             .collect(),
     };
 
+    let required_canisters = config
+        .get_config()
+        .get_canister_names_with_dependencies(some_canister.as_deref())?;
+    let canisters_to_load = add_canisters_with_ids(&required_canisters, env, &config);
     // TODO: `CanisterPool::load` is called at least three times (including by `build_canisters`).
-    let canister_pool = CanisterPool::load(env, true, &canisters_to_deploy.as_slice())?;
+    let canister_pool = CanisterPool::load(env, true, &canisters_to_load)?;
 
     let order = canister_pool.build_order(env, &Some(canisters_to_build.clone()))?; // FIXME: `Some` here is a hack. // TODO: Eliminate `clone`.
     // let order_names: Vec<String> = order.iter()
