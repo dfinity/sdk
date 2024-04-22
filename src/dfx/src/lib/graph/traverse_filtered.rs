@@ -1,3 +1,4 @@
+// TODO: Somebody, adopt this code (and DFS) to `petgraph`.
 use petgraph::{data::DataMap, visit::{Bfs, IntoNeighborsDirected, VisitMap}, Direction::Incoming};
 
 use crate::lib::error::DfxResult;
