@@ -98,13 +98,13 @@ pub async fn deploy_canisters(
     };
 
     // TODO: `CanisterPool::load` is called at least three times (including by `build_canisters`).
-    let preliminary_canister_pool = CanisterPool::load(env, false, canisters_to_build.as_slice())?;
+    let canister_pool = CanisterPool::load(env, true, &canisters_to_deploy.as_slice())?;
 
-    let order = preliminary_canister_pool.build_order(env, &Some(canisters_to_build.clone()))?; // FIXME: `Some` here is a hack. // TODO: Eliminate `clone`.
-    let order_names: Vec<String> = order.iter()
-        .map(|canister| preliminary_canister_pool.get_canister(canister).unwrap().get_name().to_owned()).collect(); // FIXME: Is `unwrap` here correct?
+    let order = canister_pool.build_order(env, &Some(canisters_to_build.clone()))?; // FIXME: `Some` here is a hack. // TODO: Eliminate `clone`.
+    // let order_names: Vec<String> = order.iter()
+    //     .map(|canister| canister_pool.get_canister(canister).unwrap().get_name().to_owned()).collect(); // FIXME: Is `unwrap` here correct?
 
-    let canister_pool = CanisterPool::load(env, true, order_names.as_slice())?; // TODO: Is here `true` needed?
+    // let canister_pool = CanisterPool::load(env, true, order_names.as_slice())?; // TODO: Is here `true` needed?
 
     let canisters_to_install: &Vec<String> = &canisters_to_build
         .clone()

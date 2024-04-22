@@ -560,8 +560,16 @@ impl CanisterPool {
 
     /// Build only dependencies relevant for `canisters_to_build`.
     #[context("Failed to build dependencies graph for canister pool.")]
-    fn build_dependencies_graph(&self, canisters_to_build: Option<Vec<String>>) -> DfxResult<DiGraph<CanisterId, ()>> {
+    fn build_dependencies_graph(
+        &self,
+        canisters_to_build: Option<Vec<String>>
+    ) -> DfxResult<DiGraph<CanisterId, ()>> {
         // println!("canisters_to_build: {:?}", canisters_to_build);
+        let real_canisters_to_build: Vec<_> = match canisters_to_build {
+            Some(ref canisters_to_build) => canisters_to_build.clone(), // TODO: Remove `clone()`
+            None => self.canisters.iter().map(|canister| canister.get_name().to_string()).collect(),
+        };
+
         for canister in &self.canisters { // a little inefficient
             let contains = if let Some(canisters_to_build) = &canisters_to_build {
                 canisters_to_build.iter().contains(&canister.get_info().get_name().to_string())
@@ -575,10 +583,6 @@ impl CanisterPool {
             }
         }
 
-        let real_canisters_to_build: Vec<_> = match canisters_to_build {
-            Some(canisters_to_build) => canisters_to_build,
-            None => self.canisters.iter().map(|canister| canister.get_name().to_string()).collect(),
-        };
         let source_graph = &self.imports.borrow().graph;
         let source_ids = &self.imports.borrow().nodes;
         let start: Vec<_> =

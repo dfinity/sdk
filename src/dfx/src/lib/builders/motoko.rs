@@ -107,12 +107,16 @@ impl CanisterBuilder for MotokoBuilder {
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
         add_imports(self.cache.as_ref(), info, &mut *pool.imports.borrow_mut(), pool)?;
+        // TODO: In some reason, the following line is needed only for `deploy`, not for `build`.
+        
 
         let graph = &pool.imports.borrow().graph;
         match petgraph::algo::toposort(&pool.imports.borrow().graph, None) {
             Ok(order) => {
                 Ok(order.into_iter().filter_map(|id| match graph.node_weight(id) {
-                    Some(Import::Canister(name)) => pool.get_first_canister_with_name(name.as_str()), // TODO: a little inefficient
+                    Some(Import::Canister(name)) => {
+                        pool.get_first_canister_with_name(name.as_str()) // TODO: a little inefficient
+                    }
                     _ => None,
                 }).map(|canister| canister.canister_id()).collect())
             }
