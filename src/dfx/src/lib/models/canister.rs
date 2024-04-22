@@ -801,7 +801,7 @@ impl CanisterPool {
         self.step_prebuild_all(log, build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
-        let order = self.build_order(env, &build_config.canisters_to_build.clone())?; // TODO: Eliminate `clone`.`
+        let order = self.build_order(env, &build_config.canisters_to_build.clone())?; // TODO: Eliminate `clone`.
 
         // TODO: The next line is slow and confusing code.
         let canisters_to_build: Vec<&Arc<Canister>> = self.canisters.iter().filter(|c| order.contains(&c.canister_id())).collect();
