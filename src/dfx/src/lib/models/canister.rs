@@ -633,7 +633,6 @@ impl CanisterPool {
                             panic!("programming error");
                         }
                     };
-                    println!("child_name: {}", child_name);
                     let child_canister = self.get_first_canister_with_name(&child_name)
                         .ok_or_else(|| anyhow!("A canister with the name '{}' was not found in the current project.", child_name.clone()))?
                         .canister_id();
