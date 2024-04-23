@@ -16,7 +16,7 @@ teardown() {
 setup_playground() {
   if ! command -v ic-mops &> /dev/null
   then
-    npm i -g ic-mops
+    npm i -g ic-mops@0.43.0
   fi
   dfx_new hello
   create_networks_json
