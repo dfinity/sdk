@@ -1,7 +1,7 @@
 #![allow(dead_code)]
+use crate::error_invalid_config;
 use crate::lib::error::DfxResult;
 use crate::lib::metadata::config::CanisterMetadataConfig;
-use crate::{error_invalid_config};
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::Principal;
@@ -379,7 +379,9 @@ impl CanisterInfo {
         let init_arg_value = match (&self.init_arg, &self.init_arg_file) {
             (Some(_), Some(_)) => {
                 // Return with error if `init_arg` and `init_arg_file` are defined in dfx.json.
-                return Err(anyhow!("Cannot provide both 'init_arg' and 'init_arg_file' in dfx.json."))
+                return Err(anyhow!(
+                    "Cannot provide both 'init_arg' and 'init_arg_file' in dfx.json."
+                ));
             }
             (Some(arg), None) => Some(arg.clone()),
             (None, Some(arg_file)) => {
@@ -387,10 +389,16 @@ impl CanisterInfo {
                 let absolute_path = self.get_workspace_root().join(arg_file);
                 match std::fs::read_to_string(absolute_path) {
                     Ok(value) => Some(value),
-                    Err(e) => return Err(error_invalid_config!("Could not read init arg file `{}` to string: {}", arg_file, e)),
+                    Err(e) => {
+                        return Err(error_invalid_config!(
+                            "Could not read init arg file '{}' to string: {}",
+                            arg_file,
+                            e
+                        ))
+                    }
                 }
             }
-            (None, None) => None
+            (None, None) => None,
         };
 
         Ok(init_arg_value)
