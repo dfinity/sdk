@@ -141,7 +141,7 @@ pub async fn install_canister(
             get_candid_init_type(&idl_path)
         };
 
-        // The argument and argument_type from the CLI take precedence over the `init_arg` or `init_arg_file` fields in dfx.json.
+        // The argument and argument_type from the CLI take precedence over the dfx.json configuration.
         let argument_from_json = canister_info.get_init_arg()?;
         let (argument, argument_type) = match (argument_from_cli, &argument_from_json) {
             (Some(a_cli), Some(a_json)) => {

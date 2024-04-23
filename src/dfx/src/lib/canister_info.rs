@@ -375,6 +375,12 @@ impl CanisterInfo {
         self.gzip
     }
 
+    /// Get the init arg from the dfx.json configuration.
+    /// 
+    /// If the `init_arg` field is defined, it will be returned.
+    /// If the `init_arg_file` field is defined, the content of the file will be returned.
+    /// If both fields are defined, an error will be returned.
+    /// If neither field is defined, `None` will be returned.
     pub fn get_init_arg(&self) -> DfxResult<Option<String>> {
         let init_arg_value = match (&self.init_arg, &self.init_arg_file) {
             (Some(_), Some(_)) => {
