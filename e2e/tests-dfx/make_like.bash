@@ -22,11 +22,12 @@ teardown() {
     assert_contains '"dependency.mo"'
 
     touch dependent.mo
+    assert_command dfx deploy -vv dependent
     assert_contains '"dependent.mo"'
     assert_not_contains '"dependency.mo"'
 
-    # TODO
-    # touch dependency.mo
-    # assert_contains '"dependent.mo"'
-    # assert_contains '"dependency.mo"'
+    touch dependency.mo
+    assert_command dfx deploy -vv dependent
+    assert_contains '"dependent.mo"'
+    assert_contains '"dependency.mo"'
 }
