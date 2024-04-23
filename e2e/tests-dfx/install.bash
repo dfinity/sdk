@@ -267,7 +267,7 @@ teardown() {
   assert_match "Hello, dfx!"
 
   assert_command dfx canister install dependency --mode reinstall --yes --argument '("icp")'
-  assert_contains "Canister 'dependency' has init_arg in dfx.json: (\"dfx\"),"
+  assert_contains "Canister 'dependency' has init_arg/init_arg_file in dfx.json: (\"dfx\"),"
   assert_contains "which is different from the one specified in the command line: (\"icp\")."
   assert_contains "The command line value will be used."
   assert_command dfx canister call dependency greet
@@ -283,6 +283,8 @@ teardown() {
 
   dfx canister create dependency
   dfx build dependency
+
+  # The following commands will be run in this sub-directory, it verifies that the init_arg_file is relative to the dfx.json file
   cd arg-files
   assert_command dfx canister install dependency
   assert_command dfx canister call dependency greet

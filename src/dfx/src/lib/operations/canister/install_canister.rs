@@ -152,7 +152,7 @@ pub async fn install_canister(
                 if argument_type_from_cli == Some("raw") || a_cli != a_json {
                     warn!(
                         log,
-                        "Canister '{0}' has init_arg in dfx.json: {1},
+                        "Canister '{0}' has init_arg/init_arg_file in dfx.json: {1},
 which is different from the one specified in the command line: {2}.
 The command line value will be used.",
                         canister_info.get_name(),
