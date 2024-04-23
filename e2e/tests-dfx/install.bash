@@ -277,11 +277,13 @@ teardown() {
 @test "install succeeds if init_arg_file is defined in dfx.json" {
   install_asset deploy_deps
   dfx_start
-  echo '("dfx")' >> args.txt
-  jq '.canisters.dependency.init_arg_file="args.txt"' dfx.json | sponge dfx.json
+  mkdir arg-files
+  echo '("dfx")' >> arg-files/args.txt
+  jq '.canisters.dependency.init_arg_file="arg-files/args.txt"' dfx.json | sponge dfx.json
 
   dfx canister create dependency
   dfx build dependency
+  cd arg-files
   assert_command dfx canister install dependency
   assert_command dfx canister call dependency greet
   assert_match "Hello, dfx!"

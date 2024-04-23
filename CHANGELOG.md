@@ -6,6 +6,13 @@
 
 Please see [extension-defined-canister-types](docs/concepts/extension-defined-canister-types.md) for details.
 
+### feat: init_arg_file in dfx.json
+
+In addition to setting `init_arg` in `dfx.json`, `init_arg_file` can be set in `dfx.json`.
+- Please set a relative path to the directory where the the `dfx.json` is located.
+- `init_arg` and `init_arg_file` cannot be set simultaneously.
+- If `--argument` or `--argument-file` are provided, the argument from the command line takes precedence over the one in dfx.json.
+
 ### Cycles wallet
 
 Updated cycles wallet to a gzipped version of `20240410` release:

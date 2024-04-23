@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use crate::lib::error::DfxResult;
 use crate::lib::metadata::config::CanisterMetadataConfig;
-use crate::util::arguments_from_file;
+use crate::{error_invalid_config};
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::Principal;
@@ -383,8 +383,12 @@ impl CanisterInfo {
             }
             (Some(arg), None) => Some(arg.clone()),
             (None, Some(arg_file)) => {
-                // Trim the end of line that's read from the file.
-                Some(arguments_from_file(Path::new(arg_file))?.trim().into())
+                // Get the absolute path for init_arg_file.
+                let absolute_path = self.get_workspace_root().join(arg_file);
+                match std::fs::read_to_string(absolute_path) {
+                    Ok(value) => Some(value),
+                    Err(e) => return Err(error_invalid_config!("Could not read init arg file `{}` to string: {}", arg_file, e)),
+                }
             }
             (None, None) => None
         };
