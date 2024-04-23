@@ -6,6 +6,10 @@
 
 Please see [extension-defined-canister-types](docs/concepts/extension-defined-canister-types.md) for details.
 
+### fix: dfx new failure when node is available but npm is not
+
+`dfx new` could fail with "Failed to scaffold frontend code" if node was installed but npm was not installed.
+
 ### Cycles wallet
 
 Updated cycles wallet to a gzipped version of `20240410` release:
