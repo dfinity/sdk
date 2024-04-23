@@ -120,6 +120,7 @@ EOF
   chmod +x npm-installable/npm
 
   DFX_BIN_DIR=$(dirname "$(which dfx)")
+  echo "dfx is in $DFX_BIN_DIR"
   NODE_ONLY_DIR=$PWD/node-only
   NODE_INSTALLABLE_DIR=$PWD/node-installable
   NPM_INSTALLABLE_DIR=$PWD/npm-installable
