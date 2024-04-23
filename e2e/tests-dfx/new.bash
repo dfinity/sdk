@@ -128,6 +128,12 @@ EOF
   PATH="/usr/bin:/bin:$DFX_BIN_DIR" which node || true
   PATH="/usr/bin:/bin:$DFX_BIN_DIR" which npm || true
 
+  echo "with -a"
+  PATH="/usr/bin:/bin:$DFX_BIN_DIR" which -a node || true
+  PATH="/usr/bin:/bin:$DFX_BIN_DIR" which -a npm || true
+  which -a node || true
+  which -a npm || true
+
   # neither node nor npm are installed (no binaries)
   PATH="/usr/bin:/bin:$DFX_BIN_DIR" \
     assert_command dfx new e2e_project1 --type motoko --frontend sveltekit
