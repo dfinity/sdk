@@ -124,6 +124,9 @@ EOF
   NODE_INSTALLABLE_DIR=$PWD/node-installable
   NPM_INSTALLABLE_DIR=$PWD/npm-installable
 
+  PATH="/usr/bin:/bin:$DFX_BIN_DIR" which node || true
+  PATH="/usr/bin:/bin:$DFX_BIN_DIR" which npm || true
+
   # neither node nor npm are installed (no binaries)
   PATH="/usr/bin:/bin:$DFX_BIN_DIR" \
     assert_command dfx new e2e_project1 --type motoko --frontend sveltekit
