@@ -252,6 +252,8 @@ If you want to get reliable result, you can make an update call to the secure al
   # shellcheck disable=SC2154
   assert_contains "bitcoin_get_balance_query $WARNING bitcoin_get_balance" "$stderr"
 
+  # TODO: re-enable when testnet back to normal, tracking at https://dfinity.atlassian.net/browse/SDKTG-323
+
 #   ## bitcoin testnet
 #   assert_command dfx canister call --network ic --query aaaaa-aa bitcoin_get_balance_query '(
 #   record {
