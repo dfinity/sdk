@@ -95,6 +95,8 @@ teardown() {
 @test "variants of node and npm installed or not" {
   which node || skip "node not installed"
   which npm || skip "npm not installed"
+  which node
+  which npm
 
   mkdir forward-to-node
   cat > forward-to-node/node <<EOF

@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ens/fix-test
   pull_request:
 
 concurrency:
