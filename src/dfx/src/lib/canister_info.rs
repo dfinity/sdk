@@ -1,8 +1,8 @@
 #![allow(dead_code)]
-use crate::error_invalid_config;
 use crate::lib::error::DfxResult;
 use crate::lib::metadata::config::CanisterMetadataConfig;
-use anyhow::{anyhow, Context};
+
+use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use candid::Principal;
 use core::panic;
@@ -378,25 +378,15 @@ impl CanisterInfo {
     pub fn get_init_arg(&self) -> DfxResult<Option<String>> {
         let init_arg_value = match (&self.init_arg, &self.init_arg_file) {
             (Some(_), Some(_)) => {
-                // Return with error if `init_arg` and `init_arg_file` are defined in dfx.json.
-                return Err(anyhow!(
-                    "Cannot provide both 'init_arg' and 'init_arg_file' in dfx.json."
-                ));
+                bail!("At most one of the fields 'init_arg' and 'init_arg_file' should be defined in `dfx.json`.
+Please remove one of them or leave both undefined.");
             }
             (Some(arg), None) => Some(arg.clone()),
             (None, Some(arg_file)) => {
-                // Get the absolute path for init_arg_file.
+                // The file path is relative to the workspace root.
                 let absolute_path = self.get_workspace_root().join(arg_file);
-                match std::fs::read_to_string(absolute_path) {
-                    Ok(value) => Some(value),
-                    Err(e) => {
-                        return Err(error_invalid_config!(
-                            "Could not read init arg file '{}' to string: {}",
-                            arg_file,
-                            e
-                        ))
-                    }
-                }
+                let content = dfx_core::fs::read_to_string(&absolute_path)?;
+                Some(content)
             }
             (None, None) => None,
         };
