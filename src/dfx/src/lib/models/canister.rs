@@ -761,6 +761,7 @@ impl CanisterPool {
         canister.postbuild(self, build_config)
     }
 
+    // FIXME: Make cleanup reverse to the (updated) `step_prebuild_all`.
     fn step_postbuild_all(
         &self,
         build_config: &BuildConfig,
