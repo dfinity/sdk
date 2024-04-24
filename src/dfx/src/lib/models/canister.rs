@@ -653,18 +653,33 @@ impl CanisterPool {
         Ok(dest_graph)
     }
 
+    /// TODO: Duplicate entity domainL `canisters_to_build` and `build_config.canisters_to_build`.
     #[context("Failed step_prebuild_all.")]
-    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
-        println!("step_prebuild_all: {:?}", self.canisters.iter().map(|c| c.get_name()).collect::<Vec<_>>());
+    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig, canisters_to_build: &Vec<&Arc<Canister>>) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Because some canisters don't get built these .did files have to be copied over manually.
-        for canister in self.canisters.iter().filter(|c| {
-            build_config
-                .canisters_to_build
-                .as_ref()
-                .map(|cans| !cans.iter().contains(&c.get_name().to_string()))
-                .unwrap_or(false)
-        }) {
+        let iter = canisters_to_build.iter()
+            .map(|&canister| {
+                // TODO: Is `unwrap` on the next line legit?
+                let parent_node = *self.imports.borrow().nodes.get(&Import::Canister(canister.as_ref().get_name().to_owned())).unwrap();
+                let imports = self.imports.borrow();
+                let neighbors = imports.graph.neighbors(parent_node);
+                neighbors
+                    .map(|id| imports.nodes.iter()
+                        .find_map(move |(k, v)| if v == &id { Some(k.clone()) } else { None })) // TODO: slow
+                    .filter_map(|import|
+                        if let Some(Import::Canister(name)) = import { // TODO: The above produces a superfluous `Option<>`.
+                            self.get_first_canister_with_name(&name)
+                        } else {
+                            None
+                        }
+                    )
+                    // .map(|x| (x, ()))
+                    .collect::<Vec<_>>()
+            })
+            .flatten();
+        // FIXME: The above may produce duplicate canisters.
+        for canister in iter {
             let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
                 Some(remote_candid)
             } else {
@@ -799,13 +814,14 @@ impl CanisterPool {
         log: &Logger,
         build_config: &BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
-        self.step_prebuild_all(log, build_config)
-            .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
-
         let order = self.build_order(env, &build_config.canisters_to_build.clone())?; // TODO: Eliminate `clone`.
 
         // TODO: The next line is slow and confusing code.
         let canisters_to_build: Vec<&Arc<Canister>> = self.canisters.iter().filter(|c| order.contains(&c.canister_id())).collect();
+
+        self.step_prebuild_all(log, build_config, &canisters_to_build)
+            .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
+
         let mut result = Vec::new();
         for canister_id in &order {
             if let Some(canister) = self.get_canister(canister_id) {

@@ -18,22 +18,17 @@ teardown() {
 @test "trying to break dependency compiling" {
     dfx_start
 
-    assert_command dfx canister create dependent
-    assert_command dfx canister create dependency
-    assert_command dfx build -vv dependency
-    assert_command dfx build -vv dependent
-    # assert_contains '"dependent.mo"'
-    # assert_contains '"dependency.mo"'
+    assert_command dfx deploy -vv dependent
+    assert_contains '"dependent.mo"'
+    assert_contains '"dependency.mo"'
 
-    test "$(ls .dfx/local/canisters/idl)" != ""
+    touch dependent.mo
+    assert_command dfx deploy -vv dependent
+    assert_contains '"dependent.mo"'
+    assert_not_contains '"dependency.mo"'
 
-    # touch dependent.mo
-    # assert_command dfx deploy -vv dependent
-    # assert_contains '"dependent.mo"'
-    # assert_not_contains '"dependency.mo"'
-
-    # # touch dependency.mo
-    # # assert_command dfx deploy -vv dependent
-    # # assert_contains '"dependent.mo"'
-    # # assert_contains '"dependency.mo"'
+    touch dependency.mo
+    assert_command dfx deploy -vv dependent
+    assert_contains '"dependent.mo"'
+    assert_contains '"dependency.mo"'
 }
