@@ -44,7 +44,7 @@ teardown() {
     touch lib.mo
     assert_command dfx deploy -vv dependent
     assert_contains '"dependent.mo"'
-    assert_contains '"dependency.mo"'
+    assert_contains '"dependency.mo"' # FIXME: This test fails randomly
 
     touch lib.mo
     assert_command dfx deploy -vv dependency
@@ -83,7 +83,7 @@ teardown() {
     touch lib.mo
     assert_command dfx build -vv dependent
     assert_contains '"dependent.mo"'
-    assert_contains '"dependency.mo"'
+    assert_contains '"dependency.mo"' # FIXME: This test fails randomly
 
     touch lib.mo
     assert_command dfx build -vv dependency
