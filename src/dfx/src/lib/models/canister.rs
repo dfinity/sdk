@@ -655,6 +655,7 @@ impl CanisterPool {
 
     #[context("Failed step_prebuild_all.")]
     fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+        println!("step_prebuild_all: {:?}", self.canisters.iter().map(|c| c.get_name()).collect::<Vec<_>>());
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Because some canisters don't get built these .did files have to be copied over manually.
         for canister in self.canisters.iter().filter(|c| {
