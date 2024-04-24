@@ -40,6 +40,16 @@ teardown() {
     assert_command dfx deploy -vv dependent
     assert_contains '"dependent.mo"'
     assert_not_contains '"dependency.mo"'
+
+    touch lib.mo
+    assert_command dfx deploy -vv dependent
+    assert_contains '"dependent.mo"'
+    assert_contains '"dependency.mo"'
+
+    touch lib.mo
+    assert_command dfx deploy -vv dependency
+    assert_contains '"dependency.mo"'
+    assert_not_contains '"dependent.mo"'
 }
 
 @test "trying to break dependency compiling: build" {
@@ -69,4 +79,14 @@ teardown() {
     assert_command dfx build -vv dependent
     assert_contains '"dependent.mo"'
     assert_not_contains '"dependency.mo"'
+
+    touch lib.mo
+    assert_command dfx build -vv dependent
+    assert_contains '"dependent.mo"'
+    assert_contains '"dependency.mo"'
+
+    touch lib.mo
+    assert_command dfx build -vv dependency
+    assert_contains '"dependency.mo"'
+    assert_not_contains '"dependent.mo"'
 }
