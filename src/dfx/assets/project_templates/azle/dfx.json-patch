@@ -11,6 +11,7 @@
             "gzip": true,
             "tech_stack": {
                 "language": {
+                    "javascript": {},
                     "typescript": {}
                 },
                 "cdk": {

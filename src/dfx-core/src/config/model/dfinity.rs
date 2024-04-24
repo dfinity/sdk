@@ -323,6 +323,11 @@ pub struct ConfigCanistersCanister {
     /// The Candid initialization argument for installing the canister.
     /// If the `--argument` or `--argument-file` argument is also provided, this `init_arg` field will be ignored.
     pub init_arg: Option<String>,
+
+    /// # Init Arg File
+    /// The Candid initialization argument file for installing the canister.
+    /// If the `--argument` or `--argument-file` argument is also provided, this `init_arg_file` field will be ignored.
+    pub init_arg_file: Option<String>,
 }
 
 fn default_true() -> bool {

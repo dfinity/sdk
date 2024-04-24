@@ -18,6 +18,8 @@ Providing a standard format of such information makes it easier to build tools l
 
 Each category is a map keyed by the names of tech stack items, where each value is a map containing optional fields.
 
+The `"tech_stack"` object will be serialized as a part of the [`"dfx"` metadata](canister-metadata.md#dfx) and attached to the wasm.
+
 ### Example
 
 ```json
@@ -102,6 +104,23 @@ If the content of a custom field value begins with the prefix `$(` and ends with
 - The command will be executed in the workspace root directory, which contains the `dfx.json` file.
 - The stdout should be a valid UTF-8 string.
 - The field value will be obtained by trimming the stdout, removing any leading and trailing whitespace.
+
+## Fetch the metadata
+
+To retrieve the metadata and validate the generated information, execute the following command:
+
+```sh
+> dfx canister metadata <canister_name> dfx
+```
+
+Please note that the `"tech_stack"` object is part of the public metadata under the key [`"dfx"`](canister-metadata.md#dfx).
+
+Given that the content is in JSON format, you can utilize tools such as `jq` to manipulate the output and extract the pertinent information.
+
+```sh
+> dfx canister metadata <canister_name> dfx | jq -r ".tech_stack.language.rust.version"
+1.75.0
+```
 
 ## Q&A
 

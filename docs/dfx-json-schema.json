@@ -388,6 +388,14 @@
             "null"
           ]
         },
+        "init_arg_file": {
+          "title": "Init Arg File",
+          "description": "The Candid initialization argument file for installing the canister. If the `--argument` or `--argument-file` argument is also provided, this `init_arg_file` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "initialization_values": {
           "title": "Resource Allocation Settings",
           "description": "Defines initial values for resource allocation settings.",
