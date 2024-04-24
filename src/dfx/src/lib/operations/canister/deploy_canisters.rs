@@ -105,7 +105,7 @@ pub async fn deploy_canisters(
             .collect(),
     };
 
-    // FIXME: `build_order` is called two times during deployment of a new canister.                                                                                                                                                                                                                                                                                
+    // TODO: `build_order` is called two times during deployment of a new canister.                                                                                                                                                                                                                                                                                
     let order = canister_pool.build_order(env, &Some(canisters_to_build.clone()))?; // FIXME: `Some` here is a hack. // TODO: Eliminate `clone`.
     let order_names: Vec<String> = order.iter()
         .map(|canister| canister_pool.get_canister(canister).unwrap().get_name().to_owned()).collect(); // FIXME: Is `unwrap` here correct?
