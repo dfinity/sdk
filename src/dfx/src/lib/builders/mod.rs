@@ -4,7 +4,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister::Import;
-use slog::trace;
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
@@ -15,6 +14,7 @@ use dfx_core::util;
 use fn_error_context::context;
 use handlebars::Handlebars;
 use petgraph::visit::Bfs;
+use slog::trace;
 use slog::Logger;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
@@ -228,17 +228,27 @@ pub trait CanisterBuilder {
         Ok(())
     }
 
-    fn read_dependencies(&self, pool: &CanisterPool, canister_info: &CanisterInfo, cache: &dyn Cache) -> DfxResult {
-        if canister_info.is_motoko() { // hack
+    fn read_dependencies(
+        &self,
+        pool: &CanisterPool,
+        canister_info: &CanisterInfo,
+        cache: &dyn Cache,
+    ) -> DfxResult {
+        if canister_info.is_motoko() {
+            // hack
             add_imports(cache, canister_info, &mut pool.imports.borrow_mut(), pool)?;
         } else {
             let imports = &mut *pool.imports.borrow_mut();
             let node = Import::Canister(canister_info.get_name().to_owned());
-            let parent_id = *imports.nodes.entry(node.clone())
+            let parent_id = *imports
+                .nodes
+                .entry(node.clone())
                 .or_insert_with(|| imports.graph.add_node(node));
             for child in canister_info.get_dependencies() {
                 let child_node = Import::Canister(child.clone());
-                let child_id = *imports.nodes.entry(child_node.clone())
+                let child_id = *imports
+                    .nodes
+                    .entry(child_node.clone())
                     .or_insert_with(|| imports.graph.add_node(child_node));
                 imports.graph.update_edge(parent_id, child_id, ());
             }
@@ -269,7 +279,10 @@ pub trait CanisterBuilder {
         if let Ok(wasm_file_metadata) = metadata(output_wasm_path) {
             let wasm_file_time = wasm_file_metadata.modified()?;
             let imports = pool.imports.borrow_mut();
-            let start = if let Some(node_index) = imports.nodes.get(&Import::Canister(canister_info.get_name().to_string())) {
+            let start = if let Some(node_index) = imports
+                .nodes
+                .get(&Import::Canister(canister_info.get_name().to_string()))
+            {
                 *node_index
             } else {
                 panic!("programming error");
@@ -279,8 +292,11 @@ pub trait CanisterBuilder {
                 if let Some(import) = import_iter.next(&imports.graph) {
                     let subnode = &imports.graph[import];
                     let imported_file = match subnode {
-                        Import::Canister(canister_name) => { // duplicate code
-                            if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {
+                        Import::Canister(canister_name) => {
+                            // duplicate code
+                            if let Some(canister) =
+                                pool.get_first_canister_with_name(canister_name.as_str())
+                            {
                                 let main_file = canister.get_info().get_main_file();
                                 main_file.map(|main_file| main_file.to_owned())
                             } else {
@@ -289,8 +305,13 @@ pub trait CanisterBuilder {
                         }
                         Import::Ic(canister_id) => {
                             if let Some(canister_name) = rev_id_map.get(canister_id.as_str()) {
-                                if let Some(canister) = pool.get_first_canister_with_name(canister_name) {
-                                    canister.get_info().get_main_file().map(|main_file| main_file.to_owned())
+                                if let Some(canister) =
+                                    pool.get_first_canister_with_name(canister_name)
+                                {
+                                    canister
+                                        .get_info()
+                                        .get_main_file()
+                                        .map(|main_file| main_file.to_owned())
                                 } else {
                                     None
                                 }
@@ -301,32 +322,30 @@ pub trait CanisterBuilder {
                         Import::Lib(_path) => {
                             // Skip libs, all changes by package managers don't modify existing directories but create new ones.
                             continue;
-                        //     let i = path.find('/');
-                        //     let pre_path = if let Some(i) = i {
-                        //         let expanded = Path::new(
-                        //             package_arguments_map.get(&path[..i]).ok_or_else(|| anyhow!("nonexisting package"))?
-                        //         );
-                        //         expanded.join(&path[i+1..])
-                        //     } else {
-                        //         Path::new(path.as_str()).to_owned()
-                        //     };
-                        //     let path2 = pre_path.to_str().unwrap().to_owned() + ".mo";
-                        //     let path2 = path2.to_string();
-                        //     let path2 = Path::new(&path2);
-                        //     if path2.exists() { // TODO: Is it correct order of two variants?
-                        //         Some(Path::new(path2).to_owned())
-                        //     } else {
-                        //         let path3 = pre_path.join(Path::new("lib.mo"));
-                        //         if path3.exists() {
-                        //             Some(path3.to_owned())
-                        //         } else {
-                        //             bail!("source file has been deleted");
-                        //         }
-                        //     }
+                            //     let i = path.find('/');
+                            //     let pre_path = if let Some(i) = i {
+                            //         let expanded = Path::new(
+                            //             package_arguments_map.get(&path[..i]).ok_or_else(|| anyhow!("nonexisting package"))?
+                            //         );
+                            //         expanded.join(&path[i+1..])
+                            //     } else {
+                            //         Path::new(path.as_str()).to_owned()
+                            //     };
+                            //     let path2 = pre_path.to_str().unwrap().to_owned() + ".mo";
+                            //     let path2 = path2.to_string();
+                            //     let path2 = Path::new(&path2);
+                            //     if path2.exists() { // TODO: Is it correct order of two variants?
+                            //         Some(Path::new(path2).to_owned())
+                            //     } else {
+                            //         let path3 = pre_path.join(Path::new("lib.mo"));
+                            //         if path3.exists() {
+                            //             Some(path3.to_owned())
+                            //         } else {
+                            //             bail!("source file has been deleted");
+                            //         }
+                            //     }
                         }
-                        Import::Relative(path) => {
-                            Some(Path::new(&path).to_owned())
-                        }
+                        Import::Relative(path) => Some(Path::new(&path).to_owned()),
                     };
                     if let Some(imported_file) = imported_file {
                         let imported_file_metadata = metadata(&imported_file)?;
@@ -336,12 +355,16 @@ pub trait CanisterBuilder {
                         };
                     };
                 } else {
-                    trace!(logger, "Canister {} already compiled.", canister_info.get_name());
+                    trace!(
+                        logger,
+                        "Canister {} already compiled.",
+                        canister_info.get_name()
+                    );
                     return Ok(false);
                 }
             }
         };
-    
+
         Ok(true)
     }
 

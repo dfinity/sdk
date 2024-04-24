@@ -4,8 +4,8 @@ use crate::error::cache::CacheError;
 #[cfg(not(windows))]
 use crate::foundation::get_user_home;
 use semver::Version;
-use std::path::PathBuf;
 use std::fmt::Debug;
+use std::path::PathBuf;
 
 pub trait Cache {
     fn version_str(&self) -> String;

@@ -10,9 +10,7 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
-use crate::lib::operations::canister::{
-    create_canister, install_canister::install_canister,
-};
+use crate::lib::operations::canister::{create_canister, install_canister::install_canister};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -105,27 +103,44 @@ pub async fn deploy_canisters(
             .collect(),
     };
 
-    // TODO: `build_order` is called two times during deployment of a new canister.                                                                                                                                                                                                                                                                                
+    // TODO: `build_order` is called two times during deployment of a new canister.
     let order = canister_pool.build_order(env, &Some(canisters_to_build.clone()))?; // TODO: `Some` here is a hack. // TODO: Eliminate `clone`.
-    let order_names: Vec<String> = order.iter()
-        .map(|canister| canister_pool.get_canister(canister).unwrap().get_name().to_owned()).collect();
+    let order_names: Vec<String> = order
+        .iter()
+        .map(|canister| {
+            canister_pool
+                .get_canister(canister)
+                .unwrap()
+                .get_name()
+                .to_owned()
+        })
+        .collect();
 
     let canisters_to_install: &Vec<String> = &canisters_to_build
         .clone()
         .into_iter()
-        .filter(|canister_name|
-            !pull_canisters_in_config.contains_key(canister_name) &&
-                (some_canister == Some(canister_name) || // do deploy a canister that was explicitly specified
+        .filter(|canister_name| {
+            !pull_canisters_in_config.contains_key(canister_name)
+                && (some_canister == Some(canister_name) || // do deploy a canister that was explicitly specified
                     // TODO: This is a hack.
                     config.get_config().get_canister_config(canister_name).map_or(
-                        true, |canister_config| canister_config.deploy)))
-        .filter(|canister_name|
+                        true, |canister_config| canister_config.deploy))
+        })
+        .filter(|canister_name| {
             if let Some(canister) = canister_pool.get_first_canister_with_name(canister_name) {
-                canister.builder.should_build(&canister_pool, &canister.info, env.get_cache().as_ref(), env.get_logger()).unwrap() // FIXME: `unwrap()`
+                canister
+                    .builder
+                    .should_build(
+                        &canister_pool,
+                        &canister.info,
+                        env.get_cache().as_ref(),
+                        env.get_logger(),
+                    )
+                    .unwrap() // FIXME: `unwrap()`
             } else {
                 false
             }
-        )
+        })
         .collect();
 
     if some_canister.is_some() {

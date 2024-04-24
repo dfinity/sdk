@@ -6,7 +6,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
-use crate::lib::models::canister::{CanisterPool, ImportsTracker, Import};
+use crate::lib::models::canister::{CanisterPool, Import, ImportsTracker};
 use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets::management_idl;
 use anyhow::Context;
@@ -42,10 +42,15 @@ impl MotokoBuilder {
 
 /// Add imports originating from canister `info` to the graph `imports` of dependencies.
 #[context("Failed to find imports for canister at '{}'.", info.as_info::<MotokoCanisterInfo>().unwrap().get_main_path().display())]
-pub fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut ImportsTracker, pool: &CanisterPool) -> DfxResult<()> {
+pub fn add_imports(
+    cache: &dyn Cache,
+    info: &CanisterInfo,
+    imports: &mut ImportsTracker,
+    pool: &CanisterPool,
+) -> DfxResult<()> {
     let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
     #[context("Failed recursive dependency detection at {}.", file.display())]
-    fn add_imports_recursive (
+    fn add_imports_recursive(
         cache: &dyn Cache,
         file: &Path,
         imports: &mut ImportsTracker,
@@ -57,10 +62,13 @@ pub fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut Imports
         } else {
             Import::Relative(file.to_path_buf())
         };
-        if imports.nodes.get(&parent).is_some() { // The item is already in the graph.
+        if imports.nodes.get(&parent).is_some() {
+            // The item is already in the graph.
             return Ok(());
         } else {
-            imports.nodes.insert(parent.clone(), imports.graph.add_node(parent.clone()));
+            imports
+                .nodes
+                .insert(parent.clone(), imports.graph.add_node(parent.clone()));
         }
 
         let mut command = cache.get_binary_command("moc")?;
@@ -76,25 +84,48 @@ pub fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut Imports
                 Import::Relative(path) => {
                     add_imports_recursive(cache, path.as_path(), imports, pool, None)?;
                 }
-                Import::Canister(canister_name) => { // duplicate code
-                    if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {
+                Import::Canister(canister_name) => {
+                    // duplicate code
+                    if let Some(canister) =
+                        pool.get_first_canister_with_name(canister_name.as_str())
+                    {
                         let main_file = canister.get_info().get_main_file();
                         if let Some(main_file) = main_file {
-                            add_imports_recursive(cache, Path::new(main_file), imports, pool, Some(canister.get_info()))?;
+                            add_imports_recursive(
+                                cache,
+                                Path::new(main_file),
+                                imports,
+                                pool,
+                                Some(canister.get_info()),
+                            )?;
                         }
                     }
                 }
                 _ => {}
             }
-            let parent_node_index = *imports.nodes.entry(parent.clone()).or_insert_with(|| imports.graph.add_node(parent.clone()));
-            let child_node_index = *imports.nodes.entry(child.clone()).or_insert_with(|| imports.graph.add_node(child.clone()));
-            imports.graph.update_edge(parent_node_index, child_node_index, ());
+            let parent_node_index = *imports
+                .nodes
+                .entry(parent.clone())
+                .or_insert_with(|| imports.graph.add_node(parent.clone()));
+            let child_node_index = *imports
+                .nodes
+                .entry(child.clone())
+                .or_insert_with(|| imports.graph.add_node(child.clone()));
+            imports
+                .graph
+                .update_edge(parent_node_index, child_node_index, ());
         }
 
         Ok(())
     }
 
-    add_imports_recursive(cache, motoko_info.get_main_path(), imports, pool, Some(info))?;
+    add_imports_recursive(
+        cache,
+        motoko_info.get_main_path(),
+        imports,
+        pool,
+        Some(info),
+    )?;
 
     Ok(())
 }
@@ -106,18 +137,27 @@ impl CanisterBuilder for MotokoBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        add_imports(self.cache.as_ref(), info, &mut pool.imports.borrow_mut(), pool)?;
+        add_imports(
+            self.cache.as_ref(),
+            info,
+            &mut pool.imports.borrow_mut(),
+            pool,
+        )?;
         // TODO: In some reason, the following line is needed only for `deploy`, not for `build`.
 
         let graph = &pool.imports.borrow().graph;
         match petgraph::algo::toposort(&pool.imports.borrow().graph, None) {
             Ok(order) => {
-                Ok(order.into_iter().filter_map(|id| match graph.node_weight(id) {
-                    Some(Import::Canister(name)) => {
-                        pool.get_first_canister_with_name(name.as_str()) // TODO: a little inefficient
-                    }
-                    _ => None,
-                }).map(|canister| canister.canister_id()).collect())
+                Ok(order
+                    .into_iter()
+                    .filter_map(|id| match graph.node_weight(id) {
+                        Some(Import::Canister(name)) => {
+                            pool.get_first_canister_with_name(name.as_str()) // TODO: a little inefficient
+                        }
+                        _ => None,
+                    })
+                    .map(|canister| canister.canister_id())
+                    .collect())
             }
             Err(err) => {
                 let message = match graph.node_weight(err.node_id()) {
@@ -127,7 +167,7 @@ impl CanisterBuilder for MotokoBuilder {
                 return Err(DfxError::new(BuildError::DependencyError(format!(
                     "Found circular dependency: {}",
                     message
-                ))));    
+                ))));
             }
         }
     }
@@ -163,7 +203,11 @@ impl CanisterBuilder for MotokoBuilder {
             .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
         // If the management canister is being imported, emit the candid file.
-        if pool.imports.borrow().nodes.contains_key(&Import::Ic("aaaaa-aa".to_string()))
+        if pool
+            .imports
+            .borrow()
+            .nodes
+            .contains_key(&Import::Ic("aaaaa-aa".to_string()))
         {
             let management_idl_path = idl_dir_path.join("aaaaa-aa.did");
             dfx_core::fs::write(management_idl_path, management_idl()?)?;
@@ -174,16 +218,18 @@ impl CanisterBuilder for MotokoBuilder {
         let package_arguments =
             package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
         let mut package_arguments_map = BTreeMap::<&str, &str>::new();
-        { // block
+        {
+            // block
             let mut i = 0;
             while i + 3 <= package_arguments.len() {
                 if package_arguments[i] == "--package" {
-                    package_arguments_map.insert(&package_arguments[i+1], &package_arguments[i+2]);
+                    package_arguments_map
+                        .insert(&package_arguments[i + 1], &package_arguments[i + 2]);
                     i += 3;
                 } else {
                     i += 1;
                 }
-            };
+            }
         }
 
         let moc_arguments = match motoko_info.get_args() {
@@ -222,7 +268,8 @@ impl CanisterBuilder for MotokoBuilder {
         };
         motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
-        Ok(BuildOutput { // duplicate code
+        Ok(BuildOutput {
+            // duplicate code
             canister_id: canister_info
                 .get_canister_id()
                 .expect("Could not find canister ID."),

@@ -568,28 +568,45 @@ impl CanisterPool {
     ) -> DfxResult<DiGraph<CanisterId, ()>> {
         let real_canisters_to_build: Vec<_> = match canisters_to_build {
             Some(ref canisters_to_build) => canisters_to_build.clone(), // TODO: Remove `clone()`
-            None => self.canisters.iter().map(|canister| canister.get_name().to_string()).collect(),
+            None => self
+                .canisters
+                .iter()
+                .map(|canister| canister.get_name().to_string())
+                .collect(),
         };
 
-        for canister in &self.canisters { // a little inefficient
-            let contains = real_canisters_to_build.iter().contains(&canister.get_info().get_name().to_string());
+        for canister in &self.canisters {
+            // a little inefficient
+            let contains = real_canisters_to_build
+                .iter()
+                .contains(&canister.get_info().get_name().to_string());
             if contains {
                 let canister_info = &canister.info;
                 // TODO: Ignored return value is a hack.
-                let _deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?;
+                let _deps: Vec<CanisterId> =
+                    canister.builder.get_dependencies(self, canister_info)?;
             }
-            canister.builder.read_dependencies(self, canister.get_info(), cache)?; // TODO: It is called multiple times during the flow.
+            canister
+                .builder
+                .read_dependencies(self, canister.get_info(), cache)?; // TODO: It is called multiple times during the flow.
         }
 
         let source_graph = &self.imports.borrow().graph;
         let source_ids = &self.imports.borrow().nodes;
-        let start: Vec<_> =
-            real_canisters_to_build.iter().map(|name| Import::Canister(name.clone())).collect();
-        let start: Vec<_> = start.into_iter().filter_map(|node| if let Some(&id) = source_ids.get(&node) {
-            Some(id)
-        } else {
-            None
-        }).collect();
+        let start: Vec<_> = real_canisters_to_build
+            .iter()
+            .map(|name| Import::Canister(name.clone()))
+            .collect();
+        let start: Vec<_> = start
+            .into_iter()
+            .filter_map(|node| {
+                if let Some(&id) = source_ids.get(&node) {
+                    Some(id)
+                } else {
+                    None
+                }
+            })
+            .collect();
         // Transform the graph of file dependencies to graph of canister dependencies.
         // For this do DFS for each of `real_canisters_to_build`.
         let mut dest_graph: DiGraph<CanisterId, ()> = DiGraph::new();
@@ -603,8 +620,13 @@ impl CanisterPool {
                     panic!("programming error");
                 }
             };
-            let parent_canister = self.get_first_canister_with_name(parent_name).unwrap().canister_id();
-            dest_id_set.entry(start_node).or_insert_with(|| dest_graph.add_node(parent_canister));
+            let parent_canister = self
+                .get_first_canister_with_name(parent_name)
+                .unwrap()
+                .canister_id();
+            dest_id_set
+                .entry(start_node)
+                .or_insert_with(|| dest_graph.add_node(parent_canister));
 
             let bfs = Bfs::new(&source_graph, start_node);
             let mut filtered_bfs = BfsFiltered::new(bfs);
@@ -647,27 +669,38 @@ impl CanisterPool {
                 }
             )?;
         }
-        
+
         Ok(dest_graph)
     }
 
     fn canister_dependencies(&self, canisters_to_build: &[&Arc<Canister>]) -> Vec<Arc<Canister>> {
-        let iter = canisters_to_build.iter()
+        let iter = canisters_to_build
+            .iter()
             .flat_map(|&canister| {
                 // TODO: Is `unwrap` on the next line legit?
-                let parent_node = *self.imports.borrow().nodes.get(&Import::Canister(canister.as_ref().get_name().to_owned())).unwrap();
+                let parent_node = *self
+                    .imports
+                    .borrow()
+                    .nodes
+                    .get(&Import::Canister(canister.as_ref().get_name().to_owned()))
+                    .unwrap();
                 let imports = self.imports.borrow();
                 let neighbors = imports.graph.neighbors(parent_node);
                 neighbors
-                    .filter_map(|id| imports.nodes.iter()
-                        .find_map(move |(k, v)| if v == &id { Some(k.clone()) } else { None })) // TODO: slow
-                    .filter_map(|import|
+                    .filter_map(|id| {
+                        imports
+                            .nodes
+                            .iter()
+                            .find_map(move |(k, v)| if v == &id { Some(k.clone()) } else { None })
+                    }) // TODO: slow
+                    .filter_map(|import| {
                         if let Import::Canister(name) = import {
-                            self.get_first_canister_with_name(&name).map(|canister| (name, canister))
+                            self.get_first_canister_with_name(&name)
+                                .map(|canister| (name, canister))
                         } else {
                             None
                         }
-                    )
+                    })
                     .collect::<Vec<_>>()
             })
             .collect::<HashMap<_, _>>(); // eliminate duplicates
@@ -676,7 +709,12 @@ impl CanisterPool {
 
     /// TODO: Duplicate entity domain `canisters_to_build` and `build_config.canisters_to_build`.
     #[context("Failed step_prebuild_all.")]
-    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig, canisters_to_build: &[&Arc<Canister>]) -> DfxResult<()> {
+    fn step_prebuild_all(
+        &self,
+        log: &Logger,
+        build_config: &BuildConfig,
+        canisters_to_build: &[&Arc<Canister>],
+    ) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Copy .did files into this temporary directory.
         for canister in self.canister_dependencies(canisters_to_build) {
@@ -787,7 +825,8 @@ impl CanisterPool {
         canisters_to_build: &Option<Vec<String>>,
     ) -> DfxResult<Vec<CanisterId>> {
         trace!(env.get_logger(), "Building dependencies graph.");
-        let graph = self.build_dependencies_graph(canisters_to_build.clone(), env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
+        let graph =
+            self.build_dependencies_graph(canisters_to_build.clone(), env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
@@ -818,7 +857,11 @@ impl CanisterPool {
         let order = self.build_order(env, &build_config.canisters_to_build.clone())?; // TODO: Eliminate `clone`.
 
         // TODO: The next line is slow and confusing code.
-        let canisters_to_build: Vec<&Arc<Canister>> = self.canisters.iter().filter(|c| order.contains(&c.canister_id())).collect();
+        let canisters_to_build: Vec<&Arc<Canister>> = self
+            .canisters
+            .iter()
+            .filter(|c| order.contains(&c.canister_id()))
+            .collect();
 
         self.step_prebuild_all(log, build_config, canisters_to_build.as_slice())
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
@@ -829,17 +872,23 @@ impl CanisterPool {
                 if canisters_to_build
                     .iter()
                     .map(|c| c.get_name())
-                    .contains(&canister.get_name()) // TODO: slow
+                    .contains(&canister.get_name())
+                // TODO: slow
                 {
                     trace!(log, "Building canister '{}'.", canister.get_name());
                 } else {
                     trace!(log, "Not building canister '{}'.", canister.get_name());
                     continue;
                 }
-                if !canister.builder.should_build(self, &canister.info, env.get_cache().as_ref(), env.get_logger())? {
+                if !canister.builder.should_build(
+                    self,
+                    &canister.info,
+                    env.get_cache().as_ref(),
+                    env.get_logger(),
+                )? {
                     continue;
                 }
-        
+
                 result.push(
                     self.step_prebuild(build_config, canister)
                         .map_err(|e| {
@@ -884,7 +933,12 @@ impl CanisterPool {
     ///
     /// TODO: `log` can be got from `env`, can't it?
     #[context("Failed while trying to build all canisters.")]
-    pub async fn build_or_fail(&self, env: &dyn Environment, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+    pub async fn build_or_fail(
+        &self,
+        env: &dyn Environment,
+        log: &Logger,
+        build_config: &BuildConfig,
+    ) -> DfxResult<()> {
         self.download(build_config).await?;
         let outputs = self.build(env, log, build_config)?;
 
