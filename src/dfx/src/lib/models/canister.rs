@@ -605,7 +605,7 @@ impl CanisterPool {
                     panic!("programming error");
                 }
             };
-            let parent_canister = self.get_first_canister_with_name(&parent_name).unwrap().canister_id();
+            let parent_canister = self.get_first_canister_with_name(parent_name).unwrap().canister_id();
             dest_id_set.entry(start_node).or_insert_with(|| dest_graph.add_node(parent_canister));
 
             let bfs = Bfs::new(&source_graph, start_node);
@@ -628,7 +628,7 @@ impl CanisterPool {
                             panic!("programming error");
                         }
                     };
-                    let parent_canister = self.get_first_canister_with_name(&parent_name).unwrap().canister_id();
+                    let parent_canister = self.get_first_canister_with_name(parent_name).unwrap().canister_id();
 
                     let child = source_graph.node_weight(source_child_id).unwrap();
                     let child_name = match child {
@@ -637,7 +637,7 @@ impl CanisterPool {
                             panic!("programming error");
                         }
                     };
-                    let child_canister = self.get_first_canister_with_name(&child_name)
+                    let child_canister = self.get_first_canister_with_name(child_name)
                         .ok_or_else(|| anyhow!("A canister with the name '{}' was not found in the current project.", child_name.clone()))?
                         .canister_id();
 
@@ -655,7 +655,7 @@ impl CanisterPool {
 
     /// TODO: Duplicate entity domain `canisters_to_build` and `build_config.canisters_to_build`.
     #[context("Failed step_prebuild_all.")]
-    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig, canisters_to_build: &Vec<&Arc<Canister>>) -> DfxResult<()> {
+    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig, canisters_to_build: &[&Arc<Canister>]) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Because some canisters don't get built these .did files have to be copied over manually.
         let iter = canisters_to_build.iter()
@@ -819,7 +819,7 @@ impl CanisterPool {
         // TODO: The next line is slow and confusing code.
         let canisters_to_build: Vec<&Arc<Canister>> = self.canisters.iter().filter(|c| order.contains(&c.canister_id())).collect();
 
-        self.step_prebuild_all(log, build_config, &canisters_to_build)
+        self.step_prebuild_all(log, build_config, canisters_to_build.as_slice())
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let mut result = Vec::new();

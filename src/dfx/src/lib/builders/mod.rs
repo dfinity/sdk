@@ -243,7 +243,7 @@ pub trait CanisterBuilder {
             .collect();
 
         if canister_info.is_motoko() { // hack
-            add_imports(cache, canister_info, &mut *pool.imports.borrow_mut(), pool)?;
+            add_imports(cache, canister_info, &mut pool.imports.borrow_mut(), pool)?;
         }
 
         // Check that one of the dependencies is newer than the target:
@@ -267,11 +267,7 @@ pub trait CanisterBuilder {
                         Import::Canister(canister_name) => { // duplicate code
                             if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {
                                 let main_file = canister.get_info().get_main_file();
-                                if let Some(main_file) = main_file {
-                                    Some(main_file.to_owned())
-                                } else {
-                                    None
-                                }
+                                main_file.map(|main_file| main_file.to_owned())
                             } else {
                                 None
                             }
@@ -279,11 +275,7 @@ pub trait CanisterBuilder {
                         Import::Ic(canister_id) => {
                             if let Some(canister_name) = rev_id_map.get(canister_id.as_str()) {
                                 if let Some(canister) = pool.get_first_canister_with_name(canister_name) {
-                                    if let Some(main_file) = canister.get_info().get_main_file() {
-                                        Some(main_file.to_owned())
-                                    } else {
-                                        None
-                                    }
+                                    canister.get_info().get_main_file().map(|main_file| main_file.to_owned())
                                 } else {
                                     None
                                 }

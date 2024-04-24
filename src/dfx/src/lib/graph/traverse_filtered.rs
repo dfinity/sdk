@@ -24,14 +24,14 @@ impl<NodeId, VM> BfsFiltered<NodeId, VM> {
           VM: VisitMap<NodeId>,
     {
         while let Some(source_child_id) = &self.base.next(graph) {
-            if (&mut predicate)(source_child_id)? {
+            if predicate(source_child_id)? {
                 let mut source_parent_iter = graph.neighbors_directed(*source_child_id, Incoming);
                 let mut source_parent_id;
                 if let Some(id1) = source_parent_iter.next() {
                     source_parent_id = id1;
                     loop {
-                        if (&mut predicate)(&source_parent_id)? {
-                            (&mut call)(&source_parent_id, &source_child_id)?;
+                        if predicate(&source_parent_id)? {
+                            call(&source_parent_id, source_child_id)?;
                             break;
                         }
                         if let Some(id2) = source_parent_iter.next() {

@@ -121,7 +121,7 @@ impl CanisterBuilder for MotokoBuilder {
             }
             Err(err) => {
                 let message = match graph.node_weight(err.node_id()) {
-                    Some(Import::Canister(name)) => &name,
+                    Some(Import::Canister(name)) => name,
                     _ => "<Unknown>",
                 };
                 return Err(DfxError::new(BuildError::DependencyError(format!(
