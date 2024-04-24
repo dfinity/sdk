@@ -659,7 +659,7 @@ impl CanisterPool {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Because some canisters don't get built these .did files have to be copied over manually.
         let iter = canisters_to_build.iter()
-            .map(|&canister| {
+            .flat_map(|&canister| {
                 // TODO: Is `unwrap` on the next line legit?
                 let parent_node = *self.imports.borrow().nodes.get(&Import::Canister(canister.as_ref().get_name().to_owned())).unwrap();
                 let imports = self.imports.borrow();
@@ -676,8 +676,7 @@ impl CanisterPool {
                     )
                     // .map(|x| (x, ()))
                     .collect::<Vec<_>>()
-            })
-            .flatten();
+            });
         // FIXME: The above may produce duplicate canisters.
         for canister in iter {
             let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
