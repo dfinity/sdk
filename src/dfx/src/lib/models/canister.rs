@@ -657,7 +657,7 @@ impl CanisterPool {
     #[context("Failed step_prebuild_all.")]
     fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig, canisters_to_build: &[&Arc<Canister>]) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
-        // Because some canisters don't get built these .did files have to be copied over manually.
+        // Copy .did files into this temporary directory.
         let iter = canisters_to_build.iter()
             .flat_map(|&canister| {
                 // TODO: Is `unwrap` on the next line legit?
