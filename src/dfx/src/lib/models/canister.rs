@@ -763,15 +763,15 @@ impl CanisterPool {
         canister.postbuild(self, build_config)
     }
 
-    // FIXME: Make cleanup reverse to the (updated) `step_prebuild_all`.
     fn step_postbuild_all(
         &self,
         build_config: &BuildConfig,
         _order: &[CanisterId],
+        canisters_to_build: &[&Arc<Canister>],
     ) -> DfxResult<()> {
         // We don't want to simply remove the whole directory, as in the future,
         // we may want to keep the IDL files downloaded from network.
-        for canister in self.canisters_to_build(build_config) {
+        for canister in self.canister_dependencies(canisters_to_build) {
             let idl_root = &build_config.idl_root;
             let canister_id = canister.canister_id();
             let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
@@ -875,7 +875,7 @@ impl CanisterPool {
             }
         }
 
-        self.step_postbuild_all(build_config, &order)
+        self.step_postbuild_all(build_config, &order, canisters_to_build.as_slice())
             .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
 
         Ok(result)
