@@ -653,11 +653,7 @@ impl CanisterPool {
         Ok(dest_graph)
     }
 
-    /// TODO: Duplicate entity domain `canisters_to_build` and `build_config.canisters_to_build`.
-    #[context("Failed step_prebuild_all.")]
-    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig, canisters_to_build: &[&Arc<Canister>]) -> DfxResult<()> {
-        // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
-        // Copy .did files into this temporary directory.
+    fn canister_dependencies(&self, canisters_to_build: &[&Arc<Canister>]) -> Vec<Arc<Canister>> {
         let iter = canisters_to_build.iter()
             .flat_map(|&canister| {
                 // TODO: Is `unwrap` on the next line legit?
@@ -677,8 +673,15 @@ impl CanisterPool {
                     .collect::<Vec<_>>()
             })
             .collect::<HashMap<_, _>>(); // eliminate duplicates
-        let iter = iter.values();
-        for canister in iter {
+        iter.values().map(|p| p.clone()).collect()
+    }
+
+    /// TODO: Duplicate entity domain `canisters_to_build` and `build_config.canisters_to_build`.
+    #[context("Failed step_prebuild_all.")]
+    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig, canisters_to_build: &[&Arc<Canister>]) -> DfxResult<()> {
+        // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
+        // Copy .did files into this temporary directory.
+        for canister in self.canister_dependencies(canisters_to_build) {
             let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
                 Some(remote_candid)
             } else {
