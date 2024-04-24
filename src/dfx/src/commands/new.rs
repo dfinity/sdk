@@ -344,17 +344,15 @@ fn scaffold_frontend_code(
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
     let log = env.get_logger();
-    let node_installed = Command::new(program::NODE)
-        .arg("--version")
-        .output()
-        .is_ok();
+    let node_installed = program_installed(program::NODE);
+    let npm_installed = program_installed(program::NPM);
 
     let project_name_str = project_name
         .to_str()
         .ok_or_else(|| anyhow!("Invalid argument: project_name"))?;
 
-    if node_installed {
-        // Check if node is available, and if it is create the files for the frontend build.
+    // Check if node and npm are available, and if so create the files for the frontend build.
+    if node_installed && npm_installed {
         let js_agent_version = if let Some(v) = agent_version {
             v.clone()
         } else {
@@ -419,11 +417,18 @@ fn scaffold_frontend_code(
                 log,
                 "Node could not be found. Skipping installing the frontend example code."
             );
+        }
+        if !npm_installed {
             warn!(
                 log,
-                "You can bypass this check by using the --frontend flag."
+                "npm could not be found. Skipping installing the frontend example code."
             );
         }
+
+        warn!(
+            log,
+            "You can bypass this check by using the --frontend flag."
+        );
         write_files_from_entries(
             log,
             &mut assets::new_project_assets_files()?,
@@ -436,24 +441,28 @@ fn scaffold_frontend_code(
     Ok(())
 }
 
+fn program_installed(program: &str) -> bool {
+    let result = Command::new(program).arg("--version").output();
+    matches!(result, Ok(output) if output.status.success())
+}
+
 fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
-    Command::new(program::NPM)
+    let output = Command::new(program::NPM)
         .arg("show")
         .arg("@dfinity/agent")
         .arg(&format!("dist-tags.{}", dist_tag))
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
-        .spawn()
-        .map_err(DfxError::from)
-        .and_then(|child| {
-            let mut result = String::new();
-            child
-                .stdout
-                .expect("Could not get the output of subprocess 'npm'.")
-                .read_to_string(&mut result)
-                .context("Failed to run 'npm'.")?;
-            Ok(result.trim().to_string())
-        })
+        .output()
+        .context("Failed to execute 'npm show @dfinity/agent'")?;
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "npm command failed with exit code {}",
+            output.status.code().unwrap_or_default()
+        ));
+    }
+    let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Ok(result)
 }
 
 pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
