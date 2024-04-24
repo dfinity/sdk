@@ -566,17 +566,13 @@ impl CanisterPool {
         canisters_to_build: Option<Vec<String>>,
         cache: &dyn Cache,
     ) -> DfxResult<DiGraph<CanisterId, ()>> {
-        println!("canisters_to_build: {:?}", canisters_to_build); // FIXME: Remove.
         let real_canisters_to_build: Vec<_> = match canisters_to_build {
             Some(ref canisters_to_build) => canisters_to_build.clone(), // TODO: Remove `clone()`
             None => self.canisters.iter().map(|canister| canister.get_name().to_string()).collect(),
         };
-        println!("real_canisters_to_build: {:?}", real_canisters_to_build); // FIXME: Remove.
-        println!("self.canisters: {:?}", self.canisters.iter().map(|c| c.get_name()).collect::<Vec<_>>()); // FIXME: Remove.
 
         for canister in &self.canisters { // a little inefficient
             let contains = real_canisters_to_build.iter().contains(&canister.get_info().get_name().to_string());
-            println!("Contains: {}", contains);
             if contains {
                 let canister_info = &canister.info;
                 // TODO: Ignored return value is a hack.
@@ -589,14 +585,11 @@ impl CanisterPool {
         let source_ids = &self.imports.borrow().nodes;
         let start: Vec<_> =
             real_canisters_to_build.iter().map(|name| Import::Canister(name.clone())).collect();
-        println!("start1: {:?}", start); // FIXME: Remove.
         let start: Vec<_> = start.into_iter().filter_map(|node| if let Some(&id) = source_ids.get(&node) {
             Some(id)
         } else {
             None
         }).collect();
-        println!("source_ids: {:?}", source_ids); // FIXME: Remove.
-        println!("start2: {:?}", start); // FIXME: Remove.
         // Transform the graph of file dependencies to graph of canister dependencies.
         // For this do DFS for each of `real_canisters_to_build`.
         let mut dest_graph: DiGraph<CanisterId, ()> = DiGraph::new();
@@ -795,7 +788,6 @@ impl CanisterPool {
     ) -> DfxResult<Vec<CanisterId>> {
         trace!(env.get_logger(), "Building dependencies graph.");
         let graph = self.build_dependencies_graph(canisters_to_build.clone(), env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
-        println!("YYY graph.node_count(): {}", graph.node_count());
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
@@ -806,7 +798,6 @@ impl CanisterPool {
             };
             BuildError::DependencyError(format!("Found circular dependency: {}", message))
         })?;
-        println!("YYY nodes.len(): {}", nodes.len());
         Ok(nodes
             .iter()
             .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.

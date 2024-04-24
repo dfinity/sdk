@@ -233,7 +233,6 @@ pub trait CanisterBuilder {
             add_imports(cache, canister_info, &mut pool.imports.borrow_mut(), pool)?;
         } else {
             let imports = &mut *pool.imports.borrow_mut();
-            println!("ADDING NON-MOTOKO node: {}", canister_info.get_name()); // FIXME
             let node = Import::Canister(canister_info.get_name().to_owned());
             let parent_id = *imports.nodes.entry(node.clone())
                 .or_insert_with(|| imports.graph.add_node(node));
