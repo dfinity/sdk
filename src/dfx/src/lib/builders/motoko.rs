@@ -57,7 +57,7 @@ pub fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut Imports
         } else {
             Import::Relative(file.to_path_buf())
         };
-        if let Some(_) = imports.nodes.get(&parent) { // The item is already in the graph.
+        if imports.nodes.get(&parent).is_some() { // The item is already in the graph.
             return Ok(());
         } else {
             imports.nodes.insert(parent.clone(), imports.graph.add_node(parent.clone()));
@@ -106,7 +106,7 @@ impl CanisterBuilder for MotokoBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        add_imports(self.cache.as_ref(), info, &mut *pool.imports.borrow_mut(), pool)?;
+        add_imports(self.cache.as_ref(), info, &mut pool.imports.borrow_mut(), pool)?;
         // TODO: In some reason, the following line is needed only for `deploy`, not for `build`.
 
         let graph = &pool.imports.borrow().graph;
@@ -121,11 +121,8 @@ impl CanisterBuilder for MotokoBuilder {
             }
             Err(err) => {
                 let message = match graph.node_weight(err.node_id()) {
-                    Some(canister_id) => match canister_id {
-                        Import::Canister(name) => &name,
-                        _ => "<Unknown>",
-                    },
-                    None => "<Unknown>",
+                    Some(Import::Canister(name)) => &name,
+                    _ => "<Unknown>",
                 };
                 return Err(DfxError::new(BuildError::DependencyError(format!(
                     "Found circular dependency: {}",
