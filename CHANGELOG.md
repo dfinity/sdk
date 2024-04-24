@@ -8,10 +8,14 @@ Please see [extension-defined-canister-types](docs/concepts/extension-defined-ca
 
 ### feat: init_arg_file in dfx.json
 
-In addition to setting `init_arg` in `dfx.json`, `init_arg_file` can be set in `dfx.json`.
-- Please set a relative path to the directory where the the `dfx.json` is located.
-- `init_arg` and `init_arg_file` cannot be set simultaneously.
-- If `--argument` or `--argument-file` are provided, the argument from the command line takes precedence over the one in dfx.json.
+Introduces support for the `init_arg_file` field in `dfx.json`, providing an alternative method to specify initialization arguments.
+
+This field accepts a relative path, from the directory containing the `dfx.json` file.
+
+**Note**
+
+- Only one of `init_arg` and `init_arg_file` can be defined at a time.
+- If `--argument` or `--argument-file` are set, the argument from the command line takes precedence over the one in dfx.json.
 
 ### Cycles wallet
 
