@@ -665,10 +665,10 @@ impl CanisterPool {
                 let imports = self.imports.borrow();
                 let neighbors = imports.graph.neighbors(parent_node);
                 neighbors
-                    .map(|id| imports.nodes.iter()
+                    .filter_map(|id| imports.nodes.iter()
                         .find_map(move |(k, v)| if v == &id { Some(k.clone()) } else { None })) // TODO: slow
                     .filter_map(|import|
-                        if let Some(Import::Canister(name)) = import { // TODO: The above produces a superfluous `Option<>`.
+                        if let Import::Canister(name) = import {
                             self.get_first_canister_with_name(&name)
                         } else {
                             None
