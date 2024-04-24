@@ -157,7 +157,6 @@ pub async fn deploy_canisters(
 
     // let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
-    // let pool = canister_pool; // TODO
     build_canisters(
         env,
         // &order_names,
