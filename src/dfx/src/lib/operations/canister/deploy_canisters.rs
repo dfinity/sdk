@@ -81,7 +81,7 @@ pub async fn deploy_canisters(
 
     let required_canisters = config
         .get_config()
-        .get_canister_names_with_dependencies(some_canister.as_deref())?;
+        .get_canister_names_with_dependencies(some_canister)?;
     let canisters_to_load = add_canisters_with_ids(&required_canisters, env, &config);
     let canister_pool = CanisterPool::load(env, true, &canisters_to_load)?;
 
