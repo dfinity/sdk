@@ -247,6 +247,16 @@ pub trait CanisterBuilder {
 
         if canister_info.is_motoko() { // hack
             add_imports(cache, canister_info, &mut pool.imports.borrow_mut(), pool)?;
+        } else {
+            let node = Import::Canister(canister_info.get_name().to_owned());
+            let parent_id = *pool.imports.borrow_mut().nodes.entry(node.clone())
+                .or_insert_with(|| pool.imports.borrow_mut().graph.add_node(node));
+            for child in canister_info.get_dependencies() {
+                let child_node = Import::Canister(child.clone());
+                let child_id = *pool.imports.borrow_mut().nodes.entry(child_node.clone())
+                    .or_insert_with(|| pool.imports.borrow_mut().graph.add_node(child_node));
+                pool.imports.borrow_mut().graph.update_edge(parent_id, child_id, ());
+            }
         }
 
         // Check that one of the dependencies is newer than the target:
