@@ -155,8 +155,6 @@ pub async fn deploy_canisters(
         info!(env.get_logger(), "All canisters have already been created.");
     }
 
-    // let canisters_to_load = all_project_canisters_with_ids(env, &config);
-
     build_canisters(
         env,
         // &order_names,
