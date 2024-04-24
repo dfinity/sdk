@@ -256,11 +256,7 @@ pub trait CanisterBuilder {
             let start = if let Some(node_index) = imports.nodes.get(&Import::Canister(canister_info.get_name().to_string())) {
                 *node_index
             } else {
-                panic!("programming error"); // FIXME: correct?
-                // let node = Import::Relative(canister_info.get_main_path().to_path_buf());
-                // let node_index = imports.graph.add_node(node.clone());
-                // imports.nodes.insert(node, node_index);
-                // node_index
+                panic!("programming error");
             };
             let mut import_iter = Bfs::new(&imports.graph, start);
             loop {
