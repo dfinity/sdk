@@ -6,6 +6,17 @@
 
 Please see [extension-defined-canister-types](docs/concepts/extension-defined-canister-types.md) for details.
 
+### feat: init_arg_file in dfx.json
+
+Introduces support for the `init_arg_file` field in `dfx.json`, providing an alternative method to specify initialization arguments.
+
+This field accepts a relative path, from the directory containing the `dfx.json` file.
+
+**Note**
+
+- Only one of `init_arg` and `init_arg_file` can be defined at a time.
+- If `--argument` or `--argument-file` are set, the argument from the command line takes precedence over the one in dfx.json.
+
 ### fix: dfx new failure when node is available but npm is not
 
 `dfx new` could fail with "Failed to scaffold frontend code" if node was installed but npm was not installed.
