@@ -13,6 +13,7 @@ use crate::util::assets;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
+use dfx_core::config::cache::Cache;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{
     CanisterMetadataSection, Config, MetadataVisibility, TechStack, WasmOptLevel,
@@ -562,7 +563,8 @@ impl CanisterPool {
     #[context("Failed to build dependencies graph for canister pool.")]
     fn build_dependencies_graph(
         &self,
-        canisters_to_build: Option<Vec<String>>
+        canisters_to_build: Option<Vec<String>>,
+        cache: &dyn Cache,
     ) -> DfxResult<DiGraph<CanisterId, ()>> {
         println!("canisters_to_build: {:?}", canisters_to_build); // FIXME: Remove.
         let real_canisters_to_build: Vec<_> = match canisters_to_build {
@@ -573,16 +575,14 @@ impl CanisterPool {
         println!("self.canisters: {:?}", self.canisters.iter().map(|c| c.get_name()).collect::<Vec<_>>()); // FIXME: Remove.
 
         for canister in &self.canisters { // a little inefficient
-            let contains = if let Some(canisters_to_build) = &canisters_to_build {
-                canisters_to_build.iter().contains(&canister.get_info().get_name().to_string())
-            } else {
-                true // because user specified to build all canisters
-            };
+            let contains = real_canisters_to_build.iter().contains(&canister.get_info().get_name().to_string());
+            println!("Contains: {}", contains);
             if contains {
                 let canister_info = &canister.info;
                 // TODO: Ignored return value is a hack.
                 let _deps: Vec<CanisterId> = canister.builder.get_dependencies(self, canister_info)?;
             }
+            canister.builder.read_dependencies(self, canister.get_info(), cache)?; // TODO: It is called multiple times during the flow.
         }
 
         let source_graph = &self.imports.borrow().graph;
@@ -794,7 +794,7 @@ impl CanisterPool {
         canisters_to_build: &Option<Vec<String>>,
     ) -> DfxResult<Vec<CanisterId>> {
         trace!(env.get_logger(), "Building dependencies graph.");
-        let graph = self.build_dependencies_graph(canisters_to_build.clone())?; // TODO: Can `clone` be eliminated?
+        let graph = self.build_dependencies_graph(canisters_to_build.clone(), env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
         println!("YYY graph.node_count(): {}", graph.node_count());
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {

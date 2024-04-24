@@ -228,6 +228,25 @@ pub trait CanisterBuilder {
         Ok(())
     }
 
+    fn read_dependencies(&self, pool: &CanisterPool, canister_info: &CanisterInfo, cache: &dyn Cache) -> DfxResult {
+        if canister_info.is_motoko() { // hack
+            add_imports(cache, canister_info, &mut pool.imports.borrow_mut(), pool)?;
+        } else {
+            let imports = &mut *pool.imports.borrow_mut();
+            println!("ADDING NON-MOTOKO node: {}", canister_info.get_name()); // FIXME
+            let node = Import::Canister(canister_info.get_name().to_owned());
+            let parent_id = *imports.nodes.entry(node.clone())
+                .or_insert_with(|| imports.graph.add_node(node));
+            for child in canister_info.get_dependencies() {
+                let child_node = Import::Canister(child.clone());
+                let child_id = *imports.nodes.entry(child_node.clone())
+                    .or_insert_with(|| imports.graph.add_node(child_node));
+                imports.graph.update_edge(parent_id, child_id, ());
+            }
+        }
+        Ok(())
+    }
+
     fn should_build(
         &self,
         pool: &CanisterPool,
@@ -245,20 +264,7 @@ pub trait CanisterBuilder {
             .map(|&c| (c.canister_id().to_text(), c.get_name().to_string()))
             .collect();
 
-        if canister_info.is_motoko() { // hack
-            add_imports(cache, canister_info, &mut pool.imports.borrow_mut(), pool)?;
-        } else {
-            let imports = &mut *pool.imports.borrow_mut();
-            let node = Import::Canister(canister_info.get_name().to_owned());
-            let parent_id = *imports.nodes.entry(node.clone())
-                .or_insert_with(|| imports.graph.add_node(node));
-            for child in canister_info.get_dependencies() {
-                let child_node = Import::Canister(child.clone());
-                let child_id = *imports.nodes.entry(child_node.clone())
-                    .or_insert_with(|| imports.graph.add_node(child_node));
-                imports.graph.update_edge(parent_id, child_id, ());
-            }
-        }
+        self.read_dependencies(pool, canister_info, cache)?;
 
         // Check that one of the dependencies is newer than the target:
         if let Ok(wasm_file_metadata) = metadata(output_wasm_path) {
