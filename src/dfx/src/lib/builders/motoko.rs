@@ -80,7 +80,7 @@ pub fn add_imports(cache: &dyn Cache, info: &CanisterInfo, imports: &mut Imports
                     if let Some(canister) = pool.get_first_canister_with_name(canister_name.as_str()) {
                         let main_file = canister.get_info().get_main_file();
                         if let Some(main_file) = main_file {
-                            add_imports_recursive(cache, Path::new(main_file), imports, pool, None)?;
+                            add_imports_recursive(cache, Path::new(main_file), imports, pool, Some(canister.get_info()))?;
                         }
                     }
                 }
