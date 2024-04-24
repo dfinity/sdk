@@ -669,15 +669,15 @@ impl CanisterPool {
                         .find_map(move |(k, v)| if v == &id { Some(k.clone()) } else { None })) // TODO: slow
                     .filter_map(|import|
                         if let Import::Canister(name) = import {
-                            self.get_first_canister_with_name(&name)
+                            self.get_first_canister_with_name(&name).map(|canister| (name, canister))
                         } else {
                             None
                         }
                     )
-                    // .map(|x| (x, ()))
                     .collect::<Vec<_>>()
-            });
-        // FIXME: The above may produce duplicate canisters.
+            })
+            .collect::<HashMap<_, _>>(); // eliminate duplicates
+        let iter = iter.values();
         for canister in iter {
             let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
                 Some(remote_candid)
