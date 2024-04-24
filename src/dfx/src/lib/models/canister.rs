@@ -653,7 +653,7 @@ impl CanisterPool {
         Ok(dest_graph)
     }
 
-    /// TODO: Duplicate entity domainL `canisters_to_build` and `build_config.canisters_to_build`.
+    /// TODO: Duplicate entity domain `canisters_to_build` and `build_config.canisters_to_build`.
     #[context("Failed step_prebuild_all.")]
     fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig, canisters_to_build: &Vec<&Arc<Canister>>) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
