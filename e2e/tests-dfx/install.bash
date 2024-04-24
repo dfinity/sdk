@@ -301,7 +301,8 @@ teardown() {
   dfx canister create dependency
   dfx build dependency
   assert_command_fail dfx canister install dependency
-  assert_contains "Cannot provide both 'init_arg' and 'init_arg_file' in dfx.json."
+  assert_contains "At most one of the fields 'init_arg' and 'init_arg_file' should be defined in \`dfx.json\`.
+Please remove one of them or leave both undefined."
 }
 
 @test "install succeeds when specify canister id and wasm, in dir without dfx.json" {
