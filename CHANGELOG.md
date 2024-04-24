@@ -17,6 +17,10 @@ This field accepts a relative path, from the directory containing the `dfx.json`
 - Only one of `init_arg` and `init_arg_file` can be defined at a time.
 - If `--argument` or `--argument-file` are set, the argument from the command line takes precedence over the one in dfx.json.
 
+### fix: dfx new failure when node is available but npm is not
+
+`dfx new` could fail with "Failed to scaffold frontend code" if node was installed but npm was not installed.
+
 ### Cycles wallet
 
 Updated cycles wallet to a gzipped version of `20240410` release:
