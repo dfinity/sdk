@@ -14,11 +14,12 @@ use crate::error::dfx_config::GetPullCanistersError::PullCanistersSameId;
 use crate::error::dfx_config::GetRemoteCanisterIdError::GetRemoteCanisterIdFailed;
 use crate::error::dfx_config::GetReservedCyclesLimitError::GetReservedCyclesLimitFailed;
 use crate::error::dfx_config::GetSpecifiedIdError::GetSpecifiedIdFailed;
+use crate::error::dfx_config::GetWasmMemoryLimitError::GetWasmMemoryLimitFailed;
 use crate::error::dfx_config::{
     AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError,
     GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError,
     GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError,
-    GetSpecifiedIdError,
+    GetSpecifiedIdError, GetWasmMemoryLimitError,
 };
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
@@ -429,6 +430,18 @@ pub struct InitializationValues {
     /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.
     #[schemars(with = "Option<u128>")]
     pub reserved_cycles_limit: Option<u128>,
+
+    /// # WASM Memory Limit
+    /// Specifies a soft limit (in bytes) on the Wasm memory usage of the canister.
+    ///
+    /// Update calls, timers, heartbeats, installs, and post-upgrades fail if the
+    /// WASM memory usage exceeds this limit. The main purpose of this setting is
+    /// to protect against the case when the canister reaches the hard 4GiB
+    /// limit.
+    ///
+    /// Must be a number between 0 and 2^48 (i.e. 256 TiB), inclusive.
+    #[schemars(with = "Option<u64>")]
+    pub wasm_memory_limit: Option<Byte>,
 }
 
 /// # Declarations Configuration
@@ -936,6 +949,17 @@ impl ConfigInterface {
             .map_err(|e| GetReservedCyclesLimitFailed(canister_name.to_string(), e))?
             .initialization_values
             .reserved_cycles_limit)
+    }
+
+    pub fn get_wasm_memory_limit(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<Byte>, GetWasmMemoryLimitError> {
+        Ok(self
+            .get_canister_config(canister_name)
+            .map_err(|e| GetWasmMemoryLimitFailed(canister_name.to_string(), e))?
+            .initialization_values
+            .wasm_memory_limit)
     }
 
     fn get_canister_config(

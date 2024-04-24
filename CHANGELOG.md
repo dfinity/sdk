@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: WASM memory soft-limit
+
+Adds support for the `wasm_memory_limit` canister setting, which limits the canister's heap during most calls but does not affect queries. As with other canister settings, it can be set in `dfx canister create` or `dfx canister update-settings` via the `--wasm-memory-limit` flag, as well as in `dfx.json` under `canisters[].initialization_values.wasm_memory_limit`.
+
 ### feat: extensions can define a canister type
 
 Please see [extension-defined-canister-types](docs/concepts/extension-defined-canister-types.md) for details.

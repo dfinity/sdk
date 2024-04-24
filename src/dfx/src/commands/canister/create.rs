@@ -3,13 +3,13 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation,
-    get_reserved_cycles_limit, CanisterSettings,
+    get_reserved_cycles_limit, get_wasm_memory_limit, CanisterSettings,
 };
 use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
-    reserved_cycles_limit_parser,
+    reserved_cycles_limit_parser, wasm_memory_limit_parser,
 };
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
@@ -77,6 +77,17 @@ pub struct CanisterCreateOpts {
     /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.
     #[arg(long, value_parser = reserved_cycles_limit_parser, hide = true)]
     reserved_cycles_limit: Option<u128>,
+
+    /// Specifies a soft limit on the Wasm memory usage of the canister.
+    ///
+    /// Update calls, timers, heartbeats, installs, and post-upgrades fail if the
+    /// WASM memory usage exceeds this limit. The main purpose of this setting is
+    /// to protect against the case when the canister reaches the hard 4GiB
+    /// limit.
+    ///
+    /// Must be a number between 0 B and 256 TiB, inclusive.
+    #[arg(long, value_parser = wasm_memory_limit_parser, hide = true)]
+    wasm_memory_limit: Option<Byte>,
 
     /// Performs the call with the user Identity as the Sender of messages.
     /// Bypasses the Wallet canister.
@@ -147,40 +158,43 @@ pub async fn exec(
     let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
     if let Some(canister_name) = opts.canister_name.as_deref() {
         if pull_canisters_in_config.contains_key(canister_name) {
-            bail!(
-                "{0} is a pull dependency. Please deploy it using `dfx deps deploy {0}`",
-                canister_name
-            );
+            bail!("{canister_name} is a pull dependency. Please deploy it using `dfx deps deploy {canister_name}`");
         }
         let canister_is_remote =
             config_interface.is_remote_canister(canister_name, &network.name)?;
         if canister_is_remote {
-            bail!("Canister '{}' is a remote canister on network '{}', and cannot be created from here.", canister_name, &network.name)
+            bail!("Canister '{canister_name}' is a remote canister on network '{}', and cannot be created from here.", &network.name)
         }
         let compute_allocation = get_compute_allocation(
             opts.compute_allocation,
             Some(config_interface),
             Some(canister_name),
         )
-        .with_context(|| format!("Failed to read compute allocation of {}.", canister_name))?;
+        .with_context(|| format!("Failed to read compute allocation of {canister_name}."))?;
         let memory_allocation = get_memory_allocation(
             opts.memory_allocation,
             Some(config_interface),
             Some(canister_name),
         )
-        .with_context(|| format!("Failed to read memory allocation of {}.", canister_name))?;
+        .with_context(|| format!("Failed to read memory allocation of {canister_name}."))?;
         let freezing_threshold = get_freezing_threshold(
             opts.freezing_threshold,
             Some(config_interface),
             Some(canister_name),
         )
-        .with_context(|| format!("Failed to read freezing threshold of {}.", canister_name))?;
+        .with_context(|| format!("Failed to read freezing threshold of {canister_name}."))?;
         let reserved_cycles_limit = get_reserved_cycles_limit(
             opts.reserved_cycles_limit,
             Some(config_interface),
             Some(canister_name),
         )
-        .with_context(|| format!("Failed to read reserved cycles limit of {}.", canister_name))?;
+        .with_context(|| format!("Failed to read reserved cycles limit of {canister_name}."))?;
+        let wasm_memory_limit = get_wasm_memory_limit(
+            opts.wasm_memory_limit,
+            Some(config_interface),
+            Some(canister_name),
+        )
+        .with_context(|| format!("Failed to read WASM memory limit of {canister_name}."))?;
         create_canister(
             env,
             canister_name,
@@ -195,6 +209,7 @@ pub async fn exec(
                 memory_allocation,
                 freezing_threshold,
                 reserved_cycles_limit,
+                wasm_memory_limit,
             },
             opts.created_at_time,
             &mut subnet_selection,
@@ -213,8 +228,7 @@ pub async fn exec(
                 if canister_is_remote {
                     info!(
                         env.get_logger(),
-                        "Skipping canister '{}' because it is remote for network '{}'",
-                        canister_name,
+                        "Skipping canister '{canister_name}' because it is remote for network '{}'",
                         &network.name,
                     );
 
@@ -227,23 +241,21 @@ pub async fn exec(
                     Some(canister_name),
                 )
                 .with_context(|| {
-                    format!("Failed to read compute allocation of {}.", canister_name)
+                    format!("Failed to read compute allocation of {canister_name}.")
                 })?;
                 let memory_allocation = get_memory_allocation(
                     opts.memory_allocation,
                     Some(config_interface),
                     Some(canister_name),
                 )
-                .with_context(|| {
-                    format!("Failed to read memory allocation of {}.", canister_name)
-                })?;
+                .with_context(|| format!("Failed to read memory allocation of {canister_name}."))?;
                 let freezing_threshold = get_freezing_threshold(
                     opts.freezing_threshold,
                     Some(config_interface),
                     Some(canister_name),
                 )
                 .with_context(|| {
-                    format!("Failed to read freezing threshold of {}.", canister_name)
+                    format!("Failed to read freezing threshold of {canister_name}.")
                 })?;
                 let reserved_cycles_limit = get_reserved_cycles_limit(
                     opts.reserved_cycles_limit,
@@ -251,8 +263,14 @@ pub async fn exec(
                     Some(canister_name),
                 )
                 .with_context(|| {
-                    format!("Failed to read reserved cycles limit of {}.", canister_name)
+                    format!("Failed to read reserved cycles limit of {canister_name}.")
                 })?;
+                let wasm_memory_limit = get_wasm_memory_limit(
+                    opts.wasm_memory_limit,
+                    Some(config_interface),
+                    Some(canister_name),
+                )
+                .with_context(|| format!("Failed to read WASM memory limit of {canister_name}."))?;
                 create_canister(
                     env,
                     canister_name,
@@ -267,6 +285,7 @@ pub async fn exec(
                         memory_allocation,
                         freezing_threshold,
                         reserved_cycles_limit,
+                        wasm_memory_limit,
                     },
                     opts.created_at_time,
                     &mut subnet_selection,
