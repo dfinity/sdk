@@ -673,7 +673,7 @@ impl CanisterPool {
                     .collect::<Vec<_>>()
             })
             .collect::<HashMap<_, _>>(); // eliminate duplicates
-        iter.values().map(|p| p.clone()).collect()
+        iter.values().cloned().collect()
     }
 
     /// TODO: Duplicate entity domain `canisters_to_build` and `build_config.canisters_to_build`.
