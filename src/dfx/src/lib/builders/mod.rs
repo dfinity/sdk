@@ -4,6 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister::Import;
+use slog::trace;
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
@@ -14,6 +15,7 @@ use dfx_core::util;
 use fn_error_context::context;
 use handlebars::Handlebars;
 use petgraph::visit::Bfs;
+use slog::Logger;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
@@ -231,6 +233,7 @@ pub trait CanisterBuilder {
         pool: &CanisterPool,
         canister_info: &CanisterInfo,
         cache: &dyn Cache,
+        logger: &Logger,
     ) -> DfxResult<bool> {
         // let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?;
         let output_wasm_path = canister_info.get_output_wasm_path();
@@ -321,8 +324,7 @@ pub trait CanisterBuilder {
                         };
                     };
                 } else {
-                    // FIXME: Uncomment:
-                    // trace!(self.logger, "Canister {} already compiled.", canister_info.get_name());
+                    trace!(logger, "Canister {} already compiled.", canister_info.get_name());
                     return Ok(false);
                 }
             }

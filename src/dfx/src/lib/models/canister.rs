@@ -835,7 +835,7 @@ impl CanisterPool {
                     trace!(log, "Not building canister '{}'.", canister.get_name());
                     continue;
                 }
-                if !canister.builder.should_build(self, &canister.info, env.get_cache().as_ref())? {
+                if !canister.builder.should_build(self, &canister.info, env.get_cache().as_ref(), env.get_logger())? {
                     continue;
                 }
         

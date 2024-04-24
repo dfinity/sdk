@@ -121,7 +121,7 @@ pub async fn deploy_canisters(
                         true, |canister_config| canister_config.deploy)))
         .filter(|canister_name|
             if let Some(canister) = canister_pool.get_first_canister_with_name(canister_name) {
-                canister.builder.should_build(&canister_pool, &canister.info, env.get_cache().as_ref()).unwrap() // FIXME: `unwrap()`
+                canister.builder.should_build(&canister_pool, &canister.info, env.get_cache().as_ref(), env.get_logger()).unwrap() // FIXME: `unwrap()`
             } else {
                 false
             }
