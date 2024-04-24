@@ -173,7 +173,7 @@ pub async fn deploy_canisters(
             let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
             install_canisters(
                 env,
-                &canisters_to_install,
+                canisters_to_install,
                 &initial_canister_id_store,
                 &config,
                 argument,
