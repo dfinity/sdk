@@ -871,9 +871,7 @@ impl CanisterPool {
                 .map(|canister| canister.clone())
                 .collect()
         };
-        println!("ORDX.len(): {}", build_config.user_specified_canisters.as_ref().unwrap().len()); // FIXME: Remove.
         let order = self.build_order(env, &toplevel_canisters.clone())?; // TODO: Eliminate `clone`.
-        println!("ORD.len(): {}", order.len()); // FIXME: Remove.
 
         self.step_prebuild_all(log, build_config, toplevel_canisters.as_slice())
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
@@ -893,7 +891,6 @@ impl CanisterPool {
                     env.get_cache().as_ref(),
                     env.get_logger(),
                 )? {
-                    println!("AAA: {}", canister.info.get_name()); // FIXME: Remove.
                     result.push(
                         self.step_prebuild(build_config, canister)
                             .map_err(|e| {
@@ -925,7 +922,6 @@ impl CanisterPool {
                             }),
                     );
                 }
-                println!("YYY: {}", canister.info.get_name()); // FIXME: Remove.
             }
         }
 
