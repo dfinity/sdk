@@ -563,23 +563,15 @@ impl CanisterPool {
     #[context("Failed to build dependencies graph for canister pool.")]
     fn build_dependencies_graph(
         &self,
-        user_specified_canisters: Option<Vec<String>>,
+        toplevel_canisters: &Vec<Arc<Canister>>,
         cache: &dyn Cache,
     ) -> DfxResult<DiGraph<CanisterId, ()>> {
-        let toplevel_canisters: Vec<_> = match user_specified_canisters {
-            Some(ref user_specified_canisters) => user_specified_canisters.clone(), // TODO: Remove `clone()`
-            None => self
-                .canisters
-                .iter()
-                .map(|canister| canister.get_name().to_string())
-                .collect(),
-        };
-
         for canister in &self.canisters {
             // a little inefficient
             let contains = toplevel_canisters
                 .iter()
-                .contains(&canister.get_info().get_name().to_string());
+                .map(|canister| canister.get_info().get_name())
+                .contains(&canister.get_info().get_name());
             if contains {
                 let canister_info = &canister.info;
                 // TODO: Ignored return value is a hack.
@@ -595,7 +587,7 @@ impl CanisterPool {
         let source_ids = &self.imports.borrow().nodes;
         let start: Vec<_> = toplevel_canisters
             .iter()
-            .map(|name| Import::Canister(name.clone()))
+            .map(|canister| Import::Canister(canister.get_name().to_string()))
             .collect();
         let start: Vec<_> = start
             .into_iter()
@@ -673,10 +665,10 @@ impl CanisterPool {
         Ok(dest_graph)
     }
 
-    fn canister_dependencies(&self, toplevel_canisters: &[&Arc<Canister>]) -> Vec<Arc<Canister>> {
+    fn canister_dependencies(&self, toplevel_canisters: &[Arc<Canister>]) -> Vec<Arc<Canister>> {
         let iter = toplevel_canisters
             .iter()
-            .flat_map(|&canister| {
+            .flat_map(|canister| {
                 // TODO: Is `unwrap` on the next line legit?
                 let parent_node = *self
                     .imports
@@ -712,7 +704,7 @@ impl CanisterPool {
         &self,
         log: &Logger,
         build_config: &BuildConfig,
-        toplevel_canisters: &[&Arc<Canister>],
+        toplevel_canisters: &[Arc<Canister>],
     ) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Copy .did files into this temporary directory.
@@ -802,7 +794,7 @@ impl CanisterPool {
         &self,
         build_config: &BuildConfig,
         _order: &[CanisterId],
-        toplevel_canisters: &[&Arc<Canister>],
+        toplevel_canisters: &[Arc<Canister>],
     ) -> DfxResult<()> {
         // We don't want to simply remove the whole directory, as in the future,
         // we may want to keep the IDL files downloaded from network.
@@ -821,11 +813,11 @@ impl CanisterPool {
     pub fn build_order(
         &self,
         env: &dyn Environment,
-        user_specified_canisters: &Option<Vec<String>>,
+        toplevel_canisters: &Vec<Arc<Canister>>,
     ) -> DfxResult<Vec<CanisterId>> {
         trace!(env.get_logger(), "Building dependencies graph.");
         let graph =
-            self.build_dependencies_graph(user_specified_canisters.clone(), env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
+            self.build_dependencies_graph(toplevel_canisters, env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
@@ -853,24 +845,24 @@ impl CanisterPool {
         log: &Logger,
         build_config: &BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
-        println!("ORDX.len(): {}", build_config.user_specified_canisters.as_ref().unwrap().len()); // FIXME: Remove.
-        let order = self.build_order(env, &build_config.user_specified_canisters.clone())?; // TODO: Eliminate `clone`.
-        println!("ORD.len(): {}", order.len()); // FIXME: Remove.
-
         // TODO: The next statement is slow and confusing code.
-        let toplevel_canisters: Vec<&Arc<Canister>> = if let Some(canisters) = build_config.user_specified_canisters.clone() {
+        let toplevel_canisters: Vec<Arc<Canister>> = if let Some(canisters) = build_config.user_specified_canisters.clone() {
             self
                 .canisters
                 .iter()
                 .filter(|c| canisters.contains(&c.get_name().to_string()))
+                .map(|canister| canister.clone())
                 .collect()
         } else {
             self
                 .canisters
                 .iter()
-                // .filter(|c| order.contains(&c.canister_id()))
+                .map(|canister| canister.clone())
                 .collect()
         };
+        println!("ORDX.len(): {}", build_config.user_specified_canisters.as_ref().unwrap().len()); // FIXME: Remove.
+        let order = self.build_order(env, &toplevel_canisters.clone())?; // TODO: Eliminate `clone`.
+        println!("ORD.len(): {}", order.len()); // FIXME: Remove.
 
         self.step_prebuild_all(log, build_config, toplevel_canisters.as_slice())
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
