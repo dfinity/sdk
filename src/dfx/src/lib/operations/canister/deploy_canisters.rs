@@ -13,6 +13,7 @@ use crate::lib::operations::canister::motoko_playground::reserve_canister_with_p
 use crate::lib::operations::canister::{create_canister, install_canister::install_canister};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
+use itertools::Itertools;
 use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::Config;
@@ -126,22 +127,27 @@ pub async fn deploy_canisters(
                     config.get_config().get_canister_config(canister_name).map_or(
                         true, |canister_config| canister_config.deploy))
         })
-        .filter(|canister_name| {
-            if let Some(canister) = canister_pool.get_first_canister_with_name(canister_name) {
-                canister
+        .map(|canister_name| -> DfxResult<Option<String>> {
+            Ok(if let Some(canister) = canister_pool.get_first_canister_with_name(canister_name.as_str()) {
+                if canister
                     .builder
                     .should_build(
                         &canister_pool,
                         &canister.info,
                         env.get_cache().as_ref(),
                         env.get_logger(),
-                    )
-                    .unwrap() // FIXME: `unwrap()`
+                    )?
+                {
+                    Some(canister_name)
+                } else {
+                    None
+                }
             } else {
-                false
-            }
+                None
+            })
         })
-        .collect();
+        .filter_map(|v| v.transpose())
+        .try_collect()?;
 
     if some_canister.is_some() {
         info!(log, "Deploying: {}", canisters_to_install.join(" "));
