@@ -143,7 +143,6 @@ impl CanisterBuilder for MotokoBuilder {
             &mut pool.imports.borrow_mut(),
             pool,
         )?;
-        // TODO: In some reason, the following line is needed only for `deploy`, not for `build`.
 
         let graph = &pool.imports.borrow().graph;
         match petgraph::algo::toposort(&pool.imports.borrow().graph, None) {
