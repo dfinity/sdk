@@ -2,10 +2,10 @@
     "version": 1,
     "canisters": {
         "dependency": {
-            "main": "dependency.mo"
+            "main": "src/dependency.mo"
         },
         "dependent": {
-            "main": "dependent.mo",
+            "main": "src/dependent.mo",
             "dependencies": [
                 "dependency"
             ]

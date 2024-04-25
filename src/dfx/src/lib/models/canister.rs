@@ -827,6 +827,7 @@ impl CanisterPool {
         let (graph, nodes) =
             self.build_canister_dependencies_graph(toplevel_canisters, env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
 
+        // TODO: If source files are unreadable, this panics.
         let toplevel_nodes = toplevel_canisters.iter().map(
             |canister| nodes.get(&canister.canister_id()).unwrap().clone());
 

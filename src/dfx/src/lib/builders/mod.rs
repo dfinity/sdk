@@ -348,10 +348,6 @@ pub trait CanisterBuilder {
                     if let Some(imported_file) = imported_file {
                         let imported_file_metadata = metadata(&imported_file)?; // FIXME: Need to check the full path.
                         let imported_file_time = imported_file_metadata.modified()?;
-                        println!(
-                            "XXX: {} {:?} <= {}", // FIXME: Remove.
-                            imported_file_time > wasm_file_time, subnode, output_wasm_path.to_str().unwrap(),
-                        );
                         if imported_file_time > wasm_file_time {
                             break;
                         };
