@@ -13,7 +13,6 @@ use crate::lib::operations::canister::motoko_playground::reserve_canister_with_p
 use crate::lib::operations::canister::{create_canister, install_canister::install_canister};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
-use itertools::Itertools;
 use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::Config;
@@ -24,6 +23,7 @@ use ic_utils::interfaces::management_canister::attributes::{
 };
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use icrc_ledger_types::icrc1::account::Subaccount;
+use itertools::Itertools;
 use slog::info;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
@@ -128,23 +128,24 @@ pub async fn deploy_canisters(
                         true, |canister_config| canister_config.deploy))
         })
         .map(|canister_name| -> DfxResult<Option<String>> {
-            Ok(if let Some(canister) = canister_pool.get_first_canister_with_name(canister_name.as_str()) {
-                if canister
-                    .builder
-                    .should_build(
+            Ok(
+                if let Some(canister) =
+                    canister_pool.get_first_canister_with_name(canister_name.as_str())
+                {
+                    if canister.builder.should_build(
                         &canister_pool,
                         &canister.info,
                         env.get_cache().as_ref(),
                         env.get_logger(),
-                    )?
-                {
-                    Some(canister_name)
+                    )? {
+                        Some(canister_name)
+                    } else {
+                        None
+                    }
                 } else {
                     None
-                }
-            } else {
-                None
-            })
+                },
+            )
         })
         .filter_map(|v| v.transpose())
         .try_collect()?;
