@@ -48,8 +48,8 @@ teardown() {
 
     touch lib.mo
     assert_command dfx deploy -vv dependency
-    assert_contains '"moc-wrapper" "dependency.mo"'
     assert_not_contains '"moc-wrapper" "dependent.mo"'
+    assert_contains '"moc-wrapper" "dependency.mo"'
 }
 
 @test "trying to break dependency compiling: build" {
@@ -87,6 +87,6 @@ teardown() {
 
     touch lib.mo
     assert_command dfx build -vv dependency
-    assert_contains '"moc-wrapper" "dependency.mo"'
     assert_not_contains '"moc-wrapper" "dependent.mo"'
+    assert_contains '"moc-wrapper" "dependency.mo"'
 }
