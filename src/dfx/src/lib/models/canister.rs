@@ -23,7 +23,7 @@ use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
 use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::visit::Bfs;
+use petgraph::visit::{Bfs, Dfs};
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
@@ -542,6 +542,7 @@ impl CanisterPool {
         self.canisters.iter().map(|c| c.as_ref()).collect()
     }
 
+    #[allow(unused)] // TODO
     pub fn get_canister_info(&self, canister_id: &CanisterId) -> Option<&CanisterInfo> {
         self.get_canister(canister_id).map(|c| &c.info)
     }
@@ -818,17 +819,24 @@ impl CanisterPool {
         trace!(env.get_logger(), "Building dependencies graph.");
         let graph =
             self.build_dependencies_graph(toplevel_canisters, env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
-        let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
-            let message = match graph.node_weight(cycle.node_id()) {
-                Some(canister_id) => match self.get_canister_info(canister_id) {
-                    Some(info) => info.get_name().to_string(),
-                    None => format!("<{}>", canister_id.to_text()),
-                },
-                None => "<Unknown>".to_string(),
-            };
-            BuildError::DependencyError(format!("Found circular dependency: {}", message))
-        })?;
-        Ok(nodes
+
+        let toplevel_nodes = toplevel_canisters.iter().map(
+            |canister| self.imports.borrow().nodes.get(&Import::Canister(canister.get_name().to_string())).unwrap().clone());
+
+        // Make topological order of our nodes:
+        let mut nodes2 = Vec::new();
+        let mut visited = HashMap::new();
+        for node in toplevel_nodes {
+            if !visited.contains_key(&node) {
+                let mut dfs = Dfs::new(&graph, node);
+                while let Some(subnode) = dfs.next(&graph) {
+                    nodes2.push(subnode);
+                    visited.insert(subnode, ());
+                }
+            }
+        }
+
+        Ok(nodes2
             .iter()
             .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
             .map(|idx| *graph.node_weight(*idx).unwrap())
