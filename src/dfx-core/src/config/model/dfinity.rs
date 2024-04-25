@@ -41,6 +41,7 @@ use crate::extension::manager::ExtensionManager;
 use crate::fs::create_dir_all;
 use crate::json::save_json_file;
 use crate::json::structure::{PossiblyStr, SerdeVec};
+use crate::util::ByteSchema;
 use byte_unit::Byte;
 use candid::Principal;
 use schemars::JsonSchema;
@@ -408,7 +409,8 @@ pub struct InitializationValues {
 
     /// # Memory Allocation
     /// Maximum memory (in bytes) this canister is allowed to occupy.
-    #[schemars(with = "Option<u64>")]
+    /// Can be specified as an integer, or as an SI unit string (e.g. "4KB", "2 MiB")
+    #[schemars(with = "Option<ByteSchema>")]
     pub memory_allocation: Option<Byte>,
 
     /// # Freezing Threshold
@@ -439,8 +441,9 @@ pub struct InitializationValues {
     /// to protect against the case when the canister reaches the hard 4GiB
     /// limit.
     ///
-    /// Must be a number between 0 and 2^48 (i.e. 256 TiB), inclusive.
-    #[schemars(with = "Option<u64>")]
+    /// Must be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive.
+    /// Can be specified as an integer, or as an SI unit string (e.g. "4KB", "2 MiB")
+    #[schemars(with = "Option<ByteSchema>")]
     pub wasm_memory_limit: Option<Byte>,
 }
 

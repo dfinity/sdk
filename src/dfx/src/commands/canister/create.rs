@@ -56,7 +56,7 @@ pub struct CanisterCreateOpts {
     compute_allocation: Option<u64>,
 
     /// Specifies how much memory the canister is allowed to use in total.
-    /// This should be a value in the range [0..12 GiB].
+    /// This should be a value in the range [0..12 GiB]. Can include units, e.g. "4KiB".
     /// A setting of 0 means the canister will have access to memory on a “best-effort” basis:
     /// It will only be charged for the memory it uses, but at any point in time may stop running
     /// if it tries to allocate more memory when there isn’t space available on the subnet.
@@ -85,7 +85,7 @@ pub struct CanisterCreateOpts {
     /// to protect against the case when the canister reaches the hard 4GiB
     /// limit.
     ///
-    /// Must be a number between 0 B and 256 TiB, inclusive.
+    /// Must be a number between 0 B and 256 TiB, inclusive. Can include units, e.g. "4KiB".
     #[arg(long, value_parser = wasm_memory_limit_parser, hide = true)]
     wasm_memory_limit: Option<Byte>,
 
