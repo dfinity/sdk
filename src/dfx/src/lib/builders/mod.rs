@@ -36,6 +36,8 @@ pub use custom::custom_download;
 
 use self::motoko::add_imports;
 
+use super::models::canister::RelativePath;
+
 #[derive(Debug)]
 pub enum WasmBuildOutput {
     // Wasm(Vec<u8>),
@@ -330,10 +332,10 @@ pub trait CanisterBuilder {
                             // Skip libs, all changes by package managers don't modify existing directories but create new ones.
                             continue;
                         }
-                        Import::Relative(path) => {
+                        Import::Relative(RelativePath { path, base_path }) => {
                             // duplicate code
                             let full_path = if path.is_absolute() { // can this be?
-                                *path
+                                path.clone()
                             } else {
                                 base_path.join(path)
                             };
@@ -341,7 +343,7 @@ pub trait CanisterBuilder {
                             Some(if path2.exists() {
                                 path2
                             } else {
-                                path
+                                path.clone()
                             })
                         }
                     };

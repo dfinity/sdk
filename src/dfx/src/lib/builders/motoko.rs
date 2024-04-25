@@ -6,7 +6,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
-use crate::lib::models::canister::{CanisterPool, Import, ImportsTracker};
+use crate::lib::models::canister::{CanisterPool, Import, ImportsTracker, RelativePath};
 use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets::management_idl;
 use anyhow::Context;
@@ -56,12 +56,12 @@ pub fn add_imports(
         imports: &mut ImportsTracker,
         pool: &CanisterPool,
         top: Option<&CanisterInfo>, // hackish
-        base_path: Path,
+        base_path: &Path,
     ) -> DfxResult {
         let parent = if let Some(top) = top {
             Import::Canister(top.get_name().to_string()) // a little inefficient
         } else {
-            Import::Relative(file.to_path_buf())
+            Import::Relative(RelativePath { path: file.to_path_buf(), base_path: base_path.to_path_buf() })
         };
         if imports.nodes.get(&parent).is_some() {
             // The item is already in the graph.
@@ -82,14 +82,14 @@ pub fn add_imports(
         for line in output.lines() {
             let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
             match &child {
-                Import::Relative(path) => {
+                Import::Relative(RelativePath { path, base_path }) => {
                     let full_child_path = if path.is_absolute() { // can this be?
-                        *path
+                        path.clone()
                     } else {
                         base_path.join(path)
                     };
                     // duplicate code
-                    let path2 = path.join(Path::new("lib.mo"));
+                    let path2 = full_child_path.join(Path::new("lib.mo"));
                     let child_base_path = if path2.exists() {
                         path
                     } else {
@@ -409,7 +409,7 @@ impl TryFrom<&str> for Import {
                             path.display()
                         ))));
                     };
-                    Import::Relative(path)
+                    Import::Relative(RelativePath { path, base_path: PathBuf::from("") }) // TODO: `""` is a hack.
                 }
                 None => {
                     return Err(DfxError::new(BuildError::DependencyError(format!(
