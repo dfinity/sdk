@@ -715,9 +715,7 @@ impl CanisterPool {
     ) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Copy .did files into this temporary directory.
-        println!("XXX step_prebuild_all"); // FIXME: Remove.
         for canister in self.canister_dependencies(toplevel_canisters) {
-            println!("CANISTER: {}", canister.get_name()); // FIXME: Remove.
             let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
                 Some(remote_candid)
             } else {
@@ -726,7 +724,6 @@ impl CanisterPool {
             // TODO: It tries to copy non-existing files (not yet compiled canisters..)
             if let Some(from) = maybe_from.as_ref() {
                 if from.exists() {
-                    println!("from.exists"); // FIXME: Remove.
                     let to = build_config.idl_root.join(format!(
                         "{}.did",
                         canister.info.get_canister_id()?.to_text()
@@ -740,7 +737,6 @@ impl CanisterPool {
                     );
                     dfx_core::fs::composite::ensure_parent_dir_exists(&to)?;
                     dfx_core::fs::copy(from, &to)?;
-                    println!("COPYTO: {}", to.to_str().unwrap()); // FIXME: Remove.
                     dfx_core::fs::set_permissions_readwrite(&to)?;
                 } else {
                     warn!(
@@ -903,7 +899,6 @@ impl CanisterPool {
                 .collect()
         };
         let order = self.build_order(env, &toplevel_canisters.clone())?; // TODO: Eliminate `clone`.
-        println!("PPP: order.len: {}", order.len());
 
         self.step_prebuild_all(log, build_config, toplevel_canisters.as_slice())
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
