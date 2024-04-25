@@ -267,11 +267,11 @@ pub trait CanisterBuilder {
         let output_wasm_path = canister_info.get_output_wasm_path();
 
         // from principal to name:
-        let rev_id_map: BTreeMap<String, String> = pool
-            .get_canister_list()
-            .iter()
-            .map(|&c| (c.canister_id().to_text(), c.get_name().to_string()))
-            .collect();
+        // let rev_id_map: BTreeMap<String, String> = pool
+        //     .get_canister_list()
+        //     .iter()
+        //     .map(|&c| (c.canister_id().to_text(), c.get_name().to_string()))
+        //     .collect();
 
         self.read_dependencies(pool, canister_info, cache)?;
 
@@ -288,11 +288,17 @@ pub trait CanisterBuilder {
                 panic!("programming error");
             };
             let mut import_iter = Bfs::new(&imports.graph, start);
+            let mut top_level = true; // the first canister is our own canister and therefore is a dependency.
             loop {
+                let top_level1 = top_level;
+                top_level = false;
                 if let Some(import) = import_iter.next(&imports.graph) {
                     let subnode = &imports.graph[import];
                     let imported_file = match subnode {
                         Import::Canister(canister_name) => {
+                            if !top_level1 {
+                                continue;
+                            }
                             // duplicate code
                             if let Some(canister) =
                                 pool.get_first_canister_with_name(canister_name.as_str())
@@ -303,21 +309,22 @@ pub trait CanisterBuilder {
                                 None
                             }
                         }
-                        Import::Ic(canister_id) => {
-                            if let Some(canister_name) = rev_id_map.get(canister_id.as_str()) {
-                                if let Some(canister) =
-                                    pool.get_first_canister_with_name(canister_name)
-                                {
-                                    canister
-                                        .get_info()
-                                        .get_main_file()
-                                        .map(|main_file| main_file.to_owned())
-                                } else {
-                                    None
-                                }
-                            } else {
-                                None
-                            }
+                        Import::Ic(_canister_id) => {
+                            continue;
+                            // if let Some(canister_name) = rev_id_map.get(canister_id.as_str()) {
+                            //     if let Some(canister) =
+                            //         pool.get_first_canister_with_name(canister_name)
+                            //     {
+                            //         canister
+                            //             .get_info()
+                            //             .get_main_file()
+                            //             .map(|main_file| main_file.to_owned())
+                            //     } else {
+                            //         None
+                            //     }
+                            // } else {
+                            //     None
+                            // }
                         }
                         Import::Lib(_path) => {
                             // Skip libs, all changes by package managers don't modify existing directories but create new ones.
@@ -341,6 +348,9 @@ pub trait CanisterBuilder {
                     if let Some(imported_file) = imported_file {
                         let imported_file_metadata = metadata(&imported_file)?; // FIXME: Need to check the full path.
                         let imported_file_time = imported_file_metadata.modified()?;
+                        println!("XXX: {} {:?} <= {}", // FIXME: Remove.
+                            imported_file_time > wasm_file_time, subnode, output_wasm_path.to_str().unwrap(),
+                        );
                         if imported_file_time > wasm_file_time {
                             break;
                         };
