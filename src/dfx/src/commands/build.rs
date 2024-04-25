@@ -89,7 +89,7 @@ pub fn exec(env1: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
         BuildConfig::from_config(&config, env.get_network_descriptor().is_playground())?
             .with_build_mode_check(build_mode_check)
             .with_canisters_to_build(if let Some(canister) = opts.canister_name {
-                vec![canister] // hacky // TODO: Give sensible names to `*canisters_to_build` variables.
+                vec![canister] // hacky
             } else {
                 config.get_config().get_canister_names_with_dependencies(None)?
                 // canister_pool.get_canister_list().iter().map(|&canister| canister.get_name().to_owned()) // hacky

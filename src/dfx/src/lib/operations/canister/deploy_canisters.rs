@@ -84,7 +84,7 @@ pub async fn deploy_canisters(
     let canisters_to_load = add_canisters_with_ids(&required_canisters, env, &config);
     let canister_pool = CanisterPool::load(env, true, &canisters_to_load)?;
 
-    let canisters_to_build = match deploy_mode {
+    let toplevel_canisters = match deploy_mode {
         PrepareForProposal(canister_name) | ComputeEvidence(canister_name) => {
             vec![canister_name.clone()]
         }
@@ -105,7 +105,7 @@ pub async fn deploy_canisters(
     };
 
     // TODO: `build_order` is called two times during deployment of a new canister.
-    let order = canister_pool.build_order(env, &Some(canisters_to_build.clone()))?; // TODO: `Some` here is a hack. // TODO: Eliminate `clone`.
+    let order = canister_pool.build_order(env, &Some(toplevel_canisters.clone()))?; // TODO: `Some` here is a hack. // TODO: Eliminate `clone`.
     let order_names: Vec<String> = order
         .iter()
         .map(|canister| {
@@ -117,7 +117,7 @@ pub async fn deploy_canisters(
         })
         .collect();
 
-    let canisters_to_install: &Vec<String> = &canisters_to_build
+    let canisters_to_install: &Vec<String> = &toplevel_canisters
         .clone()
         .into_iter()
         .filter(|canister_name| {
@@ -177,11 +177,11 @@ pub async fn deploy_canisters(
         info!(env.get_logger(), "All canisters have already been created.");
     }
 
-    println!("RRR: {:?}", &canisters_to_build);
+    println!("RRR: {:?}", &toplevel_canisters);
     build_canisters(
         env,
         // &order_names,
-        &canisters_to_build,
+        &toplevel_canisters,
         &config,
         env_file.clone(),
         &canister_pool,
@@ -325,7 +325,7 @@ async fn register_canisters(
 async fn build_canisters(
     env: &dyn Environment,
     // canisters_to_load: &[String],
-    canisters_to_build: &[String],
+    toplevel_canisters: &[String],
     config: &Config,
     env_file: Option<PathBuf>,
     canister_pool: &CanisterPool,
@@ -335,10 +335,10 @@ async fn build_canisters(
     // let build_mode_check = false;
     // let canister_pool = CanisterPool::load(env, build_mode_check, canisters_to_load)?;
 
-    println!("TTT: {:?}", canisters_to_build);
+    println!("TTT: {:?}", toplevel_canisters);
     let build_config =
         BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
-            .with_canisters_to_build(canisters_to_build.into())
+            .with_canisters_to_build(toplevel_canisters.into())
             .with_env_file(env_file);
     canister_pool.build_or_fail(env, log, &build_config).await?;
     Ok(())

@@ -641,9 +641,9 @@ pub struct BuildConfig {
     pub lsp_root: PathBuf,
     /// The root for all build files.
     pub build_root: PathBuf,
-    /// If only a subset of canisters should be built, then canisters_to_build contains these canisters' names.
+    /// If only a subset of canisters should be built, then user_specified_canisters contains these canisters' names.
     /// If all canisters should be built, then this is None.
-    pub canisters_to_build: Option<Vec<String>>,
+    pub user_specified_canisters: Option<Vec<String>>,
     /// If environment variables should be output to a `.env` file, `env_file` is set to its path.
     pub env_file: Option<PathBuf>,
 }
@@ -664,7 +664,7 @@ impl BuildConfig {
             build_root: canister_root.clone(),
             idl_root: canister_root.join("idl/"), // TODO: possibly move to `network_root.join("idl/")`
             lsp_root: network_root.join("lsp/"),
-            canisters_to_build: None,
+            user_specified_canisters: None,
             env_file: config.get_output_env_file(None)?,
         })
     }
@@ -678,7 +678,7 @@ impl BuildConfig {
 
     pub fn with_canisters_to_build(self, canisters: Vec<String>) -> Self {
         Self {
-            canisters_to_build: Some(canisters),
+            user_specified_canisters: Some(canisters),
             ..self
         }
     }

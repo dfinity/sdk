@@ -66,7 +66,7 @@ pub fn exec(env1: &dyn Environment, opts: GenerateOpts) -> DfxResult {
             .with_canisters_to_build(canisters_to_generate);
 
     if build_config
-        .canisters_to_build
+        .user_specified_canisters
         .as_ref()
         .map(|v| !v.is_empty())
         .unwrap_or(false)
