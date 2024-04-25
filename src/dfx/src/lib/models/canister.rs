@@ -854,14 +854,24 @@ impl CanisterPool {
         log: &Logger,
         build_config: &BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
+        println!("ORDX.len(): {}", build_config.canisters_to_build.as_ref().unwrap().len()); // FIXME: Remove.
         let order = self.build_order(env, &build_config.canisters_to_build.clone())?; // TODO: Eliminate `clone`.
+        println!("ORD.len(): {}", order.len()); // FIXME: Remove.
 
-        // TODO: The next line is slow and confusing code.
-        let canisters_to_build: Vec<&Arc<Canister>> = self
-            .canisters
-            .iter()
-            .filter(|c| order.contains(&c.canister_id()))
-            .collect();
+        // TODO: The next statement is slow and confusing code.
+        let canisters_to_build: Vec<&Arc<Canister>> = if let Some(canisters) = build_config.canisters_to_build.clone() {
+            self
+                .canisters
+                .iter()
+                .filter(|c| canisters.contains(&c.get_name().to_string()))
+                .collect()
+        } else {
+            self
+                .canisters
+                .iter()
+                // .filter(|c| order.contains(&c.canister_id()))
+                .collect()
+        };
 
         self.step_prebuild_all(log, build_config, canisters_to_build.as_slice())
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
@@ -886,6 +896,7 @@ impl CanisterPool {
                     env.get_cache().as_ref(),
                     env.get_logger(),
                 )? {
+                    println!("AAA: {}", canister.info.get_name()); // FIXME: Remove.
                     result.push(
                         self.step_prebuild(build_config, canister)
                             .map_err(|e| {
@@ -917,7 +928,7 @@ impl CanisterPool {
                             }),
                     );
                 }
-                println!("YYY: {}", canister.info.get_name());
+                println!("YYY: {}", canister.info.get_name()); // FIXME: Remove.
             }
         }
 

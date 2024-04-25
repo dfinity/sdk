@@ -177,10 +177,11 @@ pub async fn deploy_canisters(
         info!(env.get_logger(), "All canisters have already been created.");
     }
 
+    println!("RRR: {:?}", &canisters_to_build);
     build_canisters(
         env,
         // &order_names,
-        &order_names,
+        &canisters_to_build,
         &config,
         env_file.clone(),
         &canister_pool,
@@ -334,6 +335,7 @@ async fn build_canisters(
     // let build_mode_check = false;
     // let canister_pool = CanisterPool::load(env, build_mode_check, canisters_to_load)?;
 
+    println!("TTT: {:?}", canisters_to_build);
     let build_config =
         BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
             .with_canisters_to_build(canisters_to_build.into())

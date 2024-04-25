@@ -54,15 +54,15 @@ pub fn exec(env1: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
         .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
     let canisters_to_load = add_canisters_with_ids(&required_canisters, &env, &config);
 
-    let canisters_to_build = required_canisters
-        .into_iter()
-        .filter(|canister_name| {
-            !config
-                .get_config()
-                .is_remote_canister(canister_name, &env.get_network_descriptor().name)
-                .unwrap_or(false)
-        })
-        .collect();
+    // let canisters_to_build = required_canisters
+    //     .into_iter()
+    //     .filter(|canister_name| {
+    //         !config
+    //             .get_config()
+    //             .is_remote_canister(canister_name, &env.get_network_descriptor().name)
+    //             .unwrap_or(false)
+    //     })
+    //     .collect();
 
     let canister_pool = CanisterPool::load(&env, build_mode_check, &canisters_to_load)?;
 
@@ -88,7 +88,13 @@ pub fn exec(env1: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
     let build_config =
         BuildConfig::from_config(&config, env.get_network_descriptor().is_playground())?
             .with_build_mode_check(build_mode_check)
-            .with_canisters_to_build(canisters_to_build)
+            .with_canisters_to_build(if let Some(canister) = opts.canister_name {
+                vec![canister] // hacky // TODO: Give sensible names to `*canisters_to_build` variables.
+            } else {
+                config.get_config().get_canister_names_with_dependencies(None)?
+                // canister_pool.get_canister_list().iter().map(|&canister| canister.get_name().to_owned()) // hacky
+                //     .collect()
+            })
             .with_env_file(env_file);
     runtime.block_on(canister_pool.build_or_fail(env1, logger, &build_config))?;
 
