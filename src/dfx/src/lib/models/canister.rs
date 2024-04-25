@@ -880,45 +880,44 @@ impl CanisterPool {
                     trace!(log, "Not building canister '{}'.", canister.get_name());
                     continue;
                 }
-                if !canister.builder.should_build(
+                if canister.builder.should_build(
                     self,
                     &canister.info,
                     env.get_cache().as_ref(),
                     env.get_logger(),
                 )? {
-                    continue;
-                }
-
-                result.push(
-                    self.step_prebuild(build_config, canister)
-                        .map_err(|e| {
-                            BuildError::PreBuildStepFailed(
-                                *canister_id,
-                                canister.get_name().to_string(),
-                                Box::new(e),
-                            )
-                        })
-                        .and_then(|_| {
-                            self.step_build(build_config, canister).map_err(|e| {
-                                BuildError::BuildStepFailed(
+                    result.push(
+                        self.step_prebuild(build_config, canister)
+                            .map_err(|e| {
+                                BuildError::PreBuildStepFailed(
                                     *canister_id,
                                     canister.get_name().to_string(),
                                     Box::new(e),
                                 )
                             })
-                        })
-                        .and_then(|o| {
-                            self.step_postbuild(build_config, canister, o)
-                                .map_err(|e| {
-                                    BuildError::PostBuildStepFailed(
+                            .and_then(|_| {
+                                self.step_build(build_config, canister).map_err(|e| {
+                                    BuildError::BuildStepFailed(
                                         *canister_id,
                                         canister.get_name().to_string(),
                                         Box::new(e),
                                     )
                                 })
-                                .map(|_| o)
-                        }),
-                );
+                            })
+                            .and_then(|o| {
+                                self.step_postbuild(build_config, canister, o)
+                                    .map_err(|e| {
+                                        BuildError::PostBuildStepFailed(
+                                            *canister_id,
+                                            canister.get_name().to_string(),
+                                            Box::new(e),
+                                        )
+                                    })
+                                    .map(|_| o)
+                            }),
+                    );
+                }
+                println!("YYY: {}", canister.info.get_name());
             }
         }
 
