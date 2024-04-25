@@ -834,6 +834,8 @@ impl CanisterPool {
         let toplevel_nodes = toplevel_canisters.iter().map(
             |canister| nodes.get(&canister.canister_id()).unwrap().clone());
 
+        // TODO: The following isn't very efficient.
+        
         let mut reachable_nodes = HashMap::new();
 
         for start_node in toplevel_nodes {
