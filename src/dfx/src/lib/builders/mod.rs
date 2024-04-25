@@ -324,20 +324,22 @@ pub trait CanisterBuilder {
                             continue;
                         }
                         Import::Relative(path) => {
-                            Some(if path.exists() {
-                                Path::new(path).to_owned()
-                            } else {
-                                let path2 = path.join(Path::new("lib.mo"));
-                                if path2.exists() {
-                                    path2.to_owned()
-                                } else {
-                                    bail!("source file has been deleted");
-                                }
-                            })
+                            Some(Path::new(path).to_owned())
+                            // FIXME: Need to check the full path.
+                            // Some(if path.exists() {
+                            //     Path::new(path).to_owned()
+                            // } else {
+                            //     let path2 = path.join(Path::new("lib.mo"));
+                            //     if path2.exists() {
+                            //         path2.to_owned()
+                            //     } else {
+                            //         bail!("source file has been deleted");
+                            //     }
+                            // })
                         }
                     };
                     if let Some(imported_file) = imported_file {
-                        let imported_file_metadata = metadata(&imported_file)?;
+                        let imported_file_metadata = metadata(&imported_file)?; // FIXME: Need to check the full path.
                         let imported_file_time = imported_file_metadata.modified()?;
                         if imported_file_time > wasm_file_time {
                             break;
