@@ -331,18 +331,18 @@ pub trait CanisterBuilder {
                             continue;
                         }
                         Import::Relative(path) => {
-                            Some(Path::new(path).to_owned())
-                            // FIXME: Need to check the full path.
-                            // Some(if path.exists() {
-                            //     Path::new(path).to_owned()
-                            // } else {
-                            //     let path2 = path.join(Path::new("lib.mo"));
-                            //     if path2.exists() {
-                            //         path2.to_owned()
-                            //     } else {
-                            //         bail!("source file has been deleted");
-                            //     }
-                            // })
+                            // duplicate code
+                            let full_path = if path.is_absolute() { // can this be?
+                                *path
+                            } else {
+                                base_path.join(path)
+                            };
+                            let path2 = full_path.join(Path::new("lib.mo"));
+                            Some(if path2.exists() {
+                                path2
+                            } else {
+                                path
+                            })
                         }
                     };
                     if let Some(imported_file) = imported_file {

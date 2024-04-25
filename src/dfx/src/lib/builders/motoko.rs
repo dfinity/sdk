@@ -56,6 +56,7 @@ pub fn add_imports(
         imports: &mut ImportsTracker,
         pool: &CanisterPool,
         top: Option<&CanisterInfo>, // hackish
+        base_path: Path,
     ) -> DfxResult {
         let parent = if let Some(top) = top {
             Import::Canister(top.get_name().to_string()) // a little inefficient
@@ -82,7 +83,19 @@ pub fn add_imports(
             let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
             match &child {
                 Import::Relative(path) => {
-                    add_imports_recursive(cache, path.as_path(), imports, pool, None)?;
+                    let full_child_path = if path.is_absolute() { // can this be?
+                        *path
+                    } else {
+                        base_path.join(path)
+                    };
+                    // duplicate code
+                    let path2 = path.join(Path::new("lib.mo"));
+                    let child_base_path = if path2.exists() {
+                        path
+                    } else {
+                        path.parent().unwrap() // FIXME: `unwrap()`
+                    };
+                    add_imports_recursive(cache, path.as_path(), imports, pool, None, child_base_path)?;
                 }
                 Import::Canister(canister_name) => {
                     // duplicate code
@@ -91,12 +104,14 @@ pub fn add_imports(
                     {
                         let main_file = canister.get_info().get_main_file();
                         if let Some(main_file) = main_file {
+                            let child_base_path = main_file.parent().unwrap(); // FIXME: `unwrap()`
                             add_imports_recursive(
                                 cache,
                                 Path::new(main_file),
                                 imports,
                                 pool,
                                 Some(canister.get_info()),
+                                child_base_path,
                             )?;
                         }
                     }
@@ -125,6 +140,7 @@ pub fn add_imports(
         imports,
         pool,
         Some(info),
+        Path::new("."),
     )?;
 
     Ok(())
