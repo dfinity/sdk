@@ -879,17 +879,12 @@ impl CanisterPool {
         let mut result = Vec::new();
         for canister_id in &order {
             if let Some(canister) = self.get_canister(canister_id) {
-                if canisters_to_build
-                    .iter()
-                    .map(|c| c.get_name())
-                    .contains(&canister.get_name())
-                // TODO: slow
-                {
-                    trace!(log, "Building canister '{}'.", canister.get_name());
-                } else {
-                    trace!(log, "Not building canister '{}'.", canister.get_name());
-                    continue;
-                }
+                trace!(log, "Building canister '{}'.", canister.get_name());
+                // TODO:
+                // } else {
+                //     trace!(log, "Not building canister '{}'.", canister.get_name());
+                //     continue;
+                // }
                 if canister.builder.should_build(
                     self,
                     &canister.info,
