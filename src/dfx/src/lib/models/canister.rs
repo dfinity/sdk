@@ -22,8 +22,9 @@ use fn_error_context::context;
 use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
 use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
+use petgraph::algo::toposort;
 use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::visit::{Bfs, Dfs};
+use petgraph::visit::Bfs;
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
@@ -561,8 +562,10 @@ impl CanisterPool {
     }
 
     /// Build only dependencies relevant for `user_specified_canisters`.
+    ///
+    /// TODO: Probably shouldn't be `pub`.
     #[context("Failed to build dependencies graph for canister pool.")]
-    fn build_canister_dependencies_graph(
+    pub fn build_canister_dependencies_graph(
         &self,
         toplevel_canisters: &Vec<Arc<Canister>>,
         cache: &dyn Cache,
@@ -712,14 +715,18 @@ impl CanisterPool {
     ) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Copy .did files into this temporary directory.
+        println!("XXX step_prebuild_all"); // FIXME: Remove.
         for canister in self.canister_dependencies(toplevel_canisters) {
+            println!("CANISTER: {}", canister.get_name()); // FIXME: Remove.
             let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
                 Some(remote_candid)
             } else {
                 canister.info.get_output_idl_path()
             };
+            // TODO: It tries to copy non-existing files (not yet compiled canisters..)
             if let Some(from) = maybe_from.as_ref() {
                 if from.exists() {
+                    println!("from.exists"); // FIXME: Remove.
                     let to = build_config.idl_root.join(format!(
                         "{}.did",
                         canister.info.get_canister_id()?.to_text()
@@ -733,6 +740,7 @@ impl CanisterPool {
                     );
                     dfx_core::fs::composite::ensure_parent_dir_exists(&to)?;
                     dfx_core::fs::copy(from, &to)?;
+                    println!("COPYTO: {}", to.to_str().unwrap()); // FIXME: Remove.
                     dfx_core::fs::set_permissions_readwrite(&to)?;
                 } else {
                     warn!(
@@ -826,20 +834,41 @@ impl CanisterPool {
         let toplevel_nodes = toplevel_canisters.iter().map(
             |canister| nodes.get(&canister.canister_id()).unwrap().clone());
 
-        // Make topological order of our nodes:
-        let mut nodes2 = Vec::new();
-        let mut visited = HashMap::new();
-        for node in toplevel_nodes {
-            let mut dfs = Dfs::new(&graph, node);
-            while let Some(subnode) = dfs.next(&graph) { // FIXME
-                if !visited.contains_key(&node) {
-                    nodes2.push(subnode);
-                    visited.insert(subnode, ());
-                }
+        let mut reachable_nodes = HashMap::new();
+
+        for start_node in toplevel_nodes {
+            let mut bfs = Bfs::new(&graph, start_node); // or `Dfs`, does not matter
+            while let Some(node) = bfs.next(&graph) {
+                reachable_nodes.insert(node, ());
             }
         }
 
-        Ok(nodes2
+        let subgraph = graph
+            .filter_map(
+                |node, _| if reachable_nodes.contains_key(&node) {
+                    Some(node)
+                } else {
+                    None
+                },
+                |edge, _| Some(edge));
+
+        // TODO: better error message
+        let nodes = toposort(&subgraph, None).map_err(|_e| anyhow!("Cycle in node dependencies")) ?;
+
+        // Make topological order of our nodes:
+        // let mut nodes2 = Vec::new();
+        // let mut visited = HashMap::new();
+        // for node in toplevel_nodes {
+        //     let mut dfs = Dfs::new(&graph, node);
+        //     while let Some(subnode) = dfs.next(&graph) {
+        //         if !visited.contains_key(&node) {
+        //             nodes2.push(subnode);
+        //             visited.insert(subnode, ());
+        //         }
+        //     }
+        // }
+
+        Ok(nodes
             .iter()
             .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
             .map(|idx| *graph.node_weight(*idx).unwrap())
@@ -872,6 +901,7 @@ impl CanisterPool {
                 .collect()
         };
         let order = self.build_order(env, &toplevel_canisters.clone())?; // TODO: Eliminate `clone`.
+        println!("PPP: order.len: {}", order.len());
 
         self.step_prebuild_all(log, build_config, toplevel_canisters.as_slice())
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
