@@ -830,9 +830,9 @@ impl CanisterPool {
         let mut nodes2 = Vec::new();
         let mut visited = HashMap::new();
         for node in toplevel_nodes {
-            if !visited.contains_key(&node) {
-                let mut dfs = Dfs::new(&graph, node);
-                while let Some(subnode) = dfs.next(&graph) { // FIXME
+            let mut dfs = Dfs::new(&graph, node);
+            while let Some(subnode) = dfs.next(&graph) { // FIXME
+                if !visited.contains_key(&node) {
                     nodes2.push(subnode);
                     visited.insert(subnode, ());
                 }
