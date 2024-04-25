@@ -42,6 +42,20 @@ teardown() {
   assert_match "Freezing threshold: 100_000_000_000"
 }
 
+@test "set wasm memory limit" {
+  dfx_new_rust
+  install_asset allocate_memory
+  dfx_start
+  assert_command dfx deploy e2e_project_backend
+  assert_command dfx canister update-settings e2e_project_backend --wasm-memory-limit 8b
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "WASM Memory Limit: 8 Bytes"
+  assert_command dfx canister call e2e_project_backend greet '("alice")' --query
+  assert_command dfx canister call e2e_project_backend greet '("alice")' --update
+  assert_command_fail dfx canister call e2e_project_backend greet_update '("alice")'
+  assert_contains "Canister exceeded its current Wasm memory limit of 8 bytes"
+}
+
 @test "set controller" {
   # Create two identities
   assert_command dfx identity new --storage-mode plaintext alice
