@@ -566,7 +566,7 @@ impl CanisterPool {
         &self,
         toplevel_canisters: &Vec<Arc<Canister>>,
         cache: &dyn Cache,
-    ) -> DfxResult<DiGraph<CanisterId, ()>> {
+    ) -> DfxResult<(DiGraph<CanisterId, ()>, HashMap<CanisterId, NodeIndex>)> {
         for canister in &self.canisters {
             // a little inefficient
             let contains = toplevel_canisters
@@ -603,7 +603,8 @@ impl CanisterPool {
         // Transform the graph of file dependencies to graph of canister dependencies.
         // For this do DFS for each of `real_canisters_to_build`.
         let mut dest_graph: DiGraph<CanisterId, ()> = DiGraph::new();
-        let mut dest_id_set = HashMap::new();
+        let mut dest_id_to_source_id = HashMap::new();
+        let mut dest_nodes = HashMap::new();
         for start_node in start.into_iter() {
             // Initialize "mirrors" of the parent node of source graph in dest graph:
             let parent = source_graph.node_weight(start_node).unwrap();
@@ -617,7 +618,7 @@ impl CanisterPool {
                 .get_first_canister_with_name(parent_name)
                 .unwrap()
                 .canister_id();
-            dest_id_set
+            dest_id_to_source_id
                 .entry(start_node)
                 .or_insert_with(|| dest_graph.add_node(parent_canister));
 
@@ -654,8 +655,10 @@ impl CanisterPool {
                         .ok_or_else(|| anyhow!("A canister with the name '{}' was not found in the current project.", child_name.clone()))?
                         .canister_id();
 
-                    let dest_parent_id = *dest_id_set.entry(source_parent_id).or_insert_with(|| dest_graph.add_node(parent_canister));
-                    let dest_child_id = *dest_id_set.entry(source_child_id).or_insert_with(|| dest_graph.add_node(child_canister));
+                    let dest_parent_id = *dest_id_to_source_id.entry(source_parent_id).or_insert_with(|| dest_graph.add_node(parent_canister));
+                    let dest_child_id = *dest_id_to_source_id.entry(source_child_id).or_insert_with(|| dest_graph.add_node(child_canister));
+                    dest_nodes.insert(parent_canister, dest_parent_id);
+                    dest_nodes.insert(child_canister, dest_child_id);
                     dest_graph.update_edge(dest_parent_id, dest_child_id, ());
 
                     Ok(())
@@ -663,7 +666,7 @@ impl CanisterPool {
             )?;
         }
 
-        Ok(dest_graph)
+        Ok((dest_graph, dest_nodes))
     }
 
     fn canister_dependencies(&self, toplevel_canisters: &[Arc<Canister>]) -> Vec<Arc<Canister>> {
@@ -817,11 +820,11 @@ impl CanisterPool {
         toplevel_canisters: &Vec<Arc<Canister>>,
     ) -> DfxResult<Vec<CanisterId>> {
         trace!(env.get_logger(), "Building dependencies graph.");
-        let graph =
+        let (graph, nodes) =
             self.build_canister_dependencies_graph(toplevel_canisters, env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
 
         let toplevel_nodes = toplevel_canisters.iter().map(
-            |canister| self.imports.borrow().nodes.get(&Import::Canister(canister.get_name().to_string())).unwrap().clone());
+            |canister| nodes.get(&canister.canister_id()).unwrap().clone());
 
         // Make topological order of our nodes:
         let mut nodes2 = Vec::new();
