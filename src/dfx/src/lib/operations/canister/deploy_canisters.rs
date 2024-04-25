@@ -5,7 +5,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::installers::assets::prepare_assets_for_proposal;
-use crate::lib::models::canister::CanisterPool;
+use crate::lib::models::canister::{Canister, CanisterPool};
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
@@ -27,6 +27,7 @@ use itertools::Itertools;
 use slog::info;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use super::add_canisters_with_ids;
 
@@ -103,9 +104,16 @@ pub async fn deploy_canisters(
             })
             .collect(),
     };
+    let toplevel_canisters = toplevel_canisters.into_iter()
+        .map(|name: String| -> DfxResult<_> {
+            Ok(canister_pool.get_first_canister_with_name(name.as_str())
+                .ok_or_else(|| anyhow!("A canister with the name '{}' was not found in the current project.", name.clone()))?
+            )
+        })
+        .try_collect()?;
 
     // TODO: `build_order` is called two times during deployment of a new canister.
-    let order = canister_pool.build_order(env, &Some(toplevel_canisters.clone()))?; // TODO: `Some` here is a hack. // TODO: Eliminate `clone`.
+    let order = canister_pool.build_order(env, &toplevel_canisters)?; // TODO: `Some` here is a hack. // TODO: Eliminate `clone`.
     let order_names: Vec<String> = order
         .iter()
         .map(|canister| {
@@ -117,7 +125,7 @@ pub async fn deploy_canisters(
         })
         .collect();
 
-    let canisters_to_install: &Vec<String> = &toplevel_canisters
+    let canisters_to_install: &Vec<String> = &order_names
         .clone()
         .into_iter()
         .filter(|canister_name| {
@@ -177,11 +185,10 @@ pub async fn deploy_canisters(
         info!(env.get_logger(), "All canisters have already been created.");
     }
 
-    println!("RRR: {:?}", &toplevel_canisters);
     build_canisters(
         env,
         // &order_names,
-        &toplevel_canisters,
+        &toplevel_canisters.as_slice(),
         &config,
         env_file.clone(),
         &canister_pool,
@@ -325,7 +332,7 @@ async fn register_canisters(
 async fn build_canisters(
     env: &dyn Environment,
     // canisters_to_load: &[String],
-    toplevel_canisters: &[String],
+    toplevel_canisters: &[Arc<Canister>],
     config: &Config,
     env_file: Option<PathBuf>,
     canister_pool: &CanisterPool,
@@ -335,10 +342,10 @@ async fn build_canisters(
     // let build_mode_check = false;
     // let canister_pool = CanisterPool::load(env, build_mode_check, canisters_to_load)?;
 
-    println!("TTT: {:?}", toplevel_canisters);
     let build_config =
         BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
-            .with_canisters_to_build(toplevel_canisters.into())
+            .with_canisters_to_build(
+                toplevel_canisters.iter().map(|canister| canister.get_name().to_string()).collect()) // hack
             .with_env_file(env_file);
     canister_pool.build_or_fail(env, log, &build_config).await?;
     Ok(())
