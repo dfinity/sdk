@@ -562,7 +562,7 @@ impl CanisterPool {
 
     /// Build only dependencies relevant for `user_specified_canisters`.
     #[context("Failed to build dependencies graph for canister pool.")]
-    fn build_dependencies_graph(
+    fn build_canister_dependencies_graph(
         &self,
         toplevel_canisters: &Vec<Arc<Canister>>,
         cache: &dyn Cache,
@@ -818,7 +818,7 @@ impl CanisterPool {
     ) -> DfxResult<Vec<CanisterId>> {
         trace!(env.get_logger(), "Building dependencies graph.");
         let graph =
-            self.build_dependencies_graph(toplevel_canisters, env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
+            self.build_canister_dependencies_graph(toplevel_canisters, env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
 
         let toplevel_nodes = toplevel_canisters.iter().map(
             |canister| self.imports.borrow().nodes.get(&Import::Canister(canister.get_name().to_string())).unwrap().clone());
@@ -829,7 +829,7 @@ impl CanisterPool {
         for node in toplevel_nodes {
             if !visited.contains_key(&node) {
                 let mut dfs = Dfs::new(&graph, node);
-                while let Some(subnode) = dfs.next(&graph) {
+                while let Some(subnode) = dfs.next(&graph) { // FIXME
                     nodes2.push(subnode);
                     visited.insert(subnode, ());
                 }
