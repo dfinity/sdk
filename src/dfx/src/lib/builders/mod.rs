@@ -322,30 +322,19 @@ pub trait CanisterBuilder {
                         Import::Lib(_path) => {
                             // Skip libs, all changes by package managers don't modify existing directories but create new ones.
                             continue;
-                            //     let i = path.find('/');
-                            //     let pre_path = if let Some(i) = i {
-                            //         let expanded = Path::new(
-                            //             package_arguments_map.get(&path[..i]).ok_or_else(|| anyhow!("nonexisting package"))?
-                            //         );
-                            //         expanded.join(&path[i+1..])
-                            //     } else {
-                            //         Path::new(path.as_str()).to_owned()
-                            //     };
-                            //     let path2 = pre_path.to_str().unwrap().to_owned() + ".mo";
-                            //     let path2 = path2.to_string();
-                            //     let path2 = Path::new(&path2);
-                            //     if path2.exists() { // TODO: Is it correct order of two variants?
-                            //         Some(Path::new(path2).to_owned())
-                            //     } else {
-                            //         let path3 = pre_path.join(Path::new("lib.mo"));
-                            //         if path3.exists() {
-                            //             Some(path3.to_owned())
-                            //         } else {
-                            //             bail!("source file has been deleted");
-                            //         }
-                            //     }
                         }
-                        Import::Relative(path) => Some(Path::new(&path).to_owned()),
+                        Import::Relative(path) => {
+                            Some(if path.exists() {
+                                Path::new(path).to_owned()
+                            } else {
+                                let path2 = path.join(Path::new("lib.mo"));
+                                if path2.exists() {
+                                    path2.to_owned()
+                                } else {
+                                    bail!("source file has been deleted");
+                                }
+                            })
+                        }
                     };
                     if let Some(imported_file) = imported_file {
                         let imported_file_metadata = metadata(&imported_file)?;
