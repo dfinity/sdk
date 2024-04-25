@@ -6,7 +6,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
-use crate::lib::models::canister::{CanisterPool, Import, ImportsTracker, RelativePath};
+use crate::lib::models::canister::{CanisterPool, Import, ImportsTracker};
 use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets::management_idl;
 use anyhow::Context;
@@ -56,12 +56,13 @@ pub fn add_imports(
         imports: &mut ImportsTracker,
         pool: &CanisterPool,
         top: Option<&CanisterInfo>, // hackish
-        base_path: &Path,
     ) -> DfxResult {
+        println!("MMM: {}", file.to_str().unwrap()); // FIXME: Remove.
+        let base_path = file.parent().unwrap(); // FIXME: `unwrap()`
         let parent = if let Some(top) = top {
             Import::Canister(top.get_name().to_string()) // a little inefficient
         } else {
-            Import::Relative(RelativePath { path: file.to_path_buf(), base_path: base_path.to_path_buf() })
+            Import::FullPath(base_path.join(file))
         };
         if imports.nodes.get(&parent).is_some() {
             // The item is already in the graph.
@@ -78,24 +79,21 @@ pub fn add_imports(
             .output()
             .with_context(|| format!("Error executing {:#?}", command))?;
         let output = String::from_utf8_lossy(&output.stdout);
+        println!("XXX: {}", output.to_string()); // FIXME: Remove.
 
         for line in output.lines() {
             let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
             match &child {
-                Import::Relative(RelativePath { path, base_path }) => {
-                    let full_child_path = if path.is_absolute() { // can this be?
-                        path.clone()
-                    } else {
-                        base_path.join(path)
-                    };
+                Import::FullPath(full_child_path) => {
+                    println!("RRR: {}", full_child_path.to_str().unwrap()); // FIXME: Remove.
                     // duplicate code
                     let path2 = full_child_path.join(Path::new("lib.mo"));
-                    let child_base_path = if path2.exists() {
-                        path
+                    let child_path = if path2.exists() {
+                        &path2
                     } else {
-                        path.parent().unwrap() // FIXME: `unwrap()`
+                        full_child_path
                     };
-                    add_imports_recursive(cache, path.as_path(), imports, pool, None, child_base_path)?;
+                    add_imports_recursive(cache, child_path.as_path(), imports, pool, None)?;
                 }
                 Import::Canister(canister_name) => {
                     // duplicate code
@@ -104,14 +102,12 @@ pub fn add_imports(
                     {
                         let main_file = canister.get_info().get_main_file();
                         if let Some(main_file) = main_file {
-                            let child_base_path = main_file.parent().unwrap(); // FIXME: `unwrap()`
                             add_imports_recursive(
                                 cache,
                                 Path::new(main_file),
                                 imports,
                                 pool,
                                 Some(canister.get_info()),
-                                child_base_path,
                             )?;
                         }
                     }
@@ -136,11 +132,10 @@ pub fn add_imports(
 
     add_imports_recursive(
         cache,
-        motoko_info.get_main_path(),
+        motoko_info.get_main_path().canonicalize()?.as_path(),
         imports,
         pool,
         Some(info),
-        Path::new("."),
     )?;
 
     Ok(())
@@ -379,6 +374,7 @@ impl TryFrom<&str> for Import {
             }
             None => (line, None),
         };
+        println!("PPP: {:?} / {:?}", url, fullpath); // FIXME: Remove.
         let import = match url.find(':') {
             Some(index) => {
                 if index >= line.len() - 1 {
@@ -402,14 +398,15 @@ impl TryFrom<&str> for Import {
             }
             None => match fullpath {
                 Some(fullpath) => {
+                    println!("ZZZ: {}", fullpath); // FIXME: Remove.
                     let path = PathBuf::from(fullpath);
-                    if !path.is_file() {
+                    if !path.is_file() { // FIXME: What's about `/lib.mo` paths?
                         return Err(DfxError::new(BuildError::DependencyError(format!(
                             "Cannot find import file {}",
                             path.display()
                         ))));
                     };
-                    Import::Relative(RelativePath { path, base_path: PathBuf::from("") }) // TODO: `""` is a hack.
+                    Import::FullPath(path) // TODO: `""` is a hack.
                 }
                 None => {
                     return Err(DfxError::new(BuildError::DependencyError(format!(

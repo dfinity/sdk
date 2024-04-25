@@ -440,12 +440,6 @@ fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> D
     Ok(())
 }
 
-#[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
-pub struct RelativePath {
-    pub path: PathBuf,
-    pub base_path: PathBuf,
-}
-
 /// Used mainly for Motoko
 ///
 /// TODO: Copying this type uses `String.clone()` what may be inefficient.
@@ -454,7 +448,7 @@ pub enum Import {
     Canister(String),
     Ic(String),
     Lib(String), // TODO: Unused, because package manager never update existing files (but create new dirs)
-    Relative(RelativePath),
+    FullPath(PathBuf),
 }
 
 /// The graph of imports (used mainly for Motoko)
