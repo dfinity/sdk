@@ -401,7 +401,7 @@ impl TryFrom<&str> for Import {
                             path.display()
                         ))));
                     };
-                    Import::FullPath(path) // TODO: `""` is a hack.
+                    Import::FullPath(path)
                 }
                 None => {
                     return Err(DfxError::new(BuildError::DependencyError(format!(
