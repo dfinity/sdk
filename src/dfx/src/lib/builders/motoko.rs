@@ -9,7 +9,7 @@ use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
 use crate::lib::models::canister::{CanisterPool, Import, ImportsTracker};
 use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets::management_idl;
-use anyhow::Context;
+use anyhow::{Context, anyhow};
 use candid::Principal as CanisterId;
 use dfx_core::config::cache::Cache;
 use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
@@ -57,7 +57,7 @@ pub fn add_imports(
         pool: &CanisterPool,
         top: Option<&CanisterInfo>, // hackish
     ) -> DfxResult {
-        let base_path = file.parent().unwrap(); // FIXME: `unwrap()`
+        let base_path = file.parent().ok_or_else(|| anyhow!("Cannot get base directory"))?;
         let parent = if let Some(top) = top {
             Import::Canister(top.get_name().to_string()) // a little inefficient
         } else {
