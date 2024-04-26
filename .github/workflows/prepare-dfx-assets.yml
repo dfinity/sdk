@@ -35,8 +35,6 @@ jobs:
             target
             !target/*/build/dfx-*/out/dfx-assets
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install Rust
-        run: rustup show
       - name: Run build script
         run: |
           cargo check
