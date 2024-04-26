@@ -22,7 +22,7 @@ env:
   CURL_HOME: .
 
 jobs:
-  check_macos:
+  shellcheck:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
