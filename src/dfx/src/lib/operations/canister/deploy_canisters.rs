@@ -125,7 +125,6 @@ pub async fn deploy_canisters(
         })
         .collect();
 
-    // FIXME
     let canisters_to_install: &Vec<String> = &order_names
         .clone()
         .into_iter()
