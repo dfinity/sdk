@@ -828,14 +828,18 @@ impl CanisterPool {
             self.build_canister_dependencies_graph(toplevel_canisters, env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
 
         // TODO: If source files are unreadable, this panics.
-        let toplevel_nodes = toplevel_canisters.iter().map(
-            |canister| nodes.get(&canister.canister_id()).unwrap().clone());
+        let toplevel_nodes: Vec<NodeIndex> = toplevel_canisters.iter().map(
+            |canister| -> DfxResult<NodeIndex> {
+                // FIXME
+                Ok(nodes.get(&canister.canister_id()).ok_or_else(|| anyhow!("No such canister {}.", canister.get_name()))?.clone())
+            })
+            .try_collect()?;
 
         // TODO: The following isn't very efficient.
         
         let mut reachable_nodes = HashMap::new();
 
-        for start_node in toplevel_nodes {
+        for &start_node in toplevel_nodes.iter() {
             let mut bfs = Bfs::new(&graph, start_node); // or `Dfs`, does not matter
             while let Some(node) = bfs.next(&graph) {
                 reachable_nodes.insert(node, ());
