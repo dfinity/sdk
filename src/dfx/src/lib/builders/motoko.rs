@@ -57,7 +57,6 @@ pub fn add_imports(
         pool: &CanisterPool,
         top: Option<&CanisterInfo>, // hackish
     ) -> DfxResult {
-        println!("MMM: {}", file.to_str().unwrap()); // FIXME: Remove.
         let base_path = file.parent().unwrap(); // FIXME: `unwrap()`
         let parent = if let Some(top) = top {
             Import::Canister(top.get_name().to_string()) // a little inefficient
@@ -79,13 +78,11 @@ pub fn add_imports(
             .output()
             .with_context(|| format!("Error executing {:#?}", command))?;
         let output = String::from_utf8_lossy(&output.stdout);
-        println!("XXX: {}", output.to_string()); // FIXME: Remove.
 
         for line in output.lines() {
             let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
             match &child {
                 Import::FullPath(full_child_path) => {
-                    println!("RRR: {}", full_child_path.to_str().unwrap()); // FIXME: Remove.
                     // duplicate code
                     let path2 = full_child_path.join(Path::new("lib.mo"));
                     let child_path = if path2.exists() {
@@ -374,7 +371,6 @@ impl TryFrom<&str> for Import {
             }
             None => (line, None),
         };
-        println!("PPP: {:?} / {:?}", url, fullpath); // FIXME: Remove.
         let import = match url.find(':') {
             Some(index) => {
                 if index >= line.len() - 1 {
@@ -398,7 +394,6 @@ impl TryFrom<&str> for Import {
             }
             None => match fullpath {
                 Some(fullpath) => {
-                    println!("ZZZ: {}", fullpath); // FIXME: Remove.
                     let path = PathBuf::from(fullpath);
                     if !path.is_file() { // FIXME: What's about `/lib.mo` paths?
                         return Err(DfxError::new(BuildError::DependencyError(format!(
