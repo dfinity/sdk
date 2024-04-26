@@ -104,11 +104,17 @@ pub async fn deploy_canisters(
             })
             .collect(),
     };
-    let toplevel_canisters = toplevel_canisters.into_iter()
+    let toplevel_canisters = toplevel_canisters
+        .into_iter()
         .map(|name: String| -> DfxResult<_> {
-            Ok(canister_pool.get_first_canister_with_name(name.as_str())
-                .ok_or_else(|| anyhow!("A canister with the name '{}' was not found in the current project.", name.clone()))?
-            )
+            Ok(canister_pool
+                .get_first_canister_with_name(name.as_str())
+                .ok_or_else(|| {
+                    anyhow!(
+                        "A canister with the name '{}' was not found in the current project.",
+                        name.clone()
+                    )
+                })?)
         })
         .try_collect()?;
 
@@ -324,7 +330,11 @@ async fn build_canisters(
     let build_config =
         BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
             .with_canisters_to_build(
-                toplevel_canisters.iter().map(|canister| canister.get_name().to_string()).collect()) // hack
+                toplevel_canisters
+                    .iter()
+                    .map(|canister| canister.get_name().to_string())
+                    .collect(),
+            ) // hack
             .with_env_file(env_file);
     canister_pool.build_or_fail(env, log, &build_config).await?;
     Ok(())

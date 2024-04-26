@@ -9,7 +9,7 @@ use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
 use crate::lib::models::canister::{CanisterPool, Import, ImportsTracker};
 use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets::management_idl;
-use anyhow::{Context, anyhow};
+use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use dfx_core::config::cache::Cache;
 use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
@@ -57,7 +57,9 @@ pub fn add_imports(
         pool: &CanisterPool,
         top: Option<&CanisterInfo>, // hackish
     ) -> DfxResult {
-        let base_path = file.parent().ok_or_else(|| anyhow!("Cannot get base directory"))?;
+        let base_path = file
+            .parent()
+            .ok_or_else(|| anyhow!("Cannot get base directory"))?;
         let parent = if let Some(top) = top {
             Import::Canister(top.get_name().to_string()) // a little inefficient
         } else {
@@ -189,7 +191,14 @@ impl CanisterBuilder for MotokoBuilder {
         let id_map = pool
             .get_canister_list()
             .iter()
-            .filter(|&c| canister_info.get_dependencies().iter().map(|s| s.as_str()).find(|&name| name == c.get_name()).is_some()) // TODO: 1. Slow. 2. Use Motoko dependencies where appropriate.
+            .filter(|&c| {
+                canister_info
+                    .get_dependencies()
+                    .iter()
+                    .map(|s| s.as_str())
+                    .find(|&name| name == c.get_name())
+                    .is_some()
+            }) // TODO: 1. Slow. 2. Use Motoko dependencies where appropriate.
             .map(|c| (c.get_name().to_string(), c.canister_id().to_text()))
             .collect();
 

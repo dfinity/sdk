@@ -617,8 +617,7 @@ impl CanisterPool {
                     panic!("programming error");
                 }
             };
-            let parent_canister = self
-                .get_first_canister_with_name(parent_name).unwrap();
+            let parent_canister = self.get_first_canister_with_name(parent_name).unwrap();
             let parent_canister_id = parent_canister.canister_id();
             let parent_dest_id = *dest_id_to_source_id
                 .entry(start_node)
@@ -827,14 +826,18 @@ impl CanisterPool {
         let (graph, nodes) =
             self.build_canister_dependencies_graph(toplevel_canisters, env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
 
-        let toplevel_nodes: Vec<NodeIndex> = toplevel_canisters.iter().map(
-            |canister| -> DfxResult<NodeIndex> {
-                Ok(nodes.get(&canister.canister_id()).ok_or_else(|| anyhow!("No such canister {}.", canister.get_name()))?.clone())
+        let toplevel_nodes: Vec<NodeIndex> = toplevel_canisters
+            .iter()
+            .map(|canister| -> DfxResult<NodeIndex> {
+                Ok(nodes
+                    .get(&canister.canister_id())
+                    .ok_or_else(|| anyhow!("No such canister {}.", canister.get_name()))?
+                    .clone())
             })
             .try_collect()?;
 
         // TODO: The following isn't very efficient.
-        
+
         let mut reachable_nodes = HashMap::new();
 
         for &start_node in toplevel_nodes.iter() {
@@ -844,17 +847,20 @@ impl CanisterPool {
             }
         }
 
-        let subgraph = graph
-            .filter_map(
-                |node, _| if reachable_nodes.contains_key(&node) {
+        let subgraph = graph.filter_map(
+            |node, _| {
+                if reachable_nodes.contains_key(&node) {
                     Some(node)
                 } else {
                     None
-                },
-                |edge, _| Some(edge));
+                }
+            },
+            |edge, _| Some(edge),
+        );
 
         // TODO: better error message
-        let nodes = toposort(&subgraph, None).map_err(|_e| anyhow!("Cycle in node dependencies")) ?;
+        let nodes =
+            toposort(&subgraph, None).map_err(|_e| anyhow!("Cycle in node dependencies"))?;
 
         // Make topological order of our nodes:
         // let mut nodes2 = Vec::new();
@@ -887,20 +893,19 @@ impl CanisterPool {
         build_config: &BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
         // TODO: The next statement is slow and confusing code.
-        let toplevel_canisters: Vec<Arc<Canister>> = if let Some(canisters) = build_config.user_specified_canisters.clone() {
-            self
-                .canisters
-                .iter()
-                .filter(|c| canisters.contains(&c.get_name().to_string()))
-                .map(|canister| canister.clone())
-                .collect()
-        } else {
-            self
-                .canisters
-                .iter()
-                .map(|canister| canister.clone())
-                .collect()
-        };
+        let toplevel_canisters: Vec<Arc<Canister>> =
+            if let Some(canisters) = build_config.user_specified_canisters.clone() {
+                self.canisters
+                    .iter()
+                    .filter(|c| canisters.contains(&c.get_name().to_string()))
+                    .map(|canister| canister.clone())
+                    .collect()
+            } else {
+                self.canisters
+                    .iter()
+                    .map(|canister| canister.clone())
+                    .collect()
+            };
         let order = self.build_order(env, &toplevel_canisters.clone())?; // TODO: Eliminate `clone`.
 
         self.step_prebuild_all(log, build_config, toplevel_canisters.as_slice())

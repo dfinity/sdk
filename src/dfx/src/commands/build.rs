@@ -91,7 +91,9 @@ pub fn exec(env1: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
             .with_canisters_to_build(if let Some(canister) = opts.canister_name {
                 vec![canister] // hacky
             } else {
-                config.get_config().get_canister_names_with_dependencies(None)?
+                config
+                    .get_config()
+                    .get_canister_names_with_dependencies(None)?
                 // canister_pool.get_canister_list().iter().map(|&canister| canister.get_name().to_owned()) // hacky
                 //     .collect()
             })
