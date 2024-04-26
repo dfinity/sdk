@@ -315,3 +315,21 @@ teardown() {
   assert_command dfx canister call fake-cmc last_create_canister_args
   assert_contains 'subnet_type = opt "custom_subnet_type"'
 }
+
+@test "create with dfx.json settings" {
+  jq '.canisters.e2e_project_backend.initialization_values={
+    "compute_allocation": 5,
+    "freezing_threshold": "7days",
+    "memory_allocation": "2 GiB",
+    "reserved_cycles_limit": 1000000000000,
+    "wasm_memory_limit": "1 GiB",
+  }' dfx.json | sponge dfx.json
+  dfx_start
+  assert_command dfx deploy e2e_project_backend --no-wallet
+  assert_command dfx canister status e2e_project_backend
+  assert_contains 'Memory allocation: 2_147_483_648'
+  assert_contains 'Compute allocation: 5'
+  assert_contains 'Reserved Cycles Limit: 1_000_000_000_000'
+  assert_contains 'WASM Memory Limit: 1_073_741_824'
+  assert_contains 'Freezing threshold: 604_800'
+}

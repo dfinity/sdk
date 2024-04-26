@@ -118,6 +118,16 @@ pub fn memory_allocation_parser(memory_allocation: &str) -> Result<Byte, String>
     Err("Must be a value between 0..12 GiB inclusive.".to_string())
 }
 
+pub fn wasm_memory_limit_parser(memory_limit: &str) -> Result<Byte, String> {
+    let limit = Byte::from_unit(256., ByteUnit::TiB).expect("Parse Overflow.");
+    if let Ok(bytes) = memory_limit.parse::<Byte>() {
+        if bytes <= limit {
+            return Ok(bytes);
+        }
+    }
+    Err("Must be a value between 0..256 TiB inclusive (e.g. `2GiB`).".to_string())
+}
+
 pub fn freezing_threshold_parser(freezing_threshold: &str) -> Result<u64, String> {
     freezing_threshold
         .parse::<u64>()
