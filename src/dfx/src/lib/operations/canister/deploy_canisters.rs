@@ -25,6 +25,7 @@ use ic_utils::interfaces::management_canister::builders::InstallMode;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use itertools::Itertools;
 use slog::info;
+// use core::slice::SlicePattern;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -107,19 +108,21 @@ pub async fn deploy_canisters(
     let toplevel_canisters = toplevel_canisters
         .into_iter()
         .map(|name: String| -> DfxResult<_> {
-            Ok(canister_pool
+            canister_pool
                 .get_first_canister_with_name(name.as_str())
                 .ok_or_else(|| {
                     anyhow!(
                         "A canister with the name '{}' was not found in the current project.",
                         name.clone()
                     )
-                })?)
+                })
         })
-        .try_collect()?;
+        // .map(|v| &v)
+        .try_collect::<Arc<Canister>, Vec<Arc<Canister>>, _>()?;
+    let toplevel_canisters: &[Arc<Canister>] = &toplevel_canisters;
 
     // TODO: `build_order` is called two times during deployment of a new canister.
-    let order = canister_pool.build_order(env, &toplevel_canisters)?; // TODO: `Some` here is a hack. // TODO: Eliminate `clone`.
+    let order = canister_pool.build_order(env, toplevel_canisters)?; // TODO: `Some` here is a hack. // TODO: Eliminate `clone`.
     let order_names: Vec<String> = order
         .iter()
         .map(|canister| {
@@ -154,7 +157,7 @@ pub async fn deploy_canisters(
     {
         register_canisters(
             env,
-            &canisters_to_install,
+            canisters_to_install,
             &initial_canister_id_store,
             with_cycles,
             specified_id_from_cli,
@@ -173,7 +176,7 @@ pub async fn deploy_canisters(
     build_canisters(
         env,
         // &order_names,
-        &toplevel_canisters.as_slice(),
+        toplevel_canisters,
         &config,
         env_file.clone(),
         &canister_pool,

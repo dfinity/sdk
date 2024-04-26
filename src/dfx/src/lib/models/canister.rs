@@ -567,7 +567,7 @@ impl CanisterPool {
     #[context("Failed to build dependencies graph for canister pool.")]
     pub fn build_canister_dependencies_graph(
         &self,
-        toplevel_canisters: &Vec<Arc<Canister>>,
+        toplevel_canisters: &[Arc<Canister>],
         cache: &dyn Cache,
     ) -> DfxResult<(DiGraph<CanisterId, ()>, HashMap<CanisterId, NodeIndex>)> {
         for canister in &self.canisters {
@@ -820,7 +820,7 @@ impl CanisterPool {
     pub fn build_order(
         &self,
         env: &dyn Environment,
-        toplevel_canisters: &Vec<Arc<Canister>>,
+        toplevel_canisters: &[Arc<Canister>],
     ) -> DfxResult<Vec<CanisterId>> {
         trace!(env.get_logger(), "Building dependencies graph.");
         let (graph, nodes) =
@@ -829,10 +829,10 @@ impl CanisterPool {
         let toplevel_nodes: Vec<NodeIndex> = toplevel_canisters
             .iter()
             .map(|canister| -> DfxResult<NodeIndex> {
-                Ok(nodes
+                nodes
                     .get(&canister.canister_id())
-                    .ok_or_else(|| anyhow!("No such canister {}.", canister.get_name()))?
-                    .clone())
+                    .copied()
+                    .ok_or_else(|| anyhow!("No such canister {}.", canister.get_name()))
             })
             .try_collect()?;
 
@@ -898,15 +898,12 @@ impl CanisterPool {
                 self.canisters
                     .iter()
                     .filter(|c| canisters.contains(&c.get_name().to_string()))
-                    .map(|canister| canister.clone())
+                    .cloned()
                     .collect()
             } else {
-                self.canisters
-                    .iter()
-                    .map(|canister| canister.clone())
-                    .collect()
+                self.canisters.clone()
             };
-        let order = self.build_order(env, &toplevel_canisters.clone())?; // TODO: Eliminate `clone`.
+        let order = self.build_order(env, &toplevel_canisters)?; // TODO: Eliminate `clone`.
 
         self.step_prebuild_all(log, build_config, toplevel_canisters.as_slice())
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;

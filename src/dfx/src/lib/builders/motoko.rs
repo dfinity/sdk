@@ -196,8 +196,7 @@ impl CanisterBuilder for MotokoBuilder {
                     .get_dependencies()
                     .iter()
                     .map(|s| s.as_str())
-                    .find(|&name| name == c.get_name())
-                    .is_some()
+                    .any(|name| name == c.get_name())
             }) // TODO: 1. Slow. 2. Use Motoko dependencies where appropriate.
             .map(|c| (c.get_name().to_string(), c.canister_id().to_text()))
             .collect();
