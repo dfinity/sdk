@@ -4,7 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister::Import;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
 use dfx_core::config::cache::Cache;
@@ -306,7 +306,11 @@ pub trait CanisterBuilder {
                                 pool.get_first_canister_with_name(canister_name.as_str())
                             {
                                 let main_file = if top_level_cur {
-                                    canister.get_info().get_main_file().ok_or_else(|| anyhow!("No main file."))?.to_path_buf()
+                                    if let Some(main_file) = canister.get_info().get_main_file() {
+                                        main_file.to_path_buf()
+                                    } else {
+                                        continue;
+                                    }
                                 } else {
                                     canister.get_info().get_service_idl_path()
                                 };
