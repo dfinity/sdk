@@ -354,7 +354,7 @@ impl Canister {
                 continue;
             }
             dfx_core::fs::composite::ensure_parent_dir_exists(&target)?;
-            if dfx_core::fs::read_to_string(&target)? != service_did {
+            if !target.exists() || dfx_core::fs::read_to_string(&target)? != service_did { // TODO: Make atomic operation.
                 dfx_core::fs::write(&target, &service_did)?;
             }
             dfx_core::fs::set_permissions_readwrite(&target)?;
