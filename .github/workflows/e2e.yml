@@ -88,12 +88,6 @@ jobs:
       - name: Build
         run: |
           cargo build --target ${{ matrix.target }} --locked --release
-      - name: Strip binaries
-        run: |
-          cd ${{ matrix.binary_path }}
-          sudo chown -R $(whoami) .
-          strip dfx
-        if: contains(matrix.os, 'ubuntu')
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
