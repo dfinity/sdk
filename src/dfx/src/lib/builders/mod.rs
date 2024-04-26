@@ -296,8 +296,8 @@ pub trait CanisterBuilder {
                             if let Some(canister) =
                                 pool.get_first_canister_with_name(canister_name.as_str())
                             {
-                                let main_file = canister.get_info().get_main_file();
-                                main_file.map(|main_file| main_file.to_owned())
+                                let main_file = canister.get_info().get_service_idl_path();
+                                Some(main_file)
                             } else {
                                 None
                             }
