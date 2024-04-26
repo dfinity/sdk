@@ -57,16 +57,16 @@ jobs:
         include:
           - os: macos-12
             target: x86_64-apple-darwin
-            binary_path: target/x86_64-apple-darwin/release
+            binary_path: target/x86_64-apple-darwin/release/dfx
           - os: ubuntu-20.04
             target: x86_64-unknown-linux-gnu
-            binary_path: target/x86_64-unknown-linux-gnu/release
+            binary_path: target/x86_64-unknown-linux-gnu/release/dfx
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-            binary_path: target/x86_64-unknown-linux-gnu/release
+            binary_path: target/x86_64-unknown-linux-gnu/release/dfx
           - os: windows-2022
             target: x86_64-pc-windows-msvc
-            binary_path: target/x86_64-pc-windows-msvc/release
+            binary_path: target\x86_64-pc-windows-msvc\release\dfx.exe
     steps:
       - uses: actions/checkout@v4
         with:
@@ -98,7 +98,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
-          path: ${{ matrix.binary_path }}/dfx
+          path: ${{ matrix.binary_path }}
 
   list_tests:
     if: needs.changes.outputs.sources == 'true'
