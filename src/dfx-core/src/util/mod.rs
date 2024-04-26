@@ -30,7 +30,7 @@ impl JsonSchema for ByteSchema {
             instance_type: Some(vec![InstanceType::Integer, InstanceType::String].into()),
             number: None,
             string: Some(Box::new(StringValidation {
-                pattern: Some("^[0-9]+( *([KkMmGgTtPpEeZzYy]i?)?B)?$".to_string()),
+                pattern: Some("^[0-9]+( *([KkMmGgTtPpEeZzYy]i?)?[Bb])?$".to_string()),
                 ..Default::default()
             })),
             metadata: Some(Box::new(Metadata {

@@ -46,7 +46,12 @@ teardown() {
   dfx_new_rust
   install_asset allocate_memory
   dfx_start
+  assert_command dfx canister create e2e_project_backend --no-wallet --wasm-memory-limit 2MiB
   assert_command dfx deploy e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "WASM Memory Limit: 2_097_152 Bytes"
+  # currently the limit is only checked when the memory grows. uncomment this line when that changes
+  # assert_command dfx canister call e2e_project_backend greet_update '("alice")' 
   assert_command dfx canister update-settings e2e_project_backend --wasm-memory-limit 8b
   assert_command dfx canister status e2e_project_backend
   assert_contains "WASM Memory Limit: 8 Bytes"
