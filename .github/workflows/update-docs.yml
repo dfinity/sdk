@@ -1,6 +1,5 @@
 name: Update Docs
-on:
-  pull_request
+on: pull_request
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,11 +15,7 @@ jobs:
   update_dfx_json_schema:
     # Workflow breaks if it gets executed on an external PR
     if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ ubuntu-20.04 ]
+    runs-on: ubuntu-lastest
     steps:
       - uses: actions/checkout@v4
         with:
