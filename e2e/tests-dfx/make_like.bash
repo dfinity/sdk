@@ -21,50 +21,70 @@ teardown() {
     assert_command dfx deploy -vv dependent
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
+    assert_contains 'Installing code for canister dependent'
+    assert_contains 'Installing code for canister dependency'
 
     touch src/dependent.mo
     assert_command dfx deploy -vv dependent
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_not_contains '"moc-wrapper" "src/dependency.mo"'
+    assert_contains 'Upgrading code for canister dependent'
+    assert_not_contains 'Upgrading code for canister dependency'
 
     touch src/dependency.mo
     assert_command dfx deploy -vv dependent
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
+    assert_contains 'Upgrading code for canister dependent'
+    assert_contains 'Upgrading code for canister dependency'
 
     touch src/dependency.mo
     assert_command dfx deploy -vv dependency
     assert_not_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
+    assert_not_contains 'Upgrading code for canister dependent'
+    assert_contains 'Upgrading code for canister dependency'
 
     assert_command dfx deploy -vv dependent
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_not_contains '"moc-wrapper" "src/dependency.mo"'
+    assert_contains 'Upgrading code for canister dependent'
+    assert_not_contains 'Upgrading code for canister dependency'
 
     touch src/lib.mo
     assert_command dfx deploy -vv dependent
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
+    assert_contains 'Upgrading code for canister dependent'
+    assert_contains 'Upgrading code for canister dependency'
 
     touch src/lib.mo
     assert_command dfx deploy -vv dependency
     assert_not_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
+    assert_not_contains 'Upgrading code for canister dependent'
+    assert_contains 'Upgrading code for canister dependency'
 
     touch src/lib.mo
     assert_command dfx deploy -vv
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
+    assert_contains 'Upgrading code for canister dependent'
+    assert_contains 'Upgrading code for canister dependency'
 
     touch src/dependency.mo
     assert_command dfx deploy -vv
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
+    assert_contains 'Upgrading code for canister dependent'
+    assert_contains 'Upgrading code for canister dependency'
 
     touch src/dependent.mo
     assert_command dfx deploy -vv
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_not_contains '"moc-wrapper" "src/dependency.mo"'
+    assert_contains 'Upgrading code for canister dependent'
+    assert_not_contains 'Upgrading code for canister dependency'
 }
 
 @test "trying to break dependency compiling: build" {
@@ -104,4 +124,19 @@ teardown() {
     assert_command dfx build -vv dependency
     assert_not_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
+
+    touch src/lib.mo
+    assert_command dfx build -vv
+    assert_contains '"moc-wrapper" "src/dependent.mo"'
+    assert_contains '"moc-wrapper" "src/dependency.mo"'
+
+    touch src/dependency.mo
+    assert_command dfx build -vv
+    assert_contains '"moc-wrapper" "src/dependent.mo"'
+    assert_contains '"moc-wrapper" "src/dependency.mo"'
+
+    touch src/dependent.mo
+    assert_command dfx build -vv
+    assert_contains '"moc-wrapper" "src/dependent.mo"'
+    assert_not_contains '"moc-wrapper" "src/dependency.mo"'
 }
