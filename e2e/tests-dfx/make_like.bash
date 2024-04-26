@@ -140,3 +140,19 @@ teardown() {
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_not_contains '"moc-wrapper" "src/dependency.mo"'
 }
+
+@test "mix build and deploy" {
+    dfx_start
+
+    assert_command dfx canister create dependency
+    assert_command dfx canister create dependent
+    assert_command dfx build -vv
+    assert_contains '"moc-wrapper" "src/dependent.mo"'
+    assert_contains '"moc-wrapper" "src/dependency.mo"'
+
+    assert_command dfx deploy -vv dependent
+    assert_not_contains '"moc-wrapper" "src/dependent.mo"'
+    assert_not_contains '"moc-wrapper" "src/dependency.mo"'
+    assert_contains 'Installing code for canister dependent'
+    assert_contains 'Installing code for canister dependency'
+}
