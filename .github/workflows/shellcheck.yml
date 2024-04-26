@@ -23,19 +23,11 @@ env:
 
 jobs:
   check_macos:
-    # ubuntu-latest has shellcheck 0.4.6, while macos-latest has 0.7.1
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install shellcheck
-        run: |
-          mkdir $HOME/bin
-          cd $HOME/bin
-          curl -L https://github.com/koalaman/shellcheck/releases/download/v0.7.1/shellcheck-v0.7.1.darwin.x86_64.tar.xz \
-            | xz -d | tar x
       - name: Check e2e scripts
-        run: $HOME/bin/shellcheck-v0.7.1/shellcheck e2e/**/*.*sh
-      - name: Check release script
-        run: $HOME/bin/shellcheck-v0.7.1/shellcheck scripts/release.sh
-      - name: Check update-frontend-canister.sh script
-        run: $HOME/bin/shellcheck-v0.7.1/shellcheck scripts/update-frontend-canister.sh
+        run: shellcheck e2e/**/*.*sh
+      - name: Check scripts/
+        run: shellcheck scripts/*.sh
+
