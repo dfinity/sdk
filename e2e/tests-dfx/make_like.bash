@@ -22,17 +22,17 @@ teardown() {
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
 
-    touch dependent.mo
+    touch src/dependent.mo
     assert_command dfx deploy -vv dependent
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_not_contains '"moc-wrapper" "src/dependency.mo"'
 
-    touch dependency.mo
+    touch src/dependency.mo
     assert_command dfx deploy -vv dependent
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
 
-    touch dependency.mo
+    touch src/dependency.mo
     assert_command dfx deploy -vv dependency
     assert_not_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
@@ -41,12 +41,12 @@ teardown() {
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_not_contains '"moc-wrapper" "src/dependency.mo"'
 
-    touch lib.mo
+    touch src/lib.mo
     assert_command dfx deploy -vv dependent
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
 
-    touch lib.mo
+    touch src/lib.mo
     assert_command dfx deploy -vv dependency
     assert_not_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
@@ -61,17 +61,17 @@ teardown() {
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
 
-    touch dependent.mo
+    touch src/dependent.mo
     assert_command dfx build -vv dependent
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_not_contains '"moc-wrapper" "src/dependency.mo"'
 
-    touch dependency.mo
+    touch src/dependency.mo
     assert_command dfx build -vv dependent
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
 
-    touch dependency.mo
+    touch src/dependency.mo
     assert_command dfx build -vv dependency
     assert_not_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
@@ -80,12 +80,12 @@ teardown() {
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_not_contains '"moc-wrapper" "src/dependency.mo"'
 
-    touch lib.mo
+    touch src/lib.mo
     assert_command dfx build -vv dependent
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
 
-    touch lib.mo
+    touch src/lib.mo
     assert_command dfx build -vv dependency
     assert_not_contains '"moc-wrapper" "src/dependent.mo"'
     assert_contains '"moc-wrapper" "src/dependency.mo"'
