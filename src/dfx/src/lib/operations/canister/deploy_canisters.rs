@@ -136,32 +136,7 @@ pub async fn deploy_canisters(
                     config.get_config().get_canister_config(canister_name).map_or(
                         true, |canister_config| canister_config.deploy))
         })
-        // .collect();
-        .map(|canister_name| -> DfxResult<Option<String>> {
-            Ok(
-                if let Some(canister) =
-                    canister_pool.get_first_canister_with_name(canister_name.as_str())
-                {
-                    // FIXME: Double check, whether this OR condition is correct here:
-                    if canister.builder.should_build(
-                        &canister_pool,
-                        &canister.info,
-                        env.get_cache().as_ref(),
-                        env.get_logger(),
-                    )? ||
-                        toplevel_canisters.iter().map(|cur_canister| cur_canister.get_name().to_string()).contains(&canister.get_name().to_string())
-                    {
-                        Some(canister_name)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                },
-            )
-        })
-        .filter_map(|v| v.transpose())
-        .try_collect()?;
+        .collect();
 
     if some_canister.is_some() {
         info!(log, "Deploying: {}", canisters_to_install.join(" "));

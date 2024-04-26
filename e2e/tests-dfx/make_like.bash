@@ -29,7 +29,7 @@ teardown() {
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_not_contains '"moc-wrapper" "src/dependency.mo"'
     assert_contains 'Upgrading code for canister dependent'
-    assert_not_contains 'Upgrading code for canister dependency'
+    assert_contains 'Upgrading code for canister dependency'
 
     touch src/dependency.mo
     assert_command dfx deploy -vv dependent
@@ -49,7 +49,7 @@ teardown() {
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_not_contains '"moc-wrapper" "src/dependency.mo"'
     assert_contains 'Upgrading code for canister dependent'
-    assert_not_contains 'Upgrading code for canister dependency'
+    assert_contains 'Upgrading code for canister dependency'
 
     touch src/lib.mo
     assert_command dfx deploy -vv dependent
@@ -84,7 +84,7 @@ teardown() {
     assert_contains '"moc-wrapper" "src/dependent.mo"'
     assert_not_contains '"moc-wrapper" "src/dependency.mo"'
     assert_contains 'Upgrading code for canister dependent'
-    assert_not_contains 'Upgrading code for canister dependency'
+    assert_contains 'Upgrading code for canister dependency'
 }
 
 @test "trying to break dependency compiling: build" {
