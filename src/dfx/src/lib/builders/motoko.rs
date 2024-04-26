@@ -388,7 +388,7 @@ impl TryFrom<&str> for Import {
             None => match fullpath {
                 Some(fullpath) => {
                     let path = PathBuf::from(fullpath);
-                    if !path.is_file() { // FIXME: What's about `/lib.mo` paths?
+                    if !path.is_file() {
                         return Err(DfxError::new(BuildError::DependencyError(format!(
                             "Cannot find import file {}",
                             path.display()
