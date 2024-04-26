@@ -728,7 +728,9 @@ impl CanisterPool {
     }
 
     fn step_prebuild(&self, build_config: &BuildConfig, canister: &Canister) -> DfxResult<()> {
+        canister.prebuild(self, build_config)?;
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
+
         // Copy .did files into this temporary directory.
         let log = self.get_logger();
         for canister in self.canister_dependencies(&[canister]) {
@@ -770,7 +772,7 @@ impl CanisterPool {
             }
         }
 
-        canister.prebuild(self, build_config)
+        Ok(())
     }
 
     fn step_build<'a>(
@@ -787,6 +789,18 @@ impl CanisterPool {
         canister: &Canister,
         build_output: &BuildOutput,
     ) -> DfxResult<()> {
+        // We don't want to simply remove the whole directory, as in the future,
+        // we may want to keep the IDL files downloaded from network.
+        // TODO: The following `map` is a hack.
+        for canister in &self.canister_dependencies(&[&canister]) {
+            let idl_root = &build_config.idl_root;
+            let canister_id = canister.canister_id();
+            let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
+
+            // Ignore errors (e.g. File Not Found).
+            let _ = std::fs::remove_file(idl_file_path);
+        }
+
         canister.candid_post_process(self.get_logger(), build_config, build_output)?;
 
         canister.wasm_post_process(self.get_logger(), build_output)?;
@@ -798,24 +812,9 @@ impl CanisterPool {
 
     fn step_postbuild_all(
         &self,
-        build_config: &BuildConfig,
+        _build_config: &BuildConfig,
         _order: &[CanisterId],
-        toplevel_canisters: &[Arc<Canister>],
     ) -> DfxResult<()> {
-        // We don't want to simply remove the whole directory, as in the future,
-        // we may want to keep the IDL files downloaded from network.
-        // TODO: The following `map` is a hack.
-        for canister in &self.canister_dependencies(
-            &toplevel_canisters.iter().map(|canister| canister.as_ref()).collect::<Vec<&Canister>>()
-        ) {
-            let idl_root = &build_config.idl_root;
-            let canister_id = canister.canister_id();
-            let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
-
-            // Ignore errors (e.g. File Not Found).
-            let _ = std::fs::remove_file(idl_file_path);
-        }
-
         Ok(())
     }
 
@@ -960,7 +959,7 @@ impl CanisterPool {
             }
         }
 
-        self.step_postbuild_all(build_config, &order, toplevel_canisters.as_slice())
+        self.step_postbuild_all(build_config, &order)
             .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
 
         Ok(result)
