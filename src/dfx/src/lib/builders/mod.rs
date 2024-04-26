@@ -324,13 +324,7 @@ pub trait CanisterBuilder {
                             continue;
                         }
                         Import::FullPath(full_path) => {
-                            // duplicate code
-                            let path2 = full_path.join(Path::new("lib.mo"));
-                            Some(if path2.exists() {
-                                path2
-                            } else {
-                                full_path.clone()
-                            })
+                            Some(full_path.clone()) // TODO: Eliminate `clone`.
                         }
                     };
                     if let Some(imported_file) = imported_file {

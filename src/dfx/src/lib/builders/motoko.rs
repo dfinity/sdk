@@ -83,14 +83,7 @@ pub fn add_imports(
             let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
             match &child {
                 Import::FullPath(full_child_path) => {
-                    // duplicate code
-                    let path2 = full_child_path.join(Path::new("lib.mo"));
-                    let child_path = if path2.exists() {
-                        &path2
-                    } else {
-                        full_child_path
-                    };
-                    add_imports_recursive(cache, child_path.as_path(), imports, pool, None)?;
+                    add_imports_recursive(cache, full_child_path.as_path(), imports, pool, None)?;
                 }
                 Import::Canister(canister_name) => {
                     // duplicate code
