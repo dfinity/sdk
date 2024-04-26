@@ -618,12 +618,12 @@ impl CanisterPool {
                 }
             };
             let parent_canister = self
-                .get_first_canister_with_name(parent_name)
-                .unwrap()
-                .canister_id();
-            dest_id_to_source_id
+                .get_first_canister_with_name(parent_name).unwrap();
+            let parent_canister_id = parent_canister.canister_id();
+            let parent_dest_id = *dest_id_to_source_id
                 .entry(start_node)
-                .or_insert_with(|| dest_graph.add_node(parent_canister));
+                .or_insert_with(|| dest_graph.add_node(parent_canister_id));
+            dest_nodes.insert(parent_canister_id, parent_dest_id);
 
             let bfs = Bfs::new(&source_graph, start_node);
             let mut filtered_bfs = BfsFiltered::new(bfs);
@@ -827,10 +827,8 @@ impl CanisterPool {
         let (graph, nodes) =
             self.build_canister_dependencies_graph(toplevel_canisters, env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
 
-        // TODO: If source files are unreadable, this panics.
         let toplevel_nodes: Vec<NodeIndex> = toplevel_canisters.iter().map(
             |canister| -> DfxResult<NodeIndex> {
-                // FIXME
                 Ok(nodes.get(&canister.canister_id()).ok_or_else(|| anyhow!("No such canister {}.", canister.get_name()))?.clone())
             })
             .try_collect()?;
