@@ -122,7 +122,7 @@ pub async fn deploy_canisters(
     let toplevel_canisters: &[Arc<Canister>] = &toplevel_canisters;
 
     // TODO: `build_order` is called two times during deployment of a new canister.
-    let order = canister_pool.build_order(env, toplevel_canisters)?; // TODO: `Some` here is a hack. // TODO: Eliminate `clone`.
+    let order = canister_pool.build_order(env, toplevel_canisters)?;
     let order_names: Vec<String> = order
         .iter()
         .map(|canister| {
