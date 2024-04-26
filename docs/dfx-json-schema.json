@@ -82,6 +82,20 @@
         "trace"
       ]
     },
+    "Byte": {
+      "title": "Byte Count",
+      "description": "A quantity of bytes. Representable either as an integer, or as an SI unit string",
+      "examples": [
+        72,
+        "2KB",
+        "4 MiB"
+      ],
+      "type": [
+        "integer",
+        "string"
+      ],
+      "pattern": "^[0-9]+( *([KkMmGgTtPpEeZzYy]i?)?B)?$"
+    },
     "CanisterDeclarationsConfig": {
       "title": "Declarations Configuration",
       "description": "Configurations about which canister interface declarations to generate, and where to generate them.",
@@ -397,7 +411,8 @@
             "compute_allocation": null,
             "freezing_threshold": null,
             "memory_allocation": null,
-            "reserved_cycles_limit": null
+            "reserved_cycles_limit": null,
+            "wasm_memory_limit": null
           },
           "allOf": [
             {
@@ -923,14 +938,16 @@
         },
         "memory_allocation": {
           "title": "Memory Allocation",
-          "description": "Maximum memory (in bytes) this canister is allowed to occupy.",
+          "description": "Maximum memory (in bytes) this canister is allowed to occupy. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
           "default": null,
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint64",
-          "minimum": 0.0
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Byte"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "reserved_cycles_limit": {
           "title": "Reserved Cycles Limit",
@@ -942,6 +959,19 @@
           ],
           "format": "uint128",
           "minimum": 0.0
+        },
+        "wasm_memory_limit": {
+          "title": "WASM Memory Limit",
+          "description": "Specifies a soft limit (in bytes) on the Wasm memory usage of the canister.\n\nUpdate calls, timers, heartbeats, installs, and post-upgrades fail if the WASM memory usage exceeds this limit. The main purpose of this setting is to protect against the case when the canister reaches the hard 4GiB limit.\n\nMust be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Byte"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
