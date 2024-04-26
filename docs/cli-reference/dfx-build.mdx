@@ -10,7 +10,7 @@ Note that you can only run this command from within the project directory struct
 
 The `dfx build` command looks for the source code to compile using the information you have configured under the `canisters` section in the `dfx.json` configuration file.
 
-For compilation speed reasons, `dfx build` (and `dfx deploy`) don't recompile canisters, all dependencies of which are elder than the existing WebAssembly (from the previous compilation).
+For compilation speed reasons, `dfx build` (and `dfx deploy`) don't recompile canisters, all dependencies of which are elder than the existing Candid file (from the previous compilation). Moreover, the Candid (`.did`) file is updated only when strictly necessary (that is on public interface change). This makes dependent canisters not recompile when a dependency canister changes without interface change.
 
 ## Basic usage
 
