@@ -25,11 +25,25 @@ This field accepts a relative path, from the directory containing the `dfx.json`
 
 `dfx new` could fail with "Failed to scaffold frontend code" if node was installed but npm was not installed.
 
+## Dependencies
+
 ### Cycles wallet
 
 Updated cycles wallet to a gzipped version of `20240410` release:
 - Module hash: `7745d3114e3e5fbafe8a7150a0a8c15a5b8dc9257f294d5ced67d41be76065bc`, in gzipped form: `664df1045e093084f4ebafedd3a793cc3b3be0a7ef1b245d8d3defe20b33057c`
 - https://github.com/dfinity/cycles-wallet/commit/b013764dd827560d8538ee2b7be9ecf66bed6be7
+
+### Replica
+
+Updated replica to elected commit 63acf4f88b20ec0c6384f4e18f0f6f69fc5d9b9f.
+This incorporates the following executed proposals:
+
+- [129428](https://dashboard.internetcomputer.org/proposal/129428)
+- [129427](https://dashboard.internetcomputer.org/proposal/129427)
+- [129423](https://dashboard.internetcomputer.org/proposal/129423)
+- [129408](https://dashboard.internetcomputer.org/proposal/129408)
+- [129379](https://dashboard.internetcomputer.org/proposal/129379)
+- [129378](https://dashboard.internetcomputer.org/proposal/129378)
 
 # 0.20.0
 
