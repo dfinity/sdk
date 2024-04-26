@@ -136,17 +136,21 @@ pub async fn deploy_canisters(
                     config.get_config().get_canister_config(canister_name).map_or(
                         true, |canister_config| canister_config.deploy))
         })
+        // .collect();
         .map(|canister_name| -> DfxResult<Option<String>> {
             Ok(
                 if let Some(canister) =
                     canister_pool.get_first_canister_with_name(canister_name.as_str())
                 {
+                    // FIXME: Double check, whether this OR condition is correct here:
                     if canister.builder.should_build(
                         &canister_pool,
                         &canister.info,
                         env.get_cache().as_ref(),
                         env.get_logger(),
-                    )? {
+                    )? ||
+                        toplevel_canisters.iter().map(|cur_canister| cur_canister.get_name().to_string()).contains(&canister.get_name().to_string())
+                    {
                         Some(canister_name)
                     } else {
                         None
@@ -170,7 +174,7 @@ pub async fn deploy_canisters(
     {
         register_canisters(
             env,
-            &order_names,
+            &canisters_to_install,
             &initial_canister_id_store,
             with_cycles,
             specified_id_from_cli,
@@ -246,7 +250,7 @@ fn canister_with_dependencies(
 #[context("Failed while trying to register all canisters.")]
 async fn register_canisters(
     env: &dyn Environment,
-    canister_names: &[String],
+    canister_names: &[String], // TODO: Should pass `&[Arc<Canister>]` instead.
     canister_id_store: &CanisterIdStore,
     with_cycles: Option<u128>,
     specified_id_from_cli: Option<Principal>,
