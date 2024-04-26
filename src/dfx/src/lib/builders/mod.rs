@@ -287,14 +287,12 @@ pub trait CanisterBuilder {
             } else {
                 panic!("programming error");
             };
-            println!("output_wasm_path: {}", output_wasm_path.to_str().unwrap()); // FIXME: Remove.
             let mut import_iter = Bfs::new(&imports.graph, start);
             let mut top_level = true; // link to our main Canister with `.wasm`
             loop {
                 if let Some(import) = import_iter.next(&imports.graph) {
                     let top_level_cur = top_level;
                     top_level = false;
-                    println!("IMPORT: {:?}", import); // FIXME: Remove.
                     let subnode = &imports.graph[import];
                     if top_level_cur {
                         assert!(match subnode {
@@ -342,9 +340,7 @@ pub trait CanisterBuilder {
                             Some(full_path.clone()) // TODO: Eliminate `clone`.
                         }
                     };
-                    println!("FILE: {:?}", imported_file); // FIXME: Remove.
                     if let Some(imported_file) = imported_file {
-                        println!("FILE2: {:?}", imported_file.to_str().unwrap()); // FIXME: Remove.
                         let imported_file_metadata = metadata(&imported_file)?;
                         let imported_file_time = imported_file_metadata.modified()?;
                         if imported_file_time > wasm_file_time {
