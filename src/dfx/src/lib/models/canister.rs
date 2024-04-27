@@ -577,14 +577,14 @@ impl CanisterPool {
                 .map(|canister| canister.get_info().get_name())
                 .contains(&canister.get_info().get_name());
             if contains {
-                let canister_info = &canister.info;
-                // TODO: Ignored return value is a hack.
-                let _deps: Vec<CanisterId> =
-                    canister.builder.get_dependencies(self, canister_info)?;
+                canister
+                    .builder
+                    .read_dependencies(self, canister.get_info(), cache)?; // TODO: It is called multiple times during the flow.
+                // let canister_info = &canister.info;
+                // let _deps: Vec<CanisterId> =
+                //     canister.builder.get_dependencies(self, canister_info)?;
             }
-            canister
-                .builder
-                .read_dependencies(self, canister.get_info(), cache)?; // TODO: It is called multiple times during the flow.
+            // println!("read_dependecies for CASNITER {}", canister.get_name()); // FIXME: Remove. (Correct output.)
         }
 
         let source_graph = &self.imports.borrow().graph;

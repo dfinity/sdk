@@ -33,6 +33,7 @@ impl<NodeId, VM> BfsFiltered<NodeId, VM> {
     {
         while let Some(source_child_id) = &self.base.next(graph) {
             if predicate(source_child_id)? {
+                // FIXME: Item can have multiple parents.
                 let mut source_parent_iter = graph.neighbors_directed(*source_child_id, Incoming);
                 let mut source_parent_id;
                 if let Some(id1) = source_parent_iter.next() {

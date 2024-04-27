@@ -102,6 +102,8 @@ pub fn add_imports(
                                 Some(canister.get_info()),
                             )?;
                         }
+                    } else {
+                        panic!("Canister '{}' not in pool", &canister_name);
                     }
                 }
                 _ => {}
