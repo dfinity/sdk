@@ -14,13 +14,13 @@ teardown() {
   standard_teardown
 }
 
-@test "compiles after correcting dependency" {
+# Check that attempt to compile before correcting dependencies does not break further compilation.
+@test "compiles after correcting a dependency" {
   install_asset base
 
   dfx_start
 
-  # fails
-  dfx deploy || true
+  assert_command_fail dfx deploy
 
   cp dfx_corrected.json dfx.json
 
