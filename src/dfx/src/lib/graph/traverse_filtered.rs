@@ -30,24 +30,22 @@ impl<NodeId, VM> BfsFiltered<NodeId, VM> {
         NodeId: Copy + Eq,
         VM: VisitMap<NodeId>,
     {
-        while let Some(source_child_id) = &self.base.next(graph) {
-            if predicate(source_child_id)? {
-                // TODO: Simplify it using `skip()`.
-                let mut source_parent_iter = self.base.stack.iter().rev();
-                let mut source_parent_id;
-                if let Some(id1) = source_parent_iter.next() {
-                    source_parent_id = id1;
-                    loop {
-                        if predicate(&source_parent_id)? {
-                            call(&source_parent_id, source_child_id)?;
-                            break;
-                        }
-                        if let Some(id2) = source_parent_iter.next() {
-                            source_parent_id = id2;
-                        } else {
-                            break;
-                        }
-                    }
+        while let Some(child_id) = &self.base.next(graph) {
+            if predicate(&child_id)? {
+                let mut parent_iter = self.base.stack.iter().rev();
+                let parent_id =
+                    parent_iter
+                        .find_map(|&id| -> Option<DfxResult<NodeId>> {
+                            match predicate(&id) {
+                                Ok(true) => Some(Ok(id)),
+                                Ok(false) => None,
+                                Err(err) => Some(Err(err)),
+                            }
+                        })
+                        .transpose()?;
+                if let Some(parent_id) = parent_id {
+                    assert!(parent_id != *child_id);
+                    call(&parent_id, child_id)?;
                 }
             }
         }
