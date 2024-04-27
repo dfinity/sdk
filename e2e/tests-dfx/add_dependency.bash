@@ -14,7 +14,7 @@ teardown() {
   standard_teardown
 }
 
-@test "compiles after correcting dependency" {
+@test "compiles after correcting a dependency" {
   install_asset base
 
   dfx_start
