@@ -569,7 +569,7 @@ impl CanisterPool {
     #[context("Failed to build dependencies graph for canister pool.")]
     pub fn build_canister_dependencies_graph(
         &self,
-        toplevel_canisters: &[Arc<Canister>],
+        toplevel_canisters: &[&Canister],
         cache: &dyn Cache,
     ) -> DfxResult<(DiGraph<CanisterId, ()>, HashMap<CanisterId, NodeIndex>)> {
         for canister in &self.canisters {
@@ -673,7 +673,7 @@ impl CanisterPool {
         Ok((dest_graph, dest_nodes))
     }
 
-    fn canister_dependencies(&self, toplevel_canisters: &[Arc<Canister>]) -> Vec<Arc<Canister>> {
+    fn canister_dependencies(&self, toplevel_canisters: &[&Canister]) -> Vec<Arc<Canister>> {
         let iter = toplevel_canisters
             .iter()
             .flat_map(|canister| {
@@ -682,7 +682,7 @@ impl CanisterPool {
                     .imports
                     .borrow()
                     .nodes
-                    .get(&Import::Canister(canister.as_ref().get_name().to_owned()))
+                    .get(&Import::Canister(canister.get_name().to_owned()))
                     .unwrap();
                 let imports = self.imports.borrow();
                 let neighbors = imports.graph.neighbors(parent_node);
@@ -710,13 +710,32 @@ impl CanisterPool {
     #[context("Failed step_prebuild_all.")]
     fn step_prebuild_all(
         &self,
-        log: &Logger,
         build_config: &BuildConfig,
-        toplevel_canisters: &[Arc<Canister>],
     ) -> DfxResult<()> {
+        // cargo audit
+        if self
+            .canisters_to_build(build_config)
+            .iter()
+            .any(|can| can.info.is_rust())
+        {
+            self.run_cargo_audit()?;
+        } else {
+            trace!(
+                self.logger,
+                "No canister of type 'rust' found. Not trying to run 'cargo audit'."
+            )
+        }
+
+        Ok(())
+    }
+
+    fn step_prebuild(&self, build_config: &BuildConfig, canister: &Canister) -> DfxResult<()> {
+        canister.prebuild(self, build_config)?;
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
+
         // Copy .did files into this temporary directory.
-        for canister in self.canister_dependencies(toplevel_canisters) {
+        let log = self.get_logger();
+        for canister in self.canister_dependencies(&[canister]) {
             let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
                 Some(remote_candid)
             } else {
@@ -755,25 +774,7 @@ impl CanisterPool {
             }
         }
 
-        // cargo audit
-        if self
-            .canisters_to_build(build_config)
-            .iter()
-            .any(|can| can.info.is_rust())
-        {
-            self.run_cargo_audit()?;
-        } else {
-            trace!(
-                self.logger,
-                "No canister of type 'rust' found. Not trying to run 'cargo audit'."
-            )
-        }
-
         Ok(())
-    }
-
-    fn step_prebuild(&self, build_config: &BuildConfig, canister: &Canister) -> DfxResult<()> {
-        canister.prebuild(self, build_config)
     }
 
     fn step_build<'a>(
@@ -790,6 +791,18 @@ impl CanisterPool {
         canister: &Canister,
         build_output: &BuildOutput,
     ) -> DfxResult<()> {
+        // We don't want to simply remove the whole directory, as in the future,
+        // we may want to keep the IDL files downloaded from network.
+        // TODO: The following `map` is a hack.
+        for canister in &self.canister_dependencies(&[&canister]) {
+            let idl_root = &build_config.idl_root;
+            let canister_id = canister.canister_id();
+            let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
+
+            // Ignore errors (e.g. File Not Found).
+            let _ = std::fs::remove_file(idl_file_path);
+        }
+
         canister.candid_post_process(self.get_logger(), build_config, build_output)?;
 
         canister.wasm_post_process(self.get_logger(), build_output)?;
@@ -801,21 +814,9 @@ impl CanisterPool {
 
     fn step_postbuild_all(
         &self,
-        build_config: &BuildConfig,
+        _build_config: &BuildConfig,
         _order: &[CanisterId],
-        toplevel_canisters: &[Arc<Canister>],
     ) -> DfxResult<()> {
-        // We don't want to simply remove the whole directory, as in the future,
-        // we may want to keep the IDL files downloaded from network.
-        for canister in self.canister_dependencies(toplevel_canisters) {
-            let idl_root = &build_config.idl_root;
-            let canister_id = canister.canister_id();
-            let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
-
-            // Ignore errors (e.g. File Not Found).
-            let _ = std::fs::remove_file(idl_file_path);
-        }
-
         Ok(())
     }
 
@@ -825,8 +826,9 @@ impl CanisterPool {
         toplevel_canisters: &[Arc<Canister>],
     ) -> DfxResult<Vec<CanisterId>> {
         trace!(env.get_logger(), "Building dependencies graph.");
+        // TODO: The following `map` is a hack.
         let (graph, nodes) =
-            self.build_canister_dependencies_graph(toplevel_canisters, env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
+            self.build_canister_dependencies_graph(&toplevel_canisters.iter().map(|canister| canister.as_ref()).collect::<Vec<&Canister>>(), env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
 
         let toplevel_nodes: Vec<NodeIndex> = toplevel_canisters
             .iter()
@@ -907,7 +909,7 @@ impl CanisterPool {
             };
         let order = self.build_order(env, &toplevel_canisters)?; // TODO: Eliminate `clone`.
 
-        self.step_prebuild_all(log, build_config, toplevel_canisters.as_slice())
+        self.step_prebuild_all(build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let mut result = Vec::new();
@@ -959,7 +961,7 @@ impl CanisterPool {
             }
         }
 
-        self.step_postbuild_all(build_config, &order, toplevel_canisters.as_slice())
+        self.step_postbuild_all(build_config, &order)
             .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
 
         Ok(result)
