@@ -2,7 +2,6 @@
 use petgraph::{
     data::DataMap,
     visit::{Bfs, IntoNeighborsDirected, VisitMap},
-    Direction::Incoming,
 };
 
 use crate::lib::error::DfxResult;
@@ -33,8 +32,8 @@ impl<NodeId, VM> BfsFiltered<NodeId, VM> {
     {
         while let Some(source_child_id) = &self.base.next(graph) {
             if predicate(source_child_id)? {
-                // FIXME: Item can have multiple parents.
-                let mut source_parent_iter = graph.neighbors_directed(*source_child_id, Incoming);
+                // TODO: Simplify it using `skip()`.
+                let mut source_parent_iter = self.base.stack.iter().rev();
                 let mut source_parent_id;
                 if let Some(id1) = source_parent_iter.next() {
                     source_parent_id = id1;
