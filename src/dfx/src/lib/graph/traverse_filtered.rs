@@ -25,11 +25,10 @@ impl DfsFiltered {
         NodeId: Copy + Eq,
         P: FnMut(&NodeId) -> DfxResult<bool>,
     {
-        self.traverse2_recursive(graph, &mut predicate, &mut call, node_id, &mut Vec::new())
+        Self::traverse2_recursive(graph, &mut predicate, &mut call, node_id, &mut Vec::new())
     }
 
     fn traverse2_recursive<G, NodeId, P, C, NodeWeight>(
-        &mut self,
         graph: G,
         predicate: &mut P,
         call: &mut C,
@@ -63,7 +62,7 @@ impl DfsFiltered {
         }
         ancestors.push(node_id);
         for subnode_id in graph.neighbors(node_id) {
-            self.traverse2_recursive(graph, predicate, call, subnode_id, ancestors)?;
+            Self::traverse2_recursive(graph, predicate, call, subnode_id, ancestors)?;
         }
         ancestors.pop();
 
