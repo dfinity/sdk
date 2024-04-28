@@ -584,7 +584,6 @@ impl CanisterPool {
                 // let _deps: Vec<CanisterId> =
                 //     canister.builder.get_dependencies(self, canister_info)?;
             }
-            // println!("read_dependecies for CASNITER {}", canister.get_name()); // FIXME: Remove. (Correct output.)
         }
 
         let source_graph = &self.imports.borrow().graph;
@@ -827,6 +826,11 @@ impl CanisterPool {
         // TODO: The following `map` is a hack.
         let (graph, nodes) =
             self.build_canister_dependencies_graph(&toplevel_canisters.iter().map(|canister| canister.as_ref()).collect::<Vec<&Canister>>(), env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
+        // FIXME: Remove:
+        println!("CANS: {:?}", graph.raw_edges().iter().map(|edge| (
+            self.get_canister(graph.node_weight(edge.source()).unwrap()).unwrap().get_name(),
+            self.get_canister(graph.node_weight(edge.target()).unwrap()).unwrap().get_name(),
+        )).collect::<Vec<_>>());
 
         let toplevel_nodes: Vec<NodeIndex> = toplevel_canisters
             .iter()
