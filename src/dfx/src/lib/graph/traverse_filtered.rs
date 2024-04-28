@@ -6,10 +6,10 @@ use petgraph::{
 
 use crate::lib::error::DfxResult;
 
-pub struct BfsFiltered {}
+pub struct DfsFiltered {}
 
 // FIXME: This is DFS, not BFS.
-impl BfsFiltered
+impl DfsFiltered
 {
     pub fn new() -> Self {
         Self { }
@@ -52,6 +52,9 @@ impl BfsFiltered
         P: FnMut(&NodeId) -> DfxResult<bool>,
         NodeId: Copy + Eq,
     {
+        if !predicate(&node_id)? {
+            return Ok(());
+        }
         let ancestor_id =
             ancestors.iter().rev()
                 .find_map(|&id| -> Option<DfxResult<NodeId>> {

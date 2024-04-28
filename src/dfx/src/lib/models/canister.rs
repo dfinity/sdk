@@ -5,7 +5,7 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::graph::traverse_filtered::BfsFiltered;
+use crate::lib::graph::traverse_filtered::DfsFiltered;
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
@@ -623,8 +623,8 @@ impl CanisterPool {
                 .or_insert_with(|| dest_graph.add_node(parent_canister_id));
             dest_nodes.insert(parent_canister_id, parent_dest_id);
 
-            let mut filtered_bfs = BfsFiltered::new();
-            filtered_bfs.traverse2(
+            let mut filtered_dfs = DfsFiltered::new();
+            filtered_dfs.traverse2(
                 source_graph,
                 |&s| {
                     let source_id = source_graph.node_weight(s);
@@ -826,11 +826,6 @@ impl CanisterPool {
         // TODO: The following `map` is a hack.
         let (graph, nodes) =
             self.build_canister_dependencies_graph(&toplevel_canisters.iter().map(|canister| canister.as_ref()).collect::<Vec<&Canister>>(), env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
-        // FIXME: Remove:
-        println!("CANS: {:?}", graph.raw_edges().iter().map(|edge| (
-            self.get_canister(graph.node_weight(edge.source()).unwrap()).unwrap().get_name(),
-            self.get_canister(graph.node_weight(edge.target()).unwrap()).unwrap().get_name(),
-        )).collect::<Vec<_>>());
 
         let toplevel_nodes: Vec<NodeIndex> = toplevel_canisters
             .iter()
