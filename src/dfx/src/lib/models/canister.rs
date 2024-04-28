@@ -580,9 +580,9 @@ impl CanisterPool {
                 canister
                     .builder
                     .read_dependencies(self, canister.get_info(), cache)?; // TODO: It is called multiple times during the flow.
-                // let canister_info = &canister.info;
-                // let _deps: Vec<CanisterId> =
-                //     canister.builder.get_dependencies(self, canister_info)?;
+                                                                           // let canister_info = &canister.info;
+                                                                           // let _deps: Vec<CanisterId> =
+                                                                           //     canister.builder.get_dependencies(self, canister_info)?;
             }
         }
 
@@ -705,10 +705,7 @@ impl CanisterPool {
     }
 
     #[context("Failed step_prebuild_all.")]
-    fn step_prebuild_all(
-        &self,
-        build_config: &BuildConfig,
-    ) -> DfxResult<()> {
+    fn step_prebuild_all(&self, build_config: &BuildConfig) -> DfxResult<()> {
         // cargo audit
         if self
             .canisters_to_build(build_config)
@@ -824,8 +821,13 @@ impl CanisterPool {
     ) -> DfxResult<Vec<CanisterId>> {
         trace!(env.get_logger(), "Building dependencies graph.");
         // TODO: The following `map` is a hack.
-        let (graph, nodes) =
-            self.build_canister_dependencies_graph(&toplevel_canisters.iter().map(|canister| canister.as_ref()).collect::<Vec<&Canister>>(), env.get_cache().as_ref())?; // TODO: Can `clone` be eliminated?
+        let (graph, nodes) = self.build_canister_dependencies_graph(
+            &toplevel_canisters
+                .iter()
+                .map(|canister| canister.as_ref())
+                .collect::<Vec<&Canister>>(),
+            env.get_cache().as_ref(),
+        )?; // TODO: Can `clone` be eliminated?
 
         let toplevel_nodes: Vec<NodeIndex> = toplevel_canisters
             .iter()
