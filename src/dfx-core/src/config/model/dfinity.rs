@@ -257,6 +257,11 @@ pub struct ConfigCanistersCanister {
     #[serde(default)]
     pub dependencies: Vec<String>,
 
+    /// # Deploy
+    /// `false` value means not to deploy this canister unless it's explicitly specified in the command line (supposed use: canister that are created by other canisters).
+    #[serde(default = "default_true")]
+    pub deploy: bool,
+
     /// # Force Frontend URL
     /// Mostly unused.
     /// If this value is not null, a frontend URL is displayed after deployment even if the canister type is not 'asset'.
@@ -325,6 +330,10 @@ pub struct ConfigCanistersCanister {
     /// The Candid initialization argument file for installing the canister.
     /// If the `--argument` or `--argument-file` argument is also provided, this `init_arg_file` field will be ignored.
     pub init_arg_file: Option<String>,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Clone, Debug, Serialize, JsonSchema)]
@@ -965,7 +974,7 @@ impl ConfigInterface {
             .wasm_memory_limit)
     }
 
-    fn get_canister_config(
+    pub fn get_canister_config(
         &self,
         canister_name: &str,
     ) -> Result<&ConfigCanistersCanister, GetCanisterConfigError> {
