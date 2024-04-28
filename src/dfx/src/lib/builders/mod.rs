@@ -3,19 +3,24 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::models::canister::Import;
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
+use dfx_core::config::cache::Cache;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 use fn_error_context::context;
 use handlebars::Handlebars;
+use petgraph::visit::Bfs;
+use slog::trace;
+use slog::Logger;
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
 use std::fmt::Write;
-use std::fs;
+use std::fs::{self, metadata};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -28,6 +33,8 @@ mod pull;
 mod rust;
 
 pub use custom::custom_download;
+
+use self::motoko::add_imports;
 
 #[derive(Debug)]
 pub enum WasmBuildOutput {
@@ -219,6 +226,126 @@ pub trait CanisterBuilder {
         }
 
         Ok(())
+    }
+
+    fn read_dependencies(
+        &self,
+        pool: &CanisterPool,
+        canister_info: &CanisterInfo,
+        cache: &dyn Cache,
+    ) -> DfxResult {
+        if canister_info.is_motoko() {
+            // hack
+            add_imports(cache, canister_info, &mut pool.imports.borrow_mut(), pool)?;
+        } else {
+            let imports = &mut *pool.imports.borrow_mut();
+            let node = Import::Canister(canister_info.get_name().to_owned());
+            let parent_id = *imports
+                .nodes
+                .entry(node.clone())
+                .or_insert_with(|| imports.graph.add_node(node));
+            for child in canister_info.get_dependencies() {
+                let child_node = Import::Canister(child.clone());
+                let child_id = *imports
+                    .nodes
+                    .entry(child_node.clone())
+                    .or_insert_with(|| imports.graph.add_node(child_node));
+                imports.graph.update_edge(parent_id, child_id, ());
+            }
+        }
+        Ok(())
+    }
+
+    fn should_build(
+        &self,
+        pool: &CanisterPool,
+        canister_info: &CanisterInfo,
+        cache: &dyn Cache,
+        logger: &Logger,
+    ) -> DfxResult<bool> {
+        // let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?;
+        let output_wasm_path = canister_info.get_output_wasm_path();
+
+        // from principal to name:
+        // let rev_id_map: BTreeMap<String, String> = pool
+        //     .get_canister_list()
+        //     .iter()
+        //     .map(|&c| (c.canister_id().to_text(), c.get_name().to_string()))
+        //     .collect();
+
+        self.read_dependencies(pool, canister_info, cache)?;
+
+        // Check that one of the dependencies is newer than the target:
+        if let Ok(wasm_file_metadata) = metadata(output_wasm_path) {
+            let wasm_file_time = wasm_file_metadata.modified()?;
+            let imports = pool.imports.borrow_mut();
+            let start = if let Some(node_index) = imports
+                .nodes
+                .get(&Import::Canister(canister_info.get_name().to_string()))
+            {
+                *node_index
+            } else {
+                panic!("programming error");
+            };
+            let mut import_iter = Bfs::new(&imports.graph, start);
+            loop {
+                if let Some(import) = import_iter.next(&imports.graph) {
+                    let subnode = &imports.graph[import];
+                    let imported_file = match subnode {
+                        Import::Canister(canister_name) => {
+                            if let Some(canister) =
+                                pool.get_first_canister_with_name(canister_name.as_str())
+                            {
+                                let main_file = canister.get_info().get_main_file();
+                                main_file.map(|main_file| main_file.to_owned())
+                            } else {
+                                None
+                            }
+                        }
+                        Import::Ic(_canister_id) => {
+                            continue;
+                            // if let Some(canister_name) = rev_id_map.get(canister_id.as_str()) {
+                            //     if let Some(canister) =
+                            //         pool.get_first_canister_with_name(canister_name)
+                            //     {
+                            //         canister
+                            //             .get_info()
+                            //             .get_main_file()
+                            //             .map(|main_file| main_file.to_owned())
+                            //     } else {
+                            //         None
+                            //     }
+                            // } else {
+                            //     None
+                            // }
+                        }
+                        Import::Lib(_path) => {
+                            // Skip libs, all changes by package managers don't modify existing directories but create new ones.
+                            continue;
+                        }
+                        Import::FullPath(full_path) => {
+                            Some(full_path.clone()) // TODO: Eliminate `clone`.
+                        }
+                    };
+                    if let Some(imported_file) = imported_file {
+                        let imported_file_metadata = metadata(&imported_file)?;
+                        let imported_file_time = imported_file_metadata.modified()?;
+                        if imported_file_time > wasm_file_time {
+                            break;
+                        };
+                    };
+                } else {
+                    trace!(
+                        logger,
+                        "Canister {} already compiled.",
+                        canister_info.get_name()
+                    );
+                    return Ok(false);
+                }
+            }
+        };
+
+        Ok(true)
     }
 
     /// Get the path to the provided candid file for the canister.
@@ -493,9 +620,9 @@ pub struct BuildConfig {
     pub lsp_root: PathBuf,
     /// The root for all build files.
     pub build_root: PathBuf,
-    /// If only a subset of canisters should be built, then canisters_to_build contains these canisters' names.
+    /// If only a subset of canisters should be built, then user_specified_canisters contains these canisters' names.
     /// If all canisters should be built, then this is None.
-    pub canisters_to_build: Option<Vec<String>>,
+    pub user_specified_canisters: Option<Vec<String>>,
     /// If environment variables should be output to a `.env` file, `env_file` is set to its path.
     pub env_file: Option<PathBuf>,
 }
@@ -516,7 +643,7 @@ impl BuildConfig {
             build_root: canister_root.clone(),
             idl_root: canister_root.join("idl/"), // TODO: possibly move to `network_root.join("idl/")`
             lsp_root: network_root.join("lsp/"),
-            canisters_to_build: None,
+            user_specified_canisters: None,
             env_file: config.get_output_env_file(None)?,
         })
     }
@@ -530,7 +657,7 @@ impl BuildConfig {
 
     pub fn with_canisters_to_build(self, canisters: Vec<String>) -> Self {
         Self {
-            canisters_to_build: Some(canisters),
+            user_specified_canisters: Some(canisters),
             ..self
         }
     }

@@ -10,6 +10,8 @@ Note that you can only run this command from within the project directory struct
 
 The `dfx build` command looks for the source code to compile using the information you have configured under the `canisters` section in the `dfx.json` configuration file.
 
+For compilation speed reasons, `dfx build` (and `dfx deploy`) don't recompile canisters, all dependencies of which are elder than the existing WebAssembly (from the previous compilation).
+
 ## Basic usage
 
 ``` bash

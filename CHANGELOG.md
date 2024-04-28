@@ -2,6 +2,19 @@
 
 # UNRELEASED
 
+### feat: rebuild only necessary canisters
+
+Cache `get_imports()` (renamed to `add_imports()`) results.
+
+Read only those `--print-deps` dependencies that are necessary to read.
+
+Don't compile canisters for which all dependencies are elder than the `.wasm` file.
+This results in big compilation speedups.
+
+### feat: specify canisters not to deploy
+
+`"deploy": false` canister option makes it not to deploy, unless explicitly specified on the command line.
+
 ### feat: WASM memory soft-limit
 
 Adds support for the `wasm_memory_limit` canister setting, which limits the canister's heap during most calls but does not affect queries. As with other canister settings, it can be set in `dfx canister create` or `dfx canister update-settings` via the `--wasm-memory-limit` flag, as well as in `dfx.json` under `canisters[].initialization_values.wasm_memory_limit`.
@@ -44,10 +57,6 @@ This incorporates the following executed proposals:
 - [129408](https://dashboard.internetcomputer.org/proposal/129408)
 - [129379](https://dashboard.internetcomputer.org/proposal/129379)
 - [129378](https://dashboard.internetcomputer.org/proposal/129378)
-
-### feat: specify canisters not to deploy
-
-`"deploy": false` canister option makes it not to deploy, unless explicitly specified on the command line.
 
 # 0.20.0
 

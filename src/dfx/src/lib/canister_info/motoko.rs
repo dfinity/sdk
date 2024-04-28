@@ -8,7 +8,6 @@ pub struct MotokoCanisterInfo {
     input_path: PathBuf,
     output_root: PathBuf,
 
-    output_wasm_path: PathBuf,
     output_idl_path: PathBuf,
     output_stable_path: PathBuf,
     output_did_js_path: PathBuf,
@@ -22,9 +21,6 @@ pub struct MotokoCanisterInfo {
 impl MotokoCanisterInfo {
     pub fn get_main_path(&self) -> &Path {
         self.input_path.as_path()
-    }
-    pub fn get_output_wasm_path(&self) -> &Path {
-        self.output_wasm_path.as_path()
     }
     pub fn get_output_idl_path(&self) -> &Path {
         self.output_idl_path.as_path()
@@ -54,7 +50,7 @@ impl MotokoCanisterInfo {
 
 impl CanisterInfoFactory for MotokoCanisterInfo {
     fn create(info: &CanisterInfo) -> DfxResult<MotokoCanisterInfo> {
-        let workspace_root = info.get_workspace_root();
+        // let workspace_root = info.get_workspace_root(); // I commented it out to have consistent relative paths.
         let name = info.get_name();
         ensure!(
             matches!(info.type_specific, CanisterTypeProperties::Motoko { .. }),
@@ -64,11 +60,11 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let main_path = info
             .get_main_file()
             .context("`main` attribute is required on Motoko canisters in dfx.json")?;
-        let input_path = workspace_root.join(main_path);
+        let input_path = main_path.to_path_buf(); // workspace_root.join(main_path);
         let output_root = info.get_output_root().to_path_buf();
         let output_wasm_path = output_root.join(name).with_extension("wasm");
         let output_idl_path = if let Some(remote_candid) = info.get_remote_candid_if_remote() {
-            workspace_root.join(remote_candid)
+            remote_candid // workspace_root.join(remote_candid)
         } else {
             output_wasm_path.with_extension("did")
         };
@@ -80,7 +76,6 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         Ok(MotokoCanisterInfo {
             input_path,
             output_root,
-            output_wasm_path,
             output_idl_path,
             output_stable_path,
             output_did_js_path,
