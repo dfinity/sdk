@@ -623,8 +623,7 @@ impl CanisterPool {
                 .or_insert_with(|| dest_graph.add_node(parent_canister_id));
             dest_nodes.insert(parent_canister_id, parent_dest_id);
 
-            let bfs = Bfs::new(&source_graph, start_node);
-            let mut filtered_bfs = BfsFiltered::new(bfs);
+            let mut filtered_bfs = BfsFiltered::new();
             filtered_bfs.traverse2(
                 source_graph,
                 |&s| {
@@ -663,7 +662,8 @@ impl CanisterPool {
                     dest_graph.update_edge(dest_parent_id, dest_child_id, ());
 
                     Ok(())
-                }
+                },
+                start_node,
             )?;
         }
 
