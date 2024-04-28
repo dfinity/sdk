@@ -5,7 +5,7 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::graph::traverse_filtered::BfsFiltered;
+use crate::lib::graph::traverse_filtered::DfsFiltered;
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
@@ -579,14 +579,13 @@ impl CanisterPool {
                 .map(|canister| canister.get_info().get_name())
                 .contains(&canister.get_info().get_name());
             if contains {
-                let canister_info = &canister.info;
-                // TODO: Ignored return value is a hack.
-                let _deps: Vec<CanisterId> =
-                    canister.builder.get_dependencies(self, canister_info)?;
+                canister
+                    .builder
+                    .read_dependencies(self, canister.get_info(), cache)?; // TODO: It is called multiple times during the flow.
+                // let canister_info = &canister.info;
+                // let _deps: Vec<CanisterId> =
+                //     canister.builder.get_dependencies(self, canister_info)?;
             }
-            canister
-                .builder
-                .read_dependencies(self, canister.get_info(), cache)?; // TODO: It is called multiple times during the flow.
         }
 
         let source_graph = &self.imports.borrow().graph;
@@ -626,9 +625,8 @@ impl CanisterPool {
                 .or_insert_with(|| dest_graph.add_node(parent_canister_id));
             dest_nodes.insert(parent_canister_id, parent_dest_id);
 
-            let bfs = Bfs::new(&source_graph, start_node);
-            let mut filtered_bfs = BfsFiltered::new(bfs);
-            filtered_bfs.traverse2(
+            let mut filtered_dfs = DfsFiltered::new();
+            filtered_dfs.traverse2(
                 source_graph,
                 |&s| {
                     let source_id = source_graph.node_weight(s);
@@ -666,7 +664,8 @@ impl CanisterPool {
                     dest_graph.update_edge(dest_parent_id, dest_child_id, ());
 
                     Ok(())
-                }
+                },
+                start_node,
             )?;
         }
 
@@ -895,7 +894,7 @@ impl CanisterPool {
         env: &dyn Environment,
         log: &Logger,
         build_config: &BuildConfig,
-    ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
+    ) -> DfxResult {
         // TODO: The next statement is slow and confusing code.
         let toplevel_canisters: Vec<Arc<Canister>> =
             if let Some(canisters) = build_config.user_specified_canisters.clone() {
@@ -912,7 +911,6 @@ impl CanisterPool {
         self.step_prebuild_all(build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
-        let mut result = Vec::new();
         for canister_id in &order {
             if let Some(canister) = self.get_canister(canister_id) {
                 trace!(log, "Building canister '{}'.", canister.get_name());
@@ -927,36 +925,34 @@ impl CanisterPool {
                     env.get_cache().as_ref(),
                     env.get_logger(),
                 )? {
-                    result.push(
-                        self.step_prebuild(build_config, canister)
-                            .map_err(|e| {
-                                BuildError::PreBuildStepFailed(
+                    self.step_prebuild(build_config, canister)
+                        .map_err(|e| {
+                            BuildError::PreBuildStepFailed(
+                                *canister_id,
+                                canister.get_name().to_string(),
+                                Box::new(e),
+                            )
+                        })
+                        .and_then(|_| {
+                            self.step_build(build_config, canister).map_err(|e| {
+                                BuildError::BuildStepFailed(
                                     *canister_id,
                                     canister.get_name().to_string(),
                                     Box::new(e),
                                 )
                             })
-                            .and_then(|_| {
-                                self.step_build(build_config, canister).map_err(|e| {
-                                    BuildError::BuildStepFailed(
+                        })
+                        .and_then(|o: &BuildOutput| {
+                            self.step_postbuild(build_config, canister, o)
+                                .map_err(|e| {
+                                    BuildError::PostBuildStepFailed(
                                         *canister_id,
                                         canister.get_name().to_string(),
                                         Box::new(e),
                                     )
                                 })
-                            })
-                            .and_then(|o| {
-                                self.step_postbuild(build_config, canister, o)
-                                    .map_err(|e| {
-                                        BuildError::PostBuildStepFailed(
-                                            *canister_id,
-                                            canister.get_name().to_string(),
-                                            Box::new(e),
-                                        )
-                                    })
-                                    .map(|_| o)
-                            }),
-                    );
+                                .map(|_| o)
+                        })?;
                 }
             }
         }
@@ -964,7 +960,7 @@ impl CanisterPool {
         self.step_postbuild_all(build_config, &order)
             .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
 
-        Ok(result)
+        Ok(())
     }
 
     /// Build all canisters, failing with the first that failed the build. Will return
@@ -979,11 +975,7 @@ impl CanisterPool {
         build_config: &BuildConfig,
     ) -> DfxResult<()> {
         self.download(build_config).await?;
-        let outputs = self.build(env, log, build_config)?;
-
-        for output in outputs {
-            output.map_err(DfxError::new)?;
-        }
+        self.build(env, log, build_config)?;
 
         Ok(())
     }
