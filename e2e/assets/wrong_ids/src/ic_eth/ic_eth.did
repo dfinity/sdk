@@ -1,0 +1,5 @@
+service : {
+  verify_ecdsa : (eth_address : text, message : text, signature : text) -> (bool) query;
+  erc721_owner_of : (network : text, contract_address : text, token_id : nat64) -> (text);
+  erc1155_balance_of : (network : text, contract_address : text, owner_address : text, token_id : nat64) -> (nat);
+}

@@ -1,0 +1,34 @@
+type Orders = 
+ service {
+   addItemToFolder: (record {
+                       principal;
+                       nat;
+                     }, record {
+                          principal;
+                          nat;
+                        }, bool, variant {
+                                   beginning;
+                                   end;
+                                 }) -> ();
+   getOwners: () -> (vec principal) query;
+   init: (vec principal) -> ();
+   /// Insert item into the beginning of the global list.
+   insertIntoAllTimeStream: (record {
+                               principal;
+                               nat;
+                             }) -> ();
+   /// Insert item into the beginning of the global list.
+   removeFromAllTimeStream: (record {
+                               principal;
+                               nat;
+                             }) -> ();
+   removeItemLinks: (record {
+                       principal;
+                       nat;
+                     }) -> ();
+   setOwners: (vec principal) -> ();
+   /// Voting ///
+   /// `amount == 0` means canceling the vote.
+   vote: (principal, nat, principal, nat, int, bool) -> ();
+ };
+service : () -> Orders

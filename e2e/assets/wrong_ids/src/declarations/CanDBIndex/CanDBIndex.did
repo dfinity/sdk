@@ -1,0 +1,83 @@
+type VotingScore = 
+ record {
+   ethereumAddress: text;
+   lastChecked: Time;
+   points: float64;
+ };
+type UpgradePKRangeResult = 
+ record {
+   nextKey: opt text;
+   upgradeCanisterResults: vec record {
+                                 text;
+                                 InterCanisterActionResult;
+                               };
+ };
+type Time = int;
+type SK = text;
+type InterCanisterActionResult = 
+ variant {
+   err: text;
+   ok;
+ };
+type CanDBIndex = 
+ service {
+   autoScaleCanister: (text) -> (text);
+   checkSybil: (principal) -> ();
+   /// @required API (Do not delete or change)
+   /// 
+   /// Get all canisters for an specific PK
+   /// 
+   /// This method is called often by the candb-client query & update methods. 
+   getCanistersByPK: (text) -> (vec text) query;
+   getFirstAttribute: (text, record {
+                               key: AttributeKey;
+                               sk: SK;
+                             }) ->
+    (opt record {
+           principal;
+           opt AttributeValue;
+         });
+   getOwners: () -> (vec principal) query;
+   init: (vec principal) -> ();
+   putAttributeNoDuplicates: (text,
+    record {
+      key: AttributeKey;
+      sk: SK;
+      value: AttributeValue;
+    }) -> (principal);
+   putAttributeWithPossibleDuplicate: (text,
+    record {
+      key: AttributeKey;
+      sk: SK;
+      value: AttributeValue;
+    }) -> (principal);
+   setOwners: (vec principal) -> ();
+   setVotingData: (principal, opt principal, VotingScore) -> ();
+   sybilScore: () -> (bool, float64);
+   /// This hook is called by CanDB for AutoScaling the User Service Actor.
+   /// 
+   /// If the developer does not spin up an additional User canister in the same partition within this method, auto-scaling will NOT work
+   /// Upgrade user canisters in a PK range, i.e. rolling upgrades (limit is fixed at upgrading the canisters of 5 PKs per call)
+   upgradeAllPartitionCanisters: (blob) -> (UpgradePKRangeResult);
+ };
+type AttributeValuePrimitive = 
+ variant {
+   "bool": bool;
+   float: float64;
+   "int": int;
+   "text": text;
+ };
+type AttributeValue = 
+ variant {
+   arrayBool: vec bool;
+   arrayFloat: vec float64;
+   arrayInt: vec int;
+   arrayText: vec text;
+   "bool": bool;
+   float: float64;
+   "int": int;
+   "text": text;
+   tuple: vec AttributeValuePrimitive;
+ };
+type AttributeKey = text;
+service : () -> CanDBIndex

@@ -1,0 +1,48 @@
+type ZonBackend = 
+ service {
+   createItemData: (ItemTransferWithoutOwner) -> (principal, nat);
+   getRootItem: () -> (opt record {
+                             principal;
+                             nat;
+                           }) query;
+   /// Affiliates ///
+   get_trusted_origins: () -> (vec text);
+   init: () -> ();
+   removeItem: (principal, nat) -> () oneway;
+   removeMainOwner: () -> () oneway;
+   removeUser: (principal) -> () oneway;
+   setItemData: (principal, nat, ItemDataWithoutOwner) -> () oneway;
+   setMainOwner: (principal) -> () oneway;
+   setPostText: (principal, nat, text) -> () oneway;
+   setRootItem: (principal, nat) -> ();
+   setUserData: (opt principal, User) -> () oneway;
+ };
+type User = 
+ record {
+   description: text;
+   link: text;
+   locale: text;
+   nick: text;
+   title: text;
+ };
+type ItemTransferWithoutOwner = 
+ record {
+   communal: bool;
+   data: ItemDataWithoutOwner;
+ };
+type ItemDetails = 
+ variant {
+   folder;
+   link: text;
+   message;
+   post;
+ };
+type ItemDataWithoutOwner = 
+ record {
+   description: text;
+   details: ItemDetails;
+   locale: text;
+   price: float64;
+   title: text;
+ };
+service : () -> ZonBackend
