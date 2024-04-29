@@ -1,15 +1,8 @@
 {
   "canisters": {
     "pst": {
-      "main": "src/backend/pst.mo",
+      "main": "src/pst.mo",
       "type": "motoko"
-    }
-  },
-  "version": 1,
-  "networks": {
-    "local": {
-      "bind": "localhost:8000",
-      "type": "ephemeral"
     }
   }
 }
