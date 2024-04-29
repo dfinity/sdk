@@ -53,20 +53,20 @@ jobs:
       matrix:
         # We build a dynamic-linked linux binary because otherwise HSM support fails with:
         #   Error: IO: Dynamic loading not supported
-        os: [ macos-12, ubuntu-20.04, ubuntu-22.04, windows-2022 ]
+        os: [macos-12, ubuntu-20.04, ubuntu-22.04, windows-2022]
         include:
           - os: macos-12
             target: x86_64-apple-darwin
-            binary_path: target/x86_64-apple-darwin/release
+            binary_path: target/x86_64-apple-darwin/release/dfx
           - os: ubuntu-20.04
             target: x86_64-unknown-linux-gnu
-            binary_path: target/x86_64-unknown-linux-gnu/release
+            binary_path: target/x86_64-unknown-linux-gnu/release/dfx
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-            binary_path: target/x86_64-unknown-linux-gnu/release
+            binary_path: target/x86_64-unknown-linux-gnu/release/dfx
           - os: windows-2022
             target: x86_64-pc-windows-msvc
-            binary_path: target/x86_64-pc-windows-msvc/release
+            binary_path: target\x86_64-pc-windows-msvc\release\dfx.exe
     steps:
       - uses: actions/checkout@v4
         with:
@@ -82,23 +82,14 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ matrix.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('rust-toolchain.toml') }}-1
-      - name: Install Rust
-        run: rustup show
-        if: contains(matrix.os, 'macos')
       - name: Build
         run: |
           cargo build --target ${{ matrix.target }} --locked --release
-      - name: Strip binaries
-        run: |
-          cd ${{ matrix.binary_path }}
-          sudo chown -R $(whoami) .
-          strip dfx
-        if: contains(matrix.os, 'ubuntu')
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
-          path: ${{ matrix.binary_path }}/dfx
+          path: ${{ matrix.binary_path }}
 
   list_tests:
     if: needs.changes.outputs.sources == 'true'
@@ -118,10 +109,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macos-latest is currently macos-11, ubuntu-latest is currently ubuntu-20.04
-        # ubuntu-18.04 not supported due to:
-        #     /home/runner/.cache/dfinity/versions/0.8.3-34-g36e39809/ic-starter:
-        #     /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.29' not found
         os: [macos-12, ubuntu-20.04, ubuntu-22.04]
     steps:
       - uses: actions/checkout@v4
@@ -168,10 +155,10 @@ jobs:
         run: chmod +x /usr/local/bin/dfx
       - name: Provision Darwin
         if: contains(matrix.os, 'macos')
-        run: bash scripts/workflows/provision-darwin.sh
+        run: bash scripts/workflows/provision-darwin.sh || bash scripts/workflows/provision-darwin.sh
       - name: Provision Linux
         if: contains(matrix.os, 'ubuntu')
-        run: bash scripts/workflows/provision-linux.sh
+        run: bash scripts/workflows/provision-linux.sh || bash scripts/workflows/provision-linux.sh
       - name: Prepare environment
         run: |
           echo "archive=$(pwd)/e2e/archive" >> "$GITHUB_ENV"
@@ -203,7 +190,7 @@ jobs:
       - name: Setting up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: "3.9"
       - name: Installing playwright
         run: |
           pip install playwright==1.40.0

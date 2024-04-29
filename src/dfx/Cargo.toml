@@ -59,7 +59,7 @@ flate2 = { workspace = true, default-features = false, features = ["zlib-ng"] }
 fn-error-context = "0.2.0"
 futures-util = "0.3.21"
 futures.workspace = true
-handlebars = "4.3.3"
+handlebars.workspace = true
 hex = { workspace = true, features = ["serde"] }
 humantime.workspace = true
 hyper-rustls = { version = "0.24.1", default-features = false, features = [

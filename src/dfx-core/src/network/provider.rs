@@ -598,7 +598,7 @@ mod tests {
             .unwrap();
         }
 
-        let config = Config::from_dir(&project_dir).unwrap().unwrap();
+        let config = Config::from_dir(&project_dir, None).unwrap().unwrap();
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),

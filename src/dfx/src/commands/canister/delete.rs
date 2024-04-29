@@ -187,6 +187,7 @@ async fn delete_canister(
                 memory_allocation: None,
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
                 reserved_cycles_limit: None,
+                wasm_memory_limit: None,
             };
             info!(log, "Setting the controller to identity principal.");
             update_settings(env, canister_id, settings, call_sender).await?;

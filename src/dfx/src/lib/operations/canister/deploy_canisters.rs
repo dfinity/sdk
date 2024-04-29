@@ -23,7 +23,7 @@ use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit,
 };
-use ic_utils::interfaces::management_canister::builders::InstallMode;
+use ic_utils::interfaces::management_canister::builders::{InstallMode, WasmMemoryLimit};
 use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 use std::convert::TryFrom;
@@ -255,6 +255,17 @@ async fn register_canisters(
                     ReservedCyclesLimit::try_from(arg)
                         .expect("Reserved cycles limit must be between 0 and 2^128-1, inclusively.")
                 });
+            let wasm_memory_limit = config_interface.get_wasm_memory_limit(canister_name)?.map(
+                |arg| {
+                    u64::try_from(arg.get_bytes())
+                        .map_err(|e| anyhow!(e))
+                        .and_then(|n| Ok(WasmMemoryLimit::try_from(n)?))
+                        .context(
+                            "WASM memory limit must be between 0 and 2^48 (i.e 256TB), inclusively.",
+                        )
+                },
+            ).transpose()?;
+
             let controllers = None;
             create_canister(
                 env,
@@ -270,6 +281,7 @@ async fn register_canisters(
                     memory_allocation,
                     freezing_threshold,
                     reserved_cycles_limit,
+                    wasm_memory_limit,
                 },
                 created_at_time,
                 subnet_selection,
