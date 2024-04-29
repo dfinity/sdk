@@ -1,2 +1,2 @@
-shared ({ caller = initialOwner }) actor class PST() {
+actor PST {
 };
