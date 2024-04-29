@@ -1,78 +1,8 @@
 {
   "canisters": {
-    "frontend": {
-      "frontend": {
-        "entrypoint": "src/frontend/src/index.html"
-      },
-      "source": [
-        "src/frontend/assets",
-        "dist/frontend/"
-      ],
-      "type": "assets",
-      "dependencies": ["ic_eth", "CanDBIndex", "order", "main"]
-    },
-    "main": {
-      "main": "src/backend/main.mo",
-      "type": "motoko",
-      "dependencies": ["order", "CanDBIndex", "NacDBIndex"]
-    },
-    "order": {
-      "main": "src/backend/order.mo",
-      "type": "motoko",
-      "dependencies": ["CanDBIndex", "NacDBIndex"]
-    },
-    "personhood": {
-      "main": "src/backend/personhood.mo",
-      "type": "motoko",
-      "dependencies": ["ic_eth", "CanDBIndex", "order"]
-    },
-    "payments": {
-      "main": "src/backend/payments.mo",
-      "type": "motoko",
-      "dependencies": ["pst"]
-    },
     "pst": {
       "main": "src/backend/pst.mo",
       "type": "motoko"
-    },
-    "CanDBIndex": {
-      "main": "src/storage/CanDBIndex.mo",
-      "type": "motoko",
-      "dependencies": []
-    },
-    "NacDBIndex": {
-      "main": "src/storage/NacDBIndex.mo",
-      "type": "motoko",
-      "dependencies": []
-    },
-    "CanDBPartition": {
-      "main": "src/storage/CanDBPartition.mo",
-      "type": "motoko",
-      "deploy": false,
-      "dependencies": []
-    },
-    "NacDBPartition": {
-      "main": "src/storage/NacDBPartition.mo",
-      "type": "motoko",
-      "deploy": false,
-      "dependencies": []
-    },
-    "ic_eth": {
-      "type": "rust",
-      "candid": "src/ic_eth/ic_eth.did",
-      "package": "ic_eth"
-    },
-    "internet_identity": {
-      "type": "custom",
-      "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
-      "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz",
-      "shrink": false,
-      "remote": {
-        "candid": "internet_identity.did",
-        "id": {
-          "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
-        }
-      }
     }
   },
   "defaults": {
