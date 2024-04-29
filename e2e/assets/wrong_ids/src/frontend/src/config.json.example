@@ -1,7 +1,0 @@
-{
-    "MAINNET_RPC": "<URL>",
-    "WALLET_CONNECT_PROJECT_ID": "<KEY>",
-    "BLOCKNATIVE_KEY": "<KEY>",
-    "DAPP_URL": "http://localhost:3000",
-    "MINUMUM_ACCEPTED_SCORE": 20.0
-}

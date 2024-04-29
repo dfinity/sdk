@@ -1,7 +1,0 @@
-{
-    "WALLET_CONNECT_PROJECT_ID": "fea6083a7de5ff38edfb6db11f295b3b",
-    "DAPP_URL": "https://localhost:3000",
-    "BLOCKNATIVE_KEY": "dcc9b851-1367-4b86-b39a-bfbb168d52c8",
-    "MAINNET_RPC": "https://mainnet.infura.io/v3/2f0688745e5b4bb99ec8e3efc9ee1055",
-    "MINUMUM_ACCEPTED_SCORE": 3.0
-}
