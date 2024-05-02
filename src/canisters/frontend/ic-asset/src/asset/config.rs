@@ -457,6 +457,7 @@ mod rule_utils {
 mod with_tempdir {
 
     use super::*;
+    #[cfg(target_family = "unix")]
     use std::error::Error;
     use std::io::Write;
     #[cfg(target_family = "unix")]
