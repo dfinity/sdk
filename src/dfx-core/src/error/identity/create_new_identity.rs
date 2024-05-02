@@ -15,51 +15,51 @@ pub enum CreateNewIdentityError {
     #[error("Cannot create an anonymous identity.")]
     CannotCreateAnonymousIdentity(),
 
-    #[error("Failed to clean up previous creation attempts: {0}")]
-    CleanupPreviousCreationAttemptsFailed(FsError),
+    #[error("Failed to clean up previous creation attempts")]
+    CleanupPreviousCreationAttemptsFailed(#[source] FsError),
 
-    #[error("Failed to create identity config: {0}")]
-    ConvertMnemonicToKeyFailed(ConvertMnemonicToKeyError),
+    #[error("Failed to create identity config")]
+    ConvertMnemonicToKeyFailed(#[source] ConvertMnemonicToKeyError),
 
-    #[error("Convert secret key to sec1 Pem failed: {0}")]
-    ConvertSecretKeyToSec1PemFailed(Box<sec1::Error>),
+    #[error("Convert secret key to sec1 Pem failed")]
+    ConvertSecretKeyToSec1PemFailed(#[source] Box<sec1::Error>),
 
-    #[error("Failed to create identity config: {0}")]
-    CreateIdentityConfigFailed(CreateIdentityConfigError),
+    #[error("Failed to create identity config")]
+    CreateIdentityConfigFailed(#[source] CreateIdentityConfigError),
 
     #[error("Failed to create mnemonic from phrase: {0}")]
     CreateMnemonicFromPhraseFailed(String),
 
-    #[error("Failed to create temporary identity directory: {0}")]
-    CreateTemporaryIdentityDirectoryFailed(FsError),
+    #[error("Failed to create temporary identity directory")]
+    CreateTemporaryIdentityDirectoryFailed(#[source] FsError),
 
-    #[error("Failed to generate key: {0}")]
-    GenerateKeyFailed(GenerateKeyError),
+    #[error("Failed to generate key")]
+    GenerateKeyFailed(#[source] GenerateKeyError),
 
     #[error("Identity already exists.")]
     IdentityAlreadyExists(),
 
-    #[error("Failed to load pem file: {0}")]
-    LoadPemFromFileFailed(LoadPemFromFileError),
+    #[error("Failed to load pem file")]
+    LoadPemFromFileFailed(#[source] LoadPemFromFileError),
 
-    #[error("Failed to remove identity: {0}")]
-    RemoveIdentityFailed(RemoveIdentityError),
+    #[error("Failed to remove identity")]
+    RemoveIdentityFailed(#[source] RemoveIdentityError),
 
-    #[error("Failed to rename temporary directory to permanent identity directory: {0}")]
-    RenameTemporaryIdentityDirectoryFailed(FsError),
+    #[error("Failed to rename temporary directory to permanent identity directory")]
+    RenameTemporaryIdentityDirectoryFailed(#[source] FsError),
 
-    #[error("Failed to save identity configuration: {0}")]
-    SaveIdentityConfigurationFailed(SaveIdentityConfigurationError),
+    #[error("Failed to save identity configuration")]
+    SaveIdentityConfigurationFailed(#[source] SaveIdentityConfigurationError),
 
-    #[error("Failed to save pem: {0}")]
-    SavePemFailed(SavePemError),
+    #[error("Failed to save pem")]
+    SavePemFailed(#[source] SavePemError),
 
-    #[error("Failed to switch back over to the identity you're replacing: {0}")]
-    SwitchBackToIdentityFailed(UseIdentityByNameError),
+    #[error("Failed to switch back over to the identity you're replacing")]
+    SwitchBackToIdentityFailed(#[source] UseIdentityByNameError),
 
-    #[error("Failed to temporarily switch over to anonymous identity: {0}")]
-    SwitchToAnonymousIdentityFailed(UseIdentityByNameError),
+    #[error("Failed to temporarily switch over to anonymous identity")]
+    SwitchToAnonymousIdentityFailed(#[source] UseIdentityByNameError),
 
-    #[error("Failed to validate pem file: {0}")]
-    ValidatePemFileFailed(ValidatePemFileError),
+    #[error("Failed to validate pem file")]
+    ValidatePemFileFailed(#[source] ValidatePemFileError),
 }

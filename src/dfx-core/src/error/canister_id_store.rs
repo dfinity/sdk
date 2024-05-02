@@ -18,23 +18,23 @@ pub enum CanisterIdStoreError {
         network: String,
     },
 
-    #[error("Encountered error while loading canister id store for network '{network}' - ensuring cohesive network directory failed: {cause}")]
+    #[error("Encountered error while loading canister id store for network '{network}' - ensuring cohesive network directory failed")]
     EnsureCohesiveNetworkDirectoryFailed {
         network: String,
-        cause: UnifiedIoError,
+        source: UnifiedIoError,
     },
 
-    #[error("Failed to remove canister '{canister_name}' from id store: {cause}")]
+    #[error("Failed to remove canister '{canister_name}' from id store")]
     RemoveCanisterId {
         canister_name: String,
-        cause: UnifiedIoError,
+        source: UnifiedIoError,
     },
 
-    #[error("Failed to add canister with name '{canister_name}' and id '{canister_id}' to canister id store: {cause}")]
+    #[error("Failed to add canister with name '{canister_name}' and id '{canister_id}' to canister id store")]
     AddCanisterId {
         canister_name: String,
         canister_id: String,
-        cause: UnifiedIoError,
+        source: UnifiedIoError,
     },
 
     #[error(transparent)]

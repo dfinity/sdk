@@ -4,11 +4,11 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ExtensionError {
     // errors related to extension directory management
-    #[error("Cannot find cache directory: '{0}'")]
-    FindCacheDirectoryFailed(crate::error::cache::CacheError),
+    #[error("Cannot find cache directory")]
+    FindCacheDirectoryFailed(#[source] crate::error::cache::CacheError),
 
-    #[error("Cannot get extensions directory: {0}")]
-    EnsureExtensionDirExistsFailed(crate::error::fs::FsError),
+    #[error("Cannot get extensions directory")]
+    EnsureExtensionDirExistsFailed(#[source] crate::error::fs::FsError),
 
     #[error("Extension directory '{0}' does not exist.")]
     ExtensionDirDoesNotExist(std::path::PathBuf),
@@ -23,20 +23,20 @@ pub enum ExtensionError {
     #[error("Extension '{0}' cannot be installed because it conflicts with an existing command. Consider using '--install-as' flag to install this extension under different name.")]
     CommandAlreadyExists(String),
 
-    #[error("Cannot fetch compatibility.json from '{0}': {1}")]
-    CompatibilityMatrixFetchError(String, reqwest::Error),
+    #[error("Cannot fetch compatibility.json from '{0}'")]
+    CompatibilityMatrixFetchError(String, #[source] reqwest::Error),
 
-    #[error("Cannot parse compatibility.json: {0}")]
-    MalformedCompatibilityMatrix(reqwest::Error),
+    #[error("Cannot parse compatibility.json")]
+    MalformedCompatibilityMatrix(#[source] reqwest::Error),
 
-    #[error("Cannot parse compatibility.json due to malformed semver '{0}': {1}")]
-    MalformedVersionsEntryForExtensionInCompatibilityMatrix(String, semver::Error),
+    #[error("Cannot parse compatibility.json due to malformed semver '{0}'")]
+    MalformedVersionsEntryForExtensionInCompatibilityMatrix(String, #[source] semver::Error),
 
     #[error("Cannot find compatible extension for dfx version '{1}': compatibility.json (downloaded from '{0}') has empty list of extension versions.")]
     ListOfVersionsForExtensionIsEmpty(String, semver::Version),
 
-    #[error("Cannot parse extension manifest URL '{0}': {1}")]
-    MalformedExtensionDownloadUrl(String, url::ParseError),
+    #[error("Cannot parse extension manifest URL '{0}'")]
+    MalformedExtensionDownloadUrl(String, #[source] url::ParseError),
 
     #[error("DFX version '{0}' is not supported.")]
     DfxVersionNotFoundInCompatibilityJson(semver::Version),
@@ -44,14 +44,14 @@ pub enum ExtensionError {
     #[error("Extension '{0}' (version '{1}') not found for DFX version {2}.")]
     ExtensionVersionNotFoundInRepository(String, semver::Version, String),
 
-    #[error("Downloading extension from '{0}' failed: {1}")]
-    ExtensionDownloadFailed(url::Url, reqwest::Error),
+    #[error("Downloading extension from '{0}' failed")]
+    ExtensionDownloadFailed(url::Url, #[source] reqwest::Error),
 
-    #[error("Cannot decompress extension archive (downloaded from: '{0}'): {1}")]
-    DecompressFailed(url::Url, std::io::Error),
+    #[error("Cannot decompress extension archive (downloaded from: '{0}')")]
+    DecompressFailed(url::Url, #[source] std::io::Error),
 
-    #[error("Cannot create temporary directory at '{0}': {1}")]
-    CreateTemporaryDirectoryFailed(std::path::PathBuf, std::io::Error),
+    #[error("Cannot create temporary directory at '{0}'")]
+    CreateTemporaryDirectoryFailed(std::path::PathBuf, #[source] std::io::Error),
 
     #[error(transparent)]
     Io(#[from] crate::error::fs::FsError),
@@ -60,15 +60,15 @@ pub enum ExtensionError {
     PlatformNotSupported(String),
 
     // errors related to uninstalling extensions
-    #[error("Cannot uninstall extension: {0}")]
-    InsufficientPermissionsToDeleteExtensionDirectory(crate::error::fs::FsError),
+    #[error("Cannot uninstall extension")]
+    InsufficientPermissionsToDeleteExtensionDirectory(#[source] crate::error::fs::FsError),
 
     // errors related to listing extensions
-    #[error("Cannot list extensions: {0}")]
-    ExtensionsDirectoryIsNotReadable(crate::error::fs::FsError),
+    #[error("Cannot list extensions")]
+    ExtensionsDirectoryIsNotReadable(#[source] crate::error::fs::FsError),
 
-    #[error("Cannot load extension manifest: {0}")]
-    LoadExtensionManifestFailed(crate::error::structured_file::StructuredFileError),
+    #[error("Cannot load extension manifest")]
+    LoadExtensionManifestFailed(#[source] crate::error::structured_file::StructuredFileError),
 
     // errors related to executing extensions
     #[error("Invalid extension name '{0:?}'.")]
@@ -83,11 +83,11 @@ pub enum ExtensionError {
     #[error("Extension binary at {0} is not an executable file.")]
     ExtensionBinaryIsNotAFile(std::path::PathBuf),
 
-    #[error("Failed to run extension '{0}': {1}")]
-    FailedToLaunchExtension(String, std::io::Error),
+    #[error("Failed to run extension '{0}'")]
+    FailedToLaunchExtension(String, #[source] std::io::Error),
 
-    #[error("Extension '{0}' never finished: {1}")]
-    ExtensionNeverFinishedExecuting(String, std::io::Error),
+    #[error("Extension '{0}' never finished")]
+    ExtensionNeverFinishedExecuting(String, #[source] std::io::Error),
 
     #[error("Extension terminated by signal.")]
     ExtensionExecutionTerminatedViaSignal,
