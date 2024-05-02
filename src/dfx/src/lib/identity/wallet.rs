@@ -56,7 +56,7 @@ pub async fn get_or_create_wallet(
             if !network.is_ic && std::env::var("DFX_DISABLE_AUTO_WALLET").is_err() {
                 create_wallet(env, network, name, None)
                     .await
-                    .map_err(|err|GetOrCreateWalletCanisterError::CreationFailed(Box::new(err)))
+                    .map_err(|err| GetOrCreateWalletCanisterError::CreationFailed(Box::new(err)))
             } else {
                 Err(GetOrCreateWalletCanisterError::NoWalletConfigured {
                     identity: name.into(),
