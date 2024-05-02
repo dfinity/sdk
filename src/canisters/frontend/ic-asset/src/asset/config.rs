@@ -457,11 +457,11 @@ mod rule_utils {
 mod with_tempdir {
 
     use super::*;
+    use std::error::Error;
     use std::io::Write;
     #[cfg(target_family = "unix")]
     use std::os::unix::prelude::PermissionsExt;
     use std::{collections::BTreeMap, fs::File};
-    use std::error::Error;
     use tempfile::{Builder, TempDir};
 
     fn create_temporary_assets_directory(
