@@ -2,6 +2,41 @@
 
 # UNRELEASED
 
+### feat: reformatted error output
+
+Rather than increasing indentation, dfx now displays each error cause on its own line.
+
+Also changed some error types to report error causes as causes, rather than embedding their erorr cause in the error text.
+
+Before:
+```bash
+Error: Failed while trying to deploy canisters.
+Caused by: Failed while trying to deploy canisters.
+  Failed to build all canisters.
+    Failed while trying to build all canisters.
+      The build step failed for canister 'bw4dl-smaaa-aaaaa-qaacq-cai' (wasminst_backend) with an embedded error: Failed to build Motoko canister 'wasminst_backend'.: Failed to compile Motoko.: Failed to run 'moc'.: The command '"/Users/ericswanson/.cache/dfinity/versions/0.19.0/moc" "/Users/ericswanson/w/wasminst/src/wasminst_backend/main2.mo" "-o" "/Users/ericswanson/w/wasminst/.dfx/local/canisters/wasminst_backend/wasminst_backend.wasm" "-c" "--debug" "--idl" "--stable-types" "--public-metadata" "candid:service" "--public-metadata" "candid:args" "--actor-idl" "/Users/ericswanson/w/wasminst/.dfx/local/canisters/idl/" "--actor-alias" "wasminst_backend" "bw4dl-smaaa-aaaaa-qaacq-cai" "--actor-alias" "wasminst_frontend" "b77ix-eeaaa-aaaaa-qaada-cai" "--package" "base" "/Users/ericswanson/.cache/dfinity/versions/0.19.0/base"' failed with exit status 'exit status: 1'.
+Stdout:
+
+Stderr:
+/Users/ericswanson/w/wasminst/src/wasminst_backend/main2.mo: No such file or directory
+```
+
+After:
+```bash
+Error: Failed while trying to deploy canisters.
+Caused by: Failed to build all canisters.
+Caused by: Failed while trying to build all canisters.
+Caused by: The build step failed for canister 'bw4dl-smaaa-aaaaa-qaacq-cai' (wasminst_backend)
+Caused by: Failed to build Motoko canister 'wasminst_backend'.
+Caused by: Failed to compile Motoko.
+Caused by: Failed to run 'moc'.
+Caused by: The command '"/Users/ericswanson/.cache/dfinity/versions/0.20.0-icsystemtest.0+rev0.dirty-e38935e16/moc" "/Users/ericswanson/w/wasminst/src/wasminst_backend/main2.mo" "-o" "/Users/ericswanson/w/wasminst/.dfx/local/canisters/wasminst_backend/wasminst_backend.wasm" "-c" "--debug" "--idl" "--stable-types" "--public-metadata" "candid:service" "--public-metadata" "candid:args" "--actor-idl" "/Users/ericswanson/w/wasminst/.dfx/local/canisters/idl/" "--actor-alias" "wasminst_backend" "bw4dl-smaaa-aaaaa-qaacq-cai" "--actor-alias" "wasminst_frontend" "b77ix-eeaaa-aaaaa-qaada-cai" "--package" "base" "/Users/ericswanson/.cache/dfinity/versions/0.20.0-icsystemtest.0+rev0.dirty-e38935e16/base"' failed with exit status 'exit status: 1'.
+Stdout:
+
+Stderr:
+/Users/ericswanson/w/wasminst/src/wasminst_backend/main2.mo: No such file or directory
+```
+
 ### feat: extensions can define a canister type
 
 Please see [extension-defined-canister-types](docs/concepts/extension-defined-canister-types.md) for details.

@@ -67,32 +67,22 @@ fn setup_logging(opts: &CliOpts) -> (i64, slog::Logger) {
 fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
     let mut stderr = util::stderr_wrapper::stderr_wrapper();
 
-    // print error/cause stack
+    // print error chain stack
     for (level, cause) in err.chain().enumerate() {
-        if level == 0 {
-            stderr
-                .fg(term::color::RED)
-                .expect("Failed to set stderr output color.");
-            write!(stderr, "Error: ").expect("Failed to write to stderr.");
-            stderr
-                .reset()
-                .expect("Failed to reset stderr output color.");
+        let (color, prefix) = if level == 0 {
+            (term::color::RED, "Error")
+        } else {
+            (term::color::YELLOW, "Caused by")
+        };
+        stderr
+            .fg(color)
+            .expect("Failed to set stderr output color.");
+        write!(stderr, "{prefix}: ").expect("Failed to write to stderr.");
+        stderr
+            .reset()
+            .expect("Failed to reset stderr output color.");
 
-            writeln!(stderr, "{}", err).expect("Failed to write to stderr.");
-            continue;
-        }
-        if level == 1 {
-            stderr
-                .fg(term::color::YELLOW)
-                .expect("Failed to set stderr output color.");
-            write!(stderr, "Caused by: ").expect("Failed to write to stderr.");
-            stderr
-                .reset()
-                .expect("Failed to reset stderr output color.");
-
-            writeln!(stderr, "{}", err).expect("Failed to write to stderr.");
-        }
-        eprintln!("{:width$}{}", "", cause, width = level * 2);
+        writeln!(stderr, "{cause}").expect("Failed to write to stderr.");
     }
 
     // print diagnosis
