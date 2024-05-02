@@ -4,7 +4,7 @@
 
 ### feat: reformatted error output
 
-Rather than increasing indentation, dfx now displays each error cause on its own line.
+Rather than increasing indentation, dfx now aligns the error causes with a "Caused by: " prefix.
 
 Also changed error types to report error causes as causes, rather than embedding their error cause in the error text.
 
