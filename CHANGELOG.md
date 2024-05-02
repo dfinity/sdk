@@ -14,7 +14,7 @@ Error: Failed while trying to deploy canisters.
 Caused by: Failed while trying to deploy canisters.
   Failed to build all canisters.
     Failed while trying to build all canisters.
-      The build step failed for canister 'bw4dl-smaaa-aaaaa-qaacq-cai' (wasminst_backend) with an embedded error: Failed to build Motoko canister 'wasminst_backend'.: Failed to compile Motoko.: Failed to run 'moc'.: The command '"/Users/ericswanson/.cache/dfinity/versions/0.19.0/moc" "/Users/ericswanson/w/wasminst/src/wasminst_backend/main2.mo" "-o" "/Users/ericswanson/w/wasminst/.dfx/local/canisters/wasminst_backend/wasminst_backend.wasm" "-c" "--debug" "--idl" "--stable-types" "--public-metadata" "candid:service" "--public-metadata" "candid:args" "--actor-idl" "/Users/ericswanson/w/wasminst/.dfx/local/canisters/idl/" "--actor-alias" "wasminst_backend" "bw4dl-smaaa-aaaaa-qaacq-cai" "--actor-alias" "wasminst_frontend" "b77ix-eeaaa-aaaaa-qaada-cai" "--package" "base" "/Users/ericswanson/.cache/dfinity/versions/0.19.0/base"' failed with exit status 'exit status: 1'.
+      The build step failed for canister 'bw4dl-smaaa-aaaaa-qaacq-cai' (wasminst_backend) with an embedded error: Failed to build Motoko canister 'wasminst_backend'.: Failed to compile Motoko.: Failed to run 'moc'.: The command '"/Users/ericswanson/.cache/dfinity/versions/0.19.0/moc" ... params ...  failed with exit status 'exit status: 1'.
 Stdout:
 
 Stderr:
@@ -30,7 +30,7 @@ Caused by: The build step failed for canister 'bw4dl-smaaa-aaaaa-qaacq-cai' (was
 Caused by: Failed to build Motoko canister 'wasminst_backend'.
 Caused by: Failed to compile Motoko.
 Caused by: Failed to run 'moc'.
-Caused by: The command '"/Users/ericswanson/.cache/dfinity/versions/0.20.0-icsystemtest.0+rev0.dirty-e38935e16/moc" "/Users/ericswanson/w/wasminst/src/wasminst_backend/main2.mo" "-o" "/Users/ericswanson/w/wasminst/.dfx/local/canisters/wasminst_backend/wasminst_backend.wasm" "-c" "--debug" "--idl" "--stable-types" "--public-metadata" "candid:service" "--public-metadata" "candid:args" "--actor-idl" "/Users/ericswanson/w/wasminst/.dfx/local/canisters/idl/" "--actor-alias" "wasminst_backend" "bw4dl-smaaa-aaaaa-qaacq-cai" "--actor-alias" "wasminst_frontend" "b77ix-eeaaa-aaaaa-qaada-cai" "--package" "base" "/Users/ericswanson/.cache/dfinity/versions/0.20.0-icsystemtest.0+rev0.dirty-e38935e16/base"' failed with exit status 'exit status: 1'.
+Caused by: The command '"/Users/ericswanson/.cache/dfinity/versions/0.20.0/moc" ... params ... failed with exit status 'exit status: 1'.
 Stdout:
 
 Stderr:
