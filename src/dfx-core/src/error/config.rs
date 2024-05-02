@@ -68,9 +68,7 @@ pub enum ApplyExtensionCanisterTypesError {
 
 #[derive(Error, Debug)]
 pub enum ApplyExtensionCanisterTypeError {
-    #[error(
-        "failed to apply defaults from extension '{extension}' to canister '{canister}'"
-    )]
+    #[error("failed to apply defaults from extension '{extension}' to canister '{canister}'")]
     ApplyDefaults {
         canister: Box<String>,
         extension: Box<String>,
