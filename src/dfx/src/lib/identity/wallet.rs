@@ -1,4 +1,4 @@
-use crate::lib::error::DfxResult;
+use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::Environment;
@@ -31,8 +31,8 @@ pub enum GetOrCreateWalletCanisterError {
     )]
     NoWalletConfigured { identity: String, network: String },
 
-    #[error("Failed to create wallet: {0}")]
-    CreationFailed(String),
+    #[error("Failed to create wallet")]
+    CreationFailed(#[source] Box<DfxError>),
 
     #[error(transparent)]
     WalletConfigError(#[from] WalletConfigError),
@@ -56,7 +56,7 @@ pub async fn get_or_create_wallet(
             if !network.is_ic && std::env::var("DFX_DISABLE_AUTO_WALLET").is_err() {
                 create_wallet(env, network, name, None)
                     .await
-                    .map_err(|err| GetOrCreateWalletCanisterError::CreationFailed(err.to_string()))
+                    .map_err(|err|GetOrCreateWalletCanisterError::CreationFailed(Box::new(err)))
             } else {
                 Err(GetOrCreateWalletCanisterError::NoWalletConfigured {
                     identity: name.into(),
