@@ -53,6 +53,12 @@ pub enum GetMemoryAllocationError {
 }
 
 #[derive(Error, Debug)]
+pub enum GetWasmMemoryLimitError {
+    #[error("Failed to get WASM memory limit for canister '{0}': {1}")]
+    GetWasmMemoryLimitFailed(String, GetCanisterConfigError),
+}
+
+#[derive(Error, Debug)]
 pub enum GetPullCanistersError {
     #[error("Pull dependencies '{0}' and '{1}' have the same canister ID: {2}")]
     PullCanistersSameId(String, String, Principal),
