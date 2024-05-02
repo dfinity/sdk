@@ -124,7 +124,7 @@ impl CanisterIdStore {
                     ensure_cohesive_network_directory(network_descriptor, &dir).map_err(|e| {
                         CanisterIdStoreError::EnsureCohesiveNetworkDirectoryFailed {
                             network: network_descriptor.name.clone(),
-                            cause: e.into(),
+                            source: e.into(),
                         }
                     })?;
                     Some(dir.join("canister_ids.json"))
@@ -334,7 +334,7 @@ impl CanisterIdStore {
             .map_err(|e| CanisterIdStoreError::AddCanisterId {
                 canister_name: canister_name.to_string(),
                 canister_id: canister_id.to_string(),
-                cause: e,
+                source: e,
             })?;
         if let Some(timestamp) = timestamp {
             match self.acquisition_timestamps.get_mut(canister_name) {
@@ -360,7 +360,7 @@ impl CanisterIdStore {
             self.save_ids()
                 .map_err(|e| CanisterIdStoreError::RemoveCanisterId {
                     canister_name: canister_name.to_string(),
-                    cause: e,
+                    source: e,
                 })?
         };
         if let Some(network_name_to_timestamp) = self.acquisition_timestamps.get_mut(canister_name)

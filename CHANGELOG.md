@@ -6,7 +6,7 @@
 
 Rather than increasing indentation, dfx now displays each error cause on its own line.
 
-Also changed some error types to report error causes as causes, rather than embedding their erorr cause in the error text.
+Also changed error types to report error causes as causes, rather than embedding their error cause in the error text.
 
 Before:
 ```bash

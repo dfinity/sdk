@@ -3,6 +3,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum LoadPemIdentityError {
-    #[error("Cannot read identity file '{0}': {1:#}")]
-    ReadIdentityFileFailed(String, Box<PemError>),
+    #[error("Cannot read identity file '{0}'")]
+    ReadIdentityFileFailed(String, #[source] Box<PemError>),
 }

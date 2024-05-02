@@ -24,32 +24,32 @@ pub enum GetCanisterNamesWithDependenciesError {
     #[error("No canisters in the configuration file.")]
     CanistersFieldDoesNotExist(),
 
-    #[error("Failed to add dependencies for canister '{0}': {1}")]
-    AddDependenciesFailed(String, AddDependenciesError),
+    #[error("Failed to add dependencies for canister '{0}'")]
+    AddDependenciesFailed(String, #[source] AddDependenciesError),
 }
 
 #[derive(Error, Debug)]
 pub enum GetComputeAllocationError {
-    #[error("Failed to get compute allocation for canister '{0}': {1}")]
-    GetComputeAllocationFailed(String, GetCanisterConfigError),
+    #[error("Failed to get compute allocation for canister '{0}'")]
+    GetComputeAllocationFailed(String, #[source] GetCanisterConfigError),
 }
 
 #[derive(Error, Debug)]
 pub enum GetFreezingThresholdError {
-    #[error("Failed to get freezing threshold for canister '{0}': {1}")]
-    GetFreezingThresholdFailed(String, GetCanisterConfigError),
+    #[error("Failed to get freezing threshold for canister '{0}'")]
+    GetFreezingThresholdFailed(String, #[source] GetCanisterConfigError),
 }
 
 #[derive(Error, Debug)]
 pub enum GetReservedCyclesLimitError {
-    #[error("Failed to get reserved cycles limit for canister '{0}': {1}")]
-    GetReservedCyclesLimitFailed(String, GetCanisterConfigError),
+    #[error("Failed to get reserved cycles limit for canister '{0}'")]
+    GetReservedCyclesLimitFailed(String, #[source] GetCanisterConfigError),
 }
 
 #[derive(Error, Debug)]
 pub enum GetMemoryAllocationError {
-    #[error("Failed to get memory allocation for canister '{0}': {1}")]
-    GetMemoryAllocationFailed(String, GetCanisterConfigError),
+    #[error("Failed to get memory allocation for canister '{0}'")]
+    GetMemoryAllocationFailed(String, #[source] GetCanisterConfigError),
 }
 
 #[derive(Error, Debug)]
@@ -60,12 +60,12 @@ pub enum GetPullCanistersError {
 
 #[derive(Error, Debug)]
 pub enum GetRemoteCanisterIdError {
-    #[error("Failed to figure out if canister '{0}' has a remote id on network '{1}': {2}")]
-    GetRemoteCanisterIdFailed(Box<String>, Box<String>, GetCanisterConfigError),
+    #[error("Failed to figure out if canister '{0}' has a remote id on network '{1}'")]
+    GetRemoteCanisterIdFailed(Box<String>, Box<String>, #[source] GetCanisterConfigError),
 }
 
 #[derive(Error, Debug)]
 pub enum GetSpecifiedIdError {
-    #[error("Failed to get specified_id for canister '{0}': {1}")]
-    GetSpecifiedIdFailed(String, GetCanisterConfigError),
+    #[error("Failed to get specified_id for canister '{0}'")]
+    GetSpecifiedIdFailed(String, #[source] GetCanisterConfigError),
 }

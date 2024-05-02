@@ -7,9 +7,9 @@ pub enum InstantiateIdentityFromNameError {
     #[error("Failed to get principal of identity: {0}")]
     GetIdentityPrincipalFailed(String),
 
-    #[error("Failed to load identity: {0}")]
-    LoadIdentityFailed(LoadIdentityError),
+    #[error("Failed to load identity")]
+    LoadIdentityFailed(#[source] LoadIdentityError),
 
-    #[error("Identity must exist: {0}")]
-    RequireIdentityExistsFailed(RequireIdentityExistsError),
+    #[error("Identity must exist")]
+    RequireIdentityExistsFailed(#[source] RequireIdentityExistsError),
 }
