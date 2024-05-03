@@ -2,7 +2,6 @@ use crate::actors::replica::BitcoinIntegrationConfig;
 use crate::lib::error::DfxResult;
 use crate::lib::integrations::initialize_integration_canister;
 use crate::util::assets::bitcoin_wasm;
-
 use candid::Principal;
 use fn_error_context::context;
 use ic_agent::Agent;

@@ -56,16 +56,6 @@ sdk $ bats e2e/tests-dfx/*.bash
 sdk $ bats e2e/tests-replica/*.bash
 ```
 
-#### Running End-to-End Tests Against Reference IC
-
-This runs the end-to-end tests against the
-[reference implementation of the Internet Computer](https://github.com/dfinity/ic-hs).
-
-``` bash
-sdk $ USE_IC_REF=1 bats e2e/tests-dfx/*.bash
-sdk $ USE_IC_REF=1 bats e2e/tests-replica/*.bash
-```
-
 ## Conventional Commits
 
 We use a squash & merge PR strategy, which means that each PR will result in exactly
@@ -108,7 +98,10 @@ To update the replica to a given $SHA from the dfinity repo, execute the followi
 
 ### Updating Motoko
 
-To update Motoko to a given $VERSION from the motoko and motoko-base repos, execute the following:
+To update Motoko to a given $VERSION from the motoko and motoko-base repos, run the [the GitHub Action](https://github.com/dfinity/sdk/actions/workflows/update-motoko.yml).
+
+
+You can also execute the following locally:
 ``` bash
 # Requires niv to run. To install niv, run nix-env -iA nixpkgs.niv
 ./scripts/update-motoko.sh $VERSION

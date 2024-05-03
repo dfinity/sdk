@@ -1,11 +1,9 @@
-use std::time::Duration;
-
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
-
 use anyhow::bail;
 use clap::Parser;
+use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
+use std::time::Duration;
 use sysinfo::{Pid, Process, ProcessExt, Signal, System, SystemExt};
 
 /// Stops the local network replica.
@@ -59,7 +57,7 @@ fn wait_until_all_exited(mut system: System, mut pids: Vec<Pid>) -> DfxResult {
 
 pub fn exec(env: &dyn Environment, _opts: StopOpts) -> DfxResult {
     let network_descriptor = create_network_descriptor(
-        env.get_config(),
+        env.get_config()?,
         env.get_networks_config(),
         None,
         Some(env.get_logger().clone()),

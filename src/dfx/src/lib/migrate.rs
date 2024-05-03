@@ -1,5 +1,9 @@
+use crate::lib::identity::wallet::wallet_canister_id;
+use crate::lib::operations::canister::install_wallet;
+use crate::lib::{environment::Environment, error::DfxResult, root_key::fetch_root_key_if_needed};
 use anyhow::{bail, Context, Error};
 use candid::{CandidType, Deserialize, Principal};
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::Identity;
 use ic_agent::{Agent, Identity as _};
 use ic_utils::{
@@ -11,18 +15,11 @@ use ic_utils::{
 };
 use itertools::Itertools;
 
-use crate::lib::identity::wallet::wallet_canister_id;
-use crate::lib::operations::canister::install_wallet;
-use crate::lib::{environment::Environment, error::DfxResult, root_key::fetch_root_key_if_needed};
-use dfx_core::config::model::network_descriptor::NetworkDescriptor;
-
 pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bool) -> DfxResult {
     fetch_root_key_if_needed(env).await?;
     let config = env.get_config_or_anyhow()?;
     let config = config.get_config();
-    let agent = env
-        .get_agent()
-        .expect("Could not get agent from environment");
+    let agent = env.get_agent();
     let mut mgr = env.new_identity_manager()?;
     let ident = mgr.instantiate_selected_identity(env.get_logger())?;
     let mut did_migrate = false;
@@ -68,7 +65,15 @@ async fn migrate_wallet(
     if !wallet.version_supports_u128_cycles() {
         if fix {
             println!("Upgrading wallet... ");
-            install_wallet(env, agent, *wallet.canister_id_(), InstallMode::Upgrade).await?
+            install_wallet(
+                env,
+                agent,
+                *wallet.canister_id_(),
+                InstallMode::Upgrade {
+                    skip_pre_upgrade: Some(false),
+                },
+            )
+            .await?
         } else {
             println!("The wallet is outdated; run `dfx wallet upgrade`");
         }
@@ -115,6 +120,8 @@ async fn migrate_canister(
                             compute_allocation: None,
                             freezing_threshold: None,
                             memory_allocation: None,
+                            reserved_cycles_limit: None,
+                            wasm_memory_limit: None,
                         },
                     },)),
                     0,

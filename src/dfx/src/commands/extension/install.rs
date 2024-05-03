@@ -1,7 +1,11 @@
+use crate::commands::DfxCommand;
+use crate::config::cache::DiskBasedCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-
 use clap::Parser;
+use clap::Subcommand;
+use dfx_core::error::extension::ExtensionError;
+use semver::Version;
 
 #[derive(Parser)]
 pub struct InstallOpts {
@@ -10,12 +14,27 @@ pub struct InstallOpts {
     /// Installs the extension under different name. Useful when installing an extension with the same name as: already installed extension, or a built-in command.
     #[clap(long)]
     install_as: Option<String>,
+    /// Installs a specific version of the extension, bypassing version checks
+    #[clap(long)]
+    version: Option<Version>,
 }
 
 pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
+    // creating an `extensions` directory in an otherwise empty cache directory would
+    // cause the cache to be considered "installed" and later commands would fail
+    DiskBasedCache::install(&env.get_cache().version_str())?;
     let spinner = env.new_spinner(format!("Installing extension: {}", opts.name).into());
-    let mgr = env.new_extension_manager()?;
-    mgr.install_extension(&opts.name, opts.install_as.as_deref())?;
+    let mgr = env.get_extension_manager();
+    let effective_extension_name = opts.install_as.clone().unwrap_or_else(|| opts.name.clone());
+    if DfxCommand::has_subcommand(&effective_extension_name) {
+        return Err(ExtensionError::CommandAlreadyExists(opts.name).into());
+    }
+
+    mgr.install_extension(
+        &opts.name,
+        opts.install_as.as_deref(),
+        opts.version.as_ref(),
+    )?;
     spinner.finish_with_message(
         format!(
             "Extension '{}' installed successfully{}",

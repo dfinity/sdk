@@ -1,3 +1,10 @@
+use crate::Source;
+use backoff::future::retry;
+use backoff::ExponentialBackoffBuilder;
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+use flate2::{bufread::GzDecoder, write::GzEncoder, Compression};
+use reqwest::Client;
+use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
     fs::File,
@@ -6,15 +13,8 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-
-use bytes::{Buf, BufMut, Bytes, BytesMut};
-use flate2::{bufread::GzDecoder, write::GzEncoder, Compression};
-use reqwest::Client;
-use sha2::{Digest, Sha256};
 use tar::{Archive, Builder, EntryType, Header};
 use tokio::task::{spawn, spawn_blocking, JoinSet};
-
-use crate::Source;
 
 #[tokio::main]
 pub(crate) async fn prepare(out_dir: &Path, source_set: HashMap<String, Source>) {
@@ -35,7 +35,7 @@ fn copy_canisters(out_dir: PathBuf) {
         ));
         for ext in [
             ".did",
-            if can == "assetstorage" {
+            if can == "assetstorage" || can == "wallet" {
                 ".wasm.gz"
             } else {
                 ".wasm"
@@ -113,7 +113,7 @@ fn write_binary_cache(
         Compression::new(6),
     ));
     for (path, bin) in bins.into_iter().chain(
-        ["icx-proxy", "ic-ref", "moc", "mo-doc", "mo-ide"]
+        ["moc", "mo-doc", "mo-ide"]
             .map(|bin| (bin.into(), bin_tars.remove(Path::new(bin)).unwrap())),
     ) {
         let mut header = Header::new_gnu();
@@ -144,7 +144,22 @@ fn write_binary_cache(
 }
 
 async fn download_and_check_sha(client: Client, source: Source) -> Bytes {
-    let response = client.get(&source.url).send().await.unwrap();
+    let retry_policy = ExponentialBackoffBuilder::new()
+        .with_initial_interval(Duration::from_secs(1))
+        .with_max_interval(Duration::from_secs(16))
+        .with_multiplier(2.0)
+        .with_max_elapsed_time(Some(Duration::from_secs(300)))
+        .build();
+
+    let response = retry(retry_policy, || async {
+        match client.get(&source.url).send().await {
+            Ok(response) => Ok(response),
+            Err(err) => Err(backoff::Error::transient(err)),
+        }
+    })
+    .await
+    .unwrap();
+
     response.error_for_status_ref().unwrap();
     let content = response.bytes().await.unwrap();
     let sha = Sha256::digest(&content);
@@ -167,6 +182,7 @@ async fn download_binaries(
         "ic-btc-adapter",
         "ic-https-outcalls-adapter",
         "ic-nns-init",
+        "icx-proxy",
         "replica",
         "canister_sandbox",
         "sandbox_launcher",
@@ -204,13 +220,14 @@ async fn download_bin_tarballs(
     sources: Arc<HashMap<String, Source>>,
 ) -> HashMap<PathBuf, Bytes> {
     let mut map = HashMap::new();
-    let [motoko, icx_proxy, ic_ref] = ["motoko", "icx-proxy", "ic-ref"].map(|pkg| {
+    let [motoko] = ["motoko"].map(|pkg| {
         let client = client.clone();
         let source = sources[pkg].clone();
         spawn(download_and_check_sha(client, source))
     });
-    let (motoko, icx_proxy, ic_ref) = tokio::try_join!(motoko, icx_proxy, ic_ref).unwrap();
-    for tar in [motoko, icx_proxy, ic_ref] {
+    let (motoko,) = tokio::try_join!(motoko,).unwrap();
+    {
+        let tar = motoko;
         tar_xzf(&tar, |path, content| {
             map.insert(path, content);
         });

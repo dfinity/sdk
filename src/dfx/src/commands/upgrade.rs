@@ -1,12 +1,10 @@
+use crate::lib::dfxvm::display_dfxvm_installation_instructions;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::manifest::{get_latest_release, get_latest_version};
-
-use anyhow::Context;
+use anyhow::bail;
 use clap::Parser;
-use semver::Version;
 
-/// Upgrade DFX.
+/// Upgrade DFX (removed: use https://github.com/dfinity/dfxvm instead)
 #[derive(Parser)]
 pub struct UpgradeOpts {
     /// Current Version.
@@ -17,30 +15,12 @@ pub struct UpgradeOpts {
     release_root: String,
 }
 
-pub fn exec(env: &dyn Environment, opts: UpgradeOpts) -> DfxResult {
-    // Find OS architecture.
-    let os_arch = match std::env::consts::OS {
-        "linux" => "x86_64-linux",
-        "macos" => "x86_64-darwin",
-        _ => panic!("Not supported architecture"),
-    };
-    let current_version = if let Some(version) = opts.current_version {
-        Version::parse(&version)
-            .with_context(|| format!("Failed to parse {} as version.", &version))?
-    } else {
-        env.get_version().clone()
-    };
-
-    println!("Current version: {}", current_version);
-    let release_root = opts.release_root.as_str();
-    let latest_version = get_latest_version(release_root, None)?;
-
-    if latest_version > current_version {
-        println!("New version available: {}", latest_version);
-        get_latest_release(release_root, &latest_version, os_arch)?;
-    } else {
-        println!("Already up to date");
-    }
-
-    Ok(())
+pub fn exec(_env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
+    println!(
+        "dfx upgrade has been removed. Please use the dfx version manager (dfxvm) to upgrade."
+    );
+    println!();
+    display_dfxvm_installation_instructions();
+    println!();
+    bail!("dfx upgrade has been removed");
 }

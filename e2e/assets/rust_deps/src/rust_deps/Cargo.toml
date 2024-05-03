@@ -10,5 +10,8 @@ path = "lib.rs"
 crate-type = ["cdylib"]
 
 [dependencies]
-ic-cdk = "0.5"
-ic-cdk-macros = "0.5"
+candid = "0.10"
+ic-cdk = "0.12"
+
+[build-dependencies]
+ic-cdk-bindgen = "0.1"

@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::canister_api::types::{
     asset::SetAssetPropertiesArguments,
     batch_upload::common::{
@@ -8,6 +6,7 @@ use crate::canister_api::types::{
     },
 };
 use candid::{CandidType, Nat};
+use std::collections::HashMap;
 
 /// Batch operations that can be applied atomically.
 #[derive(CandidType, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]

@@ -5,16 +5,15 @@ use crate::canister_api::methods::method_names::{
 use crate::canister_api::types::batch_upload::common::{
     ComputeEvidenceArguments, CreateBatchRequest, CreateBatchResponse,
 };
-
-use anyhow::bail;
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
 use candid::{CandidType, Nat};
+use ic_agent::AgentError;
 use ic_utils::Canister;
 use serde_bytes::ByteBuf;
 use std::time::Duration;
 
-pub(crate) async fn create_batch(canister: &Canister<'_>) -> anyhow::Result<Nat> {
+pub(crate) async fn create_batch(canister: &Canister<'_>) -> Result<Nat, AgentError> {
     let mut retry_policy = ExponentialBackoffBuilder::new()
         .with_initial_interval(Duration::from_secs(1))
         .with_max_interval(Duration::from_secs(16))
@@ -25,7 +24,7 @@ pub(crate) async fn create_batch(canister: &Canister<'_>) -> anyhow::Result<Nat>
     let result = loop {
         let create_batch_args = CreateBatchRequest {};
         let response = canister
-            .update_(CREATE_BATCH)
+            .update(CREATE_BATCH)
             .with_arg(&create_batch_args)
             .build()
             .map(|result: (CreateBatchResponse,)| (result.0.batch_id,))
@@ -49,7 +48,7 @@ pub(crate) async fn submit_commit_batch<T: CandidType + Sync>(
     canister: &Canister<'_>,
     method_name: &str,
     arg: T, // CommitBatchArguments_{v0,v1,etc}
-) -> anyhow::Result<()> {
+) -> Result<(), AgentError> {
     let mut retry_policy = ExponentialBackoffBuilder::new()
         .with_initial_interval(Duration::from_secs(1))
         .with_max_interval(Duration::from_secs(16))
@@ -59,7 +58,7 @@ pub(crate) async fn submit_commit_batch<T: CandidType + Sync>(
 
     loop {
         match canister
-            .update_(method_name)
+            .update(method_name)
             .with_arg(&arg)
             .build()
             .call_and_wait()
@@ -67,11 +66,11 @@ pub(crate) async fn submit_commit_batch<T: CandidType + Sync>(
         {
             Ok(()) => return Ok(()),
             Err(agent_err) if !retryable(&agent_err) => {
-                bail!(agent_err);
+                return Err(agent_err);
             }
             Err(agent_err) => match retry_policy.next_backoff() {
                 Some(duration) => tokio::time::sleep(duration).await,
-                None => bail!(agent_err),
+                None => return Err(agent_err),
             },
         }
     }
@@ -80,21 +79,21 @@ pub(crate) async fn submit_commit_batch<T: CandidType + Sync>(
 pub(crate) async fn commit_batch<T: CandidType + Sync>(
     canister: &Canister<'_>,
     arg: T, // CommitBatchArguments_{v0,v1,etc}
-) -> anyhow::Result<()> {
+) -> Result<(), AgentError> {
     submit_commit_batch(canister, COMMIT_BATCH, arg).await
 }
 
 pub(crate) async fn propose_commit_batch<T: CandidType + Sync>(
     canister: &Canister<'_>,
     arg: T, // CommitBatchArguments_{v0,v1,etc}
-) -> anyhow::Result<()> {
+) -> Result<(), AgentError> {
     submit_commit_batch(canister, PROPOSE_COMMIT_BATCH, arg).await
 }
 
 pub(crate) async fn compute_evidence(
     canister: &Canister<'_>,
     arg: &ComputeEvidenceArguments,
-) -> anyhow::Result<Option<ByteBuf>> {
+) -> Result<Option<ByteBuf>, AgentError> {
     let mut retry_policy = ExponentialBackoffBuilder::new()
         .with_initial_interval(Duration::from_secs(1))
         .with_max_interval(Duration::from_secs(16))
@@ -104,7 +103,7 @@ pub(crate) async fn compute_evidence(
 
     loop {
         match canister
-            .update_(COMPUTE_EVIDENCE)
+            .update(COMPUTE_EVIDENCE)
             .with_arg(arg)
             .build()
             .map(|result: (Option<ByteBuf>,)| (result.0,))
@@ -113,11 +112,11 @@ pub(crate) async fn compute_evidence(
         {
             Ok(x) => return Ok(x.0),
             Err(agent_err) if !retryable(&agent_err) => {
-                bail!(agent_err);
+                return Err(agent_err);
             }
             Err(agent_err) => match retry_policy.next_backoff() {
                 Some(duration) => tokio::time::sleep(duration).await,
-                None => bail!(agent_err),
+                None => return Err(agent_err),
             },
         }
     }

@@ -1,8 +1,8 @@
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{
-    start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
-    start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
+    start_btc_adapter_actor, start_canister_http_adapter_actor, start_icx_proxy_actor,
+    start_replica_actor, start_shutdown_controller,
 };
 use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
@@ -14,16 +14,15 @@ use crate::lib::network::id::write_network_id;
 use crate::lib::replica::status::ping_and_wait;
 use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
+use actix::Recipient;
+use anyhow::{anyhow, bail, Context, Error};
 use candid::Deserialize;
+use clap::{ArgAction, Parser};
 use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::config::model::{bitcoin_adapter, canister_http_adapter};
 use dfx_core::json::{load_json_file, save_json_file};
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
-
-use actix::Recipient;
-use anyhow::{anyhow, bail, Context, Error};
-use clap::{ArgAction, Parser};
 use fn_error_context::context;
 use os_str_bytes::{OsStrBytes, OsStringBytes};
 use serde::Serialize;
@@ -54,29 +53,33 @@ pub struct StartOpts {
     #[arg(long)]
     clean: bool,
 
-    /// Runs a dedicated emulator instead of the replica
-    #[arg(long)]
-    emulator: bool,
-
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[arg(long, conflicts_with("emulator"), action = ArgAction::Append)]
+    #[arg(long, action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[arg(long, conflicts_with("emulator"))]
+    #[arg(long)]
     enable_bitcoin: bool,
 
     /// enable canister http requests
-    #[arg(long, conflicts_with("emulator"))]
+    #[arg(long)]
     enable_canister_http: bool,
 
     /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
-    #[arg(long, conflicts_with("emulator"), default_value_t = 600)]
+    #[arg(long, default_value_t = 600)]
     artificial_delay: u32,
 
     /// Start even if the network config was modified.
     #[arg(long)]
     force: bool,
+
+    /// Use old metering.
+    #[arg(long)]
+    use_old_metering: bool,
+
+    /// A list of domains that can be served. These are used for canister resolution [default: localhost]
+    #[arg(long)]
+    domain: Vec<String>,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -135,13 +138,14 @@ pub fn exec(
     StartOpts {
         host,
         background,
-        emulator,
         clean,
         force,
         bitcoin_node,
         enable_bitcoin,
         enable_canister_http,
         artificial_delay,
+        use_old_metering,
+        domain,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -151,7 +155,7 @@ pub fn exec(
             dfx_version_str()
         );
     }
-    let project_config = env.get_config();
+    let project_config = env.get_config()?;
 
     let network_descriptor_logger = if background {
         None // so we don't print it out twice
@@ -174,6 +178,7 @@ pub fn exec(
         enable_bitcoin,
         bitcoin_node,
         enable_canister_http,
+        domain,
     )?;
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
@@ -184,7 +189,7 @@ pub fn exec(
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
     if clean {
-        clean_state(local_server_descriptor, env.get_project_temp_dir())?;
+        clean_state(local_server_descriptor, env.get_project_temp_dir()?)?;
     }
 
     let (frontend_url, address_and_port) = frontend_address(local_server_descriptor, background)?;
@@ -222,7 +227,7 @@ pub fn exec(
 
     let previous_config_path = local_server_descriptor.effective_config_path();
 
-    // dfx bootstrap will read these port files to find out which port to use,
+    // dfx info replica-port will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
     let replica_config_dir = local_server_descriptor.replica_configuration_dir();
     fs::create_dir_all(&replica_config_dir).with_context(|| {
@@ -233,7 +238,6 @@ pub fn exec(
     })?;
 
     let replica_port_path = empty_writable_path(local_server_descriptor.replica_port_path())?;
-    let emulator_port_path = empty_writable_path(local_server_descriptor.ic_ref_port_path())?;
 
     if background {
         send_background()?;
@@ -287,9 +291,16 @@ pub fn exec(
         .log_level
         .unwrap_or_default();
 
+    let proxy_domains = local_server_descriptor.proxy.domain.clone().into_vec();
+
     let replica_config = {
-        let replica_config =
-            ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay);
+        let replica_config = ReplicaConfig::new(
+            &state_root,
+            subnet_type,
+            log_level,
+            artificial_delay,
+            use_old_metering,
+        );
         let mut replica_config = if let Some(port) = local_server_descriptor.replica.port {
             replica_config.with_port(port)
         } else {
@@ -310,11 +321,8 @@ pub fn exec(
         replica_config
     };
 
-    let effective_config = if emulator {
-        CachedConfig::emulator()
-    } else {
-        CachedConfig::replica(&replica_config)
-    };
+    let effective_config = CachedConfig::replica(&replica_config);
+
     if !clean && !force && previous_config_path.exists() {
         let previous_config = load_json_file(&previous_config_path)
             .context("Failed to read replica configuration. Rerun with `--clean`.")?;
@@ -331,15 +339,7 @@ pub fn exec(
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
 
-        let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
-            let emulator = start_emulator_actor(
-                env,
-                local_server_descriptor,
-                shutdown_controller.clone(),
-                emulator_port_path,
-            )?;
-            emulator.recipient()
-        } else {
+        let port_ready_subscribe: Recipient<PortReadySubscribe> = {
             let btc_adapter_ready_subscribe = btc_adapter_config
                 .map(|btc_adapter_config| {
                     start_btc_adapter_actor(
@@ -378,6 +378,7 @@ pub fn exec(
             bind: address_and_port,
             replica_urls: vec![], // will be determined after replica starts
             fetch_root_key: !network_descriptor.is_ic,
+            domains: proxy_domains,
             verbose: env.get_verbose_level() > 0,
         };
 
@@ -393,10 +394,10 @@ pub fn exec(
     system.run()?;
 
     if let Some(btc_adapter_socket_path) = btc_adapter_socket_path {
-        let _ = std::fs::remove_file(&btc_adapter_socket_path);
+        let _ = std::fs::remove_file(btc_adapter_socket_path);
     }
     if let Some(canister_http_socket_path) = canister_http_socket_path {
-        let _ = std::fs::remove_file(&canister_http_socket_path);
+        let _ = std::fs::remove_file(canister_http_socket_path);
     }
 
     Ok(())
@@ -407,7 +408,6 @@ pub fn exec(
 #[allow(clippy::large_enum_variant)]
 pub enum CachedReplicaConfig<'a> {
     Replica { config: Cow<'a, ReplicaConfig> },
-    Emulator,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq)]
@@ -426,12 +426,6 @@ impl<'a> CachedConfig<'a> {
             },
         }
     }
-    pub fn emulator() -> Self {
-        Self {
-            replica_rev: replica_rev().into(),
-            config: CachedReplicaConfig::Emulator,
-        }
-    }
 }
 
 pub fn apply_command_line_parameters(
@@ -442,6 +436,7 @@ pub fn apply_command_line_parameters(
     enable_bitcoin: bool,
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
+    domain: Vec<String>,
 ) -> DfxResult<NetworkDescriptor> {
     if enable_canister_http {
         warn!(
@@ -472,6 +467,10 @@ pub fn apply_command_line_parameters(
 
     if !bitcoin_nodes.is_empty() {
         local_server_descriptor = local_server_descriptor.with_bitcoin_nodes(bitcoin_nodes)
+    }
+
+    if !domain.is_empty() {
+        local_server_descriptor = local_server_descriptor.with_proxy_domains(domain)
     }
 
     Ok(NetworkDescriptor {
@@ -608,7 +607,7 @@ fn create_new_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> Df
     // An attempt to use a path under .dfx/ resulted in this error:
     //    path must be shorter than libc::sockaddr_un.sun_path
     let uds_path = std::env::temp_dir().join(format!("{}.{}.{}", prefix, pid, timestamp_seconds));
-    std::fs::write(uds_holder_path, &uds_path.to_raw_bytes()).with_context(|| {
+    std::fs::write(uds_holder_path, uds_path.to_raw_bytes()).with_context(|| {
         format!(
             "unable to write unix domain socket path to {}",
             uds_holder_path.to_string_lossy()
@@ -639,7 +638,7 @@ fn write_btc_adapter_config(
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize btc adapter configuration to json")?;
-    std::fs::write(config_path, &contents).with_context(|| {
+    std::fs::write(config_path, contents).with_context(|| {
         format!(
             "Unable to write btc adapter configuration to {}",
             config_path.to_string_lossy()
@@ -673,7 +672,7 @@ pub fn configure_canister_http_adapter_if_enabled(
 
     let contents = serde_json::to_string_pretty(&adapter_config)
         .context("Unable to serialize canister http adapter configuration to json")?;
-    std::fs::write(config_path, &contents)
+    std::fs::write(config_path, contents)
         .with_context(|| format!("Unable to write {}", config_path.to_string_lossy()))?;
 
     Ok(Some(adapter_config))

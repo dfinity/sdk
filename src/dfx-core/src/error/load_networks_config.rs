@@ -4,9 +4,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum LoadNetworksConfigError {
-    #[error("Failed to get path for network configuration: {0}")]
-    GetConfigPathFailed(ConfigError),
+    #[error("Failed to get path for network configuration")]
+    GetConfigPathFailed(#[source] ConfigError),
 
-    #[error("Failed to load network configuration: {0}")]
-    LoadConfigFromFileFailed(StructuredFileError),
+    #[error("Failed to load network configuration")]
+    LoadConfigFromFileFailed(#[source] StructuredFileError),
 }

@@ -1,21 +1,109 @@
 use crate::lib::error::DfxResult;
-use dfx_core::config::model::dfinity::ConfigInterface;
-
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, Context, Error};
 use byte_unit::Byte;
 use candid::Principal;
+use dfx_core::config::model::dfinity::ConfigInterface;
 use fn_error_context::context;
-use ic_utils::interfaces::management_canister::attributes::{
-    ComputeAllocation, FreezingThreshold, MemoryAllocation,
+use ic_utils::interfaces::management_canister::{
+    attributes::{ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit},
+    builders::WasmMemoryLimit,
 };
+use num_traits::ToPrimitive;
 use std::convert::TryFrom;
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct CanisterSettings {
     pub controllers: Option<Vec<Principal>>,
     pub compute_allocation: Option<ComputeAllocation>,
     pub memory_allocation: Option<MemoryAllocation>,
     pub freezing_threshold: Option<FreezingThreshold>,
+    pub reserved_cycles_limit: Option<ReservedCyclesLimit>,
+    pub wasm_memory_limit: Option<WasmMemoryLimit>,
+}
+
+impl From<CanisterSettings>
+    for ic_utils::interfaces::management_canister::builders::CanisterSettings
+{
+    fn from(value: CanisterSettings) -> Self {
+        Self {
+            controllers: value.controllers,
+            compute_allocation: value
+                .compute_allocation
+                .map(u8::from)
+                .map(candid::Nat::from),
+            memory_allocation: value
+                .memory_allocation
+                .map(u64::from)
+                .map(candid::Nat::from),
+            freezing_threshold: value
+                .freezing_threshold
+                .map(u64::from)
+                .map(candid::Nat::from),
+            reserved_cycles_limit: value
+                .reserved_cycles_limit
+                .map(u128::from)
+                .map(candid::Nat::from),
+            wasm_memory_limit: value
+                .wasm_memory_limit
+                .map(u64::from)
+                .map(candid::Nat::from),
+        }
+    }
+}
+
+impl TryFrom<ic_utils::interfaces::management_canister::builders::CanisterSettings>
+    for CanisterSettings
+{
+    type Error = Error;
+    fn try_from(
+        value: ic_utils::interfaces::management_canister::builders::CanisterSettings,
+    ) -> Result<Self, anyhow::Error> {
+        Ok(Self {
+            controllers: value.controllers,
+            compute_allocation: value
+                .compute_allocation
+                .and_then(|alloc| alloc.0.to_u8())
+                .map(|alloc| {
+                    ComputeAllocation::try_from(alloc)
+                        .context("Compute allocation must be a percentage.")
+                })
+                .transpose()?,
+            memory_allocation: value
+                .memory_allocation
+                .and_then(|alloc| alloc.0.to_u64())
+                .map(|alloc| {
+                    MemoryAllocation::try_from(alloc).context(
+                        "Memory allocation must be between 0 and 2^48 (i.e 256TB), inclusively.",
+                    )
+                })
+                .transpose()?,
+            freezing_threshold: value
+                .freezing_threshold
+                .and_then(|threshold| threshold.0.to_u64())
+                .map(|threshold| {
+                    FreezingThreshold::try_from(threshold)
+                        .context("Freezing threshold must be between 0 and 2^64-1, inclusively.")
+                })
+                .transpose()?,
+            reserved_cycles_limit: value
+                .reserved_cycles_limit
+                .and_then(|limit| limit.0.to_u128())
+                .map(|limit| {
+                    ReservedCyclesLimit::try_from(limit).context(
+                        "Reserved cycles limit must be between 0 and 2^128-1, inclusively.",
+                    )
+                })
+                .transpose()?,
+            wasm_memory_limit: value
+                .wasm_memory_limit
+                .and_then(|limit| limit.0.to_u64())
+                .map(|limit| {
+                    WasmMemoryLimit::try_from(limit)
+                        .context("WASM memory limit must be between 0 and 2^48-1, inclusively.")
+                })
+                .transpose()?,
+        })
+    }
 }
 
 #[context("Failed to get compute allocation.")]
@@ -78,6 +166,49 @@ pub fn get_freezing_threshold(
         .map(|arg| {
             FreezingThreshold::try_from(arg)
                 .context("Must be a duration between 0 and 2^64-1 inclusive.")
+        })
+        .transpose()
+}
+
+#[context("Failed to get reserved cycles limit")]
+pub fn get_reserved_cycles_limit(
+    reserved_cycles_limit: Option<u128>,
+    config_interface: Option<&ConfigInterface>,
+    canister_name: Option<&str>,
+) -> DfxResult<Option<ReservedCyclesLimit>> {
+    let reserved_cycles_limit = match (reserved_cycles_limit, config_interface, canister_name) {
+        (Some(reserved_cycles_limit), _, _) => Some(reserved_cycles_limit),
+        (None, Some(config_interface), Some(canister_name)) => {
+            config_interface.get_reserved_cycles_limit(canister_name)?
+        }
+        _ => None,
+    };
+    reserved_cycles_limit
+        .map(|arg| {
+            ReservedCyclesLimit::try_from(arg)
+                .context("Must be a limit between 0 and 2^128-1 inclusive.")
+        })
+        .transpose()
+}
+
+pub fn get_wasm_memory_limit(
+    wasm_memory_limit: Option<Byte>,
+    config_interface: Option<&ConfigInterface>,
+    canister_name: Option<&str>,
+) -> DfxResult<Option<WasmMemoryLimit>> {
+    let wasm_memory_limit = match (wasm_memory_limit, config_interface, canister_name) {
+        (Some(memory_limit), _, _) => Some(memory_limit),
+        (None, Some(config_interface), Some(canister_name)) => {
+            config_interface.get_wasm_memory_limit(canister_name)?
+        }
+        _ => None,
+    };
+    wasm_memory_limit
+        .map(|arg| {
+            u64::try_from(arg.get_bytes())
+                .map_err(|e| anyhow!(e))
+                .and_then(|n| Ok(WasmMemoryLimit::try_from(n)?))
+                .context("WASM memory limit must be between 0 and 2^48 (i.e 256TB), inclusively.")
         })
         .transpose()
 }

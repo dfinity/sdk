@@ -1,9 +1,7 @@
 use super::signed_message::SignedMessageV1;
-
 use candid::Principal;
-use ic_agent::agent::ReplicaV2Transport;
+use ic_agent::agent::Transport;
 use ic_agent::{AgentError, RequestId};
-
 use std::fs::{File, OpenOptions};
 use std::future::Future;
 use std::io::{Read, Write};
@@ -17,12 +15,12 @@ enum SerializeStatus {
     Success(String),
 }
 
-pub(crate) struct SignReplicaV2Transport {
+pub(crate) struct SignTransport {
     file_name: PathBuf,
     message_template: SignedMessageV1,
 }
 
-impl SignReplicaV2Transport {
+impl SignTransport {
     pub fn new<U: Into<PathBuf>>(file_name: U, message_template: SignedMessageV1) -> Self {
         Self {
             file_name: file_name.into(),
@@ -31,13 +29,13 @@ impl SignReplicaV2Transport {
     }
 }
 
-impl ReplicaV2Transport for SignReplicaV2Transport {
+impl Transport for SignTransport {
     fn read_state<'a>(
         &'a self,
         _effective_canister_id: Principal,
         envelope: Vec<u8>,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
-        async fn run(s: &SignReplicaV2Transport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
+        async fn run(s: &SignTransport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
             let path = &s.file_name;
             let mut file = File::open(path).map_err(|x| AgentError::MessageError(x.to_string()))?;
             let mut json = String::new();
@@ -45,7 +43,7 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
             let message: SignedMessageV1 =
                 serde_json::from_str(&json).map_err(|x| AgentError::MessageError(x.to_string()))?;
-            let message = message.with_signed_request_status(hex::encode(&envelope));
+            let message = message.with_signed_request_status(hex::encode(envelope));
             let json = serde_json::to_string(&message)
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
             let mut file = OpenOptions::new()
@@ -67,6 +65,19 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
         Box::pin(run(self, envelope))
     }
 
+    fn read_subnet_state(
+        &self,
+        _: Principal,
+        _: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + '_>> {
+        async fn run() -> Result<Vec<u8>, AgentError> {
+            Err(AgentError::MessageError(
+                "read_subnet_state calls not supported".to_string(),
+            ))
+        }
+        Box::pin(run())
+    }
+
     fn call<'a>(
         &'a self,
         _effective_canister_id: Principal,
@@ -74,7 +85,7 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
         request_id: RequestId,
     ) -> Pin<Box<dyn Future<Output = Result<(), AgentError>> + Send + 'a>> {
         async fn run(
-            s: &SignReplicaV2Transport,
+            s: &SignTransport,
             envelope: Vec<u8>,
             request_id: RequestId,
         ) -> Result<(), AgentError> {
@@ -83,7 +94,7 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
                 .clone()
                 .with_call_type("update".to_string())
                 .with_request_id(request_id)
-                .with_content(hex::encode(&envelope));
+                .with_content(hex::encode(envelope));
             let json = serde_json::to_string(&message)
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
             let path = &s.file_name;
@@ -108,12 +119,12 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
         _effective_canister_id: Principal,
         envelope: Vec<u8>,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
-        async fn run(s: &SignReplicaV2Transport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
+        async fn run(s: &SignTransport, envelope: Vec<u8>) -> Result<Vec<u8>, AgentError> {
             let message = s
                 .message_template
                 .clone()
                 .with_call_type("query".to_string())
-                .with_content(hex::encode(&envelope));
+                .with_content(hex::encode(envelope));
             let json = serde_json::to_string(&message)
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
             let path = &s.file_name;
@@ -136,7 +147,7 @@ impl ReplicaV2Transport for SignReplicaV2Transport {
     fn status<'a>(
         &'a self,
     ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, AgentError>> + Send + 'a>> {
-        async fn run(_: &SignReplicaV2Transport) -> Result<Vec<u8>, AgentError> {
+        async fn run(_: &SignTransport) -> Result<Vec<u8>, AgentError> {
             Err(AgentError::MessageError(
                 "status calls not supported".to_string(),
             ))

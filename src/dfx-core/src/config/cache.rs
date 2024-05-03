@@ -1,13 +1,10 @@
 #[cfg(windows)]
 use crate::config::directories::project_dirs;
+use crate::error::cache::CacheError;
 #[cfg(not(windows))]
 use crate::foundation::get_user_home;
-
-use crate::error::cache::CacheError;
-
 use semver::Version;
-
-use std::{path::PathBuf, process::ExitStatus};
+use std::path::PathBuf;
 
 pub trait Cache {
     fn version_str(&self) -> String;
@@ -31,11 +28,15 @@ pub fn get_cache_root() -> Result<PathBuf, CacheError> {
         Some(var) => PathBuf::from(var),
         None => project_dirs()?.cache_dir().to_owned(),
     };
-    if !p.exists() {
-        crate::fs::create_dir_all(&p).map_err(CacheError::CreateCacheDirectoryFailed)?;
-    } else if !p.is_dir() {
+    if p.exists() && !p.is_dir() {
         return Err(CacheError::FindCacheDirectoryFailed(p));
     }
+    Ok(p)
+}
+
+/// Constructs and returns <cache root>/versions/<version> without creating any directories.
+pub fn get_cache_path_for_version(v: &str) -> Result<PathBuf, CacheError> {
+    let p = get_cache_root()?.join("versions").join(v);
     Ok(p)
 }
 
@@ -114,18 +115,5 @@ pub fn list_versions() -> Result<Vec<Version>, CacheError> {
         }
     }
 
-    Ok(result)
-}
-
-pub fn call_cached_dfx(v: &Version) -> Result<ExitStatus, CacheError> {
-    let v = format!("{}", v);
-    let command_path = get_binary_path_from_version(&v, "dfx")?;
-    if command_path == crate::foundation::get_current_exe()? {
-        return Err(CacheError::InvalidCacheForDfxVersion(v));
-    }
-
-    let mut binding = std::process::Command::new(command_path);
-    let cmd = binding.args(std::env::args().skip(1));
-    let result = crate::process::execute_process(cmd)?;
     Ok(result)
 }

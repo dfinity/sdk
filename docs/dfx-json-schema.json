@@ -82,6 +82,20 @@
         "trace"
       ]
     },
+    "Byte": {
+      "title": "Byte Count",
+      "description": "A quantity of bytes. Representable either as an integer, or as an SI unit string",
+      "examples": [
+        72,
+        "2KB",
+        "4 MiB"
+      ],
+      "type": [
+        "integer",
+        "string"
+      ],
+      "pattern": "^[0-9]+( *([KkMmGgTtPpEeZzYy]i?)?B)?$"
+    },
     "CanisterDeclarationsConfig": {
       "title": "Declarations Configuration",
       "description": "Configurations about which canister interface declarations to generate, and where to generate them.",
@@ -100,7 +114,7 @@
         },
         "env_override": {
           "title": "Canister ID ENV Override",
-          "description": "A string that will replace process.env.{canister_name_uppercase}_CANISTER_ID in the 'src/dfx/assets/language_bindings/canister.js' template.",
+          "description": "A string that will replace process.env.CANISTER_ID_{canister_name_uppercase} in the 'src/dfx/assets/language_bindings/canister.js' template.",
           "type": [
             "string",
             "null"
@@ -214,14 +228,6 @@
             "type"
           ],
           "properties": {
-            "source": {
-              "title": "Asset Source Folder",
-              "description": "Folders from which assets are uploaded.",
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
             "build": {
               "title": "Build Commands",
               "description": "Commands that are executed in order to produce this canister's assets. Expected to produce assets in one of the paths specified by the 'source' field. Optional if there is no build necessary or the assets can be built using the default `npm run build` command.",
@@ -232,10 +238,26 @@
                 }
               ]
             },
+            "source": {
+              "title": "Asset Source Folder",
+              "description": "Folders from which assets are uploaded.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
             "type": {
               "type": "string",
               "enum": [
                 "assets"
+              ]
+            },
+            "workspace": {
+              "title": "NPM workspace",
+              "description": "The workspace in package.json that this canister is in, if it is not in the root workspace.",
+              "type": [
+                "string",
+                "null"
               ]
             }
           }
@@ -366,13 +388,31 @@
             "null"
           ]
         },
+        "init_arg": {
+          "title": "Init Arg",
+          "description": "The Candid initialization argument for installing the canister. If the `--argument` or `--argument-file` argument is also provided, this `init_arg` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "init_arg_file": {
+          "title": "Init Arg File",
+          "description": "The Candid initialization argument file for installing the canister. If the `--argument` or `--argument-file` argument is also provided, this `init_arg_file` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "initialization_values": {
           "title": "Resource Allocation Settings",
           "description": "Defines initial values for resource allocation settings.",
           "default": {
             "compute_allocation": null,
             "freezing_threshold": null,
-            "memory_allocation": null
+            "memory_allocation": null,
+            "reserved_cycles_limit": null,
+            "wasm_memory_limit": null
           },
           "allOf": [
             {
@@ -453,6 +493,27 @@
             "boolean",
             "null"
           ]
+        },
+        "specified_id": {
+          "title": "Specified Canister ID",
+          "description": "Attempts to create the canister with this Canister ID. This option only works with non-mainnet replica. If the `--specified-id` argument is also provided, this `specified_id` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tech_stack": {
+          "title": "Tech Stack",
+          "description": "Defines the tech stack used to build this canister.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TechStack"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -526,6 +587,16 @@
             }
           ]
         },
+        "proxy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsProxy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "replica": {
           "anyOf": [
             {
@@ -579,6 +650,7 @@
     },
     "ConfigDefaultsBootstrap": {
       "title": "Bootstrap Server Configuration",
+      "description": "The bootstrap command has been removed.  All of these fields are ignored.",
       "type": "object",
       "properties": {
         "ip": {
@@ -639,6 +711,23 @@
           "allOf": [
             {
               "$ref": "#/definitions/HttpAdapterLogLevel"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigDefaultsProxy": {
+      "description": "Configuration for icx-proxy.",
+      "type": "object",
+      "required": [
+        "domain"
+      ],
+      "properties": {
+        "domain": {
+          "description": "A list of domains that can be served. These are used for canister resolution [default: localhost]",
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
             }
           ]
         }
@@ -723,6 +812,26 @@
             }
           ]
         },
+        "playground": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PlaygroundConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proxy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsProxy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "replica": {
           "anyOf": [
             {
@@ -761,6 +870,16 @@
         "providers"
       ],
       "properties": {
+        "playground": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PlaygroundConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "providers": {
           "description": "The URL(s) this network can be reached at.",
           "type": "array",
@@ -819,14 +938,40 @@
         },
         "memory_allocation": {
           "title": "Memory Allocation",
-          "description": "Maximum memory (in bytes) this canister is allowed to occupy.",
+          "description": "Maximum memory (in bytes) this canister is allowed to occupy. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Byte"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reserved_cycles_limit": {
+          "title": "Reserved Cycles Limit",
+          "description": "Specifies the upper limit of the canister's reserved cycles balance.\n\nReserved cycles are cycles that the system sets aside for future use by the canister. If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes, the system sets aside some amount of cycles from the main balance of the canister. These reserved cycles will be used to cover future payments for the newly allocated bytes. The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.\n\nA setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.",
           "default": null,
           "type": [
             "integer",
             "null"
           ],
-          "format": "uint64",
+          "format": "uint128",
           "minimum": 0.0
+        },
+        "wasm_memory_limit": {
+          "title": "WASM Memory Limit",
+          "description": "Specifies a soft limit (in bytes) on the Wasm memory usage of the canister.\n\nUpdate calls, timers, heartbeats, installs, and post-upgrades fail if the WASM memory usage exceeds this limit. The main purpose of this setting is to protect against the case when the canister reaches the hard 4GiB limit.\n\nMust be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Byte"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -857,6 +1002,26 @@
         "persistent"
       ]
     },
+    "PlaygroundConfig": {
+      "description": "Playground config to borrow canister from instead of creating new canisters.",
+      "type": "object",
+      "required": [
+        "playground_canister"
+      ],
+      "properties": {
+        "playground_canister": {
+          "description": "Canister ID of the playground canister",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "description": "How many seconds a canister can be borrowed for",
+          "default": 1200,
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
     "PossiblyStr_for_uint64": {
       "type": "integer",
       "format": "uint64",
@@ -885,6 +1050,14 @@
             "type": "string"
           }
         },
+        "init_arg": {
+          "title": "init_arg",
+          "description": "A default initialization argument for the canister that consumers can use.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "init_guide": {
           "title": "init_guide",
           "description": "A message to guide consumers how to initialize the canister.",
@@ -892,7 +1065,15 @@
         },
         "wasm_hash": {
           "title": "wasm_hash",
-          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.",
+          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified via a URL using the `wasm_hash_url` field. If both are defined, the `wasm_hash_url` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wasm_hash_url": {
+          "title": "wasm_hash_url",
+          "description": "Specify the SHA256 hash of the wasm module via this URL. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified directly using the `wasm_hash` field. If both are defined, the `wasm_hash_url` field will be ignored.",
           "type": [
             "string",
             "null"
@@ -936,6 +1117,78 @@
           }
         }
       ]
+    },
+    "TechStack": {
+      "title": "Tech Stack",
+      "description": "The tech stack used to build a canister.",
+      "type": "object",
+      "properties": {
+        "cdk": {
+          "title": "cdk",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "language": {
+          "title": "language",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "lib": {
+          "title": "lib",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "other": {
+          "title": "other",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "tool": {
+          "title": "tool",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      }
     },
     "WasmOptLevel": {
       "title": "Wasm Optimization Levels",
