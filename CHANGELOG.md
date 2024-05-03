@@ -37,6 +37,8 @@ Stderr:
 /Users/ericswanson/w/wasminst/src/wasminst_backend/main2.mo: No such file or directory
 ```
 
+### fix: "Failed to decrypt PEM file" errors messages will now include the cause
+
 ### feat: WASM memory soft-limit
 
 Adds support for the `wasm_memory_limit` canister setting, which limits the canister's heap during most calls but does not affect queries. As with other canister settings, it can be set in `dfx canister create` or `dfx canister update-settings` via the `--wasm-memory-limit` flag, as well as in `dfx.json` under `canisters[].initialization_values.wasm_memory_limit`.
