@@ -13,6 +13,165 @@ teardown() {
   standard_teardown
 }
 
+@test "extension canister type" {
+  dfx_start
+
+  install_asset wasm/identity
+  CACHE_DIR=$(dfx cache show)
+  mkdir -p "$CACHE_DIR"/extensions/embera
+  cat > "$CACHE_DIR"/extensions/embera/extension.json <<EOF
+  {
+      "name": "embera",
+      "version": "0.1.0",
+      "homepage": "https://github.com/dfinity/dfx-extensions",
+      "authors": "DFINITY",
+      "summary": "Test extension for e2e purposes.",
+      "categories": [],
+      "keywords": [],
+      "canister_type": {
+       "evaluation_order": [ "wasm" ],
+       "defaults": {
+         "type": "custom",
+         "build": [
+           "echo the embera build step for canister {{canister_name}} with candid {{canister.candid}} and main file {{canister.main}} and gzip is {{canister.gzip}}",
+           "mkdir -p .embera/{{canister_name}}",
+           "cp main.wasm {{canister.wasm}}"
+         ],
+         "gzip": true,
+         "wasm": ".embera/{{canister_name}}/{{canister_name}}.wasm",
+         "post_install": [
+           "echo the embera post-install step for canister {{canister_name}} with candid {{canister.candid}} and main file {{canister.main}} and gzip is {{canister.gzip}}"
+         ],
+         "metadata": [
+           {
+             "name": "metadata-from-extension",
+             "content": "the content (from extension definition), gzip is {{canister.gzip}}"
+           },
+           {
+             "name": "metadata-in-extension-overwritten-by-dfx-json",
+             "content": "the content to be overwritten (from extension definition)"
+           },
+           {
+             "name": "extension-limits-to-local-network",
+             "networks": [ "local" ],
+             "content": "this only applies to the local network"
+           },
+           {
+             "name": "extension-limits-to-ic-network",
+             "networks": [ "ic" ],
+             "content": "this only applies to the ic network"
+           }
+         ],
+         "tech_stack": {
+           "cdk": {
+             "embera": {
+               "version": "1.5.2"
+             },
+             "ic-cdk": {
+               "version": "2.14.4"
+             }
+           },
+           "language": {
+             "kotlin": {}
+           }
+         }
+       }
+      }
+  }
+EOF
+  cat > dfx.json <<EOF
+  {
+    "canisters": {
+      "c1": {
+        "type": "embera",
+        "candid": "main.did",
+        "main": "main-file.embera",
+        "metadata": [
+          {
+            "name": "metadata-in-extension-overwritten-by-dfx-json",
+            "content": "the overwritten content (from dfx.json)"
+          }
+        ]
+      },
+      "c2": {
+        "type": "embera",
+        "candid": "main.did",
+        "gzip": false,
+        "main": "main-file.embera"
+      },
+      "c3": {
+        "type": "embera",
+        "candid": "main.did",
+        "main": "main-file.embera",
+        "metadata": [
+          {
+            "name": "extension-limits-to-local-network",
+            "networks": [ "ic" ],
+            "content": "this only applies to the ic network"
+          },
+          {
+            "name": "extension-limits-to-ic-network",
+            "networks": [ "local" ],
+            "content": "dfx.json configuration applies only to local network"
+          }
+        ]
+      },
+      "c4": {
+        "type": "embera",
+        "candid": "main.did",
+        "main": "main-file.embera",
+        "tech_stack": {
+          "cdk": {
+            "ic-cdk": {
+              "version": "1.16.6"
+            }
+          },
+          "language": {
+            "java": {
+              "version": "25.0.6"
+            }
+          }
+        }
+      }
+    }
+  }
+EOF
+
+  assert_command dfx extension list
+  assert_contains embera
+  assert_command dfx deploy
+  assert_contains "the embera build step for canister c1 with candid main.did and main file main-file.embera and gzip is true"
+  assert_contains "the embera post-install step for canister c1 with candid main.did and main file main-file.embera and gzip is true"
+  assert_contains "the embera build step for canister c2 with candid main.did and main file main-file.embera and gzip is false"
+  assert_contains "the embera post-install step for canister c2 with candid main.did and main file main-file.embera and gzip is false"
+
+  assert_command dfx canister metadata c1 metadata-in-extension-overwritten-by-dfx-json
+  assert_eq "the overwritten content (from dfx.json)"
+  assert_command dfx canister metadata c1 metadata-from-extension
+  assert_eq "the content (from extension definition), gzip is true"
+
+  assert_command dfx canister metadata c2 metadata-in-extension-overwritten-by-dfx-json
+  assert_eq "the content to be overwritten (from extension definition)"
+  assert_command dfx canister metadata c2 metadata-from-extension
+  assert_eq "the content (from extension definition), gzip is false"
+
+  assert_command dfx canister metadata c3 extension-limits-to-local-network
+  assert_eq "this only applies to the local network"
+
+  assert_command dfx canister metadata c3 extension-limits-to-ic-network
+  assert_eq "dfx.json configuration applies only to local network"
+
+  assert_command dfx canister metadata c4 dfx
+  # shellcheck disable=SC2154
+  echo "$stdout" > f.json
+  assert_command jq -r '.tech_stack.cdk | keys | sort | join(",")' f.json
+  assert_eq "embera,ic-cdk"
+  assert_command jq -r '.tech_stack.cdk."ic-cdk".version' f.json
+  assert_eq "1.16.6"
+  assert_command jq -r '.tech_stack.language | keys | sort | join(",")' f.json
+  assert_eq "java,kotlin"
+}
+
 @test "extension install with an empty cache does not create a corrupt cache" {
   dfx cache delete
   dfx extension install nns --version 0.2.1

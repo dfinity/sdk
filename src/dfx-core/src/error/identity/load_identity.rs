@@ -4,9 +4,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum LoadIdentityError {
-    #[error("Failed to get identity config: {0}")]
-    GetIdentityConfigOrDefaultFailed(GetIdentityConfigOrDefaultError),
+    #[error("Failed to get identity config")]
+    GetIdentityConfigOrDefaultFailed(#[source] GetIdentityConfigOrDefaultError),
 
-    #[error("Failed to instantiate identity: {0}")]
-    NewIdentityFailed(NewIdentityError),
+    #[error("Failed to instantiate identity")]
+    NewIdentityFailed(#[source] NewIdentityError),
 }

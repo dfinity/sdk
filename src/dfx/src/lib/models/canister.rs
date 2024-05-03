@@ -14,7 +14,7 @@ use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{
-    CanisterMetadataSection, Config, MetadataVisibility, WasmOptLevel,
+    CanisterMetadataSection, Config, MetadataVisibility, TechStack, WasmOptLevel,
 };
 use fn_error_context::context;
 use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
@@ -163,9 +163,49 @@ impl Canister {
             public_candid = true;
         }
 
+        // dfx metadata
+        let mut set_dfx_metadata = false;
+        let mut dfx_metadata = DfxMetadata::default();
         if let Some(pullable) = info.get_pullable() {
-            let mut dfx_metadata = DfxMetadata::default();
+            set_dfx_metadata = true;
             dfx_metadata.set_pullable(pullable);
+            // pullable canisters must have public candid:service
+            public_candid = true;
+        }
+
+        if let Some(tech_stack_config) = info.get_tech_stack() {
+            set_dfx_metadata = true;
+            dfx_metadata.set_tech_stack(tech_stack_config, info.get_workspace_root())?;
+        } else if info.is_rust() {
+            // TODO: remove this when we have rust extension
+            set_dfx_metadata = true;
+            let s = r#"{
+                "language" : {
+                    "rust" : {
+                        "version" : "$(rustc --version | cut -d ' ' -f 2)"
+                    }
+                },
+                "cdk" : {
+                    "ic-cdk" : {
+                        "version" : "$(cargo tree -p ic-cdk --depth 0 | cut -d ' ' -f 2 | cut -c 2-)"
+                    }
+                }
+            }"#;
+            let tech_stack_config: TechStack = serde_json::from_str(s)?;
+            dfx_metadata.set_tech_stack(&tech_stack_config, info.get_workspace_root())?;
+        } else if info.is_motoko() {
+            // TODO: remove this when we have motoko extension
+            set_dfx_metadata = true;
+            let s = r#"{
+                "language" : {
+                    "motoko" : {}
+                }
+            }"#;
+            let tech_stack_config: TechStack = serde_json::from_str(s)?;
+            dfx_metadata.set_tech_stack(&tech_stack_config, info.get_workspace_root())?;
+        }
+
+        if set_dfx_metadata {
             let content = serde_json::to_string_pretty(&dfx_metadata)
                 .with_context(|| "Failed to serialize `dfx` metadata.".to_string())?;
             metadata_sections.insert(
@@ -177,7 +217,6 @@ impl Canister {
                     ..Default::default()
                 },
             );
-            public_candid = true;
         }
 
         if public_candid {
@@ -434,7 +473,7 @@ impl CanisterPool {
     ) -> DfxResult<Self> {
         let logger = env.get_logger().new(slog::o!());
         let config = env
-            .get_config()
+            .get_config()?
             .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
         let mut canisters_map = Vec::new();

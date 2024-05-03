@@ -30,7 +30,7 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
     // For ping, "provider" could either be a URL or a network name.
     // If not passed, we default to the "local" network.
     let agent_url = create_network_descriptor(
-        env.get_config(),
+        env.get_config()?,
         env.get_networks_config(),
         opts.network,
         None,

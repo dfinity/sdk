@@ -3,6 +3,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum GetLegacyCredentialsPemPathError {
-    #[error("Failed to get legacy pem path: {0}")]
-    GetLegacyPemPathFailed(GetUserHomeError),
+    #[error("Failed to get legacy pem path")]
+    GetLegacyPemPathFailed(#[source] GetUserHomeError),
 }

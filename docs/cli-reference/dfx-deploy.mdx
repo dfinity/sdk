@@ -2,15 +2,17 @@ import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
 
 # dfx deploy
 
-<MarkdownChipRow labels={["Reference"]} />
+<MarkdownChipRow labels={["Reference"]}/>
 
 Use the `dfx deploy` command to register, build, and deploy a dapp on the local canister execution environment, on the IC or on a specified testnet. By default, all canisters defined in the project `dfx.json` configuration file are deployed.
 
 This command simplifies the developer workflow by enabling you to run one command instead of running the following commands as separate steps:
 
-    dfx canister create --all
-    dfx build
-    dfx canister install --all
+```shell
+dfx canister create --all
+dfx build
+dfx canister install --all
+```
 
 Note that you can only run this command from within the project directory structure. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories.
 
@@ -71,12 +73,13 @@ dfx deploy hello_actor_class --argument '("from DFINITY")'
 ```
 
 Note that currently you must use an actor class in your Motoko dapp. In this example, the `dfx deploy` command specifies an argument to pass to the `hello_actor_class` canister. The main program for the `hello_actor_class` canister looks like this:
-
-    actor class Greet(name: Text) {
-        public query func greet() : async Text {
-            return "Hello, " # name # "!";
-        };
+```motoko
+actor class Greet(name: Text) {
+    public query func greet() : async Text {
+        return "Hello, " # name # "!";
     };
+};
+```
 
 You can use the `dfx deploy` command with the `--with-cycles` option to specify the initial balance of a canister created by your wallet. If you don’t specify a canister, the number of cycles you specify will be added to all canisters by default. To avoid this, specify a specific canister by name. For example, to add an initial balance of 8000000000000 cycles to a canister called "hello-assets", run the following command:
 

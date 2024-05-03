@@ -14,33 +14,33 @@ pub enum RenameIdentityError {
     #[error("Cannot create an anonymous identity.")]
     CannotCreateAnonymousIdentity(),
 
-    #[error("Failed to get identity config: {0}")]
-    GetIdentityConfigFailed(GetIdentityConfigOrDefaultError),
+    #[error("Failed to get identity config")]
+    GetIdentityConfigFailed(#[source] GetIdentityConfigOrDefaultError),
 
     #[error("Identity already exists.")]
     IdentityAlreadyExists(),
 
-    #[error("Identity does not exist: {0}")]
-    IdentityDoesNotExist(RequireIdentityExistsError),
+    #[error("Identity does not exist")]
+    IdentityDoesNotExist(#[source] RequireIdentityExistsError),
 
-    #[error("Failed to load pem: {0}")]
-    LoadPemFailed(LoadPemError),
+    #[error("Failed to load pem")]
+    LoadPemFailed(#[source] LoadPemError),
 
-    #[error("Failed to map wallets to renamed identity: {0}")]
-    MapWalletsToRenamedIdentityFailed(MapWalletsToRenamedIdentityError),
+    #[error("Failed to map wallets to renamed identity")]
+    MapWalletsToRenamedIdentityFailed(#[source] MapWalletsToRenamedIdentityError),
 
-    #[error("Failed to remove identity from keyring: {0}")]
-    RemoveIdentityFromKeyringFailed(KeyringError),
+    #[error("Failed to remove identity from keyring")]
+    RemoveIdentityFromKeyringFailed(#[source] KeyringError),
 
-    #[error("Cannot rename identity directory: {0}")]
-    RenameIdentityDirectoryFailed(FsError),
+    #[error("Cannot rename identity directory")]
+    RenameIdentityDirectoryFailed(#[source] FsError),
 
-    #[error("Failed to save identity configuration: {0}")]
-    SaveIdentityConfigurationFailed(SaveIdentityConfigurationError),
+    #[error("Failed to save identity configuration")]
+    SaveIdentityConfigurationFailed(#[source] SaveIdentityConfigurationError),
 
-    #[error("Failed to save pem: {0}")]
-    SavePemFailed(SavePemError),
+    #[error("Failed to save pem")]
+    SavePemFailed(#[source] SavePemError),
 
-    #[error("Failed to switch over default identity settings: {0}")]
-    SwitchDefaultIdentitySettingsFailed(WriteDefaultIdentityError),
+    #[error("Failed to switch over default identity settings")]
+    SwitchDefaultIdentitySettingsFailed(#[source] WriteDefaultIdentityError),
 }

@@ -12,21 +12,21 @@ pub enum RemoveIdentityError {
     #[error("Cannot delete the default identity.")]
     CannotDeleteDefaultIdentity(),
 
-    #[error("Failed to display linked wallets: {0}")]
-    DisplayLinkedWalletsFailed(WalletConfigError),
+    #[error("Failed to display linked wallets")]
+    DisplayLinkedWalletsFailed(#[source] WalletConfigError),
 
     #[error("If you want to remove an identity with configured wallets, please use the --drop-wallets flag.")]
     DropWalletsFlagRequiredToRemoveIdentityWithWallets(),
 
-    #[error("Failed to remove identity directory: {0}")]
-    RemoveIdentityDirectoryFailed(FsError),
+    #[error("Failed to remove identity directory")]
+    RemoveIdentityDirectoryFailed(#[source] FsError),
 
-    #[error("Failed to remove identity file: {0}")]
-    RemoveIdentityFileFailed(FsError),
+    #[error("Failed to remove identity file")]
+    RemoveIdentityFileFailed(#[source] FsError),
 
-    #[error("Failed to remove identity from keyring: {0}")]
-    RemoveIdentityFromKeyringFailed(KeyringError),
+    #[error("Failed to remove identity from keyring")]
+    RemoveIdentityFromKeyringFailed(#[source] KeyringError),
 
-    #[error("Identity must exist: {0}")]
-    RequireIdentityExistsFailed(RequireIdentityExistsError),
+    #[error("Identity must exist")]
+    RequireIdentityExistsFailed(#[source] RequireIdentityExistsError),
 }

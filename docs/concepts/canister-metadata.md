@@ -95,9 +95,14 @@ For Motoko canisters, if you specify a `path` for candid:service metadata (repla
 
 ### `dfx`
 
-A json text for `dfx` usage.
+A json text for `dfx` usage. It consists of independent optional objects.
 
-Currently it contains the [`pullable`](pull-dependencies.md#service-provider-workflow) object.
+#### `pullable`
+
+The `pullable` object is necessary for the canister to be pullable.
+
+Check [pull-dependencies](pull-dependencies.md#service-provider-workflow) for more details of each field
+and how to set it in `dfx.json`.
 
 ```json
 {
@@ -108,6 +113,41 @@ Currently it contains the [`pullable`](pull-dependencies.md#service-provider-wor
       "yofga-2qaaa-aaaaa-aabsq-cai"
     ],
     "init_guide": "A natural number, e.g. 10."
+  }
+}
+```
+
+#### `tech_stack`
+
+The `tech_stack` object provides a standard format to show the technologies involved to build the canister.
+
+Check [tech-stack](tech-stack.md) for more details and how to set it in `dfx.json`.
+
+```json
+{
+  "tech_stack": {
+    "language": {
+      "rust": {
+        "version": "1.75.0"
+      }
+    },
+    "cdk": {
+      "ic-cdk": {
+        "version": "0.13.0"
+      }
+    },
+    "lib": {
+      "ic-cdk-timers": {},
+      "ic-stable-structures": {}
+    },
+    "other": {
+      "bitcoin": {
+        "address": "bcrt1qfe264m0ycx2vcqvqyhs0gpxk6tw8ug6hqeps2d"
+      }
+    },
+    "tool": {
+      "dfx": {}
+    }
   }
 }
 ```

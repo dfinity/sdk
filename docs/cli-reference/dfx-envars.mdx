@@ -8,9 +8,11 @@ You can configure certain properties for your SDK execution environment using en
 
 This section lists the environment variables that are currently supported with examples of how to use them. In most cases, you can set environment variables for a session by executing an command in the terminal or by adding a line similar to the following to your `.profile` file:
 
-    export DFX_NETWORK=ic
+```shell
+export DFX_NETWORK=ic
+```
 
-## CANISTER_CANDID_PATH\_{canister.name}
+## CANISTER_CANDID_PATH\_\{canister.name\}
 
 Use environment variables with the `CANISTER_CANDID_PATH` prefix to reference the path to the Candid description file for the canisters that are listed as dependencies in the `dfx.json` file for your project.
 
@@ -18,7 +20,7 @@ For example, if you have a `whoami_frontend` canister that lists `whoami` under 
 
     $PROJECT_ROOT/.dfx/local/canisters/whoami/whoami.did
 
-## CANISTER_ID\_{canister.name}
+## CANISTER_ID\_\{canister.name\}
 
 Use environment variables with the `CANISTER_ID` prefix to reference the canister identifier for each canister in the `dfx.json` file for your project. Hyphens are invalid in environment variables and are replaced by underscores.  Lowercase characters are replaced by uppercase characters.
 

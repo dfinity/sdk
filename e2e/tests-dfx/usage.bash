@@ -37,3 +37,14 @@ teardown() {
   dfx canister create --all
   assert_command dfx build
 }
+
+@test "does not create .dfx just by running dfx even if in a project" {
+  echo "{}" >dfx.json
+  dfx identity get-principal
+  assert_directory_not_exists .dfx
+}
+
+@test "does not unconditionally read dfx.json" {
+  echo "garbage" >dfx.json
+  assert_command dfx identity get-principal
+}

@@ -4,8 +4,9 @@ use byte_unit::Byte;
 use candid::Principal;
 use dfx_core::config::model::dfinity::ConfigInterface;
 use fn_error_context::context;
-use ic_utils::interfaces::management_canister::attributes::{
-    ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit,
+use ic_utils::interfaces::management_canister::{
+    attributes::{ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit},
+    builders::WasmMemoryLimit,
 };
 use num_traits::ToPrimitive;
 use std::convert::TryFrom;
@@ -17,6 +18,7 @@ pub struct CanisterSettings {
     pub memory_allocation: Option<MemoryAllocation>,
     pub freezing_threshold: Option<FreezingThreshold>,
     pub reserved_cycles_limit: Option<ReservedCyclesLimit>,
+    pub wasm_memory_limit: Option<WasmMemoryLimit>,
 }
 
 impl From<CanisterSettings>
@@ -40,6 +42,10 @@ impl From<CanisterSettings>
             reserved_cycles_limit: value
                 .reserved_cycles_limit
                 .map(u128::from)
+                .map(candid::Nat::from),
+            wasm_memory_limit: value
+                .wasm_memory_limit
+                .map(u64::from)
                 .map(candid::Nat::from),
         }
     }
@@ -86,6 +92,14 @@ impl TryFrom<ic_utils::interfaces::management_canister::builders::CanisterSettin
                     ReservedCyclesLimit::try_from(limit).context(
                         "Reserved cycles limit must be between 0 and 2^128-1, inclusively.",
                     )
+                })
+                .transpose()?,
+            wasm_memory_limit: value
+                .wasm_memory_limit
+                .and_then(|limit| limit.0.to_u64())
+                .map(|limit| {
+                    WasmMemoryLimit::try_from(limit)
+                        .context("WASM memory limit must be between 0 and 2^48-1, inclusively.")
                 })
                 .transpose()?,
         })
@@ -173,6 +187,28 @@ pub fn get_reserved_cycles_limit(
         .map(|arg| {
             ReservedCyclesLimit::try_from(arg)
                 .context("Must be a limit between 0 and 2^128-1 inclusive.")
+        })
+        .transpose()
+}
+
+pub fn get_wasm_memory_limit(
+    wasm_memory_limit: Option<Byte>,
+    config_interface: Option<&ConfigInterface>,
+    canister_name: Option<&str>,
+) -> DfxResult<Option<WasmMemoryLimit>> {
+    let wasm_memory_limit = match (wasm_memory_limit, config_interface, canister_name) {
+        (Some(memory_limit), _, _) => Some(memory_limit),
+        (None, Some(config_interface), Some(canister_name)) => {
+            config_interface.get_wasm_memory_limit(canister_name)?
+        }
+        _ => None,
+    };
+    wasm_memory_limit
+        .map(|arg| {
+            u64::try_from(arg.get_bytes())
+                .map_err(|e| anyhow!(e))
+                .and_then(|n| Ok(WasmMemoryLimit::try_from(n)?))
+                .context("WASM memory limit must be between 0 and 2^48 (i.e 256TB), inclusively.")
         })
         .transpose()
 }
