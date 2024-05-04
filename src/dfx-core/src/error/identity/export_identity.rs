@@ -7,18 +7,18 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ExportIdentityError {
-    #[error("Failed to get identity config: {0}")]
-    GetIdentityConfigFailed(GetIdentityConfigOrDefaultError),
+    #[error("Failed to get identity config")]
+    GetIdentityConfigFailed(#[source] GetIdentityConfigOrDefaultError),
 
-    #[error("The specified identity does not exist: {0}")]
-    IdentityDoesNotExist(RequireIdentityExistsError),
+    #[error("The specified identity does not exist")]
+    IdentityDoesNotExist(#[source] RequireIdentityExistsError),
 
-    #[error("Failed to load pem file: {0}")]
-    LoadPemFailed(LoadPemError),
+    #[error("Failed to load pem file")]
+    LoadPemFailed(#[source] LoadPemError),
 
-    #[error("Could not translate pem file to text: {0}")]
-    TranslatePemContentToTextFailed(FromUtf8Error),
+    #[error("Could not translate pem file to text")]
+    TranslatePemContentToTextFailed(#[source] FromUtf8Error),
 
-    #[error("Failed to validate pem file: {0}")]
-    ValidatePemFileFailed(ValidatePemFileError),
+    #[error("Failed to validate pem file")]
+    ValidatePemFileFailed(#[source] ValidatePemFileError),
 }

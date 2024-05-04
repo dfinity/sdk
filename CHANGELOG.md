@@ -15,6 +15,44 @@ This results in big compilation speedups.
 
 `"deploy": false` canister option makes it not to deploy, unless explicitly specified on the command line.
 
+### feat: reformatted error output
+
+Rather than increasing indentation, dfx now aligns the error causes with a "Caused by: " prefix.
+
+Also changed error types to report error causes as causes, rather than embedding their error cause in the error text.
+
+Before:
+```bash
+Error: Failed while trying to deploy canisters.
+Caused by: Failed while trying to deploy canisters.
+  Failed to build all canisters.
+    Failed while trying to build all canisters.
+      The build step failed for canister 'bw4dl-smaaa-aaaaa-qaacq-cai' (wasminst_backend) with an embedded error: Failed to build Motoko canister 'wasminst_backend'.: Failed to compile Motoko.: Failed to run 'moc'.: The command '"/Users/ericswanson/.cache/dfinity/versions/0.19.0/moc" ... params ...  failed with exit status 'exit status: 1'.
+Stdout:
+
+Stderr:
+/Users/ericswanson/w/wasminst/src/wasminst_backend/main2.mo: No such file or directory
+```
+
+After:
+```bash
+Error: Failed while trying to deploy canisters.
+Caused by: Failed to build all canisters.
+Caused by: Failed while trying to build all canisters.
+Caused by: The build step failed for canister 'bw4dl-smaaa-aaaaa-qaacq-cai' (wasminst_backend)
+Caused by: Failed to build Motoko canister 'wasminst_backend'.
+Caused by: Failed to compile Motoko.
+Caused by: Failed to run 'moc'.
+Caused by: The command '"/Users/ericswanson/.cache/dfinity/versions/0.20.0/moc" ... params ... failed with exit status 'exit status: 1'.
+Stdout:
+
+Stderr:
+/Users/ericswanson/w/wasminst/src/wasminst_backend/main2.mo: No such file or directory
+```
+
+### fix: "Failed to decrypt PEM file" errors messages will now include the cause
+>>>>>>> upstream/master
+
 ### feat: WASM memory soft-limit
 
 Adds support for the `wasm_memory_limit` canister setting, which limits the canister's heap during most calls but does not affect queries. As with other canister settings, it can be set in `dfx canister create` or `dfx canister update-settings` via the `--wasm-memory-limit` flag, as well as in `dfx.json` under `canisters[].initialization_values.wasm_memory_limit`.

@@ -7,9 +7,9 @@ pub enum SavePemError {
     #[error("Cannot save PEM content for an HSM.")]
     CannotSavePemContentForHsm(),
 
-    #[error("Failed to write PEM to file: {0}")]
-    WritePemToFileFailed(WritePemToFileError),
+    #[error("Failed to write PEM to file")]
+    WritePemToFileFailed(#[source] WritePemToFileError),
 
-    #[error("Failed to write PEM to keyring: {0}")]
-    WritePemToKeyringFailed(KeyringError),
+    #[error("Failed to write PEM to keyring")]
+    WritePemToKeyringFailed(#[source] KeyringError),
 }

@@ -11,6 +11,6 @@ pub enum ValidatePemFileError {
     )]
     UnsupportedKeyVersion(),
 
-    #[error("Failed to validate PEM content: {0}")]
-    ValidatePemContentFailed(Box<PemError>),
+    #[error("Failed to validate PEM content")]
+    ValidatePemContentFailed(#[source] Box<PemError>),
 }

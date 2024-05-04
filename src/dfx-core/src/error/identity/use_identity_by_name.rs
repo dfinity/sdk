@@ -4,9 +4,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum UseIdentityByNameError {
-    #[error("Identity must exist: {0}")]
-    RequireIdentityExistsFailed(RequireIdentityExistsError),
+    #[error("Identity must exist")]
+    RequireIdentityExistsFailed(#[source] RequireIdentityExistsError),
 
-    #[error("Failed to write default identity: {0}")]
-    WriteDefaultIdentityFailed(WriteDefaultIdentityError),
+    #[error("Failed to write default identity")]
+    WriteDefaultIdentityFailed(#[source] WriteDefaultIdentityError),
 }
