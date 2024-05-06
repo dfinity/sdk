@@ -150,7 +150,7 @@ pub async fn deploy_canisters(
         })
         .collect();
 
-    let initial_canister_id_store = env.get_canister_id_store()?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     if some_canister.is_some() {
     } else {
@@ -158,13 +158,13 @@ pub async fn deploy_canisters(
     }
     if canisters_to_install
         .iter()
-        .any(|canister| initial_canister_id_store.find(canister).is_none())
+        .any(|canister| canister_id_store.find(canister).is_none())
     {
         println!("UUU"); // FIXME: Remove.
         register_canisters(
             env,
             canisters_to_install,
-            &initial_canister_id_store,
+            &canister_id_store,
             with_cycles,
             specified_id_from_cli,
             call_sender,
@@ -178,8 +178,7 @@ pub async fn deploy_canisters(
     } else {
         info!(env.get_logger(), "All canisters have already been created.");
     }
-    let new_canister_id_store = env.get_canister_id_store()?; // TODO: not needed
-    let new_canister_pool = CanisterPool::load(env, false, &canisters_to_load)?;
+    let new_canister_pool = CanisterPool::load(env, false, &canisters_to_load)?; // with newly registered canisters
 
     println!("TTT canisters_to_install: {:?}", canisters_to_install); // FIXME: Remove.
 
@@ -199,7 +198,7 @@ pub async fn deploy_canisters(
             install_canisters(
                 env,
                 canisters_to_install,
-                &new_canister_id_store,
+                &canister_id_store,
                 &config,
                 argument,
                 argument_type,
@@ -216,11 +215,11 @@ pub async fn deploy_canisters(
             info!(log, "Deployed canisters.");
         }
         PrepareForProposal(canister_name) => {
-            prepare_assets_for_commit(env, &new_canister_id_store, &config, canister_name)
+            prepare_assets_for_commit(env, &canister_id_store, &config, canister_name)
                 .await?
         }
         ComputeEvidence(canister_name) => {
-            compute_evidence(env, &new_canister_id_store, &config, canister_name).await?
+            compute_evidence(env, &canister_id_store, &config, canister_name).await?
         }
     }
 
