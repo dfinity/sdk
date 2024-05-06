@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use crate::error::structured_file::StructuredFileError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -63,19 +64,9 @@ pub enum ExtensionError {
     #[error("Cannot uninstall extension")]
     InsufficientPermissionsToDeleteExtensionDirectory(#[source] crate::error::fs::FsError),
 
-    // errors related to listing extensions
-    #[error("Cannot list extensions")]
-    ExtensionsDirectoryIsNotReadable(#[source] crate::error::fs::FsError),
-
-    #[error("Cannot load extension manifest")]
-    LoadExtensionManifestFailed(#[source] crate::error::structured_file::StructuredFileError),
-
     // errors related to executing extensions
     #[error("Invalid extension name '{0:?}'.")]
     InvalidExtensionName(std::ffi::OsString),
-
-    #[error("Extension's subcommand argument '{0}' is missing description.")]
-    ExtensionSubcommandArgMissingDescription(String),
 
     #[error("Cannot find extension binary at '{0}'.")]
     ExtensionBinaryDoesNotExist(std::path::PathBuf),
@@ -94,4 +85,40 @@ pub enum ExtensionError {
 
     #[error("Extension exited with non-zero status code '{0}'.")]
     ExtensionExitedWithNonZeroStatus(i32),
+}
+
+#[derive(Error, Debug)]
+#[error("failed to load extension manifest")]
+pub struct LoadExtensionManifestError(#[from] StructuredFileError);
+
+#[derive(Error, Debug)]
+pub enum ConvertExtensionIntoClapCommandError {
+    #[error(transparent)]
+    LoadExtensionManifest(#[from] LoadExtensionManifestError),
+
+    #[error(transparent)]
+    ListInstalledExtensionsError(#[from] ListInstalledExtensionsError),
+
+    #[error(transparent)]
+    ConvertExtensionSubcommandIntoClapCommandError(
+        #[from] ConvertExtensionSubcommandIntoClapCommandError,
+    ),
+}
+
+#[derive(Error, Debug)]
+pub enum ConvertExtensionSubcommandIntoClapCommandError {
+    #[error(transparent)]
+    ConvertExtensionSubcommandIntoClapArgError(#[from] ConvertExtensionSubcommandIntoClapArgError),
+}
+
+#[derive(Error, Debug)]
+pub enum ListInstalledExtensionsError {
+    #[error(transparent)]
+    ExtensionsDirectoryIsNotReadable(#[from] crate::error::fs::FsError),
+}
+
+#[derive(Error, Debug)]
+pub enum ConvertExtensionSubcommandIntoClapArgError {
+    #[error("Extension's subcommand argument '{0}' is missing description.")]
+    ExtensionSubcommandArgMissingDescription(String),
 }

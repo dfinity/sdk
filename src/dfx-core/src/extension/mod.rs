@@ -1,6 +1,6 @@
 pub mod manager;
 pub mod manifest;
-use crate::error::extension::ExtensionError;
+use crate::error::extension::ConvertExtensionIntoClapCommandError;
 use crate::extension::{manager::ExtensionManager, manifest::ExtensionManifest};
 use clap::Command;
 use std::{
@@ -27,7 +27,10 @@ impl Display for Extension {
 }
 
 impl Extension {
-    pub fn into_clap_command(self, manager: &ExtensionManager) -> Result<Command, ExtensionError> {
+    pub fn into_clap_command(
+        self,
+        manager: &ExtensionManager,
+    ) -> Result<Command, ConvertExtensionIntoClapCommandError> {
         let manifest = ExtensionManifest::load(&self.name, &manager.dir)?;
         let cmd = Command::new(&self.name)
             // don't accept unknown options
