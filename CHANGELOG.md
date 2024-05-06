@@ -2,7 +2,7 @@
 
 # UNRELEASED
 
-# 0.20.1-beta.0
+# 0.20.1
 
 ### feat: reformatted error output
 
