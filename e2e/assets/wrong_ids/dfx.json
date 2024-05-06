@@ -1,0 +1,8 @@
+{
+  "canisters": {
+    "pst": {
+      "main": "src/a.mo",
+      "type": "motoko"
+    }
+  }
+}

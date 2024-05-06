@@ -4,9 +4,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum SaveIdentityConfigurationError {
-    #[error("Failed to ensure identity configuration directory exists: {0}")]
-    EnsureIdentityConfigurationDirExistsFailed(FsError),
+    #[error("Failed to ensure identity configuration directory exists")]
+    EnsureIdentityConfigurationDirExistsFailed(#[source] FsError),
 
-    #[error("Failed to save identity configuration: {0}")]
-    SaveIdentityConfigurationFailed(StructuredFileError),
+    #[error("Failed to save identity configuration")]
+    SaveIdentityConfigurationFailed(#[source] StructuredFileError),
 }

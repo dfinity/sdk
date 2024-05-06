@@ -44,7 +44,8 @@ teardown() {
 
   assert_command_fail dfx deploy --output-env-file nonexistent/.env
   assert_contains "failed to canonicalize output_env_file"
-  assert_contains "working-dir/e2e_project/nonexistent: No such file or directory"
+  assert_contains "working-dir/e2e_project/nonexistent"
+  assert_contains "No such file or directory"
   assert_command_fail dfx deploy --output-env-file /etc/passwd
   assert_contains "The output_env_file must be a relative path, but is /etc/passwd"
   assert_command_fail dfx deploy --output-env-file ../outside/.env

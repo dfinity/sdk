@@ -89,21 +89,17 @@ pub fn add_imports(
                 }
                 Import::Canister(canister_name) => {
                     // duplicate code
-                    if let Some(canister) =
-                        pool.get_first_canister_with_name(canister_name.as_str())
-                    {
-                        let main_file = canister.get_info().get_main_file();
-                        if let Some(main_file) = main_file {
-                            add_imports_recursive(
-                                cache,
-                                Path::new(main_file),
-                                imports,
-                                pool,
-                                Some(canister.get_info()),
-                            )?;
-                        }
-                    } else {
-                        panic!("Canister '{}' not in pool", &canister_name);
+                    let canister = pool.get_first_canister_with_name(canister_name.as_str())
+                        .ok_or_else(|| anyhow!("Canister {canister_name} not found in pool."))?;
+                    let main_file = canister.get_info().get_main_file();
+                    if let Some(main_file) = main_file {
+                        add_imports_recursive(
+                            cache,
+                            Path::new(main_file),
+                            imports,
+                            pool,
+                            Some(canister.get_info()),
+                        )?;
                     }
                 }
                 _ => {}

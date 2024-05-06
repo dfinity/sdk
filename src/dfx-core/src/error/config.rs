@@ -1,4 +1,4 @@
-use crate::error::extension::ExtensionError;
+use crate::error::extension::LoadExtensionManifestError;
 use crate::error::fs::FsError;
 use crate::error::get_user_home::GetUserHomeError;
 use handlebars::RenderError;
@@ -7,14 +7,14 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
-    #[error("Failed to ensure config directory exists: {0}")]
-    EnsureConfigDirectoryExistsFailed(FsError),
+    #[error("Failed to ensure config directory exists")]
+    EnsureConfigDirectoryExistsFailed(#[source] FsError),
 
-    #[error("Failed to determine config directory path: {0}")]
-    DetermineConfigDirectoryFailed(GetUserHomeError),
+    #[error("Failed to determine config directory path")]
+    DetermineConfigDirectoryFailed(#[source] GetUserHomeError),
 
-    #[error("Failed to determine shared network data directory: {0}")]
-    DetermineSharedNetworkDirectoryFailed(GetUserHomeError),
+    #[error("Failed to determine shared network data directory")]
+    DetermineSharedNetworkDirectoryFailed(#[source] GetUserHomeError),
 }
 
 #[derive(Error, Debug)]
@@ -39,7 +39,7 @@ pub enum GetTempPathError {
 }
 
 #[derive(Error, Debug)]
-#[error("failed to render field '{field}' with value '{value}': {source}")]
+#[error("failed to render field '{field}' with value '{value}'")]
 pub struct RenderErrorWithContext {
     pub field: String,
     pub value: String,
@@ -47,7 +47,7 @@ pub struct RenderErrorWithContext {
 }
 
 #[derive(Error, Debug)]
-#[error("failed to apply extension canister type '{extension}' to canister '{canister}': {source}")]
+#[error("failed to apply extension canister type '{extension}' to canister '{canister}'")]
 pub struct ApplyExtensionCanisterTypeErrorWithContext {
     pub canister: Box<String>,
     pub extension: Box<String>,
@@ -68,9 +68,7 @@ pub enum ApplyExtensionCanisterTypesError {
 
 #[derive(Error, Debug)]
 pub enum ApplyExtensionCanisterTypeError {
-    #[error(
-        "failed to apply defaults from extension '{extension}' to canister '{canister}': {source}"
-    )]
+    #[error("failed to apply defaults from extension '{extension}' to canister '{canister}'")]
     ApplyDefaults {
         canister: Box<String>,
         extension: Box<String>,
@@ -81,7 +79,7 @@ pub enum ApplyExtensionCanisterTypeError {
     NoExtensionForUnknownCanisterType { canister: String, extension: String },
 
     #[error(transparent)]
-    LoadExtensionManifest(ExtensionError),
+    LoadExtensionManifest(LoadExtensionManifestError),
 
     #[error("canister '{canister}' has type '{extension}', but that extension does not define a canister type")]
     ExtensionDoesNotDefineCanisterType { canister: String, extension: String },
