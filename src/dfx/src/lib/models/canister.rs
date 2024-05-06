@@ -569,7 +569,7 @@ impl CanisterPool {
         &self,
         toplevel_canisters: &[&Canister],
         cache: &dyn Cache,
-    ) -> DfxResult<(DiGraph<CanisterId, ()>, HashMap<CanisterId, NodeIndex>)> {
+    ) -> DfxResult<(DiGraph<Import, ()>, HashMap<Import, NodeIndex>)> {
         for canister in &self.canisters {
             // a little inefficient
             let contains = toplevel_canisters
@@ -604,7 +604,7 @@ impl CanisterPool {
             .collect();
         // Transform the graph of file dependencies to graph of canister dependencies.
         // For this do DFS for each of `real_canisters_to_build`.
-        let mut dest_graph: DiGraph<CanisterId, ()> = DiGraph::new();
+        let mut dest_graph: DiGraph<Import, ()> = DiGraph::new();
         let mut dest_id_to_source_id = HashMap::new();
         let mut dest_nodes = HashMap::new();
         for start_node in start.into_iter() {
@@ -616,12 +616,11 @@ impl CanisterPool {
                     panic!("programming error");
                 }
             };
-            let parent_canister = self.get_first_canister_with_name(parent_name).unwrap();
-            let parent_canister_id = parent_canister.canister_id();
+            // let parent_canister = self.get_first_canister_with_name(parent_name).unwrap();
             let parent_dest_id = *dest_id_to_source_id
                 .entry(start_node)
-                .or_insert_with(|| dest_graph.add_node(parent_canister_id));
-            dest_nodes.insert(parent_canister_id, parent_dest_id);
+                .or_insert_with(|| dest_graph.add_node(parent.clone()));
+            dest_nodes.insert(parent.clone(), parent_dest_id);
 
             let mut filtered_dfs = DfsFiltered::new();
             filtered_dfs.traverse2(
@@ -635,30 +634,29 @@ impl CanisterPool {
                     }
                 },
                 |&source_parent_id, &source_child_id| {
-                    let parent = source_graph.node_weight(source_parent_id).unwrap();
-                    let parent_name = match parent {
-                        Import::Canister(name) => name,
-                        _ => {
-                            panic!("programming error");
-                        }
-                    };
-                    let parent_canister = self.get_first_canister_with_name(parent_name).unwrap().canister_id();
+                    let parent_name = source_graph.node_weight(source_parent_id).unwrap();
+                    // let parent_name = match parent {
+                    //     Import::Canister(name) => name,
+                    //     _ => {
+                    //         panic!("programming error");
+                    //     }
+                    // };
 
-                    let child = source_graph.node_weight(source_child_id).unwrap();
-                    let child_name = match child {
-                        Import::Canister(name) => name,
-                        _ => {
-                            panic!("programming error");
-                        }
-                    };
-                    let child_canister = self.get_first_canister_with_name(child_name)
-                        .ok_or_else(|| anyhow!("A canister with the name '{}' was not found in the current project.", child_name.clone()))?
-                        .canister_id();
+                    let child_name = source_graph.node_weight(source_child_id).unwrap();
+                    // let child_name = match child {
+                    //     Import::Canister(name) => name,
+                    //     _ => {
+                    //         panic!("programming error");
+                    //     }
+                    // };
+                    // let child_canister = self.get_first_canister_with_name(child_name)
+                    //     .ok_or_else(|| anyhow!("A canister with the name '{}' was not found in the current project.", child_name.clone()))?
+                    //     .canister_id();
 
-                    let dest_parent_id = *dest_id_to_source_id.entry(source_parent_id).or_insert_with(|| dest_graph.add_node(parent_canister));
-                    let dest_child_id = *dest_id_to_source_id.entry(source_child_id).or_insert_with(|| dest_graph.add_node(child_canister));
-                    dest_nodes.insert(parent_canister, dest_parent_id);
-                    dest_nodes.insert(child_canister, dest_child_id);
+                    let dest_parent_id = *dest_id_to_source_id.entry(source_parent_id).or_insert_with(|| dest_graph.add_node(parent_name.clone()));
+                    let dest_child_id = *dest_id_to_source_id.entry(source_child_id).or_insert_with(|| dest_graph.add_node(child_name.clone()));
+                    dest_nodes.insert(parent_name.clone(), dest_parent_id);
+                    dest_nodes.insert(child_name.clone(), dest_child_id);
                     dest_graph.update_edge(dest_parent_id, dest_child_id, ());
 
                     Ok(())
@@ -818,7 +816,7 @@ impl CanisterPool {
         &self,
         env: &dyn Environment,
         toplevel_canisters: &[Arc<Canister>],
-    ) -> DfxResult<Vec<CanisterId>> {
+    ) -> DfxResult<Vec<Import>> {
         trace!(env.get_logger(), "Building dependencies graph.");
         // TODO: The following `map` is a hack.
         let (graph, nodes) = self.build_canister_dependencies_graph(
@@ -833,7 +831,7 @@ impl CanisterPool {
             .iter()
             .map(|canister| -> DfxResult<NodeIndex> {
                 nodes
-                    .get(&canister.canister_id())
+                    .get(&Import::Canister(canister.get_name().to_string()))
                     .copied()
                     .ok_or_else(|| anyhow!("No such canister {}.", canister.get_name()))
             })
@@ -911,9 +909,13 @@ impl CanisterPool {
         self.step_prebuild_all(build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
-        for canister_id in &order {
-            if let Some(canister) = self.get_canister(canister_id) {
-                trace!(log, "Building canister '{}'.", canister.get_name());
+        for canister_import in &order {
+            let canister_name = match canister_import {
+                Import::Canister(name) => name,
+                _ => panic!("programming error"),
+            };
+            if let Some(canister) = self.get_first_canister_with_name(canister_name) {
+                trace!(log, "Building canister '{}'.", canister_name);
                 // TODO:
                 // } else {
                 //     trace!(log, "Not building canister '{}'.", canister.get_name());
@@ -925,28 +927,28 @@ impl CanisterPool {
                     env.get_cache().as_ref(),
                     env.get_logger(),
                 )? {
-                    self.step_prebuild(build_config, canister)
+                    self.step_prebuild(build_config, canister.as_ref())
                         .map_err(|e| {
                             BuildError::PreBuildStepFailed(
-                                *canister_id,
+                                canister.canister_id(),
                                 canister.get_name().to_string(),
                                 Box::new(e),
                             )
                         })
                         .and_then(|_| {
-                            self.step_build(build_config, canister).map_err(|e| {
+                            self.step_build(build_config, canister.as_ref()).map_err(|e| {
                                 BuildError::BuildStepFailed(
-                                    *canister_id,
+                                    canister.canister_id(),
                                     canister.get_name().to_string(),
                                     Box::new(e),
                                 )
                             })
                         })
                         .and_then(|o: &BuildOutput| {
-                            self.step_postbuild(build_config, canister, o)
+                            self.step_postbuild(build_config, canister.as_ref(), o)
                                 .map_err(|e| {
                                     BuildError::PostBuildStepFailed(
-                                        *canister_id,
+                                        canister.canister_id(),
                                         canister.get_name().to_string(),
                                         Box::new(e),
                                     )
@@ -957,7 +959,12 @@ impl CanisterPool {
             }
         }
 
-        self.step_postbuild_all(build_config, &order)
+        self.step_postbuild_all(build_config, &order.iter().map(|import| {
+            match import {
+                Import::Canister(name) => self.get_first_canister_with_name(name).unwrap().canister_id(),
+                _ => panic!("programming error"),
+            }
+        }).collect::<Vec<_>>())
             .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
 
         Ok(())
