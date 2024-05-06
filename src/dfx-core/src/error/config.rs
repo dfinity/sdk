@@ -1,4 +1,4 @@
-use crate::error::extension::ExtensionError;
+use crate::error::extension::LoadExtensionManifestError;
 use crate::error::fs::FsError;
 use crate::error::get_user_home::GetUserHomeError;
 use handlebars::RenderError;
@@ -79,7 +79,7 @@ pub enum ApplyExtensionCanisterTypeError {
     NoExtensionForUnknownCanisterType { canister: String, extension: String },
 
     #[error(transparent)]
-    LoadExtensionManifest(ExtensionError),
+    LoadExtensionManifest(LoadExtensionManifestError),
 
     #[error("canister '{canister}' has type '{extension}', but that extension does not define a canister type")]
     ExtensionDoesNotDefineCanisterType { canister: String, extension: String },
