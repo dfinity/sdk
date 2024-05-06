@@ -3,7 +3,7 @@ use crate::error::structured_file::StructuredFileError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-#[error("failed to load extension manifest")]
+#[error("Failed to load extension manifest")]
 pub struct LoadExtensionManifestError(#[from] StructuredFileError);
 
 #[derive(Error, Debug)]
