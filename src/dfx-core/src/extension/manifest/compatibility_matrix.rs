@@ -1,12 +1,18 @@
+use crate::error::extension::{
+    FetchExtensionCompatibilityMatrixError,
+    FetchExtensionCompatibilityMatrixError::{
+        CompatibilityMatrixFetchError, MalformedCompatibilityMatrix,
+    },
+    FindLatestExtensionCompatibleVersionError,
+    FindLatestExtensionCompatibleVersionError::{
+        DfxVersionNotFoundInCompatibilityJson, ExtensionVersionNotFoundInRepository,
+        ListOfVersionsForExtensionIsEmpty, MalformedVersionsEntryForExtensionInCompatibilityMatrix,
+    },
+};
 use schemars::JsonSchema;
 use semver::Version;
 use serde::Deserialize;
 use std::collections::HashMap;
-use crate::error::extension::{
-    FetchExtensionCompatibilityMatrixError, FindLatestExtensionCompatibleVersionError,
-    FetchExtensionCompatibilityMatrixError::{CompatibilityMatrixFetchError, MalformedCompatibilityMatrix},
-    FindLatestExtensionCompatibleVersionError::{DfxVersionNotFoundInCompatibilityJson, ExtensionVersionNotFoundInRepository, ListOfVersionsForExtensionIsEmpty, MalformedVersionsEntryForExtensionInCompatibilityMatrix}
-};
 
 pub static COMMON_EXTENSIONS_MANIFEST_LOCATION: &str =
     "https://raw.githubusercontent.com/dfinity/dfx-extensions/main/compatibility.json";
@@ -27,14 +33,10 @@ pub struct ExtensionCompatibleVersions {
 impl ExtensionCompatibilityMatrix {
     pub fn fetch() -> Result<Self, FetchExtensionCompatibilityMatrixError> {
         let resp = reqwest::blocking::get(COMMON_EXTENSIONS_MANIFEST_LOCATION).map_err(|e| {
-            CompatibilityMatrixFetchError(
-                COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string(),
-                e,
-            )
+            CompatibilityMatrixFetchError(COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string(), e)
         })?;
 
-        resp.json()
-            .map_err(MalformedCompatibilityMatrix)
+        resp.json().map_err(MalformedCompatibilityMatrix)
     }
 
     pub fn find_latest_compatible_extension_version(
@@ -42,9 +44,10 @@ impl ExtensionCompatibilityMatrix {
         extension_name: &str,
         dfx_version: &Version,
     ) -> Result<Version, FindLatestExtensionCompatibleVersionError> {
-        let manifests = self.0.get(dfx_version).ok_or_else(|| {
-            DfxVersionNotFoundInCompatibilityJson(dfx_version.clone())
-        })?;
+        let manifests = self
+            .0
+            .get(dfx_version)
+            .ok_or_else(|| DfxVersionNotFoundInCompatibilityJson(dfx_version.clone()))?;
 
         let extension_location = manifests.get(extension_name).ok_or_else(|| {
             ExtensionVersionNotFoundInRepository(
@@ -56,10 +59,7 @@ impl ExtensionCompatibilityMatrix {
         let mut extension_versions = vec![];
         for ext_verion in extension_location.versions.iter().rev() {
             let version = Version::parse(ext_verion).map_err(|e| {
-                MalformedVersionsEntryForExtensionInCompatibilityMatrix(
-                    ext_verion.to_string(),
-                    e,
-                )
+                MalformedVersionsEntryForExtensionInCompatibilityMatrix(ext_verion.to_string(), e)
             })?;
             extension_versions.push(version);
         }

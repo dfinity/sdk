@@ -1,4 +1,8 @@
-use crate::error::extension::{DownloadAndInstallExtensionToTempdirError, FinalizeInstallationError, FindLatestExtensionCompatibleVersionError, GetExtensionArchiveNameError, GetExtensionDownloadUrlError, InstallExtensionError};
+use crate::error::extension::{
+    DownloadAndInstallExtensionToTempdirError, FinalizeInstallationError,
+    FindLatestExtensionCompatibleVersionError, GetExtensionArchiveNameError,
+    GetExtensionDownloadUrlError, InstallExtensionError,
+};
 use crate::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
 use flate2::read::GzDecoder;
 use reqwest::Url;
@@ -73,24 +77,34 @@ impl ExtensionManager {
         &self,
         download_url: Url,
     ) -> Result<TempDir, DownloadAndInstallExtensionToTempdirError> {
-        let response = reqwest::blocking::get(download_url.clone())
-            .map_err(|e| DownloadAndInstallExtensionToTempdirError::ExtensionDownloadFailed(download_url.clone(), e))?;
+        let response = reqwest::blocking::get(download_url.clone()).map_err(|e| {
+            DownloadAndInstallExtensionToTempdirError::ExtensionDownloadFailed(
+                download_url.clone(),
+                e,
+            )
+        })?;
 
-        let bytes = response
-            .bytes()
-            .map_err(|e| DownloadAndInstallExtensionToTempdirError::ExtensionDownloadFailed(download_url.clone(), e))?;
+        let bytes = response.bytes().map_err(|e| {
+            DownloadAndInstallExtensionToTempdirError::ExtensionDownloadFailed(
+                download_url.clone(),
+                e,
+            )
+        })?;
 
         crate::fs::composite::ensure_dir_exists(&self.dir)
             .map_err(DownloadAndInstallExtensionToTempdirError::EnsureExtensionDirExistsFailed)?;
 
         let temp_dir = tempdir_in(&self.dir).map_err(|e| {
-            DownloadAndInstallExtensionToTempdirError::CreateTemporaryDirectoryFailed(self.dir.to_path_buf(), e)
+            DownloadAndInstallExtensionToTempdirError::CreateTemporaryDirectoryFailed(
+                self.dir.to_path_buf(),
+                e,
+            )
         })?;
 
         let mut archive = Archive::new(GzDecoder::new(Cursor::new(bytes)));
-        archive
-            .unpack(temp_dir.path())
-            .map_err(|e| DownloadAndInstallExtensionToTempdirError::DecompressFailed(download_url, e))?;
+        archive.unpack(temp_dir.path()).map_err(|e| {
+            DownloadAndInstallExtensionToTempdirError::DecompressFailed(download_url, e)
+        })?;
 
         Ok(temp_dir)
     }
@@ -128,15 +142,19 @@ fn get_extension_download_url(
     extension_archive_name: &str,
 ) -> Result<Url, GetExtensionDownloadUrlError> {
     let download_url = format!("{DFINITY_DFX_EXTENSIONS_RELEASES_URL}/{github_release_tag}/{extension_archive_name}.tar.gz",);
-    Url::parse(&download_url)
-        .map_err(|source| GetExtensionDownloadUrlError { url: download_url, source })
+    Url::parse(&download_url).map_err(|source| GetExtensionDownloadUrlError {
+        url: download_url,
+        source,
+    })
 }
 
 fn get_git_release_tag(extension_name: &str, extension_verion: &Version) -> String {
     format!("{extension_name}-v{extension_verion}",)
 }
 
-fn get_extension_archive_name(extension_name: &str) -> Result<String, GetExtensionArchiveNameError> {
+fn get_extension_archive_name(
+    extension_name: &str,
+) -> Result<String, GetExtensionArchiveNameError> {
     Ok(format!(
         "{extension_name}-{arch}-{platform}",
         platform = match std::env::consts::OS {

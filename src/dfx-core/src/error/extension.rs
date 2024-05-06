@@ -3,26 +3,6 @@ use crate::error::structured_file::StructuredFileError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum ExtensionError {
-    // errors related to extension directory management
-    #[error("Extension directory '{0}' does not exist.")]
-    ExtensionDirDoesNotExist(std::path::PathBuf),
-
-    // errors related to installing extensions
-    #[error("Extension '{0}' cannot be installed because it conflicts with an existing command. Consider using '--install-as' flag to install this extension under different name.")]
-    CommandAlreadyExists(String),
-
-    #[error(transparent)]
-    Io(#[from] crate::error::fs::FsError),
-
-    // errors related to uninstalling extensions
-    #[error("Cannot uninstall extension")]
-    InsufficientPermissionsToDeleteExtensionDirectory(#[source] crate::error::fs::FsError),
-
-    // errors related to executing extensions
-}
-
-#[derive(Error, Debug)]
 #[error("failed to load extension manifest")]
 pub struct LoadExtensionManifestError(#[from] StructuredFileError);
 
@@ -98,7 +78,6 @@ pub enum GetExtensionBinaryError {
 pub enum NewExtensionManagerError {
     #[error("Cannot find cache directory")]
     FindCacheDirectoryFailed(#[source] crate::error::cache::CacheError),
-
 }
 
 #[derive(Error, Debug)]
@@ -114,8 +93,6 @@ pub enum DownloadAndInstallExtensionToTempdirError {
 
     #[error("Cannot decompress extension archive (downloaded from: '{0}')")]
     DecompressFailed(url::Url, #[source] std::io::Error),
-
-
 }
 
 #[derive(Error, Debug)]
@@ -125,7 +102,6 @@ pub enum InstallExtensionError {
 
     #[error(transparent)]
     GetExtensionArchiveName(#[from] GetExtensionArchiveNameError),
-
 
     #[error(transparent)]
     FindLatestExtensionCompatibleVersion(#[from] FindLatestExtensionCompatibleVersionError),
@@ -144,7 +120,6 @@ pub enum InstallExtensionError {
 pub enum GetExtensionArchiveNameError {
     #[error("Platform '{0}' is not supported.")]
     PlatformNotSupported(String),
-
 }
 
 #[derive(Error, Debug)]
@@ -163,14 +138,13 @@ pub enum FindLatestExtensionCompatibleVersionError {
 
     #[error(transparent)]
     FetchExtensionCompatibilityMatrix(#[from] FetchExtensionCompatibilityMatrixError),
-
 }
 
 #[derive(Error, Debug)]
 #[error("Failed to parse extension manifest URL '{url}'")]
 pub struct GetExtensionDownloadUrlError {
     pub url: String,
-    pub source: url::ParseError
+    pub source: url::ParseError,
 }
 
 #[derive(Error, Debug)]
@@ -184,6 +158,8 @@ pub enum FetchExtensionCompatibilityMatrixError {
 
     #[error("Cannot parse compatibility.json")]
     MalformedCompatibilityMatrix(#[source] reqwest::Error),
-
-
 }
+
+#[derive(Error, Debug)]
+#[error(transparent)]
+pub struct UninstallExtensionError(#[from] crate::error::fs::FsError);
