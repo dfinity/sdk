@@ -129,9 +129,9 @@ pub async fn deploy_canisters(
     let order = canister_pool.build_order(env, toplevel_canisters)?;
     let order_names: Vec<String> = order
         .iter()
-        .map(|canister| {
+        .map(|name| {
             canister_pool
-                .get_canister(canister)
+                .get_first_canister_with_name(name)
                 .unwrap()
                 .get_name()
                 .to_owned()
