@@ -77,12 +77,6 @@ This incorporates the following executed proposals:
 
 - [129494](https://dashboard.internetcomputer.org/proposal/129494)
 - [129493](https://dashboard.internetcomputer.org/proposal/129493)
-- [129428](https://dashboard.internetcomputer.org/proposal/129428)
-- [129427](https://dashboard.internetcomputer.org/proposal/129427)
-- [129423](https://dashboard.internetcomputer.org/proposal/129423)
-- [129408](https://dashboard.internetcomputer.org/proposal/129408)
-- [129379](https://dashboard.internetcomputer.org/proposal/129379)
-- [129378](https://dashboard.internetcomputer.org/proposal/129378)
 - [129084](https://dashboard.internetcomputer.org/proposal/129084)
 - [129081](https://dashboard.internetcomputer.org/proposal/129081)
 - [129035](https://dashboard.internetcomputer.org/proposal/129035)
