@@ -206,7 +206,7 @@ pub struct IdentityManager {
 impl IdentityManager {
     pub fn new(
         logger: &Logger,
-        identity_override: &Option<String>,
+        identity_override: Option<&str>,
     ) -> Result<Self, NewIdentityManagerError> {
         let config_dfx_dir_path =
             get_user_dfx_config_dir().map_err(NewIdentityManagerError::GetConfigDirectoryFailed)?;
@@ -222,8 +222,9 @@ impl IdentityManager {
         };
 
         let selected_identity = identity_override
-            .clone()
-            .unwrap_or_else(|| configuration.default.clone());
+            .unwrap_or(&configuration.default)
+            .to_string();
+
         let file_locations = IdentityFileLocations::new(identity_root_path);
 
         let mgr = IdentityManager {
