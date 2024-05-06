@@ -5,54 +5,15 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ExtensionError {
     // errors related to extension directory management
-    #[error("Cannot get extensions directory")]
-    EnsureExtensionDirExistsFailed(#[source] crate::error::fs::FsError),
-
     #[error("Extension directory '{0}' does not exist.")]
     ExtensionDirDoesNotExist(std::path::PathBuf),
 
     // errors related to installing extensions
-    #[error("Extension '{0}' is already installed.")]
-    ExtensionAlreadyInstalled(String),
-
     #[error("Extension '{0}' cannot be installed because it conflicts with an existing command. Consider using '--install-as' flag to install this extension under different name.")]
     CommandAlreadyExists(String),
 
-    #[error("Cannot fetch compatibility.json from '{0}'")]
-    CompatibilityMatrixFetchError(String, #[source] reqwest::Error),
-
-    #[error("Cannot parse compatibility.json")]
-    MalformedCompatibilityMatrix(#[source] reqwest::Error),
-
-    #[error("Cannot parse compatibility.json due to malformed semver '{0}'")]
-    MalformedVersionsEntryForExtensionInCompatibilityMatrix(String, #[source] semver::Error),
-
-    #[error("Cannot find compatible extension for dfx version '{1}': compatibility.json (downloaded from '{0}') has empty list of extension versions.")]
-    ListOfVersionsForExtensionIsEmpty(String, semver::Version),
-
-    #[error("Cannot parse extension manifest URL '{0}'")]
-    MalformedExtensionDownloadUrl(String, #[source] url::ParseError),
-
-    #[error("DFX version '{0}' is not supported.")]
-    DfxVersionNotFoundInCompatibilityJson(semver::Version),
-
-    #[error("Extension '{0}' (version '{1}') not found for DFX version {2}.")]
-    ExtensionVersionNotFoundInRepository(String, semver::Version, String),
-
-    #[error("Downloading extension from '{0}' failed")]
-    ExtensionDownloadFailed(url::Url, #[source] reqwest::Error),
-
-    #[error("Cannot decompress extension archive (downloaded from: '{0}')")]
-    DecompressFailed(url::Url, #[source] std::io::Error),
-
-    #[error("Cannot create temporary directory at '{0}'")]
-    CreateTemporaryDirectoryFailed(std::path::PathBuf, #[source] std::io::Error),
-
     #[error(transparent)]
     Io(#[from] crate::error::fs::FsError),
-
-    #[error("Platform '{0}' is not supported.")]
-    PlatformNotSupported(String),
 
     // errors related to uninstalling extensions
     #[error("Cannot uninstall extension")]
@@ -137,5 +98,92 @@ pub enum GetExtensionBinaryError {
 pub enum NewExtensionManagerError {
     #[error("Cannot find cache directory")]
     FindCacheDirectoryFailed(#[source] crate::error::cache::CacheError),
+
+}
+
+#[derive(Error, Debug)]
+pub enum DownloadAndInstallExtensionToTempdirError {
+    #[error("Downloading extension from '{0}' failed")]
+    ExtensionDownloadFailed(url::Url, #[source] reqwest::Error),
+
+    #[error("Cannot get extensions directory")]
+    EnsureExtensionDirExistsFailed(#[source] crate::error::fs::FsError),
+
+    #[error("Cannot create temporary directory at '{0}'")]
+    CreateTemporaryDirectoryFailed(std::path::PathBuf, #[source] std::io::Error),
+
+    #[error("Cannot decompress extension archive (downloaded from: '{0}')")]
+    DecompressFailed(url::Url, #[source] std::io::Error),
+
+
+}
+
+#[derive(Error, Debug)]
+pub enum InstallExtensionError {
+    #[error("Extension '{0}' is already installed.")]
+    ExtensionAlreadyInstalled(String),
+
+    #[error(transparent)]
+    GetExtensionArchiveName(#[from] GetExtensionArchiveNameError),
+
+
+    #[error(transparent)]
+    FindLatestExtensionCompatibleVersion(#[from] FindLatestExtensionCompatibleVersionError),
+
+    #[error(transparent)]
+    GetExtensionDownloadUrl(#[from] GetExtensionDownloadUrlError),
+
+    #[error(transparent)]
+    DownloadAndInstallExtensionToTempdir(#[from] DownloadAndInstallExtensionToTempdirError),
+
+    #[error(transparent)]
+    FinalizeInstallation(#[from] FinalizeInstallationError),
+}
+
+#[derive(Error, Debug)]
+pub enum GetExtensionArchiveNameError {
+    #[error("Platform '{0}' is not supported.")]
+    PlatformNotSupported(String),
+
+}
+
+#[derive(Error, Debug)]
+pub enum FindLatestExtensionCompatibleVersionError {
+    #[error("DFX version '{0}' is not supported.")]
+    DfxVersionNotFoundInCompatibilityJson(semver::Version),
+
+    #[error("Extension '{0}' (version '{1}') not found for DFX version {2}.")]
+    ExtensionVersionNotFoundInRepository(String, semver::Version, String),
+
+    #[error("Cannot parse compatibility.json due to malformed semver '{0}'")]
+    MalformedVersionsEntryForExtensionInCompatibilityMatrix(String, #[source] semver::Error),
+
+    #[error("Cannot find compatible extension for dfx version '{1}': compatibility.json (downloaded from '{0}') has empty list of extension versions.")]
+    ListOfVersionsForExtensionIsEmpty(String, semver::Version),
+
+    #[error(transparent)]
+    FetchExtensionCompatibilityMatrix(#[from] FetchExtensionCompatibilityMatrixError),
+
+}
+
+#[derive(Error, Debug)]
+#[error("Failed to parse extension manifest URL '{url}'")]
+pub struct GetExtensionDownloadUrlError {
+    pub url: String,
+    pub source: url::ParseError
+}
+
+#[derive(Error, Debug)]
+#[error(transparent)]
+pub struct FinalizeInstallationError(#[from] crate::error::fs::FsError);
+
+#[derive(Error, Debug)]
+pub enum FetchExtensionCompatibilityMatrixError {
+    #[error("Cannot fetch compatibility.json from '{0}'")]
+    CompatibilityMatrixFetchError(String, #[source] reqwest::Error),
+
+    #[error("Cannot parse compatibility.json")]
+    MalformedCompatibilityMatrix(#[source] reqwest::Error),
+
 
 }
