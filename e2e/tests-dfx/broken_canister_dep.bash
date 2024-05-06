@@ -14,10 +14,10 @@ teardown() {
   standard_teardown
 }
 
-@test "deploy causes wrong ids" {
+@test "crash on a broken canister dependency" {
     dfx_start
 
-    assert_command dfx deploy
+    assert_command_fail dfx deploy
 
     assert_not_contains "panicked at"
 }
