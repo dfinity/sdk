@@ -187,6 +187,7 @@ The command line value will be used.",
         non_default_network,
         canister_id
     );
+    println!("VVV: {canister_name}, {}", canister_id); // FIXME: Remove.
     canister_id_store.add(canister_name, &canister_id, None)?;
 
     Ok(())
