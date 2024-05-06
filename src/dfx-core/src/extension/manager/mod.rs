@@ -1,5 +1,5 @@
 use crate::config::cache::get_cache_path_for_version;
-use crate::error::extension::ExtensionError;
+use crate::error::extension::{GetExtensionBinaryError, NewExtensionManagerError};
 use semver::Version;
 use std::path::PathBuf;
 
@@ -14,9 +14,9 @@ pub struct ExtensionManager {
 }
 
 impl ExtensionManager {
-    pub fn new(version: &Version) -> Result<Self, ExtensionError> {
+    pub fn new(version: &Version) -> Result<Self, NewExtensionManagerError> {
         let extensions_dir = get_cache_path_for_version(&version.to_string())
-            .map_err(ExtensionError::FindCacheDirectoryFailed)?
+            .map_err(NewExtensionManagerError::FindCacheDirectoryFailed)?
             .join("extensions");
 
         Ok(Self {
@@ -32,18 +32,18 @@ impl ExtensionManager {
     pub fn get_extension_binary(
         &self,
         extension_name: &str,
-    ) -> Result<std::process::Command, ExtensionError> {
+    ) -> Result<std::process::Command, GetExtensionBinaryError> {
         let dir = self.get_extension_directory(extension_name);
         if !dir.exists() {
-            return Err(ExtensionError::ExtensionNotInstalled(
+            return Err(GetExtensionBinaryError::ExtensionNotInstalled(
                 extension_name.to_string(),
             ));
         }
         let bin = dir.join(extension_name);
         if !bin.exists() {
-            Err(ExtensionError::ExtensionBinaryDoesNotExist(bin))
+            Err(GetExtensionBinaryError::ExtensionBinaryDoesNotExist(bin))
         } else if !bin.is_file() {
-            Err(ExtensionError::ExtensionBinaryIsNotAFile(bin))
+            Err(GetExtensionBinaryError::ExtensionBinaryIsNotAFile(bin))
         } else {
             Ok(std::process::Command::new(bin))
         }

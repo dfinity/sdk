@@ -5,17 +5,11 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ExtensionError {
     // errors related to extension directory management
-    #[error("Cannot find cache directory")]
-    FindCacheDirectoryFailed(#[source] crate::error::cache::CacheError),
-
     #[error("Cannot get extensions directory")]
     EnsureExtensionDirExistsFailed(#[source] crate::error::fs::FsError),
 
     #[error("Extension directory '{0}' does not exist.")]
     ExtensionDirDoesNotExist(std::path::PathBuf),
-
-    #[error("Extension '{0}' not installed.")]
-    ExtensionNotInstalled(String),
 
     // errors related to installing extensions
     #[error("Extension '{0}' is already installed.")]
@@ -65,26 +59,6 @@ pub enum ExtensionError {
     InsufficientPermissionsToDeleteExtensionDirectory(#[source] crate::error::fs::FsError),
 
     // errors related to executing extensions
-    #[error("Invalid extension name '{0:?}'.")]
-    InvalidExtensionName(std::ffi::OsString),
-
-    #[error("Cannot find extension binary at '{0}'.")]
-    ExtensionBinaryDoesNotExist(std::path::PathBuf),
-
-    #[error("Extension binary at {0} is not an executable file.")]
-    ExtensionBinaryIsNotAFile(std::path::PathBuf),
-
-    #[error("Failed to run extension '{0}'")]
-    FailedToLaunchExtension(String, #[source] std::io::Error),
-
-    #[error("Extension '{0}' never finished")]
-    ExtensionNeverFinishedExecuting(String, #[source] std::io::Error),
-
-    #[error("Extension terminated by signal.")]
-    ExtensionExecutionTerminatedViaSignal,
-
-    #[error("Extension exited with non-zero status code '{0}'.")]
-    ExtensionExitedWithNonZeroStatus(i32),
 }
 
 #[derive(Error, Debug)]
@@ -121,4 +95,47 @@ pub enum ListInstalledExtensionsError {
 pub enum ConvertExtensionSubcommandIntoClapArgError {
     #[error("Extension's subcommand argument '{0}' is missing description.")]
     ExtensionSubcommandArgMissingDescription(String),
+}
+
+#[derive(Error, Debug)]
+pub enum RunExtensionError {
+    #[error("Invalid extension name '{0:?}'.")]
+    InvalidExtensionName(std::ffi::OsString),
+
+    #[error("Cannot find cache directory")]
+    FindCacheDirectoryFailed(#[source] crate::error::cache::CacheError),
+
+    #[error("Failed to run extension '{0}'")]
+    FailedToLaunchExtension(String, #[source] std::io::Error),
+
+    #[error("Extension '{0}' never finished")]
+    ExtensionNeverFinishedExecuting(String, #[source] std::io::Error),
+
+    #[error("Extension terminated by signal.")]
+    ExtensionExecutionTerminatedViaSignal,
+
+    #[error("Extension exited with non-zero status code '{0}'.")]
+    ExtensionExitedWithNonZeroStatus(i32),
+
+    #[error(transparent)]
+    GetExtensionBinaryError(#[from] GetExtensionBinaryError),
+}
+
+#[derive(Error, Debug)]
+pub enum GetExtensionBinaryError {
+    #[error("Extension '{0}' not installed.")]
+    ExtensionNotInstalled(String),
+
+    #[error("Cannot find extension binary at '{0}'.")]
+    ExtensionBinaryDoesNotExist(std::path::PathBuf),
+
+    #[error("Extension binary at {0} is not an executable file.")]
+    ExtensionBinaryIsNotAFile(std::path::PathBuf),
+}
+
+#[derive(Error, Debug)]
+pub enum NewExtensionManagerError {
+    #[error("Cannot find cache directory")]
+    FindCacheDirectoryFailed(#[source] crate::error::cache::CacheError),
+
 }
