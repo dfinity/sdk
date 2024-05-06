@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.20.1-beta.0
+
 ### feat: reformatted error output
 
 Rather than increasing indentation, dfx now aligns the error causes with a "Caused by: " prefix.
