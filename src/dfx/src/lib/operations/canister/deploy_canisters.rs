@@ -67,7 +67,6 @@ pub async fn deploy_canisters(
         .get_config()?
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
     let initial_canister_id_store = env.get_canister_id_store()?;
-    println!("XXX: {:?}", initial_canister_id_store); // FIXME: Remove.
 
     let pull_canisters_in_config = config.get_config().get_pull_canisters()?;
     if let Some(canister_name) = some_canister {
@@ -85,8 +84,6 @@ pub async fn deploy_canisters(
         .get_config()
         .get_canister_names_with_dependencies(some_canister)?;
     let canisters_to_load = add_canisters_with_ids(&required_canisters, env, &config);
-    println!("YYY: {:?}", canisters_to_load); // FIXME: Remove.
-    // println!("ZZZ: {:?}", initial_canister_id_store.get("pst")?); // FIXME: Remove.
     
     let canister_pool = CanisterPool::load(env, false, &canisters_to_load)?;
 
@@ -160,7 +157,6 @@ pub async fn deploy_canisters(
         .iter()
         .any(|canister| canister_id_store.find(canister).is_none())
     {
-        println!("UUU"); // FIXME: Remove.
         register_canisters(
             env,
             canisters_to_install,
@@ -179,8 +175,6 @@ pub async fn deploy_canisters(
         info!(env.get_logger(), "All canisters have already been created.");
     }
     let new_canister_pool = CanisterPool::load(env, false, &canisters_to_load)?; // with newly registered canisters
-
-    println!("TTT canisters_to_install: {:?}", canisters_to_install); // FIXME: Remove.
 
     build_canisters(
         env,
