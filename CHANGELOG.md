@@ -15,6 +15,8 @@ This results in big compilation speedups.
 
 `"deploy": false` canister option makes it not to deploy, unless explicitly specified on the command line.
 
+# 0.20.1
+
 ### feat: reformatted error output
 
 Rather than increasing indentation, dfx now aligns the error causes with a "Caused by: " prefix.
@@ -86,9 +88,11 @@ Updated cycles wallet to a gzipped version of `20240410` release:
 
 ### Replica
 
-Updated replica to elected commit 63acf4f88b20ec0c6384f4e18f0f6f69fc5d9b9f.
+Updated replica to elected commit 5e285dcaf77db014ac85d6f96ff392fe461945f5.
 This incorporates the following executed proposals:
 
+- [129494](https://dashboard.internetcomputer.org/proposal/129494)
+- [129493](https://dashboard.internetcomputer.org/proposal/129493)
 - [129428](https://dashboard.internetcomputer.org/proposal/129428)
 - [129427](https://dashboard.internetcomputer.org/proposal/129427)
 - [129423](https://dashboard.internetcomputer.org/proposal/129423)
