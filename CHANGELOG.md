@@ -72,15 +72,56 @@ Updated cycles wallet to a gzipped version of `20240410` release:
 
 ### Replica
 
-Updated replica to elected commit 63acf4f88b20ec0c6384f4e18f0f6f69fc5d9b9f.
+Updated replica to elected commit 5e285dcaf77db014ac85d6f96ff392fe461945f5.
 This incorporates the following executed proposals:
 
+- [129494](https://dashboard.internetcomputer.org/proposal/129494)
+- [129493](https://dashboard.internetcomputer.org/proposal/129493)
 - [129428](https://dashboard.internetcomputer.org/proposal/129428)
 - [129427](https://dashboard.internetcomputer.org/proposal/129427)
 - [129423](https://dashboard.internetcomputer.org/proposal/129423)
 - [129408](https://dashboard.internetcomputer.org/proposal/129408)
 - [129379](https://dashboard.internetcomputer.org/proposal/129379)
 - [129378](https://dashboard.internetcomputer.org/proposal/129378)
+- [129084](https://dashboard.internetcomputer.org/proposal/129084)
+- [129081](https://dashboard.internetcomputer.org/proposal/129081)
+- [129035](https://dashboard.internetcomputer.org/proposal/129035)
+- [128876](https://dashboard.internetcomputer.org/proposal/128876)
+- [128904](https://dashboard.internetcomputer.org/proposal/128904)
+- [128864](https://dashboard.internetcomputer.org/proposal/128864)
+- [128816](https://dashboard.internetcomputer.org/proposal/128816)
+- [128846](https://dashboard.internetcomputer.org/proposal/128846)
+- [128806](https://dashboard.internetcomputer.org/proposal/128806)
+- [128805](https://dashboard.internetcomputer.org/proposal/128805)
+- [128296](https://dashboard.internetcomputer.org/proposal/128296)
+- [128295](https://dashboard.internetcomputer.org/proposal/128295)
+- [128171](https://dashboard.internetcomputer.org/proposal/128171)
+- [128155](https://dashboard.internetcomputer.org/proposal/128155)
+- [128154](https://dashboard.internetcomputer.org/proposal/128154)
+- [128099](https://dashboard.internetcomputer.org/proposal/128099)
+- [128088](https://dashboard.internetcomputer.org/proposal/128088)
+- [127707](https://dashboard.internetcomputer.org/proposal/127707)
+- [127706](https://dashboard.internetcomputer.org/proposal/127706)
+- [127463](https://dashboard.internetcomputer.org/proposal/127463)
+- [127461](https://dashboard.internetcomputer.org/proposal/127461)
+- [127104](https://dashboard.internetcomputer.org/proposal/127104)
+- [127096](https://dashboard.internetcomputer.org/proposal/127096)
+- [127094](https://dashboard.internetcomputer.org/proposal/127094)
+- [127034](https://dashboard.internetcomputer.org/proposal/127034)
+- [127031](https://dashboard.internetcomputer.org/proposal/127031)
+- [126879](https://dashboard.internetcomputer.org/proposal/126879)
+- [126878](https://dashboard.internetcomputer.org/proposal/126878)
+- [126730](https://dashboard.internetcomputer.org/proposal/126730)
+- [126729](https://dashboard.internetcomputer.org/proposal/126729)
+- [126727](https://dashboard.internetcomputer.org/proposal/126727)
+- [126366](https://dashboard.internetcomputer.org/proposal/126366)
+- [126365](https://dashboard.internetcomputer.org/proposal/126365)
+- [126293](https://dashboard.internetcomputer.org/proposal/126293)
+- [126095](https://dashboard.internetcomputer.org/proposal/126095)
+- [126000](https://dashboard.internetcomputer.org/proposal/126000)
+- [125592](https://dashboard.internetcomputer.org/proposal/125592)
+- [125591](https://dashboard.internetcomputer.org/proposal/125591)
+- [125504](https://dashboard.internetcomputer.org/proposal/125504)
 
 # 0.20.0
 
