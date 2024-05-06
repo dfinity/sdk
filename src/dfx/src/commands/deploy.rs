@@ -1,29 +1,32 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
-use crate::lib::operations::canister::deploy_canisters;
-use crate::lib::operations::canister::DeployMode::{
+use crate::lib::network::network_opt::NetworkOpt;
+use crate::lib::operations::canister::deploy_canisters::deploy_canisters;
+use crate::lib::operations::canister::deploy_canisters::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, named_canister};
-use crate::util::clap::parsers::cycle_amount_parser;
-use crate::NetworkOpt;
-use dfx_core::config::model::network_descriptor::NetworkDescriptor;
-use dfx_core::identity::CallSender;
-
+use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
+use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
+use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
 use console::Style;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
+use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 use std::collections::BTreeMap;
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::PathBuf;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
-use url::Host::Domain;
+use url::Host::{Domain, Ipv4, Ipv6};
 use url::Url;
 
 const MAINNET_CANDID_INTERFACE_PRINCIPAL: &str = "a4gq6-oaaaa-aaaab-qaa4q-cai";
@@ -35,13 +38,8 @@ pub struct DeployOpts {
     /// If you don’t specify a canister name, all canisters defined in the dfx.json file are deployed.
     canister_name: Option<String>,
 
-    /// Specifies the argument to pass to the method.
-    #[arg(long, requires("canister_name"))]
-    argument: Option<String>,
-
-    /// Specifies the data type for the argument when making the call using an argument.
-    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
-    argument_type: Option<String>,
+    #[command(flatten)]
+    argument_from_cli: ArgumentFromCliLongOpt,
 
     /// Force the type of deployment to be reinstall, which overwrites the module.
     /// In other words, this erases all data in the canister.
@@ -67,6 +65,7 @@ pub struct DeployOpts {
     ///
     /// This option only works with non-mainnet replica.
     /// This option implies the --no-wallet flag.
+    /// This option takes precedence over the specified_id field in dfx.json.
     #[arg(long, value_name = "PRINCIPAL", requires = "canister_name")]
     specified_id: Option<Principal>,
 
@@ -100,14 +99,38 @@ pub struct DeployOpts {
     /// Compute evidence and compare it against expected evidence
     #[arg(long, conflicts_with("by_proposal"))]
     compute_evidence: bool,
+
+    /// Transaction timestamp, in nanoseconds, for use in controlling transaction deduplication, default is system time.
+    /// https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-
+    #[arg(long, requires = "canister_name")]
+    created_at_time: Option<u64>,
+
+    /// Subaccount of the selected identity to spend cycles from.
+    #[arg(long, value_parser = icrc_subaccount_parser)]
+    from_subaccount: Option<Subaccount>,
+
+    #[command(flatten)]
+    subnet_selection: SubnetSelectionOpt,
+
+    /// Always use Candid assist when the argument types are all optional.
+    #[arg(
+        long,
+        conflicts_with("argument"),
+        conflicts_with("argument_file"),
+        conflicts_with("yes")
+    )]
+    always_assist: bool,
 }
 
 pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network.network)?;
+    let env = create_agent_environment(env, opts.network.to_network_name())?;
+    let runtime = Runtime::new().expect("Unable to create a runtime");
 
     let canister_name = opts.canister_name.as_deref();
-    let argument = opts.argument.as_deref();
-    let argument_type = opts.argument_type.as_deref();
+    let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument_and_type()?;
+    if argument_from_cli.is_some() && canister_name.is_none() {
+        bail!("The init argument can only be set when deploying a single canister.");
+    }
     let mode = opts
         .mode
         .as_deref()
@@ -116,10 +139,9 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         .map_err(|err| anyhow!(err))
         .context("Failed to parse InstallMode.")?;
     let config = env.get_config_or_anyhow()?;
-    let env_file = opts
-        .output_env_file
-        .or_else(|| config.get_config().output_env_file.clone());
-
+    let env_file = config.get_output_env_file(opts.output_env_file)?;
+    let mut subnet_selection =
+        runtime.block_on(opts.subnet_selection.into_subnet_selection_type(&env))?;
     let with_cycles = opts.with_cycles;
 
     let deploy_mode = match (mode, canister_name) {
@@ -155,26 +177,29 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         (None, _) => NormalDeploy,
     };
 
-    let runtime = Runtime::new().expect("Unable to create a runtime");
-
     let call_sender = CallSender::from(&opts.wallet)
         .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
+
     runtime.block_on(fetch_root_key_if_needed(&env))?;
 
     runtime.block_on(deploy_canisters(
         &env,
         canister_name,
-        argument,
-        argument_type,
+        argument_from_cli.as_deref(),
+        argument_type.as_deref(),
         &deploy_mode,
         opts.upgrade_unchanged,
         with_cycles,
+        opts.created_at_time,
         opts.specified_id,
         &call_sender,
+        opts.from_subaccount,
         opts.no_wallet,
         opts.yes,
         env_file,
-        !opts.no_asset_upgrade,
+        opts.no_asset_upgrade,
+        &mut subnet_selection,
+        opts.always_assist,
     ))?;
 
     if matches!(deploy_mode, NormalDeploy | ForceReinstallSingleCanister(_)) {
@@ -209,7 +234,10 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
             if let Some(canister_id) = canister_id {
                 let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
 
-                if canister_config.frontend.is_some() {
+                // If the canister is an assets canister or has a frontend section, we can display a frontend url.
+                let is_assets = canister_info.is_assets() || canister_config.frontend.is_some();
+
+                if is_assets {
                     let url = construct_frontend_url(network, &canister_id)?;
                     frontend_urls.insert(canister_name, url);
                 }
@@ -229,8 +257,14 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
         let green = Style::new().green();
         if !frontend_urls.is_empty() {
             info!(log, "  Frontend canister via browser");
-            for (name, url) in frontend_urls {
-                info!(log, "    {}: {}", name, green.apply_to(url));
+            for (name, (url1, url2)) in frontend_urls {
+                if let Some(url2) = url2 {
+                    info!(log, "    {}:", name);
+                    info!(log, "      - {}", green.apply_to(url1));
+                    info!(log, "      - {}", green.apply_to(url2));
+                } else {
+                    info!(log, "    {}: {}", name, green.apply_to(url1));
+                }
             }
         }
         if !candid_urls.is_empty() {
@@ -245,13 +279,30 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
 }
 
 #[context("Failed to construct frontend url for canister {} on network '{}'.", canister_id, network.name)]
-fn construct_frontend_url(network: &NetworkDescriptor, canister_id: &Principal) -> DfxResult<Url> {
+fn construct_frontend_url(
+    network: &NetworkDescriptor,
+    canister_id: &Principal,
+) -> DfxResult<(Url, Option<Url>)> {
     let mut url = Url::parse(&network.providers[0]).with_context(|| {
         format!(
             "Failed to parse url for network provider {}.",
             &network.providers[0]
         )
     })?;
+    // For localhost defined by IP address we suggest `<canister_id>.localhost` as an alternate way of accessing the canister because it plays nicer with SPAs.
+    // We still display `<IP>?canisterId=<canister_id>` because Safari does not support localhost subdomains
+    let url2 = if url.host() == Some(Ipv4(Ipv4Addr::LOCALHOST))
+        || url.host() == Some(Ipv6(Ipv6Addr::LOCALHOST))
+    {
+        let mut subdomain_url = url.clone();
+        let localhost_with_subdomain = format!("{}.localhost", canister_id);
+        subdomain_url
+            .set_host(Some(&localhost_with_subdomain))
+            .with_context(|| format!("Failed to set host to {}.", localhost_with_subdomain))?;
+        Some(subdomain_url)
+    } else {
+        None
+    };
 
     if let Some(Domain(domain)) = url.host() {
         let host = format!("{}.{}", canister_id, domain);
@@ -262,7 +313,7 @@ fn construct_frontend_url(network: &NetworkDescriptor, canister_id: &Principal) 
         url.set_query(Some(&query));
     };
 
-    Ok(url)
+    Ok((url, url2))
 }
 
 #[context("Failed to construct ui canister url for {} on network '{}'.", canister_id, network.name)]

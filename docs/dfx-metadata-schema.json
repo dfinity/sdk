@@ -1,0 +1,158 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "\"dfx\" metadata.",
+  "description": "Standardized metadata for dfx usage.",
+  "type": "object",
+  "properties": {
+    "pullable": {
+      "title": "Pullable",
+      "description": "The required information so that the canister can be pulled using `dfx deps pull`.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Pullable"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "tech_stack": {
+      "title": "Tech Stack",
+      "description": "The tech stack information of the canister.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/TechStack"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "Pullable": {
+      "type": "object",
+      "required": [
+        "dependencies",
+        "init_guide",
+        "wasm_url"
+      ],
+      "properties": {
+        "dependencies": {
+          "title": "dependencies",
+          "description": "Canister IDs (Principal) of direct dependencies.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "init_arg": {
+          "title": "init_arg",
+          "description": "A default initialization argument for the canister that consumers can use.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "init_guide": {
+          "title": "init_guide",
+          "description": "A message to guide consumers how to initialize the canister.",
+          "type": "string"
+        },
+        "wasm_hash": {
+          "title": "wasm_hash",
+          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified via a URL using the `wasm_hash_url` field. If both are defined, the `wasm_hash_url` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wasm_hash_url": {
+          "title": "wasm_hash_url",
+          "description": "Specify the SHA256 hash of the wasm module via this URL. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified directly using the `wasm_hash` field. If both are defined, the `wasm_hash_url` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wasm_url": {
+          "title": "wasm_url",
+          "description": "The Url to download canister wasm.",
+          "type": "string"
+        }
+      }
+    },
+    "TechStack": {
+      "title": "Tech Stack",
+      "description": "The tech stack used to build a canister.",
+      "type": "object",
+      "properties": {
+        "cdk": {
+          "title": "cdk",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "language": {
+          "title": "language",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "lib": {
+          "title": "lib",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "other": {
+          "title": "other",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "tool": {
+          "title": "tool",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

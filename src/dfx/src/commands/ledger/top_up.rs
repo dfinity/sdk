@@ -1,14 +1,14 @@
-use crate::commands::ledger::{get_icpts_from_args, notify_top_up, transfer_cmc};
+use crate::commands::ledger::get_icpts_from_args;
 use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
-use crate::lib::ledger_types::{Memo, NotifyError};
+use crate::lib::error::{DfxResult, NotifyTopUpError::Notify};
+use crate::lib::ledger_types::Memo;
+use crate::lib::ledger_types::NotifyError::Refunded;
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
-
+use crate::lib::operations::cmc::{notify_top_up, transfer_cmc};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::e8s_parser;
-
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use candid::Principal;
 use clap::Parser;
 
@@ -17,7 +17,7 @@ const MEMO_TOP_UP_CANISTER: u64 = 1347768404_u64;
 /// Top up a canister with cycles minted from ICP
 #[derive(Parser)]
 pub struct TopUpOpts {
-    /// Specify the canister id to top up
+    /// Specify the canister id or name to top up
     canister: String,
 
     /// Subaccount to withdraw from
@@ -58,21 +58,22 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
 
     let memo = Memo(MEMO_TOP_UP_CANISTER);
 
-    let to = Principal::from_text(&opts.canister).with_context(|| {
-        format!(
-            "Failed to parse {:?} as target canister principal.",
-            &opts.canister
-        )
-    })?;
+    let to = Principal::from_text(&opts.canister)
+        .or_else(|_| env.get_canister_id_store()?.get(&opts.canister))
+        .with_context(|| {
+            format!(
+                "Failed to parse {:?} as target canister principal or name.",
+                &opts.canister
+            )
+        })?;
 
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     fetch_root_key_if_needed(env).await?;
 
     let height = transfer_cmc(
         agent,
+        env.get_logger(),
         memo,
         amount,
         fee,
@@ -82,16 +83,16 @@ pub async fn exec(env: &dyn Environment, opts: TopUpOpts) -> DfxResult {
     )
     .await?;
     println!("Using transfer at block height {height}");
-    let result = notify_top_up(agent, to, height).await?;
+    let result = notify_top_up(agent, to, height).await;
 
     match result {
         Ok(cycles) => {
             println!("Canister was topped up with {cycles} cycles!");
         }
-        Err(NotifyError::Refunded {
+        Err(Notify(Refunded {
             reason,
             block_index,
-        }) => match block_index {
+        })) => match block_index {
             Some(height) => {
                 println!("Refunded at block height {height} with message: {reason}")
             }

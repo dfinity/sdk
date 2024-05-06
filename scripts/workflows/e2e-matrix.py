@@ -15,19 +15,8 @@ test = sorted(test_scripts("dfx") + test_scripts("replica") + test_scripts("icx-
 
 matrix = {
     "test": test,
-    "backend": ["ic-ref", "replica"],
-    "os": ["macos-11", "ubuntu-20.04"],
-    "rust": ["1.65.0"],
-    "exclude": [
-        {"backend": "ic-ref", "test": "dfx/bitcoin"},
-        {"backend": "ic-ref", "test": "dfx/canister_http"},
-        {"backend": "ic-ref", "test": "dfx/dfx_install"},
-        {"backend": "ic-ref", "test": "dfx/leak"},
-        {"backend": "ic-ref", "test": "dfx/ledger"},
-        {"backend": "ic-ref", "test": "dfx/new"},
-        {"backend": "ic-ref", "test": "dfx/print"},
-        {"backend": "ic-ref", "test": "dfx/signals"},
-    ],
+    "backend": ["replica"],
+    "os": ["macos-12", "ubuntu-20.04"]
 }
 
 print(json.dumps(matrix))

@@ -4,7 +4,7 @@
             "type": "custom",
             "candid": "main.did",
             "wasm": "main.wasm",
-            "build": "bash -c 'echo \"CANISTER_ID_remote: $CANISTER_ID_remote\"'",
+            "build": "bash -c 'echo \"CANISTER_ID_REMOTE: $CANISTER_ID_REMOTE\nCANISTER_CANDID_PATH_REMOTE: $CANISTER_CANDID_PATH_REMOTE\"'",
             "dependencies": [
                 "remote"
             ]
@@ -12,6 +12,7 @@
         "remote": {
             "main": "remote.mo",
             "remote": {
+                "candid": "remotecandid.did",
                 "id": {
                     "actuallylocal": "qoctq-giaaa-aaaaa-aaaea-cai"
                 }

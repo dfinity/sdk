@@ -1,16 +1,14 @@
 mod commands;
 mod support;
-
 use crate::commands::list::list;
 use crate::commands::sync::sync;
+use crate::commands::upload::upload;
 use anstyle::{AnsiColor, Style};
 use candid::Principal;
 use clap::builder::Styles;
 use clap::{crate_authors, crate_version, Parser};
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
 use ic_agent::{agent, Agent, Identity};
-
-use crate::commands::upload::upload;
 use std::path::PathBuf;
 
 const DEFAULT_IC_GATEWAY: &str = "https://icp0.io";
@@ -106,15 +104,15 @@ fn style() -> Styles {
 }
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]
-async fn main() -> support::Result {
+async fn main() -> anyhow::Result<()> {
     let opts: Opts = Opts::parse();
 
     let logger = support::new_logger();
 
     let agent = Agent::builder()
-        .with_transport(
-            agent::http_transport::ReqwestHttpReplicaV2Transport::create(opts.replica.clone())?,
-        )
+        .with_transport(agent::http_transport::ReqwestTransport::create(
+            opts.replica.clone(),
+        )?)
         .with_boxed_identity(create_identity(opts.pem))
         .build()?;
 

@@ -1,8 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
-use dfx_core::config::cache::delete_version;
-
 use clap::Parser;
+use dfx_core::config::cache::delete_version;
 
 /// Deletes a specific versioned cache of dfx.
 #[derive(Parser)]

@@ -11,7 +11,8 @@ mod tests;
 pub use crate::state_machine::StableState;
 use crate::{
     asset_certification::types::http::{
-        HttpRequest, HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken,
+        CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
+        StreamingCallbackToken,
     },
     state_machine::{AssetDetails, CertifiedTree, EncodedAsset, State},
     types::*,
@@ -19,7 +20,7 @@ use crate::{
 use asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use candid::{candid_method, Principal};
 use ic_cdk::api::{call::ManualReply, caller, data_certificate, set_certified_data, time, trap};
-use ic_cdk_macros::{query, update};
+use ic_cdk::{query, update};
 use serde_bytes::ByteBuf;
 use std::cell::RefCell;
 
@@ -103,14 +104,14 @@ async fn validate_revoke_permission(arg: RevokePermissionArguments) -> Result<St
     ))
 }
 
-#[query(manual_reply = true)]
-#[candid_method(query)]
+#[update(manual_reply = true)]
+#[candid_method(update)]
 fn list_authorized() -> ManualReply<Vec<Principal>> {
     STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&Permission::Commit)))
 }
 
-#[query(manual_reply = true)]
-#[candid_method(query)]
+#[update(manual_reply = true)]
+#[candid_method(update)]
 fn list_permitted(arg: ListPermittedArguments) -> ManualReply<Vec<Principal>> {
     STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&arg.permission)))
 }
@@ -315,10 +316,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
         s.borrow().http_request(
             req,
             &certificate,
-            candid::Func {
-                method: "http_request_streaming_callback".to_string(),
-                principal: ic_cdk::id(),
-            },
+            CallbackFunc::new(ic_cdk::id(), "http_request_streaming_callback".to_string()),
         )
     })
 }
@@ -415,7 +413,12 @@ fn is_controller() -> Result<(), String> {
     }
 }
 
-pub fn init() {
+pub fn init(args: Option<AssetCanisterArgs>) {
+    if let Some(upgrade_arg) = args {
+        let AssetCanisterArgs::Init(InitArgs {}) = upgrade_arg else {
+            ic_cdk::trap("Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.")
+        };
+    }
     STATE.with(|s| {
         let mut s = s.borrow_mut();
         s.clear();
@@ -427,16 +430,24 @@ pub fn pre_upgrade() -> StableState {
     STATE.with(|s| s.take().into())
 }
 
-pub fn post_upgrade(stable_state: StableState) {
+pub fn post_upgrade(stable_state: StableState, args: Option<AssetCanisterArgs>) {
+    let set_permissions = args.and_then(|args| {
+        let AssetCanisterArgs::Upgrade(UpgradeArgs { set_permissions }) = args else {ic_cdk::trap("Cannot upgrade the canister with an Init argument. Please provide an Upgrade argument.")};
+        set_permissions
+    });
+
     STATE.with(|s| {
         *s.borrow_mut() = State::from(stable_state);
         set_certified_data(&s.borrow().root_hash());
+        if let Some(set_permissions) = set_permissions {
+            s.borrow_mut().set_permissions(set_permissions);
+        }
     });
 }
 
 #[test]
 fn candid_interface_compatibility() {
-    use candid::utils::{service_compatible, CandidSource};
+    use candid_parser::utils::{service_compatible, CandidSource};
     use std::path::PathBuf;
 
     candid::export_service!();

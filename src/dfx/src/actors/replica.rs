@@ -12,7 +12,6 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::integrations::bitcoin::initialize_bitcoin_canister;
 use crate::lib::integrations::create_integrations_agent;
 use crate::lib::replica_config::ReplicaConfig;
-
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
@@ -100,12 +99,26 @@ impl Replica {
         }
     }
 
-    fn wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
+    /// Wait for `ic-starter` process writing the http port file.
+    /// Retry every 0.1s for 2 minutes.
+    /// Will break out of the loop if receive stop signal.
+    ///
+    /// Returns
+    /// - Ok(Some(port)) if succeed;
+    /// - Ok(None) if receive stop signal (`dfx start` then Ctrl-C immediately);
+    /// - Err if time out;
+    fn wait_for_port_file(
+        file_path: &Path,
+        stop_receiver: &Receiver<()>,
+    ) -> DfxResult<Option<u16>> {
         let mut retries = 0;
         loop {
+            if stop_receiver.try_recv().is_ok() {
+                return Ok(None);
+            }
             if let Ok(content) = std::fs::read_to_string(file_path) {
                 if let Ok(port) = content.parse::<u16>() {
-                    return Ok(port);
+                    return Ok(Some(port));
                 }
             }
             if retries >= 1200 {
@@ -344,11 +357,15 @@ fn replica_start_thread(
         }
         cmd.args([
             "--initial-notary-delay-millis",
-            // The intial notary delay is set to 2500ms in the replica's
+            // The initial notary delay is set to 2500ms in the replica's
             // default subnet configuration to help running tests.
             // For our production network, we actually set them to 600ms.
             &format!("{artificial_delay}"),
         ]);
+
+        if config.use_old_metering {
+            cmd.args(["--use-old-metering"]);
+        }
 
         // This should agree with the value at
         // at https://gitlab.com/dfinity-lab/core/ic/-/blob/master/ic-os/guestos/rootfs/etc/systemd/system/ic-replica.service
@@ -369,9 +386,20 @@ fn replica_start_thread(
             std::fs::write(&replica_pid_path, child.id().to_string())
                 .expect("Could not write to replica-pid file.");
 
-            let port = port.unwrap_or_else(|| {
-                Replica::wait_for_port_file(write_port_to.as_ref().unwrap()).unwrap()
-            });
+            let port = if let Some(p) = port {
+                p
+            } else {
+                match Replica::wait_for_port_file(write_port_to.as_ref().unwrap(), &receiver)
+                    .unwrap()
+                {
+                    Some(p) => p,
+                    // If Ctrl-C right after `dfx start`, the `ic-starter` child process will be killed already.
+                    // And the `write_port_to` file will never be ready.
+                    // So we let `wait_for_port_file` method to break out from the waiting,
+                    // finish this actor starting ASAP and let the system stop the actor.
+                    None => break,
+                }
+            };
             addr.do_send(signals::ReplicaRestarted { port });
             let log_clone = logger.clone();
 

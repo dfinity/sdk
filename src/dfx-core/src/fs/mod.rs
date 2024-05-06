@@ -1,19 +1,17 @@
 pub mod composite;
-
 use crate::error::archive::ArchiveError;
 use crate::error::fs::FsError;
 use crate::error::fs::FsErrorKind::{
     CanonicalizePathFailed, CopyFileFailed, CreateDirectoryFailed, NoParent, ReadDirFailed,
-    ReadFileFailed, ReadPermissionsFailed, ReadToStringFailed, RemoveDirectoryAndContentsFailed,
-    RemoveDirectoryFailed, RemoveFileFailed, RenameFailed, UnpackingArchiveFailed, WriteFileFailed,
-    WritePermissionsFailed,
+    ReadFileFailed, ReadMetadataFailed, ReadPermissionsFailed, ReadToStringFailed,
+    RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
+    UnpackingArchiveFailed, WriteFileFailed, WritePermissionsFailed,
 };
-
-use std::fs::{Permissions, ReadDir};
+use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
 
 pub fn canonicalize(path: &Path) -> Result<PathBuf, FsError> {
-    path.canonicalize()
+    dunce::canonicalize(path)
         .map_err(|err| FsError::new(CanonicalizePathFailed(path.to_path_buf(), err)))
 }
 
@@ -39,6 +37,10 @@ pub fn get_archive_path(
         .path()
         .map_err(ArchiveError::ArchiveFileInvalidPath)?;
     Ok(path.to_path_buf())
+}
+
+pub fn metadata(path: &Path) -> Result<Metadata, FsError> {
+    std::fs::metadata(path).map_err(|err| FsError::new(ReadMetadataFailed(path.to_path_buf(), err)))
 }
 
 pub fn parent(path: &Path) -> Result<PathBuf, FsError> {
@@ -96,6 +98,18 @@ pub fn remove_file(path: &Path) -> Result<(), FsError> {
 pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), FsError> {
     std::fs::set_permissions(path, permissions)
         .map_err(|err| FsError::new(WritePermissionsFailed(path.to_path_buf(), err)))
+}
+
+#[cfg_attr(not(unix), allow(unused_variables))]
+pub fn set_permissions_readwrite(path: &Path) -> Result<(), FsError> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut permissions = read_permissions(path)?;
+        permissions.set_mode(permissions.mode() | 0o600);
+        set_permissions(path, permissions)?;
+    }
+    Ok(())
 }
 
 pub fn tar_unpack_in<P: AsRef<Path>>(

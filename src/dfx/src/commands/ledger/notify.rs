@@ -2,6 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use clap::{Parser, Subcommand};
 
+mod convert;
 mod create_canister;
 mod top_up;
 
@@ -18,12 +19,14 @@ pub struct NotifyOpts {
 #[derive(Subcommand)]
 pub enum Subcmd {
     CreateCanister(create_canister::NotifyCreateOpts),
+    Convert(convert::ConvertOpts),
     TopUp(top_up::NotifyTopUpOpts),
 }
 
 pub async fn exec(env: &dyn Environment, opts: NotifyOpts) -> DfxResult {
     match opts.subcmd {
         Subcmd::CreateCanister(opts) => create_canister::exec(env, opts).await,
+        Subcmd::Convert(opts) => convert::exec(env, opts).await,
         Subcmd::TopUp(opts) => top_up::exec(env, opts).await,
     }
 }

@@ -1,10 +1,10 @@
 use crate::lib::agent::create_agent_environment;
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::{lib::environment::Environment, NetworkOpt};
-use dfx_core::identity::CallSender;
-
+use crate::lib::network::network_opt::NetworkOpt;
 use anyhow::anyhow;
 use clap::{Parser, Subcommand};
+use dfx_core::identity::CallSender;
 use tokio::runtime::Runtime;
 
 mod call;
@@ -14,6 +14,7 @@ mod deposit_cycles;
 mod id;
 mod info;
 mod install;
+mod logs;
 mod metadata;
 mod request_status;
 mod send;
@@ -58,34 +59,40 @@ pub enum SubCommand {
     Stop(stop::CanisterStopOpts),
     UninstallCode(uninstall_code::UninstallCodeOpts),
     UpdateSettings(update_settings::UpdateSettingsOpts),
+    Logs(logs::LogsOpts),
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
-    let agent_env = create_agent_environment(env, opts.network.network)?;
+    let agent_env;
+    let env = if matches!(&opts.subcmd, SubCommand::Id(_)) {
+        env
+    } else {
+        agent_env = create_agent_environment(env, opts.network.to_network_name())?;
+        &agent_env
+    };
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(async {
         let call_sender = CallSender::from(&opts.wallet)
             .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
         match opts.subcmd {
-            SubCommand::Call(v) => call::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Create(v) => create::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Delete(v) => delete::exec(&agent_env, v, &call_sender).await,
-            SubCommand::DepositCycles(v) => deposit_cycles::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Id(v) => id::exec(&agent_env, v).await,
-            SubCommand::Install(v) => install::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Info(v) => info::exec(&agent_env, v).await,
-            SubCommand::Metadata(v) => metadata::exec(&agent_env, v).await,
-            SubCommand::RequestStatus(v) => request_status::exec(&agent_env, v).await,
-            SubCommand::Send(v) => send::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Sign(v) => sign::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Start(v) => start::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Status(v) => status::exec(&agent_env, v, &call_sender).await,
-            SubCommand::Stop(v) => stop::exec(&agent_env, v, &call_sender).await,
-            SubCommand::UninstallCode(v) => uninstall_code::exec(&agent_env, v, &call_sender).await,
-            SubCommand::UpdateSettings(v) => {
-                update_settings::exec(&agent_env, v, &call_sender).await
-            }
+            SubCommand::Call(v) => call::exec(env, v, &call_sender).await,
+            SubCommand::Create(v) => create::exec(env, v, &call_sender).await,
+            SubCommand::Delete(v) => delete::exec(env, v, &call_sender).await,
+            SubCommand::DepositCycles(v) => deposit_cycles::exec(env, v, &call_sender).await,
+            SubCommand::Id(v) => id::exec(env, v).await,
+            SubCommand::Install(v) => install::exec(env, v, &call_sender).await,
+            SubCommand::Info(v) => info::exec(env, v).await,
+            SubCommand::Metadata(v) => metadata::exec(env, v).await,
+            SubCommand::RequestStatus(v) => request_status::exec(env, v).await,
+            SubCommand::Send(v) => send::exec(env, v, &call_sender).await,
+            SubCommand::Sign(v) => sign::exec(env, v, &call_sender).await,
+            SubCommand::Start(v) => start::exec(env, v, &call_sender).await,
+            SubCommand::Status(v) => status::exec(env, v, &call_sender).await,
+            SubCommand::Stop(v) => stop::exec(env, v, &call_sender).await,
+            SubCommand::UninstallCode(v) => uninstall_code::exec(env, v, &call_sender).await,
+            SubCommand::UpdateSettings(v) => update_settings::exec(env, v, &call_sender).await,
+            SubCommand::Logs(v) => logs::exec(env, v, &call_sender).await,
         }
     })
 }

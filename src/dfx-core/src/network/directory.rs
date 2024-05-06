@@ -1,7 +1,6 @@
 use crate::config::model::local_server_descriptor::LocalNetworkScopeDescriptor;
 use crate::config::model::network_descriptor::NetworkDescriptor;
 use crate::error::fs::FsError;
-
 use std::path::Path;
 
 /// A cohesive network directory is one in which the directory in question contains

@@ -161,6 +161,14 @@ type WalletResultCall = variant {
   Err : text;
 };
 
+type WalletResultCallWithMaxCycles = variant {
+  Ok : record {
+    return: blob;
+    attached_cycles: nat;
+  };
+  Err : text;
+};
+
 type CanisterSettings = record {
   controller: opt principal;
   controllers: opt vec principal;
@@ -258,6 +266,11 @@ service : {
     args: blob;
     cycles: nat;
   }) -> (WalletResultCall);
+  wallet_call_with_max_cycles: (record{
+    canister: principal;
+    method_name: text;
+    args: blob;
+  }) -> (WalletResultCallWithMaxCycles);
 
   // Address book
   add_address: (address: AddressEntry) -> ();

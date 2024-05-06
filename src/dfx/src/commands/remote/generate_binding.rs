@@ -2,9 +2,8 @@ use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-use crate::util::check_candid_file;
-
 use anyhow::Context;
+use candid_parser::utils::CandidSource;
 use clap::Parser;
 use slog::info;
 
@@ -71,16 +70,25 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                         continue;
                     }
                 }
-                let (type_env, did_types) = check_candid_file(&candid)?;
+                let (type_env, did_types) = CandidSource::File(&candid).load()?;
                 let extension = main.extension().unwrap_or_default();
                 let bindings = if extension == "mo" {
-                    Some(candid::bindings::motoko::compile(&type_env, &did_types))
+                    Some(candid_parser::bindings::motoko::compile(
+                        &type_env, &did_types,
+                    ))
                 } else if extension == "rs" {
-                    Some(candid::bindings::rust::compile(&type_env, &did_types))
+                    let config = candid_parser::bindings::rust::Config::new();
+                    Some(candid_parser::bindings::rust::compile(
+                        &config, &type_env, &did_types,
+                    ))
                 } else if extension == "js" {
-                    Some(candid::bindings::javascript::compile(&type_env, &did_types))
+                    Some(candid_parser::bindings::javascript::compile(
+                        &type_env, &did_types,
+                    ))
                 } else if extension == "ts" {
-                    Some(candid::bindings::typescript::compile(&type_env, &did_types))
+                    Some(candid_parser::bindings::typescript::compile(
+                        &type_env, &did_types,
+                    ))
                 } else {
                     info!(
                         log,

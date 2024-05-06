@@ -1,3 +1,4 @@
+use super::get_icpts_from_args;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::nns_types::icpts::ICPTs;
@@ -5,14 +6,11 @@ use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_or_anyhow;
 use crate::util::clap::parsers::{cycle_amount_parser, e8s_parser, trillion_cycle_amount_parser};
 use crate::util::currency_conversion::as_cycles_with_current_exchange_rate;
-use dfx_core::identity::CallSender;
-
 use candid::Principal;
 use clap::Parser;
+use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use slog::info;
-
-use super::get_icpts_from_args;
 
 const DEFAULT_CYCLES_TO_FABRICATE: u128 = 10_000_000_000_000_u128;
 
@@ -82,7 +80,7 @@ pub struct FabricateCyclesOpts {
     all: bool,
 }
 
-#[context("Failed to deposite {} cycles into canister '{}'.", cycles, canister)]
+#[context("Failed to deposit {} cycles into canister '{}'.", cycles, canister)]
 async fn deposit_minted_cycles(
     env: &dyn Environment,
     canister: &str,

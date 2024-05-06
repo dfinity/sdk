@@ -1,10 +1,9 @@
 use crate::actors::icx_proxy::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::error::{DfxError, DfxResult};
-
-use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
@@ -43,6 +42,9 @@ pub struct IcxProxyConfig {
 
     /// run icx-proxy in non-quiet mode
     pub verbose: bool,
+
+    /// list of domains that can be served (localhost if none specified)
+    pub domains: Vec<String>,
 }
 
 /// The configuration for the icx_proxy actor.
@@ -97,6 +99,7 @@ impl IcxProxy {
                 receiver,
                 fetch_root_key,
                 config.verbose,
+                config.domains.clone(),
             ),
             "Failed to start ICX proxy thread.",
         )?;
@@ -190,6 +193,7 @@ fn icx_proxy_start_thread(
     receiver: Receiver<()>,
     fetch_root_key: bool,
     verbose: bool,
+    domains: Vec<String>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
         // Start the process, then wait for the file.
@@ -205,6 +209,9 @@ fn icx_proxy_start_thread(
         for url in &replica_urls {
             let s = format!("{}", url);
             cmd.args(["--replica", &s]);
+        }
+        for domain in domains {
+            cmd.args(["--domain", &domain]);
         }
         if !verbose {
             cmd.arg("-q");

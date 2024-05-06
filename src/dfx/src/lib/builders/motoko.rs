@@ -8,11 +8,11 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::package_arguments::{self, PackageArguments};
-use dfx_core::config::cache::Cache;
-use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
-
+use crate::util::assets::management_idl;
 use anyhow::Context;
 use candid::Principal as CanisterId;
+use dfx_core::config::cache::Cache;
+use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
 use fn_error_context::context;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet};
@@ -26,6 +26,8 @@ pub struct MotokoBuilder {
     logger: slog::Logger,
     cache: Arc<dyn Cache>,
 }
+unsafe impl Send for MotokoBuilder {}
+unsafe impl Sync for MotokoBuilder {}
 
 impl MotokoBuilder {
     #[context("Failed to create MotokoBuilder.")]
@@ -39,6 +41,48 @@ impl MotokoBuilder {
     }
 }
 
+#[context("Failed to find imports for canister at '{}'.", info.get_main_path().display())]
+fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo) -> DfxResult<BTreeSet<MotokoImport>> {
+    #[context("Failed recursive dependency detection at {}.", file.display())]
+    fn get_imports_recursive(
+        cache: &dyn Cache,
+        file: &Path,
+        result: &mut BTreeSet<MotokoImport>,
+    ) -> DfxResult {
+        if result.contains(&MotokoImport::Relative(file.to_path_buf())) {
+            return Ok(());
+        }
+
+        result.insert(MotokoImport::Relative(file.to_path_buf()));
+
+        let mut command = cache.get_binary_command("moc")?;
+        let command = command.arg("--print-deps").arg(file);
+        let output = command
+            .output()
+            .with_context(|| format!("Error executing {:#?}", command))?;
+        let output = String::from_utf8_lossy(&output.stdout);
+
+        for line in output.lines() {
+            let import = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
+            match import {
+                MotokoImport::Relative(path) => {
+                    get_imports_recursive(cache, path.as_path(), result)?;
+                }
+                _ => {
+                    result.insert(import);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    let mut result = BTreeSet::new();
+    get_imports_recursive(cache, info.get_main_path(), &mut result)?;
+
+    Ok(result)
+}
+
 impl CanisterBuilder for MotokoBuilder {
     #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
@@ -46,52 +90,10 @@ impl CanisterBuilder for MotokoBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        let mut result = BTreeSet::new();
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
+        let imports = get_imports(self.cache.as_ref(), &motoko_info)?;
 
-        #[context("Failed recursive dependency detection at {}.", file.to_string_lossy())]
-        fn find_deps_recursive(
-            cache: &dyn Cache,
-            file: &Path,
-            result: &mut BTreeSet<MotokoImport>,
-        ) -> DfxResult {
-            if result.contains(&MotokoImport::Relative(file.to_path_buf())) {
-                return Ok(());
-            }
-
-            result.insert(MotokoImport::Relative(file.to_path_buf()));
-
-            let mut command = cache.get_binary_command("moc")?;
-            let command = command.arg("--print-deps").arg(file);
-            let output = command
-                .output()
-                .with_context(|| format!("Error executing {:#?}", command))?;
-
-            let output = String::from_utf8_lossy(&output.stdout);
-            for line in output.lines() {
-                let import =
-                    MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
-                match import {
-                    MotokoImport::Canister(_) => {
-                        result.insert(import);
-                    }
-                    MotokoImport::Relative(path) => {
-                        find_deps_recursive(cache, path.as_path(), result)?;
-                    }
-                    MotokoImport::Lib(_) => (),
-                    MotokoImport::Ic(_) => (),
-                }
-            }
-
-            Ok(())
-        }
-        find_deps_recursive(
-            self.cache.as_ref(),
-            motoko_info.get_main_path(),
-            &mut result,
-        )?;
-
-        Ok(result
+        Ok(imports
             .iter()
             .filter_map(|import| {
                 if let MotokoImport::Canister(name) = import {
@@ -132,6 +134,14 @@ impl CanisterBuilder for MotokoBuilder {
         let idl_dir_path = &config.idl_root;
         std::fs::create_dir_all(idl_dir_path)
             .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
+
+        // If the management canister is being imported, emit the candid file.
+        if get_imports(cache.as_ref(), &motoko_info)?
+            .contains(&MotokoImport::Ic("aaaaa-aa".to_string()))
+        {
+            let management_idl_path = idl_dir_path.join("aaaaa-aa.did");
+            dfx_core::fs::write(management_idl_path, management_idl()?)?;
+        }
 
         let package_arguments =
             package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
@@ -181,42 +191,16 @@ impl CanisterBuilder for MotokoBuilder {
         })
     }
 
-    fn generate_idl(
+    fn get_candid_path(
         &self,
         _pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
-        let generate_output_dir = &info
-            .get_declarations_config()
-            .output
-            .as_ref()
-            .context("output here must not be None")?;
-
-        std::fs::create_dir_all(generate_output_dir).with_context(|| {
-            format!(
-                "Failed to create {}.",
-                generate_output_dir.to_string_lossy()
-            )
-        })?;
-
-        let output_idl_path = generate_output_dir
-            .join(info.get_name())
-            .with_extension("did");
-
         // get the path to candid file from dfx build
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
         let idl_from_build = motoko_info.get_output_idl_path().to_path_buf();
-
-        std::fs::copy(&idl_from_build, &output_idl_path).with_context(|| {
-            format!(
-                "Failed to copy {} to {}.",
-                idl_from_build.to_string_lossy(),
-                output_idl_path.to_string_lossy()
-            )
-        })?;
-
-        Ok(output_idl_path)
+        Ok(idl_from_build)
     }
 }
 

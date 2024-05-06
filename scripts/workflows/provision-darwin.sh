@@ -4,34 +4,33 @@ set -ex
 
 export
 
-# Enter temporary directory.
-pushd /tmp
-
 # Install Bats + moreutils.
+brew fetch --retry coreutils moreutils
 brew install coreutils moreutils
 
 # Install Bats.
 if [ "$(uname -r)" = "19.6.0" ]; then
     brew unlink bats
 fi
+brew fetch --retry bats-core
 brew install bats-core
 
 # Modifications needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
+     brew fetch --retry bitcoin
      brew install bitcoin
 fi
 if [ "$E2E_TEST" = "tests-dfx/build_rust.bash" ]; then
     cargo uninstall cargo-audit
 fi
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
+     brew fetch --retry mitmproxy
      brew install mitmproxy
 fi
 if [ "$E2E_TEST" = "tests-dfx/deps.bash" ]; then
-     cargo install ic-wasm
+     cargo install cargo-binstall
+     cargo binstall -y ic-wasm
 fi
-
-# Exit temporary directory.
-popd
 
 if [ "$E2E_TEST" = "tests-icx-asset/icx-asset.bash" ]; then
     cargo build -p icx-asset

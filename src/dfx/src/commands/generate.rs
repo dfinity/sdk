@@ -4,7 +4,6 @@ use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-
 use clap::Parser;
 use tokio::runtime::Runtime;
 
@@ -36,16 +35,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
     let canisters_to_load = config
         .get_config()
         .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
-    let canisters_to_generate = canisters_to_load
-        .clone()
-        .into_iter()
-        .filter(|canister_name| {
-            !config
-                .get_config()
-                .is_remote_canister(canister_name, &env.get_network_descriptor().name)
-                .unwrap_or(false)
-        })
-        .collect();
+    let canisters_to_generate = canisters_to_load.clone().into_iter().collect();
 
     let canister_pool_load = CanisterPool::load(&env, false, &canisters_to_load)?;
 
@@ -69,9 +59,11 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
         }
     }
     let build_config =
-        BuildConfig::from_config(&config)?.with_canisters_to_build(build_before_generate);
+        BuildConfig::from_config(&config, env.get_network_descriptor().is_playground())?
+            .with_canisters_to_build(build_before_generate);
     let generate_config =
-        BuildConfig::from_config(&config)?.with_canisters_to_build(canisters_to_generate);
+        BuildConfig::from_config(&config, env.get_network_descriptor().is_playground())?
+            .with_canisters_to_build(canisters_to_generate);
 
     if build_config
         .canisters_to_build

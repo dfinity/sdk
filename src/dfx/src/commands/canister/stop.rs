@@ -2,10 +2,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use dfx_core::identity::CallSender;
-
 use candid::Principal;
 use clap::Parser;
+use dfx_core::identity::CallSender;
 use slog::info;
 
 /// Stops a currently running canister.
@@ -47,13 +46,12 @@ pub async fn exec(
     opts: CanisterStopOpts,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let config = env.get_config_or_anyhow()?;
-
     fetch_root_key_if_needed(env).await?;
 
     if let Some(canister) = opts.canister.as_deref() {
         stop_canister(env, canister, call_sender).await
     } else if opts.all {
+        let config = env.get_config_or_anyhow()?;
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
                 stop_canister(env, canister, call_sender).await?;

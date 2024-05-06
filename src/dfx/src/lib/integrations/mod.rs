@@ -3,12 +3,11 @@ use crate::lib::deps::PulledCanister;
 use crate::lib::environment::create_agent;
 use crate::lib::error::DfxResult;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
-use crate::util::{blob_from_arguments, expiry_duration};
-use dfx_core::error::root_key::FetchRootKeyError;
-use dfx_core::identity::Identity;
-
+use crate::util::blob_from_arguments;
 use anyhow::bail;
 use candid::Principal;
+use dfx_core::identity::Identity;
+use dfx_core::{error::root_key::FetchRootKeyError, util::expiry_duration};
 use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -50,7 +49,7 @@ pub async fn initialize_integration_canister(
     };
     try_create_canister(agent, logger, &canister_id, &pulled_canister).await?;
 
-    let install_arg = blob_from_arguments(Some(init_arg), None, None, &None)?;
+    let install_arg = blob_from_arguments(None, Some(init_arg), None, None, &None, true, false)?;
     install_canister(agent, logger, &canister_id, wasm, install_arg, name).await
 }
 

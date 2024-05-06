@@ -1,16 +1,15 @@
-use std::path::PathBuf;
-
-use crate::lib::error::DfxResult;
-use dfx_core::config::model::dfinity::{ConfigInterface, TopLevelConfigNetworks};
-
+use crate::lib::{error::DfxResult, metadata::dfx::DfxMetadata};
 use anyhow::Context;
 use clap::{Parser, ValueEnum};
+use dfx_core::config::model::dfinity::{ConfigInterface, TopLevelConfigNetworks};
 use schemars::schema_for;
+use std::path::PathBuf;
 
 #[derive(ValueEnum, Clone)]
 enum ForFile {
     Dfx,
     Networks,
+    DfxMetadata,
 }
 
 /// Prints the schema for dfx.json.
@@ -27,6 +26,7 @@ pub struct SchemaOpts {
 pub fn exec(opts: SchemaOpts) -> DfxResult {
     let schema = match opts.r#for {
         Some(ForFile::Networks) => schema_for!(TopLevelConfigNetworks),
+        Some(ForFile::DfxMetadata) => schema_for!(DfxMetadata),
         _ => schema_for!(ConfigInterface),
     };
     let nice_schema =

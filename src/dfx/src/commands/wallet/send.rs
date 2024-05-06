@@ -2,7 +2,6 @@ use crate::commands::wallet::get_wallet;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::clap::parsers::cycle_amount_parser;
-
 use anyhow::{anyhow, Context};
 use candid::CandidType;
 use candid::Principal;

@@ -1,13 +1,14 @@
 #![allow(special_module_name)]
-
 use crate::config::{dfx_version, dfx_version_str};
+use crate::lib::diagnosis::{diagnose, Diagnosis};
 use crate::lib::environment::{Environment, EnvironmentImpl};
+use crate::lib::error::DfxResult;
 use crate::lib::logger::{create_root_logger, LoggingMode};
-
 use anyhow::Error;
-use clap::{ArgAction, Args, Parser};
-use lib::diagnosis::{diagnose, Diagnosis, NULL_DIAGNOSIS};
-use semver::Version;
+use clap::{ArgAction, CommandFactory, Parser};
+use dfx_core::extension::manager::ExtensionManager;
+use std::collections::HashMap;
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 mod actors;
@@ -18,7 +19,7 @@ mod util;
 
 /// The DFINITY Executor.
 #[derive(Parser)]
-#[command(name = "dfx", version = dfx_version_str(), styles = util::clap::style())]
+#[command(name = "dfx", version = dfx_version_str(), styles = util::clap::style(), arg_required_else_help = true)]
 pub struct CliOpts {
     /// Displays detailed information about operations. -vv will generate a very large number of messages and can affect performance.
     #[arg(long, short, action = ArgAction::Count, global = true)]
@@ -45,65 +46,7 @@ pub struct CliOpts {
     provisional_create_canister_effective_canister_id: Option<String>,
 
     #[command(subcommand)]
-    command: commands::Command,
-}
-
-#[derive(Args, Clone, Debug)]
-struct NetworkOpt {
-    /// Override the compute network to connect to. By default, the local network is used.
-    /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
-    /// ephemeral network will be created specifically for this request. E.g.
-    /// "http://localhost:12345/" is a valid network name.
-    #[arg(long, global = true)]
-    network: Option<String>,
-}
-
-fn is_warning_disabled(warning: &str) -> bool {
-    // By default, warnings are all enabled.
-    let env_warnings = std::env::var("DFX_WARNING").unwrap_or_else(|_| "".to_string());
-    env_warnings
-        .split(',')
-        .filter(|w| w.starts_with('-'))
-        .any(|w| w.chars().skip(1).collect::<String>().eq(warning))
-}
-
-/// In some cases, redirect the dfx execution to the proper version.
-/// This will ALWAYS return None, OR WILL TERMINATE THE PROCESS. There is no Ok()
-/// version of this (nor should there be).
-///
-/// Note: the right return type for communicating this would be [Option<!>], but since the
-/// never type is experimental, we just assert on the calling site.
-fn maybe_redirect_dfx(version: &Version) -> Option<()> {
-    // Verify we're using the same version as the dfx.json, and if not just redirect the
-    // call to the cache.
-    if dfx_version() != version {
-        // Show a warning to the user.
-        if !is_warning_disabled("version_check") {
-            eprintln!(
-                concat!(
-                    "Warning: The version of DFX used ({}) is different than the version ",
-                    "being run ({}).\n",
-                    "This might happen because your dfx.json specifies an older version, or ",
-                    "DFX_VERSION is set in your environment.\n",
-                    "We are forwarding the command line to the old version. To disable this ",
-                    "warning, set the DFX_WARNING=-version_check environment variable.\n"
-                ),
-                version,
-                dfx_version()
-            );
-        }
-
-        match dfx_core::config::cache::call_cached_dfx(version) {
-            Ok(status) => std::process::exit(status.code().unwrap_or(0)),
-            Err(e) => {
-                eprintln!("Error when trying to forward to project dfx:\n{:?}", e);
-                eprintln!("Installed executable: {}", dfx_version());
-                std::process::exit(1)
-            }
-        };
-    }
-
-    None
+    command: commands::DfxCommand,
 }
 
 /// Setup a logger with the proper configuration, based on arguments.
@@ -124,32 +67,22 @@ fn setup_logging(opts: &CliOpts) -> (i64, slog::Logger) {
 fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
     let mut stderr = util::stderr_wrapper::stderr_wrapper();
 
-    // print error/cause stack
+    // print error chain stack
     for (level, cause) in err.chain().enumerate() {
-        if level == 0 {
-            stderr
-                .fg(term::color::RED)
-                .expect("Failed to set stderr output color.");
-            write!(stderr, "Error: ").expect("Failed to write to stderr.");
-            stderr
-                .reset()
-                .expect("Failed to reset stderr output color.");
+        let (color, prefix) = if level == 0 {
+            (term::color::RED, "Error")
+        } else {
+            (term::color::YELLOW, "Caused by")
+        };
+        stderr
+            .fg(color)
+            .expect("Failed to set stderr output color.");
+        write!(stderr, "{prefix}: ").expect("Failed to write to stderr.");
+        stderr
+            .reset()
+            .expect("Failed to reset stderr output color.");
 
-            writeln!(stderr, "{}", err).expect("Failed to write to stderr.");
-            continue;
-        }
-        if level == 1 {
-            stderr
-                .fg(term::color::YELLOW)
-                .expect("Failed to set stderr output color.");
-            write!(stderr, "Caused by: ").expect("Failed to write to stderr.");
-            stderr
-                .reset()
-                .expect("Failed to reset stderr output color.");
-
-            writeln!(stderr, "{}", err).expect("Failed to write to stderr.");
-        }
-        eprintln!("{:width$}{}", "", cause, width = level * 2);
+        writeln!(stderr, "{cause}").expect("Failed to write to stderr.");
     }
 
     // print diagnosis
@@ -177,46 +110,78 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
     }
 }
 
-fn main() {
-    let cli_opts = CliOpts::parse();
+fn get_args_altered_for_extension_run(em: &ExtensionManager) -> DfxResult<Vec<OsString>> {
+    let mut args = std::env::args_os().collect::<Vec<OsString>>();
+
+    let installed_extensions = em.installed_extensions_as_clap_commands()?;
+    if !installed_extensions.is_empty() {
+        let mut app = CliOpts::command_for_update().subcommands(&installed_extensions);
+        sort_clap_commands(&mut app);
+        // here clap will display the help message if no subcommand was provided...
+        let app = app.get_matches();
+        // ...therefore we can safely unwrap here because we know a subcommand was provided
+        let subcmd = app.subcommand().unwrap().0;
+        if em.is_extension_installed(subcmd) {
+            let idx = args.iter().position(|arg| arg == subcmd).unwrap();
+            args.splice(idx..idx, ["extension", "run"].iter().map(OsString::from));
+        }
+    }
+    Ok(args)
+}
+
+fn inner_main() -> DfxResult {
+    let em = ExtensionManager::new(dfx_version())?;
+
+    let args = get_args_altered_for_extension_run(&em)?;
+
+    let cli_opts = CliOpts::parse_from(args);
+
+    if matches!(cli_opts.command, commands::DfxCommand::Schema(_)) {
+        return commands::exec_without_env(cli_opts.command);
+    }
+
     let (verbose_level, log) = setup_logging(&cli_opts);
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
-    let command = cli_opts.command;
-    let mut error_diagnosis: Diagnosis = NULL_DIAGNOSIS;
-    let result = match EnvironmentImpl::new() {
-        Ok(env) => {
-            maybe_redirect_dfx(env.get_version()).map_or((), |_| unreachable!());
-            match EnvironmentImpl::new().map(|env| {
-                env.with_logger(log)
-                    .with_identity_override(identity)
-                    .with_verbose_level(verbose_level)
-                    .with_effective_canister_id(effective_canister_id)
-            }) {
-                Ok(env) => {
-                    slog::trace!(
-                        env.get_logger(),
-                        "Trace mode enabled. Lots of logs coming up."
-                    );
-                    match commands::exec(&env, command) {
-                        Err(e) => {
-                            error_diagnosis = diagnose(&env, &e);
-                            Err(e)
-                        }
-                        ok => ok,
-                    }
-                }
-                Err(e) => Err(e),
-            }
-        }
-        Err(e) => match command {
-            commands::Command::Schema(_) => commands::exec_without_env(command),
-            _ => Err(e),
-        },
-    };
+
+    let env = EnvironmentImpl::new(em)?
+        .with_logger(log)
+        .with_identity_override(identity)
+        .with_verbose_level(verbose_level)
+        .with_effective_canister_id(effective_canister_id);
+
+    slog::trace!(
+        env.get_logger(),
+        "Trace mode enabled. Lots of logs coming up."
+    );
+    commands::exec(&env, cli_opts.command)
+}
+
+fn main() {
+    let result = inner_main();
     if let Err(err) = result {
+        let error_diagnosis = diagnose(&err);
         print_error_and_diagnosis(err, error_diagnosis);
         std::process::exit(255);
+    }
+}
+
+/// sort subcommands alphabetically (despite this clap prints help as the last one)
+pub fn sort_clap_commands(cmd: &mut clap::Command) {
+    let mut cli_subcommands: Vec<String> = cmd
+        .get_subcommands()
+        .map(|v| v.get_display_name().unwrap_or_default().to_string())
+        .collect();
+    cli_subcommands.sort();
+    let cli_subcommands: HashMap<String, usize> = cli_subcommands
+        .into_iter()
+        .enumerate()
+        .map(|(i, v)| (v, i))
+        .collect();
+    for c in cmd.get_subcommands_mut() {
+        let name = c.get_display_name().unwrap_or_default().to_string();
+        let ord = *cli_subcommands.get(&name).unwrap_or(&999);
+        *c = c.clone().display_order(ord);
     }
 }
 

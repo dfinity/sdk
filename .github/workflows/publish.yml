@@ -27,12 +27,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.65.0' ]
         # We build a dynamic-linked linux binary because otherwise HSM support fails with:
         #   Error: IO: Dynamic loading not supported
         target: [ x86_64-apple-darwin, x86_64-unknown-linux-gnu ]
         include:
-          - os: macos-latest
+          - os: macos-12
             target: x86_64-apple-darwin
             binary_path: target/x86_64-apple-darwin/release
             name: x86_64-darwin
@@ -43,7 +42,7 @@ jobs:
             name: x86_64-linux
             tar: tar
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup environment variables
         run: |
@@ -54,24 +53,18 @@ jobs:
         if: github.ref_type == 'tag'
         run: |
           echo "DFX_VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
-          echo "TARBALL_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz" >> $GITHUB_ENV
-          echo "SHA256_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz.sha256" >> $GITHUB_ENV
+          echo "TARBALL_1_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz" >> $GITHUB_ENV
+          echo "SHA256_1_FILENAME=dfx-$GITHUB_REF_NAME-${{ matrix.name }}.tar.gz.sha256" >> $GITHUB_ENV
+          echo "TARBALL_2_FILENAME=dfx-${{ matrix.target }}.tar.gz" >> $GITHUB_ENV
+          echo "SHA256_2_FILENAME=dfx-${{ matrix.target }}.tar.gz.sha256" >> $GITHUB_ENV
 
       - name: Cache Cargo
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ matrix.rust }}-publish-1
-
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.rust }}
-          override: true
-        if: contains(matrix.os, 'macos')
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('rust-toolchain.toml') }}-publish-1
 
       - name: Build
         run: |
@@ -81,7 +74,7 @@ jobs:
       - name: Check dynamically-linked libraries (macos)
         run: |
           ACTUAL="$(otool -L ${{ matrix.binary_path }}/dfx | awk 'NR > 1{ print $1 }' | grep -v /System/Library/Frameworks | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
-          EXPECTED="/usr/lib/libSystem.B.dylib /usr/lib/libc++.1.dylib /usr/lib/libiconv.2.dylib /usr/lib/libresolv.9.dylib"
+          EXPECTED="/usr/lib/libSystem.B.dylib /usr/lib/libc++.1.dylib /usr/lib/libiconv.2.dylib"
           echo "Dynamically-linked libraries:"
           echo "  Actual:   $ACTUAL"
           echo "  Expected: $EXPECTED"
@@ -112,18 +105,27 @@ jobs:
       - name: Create tarball of binaries and sha256 of tarball
         if: github.ref_type == 'tag'
         run: |
-          ${{ matrix.tar }} -zcC ${{ matrix.binary_path }} -f ${{ env.TARBALL_FILENAME }} dfx
-          shasum -a 256 ${{ env.TARBALL_FILENAME }} > $SHA256_FILENAME
-          shasum -c $SHA256_FILENAME
+          mkdir dfx-${{ matrix.target }}
+          cp ${{ matrix.binary_path }}/dfx dfx-${{ matrix.target }}
+          cp LICENSE dfx-${{ matrix.target }}
+          ${{ matrix.tar }} -zc -f ${{ env.TARBALL_2_FILENAME }} dfx-${{ matrix.target }}
+          shasum -a 256 ${{ env.TARBALL_2_FILENAME }} > ${{ env.SHA256_2_FILENAME }}
+          shasum -c ${{ env.SHA256_2_FILENAME }}
+
+          ${{ matrix.tar }} -zcC ${{ matrix.binary_path }} -f ${{ env.TARBALL_1_FILENAME }} dfx
+          shasum -a 256 ${{ env.TARBALL_1_FILENAME }} > $SHA256_1_FILENAME
+          shasum -c $SHA256_1_FILENAME
 
       - name: Upload Artifacts
         if: github.ref_type == 'tag'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: dfx-artifacts-${{ matrix.rust }}-${{ matrix.name }}
+          name: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-${{ matrix.name }}
           path: |
-            ${{ env.TARBALL_FILENAME }}
-            ${{ env.SHA256_FILENAME }}
+            ${{ env.TARBALL_1_FILENAME }}
+            ${{ env.SHA256_1_FILENAME }}
+            ${{ env.TARBALL_2_FILENAME }}
+            ${{ env.SHA256_2_FILENAME }}
 
   aggregate:
     name: publishable:required
@@ -142,16 +144,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [ '1.65.0' ]
         name: [ 'x86_64-darwin', 'x86_64-linux' ]
     steps:
+      - uses: actions/checkout@v4
+
       - name: Setup environment variables
         run: echo "VERSION=$GITHUB_REF_NAME" >> $GITHUB_ENV
 
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: dfx-artifacts-${{ matrix.rust }}-${{ matrix.name }}
+          name: dfx-artifacts-${{ hashFiles('rust-toolchain.toml') }}-${{ matrix.name }}
 
       - name: Upload tarball and sha256
         uses: svenstaro/upload-release-action@v2
@@ -160,3 +163,5 @@ jobs:
           file: dfx-*.tar.*
           file_glob: true
           tag: ${{ env.VERSION }}
+          prerelease: true
+          make_latest: false

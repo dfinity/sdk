@@ -26,3 +26,9 @@ target/
 
 # Backup files
 *.bak
+
+# DB repo for cargo-audit
+advisory-db/
+
+# mops
+**/.mops/

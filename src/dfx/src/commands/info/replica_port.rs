@@ -1,12 +1,11 @@
 use crate::lib::error::DfxResult;
 use crate::Environment;
-use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
-
 use anyhow::bail;
+use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 pub(crate) fn get_replica_port(env: &dyn Environment) -> DfxResult<String> {
     let network_descriptor = create_network_descriptor(
-        env.get_config(),
+        env.get_config()?,
         env.get_networks_config(),
         None,
         None,

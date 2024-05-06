@@ -21,7 +21,7 @@ const INPUTS: &[&str] = &[
     "src/distributed/ui.did",
     "src/distributed/ui.wasm",
     "src/distributed/wallet.did",
-    "src/distributed/wallet.wasm",
+    "src/distributed/wallet.wasm.gz",
 ];
 
 fn calculate_hash_of_inputs(project_root_path: &Path) -> String {
@@ -129,16 +129,13 @@ fn add_asset_archive(fn_name: &str, f: &mut File, assets_path: &Path) {
 }
 
 fn add_assets_from_directory(fn_name: &str, f: &mut File, path: &str) {
-    for file in WalkDir::new(path)
-        .into_iter()
-        .filter_map(|x| x.ok().filter(|entry| entry.file_type().is_file()))
-    {
+    for file in WalkDir::new(path).into_iter().filter_map(|x| x.ok()) {
         println!("cargo:rerun-if-changed={}", file.path().display())
     }
     let out_dir = env::var("OUT_DIR").unwrap();
     let tgz_path = Path::new(&out_dir).join(format!("{}.tgz", fn_name));
 
-    let tar_gz = File::create(&tgz_path).unwrap();
+    let tar_gz = File::create(tgz_path).unwrap();
     let enc = GzEncoder::new(tar_gz, Compression::default());
     let mut tar = tar::Builder::new(enc);
     tar.append_dir_all("", path).unwrap();
@@ -219,7 +216,7 @@ fn get_git_hash() -> Result<String, std::io::Error> {
 fn add_assets(sources: Sources) {
     let out_dir = env::var("OUT_DIR").unwrap();
     let loader_path = Path::new(&out_dir).join("load_assets.rs");
-    let mut f = File::create(&loader_path).unwrap();
+    let mut f = File::create(loader_path).unwrap();
 
     f.write_all(
         b"
@@ -242,17 +239,87 @@ fn add_assets(sources: Sources) {
     add_assets_from_directory(
         "new_project_motoko_files",
         &mut f,
-        "assets/new_project_motoko_files",
-    );
-    add_assets_from_directory(
-        "new_project_node_files",
-        &mut f,
-        "assets/new_project_node_files",
+        "assets/project_templates/motoko",
     );
     add_assets_from_directory(
         "new_project_rust_files",
         &mut f,
-        "assets/new_project_rust_files",
+        "assets/project_templates/rust",
+    );
+    add_assets_from_directory(
+        "new_project_base_files",
+        &mut f,
+        "assets/project_templates/base",
+    );
+    add_assets_from_directory(
+        "new_project_js_files",
+        &mut f,
+        "assets/project_templates/any_js",
+    );
+    add_assets_from_directory(
+        "new_project_kybra_files",
+        &mut f,
+        "assets/project_templates/kybra",
+    );
+    add_assets_from_directory(
+        "new_project_azle_files",
+        &mut f,
+        "assets/project_templates/azle",
+    );
+    add_assets_from_directory(
+        "new_project_vanillajs_files",
+        &mut f,
+        "assets/project_templates/vanilla_js",
+    );
+    add_assets_from_directory(
+        "new_project_vanillajs_test_files",
+        &mut f,
+        "assets/project_templates/vanilla_js_tests",
+    );
+    add_assets_from_directory(
+        "new_project_react_files",
+        &mut f,
+        "assets/project_templates/react",
+    );
+    add_assets_from_directory(
+        "new_project_react_test_files",
+        &mut f,
+        "assets/project_templates/react_tests",
+    );
+    add_assets_from_directory(
+        "new_project_svelte_files",
+        &mut f,
+        "assets/project_templates/svelte",
+    );
+    add_assets_from_directory(
+        "new_project_svelte_test_files",
+        &mut f,
+        "assets/project_templates/svelte_tests",
+    );
+    add_assets_from_directory(
+        "new_project_vue_files",
+        &mut f,
+        "assets/project_templates/vue",
+    );
+    add_assets_from_directory(
+        "new_project_vue_test_files",
+        &mut f,
+        "assets/project_templates/vue_tests",
+    );
+    add_assets_from_directory(
+        "new_project_assets_files",
+        &mut f,
+        "assets/project_templates/simple_assets",
+    );
+    add_assets_from_directory(
+        "new_project_internet_identity_files",
+        &mut f,
+        "assets/project_templates/internet_identity",
+    );
+    add_assets_from_directory(
+        "new_project_bitcoin_files",
+        &mut f,
+        "assets/project_templates/bitcoin",
     );
 }
 

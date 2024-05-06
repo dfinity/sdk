@@ -6,8 +6,6 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
-
-use anyhow::bail;
 use candid::Principal as CanisterId;
 use fn_error_context::context;
 use slog::o;
@@ -54,7 +52,7 @@ impl CanisterBuilder for PullBuilder {
         })
     }
 
-    fn generate_idl(
+    fn get_candid_path(
         &self,
         _pool: &CanisterPool,
         info: &CanisterInfo,
@@ -62,13 +60,6 @@ impl CanisterBuilder for PullBuilder {
     ) -> DfxResult<PathBuf> {
         let pull_info = info.as_info::<PullCanisterInfo>()?;
         let output_idl_path = pull_info.get_output_idl_path();
-        if output_idl_path.exists() {
-            Ok(output_idl_path.to_path_buf())
-        } else {
-            bail!(
-                "Candid file: {} doesn't exist.",
-                output_idl_path.to_string_lossy()
-            );
-        }
+        Ok(output_idl_path.to_path_buf())
     }
 }

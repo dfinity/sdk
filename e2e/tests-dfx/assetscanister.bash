@@ -3,32 +3,57 @@
 load ../utils/_
 
 setup() {
-    standard_setup
+  standard_setup
 
-    dfx_new
+  dfx_new_assets
 }
 
 teardown() {
-    dfx_stop
+  dfx_stop
 
-    standard_teardown
+  standard_teardown
 }
 
 create_batch() {
-    reg="batch_id = ([0-9]*) : nat"
-    assert_command      dfx canister call e2e_project_frontend create_batch '(record { })'
-    # shellcheck disable=SC2154
-    [[ "$stdout" =~ $reg ]]
-    BATCH_ID="${BASH_REMATCH[1]}"
-    echo "$BATCH_ID"
+  reg="batch_id = ([0-9]*) : nat"
+  assert_command      dfx canister call e2e_project_frontend create_batch '(record { })'
+  # shellcheck disable=SC2154
+  [[ "$stdout" =~ $reg ]]
+  BATCH_ID="${BASH_REMATCH[1]}"
+  echo "$BATCH_ID"
+}
+
+create_chunk() {
+  batch_id="$1"
+  reg="chunk_id = ([0-9]*) : nat"
+  assert_command      dfx canister call e2e_project_frontend create_chunk "(record { batch_id = $batch_id; content = vec {} })"
+  # shellcheck disable=SC2154
+  [[ "$stdout" =~ $reg ]]
+  CHUNK_ID="${BASH_REMATCH[1]}"
+  echo "$CHUNK_ID"
 }
 
 delete_batch() {
-    assert_command dfx canister call e2e_project_frontend delete_batch "(record { batch_id=$1; })"
+  assert_command dfx canister call e2e_project_frontend delete_batch "(record { batch_id=$1; })"
 }
 
 check_permission_failure() {
-    assert_contains "$1"
+  assert_contains "$1"
+}
+
+@test "commit_batch is atomic" {
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+  BATCH_ID=$(create_batch)
+  CHUNK_ID=$(create_chunk "$BATCH_ID")
+  CREATE_ASSET='variant { CreateAsset = record { key="/abc.txt" ; content_type = "text/plain"} }'
+  SET_ASSET_CONTENT="variant { SetAssetContent = record { key=\"/abd.txt\"; content_encoding = \"identity\"; chunk_ids=vec { $CHUNK_ID } } }"
+  OPERATIONS="vec { $CREATE_ASSET ; $SET_ASSET_CONTENT }"
+  assert_command_fail dfx canister call e2e_project_frontend commit_batch "(record { batch_id=$BATCH_ID; operations = $OPERATIONS })"
+  assert_contains "asset not found"
+  assert_command dfx canister call e2e_project_frontend list '(record {})'
+  assert_not_contains "/abc.txt"
 }
 
 @test "batch id persists through upgrade" {
@@ -66,6 +91,7 @@ check_permission_failure() {
   PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
   COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
 
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
   # Prep for a DeleteAsset operation
   echo "to-be-deleted" >src/e2e_project_frontend/assets/to-be-deleted.txt
@@ -109,14 +135,14 @@ check_permission_failure() {
   dfx identity get-principal --identity prepare
   dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_contains "Proposed commit of batch 2 with evidence 4301263f1fcc0d19ef92cfb6774c4da92bf1a9d2002a293a9d95d97819c02958.  Either commit it by proposal, or delete it."
+  assert_contains "Proposed commit of batch 2 with evidence 164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1.  Either commit it by proposal, or delete it."
 
   assert_command_fail dfx deploy e2e_project_frontend --by-proposal --identity prepare
   assert_contains "Batch 2 is already proposed.  Delete or execute it to propose another."
 
   assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
   # shellcheck disable=SC2154
-  assert_eq "4301263f1fcc0d19ef92cfb6774c4da92bf1a9d2002a293a9d95d97819c02958" "$stdout"
+  assert_eq "164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1" "$stdout"
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
@@ -136,9 +162,9 @@ check_permission_failure() {
   assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$wrong_commit_args" --identity commit
   assert_match "batch computed evidence .* does not match presented evidence"
 
-  commit_args='(record { batch_id = 2; evidence = blob "\43\01\26\3f\1f\cc\0d\19\ef\92\cf\b6\77\4c\4d\a9\2b\f1\a9\d2\00\2a\29\3a\9d\95\d9\78\19\c0\29\58" } )'
+  commit_args='(record { batch_id = 2; evidence = blob "\16\4f\cc\4d\93\3f\f9\99\2a\b6\ab\90\9a\4b\f3\50\01\0f\a0\f4\a3\e1\e2\47\bf\c6\79\d3\f4\52\54\e1" } )'
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
-  assert_contains "commit proposed batch 2 with evidence 4301"
+  assert_contains "commit proposed batch 2 with evidence 164f"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
   assert_eq "()"
 
@@ -171,6 +197,7 @@ check_permission_failure() {
   PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
   COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
 
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
   install_asset assetscanister
   dfx_start
   mkdir tmp
@@ -188,11 +215,11 @@ check_permission_failure() {
   dfx identity get-principal --identity prepare
   dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_contains "Proposed commit of batch 2 with evidence 1b45c8b1d0deec88ac032590e0f1cd9ab407f796e827aac880f4ffb035fdc200.  Either commit it by proposal, or delete it."
+  assert_contains "Proposed commit of batch 2 with evidence 9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b.  Either commit it by proposal, or delete it."
 
   assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
   # shellcheck disable=SC2154
-  assert_eq "1b45c8b1d0deec88ac032590e0f1cd9ab407f796e827aac880f4ffb035fdc200" "$stdout"
+  assert_eq "9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b" "$stdout"
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
@@ -200,9 +227,9 @@ check_permission_failure() {
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/sample-asset.txt?canisterId="$ID"
   assert_contains "The requested URL returned error: 404"
 
-  commit_args='(record { batch_id = 2; evidence = blob "\1b\45\c8\b1\d0\de\ec\88\ac\03\25\90\e0\f1\cd\9a\b4\07\f7\96\e8\27\aa\c8\80\f4\ff\b0\35\fd\c2\00" } )'
+  commit_args='(record { batch_id = 2; evidence = blob "\9b\72\ee\e7\f0\d7\af\2a\9b\41\23\3c\34\1b\1c\aa\0c\90\5e\f9\14\05\f5\f5\13\ff\b5\8f\68\af\ee\5b" } )'
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
-  assert_contains "commit proposed batch 2 with evidence 1b45c8b1d0deec88ac032590e0f1cd9ab407f796e827aac880f4ffb035fdc200"
+  assert_contains "commit proposed batch 2 with evidence 9b72eee7f0d7af2a9b41233c341b1caa0c905ef91405f5f513ffb58f68afee5b"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
   assert_eq "()"
 
@@ -241,7 +268,7 @@ check_permission_failure() {
   FE_CANISTER_ID="$(dfx canister id e2e_project_frontend)"
   rm .dfx/local/canister_ids.json
   assert_command_fail dfx canister call "$FE_CANISTER_ID" validate_revoke_permission "(record { of_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { FlyBeFree }; })"
-  assert_contains "trapped"
+  assert_contains "FlyBeFree not found"
 }
 
 @test "access control - fine-grained" {
@@ -341,7 +368,9 @@ check_permission_failure() {
 
   # create_asset
   args='(record { key="/a.txt"; content_type="text/plain" })'
+  delete_args='(record { key="/a.txt" })'
   assert_command      dfx canister call e2e_project_frontend create_asset "$args"
+  assert_command      dfx canister call e2e_project_frontend delete_asset "$delete_args"
   assert_command      dfx canister call e2e_project_frontend create_asset "$args" --identity commit
   assert_command_fail dfx canister call e2e_project_frontend create_asset "$args" --identity prepare
   assert_contains "Caller does not have Commit permission"
@@ -667,799 +696,932 @@ check_permission_failure() {
   assert_command dfx deploy
 }
 
+@test "can serve filenames with special characters in filename" {
+  # This is observed, not expected behavior
+  # see https://dfinity.atlassian.net/browse/SDK-1247
+  install_asset assetscanister
+
+  dfx_start
+
+  echo "filename is an ae symbol" >'src/e2e_project_frontend/assets/æ'
+
+  dfx deploy
+
+  dfx canister  call --query e2e_project_frontend list '(record {})'
+
+  # decode as expected
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%e6";headers=vec{};method="GET";body=vec{}})'
+  assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
+
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+
+  # fails with Err(InvalidExpressionPath)
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/%c3%a6?canisterId="$ID"
+
+  # fails with Err(Utf8ConversionError(FromUtf8Error { bytes: [47, 230], error: Utf8Error { valid_up_to: 1, error_len: None } }))
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
+  # assert_match "200 OK" "$stderr"
+  # assert_match "filename is an ae symbol"
+  assert_contains "500 Internal Server Error"
+}
+
 @test "http_request percent-decodes urls" {
-    install_asset assetscanister
+  install_asset assetscanister
 
-    dfx_start
+  dfx_start
 
-    echo "contents of file with space in filename" >'src/e2e_project_frontend/assets/filename with space.txt'
-    echo "contents of file with plus in filename" >'src/e2e_project_frontend/assets/has+plus.txt'
-    echo "contents of file with percent in filename" >'src/e2e_project_frontend/assets/has%percent.txt'
-    echo "filename is an ae symbol" >'src/e2e_project_frontend/assets/æ'
-    echo "filename is percent symbol" >'src/e2e_project_frontend/assets/%'
-    echo "filename contains question mark" >'src/e2e_project_frontend/assets/filename?withqmark.txt'
-    dd if=/dev/urandom of='src/e2e_project_frontend/assets/large with spaces.bin' bs=2500000 count=1
+  echo "contents of file with space in filename" >'src/e2e_project_frontend/assets/filename with space.txt'
+  echo "contents of file with plus in filename" >'src/e2e_project_frontend/assets/has+plus.txt'
+  echo "contents of file with percent in filename" >'src/e2e_project_frontend/assets/has%percent.txt'
+  echo "filename is an ae symbol" >'src/e2e_project_frontend/assets/æ'
+  echo "filename is percent symbol" >'src/e2e_project_frontend/assets/%'
+  echo "filename contains question mark" >'src/e2e_project_frontend/assets/filename?withqmark.txt'
+  dd if=/dev/urandom of='src/e2e_project_frontend/assets/large with spaces.bin' bs=2500000 count=1
 
 
-    dfx deploy
+  dfx deploy
 
-    # decode as expected
-    assert_command dfx canister  call --query e2e_project_frontend http_request '(record{url="/filename%20with%20space.txt";headers=vec{};method="GET";body=vec{}})'
-    assert_match "contents of file with space in filename"
-    assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/has%2bplus.txt";headers=vec{};method="GET";body=vec{}})'
-    assert_match "contents of file with plus in filename"
-    assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/has%2Bplus.txt";headers=vec{};method="GET";body=vec{}})'
-    assert_match "contents of file with plus in filename"
-    assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/has%%percent.txt";headers=vec{};method="GET";body=vec{}})'
-    assert_match "contents of file with percent in filename"
-    assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%e6";headers=vec{};method="GET";body=vec{}})'
-    assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
-    assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%%";headers=vec{};method="GET";body=vec{}})'
-    assert_match "filename is percent"
-     # this test ensures url decoding happens after removing the query string
-    assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/filename%3fwithqmark.txt";headers=vec{};method="GET";body=vec{}})'
-    assert_match "filename contains question mark"
+  # decode as expected
+  assert_command dfx canister  call --query e2e_project_frontend http_request '(record{url="/filename%20with%20space.txt";headers=vec{};method="GET";body=vec{}})'
+  assert_match "contents of file with space in filename"
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/has%2bplus.txt";headers=vec{};method="GET";body=vec{}})'
+  assert_match "contents of file with plus in filename"
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/has%2Bplus.txt";headers=vec{};method="GET";body=vec{}})'
+  assert_match "contents of file with plus in filename"
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/has%25percent.txt";headers=vec{};method="GET";body=vec{}})'
+  assert_match "contents of file with percent in filename"
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%e6";headers=vec{};method="GET";body=vec{}})'
+  assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%25";headers=vec{};method="GET";body=vec{}})'
+  assert_match "filename is percent"
+   # this test ensures url decoding happens after removing the query string
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/filename%3fwithqmark.txt";headers=vec{};method="GET";body=vec{}})'
+  assert_match "filename contains question mark"
 
-    # these error conditions can't be tested with curl, because something responds first with Bad Request.
-    # THESE TESTS WERE REMOVED BECAUSE THE RUST CANISTER DOES NOT SUPPORT REJECTING MESSAGES
-    # TODO: Reenable those tests.
-    #    assert_command_fail dfx canister call --query e2e_project_frontend http_request '(record{url="/%";headers=vec{};method="GET";body=vec{}})'
-    #    assert_match "error decoding url: % must be followed by '%' or two hex digits"
-    #    assert_command_fail dfx canister call --query e2e_project_frontend http_request '(record{url="/%z";headers=vec{};method="GET";body=vec{}})'
-    #    assert_match "error decoding url: % must be followed by two hex digits, but only one was found"
-    #    assert_command_fail dfx canister call --query e2e_project_frontend http_request '(record{url="/%zz";headers=vec{};method="GET";body=vec{}})'
-    #    assert_match "error decoding url: neither character after % is a hex digit"
-    #    assert_command_fail dfx canister call --query e2e_project_frontend http_request '(record{url="/%e";headers=vec{};method="GET";body=vec{}})'
-    #    assert_match "error decoding url: % must be followed by two hex digits, but only one was found"
-    #    assert_command_fail dfx canister call --query e2e_project_frontend http_request '(record{url="/%g6";headers=vec{};method="GET";body=vec{}})'
-    #    assert_match "error decoding url: first character after % is not a hex digit"
-    #    assert_command_fail dfx canister call --query e2e_project_frontend http_request '(record{url="/%ch";headers=vec{};method="GET";body=vec{}})'
-    #    assert_match "error decoding url: second character after % is not a hex digit"
+  # these error conditions can't be tested with curl, because something responds first with Bad Request.
+  # THESE TESTS WERE REMOVED BECAUSE THE RUST CANISTER DOES NOT SUPPORT REJECTING MESSAGES
+  # TODO: Reenable those tests.
+  #    assert_command_fail dfx canister call --query e2e_project_frontend http_request '(record{url="/%";headers=vec{};method="GET";body=vec{}})'
+  #    assert_match "error decoding url: % must be followed by '%' or two hex digits"
+  #    assert_command_fail dfx canister call --query e2e_project_frontend http_request '(record{url="/%z";headers=vec{};method="GET";body=vec{}})'
+  #    assert_match "error decoding url: % must be followed by two hex digits, but only one was found"
+  #    assert_command_fail dfx canister call --query e2e_project_frontend http_request '(record{url="/%zz";headers=vec{};method="GET";body=vec{}})'
+  #    assert_match "error decoding url: neither character after % is a hex digit"
+  #    assert_command_fail dfx canister call --query e2e_project_frontend http_request '(record{url="/%e";headers=vec{};method="GET";body=vec{}})'
+  #    assert_match "error decoding url: % must be followed by two hex digits, but only one was found"
+  #    assert_command_fail dfx canister call --query e2e_project_frontend http_request '(record{url="/%g6";headers=vec{};method="GET";body=vec{}})'
+  #    assert_match "error decoding url: first character after % is not a hex digit"
+  #    assert_command_fail dfx canister call --query e2e_project_frontend http_request '(record{url="/%ch";headers=vec{};method="GET";body=vec{}})'
+  #    assert_match "error decoding url: second character after % is not a hex digit"
 
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
 
-    assert_command curl --fail -vv http://localhost:"$PORT"/filename%20with%20space.txt?canisterId="$ID"
-    # shellcheck disable=SC2154
-    assert_match "200 OK" "$stderr"
-    assert_match "contents of file with space in filename"
+  assert_command curl --fail -vv http://localhost:"$PORT"/filename%20with%20space.txt?canisterId="$ID"
+  # shellcheck disable=SC2154
+  assert_match "200 OK" "$stderr"
+  assert_match "contents of file with space in filename"
 
-    assert_command curl --fail -vv http://localhost:"$PORT"/has%2bplus.txt?canisterId="$ID"
-    assert_match "200 OK" "$stderr"
-    assert_match "contents of file with plus in filename"
+  assert_command curl --fail -vv http://localhost:"$PORT"/has%2bplus.txt?canisterId="$ID"
+  assert_match "200 OK" "$stderr"
+  assert_match "contents of file with plus in filename"
 
-    assert_command curl --fail -vv http://localhost:"$PORT"/has%%percent.txt?canisterId="$ID"
-    assert_match "200 OK" "$stderr"
-    assert_match "contents of file with percent in filename"
+  assert_command curl --fail -vv http://localhost:"$PORT"/has%25percent.txt?canisterId="$ID"
+  assert_match "200 OK" "$stderr"
+  assert_match "contents of file with percent in filename"
 
-    assert_command curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
-    assert_match "200 OK" "$stderr"
-    assert_match "filename is an ae symbol"
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
+  # see https://dfinity.atlassian.net/browse/SDK-1247
+  # fails with Err(Utf8ConversionError(FromUtf8Error { bytes: [47, 230], error: Utf8Error { valid_up_to: 1, error_len: None } }))
+  assert_contains "500 Internal Server Error"
+  # assert_match "200 OK" "$stderr"
+  # assert_match "filename is an ae symbol"
 
-    assert_command curl --fail -vv http://localhost:"$PORT"/%%?canisterId="$ID"
-    assert_match "200 OK" "$stderr"
-    assert_match "filename is percent symbol"
+  assert_command curl --fail -vv http://localhost:"$PORT"/%25?canisterId="$ID"
+  assert_match "200 OK" "$stderr"
+  assert_match "filename is percent symbol"
 
-    assert_command curl --fail -vv http://localhost:"$PORT"/filename%3fwithqmark.txt?canisterId="$ID"
-    assert_match "200 OK" "$stderr"
-    assert_match "filename contains question mark"
+  assert_command curl --fail -vv http://localhost:"$PORT"/filename%3fwithqmark.txt?canisterId="$ID"
+  assert_match "200 OK" "$stderr"
+  assert_match "filename contains question mark"
 
-    assert_command curl --fail -vv --output lws-curl-output.bin "http://localhost:$PORT/large%20with%20spaces.bin?canisterId=$ID"
-    diff 'src/e2e_project_frontend/assets/large with spaces.bin' lws-curl-output.bin
+  assert_command curl --fail -vv --output lws-curl-output.bin "http://localhost:$PORT/large%20with%20spaces.bin?canisterId=$ID"
+  diff 'src/e2e_project_frontend/assets/large with spaces.bin' lws-curl-output.bin
 
-    # curl now reports "curl: (3) URL using bad/illegal format or missing URL" so we cannot verify behavior
-    # assert_command_fail curl --fail -vv --path-as-is http://localhost:"$PORT"/'filename with space'.txt?canisterId="$ID"
-    # assert_match "400 Bad Request" "$stderr"
+  # curl now reports "curl: (3) URL using bad/illegal format or missing URL" so we cannot verify behavior
+  # assert_command_fail curl --fail -vv --path-as-is http://localhost:"$PORT"/'filename with space'.txt?canisterId="$ID"
+  # assert_match "400 Bad Request" "$stderr"
 }
 
 @test "generates gzipped content encoding for .js files" {
-    install_asset assetscanister
-    for i in $(seq 1 400); do
-      echo "some easily duplicate text $i" >>src/e2e_project_frontend/assets/notreally.js
-    done
+  install_asset assetscanister
+  for i in $(seq 1 400); do
+    echo "some easily duplicate text $i" >>src/e2e_project_frontend/assets/notreally.js
+  done
 
-    dfx_start
-    assert_command dfx deploy
-    dfx canister call --query e2e_project_frontend list '(record{})'
+  dfx_start
+  assert_command dfx deploy
+  dfx canister call --query e2e_project_frontend list '(record{})'
 
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
 
-    assert_command curl -v --output not-compressed http://localhost:"$PORT"/notreally.js?canisterId="$ID"
-    assert_not_match "content-encoding:"
-    diff not-compressed src/e2e_project_frontend/assets/notreally.js
+  assert_command curl -v --output not-compressed http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+  assert_not_match "content-encoding:"
+  diff not-compressed src/e2e_project_frontend/assets/notreally.js
 
-    assert_command curl -v --output encoded-compressed-1.gz -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
-    assert_match "content-encoding: gzip"
-    gunzip encoded-compressed-1.gz
-    diff encoded-compressed-1 src/e2e_project_frontend/assets/notreally.js
+  assert_command curl -v --output encoded-compressed-1.gz -H "Accept-Encoding: gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+  assert_match "content-encoding: gzip"
+  gunzip encoded-compressed-1.gz
+  diff encoded-compressed-1 src/e2e_project_frontend/assets/notreally.js
 
-    # should split up accept-encoding lines with more than one encoding
-    assert_command curl -v --output encoded-compressed-2.gz -H "Accept-Encoding: gzip, deflate, br" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
-    assert_match "content-encoding: gzip"
-    gunzip encoded-compressed-2.gz
-    diff encoded-compressed-2 src/e2e_project_frontend/assets/notreally.js
+  # should split up accept-encoding lines with more than one encoding
+  assert_command curl -v --output encoded-compressed-2.gz -H "Accept-Encoding: gzip, deflate, br" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+  assert_match "content-encoding: gzip"
+  gunzip encoded-compressed-2.gz
+  diff encoded-compressed-2 src/e2e_project_frontend/assets/notreally.js
 }
 
 @test "leaves in place files that were already installed" {
-    install_asset assetscanister
-    dd if=/dev/urandom of=src/e2e_project_frontend/assets/asset1.bin bs=400000 count=1
-    dd if=/dev/urandom of=src/e2e_project_frontend/assets/asset2.bin bs=400000 count=1
+  install_asset assetscanister
+  dd if=/dev/urandom of=src/e2e_project_frontend/assets/asset1.bin bs=400000 count=1
+  dd if=/dev/urandom of=src/e2e_project_frontend/assets/asset2.bin bs=400000 count=1
 
-    dfx_start
-    assert_command dfx deploy
+  dfx_start
+  assert_command dfx deploy
 
-    assert_match '/asset1.bin 1/1'
-    assert_match '/asset2.bin 1/1'
+  assert_match '/asset1.bin 1/1'
+  assert_match '/asset2.bin 1/1'
 
-    dd if=/dev/urandom of=src/e2e_project_frontend/assets/asset2.bin bs=400000 count=1
+  dd if=/dev/urandom of=src/e2e_project_frontend/assets/asset2.bin bs=400000 count=1
 
-    assert_command dfx deploy
-    assert_match '/asset1.bin.*is already installed'
-    assert_match '/asset2.bin 1/1'
+  assert_command dfx deploy
+  assert_match '/asset1.bin.*is already installed'
+  assert_match '/asset2.bin 1/1'
 }
 
 @test "unsets asset encodings that are removed from project" {
-    install_asset assetscanister
+  install_asset assetscanister
 
-    dfx_start
-    dfx deploy
+  dfx_start
+  dfx deploy
 
-    assert_command dfx canister call --update e2e_project_frontend store '(record{key="/sample-asset.txt"; content_type="text/plain"; content_encoding="arbitrary"; content=blob "content encoded in another way!"})'
+  assert_command dfx canister call --update e2e_project_frontend store '(record{key="/sample-asset.txt"; content_type="text/plain"; content_encoding="arbitrary"; content=blob "content encoded in another way!"})'
 
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
 
-    dfx deploy
+  dfx deploy
 
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
-    assert_command_fail dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
+  assert_command_fail dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"arbitrary"}})'
 }
 
-@test "verifies sha256, if specified" {
-    install_asset assetscanister
+@test "verifies sha256" {
+  install_asset assetscanister
 
-    dfx_start
-    dfx deploy
+  dfx_start
+  dfx deploy
 
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/text-with-newlines.txt";accept_encodings=vec{"identity"}})'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/text-with-newlines.txt";accept_encodings=vec{"identity"}})'
 
-    assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
-    assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
-    assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
-    assert_match 'sha256 mismatch'
+  assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt blob "\f3\bf\72\b1\53\12\90\79\83\26\6d\b7\59\f4\78\88\35\bb\0e\4a\08\70\56\64\73\08\b3\9b\45\4e\5f\a0" })'
+  assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
+  assert_match 'sha256 required'
+  assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt blob "XWV" })'
+  assert_match 'sha256 mismatch'
 
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 243; 191; 114; 177; 83; 18; 144; 121; 131; 38; 109; 183; 89; 244; 120; 136; 53; 187; 14; 74; 8; 112; 86; 100; 115; 8; 179; 155; 69; 78; 95; 160; }})'
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0})'
-    assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
-    assert_match 'sha256 mismatch'
+  assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt blob "\f3\bf\72\b1\53\12\90\79\83\26\6d\b7\59\f4\78\88\35\bb\0e\4a\08\70\56\64\73\08\b3\9b\45\4e\5f\a0"})'
+  assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/text-with-newlines.txt";content_encoding="identity";index=0;sha256=opt vec { 88; 87; 86; }})'
+  assert_match 'sha256 mismatch'
 
 }
 
 @test "can store and retrieve assets by key" {
-    install_asset assetscanister
+  install_asset assetscanister
 
-    dfx_start
-    dfx canister create --all
-    dfx build
-    dfx canister install e2e_project_frontend
+  dfx_start
+  dfx canister create --all
+  dfx build
+  dfx canister install e2e_project_frontend
 
-    assert_command dfx canister call --query e2e_project_frontend retrieve '("/binary/noise.txt")' --output idl
-    assert_eq '(blob "\b8\01 \80\0aw12 \00xy\0aKL\0b\0ajk")'
+  assert_command dfx canister call --query e2e_project_frontend retrieve '("/binary/noise.txt")' --output idl
+  # shellcheck disable=SC2154
+  assert_eq '(blob "\b8\01\20\80\0a\77\31\32\20\00\78\79\0a\4b\4c\0b\0a\6a\6b")' "$stdout"
 
-    assert_command dfx canister call --query e2e_project_frontend retrieve '("/text-with-newlines.txt")' --output idl
-    assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")'
+  assert_command dfx canister call --query e2e_project_frontend retrieve '("/text-with-newlines.txt")' --output idl
+  # shellcheck disable=SC2154
+  assert_eq '(blob "cherries\0ait\27s cherry season\0aCHERRIES")' "$stdout"
 
-    assert_command dfx canister call --update e2e_project_frontend store '(record{key="AA"; content_type="text/plain"; content_encoding="identity"; content=blob "hello, world!"})'
-    assert_eq '()'
-    assert_command dfx canister call --update e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=vec { 88; 87; 86; }})'
-    assert_eq '()'
+  assert_command dfx canister call --update e2e_project_frontend store '(record{key="AA"; content_type="text/plain"; content_encoding="identity"; content=blob "hello, world!"})'
+  assert_eq '()'
+  assert_command dfx canister call --update e2e_project_frontend store '(record{key="B"; content_type="application/octet-stream"; content_encoding="identity"; content=blob"XWV"})'
+  assert_eq '()'
 
-    assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
-    assert_eq '(blob "XWV")'
+  assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
+  # shellcheck disable=SC2154
+  assert_eq '(blob "XWV")' "$stdout"
 
-    assert_command dfx canister call --query e2e_project_frontend retrieve '("AA")' --output idl
-    assert_eq '(blob "hello, world!")'
+  assert_command dfx canister call --query e2e_project_frontend retrieve '("AA")' --output idl
+  # shellcheck disable=SC2154
+  assert_eq '(blob "hello, world!")' "$stdout"
 
-    assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
-    assert_eq '(blob "XWV")'
+  assert_command dfx canister call --query e2e_project_frontend retrieve '("B")' --output idl
+  # shellcheck disable=SC2154
+  assert_eq '(blob "XWV")' "$stdout"
 
-    assert_command_fail dfx canister call --query e2e_project_frontend retrieve '("C")'
+  assert_command_fail dfx canister call --query e2e_project_frontend retrieve '("C")'
 }
 
 @test "asset canister supports http requests" {
-    install_asset assetscanister
+  install_asset assetscanister
 
-    dfx_start
-    dfx canister create --all
-    dfx build
-    dfx canister install e2e_project_frontend
+  dfx_start
+  dfx canister create --all
+  dfx build
+  dfx canister install e2e_project_frontend
 
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
-    assert_command curl http://localhost:"$PORT"/text-with-newlines.txt?canisterId="$ID"
-    # shellcheck disable=SC2154
-    assert_eq "cherries
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+  assert_command curl http://localhost:"$PORT"/text-with-newlines.txt?canisterId="$ID"
+  # shellcheck disable=SC2154
+  assert_eq "cherries
 it's cherry season
 CHERRIES" "$stdout"
 }
 
 @test 'can store arbitrarily large files' {
-    [ "$USE_IC_REF" ] && skip "skip for ic-ref" # this takes too long for ic-ref's wasm interpreter
+  install_asset assetscanister
 
-    install_asset assetscanister
-    dd if=/dev/urandom of=src/e2e_project_frontend/assets/large-asset.bin bs=1000000 count=6
+  # make a big file with deterministic contents (a fixed hash)
+  for a in $(seq 1 20); do
+    echo "$a" >>src/e2e_project_frontend/assets/large-asset.bin
+    dd if=/dev/zero bs=300000 count=1 >> src/e2e_project_frontend/assets/large-asset.bin
+  done
 
-    dfx_start
-    dfx canister create --all
-    dfx build
-    dfx canister install e2e_project_frontend
+  dfx_start
+  dfx canister create --all
+  dfx build
+  dfx canister install e2e_project_frontend
 
-    # retrieve() refuses to serve just part of an asset
-    assert_command_fail dfx canister call --query e2e_project_frontend retrieve '("/large-asset.bin")'
-    assert_match 'Asset too large.'
+  # retrieve() refuses to serve just part of an asset
+  assert_command_fail dfx canister call --query e2e_project_frontend retrieve '("/large-asset.bin")'
+  assert_match 'Asset too large.'
 
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
-    assert_match 'total_length = 6_000_000'
-    assert_match 'content_type = "application/octet-stream"'
-    assert_match 'content_encoding = "identity"'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
+  assert_match 'total_length = 6_000_051'
+  assert_match 'content_type = "application/octet-stream"'
+  assert_match 'content_encoding = "identity"'
 
-    assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=2})'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/large-asset.bin";accept_encodings=vec{"identity"}})'
 
-    assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=3})'
-    assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=4})'
+  assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=2;sha256=opt blob "\4f\a1\0f\f7\41\9f\0e\18\81\44\8f\d5\6e\2c\6a\a1\89\a8\f5\21\92\d4\87\f5\9b\4b\a2\3c\52\eb\e5\b7"})'
+  assert_contains "sha256 mismatch"
 
-    PORT=$(get_webserver_port)
-    CANISTER_ID=$(dfx canister id e2e_project_frontend)
-    curl -v --output curl-output.bin "http://localhost:$PORT/large-asset.bin?canisterId=$CANISTER_ID"
-    diff src/e2e_project_frontend/assets/large-asset.bin curl-output.bin
+  assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=2;sha256=opt blob "\4f\a1\0f\f7\41\9c\0e\18\81\44\8f\d5\6e\2c\6a\a1\89\a8\f5\21\92\d4\87\f5\9b\4b\a2\3c\52\eb\e5\b7"})'
+
+  assert_command dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=3;sha256=opt blob "\4f\a1\0f\f7\41\9c\0e\18\81\44\8f\d5\6e\2c\6a\a1\89\a8\f5\21\92\d4\87\f5\9b\4b\a2\3c\52\eb\e5\b7"})'
+  assert_command_fail dfx canister call --query e2e_project_frontend get_chunk '(record{key="/large-asset.bin";content_encoding="identity";index=4})'
+
+  PORT=$(get_webserver_port)
+  CANISTER_ID=$(dfx canister id e2e_project_frontend)
+  curl -v --output curl-output.bin "http://localhost:$PORT/large-asset.bin?canisterId=$CANISTER_ID"
+  diff src/e2e_project_frontend/assets/large-asset.bin curl-output.bin
 }
 
 @test "list() return assets" {
-    install_asset assetscanister
+  install_asset assetscanister
 
-    dfx_start
-    dfx canister create --all
-    dfx build
-    dfx canister install e2e_project_frontend
+  dfx_start
+  dfx canister create --all
+  dfx build
+  dfx canister install e2e_project_frontend
 
-    assert_command dfx canister call --query e2e_project_frontend list '(record{})'
-    assert_match '"/binary/noise.txt"'
-    assert_match 'length = 19'
-    assert_match '"/text-with-newlines.txt"'
-    assert_match 'length = 36'
-    assert_match '"/sample-asset.txt"'
-    assert_match 'length = 24'
+  assert_command dfx canister call --query e2e_project_frontend list '(record{})'
+  assert_match '"/binary/noise.txt"'
+  assert_match 'length = 19'
+  assert_match '"/text-with-newlines.txt"'
+  assert_match 'length = 36'
+  assert_match '"/sample-asset.txt"'
+  assert_match 'length = 24'
 }
 
 @test "identifies content type" {
-    install_asset assetscanister
+  install_asset assetscanister
 
-    dfx_start
-    dfx canister create --all
+  dfx_start
+  dfx canister create --all
 
-    touch src/e2e_project_frontend/assets/index.html
-    touch src/e2e_project_frontend/assets/logo.png
-    touch src/e2e_project_frontend/assets/index.js
-    touch src/e2e_project_frontend/assets/main.css
-    touch src/e2e_project_frontend/assets/index.js.map
-    touch src/e2e_project_frontend/assets/index.js.LICENSE.txt
-    touch src/e2e_project_frontend/assets/index.js.LICENSE
+  touch src/e2e_project_frontend/assets/index.html
+  touch src/e2e_project_frontend/assets/logo.png
+  touch src/e2e_project_frontend/assets/index.js
+  touch src/e2e_project_frontend/assets/main.css
+  touch src/e2e_project_frontend/assets/index.js.map
+  touch src/e2e_project_frontend/assets/index.js.LICENSE.txt
+  touch src/e2e_project_frontend/assets/index.js.LICENSE
 
-    dfx build
-    dfx canister install e2e_project_frontend
+  dfx build
+  dfx canister install e2e_project_frontend
 
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.html";accept_encodings=vec{"identity"}})'
-    assert_match 'content_type = "text/html"'
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/logo.png";accept_encodings=vec{"identity"}})'
-    assert_match 'content_type = "image/png"'
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.js";accept_encodings=vec{"identity"}})'
-    assert_match 'content_type = "application/javascript"'
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
-    assert_match 'content_type = "text/plain"'
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/main.css";accept_encodings=vec{"identity"}})'
-    assert_match 'content_type = "text/css"'
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.js.map";accept_encodings=vec{"identity"}})'
-    assert_match 'content_type = "text/plain"'
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.js.LICENSE.txt";accept_encodings=vec{"identity"}})'
-    assert_match 'content_type = "text/plain"'
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.js.LICENSE";accept_encodings=vec{"identity"}})'
-    assert_match 'content_type = "application/octet-stream"'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.html";accept_encodings=vec{"identity"}})'
+  assert_match 'content_type = "text/html"'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/logo.png";accept_encodings=vec{"identity"}})'
+  assert_match 'content_type = "image/png"'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.js";accept_encodings=vec{"identity"}})'
+  assert_match 'content_type = "application/javascript"'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
+  assert_match 'content_type = "text/plain"'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/main.css";accept_encodings=vec{"identity"}})'
+  assert_match 'content_type = "text/css"'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.js.map";accept_encodings=vec{"identity"}})'
+  assert_match 'content_type = "text/plain"'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.js.LICENSE.txt";accept_encodings=vec{"identity"}})'
+  assert_match 'content_type = "text/plain"'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.js.LICENSE";accept_encodings=vec{"identity"}})'
+  assert_match 'content_type = "application/octet-stream"'
 }
 
 @test "deletes assets that are removed from project" {
-    install_asset assetscanister
+  install_asset assetscanister
 
-    dfx_start
+  dfx_start
 
-    touch src/e2e_project_frontend/assets/will-delete-this.txt
-    dfx deploy
+  touch src/e2e_project_frontend/assets/will-delete-this.txt
+  dfx deploy
 
-    assert_command dfx canister call --query e2e_project_frontend get '(record{key="/will-delete-this.txt";accept_encodings=vec{"identity"}})'
-    assert_command dfx canister call --query e2e_project_frontend list  '(record{})'
-    assert_match '"/will-delete-this.txt"'
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/will-delete-this.txt";accept_encodings=vec{"identity"}})'
+  assert_command dfx canister call --query e2e_project_frontend list  '(record{})'
+  assert_match '"/will-delete-this.txt"'
 
-    rm src/e2e_project_frontend/assets/will-delete-this.txt
-    dfx deploy
+  rm src/e2e_project_frontend/assets/will-delete-this.txt
+  dfx deploy
 
-    assert_command_fail dfx canister call --query e2e_project_frontend get '(record{key="/will-delete-this.txt";accept_encodings=vec{"identity"}})'
-    assert_command dfx canister call --query e2e_project_frontend list  '(record{})'
-    assert_not_match '"/will-delete-this.txt"'
+  assert_command_fail dfx canister call --query e2e_project_frontend get '(record{key="/will-delete-this.txt";accept_encodings=vec{"identity"}})'
+  assert_command dfx canister call --query e2e_project_frontend list  '(record{})'
+  assert_not_match '"/will-delete-this.txt"'
 }
 
 @test "asset configuration via .ic-assets.json5" {
-    install_asset assetscanister
+  install_asset assetscanister
 
-    dfx_start
+  dfx_start
 
-    touch src/e2e_project_frontend/assets/ignored.txt
-    touch src/e2e_project_frontend/assets/index.html
-    touch src/e2e_project_frontend/assets/.hidden.txt
+  touch src/e2e_project_frontend/assets/ignored.txt
+  touch src/e2e_project_frontend/assets/index.html
+  touch src/e2e_project_frontend/assets/.hidden.txt
 
-    mkdir src/e2e_project_frontend/assets/.well-known
-    touch src/e2e_project_frontend/assets/.well-known/thing.json
-    touch src/e2e_project_frontend/assets/.well-known/file.txt
+  mkdir src/e2e_project_frontend/assets/.well-known
+  touch src/e2e_project_frontend/assets/.well-known/thing.json
+  touch src/e2e_project_frontend/assets/.well-known/file.txt
 
-    echo '[
-      {
-        "match": "ignored.txt",
-        "ignore": true
+  echo '[
+    {
+      "match": "ignored.txt",
+      "ignore": true
+    },
+    {
+      "match": "*",
+      "cache": {
+        "max_age": 500
       },
-      {
-        "match": "*",
-        "cache": {
-          "max_age": 500
-        },
-        "headers": {
-          "x-header": "x-value"
-        }
-      },
-      {
-        "match": ".*",
-        "ignore": false,
-        "cache": {
-          "max_age": 888
-        },
-        "headers": {
-          "x-extra-header": "x-extra-value"
-        }
-      },
-      {
-        "match": "ignored.txt",
-        "ignore": true
+      "headers": {
+        "x-header": "x-value"
       }
-    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
-    echo '[
-      {
-        "match": "*",
-        "headers": {
-          "x-well-known-header": "x-well-known-value"
-        }
+    },
+    {
+      "match": ".*",
+      "ignore": false,
+      "cache": {
+        "max_age": 888
       },
-      {
-        "match": "*.json",
-        "cache": {
-          "max_age": 1000
-        }
-      },
-      {
-        "match": "file.txt",
-        "headers": null
+      "headers": {
+        "x-extra-header": "x-extra-value"
       }
-    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json5
+    },
+    {
+      "match": "ignored.txt",
+      "ignore": true
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+  echo '[
+    {
+      "match": "*",
+      "headers": {
+        "x-well-known-header": "x-well-known-value"
+      }
+    },
+    {
+      "match": "*.json",
+      "cache": {
+        "max_age": 1000
+      }
+    },
+    {
+      "match": "file.txt",
+      "headers": null
+    }
+  ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json5
 
-    dfx deploy
+  dfx deploy
 
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
 
-    assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
-    assert_match "x-extra-header: x-extra-value"
-    assert_match "x-header: x-value"
-    assert_match "x-well-known-header: x-well-known-value"
-    assert_match "cache-control: max-age=1000"
+  assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
+  assert_match "x-extra-header: x-extra-value"
+  assert_match "x-header: x-value"
+  assert_match "x-well-known-header: x-well-known-value"
+  assert_match "cache-control: max-age=1000"
 
-    assert_command curl --head "http://localhost:$PORT/.well-known/file.txt?canisterId=$ID"
-    assert_match "cache-control: max-age=888"
-    assert_not_match "x-well-known-header: x-well-known-value"
-    assert_not_match "x-header: x-value"
-    assert_not_match "x-extra-header: x-extra-value"
+  assert_command curl --head "http://localhost:$PORT/.well-known/file.txt?canisterId=$ID"
+  assert_match "cache-control: max-age=888"
+  assert_not_match "x-well-known-header: x-well-known-value"
+  assert_not_match "x-header: x-value"
+  assert_not_match "x-extra-header: x-extra-value"
 
-    assert_command curl --head "http://localhost:$PORT/index.html?canisterId=$ID"
-    assert_match "cache-control: max-age=500"
-    assert_match "x-header: x-value"
-    assert_not_match "x-extra-header: x-extra-value"
+  assert_command curl --head "http://localhost:$PORT/index.html?canisterId=$ID"
+  assert_match "cache-control: max-age=500"
+  assert_match "x-header: x-value"
+  assert_not_match "x-extra-header: x-extra-value"
 
-    assert_command curl --head "http://localhost:$PORT/.hidden.txt?canisterId=$ID"
-    assert_match "cache-control: max-age=888"
-    assert_match "x-header: x-value"
-    assert_match "x-extra-header: x-extra-value"
+  assert_command curl --head "http://localhost:$PORT/.hidden.txt?canisterId=$ID"
+  assert_match "cache-control: max-age=888"
+  assert_match "x-header: x-value"
+  assert_match "x-extra-header: x-extra-value"
 
-    # assert_command curl -vv "http://localhost:$PORT/ignored.txt?canisterId=$ID"
-    # assert_match "404 Not Found"
-    # from logs:
-    # Staging contents of new and changed assets:
-    #   /sample-asset.txt 1/1 (24 bytes)
-    #   /text-with-newlines.txt 1/1 (36 bytes)
-    #   /.well-known/file.txt 1/1 (0 bytes)
-    #   /index.html 1/1 (0 bytes)
-    #   /.hidden.txt 1/1 (0 bytes)
-    #   /binary/noise.txt 1/1 (19 bytes)
-    #   /.well-known/thing.json 1/1 (0 bytes)
+  # assert_command curl -vv "http://localhost:$PORT/ignored.txt?canisterId=$ID"
+  # assert_match "404 Not Found"
+  # from logs:
+  # Staging contents of new and changed assets:
+  #   /sample-asset.txt 1/1 (24 bytes)
+  #   /text-with-newlines.txt 1/1 (36 bytes)
+  #   /.well-known/file.txt 1/1 (0 bytes)
+  #   /index.html 1/1 (0 bytes)
+  #   /.hidden.txt 1/1 (0 bytes)
+  #   /binary/noise.txt 1/1 (19 bytes)
+  #   /.well-known/thing.json 1/1 (0 bytes)
 }
+
+@test "asset configuration via .ic-assets.json5 - default properties" {
+  install_asset assetscanister
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/binary/noise.txt")'
+  assert_contains '(
+  record {
+    headers = null;
+    is_aliased = null;
+    allow_raw_access = opt true;
+    max_age = null;
+  },
+)'
+}
+
+@test "asset configuration via .ic-assets.json5 - property override order does not matter" {
+  install_asset assetscanister
+  # Ensure that setting one property does not overwrite a different property set earlier
+  cat > src/e2e_project_frontend/assets/.ic-assets.json5 <<EOF
+[
+  {
+    "match": "**/binary/**/*",
+    "allow_raw_access": false
+  },
+  {
+    "match": "**/*",
+    "headers": {
+      "X-Anything": "Something"
+    }
+  }
+]
+EOF
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/binary/noise.txt")'
+  assert_contains '(
+  record {
+    headers = opt vec { record { "X-Anything"; "Something" } };
+    is_aliased = null;
+    allow_raw_access = opt false;
+    max_age = null;
+  },
+)'
+}
+
+
 
 @test "asset configuration via .ic-assets.json5 - nested dot directories" {
-    install_asset assetscanister
+  install_asset assetscanister
 
-    dfx_start
+  dfx_start
 
-    touch src/e2e_project_frontend/assets/thing.json
-    touch src/e2e_project_frontend/assets/.ignored-by-defualt.txt
+  touch src/e2e_project_frontend/assets/thing.json
+  touch src/e2e_project_frontend/assets/.ignored-by-defualt.txt
 
-    mkdir src/e2e_project_frontend/assets/.well-known
-    touch src/e2e_project_frontend/assets/.well-known/thing.json
+  mkdir src/e2e_project_frontend/assets/.well-known
+  touch src/e2e_project_frontend/assets/.well-known/thing.json
 
-    mkdir src/e2e_project_frontend/assets/.well-known/.hidden
-    touch src/e2e_project_frontend/assets/.well-known/.hidden/ignored.txt
+  mkdir src/e2e_project_frontend/assets/.well-known/.hidden
+  touch src/e2e_project_frontend/assets/.well-known/.hidden/ignored.txt
 
-    mkdir src/e2e_project_frontend/assets/.well-known/.another-hidden
-    touch src/e2e_project_frontend/assets/.well-known/.another-hidden/ignored.txt
+  mkdir src/e2e_project_frontend/assets/.well-known/.another-hidden
+  touch src/e2e_project_frontend/assets/.well-known/.another-hidden/ignored.txt
 
-    echo '[
-      {
-        "match": ".well-known",
-        "ignore": false
-      },
-      {
-        "match": "**/*",
-        "cache": { "max_age": 2000 }
-      }
+  echo '[
+    {
+      "match": ".well-known",
+      "ignore": false
+    },
+    {
+      "match": "**/*",
+      "cache": { "max_age": 2000 }
+    }
     ]' > src/e2e_project_frontend/assets/.ic-assets.json5
     echo '[
-      {
-        "match": "*",
-        "headers": {
-          "x-header": "x-value"
-        }
-      },
-      {
-        "match": ".hidden",
-        "ignore": true
+    {
+      "match": "*",
+      "headers": {
+        "x-header": "x-value"
       }
-    ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json5
-    echo '[
-      {
-        "match": "*",
-        "ignore": false
-      }
+    },
+    {
+      "match": ".hidden",
+      "ignore": true
+    }
+  ]' > src/e2e_project_frontend/assets/.well-known/.ic-assets.json5
+  echo '[
+    {
+      "match": "*",
+      "ignore": false
+    }
     ]' > src/e2e_project_frontend/assets/.well-known/.hidden/.ic-assets.json5
     echo '[
-      {
-        "match": "*",
-        "ignore": false
-      }
-    ]' > src/e2e_project_frontend/assets/.well-known/.another-hidden/.ic-assets.json5
+    {
+      "match": "*",
+      "ignore": false
+    }
+  ]' > src/e2e_project_frontend/assets/.well-known/.another-hidden/.ic-assets.json5
 
-    dfx deploy
+  dfx deploy
 
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
 
-    assert_command curl --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-    assert_match "cache-control: max-age=2000"
-    assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
-    assert_match "cache-control: max-age=2000"
-    assert_match "x-header: x-value"
+  assert_command curl --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+  assert_match "cache-control: max-age=2000"
+  assert_command curl --head "http://localhost:$PORT/.well-known/thing.json?canisterId=$ID"
+  assert_match "cache-control: max-age=2000"
+  assert_match "x-header: x-value"
 
-    assert_command curl -vv "http://localhost:$PORT/.ignored-by-defualt.txt?canisterId=$ID"
-    assert_match "404 Not Found"
-    assert_command curl -vv "http://localhost:$PORT/.well-known/.hidden/ignored.txt?canisterId=$ID"
-    assert_match "404 Not Found"
-    assert_command curl -vv "http://localhost:$PORT/.well-known/.another-hidden/ignored.txt?canisterId=$ID"
-    assert_match "404 Not Found"
-
+  assert_command curl -vv "http://localhost:$PORT/.ignored-by-defualt.txt?canisterId=$ID"
+  assert_match "404 Not Found"
+  assert_command curl -vv "http://localhost:$PORT/.well-known/.hidden/ignored.txt?canisterId=$ID"
+  assert_match "404 Not Found"
+  assert_command curl -vv "http://localhost:$PORT/.well-known/.another-hidden/ignored.txt?canisterId=$ID"
+  assert_match "404 Not Found"
 }
+
 @test "asset configuration via .ic-assets.json5 - overwriting default headers" {
-    install_asset assetscanister
+  install_asset assetscanister
 
-    dfx_start
+  dfx_start
 
-    touch src/e2e_project_frontend/assets/thing.json
+  touch src/e2e_project_frontend/assets/thing.json
 
-    echo '[
-      {
-        "match": "thing.json",
-        "cache": { "max_age": 2000 },
-        "headers": {
-          "Content-Encoding": "my-encoding",
-          "Content-Type": "x-type",
-          "Cache-Control": "custom",
-          "etag": "my-etag"
-        }
+  echo '[
+    {
+      "match": "thing.json",
+      "cache": { "max_age": 2000 },
+      "headers": {
+        "Content-Encoding": "my-encoding",
+        "Content-Type": "x-type",
+        "Cache-Control": "custom",
+        "etag": "my-custom-etag"
       }
-    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
-    dfx deploy
+  dfx deploy
 
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
 
-    assert_command curl --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-    assert_match "cache-control: custom"
-    assert_match "content-encoding: my-encoding"
-    assert_match "content-type: x-type"
-    assert_not_match "etag: my-etag"
-    assert_match "etag: \"[a-z0-9]{64}\""
+  dfx canister call --query e2e_project_frontend http_request '(record{url="/thing.json";headers=vec{};method="GET";body=vec{}})'
+
+  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+  assert_match "cache-control: custom"
+  assert_match "content-encoding: my-encoding"
+  assert_match "content-type: x-type"
+  assert_match "etag: my-custom-etag"
 }
 
 @test "aliasing rules: <filename> to <filename>.html or <filename>/index.html" {
-    echo "test alias file" >'src/e2e_project_frontend/assets/test_alias_file.html'
-    mkdir 'src/e2e_project_frontend/assets/index_test'
-    echo "test index file" >'src/e2e_project_frontend/assets/index_test/index.html'
+  echo "test alias file" >'src/e2e_project_frontend/assets/test_alias_file.html'
+  mkdir 'src/e2e_project_frontend/assets/index_test'
+  echo "test index file" >'src/e2e_project_frontend/assets/index_test/index.html'
 
-    dfx_start
-    dfx deploy
+  TEST_ALIAS_SHA256="blob \"\67\fb\58\e3\ea\45\56\10\5d\d5\a4\08\0e\8d\38\6e\0c\5f\9b\f5\f5\05\dd\0f\4a\2b\d8\65\ec\27\c6\06\""
+  TEST_INDEX_SHA256="blob \"\2c\0c\c1\2a\96\c6\79\8c\34\be\fd\8f\6f\df\ba\2f\39\57\8e\15\c0\f8\69\2f\54\da\df\06\ee\98\08\f5\""
 
-    # decode as expected
-    assert_command dfx canister  call --query e2e_project_frontend http_request '(record{url="/test_alias_file.html";headers=vec{};method="GET";body=vec{}})'
-    assert_match "test alias file"
-    assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/test_alias_file";headers=vec{};method="GET";body=vec{}})'
-    assert_match "test alias file"
-    assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/index_test";headers=vec{};method="GET";body=vec{}})'
-    assert_match "test index file"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
-    assert_match "test alias file"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
-    assert_match "test alias file"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
-    assert_match "test index file"
+  dfx_start
+  dfx deploy
 
-    ID=$(dfx canister id e2e_project_frontend)
-    PORT=$(get_webserver_port)
+  # decode as expected
+  assert_command dfx canister  call --query e2e_project_frontend http_request '(record{url="/test_alias_file.html";headers=vec{};method="GET";body=vec{}})'
+  assert_match "test alias file"
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/test_alias_file";headers=vec{};method="GET";body=vec{}})'
+  assert_match "test alias file"
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/index_test";headers=vec{};method="GET";body=vec{}})'
+  assert_match "test index file"
+  assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file.html\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
+  assert_match "test alias file"
+  assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
+  assert_match "test alias file"
+  assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/index_test\";content_encoding=\"identity\";index=0;sha256=opt $TEST_INDEX_SHA256})"
+  assert_match "test index file"
 
-    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
-    # shellcheck disable=SC2154
-    assert_match "200 OK" "$stderr"
-    assert_match "test alias file"
-    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-    assert_match "200 OK" "$stderr"
-    assert_match "test alias file"
-    assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
-    assert_match "200 OK" "$stderr"
-    assert_match "test index file"
-    assert_command curl --fail -vv http://localhost:"$PORT"/index_test/index?canisterId="$ID"
-    assert_match "200 OK" "$stderr"
-    assert_match "test index file"
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
 
-    # toggle aliasing on and off using `set_asset_properties`
-    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(false))  })'
-    assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-    assert_match "404" "$stderr"
-    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(true))  })'
-    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-    assert_match "200 OK" "$stderr"
+  assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
+  # shellcheck disable=SC2154
+  assert_match "200 OK" "$stderr"
+  assert_match "test alias file"
+  assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+  assert_match "200 OK" "$stderr"
+  assert_match "test alias file"
+  assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
+  assert_match "200 OK" "$stderr"
+  assert_match "test index file"
+  assert_command curl --fail -vv http://localhost:"$PORT"/index_test/index?canisterId="$ID"
+  assert_match "200 OK" "$stderr"
+  assert_match "test index file"
 
-    # redirect survives upgrade
-    assert_command dfx deploy --upgrade-unchanged
-    assert_match "is already installed"
+  # toggle aliasing on and off using `set_asset_properties`
+  # this doesn't work, see https://dfinity.atlassian.net/browse/SDK-1246
+  dfx canister call --query e2e_project_frontend http_request '(record{url="/test_alias_file";headers=vec{};method="GET";body=vec{}})'
+  # output looks like this:
+  #     (
+  #       record {
+  #         body = blob "test alias file\0a";
+  #         headers = vec {
+  #           record {
+  #             "etag";
+  #             "\"67fb58e3ea4556105dd5a4080e8d386e0c5f9bf5f505dd0f4a2bd865ec27c606\"";
+  #           };
+  #           record { "content-type"; "text/html" };
+  #           record {
+  #             "IC-Certificate";
+  #             "certificate=:2dn3omR0cmVlgwGDAYMBgwJIY2FuaXN0ZXKDAYIEWCB6TamgcIBRRI9+Lfe6n1mQhfqXmFKDoOihriXzPhQ8YIMBgwJKgAAAAAAQAAIBAYMBgwGDAk5jZXJ0aWZpZWRfZGF0YYIDWCDclbSRbugItvQEwCwQDt2dGNnmSWXaDfyenwBDFGQev4IEWCDN7xKU70bQDnAGR8er6+SatQSi07lHyqye6YJDNdfzOYIEWCB326K/dXJismN6beQyTC9LeKBpzbOmOZPkRjpu4uIkt4IEWCCsjlsVa3dA4Inoj23KaUsHLZTOoZT/Uqzog9gmkovo34IEWCB9LBGrUHBg7qBYleBnVlVc672alvi9zWYf8D/2CKvHMoIEWCCMpFgCT+gbsEX08W0sB8h46ysJg+clCHOjW/qmKqWCYIMBggRYIIUC8ZdiVnT/LeyjAp84wEB9JBYPO1U4tZCYvNVw1eM3gwJEdGltZYIDScD5rc7w2aTEF2lzaWduYXR1cmVYMIQdy8BFvQjET2yjcKYQ47d62tiCtV4lfcjNiyDYWGM3FXOgjORzH5MnoSIY1HwJrA==:, tree=:2dn3gwGDAktodHRwX2Fzc2V0c4MBggRYINCuA0oUZ982kzKVIIrBrs5i693coETpgd/s0JEVMozsgwGDAlAvdGVzdF9hbGlhc19maWxlggNYIGf7WOPqRVYQXdWkCA6NOG4MX5v19QXdD0or2GXsJ8YGggRYICTVHJF+Vk5ccI2w7iQhhyiMkcffMLtaKScYnwtlBC+BggRYIFce2lClRDSsnfeLc7YS3j0JsELBY5a3bbUPh+luB7dD:";
+  #           };
+  #         };
+  #         streaming_strategy = null;
+  #         status_code = 200 : nat16;
+  #       },
+  #     )
 
-    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
-    # shellcheck disable=SC2154
-    assert_match "200 OK" "$stderr"
-    assert_match "test alias file"
-    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-    assert_match "200 OK" "$stderr"
-    assert_match "test alias file"
-    assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
-    assert_match "200 OK" "$stderr"
-    assert_match "test index file"
 
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
-    assert_match "test alias file"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
-    assert_match "test alias file"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
-    assert_match "test index file"
+  assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(false))  })'
 
-    # disabling redirect works
-    echo "DISABLING NOW"
-    echo '[
-      {
-        "match": "test_alias_file.html",
-        "enable_aliasing": false
-      }
-    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
-    dfx deploy e2e_project_frontend
-    
-    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
-    # shellcheck disable=SC2154
-    assert_match "200 OK" "$stderr"
-    assert_match "test alias file"
-    assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-    assert_match "404 Not Found" "$stderr"
-    assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
-    assert_match "200 OK" "$stderr"
-    assert_match "test index file"
+  dfx canister call --query e2e_project_frontend http_request '(record{url="/test_alias_file";headers=vec{};method="GET";body=vec{}})'
+  # output looks like this.  Notice that the body and status code have changed, but the certificate is exactly the same.
+  #   (
+  #     record {
+  #       body = blob "not found";
+  #       headers = vec {
+  #         record { "content-type"; "text/plain" };
+  #         record {
+  #           "IC-Certificate";
+  #           "certificate=:2dn3omR0cmVlgwGDAYMBgwJIY2FuaXN0ZXKDAYIEWCB6TamgcIBRRI9+Lfe6n1mQhfqXmFKDoOihriXzPhQ8YIMBgwJKgAAAAAAQAAIBAYMBgwGDAk5jZXJ0aWZpZWRfZGF0YYIDWCDclbSRbugItvQEwCwQDt2dGNnmSWXaDfyenwBDFGQev4IEWCDN7xKU70bQDnAGR8er6+SatQSi07lHyqye6YJDNdfzOYIEWCB326K/dXJismN6beQyTC9LeKBpzbOmOZPkRjpu4uIkt4IEWCCsjlsVa3dA4Inoj23KaUsHLZTOoZT/Uqzog9gmkovo34IEWCCoBmzNJBeJUuPksGWjOP0JgQStmSri6XGg+//B8CS+PoIEWCApbis9cAc4Tv7tS97Vk+Dc14EE/styzggrRvkalYlD1YMBggRYIDG3uAnEPmC4tIPj0xDqUySASclS7unWnd6oG+IqIqGzgwJEdGltZYIDSaiiuufz2aTEF2lzaWduYXR1cmVYMLMbF+o1s///LvhWJ4sylt9/07OokAlX8L6+Dfd8L2KDUGgCzuPvmIy/3NC0+LMpEw==:, tree=:2dn3gwGDAktodHRwX2Fzc2V0c4MBggRYINCuA0oUZ982kzKVIIrBrs5i693coETpgd/s0JEVMozsgwGDAlAvdGVzdF9hbGlhc19maWxlggNYIGf7WOPqRVYQXdWkCA6NOG4MX5v19QXdD0or2GXsJ8YGggRYICTVHJF+Vk5ccI2w7iQhhyiMkcffMLtaKScYnwtlBC+BggRYIFce2lClRDSsnfeLc7YS3j0JsELBY5a3bbUPh+luB7dD:";
+  #         };
+  #       };
+  #       streaming_strategy = null;
+  #       status_code = 404 : nat16;
+  #     },
+  #   )
 
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
-    assert_match "test alias file"
-    assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
-    assert_match "key not found"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
-    assert_match "test index file"
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
 
-    # disabled redirect survives canister upgrade
-    echo "UPGRADE"
-    assert_command dfx deploy --upgrade-unchanged
-    
-    assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
-    # shellcheck disable=SC2154
-    assert_match "200 OK" "$stderr"
-    assert_match "test alias file"
-    assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
-    assert_match "404 Not Found" "$stderr"
-    assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
-    assert_match "200 OK" "$stderr"
-    assert_match "test index file"
+  # this should succeed, with output 404, like so:
+  # assert_match "404" "$stderr"
 
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file.html";content_encoding="identity";index=0})'
-    assert_match "test alias file"
-    assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/test_alias_file";content_encoding="identity";index=0})'
-    assert_match "key not found"
-    assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback '(record{key="/index_test";content_encoding="identity";index=0})'
-    assert_match "test index file"
+  # However, due to returning the wrong certificate, it fails with Err(InvalidResponseHashes)
+  # see https://dfinity.atlassian.net/browse/SDK-1246
+  assert_contains "500 Internal Server Error"
 
-    #
+
+  assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(true))  })'
+  assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+  assert_match "200 OK" "$stderr"
+
+  # redirect survives upgrade
+  assert_command dfx deploy --upgrade-unchanged
+  assert_match "is already installed"
+
+  assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
+  # shellcheck disable=SC2154
+  assert_match "200 OK" "$stderr"
+  assert_match "test alias file"
+  assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+  assert_match "200 OK" "$stderr"
+  assert_match "test alias file"
+  assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
+  assert_match "200 OK" "$stderr"
+  assert_match "test index file"
+
+  assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file.html\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
+  assert_match "test alias file"
+  assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
+  assert_match "test alias file"
+  assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/index_test\";content_encoding=\"identity\";index=0;sha256=opt $TEST_INDEX_SHA256})"
+  assert_match "test index file"
+
+  # disabling redirect works
+  echo "DISABLING NOW"
+  echo '[
+    {
+      "match": "test_alias_file.html",
+      "enable_aliasing": false
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+  dfx deploy e2e_project_frontend
+
+  assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
+  # shellcheck disable=SC2154
+  assert_match "200 OK" "$stderr"
+  assert_match "test alias file"
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+
+  # again see # see https://dfinity.atlassian.net/browse/SDK-1246, this should be 404
+  # assert_match "404 Not Found" "$stderr"
+  assert_contains "500 Internal Server Error"
+
+  assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
+  assert_match "200 OK" "$stderr"
+  assert_match "test index file"
+
+  assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file.html\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
+  assert_match "test alias file"
+  assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
+  assert_match "key not found"
+  assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/index_test\";content_encoding=\"identity\";index=0;sha256=opt $TEST_INDEX_SHA256})"
+  assert_match "test index file"
+
+  # disabled redirect survives canister upgrade
+  echo "UPGRADE"
+  assert_command dfx deploy --upgrade-unchanged
+
+  assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
+  # shellcheck disable=SC2154
+  assert_match "200 OK" "$stderr"
+  assert_match "test alias file"
+  assert_command_fail curl --fail -vv http://localhost:"$PORT"/test_alias_file?canisterId="$ID"
+  assert_match "404 Not Found" "$stderr"
+  assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
+  assert_match "200 OK" "$stderr"
+  assert_match "test index file"
+
+  assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file.html\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
+  assert_match "test alias file"
+  assert_command_fail dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/test_alias_file\";content_encoding=\"identity\";index=0;sha256=opt $TEST_ALIAS_SHA256})"
+  assert_match "key not found"
+  assert_command dfx canister call --query e2e_project_frontend http_request_streaming_callback "(record{key=\"/index_test\";content_encoding=\"identity\";index=0;sha256=opt $TEST_INDEX_SHA256})"
+  assert_match "test index file"
+
+  #
 }
 
 @test "asset configuration via .ic-assets.json5 - detect unused config" {
-    install_asset assetscanister
+  install_asset assetscanister
 
-    dfx_start
+  dfx_start
 
-    mkdir src/e2e_project_frontend/assets/somedir
-    touch src/e2e_project_frontend/assets/somedir/upload-me.txt
-    echo '[
-      {
-        "match": "nevermatchme",
-        "cache": { "max_age": 2000 }
-      }
-    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
-    echo '[
-      {
-        "match": "upload-me.txt",
-        "headers": { "key": "value" }
-      },
-      {
-        "match": "nevermatchme",
-        "headers": {},
-        "ignore": false
-      },
-      {
-        "match": "nevermatchmetoo",
-        "headers": null,
-        "ignore": false
-      },
-      {
-        "match": "non-matcher",
-        "headers": {"x-header": "x-value"},
-        "ignore": false
-      },
-      {
-        "match": "/thanks-for-not-stripping-forward-slash",
-        "headers": {"x-header": "x-value"},
-        "ignore": false
-      }
-    ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
+  mkdir src/e2e_project_frontend/assets/somedir
+  touch src/e2e_project_frontend/assets/somedir/upload-me.txt
+  echo '[
+    {
+      "match": "nevermatchme",
+      "cache": { "max_age": 2000 }
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+  echo '[
+    {
+      "match": "upload-me.txt",
+      "headers": { "key": "value" }
+    },
+    {
+      "match": "nevermatchme",
+      "headers": {},
+      "ignore": false
+    },
+    {
+      "match": "nevermatchmetoo",
+      "headers": null,
+      "ignore": false
+    },
+    {
+      "match": "non-matcher",
+      "headers": {"x-header": "x-value"},
+      "ignore": false
+    },
+    {
+      "match": "/thanks-for-not-stripping-forward-slash",
+      "headers": {"x-header": "x-value"},
+      "ignore": false
+    }
+  ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
 
-    assert_command dfx deploy
-    assert_match 'WARN: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
-    assert_contains 'WARN: {
+  assert_command dfx deploy
+  assert_match 'WARN: 1 unmatched configuration in .*/src/e2e_project_frontend/assets/.ic-assets.json config file:'
+  assert_contains 'WARN: {
   "match": "nevermatchme",
   "cache": {
     "max_age": 2000
-  },
-  "allow_raw_access": false
+  }
 }'
-    assert_match 'WARN: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
-    assert_contains 'WARN: {
+  assert_match 'WARN: 4 unmatched configurations in .*/src/e2e_project_frontend/assets/somedir/.ic-assets.json config file:'
+  assert_contains 'WARN: {
   "match": "nevermatchme",
   "headers": {},
-  "ignore": false,
-  "allow_raw_access": false
+  "ignore": false
 }
 WARN: {
   "match": "nevermatchmetoo",
   "headers": {},
-  "ignore": false,
-  "allow_raw_access": false
+  "ignore": false
 }
 WARN: {
   "match": "non-matcher",
   "headers": {
     "x-header": "x-value"
   },
-  "ignore": false,
-  "allow_raw_access": false
+  "ignore": false
 }'
-    # splitting this up into two checks, because the order is different on macos vs ubuntu
-    assert_contains 'WARN: {
+  # splitting this up into two checks, because the order is different on macos vs ubuntu
+  assert_contains 'WARN: {
   "match": "/thanks-for-not-stripping-forward-slash",
   "headers": {
     "x-header": "x-value"
   },
-  "ignore": false,
-  "allow_raw_access": false
+  "ignore": false
 }'
 }
 
 @test "asset configuration via .ic-assets.json5 - get and set asset properties" {
-    install_asset assetscanister
+  install_asset assetscanister
 
-    dfx_start
+  dfx_start
 
-    mkdir src/e2e_project_frontend/assets/somedir
-    touch src/e2e_project_frontend/assets/somedir/upload-me.txt
-    echo '[
-      {
-        "match": "**/*",
-        "cache": { "max_age": 2000 },
-        "headers": { "x-key": "x-value" },
-        "enable_aliasing": true
-      }
-    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+  mkdir src/e2e_project_frontend/assets/somedir
+  touch src/e2e_project_frontend/assets/somedir/upload-me.txt
+  echo '[
+    {
+      "match": "**/*",
+      "cache": { "max_age": 2000 },
+      "headers": { "x-key": "x-value" },
+      "enable_aliasing": true
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
-    dfx deploy
+  dfx deploy
 
-    # read properties
-    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
-    assert_contains '(
+  # read properties
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
+  assert_contains '(
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
     is_aliased = opt true;
-    allow_raw_access = opt false;
+    allow_raw_access = opt true;
     max_age = opt (2_000 : nat64);
   },
 )'
 
-    # access required to update
-    assert_command_fail dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })' --identity anonymous
-    assert_match "Caller does not have Commit permission"
-    dfx identity new other --storage-mode plaintext
-    assert_command_fail dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })' --identity other
-    assert_match "Caller does not have Commit permission"
+  # access required to update
+  assert_command_fail dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })' --identity anonymous
+  assert_match "Caller does not have Commit permission"
+  dfx identity new other --storage-mode plaintext
+  assert_command_fail dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })' --identity other
+  assert_match "Caller does not have Commit permission"
 
-    # set max_age property and read it back
-    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })'
-    assert_contains '()'
-    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
-    assert_contains '(
+  # set max_age property and read it back
+  assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; max_age=opt(opt(5:nat64))  })'
+  assert_contains '()'
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
+  assert_contains '(
   record {
     headers = opt vec { record { "x-key"; "x-value" } };
     is_aliased = opt true;
-    allow_raw_access = opt false;
+    allow_raw_access = opt true;
     max_age = opt (5 : nat64);
   },
 )'
 
-    # set headers property and read it back
-    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(opt(vec{record {"new-key"; "new-value"}}))})'
-    assert_contains '()'
-    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
-    assert_contains '(
-  record {
-    headers = opt vec { record { "new-key"; "new-value" } };
-    is_aliased = opt true;
-    allow_raw_access = opt false;
-    max_age = opt (5 : nat64);
-  },
-)'
-
-    # set allow_raw_access property and read it back
-    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; allow_raw_access=opt(opt(true))})'
-    assert_contains '()'
-    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
-    assert_contains '(
+  # set headers property and read it back
+  assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(opt(vec{record {"new-key"; "new-value"}}))})'
+  assert_contains '()'
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
+  assert_contains '(
   record {
     headers = opt vec { record { "new-key"; "new-value" } };
     is_aliased = opt true;
@@ -1468,11 +1630,24 @@ WARN: {
   },
 )'
 
-    # set is_aliased property and read it back
-    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; is_aliased=opt(opt(false))})'
-    assert_contains '()'
-    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
-    assert_contains '(
+  # set allow_raw_access property and read it back
+  assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; allow_raw_access=opt(opt(true))})'
+  assert_contains '()'
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
+  assert_contains '(
+  record {
+    headers = opt vec { record { "new-key"; "new-value" } };
+    is_aliased = opt true;
+    allow_raw_access = opt true;
+    max_age = opt (5 : nat64);
+  },
+)'
+
+  # set is_aliased property and read it back
+  assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; is_aliased=opt(opt(false))})'
+  assert_contains '()'
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
+  assert_contains '(
   record {
     headers = opt vec { record { "new-key"; "new-value" } };
     is_aliased = opt false;
@@ -1481,11 +1656,11 @@ WARN: {
   },
 )'
 
-    # set all properties to None and read them back
-    assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null); allow_raw_access=opt(null); is_aliased=opt(null)})'
-    assert_contains '()'
-    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
-    assert_contains '(
+  # set all properties to None and read them back
+  assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/somedir/upload-me.txt"; headers=opt(null); max_age=opt(null); allow_raw_access=opt(null); is_aliased=opt(null)})'
+  assert_contains '()'
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/somedir/upload-me.txt")'
+  assert_contains '(
   record {
     headers = null;
     is_aliased = null;
@@ -1496,75 +1671,77 @@ WARN: {
 }
 
 @test "asset configuration via .ic-assets.json5 - pretty printing when deploying" {
-    install_asset assetscanister
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
+  install_asset assetscanister
 
-    dfx_start
+  dfx_start
 
-    mkdir src/e2e_project_frontend/assets/somedir
-    echo "content" > src/e2e_project_frontend/assets/somedir/upload-me.txt
-    echo '[
-      {
-        "match": "**/*",
-        "cache": { "max_age": 2000 },
-        "headers": {
-          "x-header": "x-value"
-        },
-        "enable_aliasing": true
+  mkdir src/e2e_project_frontend/assets/somedir
+  echo "content" > src/e2e_project_frontend/assets/somedir/upload-me.txt
+  echo '[
+    {
+      "match": "**/*",
+      "cache": { "max_age": 2000 },
+      "headers": {
+        "x-header": "x-value"
       },
-    ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
+      "enable_aliasing": true
+    },
+  ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
 
-    assert_command dfx deploy
-    assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]* \(with cache and 1 header\)'
+  assert_command dfx deploy
+  assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]* \(with cache and 1 header\)'
 }
 
 @test "uses selected canister wasm" {
-    dfx_start
-    use_asset_wasm 0.12.1
-    assert_command dfx deploy
-    assert_command dfx canister info e2e_project_frontend
-    assert_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
-    use_default_asset_wasm
-    assert_command dfx deploy
-    assert_command dfx canister info e2e_project_frontend
-    assert_not_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
+  dfx_start
+  use_asset_wasm 0.12.1
+  assert_command dfx deploy
+  assert_command dfx canister info e2e_project_frontend
+  assert_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
+  use_default_asset_wasm
+  assert_command dfx deploy
+  assert_command dfx canister info e2e_project_frontend
+  assert_not_contains db07e7e24f6f8ddf53c33a610713259a7c1eb71c270b819ebd311e2d223267f0
 }
 
 @test "api version endpoint" {
-    install_asset assetscanister
-    dfx_start
-    assert_command dfx deploy
-    assert_command dfx canister call e2e_project_frontend api_version '()'
-    assert_match '\([0-9]* : nat16\)'
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call e2e_project_frontend api_version '()'
+  assert_match '\([0-9]* : nat16\)'
 }
 
 @test "syncs asset properties when redeploying" {
-    install_asset assetscanister
-    dfx_start
-    assert_command dfx deploy
-    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/text-with-newlines.txt")'
-    assert_contains '(
+  rm src/e2e_project_frontend/assets/.ic-assets.json5
+  install_asset assetscanister
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/text-with-newlines.txt")'
+  assert_contains '(
   record {
     headers = null;
     is_aliased = null;
-    allow_raw_access = opt false;
+    allow_raw_access = opt true;
     max_age = null;
   },
 )'
 
-    echo '[
-      {
-        "match": "**/*",
-        "cache": { "max_age": 2000 },
-        "headers": {
-          "x-header": "x-value"
-        },
-        "allow_raw_access": true,
-        "enable_aliasing": false
+  echo '[
+    {
+      "match": "**/*",
+      "cache": { "max_age": 2000 },
+      "headers": {
+        "x-header": "x-value"
       },
-    ]' > src/e2e_project_frontend/assets/.ic-assets.json5
-    assert_command dfx deploy
-    assert_command dfx canister call e2e_project_frontend get_asset_properties '("/text-with-newlines.txt")'
-    assert_contains '(
+      "allow_raw_access": true,
+      "enable_aliasing": false
+    },
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+  assert_command dfx deploy
+  assert_command dfx canister call e2e_project_frontend get_asset_properties '("/text-with-newlines.txt")'
+  assert_contains '(
   record {
     headers = opt vec { record { "x-header"; "x-value" } };
     is_aliased = opt false;
@@ -1605,4 +1782,43 @@ WARN: {
 
   assert_command      dfx canister call e2e_project_frontend configure '(record { max_chunks=opt opt 3; max_bytes = opt opt 5500 })'
   assert_command      dfx deploy
+}
+
+@test "set permissions through upgrade argument" {
+  dfx_start
+  dfx deploy
+
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
+  assert_eq "(vec {})"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_match "$(dfx identity get-principal)"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
+  assert_eq "(vec {})"
+
+  dfx identity new alice --storage-mode plaintext
+  ALICE="$(dfx --identity alice identity get-principal)"
+
+  dfx canister install e2e_project_frontend --upgrade-unchanged --mode upgrade --argument "(opt variant {
+    Upgrade = record {
+      set_permissions = opt record {
+        prepare = vec {
+          principal \"${ALICE}\";
+        };
+        commit = vec {
+          principal \"$(dfx identity get-principal)\";
+          principal \"aaaaa-aa\";
+        };
+        manage_permissions = vec {
+          principal \"$(dfx identity get-principal)\";
+        };
+      }
+    }
+  })"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
+  assert_match "${ALICE}"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_match "$(dfx identity get-principal)"
+  assert_match '"aaaaa-aa"'
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
+  assert_match "$(dfx identity get-principal)"
 }

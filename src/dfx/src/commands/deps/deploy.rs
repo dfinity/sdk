@@ -8,7 +8,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
 
-use anyhow::anyhow;
+use anyhow::Context;
 use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
@@ -16,7 +16,7 @@ use ic_agent::Agent;
 use ic_utils::interfaces::{management_canister::builders::InstallMode, ManagementCanister};
 use slog::{info, Logger};
 
-/// Deploy pulled dependencies.
+/// Deploy pulled dependencies locally.
 #[derive(Parser)]
 pub struct DepsDeployOpts {
     /// Specify the canister to deploy. You can specify its name (as defined in dfx.json) or Principal.
@@ -34,14 +34,13 @@ pub async fn exec(env: &dyn Environment, opts: DepsDeployOpts) -> DfxResult {
 
     let project_root = env.get_config_or_anyhow()?.get_project_root().to_path_buf();
     let pulled_json = load_pulled_json(&project_root)?;
-    validate_pulled(&pulled_json, &pull_canisters_in_config)?;
+    validate_pulled(&pulled_json, &pull_canisters_in_config)
+        .with_context(|| "Please rerun `dfx deps pull`.")?;
 
     let init_json = load_init_json(&project_root)?;
 
     fetch_root_key_if_needed(env).await?;
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     let canister_ids = match &opts.canister {
         Some(canister) => {

@@ -1,8 +1,9 @@
-use crate::error::config::ConfigError;
+use crate::error::config::{ConfigError, GetTempPathError};
 use crate::error::fs::FsError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError;
 use crate::error::uri::UriError;
 
+use candid::types::principal::PrincipalError;
 use std::num::ParseIntError;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -18,11 +19,14 @@ pub enum NetworkConfigError {
     #[error(transparent)]
     UriError(#[from] UriError),
 
-    #[error("Failed to get replica endpoint for network '{network_name}': {cause}")]
+    #[error("Failed to get replica endpoint for network '{network_name}'")]
     GettingReplicaUrlsFailed {
         network_name: String,
-        cause: UriError,
+        source: UriError,
     },
+
+    #[error(transparent)]
+    GetTempPath(#[from] GetTempPathError),
 
     #[error("Network '{0}' does not specify any network providers.")]
     NetworkHasNoProviders(String),
@@ -39,15 +43,18 @@ pub enum NetworkConfigError {
     #[error("Did not find any providers for network '{0}'")]
     NoProvidersForNetwork(String),
 
-    #[error("Failed to parse bind address: {0}")]
-    ParseBindAddressFailed(SocketAddrConversionError),
+    #[error("Failed to parse bind address")]
+    ParseBindAddressFailed(#[source] SocketAddrConversionError),
 
-    #[error("Failed to parse contents of {0} as a port value: {1}")]
-    ParsePortValueFailed(Box<PathBuf>, Box<ParseIntError>),
+    #[error("Failed to parse contents of {0} as a port value")]
+    ParsePortValueFailed(Box<PathBuf>, #[source] Box<ParseIntError>),
 
-    #[error("Failed to parse URL '{0}': {1}")]
-    ParseProviderUrlFailed(Box<String>, url::ParseError),
+    #[error("Failed to parse URL '{0}'")]
+    ParseProviderUrlFailed(Box<String>, #[source] url::ParseError),
 
-    #[error("Failed to read webserver port: {0}")]
-    ReadWebserverPortFailed(FsError),
+    #[error("Failed to read webserver port")]
+    ReadWebserverPortFailed(#[source] FsError),
+
+    #[error("Failed to parse principal '{0}'")]
+    ParsePrincipalFailed(String, #[source] PrincipalError),
 }

@@ -4,7 +4,7 @@
             "type": "motoko",
             "main": "src/a.mo",
             "pullable": {
-                "wasm_url": "http://example.com/a.wasm",
+                "wasm_url": "http://httpbin.org/status/404",
                 "dependencies": [],
                 "init_guide": "A natural number, e.g. 10."
             }
@@ -16,7 +16,7 @@
                 "a"
             ],
             "pullable": {
-                "wasm_url": "http://example.com/b.wasm.gz",
+                "wasm_url": "http://httpbin.org/status/404",
                 "dependencies": [
                     "yofga-2qaaa-aaaaa-aabsq-cai"
                 ],
@@ -31,11 +31,11 @@
                 "a"
             ],
             "pullable": {
-                "wasm_url": "http://example.com/c.wasm",
+                "wasm_url": "http://httpbin.org/status/404",
                 "dependencies": [
                     "yofga-2qaaa-aaaaa-aabsq-cai"
                 ],
-                "init_guide": "A natural number, e.g. 20."
+                "init_guide": "An optional natural number, e.g. \"(opt 20)\"."
             }
         }
     }

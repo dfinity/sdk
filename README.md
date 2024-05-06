@@ -3,6 +3,7 @@
 This repo contains the `IC SDK`: a Software Development Kit for creating and managing [canister smart contracts on the Internet Computer (ICP blockchain)](https://wiki.internetcomputer.org/wiki/Canister_smart_contract).
 
 For further reading:
+* [Reference documentation on internetcomputer.org](https://internetcomputer.org/docs/current/developer-docs/developer-tools/cli-tools/cli-reference/)
 * [Introduction to the ICP blockchain](https://wiki.internetcomputer.org/wiki/Introduction_to_ICP)
 * [Internet Computer dashboard](https://dashboard.internetcomputer.org/)
 * [Developer docs for ICP smart contracts](https://internetcomputer.org/docs/current/home)
@@ -51,6 +52,14 @@ This command will install a binary compatible with your operating system, and ad
 
 Find a release for your architecture [here](https://github.com/dfinity/sdk/releases).
 
+#### in GitHub Action, using [`dfinity/setup-dfx`](https://github.com/dfinity/setup-dfx)
+
+```yml
+    steps:
+    - name: Install dfx
+      uses: dfinity/setup-dfx@main
+```
+
 ### Getting Help
 
 Once the `IC SDK` is installed, get acquainted with its capabilities by entering.
@@ -61,7 +70,7 @@ dfx help
 
 ## Contributing to the DFINITY SDK
 
-See our contributing guidelines [here](.github/CONTRIBUTING.md).
+See our contributing guidelines [here](./CONTRIBUTING.md).
 
 ### Building the IC SDK
 

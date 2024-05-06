@@ -1,5 +1,5 @@
 use self::{
-    tree::{merge_hash_trees, NestedTree},
+    tree::NestedTree,
     types::{
         certification::{AssetPath, HashTreePath, NestedTreeKey, RequestHash, WitnessResult},
         http::{
@@ -7,14 +7,15 @@ use self::{
         },
     },
 };
-
+use crate::asset_certification::types::http::build_ic_certificate_expression_header;
+use ic_certification::merge_hash_trees;
+use ic_representation_independent_hash::Value;
 use serde::Serialize;
 use sha2::Digest;
 
 pub mod tree;
 pub mod types;
-pub use ic_certified_map::HashTree;
-pub use ic_response_verification::hash::Value;
+pub use ic_certification::HashTree;
 
 pub type CertifiedResponses = NestedTree<NestedTreeKey, Vec<u8>>;
 
@@ -104,9 +105,13 @@ impl CertifiedResponses {
         body_hash: Option<[u8; 32]>,
     ) -> HashTreePath {
         let certificate_expression = build_ic_certificate_expression_from_headers(headers);
+        let cert_expr_header = build_ic_certificate_expression_header(&certificate_expression);
+        let cert_expr_header = (cert_expr_header.0, Value::String(cert_expr_header.1));
+        let mut certified_headers = Vec::from(headers);
+        certified_headers.push(cert_expr_header);
         let request_hash = RequestHash::default(); // request certification currently not supported
         let body_hash = body_hash.unwrap_or_else(|| sha2::Sha256::digest(body).into());
-        let response_hash = response_hash(headers, status_code, &body_hash);
+        let response_hash = response_hash(&certified_headers, status_code, &body_hash);
 
         let asset_path = AssetPath::fallback_path();
         let hash_tree_path =
@@ -180,17 +185,33 @@ impl CertifiedResponses {
                 WitnessResult::PathFound,
             )
         } else {
-            let fallback_path = HashTreePath::not_found_base_path_v2();
-
             let absence_proof = self.witness(hash_tree_path_root.as_vec());
-            let not_found_proof = self.witness(fallback_path.as_vec());
-            let combined_proof = merge_hash_trees(absence_proof, not_found_proof);
+            let fallback_paths = hash_tree_path_root.fallback_paths_v2();
 
+            let combined_proof =
+                fallback_paths
+                    .into_iter()
+                    .fold(absence_proof, |accumulator, path| {
+                        let new_proof = self.witness(path.as_vec());
+                        merge_hash_trees(accumulator, new_proof)
+                    });
+
+            let fallback_path = HashTreePath::not_found_base_path_v2();
             if self.contains_path(fallback_path.as_vec()) {
                 (combined_proof, WitnessResult::FallbackFound)
             } else {
                 (combined_proof, WitnessResult::NoneFound)
             }
+        }
+    }
+
+    pub fn expr_path(&self, path: &str) -> String {
+        let path = AssetPath::from(path);
+        let hash_tree_path_root = path.asset_hash_path_root_v2();
+        if self.contains_path(hash_tree_path_root.as_vec()) {
+            path.asset_hash_path_root_v2().expr_path()
+        } else {
+            HashTreePath::not_found_base_path_v2().expr_path()
         }
     }
 
@@ -244,7 +265,7 @@ impl CertifiedResponses {
         certificate: &[u8],
     ) -> (HeaderField, WitnessResult) {
         let (witness, witness_result) = self.witness_path(path);
-        let expr_path = AssetPath::from(path).asset_hash_path_root_v2().expr_path();
+        let expr_path = self.expr_path(path);
 
         let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
         serializer.self_describe().unwrap();
@@ -257,7 +278,7 @@ impl CertifiedResponses {
                     + "certificate=:"
                     + &base64::encode(certificate)
                     + ":, tree=:"
-                    + &base64::encode(&serializer.into_inner())
+                    + &base64::encode(serializer.into_inner())
                     + ":, expr_path=:"
                     + &expr_path
                     + ":",
@@ -282,7 +303,7 @@ impl CertifiedResponses {
                 String::from("certificate=:")
                     + &base64::encode(certificate)
                     + ":, tree=:"
-                    + &base64::encode(&serializer.into_inner())
+                    + &base64::encode(serializer.into_inner())
                     + ":",
             ),
             witness_result,

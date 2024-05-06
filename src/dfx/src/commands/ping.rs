@@ -1,17 +1,15 @@
-use std::time::Duration;
-
 use crate::lib::environment::{create_agent, Environment};
 use crate::lib::error::{DfxError, DfxResult};
-use crate::util::expiry_duration;
+use anyhow::{bail, Context};
+use clap::Parser;
 use dfx_core::identity::Identity;
 use dfx_core::network::provider::{
     command_line_provider_to_url, create_network_descriptor, get_network_context,
     LocalBindDetermination,
 };
-
-use anyhow::{bail, Context};
-use clap::Parser;
+use dfx_core::util::expiry_duration;
 use slog::warn;
+use std::time::Duration;
 use tokio::runtime::Runtime;
 
 /// Pings an Internet Computer network and returns its status.
@@ -32,7 +30,7 @@ pub fn exec(env: &dyn Environment, opts: PingOpts) -> DfxResult {
     // For ping, "provider" could either be a URL or a network name.
     // If not passed, we default to the "local" network.
     let agent_url = create_network_descriptor(
-        env.get_config(),
+        env.get_config()?,
         env.get_networks_config(),
         opts.network,
         None,

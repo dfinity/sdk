@@ -1,5 +1,3 @@
-use candid::Nat;
-
 use crate::batch_upload::plumbing::ProjectAsset;
 use crate::canister_api::types::asset::{
     AssetDetails, AssetProperties, SetAssetPropertiesArguments,
@@ -9,6 +7,7 @@ use crate::canister_api::types::batch_upload::common::{
     UnsetAssetContentArguments,
 };
 use crate::canister_api::types::batch_upload::v1::{BatchOperationKind, CommitBatchArguments};
+use candid::Nat;
 use std::collections::HashMap;
 
 pub(crate) const BATCH_UPLOAD_API_VERSION: u16 = 1;

@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.14.1"
+version = "0.19.0"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
@@ -13,12 +13,13 @@ name = "dfx"
 path = "src/main.rs"
 
 [build-dependencies]
+backoff = { version = "0.4.0", features = ["futures", "tokio"] }
 bytes = "1"
 flate2 = { version = "1.0.11", default-features = false, features = [
     "zlib-ng",
 ] }
 hex = "0.4.3"
-reqwest = "0.11.9"
+reqwest.workspace = true
 serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10.6"
 tar = "0.4.26"
@@ -31,59 +32,69 @@ actix = "0.13.0"
 aes-gcm.workspace = true
 anstyle.workspace = true
 anyhow.workspace = true
+apply-patch.path = "../lib/apply-patch"
 argon2.workspace = true
-atty = "0.2.13"
 backoff.workspace = true
 base64.workspace = true
 byte-unit = { workspace = true, features = ["serde"] }
-bytes = "1.2.1"
-candid = { workspace = true, features = ["random"] }
-clap = { workspace = true, features = ["derive", "env", "unstable-styles", "wrap_help"] }
+bytes.workspace = true
+candid = { workspace = true }
+candid_parser = { workspace = true, features = ["random", "assist"] }
+cargo_metadata = "0.18.1"
+clap = { workspace = true, features = [
+    "derive",
+    "env",
+    "unstable-styles",
+    "wrap_help",
+] }
+clap_complete = { workspace = true }
 console = "0.15.0"
 crc32fast = "1.3.2"
 crossbeam = "0.8.1"
 ctrlc = { version = "3.2.1", features = ["termination"] }
 dfx-core = { path = "../dfx-core" }
-dialoguer.workspace = true
+dialoguer = { workspace = true, features = ["fuzzy-select"] }
 directories-next.workspace = true
 flate2 = { workspace = true, default-features = false, features = ["zlib-ng"] }
 fn-error-context = "0.2.0"
 futures-util = "0.3.21"
 futures.workspace = true
-handlebars = "4.3.3"
+handlebars.workspace = true
 hex = { workspace = true, features = ["serde"] }
 humantime.workspace = true
-hyper-rustls = { version = "0.23.0", features = ["webpki-roots", "http2"] }
+hyper-rustls = { version = "0.24.1", default-features = false, features = [
+    "webpki-roots",
+    "http2",
+] }
 ic-agent = { workspace = true, features = ["reqwest"] }
 ic-asset.workspace = true
+ic-cdk.workspace = true
 ic-identity-hsm = { workspace = true }
 ic-utils = { workspace = true }
-ic-wasm = "0.3.6"
+ic-wasm = "0.7.0"
+icrc-ledger-types = "0.1.5"
+idl2json = "0.10.1"
 indicatif = "0.16.0"
 itertools.workspace = true
+json-patch = "1.0.0"
 keyring.workspace = true
 lazy_static.workspace = true
 mime.workspace = true
 mime_guess.workspace = true
-net2 = "0.2.34"
 num-traits.workspace = true
-os_str_bytes = "6.3.0"
+os_str_bytes = { version = "6.3.0", features = ["conversions"] }
+patch = "0.7.0"
 pem.workspace = true
 petgraph = "0.6.0"
 rand = "0.8.5"
 regex = "1.5.5"
-reqwest = { version = "0.11.9", default-features = false, features = [
-    "blocking",
-    "json",
-    "rustls-tls",
-    "native-tls-vendored",
-] }
+reqwest = { workspace = true, features = ["blocking", "json"] }
 ring.workspace = true
 rust_decimal = "1.22.0"
-rustls = "0.20.4"
+rustls-webpki = "0.101.4"
 schemars.workspace = true
 sec1 = { workspace = true, features = ["std"] }
-semver = { workspace = true, features = ["serde"] }
+semver = { workspace = true }
 serde.workspace = true
 serde_bytes.workspace = true
 serde_cbor.workspace = true
@@ -93,7 +104,8 @@ shell-words = "1.1.0"
 slog = { workspace = true, features = ["max_level_trace"] }
 slog-async.workspace = true
 slog-term.workspace = true
-supports-color = "1.3.0"
+socket2 = "0.5.5"
+supports-color = "2.1.0"
 sysinfo = "0.28.4"
 tar.workspace = true
 tempfile.workspace = true
@@ -107,9 +119,9 @@ time = { workspace = true, features = [
 tokio = { workspace = true, features = ["fs"] }
 url.workspace = true
 walkdir.workspace = true
-walrus = "0.19.0"
-wasmparser = "0.87.0"
+walrus = "0.20.1"
 which = "4.2.5"
+ci_info = "0.14"
 
 [target.'cfg(windows)'.dependencies]
 junction = "1.0.0"
