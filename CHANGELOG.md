@@ -53,7 +53,6 @@ Stderr:
 ```
 
 ### fix: "Failed to decrypt PEM file" errors messages will now include the cause
->>>>>>> upstream/master
 
 ### feat: WASM memory soft-limit
 
