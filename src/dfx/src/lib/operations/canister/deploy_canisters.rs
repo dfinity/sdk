@@ -83,7 +83,7 @@ pub async fn deploy_canisters(
         .get_config()
         .get_canister_names_with_dependencies(some_canister)?;
     let canisters_to_load = add_canisters_with_ids(&required_canisters, env, &config);
-    
+
     let canister_pool = CanisterPool::load(env, false, &canisters_to_load)?;
 
     let toplevel_canisters = match deploy_mode {
@@ -125,11 +125,7 @@ pub async fn deploy_canisters(
     let order = canister_pool.build_order(env, toplevel_canisters)?;
     let order_canisters = order
         .iter()
-        .map(|name| {
-            canister_pool
-                .get_first_canister_with_name(name)
-                .unwrap()
-        })
+        .map(|name| canister_pool.get_first_canister_with_name(name).unwrap())
         .collect::<Vec<_>>();
 
     // Run this before calculating `canisters_to_install` to obtain canisters config.
@@ -210,8 +206,7 @@ pub async fn deploy_canisters(
             info!(log, "Deployed canisters.");
         }
         PrepareForProposal(canister_name) => {
-            prepare_assets_for_commit(env, &canister_id_store, &config, canister_name)
-                .await?
+            prepare_assets_for_commit(env, &canister_id_store, &config, canister_name).await?
         }
         ComputeEvidence(canister_name) => {
             compute_evidence(env, &canister_id_store, &config, canister_name).await?

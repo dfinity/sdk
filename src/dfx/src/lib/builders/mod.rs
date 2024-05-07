@@ -295,10 +295,13 @@ pub trait CanisterBuilder {
                     top_level = false;
                     let subnode = &imports.graph[import];
                     if top_level_cur {
-                        assert!(match subnode {
-                            Import::Canister(_) => true,
-                            _ => false,
-                        }, "the top-level import must be a canister");
+                        assert!(
+                            match subnode {
+                                Import::Canister(_) => true,
+                                _ => false,
+                            },
+                            "the top-level import must be a canister"
+                        );
                     }
                     let imported_file = match subnode {
                         Import::Canister(canister_name) => {

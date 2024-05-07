@@ -354,7 +354,8 @@ impl Canister {
                 continue;
             }
             dfx_core::fs::composite::ensure_parent_dir_exists(&target)?;
-            if !target.exists() || dfx_core::fs::read_to_string(&target)? != service_did { // TODO: Make atomic operation.
+            if !target.exists() || dfx_core::fs::read_to_string(&target)? != service_did {
+                // TODO: Make atomic operation.
                 dfx_core::fs::write(&target, &service_did)?;
             }
             dfx_core::fs::set_permissions_readwrite(&target)?;
@@ -582,9 +583,6 @@ impl CanisterPool {
                 canister
                     .builder
                     .read_dependencies(self, canister.get_info(), cache)?; // TODO: It is called multiple times during the flow.
-                                                                           // let canister_info = &canister.info;
-                                                                           // let _deps: Vec<CanisterId> =
-                                                                           //     canister.builder.get_dependencies(self, canister_info)?;
             }
         }
 
@@ -655,8 +653,12 @@ impl CanisterPool {
                     //     .ok_or_else(|| anyhow!("A canister with the name '{}' was not found in the current project.", child_name.clone()))?
                     //     .canister_id();
 
-                    let dest_parent_id = *dest_id_to_source_id.entry(source_parent_id).or_insert_with(|| dest_graph.add_node(parent_name.clone()));
-                    let dest_child_id = *dest_id_to_source_id.entry(source_child_id).or_insert_with(|| dest_graph.add_node(child_name.clone()));
+                    let dest_parent_id = *dest_id_to_source_id
+                        .entry(source_parent_id)
+                        .or_insert_with(|| dest_graph.add_node(parent_name.clone()));
+                    let dest_child_id = *dest_id_to_source_id
+                        .entry(source_child_id)
+                        .or_insert_with(|| dest_graph.add_node(child_name.clone()));
                     dest_nodes.insert(parent_name.clone(), dest_parent_id);
                     dest_nodes.insert(child_name.clone(), dest_child_id);
                     dest_graph.update_edge(dest_parent_id, dest_child_id, ());
@@ -934,13 +936,14 @@ impl CanisterPool {
                             )
                         })
                         .and_then(|_| {
-                            self.step_build(build_config, canister.as_ref()).map_err(|e| {
-                                BuildError::BuildStepFailed(
-                                    canister.canister_id(),
-                                    canister.get_name().to_string(),
-                                    Box::new(e),
-                                )
-                            })
+                            self.step_build(build_config, canister.as_ref())
+                                .map_err(|e| {
+                                    BuildError::BuildStepFailed(
+                                        canister.canister_id(),
+                                        canister.get_name().to_string(),
+                                        Box::new(e),
+                                    )
+                                })
                         })
                         .and_then(|o: &BuildOutput| {
                             self.step_postbuild(build_config, canister.as_ref(), o)
