@@ -146,10 +146,6 @@ pub async fn deploy_canisters(
         })
         .collect();
 
-    // FIXME: Remove.
-    println!("XXX order_names         : {:?}", order);
-    println!("XXX canisters_to_install: {:?}", canisters_to_install);
-
     let canister_id_store = env.get_canister_id_store()?;
 
     if some_canister.is_some() {
@@ -181,7 +177,6 @@ pub async fn deploy_canisters(
     // hack to load deployed canister IDs (such as of Rust canisters)
     let new_canister_pool2 = CanisterPool::load(env, false, &order)?; // with newly registered canisters
 
-    // println!("QQQ: {:?}", toplevel_canisters.iter().map(|c| c.get_name()).collect::<Vec<_>>()); // FIXME: Remove.
     build_canisters(
         env,
         order_canisters.as_slice(),
