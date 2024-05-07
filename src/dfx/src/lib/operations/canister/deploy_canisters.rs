@@ -119,25 +119,23 @@ pub async fn deploy_canisters(
         })
         // .map(|v| &v)
         .try_collect::<Arc<Canister>, Vec<Arc<Canister>>, _>()?;
-    let toplevel_canisters: &[Arc<Canister>] = &toplevel_canisters;
+    let toplevel_canisters: &[Arc<Canister>] = &toplevel_canisters; // FIXME: Wrong order
 
     // TODO: `build_order` is called two times during deployment of a new canister.
     let order = canister_pool.build_order(env, toplevel_canisters)?;
-    let order_names: Vec<String> = order
+    let order_canisters = order
         .iter()
         .map(|name| {
             canister_pool
                 .get_first_canister_with_name(name)
                 .unwrap()
-                .get_name()
-                .to_owned()
         })
-        .collect();
+        .collect::<Vec<_>>();
 
     // Run this before calculating `canisters_to_install` to obtain canisters config.
-    let _new_canister_pool = CanisterPool::load(env, false, &order_names)?; // with newly registered canisters
+    let _new_canister_pool = CanisterPool::load(env, false, &order)?; // with newly registered canisters
 
-    let canisters_to_install: &Vec<String> = &order_names
+    let canisters_to_install: &Vec<String> = &order
         .clone()
         .into_iter()
         .filter(|canister_name| {
@@ -149,7 +147,7 @@ pub async fn deploy_canisters(
         .collect();
 
     // FIXME: Remove.
-    println!("XXX order_names         : {:?}", order_names);
+    println!("XXX order_names         : {:?}", order);
     println!("XXX canisters_to_install: {:?}", canisters_to_install);
 
     let canister_id_store = env.get_canister_id_store()?;
@@ -181,13 +179,13 @@ pub async fn deploy_canisters(
     }
 
     // hack to load deployed canister IDs (such as of Rust canisters)
-    let new_canister_pool2 = CanisterPool::load(env, false, &order_names)?; // with newly registered canisters
+    let new_canister_pool2 = CanisterPool::load(env, false, &order)?; // with newly registered canisters
 
-    println!("QQQ: {:?}", toplevel_canisters.iter().map(|c| c.get_name()).collect::<Vec<_>>());
+    // println!("QQQ: {:?}", toplevel_canisters.iter().map(|c| c.get_name()).collect::<Vec<_>>()); // FIXME: Remove.
     build_canisters(
         env,
-        // &order_names,
-        toplevel_canisters,
+        order_canisters.as_slice(),
+        // toplevel_canisters,
         &config,
         env_file.clone(),
         &new_canister_pool2,

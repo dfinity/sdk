@@ -288,16 +288,33 @@ pub trait CanisterBuilder {
                 panic!("programming error");
             };
             let mut import_iter = Bfs::new(&imports.graph, start);
+            let mut top_level = true; // link to our main Canister with `.wasm`
             loop {
                 if let Some(import) = import_iter.next(&imports.graph) {
+                    let top_level_cur = top_level;
+                    top_level = false;
                     let subnode = &imports.graph[import];
+                    if top_level_cur {
+                        assert!(match subnode {
+                            Import::Canister(_) => true,
+                            _ => false,
+                        }, "the top-level import must be a canister");
+                    }
                     let imported_file = match subnode {
                         Import::Canister(canister_name) => {
                             if let Some(canister) =
                                 pool.get_first_canister_with_name(canister_name.as_str())
                             {
-                                let main_file = canister.get_info().get_main_file();
-                                main_file.map(|main_file| main_file.to_owned())
+                                let main_file = if top_level_cur {
+                                    if let Some(main_file) = canister.get_info().get_main_file() {
+                                        main_file.to_path_buf()
+                                    } else {
+                                        continue;
+                                    }
+                                } else {
+                                    canister.get_info().get_service_idl_path()
+                                };
+                                Some(main_file)
                             } else {
                                 None
                             }

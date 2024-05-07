@@ -172,7 +172,6 @@ impl CanisterBuilder for MotokoBuilder {
         }
     }
 
-    /// TODO: Ideally, should make inter-canister dependencies to rely on `.did` file changed or not.
     #[context("Failed to build Motoko canister '{}'.", canister_info.get_name())]
     fn build(
         &self,
