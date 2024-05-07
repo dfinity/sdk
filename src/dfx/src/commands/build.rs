@@ -78,7 +78,13 @@ pub fn exec(env1: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
         let store = env.get_canister_id_store()?;
         for canister in canister_pool.get_canister_list() {
             let canister_name = canister.get_name();
-            store.get(canister_name)?;
+            if config
+                .get_config()
+                .get_canister_config(canister_name)?
+                .deploy
+            {
+                store.get(canister_name)?;
+            }
         }
     }
 
