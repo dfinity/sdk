@@ -535,7 +535,7 @@ impl CanisterPool {
     pub fn get_canister(&self, canister_id: &CanisterId) -> Option<&Canister> {
         for c in &self.canisters {
             let info = &c.info;
-            if Some(canister_id) == info.get_canister_id().ok().as_ref() {
+            if Some(canister_id) == info.get_canister_id_option().as_ref() {
                 return Some(c);
             }
         }
