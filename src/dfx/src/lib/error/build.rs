@@ -8,8 +8,8 @@ pub enum BuildError {
     #[error("The pre-build all step failed")]
     PreBuildAllStepFailed(#[source] Box<DfxError>),
 
-    #[error("The post-build all step failed")]
-    PostBuildAllStepFailed(#[source] Box<DfxError>),
+    // #[error("The post-build all step failed")]
+    // PostBuildAllStepFailed(#[source] Box<DfxError>),
 
     #[error("The pre-build step failed for canister '{0}' ({1})")]
     PreBuildStepFailed(Principal, String, #[source] Box<DfxError>),

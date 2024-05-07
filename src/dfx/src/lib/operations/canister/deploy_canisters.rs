@@ -134,17 +134,23 @@ pub async fn deploy_canisters(
         })
         .collect();
 
+    // Run this before calculating `canisters_to_install` to obtain canisters config.
+    let _new_canister_pool = CanisterPool::load(env, false, &order_names)?; // with newly registered canisters
+
     let canisters_to_install: &Vec<String> = &order_names
         .clone()
         .into_iter()
         .filter(|canister_name| {
             !pull_canisters_in_config.contains_key(canister_name)
-                && (some_canister == Some(canister_name) || // do deploy a canister that was explicitly specified
-                    // TODO: This is a hack.
+                && //(some_canister == Some(canister_name) || // do deploy a canister that was explicitly specified
                     config.get_config().get_canister_config(canister_name).map_or(
-                        true, |canister_config| canister_config.deploy))
+                        true, |canister_config| canister_config.deploy)
         })
         .collect();
+
+    // FIXME: Remove.
+    println!("XXX order_names         : {:?}", order_names);
+    println!("XXX canisters_to_install: {:?}", canisters_to_install);
 
     let canister_id_store = env.get_canister_id_store()?;
 
@@ -173,15 +179,18 @@ pub async fn deploy_canisters(
     } else {
         info!(env.get_logger(), "All canisters have already been created.");
     }
-    let new_canister_pool = CanisterPool::load(env, false, &canisters_to_load)?; // with newly registered canisters
 
+    // hack to load deployed canister IDs (such as of Rust canisters)
+    let new_canister_pool2 = CanisterPool::load(env, false, &order_names)?; // with newly registered canisters
+
+    println!("QQQ: {:?}", toplevel_canisters.iter().map(|c| c.get_name()).collect::<Vec<_>>());
     build_canisters(
         env,
         // &order_names,
         toplevel_canisters,
         &config,
         env_file.clone(),
-        &new_canister_pool,
+        &new_canister_pool2,
     )
     .await?;
 
@@ -198,7 +207,7 @@ pub async fn deploy_canisters(
                 force_reinstall,
                 upgrade_unchanged,
                 call_sender,
-                new_canister_pool,
+                new_canister_pool2,
                 skip_consent,
                 env_file.as_deref(),
                 no_asset_upgrade,

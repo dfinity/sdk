@@ -6,7 +6,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
-use crate::lib::models::canister::{CanisterPool, Import, ImportsTracker};
+use crate::lib::models::canister::{Canister, CanisterPool, Import, ImportsTracker};
 use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets::management_idl;
 use anyhow::{anyhow, Context};
@@ -275,11 +275,16 @@ impl CanisterBuilder for MotokoBuilder {
         };
         motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
+        // for `deploy: false` canisters.
+        let canister_id = if let Some(canister_id) = canister_info.get_canister_id_option() {
+            canister_id
+        } else {
+            Canister::generate_random_canister_id()?
+        };
+
         Ok(BuildOutput {
             // duplicate code
-            canister_id: canister_info
-                .get_canister_id()
-                .expect("Could not find canister ID."),
+            canister_id,
             wasm: WasmBuildOutput::File(canister_info.get_output_wasm_path().to_path_buf()),
             idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
         })

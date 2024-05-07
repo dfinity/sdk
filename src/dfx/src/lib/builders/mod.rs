@@ -549,13 +549,16 @@ pub fn get_and_write_environment_variables<'a>(
         }
     }
     for canister in pool.get_canister_list() {
-        vars.push((
-            Owned(format!(
-                "CANISTER_ID_{}",
-                canister.get_name().replace('-', "_").to_ascii_uppercase(),
-            )),
-            Owned(canister.canister_id().to_text().into()),
-        ));
+        // Don't try to add `deploy: false` canisters:
+        if let Some(canister_id) = canister.get_info().get_canister_id_option() {
+            vars.push((
+                Owned(format!(
+                    "CANISTER_ID_{}",
+                    canister.get_name().replace('-', "_").to_ascii_uppercase(),
+                )),
+                Owned(canister_id.to_text().into()),
+            ));
+        }
     }
     if let Ok(id) = info.get_canister_id() {
         vars.push((Borrowed("CANISTER_ID"), Owned(format!("{}", id).into())));

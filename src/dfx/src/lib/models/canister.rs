@@ -335,7 +335,7 @@ impl Canister {
         //   - LSP_ROOT/CANISTER_ID.did
         let mut targets = vec![];
         targets.push(self.info.get_service_idl_path());
-        let canister_id = self.canister_id();
+        let canister_id = build_output.canister_id;
         targets.push(
             build_config
                 .idl_root
@@ -788,7 +788,7 @@ impl CanisterPool {
         // TODO: The following `map` is a hack.
         for canister in &self.canister_dependencies(&[&canister]) {
             let idl_root = &build_config.idl_root;
-            let canister_id = canister.canister_id();
+            let canister_id = canister.canister_id(); // FIXME: Apparently, backtraces on `deploy: false` dependency.
             let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
 
             // Ignore errors (e.g. File Not Found).
@@ -799,18 +799,18 @@ impl CanisterPool {
 
         canister.wasm_post_process(self.get_logger(), build_output)?;
 
-        build_canister_js(&canister.canister_id(), &canister.info)?;
+        build_canister_js(&build_output.canister_id, &canister.info)?;
 
         canister.postbuild(self, build_config)
     }
 
-    fn step_postbuild_all(
-        &self,
-        _build_config: &BuildConfig,
-        _order: &[CanisterId],
-    ) -> DfxResult<()> {
-        Ok(())
-    }
+    // fn step_postbuild_all(
+    //     &self,
+    //     _build_config: &BuildConfig,
+    //     _order: &[CanisterId],
+    // ) -> DfxResult<()> {
+    //     Ok(())
+    // }
 
     pub fn build_order(
         &self,
@@ -944,7 +944,7 @@ impl CanisterPool {
                             self.step_postbuild(build_config, canister.as_ref(), o)
                                 .map_err(|e| {
                                     BuildError::PostBuildStepFailed(
-                                        canister.canister_id(),
+                                        o.canister_id,
                                         canister.get_name().to_string(),
                                         Box::new(e),
                                     )
@@ -955,10 +955,10 @@ impl CanisterPool {
             }
         }
 
-        self.step_postbuild_all(build_config, &order.iter().map(|name| {
-            self.get_first_canister_with_name(name).unwrap().canister_id()
-        }).collect::<Vec<_>>())
-            .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
+        // self.step_postbuild_all(build_config, &order.iter().map(|name| {
+        //     self.get_first_canister_with_name(name).unwrap().canister_id() // TODO: `unwrap()`
+        // }).collect::<Vec<_>>())
+        //     .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
 
         Ok(())
     }
