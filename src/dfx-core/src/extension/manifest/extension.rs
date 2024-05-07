@@ -1,5 +1,10 @@
-use crate::error::extension::ExtensionError;
+use crate::error::extension::{
+    ConvertExtensionSubcommandIntoClapArgError, ConvertExtensionSubcommandIntoClapCommandError,
+    LoadExtensionManifestError,
+};
 use serde::{Deserialize, Deserializer};
+use serde_json::Value;
+use std::path::PathBuf;
 use std::{
     collections::{BTreeMap, HashMap},
     path::Path,
@@ -23,18 +28,31 @@ pub struct ExtensionManifest {
     pub description: Option<String>,
     pub subcommands: Option<ExtensionSubcommandsOpts>,
     pub dependencies: Option<HashMap<String, String>>,
+    pub canister_type: Option<ExtensionCanisterType>,
 }
 
 impl ExtensionManifest {
-    pub fn new(name: &str, extensions_root_dir: &Path) -> Result<Self, ExtensionError> {
-        let manifest_path = extensions_root_dir.join(name).join(MANIFEST_FILE_NAME);
-        let mut m: ExtensionManifest = crate::json::load_json_file(&manifest_path)
-            .map_err(ExtensionError::LoadExtensionManifestFailed)?;
+    pub fn load(
+        name: &str,
+        extensions_root_dir: &Path,
+    ) -> Result<Self, LoadExtensionManifestError> {
+        let manifest_path = Self::manifest_path(name, extensions_root_dir);
+        let mut m: ExtensionManifest = crate::json::load_json_file(&manifest_path)?;
         m.name = name.to_string();
         Ok(m)
     }
 
-    pub fn into_clap_commands(self) -> Result<Vec<clap::Command>, ExtensionError> {
+    pub fn exists(name: &str, extensions_root_dir: &Path) -> bool {
+        Self::manifest_path(name, extensions_root_dir).exists()
+    }
+
+    fn manifest_path(name: &str, extensions_root_dir: &Path) -> PathBuf {
+        extensions_root_dir.join(name).join(MANIFEST_FILE_NAME)
+    }
+
+    pub fn into_clap_commands(
+        self,
+    ) -> Result<Vec<clap::Command>, ConvertExtensionSubcommandIntoClapCommandError> {
         self.subcommands
             .unwrap_or_default()
             .0
@@ -42,6 +60,23 @@ impl ExtensionManifest {
             .map(|(subcmd, opts)| opts.into_clap_command(subcmd))
             .collect::<Result<Vec<_>, _>>()
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ExtensionCanisterType {
+    /// If one field depends on another and both specify a handlebars expression,
+    /// list the fields in the order that they should be evaluated.
+    #[serde(default)]
+    pub evaluation_order: Vec<String>,
+
+    /// Default values for the canister type. These values are used when the user does not provide
+    /// values in dfx.json.
+    /// The "metadata" field, if present, is appended to the metadata field from dfx.json, which
+    /// has the effect of providing defaults.
+    /// The "tech_stack field, if present, it merged with the tech_stack field from dfx.json,
+    /// which also has the effect of providing defaults.
+    #[serde(default)]
+    pub defaults: BTreeMap<String, Value>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -124,12 +159,15 @@ impl<'de> Deserialize<'de> for ArgNumberOfValues {
 }
 
 impl ExtensionSubcommandArgOpts {
-    pub fn into_clap_arg(self, name: String) -> Result<clap::Arg, ExtensionError> {
+    pub fn into_clap_arg(
+        self,
+        name: String,
+    ) -> Result<clap::Arg, ConvertExtensionSubcommandIntoClapArgError> {
         let mut arg = clap::Arg::new(name.clone());
         if let Some(about) = self.about {
             arg = arg.help(about);
         } else {
-            return Err(ExtensionError::ExtensionSubcommandArgMissingDescription(
+            return Err(ConvertExtensionSubcommandIntoClapArgError::ExtensionSubcommandArgMissingDescription(
                 name,
             ));
         }
@@ -158,7 +196,10 @@ impl ExtensionSubcommandArgOpts {
 }
 
 impl ExtensionSubcommandOpts {
-    pub fn into_clap_command(self, name: String) -> Result<clap::Command, ExtensionError> {
+    pub fn into_clap_command(
+        self,
+        name: String,
+    ) -> Result<clap::Command, ConvertExtensionSubcommandIntoClapCommandError> {
         let mut cmd = clap::Command::new(name);
 
         if let Some(about) = self.about {

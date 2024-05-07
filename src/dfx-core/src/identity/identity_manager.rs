@@ -6,8 +6,8 @@ use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGener
 use crate::error::fs::FsError;
 use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError;
 use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError::DeriveExtendedKeyFromPathFailed;
-use crate::error::identity::create_identity_config::{self, CreateIdentityConfigError};
 use crate::error::identity::create_identity_config::CreateIdentityConfigError::GenerateFreshEncryptionConfigurationFailed;
+use crate::error::identity::create_identity_config::{self, CreateIdentityConfigError};
 use crate::error::identity::create_new_identity::CreateNewIdentityError;
 use crate::error::identity::create_new_identity::CreateNewIdentityError::{
     CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
@@ -104,7 +104,7 @@ pub struct IdentityConfiguration {
     pub delegation: Option<DelegatedIdentityConfiguration>,
 }
 
-// 
+//
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct BaseIdentityConfiguration {
     /// If the identity's PEM file is encrypted on disk this contains everything (except the password) to decrypt the file.
@@ -113,7 +113,6 @@ pub struct BaseIdentityConfiguration {
     /// If the identity's PEM file is stored in the system's keyring, this field contains the identity's name WITHOUT the common prefix.
     pub keyring_identity_suffix: Option<String>,
 }
-
 
 /// The information necessary to de- and encrypt (except the password) the identity's .pem file
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -185,7 +184,6 @@ impl From<IdentityConfiguration> for DelegationSigningIdentity {
     }
 }
 
-
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct DelegationSigningIdentity {
     pub name: String,
@@ -256,8 +254,8 @@ pub enum IdentityCreationParameters {
     },
     Delegation {
         base_identity_name: String,
-        delegation: DelegatedIdentityConfiguration, 
-    }
+        delegation: DelegatedIdentityConfiguration,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -272,7 +270,7 @@ pub struct IdentityManager {
 impl IdentityManager {
     pub fn new(
         logger: &Logger,
-        identity_override: &Option<String>,
+        identity_override: Option<&str>,
     ) -> Result<Self, NewIdentityManagerError> {
         let config_dfx_dir_path =
             get_user_dfx_config_dir().map_err(NewIdentityManagerError::GetConfigDirectoryFailed)?;
@@ -288,8 +286,9 @@ impl IdentityManager {
         };
 
         let selected_identity = identity_override
-            .clone()
-            .unwrap_or_else(|| configuration.default.clone());
+            .unwrap_or(&configuration.default)
+            .to_string();
+
         let file_locations = IdentityFileLocations::new(identity_root_path);
 
         let mgr = IdentityManager {
@@ -496,9 +495,13 @@ impl IdentityManager {
                 )
                 .map_err(CreateNewIdentityError::SavePemFailed)?;
             }
-            IdentityCreationParameters::Delegation { base_identity_name, delegation } => {
-                identity_config = create_identity_config(log, IdentityStorageMode::default(), name, None).unwrap();
-                
+            IdentityCreationParameters::Delegation {
+                base_identity_name,
+                delegation,
+            } => {
+                identity_config =
+                    create_identity_config(log, IdentityStorageMode::default(), name, None)
+                        .unwrap();
             }
         }
         let identity_config_location = self.get_identity_json_path(&temp_identity_name);

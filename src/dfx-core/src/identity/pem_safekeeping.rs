@@ -83,8 +83,7 @@ pub(crate) fn save_delegation(
     identity_config: DelegatedIdentityConfiguration,
 ) -> Result<(), SavePemError> {
     let path = locations.get_delegation_path(name, &identity_config);
-    write_(&path, &identity_config)
-        .map_err(SavePemError::WritePemToFileFailed)
+    write_(&path, &identity_config).map_err(SavePemError::WritePemToFileFailed)
 }
 
 /// Loads a pem file, no matter if it is a plaintext pem file or if it is encrypted with a password.
@@ -191,7 +190,6 @@ fn write_(path: &Path, config: &DelegatedIdentityConfiguration) -> Result<(), Fs
     let content = serde_json::to_vec(config).unwrap();
     write_pem_content(path, &content)
 }
-
 
 enum PromptMode {
     EncryptingToCreate,

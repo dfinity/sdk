@@ -45,22 +45,26 @@ async fn canister_status(
         "Not Set".to_string()
     };
 
-    println!("Canister status call result for {}.\nStatus: {}\nControllers: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nReserved: {} Cycles\nReserved Cycles Limit: {}\nModule hash: {}\nNumber of queries: {}\nInstructions spent in queries: {}\nTotal query request paylod size (bytes): {}\nTotal query response payload size (bytes): {}",
-        canister,
-        status.status,
-        controllers.join(" "),
-        status.settings.memory_allocation,
-        status.settings.compute_allocation,
-        status.settings.freezing_threshold,
-        status.memory_size,
-        status.cycles,
-        status.reserved_cycles,
-        reserved_cycles_limit,
-        status.module_hash.map_or_else(|| "None".to_string(), |v| format!("0x{}", hex::encode(v))),
-        status.query_stats.num_calls_total,
-        status.query_stats.num_instructions_total,
-        status.query_stats.request_payload_bytes_total,
-        status.query_stats.response_payload_bytes_total,
+    let wasm_memory_limit = if let Some(limit) = status.settings.wasm_memory_limit {
+        format!("{} Bytes", limit)
+    } else {
+        "Not Set".to_string()
+    };
+
+    println!("Canister status call result for {canister}.\nStatus: {status}\nControllers: {controllers}\nMemory allocation: {memory_allocation}\nCompute allocation: {compute_allocation}\nFreezing threshold: {freezing_threshold}\nMemory Size: {memory_size:?}\nBalance: {balance} Cycles\nReserved: {reserved} Cycles\nReserved Cycles Limit: {reserved_cycles_limit}\nWASM Memory Limit: {wasm_memory_limit}\nModule hash: {module_hash}\nNumber of queries: {queries_total}\nInstructions spent in queries: {query_instructions_total}\nTotal query request payload size (bytes): {query_req_payload_total}\nTotal query response payload size (bytes): {query_resp_payload_total}",
+        status = status.status,
+        controllers = controllers.join(" "),
+        memory_allocation = status.settings.memory_allocation,
+        compute_allocation = status.settings.compute_allocation,
+        freezing_threshold = status.settings.freezing_threshold,
+        memory_size = status.memory_size,
+        balance = status.cycles,
+        reserved = status.reserved_cycles,
+        module_hash = status.module_hash.map_or_else(|| "None".to_string(), |v| format!("0x{}", hex::encode(v))),
+        queries_total = status.query_stats.num_calls_total,
+        query_instructions_total = status.query_stats.num_instructions_total,
+        query_req_payload_total = status.query_stats.request_payload_bytes_total,
+        query_resp_payload_total = status.query_stats.response_payload_bytes_total,
     );
     Ok(())
 }

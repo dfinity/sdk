@@ -10,9 +10,9 @@ fi
 
 VERSION=$1
 echo "Updating sources to version ${VERSION}"
-niv update motoko-base -a version=$VERSION
-niv update motoko-x86_64-darwin -a version=$VERSION
-niv update motoko-x86_64-linux -a version=$VERSION
+niv update motoko-base -a version="$VERSION"
+niv update motoko-x86_64-darwin -a version="$VERSION"
+niv update motoko-x86_64-linux -a version="$VERSION"
 
 echo "Writing asset sources"
 ./scripts/write-dfx-asset-sources.sh

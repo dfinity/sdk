@@ -1,5 +1,5 @@
-use thiserror::Error;
 use ic_agent::identity::{Delegation, SignedDelegation};
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum DelegationError {
@@ -15,7 +15,6 @@ pub struct IdentityDelegation {
     delegations: Vec<SignedDelegation>,
 }
 
-
 #[derive(Debug, candid::Deserialize, serde::Serialize)]
 pub struct JSONDelegation {
     expiration: String,
@@ -24,7 +23,7 @@ pub struct JSONDelegation {
 
 #[derive(Debug, candid::Deserialize, serde::Serialize)]
 pub struct SignedJSONDelegation {
-   delegation: JSONDelegation,
+    delegation: JSONDelegation,
     signature: String,
 }
 
@@ -51,10 +50,10 @@ impl SignedJSONDelegation {
 
         let delegation = SignedDelegation {
             delegation: Delegation {
-            expiration: expiration,
-            pubkey: pubkey,
-            targets: Option::None,
-        },
+                expiration: expiration,
+                pubkey: pubkey,
+                targets: Option::None,
+            },
             signature: hex::decode(&self.signature)
                 .map_err(|err| DelegationError::IdentityError(err.to_string()))?,
         };
@@ -108,4 +107,3 @@ impl JSONDelegationChain {
         })
     }
 }
-

@@ -2,6 +2,156 @@
 
 # UNRELEASED
 
+# 0.20.1
+
+### feat: reformatted error output
+
+Rather than increasing indentation, dfx now aligns the error causes with a "Caused by: " prefix.
+
+Also changed error types to report error causes as causes, rather than embedding their error cause in the error text.
+
+Before:
+```bash
+Error: Failed while trying to deploy canisters.
+Caused by: Failed while trying to deploy canisters.
+  Failed to build all canisters.
+    Failed while trying to build all canisters.
+      The build step failed for canister 'bw4dl-smaaa-aaaaa-qaacq-cai' (wasminst_backend) with an embedded error: Failed to build Motoko canister 'wasminst_backend'.: Failed to compile Motoko.: Failed to run 'moc'.: The command '"/Users/ericswanson/.cache/dfinity/versions/0.19.0/moc" ... params ...  failed with exit status 'exit status: 1'.
+Stdout:
+
+Stderr:
+/Users/ericswanson/w/wasminst/src/wasminst_backend/main2.mo: No such file or directory
+```
+
+After:
+```bash
+Error: Failed while trying to deploy canisters.
+Caused by: Failed to build all canisters.
+Caused by: Failed while trying to build all canisters.
+Caused by: The build step failed for canister 'bw4dl-smaaa-aaaaa-qaacq-cai' (wasminst_backend)
+Caused by: Failed to build Motoko canister 'wasminst_backend'.
+Caused by: Failed to compile Motoko.
+Caused by: Failed to run 'moc'.
+Caused by: The command '"/Users/ericswanson/.cache/dfinity/versions/0.20.0/moc" ... params ... failed with exit status 'exit status: 1'.
+Stdout:
+
+Stderr:
+/Users/ericswanson/w/wasminst/src/wasminst_backend/main2.mo: No such file or directory
+```
+
+### fix: "Failed to decrypt PEM file" errors messages will now include the cause
+
+### feat: WASM memory soft-limit
+
+Adds support for the `wasm_memory_limit` canister setting, which limits the canister's heap during most calls but does not affect queries. As with other canister settings, it can be set in `dfx canister create` or `dfx canister update-settings` via the `--wasm-memory-limit` flag, as well as in `dfx.json` under `canisters[].initialization_values.wasm_memory_limit`.
+
+### feat: extensions can define a canister type
+
+Please see [extension-defined-canister-types](docs/concepts/extension-defined-canister-types.md) for details.
+
+### feat: init_arg_file in dfx.json
+
+Introduces support for the `init_arg_file` field in `dfx.json`, providing an alternative method to specify initialization arguments.
+
+This field accepts a relative path, from the directory containing the `dfx.json` file.
+
+**Note**
+
+- Only one of `init_arg` and `init_arg_file` can be defined at a time.
+- If `--argument` or `--argument-file` are set, the argument from the command line takes precedence over the one in dfx.json.
+
+### fix: dfx new failure when node is available but npm is not
+
+`dfx new` could fail with "Failed to scaffold frontend code" if node was installed but npm was not installed.
+
+## Dependencies
+
+### Cycles wallet
+
+Updated cycles wallet to a gzipped version of `20240410` release:
+- Module hash: `7745d3114e3e5fbafe8a7150a0a8c15a5b8dc9257f294d5ced67d41be76065bc`, in gzipped form: `664df1045e093084f4ebafedd3a793cc3b3be0a7ef1b245d8d3defe20b33057c`
+- https://github.com/dfinity/cycles-wallet/commit/b013764dd827560d8538ee2b7be9ecf66bed6be7
+
+### Replica
+
+Updated replica to elected commit 5e285dcaf77db014ac85d6f96ff392fe461945f5.
+This incorporates the following executed proposals:
+
+- [129494](https://dashboard.internetcomputer.org/proposal/129494)
+- [129493](https://dashboard.internetcomputer.org/proposal/129493)
+- [129428](https://dashboard.internetcomputer.org/proposal/129428)
+- [129427](https://dashboard.internetcomputer.org/proposal/129427)
+- [129423](https://dashboard.internetcomputer.org/proposal/129423)
+- [129408](https://dashboard.internetcomputer.org/proposal/129408)
+- [129379](https://dashboard.internetcomputer.org/proposal/129379)
+- [129378](https://dashboard.internetcomputer.org/proposal/129378)
+
+# 0.20.0
+
+### fix: set `CANISTER_CANDID_PATH_<canister name>` properly for remote canisters
+
+In the remote canister declaration it is possible to set a candid file to use when the canister is remote on a specific network.
+`dfx` now correctly sets the `CANISTER_CANDID_PATH_<canister name>` environment variable during the build process on remote networks if the file exists.
+
+### feat: display schema for dfx metadata json
+
+`dfx schema --for dfx-metadata` to display JSON schema of the "dfx" metadata.
+
+### feat: add tech_stack to the Canister Metadata Standard
+
+The standardized `dfx` metadata is extended with another object: `tech_stack`.
+
+Please check [tech-stack](docs/concepts/tech-stack.md) for more details.
+
+### chore: updated management canister .did file
+
+### feat: added `dfx completion` command
+
+This command generates shell completion scripts for `bash`, `elvish`, `fish`, `zsh`, or PowerShell.
+
+Describing how to install shell completion scripts is beyond the scope of this document.
+Here are two commands that would enable command completion in the current shell:
+
+In zsh:
+
+```bash
+source <(dfx completion zsh)
+```
+
+In bash:
+
+```bash
+source <(dfx completion)
+```
+
+### fix: dfx no longer always creates .dfx directory if dfx.json is present
+
+Previously, `dfx` would always create a `.dfx` directory in the project root if `dfx.json` was present.
+Now, it only does so if the command accesses the .dfx directory in some way.
+
+### fix: dfx only loads dfx.json for commands that need it
+
+For example, this will work now:
+```bash
+echo garbage >dfx.json && dfx identity get-principal
+```
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 02dcaf3ccdfe46bd959d683d43c5513d37a1420d.
+This incorporates the following executed proposals:
+
+- [129084](https://dashboard.internetcomputer.org/proposal/129084)
+- [129081](https://dashboard.internetcomputer.org/proposal/129081)
+- [129035](https://dashboard.internetcomputer.org/proposal/129035)
+- [128876](https://dashboard.internetcomputer.org/proposal/128876)
+- [128904](https://dashboard.internetcomputer.org/proposal/128904)
+- [128864](https://dashboard.internetcomputer.org/proposal/128864)
+- [128816](https://dashboard.internetcomputer.org/proposal/128816)
+- [128846](https://dashboard.internetcomputer.org/proposal/128846)
+
 # 0.19.0
 
 ### fix: call management canister Bitcoin query API without replica-signed query
@@ -114,6 +264,10 @@ This incorporates the following executed proposals:
 ### Bitcoin canister
 
 Downgraded Bitcoin canister to [release/2023-10-13](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2023-10-13)
+
+### Motoko
+
+Updated Motoko to [0.11.1](https://github.com/dfinity/motoko/releases/tag/0.11.1)
 
 # 0.18.0
 
@@ -311,7 +465,7 @@ Now when `dfx deps pull`, such content will be accept properly.
 
 ### feat: dfx upgrade will direct the user to install dfxvm if it has been released.
 
-If the latest release of https://github.com/dfinity/dfxvm is >= 1.0, `dfx upgrade` will
+If the latest release of https://github.com/dfinity/dfxvm is \>\= 1.0, `dfx upgrade` will
 direct the user to install dfxvm and then exit.
 
 ### feat: fetch did file from canister metadata when making canister calls
@@ -350,9 +504,9 @@ The dfxvm install script now accepts `DFXVM_INIT_YES=<non empty string>` to skip
 
 When using `dfx canister status`, the output now includes the new query statistics. Those might initially be 0, if the feature is not yet enabled on the subnet the canister is installed in.
 
-### fix: Candid parser when parsing `vec {number}` with `blob` type
+### fix: Candid parser when parsing `vec \{number\}` with `blob` type
 
-Fix the bug that when parsing `vec {1;2;3}` with `blob` type, dfx silently ignores the numbers.
+Fix the bug that when parsing `vec \{1;2;3\}` with `blob` type, dfx silently ignores the numbers.
 
 ### fix: support `import` for local did file
 
@@ -498,7 +652,7 @@ this in configuration and as a parameter to dfx start.  You can specify a single
 domain or a list of domains in any of the following ways:
 
 - in networks.json, in `.<network>.proxy.domain`
-- in dfx.json, in `.networks.<netowrk>.proxy.domain`
+- in dfx.json, in `.networks.<network>.proxy.domain`
 - in dfx.json, in `.defaults.proxy.domain`
 - to dfx start, as `dfx start --domain <domain1> --domain <domain2> ...`
 
@@ -549,7 +703,7 @@ call it as a query call. This resolves a potential security risk.
 
 ### fix: `dfx ledger transfer` now logs to stderr messages about duplicates rather than printing them to stdout
 
-The message "transaction is a duplicate of another transaction in block ...", previously printed to stdout, is now logged to stderr. This means that the output of `dfx ledger transfer` to stdout will contain only "Transfer sent at block height <block height>".
+The message "transaction is a duplicate of another transaction in block ...", previously printed to stdout, is now logged to stderr. This means that the output of `dfx ledger transfer` to stdout will contain only `Transfer sent at block height <block height>`.
 
 ### feat: accept more ways to specify cycle and e8s amounts
 
@@ -639,7 +793,7 @@ This will automatically produce the idl in the `.dfx` folder.
 
 Generate frontend declarations for remote canisters too because frontend JS code may want to call them.
 
-### feat: dfx extension install <extension> --version <specific version>
+### feat: `dfx extension install <extension> --version <specific version>`
 
 Install a specific version of an extension, bypassing version checks.
 
@@ -656,9 +810,10 @@ Added warning that the `--emulator` is deprecated and will be discontinued soon.
 ### fix: node engines in starter
 
 Updates node engines to reflect the same engines supported in agent-js.
-
+```
 "node": "^12 || ^14 || ^16 || >=17",
 "npm": "^7.17 || >=8"
+```
 
 ### feat: deploy to playground
 
@@ -1176,12 +1331,13 @@ Add option to specify an "optimize" field for canisters to invoke the `wasm-opt`
 This behavior is disabled by default.
 
 If you want to enable this behavior, you can do so in dfx.json:
-
-    "canisters" : {
-        "app" : {
-            "optimize" : "cycles"
-        }
-    }
+```json
+"canisters": {
+  "app": {
+    "optimize" : "cycles"
+  }
+}
+```
 
 The options are "cycles", "size", "O4", "O3", "O2", "O1", "O0", "Oz", and "Os".  The options starting with "O" are the optimization levels that `wasm-opt` provides. The "cycles" and "size" options are recommended defaults for optimizing for cycle usage and binary size respectively.
 
@@ -1261,7 +1417,7 @@ Before it was possible that a user could send 2 ledger transfers with the same a
 
 ### chore: Add a message that `redeem_faucet_coupon` may take a while to complete
 
-### feat: dfx deploy <frontend canister name> --by-proposal
+### feat: `dfx deploy <frontend canister name> --by-proposal`
 
 This supports asset updates through SNS proposal.
 
@@ -1269,7 +1425,7 @@ Uploads asset changes to an asset canister (propose_commit_batch()), but does no
 
 The SNS will call `commit_proposed_batch()` to commit the changes.  If the proposal fails, the caller of `dfx deploy --by-proposal` should call `delete_batch()`.
 
-### feat: dfx deploy <frontend canister name> --compute-evidence
+### feat: `dfx deploy <frontend canister name> --compute-evidence`
 
 Builds the specified asset canister, determines the batch operations required to synchronize the assets, and computes a hash ("evidence") over those batch operations.  This evidence will match the evidence computed by `dfx deploy --by-proposal`, and which will be specified in the update proposal.
 
@@ -1633,12 +1789,13 @@ dfx --identity ident-1 ledger balance
 ### feat: default to run ic-wasm shrink when build canisters
 This behavior applies to Motoko, Rust and Custom canisters.
 If you want to disable this behavior, you can config it in dfx.json:
-
-    "canisters" : {
-        "app" : {
-            "shrink" : false,
-        }
-    }
+```json
+"canisters" : {
+  "app" : {
+    "shrink" : false,
+  }
+}
+```
 
 ### feat: configurable custom wasm sections
 
@@ -1665,7 +1822,7 @@ This changelog entry doesn't go into all of the details of the possible configur
 
 ### fix: Valid canister-based env vars
 
-Hyphens are not valid in shell environment variables, but do occur in canister names such as `smiley-dapp`. This poses a problem for vars with names such as `CANISTER_ID_${CANISTER_NAME}`.  With this change, hyphens are replaced with underscores in environment variables.  The canister id of `smiley-dapp` will be available as `CANISTER_ID_smiley_dapp`.  Other environment variables are unaffected.
+Hyphens are not valid in shell environment variables, but do occur in canister names such as `smiley-dapp`. This poses a problem for vars with names such as `CANISTER_ID_$\{CANISTER_NAME\}`.  With this change, hyphens are replaced with underscores in environment variables.  The canister id of `smiley-dapp` will be available as `CANISTER_ID_smiley_dapp`.  Other environment variables are unaffected.
 
 ### feat: Add dfx sns deploy
 
@@ -1731,11 +1888,12 @@ The network's port can be controlled by using the field `"provider"` in the netw
 ### feat: configure logging level of http adapter
 
 It is now possible to set the http adapter's log level in dfx.json or in networks.json:
-
-    "http": {
-      "enabled": true,
-      "log_level": "info"
-    }
+```
+"http": {
+  "enabled": true,
+  "log_level": "info"
+}
+```
 
 By default, a log level of "error" is used, in order to keep the output of a first-time `dfx start` minimal. Change it to "debug" for more verbose logging.
 
@@ -1863,7 +2021,7 @@ dfx now stores data and control files in one of three places, rather than direct
 
 There is also a new configuration file: `$HOME/.config/dfx/networks.json`.  Its [schema](docs/networks-json-schema.json) is the same as the `networks` element in dfx.json.  Any networks you define here will be available from any project, unless a project's dfx.json defines a network with the same name.  See [The Shared Local Network](docs/cli-reference/dfx-start.md#the-shared-local-network) for the default definitions that dfx provides if this file does not exist or does not define a `local` network.
 
-### fix: `dfx start` and `dfx stop` will take into account dfx/replica processes from dfx <= 0.11.x
+### fix: `dfx start` and `dfx stop` will take into account dfx/replica processes from dfx \<\= 0.11.x
 
 ### feat: added command `dfx info`
 
@@ -2220,7 +2378,7 @@ This incorporates the following executed proposals:
 
 ## DFX
 
-### feat: renamed canisters in new projects to <project>_frontend and <project>_backend
+### feat: renamed canisters in new projects to `<project>_frontend` and `<project>_backend`
 
 The names of canisters created for new projects have changed.
 After `dfx new <project>`, the canister names are:
@@ -2230,7 +2388,7 @@ After `dfx new <project>`, the canister names are:
 
 ### feat: Enable threshold ecdsa signature
 
-### feat: new command: dfx canister metadata <canister> <name>
+### feat: new command: `dfx canister metadata <canister> <name>`
 
 For example, to query a canister's candid service definition: `dfx canister metadata hello_backend candid:service`
 
@@ -2262,11 +2420,13 @@ The bitcoin adapter's logging can be very verbose if debug logging is enabled, m
 
 To get the best of both worlds, this release adds support for an additional configuration option in dfx.json:
 
-    "bitcoin": {
-      "enabled": true,
-      "nodes": ["127.0.0.1:18444"],
-      "log_level": "info" <------- users can now configure the log level
-    }
+```
+"bitcoin": {
+  "enabled": true,
+  "nodes": ["127.0.0.1:18444"],
+  "log_level": "info" <------- users can now configure the log level
+}
+```
 
 By default, a log level of "info" is used, which is relatively quiet. Users can change it to "debug" for more verbose logging.
 
@@ -2594,7 +2754,7 @@ Note in particular that this does not try to match `opt` arguments for heterogen
 
 This check was previously performed on local networks, but not on mainnet.
 
-### feat: dfx canister call --candid <path to candid file> ...
+### feat: `dfx canister call --candid <path to candid file> ...`
 
 Allows one to provide the .did file for calls to an arbitrary canister.
 
@@ -2615,7 +2775,7 @@ As a consequence, after `dfx start` failed to notice that dfx was already runnin
 it would replace .dfx/pid with an empty file.  Later invocations of `dfx stop`
 would display no output and return a successful exit code, but leave dfx running.
 
-### fix: dfx canister update-settings <canister id> works even if the canister id is not known to the project.
+### fix: `dfx canister update-settings <canister id>` works even if the canister id is not known to the project.
 
 This makes the behavior match the usage text of the command:
 `<CANISTER> Specifies the canister name or id to update. You must specify either canister name/id or the --all option`
@@ -3137,7 +3297,7 @@ Additionally adds some polish to the starter template, including a favicon and u
 You can now override the location of any executable normally called from the cache by specifying
 an environment variable. For example, DFX_ICX_PROXY_PATH will specify the path for `icx-proxy`.
 
-### feat: dfx deploy --mode=reinstall <canister>
+### feat: `dfx deploy --mode=reinstall <canister>`
 
 `dfx deploy` can now reinstall a single canister, controlled by a new `--mode=reinstall` parameter.
 This is destructive (it resets the state of the canister), so it requires a confirmation
@@ -3201,13 +3361,13 @@ passing multiple instances of the `--controller parameter to `dfx canister updat
 
 ### feat: dfx canister info and dfx canister status now display all controllers
 
-### feat!: dfx canister create --controller <controller> named parameter
+### feat!: `dfx canister create --controller <controller>` named parameter
 
 Breaking change: The controller parameter for `dfx canister create` is now passed as a named parameter,
 rather than optionally following the canister name.
 
-Old: dfx canister create [canister name] [controller]
-New: dfx canister create --controller <controller> [canister name]
+Old: `dfx canister create [canister name] [controller]`
+New: `dfx canister create --controller <controller> [canister name]`
 
 ### fix: dfx now respects $DFX_CONFIG_ROOT when looking for legacy credentials
 
@@ -3261,31 +3421,31 @@ This new command will generate type declarations for canisters in dfx.json.
 
 You can control what will be generated and how with corresponding configuration in dfx.json.
 
-Under dfx.json → "canisters" → "<canister_name>", developers can add a "declarations" config. Options are:
+Under dfx.json → `canisters` → `<canister_name>`, developers can add a "declarations" config. Options are:
 
-* "output" → directory to place declarations for that canister | default is "src/declarations/<canister_name>"
+* "output" → directory to place declarations for that canister | default is `src/declarations/<canister_name>`
 
 * "bindings" → [] list of options, ("js", "ts", "did", "mo") | default is "js", "ts", "did"
 
-* "env_override" → a string that will replace process.env.{canister_name_uppercase}_CANISTER_ID in the "src/dfx/assets/language_bindings/canister.js" template.
+* "env_override" → a string that will replace process.env.\{canister_name_uppercase\}_CANISTER_ID in the "src/dfx/assets/language_bindings/canister.js" template.
 
 js declarations output
 
 * index.js (generated from "src/dfx/assets/language_bindings/canister.js" template)
 
-* <canister_name>.did.js - candid js binding output
+* `<canister_name>.did.js` - candid js binding output
 
 ts declarations output
 
-  * <canister_name>.did.d.ts - candid ts binding output
+  * `<canister_name>.did.d.ts` - candid ts binding output
 
 did declarations output
 
-  * <canister_name>.did - candid did binding output
+  * `<canister_name>.did` - candid did binding output
 
 mo declarations output
 
-  * <canister_name>.mo - candid mo binding output
+  * `<canister_name>.mo` - candid mo binding output
 
 ### feat: dfx now supports the anonymous identity
 
@@ -3336,7 +3496,7 @@ but ended up only writing to the wallets.json file if --force was passed.
 
 ### chore: updating dependencies
 
-* Support for the latest version of the {IC} specification and replica.
+* Support for the latest version of the \{IC\} specification and replica.
 
 * Updating to latest versions of Motoko, Candid, and agent-rs
 
@@ -3615,7 +3775,7 @@ dfx canister call ...
 
 ## DFX
 
-- feat: dfx now provides CANISTER_ID_<canister_name> environment variables for all canisters to "npm build" when building the frontend.
+- feat: dfx now provides `CANISTER_ID_<canister_name>` environment variables for all canisters to "npm build" when building the frontend.
 
 ## Agents
 

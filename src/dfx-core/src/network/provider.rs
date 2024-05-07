@@ -355,12 +355,15 @@ fn create_project_network_descriptor(
                 config.get_path().display(),
             );
 
-            let data_directory = config.get_temp_path().join("network").join(network_name);
-            let legacy_pid_path = Some(config.get_temp_path().join("pid"));
-            let ephemeral_wallet_config_path = config
-                .get_temp_path()
-                .join("local")
-                .join(WALLET_CONFIG_FILENAME);
+            let temp_path = match config.get_temp_path() {
+                Ok(temp_path) => temp_path,
+                Err(e) => {
+                    return Some(Err(NetworkConfigError::GetTempPath(e)));
+                }
+            };
+            let data_directory = temp_path.join("network").join(network_name);
+            let legacy_pid_path = Some(temp_path.join("pid"));
+            let ephemeral_wallet_config_path = temp_path.join("local").join(WALLET_CONFIG_FILENAME);
             Some(config_network_to_network_descriptor(
                 network_name,
                 config_network,
@@ -595,7 +598,7 @@ mod tests {
             .unwrap();
         }
 
-        let config = Config::from_dir(&project_dir).unwrap().unwrap();
+        let config = Config::from_dir(&project_dir, None).unwrap().unwrap();
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),

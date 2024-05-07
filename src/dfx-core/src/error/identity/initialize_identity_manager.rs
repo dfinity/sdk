@@ -7,21 +7,21 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum InitializeIdentityManagerError {
-    #[error("Cannot create identity directory: {0}")]
-    CreateIdentityDirectoryFailed(FsError),
+    #[error("Cannot create identity directory")]
+    CreateIdentityDirectoryFailed(#[source] FsError),
 
-    #[error("Failed to generate key: {0}")]
-    GenerateKeyFailed(GenerateKeyError),
+    #[error("Failed to generate key")]
+    GenerateKeyFailed(#[source] GenerateKeyError),
 
     #[error(transparent)]
     GetLegacyCredentialsPemPathFailed(#[from] GetLegacyCredentialsPemPathError),
 
     #[error("Failed to migrate legacy identity")]
-    MigrateLegacyIdentityFailed(FsError),
+    MigrateLegacyIdentityFailed(#[source] FsError),
 
-    #[error("Failed to save configuration: {0}")]
-    SaveConfigurationFailed(StructuredFileError),
+    #[error("Failed to save configuration")]
+    SaveConfigurationFailed(#[source] StructuredFileError),
 
-    #[error("Failed to write pem to file: {0}")]
-    WritePemToFileFailed(WritePemToFileError),
+    #[error("Failed to write pem to file")]
+    WritePemToFileFailed(#[source] WritePemToFileError),
 }

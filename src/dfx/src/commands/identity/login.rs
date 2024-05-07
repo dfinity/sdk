@@ -43,7 +43,8 @@ pub fn exec(env: &dyn Environment, _opts: LoginOpts) -> DfxResult {
         return Err(LoginError::IdentityError("No base identity selected".to_string()).into());
     }
 
-    let base_identity_configuration = mgr.get_identity_config_or_default(base_identity_name.unwrap().as_str())?;
+    let base_identity_configuration =
+        mgr.get_identity_config_or_default(base_identity_name.unwrap().as_str())?;
 
     let delegation_json = Input::<String>::new()
         .with_prompt("Enter the JSON-encoded delegation chain")
@@ -58,26 +59,28 @@ pub fn exec(env: &dyn Environment, _opts: LoginOpts) -> DfxResult {
 
     // use parameters from base identity
 
-    let params : DelegatedIdentityConfiguration = DelegatedIdentityConfiguration {
+    let params: DelegatedIdentityConfiguration = DelegatedIdentityConfiguration {
         from_public_key: id.delegations[0].delegation.pubkey.clone(),
         signing_identity: base_identity_configuration.into(),
         chain: id.delegations,
     };
 
-    mgr.create_new_identity(log, "delegated_identity", IdentityCreationParameters::Delegated(params))?;
-    
+    mgr.create_new_identity(
+        log,
+        "delegated_identity",
+        IdentityCreationParameters::Delegated(params),
+    )?;
+
     Ok(())
 }
-
 
 #[cfg(test)]
 mod tests {
     use crate::commands::identity::login::JSONDelegationChain;
 
-
     #[test]
     fn test_parse_identity_delegation() {
-        let s =  r#"{
+        let s = r#"{
         "delegations":[{
             "delegation": {
                     "expiration":"17c106823a0b91b8","pubkey":"3059301306072a8648ce3d020106082a8648ce3d030107034200046bba01230defcec1c4ecc15d57d81410acfd8000fdec74b72fc09849fb2a6a26d309f8eadb06fd8a51f23408ac9563b81d0ef6568127fb239cfb0790a9c20c68"

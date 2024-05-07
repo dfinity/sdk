@@ -5,14 +5,14 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum NewIdentityError {
-    #[error("Failed to load PEM: {0}")]
-    LoadPemFailed(LoadPemError),
+    #[error("Failed to load PEM")]
+    LoadPemFailed(#[source] LoadPemError),
 
-    #[error("Failed to load PEM identity: {0}")]
-    LoadPemIdentityFailed(LoadPemIdentityError),
+    #[error("Failed to load PEM identity")]
+    LoadPemIdentityFailed(#[source] LoadPemIdentityError),
 
-    #[error("Failed to instantiate hardware identity: {0}")]
-    NewHardwareIdentityFailed(NewHardwareIdentityError),
+    #[error("Failed to instantiate hardware identity")]
+    NewHardwareIdentityFailed(#[source] NewHardwareIdentityError),
 
     #[error("There was some issue with the identity creation")]
     DelegatedIdentityCreationFailed,

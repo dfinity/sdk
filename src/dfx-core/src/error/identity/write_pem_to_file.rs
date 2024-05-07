@@ -5,9 +5,9 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum WritePemToFileError {
-    #[error("Failed to encrypt PEM file: {0}")]
-    EncryptPemFileFailed(PathBuf, EncryptionError),
+    #[error("Failed to encrypt PEM file")]
+    EncryptPemFileFailed(PathBuf, #[source] EncryptionError),
 
-    #[error("Failed to write to PEM file: {0}")]
-    WritePemContentFailed(FsError),
+    #[error("Failed to write to PEM file")]
+    WritePemContentFailed(#[source] FsError),
 }

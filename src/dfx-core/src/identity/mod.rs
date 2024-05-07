@@ -23,7 +23,8 @@ use crate::json::{load_json_file, save_json_file};
 use candid::Principal;
 use ic_agent::agent::EnvelopeContent;
 use ic_agent::identity::{
-    AnonymousIdentity, BasicIdentity, DelegatedIdentity, Delegation, Identity as AgentIdentity, Secp256k1Identity, SignedDelegation
+    AnonymousIdentity, BasicIdentity, DelegatedIdentity, Delegation, Identity as AgentIdentity,
+    Secp256k1Identity, SignedDelegation,
 };
 use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
@@ -38,8 +39,8 @@ use std::path::{Path, PathBuf};
 
 use self::identity_manager::{DelegatedIdentityConfiguration, DelegationSigningIdentityType};
 
-mod identity_file_locations;
 pub mod delegation;
+mod identity_file_locations;
 pub mod identity_manager;
 pub mod keyring_mock;
 pub mod pem_safekeeping;
@@ -77,7 +78,7 @@ pub struct Identity {
 
     /// Inner implementation of this identity.
     inner: Box<dyn ic_agent::Identity + Sync + Send>,
-    identity_type: Option<IdentityType>
+    identity_type: Option<IdentityType>,
 }
 
 impl Identity {
@@ -175,14 +176,12 @@ impl Identity {
         };
 
         let identity: Box<dyn AgentIdentity> = match base_identity.identity_type {
-            Some(IdentityType::Basic) => {
-               DelegatedIdentity::new(
-                    config.from_public_key,
-                    BasicIdentity::from_pem(&delegation_signing_identity.pem_content)
-                        .map_err(|e| ReadIdentityFileFailed(name.into(), Box::new(e)))?,
-                    config.chain,
-                )
-            }
+            Some(IdentityType::Basic) => DelegatedIdentity::new(
+                config.from_public_key,
+                BasicIdentity::from_pem(&delegation_signing_identity.pem_content)
+                    .map_err(|e| ReadIdentityFileFailed(name.into(), Box::new(e)))?,
+                config.chain,
+            ),
             DelegationSigningIdentityType::Secp256k1 => {
                 let identity = Identity::secp256k1(
                     &delegation_signing_identity.name,

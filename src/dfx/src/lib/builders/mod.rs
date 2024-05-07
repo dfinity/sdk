@@ -3,7 +3,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
 use dfx_core::config::model::dfinity::{Config, Profile};
@@ -324,32 +324,59 @@ fn ensure_trailing_newline(s: String) -> String {
     }
 }
 
-pub fn run_command(args: Vec<String>, vars: &[Env<'_>], cwd: &Path) -> DfxResult<()> {
-    let (command_name, arguments) = args.split_first().unwrap();
-    let canonicalized = dfx_core::fs::canonicalize(&cwd.join(command_name))
-        .or_else(|_| which::which(command_name))
-        .map_err(|_| anyhow!("Cannot find command or file {command_name}"))?;
-    let mut cmd = Command::new(canonicalized);
+/// Execute a command and return its output bytes.
+/// If the catch_output is false, the return bytes will always be empty.
+pub fn execute_command(
+    command: &str,
+    vars: &[Env<'_>],
+    cwd: &Path,
+    catch_output: bool,
+) -> DfxResult<Vec<u8>> {
+    // No commands, noop.
+    if command.is_empty() {
+        return Ok(vec![]);
+    }
+    let words = shell_words::split(command)
+        .with_context(|| format!("Cannot parse command '{}'.", command))?;
+    let canonical_result = dfx_core::fs::canonicalize(&cwd.join(&words[0]));
+    let mut cmd = if words.len() == 1 && canonical_result.is_ok() {
+        // If the command is a file, execute it directly.
+        let file = canonical_result.unwrap();
+        Command::new(file)
+    } else {
+        // Execute the command in `sh -c` to allow pipes.
+        let mut sh_cmd = Command::new("sh");
+        sh_cmd.args(["-c", command]);
+        sh_cmd
+    };
 
-    cmd.args(arguments)
-        .current_dir(cwd)
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
-
+    if !catch_output {
+        cmd.stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit());
+    }
     for (key, value) in vars {
         cmd.env(key.as_ref(), value);
     }
-
     let output = cmd
         .output()
         .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
     if output.status.success() {
-        Ok(())
+        Ok(output.stdout)
     } else {
         Err(DfxError::new(BuildError::CustomToolError(
             output.status.code(),
         )))
     }
+}
+
+pub fn run_command(command: &str, vars: &[Env<'_>], cwd: &Path) -> DfxResult<()> {
+    execute_command(command, vars, cwd, false)?;
+    Ok(())
+}
+
+pub fn command_output(command: &str, vars: &[Env<'_>], cwd: &Path) -> DfxResult<Vec<u8>> {
+    execute_command(command, vars, cwd, true)
 }
 
 type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);
@@ -372,7 +399,15 @@ pub fn get_and_write_environment_variables<'a>(
     ];
     for dep in dependencies {
         let canister = pool.get_canister(dep).unwrap();
-        if let Some(output) = canister.get_build_output() {
+        if let Some(candid_path) = canister.get_info().get_remote_candid_if_remote() {
+            vars.push((
+                Owned(format!(
+                    "CANISTER_CANDID_PATH_{}",
+                    canister.get_name().replace('-', "_").to_ascii_uppercase()
+                )),
+                Owned(candid_path.as_os_str().to_owned()),
+            ));
+        } else if let Some(output) = canister.get_build_output() {
             let candid_path = match &output.idl {
                 IdlBuildOutput::File(p) => p.as_os_str(),
             };
@@ -470,7 +505,7 @@ impl BuildConfig {
     pub fn from_config(config: &Config, network_is_playground: bool) -> DfxResult<Self> {
         let config_intf = config.get_config();
         let network_name = util::network_to_pathcompat(&get_network_context()?);
-        let network_root = config.get_temp_path().join(&network_name);
+        let network_root = config.get_temp_path()?.join(&network_name);
         let canister_root = network_root.join("canisters");
 
         Ok(BuildConfig {
