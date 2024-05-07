@@ -3,13 +3,13 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_memory_allocation,
-    get_reserved_cycles_limit, CanisterSettings,
+    get_reserved_cycles_limit, get_wasm_memory_limit, CanisterSettings,
 };
 use crate::lib::operations::canister::{get_canister_status, update_settings};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
-    reserved_cycles_limit_parser,
+    reserved_cycles_limit_parser, wasm_memory_limit_parser,
 };
 use anyhow::{bail, Context};
 use byte_unit::Byte;
@@ -50,7 +50,7 @@ pub struct UpdateSettingsOpts {
     compute_allocation: Option<u64>,
 
     /// Specifies how much memory the canister is allowed to use in total.
-    /// This should be a value in the range [0..12 GiB].
+    /// This should be a value in the range [0..12 GiB]. Can include units, e.g. "4KiB".
     /// A setting of 0 means the canister will have access to memory on a “best-effort” basis:
     /// It will only be charged for the memory it uses, but at any point in time may stop running
     /// if it tries to allocate more memory when there isn’t space available on the subnet.
@@ -75,6 +75,17 @@ pub struct UpdateSettingsOpts {
     /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.
     #[arg(long, value_parser = reserved_cycles_limit_parser)]
     reserved_cycles_limit: Option<u128>,
+
+    /// Sets a soft limit on the Wasm memory usage of the canister.
+    ///
+    /// Update calls, timers, heartbeats, installs, and post-upgrades fail if the
+    /// WASM memory usage exceeds this limit. The main purpose of this setting is
+    /// to protect against the case when the canister reaches the hard 4GiB
+    /// limit.
+    ///
+    /// Must be a number between 0 B and 256 TiB, inclusive. Can include units, e.g. "4KiB".
+    #[arg(long, value_parser = wasm_memory_limit_parser)]
+    wasm_memory_limit: Option<Byte>,
 
     /// Freezing thresholds above ~1.5 years require this flag as confirmation.
     #[arg(long)]
@@ -138,6 +149,8 @@ pub async fn exec(
             get_freezing_threshold(opts.freezing_threshold, config_interface, canister_name)?;
         let reserved_cycles_limit =
             get_reserved_cycles_limit(opts.reserved_cycles_limit, config_interface, canister_name)?;
+        let wasm_memory_limit =
+            get_wasm_memory_limit(opts.wasm_memory_limit, config_interface, canister_name)?;
         if let Some(added) = &opts.add_controller {
             let status = get_canister_status(env, canister_id, call_sender).await?;
             let mut existing_controllers = status.settings.controllers;
@@ -170,6 +183,7 @@ pub async fn exec(
             memory_allocation,
             freezing_threshold,
             reserved_cycles_limit,
+            wasm_memory_limit,
         };
         update_settings(env, canister_id, settings, call_sender).await?;
         display_controller_update(&opts, canister_name_or_id);
@@ -187,23 +201,21 @@ pub async fn exec(
                     Some(canister_name),
                 )
                 .with_context(|| {
-                    format!("Failed to get compute allocation for {}.", canister_name)
+                    format!("Failed to get compute allocation for {canister_name}.")
                 })?;
                 let memory_allocation = get_memory_allocation(
                     opts.memory_allocation,
                     Some(config_interface),
                     Some(canister_name),
                 )
-                .with_context(|| {
-                    format!("Failed to get memory allocation for {}.", canister_name)
-                })?;
+                .with_context(|| format!("Failed to get memory allocation for {canister_name}."))?;
                 let freezing_threshold = get_freezing_threshold(
                     opts.freezing_threshold,
                     Some(config_interface),
                     Some(canister_name),
                 )
                 .with_context(|| {
-                    format!("Failed to get freezing threshold for {}.", canister_name)
+                    format!("Failed to get freezing threshold for {canister_name}.")
                 })?;
                 let reserved_cycles_limit = get_reserved_cycles_limit(
                     opts.reserved_cycles_limit,
@@ -211,8 +223,14 @@ pub async fn exec(
                     Some(canister_name),
                 )
                 .with_context(|| {
-                    format!("Failed to get reserved cycles limit for {}.", canister_name)
+                    format!("Failed to get reserved cycles limit for {canister_name}.")
                 })?;
+                let wasm_memory_limit = get_wasm_memory_limit(
+                    opts.wasm_memory_limit,
+                    Some(config_interface),
+                    Some(canister_name),
+                )
+                .with_context(|| format!("Failed to get WASM memory limit for {canister_name}."))?;
                 if let Some(added) = &opts.add_controller {
                     let status = get_canister_status(env, canister_id, call_sender).await?;
                     let mut existing_controllers = status.settings.controllers;
@@ -245,6 +263,7 @@ pub async fn exec(
                     memory_allocation,
                     freezing_threshold,
                     reserved_cycles_limit,
+                    wasm_memory_limit,
                 };
                 update_settings(env, canister_id, settings, call_sender).await?;
                 display_controller_update(&opts, canister_name);

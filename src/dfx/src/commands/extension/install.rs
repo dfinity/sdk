@@ -2,9 +2,9 @@ use crate::commands::DfxCommand;
 use crate::config::cache::DiskBasedCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use anyhow::bail;
 use clap::Parser;
 use clap::Subcommand;
-use dfx_core::error::extension::ExtensionError;
 use semver::Version;
 
 #[derive(Parser)]
@@ -27,7 +27,7 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
     let mgr = env.get_extension_manager();
     let effective_extension_name = opts.install_as.clone().unwrap_or_else(|| opts.name.clone());
     if DfxCommand::has_subcommand(&effective_extension_name) {
-        return Err(ExtensionError::CommandAlreadyExists(opts.name).into());
+        bail!("Extension '{}' cannot be installed because it conflicts with an existing command. Consider using '--install-as' flag to install this extension under different name.", opts.name)
     }
 
     mgr.install_extension(

@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 use crate::lib::error::DfxResult;
 use crate::lib::metadata::config::CanisterMetadataConfig;
-use anyhow::{anyhow, Context};
+
+use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use candid::Principal;
 use core::panic;
@@ -61,6 +62,7 @@ pub struct CanisterInfo {
     tech_stack: Option<TechStack>,
     gzip: bool,
     init_arg: Option<String>,
+    init_arg_file: Option<String>,
 }
 
 impl CanisterInfo {
@@ -147,6 +149,7 @@ impl CanisterInfo {
 
         let gzip = canister_config.gzip.unwrap_or(false);
         let init_arg = canister_config.init_arg.clone();
+        let init_arg_file = canister_config.init_arg_file.clone();
 
         let canister_info = CanisterInfo {
             name: name.to_string(),
@@ -170,6 +173,7 @@ impl CanisterInfo {
             pull_dependencies,
             gzip,
             init_arg,
+            init_arg_file,
         };
 
         Ok(canister_info)
@@ -371,7 +375,28 @@ impl CanisterInfo {
         self.gzip
     }
 
-    pub fn get_init_arg(&self) -> Option<&str> {
-        self.init_arg.as_deref()
+    /// Get the init arg from the dfx.json configuration.
+    ///
+    /// If the `init_arg` field is defined, it will be returned.
+    /// If the `init_arg_file` field is defined, the content of the file will be returned.
+    /// If both fields are defined, an error will be returned.
+    /// If neither field is defined, `None` will be returned.
+    pub fn get_init_arg(&self) -> DfxResult<Option<String>> {
+        let init_arg_value = match (&self.init_arg, &self.init_arg_file) {
+            (Some(_), Some(_)) => {
+                bail!("At most one of the fields 'init_arg' and 'init_arg_file' should be defined in `dfx.json`.
+Please remove one of them or leave both undefined.");
+            }
+            (Some(arg), None) => Some(arg.clone()),
+            (None, Some(arg_file)) => {
+                // The file path is relative to the workspace root.
+                let absolute_path = self.get_workspace_root().join(arg_file);
+                let content = dfx_core::fs::read_to_string(&absolute_path)?;
+                Some(content)
+            }
+            (None, None) => None,
+        };
+
+        Ok(init_arg_value)
     }
 }

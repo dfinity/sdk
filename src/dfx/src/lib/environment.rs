@@ -38,7 +38,7 @@ pub trait Environment {
 
     /// This is value of the name passed to dfx `--identity <name>`
     /// Notably, it is _not_ the name of the default identity or selected identity
-    fn get_identity_override(&self) -> &Option<String>;
+    fn get_identity_override(&self) -> Option<&str>;
 
     // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
@@ -106,7 +106,6 @@ pub struct EnvironmentImpl {
 impl EnvironmentImpl {
     pub fn new(extension_manager: ExtensionManager) -> DfxResult<Self> {
         let shared_networks_config = NetworksConfig::new()?;
-
         let version = dfx_version().clone();
 
         Ok(EnvironmentImpl {
@@ -151,10 +150,11 @@ impl EnvironmentImpl {
     }
 
     fn load_config(&self) -> Result<(), LoadDfxConfigError> {
-        let project_config = Config::from_current_dir()?
-            .map_or(ProjectConfig::NoProject, |config| {
-                ProjectConfig::Loaded(Arc::new(config))
-            });
+        let config = Config::from_current_dir(Some(&self.extension_manager))?;
+
+        let project_config = config.map_or(ProjectConfig::NoProject, |config| {
+            ProjectConfig::Loaded(Arc::new(config))
+        });
         self.project_config.replace(project_config);
         Ok(())
     }
@@ -196,8 +196,8 @@ impl Environment for EnvironmentImpl {
         &self.version
     }
 
-    fn get_identity_override(&self) -> &Option<String> {
-        &self.identity_override
+    fn get_identity_override(&self) -> Option<&str> {
+        self.identity_override.as_deref()
     }
 
     fn get_agent(&self) -> &Agent {
@@ -317,7 +317,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_version()
     }
 
-    fn get_identity_override(&self) -> &Option<String> {
+    fn get_identity_override(&self) -> Option<&str> {
         self.backend.get_identity_override()
     }
 

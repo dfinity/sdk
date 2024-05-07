@@ -35,7 +35,7 @@ Below is an example provider `dfx.json` which has a `pullable` "service" caniste
 }
 ```
 
-The `pullable` object will be serialized as a part of the `dfx` metadata and attached to the wasm.
+The `pullable` object will be serialized as a part of the [`dfx` metadata](canister-metadata.md#dfx) and attached to the wasm.
 
 Let's go through the properties of the `pullable` object.
 
@@ -78,6 +78,23 @@ A message to guide consumers how to initialize the canister.
 A default initialization argument for the canister that consumers can use.
 
 This field is optional.
+
+## Fetch the metadata
+
+To retrieve the metadata and validate the generated information, execute the following command:
+
+```sh
+> dfx canister metadata <canister_name> dfx
+```
+
+Please note that the `"pullable"` object is part of the public metadata under the key [`"dfx"`](canister-metadata.md#dfx).
+
+Given that the content is in JSON format, you can utilize tools such as `jq` to manipulate the output and extract the pertinent information.
+
+```sh
+> dfx canister metadata <canister_name> dfx | jq -r ".pullable.wasm_url"
+http://example.com/a.wasm
+```
 
 ## Canister Metadata Requirements
 

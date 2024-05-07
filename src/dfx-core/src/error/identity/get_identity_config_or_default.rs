@@ -3,6 +3,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum GetIdentityConfigOrDefaultError {
-    #[error("Failed to load configuration for identity '{0}': {1}")]
-    LoadIdentityConfigurationFailed(String, StructuredFileError),
+    #[error("Failed to load configuration for identity '{0}'")]
+    LoadIdentityConfigurationFailed(String, #[source] StructuredFileError),
 }

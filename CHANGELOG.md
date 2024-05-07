@@ -2,6 +2,90 @@
 
 # UNRELEASED
 
+# 0.20.1
+
+### feat: reformatted error output
+
+Rather than increasing indentation, dfx now aligns the error causes with a "Caused by: " prefix.
+
+Also changed error types to report error causes as causes, rather than embedding their error cause in the error text.
+
+Before:
+```bash
+Error: Failed while trying to deploy canisters.
+Caused by: Failed while trying to deploy canisters.
+  Failed to build all canisters.
+    Failed while trying to build all canisters.
+      The build step failed for canister 'bw4dl-smaaa-aaaaa-qaacq-cai' (wasminst_backend) with an embedded error: Failed to build Motoko canister 'wasminst_backend'.: Failed to compile Motoko.: Failed to run 'moc'.: The command '"/Users/ericswanson/.cache/dfinity/versions/0.19.0/moc" ... params ...  failed with exit status 'exit status: 1'.
+Stdout:
+
+Stderr:
+/Users/ericswanson/w/wasminst/src/wasminst_backend/main2.mo: No such file or directory
+```
+
+After:
+```bash
+Error: Failed while trying to deploy canisters.
+Caused by: Failed to build all canisters.
+Caused by: Failed while trying to build all canisters.
+Caused by: The build step failed for canister 'bw4dl-smaaa-aaaaa-qaacq-cai' (wasminst_backend)
+Caused by: Failed to build Motoko canister 'wasminst_backend'.
+Caused by: Failed to compile Motoko.
+Caused by: Failed to run 'moc'.
+Caused by: The command '"/Users/ericswanson/.cache/dfinity/versions/0.20.0/moc" ... params ... failed with exit status 'exit status: 1'.
+Stdout:
+
+Stderr:
+/Users/ericswanson/w/wasminst/src/wasminst_backend/main2.mo: No such file or directory
+```
+
+### fix: "Failed to decrypt PEM file" errors messages will now include the cause
+
+### feat: WASM memory soft-limit
+
+Adds support for the `wasm_memory_limit` canister setting, which limits the canister's heap during most calls but does not affect queries. As with other canister settings, it can be set in `dfx canister create` or `dfx canister update-settings` via the `--wasm-memory-limit` flag, as well as in `dfx.json` under `canisters[].initialization_values.wasm_memory_limit`.
+
+### feat: extensions can define a canister type
+
+Please see [extension-defined-canister-types](docs/concepts/extension-defined-canister-types.md) for details.
+
+### feat: init_arg_file in dfx.json
+
+Introduces support for the `init_arg_file` field in `dfx.json`, providing an alternative method to specify initialization arguments.
+
+This field accepts a relative path, from the directory containing the `dfx.json` file.
+
+**Note**
+
+- Only one of `init_arg` and `init_arg_file` can be defined at a time.
+- If `--argument` or `--argument-file` are set, the argument from the command line takes precedence over the one in dfx.json.
+
+### fix: dfx new failure when node is available but npm is not
+
+`dfx new` could fail with "Failed to scaffold frontend code" if node was installed but npm was not installed.
+
+## Dependencies
+
+### Cycles wallet
+
+Updated cycles wallet to a gzipped version of `20240410` release:
+- Module hash: `7745d3114e3e5fbafe8a7150a0a8c15a5b8dc9257f294d5ced67d41be76065bc`, in gzipped form: `664df1045e093084f4ebafedd3a793cc3b3be0a7ef1b245d8d3defe20b33057c`
+- https://github.com/dfinity/cycles-wallet/commit/b013764dd827560d8538ee2b7be9ecf66bed6be7
+
+### Replica
+
+Updated replica to elected commit 5e285dcaf77db014ac85d6f96ff392fe461945f5.
+This incorporates the following executed proposals:
+
+- [129494](https://dashboard.internetcomputer.org/proposal/129494)
+- [129493](https://dashboard.internetcomputer.org/proposal/129493)
+- [129428](https://dashboard.internetcomputer.org/proposal/129428)
+- [129427](https://dashboard.internetcomputer.org/proposal/129427)
+- [129423](https://dashboard.internetcomputer.org/proposal/129423)
+- [129408](https://dashboard.internetcomputer.org/proposal/129408)
+- [129379](https://dashboard.internetcomputer.org/proposal/129379)
+- [129378](https://dashboard.internetcomputer.org/proposal/129378)
+
 # 0.20.0
 
 ### fix: set `CANISTER_CANDID_PATH_<canister name>` properly for remote canisters

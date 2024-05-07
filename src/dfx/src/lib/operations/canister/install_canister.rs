@@ -141,9 +141,9 @@ pub async fn install_canister(
             get_candid_init_type(&idl_path)
         };
 
-        // The argument and argument_type from the CLI take precedence over the `init_arg` field in dfx.json
-        let argument_from_json = canister_info.get_init_arg();
-        let (argument, argument_type) = match (argument_from_cli, argument_from_json) {
+        // The argument and argument_type from the CLI take precedence over the dfx.json configuration.
+        let argument_from_json = canister_info.get_init_arg()?;
+        let (argument, argument_type) = match (argument_from_cli, &argument_from_json) {
             (Some(a_cli), Some(a_json)) => {
                 // We want to warn the user when the argument from CLI and json are different.
                 // There are two cases to consider:
@@ -152,7 +152,7 @@ pub async fn install_canister(
                 if argument_type_from_cli == Some("raw") || a_cli != a_json {
                     warn!(
                         log,
-                        "Canister '{0}' has init_arg in dfx.json: {1},
+                        "Canister '{0}' has init_arg/init_arg_file in dfx.json: {1},
 which is different from the one specified in the command line: {2}.
 The command line value will be used.",
                         canister_info.get_name(),
@@ -163,7 +163,7 @@ The command line value will be used.",
                 (argument_from_cli, argument_type_from_cli)
             }
             (Some(_), None) => (argument_from_cli, argument_type_from_cli),
-            (None, Some(_)) => (argument_from_json, Some("idl")), // `init_arg` in dfx.json is always in Candid format
+            (None, Some(a_json)) => (Some(a_json.as_str()), Some("idl")), // `init_arg` in dfx.json is always in Candid format
             (None, None) => (None, None),
         };
         let install_args = blob_from_arguments(

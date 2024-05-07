@@ -164,5 +164,5 @@ teardown() {
   assert_command dfx canister call hello_backend always_accepted
 
   assert_command_fail dfx canister call hello_backend always_rejected
-  assert_contains "Canister $(dfx canister id hello_backend) rejected the message"
+  assert_contains "Canister rejected the message"
 }

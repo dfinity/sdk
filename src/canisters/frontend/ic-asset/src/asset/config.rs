@@ -457,6 +457,8 @@ mod rule_utils {
 mod with_tempdir {
 
     use super::*;
+    #[cfg(target_family = "unix")]
+    use std::error::Error;
     use std::io::Write;
     #[cfg(target_family = "unix")]
     use std::os::unix::prelude::PermissionsExt;
@@ -887,15 +889,19 @@ mod with_tempdir {
 
         let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
         assert_eq!(
-            assets_config.err().unwrap().to_string(),
+            assets_config.as_ref().err().unwrap().to_string(),
             format!(
-                "Failed to read {} as string: Permission denied (os error 13)",
+                "Failed to read {} as string",
                 assets_dir
                     .join(ASSETS_CONFIG_FILENAME_JSON)
                     .as_path()
                     .to_str()
                     .unwrap()
             )
+        );
+        assert_eq!(
+            assets_config.err().unwrap().source().unwrap().to_string(),
+            "Permission denied (os error 13)"
         );
     }
 
