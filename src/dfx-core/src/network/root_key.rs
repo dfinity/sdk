@@ -3,7 +3,7 @@ use crate::{
 };
 use ic_agent::Agent;
 
-pub async fn fetch_root_key_when_local(
+pub async fn fetch_root_key_when_non_mainnet(
     agent: &Agent,
     network: &NetworkDescriptor,
 ) -> Result<(), FetchRootKeyError> {
@@ -16,7 +16,15 @@ pub async fn fetch_root_key_when_local(
     Ok(())
 }
 
+#[deprecated(note = "use fetch_root_key_when_non_mainnet_or_error() instead")]
 pub async fn fetch_root_key_when_local_or_error(
+    agent: &Agent,
+    network: &NetworkDescriptor,
+) -> Result<(), FetchRootKeyError> {
+    fetch_root_key_when_non_mainnet_or_error(agent, network).await
+}
+
+pub async fn fetch_root_key_when_non_mainnet_or_error(
     agent: &Agent,
     network: &NetworkDescriptor,
 ) -> Result<(), FetchRootKeyError> {
@@ -26,6 +34,6 @@ pub async fn fetch_root_key_when_local_or_error(
             .await
             .map_err(FetchRootKeyError::AgentError)
     } else {
-        Err(FetchRootKeyError::NetworkMustBeLocal)
+        Err(FetchRootKeyError::MustNotFetchRootKeyOnMainnet)
     }
 }
