@@ -18,6 +18,6 @@ pub enum NewIdentityManagerError {
     #[error("The specified identity must exist")]
     OverrideIdentityMustExist(#[source] RequireIdentityExistsError),
 
-    #[error(r#"No identity configuration found.  Please run "dfx identity get-principal" or "dfx identity new <identity name> to create a new identity."#)]
+    #[error(r#"No identity configuration found.  Please run "dfx identity get-principal" or "dfx identity new <identity name>" to create a new identity."#)]
     NoIdentityConfigurationFound,
 }
