@@ -1598,6 +1598,7 @@ dependencies = [
  "thiserror",
  "time",
  "tiny-bip39",
+ "tokio",
  "url",
 ]
 

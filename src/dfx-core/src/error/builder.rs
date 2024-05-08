@@ -13,6 +13,9 @@ pub enum BuildDfxInterfaceError {
     BuildAgent(#[from] BuildAgentError),
 
     #[error(transparent)]
+    BuildIdentity(#[from] BuildIdentityError),
+
+    #[error(transparent)]
     LoadNetworksConfig(#[from] LoadNetworksConfigError),
 
     #[error(transparent)]
@@ -36,9 +39,6 @@ pub enum BuildIdentityError {
 
 #[derive(Error, Debug)]
 pub enum BuildAgentError {
-    #[error(transparent)]
-    BuildIdentity(#[from] BuildIdentityError),
-
     #[error("failed to create http client")]
     CreateHttpClient(#[source] reqwest::Error),
 

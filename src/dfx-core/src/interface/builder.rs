@@ -94,7 +94,8 @@ impl DfxInterfaceBuilder {
         let networks_config = NetworksConfig::new()?;
         let config = Config::from_current_dir(None)?.map(Arc::new);
         let network_descriptor = self.build_network_descriptor(config.clone(), &networks_config)?;
-        let agent = self.build_agent(&network_descriptor)?;
+        let identity = self.build_identity()?;
+        let agent = self.build_agent(identity.clone(), &network_descriptor)?;
 
         if fetch_root_key {
             fetch_root_key_when_non_mainnet_or_error(&agent, &network_descriptor).await?;
@@ -102,6 +103,7 @@ impl DfxInterfaceBuilder {
 
         Ok(DfxInterface {
             config,
+            identity,
             agent,
             networks_config,
             network_descriptor,
@@ -110,9 +112,9 @@ impl DfxInterfaceBuilder {
 
     fn build_agent(
         &self,
+        identity: Arc<dyn Identity>,
         network_descriptor: &NetworkDescriptor,
     ) -> Result<Agent, BuildAgentError> {
-        let identity = self.build_identity()?;
         let route_provider = RoundRobinRouteProvider::new(network_descriptor.providers.clone())
             .map_err(BuildAgentError::CreateRouteProvider)?;
         let client = Client::builder()
@@ -137,9 +139,15 @@ impl DfxInterfaceBuilder {
             return Ok(Arc::new(ic_agent::identity::AnonymousIdentity));
         }
 
+        let identity_override = match &self.identity {
+            IdentityPicker::Named(name) => Some(name.clone()),
+            IdentityPicker::Selected => None,
+            IdentityPicker::Anonymous => unreachable!(),
+        };
+
         let logger = slog::Logger::root(slog::Discard, slog::o!());
         let mut identity_manager =
-            IdentityManager::new(&logger, None, InitializeIdentity::Disallow)?;
+            IdentityManager::new(&logger, identity_override.as_deref(), InitializeIdentity::Disallow)?;
         let identity: Box<dyn Identity> =
             identity_manager.instantiate_selected_identity(&logger)?;
         Ok(Arc::from(identity))
@@ -170,5 +178,90 @@ impl DfxInterfaceBuilder {
 impl Default for DfxInterfaceBuilder {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ffi::OsString;
+    use std::path::Path;
+    use candid::Principal;
+    use ic_agent::Identity;
+    use tempfile::TempDir;
+    use crate::DfxInterface;
+    use crate::error::builder::BuildDfxInterfaceError;
+    use crate::error::builder::BuildIdentityError::NewIdentityManager;
+    use crate::error::identity::new_identity_manager::NewIdentityManagerError;
+
+    #[tokio::test]
+    async fn anonymous() {
+        // anonymous identity creates a .config directory, but doesn't put anything in it
+        let td = setup();
+
+        let d = DfxInterface::anonymous().await.unwrap();
+        assert!(matches!(d.identity().public_key(), None));
+        assert_eq!(d.identity().sender().unwrap(), Principal::anonymous());
+
+        let actual = all_children(td.path());
+        //  creates config directories, but they are empty
+        //let expected: Vec<String> = vec!();
+        let expected: Vec<String> = vec!(
+            ".config/".into(),
+            ".config/dfx/".into());
+        assert_eq!(actual, expected);
+        // let config_only: Vec<OsString> = vec!(".config".into());
+        // let dfx_only: Vec<OsString> = vec!("dfx".into());
+        // let empty: Vec<OsString> = vec!();
+        //
+        // assert_eq!(all_filenames(td.path()), config_only);
+        // assert_eq!(all_filenames(&td.path().join(".config")), dfx_only);
+        // assert_eq!(all_filenames(&td.path().join(".config").join("dfx")), empty);
+    }
+
+    #[tokio::test]
+    async fn default_no_config() {
+        let td = setup();
+        assert!(matches!(DfxInterface::builder().build().await,
+            Err(BuildDfxInterfaceError::BuildIdentity(
+                NewIdentityManager(
+                    NewIdentityManagerError::NoIdentityConfigurationFound)))));
+    }
+
+    fn all_filenames(dir: &Path) -> Vec<OsString> {
+        std::fs::read_dir(dir)
+            .unwrap()
+            .map(|e| e.unwrap().file_name())
+            .collect()
+    }
+
+    fn all_children(dir: &Path) -> Vec<String> {
+        eprintln!("all_pathnames({:?})", dir);
+        // like find: recurse into subdirectories
+        let mut result = vec![];
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            let filename = path.file_name().unwrap().to_os_string().into_string().unwrap();
+
+            if path.is_dir() {
+                result.push(filename.clone() + "/");
+                let all_children = all_children(&path);
+                let all_children: Vec<_> = all_children.iter().map(|c| {
+                    format!("{}/{}", &filename, c)
+                }).collect();
+                result.extend(all_children);
+            } else {
+                result.push(filename);
+
+            }
+        }
+        eprintln!("all_pathnames({:?}) = {:?}", dir, result);
+        result
+    }
+
+    fn setup() -> TempDir {
+        let td = TempDir::new().unwrap();
+        std::env::set_var("DFX_CONFIG_ROOT", td.path());
+        td
     }
 }
