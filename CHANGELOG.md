@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### chore: Improve help text of `dfx identity new` to include which characters are valid in identity names
+
 # 0.20.1
 
 ### feat: reformatted error output
