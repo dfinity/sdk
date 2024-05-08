@@ -3,6 +3,7 @@ use crate::config::model::network_descriptor::NetworkDescriptor;
 use crate::DfxInterfaceBuilder;
 use ic_agent::Agent;
 use std::sync::Arc;
+use crate::error::builder::BuildDfxInterfaceError;
 
 pub struct DfxInterface {
     pub(crate) config: Option<Arc<Config>>,
@@ -14,6 +15,10 @@ pub struct DfxInterface {
 impl DfxInterface {
     pub fn builder() -> DfxInterfaceBuilder {
         DfxInterfaceBuilder::new()
+    }
+
+    pub async fn anonymous() -> Result<DfxInterface, BuildDfxInterfaceError> {
+        DfxInterfaceBuilder::new().anonymous().build().await
     }
 
     pub fn config(&self) -> Option<Arc<Config>> {
