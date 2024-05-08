@@ -5,7 +5,7 @@ use dfx_core::network::root_key;
 pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
     let agent = env.get_agent();
     let network = env.get_network_descriptor();
-    root_key::fetch_root_key_when_local(agent, network).await?;
+    root_key::fetch_root_key_when_non_mainnet(agent, network).await?;
     Ok(())
 }
 
@@ -14,6 +14,6 @@ pub async fn fetch_root_key_if_needed(env: &dyn Environment) -> DfxResult {
 pub async fn fetch_root_key_or_anyhow(env: &dyn Environment) -> DfxResult {
     let agent = env.get_agent();
     let network = env.get_network_descriptor();
-    root_key::fetch_root_key_when_local_or_error(agent, network).await?;
+    root_key::fetch_root_key_when_non_mainnet_or_error(agent, network).await?;
     Ok(())
 }
