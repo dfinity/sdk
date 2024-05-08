@@ -29,7 +29,7 @@ use tokio::runtime::Runtime;
 use url::Host::{Domain, Ipv4, Ipv6};
 use url::Url;
 
-const MAINNET_CANDID_INTERFACE_PRINCIPAL: &str = "a4gq6-oaaaa-aaaab-qaa4q-cai";
+pub(crate) const MAINNET_CANDID_INTERFACE_PRINCIPAL: &str = "a4gq6-oaaaa-aaaab-qaa4q-cai";
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.
 #[derive(Parser)]

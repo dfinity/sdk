@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: `dfx info candid-ui-url`
+
+`dfx info candid-ui-url` displays the URL to the Candid UI canister for an explicitly specified `--network <network name>` (or `local` by default).
+
 # 0.20.1
 
 ### feat: reformatted error output

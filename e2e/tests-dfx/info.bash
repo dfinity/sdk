@@ -46,3 +46,17 @@ teardown() {
   assert_command dfx info replica-rev
   assert_eq "$expected_rev"
 }
+
+@test "displays Candid UI URL" {
+  assert_command dfx info candid-ui-url --ic
+  assert_eq "https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io" "$stdout"
+
+  # Before deployment the UI canister does not exist yet
+  assert_command_fail dfx info candid-ui-url
+  assert_contains "Candid UI not installed on network local."
+
+  dfx_start
+  assert_command dfx deploy e2e_project_backend
+  assert_command dfx info candid-ui-url  
+  assert_eq "http://127.0.0.1:$(dfx info webserver-port)/?canisterId=$(dfx canister id __Candid_UI)"
+}
