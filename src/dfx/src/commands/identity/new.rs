@@ -16,7 +16,7 @@ use IdentityCreationParameters::{Hardware, Pem};
 #[derive(Parser)]
 pub struct NewIdentityOpts {
     #[arg(value_parser = identity_name_validator)]
-    /// The name of the identity to create.
+    /// The name of the identity to create. Valid characters are letters, numbers, and these symbols: .-_@
     new_identity: String,
 
     #[cfg_attr(
