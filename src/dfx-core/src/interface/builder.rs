@@ -18,7 +18,7 @@ use ic_agent::{
     agent::http_transport::{
         reqwest_transport::ReqwestHttpReplicaV2Transport, route_provider::RoundRobinRouteProvider,
     },
-    Agent, Identity
+    Agent, Identity,
 };
 use reqwest::Client;
 use std::sync::Arc;

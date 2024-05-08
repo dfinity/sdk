@@ -1,9 +1,9 @@
 use crate::config::model::dfinity::{Config, NetworksConfig};
 use crate::config::model::network_descriptor::NetworkDescriptor;
+use crate::error::builder::BuildDfxInterfaceError;
 use crate::DfxInterfaceBuilder;
 use ic_agent::Agent;
 use std::sync::Arc;
-use crate::error::builder::BuildDfxInterfaceError;
 
 pub struct DfxInterface {
     pub(crate) config: Option<Arc<Config>>,
