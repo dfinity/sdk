@@ -78,12 +78,13 @@ impl DfxInterfaceBuilder {
         Self { network, ..self }
     }
 
-    pub fn with_force_fetch_root_key_insecure_non_mainnet_only(
-        self,
-        force_fetch_root_key_insecure_non_mainnet_only: bool,
-    ) -> Self {
+    pub fn with_network_named(self, name: &str) -> Self {
+        self.with_network(NetworkPicker::Named(name.to_string()))
+    }
+
+    pub fn with_force_fetch_root_key_insecure_non_mainnet_only(self) -> Self {
         Self {
-            force_fetch_root_key_insecure_non_mainnet_only,
+            force_fetch_root_key_insecure_non_mainnet_only: true,
             ..self
         }
     }
@@ -146,8 +147,11 @@ impl DfxInterfaceBuilder {
         };
 
         let logger = slog::Logger::root(slog::Discard, slog::o!());
-        let mut identity_manager =
-            IdentityManager::new(&logger, identity_override.as_deref(), InitializeIdentity::Disallow)?;
+        let mut identity_manager = IdentityManager::new(
+            &logger,
+            identity_override.as_deref(),
+            InitializeIdentity::Disallow,
+        )?;
         let identity: Box<dyn Identity> =
             identity_manager.instantiate_selected_identity(&logger)?;
         Ok(Arc::from(identity))
@@ -183,139 +187,322 @@ impl Default for DfxInterfaceBuilder {
 
 #[cfg(test)]
 mod tests {
-    use std::ffi::OsString;
-    use std::path::{Path, PathBuf};
-    use std::sync::Arc;
-    use candid::Principal;
-    use futures::Future;
-    use ic_agent::Identity;
-    use tempfile::TempDir;
-    use tokio::sync::Semaphore;
-    use crate::DfxInterface;
     use crate::error::builder::BuildDfxInterfaceError;
+    use crate::error::builder::BuildDfxInterfaceError::{FetchRootKey, NetworkConfig};
     use crate::error::builder::BuildIdentityError::NewIdentityManager;
     use crate::error::identity::new_identity_manager::NewIdentityManagerError;
-    use crate::identity::{IdentityCreationParameters, IdentityManager};
+    use crate::error::network_config::NetworkConfigError::NetworkNotFound;
+    use crate::error::root_key::FetchRootKeyError::AgentError;
     use crate::identity::identity_manager::IdentityStorageMode::Plaintext;
+    use crate::identity::{IdentityCreationParameters, IdentityManager};
+    use crate::DfxInterface;
+    use candid::Principal;
+    use futures::Future;
+    use ic_agent::AgentError::TransportError;
+    use ic_agent::Identity;
+    use serde_json::json;
+    use std::path::Path;
+    use std::sync::Arc;
+    use tempfile::TempDir;
+    use tokio::sync::Semaphore;
 
     lazy_static::lazy_static! {
         static ref SEMAPHORE: Semaphore = Semaphore::new(1);
     }
 
-    async fn run_isolated_test<F, Fut>(test_function: F)
-        where
-            F: FnOnce(Arc<TempDir>) -> Fut + Send,
-            Fut: Future<Output = ()> + Send,
+    async fn run_test<F, Fut>(test_function: F)
+    where
+        F: FnOnce(Arc<TempDir>) -> Fut + Send,
+        Fut: Future<Output = ()> + Send,
+    {
+        run_test_with_settings(TestSettings { testnet: None }, test_function).await;
+    }
+
+    pub struct TestNetSettings {
+        pub name: String,
+        pub providers: Vec<String>,
+    }
+    pub struct TestSettings {
+        pub testnet: Option<TestNetSettings>,
+    }
+    async fn run_test_with_settings<F, Fut>(settings: TestSettings, test_function: F)
+    where
+        F: FnOnce(Arc<TempDir>) -> Fut + Send,
+        Fut: Future<Output = ()> + Send,
     {
         let _permit = SEMAPHORE.acquire().await.unwrap();
 
         let temp_dir = TempDir::new().unwrap();
 
+        if let Some(testnet) = settings.testnet {
+            let config_dir = temp_dir.path().join(".config/dfx");
+            crate::fs::create_dir_all(&config_dir).unwrap();
+            let networks_config = json!({
+                testnet.name: {
+                    "providers": testnet.providers,
+                }
+            });
+            let networks_config_path = config_dir.join("networks.json");
+            std::fs::write(&networks_config_path, networks_config.to_string()).unwrap();
+        }
+
         // so tests don't clobber each other in the environment
         std::env::set_var("DFX_CONFIG_ROOT", temp_dir.path());
 
-        test_function(Arc::new(temp_dir)).await;
+        let temp_dir = Arc::new(temp_dir);
+        test_function(temp_dir.clone()).await;
     }
 
     #[tokio::test]
     async fn anonymous() {
-        run_isolated_test(|td| async move {
-            let d = DfxInterface::anonymous().await.unwrap();
+        run_test(|td| async move {
+            let d = DfxInterface::builder()
+                .anonymous()
+                .mainnet()
+                .build()
+                .await
+                .unwrap();
             assert!(matches!(d.identity().public_key(), None));
             assert_eq!(d.identity().sender().unwrap(), Principal::anonymous());
 
             let actual = all_children(td.path());
-            let expected: Vec<String> = vec!(
-                ".config/".into(),
-                ".config/dfx/".into());
+            let expected: Vec<String> = vec![".config/".into(), ".config/dfx/".into()];
             assert_eq!(actual, expected);
-        }).await;
+        })
+        .await;
     }
 
     #[tokio::test]
-    async fn no_config() {
-        run_isolated_test(|tempdir| async {
-            assert!(matches!(DfxInterface::builder().build().await,
-            Err(BuildDfxInterfaceError::BuildIdentity(
-                NewIdentityManager(
-                    NewIdentityManagerError::NoIdentityConfigurationFound)))));
-        }).await;
+    async fn no_config_does_not_create_default_identity() {
+        run_test(|_td| async {
+            assert!(matches!(
+                DfxInterface::builder().build().await,
+                Err(BuildDfxInterfaceError::BuildIdentity(NewIdentityManager(
+                    NewIdentityManagerError::NoIdentityConfigurationFound
+                )))
+            ));
+        })
+        .await;
     }
 
     #[tokio::test]
-    async fn default() {
-        run_isolated_test(|tempdir| async {
+    async fn default_identity() {
+        run_test(|_td| async {
             let default_principal = {
                 let logger = slog::Logger::root(slog::Discard, slog::o!());
-                let mut im = IdentityManager::new(&logger, None, crate::identity::identity_manager::InitializeIdentity::Allow).unwrap();
+                let mut im = IdentityManager::new(
+                    &logger,
+                    None,
+                    crate::identity::identity_manager::InitializeIdentity::Allow,
+                )
+                .unwrap();
                 let id: Box<dyn Identity> = im.instantiate_selected_identity(&logger).unwrap();
                 id.sender().unwrap()
             };
-            let d = DfxInterface::builder().build().await.unwrap();
+            let d = DfxInterface::builder().mainnet().build().await.unwrap();
             assert_eq!(d.identity.sender().unwrap(), default_principal);
-        }).await;
+        })
+        .await;
     }
 
     #[tokio::test]
-    async fn select_by_name() {
-        run_isolated_test(|_tempdir| async {
+    async fn select_identity_by_name() {
+        run_test(|_td| async {
             let alice = "alice";
             let bob = "bob";
             let (alice_principal_from_mgr, bob_principal_from_mgr) = {
                 let logger = slog::Logger::root(slog::Discard, slog::o!());
-                let mut im = IdentityManager::new(&logger, None, crate::identity::identity_manager::InitializeIdentity::Allow).unwrap();
-                let parameters = IdentityCreationParameters::Pem {
-                    mode: Plaintext,
-                };
-                im.create_new_identity(&logger, alice, IdentityCreationParameters::Pem {
-                    mode: Plaintext,
-                }, false).unwrap();
-                im.create_new_identity(&logger, bob, IdentityCreationParameters::Pem {
-                    mode: Plaintext,
-                }, false).unwrap();
+                let mut im = IdentityManager::new(
+                    &logger,
+                    None,
+                    crate::identity::identity_manager::InitializeIdentity::Allow,
+                )
+                .unwrap();
+                im.create_new_identity(&logger, alice, plaintext(), false)
+                    .unwrap();
+                im.create_new_identity(&logger, bob, plaintext(), false)
+                    .unwrap();
 
-                let alice: Box<dyn Identity> = im.instantiate_identity_from_name(alice, &logger).unwrap();
+                let alice: Box<dyn Identity> =
+                    im.instantiate_identity_from_name(alice, &logger).unwrap();
 
-                let bob: Box<dyn Identity> = im.instantiate_identity_from_name(bob, &logger).unwrap();
+                let bob: Box<dyn Identity> =
+                    im.instantiate_identity_from_name(bob, &logger).unwrap();
                 (alice.sender().unwrap(), bob.sender().unwrap())
             };
             assert_ne!(alice_principal_from_mgr, bob_principal_from_mgr);
             let alice_interface = DfxInterface::builder()
                 .with_identity_named(alice)
-                .build().await.unwrap();
-            assert_eq!(alice_interface.identity.sender().unwrap(), alice_principal_from_mgr);
+                .mainnet()
+                .build()
+                .await
+                .unwrap();
+            assert_eq!(
+                alice_interface.identity.sender().unwrap(),
+                alice_principal_from_mgr
+            );
 
             let bob_interface = DfxInterface::builder()
                 .with_identity_named(bob)
-                .build().await.unwrap();
-            assert_eq!(bob_interface.identity.sender().unwrap(), bob_principal_from_mgr);
-        }).await;
+                .mainnet()
+                .build()
+                .await
+                .unwrap();
+            assert_eq!(
+                bob_interface.identity.sender().unwrap(),
+                bob_principal_from_mgr
+            );
+        })
+        .await;
     }
 
+    #[tokio::test]
+    async fn selected_non_default() {
+        run_test(|_td| async {
+            let alice = "alice";
+            let bob = "bob";
+            let bob_principal_from_mgr = {
+                let logger = slog::Logger::root(slog::Discard, slog::o!());
+                let mut im = IdentityManager::new(
+                    &logger,
+                    None,
+                    crate::identity::identity_manager::InitializeIdentity::Allow,
+                )
+                .unwrap();
+                im.create_new_identity(&logger, alice, plaintext(), false)
+                    .unwrap();
+                im.create_new_identity(&logger, bob, plaintext(), false)
+                    .unwrap();
 
+                let _alice_identity: Box<dyn Identity> =
+                    im.instantiate_identity_from_name(alice, &logger).unwrap();
 
+                let bob_identity: Box<dyn Identity> =
+                    im.instantiate_identity_from_name(bob, &logger).unwrap();
+
+                im.use_identity_named(&logger, bob).unwrap();
+                bob_identity.sender().unwrap()
+            };
+
+            let selected_interface = DfxInterface::builder().mainnet().build().await.unwrap();
+            assert_eq!(
+                selected_interface.identity.sender().unwrap(),
+                bob_principal_from_mgr
+            );
+        })
+        .await;
+    }
+
+    fn plaintext() -> IdentityCreationParameters {
+        IdentityCreationParameters::Pem { mode: Plaintext }
+    }
+
+    #[tokio::test]
+    async fn local_network() {
+        run_test(|_td| async move {
+            match DfxInterface::builder().anonymous().build().await {
+                Ok(d) => {
+                    assert_eq!(d.network_descriptor.name, "local");
+                    assert!(!d.network_descriptor.is_ic);
+                    assert!(d.network_descriptor.local_server_descriptor.is_some());
+                }
+                Err(FetchRootKey(AgentError(TransportError(_)))) => {
+                    // local replica isn't running, so this is expected,
+                    // but we can't check anything else
+                }
+                Err(e) => panic!("unexpected error: {:?}", e),
+            }
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn mainnet() {
+        run_test(|_td| async move {
+            let d = DfxInterface::builder()
+                .anonymous()
+                .mainnet()
+                .build()
+                .await
+                .unwrap();
+            let network_descriptor = d.network_descriptor;
+            assert!(network_descriptor.is_ic);
+            assert_eq!(network_descriptor.name, "ic");
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn named_network_not_found() {
+        run_test(|_td| async move {
+            assert!(
+                matches!(DfxInterface::builder().with_network_named("testnet").build().await,
+                Err(NetworkConfig(NetworkNotFound(network_name))) if network_name == "testnet")
+            );
+        })
+        .await;
+    }
+
+    #[tokio::test]
+    async fn named_network() {
+        let settings = TestSettings {
+            testnet: Some(TestNetSettings {
+                name: "testnet".to_string(),
+                providers: vec!["http://localhost:1234".to_string()],
+            }),
+        };
+        run_test_with_settings(settings, |_td| async move {
+            let d = DfxInterface::builder()
+                .anonymous()
+                .with_network_named("testnet")
+                .build()
+                .await
+                .unwrap();
+            let network_descriptor = d.network_descriptor;
+            assert_eq!(network_descriptor.name, "testnet");
+            assert_eq!(network_descriptor.providers, vec!["http://localhost:1234"]);
+
+            // Notice that the above did not fail, because it did not try to fetch the root key.
+            // It only does so if we tell it to:
+            assert!(matches!(
+                DfxInterface::builder()
+                    .anonymous()
+                    .with_network_named("testnet")
+                    .with_force_fetch_root_key_insecure_non_mainnet_only()
+                    .build()
+                    .await,
+                Err(FetchRootKey(AgentError(TransportError(_))))
+            ));
+        })
+        .await;
+    }
+
+    // returns a vec of all children of a directory, recursively
+    // directories are suffixed with a '/'
     fn all_children(dir: &Path) -> Vec<String> {
-        eprintln!("all_pathnames({:?})", dir);
-        // like find: recurse into subdirectories
         let mut result = vec![];
         for entry in std::fs::read_dir(dir).unwrap() {
             let entry = entry.unwrap();
             let path = entry.path();
-            let filename = path.file_name().unwrap().to_os_string().into_string().unwrap();
+            let filename = path
+                .file_name()
+                .unwrap()
+                .to_os_string()
+                .into_string()
+                .unwrap();
 
             if path.is_dir() {
                 result.push(filename.clone() + "/");
                 let all_children = all_children(&path);
-                let all_children: Vec<_> = all_children.iter().map(|c| {
-                    format!("{}/{}", &filename, c)
-                }).collect();
+                let all_children: Vec<_> = all_children
+                    .iter()
+                    .map(|c| format!("{}/{}", &filename, c))
+                    .collect();
                 result.extend(all_children);
             } else {
                 result.push(filename);
-
             }
         }
-        eprintln!("all_pathnames({:?}) = {:?}", dir, result);
         result
     }
 }
