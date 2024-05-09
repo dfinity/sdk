@@ -108,7 +108,6 @@ pub fn add_imports(
             .output()
             .with_context(|| format!("Error executing {:#?}", command))?;
         let output = String::from_utf8_lossy(&output.stdout);
-        println!("[[{}]]", output);
 
         for line in output.lines() {
             let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
