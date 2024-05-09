@@ -81,7 +81,6 @@ pub fn add_imports(
             if !parent_canister_info.is_motoko() {
                 for child in parent_canister_info.get_dependencies() {
                     // let child_canister: Arc<Canister> = pool.get_first_canister_with_name(child).unwrap(); // TODO: Is `unwrap()` valid here?
-                    println!("P/C: {:?} / {:?}", parent, child); // FIXME: Remove.
                     add_imports_recursive(
                         cache,
                         Path::new(""), // not used (TODO: refactor)
@@ -102,7 +101,6 @@ pub fn add_imports(
                 return Ok(());
             }
         }
-        println!("PC2: {:?}", parent); // FIXME: Remove.
 
         let mut command = cache.get_binary_command("moc")?;
         let command = command.arg("--print-deps").arg(file);
@@ -114,7 +112,6 @@ pub fn add_imports(
 
         for line in output.lines() {
             let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
-            println!("UUU: {:?}: {:?}", parent, child); // FIXME: Remove.
             match &child {
                 Import::FullPath(full_child_path) => {
                     add_imports_recursive(cache, full_child_path.as_path(), imports, pool, None)?;
@@ -126,7 +123,6 @@ pub fn add_imports(
                     //     .ok_or_else(|| anyhow!("Canister {canister_name} not found in pool."))?;
                     // let canister_info = canister.get_info();
                     // let main_file = canister_info.get_main_file();
-                    println!("MMM: {:?}: {:?}", parent, canister_name); // FIXME: Remove.
                     // if let Some(main_file) = main_file {
                     add_imports_recursive(
                         cache,
@@ -155,7 +151,6 @@ pub fn add_imports(
             imports
                 .graph
                 .update_edge(parent_node_index, child_node_index, ());
-            // println!("MMM2: {:?}: {:?}", parent, child); // FIXME: Remove.
         }
 
         Ok(())
