@@ -592,7 +592,7 @@ impl CanisterPool {
             .iter()
             .map(|canister| Import::Canister(canister.get_name().to_string()))
             .collect();
-        let start: Vec<_> = start
+        let start_nodes: Vec<_> = start
             .into_iter()
             .filter_map(|node| {
                 if let Some(&id) = source_ids.get(&node) {
@@ -605,8 +605,16 @@ impl CanisterPool {
         // Transform the graph of file dependencies to graph of canister dependencies.
         // For this do DFS for each of `start`.
         let mut dest_graph: GraphWithNodesMap<String, ()> = GraphWithNodesMap::new();
-        for start_node in start.into_iter() {
+        for start_node in start_nodes.into_iter() {
             let mut filtered_dfs = DfsFiltered::new();
+            let start = source_graph.node_weight(start_node).unwrap();
+            let start_name = match start {
+                Import::Canister(name) => name,
+                _ => {
+                    panic!("programming error");
+                }
+            };
+            dest_graph.update_node(&start_name);
             filtered_dfs.traverse2(
                 &source_graph,
                 |&s| {
@@ -637,6 +645,7 @@ impl CanisterPool {
                     let dest_parent_id = dest_graph.update_node(&parent_name);
                     let dest_child_id = dest_graph.update_node(&child_name);
                     dest_graph.update_edge(dest_parent_id, dest_child_id, ());
+                    println!("P/C: {:?}/{:?}", parent_name, child_name);
             
                     Ok(())
                 },
