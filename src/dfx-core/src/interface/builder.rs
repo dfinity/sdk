@@ -184,55 +184,115 @@ impl Default for DfxInterfaceBuilder {
 #[cfg(test)]
 mod tests {
     use std::ffi::OsString;
-    use std::path::Path;
+    use std::path::{Path, PathBuf};
+    use std::sync::Arc;
     use candid::Principal;
+    use futures::Future;
     use ic_agent::Identity;
     use tempfile::TempDir;
+    use tokio::sync::Semaphore;
     use crate::DfxInterface;
     use crate::error::builder::BuildDfxInterfaceError;
     use crate::error::builder::BuildIdentityError::NewIdentityManager;
     use crate::error::identity::new_identity_manager::NewIdentityManagerError;
+    use crate::identity::{IdentityCreationParameters, IdentityManager};
+    use crate::identity::identity_manager::IdentityStorageMode::Plaintext;
+
+    lazy_static::lazy_static! {
+        static ref SEMAPHORE: Semaphore = Semaphore::new(1);
+    }
+
+    async fn run_isolated_test<F, Fut>(test_function: F)
+        where
+            F: FnOnce(Arc<TempDir>) -> Fut + Send,
+            Fut: Future<Output = ()> + Send,
+    {
+        let _permit = SEMAPHORE.acquire().await.unwrap();
+
+        let temp_dir = TempDir::new().unwrap();
+
+        // so tests don't clobber each other in the environment
+        std::env::set_var("DFX_CONFIG_ROOT", temp_dir.path());
+
+        test_function(Arc::new(temp_dir)).await;
+    }
 
     #[tokio::test]
     async fn anonymous() {
-        // anonymous identity creates a .config directory, but doesn't put anything in it
-        let td = setup();
+        run_isolated_test(|td| async move {
+            let d = DfxInterface::anonymous().await.unwrap();
+            assert!(matches!(d.identity().public_key(), None));
+            assert_eq!(d.identity().sender().unwrap(), Principal::anonymous());
 
-        let d = DfxInterface::anonymous().await.unwrap();
-        assert!(matches!(d.identity().public_key(), None));
-        assert_eq!(d.identity().sender().unwrap(), Principal::anonymous());
-
-        let actual = all_children(td.path());
-        //  creates config directories, but they are empty
-        //let expected: Vec<String> = vec!();
-        let expected: Vec<String> = vec!(
-            ".config/".into(),
-            ".config/dfx/".into());
-        assert_eq!(actual, expected);
-        // let config_only: Vec<OsString> = vec!(".config".into());
-        // let dfx_only: Vec<OsString> = vec!("dfx".into());
-        // let empty: Vec<OsString> = vec!();
-        //
-        // assert_eq!(all_filenames(td.path()), config_only);
-        // assert_eq!(all_filenames(&td.path().join(".config")), dfx_only);
-        // assert_eq!(all_filenames(&td.path().join(".config").join("dfx")), empty);
+            let actual = all_children(td.path());
+            let expected: Vec<String> = vec!(
+                ".config/".into(),
+                ".config/dfx/".into());
+            assert_eq!(actual, expected);
+        }).await;
     }
 
     #[tokio::test]
-    async fn default_no_config() {
-        let td = setup();
-        assert!(matches!(DfxInterface::builder().build().await,
+    async fn no_config() {
+        run_isolated_test(|tempdir| async {
+            assert!(matches!(DfxInterface::builder().build().await,
             Err(BuildDfxInterfaceError::BuildIdentity(
                 NewIdentityManager(
                     NewIdentityManagerError::NoIdentityConfigurationFound)))));
+        }).await;
     }
 
-    fn all_filenames(dir: &Path) -> Vec<OsString> {
-        std::fs::read_dir(dir)
-            .unwrap()
-            .map(|e| e.unwrap().file_name())
-            .collect()
+    #[tokio::test]
+    async fn default() {
+        run_isolated_test(|tempdir| async {
+            let default_principal = {
+                let logger = slog::Logger::root(slog::Discard, slog::o!());
+                let mut im = IdentityManager::new(&logger, None, crate::identity::identity_manager::InitializeIdentity::Allow).unwrap();
+                let id: Box<dyn Identity> = im.instantiate_selected_identity(&logger).unwrap();
+                id.sender().unwrap()
+            };
+            let d = DfxInterface::builder().build().await.unwrap();
+            assert_eq!(d.identity.sender().unwrap(), default_principal);
+        }).await;
     }
+
+    #[tokio::test]
+    async fn select_by_name() {
+        run_isolated_test(|_tempdir| async {
+            let alice = "alice";
+            let bob = "bob";
+            let (alice_principal_from_mgr, bob_principal_from_mgr) = {
+                let logger = slog::Logger::root(slog::Discard, slog::o!());
+                let mut im = IdentityManager::new(&logger, None, crate::identity::identity_manager::InitializeIdentity::Allow).unwrap();
+                let parameters = IdentityCreationParameters::Pem {
+                    mode: Plaintext,
+                };
+                im.create_new_identity(&logger, alice, IdentityCreationParameters::Pem {
+                    mode: Plaintext,
+                }, false).unwrap();
+                im.create_new_identity(&logger, bob, IdentityCreationParameters::Pem {
+                    mode: Plaintext,
+                }, false).unwrap();
+
+                let alice: Box<dyn Identity> = im.instantiate_identity_from_name(alice, &logger).unwrap();
+
+                let bob: Box<dyn Identity> = im.instantiate_identity_from_name(bob, &logger).unwrap();
+                (alice.sender().unwrap(), bob.sender().unwrap())
+            };
+            assert_ne!(alice_principal_from_mgr, bob_principal_from_mgr);
+            let alice_interface = DfxInterface::builder()
+                .with_identity_named(alice)
+                .build().await.unwrap();
+            assert_eq!(alice_interface.identity.sender().unwrap(), alice_principal_from_mgr);
+
+            let bob_interface = DfxInterface::builder()
+                .with_identity_named(bob)
+                .build().await.unwrap();
+            assert_eq!(bob_interface.identity.sender().unwrap(), bob_principal_from_mgr);
+        }).await;
+    }
+
+
 
     fn all_children(dir: &Path) -> Vec<String> {
         eprintln!("all_pathnames({:?})", dir);
@@ -257,11 +317,5 @@ mod tests {
         }
         eprintln!("all_pathnames({:?}) = {:?}", dir, result);
         result
-    }
-
-    fn setup() -> TempDir {
-        let td = TempDir::new().unwrap();
-        std::env::set_var("DFX_CONFIG_ROOT", td.path());
-        td
     }
 }

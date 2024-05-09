@@ -1575,6 +1575,7 @@ dependencies = [
  "directories-next",
  "dunce",
  "flate2",
+ "futures",
  "handlebars",
  "hex",
  "humantime-serde",
