@@ -277,7 +277,12 @@ pub trait CanisterBuilder {
 
         // Check that one of the dependencies is newer than the target:
         if let Ok(wasm_file_metadata) = metadata(output_wasm_path) {
-            let wasm_file_time = wasm_file_metadata.modified()?;
+            let wasm_file_time = match wasm_file_metadata.modified() {
+                Ok(wasm_file_time) => wasm_file_time,
+                Err(_) => {
+                    return Ok(true); // need to compile
+                }
+            };
             let imports = pool.imports.borrow_mut();
             let start = if let Some(node_index) = imports
                 .nodes
