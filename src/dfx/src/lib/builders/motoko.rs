@@ -79,7 +79,6 @@ pub fn add_imports(
             let parent_canister_info = parent_canister.get_info();
             if !parent_canister_info.is_motoko() {
                 for child in parent_canister_info.get_dependencies() {
-                    // let child_canister: Arc<Canister> = pool.get_first_canister_with_name(child).unwrap(); // TODO: Is `unwrap()` valid here?
                     add_imports_recursive(
                         cache,
                         Path::new(""), // not used (TODO: refactor)
@@ -112,13 +111,6 @@ pub fn add_imports(
                     add_imports_recursive(cache, full_child_path.as_path(), imports, pool, None)?;
                 }
                 Import::Canister(canister_name) => {
-                    // duplicate code
-                    // let canister = pool
-                    //     .get_first_canister_with_name(canister_name.as_str())
-                    //     .ok_or_else(|| anyhow!("Canister {canister_name} not found in pool."))?;
-                    // let canister_info = canister.get_info();
-                    // let main_file = canister_info.get_main_file();
-                    // if let Some(main_file) = main_file {
                     add_imports_recursive(
                         cache,
                         Path::new(""), // not used (TODO: refactor)
@@ -126,16 +118,9 @@ pub fn add_imports(
                         pool,
                         Some(canister_name),
                     )?;
-                    // }
                 }
                 _ => {}
             }
-
-            // let parent_node_index = *imports
-            //     .nodes
-            //     .entry(parent.clone())
-            //     .or_insert_with(|| imports.graph.add_node(parent.clone()));
-            // imports.nodes.insert(parent.clone(), parent_node_index);
 
             let child_node_index = imports.graph.update_node(&child);
 
