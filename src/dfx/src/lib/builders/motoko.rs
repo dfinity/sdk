@@ -41,6 +41,7 @@ impl MotokoBuilder {
 }
 
 /// Add imports originating from canister `info` to the graph `imports` of dependencies.
+/// TODO: Refactor this code.
 #[context("Failed to find imports for canister at '{}'.", info.as_info::<MotokoCanisterInfo>().unwrap().get_main_path().display())]
 pub fn add_imports(
     cache: &dyn Cache,
@@ -65,13 +66,44 @@ pub fn add_imports(
         } else {
             Import::FullPath(base_path.join(file))
         };
-        if imports.nodes.get(&parent).is_some() {
-            // The item is already in the graph.
+        println!("PARENT: {:?}", parent); // FIXME: Remove.
+        println!("NODES: {:?}", imports.nodes); // FIXME: Remove.
+        let parent_node_index = if imports.nodes.get(&parent).is_some() {
+            // The item and its descendants are already in the graph.
             return Ok(());
         } else {
-            imports
-                .nodes
-                .insert(parent.clone(), imports.graph.add_node(parent.clone()));
+            let parent_node_index = imports.graph.add_node(parent.clone());
+            imports.nodes.insert(parent.clone(), parent_node_index);
+            parent_node_index
+        };
+        println!("PARENT2: {:?}", parent); // FIXME: Remove.
+
+        if let Import::Canister(parent_canister_name) = &parent {
+            // TODO: Is `unwrap()` on the next line valid?
+            let parent_canister = pool.get_first_canister_with_name(parent_canister_name).unwrap();
+            let parent_canister_info = parent_canister.get_info();
+            if !parent_canister_info.is_motoko() {
+                for child in parent_canister_info.get_dependencies() {
+                    let child_canister = pool.get_first_canister_with_name(child).unwrap(); // TODO: Is `unwrap()` valid here?
+                    add_imports_recursive(
+                        cache,
+                        Path::new(""), // not used (TODO: refactor)
+                        imports,
+                        pool,
+                        Some(child_canister.get_info()),
+                    )?;
+
+                    let child_node = Import::Canister(child.clone());
+                    let child_node_index = *imports
+                        .nodes
+                        .entry(child_node.clone())
+                        .or_insert_with(|| imports.graph.add_node(child_node));
+                    imports
+                        .graph
+                        .update_edge(parent_node_index, child_node_index, ());
+                }
+                return Ok(());
+            }
         }
 
         let mut command = cache.get_binary_command("moc")?;
@@ -83,6 +115,7 @@ pub fn add_imports(
 
         for line in output.lines() {
             let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
+            println!("PARENT/CHILD2: {:?}/{:?}", parent, child); // FIXME: Remove.
             match &child {
                 Import::FullPath(full_child_path) => {
                     add_imports_recursive(cache, full_child_path.as_path(), imports, pool, None)?;

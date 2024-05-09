@@ -24,7 +24,7 @@ use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
 use petgraph::algo::toposort;
 use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::visit::Bfs;
+use petgraph::visit::{Bfs, EdgeRef};
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
@@ -587,6 +587,9 @@ impl CanisterPool {
         }
 
         let source_graph = &self.imports.borrow().graph;
+        // println!("PARENT/CHILD*: {:?}", source_graph.edge_references().map(|c|
+        //     (source_graph.node_weight(c.source()), source_graph.node_weight(c.target()))).collect::<Vec<_>>()
+        // ); // FIXME: Remove.
         let source_ids = &self.imports.borrow().nodes;
         let start: Vec<_> = toplevel_canisters
             .iter()
@@ -649,6 +652,7 @@ impl CanisterPool {
                             panic!("programming error");
                         }
                     };
+                    // println!("PARENT/CHILD: {:?}/{:?}", parent, child); // FIXME: Remove.
                     // let child_canister = self.get_first_canister_with_name(child_name)
                     //     .ok_or_else(|| anyhow!("A canister with the name '{}' was not found in the current project.", child_name.clone()))?
                     //     .canister_id();
@@ -830,6 +834,10 @@ impl CanisterPool {
                 .collect::<Vec<&Canister>>(),
             env.get_cache().as_ref(),
         )?; // TODO: Can `clone` be eliminated?
+
+        // FIXME: Remove.
+        println!("EDGES: {:?}", graph.edge_references()
+            .map(|e| (graph.node_weight(e.source()).unwrap(), graph.node_weight(e.target()).unwrap())).collect::<Vec<_>>());
 
         let toplevel_nodes: Vec<NodeIndex> = toplevel_canisters
             .iter()

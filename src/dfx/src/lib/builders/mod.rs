@@ -234,25 +234,8 @@ pub trait CanisterBuilder {
         canister_info: &CanisterInfo,
         cache: &dyn Cache,
     ) -> DfxResult {
-        if canister_info.is_motoko() {
-            // hack
-            add_imports(cache, canister_info, &mut pool.imports.borrow_mut(), pool)?;
-        } else {
-            let imports = &mut *pool.imports.borrow_mut();
-            let node = Import::Canister(canister_info.get_name().to_owned());
-            let parent_id = *imports
-                .nodes
-                .entry(node.clone())
-                .or_insert_with(|| imports.graph.add_node(node));
-            for child in canister_info.get_dependencies() {
-                let child_node = Import::Canister(child.clone());
-                let child_id = *imports
-                    .nodes
-                    .entry(child_node.clone())
-                    .or_insert_with(|| imports.graph.add_node(child_node));
-                imports.graph.update_edge(parent_id, child_id, ());
-            }
-        }
+        // TODO: Refactor into one function.
+        add_imports(cache, canister_info, &mut pool.imports.borrow_mut(), pool)?;
         Ok(())
     }
 
