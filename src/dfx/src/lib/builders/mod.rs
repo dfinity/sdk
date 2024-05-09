@@ -246,6 +246,10 @@ pub trait CanisterBuilder {
         cache: &dyn Cache,
         logger: &Logger,
     ) -> DfxResult<bool> {
+        if !canister_info.is_motoko() {
+            return Ok(true);    
+        }
+
         // let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?;
         let output_wasm_path = canister_info.get_output_wasm_path();
 
