@@ -571,7 +571,7 @@ impl CanisterPool {
         &self,
         toplevel_canisters: &[&Canister],
         cache: &dyn Cache,
-    ) -> DfxResult<(GraphWithNodesMap<String, ()>, HashMap<String, NodeIndex>)> {
+    ) -> DfxResult<GraphWithNodesMap<String, ()>> {
         for canister in &self.canisters {
             // a little inefficient
             let contains = toplevel_canisters
@@ -658,7 +658,7 @@ impl CanisterPool {
             )?;
         }
 
-        Ok((dest_graph, dest_nodes))
+        Ok(dest_graph)
     }
 
     fn canister_dependencies(&self, toplevel_canisters: &[&Canister]) -> Vec<Arc<Canister>> {
@@ -814,7 +814,7 @@ impl CanisterPool {
     ) -> DfxResult<Vec<String>> {
         trace!(env.get_logger(), "Building dependencies graph.");
         // TODO: The following `map` is a hack.
-        let (graph, nodes) = self.build_canister_dependencies_graph(
+        let graph = self.build_canister_dependencies_graph(
             &toplevel_canisters
                 .iter()
                 .map(|canister| canister.as_ref())
@@ -825,7 +825,7 @@ impl CanisterPool {
         let toplevel_nodes: Vec<NodeIndex> = toplevel_canisters
             .iter()
             .map(|canister| -> DfxResult<NodeIndex> {
-                nodes
+                graph.nodes()
                     .get(&canister.get_name().to_string())
                     .copied()
                     .ok_or_else(|| anyhow!("No such canister {}.", canister.get_name()))
