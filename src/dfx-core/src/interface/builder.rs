@@ -187,19 +187,25 @@ impl Default for DfxInterfaceBuilder {
 
 #[cfg(test)]
 mod tests {
-    use crate::error::builder::BuildDfxInterfaceError;
-    use crate::error::builder::BuildDfxInterfaceError::{FetchRootKey, NetworkConfig};
-    use crate::error::builder::BuildIdentityError::NewIdentityManager;
-    use crate::error::identity::new_identity_manager::NewIdentityManagerError;
-    use crate::error::network_config::NetworkConfigError::NetworkNotFound;
-    use crate::error::root_key::FetchRootKeyError::AgentError;
-    use crate::identity::identity_manager::IdentityStorageMode::Plaintext;
-    use crate::identity::{IdentityCreationParameters, IdentityManager};
+    use crate::error::{
+        builder::{
+            BuildDfxInterfaceError,
+            BuildDfxInterfaceError::{FetchRootKey, NetworkConfig},
+            BuildIdentityError::NewIdentityManager,
+        },
+        identity::new_identity_manager::NewIdentityManagerError,
+        network_config::NetworkConfigError::NetworkNotFound,
+        root_key::FetchRootKeyError,
+        root_key::FetchRootKeyError::AgentError,
+    };
+    use crate::identity::{
+        identity_manager::IdentityStorageMode::Plaintext, IdentityCreationParameters,
+        IdentityManager,
+    };
     use crate::DfxInterface;
     use candid::Principal;
     use futures::Future;
-    use ic_agent::AgentError::TransportError;
-    use ic_agent::Identity;
+    use ic_agent::{AgentError::TransportError, Identity};
     use serde_json::json;
     use std::path::Path;
     use std::sync::Arc;
@@ -235,15 +241,16 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
 
         if let Some(testnet) = settings.testnet {
-            let config_dir = temp_dir.path().join(".config/dfx");
-            crate::fs::create_dir_all(&config_dir).unwrap();
             let networks_config = json!({
                 testnet.name: {
                     "providers": testnet.providers,
                 }
             });
+
+            let config_dir = temp_dir.path().join(".config/dfx");
             let networks_config_path = config_dir.join("networks.json");
-            std::fs::write(&networks_config_path, networks_config.to_string()).unwrap();
+            crate::fs::create_dir_all(&config_dir).unwrap();
+            crate::fs::write(networks_config_path, networks_config.to_string()).unwrap();
         }
 
         // so tests don't clobber each other in the environment
@@ -262,7 +269,7 @@ mod tests {
                 .build()
                 .await
                 .unwrap();
-            assert!(matches!(d.identity().public_key(), None));
+            assert!(d.identity().public_key().is_none());
             assert_eq!(d.identity().sender().unwrap(), Principal::anonymous());
 
             let actual = all_children(td.path());
@@ -274,7 +281,7 @@ mod tests {
 
     #[tokio::test]
     async fn no_config_does_not_create_default_identity() {
-        run_test(|_td| async {
+        run_test(|_| async {
             assert!(matches!(
                 DfxInterface::builder().build().await,
                 Err(BuildDfxInterfaceError::BuildIdentity(NewIdentityManager(
@@ -287,7 +294,7 @@ mod tests {
 
     #[tokio::test]
     async fn default_identity() {
-        run_test(|_td| async {
+        run_test(|_| async {
             let default_principal = {
                 let logger = slog::Logger::root(slog::Discard, slog::o!());
                 let mut im = IdentityManager::new(
@@ -307,7 +314,7 @@ mod tests {
 
     #[tokio::test]
     async fn select_identity_by_name() {
-        run_test(|_td| async {
+        run_test(|_| async {
             let alice = "alice";
             let bob = "bob";
             let (alice_principal_from_mgr, bob_principal_from_mgr) = {
@@ -358,7 +365,7 @@ mod tests {
 
     #[tokio::test]
     async fn selected_non_default() {
-        run_test(|_td| async {
+        run_test(|_| async {
             let alice = "alice";
             let bob = "bob";
             let bob_principal_from_mgr = {
@@ -399,7 +406,7 @@ mod tests {
 
     #[tokio::test]
     async fn local_network() {
-        run_test(|_td| async move {
+        run_test(|_| async {
             match DfxInterface::builder().anonymous().build().await {
                 Ok(d) => {
                     assert_eq!(d.network_descriptor.name, "local");
@@ -418,7 +425,7 @@ mod tests {
 
     #[tokio::test]
     async fn mainnet() {
-        run_test(|_td| async move {
+        run_test(|_| async {
             let d = DfxInterface::builder()
                 .anonymous()
                 .mainnet()
@@ -433,8 +440,26 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn try_to_fetch_root_key_on_mainnet() {
+        run_test(|_| async {
+            assert!(matches!(
+                DfxInterface::builder()
+                    .anonymous()
+                    .mainnet()
+                    .with_force_fetch_root_key_insecure_non_mainnet_only()
+                    .build()
+                    .await,
+                Err(FetchRootKey(
+                    FetchRootKeyError::MustNotFetchRootKeyOnMainnet
+                ))
+            ));
+        })
+        .await;
+    }
+
+    #[tokio::test]
     async fn named_network_not_found() {
-        run_test(|_td| async move {
+        run_test(|_| async {
             assert!(
                 matches!(DfxInterface::builder().with_network_named("testnet").build().await,
                 Err(NetworkConfig(NetworkNotFound(network_name))) if network_name == "testnet")
@@ -451,7 +476,7 @@ mod tests {
                 providers: vec!["http://localhost:1234".to_string()],
             }),
         };
-        run_test_with_settings(settings, |_td| async move {
+        run_test_with_settings(settings, |_| async move {
             let d = DfxInterface::builder()
                 .anonymous()
                 .with_network_named("testnet")
