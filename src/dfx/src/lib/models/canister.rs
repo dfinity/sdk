@@ -24,7 +24,7 @@ use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
 use petgraph::algo::toposort;
 use petgraph::graph::{DiGraph, NodeIndex};
-use petgraph::visit::{Bfs, EdgeRef};
+use petgraph::visit::Bfs;
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
