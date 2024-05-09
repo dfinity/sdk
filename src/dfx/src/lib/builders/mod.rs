@@ -270,22 +270,23 @@ pub trait CanisterBuilder {
                     return Ok(true); // need to compile
                 }
             };
-            let imports = pool.imports.borrow_mut();
+            let imports = pool.imports.borrow();
             let start = if let Some(node_index) = imports
-                .nodes
+                .graph
+                .nodes()
                 .get(&Import::Canister(canister_info.get_name().to_string()))
             {
                 *node_index
             } else {
                 panic!("programming error");
             };
-            let mut import_iter = Bfs::new(&imports.graph, start);
+            let mut import_iter = Bfs::new(&imports.graph.graph(), start);
             let mut top_level = true; // link to our main Canister with `.wasm`
             loop {
-                if let Some(import) = import_iter.next(&imports.graph) {
+                if let Some(import) = import_iter.next(&imports.graph.graph()) {
                     let top_level_cur = top_level;
                     top_level = false;
-                    let subnode = &imports.graph[import];
+                    let subnode = &imports.graph.graph()[import];
                     if top_level_cur {
                         assert!(
                             matches!(subnode, Import::Canister(_)),

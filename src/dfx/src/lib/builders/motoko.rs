@@ -65,12 +65,11 @@ pub fn add_imports(
                 .ok_or_else(|| anyhow!("Cannot get base directory"))?;
             Import::FullPath(base_path.join(file))
         };
-        if imports.nodes.get(&parent).is_some() {
+        if imports.graph.nodes().get(&parent).is_some() {
             // The item and its descendants are already in the graph.
             return Ok(());
         }
-        let parent_node_index = imports.graph.add_node(parent.clone());
-        imports.nodes.insert(parent.clone(), parent_node_index);
+        let parent_node_index = imports.graph.update_node(&parent);
 
         if let Import::Canister(parent_canister_name) = &parent {
             // TODO: Is `unwrap()` on the next line valid?
@@ -90,10 +89,7 @@ pub fn add_imports(
                     )?;
 
                     let child_node = Import::Canister(child.clone());
-                    let child_node_index = *imports
-                        .nodes
-                        .entry(child_node.clone())
-                        .or_insert_with(|| imports.graph.add_node(child_node));
+                    let child_node_index = imports.graph.update_node(&child_node);
                     imports
                         .graph
                         .update_edge(parent_node_index, child_node_index, ());
@@ -141,11 +137,7 @@ pub fn add_imports(
             //     .or_insert_with(|| imports.graph.add_node(parent.clone()));
             // imports.nodes.insert(parent.clone(), parent_node_index);
 
-            let child_node_index = *imports
-                .nodes
-                .entry(child.clone())
-                .or_insert_with(|| imports.graph.add_node(child.clone()));
-            imports.nodes.insert(child.clone(), child_node_index);
+            let child_node_index = imports.graph.update_node(&child);
 
             imports
                 .graph
@@ -187,8 +179,9 @@ impl CanisterBuilder for MotokoBuilder {
             pool,
         )?;
 
-        let graph = &pool.imports.borrow().graph;
-        match petgraph::algo::toposort(&pool.imports.borrow().graph, None) {
+        let imports = pool.imports.borrow();
+        let graph = imports.graph.graph();
+        match petgraph::algo::toposort(graph, None) {
             Ok(order) => {
                 Ok(order
                     .into_iter()
@@ -254,7 +247,8 @@ impl CanisterBuilder for MotokoBuilder {
         if pool
             .imports
             .borrow()
-            .nodes
+            .graph
+            .nodes()
             .contains_key(&Import::Ic("aaaaa-aa".to_string()))
         {
             let management_idl_path = idl_dir_path.join("aaaaa-aa.did");

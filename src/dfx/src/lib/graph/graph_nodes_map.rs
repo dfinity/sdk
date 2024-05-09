@@ -3,11 +3,20 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-use petgraph::{csr::IndexType, graph::{DefaultIx, NodeIndex}, Directed, EdgeType, Graph};
+use petgraph::{graph::EdgeIndex, graph::IndexType, graph::{DefaultIx, NodeIndex}, Directed, EdgeType, Graph};
 
-struct GraphWithNodesMap<N, E, Ty = Directed, Ix = DefaultIx> {
+pub struct GraphWithNodesMap<N, E, Ty = Directed, Ix = DefaultIx> {
     graph: Graph<N, E, Ty, Ix>,
     nodes: HashMap<N, NodeIndex<Ix>>,
+}
+
+impl<N, E, Ty, Ix> GraphWithNodesMap<N, E, Ty, Ix> {
+    pub fn graph(&self) -> &Graph<N, E, Ty, Ix> {
+        &self.graph
+    }
+    pub fn nodes(&self) -> &HashMap<N, NodeIndex<Ix>> {
+        &self.nodes
+    }
 }
 
 impl<N, E, Ty, Ix> GraphWithNodesMap<N, E, Ty, Ix>
@@ -22,6 +31,19 @@ where
         *self.nodes
             .entry(weight.clone())
             .or_insert_with(|| self.graph.add_node(weight.clone()))
+    }
+    fn node_index(&self, weight: &N) -> Option<NodeIndex<Ix>> 
+        where N: Eq + Hash,
+    {
+        self.nodes.get(weight).map(|index| *index)
+    }
+    pub fn update_edge(
+        &mut self,
+        a: NodeIndex<Ix>,
+        b: NodeIndex<Ix>,
+        weight: E
+    ) -> EdgeIndex<Ix> {
+        self.graph.update_edge(a, b, weight)
     }
 }
 

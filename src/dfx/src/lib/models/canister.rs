@@ -9,6 +9,7 @@ use crate::lib::graph::traverse_filtered::DfsFiltered;
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
+use crate::lib::graph::graph_nodes_map::GraphWithNodesMap;
 use crate::util::assets;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
@@ -456,15 +457,13 @@ pub enum Import {
 
 /// The graph of imports (used mainly for Motoko)
 pub struct ImportsTracker {
-    pub nodes: HashMap<Import, NodeIndex>,
-    pub graph: DiGraph<Import, ()>,
+    pub graph: GraphWithNodesMap<Import, ()>,
 }
 
 impl ImportsTracker {
     pub fn new() -> Self {
         Self {
-            nodes: HashMap::new(),
-            graph: DiGraph::new(),
+            graph: GraphWithNodesMap::new(),
         }
     }
 }
@@ -586,8 +585,9 @@ impl CanisterPool {
             }
         }
 
-        let source_graph = &self.imports.borrow().graph;
-        let source_ids = &self.imports.borrow().nodes;
+        let imports = self.imports.borrow();
+        let source_graph = imports.graph.graph();
+        let source_ids = imports.graph.nodes();
         let start: Vec<_> = toplevel_canisters
             .iter()
             .map(|canister| Import::Canister(canister.get_name().to_string()))
@@ -624,7 +624,7 @@ impl CanisterPool {
 
             let mut filtered_dfs = DfsFiltered::new();
             filtered_dfs.traverse2(
-                source_graph,
+                &source_graph,
                 |&s| {
                     let source_id = source_graph.node_weight(s);
                     if let Some(Import::Canister(_)) = source_id {
@@ -677,15 +677,17 @@ impl CanisterPool {
                 let parent_node = *self
                     .imports
                     .borrow()
-                    .nodes
+                    .graph
+                    .nodes()
                     .get(&Import::Canister(canister.get_name().to_owned()))
                     .unwrap();
                 let imports = self.imports.borrow();
-                let neighbors = imports.graph.neighbors(parent_node);
+                let neighbors = imports.graph.graph().neighbors(parent_node);
                 neighbors
                     .filter_map(|id| {
                         imports
-                            .nodes
+                            .graph
+                            .nodes()
                             .iter()
                             .find_map(move |(k, v)| if v == &id { Some(k.clone()) } else { None })
                     }) // TODO: slow
