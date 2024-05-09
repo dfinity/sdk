@@ -76,7 +76,9 @@ pub fn add_imports(
 
         if let Import::Canister(parent_canister_name) = &parent {
             // TODO: Is `unwrap()` on the next line valid?
-            let parent_canister = pool.get_first_canister_with_name(parent_canister_name).unwrap();
+            let parent_canister = pool
+                .get_first_canister_with_name(parent_canister_name)
+                .unwrap();
             let parent_canister_info = parent_canister.get_info();
             if !parent_canister_info.is_motoko() {
                 for child in parent_canister_info.get_dependencies() {
