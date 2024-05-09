@@ -173,7 +173,6 @@ pub async fn deploy_canisters(
     // hack to load deployed canister IDs (such as of Rust canisters)
     let new_canister_pool2 = CanisterPool::load(env, false, &order)?; // with newly registered canisters
 
-    println!("XXX order_canisters: {:?}", order_canisters.iter().map(|c| c.get_name()).collect::<Vec<_>>()); // FIXME: Remove.
     build_canisters(
         env,
         order_canisters.as_slice(),

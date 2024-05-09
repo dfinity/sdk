@@ -65,8 +65,6 @@ pub fn add_imports(
                 .ok_or_else(|| anyhow!("Cannot get base directory"))?;
             Import::FullPath(base_path.join(file))
         };
-        println!("PARENT: {:?}", parent); // FIXME: Remove.
-        println!("NODES: {:?}", imports.nodes); // FIXME: Remove.
         let parent_node_index = if imports.nodes.get(&parent).is_some() {
             // The item and its descendants are already in the graph.
             return Ok(());
@@ -75,7 +73,6 @@ pub fn add_imports(
             imports.nodes.insert(parent.clone(), parent_node_index);
             parent_node_index
         };
-        println!("PARENT2: {:?}", parent); // FIXME: Remove.
 
         if let Import::Canister(parent_canister_name) = &parent {
             // TODO: Is `unwrap()` on the next line valid?
@@ -114,7 +111,6 @@ pub fn add_imports(
 
         for line in output.lines() {
             let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
-            println!("PARENT/CHILD2: {:?}/{:?}", parent, child); // FIXME: Remove.
             match &child {
                 Import::FullPath(full_child_path) => {
                     add_imports_recursive(cache, full_child_path.as_path(), imports, pool, None)?;
