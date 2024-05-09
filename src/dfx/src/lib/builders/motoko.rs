@@ -65,14 +65,12 @@ pub fn add_imports(
                 .ok_or_else(|| anyhow!("Cannot get base directory"))?;
             Import::FullPath(base_path.join(file))
         };
-        let parent_node_index = if imports.nodes.get(&parent).is_some() {
+        if imports.nodes.get(&parent).is_some() {
             // The item and its descendants are already in the graph.
             return Ok(());
-        } else {
-            let parent_node_index = imports.graph.add_node(parent.clone());
-            imports.nodes.insert(parent.clone(), parent_node_index);
-            parent_node_index
-        };
+        }
+        let parent_node_index = imports.graph.add_node(parent.clone());
+        imports.nodes.insert(parent.clone(), parent_node_index);
 
         if let Import::Canister(parent_canister_name) = &parent {
             // TODO: Is `unwrap()` on the next line valid?
@@ -83,6 +81,7 @@ pub fn add_imports(
             if !parent_canister_info.is_motoko() {
                 for child in parent_canister_info.get_dependencies() {
                     // let child_canister: Arc<Canister> = pool.get_first_canister_with_name(child).unwrap(); // TODO: Is `unwrap()` valid here?
+                    println!("P/C: {:?} / {:?}", parent, child); // FIXME: Remove.
                     add_imports_recursive(
                         cache,
                         Path::new(""), // not used (TODO: refactor)
@@ -103,6 +102,7 @@ pub fn add_imports(
                 return Ok(());
             }
         }
+        println!("PC2: {:?}", parent); // FIXME: Remove.
 
         let mut command = cache.get_binary_command("moc")?;
         let command = command.arg("--print-deps").arg(file);
@@ -110,43 +110,52 @@ pub fn add_imports(
             .output()
             .with_context(|| format!("Error executing {:#?}", command))?;
         let output = String::from_utf8_lossy(&output.stdout);
+        println!("[[{}]]", output);
 
         for line in output.lines() {
             let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
+            println!("UUU: {:?}: {:?}", parent, child); // FIXME: Remove.
             match &child {
                 Import::FullPath(full_child_path) => {
                     add_imports_recursive(cache, full_child_path.as_path(), imports, pool, None)?;
                 }
                 Import::Canister(canister_name) => {
                     // duplicate code
-                    let canister = pool
-                        .get_first_canister_with_name(canister_name.as_str())
-                        .ok_or_else(|| anyhow!("Canister {canister_name} not found in pool."))?;
-                    let canister_info = canister.get_info();
-                    let main_file = canister_info.get_main_file();
-                    if let Some(main_file) = main_file {
-                        add_imports_recursive(
-                            cache,
-                            Path::new(main_file),
-                            imports,
-                            pool,
-                            Some(canister_name),
-                        )?;
-                    }
+                    // let canister = pool
+                    //     .get_first_canister_with_name(canister_name.as_str())
+                    //     .ok_or_else(|| anyhow!("Canister {canister_name} not found in pool."))?;
+                    // let canister_info = canister.get_info();
+                    // let main_file = canister_info.get_main_file();
+                    println!("MMM: {:?}: {:?}", parent, canister_name); // FIXME: Remove.
+                    // if let Some(main_file) = main_file {
+                    add_imports_recursive(
+                        cache,
+                        Path::new(""), // not used (TODO: refactor)
+                        imports,
+                        pool,
+                        Some(canister_name),
+                    )?;
+                    // }
                 }
                 _ => {}
             }
-            let parent_node_index = *imports
-                .nodes
-                .entry(parent.clone())
-                .or_insert_with(|| imports.graph.add_node(parent.clone()));
+
+            // let parent_node_index = *imports
+            //     .nodes
+            //     .entry(parent.clone())
+            //     .or_insert_with(|| imports.graph.add_node(parent.clone()));
+            // imports.nodes.insert(parent.clone(), parent_node_index);
+
             let child_node_index = *imports
                 .nodes
                 .entry(child.clone())
                 .or_insert_with(|| imports.graph.add_node(child.clone()));
+            imports.nodes.insert(child.clone(), child_node_index);
+
             imports
                 .graph
                 .update_edge(parent_node_index, child_node_index, ());
+            // println!("MMM2: {:?}: {:?}", parent, child); // FIXME: Remove.
         }
 
         Ok(())

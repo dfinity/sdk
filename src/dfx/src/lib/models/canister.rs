@@ -588,6 +588,9 @@ impl CanisterPool {
 
         let source_graph = &self.imports.borrow().graph;
         let source_ids = &self.imports.borrow().nodes;
+        println!("EDGES: {:?}", source_graph.raw_edges().iter().map(|e|
+            (source_graph.node_weight(e.source()).unwrap(), source_graph.node_weight(e.target()).unwrap())
+        ).collect::<Vec<_>>()); // FIXME: Remove.
         let start: Vec<_> = toplevel_canisters
             .iter()
             .map(|canister| Import::Canister(canister.get_name().to_string()))
@@ -659,7 +662,7 @@ impl CanisterPool {
                     dest_nodes.insert(parent_name.clone(), dest_parent_id);
                     dest_nodes.insert(child_name.clone(), dest_child_id);
                     dest_graph.update_edge(dest_parent_id, dest_child_id, ());
-
+            
                     Ok(())
                 },
                 start_node,
