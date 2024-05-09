@@ -618,7 +618,7 @@ impl CanisterPool {
             };
             // let parent_canister = self.get_first_canister_with_name(parent_name).unwrap();
             let parent_dest_id = *dest_id_to_source_id
-                .entry(start_node)
+                .entry(start_node) // FIXME: Seems the reverse
                 .or_insert_with(|| dest_graph.add_node(parent_name.clone()));
             dest_nodes.insert(parent_name.clone(), parent_dest_id);
 
