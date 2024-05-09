@@ -603,22 +603,9 @@ impl CanisterPool {
             })
             .collect();
         // Transform the graph of file dependencies to graph of canister dependencies.
-        // For this do DFS for each of `real_canisters_to_build`.
+        // For this do DFS for each of `start`.
         let mut dest_graph: GraphWithNodesMap<String, ()> = GraphWithNodesMap::new();
-        // let mut dest_id_to_source_id: HashMap<_, _> = HashMap::new(); // FIXME: unused
         for start_node in start.into_iter() {
-            // Initialize "mirrors" of the parent node of source graph in dest graph:
-            let parent = source_graph.node_weight(start_node).unwrap();
-            let parent_name = match parent {
-                Import::Canister(name) => name,
-                _ => {
-                    panic!("programming error");
-                }
-            };
-            // let parent_canister = self.get_first_canister_with_name(parent_name).unwrap();
-            // FIXME: The next line seems to be the reverse of what it should be:
-            let parent_dest_id = dest_graph.update_node(&parent_name); // FIXME
-
             let mut filtered_dfs = DfsFiltered::new();
             filtered_dfs.traverse2(
                 &source_graph,
@@ -647,10 +634,9 @@ impl CanisterPool {
                         }
                     };
 
-                    let dest_parent_id = dest_graph.update_node(&parent_name);
+                    let dest_parent_id: NodeIndex = dest_graph.update_node(&parent_name);
                     let dest_child_id = dest_graph.update_node(&child_name);
                     dest_graph.update_edge(dest_parent_id, dest_child_id, ());
-                    // dest_id_to_source_id.insert(dest_parent_id, source_parent_id); // FIXME: needed?
             
                     Ok(())
                 },
