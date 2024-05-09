@@ -49,21 +49,20 @@ pub fn add_imports(
     imports: &mut ImportsTracker,
     pool: &CanisterPool,
 ) -> DfxResult<()> {
-    let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
     #[context("Failed recursive dependency detection at {}.", file.display())]
     fn add_imports_recursive(
         cache: &dyn Cache,
         file: &Path,
         imports: &mut ImportsTracker,
         pool: &CanisterPool,
-        top: Option<&CanisterInfo>, // hackish
+        top: Option<&str>, // hackish
     ) -> DfxResult {
-        let base_path = file
-            .parent()
-            .ok_or_else(|| anyhow!("Cannot get base directory"))?;
         let parent = if let Some(top) = top {
-            Import::Canister(top.get_name().to_string()) // a little inefficient
+            Import::Canister(top.to_string()) // a little inefficient
         } else {
+            let base_path = file
+                .parent()
+                .ok_or_else(|| anyhow!("Cannot get base directory"))?;
             Import::FullPath(base_path.join(file))
         };
         println!("PARENT: {:?}", parent); // FIXME: Remove.
@@ -84,13 +83,13 @@ pub fn add_imports(
             let parent_canister_info = parent_canister.get_info();
             if !parent_canister_info.is_motoko() {
                 for child in parent_canister_info.get_dependencies() {
-                    let child_canister = pool.get_first_canister_with_name(child).unwrap(); // TODO: Is `unwrap()` valid here?
+                    // let child_canister: Arc<Canister> = pool.get_first_canister_with_name(child).unwrap(); // TODO: Is `unwrap()` valid here?
                     add_imports_recursive(
                         cache,
                         Path::new(""), // not used (TODO: refactor)
                         imports,
                         pool,
-                        Some(child_canister.get_info()),
+                        Some(child),
                     )?;
 
                     let child_node = Import::Canister(child.clone());
@@ -125,14 +124,15 @@ pub fn add_imports(
                     let canister = pool
                         .get_first_canister_with_name(canister_name.as_str())
                         .ok_or_else(|| anyhow!("Canister {canister_name} not found in pool."))?;
-                    let main_file = canister.get_info().get_main_file();
+                    let canister_info = canister.get_info();
+                    let main_file = canister_info.get_main_file();
                     if let Some(main_file) = main_file {
                         add_imports_recursive(
                             cache,
                             Path::new(main_file),
                             imports,
                             pool,
-                            Some(canister.get_info()),
+                            Some(canister_name),
                         )?;
                     }
                 }
@@ -154,12 +154,20 @@ pub fn add_imports(
         Ok(())
     }
 
+    // crude hack
+    let main_path_buf = if info.is_motoko() {
+        let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
+        let path_buf = motoko_info.get_main_path().canonicalize()?;
+        path_buf
+    } else {
+        PathBuf::new() // hack
+    };
     add_imports_recursive(
         cache,
-        motoko_info.get_main_path().canonicalize()?.as_path(),
+        main_path_buf.as_path(),
         imports,
         pool,
-        Some(info),
+        Some(info.get_name()),
     )?;
 
     Ok(())
