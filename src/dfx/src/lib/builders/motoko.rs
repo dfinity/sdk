@@ -57,7 +57,7 @@ pub fn add_imports(
         pool: &CanisterPool,
         top: Option<&str>, // hackish
     ) -> DfxResult {
-        let initial_node = if let Some(top) = top {
+        let parent = if let Some(top) = top {
             Import::Canister(top.to_string()) // a little inefficient
         } else {
             let base_path = file
@@ -65,13 +65,13 @@ pub fn add_imports(
                 .ok_or_else(|| anyhow!("Cannot get base directory"))?;
             Import::FullPath(base_path.join(file))
         };
-        if imports.graph.nodes().get(&initial_node).is_some() {
+        if imports.graph.nodes().get(&parent).is_some() {
             // The item and its descendants are already in the graph.
             return Ok(());
         }
-        let initial_node_index = imports.graph.update_node(&initial_node);
+        let parent_node_index = imports.graph.update_node(&parent);
 
-        if let Import::Canister(parent_canister_name) = &initial_node {
+        if let Import::Canister(parent_canister_name) = &parent {
             // TODO: Is `unwrap()` on the next line valid?
             let parent_canister = pool
                 .get_first_canister_with_name(parent_canister_name)
@@ -91,7 +91,8 @@ pub fn add_imports(
                     let child_node_index = imports.graph.update_node(&child_node);
                     imports
                         .graph
-                        .update_edge(initial_node_index, child_node_index, ());
+                        .update_edge(parent_node_index, child_node_index, ());
+                    println!("RRR {:?}/{:?}", parent, child); // FIXME: Remove.
                 }
                 return Ok(());
             }
@@ -104,6 +105,7 @@ pub fn add_imports(
             .with_context(|| format!("Error executing {:#?}", command))?;
         let output = String::from_utf8_lossy(&output.stdout);
 
+        let parent_node_index = imports.graph.update_node(&parent);
         for line in output.lines() {
             let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
             match &child {
@@ -122,8 +124,8 @@ pub fn add_imports(
                 _ => {}
             }
 
-            let parent_node_index = imports.graph.update_node(&initial_node);
             let child_node_index = imports.graph.update_node(&child);
+            println!("QQQ {:?}/{:?}", parent, child); // FIXME: Remove.
 
             imports
                 .graph

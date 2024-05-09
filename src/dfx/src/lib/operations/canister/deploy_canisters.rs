@@ -123,6 +123,7 @@ pub async fn deploy_canisters(
 
     // TODO: `build_order` is called two times during deployment of a new canister.
     let order = canister_pool.build_order(env, toplevel_canisters)?;
+    println!("ORDER: {:?}", order); // FIXME: Remove.
     let order_canisters = order
         .iter()
         .map(|name| canister_pool.get_first_canister_with_name(name).unwrap())

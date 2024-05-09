@@ -587,8 +587,8 @@ impl CanisterPool {
 
         let imports = self.imports.borrow();
         let source_graph = imports.graph.graph();
-        println!("SG: {:?}", source_graph.raw_edges().iter().map(|e| // FIXME: Remove.
-            (source_graph.node_weight(e.source()), source_graph.node_weight(e.target()))).collect::<Vec<_>>());
+        // println!("SG: {:?}", source_graph.raw_edges().iter().map(|e| // FIXME: Remove.
+        //     (source_graph.node_weight(e.source()), source_graph.node_weight(e.target()))).collect::<Vec<_>>());
         let source_ids = imports.graph.nodes();
         let start: Vec<_> = toplevel_canisters
             .iter()
@@ -650,7 +650,7 @@ impl CanisterPool {
                     let dest_parent_id = dest_graph.update_node(&parent_name);
                     let dest_child_id = dest_graph.update_node(&child_name);
                     dest_graph.update_edge(dest_parent_id, dest_child_id, ());
-                    println!("P/C: {:?}/{:?}", parent_name, child_name); // FIXME: Remove.
+                    // println!("P/C: {:?}/{:?}", parent_name, child_name); // FIXME: Remove.
             
                     Ok(())
                 },
