@@ -634,7 +634,7 @@ impl CanisterPool {
                         }
                     };
 
-                    let dest_parent_id: NodeIndex = dest_graph.update_node(&parent_name);
+                    let dest_parent_id = dest_graph.update_node(&parent_name);
                     let dest_child_id = dest_graph.update_node(&child_name);
                     dest_graph.update_edge(dest_parent_id, dest_child_id, ());
             
