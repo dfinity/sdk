@@ -65,7 +65,7 @@ pub fn add_imports(
                 .ok_or_else(|| anyhow!("Cannot get base directory"))?;
             Import::FullPath(base_path.join(file))
         };
-        if imports.graph.nodes().get(&parent).is_some() {
+        if imports.graph.nodes().contains_key(&parent) {
             // The item and its descendants are already in the graph.
             return Ok(());
         }
