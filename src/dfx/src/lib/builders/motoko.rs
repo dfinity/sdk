@@ -153,8 +153,7 @@ pub fn add_imports(
     // crude hack
     let main_path_buf = if info.is_motoko() {
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
-        let path_buf = motoko_info.get_main_path().canonicalize()?;
-        path_buf
+        motoko_info.get_main_path().canonicalize()?
     } else {
         PathBuf::new() // hack
     };
