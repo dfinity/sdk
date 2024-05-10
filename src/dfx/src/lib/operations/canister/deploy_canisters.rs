@@ -338,8 +338,6 @@ async fn build_canisters(
 ) -> DfxResult<()> {
     let log = env.get_logger();
     info!(log, "Building canisters...");
-    // let build_mode_check = false;
-    // let canister_pool = CanisterPool::load(env, build_mode_check, canisters_to_load)?;
 
     let build_config =
         BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?

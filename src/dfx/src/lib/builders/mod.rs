@@ -364,15 +364,7 @@ pub trait CanisterBuilder {
             return Ok(true);    
         }
 
-        // let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?;
         let output_wasm_path = canister_info.get_output_wasm_path();
-
-        // from principal to name:
-        // let rev_id_map: BTreeMap<String, String> = pool
-        //     .get_canister_list()
-        //     .iter()
-        //     .map(|&c| (c.canister_id().to_text(), c.get_name().to_string()))
-        //     .collect();
 
         self.read_dependencies(pool, canister_info, cache)?;
 
