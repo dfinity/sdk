@@ -24,6 +24,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
+use super::graph::graph_nodes_map::GraphWithNodesMap;
+
 pub trait Environment {
     fn get_cache(&self) -> Arc<dyn Cache>;
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError>;
@@ -77,6 +79,8 @@ pub trait Environment {
             self.get_config()?,
         )
     }
+
+    fn get_imports(&self) -> &RefCell<GraphWithNodesMap<String, ()>>;
 }
 
 pub enum ProjectConfig {
@@ -101,6 +105,8 @@ pub struct EnvironmentImpl {
     effective_canister_id: Principal,
 
     extension_manager: ExtensionManager,
+
+    imports: RefCell<GraphWithNodesMap<String, ()>>,
 }
 
 impl EnvironmentImpl {
@@ -118,6 +124,7 @@ impl EnvironmentImpl {
             identity_override: None,
             effective_canister_id: Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 0, 1, 1]),
             extension_manager,
+            imports: RefCell::new(GraphWithNodesMap::new()),
         })
     }
 
@@ -248,6 +255,10 @@ impl Environment for EnvironmentImpl {
     fn get_extension_manager(&self) -> &ExtensionManager {
         &self.extension_manager
     }
+    
+    fn get_imports(&self) -> &RefCell<GraphWithNodesMap<String, ()>> {
+        &self.imports
+    }
 }
 
 pub struct AgentEnvironment<'a> {
@@ -255,6 +266,7 @@ pub struct AgentEnvironment<'a> {
     agent: Agent,
     network_descriptor: NetworkDescriptor,
     identity_manager: IdentityManager,
+    imports: RefCell<GraphWithNodesMap<String, ()>>,
 }
 
 impl<'a> AgentEnvironment<'a> {
@@ -286,6 +298,7 @@ impl<'a> AgentEnvironment<'a> {
             agent: create_agent(logger, url, identity, timeout)?,
             network_descriptor: network_descriptor.clone(),
             identity_manager,
+            imports: RefCell::new(GraphWithNodesMap::new()),
         })
     }
 }
@@ -359,6 +372,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_extension_manager(&self) -> &ExtensionManager {
         self.backend.get_extension_manager()
+    }
+    
+    fn get_imports(&self) -> &RefCell<GraphWithNodesMap<String, ()>> {
+        &self.imports
     }
 }
 
