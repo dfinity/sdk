@@ -13,8 +13,10 @@ use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use slog::info;
 use std::io::Read;
+use url::{Host::Domain, Url};
 
 pub const UI_CANISTER: &str = "__Candid_UI";
+pub const MAINNET_UI_CANISTER_INTERFACE_PRINCIPAL: &str = "a4gq6-oaaaa-aaaab-qaa4q-cai";
 
 #[context("Failed to install candid UI canister.")]
 pub async fn install_ui_canister(
@@ -81,4 +83,36 @@ pub async fn install_ui_canister(
 }
 pub fn get_ui_canister_id(id_store: &CanisterIdStore) -> Option<Principal> {
     id_store.find(UI_CANISTER)
+}
+
+pub fn get_ui_canister_url(env: &dyn Environment) -> DfxResult<Option<Url>> {
+    let network_descriptor = env.get_network_descriptor();
+
+    if network_descriptor.is_ic {
+        let url = format!(
+            "https://{}.raw.icp0.io",
+            MAINNET_UI_CANISTER_INTERFACE_PRINCIPAL
+        );
+        let url =
+            Url::parse(&url).with_context(|| format!("Failed to parse Candid UI url {}.", &url))?;
+        Ok(Some(url))
+    } else if let Some(candid_ui_id) = get_ui_canister_id(&env.get_canister_id_store()?) {
+        let mut url = Url::parse(&network_descriptor.providers[0]).with_context(|| {
+            format!(
+                "Failed to parse network provider {}.",
+                &network_descriptor.providers[0]
+            )
+        })?;
+        if let Some(Domain(domain)) = url.host() {
+            let host = format!("{}.{}", candid_ui_id, domain);
+            url.set_host(Some(&host))
+                .with_context(|| format!("Failed to set host to {}", &host))?;
+        } else {
+            let query = format!("canisterId={}", candid_ui_id);
+            url.set_query(Some(&query));
+        }
+        Ok(Some(url))
+    } else {
+        Ok(None)
+    }
 }
