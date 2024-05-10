@@ -349,13 +349,12 @@ pub trait CanisterBuilder {
             } else {
                 panic!("programming error");
             };
-            let mut import_iter = Bfs::new(&env.get_imports().borrow().graph(), start);
+            let mut import_iter = Bfs::new(&imports.graph(), start);
             let mut top_level = true; // link to our main Canister with `.wasm`
             loop {
-                if let Some(import) = import_iter.next(&env.get_imports().borrow().graph()) {
+                if let Some(import) = import_iter.next(&imports.graph()) {
                     let top_level_cur = top_level;
                     top_level = false;
-                    let imports = env.get_imports().borrow();
                     let subnode = &imports.graph()[import];
                     if top_level_cur {
                         assert!(
