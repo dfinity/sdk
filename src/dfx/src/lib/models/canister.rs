@@ -68,10 +68,11 @@ impl Canister {
 
     pub fn build(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         build_config: &BuildConfig,
     ) -> DfxResult<&BuildOutput> {
-        let output = self.builder.build(pool, &self.info, build_config)?;
+        let output = self.builder.build(env, pool, &self.info, build_config)?;
 
         // Ignore the old output, and return a reference.
         let _ = self.output.replace(Some(output));
@@ -455,24 +456,10 @@ pub enum Import {
     FullPath(PathBuf),
 }
 
-/// The graph of imports (used mainly for Motoko)
-pub struct ImportsTracker {
-    pub graph: GraphWithNodesMap<Import, ()>,
-}
-
-impl ImportsTracker {
-    pub fn new() -> Self {
-        Self {
-            graph: GraphWithNodesMap::new(),
-        }
-    }
-}
-
 /// A canister pool is a list of canisters.
 pub struct CanisterPool {
     canisters: Vec<Arc<Canister>>,
     logger: Logger,
-    pub imports: RefCell<ImportsTracker>, // TODO: `pub` is a bad habit.
 }
 
 struct PoolConstructHelper<'a> {
@@ -527,7 +514,6 @@ impl CanisterPool {
         Ok(CanisterPool {
             canisters: canisters_map,
             logger,
-            imports: RefCell::new(ImportsTracker::new()),
         })
     }
 
@@ -569,6 +555,7 @@ impl CanisterPool {
     #[context("Failed to build dependencies graph for canister pool.")]
     pub fn build_canister_dependencies_graph(
         &self,
+        env: &dyn Environment,
         toplevel_canisters: &[&Canister],
         cache: &dyn Cache,
     ) -> DfxResult<GraphWithNodesMap<String, ()>> {
@@ -581,13 +568,13 @@ impl CanisterPool {
             if contains {
                 canister
                     .builder
-                    .read_dependencies(self, canister.get_info(), cache)?; // TODO: It is called multiple times during the flow.
+                    .read_dependencies(env, self, canister.get_info(), cache)?; // TODO: It is called multiple times during the flow.
             }
         }
 
-        let imports = self.imports.borrow();
-        let source_graph = imports.graph.graph();
-        let source_ids = imports.graph.nodes();
+        let imports = env.get_imports().borrow();
+        let source_graph = imports.graph();
+        let source_ids = imports.nodes();
         let start: Vec<_> = toplevel_canisters
             .iter()
             .map(|canister| Import::Canister(canister.get_name().to_string()))
@@ -658,24 +645,22 @@ impl CanisterPool {
         Ok(dest_graph)
     }
 
-    fn canister_dependencies(&self, toplevel_canisters: &[&Canister]) -> Vec<Arc<Canister>> {
+    fn canister_dependencies(&self, env: &dyn Environment, toplevel_canisters: &[&Canister]) -> Vec<Arc<Canister>> {
         let iter = toplevel_canisters
             .iter()
             .flat_map(|canister| {
                 // TODO: Is `unwrap` on the next line legit?
-                let parent_node = *self
-                    .imports
+                let parent_node = *env
+                    .get_imports()
                     .borrow()
-                    .graph
                     .nodes()
                     .get(&Import::Canister(canister.get_name().to_owned()))
                     .unwrap();
-                let imports = self.imports.borrow();
-                let neighbors = imports.graph.graph().neighbors(parent_node);
+                let imports = env.get_imports().borrow();
+                let neighbors = imports.graph().neighbors(parent_node);
                 neighbors
                     .filter_map(|id| {
                         imports
-                            .graph
                             .nodes()
                             .iter()
                             .find_map(move |(k, v)| if v == &id { Some(k.clone()) } else { None })
@@ -713,13 +698,13 @@ impl CanisterPool {
         Ok(())
     }
 
-    fn step_prebuild(&self, build_config: &BuildConfig, canister: &Canister) -> DfxResult<()> {
+    fn step_prebuild(&self, env: &dyn Environment, build_config: &BuildConfig, canister: &Canister) -> DfxResult<()> {
         canister.prebuild(self, build_config)?;
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
 
         // Copy .did files into this temporary directory.
         let log = self.get_logger();
-        for canister in self.canister_dependencies(&[canister]) {
+        for canister in self.canister_dependencies(env, &[canister]) {
             let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
                 Some(remote_candid)
             } else {
@@ -763,14 +748,16 @@ impl CanisterPool {
 
     fn step_build<'a>(
         &self,
+        env: &dyn Environment,
         build_config: &BuildConfig,
         canister: &'a Canister,
     ) -> DfxResult<&'a BuildOutput> {
-        canister.build(self, build_config)
+        canister.build(env, self, build_config)
     }
 
     fn step_postbuild(
         &self,
+        env: &dyn Environment,
         build_config: &BuildConfig,
         canister: &Canister,
         build_output: &BuildOutput,
@@ -778,7 +765,7 @@ impl CanisterPool {
         // We don't want to simply remove the whole directory, as in the future,
         // we may want to keep the IDL files downloaded from network.
         // TODO: The following `map` is a hack.
-        for canister in &self.canister_dependencies(&[&canister]) {
+        for canister in &self.canister_dependencies(env, &[&canister]) {
             let idl_root = &build_config.idl_root;
             let canister_id = canister.canister_id(); // FIXME: Apparently, backtraces on `deploy: false` dependency.
             let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
@@ -812,6 +799,7 @@ impl CanisterPool {
         trace!(env.get_logger(), "Building dependencies graph.");
         // TODO: The following `map` is a hack.
         let graph = self.build_canister_dependencies_graph(
+            env,
             &toplevel_canisters
                 .iter()
                 .map(|canister| canister.as_ref())
@@ -910,12 +898,13 @@ impl CanisterPool {
                 //     continue;
                 // }
                 if canister.builder.should_build(
+                    env,
                     self,
                     &canister.info,
                     env.get_cache().as_ref(),
                     env.get_logger(),
                 )? {
-                    self.step_prebuild(build_config, canister.as_ref())
+                    self.step_prebuild(env, build_config, canister.as_ref())
                         .map_err(|e| {
                             BuildError::PreBuildStepFailed(
                                 canister.canister_id(),
@@ -924,7 +913,7 @@ impl CanisterPool {
                             )
                         })
                         .and_then(|_| {
-                            self.step_build(build_config, canister.as_ref())
+                            self.step_build(env, build_config, canister.as_ref())
                                 .map_err(|e| {
                                     BuildError::BuildStepFailed(
                                         canister.canister_id(),
@@ -934,7 +923,7 @@ impl CanisterPool {
                                 })
                         })
                         .and_then(|o: &BuildOutput| {
-                            self.step_postbuild(build_config, canister.as_ref(), o)
+                            self.step_postbuild(env, build_config, canister.as_ref(), o)
                                 .map_err(|e| {
                                     BuildError::PostBuildStepFailed(
                                         o.canister_id,

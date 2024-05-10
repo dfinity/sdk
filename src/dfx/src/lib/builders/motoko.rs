@@ -44,13 +44,14 @@ impl CanisterBuilder for MotokoBuilder {
     #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        self.read_dependencies(pool, info, self.cache.as_ref())?;
+        self.read_dependencies(env, pool, info, self.cache.as_ref())?;
 
-        let imports = pool.imports.borrow();
-        let graph = imports.graph.graph();
+        let imports = env.get_imports().borrow();
+        let graph = imports.graph();
         match petgraph::algo::toposort(graph, None) {
             Ok(order) => {
                 Ok(order
@@ -80,6 +81,7 @@ impl CanisterBuilder for MotokoBuilder {
     #[context("Failed to build Motoko canister '{}'.", canister_info.get_name())]
     fn build(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         canister_info: &CanisterInfo,
         config: &BuildConfig,
@@ -114,10 +116,9 @@ impl CanisterBuilder for MotokoBuilder {
             .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
         // If the management canister is being imported, emit the candid file.
-        if pool
-            .imports
+        if env
+            .get_imports()
             .borrow()
-            .graph
             .nodes()
             .contains_key(&Import::Ic("aaaaa-aa".to_string()))
         {
