@@ -65,6 +65,9 @@ pub fn add_imports(
                 .ok_or_else(|| anyhow!("Cannot get base directory"))?;
             Import::FullPath(base_path.join(file))
         };
+        if parent == Import::Canister("main".to_string()) { // FIXME: Remove.
+            println!("P1");
+        }
         if imports.graph.nodes().contains_key(&parent) {
             // The item and its descendants are already in the graph.
             return Ok(());
@@ -79,9 +82,15 @@ pub fn add_imports(
             let parent_canister_info = parent_canister.get_info();
             if !parent_canister_info.is_motoko() {
                 for child in parent_canister_info.get_dependencies() {
+                    let child_canister = pool.get_first_canister_with_name(child).unwrap();
+                    let child_path = child_canister.get_info().get_main_file();
                     add_imports_recursive(
                         cache,
-                        Path::new(""), // not used (TODO: refactor)
+                        if let Some(child_path) = child_path {
+                            child_path
+                        } else {
+                            Path::new("") // not used (TODO: refactor)
+                        },
                         imports,
                         pool,
                         Some(child),
@@ -104,6 +113,9 @@ pub fn add_imports(
             .output()
             .with_context(|| format!("Error executing {:#?}", command))?;
         let output = String::from_utf8_lossy(&output.stdout);
+        if parent == Import::Canister("main".to_string()) { // FIXME: Remove.
+            println!("P2");
+        }
 
         for line in output.lines() {
             let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
@@ -112,9 +124,15 @@ pub fn add_imports(
                     add_imports_recursive(cache, full_child_path.as_path(), imports, pool, None)?;
                 }
                 Import::Canister(canister_name) => {
+                    let child_canister = pool.get_first_canister_with_name(canister_name).unwrap();
+                    let child_path = child_canister.get_info().get_main_file();
                     add_imports_recursive(
                         cache,
-                        Path::new(""), // not used (TODO: refactor)
+                        if let Some(child_path) = child_path {
+                            child_path
+                        } else {
+                            Path::new("") // not used (TODO: refactor)
+                        },
                         imports,
                         pool,
                         Some(canister_name),
@@ -126,9 +144,15 @@ pub fn add_imports(
             let child_node_index = imports.graph.update_node(&child);
             println!("QQQ {:?}/{:?}", parent, child); // FIXME: Remove.
 
+            if parent == Import::Canister("main".to_string()) { // FIXME: Remove.
+                println!("P3 {:?}", child);
+            }
             imports
                 .graph
                 .update_edge(parent_node_index, child_node_index, ());
+        }
+        if parent == Import::Canister("main".to_string()) { // FIXME: Remove.
+            println!("P4");
         }
 
         Ok(())
