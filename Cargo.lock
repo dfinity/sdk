@@ -2627,8 +2627,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.35.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8f08d1b54f1834fb9637a57855f1d87bb9dbec7a9dec09499737580692829cb0"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=8273d321e9a09fd8373bd4e38b0676ec6ad9c260#8273d321e9a09fd8373bd4e38b0676ec6ad9c260"
 dependencies = [
  "async-lock 3.3.0",
  "backoff",
@@ -3066,8 +3065,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.35.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a65dca3c3ea390be68e88b5555cf460d5651c13cd7303e31bfe5832a4ddc2d6"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=8273d321e9a09fd8373bd4e38b0676ec6ad9c260#8273d321e9a09fd8373bd4e38b0676ec6ad9c260"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3167,8 +3165,7 @@ dependencies = [
 [[package]]
 name = "ic-transport-types"
 version = "0.35.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1c68959f501cfcb79319b6720fd1903a661d77b503e6128bfce31f91ad87aca"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=8273d321e9a09fd8373bd4e38b0676ec6ad9c260#8273d321e9a09fd8373bd4e38b0676ec6ad9c260"
 dependencies = [
  "candid",
  "hex",
@@ -3237,8 +3234,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.35.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61fd20379ac2d86f85e177e75e72b27eaa595a9561891d5be0e7d0ca37604bbb"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=8273d321e9a09fd8373bd4e38b0676ec6ad9c260#8273d321e9a09fd8373bd4e38b0676ec6ad9c260"
 dependencies = [
  "async-trait",
  "candid",
