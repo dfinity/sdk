@@ -65,9 +65,6 @@ pub fn add_imports(
                 .ok_or_else(|| anyhow!("Cannot get base directory"))?;
             Import::FullPath(base_path.join(file))
         };
-        if parent == Import::Canister("main".to_string()) { // FIXME: Remove.
-            println!("P1");
-        }
         if imports.graph.nodes().contains_key(&parent) {
             // The item and its descendants are already in the graph.
             return Ok(());
@@ -101,7 +98,6 @@ pub fn add_imports(
                     imports
                         .graph
                         .update_edge(parent_node_index, child_node_index, ());
-                    println!("RRR {:?}/{:?}", parent, child); // FIXME: Remove.
                 }
                 return Ok(());
             }
@@ -113,9 +109,6 @@ pub fn add_imports(
             .output()
             .with_context(|| format!("Error executing {:#?}", command))?;
         let output = String::from_utf8_lossy(&output.stdout);
-        if parent == Import::Canister("main".to_string()) { // FIXME: Remove.
-            println!("P2");
-        }
 
         for line in output.lines() {
             let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
@@ -142,17 +135,10 @@ pub fn add_imports(
             }
 
             let child_node_index = imports.graph.update_node(&child);
-            println!("QQQ {:?}/{:?}", parent, child); // FIXME: Remove.
 
-            if parent == Import::Canister("main".to_string()) { // FIXME: Remove.
-                println!("P3 {:?}", child);
-            }
             imports
                 .graph
                 .update_edge(parent_node_index, child_node_index, ());
-        }
-        if parent == Import::Canister("main".to_string()) { // FIXME: Remove.
-            println!("P4");
         }
 
         Ok(())
