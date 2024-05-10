@@ -237,7 +237,6 @@ pub trait CanisterBuilder {
         info: &CanisterInfo,
         cache: &dyn Cache,
     ) -> DfxResult {
-        // TODO: Refactor into one function.
         #[context("Failed recursive dependency detection at {}.", file.display())]
         fn add_imports_recursive(
             cache: &dyn Cache,
