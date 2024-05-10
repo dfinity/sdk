@@ -15,6 +15,8 @@ This results in big compilation speedups.
 
 `"deploy": false` canister option makes it not to deploy, unless explicitly specified on the command line.
 
+### chore: Improve help text of `dfx identity new` to include which characters are valid in identity names
+
 # 0.20.1
 
 ### feat: reformatted error output
