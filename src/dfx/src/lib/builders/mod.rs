@@ -237,7 +237,7 @@ pub trait CanisterBuilder {
         cache: &dyn Cache,
     ) -> DfxResult {
         #[context("Failed recursive dependency detection at {:?}.", parent)] // TODO: better message
-        fn add_imports_recursive(
+        fn read_dependencies_recursive(
             cache: &dyn Cache,
             imports: &mut ImportsTracker,
             pool: &CanisterPool,
@@ -256,7 +256,7 @@ pub trait CanisterBuilder {
                 let parent_canister_info = parent_canister.get_info();
                 if !parent_canister_info.is_motoko() {
                     for child in parent_canister_info.get_dependencies() {
-                        add_imports_recursive(
+                        read_dependencies_recursive(
                             cache,
                             imports,
                             pool,
@@ -294,7 +294,7 @@ pub trait CanisterBuilder {
                     let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
                     match &child {
                         Import::Canister(_) | Import::FullPath(_) =>
-                            add_imports_recursive(cache, imports, pool, &child)?,
+                            read_dependencies_recursive(cache, imports, pool, &child)?,
                         _ => {}
                     }
                     let child_node_index = imports.graph.update_node(&child);
@@ -308,7 +308,7 @@ pub trait CanisterBuilder {
         }
     
         let imports = &mut *pool.imports.borrow_mut();
-        add_imports_recursive(
+        read_dependencies_recursive(
             cache,
             imports,
             pool,
