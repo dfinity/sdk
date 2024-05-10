@@ -6,6 +6,8 @@
 
 `dfx info candid-ui-url` displays the URL to the Candid UI canister for an explicitly specified `--network <network name>` (or `local` by default).
 
+### chore: Improve help text of `dfx identity new` to include which characters are valid in identity names
+
 # 0.20.1
 
 ### feat: reformatted error output
