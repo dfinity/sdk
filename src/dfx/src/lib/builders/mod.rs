@@ -2,9 +2,9 @@ use crate::config::dfx_version_str;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::models::canister::CanisterPool;
+use crate::lib::models::canister::{CanisterPool, ImportsTracker};
 use crate::lib::models::canister::Import;
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
 use dfx_core::config::cache::Cache;
@@ -34,7 +34,7 @@ mod rust;
 
 pub use custom::custom_download;
 
-use self::motoko::add_imports;
+use super::canister_info::motoko::MotokoCanisterInfo;
 
 #[derive(Debug)]
 pub enum WasmBuildOutput {
@@ -228,14 +228,128 @@ pub trait CanisterBuilder {
         Ok(())
     }
 
+    /// TODO: Refactor this code.
+    /// TODO: Motoko-specific code in `context()` and below.
+    #[context("Failed to find imports for canister at '{}'.", info.as_info::<MotokoCanisterInfo>().unwrap().get_main_path().display())]
     fn read_dependencies(
         &self,
         pool: &CanisterPool,
-        canister_info: &CanisterInfo,
+        info: &CanisterInfo,
         cache: &dyn Cache,
     ) -> DfxResult {
         // TODO: Refactor into one function.
-        add_imports(cache, canister_info, &mut pool.imports.borrow_mut(), pool)?;
+        #[context("Failed recursive dependency detection at {}.", file.display())]
+        fn add_imports_recursive(
+            cache: &dyn Cache,
+            file: &Path,
+            imports: &mut ImportsTracker,
+            pool: &CanisterPool,
+            top: Option<&str>, // hackish
+        ) -> DfxResult {
+            let parent = if let Some(top) = top {
+                Import::Canister(top.to_string()) // a little inefficient
+            } else {
+                let base_path = file
+                    .parent()
+                    .ok_or_else(|| anyhow!("Cannot get base directory"))?;
+                Import::FullPath(base_path.join(file))
+            };
+            if imports.graph.nodes().contains_key(&parent) {
+                // The item and its descendants are already in the graph.
+                return Ok(());
+            }
+            let parent_node_index = imports.graph.update_node(&parent);
+    
+            if let Import::Canister(parent_canister_name) = &parent {
+                // TODO: Is `unwrap()` on the next line valid?
+                let parent_canister = pool
+                    .get_first_canister_with_name(parent_canister_name)
+                    .unwrap();
+                let parent_canister_info = parent_canister.get_info();
+                if !parent_canister_info.is_motoko() {
+                    for child in parent_canister_info.get_dependencies() {
+                        let child_canister = pool.get_first_canister_with_name(child).unwrap();
+                        let child_path = child_canister.get_info().get_main_file();
+                        add_imports_recursive(
+                            cache,
+                            if let Some(child_path) = child_path {
+                                child_path
+                            } else {
+                                Path::new("") // not used (TODO: refactor)
+                            },
+                            imports,
+                            pool,
+                            Some(child),
+                        )?;
+    
+                        let child_node = Import::Canister(child.clone());
+                        let child_node_index = imports.graph.update_node(&child_node);
+                        imports
+                            .graph
+                            .update_edge(parent_node_index, child_node_index, ());
+                    }
+                    return Ok(());
+                }
+            }
+    
+            let mut command = cache.get_binary_command("moc")?;
+            let command = command.arg("--print-deps").arg(file);
+            let output = command
+                .output()
+                .with_context(|| format!("Error executing {:#?}", command))?;
+            let output = String::from_utf8_lossy(&output.stdout);
+    
+            for line in output.lines() {
+                let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
+                match &child {
+                    Import::FullPath(full_child_path) => {
+                        add_imports_recursive(cache, full_child_path.as_path(), imports, pool, None)?;
+                    }
+                    Import::Canister(canister_name) => {
+                        let child_canister = pool.get_first_canister_with_name(canister_name).unwrap();
+                        let child_path = child_canister.get_info().get_main_file();
+                        add_imports_recursive(
+                            cache,
+                            if let Some(child_path) = child_path {
+                                child_path
+                            } else {
+                                Path::new("") // not used (TODO: refactor)
+                            },
+                            imports,
+                            pool,
+                            Some(canister_name),
+                        )?;
+                    }
+                    _ => {}
+                }
+    
+                let child_node_index = imports.graph.update_node(&child);
+    
+                imports
+                    .graph
+                    .update_edge(parent_node_index, child_node_index, ());
+            }
+    
+            Ok(())
+        }
+    
+        // crude hack
+        let main_path_buf = if info.is_motoko() {
+            let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
+            motoko_info.get_main_path().canonicalize()?
+        } else {
+            PathBuf::new() // hack
+        };
+
+        let imports = &mut *pool.imports.borrow_mut();
+        add_imports_recursive(
+            cache,
+            main_path_buf.as_path(),
+            imports,
+            pool,
+            Some(info.get_name()),
+        )?;
+    
         Ok(())
     }
 
