@@ -228,7 +228,6 @@ pub trait CanisterBuilder {
         Ok(())
     }
 
-    /// TODO: Refactor this code.
     /// TODO: Motoko-specific code in `context()` and below.
     #[context("Failed to find imports for canister at '{}'.", info.as_info::<MotokoCanisterInfo>().unwrap().get_main_path().display())]
     fn read_dependencies(
@@ -251,10 +250,9 @@ pub trait CanisterBuilder {
             let parent_node_index = imports.graph.update_node(&parent);
     
             if let Import::Canister(parent_canister_name) = &parent {
-                // TODO: Is `unwrap()` on the next line valid?
                 let parent_canister = pool
                     .get_first_canister_with_name(parent_canister_name)
-                    .unwrap();
+                    .unwrap(); // TODO: valid `unwrap()`?
                 let parent_canister_info = parent_canister.get_info();
                 if !parent_canister_info.is_motoko() {
                     for child in parent_canister_info.get_dependencies() {
@@ -295,17 +293,8 @@ pub trait CanisterBuilder {
                 for line in output.lines() {
                     let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
                     match &child {
-                        Import::FullPath(full_child_path) => {
-                            add_imports_recursive(cache, imports, pool, &Import::FullPath(full_child_path.clone()))?;
-                        }
-                        Import::Canister(child_name) => {
-                            add_imports_recursive(
-                                cache,
-                                imports,
-                                pool,
-                                &Import::Canister(child_name.clone()),
-                            )?;
-                        }
+                        Import::Canister(_) | Import::FullPath(_) =>
+                            add_imports_recursive(cache, imports, pool, &child)?,
                         _ => {}
                     }
                     let child_node_index = imports.graph.update_node(&child);
