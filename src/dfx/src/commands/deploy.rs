@@ -1,13 +1,14 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::named_canister::get_ui_canister_url;
 use crate::lib::network::network_opt::NetworkOpt;
 use crate::lib::operations::canister::deploy_canisters::deploy_canisters;
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::lib::{environment::Environment, named_canister};
 use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
@@ -28,8 +29,6 @@ use std::str::FromStr;
 use tokio::runtime::Runtime;
 use url::Host::{Domain, Ipv4, Ipv6};
 use url::Url;
-
-pub(crate) const MAINNET_CANDID_INTERFACE_PRINCIPAL: &str = "a4gq6-oaaaa-aaaab-qaa4q-cai";
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.
 #[derive(Parser)]
@@ -217,8 +216,6 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
     let mut frontend_urls = BTreeMap::new();
     let mut candid_urls: BTreeMap<&String, Url> = BTreeMap::new();
 
-    let ui_canister_id = named_canister::get_ui_canister_id(&canister_id_store);
-
     if let Some(canisters) = &config.get_config().canisters {
         for (canister_name, canister_config) in canisters {
             let canister_is_remote = config
@@ -243,7 +240,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
                 }
 
                 if !canister_info.is_assets() {
-                    let url = construct_ui_canister_url(network, &canister_id, ui_canister_id)?;
+                    let url = construct_ui_canister_url(env, &canister_id)?;
                     if let Some(ui_canister_url) = url {
                         candid_urls.insert(canister_name, ui_canister_url);
                     }
@@ -316,43 +313,19 @@ fn construct_frontend_url(
     Ok((url, url2))
 }
 
-#[context("Failed to construct ui canister url for {} on network '{}'.", canister_id, network.name)]
+#[context("Failed to construct ui canister url for {} on network '{}'.", canister_id, env.get_network_descriptor().name)]
 fn construct_ui_canister_url(
-    network: &NetworkDescriptor,
+    env: &dyn Environment,
     canister_id: &Principal,
-    ui_canister_id: Option<Principal>,
 ) -> DfxResult<Option<Url>> {
-    if network.is_ic {
-        let url = format!(
-            "https://{}.raw.icp0.io/?id={}",
-            MAINNET_CANDID_INTERFACE_PRINCIPAL, canister_id
-        );
-        let url = Url::parse(&url).with_context(|| {
-            format!(
-                "Failed to parse candid url {} for canister {}.",
-                &url, canister_id
-            )
-        })?;
-        Ok(Some(url))
-    } else if let Some(ui_canister_id) = ui_canister_id {
-        let mut url = Url::parse(&network.providers[0]).with_context(|| {
-            format!(
-                "Failed to parse network provider {}.",
-                &network.providers[0]
-            )
-        })?;
-        if let Some(Domain(domain)) = url.host() {
-            let host = format!("{}.{}", ui_canister_id, domain);
-            let query = format!("id={}", canister_id);
-            url.set_host(Some(&host))
-                .with_context(|| format!("Failed to set host to {}", &host))?;
-            url.set_query(Some(&query));
+    let mut url = get_ui_canister_url(env)?;
+    if let Some(base_url) = url.as_mut() {
+        let query_with_canister_id = if let Some(query) = base_url.query() {
+            format!("{query}&id={canister_id}")
         } else {
-            let query = format!("canisterId={}&id={}", ui_canister_id, canister_id);
-            url.set_query(Some(&query));
-        }
-        Ok(Some(url))
-    } else {
-        Ok(None)
-    }
+            format!("id={canister_id}")
+        };
+        base_url.set_query(Some(&query_with_canister_id));
+    };
+    Ok(url)
 }

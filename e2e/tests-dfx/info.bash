@@ -50,7 +50,7 @@ teardown() {
 @test "displays Candid UI URL" {
   assert_command dfx info candid-ui-url --ic
   # shellcheck disable=SC2154
-  assert_eq "https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io" "$stdout"
+  assert_eq "https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/" "$stdout"
 
   # Before deployment the UI canister does not exist yet
   assert_command_fail dfx info candid-ui-url
