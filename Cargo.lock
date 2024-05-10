@@ -1575,6 +1575,7 @@ dependencies = [
  "directories-next",
  "dunce",
  "flate2",
+ "futures",
  "handlebars",
  "hex",
  "humantime-serde",
@@ -1598,6 +1599,7 @@ dependencies = [
  "thiserror",
  "time",
  "tiny-bip39",
+ "tokio",
  "url",
 ]
 
