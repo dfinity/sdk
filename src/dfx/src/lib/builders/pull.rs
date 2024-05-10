@@ -30,6 +30,7 @@ impl CanisterBuilder for PullBuilder {
     #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
+        _env: &dyn Environment,
         _pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
@@ -39,6 +40,7 @@ impl CanisterBuilder for PullBuilder {
     #[context("Failed to build Pull canister '{}'.", canister_info.get_name())]
     fn build(
         &self,
+        _env: &dyn Environment,
         _pool: &CanisterPool,
         canister_info: &CanisterInfo,
         _config: &BuildConfig,

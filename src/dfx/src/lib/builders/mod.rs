@@ -2,7 +2,7 @@ use crate::config::dfx_version_str;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::models::canister::{CanisterPool, ImportsTracker};
+use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister::Import;
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
@@ -64,6 +64,7 @@ pub trait CanisterBuilder {
     /// list.
     fn get_dependencies(
         &self,
+        _env: &dyn Environment,
         _pool: &CanisterPool,
         _info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
@@ -83,6 +84,7 @@ pub trait CanisterBuilder {
     /// while the config contains information related to this particular build.
     fn build(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,
@@ -232,22 +234,23 @@ pub trait CanisterBuilder {
     #[context("Failed to find imports for canister at '{}'.", info.as_info::<MotokoCanisterInfo>().unwrap().get_main_path().display())]
     fn read_dependencies(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
         cache: &dyn Cache,
     ) -> DfxResult {
         #[context("Failed recursive dependency detection at {:?}.", parent)] // TODO: better message
         fn read_dependencies_recursive(
+            env: &dyn Environment,
             cache: &dyn Cache,
-            imports: &mut ImportsTracker,
             pool: &CanisterPool,
             parent: &Import,
         ) -> DfxResult {
-            if imports.graph.nodes().contains_key(&parent) {
+            if env.get_imports().borrow().nodes().contains_key(&parent) {
                 // The item and its descendants are already in the graph.
                 return Ok(());
             }
-            let parent_node_index = imports.graph.update_node(&parent);
+            let parent_node_index = env.get_imports().borrow_mut().update_node(&parent);
     
             if let Import::Canister(parent_canister_name) = &parent {
                 let parent_canister = pool
@@ -257,17 +260,15 @@ pub trait CanisterBuilder {
                 if !parent_canister_info.is_motoko() {
                     for child in parent_canister_info.get_dependencies() {
                         read_dependencies_recursive(
+                            env,
                             cache,
-                            imports,
                             pool,
                             &Import::Canister(child.clone()),
                         )?;
     
                         let child_node = Import::Canister(child.clone());
-                        let child_node_index = imports.graph.update_node(&child_node);
-                        imports
-                            .graph
-                            .update_edge(parent_node_index, child_node_index, ());
+                        let child_node_index = env.get_imports().borrow_mut().update_node(&child_node);
+                        env.get_imports().borrow_mut().update_edge(parent_node_index, child_node_index, ());
                     }
                     return Ok(());
                 }
@@ -294,23 +295,20 @@ pub trait CanisterBuilder {
                     let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
                     match &child {
                         Import::Canister(_) | Import::FullPath(_) =>
-                            read_dependencies_recursive(cache, imports, pool, &child)?,
+                            read_dependencies_recursive(env, cache, pool, &child)?,
                         _ => {}
                     }
-                    let child_node_index = imports.graph.update_node(&child);
-                    imports
-                        .graph
-                        .update_edge(parent_node_index, child_node_index, ());
+                    let child_node_index = env.get_imports().borrow_mut().update_node(&child);
+                    env.get_imports().borrow_mut().update_edge(parent_node_index, child_node_index, ());
                 }
             }
     
             Ok(())
         }
     
-        let imports = &mut *pool.imports.borrow_mut();
         read_dependencies_recursive(
+            env,
             cache,
-            imports,
             pool,
             &Import::Canister(info.get_name().to_string()),
         )?;
@@ -320,6 +318,7 @@ pub trait CanisterBuilder {
 
     fn should_build(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         canister_info: &CanisterInfo,
         cache: &dyn Cache,
@@ -331,7 +330,7 @@ pub trait CanisterBuilder {
 
         let output_wasm_path = canister_info.get_output_wasm_path();
 
-        self.read_dependencies(pool, canister_info, cache)?;
+        self.read_dependencies(env, pool, canister_info, cache)?;
 
         // Check that one of the dependencies is newer than the target:
         if let Ok(wasm_file_metadata) = metadata(output_wasm_path) {
@@ -341,9 +340,8 @@ pub trait CanisterBuilder {
                     return Ok(true); // need to compile
                 }
             };
-            let imports = pool.imports.borrow();
+            let imports = env.get_imports().borrow();
             let start = if let Some(node_index) = imports
-                .graph
                 .nodes()
                 .get(&Import::Canister(canister_info.get_name().to_string()))
             {
@@ -351,13 +349,14 @@ pub trait CanisterBuilder {
             } else {
                 panic!("programming error");
             };
-            let mut import_iter = Bfs::new(&imports.graph.graph(), start);
+            let mut import_iter = Bfs::new(&env.get_imports().borrow().graph(), start);
             let mut top_level = true; // link to our main Canister with `.wasm`
             loop {
-                if let Some(import) = import_iter.next(&imports.graph.graph()) {
+                if let Some(import) = import_iter.next(&env.get_imports().borrow().graph()) {
                     let top_level_cur = top_level;
                     top_level = false;
-                    let subnode = &imports.graph.graph()[import];
+                    let imports = env.get_imports().borrow();
+                    let subnode = &imports.graph()[import];
                     if top_level_cur {
                         assert!(
                             matches!(subnode, Import::Canister(_)),

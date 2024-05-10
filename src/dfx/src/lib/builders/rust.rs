@@ -33,6 +33,7 @@ impl CanisterBuilder for RustBuilder {
     #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
+        _env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
@@ -53,6 +54,7 @@ impl CanisterBuilder for RustBuilder {
     #[context("Failed to build Rust canister '{}'.", canister_info.get_name())]
     fn build(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         canister_info: &CanisterInfo,
         config: &BuildConfig,
@@ -75,7 +77,7 @@ impl CanisterBuilder for RustBuilder {
             .arg("--locked");
 
         let dependencies = self
-            .get_dependencies(pool, canister_info)
+            .get_dependencies(env, pool, canister_info)
             .unwrap_or_default();
         let vars = super::get_and_write_environment_variables(
             canister_info,
