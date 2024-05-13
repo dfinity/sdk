@@ -22,7 +22,9 @@ use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::Agent;
 use ic_utils::call::AsyncCall;
-use ic_utils::interfaces::management_canister::builders::{CanisterUpgradeOptions, InstallMode};
+use ic_utils::interfaces::management_canister::builders::{
+    CanisterUpgradeOptions, InstallMode, WasmMemoryPersistence,
+};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
@@ -68,7 +70,7 @@ pub async fn install_canister(
             // TODO: Selectively apply `keep_main_memory` for new Motoko canisters that support enhanced orthogonal persistence.
             InstallMode::Upgrade(Some(CanisterUpgradeOptions {
                 skip_pre_upgrade: Some(false),
-                keep_main_memory: Some(true),
+                wasm_memory_persistence: Some(WasmMemoryPersistence::Keep),
             }))
         } else {
             InstallMode::Install
