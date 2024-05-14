@@ -253,33 +253,28 @@ pub trait CanisterBuilder {
             }
             let parent_node_index = env.get_imports().borrow_mut().update_node(&parent);
     
-            if let Import::Canister(parent_canister_name) = &parent {
-                let parent_canister = pool
-                    .get_first_canister_with_name(parent_canister_name)
-                    .unwrap(); // TODO: valid `unwrap()`?
-                let parent_canister_info = parent_canister.get_info();
-                if !parent_canister_info.is_motoko() {
-                    for child in parent_canister_info.get_dependencies() {
-                        read_dependencies_recursive(
-                            env,
-                            cache,
-                            pool,
-                            &Import::Canister(child.clone()),
-                        )?;
-    
-                        let child_node = Import::Canister(child.clone());
-                        let child_node_index = env.get_imports().borrow_mut().update_node(&child_node);
-                        env.get_imports().borrow_mut().update_edge(parent_node_index, child_node_index, ());
-                    }
-                    return Ok(());
-                }
-            }
-
             let file = match parent {
                 Import::Canister(parent_name) => {
                     let parent_canister = pool.get_first_canister_with_name(parent_name).unwrap();
-                    let motoko_info = parent_canister.get_info().as_info::<MotokoCanisterInfo>()?;
-                    Some(motoko_info.get_main_path().canonicalize()?)
+                    let parent_canister_info = parent_canister.get_info();
+                    if parent_canister_info.is_motoko() {
+                        let motoko_info = parent_canister.get_info().as_info::<MotokoCanisterInfo>()?;
+                        Some(motoko_info.get_main_path().canonicalize()?)
+                    } else {
+                        for child in parent_canister_info.get_dependencies() {
+                            read_dependencies_recursive(
+                                env,
+                                cache,
+                                pool,
+                                &Import::Canister(child.clone()),
+                            )?;
+        
+                            let child_node = Import::Canister(child.clone());
+                            let child_node_index = env.get_imports().borrow_mut().update_node(&child_node);
+                            env.get_imports().borrow_mut().update_edge(parent_node_index, child_node_index, ());
+                        }
+                        return Ok(());
+                    }
                 }
                 Import::FullPath(path) => Some(path.clone()),
                 _ => None,
