@@ -32,6 +32,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::ffi::OsStr;
+use std::fmt::Display;
 use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -454,6 +455,17 @@ pub enum Import {
     Ic(String),
     Lib(String), // TODO: Unused, because package manager never update existing files (but create new dirs)
     FullPath(PathBuf),
+}
+
+impl Display for Import {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Canister(name) => write!(f, "canister {}", name),
+            Self::Ic(principal) => write!(f, "principal {}", principal),
+            Self::Lib(name) => write!(f, "library {}", name),
+            Self::FullPath(file) => write!(f, "file {}", file.to_string_lossy()),
+        }
+    }
 }
 
 /// A canister pool is a list of canisters.

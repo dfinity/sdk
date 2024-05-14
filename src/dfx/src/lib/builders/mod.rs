@@ -239,7 +239,7 @@ pub trait CanisterBuilder {
         info: &CanisterInfo,
         cache: &dyn Cache,
     ) -> DfxResult {
-        #[context("Failed recursive dependency detection at {:?}.", parent)] // TODO: better message
+        #[context("Failed recursive dependency detection at {}.", parent)]
         fn read_dependencies_recursive(
             env: &dyn Environment,
             cache: &dyn Cache,
