@@ -47,11 +47,10 @@ pub async fn exec(env: &dyn Environment, opts: AccountIdOpts) -> DfxResult {
             ));
         }
         Some(subaccount)
-    } else if let Some(principal) = opts.subaccount_from_principal {
-        Some(Subaccount::from(&principal))
     } else {
-        None
+        opts.subaccount_from_principal
+            .map(|principal| Subaccount::from(&principal))
     };
-    println!("{}", AccountIdentifier::new(principal, opts.subaccount));
+    println!("{}", AccountIdentifier::new(principal, subaccount));
     Ok(())
 }
