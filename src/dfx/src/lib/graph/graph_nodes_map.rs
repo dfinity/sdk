@@ -32,12 +32,6 @@ where
             .entry(weight.clone())
             .or_insert_with(|| self.graph.add_node(weight.clone()))
     }
-    #[allow(unused)] // TODO: Use it.
-    fn node_index(&self, weight: &N) -> Option<NodeIndex<Ix>> 
-        where N: Eq + Hash,
-    {
-        self.nodes.get(weight).map(|index| *index)
-    }
     pub fn update_edge(
         &mut self,
         a: NodeIndex<Ix>,
