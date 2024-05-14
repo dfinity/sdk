@@ -232,7 +232,7 @@ fn canister_with_dependencies(
 #[context("Failed while trying to register all canisters.")]
 async fn register_canisters(
     env: &dyn Environment,
-    canister_names: &[String], // TODO: Should pass `&[Arc<Canister>]` instead.
+    canister_names: &[String],
     canister_id_store: &CanisterIdStore,
     with_cycles: Option<u128>,
     specified_id_from_cli: Option<Principal>,
