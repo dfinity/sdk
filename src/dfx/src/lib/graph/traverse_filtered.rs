@@ -1,4 +1,4 @@
-// TODO: Somebody, adopt this code (and DFS) to `petgraph`.
+// TODO: Somebody, adopt this code (and BFS) to `petgraph`.
 use petgraph::{data::DataMap, visit::IntoNeighborsDirected};
 
 use crate::lib::error::DfxResult;
