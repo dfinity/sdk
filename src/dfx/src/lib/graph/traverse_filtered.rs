@@ -1,17 +1,15 @@
-// TODO: Somebody, adopt this code (and DFS) to `petgraph`.
+// TODO: Somebody, adopt this code (and BFS) to `petgraph`.
 use petgraph::{data::DataMap, visit::IntoNeighborsDirected};
 
 use crate::lib::error::DfxResult;
 
 pub struct DfsFiltered {}
 
-// FIXME: This is DFS, not BFS.
 impl DfsFiltered {
     pub fn new() -> Self {
         Self {}
     }
 
-    /// TODO: Refactor: Extract `iter` function from here.
     pub fn traverse2<G, NodeId, P, C, NodeWeight>(
         &mut self,
         graph: G,

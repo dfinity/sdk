@@ -86,12 +86,14 @@ impl CanisterBuilder for MotokoBuilder {
         canister_info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
-        let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?; // TODO: Remove.
+        let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?;
         let profile = config.profile;
         let input_path = motoko_info.get_main_path();
         let output_wasm_path = canister_info.get_output_wasm_path();
 
-        // from name to principal:
+        // Map from name to principal (for our dependencies):
+        // TODO: It is better to use the auto-constructed graph for Motoko dependencies,
+        // but we need to transfer the value of `subgraph` from `build_order()` to here somehow, so needing to change code structure.
         let id_map = pool
             .get_canister_list()
             .iter()
@@ -100,8 +102,8 @@ impl CanisterBuilder for MotokoBuilder {
                     .get_dependencies()
                     .iter()
                     .map(|s| s.as_str())
-                    .any(|name| name == c.get_name())
-            }) // TODO: 1. Slow. 2. Use Motoko dependencies where appropriate.
+                    .any(|name| name == c.get_name()) // TODO: slow
+            })
             .map(|c| (c.get_name().to_string(), c.canister_id().to_text()))
             .collect();
 

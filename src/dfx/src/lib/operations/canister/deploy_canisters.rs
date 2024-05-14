@@ -119,7 +119,7 @@ pub async fn deploy_canisters(
         })
         // .map(|v| &v)
         .try_collect::<Arc<Canister>, Vec<Arc<Canister>>, _>()?;
-    let toplevel_canisters: &[Arc<Canister>] = &toplevel_canisters; // FIXME: Wrong order
+    let toplevel_canisters: &[Arc<Canister>] = &toplevel_canisters;
 
     // TODO: `build_order` is called two times during deployment of a new canister.
     let order = canister_pool.build_order(env, toplevel_canisters)?;
@@ -232,7 +232,7 @@ fn canister_with_dependencies(
 #[context("Failed while trying to register all canisters.")]
 async fn register_canisters(
     env: &dyn Environment,
-    canister_names: &[String], // TODO: Should pass `&[Arc<Canister>]` instead.
+    canister_names: &[String],
     canister_id_store: &CanisterIdStore,
     with_cycles: Option<u128>,
     specified_id_from_cli: Option<Principal>,
@@ -245,7 +245,7 @@ async fn register_canisters(
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
-        .filter(|n| canister_id_store.find(n).is_none())
+        .filter(|name| canister_id_store.find(name).is_none())
         .cloned()
         .collect::<Vec<String>>();
     if canisters_to_create.is_empty() {

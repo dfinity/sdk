@@ -107,6 +107,8 @@ pub struct EnvironmentImpl {
 
     extension_manager: ExtensionManager,
 
+    /// Graph currently read imports and their children, not necessarily the entire graph of all imports.
+    /// Invariant: with each node contains all its descendants.
     imports: RefCell<GraphWithNodesMap<Import, ()>>,
 }
 

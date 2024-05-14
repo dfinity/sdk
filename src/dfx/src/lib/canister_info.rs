@@ -229,7 +229,6 @@ impl CanisterInfo {
         }
     }
 
-    // TODO: duplicate code with the previous function
     pub fn get_canister_id_option(&self) -> Option<CanisterId> {
         self.canister_id
     }
