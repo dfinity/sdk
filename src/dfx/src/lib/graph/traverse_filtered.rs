@@ -10,7 +10,6 @@ impl DfsFiltered {
         Self {}
     }
 
-    /// TODO: Refactor: Extract `iter` function from here.
     pub fn traverse2<G, NodeId, P, C, NodeWeight>(
         &mut self,
         graph: G,
