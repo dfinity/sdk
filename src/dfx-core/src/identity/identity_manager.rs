@@ -203,10 +203,17 @@ pub struct IdentityManager {
     selected_identity_principal: Option<Principal>,
 }
 
+#[derive(PartialEq)]
+pub enum InitializeIdentity {
+    Allow,
+    Disallow,
+}
+
 impl IdentityManager {
     pub fn new(
         logger: &Logger,
-        identity_override: &Option<String>,
+        identity_override: Option<&str>,
+        initialize_identity: InitializeIdentity,
     ) -> Result<Self, NewIdentityManagerError> {
         let config_dfx_dir_path =
             get_user_dfx_config_dir().map_err(NewIdentityManagerError::GetConfigDirectoryFailed)?;
@@ -216,14 +223,17 @@ impl IdentityManager {
         let configuration = if identity_json_path.exists() {
             load_configuration(&identity_json_path)
                 .map_err(LoadIdentityManagerConfigurationFailed)?
+        } else if initialize_identity == InitializeIdentity::Disallow {
+            return Err(NewIdentityManagerError::NoIdentityConfigurationFound);
         } else {
             initialize(logger, &identity_json_path, &identity_root_path)
                 .map_err(NewIdentityManagerError::InitializeFailed)?
         };
 
         let selected_identity = identity_override
-            .clone()
-            .unwrap_or_else(|| configuration.default.clone());
+            .unwrap_or(&configuration.default)
+            .to_string();
+
         let file_locations = IdentityFileLocations::new(identity_root_path);
 
         let mgr = IdentityManager {

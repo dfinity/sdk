@@ -160,7 +160,7 @@ teardown() {
   dfx_start
   jq '.networks.actuallylocal.providers=["http://not-real.nowhere.test."]' dfx.json | sponge dfx.json
   assert_command_fail dfx canister create --all --network actuallylocal
-  assert_match "dns error: failed to lookup address information"
+  assert_contains "error sending request for url (http://not-real.nowhere.test./api/v2/status)"
 }
 
 @test "create accepts --controller <controller> named parameter, with controller by identity name" {
