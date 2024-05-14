@@ -5,7 +5,6 @@ use crate::lib::error::DfxResult;
 
 pub struct DfsFiltered {}
 
-// FIXME: This is DFS, not BFS.
 impl DfsFiltered {
     pub fn new() -> Self {
         Self {}
