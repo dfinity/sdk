@@ -10,6 +10,8 @@
 
 ### fix: Capitalization of "Wasm" in docs and messages
 
+The output of `dfx canister status` has been also changed to use consistent capitalization of words.
+
 ## Dependencies
 
 ### Updated to [agent-rs 0.35.0](https://github.com/dfinity/agent-rs/blob/main/CHANGELOG.md#0350---2024-05-10)
