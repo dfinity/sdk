@@ -86,7 +86,7 @@ impl CanisterBuilder for MotokoBuilder {
         canister_info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
-        let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?; // TODO: Remove.
+        let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?;
         let profile = config.profile;
         let input_path = motoko_info.get_main_path();
         let output_wasm_path = canister_info.get_output_wasm_path();
