@@ -19,6 +19,10 @@ pub struct AccountIdOpts {
     #[arg(long, value_name = "SUBACCOUNT")]
     /// Subaccount identifier (64 character long hex string).
     pub subaccount: Option<Subaccount>,
+
+    #[arg(long, value_name = "SUBACCOUNT_FROM_PRINCIPAL")]
+    /// Principal from which the subaccount identifier is derived.
+    pub subaccount_from_principal: Option<Principal>,
 }
 
 pub async fn exec(env: &dyn Environment, opts: AccountIdOpts) -> DfxResult {
@@ -35,6 +39,18 @@ pub async fn exec(env: &dyn Environment, opts: AccountIdOpts) -> DfxResult {
     } else {
         env.get_selected_identity_principal()
             .context("No identity is selected")?
+    };
+    let subaccount = if let Some(subaccount) = opts.subaccount {
+        if opts.subaccount_from_principal.is_some() {
+            return Err(anyhow!(
+                "You can specify at most one of subaccount and subaccount-from-principal arguments."
+            ));
+        }
+        Some(subaccount)
+    } else if let Some(principal) = opts.subaccount_from_principal {
+        Some(Subaccount::from(&principal))
+    } else {
+        None
     };
     println!("{}", AccountIdentifier::new(principal, opts.subaccount));
     Ok(())

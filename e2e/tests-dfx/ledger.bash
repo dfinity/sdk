@@ -34,6 +34,11 @@ current_time_nanoseconds() {
   assert_command dfx ledger account-id --of-principal fg7gi-vyaaa-aaaal-qadca-cai
   assert_match a014842f64a22e59887162a79c7ca7eb02553250704780ec4d954f12d0ea0b18
 
+  ALICE_PRINCIPAL="$(dfx identity get-principal)"
+  assert_command dfx ledger account-id --of-canister qvhpv-4qaaa-aaaaa-aaagq-cai --subaccount-from-principal ${ALICE_PRINCIPAL}
+  # value obtained by running `dfx --identity alice canister call --ic qvhpv-4qaaa-aaaaa-aaagq-cai get_payment_subaccount`
+  assert_match 7afe37275178a26c463a6609825748ba3ed3572f7f308917f96f9f7be20e9d01
+
   # --of-canister accepts both canister alias and canister principal
   assert_command dfx canister create dummy_canister
   assert_command dfx ledger account-id --of-canister "$(dfx canister id dummy_canister)"
