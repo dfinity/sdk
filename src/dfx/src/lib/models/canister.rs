@@ -839,22 +839,15 @@ impl CanisterPool {
             |edge, _| Some(edge),
         );
 
-        // TODO: better error message
         let nodes =
-            toposort(&subgraph, None).map_err(|_e| anyhow!("Cycle in node dependencies"))?;
-
-        // Make topological order of our nodes:
-        // let mut nodes2 = Vec::new();
-        // let mut visited = HashMap::new();
-        // for node in toplevel_nodes {
-        //     let mut dfs = Dfs::new(&graph, node);
-        //     while let Some(subnode) = dfs.next(&graph) {
-        //         if !visited.contains_key(&node) {
-        //             nodes2.push(subnode);
-        //             visited.insert(subnode, ());
-        //         }
-        //     }
-        // }
+            toposort(&subgraph, None).map_err(|err| {
+                let node = graph.graph().node_weight(err.node_id());
+                if let Some(node) = node {
+                    anyhow!("Cycle in node dependencies: {}", node)
+                } else {
+                    panic!("programming error");
+                }
+            })?;
 
         Ok(nodes
             .iter()
