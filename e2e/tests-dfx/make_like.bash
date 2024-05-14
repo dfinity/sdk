@@ -168,5 +168,3 @@ teardown() {
     assert_contains 'Installing code for canister dependent'
     assert_contains 'Installing code for canister dependency'
 }
-
-# TODO: Test changes in `dependency.mo` that change the `.did` file.
