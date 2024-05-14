@@ -8,6 +8,8 @@
 
 ### chore: Improve help text of `dfx identity new` to include which characters are valid in identity names
 
+### fix: Capitalization of "Wasm" in docs and messages
+
 ## Dependencies
 
 ### Updated to [agent-rs 0.35.0](https://github.com/dfinity/agent-rs/blob/main/CHANGELOG.md#0350---2024-05-10)
