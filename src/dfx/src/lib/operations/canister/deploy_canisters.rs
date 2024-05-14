@@ -119,7 +119,7 @@ pub async fn deploy_canisters(
         })
         // .map(|v| &v)
         .try_collect::<Arc<Canister>, Vec<Arc<Canister>>, _>()?;
-    let toplevel_canisters: &[Arc<Canister>] = &toplevel_canisters; // FIXME: Wrong order
+    let toplevel_canisters: &[Arc<Canister>] = &toplevel_canisters;
 
     // TODO: `build_order` is called two times during deployment of a new canister.
     let order = canister_pool.build_order(env, toplevel_canisters)?;
