@@ -65,7 +65,7 @@ impl CustomBuilderExtra {
     }
 }
 
-/// A Builder for a WASM type canister, which has an optional build step.
+/// A Builder for a Wasm type canister, which has an optional build step.
 /// This will set environment variables for the external tool;
 ///   `CANISTER_ID`     => Its own canister ID (in textual format).
 ///   `CANDID_PATH`     => Its own candid path.

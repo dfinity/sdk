@@ -23,11 +23,11 @@ teardown() {
 
     assert_command dfx canister create e2e_project_frontend --no-wallet
     assert_command dfx canister status e2e_project_frontend
-    assert_contains "Reserved Cycles Limit: 5_000_000_000_000 Cycles"
+    assert_contains "Reserved cycles limit: 5_000_000_000_000 Cycles"
 
     assert_command dfx canister create e2e_project_backend --reserved-cycles-limit 470000 --no-wallet
     assert_command dfx canister status e2e_project_backend
-    assert_contains "Reserved Cycles Limit: 470_000 Cycles"
+    assert_contains "Reserved cycles limit: 470_000 Cycles"
 }
 
 @test "create succeeds on default project" {
@@ -329,7 +329,7 @@ teardown() {
   assert_command dfx canister status e2e_project_backend
   assert_contains 'Memory allocation: 2_147_483_648'
   assert_contains 'Compute allocation: 5'
-  assert_contains 'Reserved Cycles Limit: 1_000_000_000_000'
-  assert_contains 'WASM Memory Limit: 1_073_741_824'
+  assert_contains 'Reserved cycles limit: 1_000_000_000_000'
+  assert_contains 'Wasm memory limit: 1_073_741_824'
   assert_contains 'Freezing threshold: 604_800'
 }
