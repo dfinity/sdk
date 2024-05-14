@@ -230,9 +230,8 @@ pub trait CanisterBuilder {
         Ok(())
     }
 
-    /// TODO: Motoko-specific code in `context()` and below.
     /// TODO: It is called too many times. It caches data in `env.imports`, but better not to call repeatedly anyway.
-    #[context("Failed to find imports for canister at '{}'.", info.as_info::<MotokoCanisterInfo>().unwrap().get_main_path().display())]
+    #[context("Failed to find imports for canister '{}'.", info.get_name())]
     fn read_dependencies(
         &self,
         env: &dyn Environment,
