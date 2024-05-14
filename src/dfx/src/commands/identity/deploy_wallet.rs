@@ -9,10 +9,10 @@ use candid::Principal as CanisterId;
 use clap::Parser;
 use tokio::runtime::Runtime;
 
-/// Installs the wallet WASM to the provided canister id.
+/// Installs the wallet Wasm to the provided canister id.
 #[derive(Parser)]
 pub struct DeployWalletOpts {
-    /// The ID of the canister where the wallet WASM will be deployed.
+    /// The ID of the canister where the wallet Wasm will be deployed.
     canister_id: String,
 }
 

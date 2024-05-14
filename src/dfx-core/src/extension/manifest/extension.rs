@@ -268,11 +268,11 @@ fn parse_test_file() {
       "about": "About for download command. You're looking at the output of parsing test extension.json.",
       "args": {
         "ic_commit": {
-          "about": "IC commit of SNS canister WASMs to download",
+          "about": "IC commit of SNS canister Wasm binaries to download",
           "long": "ic-commit"
         },
         "wasms_dir": {
-          "about": "Path to store downloaded SNS canister WASMs",
+          "about": "Path to store downloaded SNS canister Wasm binaries",
           "long": "wasms-dir"
         }
       }

@@ -49,7 +49,7 @@ pub struct CanisterInstallOpts {
     #[command(flatten)]
     argument_from_cli: ArgumentFromCliLongOpt,
 
-    /// Specifies a particular WASM file to install, bypassing the dfx.json project settings.
+    /// Specifies a particular Wasm file to install, bypassing the dfx.json project settings.
     #[arg(long, conflicts_with("all"))]
     wasm: Option<PathBuf>,
 
