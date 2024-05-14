@@ -245,7 +245,7 @@ async fn register_canisters(
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
-        .filter(|n| canister_id_store.find(n).is_none())
+        .filter(|name| canister_id_store.find(name).is_none())
         .cloned()
         .collect::<Vec<String>>();
     if canisters_to_create.is_empty() {
