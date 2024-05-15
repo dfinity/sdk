@@ -77,7 +77,7 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
         .subnet_selection
         .into_subnet_selection_type(env)
         .await?;
-    
+
     let height = transfer_cmc(
         agent,
         env.get_logger(),
