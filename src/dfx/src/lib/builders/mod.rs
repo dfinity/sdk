@@ -384,7 +384,7 @@ pub trait CanisterBuilder {
                             continue;
                         }
                         Import::FullPath(full_path) => {
-                            Some(full_path.clone()) // TODO: Eliminate `clone`.
+                            Some(full_path.clone())
                         }
                     };
                     if let Some(imported_file) = imported_file {
