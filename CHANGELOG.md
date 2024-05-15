@@ -12,6 +12,19 @@
 
 The output of `dfx canister status` has been also changed to use consistent capitalization of words.
 
+### fix!(frontend-canister): include `.well-known` directory by default for asset upload
+
+When uploading assets to an asset canister, `dfx` by default excludes directories and files with names that start with `.`.
+`dfx` will start including folders with the name `.well-known` by default.
+It is possible to override this in `.ic-assets.json` like this:
+
+``` json
+{
+  "match": ".well-known",
+  "ignore": true
+}
+```
+
 ## Dependencies
 
 ### Updated to [agent-rs 0.35.0](https://github.com/dfinity/agent-rs/blob/main/CHANGELOG.md#0350---2024-05-10)
