@@ -224,7 +224,7 @@ fn include_entry(entry: &walkdir::DirEntry, config: &AssetConfig) -> bool {
         } else {
             false
         };
-        is_known || !entry_name.starts_with(".")
+        is_known || !entry_name.starts_with('.')
     } else {
         true
     }
