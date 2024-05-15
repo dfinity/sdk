@@ -211,8 +211,10 @@ tc_to_num() {
   assert_match "with message: Subnet $SUBNET_ID does not exist"
 
   CANISTER_ID="aaaaa-aa"
+  balance=$(dfx ledger balance)
   assert_command dfx ledger create-canister --amount=100 --next-to "$CANISTER_ID" "$(dfx identity get-principal)"
   assert_match "unable to determine subnet: Canister is not assigned to any subnet"
+  assert_eq "$balance" "$(dfx ledger balance)"
 
   # Transaction Deduplication
   t=$(current_time_nanoseconds)
