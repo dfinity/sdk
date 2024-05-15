@@ -210,7 +210,7 @@ tc_to_num() {
   assert_match "Refunded at block height"
   assert_match "with message: Subnet $SUBNET_ID does not exist"
 
-  CANISTER_ID="aaaaa-aa
+  CANISTER_ID="aaaaa-aa"
   assert_command dfx ledger create-canister --amount=100 --next-to "$CANISTER_ID" "$(dfx identity get-principal)"
   assert_match "unable to determine subnet: Canister is not assigned to any subnet"
 
