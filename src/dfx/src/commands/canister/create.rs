@@ -81,7 +81,7 @@ pub struct CanisterCreateOpts {
     /// Specifies a soft limit on the Wasm memory usage of the canister.
     ///
     /// Update calls, timers, heartbeats, installs, and post-upgrades fail if the
-    /// WASM memory usage exceeds this limit. The main purpose of this setting is
+    /// Wasm memory usage exceeds this limit. The main purpose of this setting is
     /// to protect against the case when the canister reaches the hard 4GiB
     /// limit.
     ///
@@ -194,7 +194,7 @@ pub async fn exec(
             Some(config_interface),
             Some(canister_name),
         )
-        .with_context(|| format!("Failed to read WASM memory limit of {canister_name}."))?;
+        .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
         create_canister(
             env,
             canister_name,
@@ -270,7 +270,7 @@ pub async fn exec(
                     Some(config_interface),
                     Some(canister_name),
                 )
-                .with_context(|| format!("Failed to read WASM memory limit of {canister_name}."))?;
+                .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
                 create_canister(
                     env,
                     canister_name,

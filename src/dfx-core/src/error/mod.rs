@@ -1,4 +1,5 @@
 pub mod archive;
+pub mod builder;
 pub mod cache;
 pub mod canister;
 pub mod canister_id_store;

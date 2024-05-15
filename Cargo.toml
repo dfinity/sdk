@@ -21,11 +21,11 @@ license = "Apache-2.0"
 [workspace.dependencies]
 candid = "0.10.4"
 candid_parser = "0.1.4"
-ic-agent = { git = "https://github.com/dfinity/agent-rs.git", rev = "dac18df939dd7e63295083a2a9b2d024cb9b0c71" }
+ic-agent = { git = "https://github.com/dfinity/agent-rs.git", rev = "8273d321e9a09fd8373bd4e38b0676ec6ad9c260" }
 ic-asset = { path = "src/canisters/frontend/ic-asset" }
 ic-cdk = "0.13.1"
-ic-identity-hsm = { git = "https://github.com/dfinity/agent-rs.git", rev = "dac18df939dd7e63295083a2a9b2d024cb9b0c71" }
-ic-utils = { git = "https://github.com/dfinity/agent-rs.git", rev = "dac18df939dd7e63295083a2a9b2d024cb9b0c71" }
+ic-identity-hsm =  { git = "https://github.com/dfinity/agent-rs.git", rev = "8273d321e9a09fd8373bd4e38b0676ec6ad9c260" }
+ic-utils =  { git = "https://github.com/dfinity/agent-rs.git", rev = "8273d321e9a09fd8373bd4e38b0676ec6ad9c260" }
 
 aes-gcm = "0.10.3"
 anyhow = "1.0.56"
@@ -52,7 +52,7 @@ mime_guess = "2.0.4"
 num-traits = "0.2.14"
 pem = "1.0.2"
 proptest = "1.0.0"
-reqwest = { version = "0.11.23", default-features = false, features = [
+reqwest = { version = "0.12.4", default-features = false, features = [
     "rustls-tls",
 ] }
 ring = "0.16.11"

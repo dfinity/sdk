@@ -25,7 +25,7 @@ teardown() {
     assert_command dfx deploy --no-wallet
 
     assert_command dfx canister status hello_backend
-    assert_contains "Reserved Cycles Limit: 860_000 Cycles"
+    assert_contains "Reserved cycles limit: 860_000 Cycles"
 }
 
 @test "deploy --upgrade-unchanged upgrades even if the .wasm did not change" {
