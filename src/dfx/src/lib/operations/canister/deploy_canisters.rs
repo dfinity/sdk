@@ -296,7 +296,7 @@ async fn register_canisters(
                         .map_err(|e| anyhow!(e))
                         .and_then(|n| Ok(WasmMemoryLimit::try_from(n)?))
                         .context(
-                            "WASM memory limit must be between 0 and 2^48 (i.e 256TB), inclusively.",
+                            "Wasm memory limit must be between 0 and 2^48 (i.e 256TB), inclusively.",
                         )
                 },
             ).transpose()?;

@@ -99,7 +99,7 @@ impl TryFrom<ic_utils::interfaces::management_canister::builders::CanisterSettin
                 .and_then(|limit| limit.0.to_u64())
                 .map(|limit| {
                     WasmMemoryLimit::try_from(limit)
-                        .context("WASM memory limit must be between 0 and 2^48-1, inclusively.")
+                        .context("Wasm memory limit must be between 0 and 2^48-1, inclusively.")
                 })
                 .transpose()?,
         })
@@ -208,7 +208,7 @@ pub fn get_wasm_memory_limit(
             u64::try_from(arg.get_bytes())
                 .map_err(|e| anyhow!(e))
                 .and_then(|n| Ok(WasmMemoryLimit::try_from(n)?))
-                .context("WASM memory limit must be between 0 and 2^48 (i.e 256TB), inclusively.")
+                .context("Wasm memory limit must be between 0 and 2^48 (i.e 256TB), inclusively.")
         })
         .transpose()
 }
