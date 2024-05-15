@@ -2,7 +2,7 @@ use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_icx_proxy_actor,
-    start_replica_actor, start_shutdown_controller,
+    start_pocketic_actor, start_replica_actor, start_shutdown_controller,
 };
 use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
@@ -54,19 +54,19 @@ pub struct StartOpts {
     clean: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[arg(long, action = ArgAction::Append)]
+    #[arg(long, action = ArgAction::Append, conflicts_with = "pocketic")]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[arg(long)]
+    #[arg(long, conflicts_with = "pocketic")]
     enable_bitcoin: bool,
 
     /// enable canister http requests
-    #[arg(long)]
+    #[arg(long, conflicts_with = "pocketic")]
     enable_canister_http: bool,
 
     /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
-    #[arg(long, default_value_t = 600)]
+    #[arg(long, default_value_t = 600, conflicts_with = "pocketic")]
     artificial_delay: u32,
 
     /// Start even if the network config was modified.
@@ -74,12 +74,16 @@ pub struct StartOpts {
     force: bool,
 
     /// Use old metering.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "pocketic")]
     use_old_metering: bool,
 
     /// A list of domains that can be served. These are used for canister resolution [default: localhost]
     #[arg(long)]
     domain: Vec<String>,
+
+    /// Runs PocketIC instead of the replica
+    #[clap(long, alias = "emulator")]
+    pocketic: bool,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -146,6 +150,7 @@ pub fn exec(
         artificial_delay,
         use_old_metering,
         domain,
+        pocketic,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -238,6 +243,7 @@ pub fn exec(
     })?;
 
     let replica_port_path = empty_writable_path(local_server_descriptor.replica_port_path())?;
+    let pocketic_port_path = empty_writable_path(local_server_descriptor.pocketic_port_path())?;
 
     if background {
         send_background()?;
@@ -321,7 +327,11 @@ pub fn exec(
         replica_config
     };
 
-    let effective_config = CachedConfig::replica(&replica_config);
+    let effective_config = if pocketic {
+        CachedConfig::pocketic()
+    } else {
+        CachedConfig::replica(&replica_config)
+    };
 
     if !clean && !force && previous_config_path.exists() {
         let previous_config = load_json_file(&previous_config_path)
@@ -339,7 +349,15 @@ pub fn exec(
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
 
-        let port_ready_subscribe: Recipient<PortReadySubscribe> = {
+        let port_ready_subscribe: Recipient<PortReadySubscribe> = if pocketic {
+            let server = start_pocketic_actor(
+                env,
+                local_server_descriptor,
+                shutdown_controller.clone(),
+                pocketic_port_path,
+            )?;
+            server.recipient()
+        } else {
             let btc_adapter_ready_subscribe = btc_adapter_config
                 .map(|btc_adapter_config| {
                     start_btc_adapter_actor(
@@ -408,6 +426,7 @@ pub fn exec(
 #[allow(clippy::large_enum_variant)]
 pub enum CachedReplicaConfig<'a> {
     Replica { config: Cow<'a, ReplicaConfig> },
+    PocketIc,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq)]
@@ -424,6 +443,12 @@ impl<'a> CachedConfig<'a> {
             config: CachedReplicaConfig::Replica {
                 config: Cow::Borrowed(config),
             },
+        }
+    }
+    pub fn pocketic() -> Self {
+        Self {
+            replica_rev: replica_rev().into(),
+            config: CachedReplicaConfig::PocketIc,
         }
     }
 }

@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### PocketIC support
+
+Passing `--pocketic` to `dfx start` now starts a PocketIC server instead of the replica. PocketIC is lighter-weight than the replica and execution environment internals can be manipulated by REST commands. For more information, see the [PocketIC readme](https://github.com/dfinity/pocketic).
+
 ### chore: Improve help text of `dfx identity new` to include which characters are valid in identity names
 
 # 0.20.1

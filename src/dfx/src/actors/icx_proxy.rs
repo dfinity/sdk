@@ -22,7 +22,7 @@ pub mod signals {
     #[derive(Message)]
     #[rtype(result = "()")]
     pub struct PortReadySignal {
-        pub port: u16,
+        pub url: String,
     }
 
     #[derive(Message)]
@@ -155,13 +155,12 @@ impl Handler<PortReadySignal> for IcxProxy {
     fn handle(&mut self, msg: PortReadySignal, _ctx: &mut Self::Context) {
         debug!(
             self.logger,
-            "replica ready on {}, so re/starting icx-proxy", msg.port
+            "replica ready on {}, so re/starting icx-proxy", msg.url
         );
 
         self.stop_icx_proxy();
 
-        let replica_url = format!("http://localhost:{}", msg.port);
-        let replica_urls = vec![Url::parse(&replica_url).unwrap()];
+        let replica_urls = vec![Url::parse(&msg.url).unwrap()];
 
         self.start_icx_proxy(replica_urls)
             .expect("Could not start icx-proxy");

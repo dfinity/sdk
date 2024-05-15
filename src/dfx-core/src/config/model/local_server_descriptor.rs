@@ -146,6 +146,16 @@ impl LocalServerDescriptor {
         self.replica_configuration_dir().join("replica-pid")
     }
 
+    /// This file contains the listening port of the pocket-ic process
+    pub fn pocketic_port_path(&self) -> PathBuf {
+        self.data_directory.join("pocket-ic.port")
+    }
+
+    /// Returns whether the local server is PocketIC (as opposed to the replica)
+    pub fn is_pocketic(&self) -> bool {
+        self.pocketic_port_path().exists()
+    }
+
     /// The top-level directory holding state for the replica.
     pub fn state_dir(&self) -> PathBuf {
         self.data_directory.join("state")
@@ -292,13 +302,13 @@ impl LocalServerDescriptor {
     /// Gets the port of a local replica.
     ///
     /// # Prerequisites
-    /// - A local replica needs to be running, e.g. with `dfx start`.
+    /// - A local replica or emulator needs to be running, e.g. with `dfx start`.
     pub fn get_running_replica_port(
         &self,
         logger: Option<&Logger>,
     ) -> Result<Option<u16>, NetworkConfigError> {
         let replica_port_path = self.replica_port_path();
-
+        let pocketic_port_path = self.pocketic_port_path();
         match read_port_from(&replica_port_path)? {
             Some(port) => {
                 if let Some(logger) = logger {
@@ -306,7 +316,15 @@ impl LocalServerDescriptor {
                 }
                 Ok(Some(port))
             }
-            None => Ok(self.replica.port),
+            None => match read_port_from(&pocketic_port_path)? {
+                Some(port) => {
+                    if let Some(logger) = logger {
+                        info!(logger, "Found local PocketIC running on port {}", port);
+                    }
+                    Ok(Some(port))
+                }
+                None => Ok(self.replica.port),
+            },
         }
     }
 }

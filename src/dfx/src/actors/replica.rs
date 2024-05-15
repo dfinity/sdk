@@ -192,7 +192,9 @@ impl Replica {
 
     fn send_ready_signal(&self, port: u16) {
         for sub in &self.ready_subscribers {
-            sub.do_send(PortReadySignal { port });
+            sub.do_send(PortReadySignal {
+                url: format!("http://localhost:{port}"),
+            });
         }
     }
 }
@@ -233,7 +235,9 @@ impl Handler<PortReadySubscribe> for Replica {
     fn handle(&mut self, msg: PortReadySubscribe, _: &mut Self::Context) {
         // If we have a port, send that we're already ready! Yeah!
         if let Some(port) = self.port {
-            msg.0.do_send(PortReadySignal { port });
+            msg.0.do_send(PortReadySignal {
+                url: format!("http://localhost:{port}"),
+            });
         }
 
         self.ready_subscribers.push(msg.0);

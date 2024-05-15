@@ -125,19 +125,31 @@ dfx_start() {
     # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
     # wait for it to close. Because `dfx start` leaves child processes running, we need
     # to close this pipe, otherwise Bats will wait indefinitely.
-    if [[ $# -eq 0 ]]; then
-        dfx start --background --host "$FRONTEND_HOST" --artificial-delay 100 3>&- # Start on random port for parallel test execution
+    if [[ "$USE_POCKETIC" ]]
+    then
+        if [[ $# -eq 0 ]]; then
+            dfx start --background --host "$FRONTEND_HOST" --pocketic 3>&-
+        else
+            batslib_decorate "no arguments to dfx start --pocketic supported yet"
+            fail
+        fi
+        test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic.port"
+        port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic.port")
     else
-        dfx start --background --artificial-delay 100 "$@" 3>&-
+        if [[ $# -eq 0 ]]; then
+            dfx start --background --host "$FRONTEND_HOST" --artificial-delay 100 3>&- # Start on random port for parallel test execution
+        else
+            dfx start --background --artificial-delay 100 "$@" 3>&-
+        fi
+        dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
+        printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
+        test -f "${dfx_config_root}/replica-1.port"
+        port=$(cat "${dfx_config_root}/replica-1.port")
+        if [ "$port" == "" ]; then
+          port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
+        fi
     fi
 
-    dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
-    printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
-    test -f "${dfx_config_root}/replica-1.port"
-    port=$(cat "${dfx_config_root}/replica-1.port")
-    if [ "$port" == "" ]; then
-      port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
-    fi
 
     webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
 
@@ -209,7 +221,11 @@ setup_actuallylocal_shared_network() {
 
 setup_local_shared_network() {
     local replica_port
-    replica_port=$(get_replica_port)
+    if [[ "$USE_POCKETIC" ]]; then
+        replica_port=$(get_pocketic_port)
+    else
+        replica_port=$(get_replica_port)
+    fi
 
     [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
 
@@ -251,6 +267,10 @@ get_replica_pid() {
 
 get_replica_port() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port"
+}
+
+get_pocketic_port() {
+  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic.port"
 }
 
 get_btc_adapter_pid() {

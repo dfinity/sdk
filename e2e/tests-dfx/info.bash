@@ -20,7 +20,12 @@ teardown() {
 
   dfx_start
   assert_command dfx info replica-port
-  assert_eq "$(get_replica_port)"
+  if [[ "$USE_POCKETIC" ]]
+  then
+    assert_eq "$(get_pocketic_port)"
+  else
+    assert_eq "$(get_replica_port)"
+  fi
 }
 
 @test "displays the default webserver port for the local shared network" {

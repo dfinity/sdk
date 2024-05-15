@@ -64,6 +64,7 @@ teardown() {
 }
 
 @test "dfx ping succeeds by arbitrary network name to a nonstandard port" {
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic"
   dfx_start --host 127.0.0.1:12345
 
   # Make dfx use the port from configuration:

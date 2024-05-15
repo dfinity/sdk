@@ -43,6 +43,7 @@ teardown() {
 }
 
 @test "create succeeds when specify large canister ID" {
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic"
   dfx_start
   # hhn2s-5l777-77777-7777q-cai is the canister ID of (u64::MAX / 2)
   assert_command dfx canister create e2e_project_backend --specified-id hhn2s-5l777-77777-7777q-cai
@@ -55,7 +56,11 @@ teardown() {
   # nojwb-ieaaa-aaaaa-aaaaa-cai is the canister ID of (u64::MAX / 2 + 1)
   assert_command_fail dfx canister create e2e_project_backend --specified-id nojwb-ieaaa-aaaaa-aaaaa-cai
 
-  assert_match "Specified CanisterId nojwb-ieaaa-aaaaa-aaaaa-cai is not hosted by subnet"
+  if [[ "$USE_POCKETIC" ]]; then
+    assert_match "Desired canister ID nojwb-ieaaa-aaaaa-aaaaa-cai not contained on any subnet"
+  else
+    assert_match "Specified CanisterId nojwb-ieaaa-aaaaa-aaaaa-cai is not hosted by subnet"
+  fi
 }
 
 @test "create fails if set both --all and --specified-id" {
