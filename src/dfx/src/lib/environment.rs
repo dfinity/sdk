@@ -13,7 +13,7 @@ use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::identity::new_identity_manager::NewIdentityManagerError;
 use dfx_core::error::load_dfx_config::LoadDfxConfigError;
 use dfx_core::extension::manager::ExtensionManager;
-use dfx_core::identity::identity_manager::IdentityManager;
+use dfx_core::identity::identity_manager::{IdentityManager, InitializeIdentity};
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use semver::Version;
@@ -56,7 +56,11 @@ pub trait Environment {
     fn new_progress(&self, message: &str) -> ProgressBar;
 
     fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {
-        IdentityManager::new(self.get_logger(), self.get_identity_override())
+        IdentityManager::new(
+            self.get_logger(),
+            self.get_identity_override(),
+            InitializeIdentity::Allow,
+        )
     }
 
     // Explicit lifetimes are actually needed for mockall to work properly.

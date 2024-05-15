@@ -141,7 +141,7 @@ impl Canister {
 
         // optimize or shrink
         if let Some(level) = info.get_optimize() {
-            trace!(logger, "Optimizing WASM at level {}", level);
+            trace!(logger, "Optimizing Wasm at level {}", level);
             ic_wasm::optimize::optimize(
                 &mut m,
                 &wasm_opt_level_convert(level),
@@ -149,12 +149,12 @@ impl Canister {
                 &None,
                 false,
             )
-            .context("Failed to optimize the WASM module.")?;
+            .context("Failed to optimize the Wasm module.")?;
             modified = true;
         } else if info.get_shrink() == Some(true)
             || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
         {
-            trace!(logger, "Shrinking WASM");
+            trace!(logger, "Shrinking Wasm");
             ic_wasm::shrink::shrink(&mut m);
             modified = true;
         }
@@ -303,7 +303,7 @@ impl Canister {
             // gzip
             // Unlike using gzip CLI, the compression below only takes the wasm bytes
             // So as long as the wasm bytes are the same, the gzip file will be the same on different platforms.
-            trace!(logger, "Compressing WASM");
+            trace!(logger, "Compressing Wasm");
             compress_bytes(&m.emit_wasm())?
         } else {
             m.emit_wasm()

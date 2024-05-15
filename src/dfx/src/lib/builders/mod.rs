@@ -378,27 +378,13 @@ pub trait CanisterBuilder {
                         }
                         Import::Ic(_canister_id) => {
                             continue;
-                            // if let Some(canister_name) = rev_id_map.get(canister_id.as_str()) {
-                            //     if let Some(canister) =
-                            //         pool.get_first_canister_with_name(canister_name)
-                            //     {
-                            //         canister
-                            //             .get_info()
-                            //             .get_main_file()
-                            //             .map(|main_file| main_file.to_owned())
-                            //     } else {
-                            //         None
-                            //     }
-                            // } else {
-                            //     None
-                            // }
                         }
                         Import::Lib(_path) => {
                             // Skip libs, all changes by package managers don't modify existing directories but create new ones.
                             continue;
                         }
                         Import::FullPath(full_path) => {
-                            Some(full_path.clone()) // TODO: Eliminate `clone`.
+                            Some(full_path.clone())
                         }
                     };
                     if let Some(imported_file) = imported_file {

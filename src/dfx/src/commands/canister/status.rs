@@ -51,7 +51,7 @@ async fn canister_status(
         "Not Set".to_string()
     };
 
-    println!("Canister status call result for {canister}.\nStatus: {status}\nControllers: {controllers}\nMemory allocation: {memory_allocation}\nCompute allocation: {compute_allocation}\nFreezing threshold: {freezing_threshold}\nMemory Size: {memory_size:?}\nBalance: {balance} Cycles\nReserved: {reserved} Cycles\nReserved Cycles Limit: {reserved_cycles_limit}\nWASM Memory Limit: {wasm_memory_limit}\nModule hash: {module_hash}\nNumber of queries: {queries_total}\nInstructions spent in queries: {query_instructions_total}\nTotal query request payload size (bytes): {query_req_payload_total}\nTotal query response payload size (bytes): {query_resp_payload_total}",
+    println!("Canister status call result for {canister}.\nStatus: {status}\nControllers: {controllers}\nMemory allocation: {memory_allocation}\nCompute allocation: {compute_allocation}\nFreezing threshold: {freezing_threshold}\nMemory Size: {memory_size:?}\nBalance: {balance} Cycles\nReserved: {reserved} Cycles\nReserved cycles limit: {reserved_cycles_limit}\nWasm memory limit: {wasm_memory_limit}\nModule hash: {module_hash}\nNumber of queries: {queries_total}\nInstructions spent in queries: {query_instructions_total}\nTotal query request payload size (bytes): {query_req_payload_total}\nTotal query response payload size (bytes): {query_resp_payload_total}",
         status = status.status,
         controllers = controllers.join(" "),
         memory_allocation = status.settings.memory_allocation,

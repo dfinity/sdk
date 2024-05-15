@@ -209,7 +209,7 @@
             },
             "package": {
               "title": "Package Name",
-              "description": "Name of the rust package that compiles to this canister's WASM.",
+              "description": "Name of the rust package that compiles to this canister's Wasm binary.",
               "type": "string"
             },
             "type": {
@@ -273,7 +273,7 @@
           "properties": {
             "build": {
               "title": "Build Commands",
-              "description": "Commands that are executed in order to produce this canister's WASM module. Expected to produce the WASM in the path specified by the 'wasm' field. No build commands are allowed if the `wasm` field is a URL.",
+              "description": "Commands that are executed in order to produce this canister's Wasm module. Expected to produce the Wasm in the path specified by the 'wasm' field. No build commands are allowed if the `wasm` field is a URL.",
               "default": [],
               "allOf": [
                 {
@@ -293,8 +293,8 @@
               ]
             },
             "wasm": {
-              "title": "WASM Path",
-              "description": "Path to WASM to be installed. URLs to a WASM module are also acceptable. A canister that has a URL to a WASM module can not also have `build` steps.",
+              "title": "Wasm Path",
+              "description": "Path to Wasm to be installed. URLs to a Wasm module are also acceptable. A canister that has a URL to a Wasm module can not also have `build` steps.",
               "type": "string"
             }
           }
@@ -387,7 +387,7 @@
           }
         },
         "gzip": {
-          "title": "Gzip Canister WASM",
+          "title": "Gzip Canister Wasm",
           "description": "Disabled by default.",
           "type": [
             "boolean",
@@ -444,7 +444,7 @@
           }
         },
         "optimize": {
-          "title": "Optimize Canister WASM",
+          "title": "Optimize Canister Wasm",
           "description": "Invoke wasm level optimizations after building the canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default. If this option is specified, the `shrink` option will be ignored.",
           "default": null,
           "anyOf": [
@@ -493,7 +493,7 @@
           ]
         },
         "shrink": {
-          "title": "Shrink Canister WASM",
+          "title": "Shrink Canister Wasm",
           "description": "Whether run `ic-wasm shrink` after building the Canister. Enabled by default for Rust/Motoko canisters. Disabled by default for custom canisters.",
           "type": [
             "boolean",
@@ -967,8 +967,8 @@
           "minimum": 0.0
         },
         "wasm_memory_limit": {
-          "title": "WASM Memory Limit",
-          "description": "Specifies a soft limit (in bytes) on the Wasm memory usage of the canister.\n\nUpdate calls, timers, heartbeats, installs, and post-upgrades fail if the WASM memory usage exceeds this limit. The main purpose of this setting is to protect against the case when the canister reaches the hard 4GiB limit.\n\nMust be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
+          "title": "Wasm Memory Limit",
+          "description": "Specifies a soft limit (in bytes) on the Wasm memory usage of the canister.\n\nUpdate calls, timers, heartbeats, installs, and post-upgrades fail if the Wasm memory usage exceeds this limit. The main purpose of this setting is to protect against the case when the canister reaches the hard 4GiB limit.\n\nMust be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
           "default": null,
           "anyOf": [
             {
