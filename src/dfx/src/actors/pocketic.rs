@@ -10,7 +10,6 @@ use actix::{
 };
 use anyhow::bail;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use pocket_ic::common::rest::{ExtendedSubnetConfigSet, RawTime, SubnetSpec};
 use reqwest::Client;
 use slog::{debug, error, info, Logger};
 use std::path::{Path, PathBuf};
@@ -278,7 +277,9 @@ fn block_on_initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
         .block_on(async move { initialize_pocketic(port, logger).await })
 }
 
+#[cfg(unix)]
 async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
+    use pocket_ic::common::rest::{ExtendedSubnetConfigSet, RawTime, SubnetSpec};
     let init_client = Client::new();
     debug!(logger, "Configuring PocketIC server");
     init_client
@@ -314,4 +315,9 @@ async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
         .await?
         .error_for_status()?;
     Ok(())
+}
+
+#[cfg(not(unix))]
+async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
+    bail!("PocketIC client library not supported on this platform")
 }

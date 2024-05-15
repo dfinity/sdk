@@ -122,10 +122,12 @@ walkdir.workspace = true
 walrus = "0.20.1"
 which = "4.2.5"
 ci_info = "0.14"
-pocket-ic = "3.1.0"
 
 [target.'cfg(windows)'.dependencies]
 junction = "1.0.0"
+
+[target.'cfg(unix)'.dependencies]
+pocket-ic = "3.1.0"
 
 [dev-dependencies]
 env_logger = "0.10"
