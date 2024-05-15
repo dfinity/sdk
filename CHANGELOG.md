@@ -12,6 +12,9 @@
 
 The output of `dfx canister status` has been also changed to use consistent capitalization of words.
 
+### fix: Transferring funds too early in `dfx ledger create-canister` with --next-to
+When creating a canister with `dfx ledger create-canister --next-to` on a canister that does not exist (e.g., aaaa-aa), then the funds are first transferred away from the users account, but the call then fails to create the new canister, and the funds are not returned to the user's account.
+
 ## Dependencies
 
 ### Updated to [agent-rs 0.35.0](https://github.com/dfinity/agent-rs/blob/main/CHANGELOG.md#0350---2024-05-10)
