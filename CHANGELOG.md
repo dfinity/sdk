@@ -29,7 +29,7 @@ It is possible to override this in `.ic-assets.json` like this:
 
 ### fix: Transferring funds too early in `dfx ledger create-canister` with --next-to
 
-When creating a canister with `dfx ledger create-canister --next-to` on a canister that does not exist (e.g., aaaa-aa), then the funds are first transferred away from the users account, but the call then fails to create the new canister, and the funds are not returned to the user's account.
+When creating a canister with `dfx ledger create-canister --next-to` on a canister that does not exist (e.g., aaaaa-aa), then the funds are first transferred away from the users account, but the call then fails to create the new canister, and the funds are not returned to the user's account.
 
 ## Dependencies
 
