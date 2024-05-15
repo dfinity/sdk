@@ -32,7 +32,7 @@ For reference information and examples that illustrate using `dfx canister` comm
 | [`deposit-cycles`](#dfx-canister-deposit-cycles)   | Deposit cycles into the specified canister.                                                                                                            |
 | `help`                                             | Displays usage information message for a specified subcommand.                                                                                         |
 | [`id`](#dfx-canister-id)                           | Displays the identifier of a canister.                                                                                                                 |
-| [`info`](#dfx-canister-info)                       | Get the hash of a canister’s WASM module and its current controller.                                                                                   |
+| [`info`](#dfx-canister-info)                       | Get the hash of a canister’s Wasm module and its current controller.                                                                                   |
 | [`install`](#dfx-canister-install)                 | Installs compiled code in a canister.                                                                                                                  |
 | [`logs`](#dfx-canister-logs)                       | Returns the logs from a canister.                                                                                                                      |
 | [`metadata`](#dfx-canister-metadata)               | Displays metadata in a canister.                                                                                                                       |
@@ -459,7 +459,7 @@ The command displays output similar to the following:
 
 ## dfx canister info
 
-Use the `dfx canister info` command to output a canister's controller and installed WASM module hash.
+Use the `dfx canister info` command to output a canister's controller and installed Wasm module hash.
 
 ### Basic usage
 
@@ -477,7 +477,7 @@ You can use the following argument with the `dfx canister info` command.
 
 ### Examples
 
-You can use the `dfx canister info` command to display the canister controller and installed WASM module.
+You can use the `dfx canister info` command to display the canister controller and installed Wasm module.
 
 To the data about the `hello_world` canister, you can run the following command:
 
@@ -517,7 +517,7 @@ You can use the following options with the `dfx canister install` command.
 | `--no-wallet`                     | Performs the call with the user Identity as the Sender of messages. Bypasses the Wallet canister. Enabled by default.                                                                                                                                                 |
 | `--no-asset-upgrade`              | Skips upgrading the asset canister, to only install the assets themselves.                                                                                                                                                                                            |
 | `--upgrade-unchanged`             | Upgrade the canister even if the .wasm did not change.                                                                                                                                                                                                                |
-| `--wasm <file.wasm>`              | Specifies a particular WASM file to install, bypassing the dfx.json project settings.                                                                                                                                                                                 |
+| `--wasm <file.wasm>`              | Specifies a particular Wasm file to install, bypassing the dfx.json project settings.                                                                                                                                                                                 |
 
 #### Specifies the argument to pass to the init entrypoint
 
@@ -609,7 +609,7 @@ The command displays output similar to the following:
 
 ## dfx canister metadata
 
-Use the `dfx canister metadata` command to display metadata stored in a canister's WASM module.
+Use the `dfx canister metadata` command to display metadata stored in a canister's Wasm module.
 
 ### Basic usage
 
