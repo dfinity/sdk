@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### feat: subaccount can be derived from principal in `dfx ledger account-id`
+
 ### feat: `dfx info candid-ui-url`
 
 `dfx info candid-ui-url` displays the URL to the Candid UI canister for an explicitly specified `--network <network name>` (or `local` by default).
@@ -12,7 +14,21 @@
 
 The output of `dfx canister status` has been also changed to use consistent capitalization of words.
 
+### fix!(frontend-canister): include `.well-known` directory by default for asset upload
+
+When uploading assets to an asset canister, `dfx` by default excludes directories and files with names that start with `.`.
+`dfx` will start including folders with the name `.well-known` by default.
+It is possible to override this in `.ic-assets.json` like this:
+
+``` json
+{
+  "match": ".well-known",
+  "ignore": true
+}
+```
+
 ### fix: Transferring funds too early in `dfx ledger create-canister` with --next-to
+
 When creating a canister with `dfx ledger create-canister --next-to` on a canister that does not exist (e.g., aaaa-aa), then the funds are first transferred away from the users account, but the call then fails to create the new canister, and the funds are not returned to the user's account.
 
 ## Dependencies

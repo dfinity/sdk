@@ -33,7 +33,7 @@ To view usage information for a specific subcommand, specify the subcommand and 
 
 ## dfx ledger account-id
 
-Use the `dfx ledger account-id` command to display the account identifier associated with the currently-active identity. Like the textual representation of your developer identity principal, the account identifier is derived from your private key and used to represent your identity in the ledger canister. The command can also be used to compute and display the account ids of other principals, canister aliases and subaccounts of your account.
+Use the `dfx ledger account-id` command to display the account identifier associated with the currently-active identity. Like the textual representation of your developer identity principal, the account identifier is derived from your private key and used to represent your identity in the ledger canister. The command can also be used to compute and display the account ids of other principals, canister aliases and subaccounts of your account (also subaccounts derived from principals).
 
 ### Basic usage
 
@@ -52,6 +52,7 @@ You can use the following optional flags with the `dfx ledger account-id` comman
 | `--of-canister <ALIAS>`      | Alias or principal of the canister controlling the account  |
 | `--of-principal <PRINCIPAL>` | Principal controlling the account                      |
 | `--subaccount <SUBACCOUNT>`   | Subaccount identifier (64 character long hex string)   |
+| `--subaccount-of-principal <PRINCIPAL>`   | Principal from which the subaccount identifier is derived.   |
 
 ### Examples
 
@@ -61,7 +62,13 @@ If you have created more than one identity, check the identity you are currently
 dfx ledger account-id
 ```
 
-The command displays output similar to the following:
+The following command computes the account identifier controlled by the Subnet Rental Canister and for the subaccount derived from Alice's principal:
+
+``` bash
+dfx ledger account-id --of-canister qvhpv-4qaaa-aaaaa-aaagq-cai --subaccount-from-principal fdsgv-62ihb-nbiqv-xgic5-iefsv-3cscz-tmbzv-63qd5-vh43v-dqfrt-pae
+```
+
+The commands display output similar to the following:
 
     03e3d86f29a069c6f2c5c48e01bc084e4ea18ad02b0eec8fccadf4487183c223
 
