@@ -126,7 +126,9 @@ dfx_start() {
 
     add_default_parameter() {
         local param_name=$1
-        local param_value=$2
+        if [[ $# != 1 ]]; then
+            local param_value=$2
+        fi
         local has_param=false
         for arg in "${args[@]}"; do
             if [[ $arg == "$param_name" ]]; then
