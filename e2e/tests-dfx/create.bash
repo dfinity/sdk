@@ -80,7 +80,7 @@ teardown() {
 @test "create succeeds when specify canister ID both in dfx.json and cli; warning if different; cli value takes effect" {
   dfx_start
   jq '.canisters.e2e_project_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
-  assert_command dfx canister create e2e_project_backend --specified-id n2m2m-wyaaa-aaaaa-p777a-caii
+  assert_command dfx canister create e2e_project_backend --specified-id n2m2m-wyaaa-aaaaa-p777a-cai
   assert_contains "WARN: Canister 'e2e_project_backend' has a specified ID in dfx.json: n5n4y-3aaaa-aaaaa-p777q-cai,"
   assert_contains "which is different from the one specified in the command line: n2m2m-wyaaa-aaaaa-p777a-cai."
   assert_contains "The command line value will be used."
