@@ -10,12 +10,10 @@ use actix::{
 };
 use anyhow::bail;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use reqwest::Client;
 use slog::{debug, error, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
-use time::OffsetDateTime;
 use tokio::runtime::Builder;
 
 pub mod signals {
@@ -280,6 +278,8 @@ fn block_on_initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
 #[cfg(unix)]
 async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
     use pocket_ic::common::rest::{ExtendedSubnetConfigSet, RawTime, SubnetSpec};
+    use reqwest::Client;
+    use time::OffsetDateTime;
     let init_client = Client::new();
     debug!(logger, "Configuring PocketIC server");
     init_client
@@ -318,6 +318,6 @@ async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
 }
 
 #[cfg(not(unix))]
-async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
+async fn initialize_pocketic(_: u16, _: Logger) -> DfxResult {
     bail!("PocketIC client library not supported on this platform")
 }
