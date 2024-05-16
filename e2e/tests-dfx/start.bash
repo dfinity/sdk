@@ -84,6 +84,7 @@ teardown() {
 }
 
 @test "icx-proxy domain configuration from command-line" {
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic"
   dfx_start --domain xyz.domain --domain def.somewhere
 
   assert_command ps aux
