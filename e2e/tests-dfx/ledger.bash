@@ -210,10 +210,11 @@ tc_to_num() {
   assert_match "Refunded at block height"
   assert_match "with message: Subnet $SUBNET_ID does not exist"
 
+  # Verify that registry is queried before sending any ICP to CMC
   CANISTER_ID="aaaaa-aa"
   balance=$(dfx ledger balance)
-  assert_command dfx ledger create-canister --amount=100 --next-to "$CANISTER_ID" "$(dfx identity get-principal)"
-  assert_match "unable to determine subnet: Canister is not assigned to any subnet"
+  assert_command_fail dfx ledger create-canister --amount=100 --next-to "$CANISTER_ID" "$(dfx identity get-principal)"
+  assert_contains "[Registry] routing table not found" 
   assert_eq "$balance" "$(dfx ledger balance)"
 
   # Transaction Deduplication
