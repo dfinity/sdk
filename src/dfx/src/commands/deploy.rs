@@ -276,7 +276,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
 }
 
 #[context("Failed to construct frontend url for canister {} on network '{}'.", canister_id, network.name)]
-fn construct_frontend_url(
+pub fn construct_frontend_url(
     network: &NetworkDescriptor,
     canister_id: &Principal,
 ) -> DfxResult<(Url, Option<Url>)> {
@@ -314,7 +314,7 @@ fn construct_frontend_url(
 }
 
 #[context("Failed to construct ui canister url for {} on network '{}'.", canister_id, env.get_network_descriptor().name)]
-fn construct_ui_canister_url(
+pub fn construct_ui_canister_url(
     env: &dyn Environment,
     canister_id: &Principal,
 ) -> DfxResult<Option<Url>> {
