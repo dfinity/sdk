@@ -5,13 +5,14 @@ use crate::lib::error::DfxResult;
 use crate::lib::network::network_opt::NetworkOpt;
 use candid::Principal;
 use clap::Parser;
+use console::Style;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
 // Prints the url of a canister.
 #[derive(Parser)]
 pub struct CanisterUrlOpts {
-    /// Specifies the name of the canister.
+    /// Specifies the name or id of the canister.
     canister: String,
 
     #[command(flatten)]
@@ -50,14 +51,15 @@ pub async fn exec(env: &dyn Environment, opts: CanisterUrlOpts) -> DfxResult {
                 }
 
                 let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
+                let green = Style::new().green();
 
                 // Display as frontend if it's an asset canister, or custome type with a frontend.
                 if canister_info.is_assets() || canister_config.frontend.is_some() {
                     let (canister_url, url2) =
                         deploy::construct_frontend_url(&network_descriptor, &canister_id)?;
-                    println!("{}", canister_url);
+                    println!("{}", green.apply_to(canister_url));
                     if let Some(canister_url2) = url2 {
-                        println!("{}", canister_url2);
+                        println!("{}", green.apply_to(canister_url2));
                     }
                 }
 
@@ -65,7 +67,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterUrlOpts) -> DfxResult {
                 if !canister_info.is_assets() {
                     let url = deploy::construct_ui_canister_url(env, &canister_id)?;
                     if let Some(canister_url) = url {
-                        println!("{}", canister_url);
+                        println!("{}", green.apply_to(canister_url));
                     }
                 }
             }
