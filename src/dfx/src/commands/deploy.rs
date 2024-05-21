@@ -2,7 +2,6 @@ use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::named_canister::get_ui_canister_url;
 use crate::lib::network::network_opt::NetworkOpt;
 use crate::lib::operations::canister::deploy_canisters::deploy_canisters;
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
@@ -12,22 +11,20 @@ use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
+use crate::util::url::{construct_frontend_url, construct_ui_canister_url};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
 use console::Style;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
-use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 use std::collections::BTreeMap;
-use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::PathBuf;
 use std::str::FromStr;
 use tokio::runtime::Runtime;
-use url::Host::{Domain, Ipv4, Ipv6};
 use url::Url;
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.
@@ -273,59 +270,4 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
     }
 
     Ok(())
-}
-
-#[context("Failed to construct frontend url for canister {} on network '{}'.", canister_id, network.name)]
-pub fn construct_frontend_url(
-    network: &NetworkDescriptor,
-    canister_id: &Principal,
-) -> DfxResult<(Url, Option<Url>)> {
-    let mut url = Url::parse(&network.providers[0]).with_context(|| {
-        format!(
-            "Failed to parse url for network provider {}.",
-            &network.providers[0]
-        )
-    })?;
-    // For localhost defined by IP address we suggest `<canister_id>.localhost` as an alternate way of accessing the canister because it plays nicer with SPAs.
-    // We still display `<IP>?canisterId=<canister_id>` because Safari does not support localhost subdomains
-    let url2 = if url.host() == Some(Ipv4(Ipv4Addr::LOCALHOST))
-        || url.host() == Some(Ipv6(Ipv6Addr::LOCALHOST))
-    {
-        let mut subdomain_url = url.clone();
-        let localhost_with_subdomain = format!("{}.localhost", canister_id);
-        subdomain_url
-            .set_host(Some(&localhost_with_subdomain))
-            .with_context(|| format!("Failed to set host to {}.", localhost_with_subdomain))?;
-        Some(subdomain_url)
-    } else {
-        None
-    };
-
-    if let Some(Domain(domain)) = url.host() {
-        let host = format!("{}.{}", canister_id, domain);
-        url.set_host(Some(&host))
-            .with_context(|| format!("Failed to set host to {}.", host))?;
-    } else {
-        let query = format!("canisterId={}", canister_id);
-        url.set_query(Some(&query));
-    };
-
-    Ok((url, url2))
-}
-
-#[context("Failed to construct ui canister url for {} on network '{}'.", canister_id, env.get_network_descriptor().name)]
-pub fn construct_ui_canister_url(
-    env: &dyn Environment,
-    canister_id: &Principal,
-) -> DfxResult<Option<Url>> {
-    let mut url = get_ui_canister_url(env)?;
-    if let Some(base_url) = url.as_mut() {
-        let query_with_canister_id = if let Some(query) = base_url.query() {
-            format!("{query}&id={canister_id}")
-        } else {
-            format!("id={canister_id}")
-        };
-        base_url.set_query(Some(&query_with_canister_id));
-    };
-    Ok(url)
 }

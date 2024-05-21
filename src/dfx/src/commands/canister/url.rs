@@ -1,8 +1,8 @@
-use super::super::deploy;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_opt::NetworkOpt;
+use crate::util::url::{construct_frontend_url, construct_ui_canister_url};
 use candid::Principal;
 use clap::Parser;
 use console::Style;
@@ -56,7 +56,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterUrlOpts) -> DfxResult {
                 // Display as frontend if it's an asset canister, or custome type with a frontend.
                 if canister_info.is_assets() || canister_config.frontend.is_some() {
                     let (canister_url, url2) =
-                        deploy::construct_frontend_url(&network_descriptor, &canister_id)?;
+                        construct_frontend_url(&network_descriptor, &canister_id)?;
                     println!("{}", green.apply_to(canister_url));
                     if let Some(canister_url2) = url2 {
                         println!("{}", green.apply_to(canister_url2));
@@ -65,7 +65,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterUrlOpts) -> DfxResult {
 
                 // Display as backend.
                 if !canister_info.is_assets() {
-                    let url = deploy::construct_ui_canister_url(env, &canister_id)?;
+                    let url = construct_ui_canister_url(env, &canister_id)?;
                     if let Some(canister_url) = url {
                         println!("{}", green.apply_to(canister_url));
                     }
