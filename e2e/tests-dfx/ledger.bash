@@ -211,7 +211,7 @@ tc_to_num() {
   assert_match "with message: Subnet $SUBNET_ID does not exist"
 
   # Verify that registry is queried before sending any ICP to CMC
-  CANISTER_ID="aaaaa-aa"
+  CANISTER_ID="2vxsx-fae" # anonymous principal
   balance=$(dfx ledger balance)
   assert_command_fail dfx ledger create-canister --amount=100 --next-to "$CANISTER_ID" "$(dfx identity get-principal)"
   assert_contains "[Registry] routing table not found" 
