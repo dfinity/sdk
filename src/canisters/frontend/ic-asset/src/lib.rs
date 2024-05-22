@@ -37,9 +37,7 @@ mod canister_api;
 pub mod error;
 mod evidence;
 mod sync;
-mod upload;
 
 pub use evidence::compute_evidence;
 pub use sync::prepare_sync_for_proposal;
-pub use sync::sync;
-pub use upload::upload;
+pub use sync::{sync, ExistingAssetStrategy};

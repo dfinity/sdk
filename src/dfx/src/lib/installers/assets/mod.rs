@@ -4,6 +4,7 @@ use crate::lib::error::DfxResult;
 use anyhow::Context;
 use fn_error_context::context;
 use ic_agent::Agent;
+use ic_asset::ExistingAssetStrategy;
 use slog::Logger;
 use std::path::Path;
 
@@ -27,14 +28,19 @@ pub async fn post_install_store_assets(
         .build()
         .context("Failed to build asset canister caller.")?;
 
-    ic_asset::sync(&canister, &source_paths, logger)
-        .await
-        .with_context(|| {
-            format!(
-                "Failed asset sync with canister {}.",
-                canister.canister_id_()
-            )
-        })?;
+    ic_asset::sync(
+        &canister,
+        &source_paths,
+        ExistingAssetStrategy::Delete,
+        logger,
+    )
+    .await
+    .with_context(|| {
+        format!(
+            "Failed asset sync with canister {}.",
+            canister.canister_id_()
+        )
+    })?;
 
     Ok(())
 }
@@ -59,14 +65,19 @@ pub async fn prepare_assets_for_proposal(
         .build()
         .context("Failed to build asset canister caller.")?;
 
-    ic_asset::prepare_sync_for_proposal(&canister, &source_paths, logger)
-        .await
-        .with_context(|| {
-            format!(
-                "Failed asset sync with canister {}.",
-                canister.canister_id_()
-            )
-        })?;
+    ic_asset::prepare_sync_for_proposal(
+        &canister,
+        &source_paths,
+        ExistingAssetStrategy::Delete,
+        logger,
+    )
+    .await
+    .with_context(|| {
+        format!(
+            "Failed asset sync with canister {}.",
+            canister.canister_id_()
+        )
+    })?;
 
     Ok(())
 }

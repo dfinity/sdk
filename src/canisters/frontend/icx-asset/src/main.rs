@@ -72,8 +72,8 @@ struct UploadOpts {
     /// The asset canister ID to manage.
     canister_id: String,
 
-    /// Files or folders to send.
-    files: Vec<String>,
+    /// Directories to upload.
+    directory: Vec<PathBuf>,
 }
 
 fn create_identity(maybe_pem: Option<PathBuf>) -> Box<dyn Identity + Sync + Send> {

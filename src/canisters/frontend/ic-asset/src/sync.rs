@@ -40,10 +40,21 @@ use walkdir::WalkDir;
 
 const KNOWN_DIRECTORIES: [&str; 1] = [".well-known"];
 
+/// Strategy for handling assets in the canister that are not in the new asset set.
+#[derive(Debug)]
+pub enum ExistingAssetStrategy {
+    /// Keep assets that are not in the new asset set. This will add to the destination canister without removing anything.
+    Keep,
+
+    /// Delete assets that are not in the new asset set. This will keep the destination canister in sync with the source directories.
+    Delete,
+}
+
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
 pub async fn upload_content_and_assemble_sync_operations(
     canister: &Canister<'_>,
     dirs: &[&Path],
+    existing_asset_strategy: ExistingAssetStrategy,
     logger: &Logger,
 ) -> Result<CommitBatchArguments, UploadContentError> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
@@ -77,7 +88,10 @@ pub async fn upload_content_and_assemble_sync_operations(
     let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
         project_assets,
         canister_assets,
-        AssetDeletionReason::Obsolete,
+        match existing_asset_strategy {
+            ExistingAssetStrategy::Keep => AssetDeletionReason::Incompatible,
+            ExistingAssetStrategy::Delete => AssetDeletionReason::Obsolete,
+        },
         canister_asset_properties,
         batch_id,
     );
@@ -105,10 +119,16 @@ pub async fn upload_content_and_assemble_sync_operations(
 pub async fn sync(
     canister: &Canister<'_>,
     dirs: &[&Path],
+    existing_asset_strategy: ExistingAssetStrategy,
     logger: &Logger,
 ) -> Result<(), SyncError> {
-    let commit_batch_args =
-        upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
+    let commit_batch_args = upload_content_and_assemble_sync_operations(
+        canister,
+        dirs,
+        existing_asset_strategy,
+        logger,
+    )
+    .await?;
     let canister_api_version = api_version(canister).await;
     debug!(logger, "Canister API version: {canister_api_version}. ic-asset API version: {BATCH_UPLOAD_API_VERSION}");
     info!(logger, "Committing batch.");
@@ -140,7 +160,7 @@ async fn commit_in_stages(
         commit_batch(
             canister,
             CommitBatchArguments {
-                batch_id: Nat::from(0_u8),
+                batch_id: commit_batch_args.batch_id.clone(),
                 operations: operations.into(),
             },
         )
@@ -180,9 +200,16 @@ async fn commit_in_stages(
 pub async fn prepare_sync_for_proposal(
     canister: &Canister<'_>,
     dirs: &[&Path],
+    existing_asset_strategy: ExistingAssetStrategy,
     logger: &Logger,
 ) -> Result<(), PrepareSyncForProposalError> {
-    let arg = upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
+    let arg = upload_content_and_assemble_sync_operations(
+        canister,
+        dirs,
+        existing_asset_strategy,
+        logger,
+    )
+    .await?;
     let arg = sort_batch_operations(arg);
     let batch_id = arg.batch_id.clone();
 
