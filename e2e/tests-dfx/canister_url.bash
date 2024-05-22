@@ -23,7 +23,7 @@ teardown() {
   assert_match "http://127.0.0.1.+${frontend_id}"
   assert_match "${frontend_id}.localhost"
 
-  assert_command dfx canister url $frontend_id
+  assert_command dfx canister url "$frontend_id"
   assert_match "http://127.0.0.1.+${frontend_id}"
   assert_match "${frontend_id}.localhost"
 }
@@ -38,7 +38,7 @@ teardown() {
   assert_match "canisterId=br5f7-7uaaa-aaaaa-qaaca-cai&id=${backend_id}"
 
   backend_id=$(dfx canister id hello_backend)
-  assert_command dfx canister url $backend_id
+  assert_command dfx canister url "$backend_id"
   assert_match "canisterId=br5f7-7uaaa-aaaaa-qaaca-cai&id=${backend_id}"
 }
 
@@ -62,7 +62,7 @@ teardown() {
   assert_command dfx canister url hello_frontend --ic
   assert_match "https://${frontend_id}.icp0.io"
 
-  assert_command dfx canister url $frontend_id --ic
+  assert_command dfx canister url "$frontend_id" --ic
   assert_match "https://${frontend_id}.icp0.io"
 }
 
@@ -75,6 +75,6 @@ teardown() {
   assert_command dfx canister url hello_backend --ic
   assert_contains "https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${backend_id}"
 
-  assert_command dfx canister url $backend_id --ic
+  assert_command dfx canister url "$backend_id" --ic
   assert_contains "https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${backend_id}"
 }
