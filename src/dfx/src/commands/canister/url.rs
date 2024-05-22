@@ -45,7 +45,7 @@ pub async fn exec(env: &dyn Environment, opts: CanisterUrlOpts) -> DfxResult {
                 // Ignore if it's remote canister.
                 if config
                     .get_config()
-                    .is_remote_canister(&canister_name, &network_descriptor.name)?
+                    .is_remote_canister(canister_name, &network_descriptor.name)?
                 {
                     return Ok(());
                 }
