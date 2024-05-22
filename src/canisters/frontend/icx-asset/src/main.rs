@@ -6,9 +6,10 @@ use crate::commands::upload::upload;
 use anstyle::{AnsiColor, Style};
 use candid::Principal;
 use clap::builder::Styles;
-use clap::{crate_authors, crate_version, Parser};
+use clap::{crate_authors, crate_version, Parser, ValueEnum};
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
 use ic_agent::{agent, Agent, Identity};
+use slog::Level;
 use std::path::PathBuf;
 
 const DEFAULT_IC_GATEWAY: &str = "https://icp0.io";
@@ -37,6 +38,30 @@ struct Opts {
 
     #[command(subcommand)]
     subcommand: SubCommand,
+
+    #[arg(long, value_enum, default_value = "info")]
+    log_level: LogLevel,
+}
+
+#[derive(ValueEnum, Clone, Debug)]
+enum LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warning,
+    Error,
+}
+
+impl From<LogLevel> for Level {
+    fn from(log_level: LogLevel) -> Self {
+        match log_level {
+            LogLevel::Trace => Level::Trace,
+            LogLevel::Debug => Level::Debug,
+            LogLevel::Info => Level::Info,
+            LogLevel::Warning => Level::Warning,
+            LogLevel::Error => Level::Error,
+        }
+    }
 }
 
 #[derive(Parser)]
@@ -107,7 +132,7 @@ fn style() -> Styles {
 async fn main() -> anyhow::Result<()> {
     let opts: Opts = Opts::parse();
 
-    let logger = support::new_logger();
+    let logger = support::new_logger(opts.log_level.into());
 
     let agent = Agent::builder()
         .with_transport(agent::http_transport::ReqwestTransport::create(

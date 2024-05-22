@@ -1,4 +1,4 @@
-use slog::{Drain, Logger};
+use slog::{Drain, Level, Logger};
 
 pub struct TermLogFormat<D>
 where
@@ -42,9 +42,10 @@ impl<D: slog_term::Decorator> slog::Drain for TermLogFormat<D> {
     }
 }
 
-pub(crate) fn new_logger() -> Logger {
+pub(crate) fn new_logger(level: Level) -> Logger {
     let decorator = slog_term::TermDecorator::new().build();
     let drain = TermLogFormat::new(decorator).fuse();
+    let drain = slog::LevelFilter::new(drain, level).fuse();
     let drain = slog_async::Async::new(drain).build().fuse();
     Logger::root(drain, slog::o!())
 }
