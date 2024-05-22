@@ -277,13 +277,13 @@ pub struct ConfigCanistersCanister {
     /// Entry point for e.g. Motoko Compiler.
     pub main: Option<PathBuf>,
 
-    /// # Shrink Canister WASM
+    /// # Shrink Canister Wasm
     /// Whether run `ic-wasm shrink` after building the Canister.
     /// Enabled by default for Rust/Motoko canisters.
     /// Disabled by default for custom canisters.
     pub shrink: Option<bool>,
 
-    /// # Optimize Canister WASM
+    /// # Optimize Canister Wasm
     /// Invoke wasm level optimizations after building the canister. Optimization level can be set to "cycles" to optimize for cycle usage, "size" to optimize for binary size, or any of "O4, O3, O2, O1, O0, Oz, Os".
     /// Disabled by default.
     /// If this option is specified, the `shrink` option will be ignored.
@@ -305,7 +305,7 @@ pub struct ConfigCanistersCanister {
     #[serde(default)]
     pub tech_stack: Option<TechStack>,
 
-    /// # Gzip Canister WASM
+    /// # Gzip Canister Wasm
     /// Disabled by default.
     pub gzip: Option<bool>,
 
@@ -333,7 +333,7 @@ pub enum CanisterTypeProperties {
     /// # Rust-Specific Properties
     Rust {
         /// # Package Name
-        /// Name of the rust package that compiles to this canister's WASM.
+        /// Name of the rust package that compiles to this canister's Wasm.
         package: String,
 
         /// # Candid File
@@ -359,9 +359,9 @@ pub enum CanisterTypeProperties {
     },
     /// # Custom-Specific Properties
     Custom {
-        /// # WASM Path
-        /// Path to WASM to be installed. URLs to a WASM module are also acceptable.
-        /// A canister that has a URL to a WASM module can not also have `build` steps.
+        /// # Wasm Path
+        /// Path to Wasm to be installed. URLs to a Wasm module are also acceptable.
+        /// A canister that has a URL to a Wasm module can not also have `build` steps.
         wasm: String,
 
         /// # Candid File
@@ -369,8 +369,8 @@ pub enum CanisterTypeProperties {
         candid: String,
 
         /// # Build Commands
-        /// Commands that are executed in order to produce this canister's WASM module.
-        /// Expected to produce the WASM in the path specified by the 'wasm' field.
+        /// Commands that are executed in order to produce this canister's Wasm module.
+        /// Expected to produce the Wasm in the path specified by the 'wasm' field.
         /// No build commands are allowed if the `wasm` field is a URL.
         #[schemars(default)]
         build: SerdeVec<String>,
@@ -433,11 +433,11 @@ pub struct InitializationValues {
     #[schemars(with = "Option<u128>")]
     pub reserved_cycles_limit: Option<u128>,
 
-    /// # WASM Memory Limit
+    /// # Wasm Memory Limit
     /// Specifies a soft limit (in bytes) on the Wasm memory usage of the canister.
     ///
     /// Update calls, timers, heartbeats, installs, and post-upgrades fail if the
-    /// WASM memory usage exceeds this limit. The main purpose of this setting is
+    /// Wasm memory usage exceeds this limit. The main purpose of this setting is
     /// to protect against the case when the canister reaches the hard 4GiB
     /// limit.
     ///

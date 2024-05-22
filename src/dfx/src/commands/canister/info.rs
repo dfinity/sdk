@@ -9,7 +9,7 @@ use candid::Principal;
 use clap::Parser;
 use itertools::Itertools;
 
-/// Get the hash of a canister’s WASM module and its current controllers.
+/// Get the hash of a canister’s Wasm module and its current controllers.
 #[derive(Parser)]
 pub struct InfoOpts {
     /// Specifies the name or id of the canister to get its canister information.

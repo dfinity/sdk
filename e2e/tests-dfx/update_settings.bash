@@ -18,11 +18,11 @@ teardown() {
     dfx_start
     assert_command dfx deploy hello_backend
     assert_command dfx canister status hello_backend
-    assert_contains "Reserved Cycles Limit: 5_000_000_000_000 Cycles"
+    assert_contains "Reserved cycles limit: 5_000_000_000_000 Cycles"
 
     assert_command dfx canister update-settings hello_backend --reserved-cycles-limit 650000
     assert_command dfx canister status hello_backend
-    assert_contains "Reserved Cycles Limit: 650_000 Cycles"
+    assert_contains "Reserved cycles limit: 650_000 Cycles"
 }
 
 @test "set freezing threshold" {
@@ -49,12 +49,12 @@ teardown() {
   assert_command dfx canister create e2e_project_backend --no-wallet --wasm-memory-limit 2MiB
   assert_command dfx deploy e2e_project_backend
   assert_command dfx canister status e2e_project_backend
-  assert_contains "WASM Memory Limit: 2_097_152 Bytes"
+  assert_contains "Wasm memory limit: 2_097_152 Bytes"
   # currently the limit is only checked when the memory grows. uncomment this line when that changes
   # assert_command dfx canister call e2e_project_backend greet_update '("alice")' 
   assert_command dfx canister update-settings e2e_project_backend --wasm-memory-limit 8b
   assert_command dfx canister status e2e_project_backend
-  assert_contains "WASM Memory Limit: 8 Bytes"
+  assert_contains "Wasm memory limit: 8 Bytes"
   assert_command dfx canister call e2e_project_backend greet '("alice")' --query
   assert_command dfx canister call e2e_project_backend greet '("alice")' --update
   assert_command_fail dfx canister call e2e_project_backend greet_update '("alice")'
