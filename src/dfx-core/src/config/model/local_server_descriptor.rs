@@ -151,7 +151,7 @@ impl LocalServerDescriptor {
 
     /// This file contains the listening port of the pocket-ic process
     pub fn pocketic_port_path(&self) -> PathBuf {
-        self.data_directory.join("pocket-ic.port")
+        self.data_directory.join("pocket-ic-port")
     }
 
     pub fn pocketic_pid_path(&self) -> PathBuf {

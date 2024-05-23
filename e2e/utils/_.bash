@@ -122,9 +122,6 @@ dfx_start() {
 
     add_default_parameter() {
         local param_name=$1
-        if [[ $# != 1 ]]; then
-            local param_value=$2
-        fi
         local has_param=false
         for arg in "${args[@]}"; do
             if [[ $arg == "$param_name" ]]; then
@@ -133,7 +130,12 @@ dfx_start() {
             fi
         done
         if ! $has_param; then
-            args+=( "$param_name" ${param_value+"$param_value"} )
+            if [[ $# == 1 ]]; then
+                args+=( "$param_name" )
+            else
+                local param_value=$2
+                args+=( "$param_name" "$param_value" )
+            fi
         fi
     }
 
@@ -154,8 +156,8 @@ dfx_start() {
     dfx start --background "${args[@]}" 3>&-
 
     if [[ "$USE_POCKETIC" ]]; then
-        test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic.port"
-        port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic.port")
+        test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
+        port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port")
     else
         dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
@@ -288,7 +290,7 @@ get_pocketic_pid() {
 }
 
 get_pocketic_port() {
-  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic.port"
+  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
 }
 
 get_btc_adapter_pid() {
