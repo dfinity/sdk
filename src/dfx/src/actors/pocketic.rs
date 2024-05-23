@@ -324,5 +324,5 @@ async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
 
 #[cfg(not(unix))]
 async fn initialize_pocketic(_: u16, _: Logger) -> DfxResult {
-    bail!("PocketIC client library not supported on this platform")
+    bail!("PocketIC not supported on this platform")
 }
