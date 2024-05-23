@@ -225,7 +225,7 @@ fn pocketic_start_thread(
             let port = PocketIc::wait_for_port_file(&config.port_file).unwrap();
 
             if let Err(e) = block_on_initialize_pocketic(port, logger.clone()) {
-                error!(logger, "Failed to initialize replica: {:#}", e);
+                error!(logger, "Failed to initialize PocketIC: {:#}", e);
                 let _ = child.kill();
                 let _ = child.wait();
                 if receiver.try_recv().is_ok() {
