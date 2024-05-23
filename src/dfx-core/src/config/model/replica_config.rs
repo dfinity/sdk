@@ -1,5 +1,6 @@
-use dfx_core::config::model::dfinity::{ReplicaLogLevel, ReplicaSubnetType};
+use crate::config::model::dfinity::{ReplicaLogLevel, ReplicaSubnetType};
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::default::Default;
 use std::path::{Path, PathBuf};
 
@@ -179,6 +180,47 @@ impl HttpHandlerConfig {
         HttpHandlerConfig {
             port: None,
             write_port_to: Some(write_port_to.to_path_buf()),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "type", rename_all = "snake_case")]
+#[allow(clippy::large_enum_variant)]
+pub enum CachedReplicaConfig<'a> {
+    Replica { config: Cow<'a, ReplicaConfig> },
+    PocketIc,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq)]
+pub struct CachedConfig<'a> {
+    pub replica_rev: String,
+    #[serde(flatten)]
+    pub config: CachedReplicaConfig<'a>,
+}
+
+impl<'a> CachedConfig<'a> {
+    pub fn replica(config: &'a ReplicaConfig, replica_rev: String) -> Self {
+        Self {
+            replica_rev,
+            config: CachedReplicaConfig::Replica {
+                config: Cow::Borrowed(config),
+            },
+        }
+    }
+    pub fn pocketic(replica_rev: String) -> Self {
+        Self {
+            replica_rev,
+            config: CachedReplicaConfig::PocketIc,
+        }
+    }
+    pub fn can_share_state(&self, other: &Self) -> bool {
+        match (&self.config, &other.config) {
+            (CachedReplicaConfig::PocketIc, _) | (_, CachedReplicaConfig::PocketIc) => false,
+            (
+                CachedReplicaConfig::Replica { config: config1 },
+                CachedReplicaConfig::Replica { config: config2 },
+            ) => self.replica_rev == other.replica_rev && config1 == config2,
         }
     }
 }

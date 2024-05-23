@@ -12,22 +12,19 @@ use crate::lib::info::replica_rev;
 use crate::lib::integrations::status::wait_for_integrations_initialized;
 use crate::lib::network::id::write_network_id;
 use crate::lib::replica::status::ping_and_wait;
-use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
-use candid::Deserialize;
 use clap::{ArgAction, Parser};
 use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::config::model::replica_config::{CachedConfig, ReplicaConfig};
 use dfx_core::config::model::{bitcoin_adapter, canister_http_adapter};
 use dfx_core::json::{load_json_file, save_json_file};
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 use fn_error_context::context;
 use os_str_bytes::{OsStrBytes, OsStringBytes};
-use serde::Serialize;
 use slog::{info, warn, Logger};
-use std::borrow::Cow;
 use std::fs;
 use std::fs::create_dir_all;
 use std::io::Read;
@@ -328,9 +325,9 @@ pub fn exec(
     };
 
     let effective_config = if pocketic {
-        CachedConfig::pocketic()
+        CachedConfig::pocketic(replica_rev().into())
     } else {
-        CachedConfig::replica(&replica_config)
+        CachedConfig::replica(&replica_config, replica_rev().into())
     };
 
     if !clean && !force && previous_config_path.exists() {
@@ -421,47 +418,6 @@ pub fn exec(
     }
 
     Ok(())
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
-#[serde(tag = "type", rename_all = "snake_case")]
-#[allow(clippy::large_enum_variant)]
-pub enum CachedReplicaConfig<'a> {
-    Replica { config: Cow<'a, ReplicaConfig> },
-    PocketIc,
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
-pub struct CachedConfig<'a> {
-    pub replica_rev: String,
-    #[serde(flatten)]
-    pub config: CachedReplicaConfig<'a>,
-}
-
-impl<'a> CachedConfig<'a> {
-    pub fn replica(config: &'a ReplicaConfig) -> Self {
-        Self {
-            replica_rev: replica_rev().into(),
-            config: CachedReplicaConfig::Replica {
-                config: Cow::Borrowed(config),
-            },
-        }
-    }
-    pub fn pocketic() -> Self {
-        Self {
-            replica_rev: replica_rev().into(),
-            config: CachedReplicaConfig::PocketIc,
-        }
-    }
-    pub fn can_share_state(&self, other: &Self) -> bool {
-        match (&self.config, &other.config) {
-            (CachedReplicaConfig::PocketIc, _) | (_, CachedReplicaConfig::PocketIc) => false,
-            (
-                CachedReplicaConfig::Replica { config: config1 },
-                CachedReplicaConfig::Replica { config: config2 },
-            ) => self.replica_rev == other.replica_rev && config1 == config2,
-        }
-    }
 }
 
 pub fn apply_command_line_parameters(

@@ -11,13 +11,13 @@ use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::integrations::bitcoin::initialize_bitcoin_canister;
 use crate::lib::integrations::create_integrations_agent;
-use crate::lib::replica_config::ReplicaConfig;
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
 use anyhow::bail;
 use crossbeam::channel::{unbounded, Receiver, Sender};
+use dfx_core::config::model::replica_config::ReplicaConfig;
 use slog::{debug, error, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
