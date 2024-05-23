@@ -83,8 +83,6 @@ cleanup_onchain() {
 }
 
 @test "dfx deps pull can resolve dependencies from on-chain canister metadata" {
-  # ic-ref has different behavior than the replica:
-  #   it doesn't differ whether the canister not exist or the metadata not exist
   dfx_start
 
   install_asset deps
