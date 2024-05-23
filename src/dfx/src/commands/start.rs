@@ -70,7 +70,7 @@ pub struct StartOpts {
     artificial_delay: u32,
 
     /// Start even if the network config was modified.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "pocketic")]
     force: bool,
 
     /// Use old metering.
