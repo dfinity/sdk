@@ -12,6 +12,43 @@ teardown() {
   standard_teardown
 }
 
+@test "start and stop with different options" {
+  dfx_start --artificial-delay 101
+  dfx_stop
+
+  # notice: no need to --clean
+  dfx_start --artificial-delay 102
+  dfx_stop
+}
+
+@test "project networks still need --clean" {
+  dfx_new hello
+  define_project_network
+
+  dfx_start --artificial-delay 101
+  dfx_stop
+
+  dfx_start --artificial-delay 102
+  dfx_stop
+}
+
+@test "stop and start with other options does not disrupt projects" {
+  dfx_start --artificial-delay 101
+
+  dfx_new p1
+  assert_command dfx deploy
+  CANISTER_ID="$(dfx canister id p1_backend)"
+
+  assert_command dfx stop
+  dfx_start --artificial-delay 102
+  assert_command dfx stop
+
+  dfx_start --artificial-delay 101
+
+  assert_command dfx canister id p1_backend
+  assert_eq "$CANISTER_ID"
+}
+
 @test "start and stop outside project" {
   dfx_start
 
@@ -447,18 +484,14 @@ teardown() {
   assert_match "Hello, World! from DFINITY"
 }
 
-@test "modifying networks.json requires --clean on restart" {
+@test "modifying networks.json does not require --clean on restart" {
   [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: --force"
   dfx_start
   dfx stop
   assert_command dfx_start
   dfx stop
   jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
-  assert_command_fail dfx_start
-  assert_contains "The network state can't be reused with this configuration. Rerun with \`--clean\`."
-  assert_command dfx_start --force
-  dfx stop
-  assert_command dfx_start --clean
+  assert_command dfx_start
 }
 
 @test "project-local networks require --clean if dfx.json was updated" {
@@ -480,8 +513,11 @@ teardown() {
   assert_command dfx_start --clean
 }
 
-@test "flags count as configuration modification and require --clean" {
+@test "flags count as configuration modification and require --clean for a project network" {
   [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: --artificial-delay"
+  dfx_new
+  define_project_network
+
   dfx start --background
   dfx stop
   assert_command_fail dfx start --artificial-delay 100 --background
@@ -493,6 +529,7 @@ teardown() {
   assert_command_fail dfx start --background
   assert_contains "The network state can't be reused with this configuration. Rerun with \`--clean\`."
   assert_command dfx start --force --background
+  dfx stop
 }
 
 @test "dfx start then ctrl-c won't hang and panic but stop actors quickly" {
