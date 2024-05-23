@@ -6,10 +6,10 @@ use crate::config::model::dfinity::{
     DEFAULT_SHARED_LOCAL_BIND,
 };
 use crate::config::model::replica_config::CachedConfig;
-use crate::error::load_networks_config::LoadNetworksConfigError;
 use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
+use crate::error::structured_file::StructuredFileError;
 use crate::json::load_json_file;
 use crate::json::structure::SerdeVec;
 use slog::{debug, info, Logger};
@@ -159,12 +159,9 @@ impl LocalServerDescriptor {
     }
 
     /// Returns whether the local server is PocketIC (as opposed to the replica)
-    pub fn is_pocketic(&self) -> Result<bool, LoadNetworksConfigError> {
-        Ok(
-            load_json_file::<CachedConfig>(&self.effective_config_path())
-                .map_err(LoadNetworksConfigError::LoadConfigFromFileFailed)?
-                .is_pocketic(),
-        )
+    pub fn effective_config(&self) -> Result<Option<CachedConfig<'static>>, StructuredFileError> {
+        let path = self.effective_config_path();
+        path.exists().then(|| load_json_file(&path)).transpose()
     }
 
     /// The top-level directory holding state for the replica.

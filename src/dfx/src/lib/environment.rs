@@ -297,7 +297,9 @@ impl<'a> AgentEnvironment<'a> {
         }
         let url = network_descriptor.first_provider()?;
         let effective_canister_id = if let Some(d) = &network_descriptor.local_server_descriptor {
-            d.is_pocketic()?.then_some(POCKETIC_EFFECTIVE_CANISTER_ID)
+            d.effective_config()?
+                .is_some_and(|c| c.is_pocketic())
+                .then_some(POCKETIC_EFFECTIVE_CANISTER_ID)
         } else {
             None
         };
