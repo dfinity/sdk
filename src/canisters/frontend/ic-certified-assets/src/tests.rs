@@ -1081,7 +1081,10 @@ fn check_url_decode() {
         url_decode("/%"),
         Err(UrlDecodeError::InvalidPercentEncoding)
     );
-    assert_eq!(url_decode("/%%"), Ok("/%".to_string()));
+    assert_eq!(
+        url_decode("/%%"),
+        Err(UrlDecodeError::InvalidPercentEncoding)
+    );
     assert_eq!(url_decode("/%20a"), Ok("/ a".to_string()));
     assert_eq!(
         url_decode("/%%+a%20+%@"),
@@ -1091,7 +1094,20 @@ fn check_url_decode() {
         url_decode("/has%percent.txt"),
         Err(UrlDecodeError::InvalidPercentEncoding)
     );
-    assert_eq!(url_decode("/%e6"), Ok("/æ".to_string()));
+
+    assert_eq!(
+        url_decode("/%%2"),
+        Err(UrlDecodeError::InvalidPercentEncoding)
+    );
+    assert_eq!(url_decode("/%C3%A6"), Ok("/æ".to_string()));
+    assert_eq!(url_decode("/%c3%a6"), Ok("/æ".to_string()));
+
+    assert_eq!(url_decode("/a+b+c%20d"), Ok("/a+b+c d".to_string()));
+
+    assert_eq!(
+        url_decode("/capture-d%E2%80%99e%CC%81cran-2023-10-26-a%CC%80.txt"),
+        Ok("/capture-d’écran-2023-10-26-à.txt".to_string())
+    );
 }
 
 #[test]
