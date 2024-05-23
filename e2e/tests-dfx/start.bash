@@ -455,7 +455,7 @@ teardown() {
   dfx stop
   jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
   assert_command_fail dfx_start
-  assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+  assert_contains "The network state can't be reused with this configuration. Rerun with \`--clean\`."
   assert_command dfx_start --force
   dfx stop
   assert_command dfx_start --clean
@@ -474,7 +474,7 @@ teardown() {
   dfx stop
   jq '.networks.local.replica.log_level="warning"' dfx.json | sponge dfx.json
   assert_command_fail dfx_start
-  assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+  assert_contains  "The network state can't be reused with this configuration. Rerun with \`--clean\`."
   assert_command dfx_start --force
   dfx stop
   assert_command dfx_start --clean
@@ -485,13 +485,13 @@ teardown() {
   dfx start --background
   dfx stop
   assert_command_fail dfx start --artificial-delay 100 --background
-  assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+  assert_contains "The network state can't be reused with this configuration. Rerun with \`--clean\`."
   assert_command dfx start --artificial-delay 100 --clean --background
   dfx stop
   assert_command dfx start --artificial-delay 100 --background
   dfx stop
   assert_command_fail dfx start --background
-  assert_contains "The network configuration was changed. Rerun with \`--clean\`."
+  assert_contains "The network state can't be reused with this configuration. Rerun with \`--clean\`."
   assert_command dfx start --force --background
 }
 
