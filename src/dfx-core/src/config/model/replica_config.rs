@@ -214,6 +214,9 @@ impl<'a> CachedConfig<'a> {
             config: CachedReplicaConfig::PocketIc,
         }
     }
+    pub fn is_pocketic(&self) -> bool {
+        matches!(self.config, CachedReplicaConfig::PocketIc)
+    }
     pub fn can_share_state(&self, other: &Self) -> bool {
         match (&self.config, &other.config) {
             (CachedReplicaConfig::PocketIc, _) | (_, CachedReplicaConfig::PocketIc) => false,

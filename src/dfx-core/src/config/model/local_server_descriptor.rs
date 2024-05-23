@@ -5,9 +5,12 @@ use crate::config::model::dfinity::{
     ConfigDefaultsReplica, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
     DEFAULT_SHARED_LOCAL_BIND,
 };
+use crate::config::model::replica_config::CachedConfig;
+use crate::error::load_networks_config::LoadNetworksConfigError;
 use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
+use crate::json::load_json_file;
 use crate::json::structure::SerdeVec;
 use slog::{debug, info, Logger};
 use std::net::SocketAddr;
@@ -152,8 +155,12 @@ impl LocalServerDescriptor {
     }
 
     /// Returns whether the local server is PocketIC (as opposed to the replica)
-    pub fn is_pocketic(&self) -> bool {
-        self.pocketic_port_path().exists()
+    pub fn is_pocketic(&self) -> Result<bool, LoadNetworksConfigError> {
+        Ok(
+            load_json_file::<CachedConfig>(&self.effective_config_path())
+                .map_err(LoadNetworksConfigError::LoadConfigFromFileFailed)?
+                .is_pocketic(),
+        )
     }
 
     /// The top-level directory holding state for the replica.

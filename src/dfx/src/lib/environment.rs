@@ -296,10 +296,11 @@ impl<'a> AgentEnvironment<'a> {
                 and use it in mainnet-facing commands with the `--identity` flag", identity.name());
         }
         let url = network_descriptor.first_provider()?;
-        let effective_canister_id = network_descriptor
-            .local_server_descriptor
-            .as_ref()
-            .and_then(|d| d.is_pocketic().then_some(POCKETIC_EFFECTIVE_CANISTER_ID));
+        let effective_canister_id = if let Some(d) = &network_descriptor.local_server_descriptor {
+            dbg!(d.is_pocketic())?.then_some(POCKETIC_EFFECTIVE_CANISTER_ID)
+        } else {
+            None
+        };
 
         Ok(AgentEnvironment {
             backend,
