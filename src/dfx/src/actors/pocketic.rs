@@ -9,6 +9,7 @@ use actix::{
     ResponseActFuture, Running, WrapFuture,
 };
 use anyhow::bail;
+use candid::Principal;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use slog::{debug, error, info, Logger};
 use std::path::{Path, PathBuf};
@@ -27,6 +28,9 @@ pub mod signals {
         pub port: u16,
     }
 }
+
+pub const POCKETIC_EFFECTIVE_CANISTER_ID: Principal =
+    Principal::from_slice(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xc0, 0x00, 0x00, 0x01, 0x01]);
 
 /// The configuration for the PocketIC actor.
 #[derive(Clone)]
@@ -314,6 +318,7 @@ async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
         .send()
         .await?
         .error_for_status()?;
+    info!(logger, "Initialized PocketIC.");
     Ok(())
 }
 
