@@ -84,7 +84,6 @@ teardown() {
 }
 
 @test "icx-proxy domain configuration from command-line" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic"
   dfx_start --domain xyz.domain --domain def.somewhere
 
   assert_command ps aux
@@ -93,7 +92,7 @@ teardown() {
 }
 
 @test "dfx restarts the replica" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic"
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: pid"
   dfx_new hello
   dfx_start
 
@@ -132,7 +131,6 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic"
   dfx_new_assets hello
   dfx_start
 
@@ -158,7 +156,7 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy when the replica restarts" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic"
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: pid"
   dfx_new_assets hello
   dfx_start
 
@@ -408,7 +406,7 @@ teardown() {
 }
 
 @test "modifying networks.json requires --clean on restart" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic"
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: --force"
   dfx_start
   dfx stop
   assert_command dfx_start
@@ -422,7 +420,7 @@ teardown() {
 }
 
 @test "project-local networks require --clean if dfx.json was updated" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic"
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: --force"
   dfx_new
   define_project_network
   dfx_start
@@ -441,7 +439,7 @@ teardown() {
 }
 
 @test "flags count as configuration modification and require --clean" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic"
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: --artificial-delay"
   dfx start --background
   dfx stop
   assert_command_fail dfx start --artificial-delay 100 --background
@@ -456,6 +454,5 @@ teardown() {
 }
 
 @test "dfx start then ctrl-c won't hang and panic but stop actors quickly" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic"
   assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/ctrl_c_right_after_dfx_start.exp"
 }

@@ -118,10 +118,6 @@ determine_network_directory() {
 dfx_start() {
     local port dfx_config_root webserver_port
 
-    if [[ $# != 0 && "$USE_POCKETIC" ]]; then
-        batslib_decorate "no arguments to dfx start --pocketic supported yet"
-        fail
-    fi
     local args=( "$@" )
 
     add_default_parameter() {

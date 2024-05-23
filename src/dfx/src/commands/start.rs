@@ -336,8 +336,10 @@ pub fn exec(
     if !clean && !force && previous_config_path.exists() {
         let previous_config = load_json_file(&previous_config_path)
             .context("Failed to read replica configuration. Rerun with `--clean`.")?;
-        if effective_config != previous_config {
-            bail!("The network configuration was changed. Rerun with `--clean`.")
+        if !effective_config.can_share_state(&previous_config) {
+            bail!(
+                "The network state can't be reused with this configuration. Rerun with `--clean`."
+            )
         }
     }
     save_json_file(&previous_config_path, &effective_config)
@@ -449,6 +451,15 @@ impl<'a> CachedConfig<'a> {
         Self {
             replica_rev: replica_rev().into(),
             config: CachedReplicaConfig::PocketIc,
+        }
+    }
+    pub fn can_share_state(&self, other: &Self) -> bool {
+        match (&self.config, &other.config) {
+            (CachedReplicaConfig::PocketIc, _) | (_, CachedReplicaConfig::PocketIc) => false,
+            (
+                CachedReplicaConfig::Replica { config: config1 },
+                CachedReplicaConfig::Replica { config: config2 },
+            ) => self.replica_rev == other.replica_rev && config1 == config2,
         }
     }
 }
