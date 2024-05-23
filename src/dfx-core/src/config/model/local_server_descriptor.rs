@@ -154,6 +154,10 @@ impl LocalServerDescriptor {
         self.data_directory.join("pocket-ic.port")
     }
 
+    pub fn pocketic_pid_path(&self) -> PathBuf {
+        self.data_directory.join("pocket-ic-pid")
+    }
+
     /// Returns whether the local server is PocketIC (as opposed to the replica)
     pub fn is_pocketic(&self) -> Result<bool, LoadNetworksConfigError> {
         Ok(

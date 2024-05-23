@@ -205,6 +205,7 @@ pub fn start_pocketic_actor(
         pocketic_path,
         port: local_server_descriptor.replica.port,
         port_file: pocketic_port_path,
+        pid_file: local_server_descriptor.pocketic_pid_path(),
         shutdown_controller,
         logger: Some(env.get_logger().clone()),
         verbose: env.get_verbose_level() > 0,

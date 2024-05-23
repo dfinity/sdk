@@ -92,7 +92,7 @@ teardown() {
 }
 
 @test "dfx restarts the replica" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: pid"
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: state persistence"
   dfx_new hello
   dfx_start
 
@@ -130,6 +130,20 @@ teardown() {
   assert_eq '("Hello, Omega!")'
 }
 
+@test "dfx restarts pocketic" {
+  [[ "$USE_POCKETIC" ]] || skip "skipped for replica"
+  dfx_start
+
+  POCKETIC_PID=$(get_pocketic_pid)
+  echo "pocketic pid is $POCKETIC_PID"
+  kill -KILL "$POCKETIC_PID"
+  assert_process_exits "$POCKETIC_PID" 15s
+  timeout 15s sh -c \
+    'until dfx ping; do echo waiting for pocketic to restart; sleep 1; done' \
+    || (echo "pocketic did not restart" && ps aux && exit 1)
+  assert_command wait_until_replica_healthy
+}
+
 @test "dfx restarts icx-proxy" {
   dfx_new_assets hello
   dfx_start
@@ -156,7 +170,7 @@ teardown() {
 }
 
 @test "dfx restarts icx-proxy when the replica restarts" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: pid"
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: state persistence"
   dfx_new_assets hello
   dfx_start
 
@@ -197,6 +211,34 @@ teardown() {
   assert_eq '("Hello, Omega!")'
 
   ID=$(dfx canister id hello_frontend)
+
+  timeout 15s sh -c \
+    "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
+    || (echo "icx-proxy did not restart" && ps aux && exit 1)
+
+  assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
+}
+
+@test "dfx restarts icx-proxy when pocketic restarts" {
+  [[ "$USE_POCKETIC" ]] || skip "skipped for replica"
+  dfx_start
+  POCKETIC_PID=$(get_pocketic_pid)
+  ICX_PROXY_PID=$(get_icx_proxy_pid)
+  echo "pocketic pid is $POCKETIC_PID"
+  echo "icx-proxy pid is $ICX_PROXY_PID"
+
+  kill -KILL "$POCKETIC_PID"
+  assert_process_exits "$POCKETIC_PID" 15s
+  assert_process_exits "$ICX_PROXY_PID" 15s
+  
+  timeout 15s sh -c \
+    'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
+    || (echo "replica did not restart" && ps aux && exit 1)
+  assert_command wait_until_replica_healthy
+  POCKETIC_NETWORK="http://localhost:$(get_pocketic_port)/instances/0/"
+  dfx_new_assets hello
+  assert_command dfx deploy --network "$POCKETIC_NETWORK"
+  ID=$(dfx canister id hello_frontend --network "$POCKETIC_NETWORK")
 
   timeout 15s sh -c \
     "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \

@@ -283,6 +283,10 @@ get_replica_port() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port"
 }
 
+get_pocketic_pid() {
+  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-pid"
+}
+
 get_pocketic_port() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic.port"
 }

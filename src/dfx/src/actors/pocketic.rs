@@ -11,7 +11,7 @@ use actix::{
 use anyhow::bail;
 use candid::Principal;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use slog::{debug, error, info, Logger};
+use slog::{debug, error, info, warn, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
@@ -38,6 +38,7 @@ pub struct Config {
     pub pocketic_path: PathBuf,
     pub port: Option<u16>,
     pub port_file: PathBuf,
+    pub pid_file: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
     pub verbose: bool,
@@ -225,6 +226,13 @@ fn pocketic_start_thread(
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting PocketIC...");
             let mut child = cmd.spawn().expect("Could not start PocketIC.");
+            if let Err(e) = std::fs::write(&config.pid_file, child.id().to_string()) {
+                warn!(
+                    logger,
+                    "Failed to write PocketIC PID to {}: {e}",
+                    config.pid_file.display()
+                );
+            }
 
             let port = PocketIc::wait_for_port_file(&config.port_file).unwrap();
 
