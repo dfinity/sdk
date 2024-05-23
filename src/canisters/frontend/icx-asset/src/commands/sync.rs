@@ -9,12 +9,6 @@ pub(crate) async fn sync(
     logger: &Logger,
 ) -> anyhow::Result<()> {
     let dirs: Vec<&Path> = o.directory.iter().map(|d| d.as_path()).collect();
-    ic_asset::sync(
-        canister,
-        &dirs,
-        ic_asset::ExistingAssetStrategy::Delete,
-        logger,
-    )
-    .await?;
+    ic_asset::sync(canister, &dirs, logger).await?;
     Ok(())
 }
