@@ -531,7 +531,6 @@ teardown() {
   assert_command_fail dfx start --background
   assert_contains "The network state can't be reused with this configuration. Rerun with \`--clean\`."
   assert_command dfx start --force --background
-  dfx stop
 }
 
 @test "dfx start then ctrl-c won't hang and panic but stop actors quickly" {

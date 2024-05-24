@@ -16,19 +16,21 @@ use crate::util::get_reusable_socket_addr;
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
 use clap::{ArgAction, Parser};
-use dfx_core::config::model::settings_digest::get_settings_digest;
-use dfx_core::config::model::local_server_descriptor::{
-    LocalNetworkScopeDescriptor, LocalServerDescriptor,
+use dfx_core::{
+    config::model::{
+        bitcoin_adapter, canister_http_adapter,
+        local_server_descriptor::{LocalNetworkScopeDescriptor, LocalServerDescriptor},
+        network_descriptor::NetworkDescriptor,
+        replica_config::{CachedConfig, ReplicaConfig},
+        settings_digest::get_settings_digest,
+    },
+    fs,
+    json::{load_json_file, save_json_file},
+    network::provider::{create_network_descriptor, LocalBindDetermination},
 };
-use dfx_core::config::model::network_descriptor::NetworkDescriptor;
-use dfx_core::config::model::replica_config::{CachedConfig, ReplicaConfig};
-use dfx_core::config::model::{bitcoin_adapter, canister_http_adapter};
-use dfx_core::json::{load_json_file, save_json_file};
-use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 use fn_error_context::context;
 use os_str_bytes::{OsStrBytes, OsStringBytes};
 use slog::{info, warn, Logger};
-use std::fs;
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -191,15 +193,6 @@ pub fn exec(
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
 
-    let subnet_type = local_server_descriptor
-        .replica
-        .subnet_type
-        .unwrap_or_default();
-    let log_level = local_server_descriptor
-        .replica
-        .log_level
-        .unwrap_or_default();
-
     let pid_file_path = local_server_descriptor.dfx_pid_path();
 
     check_previous_process_running(local_server_descriptor)?;
@@ -212,17 +205,21 @@ pub fn exec(
 
     let (frontend_url, address_and_port) = frontend_address(local_server_descriptor, background)?;
 
-    dfx_core::fs::create_dir_all(&local_server_descriptor.data_dir_by_settings_digest())?;
+    fs::create_dir_all(&local_server_descriptor.data_dir_by_settings_digest())?;
 
     if !local_server_descriptor.network_id_path().exists() {
         write_network_id(local_server_descriptor)?;
     }
     if let LocalNetworkScopeDescriptor::Shared { network_id_path } = &local_server_descriptor.scope
     {
-        dfx_core::fs::copy(&local_server_descriptor.network_id_path(), network_id_path)?;
-        let effective_config_path_by_settings_digest = local_server_descriptor.effective_config_path_by_settings_digest();
+        fs::copy(&local_server_descriptor.network_id_path(), network_id_path)?;
+        let effective_config_path_by_settings_digest =
+            local_server_descriptor.effective_config_path_by_settings_digest();
         if effective_config_path_by_settings_digest.exists() {
-            dfx_core::fs::copy(&effective_config_path_by_settings_digest, &local_server_descriptor.effective_config_path())?;
+            fs::copy(
+                &effective_config_path_by_settings_digest,
+                &local_server_descriptor.effective_config_path(),
+            )?;
         }
     }
 
@@ -247,8 +244,6 @@ pub fn exec(
     let webserver_port_path = empty_writable_path(local_server_descriptor.webserver_port_path())?;
 
     let previous_config_path = local_server_descriptor.effective_config_path();
-
-    dfx_core::fs::create_dir_all(&local_server_descriptor.data_dir_by_settings_digest())?;
 
     // dfx info replica-port will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
@@ -306,6 +301,14 @@ pub fn exec(
     let canister_http_socket_path = canister_http_adapter_config
         .as_ref()
         .and_then(|cfg| cfg.get_socket_path());
+    let subnet_type = local_server_descriptor
+        .replica
+        .subnet_type
+        .unwrap_or_default();
+    let log_level = local_server_descriptor
+        .replica
+        .log_level
+        .unwrap_or_default();
 
     let proxy_domains = local_server_descriptor.proxy.domain.clone().into_vec();
 
@@ -343,15 +346,19 @@ pub fn exec(
         CachedConfig::replica(&replica_config, replica_rev().into())
     };
 
-    let is_shared_network = matches!(&local_server_descriptor.scope, LocalNetworkScopeDescriptor::Shared { .. });
+    let is_shared_network = matches!(
+        &local_server_descriptor.scope,
+        LocalNetworkScopeDescriptor::Shared { .. }
+    );
     if is_shared_network {
-        save_json_file(&local_server_descriptor.effective_config_path_by_settings_digest(), &effective_config)
-            .context("Failed to write replica configuration")?;
+        save_json_file(
+            &local_server_descriptor.effective_config_path_by_settings_digest(),
+            &effective_config,
+        )
+        .context("Failed to write replica configuration")?;
     } else if !clean && !force && previous_config_path.exists() {
         let previous_config = load_json_file(&previous_config_path)
             .context("Failed to read replica configuration. Rerun with `--clean`.")?;
-        eprintln!("Previous configuration: {:?}", previous_config);
-        eprintln!("Effective configuration: {:?}", effective_config);
         if !effective_config.can_share_state(&previous_config) {
             bail!(
                 "The network state can't be reused with this configuration. Rerun with `--clean`."
@@ -440,9 +447,10 @@ pub fn exec(
 }
 
 fn clean_older_state_dirs(local_server_descriptor: &LocalServerDescriptor) -> DfxResult {
-    let data_dir = &local_server_descriptor.data_directory;
-    let settings_digest = local_server_descriptor.settings_digest.as_ref().unwrap();
     let directories_to_keep = 10;
+    let settings_digest = local_server_descriptor.settings_digest.as_ref().unwrap();
+
+    let data_dir = &local_server_descriptor.data_directory;
     if !data_dir.is_dir() {
         return Ok(());
     }
@@ -463,19 +471,18 @@ fn clean_older_state_dirs(local_server_descriptor: &LocalServerDescriptor) -> Df
             })
             .unwrap_or(true)
     });
-    // sort by modification time
+
+    // keep the X most recent directories
     state_dirs.sort_by_key(|p| p.metadata().map(|m| m.modified().unwrap()).unwrap());
-    // keep the last 'directories_to_keep' directories
     state_dirs = state_dirs
         .iter()
         .rev()
         .skip(directories_to_keep)
         .cloned()
         .collect();
-    // remove the rest
+
     for dir in state_dirs {
-        fs::remove_dir_all(&dir)
-            .with_context(|| format!("Failed to remove state directory {}", dir.display()))?;
+        fs::remove_dir_all(&dir)?;
     }
     Ok(())
 }
@@ -528,8 +535,13 @@ pub fn apply_command_line_parameters(
         local_server_descriptor = local_server_descriptor.with_proxy_domains(domain)
     }
 
-    let settings_digest =
-        get_settings_digest(replica_rev(), &local_server_descriptor, use_old_metering, artificial_delay, pocketic);
+    let settings_digest = get_settings_digest(
+        replica_rev(),
+        &local_server_descriptor,
+        use_old_metering,
+        artificial_delay,
+        pocketic,
+    );
 
     local_server_descriptor = local_server_descriptor.with_settings_digest(settings_digest);
 
