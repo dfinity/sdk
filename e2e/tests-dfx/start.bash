@@ -26,10 +26,9 @@ teardown() {
   define_project_network
 
   dfx_start --artificial-delay 101
-  dfx_stop
+  dfx stop
 
-  dfx_start --artificial-delay 102
-  dfx_stop
+  assert_command_fail dfx_start --artificial-delay 102
 }
 
 @test "stop and start with other options does not disrupt projects" {
