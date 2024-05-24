@@ -108,6 +108,23 @@ icx_asset_upload() {
   assert_not_match '"/will-delete-this.txt"'
 }
 
+@test "does not delete removed files if --no-delete is passed" {
+  touch src/e2e_project_frontend/assets/will-not-delete-this.txt
+  dfx deploy
+
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/will-not-delete-this.txt";accept_encodings=vec{"identity"}})'
+  assert_command dfx canister call --query e2e_project_frontend list '(record{})'
+  assert_match '"/will-not-delete-this.txt"'
+
+  rm src/e2e_project_frontend/assets/will-not-delete-this.txt
+
+  icx_asset_sync src/e2e_project_frontend/assets --no-delete
+
+  assert_command dfx canister call --query e2e_project_frontend get '(record{key="/will-not-delete-this.txt";accept_encodings=vec{"identity"}})'
+  assert_command dfx canister call --query e2e_project_frontend list '(record{})'
+  assert_match '"/will-not-delete-this.txt"'
+}
+
 @test "unsets asset encodings that are removed from project" {
 
   # shellcheck disable=SC2086

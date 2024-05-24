@@ -65,6 +65,10 @@ struct SyncOpts {
 
     /// The directories to synchronize
     directory: Vec<PathBuf>,
+
+    /// Do not delete files from the canister that are not present locally.
+    #[arg(long)]
+    no_delete: bool,
 }
 
 #[derive(Parser)]
