@@ -27,6 +27,7 @@ pub struct LocalServerDescriptor {
     /// The data directory is one of the following:
     ///     <project directory>/.dfx/network/local
     ///     $HOME/Library/Application Support/org.dfinity.dfx/network/local
+    ///     $HOME/Library/Application Support/org.dfinity.dfx/network/local
     ///     $HOME/.local/share/dfx/network/local
     ///     $APPDATA/dfx/network/local
     pub data_directory: PathBuf,
@@ -197,6 +198,11 @@ impl LocalServerDescriptor {
 
     /// This file contains the effective config the replica was started with.
     pub fn effective_config_path(&self) -> PathBuf {
+        self.data_directory
+            .join("replica-effective-config.json")
+    }
+
+    pub fn effective_config_path_by_settings_digest(&self) -> PathBuf {
         self.data_dir_by_settings_digest()
             .join("replica-effective-config.json")
     }

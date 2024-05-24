@@ -186,6 +186,7 @@ pub fn exec(
         domain,
         use_old_metering,
         artificial_delay,
+        pocketic,
     )?;
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
@@ -219,6 +220,10 @@ pub fn exec(
     if let LocalNetworkScopeDescriptor::Shared { network_id_path } = &local_server_descriptor.scope
     {
         dfx_core::fs::copy(&local_server_descriptor.network_id_path(), network_id_path)?;
+        let effective_config_path_by_settings_digest = local_server_descriptor.effective_config_path_by_settings_digest();
+        if effective_config_path_by_settings_digest.exists() {
+            dfx_core::fs::copy(&effective_config_path_by_settings_digest, &local_server_descriptor.effective_config_path())?;
+        }
     }
 
     clean_older_state_dirs(local_server_descriptor)?;
@@ -338,9 +343,15 @@ pub fn exec(
         CachedConfig::replica(&replica_config, replica_rev().into())
     };
 
-    if !clean && !force && previous_config_path.exists() {
+    let is_shared_network = matches!(&local_server_descriptor.scope, LocalNetworkScopeDescriptor::Shared { .. });
+    if is_shared_network {
+        save_json_file(&local_server_descriptor.effective_config_path_by_settings_digest(), &effective_config)
+            .context("Failed to write replica configuration")?;
+    } else if !clean && !force && previous_config_path.exists() {
         let previous_config = load_json_file(&previous_config_path)
             .context("Failed to read replica configuration. Rerun with `--clean`.")?;
+        eprintln!("Previous configuration: {:?}", previous_config);
+        eprintln!("Effective configuration: {:?}", effective_config);
         if !effective_config.can_share_state(&previous_config) {
             bail!(
                 "The network state can't be reused with this configuration. Rerun with `--clean`."
@@ -469,31 +480,6 @@ fn clean_older_state_dirs(local_server_descriptor: &LocalServerDescriptor) -> Df
     Ok(())
 }
 
-// #[derive(Serialize, Deserialize, PartialEq, Eq)]
-// #[serde(tag = "type", rename_all = "snake_case")]
-// #[allow(clippy::large_enum_variant)]
-// pub enum CachedReplicaConfig<'a> {
-//     Replica { config: Cow<'a, ReplicaConfig> },
-// }
-//
-// #[derive(Serialize, Deserialize, PartialEq, Eq)]
-// pub struct CachedConfig<'a> {
-//     pub replica_rev: String,
-//     #[serde(flatten)]
-//     pub config: CachedReplicaConfig<'a>,
-// }
-//
-// impl<'a> CachedConfig<'a> {
-//     pub fn replica(config: &'a ReplicaConfig) -> Self {
-//         Self {
-//             replica_rev: replica_rev().into(),
-//             config: CachedReplicaConfig::Replica {
-//                 config: Cow::Borrowed(config),
-//             },
-//         }
-//     }
-// }
-
 pub fn apply_command_line_parameters(
     logger: &Logger,
     network_descriptor: NetworkDescriptor,
@@ -505,6 +491,7 @@ pub fn apply_command_line_parameters(
     domain: Vec<String>,
     use_old_metering: bool,
     artificial_delay: u32,
+    pocketic: bool,
 ) -> DfxResult<NetworkDescriptor> {
     if enable_canister_http {
         warn!(
@@ -542,7 +529,7 @@ pub fn apply_command_line_parameters(
     }
 
     let settings_digest =
-        get_settings_digest(replica_rev(), &local_server_descriptor, use_old_metering, artificial_delay);
+        get_settings_digest(replica_rev(), &local_server_descriptor, use_old_metering, artificial_delay, pocketic);
 
     local_server_descriptor = local_server_descriptor.with_settings_digest(settings_digest);
 

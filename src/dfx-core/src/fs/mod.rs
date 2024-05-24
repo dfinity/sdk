@@ -16,6 +16,7 @@ pub fn canonicalize(path: &Path) -> Result<PathBuf, FsError> {
 }
 
 pub fn copy(from: &Path, to: &Path) -> Result<u64, FsError> {
+    eprintln!("copy from: {} to: {}", from.display(), to.display());
     std::fs::copy(from, to).map_err(|err| {
         FsError::new(CopyFileFailed(
             Box::new(from.to_path_buf()),
