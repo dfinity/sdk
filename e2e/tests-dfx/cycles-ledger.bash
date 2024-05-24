@@ -761,6 +761,7 @@ current_time_nanoseconds() {
 }
 
 @test "automatically choose subnet" {
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: subnet range"
   # shellcheck disable=SC2030,SC2031
   export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
 

@@ -111,19 +111,19 @@
     },
     "icx-proxy-x86_64-darwin": {
         "builtin": false,
-        "rev": "69e1408347723dbaa7a6cd2faa9b65c42abbe861",
-        "sha256": "1p9gmlz85j514s6da189hwaghg18p62pbknkn3q59jyxmf22fzxh",
+        "rev": "f2cd225b621674b19f3d601ebb42555d0c6f614d",
+        "sha256": "05qmk7rn3pqp8rl7ppkw6kmbs4lqjv0hq5lkzbvlday6lc5bi3x6",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/69e1408347723dbaa7a6cd2faa9b65c42abbe861/openssl-static-binaries/x86_64-darwin/icx-proxy-dev.gz",
-        "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-darwin/icx-proxy-dev.gz"
+        "url": "https://download.dfinity.systems/ic/f2cd225b621674b19f3d601ebb42555d0c6f614d/binaries/x86_64-darwin/icx-proxy-dev.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/icx-proxy-dev.gz"
     },
     "icx-proxy-x86_64-linux": {
         "builtin": false,
-        "rev": "69e1408347723dbaa7a6cd2faa9b65c42abbe861",
-        "sha256": "105jm3px6ky88jc86am8dkxz1vnhzcxy0p7skzs98baylr96kzrb",
+        "rev": "f2cd225b621674b19f3d601ebb42555d0c6f614d",
+        "sha256": "15kn0rpxk27rs6fba2ikmaqhbmg1myhjgyx5rjg3803g3cwap9pr",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/69e1408347723dbaa7a6cd2faa9b65c42abbe861/openssl-static-binaries/x86_64-linux/icx-proxy-dev.gz",
-        "url_template": "https://download.dfinity.systems/ic/<rev>/openssl-static-binaries/x86_64-linux/icx-proxy-dev.gz"
+        "url": "https://download.dfinity.systems/ic/f2cd225b621674b19f3d601ebb42555d0c6f614d/binaries/x86_64-linux/icx-proxy-dev.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-linux/icx-proxy-dev.gz"
     },
     "motoko-base": {
         "builtin": false,
@@ -150,6 +150,20 @@
         "url": "https://github.com/dfinity/motoko/releases/download/0.11.1/motoko-Linux-x86_64-0.11.1.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Linux-x86_64-<version>.tar.gz",
         "version": "0.11.1"
+    },
+    "pocket-ic-x86_64-darwin": {
+        "rev": "5e285dcaf77db014ac85d6f96ff392fe461945f5",
+        "sha256": "11nkksalj8izm0jj7ivmfkpn1lf2qb5diq9g380z5dgmjndrqrhh",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic/5e285dcaf77db014ac85d6f96ff392fe461945f5/binaries/x86_64-darwin/pocket-ic.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/pocket-ic.gz"
+    },
+    "pocket-ic-x86_64-linux": {
+        "rev": "5e285dcaf77db014ac85d6f96ff392fe461945f5",
+        "sha256": "1w2sj746gqpsgnq1640njrkw1asb5k0g9yv2l1r5plf0cd8x1n4n",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic/5e285dcaf77db014ac85d6f96ff392fe461945f5/binaries/x86_64-linux/pocket-ic.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-linux/pocket-ic.gz"
     },
     "replica-x86_64-darwin": {
         "builtin": false,

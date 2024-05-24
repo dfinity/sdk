@@ -27,6 +27,7 @@ teardown() {
 }
 
 @test "project data is cleared after dfx start --clean from outside the project" {
+  [[ "$USE_POCKETIC" ]] && skip "dfx_start does not support parameters with pocketic"
   mkdir somewhere
   (
     cd somewhere
@@ -93,6 +94,7 @@ teardown() {
 
 
 @test "wallet config file is reset after start --clean" {
+  [[ "$USE_POCKETIC" ]] && skip "dfx_start does not support parameters with pocketic"
   dfx_start
 
   (

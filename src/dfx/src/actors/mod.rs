@@ -8,17 +8,20 @@ use crate::actors::replica::{BitcoinIntegrationConfig, Replica};
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::replica_config::ReplicaConfig;
 use actix::{Actor, Addr, Recipient};
 use anyhow::Context;
 use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
+use dfx_core::config::model::replica_config::ReplicaConfig;
 use fn_error_context::context;
 use std::fs;
 use std::path::PathBuf;
 
+use self::pocketic::PocketIc;
+
 pub mod btc_adapter;
 pub mod canister_http_adapter;
 pub mod icx_proxy;
+pub mod pocketic;
 pub mod replica;
 mod shutdown;
 pub mod shutdown_controller;
@@ -176,4 +179,36 @@ pub fn start_icx_proxy_actor(
         icx_proxy_pid_path,
     };
     Ok(IcxProxy::new(actor_config).start())
+}
+
+#[context("Failed to start PocketIC actor.")]
+pub fn start_pocketic_actor(
+    env: &dyn Environment,
+    local_server_descriptor: &LocalServerDescriptor,
+    shutdown_controller: Addr<ShutdownController>,
+    pocketic_port_path: PathBuf,
+) -> DfxResult<Addr<PocketIc>> {
+    let pocketic_path = env.get_cache().get_binary_command_path("pocket-ic")?;
+
+    // Touch the port file. This ensures it is empty prior to
+    // handing it over to PocketIC. If we read the file and it has
+    // contents we shall assume it is due to our spawned pocket-ic
+    // process.
+    std::fs::write(&pocketic_port_path, "").with_context(|| {
+        format!(
+            "Failed to write/clear PocketIC port file {}.",
+            pocketic_port_path.to_string_lossy()
+        )
+    })?;
+
+    let actor_config = pocketic::Config {
+        pocketic_path,
+        port: local_server_descriptor.replica.port,
+        port_file: pocketic_port_path,
+        pid_file: local_server_descriptor.pocketic_pid_path(),
+        shutdown_controller,
+        logger: Some(env.get_logger().clone()),
+        verbose: env.get_verbose_level() > 0,
+    };
+    Ok(pocketic::PocketIc::new(actor_config).start())
 }

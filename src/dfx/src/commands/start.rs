@@ -2,7 +2,7 @@ use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_icx_proxy_actor,
-    start_replica_actor, start_shutdown_controller,
+    start_pocketic_actor, start_replica_actor, start_shutdown_controller,
 };
 use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
@@ -12,22 +12,19 @@ use crate::lib::info::replica_rev;
 use crate::lib::integrations::status::wait_for_integrations_initialized;
 use crate::lib::network::id::write_network_id;
 use crate::lib::replica::status::ping_and_wait;
-use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
-use candid::Deserialize;
 use clap::{ArgAction, Parser};
 use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::config::model::replica_config::{CachedConfig, ReplicaConfig};
 use dfx_core::config::model::{bitcoin_adapter, canister_http_adapter};
 use dfx_core::json::{load_json_file, save_json_file};
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 use fn_error_context::context;
 use os_str_bytes::{OsStrBytes, OsStringBytes};
-use serde::Serialize;
 use slog::{info, warn, Logger};
-use std::borrow::Cow;
 use std::fs;
 use std::fs::create_dir_all;
 use std::io::Read;
@@ -54,32 +51,36 @@ pub struct StartOpts {
     clean: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[arg(long, action = ArgAction::Append)]
+    #[arg(long, action = ArgAction::Append, conflicts_with = "pocketic")]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[arg(long)]
+    #[arg(long, conflicts_with = "pocketic")]
     enable_bitcoin: bool,
 
     /// enable canister http requests
-    #[arg(long)]
+    #[arg(long, conflicts_with = "pocketic")]
     enable_canister_http: bool,
 
     /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
-    #[arg(long, default_value_t = 600)]
+    #[arg(long, default_value_t = 600, conflicts_with = "pocketic")]
     artificial_delay: u32,
 
     /// Start even if the network config was modified.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "pocketic")]
     force: bool,
 
     /// Use old metering.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "pocketic")]
     use_old_metering: bool,
 
     /// A list of domains that can be served. These are used for canister resolution [default: localhost]
     #[arg(long)]
     domain: Vec<String>,
+
+    /// Runs PocketIC instead of the replica
+    #[clap(long, alias = "emulator")]
+    pocketic: bool,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -146,6 +147,7 @@ pub fn exec(
         artificial_delay,
         use_old_metering,
         domain,
+        pocketic,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -238,6 +240,7 @@ pub fn exec(
     })?;
 
     let replica_port_path = empty_writable_path(local_server_descriptor.replica_port_path())?;
+    let pocketic_port_path = empty_writable_path(local_server_descriptor.pocketic_port_path())?;
 
     if background {
         send_background()?;
@@ -321,13 +324,19 @@ pub fn exec(
         replica_config
     };
 
-    let effective_config = CachedConfig::replica(&replica_config);
+    let effective_config = if pocketic {
+        CachedConfig::pocketic(replica_rev().into())
+    } else {
+        CachedConfig::replica(&replica_config, replica_rev().into())
+    };
 
     if !clean && !force && previous_config_path.exists() {
         let previous_config = load_json_file(&previous_config_path)
             .context("Failed to read replica configuration. Rerun with `--clean`.")?;
-        if effective_config != previous_config {
-            bail!("The network configuration was changed. Rerun with `--clean`.")
+        if !effective_config.can_share_state(&previous_config) {
+            bail!(
+                "The network state can't be reused with this configuration. Rerun with `--clean`."
+            )
         }
     }
     save_json_file(&previous_config_path, &effective_config)
@@ -339,7 +348,15 @@ pub fn exec(
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
 
-        let port_ready_subscribe: Recipient<PortReadySubscribe> = {
+        let port_ready_subscribe: Recipient<PortReadySubscribe> = if pocketic {
+            let server = start_pocketic_actor(
+                env,
+                local_server_descriptor,
+                shutdown_controller.clone(),
+                pocketic_port_path,
+            )?;
+            server.recipient()
+        } else {
             let btc_adapter_ready_subscribe = btc_adapter_config
                 .map(|btc_adapter_config| {
                     start_btc_adapter_actor(
@@ -401,31 +418,6 @@ pub fn exec(
     }
 
     Ok(())
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
-#[serde(tag = "type", rename_all = "snake_case")]
-#[allow(clippy::large_enum_variant)]
-pub enum CachedReplicaConfig<'a> {
-    Replica { config: Cow<'a, ReplicaConfig> },
-}
-
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
-pub struct CachedConfig<'a> {
-    pub replica_rev: String,
-    #[serde(flatten)]
-    pub config: CachedReplicaConfig<'a>,
-}
-
-impl<'a> CachedConfig<'a> {
-    pub fn replica(config: &'a ReplicaConfig) -> Self {
-        Self {
-            replica_rev: replica_rev().into(),
-            config: CachedReplicaConfig::Replica {
-                config: Cow::Borrowed(config),
-            },
-        }
-    }
 }
 
 pub fn apply_command_line_parameters(

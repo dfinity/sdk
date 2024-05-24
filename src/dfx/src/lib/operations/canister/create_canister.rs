@@ -225,10 +225,15 @@ async fn create_with_management_canister(
                         using `dfx ledger create-canister`, but doing so will not associate the created canister with any of the canisters in your project.";
     match res {
         Ok((o,)) => Ok(o),
-        Err(AgentError::HttpError(HttpErrorPayload { status, .. }))
-            if (400..500).contains(&status) =>
-        {
-            Err(anyhow!(NEEDS_WALLET))
+        Err(AgentError::HttpError(HttpErrorPayload {
+            status, content, ..
+        })) if (400..500).contains(&status) => {
+            let message = String::from_utf8_lossy(&content);
+            if message.contains("not contained on any subnet") {
+                Err(anyhow!("{message}"))
+            } else {
+                Err(anyhow!(NEEDS_WALLET))
+            }
         }
         Err(AgentError::UncertifiedReject(RejectResponse {
             reject_code: RejectCode::CanisterReject,
