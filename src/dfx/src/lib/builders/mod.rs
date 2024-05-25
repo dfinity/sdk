@@ -251,14 +251,27 @@ pub trait CanisterBuilder {
                 return Ok(());
             }
             let parent_node_index = env.get_imports().borrow_mut().update_node(parent);
-    
+
             let file = match parent {
                 Import::Canister(parent_name) => {
                     let parent_canister = pool.get_first_canister_with_name(parent_name).unwrap();
                     let parent_canister_info = parent_canister.get_info();
                     if parent_canister_info.is_motoko() {
-                        let motoko_info = parent_canister.get_info().as_info::<MotokoCanisterInfo>().context("Getting Motoko info")?;
-                        Some(motoko_info.get_main_path().canonicalize().with_context(|| format!("Canonicalizing Motoko path {}", motoko_info.get_main_path().to_string_lossy()))?)
+                        let motoko_info = parent_canister
+                            .get_info()
+                            .as_info::<MotokoCanisterInfo>()
+                            .context("Getting Motoko info")?;
+                        Some(
+                            motoko_info
+                                .get_main_path()
+                                .canonicalize()
+                                .with_context(|| {
+                                    format!(
+                                        "Canonicalizing Motoko path {}",
+                                        motoko_info.get_main_path().to_string_lossy()
+                                    )
+                                })?,
+                        )
                     } else {
                         for child in parent_canister_info.get_dependencies() {
                             read_dependencies_recursive(
@@ -267,10 +280,15 @@ pub trait CanisterBuilder {
                                 pool,
                                 &Import::Canister(child.clone()),
                             )?;
-        
+
                             let child_node = Import::Canister(child.clone());
-                            let child_node_index = env.get_imports().borrow_mut().update_node(&child_node);
-                            env.get_imports().borrow_mut().update_edge(parent_node_index, child_node_index, ());
+                            let child_node_index =
+                                env.get_imports().borrow_mut().update_node(&child_node);
+                            env.get_imports().borrow_mut().update_edge(
+                                parent_node_index,
+                                child_node_index,
+                                (),
+                            );
                         }
                         return Ok(());
                     }
@@ -279,7 +297,9 @@ pub trait CanisterBuilder {
                 _ => None,
             };
             if let Some(file) = file {
-                let mut command = cache.get_binary_command("moc").context("Getting binary command \"moc\"")?;
+                let mut command = cache
+                    .get_binary_command("moc")
+                    .context("Getting binary command \"moc\"")?;
                 let command = command.arg("--print-deps").arg(file);
                 let output = command
                     .output()
@@ -289,25 +309,30 @@ pub trait CanisterBuilder {
                 for line in output.lines() {
                     let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
                     match &child {
-                        Import::Canister(_) | Import::FullPath(_) =>
-                            read_dependencies_recursive(env, cache, pool, &child)?,
+                        Import::Canister(_) | Import::FullPath(_) => {
+                            read_dependencies_recursive(env, cache, pool, &child)?
+                        }
                         _ => {}
                     }
                     let child_node_index = env.get_imports().borrow_mut().update_node(&child);
-                    env.get_imports().borrow_mut().update_edge(parent_node_index, child_node_index, ());
+                    env.get_imports().borrow_mut().update_edge(
+                        parent_node_index,
+                        child_node_index,
+                        (),
+                    );
                 }
             }
-    
+
             Ok(())
         }
-    
+
         read_dependencies_recursive(
             env,
             cache,
             pool,
             &Import::Canister(info.get_name().to_string()),
         )?;
-    
+
         Ok(())
     }
 
@@ -320,7 +345,7 @@ pub trait CanisterBuilder {
         logger: &Logger,
     ) -> DfxResult<bool> {
         if !canister_info.is_motoko() {
-            return Ok(true);    
+            return Ok(true);
         }
 
         let output_wasm_path = canister_info.get_output_wasm_path();
@@ -364,7 +389,11 @@ pub trait CanisterBuilder {
                             {
                                 let main_file = if top_level_cur {
                                     if let Some(main_file) = canister.get_info().get_main_file() {
-                                        canister.get_info().get_workspace_root().join(main_file).canonicalize()?
+                                        canister
+                                            .get_info()
+                                            .get_workspace_root()
+                                            .join(main_file)
+                                            .canonicalize()?
                                     } else {
                                         continue;
                                     }
@@ -383,13 +412,13 @@ pub trait CanisterBuilder {
                             // Skip libs, all changes by package managers don't modify existing directories but create new ones.
                             continue;
                         }
-                        Import::FullPath(full_path) => {
-                            Some(full_path.clone())
-                        }
+                        Import::FullPath(full_path) => Some(full_path.clone()),
                     };
                     if let Some(imported_file) = imported_file {
-                        let imported_file_metadata = metadata(&imported_file)
-                            .with_context(|| format!("Getting metadata of {}", imported_file.to_string_lossy()))?;
+                        let imported_file_metadata =
+                            metadata(&imported_file).with_context(|| {
+                                format!("Getting metadata of {}", imported_file.to_string_lossy())
+                            })?;
                         let imported_file_time = imported_file_metadata.modified()?;
                         if imported_file_time > wasm_file_time {
                             break;

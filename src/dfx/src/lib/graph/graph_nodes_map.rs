@@ -3,7 +3,12 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-use petgraph::{graph::EdgeIndex, graph::IndexType, graph::{DefaultIx, NodeIndex}, Directed, EdgeType, Graph};
+use petgraph::{
+    graph::EdgeIndex,
+    graph::IndexType,
+    graph::{DefaultIx, NodeIndex},
+    Directed, EdgeType, Graph,
+};
 
 pub struct GraphWithNodesMap<N, E, Ty = Directed, Ix = DefaultIx> {
     graph: Graph<N, E, Ty, Ix>,
@@ -25,30 +30,25 @@ where
     Ix: IndexType,
 {
     pub fn update_node(&mut self, weight: &N) -> NodeIndex<Ix>
-        where N: Eq + Hash + Clone,
+    where
+        N: Eq + Hash + Clone,
     {
         // TODO: Get rid of two `clone`s (apparently, requires data stucture change).
-        *self.nodes
+        *self
+            .nodes
             .entry(weight.clone())
             .or_insert_with(|| self.graph.add_node(weight.clone()))
     }
-    pub fn update_edge(
-        &mut self,
-        a: NodeIndex<Ix>,
-        b: NodeIndex<Ix>,
-        weight: E
-    ) -> EdgeIndex<Ix> {
+    pub fn update_edge(&mut self, a: NodeIndex<Ix>, b: NodeIndex<Ix>, weight: E) -> EdgeIndex<Ix> {
         self.graph.update_edge(a, b, weight)
     }
 }
 
 impl<N, E> GraphWithNodesMap<N, E, Directed> {
-    pub fn new() -> Self
-    {
+    pub fn new() -> Self {
         Self {
             graph: Graph::new(),
             nodes: HashMap::new(),
         }
     }
 }
-

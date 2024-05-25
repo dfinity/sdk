@@ -282,13 +282,15 @@ The command line value will be used.",
     //     })
     //     .map(|name| pool2.get_first_canister_with_name(name).unwrap().get_info().get_canister_id().unwrap())
     //     .collect_vec();
-    let vars: Vec<(Cow<'static, str>, Cow<OsStr>)> =
-        get_and_write_environment_variables(canister_info, &network.name, pool2, dependencies.as_slice(), env_file)?;
+    let vars: Vec<(Cow<'static, str>, Cow<OsStr>)> = get_and_write_environment_variables(
+        canister_info,
+        &network.name,
+        pool2,
+        dependencies.as_slice(),
+        env_file,
+    )?;
     if !canister_info.get_post_install().is_empty() {
-        run_post_install_tasks(
-            canister_info,
-            &vars,
-        )?;
+        run_post_install_tasks(canister_info, &vars)?;
     }
 
     Ok(())

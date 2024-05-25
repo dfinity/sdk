@@ -5,11 +5,11 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::lib::graph::graph_nodes_map::GraphWithNodesMap;
 use crate::lib::graph::traverse_filtered::DfsFiltered;
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
-use crate::lib::graph::graph_nodes_map::GraphWithNodesMap;
 use crate::util::assets;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
@@ -647,7 +647,7 @@ impl CanisterPool {
                     let dest_parent_id = dest_graph.update_node(parent_name);
                     let dest_child_id = dest_graph.update_node(child_name);
                     dest_graph.update_edge(dest_parent_id, dest_child_id, ());
-            
+
                     Ok(())
                 },
                 start_node,
@@ -657,7 +657,11 @@ impl CanisterPool {
         Ok(dest_graph)
     }
 
-    fn canister_dependencies(&self, env: &dyn Environment, toplevel_canisters: &[&Canister]) -> Vec<Arc<Canister>> {
+    fn canister_dependencies(
+        &self,
+        env: &dyn Environment,
+        toplevel_canisters: &[&Canister],
+    ) -> Vec<Arc<Canister>> {
         let iter = toplevel_canisters
             .iter()
             .flat_map(|canister| {
@@ -672,10 +676,13 @@ impl CanisterPool {
                 let neighbors = imports.graph().neighbors(parent_node);
                 neighbors
                     .filter_map(|id| {
-                        imports
-                            .nodes()
-                            .iter()
-                            .find_map(move |(k, v)| if v == &id { Some(k.clone()) } else { None })
+                        imports.nodes().iter().find_map(move |(k, v)| {
+                            if v == &id {
+                                Some(k.clone())
+                            } else {
+                                None
+                            }
+                        })
                     }) // TODO: slow
                     .filter_map(|import| {
                         if let Import::Canister(name) = import {
@@ -710,7 +717,12 @@ impl CanisterPool {
         Ok(())
     }
 
-    fn step_prebuild(&self, env: &dyn Environment, build_config: &BuildConfig, canister: &Canister) -> DfxResult<()> {
+    fn step_prebuild(
+        &self,
+        env: &dyn Environment,
+        build_config: &BuildConfig,
+        canister: &Canister,
+    ) -> DfxResult<()> {
         canister.prebuild(self, build_config)?;
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
 
@@ -822,7 +834,8 @@ impl CanisterPool {
         let toplevel_nodes: Vec<NodeIndex> = toplevel_canisters
             .iter()
             .map(|canister| -> DfxResult<NodeIndex> {
-                graph.nodes()
+                graph
+                    .nodes()
                     .get(&canister.get_name().to_string())
                     .copied()
                     .ok_or_else(|| anyhow!("No such canister {}.", canister.get_name()))
@@ -851,15 +864,14 @@ impl CanisterPool {
             |edge, _| Some(edge),
         );
 
-        let nodes =
-            toposort(&subgraph, None).map_err(|err| {
-                let node = graph.graph().node_weight(err.node_id());
-                if let Some(node) = node {
-                    anyhow!("Cycle in node dependencies: {}", node)
-                } else {
-                    panic!("programming error");
-                }
-            })?;
+        let nodes = toposort(&subgraph, None).map_err(|err| {
+            let node = graph.graph().node_weight(err.node_id());
+            if let Some(node) = node {
+                anyhow!("Cycle in node dependencies: {}", node)
+            } else {
+                panic!("programming error");
+            }
+        })?;
 
         Ok(nodes
             .iter()
@@ -902,13 +914,19 @@ impl CanisterPool {
                 //     trace!(log, "Not building canister '{}'.", canister.get_name());
                 //     continue;
                 // }
-                if canister.builder.should_build(
-                    env,
-                    self,
-                    &canister.info,
-                    env.get_cache().as_ref(),
-                    env.get_logger(),
-                ).with_context(|| format!("Checking whether to build canister {}", canister.get_name()))? {
+                if canister
+                    .builder
+                    .should_build(
+                        env,
+                        self,
+                        &canister.info,
+                        env.get_cache().as_ref(),
+                        env.get_logger(),
+                    )
+                    .with_context(|| {
+                        format!("Checking whether to build canister {}", canister.get_name())
+                    })?
+                {
                     self.step_prebuild(env, build_config, canister.as_ref())
                         .map_err(|e| {
                             BuildError::PreBuildStepFailed(

@@ -273,7 +273,7 @@ impl Environment for EnvironmentImpl {
     fn get_extension_manager(&self) -> &ExtensionManager {
         &self.extension_manager
     }
-    
+
     fn get_imports(&self) -> &RefCell<GraphWithNodesMap<Import, ()>> {
         &self.imports
     }
@@ -409,7 +409,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
     fn get_extension_manager(&self) -> &ExtensionManager {
         self.backend.get_extension_manager()
     }
-    
+
     fn get_imports(&self) -> &RefCell<GraphWithNodesMap<Import, ()>> {
         &self.imports
     }
