@@ -364,7 +364,7 @@ pub trait CanisterBuilder {
                             {
                                 let main_file = if top_level_cur {
                                     if let Some(main_file) = canister.get_info().get_main_file() {
-                                        canister.get_info().get_workspace_root().join(main_file)
+                                        canister.get_info().get_workspace_root().join(main_file).canonicalize()?
                                     } else {
                                         continue;
                                     }
