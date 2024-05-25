@@ -17,7 +17,6 @@ use candid::Principal;
 use dfx_core::canister::{build_wallet_canister, install_canister_wasm, install_mode_to_prompt};
 use dfx_core::cli::ask_for_consent;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
-use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::Agent;
@@ -28,7 +27,9 @@ use ic_utils::Argument;
 use itertools::Itertools;
 use sha2::{Digest, Sha256};
 use slog::{debug, info, warn};
+use std::borrow::Cow;
 use std::collections::HashSet;
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
@@ -255,14 +256,41 @@ The command line value will be used.",
         info!(log, "Uploading assets to asset canister...");
         post_install_store_assets(canister_info, agent, log).await?;
     }
+    let tmp;
+    let pool2 = match pool {
+        Some(pool) => pool,
+        None => {
+            let config = env.get_config_or_anyhow()?;
+            let canisters_to_load = all_project_canisters_with_ids(env, &config);
+
+            tmp = CanisterPool::load(env, false, &canisters_to_load)
+                .context("Error collecting canisters for post-install task")?;
+            &tmp
+        }
+    };
+    let dependencies = pool2
+        .get_canister_list()
+        .iter()
+        .map(|can| can.canister_id())
+        .collect_vec();
+    // TODO: The following code is a hack.
+    // let graph = env.get_imports().borrow();
+    // let dependencies = graph.graph()
+    //     .neighbors(*graph.nodes().get(&Import::Canister(canister_info.get_name().to_string())).unwrap())
+    //     .map(|index| graph.graph().node_weight(index).unwrap())
+    //     .map(|import| if let Import::Canister(name) = import {
+    //         name
+    //     } else {
+    //         panic!("programming error");
+    //     })
+    //     .map(|name| pool2.get_first_canister_with_name(name).unwrap().get_info().get_canister_id().unwrap())
+    //     .collect_vec();
+    let vars: Vec<(Cow<'static, str>, Cow<OsStr>)> =
+        get_and_write_environment_variables(canister_info, &network.name, pool2, dependencies.as_slice(), env_file)?;
     if !canister_info.get_post_install().is_empty() {
-        let config = env.get_config()?;
         run_post_install_tasks(
-            env,
             canister_info,
-            network,
-            pool,
-            env_file.or_else(|| config.as_ref()?.get_config().output_env_file.as_deref()),
+            &vars,
         )?;
     }
 
@@ -402,31 +430,11 @@ fn check_stable_compatibility(
 
 #[context("Failed to run post-install tasks")]
 fn run_post_install_tasks(
-    env: &dyn Environment,
     canister: &CanisterInfo,
-    network: &NetworkDescriptor,
-    pool: Option<&CanisterPool>,
-    env_file: Option<&Path>,
+    vars: &Vec<(Cow<'static, str>, Cow<OsStr>)>,
 ) -> DfxResult {
-    let tmp;
-    let pool = match pool {
-        Some(pool) => pool,
-        None => {
-            let config = env.get_config_or_anyhow()?;
-            let canisters_to_load = all_project_canisters_with_ids(env, &config);
-
-            tmp = CanisterPool::load(env, false, &canisters_to_load)
-                .context("Error collecting canisters for post-install task")?;
-            &tmp
-        }
-    };
-    let dependencies = pool
-        .get_canister_list()
-        .iter()
-        .map(|can| can.canister_id())
-        .collect_vec();
     for task in canister.get_post_install() {
-        run_post_install_task(canister, task, network, pool, &dependencies, env_file)?;
+        run_post_install_task(canister, task, vars)?;
     }
     Ok(())
 }
@@ -435,10 +443,7 @@ fn run_post_install_tasks(
 fn run_post_install_task(
     canister: &CanisterInfo,
     task: &str,
-    network: &NetworkDescriptor,
-    pool: &CanisterPool,
-    dependencies: &[Principal],
-    env_file: Option<&Path>,
+    vars: &Vec<(Cow<'static, str>, Cow<OsStr>)>,
 ) -> DfxResult {
     let cwd = canister.get_workspace_root();
     let words = shell_words::split(task)
@@ -448,10 +453,8 @@ fn run_post_install_task(
         .map_err(|_| anyhow!("Cannot find command or file {}", &words[0]))?;
     let mut command = Command::new(canonicalized);
     command.args(&words[1..]);
-    let vars =
-        get_and_write_environment_variables(canister, &network.name, pool, dependencies, env_file)?;
     for (key, val) in vars {
-        command.env(&*key, val);
+        command.env(&**key, val);
     }
     command
         .current_dir(cwd)
