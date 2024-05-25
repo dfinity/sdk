@@ -615,10 +615,10 @@ impl CanisterPool {
                     panic!("programming error");
                 }
             };
-            dest_graph.update_node(&start_name);
+            dest_graph.update_node(start_name);
 
             filtered_dfs.traverse2(
-                &source_graph,
+                source_graph,
                 |&s| {
                     let source_id = source_graph.node_weight(s);
                     if let Some(Import::Canister(_)) = source_id {
@@ -644,8 +644,8 @@ impl CanisterPool {
                         }
                     };
 
-                    let dest_parent_id = dest_graph.update_node(&parent_name);
-                    let dest_child_id = dest_graph.update_node(&child_name);
+                    let dest_parent_id = dest_graph.update_node(parent_name);
+                    let dest_child_id = dest_graph.update_node(child_name);
                     dest_graph.update_edge(dest_parent_id, dest_child_id, ());
             
                     Ok(())

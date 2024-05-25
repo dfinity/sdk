@@ -246,11 +246,11 @@ pub trait CanisterBuilder {
             pool: &CanisterPool,
             parent: &Import,
         ) -> DfxResult {
-            if env.get_imports().borrow().nodes().contains_key(&parent) {
+            if env.get_imports().borrow().nodes().contains_key(parent) {
                 // The item and its descendants are already in the graph.
                 return Ok(());
             }
-            let parent_node_index = env.get_imports().borrow_mut().update_node(&parent);
+            let parent_node_index = env.get_imports().borrow_mut().update_node(parent);
     
             let file = match parent {
                 Import::Canister(parent_name) => {
