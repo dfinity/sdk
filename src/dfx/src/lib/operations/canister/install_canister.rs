@@ -47,7 +47,7 @@ pub async fn install_canister(
     mode: Option<InstallMode>,
     call_sender: &CallSender,
     upgrade_unchanged: bool,
-    pool: Option<&CanisterPool>,
+    _pool: Option<&CanisterPool>, // TODO: Remove.
     skip_consent: bool,
     env_file: Option<&Path>,
     no_asset_upgrade: bool,
