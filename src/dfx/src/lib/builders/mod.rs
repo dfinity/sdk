@@ -589,7 +589,7 @@ pub fn get_and_write_environment_variables<'a>(
         let canister = if let Some(canister) = pool.get_canister(dep) {
             canister
         } else {
-            continue; // TODO: crude hack to prevent backtrace
+            continue;
         };
         if let Some(candid_path) = canister.get_info().get_remote_candid_if_remote() {
             vars.push((
