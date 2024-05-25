@@ -257,8 +257,8 @@ pub trait CanisterBuilder {
                     let parent_canister = pool.get_first_canister_with_name(parent_name).unwrap();
                     let parent_canister_info = parent_canister.get_info();
                     if parent_canister_info.is_motoko() {
-                        let motoko_info = parent_canister.get_info().as_info::<MotokoCanisterInfo>()?;
-                        Some(motoko_info.get_main_path().canonicalize()?)
+                        let motoko_info = parent_canister.get_info().as_info::<MotokoCanisterInfo>().context("Getting Motoko info")?;
+                        Some(motoko_info.get_main_path().canonicalize().context(format!("Canonicalizing Motoko path {}", motoko_info.get_main_path().to_string_lossy()))?)
                     } else {
                         for child in parent_canister_info.get_dependencies() {
                             read_dependencies_recursive(
@@ -279,7 +279,7 @@ pub trait CanisterBuilder {
                 _ => None,
             };
             if let Some(file) = file {
-                let mut command = cache.get_binary_command("moc")?;
+                let mut command = cache.get_binary_command("moc").context("Getting binary command \"moc\"")?;
                 let command = command.arg("--print-deps").arg(file);
                 let output = command
                     .output()
