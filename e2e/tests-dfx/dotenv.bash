@@ -61,7 +61,6 @@ teardown() {
 
 @test "deploy writes all environment variables to .env" {
   dfx_start
-  echo '[[[' && cat dfx.json && echo ']]]' # FIXME: Remove.
   dfx canister create --all
 
   assert_dotenv_contains_all_variables_after_command deploy

@@ -257,16 +257,13 @@ The command line value will be used.",
         post_install_store_assets(canister_info, agent, log).await?;
     }
     let tmp;
-    let pool2 = match pool {
-        Some(pool) => pool,
-        None => {
-            let config = env.get_config_or_anyhow()?;
-            let canisters_to_load = all_project_canisters_with_ids(env, &config);
+    let pool2 = {
+        let config = env.get_config_or_anyhow()?;
+        let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
-            tmp = CanisterPool::load(env, false, &canisters_to_load)
-                .context("Error collecting canisters for post-install task")?;
-            &tmp
-        }
+        tmp = CanisterPool::load(env, false, &canisters_to_load)
+            .context("Error collecting canisters for post-install task")?;
+        &tmp
     };
     let dependencies = pool2
         .get_canister_list()

@@ -260,8 +260,6 @@ pub trait CanisterBuilder {
                         let motoko_info = parent_canister.get_info().as_info::<MotokoCanisterInfo>().context("Getting Motoko info")?;
                         Some(motoko_info.get_main_path().canonicalize().with_context(|| format!("Canonicalizing Motoko path {}", motoko_info.get_main_path().to_string_lossy()))?)
                     } else {
-                        // FIXME:
-                        // .get_dependencies() returns [] in `bats e2e/tests-dfx/dotenv.bash -f "deploy writes all environment variables"`
                         for child in parent_canister_info.get_dependencies() {
                             read_dependencies_recursive(
                                 env,
