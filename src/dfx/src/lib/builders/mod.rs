@@ -258,7 +258,7 @@ pub trait CanisterBuilder {
                     let parent_canister_info = parent_canister.get_info();
                     if parent_canister_info.is_motoko() {
                         let motoko_info = parent_canister.get_info().as_info::<MotokoCanisterInfo>().context("Getting Motoko info")?;
-                        Some(motoko_info.get_main_path().canonicalize().context(format!("Canonicalizing Motoko path {}", motoko_info.get_main_path().to_string_lossy()))?)
+                        Some(motoko_info.get_main_path().canonicalize().with_context(|| format!("Canonicalizing Motoko path {}", motoko_info.get_main_path().to_string_lossy()))?)
                     } else {
                         for child in parent_canister_info.get_dependencies() {
                             read_dependencies_recursive(
@@ -364,7 +364,7 @@ pub trait CanisterBuilder {
                             {
                                 let main_file = if top_level_cur {
                                     if let Some(main_file) = canister.get_info().get_main_file() {
-                                        main_file.to_path_buf()
+                                        canister.get_info().get_workspace_root().join(main_file)
                                     } else {
                                         continue;
                                     }
@@ -388,7 +388,8 @@ pub trait CanisterBuilder {
                         }
                     };
                     if let Some(imported_file) = imported_file {
-                        let imported_file_metadata = metadata(&imported_file)?;
+                        let imported_file_metadata = metadata(&imported_file)
+                            .with_context(|| format!("Getting metadata of {}", imported_file.to_string_lossy()))?;
                         let imported_file_time = imported_file_metadata.modified()?;
                         if imported_file_time > wasm_file_time {
                             break;

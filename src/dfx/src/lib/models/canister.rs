@@ -908,7 +908,7 @@ impl CanisterPool {
                     &canister.info,
                     env.get_cache().as_ref(),
                     env.get_logger(),
-                )? {
+                ).with_context(|| format!("Checking whether to build canister {}", canister.get_name()))? {
                     self.step_prebuild(env, build_config, canister.as_ref())
                         .map_err(|e| {
                             BuildError::PreBuildStepFailed(

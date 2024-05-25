@@ -50,7 +50,7 @@ impl MotokoCanisterInfo {
 
 impl CanisterInfoFactory for MotokoCanisterInfo {
     fn create(info: &CanisterInfo) -> DfxResult<MotokoCanisterInfo> {
-        // let workspace_root = info.get_workspace_root(); // I commented it out to have consistent relative paths.
+        let workspace_root = info.get_workspace_root();
         let name = info.get_name();
         ensure!(
             matches!(info.type_specific, CanisterTypeProperties::Motoko { .. }),
@@ -60,11 +60,11 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let main_path = info
             .get_main_file()
             .context("`main` attribute is required on Motoko canisters in dfx.json")?;
-        let input_path = main_path.to_path_buf(); // workspace_root.join(main_path);
+        let input_path = workspace_root.join(main_path);
         let output_root = info.get_output_root().to_path_buf();
         let output_wasm_path = output_root.join(name).with_extension("wasm");
         let output_idl_path = if let Some(remote_candid) = info.get_remote_candid_if_remote() {
-            remote_candid // workspace_root.join(remote_candid)
+            workspace_root.join(remote_candid)
         } else {
             output_wasm_path.with_extension("did")
         };
