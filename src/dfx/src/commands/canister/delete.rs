@@ -277,12 +277,17 @@ async fn delete_canister(
                     if result.is_ok() {
                         info!(log, "Successfully withdrew {} cycles.", cycles_to_withdraw);
                         break;
-                    } else if format!("{:?}", result).contains("Couldn't send message") {
-                        info!(log, "Not enough margin. Trying again with more margin.");
-                        attempts += 1;
                     } else {
-                        // Unforeseen error. Report it back to user
-                        result?;
+                        let message = format!("{:?}", result);
+                        if message.contains("Couldn't send message")
+                            || message.contains("out of cycles")
+                        {
+                            info!(log, "Not enough margin. Trying again with more margin.");
+                            attempts += 1;
+                        } else {
+                            // Unforeseen error. Report it back to user
+                            result?;
+                        }
                     }
                 }
                 stop_canister(env, canister_id, &CallSender::SelectedId).await?;

@@ -1,3 +1,4 @@
+use crate::actors::pocketic::POCKETIC_EFFECTIVE_CANISTER_ID;
 use crate::config::cache::DiskBasedCache;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
@@ -75,6 +76,8 @@ pub trait Environment {
 
     fn get_effective_canister_id(&self) -> Principal;
 
+    fn get_override_effective_canister_id(&self) -> Option<Principal>;
+
     fn get_extension_manager(&self) -> &ExtensionManager;
 
     fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
@@ -107,7 +110,7 @@ pub struct EnvironmentImpl {
 
     identity_override: Option<String>,
 
-    effective_canister_id: Principal,
+    effective_canister_id: Option<Principal>,
 
     extension_manager: ExtensionManager,
 
@@ -129,7 +132,7 @@ impl EnvironmentImpl {
             logger: None,
             verbose_level: 0,
             identity_override: None,
-            effective_canister_id: Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 0, 1, 1]),
+            effective_canister_id: None,
             extension_manager,
             imports: RefCell::new(GraphWithNodesMap::new()),
         })
@@ -152,10 +155,13 @@ impl EnvironmentImpl {
 
     pub fn with_effective_canister_id(mut self, effective_canister_id: Option<String>) -> Self {
         match effective_canister_id {
-            None => self,
+            None => {
+                self.effective_canister_id = None;
+                self
+            }
             Some(canister_id) => match Principal::from_text(canister_id) {
                 Ok(principal) => {
-                    self.effective_canister_id = principal;
+                    self.effective_canister_id = Some(principal);
                     self
                 }
                 Err(_) => self,
@@ -257,6 +263,11 @@ impl Environment for EnvironmentImpl {
 
     fn get_effective_canister_id(&self) -> Principal {
         self.effective_canister_id
+            .unwrap_or(Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 0, 1, 1]))
+    }
+
+    fn get_override_effective_canister_id(&self) -> Option<Principal> {
+        self.effective_canister_id
     }
 
     fn get_extension_manager(&self) -> &ExtensionManager {
@@ -274,6 +285,7 @@ pub struct AgentEnvironment<'a> {
     network_descriptor: NetworkDescriptor,
     identity_manager: IdentityManager,
     imports: RefCell<GraphWithNodesMap<Import, ()>>,
+    effective_canister_id: Option<Principal>,
 }
 
 impl<'a> AgentEnvironment<'a> {
@@ -299,6 +311,13 @@ impl<'a> AgentEnvironment<'a> {
                 and use it in mainnet-facing commands with the `--identity` flag", identity.name());
         }
         let url = network_descriptor.first_provider()?;
+        let effective_canister_id = if let Some(d) = &network_descriptor.local_server_descriptor {
+            d.effective_config()?
+                .is_some_and(|c| c.is_pocketic())
+                .then_some(POCKETIC_EFFECTIVE_CANISTER_ID)
+        } else {
+            None
+        };
 
         Ok(AgentEnvironment {
             backend,
@@ -306,6 +325,7 @@ impl<'a> AgentEnvironment<'a> {
             network_descriptor: network_descriptor.clone(),
             identity_manager,
             imports: RefCell::new(GraphWithNodesMap::new()),
+            effective_canister_id,
         })
     }
 }
@@ -374,7 +394,16 @@ impl<'a> Environment for AgentEnvironment<'a> {
     }
 
     fn get_effective_canister_id(&self) -> Principal {
-        self.backend.get_effective_canister_id()
+        self.backend
+            .get_override_effective_canister_id()
+            .unwrap_or_else(|| {
+                self.effective_canister_id
+                    .unwrap_or_else(|| self.backend.get_effective_canister_id())
+            })
+    }
+
+    fn get_override_effective_canister_id(&self) -> Option<Principal> {
+        self.backend.get_override_effective_canister_id()
     }
 
     fn get_extension_manager(&self) -> &ExtensionManager {

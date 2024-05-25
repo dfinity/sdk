@@ -1217,7 +1217,7 @@ EOF
   dfx_start
 
   touch src/e2e_project_frontend/assets/thing.json
-  touch src/e2e_project_frontend/assets/.ignored-by-defualt.txt
+  touch src/e2e_project_frontend/assets/.ignored-by-default.txt
 
   mkdir src/e2e_project_frontend/assets/.well-known
   touch src/e2e_project_frontend/assets/.well-known/thing.json
@@ -1229,10 +1229,6 @@ EOF
   touch src/e2e_project_frontend/assets/.well-known/.another-hidden/ignored.txt
 
   echo '[
-    {
-      "match": ".well-known",
-      "ignore": false
-    },
     {
       "match": "**/*",
       "cache": { "max_age": 2000 }
@@ -1274,7 +1270,7 @@ EOF
   assert_match "cache-control: max-age=2000"
   assert_match "x-header: x-value"
 
-  assert_command curl -vv "http://localhost:$PORT/.ignored-by-defualt.txt?canisterId=$ID"
+  assert_command curl -vv "http://localhost:$PORT/.ignored-by-default.txt?canisterId=$ID"
   assert_match "404 Not Found"
   assert_command curl -vv "http://localhost:$PORT/.well-known/.hidden/ignored.txt?canisterId=$ID"
   assert_match "404 Not Found"

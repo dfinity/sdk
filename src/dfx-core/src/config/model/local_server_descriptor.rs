@@ -5,9 +5,12 @@ use crate::config::model::dfinity::{
     ConfigDefaultsReplica, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
     DEFAULT_SHARED_LOCAL_BIND,
 };
+use crate::config::model::replica_config::CachedConfig;
 use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
+use crate::error::structured_file::StructuredFileError;
+use crate::json::load_json_file;
 use crate::json::structure::SerdeVec;
 use slog::{debug, info, Logger};
 use std::net::SocketAddr;
@@ -144,6 +147,21 @@ impl LocalServerDescriptor {
     /// This file contains the pid of the replica process
     pub fn replica_pid_path(&self) -> PathBuf {
         self.replica_configuration_dir().join("replica-pid")
+    }
+
+    /// This file contains the listening port of the pocket-ic process
+    pub fn pocketic_port_path(&self) -> PathBuf {
+        self.data_directory.join("pocket-ic-port")
+    }
+
+    pub fn pocketic_pid_path(&self) -> PathBuf {
+        self.data_directory.join("pocket-ic-pid")
+    }
+
+    /// Returns whether the local server is PocketIC (as opposed to the replica)
+    pub fn effective_config(&self) -> Result<Option<CachedConfig<'static>>, StructuredFileError> {
+        let path = self.effective_config_path();
+        path.exists().then(|| load_json_file(&path)).transpose()
     }
 
     /// The top-level directory holding state for the replica.
@@ -292,13 +310,13 @@ impl LocalServerDescriptor {
     /// Gets the port of a local replica.
     ///
     /// # Prerequisites
-    /// - A local replica needs to be running, e.g. with `dfx start`.
+    /// - A local replica or emulator needs to be running, e.g. with `dfx start`.
     pub fn get_running_replica_port(
         &self,
         logger: Option<&Logger>,
     ) -> Result<Option<u16>, NetworkConfigError> {
         let replica_port_path = self.replica_port_path();
-
+        let pocketic_port_path = self.pocketic_port_path();
         match read_port_from(&replica_port_path)? {
             Some(port) => {
                 if let Some(logger) = logger {
@@ -306,7 +324,15 @@ impl LocalServerDescriptor {
                 }
                 Ok(Some(port))
             }
-            None => Ok(self.replica.port),
+            None => match read_port_from(&pocketic_port_path)? {
+                Some(port) => {
+                    if let Some(logger) = logger {
+                        info!(logger, "Found local PocketIC running on port {}", port);
+                    }
+                    Ok(Some(port))
+                }
+                None => Ok(self.replica.port),
+            },
         }
     }
 }

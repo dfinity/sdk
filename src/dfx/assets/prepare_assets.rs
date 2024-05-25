@@ -188,6 +188,7 @@ async fn download_binaries(
         "sandbox_launcher",
         "ic-starter",
         "sns",
+        "pocket-ic",
     ] {
         let source = sources
             .get(bin)
