@@ -4,7 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::models::canister::Import;
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
 use dfx_core::config::cache::Cache;
@@ -254,7 +254,8 @@ pub trait CanisterBuilder {
 
             let file = match parent {
                 Import::Canister(parent_name) => {
-                    let parent_canister = pool.get_first_canister_with_name(parent_name).unwrap();
+                    let parent_canister = pool.get_first_canister_with_name(parent_name)
+                        .ok_or_else(|| anyhow!("No such canister {}", parent_name))?;
                     let parent_canister_info = parent_canister.get_info();
                     if parent_canister_info.is_motoko() {
                         let motoko_info = parent_canister
