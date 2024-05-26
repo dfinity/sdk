@@ -265,23 +265,12 @@ The command line value will be used.",
             .context("Error collecting canisters for post-install task")?;
         &tmp
     };
+    // TODO: Use scanned dependencies instead.
     let dependencies = pool2
         .get_canister_list()
         .iter()
         .map(|can| can.canister_id())
         .collect_vec();
-    // TODO: The following code is a hack.
-    // let graph = env.get_imports().borrow();
-    // let dependencies = graph.graph()
-    //     .neighbors(*graph.nodes().get(&Import::Canister(canister_info.get_name().to_string())).unwrap())
-    //     .map(|index| graph.graph().node_weight(index).unwrap())
-    //     .map(|import| if let Import::Canister(name) = import {
-    //         name
-    //     } else {
-    //         panic!("programming error");
-    //     })
-    //     .map(|name| pool2.get_first_canister_with_name(name).unwrap().get_info().get_canister_id().unwrap())
-    //     .collect_vec();
     let vars: Vec<(Cow<'static, str>, Cow<OsStr>)> = get_and_write_environment_variables(
         canister_info,
         &network.name,
