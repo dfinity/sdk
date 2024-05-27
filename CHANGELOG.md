@@ -8,6 +8,14 @@
 Usually, `dfx` tries again with a larger margin of cycles, but sometimes this gets stuck.
 It is now possible to use `--initial-margin` to manually supply a margin in case the automatic margin does not work.
 
+### perf: improve sync command performance
+
+Improves `sync` (eg. `dfx deploy`, `icx-asset sync`) performance by parallelization:
+- Make asset properties query faster by parallelization, significant improvement for canisters that have many assets
+- Make chunk creation process faster, by increasing parallelization 4=>25, significant improvement when deploying lots of small assets
+
+`icx-asset`: add support for log levels, defaulting to `info`
+
 ### PocketIC support
 
 Passing `--pocketic` to `dfx start` now starts a PocketIC server instead of the replica. PocketIC is lighter-weight than the replica and execution environment internals can be manipulated by REST commands. For more information, see the [PocketIC readme](https://github.com/dfinity/pocketic).
