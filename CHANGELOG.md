@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### fix: `dfx canister delete` fails
+
+`dfx canister delete` occasionally fails because it attempts to withdraw too many cycles from the canister before it is deleted.
+Usually, `dfx` tries again with a larger margin of cycles, but sometimes this gets stuck.
+It is now possible to use `--initial-margin` to manually supply a margin in case the automatic margin does not work.
+
 ### perf: improve sync command performance
 
 Improves `sync` (eg. `dfx deploy`, `icx-asset sync`) performance by parallelization:
