@@ -53,6 +53,20 @@ When creating a canister with `dfx ledger create-canister --next-to` on a canist
 
 ### Updated to [agent-rs 0.35.0](https://github.com/dfinity/agent-rs/blob/main/CHANGELOG.md#0350---2024-05-10)
 
+### Replica
+
+Updated replica to elected commit ec35ebd252d4ffb151d2cfceba3a86c4fb87c6d6.
+This incorporates the following executed proposals:
+
+- [130083](https://dashboard.internetcomputer.org/proposal/130083)
+- [129747](https://dashboard.internetcomputer.org/proposal/129747)
+- [129746](https://dashboard.internetcomputer.org/proposal/129746)
+- [129706](https://dashboard.internetcomputer.org/proposal/129706)
+- [129697](https://dashboard.internetcomputer.org/proposal/129697)
+- [129696](https://dashboard.internetcomputer.org/proposal/129696)
+- [129628](https://dashboard.internetcomputer.org/proposal/129628)
+- [129627](https://dashboard.internetcomputer.org/proposal/129627)
+
 # 0.20.1
 
 ### feat: reformatted error output
