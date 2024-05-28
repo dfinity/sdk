@@ -454,26 +454,22 @@ fn clean_older_state_dirs(local_server_descriptor: &LocalServerDescriptor) -> Df
     if !data_dir.is_dir() {
         return Ok(());
     }
-    let mut state_dirs = fs::read_dir(data_dir)
-        .with_context(|| format!("Failed to read state directory {}", data_dir.display()))?
+    let mut state_dirs = fs::read_dir(data_dir)?
         .filter_map(|e| match e {
-            Ok(entry) if entry.path().is_dir() => Some(Ok(entry.path())),
+            Ok(entry) if is_candidate_state_dir(&entry.path(), settings_digest) => {
+                Some(Ok(entry.path()))
+            }
             Ok(_) => None,
             Err(e) => Some(Err(e)),
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    state_dirs.retain(|p| {
-        p.file_name()
-            .map(|f| {
-                let filename: String = f.to_string_lossy().into();
-                filename != *settings_digest
-            })
-            .unwrap_or(true)
-    });
-
     // keep the X most recent directories
-    state_dirs.sort_by_key(|p| p.metadata().map(|m| m.modified().unwrap()).unwrap());
+    state_dirs.sort_by_cached_key(|p| {
+        p.metadata()
+            .map(|m| m.modified().unwrap_or(SystemTime::UNIX_EPOCH))
+            .unwrap_or(SystemTime::UNIX_EPOCH)
+    });
     state_dirs = state_dirs
         .iter()
         .rev()
@@ -485,6 +481,17 @@ fn clean_older_state_dirs(local_server_descriptor: &LocalServerDescriptor) -> Df
         fs::remove_dir_all(&dir)?;
     }
     Ok(())
+}
+
+fn is_candidate_state_dir(path: &Path, settings_digest: &str) -> bool {
+    path.is_dir()
+        && path
+            .file_name()
+            .map(|f| {
+                let filename: String = f.to_string_lossy().into();
+                filename != *settings_digest
+            })
+            .unwrap_or(true)
 }
 
 pub fn apply_command_line_parameters(
