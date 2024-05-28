@@ -54,7 +54,14 @@ pub async fn upload_content_and_assemble_sync_operations(
         logger,
         "Fetching properties for all assets in the canister."
     );
+    let now = std::time::Instant::now();
     let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
+
+    info!(
+        logger,
+        "Done fetching properties for all assets in the canister. Took {:?}",
+        now.elapsed()
+    );
 
     info!(logger, "Starting batch.");
 

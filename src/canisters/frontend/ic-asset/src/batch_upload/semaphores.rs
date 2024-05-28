@@ -4,13 +4,13 @@ use futures_intrusive::sync::SharedSemaphore;
 const MAX_SIMULTANEOUS_LOADED_MB: usize = 50;
 
 // How many simultaneous chunks being created at once
-const MAX_SIMULTANEOUS_CREATE_CHUNK: usize = 12;
+const MAX_SIMULTANEOUS_CREATE_CHUNK: usize = 50;
 
 // How many simultaneous Agent.call() to create_chunk
-const MAX_SIMULTANEOUS_CREATE_CHUNK_CALLS: usize = 4;
+const MAX_SIMULTANEOUS_CREATE_CHUNK_CALLS: usize = 25;
 
 // How many simultaneous Agent.wait() on create_chunk result
-const MAX_SIMULTANEOUS_CREATE_CHUNK_WAITS: usize = 4;
+const MAX_SIMULTANEOUS_CREATE_CHUNK_WAITS: usize = 25;
 
 pub(crate) struct Semaphores {
     // The "file" semaphore limits how much file data to load at once.  A given loaded file's data

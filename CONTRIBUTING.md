@@ -56,6 +56,16 @@ sdk $ bats e2e/tests-dfx/*.bash
 sdk $ bats e2e/tests-replica/*.bash
 ```
 
+#### Running End-to-End Tests Against Reference IC
+
+This runs the end-to-end tests against the
+[PocketIC emulator](https://github.com/dfinity/pocketic).
+
+``` bash
+sdk $ USE_POCKETIC=1 bats e2e/tests-dfx/*.bash
+sdk $ USE_POCKETIC=1 bats e2e/tests-replica/*.bash
+```
+
 ## Conventional Commits
 
 We use a squash & merge PR strategy, which means that each PR will result in exactly

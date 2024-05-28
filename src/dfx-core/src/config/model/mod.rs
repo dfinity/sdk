@@ -5,3 +5,4 @@ pub mod dfinity;
 pub mod extension_canister_type;
 pub mod local_server_descriptor;
 pub mod network_descriptor;
+pub mod replica_config;
