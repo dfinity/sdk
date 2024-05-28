@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.20.2
+
 ### fix: `dfx canister delete` fails
 
 `dfx canister delete` occasionally fails because it attempts to withdraw too many cycles from the canister before it is deleted.
