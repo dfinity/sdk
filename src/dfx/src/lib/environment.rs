@@ -1,3 +1,4 @@
+use crate::actors::pocketic::POCKETIC_EFFECTIVE_CANISTER_ID;
 use crate::config::cache::DiskBasedCache;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
@@ -13,7 +14,7 @@ use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::identity::new_identity_manager::NewIdentityManagerError;
 use dfx_core::error::load_dfx_config::LoadDfxConfigError;
 use dfx_core::extension::manager::ExtensionManager;
-use dfx_core::identity::identity_manager::IdentityManager;
+use dfx_core::identity::identity_manager::{IdentityManager, InitializeIdentity};
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use semver::Version;
@@ -38,7 +39,7 @@ pub trait Environment {
 
     /// This is value of the name passed to dfx `--identity <name>`
     /// Notably, it is _not_ the name of the default identity or selected identity
-    fn get_identity_override(&self) -> &Option<String>;
+    fn get_identity_override(&self) -> Option<&str>;
 
     // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
@@ -53,7 +54,11 @@ pub trait Environment {
     fn new_progress(&self, message: &str) -> ProgressBar;
 
     fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {
-        IdentityManager::new(self.get_logger(), self.get_identity_override())
+        IdentityManager::new(
+            self.get_logger(),
+            self.get_identity_override(),
+            InitializeIdentity::Allow,
+        )
     }
 
     // Explicit lifetimes are actually needed for mockall to work properly.
@@ -67,6 +72,8 @@ pub trait Environment {
     fn get_selected_identity_principal(&self) -> Option<Principal>;
 
     fn get_effective_canister_id(&self) -> Principal;
+
+    fn get_override_effective_canister_id(&self) -> Option<Principal>;
 
     fn get_extension_manager(&self) -> &ExtensionManager;
 
@@ -98,7 +105,7 @@ pub struct EnvironmentImpl {
 
     identity_override: Option<String>,
 
-    effective_canister_id: Principal,
+    effective_canister_id: Option<Principal>,
 
     extension_manager: ExtensionManager,
 }
@@ -116,7 +123,7 @@ impl EnvironmentImpl {
             logger: None,
             verbose_level: 0,
             identity_override: None,
-            effective_canister_id: Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 0, 1, 1]),
+            effective_canister_id: None,
             extension_manager,
         })
     }
@@ -138,10 +145,13 @@ impl EnvironmentImpl {
 
     pub fn with_effective_canister_id(mut self, effective_canister_id: Option<String>) -> Self {
         match effective_canister_id {
-            None => self,
+            None => {
+                self.effective_canister_id = None;
+                self
+            }
             Some(canister_id) => match Principal::from_text(canister_id) {
                 Ok(principal) => {
-                    self.effective_canister_id = principal;
+                    self.effective_canister_id = Some(principal);
                     self
                 }
                 Err(_) => self,
@@ -196,8 +206,8 @@ impl Environment for EnvironmentImpl {
         &self.version
     }
 
-    fn get_identity_override(&self) -> &Option<String> {
-        &self.identity_override
+    fn get_identity_override(&self) -> Option<&str> {
+        self.identity_override.as_deref()
     }
 
     fn get_agent(&self) -> &Agent {
@@ -243,6 +253,11 @@ impl Environment for EnvironmentImpl {
 
     fn get_effective_canister_id(&self) -> Principal {
         self.effective_canister_id
+            .unwrap_or(Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 0, 1, 1]))
+    }
+
+    fn get_override_effective_canister_id(&self) -> Option<Principal> {
+        self.effective_canister_id
     }
 
     fn get_extension_manager(&self) -> &ExtensionManager {
@@ -255,6 +270,7 @@ pub struct AgentEnvironment<'a> {
     agent: Agent,
     network_descriptor: NetworkDescriptor,
     identity_manager: IdentityManager,
+    effective_canister_id: Option<Principal>,
 }
 
 impl<'a> AgentEnvironment<'a> {
@@ -280,12 +296,20 @@ impl<'a> AgentEnvironment<'a> {
                 and use it in mainnet-facing commands with the `--identity` flag", identity.name());
         }
         let url = network_descriptor.first_provider()?;
+        let effective_canister_id = if let Some(d) = &network_descriptor.local_server_descriptor {
+            d.effective_config()?
+                .is_some_and(|c| c.is_pocketic())
+                .then_some(POCKETIC_EFFECTIVE_CANISTER_ID)
+        } else {
+            None
+        };
 
         Ok(AgentEnvironment {
             backend,
             agent: create_agent(logger, url, identity, timeout)?,
             network_descriptor: network_descriptor.clone(),
             identity_manager,
+            effective_canister_id,
         })
     }
 }
@@ -317,7 +341,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_version()
     }
 
-    fn get_identity_override(&self) -> &Option<String> {
+    fn get_identity_override(&self) -> Option<&str> {
         self.backend.get_identity_override()
     }
 
@@ -354,7 +378,16 @@ impl<'a> Environment for AgentEnvironment<'a> {
     }
 
     fn get_effective_canister_id(&self) -> Principal {
-        self.backend.get_effective_canister_id()
+        self.backend
+            .get_override_effective_canister_id()
+            .unwrap_or_else(|| {
+                self.effective_canister_id
+                    .unwrap_or_else(|| self.backend.get_effective_canister_id())
+            })
+    }
+
+    fn get_override_effective_canister_id(&self) -> Option<Principal> {
+        self.backend.get_override_effective_canister_id()
     }
 
     fn get_extension_manager(&self) -> &ExtensionManager {

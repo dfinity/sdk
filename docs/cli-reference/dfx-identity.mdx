@@ -22,7 +22,7 @@ For reference information and examples that illustrate using `dfx identity` comm
 
 | Command                                         | Description                                                                                                               |
 |-------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| [`deploy-wallet`](#dfx-identity-deploy-wallet) | Installs the wallet WASM to the provided canister id.                                                                     |
+| [`deploy-wallet`](#dfx-identity-deploy-wallet) | Installs the wallet Wasm to the provided canister id.                                                                     |
 | [`get-principal`](#dfx-identity-get-principal) | Shows the textual representation of the principal associated with the current identity.                                   |
 | [`get-wallet`](#dfx-identity-get-wallet)       | Shows the canister identifier for the wallet associated with your current identity principal.                             |
 | `help`                                          | Displays this usage message or the help of the given subcommand(s).                                                       |
@@ -48,7 +48,7 @@ This command adds a private key for the `ic_admin` user identity in the `~/.conf
 
 ## dfx identity deploy-wallet
 
-Use the `dfx identity deploy-wallet` command to turn a canister into a wallet canister by installing the wallet WASM to it.
+Use the `dfx identity deploy-wallet` command to turn a canister into a wallet canister by installing the wallet Wasm to it.
 
 Note that you must be connected to the IC or the local canister execution environment to run this command. In addition, you must be a controller of the canister you want to deploy the wallet to.
 
@@ -64,7 +64,7 @@ You must specify the following argument for the `dfx identity deploy-wallet` com
 
 | Argument        | Description                                                    |
 |-----------------|----------------------------------------------------------------|
-| `<canister id>` | The ID of the canister where the wallet WASM will be deployed. |
+| `<canister id>` | The ID of the canister where the wallet Wasm will be deployed. |
 
 ## dfx identity get-principal
 
@@ -208,9 +208,9 @@ dfx identity new [options] _identity-name_
 
 You must specify the following argument for the `dfx identity new` command.
 
-| Argument          | Description                                                              |
-|-------------------|--------------------------------------------------------------------------|
-| `<identity_name>` | Specifies the name of the identity to create. This argument is required. |
+| Argument          | Description                                                                                                                             |
+|-------------------|-----------------------------------------------------------------------------------------------------------------------------------------|
+| `<identity_name>` | Specifies the name of the identity to create. This argument is required. Valid characters are letters, numbers, and these symbols: .-_@ |
 
 ### Options
 

@@ -12,7 +12,7 @@ use crate::lib::operations::cycles_ledger::{
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::util::blob_from_arguments;
-use crate::util::clap::parsers::icrc_subaccount_parser;
+use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use anyhow::{bail, Context};
 use candid::Principal;
 use clap::Parser;
@@ -28,14 +28,14 @@ use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use icrc_ledger_types::icrc1::account::{Account, Subaccount};
 use num_traits::cast::ToPrimitive;
-use slog::info;
+use slog::{debug, info};
 use std::convert::TryFrom;
 
 const DANK_PRINCIPAL: Principal =
     Principal::from_slice(&[0, 0, 0, 0, 0, 0xe0, 1, 0x11, 0x01, 0x01]); // Principal: aanaa-xaaaa-aaaah-aaeiq-cai
 
 // "Couldn't send message" when deleting a canister: increase WITHDRAWAL_COST
-const WITHDRAWAL_COST: u128 = 10_606_030_000; // 5% higher than a value observed ok locally
+const WITHDRAWAL_COST: u128 = 30_000_000_000; // conservative estimate based on mainnet observation
 
 /// Deletes a currently stopped canister.
 #[derive(Parser)]
@@ -72,6 +72,10 @@ pub struct CanisterDeleteOpts {
     )]
     withdraw_cycles_to_dank_principal: Option<String>,
 
+    /// Leave this many cycles in the canister when withdrawing cycles.
+    #[arg(long, value_parser = cycle_amount_parser, conflicts_with("no_withdrawal"))]
+    initial_margin: Option<u128>,
+
     /// Auto-confirm deletion for a non-stopped canister.
     #[arg(long, short)]
     yes: bool,
@@ -92,6 +96,7 @@ async fn delete_canister(
     withdraw_cycles_to_dank: bool,
     withdraw_cycles_to_dank_principal: Option<String>,
     to_cycles_ledger_subaccount: Option<Subaccount>,
+    initial_margin: Option<u128>,
 ) -> DfxResult {
     let log = env.get_logger();
     let mut canister_id_store = env.get_canister_id_store()?;
@@ -218,12 +223,17 @@ async fn delete_canister(
                 let cycles = status.cycles.0.to_u128().unwrap();
                 let mut attempts = 0_u128;
                 loop {
-                    let margin = WITHDRAWAL_COST + attempts * WITHDRAWAL_COST / 10;
+                    let margin =
+                        initial_margin.unwrap_or(WITHDRAWAL_COST) + attempts * WITHDRAWAL_COST / 10;
                     if margin >= cycles {
                         info!(log, "Too few cycles to withdraw: {}.", cycles);
                         break;
                     }
                     let cycles_to_withdraw = cycles - margin;
+                    debug!(
+                        log,
+                        "Margin: {margin}. Withdrawing {cycles_to_withdraw} cycles."
+                    );
                     let result = match withdraw_target {
                         WithdrawTarget::NoWithdrawal => Ok(()),
                         WithdrawTarget::Dank => {
@@ -277,12 +287,17 @@ async fn delete_canister(
                     if result.is_ok() {
                         info!(log, "Successfully withdrew {} cycles.", cycles_to_withdraw);
                         break;
-                    } else if format!("{:?}", result).contains("Couldn't send message") {
-                        info!(log, "Not enough margin. Trying again with more margin.");
-                        attempts += 1;
                     } else {
-                        // Unforeseen error. Report it back to user
-                        result?;
+                        let message = format!("{:?}", result);
+                        if message.contains("Couldn't send message")
+                            || message.contains("out of cycles")
+                        {
+                            info!(log, "Not enough margin. Trying again with more margin.");
+                            attempts += 1;
+                        } else {
+                            // Unforeseen error. Report it back to user
+                            result?;
+                        }
                     }
                 }
                 stop_canister(env, canister_id, &CallSender::SelectedId).await?;
@@ -336,6 +351,7 @@ pub async fn exec(
             opts.withdraw_cycles_to_dank,
             opts.withdraw_cycles_to_dank_principal,
             opts.to_subaccount,
+            opts.initial_margin,
         )
         .await
     } else if opts.all {
@@ -351,6 +367,7 @@ pub async fn exec(
                     opts.withdraw_cycles_to_dank,
                     opts.withdraw_cycles_to_dank_principal.clone(),
                     opts.to_subaccount,
+                    opts.initial_margin,
                 )
                 .await?;
             }

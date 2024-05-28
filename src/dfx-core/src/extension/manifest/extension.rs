@@ -1,4 +1,7 @@
-use crate::error::extension::ExtensionError;
+use crate::error::extension::{
+    ConvertExtensionSubcommandIntoClapArgError, ConvertExtensionSubcommandIntoClapCommandError,
+    LoadExtensionManifestError,
+};
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 use std::path::PathBuf;
@@ -29,10 +32,12 @@ pub struct ExtensionManifest {
 }
 
 impl ExtensionManifest {
-    pub fn load(name: &str, extensions_root_dir: &Path) -> Result<Self, ExtensionError> {
+    pub fn load(
+        name: &str,
+        extensions_root_dir: &Path,
+    ) -> Result<Self, LoadExtensionManifestError> {
         let manifest_path = Self::manifest_path(name, extensions_root_dir);
-        let mut m: ExtensionManifest = crate::json::load_json_file(&manifest_path)
-            .map_err(ExtensionError::LoadExtensionManifestFailed)?;
+        let mut m: ExtensionManifest = crate::json::load_json_file(&manifest_path)?;
         m.name = name.to_string();
         Ok(m)
     }
@@ -45,7 +50,9 @@ impl ExtensionManifest {
         extensions_root_dir.join(name).join(MANIFEST_FILE_NAME)
     }
 
-    pub fn into_clap_commands(self) -> Result<Vec<clap::Command>, ExtensionError> {
+    pub fn into_clap_commands(
+        self,
+    ) -> Result<Vec<clap::Command>, ConvertExtensionSubcommandIntoClapCommandError> {
         self.subcommands
             .unwrap_or_default()
             .0
@@ -152,12 +159,15 @@ impl<'de> Deserialize<'de> for ArgNumberOfValues {
 }
 
 impl ExtensionSubcommandArgOpts {
-    pub fn into_clap_arg(self, name: String) -> Result<clap::Arg, ExtensionError> {
+    pub fn into_clap_arg(
+        self,
+        name: String,
+    ) -> Result<clap::Arg, ConvertExtensionSubcommandIntoClapArgError> {
         let mut arg = clap::Arg::new(name.clone());
         if let Some(about) = self.about {
             arg = arg.help(about);
         } else {
-            return Err(ExtensionError::ExtensionSubcommandArgMissingDescription(
+            return Err(ConvertExtensionSubcommandIntoClapArgError::ExtensionSubcommandArgMissingDescription(
                 name,
             ));
         }
@@ -186,7 +196,10 @@ impl ExtensionSubcommandArgOpts {
 }
 
 impl ExtensionSubcommandOpts {
-    pub fn into_clap_command(self, name: String) -> Result<clap::Command, ExtensionError> {
+    pub fn into_clap_command(
+        self,
+        name: String,
+    ) -> Result<clap::Command, ConvertExtensionSubcommandIntoClapCommandError> {
         let mut cmd = clap::Command::new(name);
 
         if let Some(about) = self.about {
@@ -255,11 +268,11 @@ fn parse_test_file() {
       "about": "About for download command. You're looking at the output of parsing test extension.json.",
       "args": {
         "ic_commit": {
-          "about": "IC commit of SNS canister WASMs to download",
+          "about": "IC commit of SNS canister Wasm binaries to download",
           "long": "ic-commit"
         },
         "wasms_dir": {
-          "about": "Path to store downloaded SNS canister WASMs",
+          "about": "Path to store downloaded SNS canister Wasm binaries",
           "long": "wasms-dir"
         }
       }

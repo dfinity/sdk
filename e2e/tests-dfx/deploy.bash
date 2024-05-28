@@ -25,7 +25,7 @@ teardown() {
     assert_command dfx deploy --no-wallet
 
     assert_command dfx canister status hello_backend
-    assert_contains "Reserved Cycles Limit: 860_000 Cycles"
+    assert_contains "Reserved cycles limit: 860_000 Cycles"
 }
 
 @test "deploy --upgrade-unchanged upgrades even if the .wasm did not change" {
@@ -158,13 +158,13 @@ teardown() {
 @test "deploy succeeds when specify canister ID both in dfx.json and cli; warning if different; cli value takes effect" {
   dfx_start
   jq '.canisters.hello_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
-  assert_command dfx deploy hello_backend --specified-id hhn2s-5l777-77777-7777q-cai
+  assert_command dfx deploy hello_backend --specified-id n2m2m-wyaaa-aaaaa-p777a-cai
   assert_contains "WARN: Canister 'hello_backend' has a specified ID in dfx.json: n5n4y-3aaaa-aaaaa-p777q-cai,"
-  assert_contains "which is different from the one specified in the command line: hhn2s-5l777-77777-7777q-cai."
+  assert_contains "which is different from the one specified in the command line: n2m2m-wyaaa-aaaaa-p777a-cai."
   assert_contains "The command line value will be used."
 
   assert_command dfx canister id hello_backend
-  assert_match hhn2s-5l777-77777-7777q-cai
+  assert_match n2m2m-wyaaa-aaaaa-p777a-cai
 }
 
 @test "deploy does not require wallet if all canisters are created" {

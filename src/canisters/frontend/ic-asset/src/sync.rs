@@ -38,6 +38,8 @@ use std::collections::HashMap;
 use std::path::Path;
 use walkdir::WalkDir;
 
+const KNOWN_DIRECTORIES: [&str; 1] = [".well-known"];
+
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
 pub async fn upload_content_and_assemble_sync_operations(
     canister: &Canister<'_>,
@@ -51,7 +53,14 @@ pub async fn upload_content_and_assemble_sync_operations(
         logger,
         "Fetching properties for all assets in the canister."
     );
+    let now = std::time::Instant::now();
     let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
+
+    info!(
+        logger,
+        "Done fetching properties for all assets in the canister. Took {:?}",
+        now.elapsed()
+    );
 
     info!(logger, "Starting batch.");
 
@@ -214,15 +223,17 @@ fn sort_batch_operations(mut args: CommitBatchArguments) -> CommitBatchArguments
 }
 
 fn include_entry(entry: &walkdir::DirEntry, config: &AssetConfig) -> bool {
-    let starts_with_a_dot = entry
-        .file_name()
-        .to_str()
-        .map(|s| s.starts_with('.'))
-        .unwrap_or(false);
-
-    match (starts_with_a_dot, config.ignore) {
-        (dot, None) => !dot,
-        (_dot, Some(ignored)) => !ignored,
+    if let Some(ignored) = config.ignore {
+        !ignored
+    } else if let Some(entry_name) = entry.file_name().to_str() {
+        let is_known = if entry.path().is_dir() {
+            KNOWN_DIRECTORIES.contains(&entry_name)
+        } else {
+            false
+        };
+        is_known || !entry_name.starts_with('.')
+    } else {
+        true
     }
 }
 
@@ -772,6 +783,59 @@ mod test_gathering_asset_descriptors_with_tempdir {
             AssetDescriptor::default_from_path(&assets_dir, "file"),
             AssetDescriptor::default_from_path(&assets_dir, "dir/file"),
         ];
+
+        expected_asset_descriptors.sort_by_key(|v| v.source.clone());
+        asset_descriptors.sort_by_key(|v| v.source.clone());
+        assert_eq!(asset_descriptors, expected_asset_descriptors);
+    }
+
+    #[test]
+    fn known_directories_included_by_default() {
+        let files = HashMap::from([
+            // a typical use case of the .well-known folder
+            (
+                Path::new(".well-known/ic-domains").to_path_buf(),
+                "foo.bar.com".to_string(),
+            ),
+        ]);
+
+        let assets_temp_dir = create_temporary_assets_directory(files);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
+
+        let mut expected_asset_descriptors = vec![
+            AssetDescriptor::default_from_path(&assets_dir, "file"),
+            AssetDescriptor::default_from_path(&assets_dir, ".well-known/ic-domains"),
+        ];
+
+        expected_asset_descriptors.sort_by_key(|v| v.source.clone());
+        asset_descriptors.sort_by_key(|v| v.source.clone());
+        assert_eq!(asset_descriptors, expected_asset_descriptors);
+    }
+
+    #[test]
+    fn known_directories_can_be_ignored() {
+        let files = HashMap::from([
+            // a typical use case of the .well-known folder
+            (
+                Path::new(".well-known/ic-domains").to_path_buf(),
+                "foo.bar.com".to_string(),
+            ),
+            (
+                Path::new(".ic-assets.json").to_path_buf(),
+                r#"[
+                    {"match": ".well-known", "ignore": true}
+                ]"#
+                .to_string(),
+            ),
+        ]);
+
+        let assets_temp_dir = create_temporary_assets_directory(files);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
+
+        let mut expected_asset_descriptors =
+            vec![AssetDescriptor::default_from_path(&assets_dir, "file")];
 
         expected_asset_descriptors.sort_by_key(|v| v.source.clone());
         asset_descriptors.sort_by_key(|v| v.source.clone());

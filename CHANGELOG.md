@@ -2,6 +2,73 @@
 
 # UNRELEASED
 
+# 0.20.2
+
+### fix: `dfx canister delete` fails
+
+`dfx canister delete` occasionally fails because it attempts to withdraw too many cycles from the canister before it is deleted.
+Usually, `dfx` tries again with a larger margin of cycles, but sometimes this gets stuck.
+It is now possible to use `--initial-margin` to manually supply a margin in case the automatic margin does not work.
+
+### perf: improve sync command performance
+
+Improves `sync` (eg. `dfx deploy`, `icx-asset sync`) performance by parallelization:
+- Make asset properties query faster by parallelization, significant improvement for canisters that have many assets
+- Make chunk creation process faster, by increasing parallelization 4=>25, significant improvement when deploying lots of small assets
+
+`icx-asset`: add support for log levels, defaulting to `info`
+
+### PocketIC support
+
+Passing `--pocketic` to `dfx start` now starts a PocketIC server instead of the replica. PocketIC is lighter-weight than the replica and execution environment internals can be manipulated by REST commands. For more information, see the [PocketIC readme](https://github.com/dfinity/pocketic).
+
+### feat: subaccount can be derived from principal in `dfx ledger account-id`
+
+### feat: `dfx info candid-ui-url`
+
+`dfx info candid-ui-url` displays the URL to the Candid UI canister for an explicitly specified `--network <network name>` (or `local` by default).
+
+### chore: Improve help text of `dfx identity new` to include which characters are valid in identity names
+
+### fix: Capitalization of "Wasm" in docs and messages
+
+The output of `dfx canister status` has been also changed to use consistent capitalization of words.
+
+### fix!(frontend-canister): include `.well-known` directory by default for asset upload
+
+When uploading assets to an asset canister, `dfx` by default excludes directories and files with names that start with `.`.
+`dfx` will start including folders with the name `.well-known` by default.
+It is possible to override this in `.ic-assets.json` like this:
+
+``` json
+{
+  "match": ".well-known",
+  "ignore": true
+}
+```
+
+### fix: Transferring funds too early in `dfx ledger create-canister` with --next-to
+
+When creating a canister with `dfx ledger create-canister --next-to` on a canister that does not exist (e.g., 2vxsx-fae), then the funds are first transferred away from the users account, but the call then fails to create the new canister, and the funds are not returned to the user's account.
+
+## Dependencies
+
+### Updated to [agent-rs 0.35.0](https://github.com/dfinity/agent-rs/blob/main/CHANGELOG.md#0350---2024-05-10)
+
+### Replica
+
+Updated replica to elected commit ec35ebd252d4ffb151d2cfceba3a86c4fb87c6d6.
+This incorporates the following executed proposals:
+
+- [130083](https://dashboard.internetcomputer.org/proposal/130083)
+- [129747](https://dashboard.internetcomputer.org/proposal/129747)
+- [129746](https://dashboard.internetcomputer.org/proposal/129746)
+- [129706](https://dashboard.internetcomputer.org/proposal/129706)
+- [129697](https://dashboard.internetcomputer.org/proposal/129697)
+- [129696](https://dashboard.internetcomputer.org/proposal/129696)
+- [129628](https://dashboard.internetcomputer.org/proposal/129628)
+- [129627](https://dashboard.internetcomputer.org/proposal/129627)
+
 # 0.20.1
 
 ### feat: reformatted error output
@@ -41,7 +108,7 @@ Stderr:
 
 ### fix: "Failed to decrypt PEM file" errors messages will now include the cause
 
-### feat: WASM memory soft-limit
+### feat: Wasm memory soft-limit
 
 Adds support for the `wasm_memory_limit` canister setting, which limits the canister's heap during most calls but does not affect queries. As with other canister settings, it can be set in `dfx canister create` or `dfx canister update-settings` via the `--wasm-memory-limit` flag, as well as in `dfx.json` under `canisters[].initialization_values.wasm_memory_limit`.
 
@@ -545,7 +612,7 @@ Fix the HTTP header for deploying in remote environments
 
 ### feat: large canister modules now supported
 
-When using `dfx deploy` or `dfx canister install`, previously WASM modules larger than 2MiB would be rejected.
+When using `dfx deploy` or `dfx canister install`, previously Wasm modules larger than 2MiB would be rejected.
 They are now automatically submitted via the chunking API if they are large enough.
 From a user perspective the limitation will simply have been lifted.
 
@@ -1403,7 +1470,7 @@ The identity may be specified using the environment variable `DFX_IDENTITY`.
 
 ### feat: Add DFX_ASSETS_WASM
 
-Added the ability to configure the WASM module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
+Added the ability to configure the Wasm module used for assets canisters through the environment variable `DFX_ASSETS_WASM`.
 
 ### fix: dfx deploy and icx-asset no longer retry on permission failure
 
@@ -1519,7 +1586,7 @@ Added validate_grant_permission() and validate_revoke_permission() methods per S
 
 ### feat: Add dfx sns download
 
-This allows users to download SNS canister WASMs.
+This allows users to download SNS canister Wasm binaries.
 
 ### fix: fixed error text
 - `dfx nns install` had the wrong instructions for setting up the local replica type
@@ -2116,7 +2183,7 @@ It is now possible to inhibit automatic wallet creation by setting the `DFX_DISA
 
 ### feat: canister installation now waits for the replica
 
-When installing a new WASM module to a canister, DFX will now wait for the updated state (i.e. the new module hash) to be visible in the replica's certified state tree before proceeding with post-installation tasks or producing a success status.
+When installing a new Wasm module to a canister, DFX will now wait for the updated state (i.e. the new module hash) to be visible in the replica's certified state tree before proceeding with post-installation tasks or producing a success status.
 
 ### feat!: remove `dfx config`
 
@@ -2400,7 +2467,7 @@ can instead use `dfx canister metadata`.
 
 ### refactor: optimize from ic-wasm
 
-Optimize Rust canister WASM module via ic-wasm library instead of ic-cdk-optimizer. A separate installation of ic-cdk-optimizer is no longer needed.
+Optimize Rust canister Wasm module via ic-wasm library instead of ic-cdk-optimizer. A separate installation of ic-cdk-optimizer is no longer needed.
 
 The actual optimization was kept the same.
 
@@ -3697,7 +3764,7 @@ dfx deploy or dfx install will delete them.
 
 ### feat: get certified canister info from read state #1514
 
-Added `dfx canister info` command to get certified canister information. Currently this information is limited to the controller of the canister and the SHA256 hash of its WASM module. If there is no WASM module installed, the hash will be None.
+Added `dfx canister info` command to get certified canister information. Currently this information is limited to the controller of the canister and the SHA256 hash of its Wasm module. If there is no Wasm module installed, the hash will be None.
 
 ## Asset Canister
 
@@ -3840,18 +3907,18 @@ Please submit your Principal ("dfx identity get-principal") in the intake form t
 - feat: add deploy wallet subcommand to identity (#1414)
 
 This feature adds the deploy-wallet subcommand to the dfx identity.
-The User provides the ID of the canister onto which the wallet WASM is deployed.
+The User provides the ID of the canister onto which the wallet Wasm is deployed.
 
 ``` bash
 dfx identity deploy-wallet --help
 dfx-identity-deploy-wallet
-Installs the wallet WASM to the provided canister id
+Installs the wallet Wasm to the provided canister id
 
 USAGE:
     dfx identity deploy-wallet <canister-id>
 
 ARGS:
-    <canister-id>    The ID of the canister where the wallet WASM will be deployed
+    <canister-id>    The ID of the canister where the wallet Wasm will be deployed
 
 FLAGS:
     -h, --help       Prints help information

@@ -314,3 +314,14 @@ Please remove one of them or leave both undefined."
   rm dfx.json
   assert_command dfx canister install "$CANISTER_ID" --wasm .dfx/local/canisters/e2e_project_backend/e2e_project_backend.wasm
 }
+
+@test "repeated install wasm" {
+  install_asset custom_canister
+  install_asset wasm/identity
+  dfx_start
+  dfx deploy
+  for _ in {1..50}
+  do
+  echo yes | dfx canister install --mode=reinstall custom
+  done
+}

@@ -11,13 +11,13 @@ use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::integrations::bitcoin::initialize_bitcoin_canister;
 use crate::lib::integrations::create_integrations_agent;
-use crate::lib::replica_config::ReplicaConfig;
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
 use anyhow::bail;
 use crossbeam::channel::{unbounded, Receiver, Sender};
+use dfx_core::config::model::replica_config::ReplicaConfig;
 use slog::{debug, error, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
@@ -192,7 +192,9 @@ impl Replica {
 
     fn send_ready_signal(&self, port: u16) {
         for sub in &self.ready_subscribers {
-            sub.do_send(PortReadySignal { port });
+            sub.do_send(PortReadySignal {
+                url: format!("http://localhost:{port}"),
+            });
         }
     }
 }
@@ -233,7 +235,9 @@ impl Handler<PortReadySubscribe> for Replica {
     fn handle(&mut self, msg: PortReadySubscribe, _: &mut Self::Context) {
         // If we have a port, send that we're already ready! Yeah!
         if let Some(port) = self.port {
-            msg.0.do_send(PortReadySignal { port });
+            msg.0.do_send(PortReadySignal {
+                url: format!("http://localhost:{port}"),
+            });
         }
 
         self.ready_subscribers.push(msg.0);

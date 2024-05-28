@@ -34,6 +34,11 @@ current_time_nanoseconds() {
   assert_command dfx ledger account-id --of-principal fg7gi-vyaaa-aaaal-qadca-cai
   assert_match a014842f64a22e59887162a79c7ca7eb02553250704780ec4d954f12d0ea0b18
 
+  ALICE_PRINCIPAL="$(dfx identity get-principal)"
+  assert_command dfx ledger account-id --of-canister qvhpv-4qaaa-aaaaa-aaagq-cai --subaccount-from-principal "${ALICE_PRINCIPAL}"
+  # value obtained by running `dfx --identity alice canister call --ic qvhpv-4qaaa-aaaaa-aaagq-cai get_payment_subaccount`
+  assert_match 7afe37275178a26c463a6609825748ba3ed3572f7f308917f96f9f7be20e9d01
+
   # --of-canister accepts both canister alias and canister principal
   assert_command dfx canister create dummy_canister
   assert_command dfx ledger account-id --of-canister "$(dfx canister id dummy_canister)"
@@ -204,6 +209,13 @@ tc_to_num() {
   assert_match "Transfer sent at block height"
   assert_match "Refunded at block height"
   assert_match "with message: Subnet $SUBNET_ID does not exist"
+
+  # Verify that registry is queried before sending any ICP to CMC
+  CANISTER_ID="2vxsx-fae" # anonymous principal
+  balance=$(dfx ledger balance)
+  assert_command_fail dfx ledger create-canister --amount=100 --next-to "$CANISTER_ID" "$(dfx identity get-principal)"
+  # TODO: assert error message once registry is fixed
+  assert_eq "$balance" "$(dfx ledger balance)"
 
   # Transaction Deduplication
   t=$(current_time_nanoseconds)
