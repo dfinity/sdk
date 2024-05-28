@@ -7,10 +7,10 @@ use candid::CandidType;
 use candid::Principal;
 use clap::Parser;
 
-/// Send cycles to another cycles wallet.
+/// Send cycles to a canister.
 #[derive(Parser)]
 pub struct SendOpts {
-    /// Canister ID of the destination cycles wallet.
+    /// Canister ID of the destination canister.
     destination: String,
 
     /// Specifies the amount of cycles to send.
