@@ -123,6 +123,11 @@ icx_asset_upload() {
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/will-not-delete-this.txt";accept_encodings=vec{"identity"}})'
   assert_command dfx canister call --query e2e_project_frontend list '(record{})'
   assert_match '"/will-not-delete-this.txt"'
+  icx_asset_sync src/e2e_project_frontend/assets
+  
+  assert_command_fail dfx canister call --query e2e_project_frontend get '(record{key="/will-not-delete-this.txt";accept_encodings=vec{"identity"}})'
+  assert_command dfx canister call --query e2e_project_frontend list '(record{})'
+  assert_not_contains '"/will-not-delete-this.txt"'
 }
 
 @test "unsets asset encodings that are removed from project" {
