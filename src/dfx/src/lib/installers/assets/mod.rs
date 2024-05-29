@@ -27,7 +27,7 @@ pub async fn post_install_store_assets(
         .build()
         .context("Failed to build asset canister caller.")?;
 
-    ic_asset::sync(&canister, &source_paths, logger)
+    ic_asset::sync(&canister, &source_paths, false, logger)
         .await
         .with_context(|| {
             format!(
