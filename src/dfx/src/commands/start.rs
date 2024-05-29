@@ -248,12 +248,7 @@ pub fn exec(
     // dfx info replica-port will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
     let replica_config_dir = local_server_descriptor.replica_configuration_dir();
-    fs::create_dir_all(&replica_config_dir).with_context(|| {
-        format!(
-            "Failed to create replica config directory {}.",
-            replica_config_dir.display()
-        )
-    })?;
+    fs::create_dir_all(&replica_config_dir)?;
 
     let replica_port_path = empty_writable_path(local_server_descriptor.replica_port_path())?;
     let pocketic_port_path = empty_writable_path(local_server_descriptor.pocketic_port_path())?;
@@ -275,14 +270,7 @@ pub fn exec(
     local_server_descriptor.describe(env.get_logger());
 
     write_pid(&pid_file_path);
-    std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
-        || {
-            format!(
-                "Failed to write webserver port file {}.",
-                webserver_port_path.to_string_lossy()
-            )
-        },
-    )?;
+    fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
     let btc_adapter_config = configure_btc_adapter_if_enabled(
         local_server_descriptor,
@@ -350,12 +338,11 @@ pub fn exec(
         &local_server_descriptor.scope,
         LocalNetworkScopeDescriptor::Shared { .. }
     );
-    if is_shared_network {
+    if is_shared_network && !pocketic {
         save_json_file(
             &local_server_descriptor.effective_config_path_by_settings_digest(),
             &effective_config,
-        )
-        .context("Failed to write replica configuration")?;
+        )?;
     } else if !clean && !force && previous_config_path.exists() {
         let previous_config = load_json_file(&previous_config_path)
             .context("Failed to read replica configuration. Rerun with `--clean`.")?;
@@ -365,8 +352,7 @@ pub fn exec(
             )
         }
     }
-    save_json_file(&previous_config_path, &effective_config)
-        .context("Failed to write replica configuration")?;
+    save_json_file(&previous_config_path, &effective_config)?;
 
     let network_descriptor = network_descriptor.clone();
 
