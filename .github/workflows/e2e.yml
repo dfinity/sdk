@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - master
-      - ens/sdk-1638-less-dfx-start-clean
   pull_request:
 
 concurrency:
