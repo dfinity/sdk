@@ -710,20 +710,15 @@ check_permission_failure() {
   dfx canister  call --query e2e_project_frontend list '(record {})'
 
   # decode as expected
-  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%e6";headers=vec{};method="GET";body=vec{}})'
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%c3%a6";headers=vec{};method="GET";body=vec{}})'
   assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
 
-  # fails with Err(InvalidExpressionPath)
-  assert_command_fail curl --fail -vv http://localhost:"$PORT"/%c3%a6?canisterId="$ID"
-
-  # fails with Err(Utf8ConversionError(FromUtf8Error { bytes: [47, 230], error: Utf8Error { valid_up_to: 1, error_len: None } }))
+  # fails with because %e6 is not valid utf-8 percent encoding
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
-  # assert_match "200 OK" "$stderr"
-  # assert_match "filename is an ae symbol"
-  assert_contains "500 Internal Server Error"
+  assert_contains "400 Bad Request"
 }
 
 @test "http_request percent-decodes urls" {
@@ -751,7 +746,7 @@ check_permission_failure() {
   assert_match "contents of file with plus in filename"
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/has%25percent.txt";headers=vec{};method="GET";body=vec{}})'
   assert_match "contents of file with percent in filename"
-  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%e6";headers=vec{};method="GET";body=vec{}})'
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%c3%a6";headers=vec{};method="GET";body=vec{}})'
   assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%25";headers=vec{};method="GET";body=vec{}})'
   assert_match "filename is percent"
@@ -792,11 +787,9 @@ check_permission_failure() {
   assert_match "contents of file with percent in filename"
 
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
-  # see https://dfinity.atlassian.net/browse/SDK-1247
-  # fails with Err(Utf8ConversionError(FromUtf8Error { bytes: [47, 230], error: Utf8Error { valid_up_to: 1, error_len: None } }))
-  assert_contains "500 Internal Server Error"
-  # assert_match "200 OK" "$stderr"
-  # assert_match "filename is an ae symbol"
+  # see https://dfinity.atlassian.net/browse/SDK-1412
+  # fails because %e6 is not valid utf-8 percent encoding
+  assert_contains "400 Bad Request"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/%25?canisterId="$ID"
   assert_match "200 OK" "$stderr"
