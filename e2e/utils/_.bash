@@ -117,11 +117,11 @@ determine_network_directory() {
 # Start the replica in the background.
 dfx_start() {
     local port dfx_config_root webserver_port
+
     local args=( "$@" )
 
     add_default_parameter() {
         local param_name=$1
-        local param_value=$2
         local has_param=false
         for arg in "${args[@]}"; do
             if [[ $arg == "$param_name" ]]; then
@@ -130,30 +130,43 @@ dfx_start() {
             fi
         done
         if ! $has_param; then
-            args+=( "$param_name" "$param_value" )
+            if [[ $# == 1 ]]; then
+                args+=( "$param_name" )
+            else
+                local param_value=$2
+                args+=( "$param_name" "$param_value" )
+            fi
         fi
     }
 
     # By default, start on random port for parallel test execution
     add_default_parameter "--host" "127.0.0.1:0"
-
-    add_default_parameter "--artificial-delay" "100"
+    if [[ "$USE_POCKETIC" ]]; then
+        add_default_parameter "--pocketic"
+    else
+        add_default_parameter "--artificial-delay" "100"
+    fi
 
     determine_network_directory
 
     # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
     # wait for it to close. Because `dfx start` leaves child processes running, we need
     # to close this pipe, otherwise Bats will wait indefinitely.
+
     dfx start --background "${args[@]}" 3>&-
 
-    dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
-    printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
-    test -f "${dfx_config_root}/replica-1.port"
-    port=$(cat "${dfx_config_root}/replica-1.port")
-    if [ "$port" == "" ]; then
-      port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
+    if [[ "$USE_POCKETIC" ]]; then
+        test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
+        port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port")
+    else
+        dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
+        printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
+        test -f "${dfx_config_root}/replica-1.port"
+        port=$(cat "${dfx_config_root}/replica-1.port")
+        if [ "$port" == "" ]; then
+          port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
+        fi
     fi
-
     webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
 
     printf "Replica Configured Port: %s\n" "${port}"
@@ -224,7 +237,11 @@ setup_actuallylocal_shared_network() {
 
 setup_local_shared_network() {
     local replica_port
-    replica_port=$(get_replica_port)
+    if [[ "$USE_POCKETIC" ]]; then
+        replica_port=$(get_pocketic_port)
+    else
+        replica_port=$(get_replica_port)
+    fi
 
     [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
 
@@ -266,6 +283,14 @@ get_replica_pid() {
 
 get_replica_port() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port"
+}
+
+get_pocketic_pid() {
+  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-pid"
+}
+
+get_pocketic_port() {
+  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
 }
 
 get_btc_adapter_pid() {

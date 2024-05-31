@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.20.0"
+version = "0.20.1"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
@@ -125,6 +125,9 @@ ci_info = "0.14"
 
 [target.'cfg(windows)'.dependencies]
 junction = "1.0.0"
+
+[target.'cfg(unix)'.dependencies]
+pocket-ic = "3.1.0"
 
 [dev-dependencies]
 env_logger = "0.10"

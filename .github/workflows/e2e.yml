@@ -119,10 +119,6 @@ jobs:
           path: /usr/local/bin
       - name: Setup dfx binary
         run: chmod +x /usr/local/bin/dfx
-      - name: Disable query verification in ic-ref
-        if: ${{ matrix.backend == 'ic-ref' }}
-        run: |
-          echo DFX_DISABLE_QUERY_VERIFICATION=1 >> $GITHUB_ENV
       - name: start and deploy
         run: |
           pwd
@@ -164,6 +160,9 @@ jobs:
           echo "archive=$(pwd)/e2e/archive" >> "$GITHUB_ENV"
           echo "assets=$(pwd)/e2e/assets" >> "$GITHUB_ENV"
           echo "utils=$(pwd)/e2e/utils" >> "$GITHUB_ENV"
+          if [ "${{ matrix.backend == 'pocketic' || '' }}" ]; then
+            echo "USE_POCKETIC=1" >> "$GITHUB_ENV"
+          fi
           export
       - name: Download bats-support as a git submodule
         run: git submodule update --init --recursive

@@ -44,6 +44,7 @@ const KNOWN_DIRECTORIES: [&str; 1] = [".well-known"];
 pub async fn upload_content_and_assemble_sync_operations(
     canister: &Canister<'_>,
     dirs: &[&Path],
+    no_delete: bool,
     logger: &Logger,
 ) -> Result<CommitBatchArguments, UploadContentError> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
@@ -53,7 +54,14 @@ pub async fn upload_content_and_assemble_sync_operations(
         logger,
         "Fetching properties for all assets in the canister."
     );
+    let now = std::time::Instant::now();
     let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
+
+    info!(
+        logger,
+        "Done fetching properties for all assets in the canister. Took {:?}",
+        now.elapsed()
+    );
 
     info!(logger, "Starting batch.");
 
@@ -77,7 +85,10 @@ pub async fn upload_content_and_assemble_sync_operations(
     let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
         project_assets,
         canister_assets,
-        AssetDeletionReason::Obsolete,
+        match no_delete {
+            true => AssetDeletionReason::Incompatible,
+            false => AssetDeletionReason::Obsolete,
+        },
         canister_asset_properties,
         batch_id,
     );
@@ -105,10 +116,11 @@ pub async fn upload_content_and_assemble_sync_operations(
 pub async fn sync(
     canister: &Canister<'_>,
     dirs: &[&Path],
+    no_delete: bool,
     logger: &Logger,
 ) -> Result<(), SyncError> {
     let commit_batch_args =
-        upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
+        upload_content_and_assemble_sync_operations(canister, dirs, no_delete, logger).await?;
     let canister_api_version = api_version(canister).await;
     debug!(logger, "Canister API version: {canister_api_version}. ic-asset API version: {BATCH_UPLOAD_API_VERSION}");
     info!(logger, "Committing batch.");
@@ -182,7 +194,7 @@ pub async fn prepare_sync_for_proposal(
     dirs: &[&Path],
     logger: &Logger,
 ) -> Result<(), PrepareSyncForProposalError> {
-    let arg = upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
+    let arg = upload_content_and_assemble_sync_operations(canister, dirs, false, logger).await?;
     let arg = sort_batch_operations(arg);
     let batch_id = arg.batch_id.clone();
 
