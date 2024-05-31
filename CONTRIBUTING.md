@@ -24,7 +24,7 @@ When you change `ic-certified-assets` code (or `ic-frontend-canister`), you must
 This is done via `./scripts/update-frontend-canister.sh --release-build`. You need to have Docker (buildx >=v0.8) installed and running.
 
 Then update `CHANGELOG.md` to include the newest sha2 hash (*not* git commit hash) and a link to your PR.
-If there is already an entry in the 'Unreleased' section, change it; if not, add a new one. See the example in [#2699](https://github.com/pull/2699/commits/c191ce5ac529de4499c50a0d2bc70ac6a3cb3afc). This step can be automated by running `./scripts/update-frontend-canister.sh --changelog`.
+If there is already an entry in the 'Unreleased' section, change it; if not, add a new one. See the example in [#2699](https://github.com/dfinity/sdk/pull/2699/commits/c191ce5ac529de4499c50a0d2bc70ac6a3cb3afc). This step can be automated by running `./scripts/update-frontend-canister.sh --changelog`.
 
 ## End-to-End Tests
 
