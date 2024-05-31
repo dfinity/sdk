@@ -787,7 +787,6 @@ check_permission_failure() {
   assert_match "contents of file with percent in filename"
 
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
-  # see https://dfinity.atlassian.net/browse/SDK-1412
   # fails because %e6 is not valid utf-8 percent encoding
   assert_contains "400 Bad Request"
 
