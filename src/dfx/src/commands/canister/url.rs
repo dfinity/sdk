@@ -42,14 +42,6 @@ pub async fn exec(env: &dyn Environment, opts: CanisterUrlOpts) -> DfxResult {
     if let Some(canister_name) = canister_id_store.get_name(&canister_id_text) {
         if let Some(canisters) = &config.get_config().canisters {
             if let Some(canister_config) = canisters.get(canister_name) {
-                // Ignore if it's remote canister.
-                if config
-                    .get_config()
-                    .is_remote_canister(canister_name, &network_descriptor.name)?
-                {
-                    return Ok(());
-                }
-
                 let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
                 let green = Style::new().green();
 

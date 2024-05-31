@@ -78,3 +78,19 @@ teardown() {
   assert_command dfx canister url "$backend_id" --ic
   assert_contains "https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${backend_id}"
 }
+
+@test "url subcommand prints valid remote canister urls" {
+  dfx_start
+
+  jq '.canisters.internet_identity.type = "custom"' dfx.json | sponge dfx.json
+  jq '.canisters.internet_identity.candid = ""' dfx.json | sponge dfx.json
+  jq '.canisters.internet_identity.wasm = ""' dfx.json | sponge dfx.json
+  jq '.canisters.internet_identity.remote.id.ic = "rdmx6-jaaaa-aaaaa-aaadq-cai"' dfx.json | sponge dfx.json
+  remote_id=$(dfx canister id internet_identity --ic)
+
+  assert_command dfx canister url internet_identity --ic
+  assert_contains "https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${remote_id}"
+
+  assert_command dfx canister url "$remote_id" --ic
+  assert_contains "https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=${remote_id}"
+}
