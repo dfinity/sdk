@@ -17,6 +17,22 @@ This results in big compilation speedups.
 
 ### chore: Improve help text of `dfx identity new` to include which characters are valid in identity names
 
+# 0.20.2
+
+### fix: `dfx canister delete` fails
+
+`dfx canister delete` occasionally fails because it attempts to withdraw too many cycles from the canister before it is deleted.
+Usually, `dfx` tries again with a larger margin of cycles, but sometimes this gets stuck.
+It is now possible to use `--initial-margin` to manually supply a margin in case the automatic margin does not work.
+
+### perf: improve sync command performance
+
+Improves `sync` (eg. `dfx deploy`, `icx-asset sync`) performance by parallelization:
+- Make asset properties query faster by parallelization, significant improvement for canisters that have many assets
+- Make chunk creation process faster, by increasing parallelization 4=>25, significant improvement when deploying lots of small assets
+
+`icx-asset`: add support for log levels, defaulting to `info`
+
 ### PocketIC support
 
 Passing `--pocketic` to `dfx start` now starts a PocketIC server instead of the replica. PocketIC is lighter-weight than the replica and execution environment internals can be manipulated by REST commands. For more information, see the [PocketIC readme](https://github.com/dfinity/pocketic).
@@ -53,6 +69,20 @@ When creating a canister with `dfx ledger create-canister --next-to` on a canist
 ## Dependencies
 
 ### Updated to [agent-rs 0.35.0](https://github.com/dfinity/agent-rs/blob/main/CHANGELOG.md#0350---2024-05-10)
+
+### Replica
+
+Updated replica to elected commit ec35ebd252d4ffb151d2cfceba3a86c4fb87c6d6.
+This incorporates the following executed proposals:
+
+- [130083](https://dashboard.internetcomputer.org/proposal/130083)
+- [129747](https://dashboard.internetcomputer.org/proposal/129747)
+- [129746](https://dashboard.internetcomputer.org/proposal/129746)
+- [129706](https://dashboard.internetcomputer.org/proposal/129706)
+- [129697](https://dashboard.internetcomputer.org/proposal/129697)
+- [129696](https://dashboard.internetcomputer.org/proposal/129696)
+- [129628](https://dashboard.internetcomputer.org/proposal/129628)
+- [129627](https://dashboard.internetcomputer.org/proposal/129627)
 
 # 0.20.1
 
