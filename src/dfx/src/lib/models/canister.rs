@@ -5,6 +5,8 @@ use crate::lib::builders::{
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::lib::graph::graph_nodes_map::GraphWithNodesMap;
+use crate::lib::graph::traverse_filtered::DfsFiltered;
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
@@ -12,6 +14,7 @@ use crate::util::assets;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
+use dfx_core::config::cache::Cache;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{
     CanisterMetadataSection, Config, MetadataVisibility, TechStack, WasmOptLevel,
@@ -20,15 +23,18 @@ use fn_error_context::context;
 use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
 use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
-use petgraph::graph::{DiGraph, NodeIndex};
+use petgraph::algo::toposort;
+use petgraph::graph::NodeIndex;
+use petgraph::visit::Bfs;
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{HashMap, HashSet};
 use std::convert::TryFrom;
 use std::ffi::OsStr;
+use std::fmt::Display;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 
@@ -38,8 +44,9 @@ use std::sync::Arc;
 /// Once an instance of a canister is built it is immutable. So for comparing
 /// two canisters one can use their ID.
 pub struct Canister {
-    info: CanisterInfo,
-    builder: Arc<dyn CanisterBuilder>,
+    // TODO: Two below `pubs` are a hack.
+    pub info: CanisterInfo,
+    pub builder: Arc<dyn CanisterBuilder>,
     output: RefCell<Option<BuildOutput>>,
 }
 unsafe impl Send for Canister {}
@@ -62,10 +69,11 @@ impl Canister {
 
     pub fn build(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         build_config: &BuildConfig,
     ) -> DfxResult<&BuildOutput> {
-        let output = self.builder.build(pool, &self.info, build_config)?;
+        let output = self.builder.build(env, pool, &self.info, build_config)?;
 
         // Ignore the old output, and return a reference.
         let _ = self.output.replace(Some(output));
@@ -330,7 +338,7 @@ impl Canister {
         //   - LSP_ROOT/CANISTER_ID.did
         let mut targets = vec![];
         targets.push(self.info.get_service_idl_path());
-        let canister_id = self.canister_id();
+        let canister_id = build_output.canister_id;
         targets.push(
             build_config
                 .idl_root
@@ -349,7 +357,10 @@ impl Canister {
                 continue;
             }
             dfx_core::fs::composite::ensure_parent_dir_exists(&target)?;
-            dfx_core::fs::write(&target, &service_did)?;
+            if !target.exists() || dfx_core::fs::read_to_string(&target)? != service_did {
+                // TODO: Make atomic operation.
+                dfx_core::fs::write(&target, &service_did)?;
+            }
             dfx_core::fs::set_permissions_readwrite(&target)?;
         }
 
@@ -435,6 +446,28 @@ fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> D
     Ok(())
 }
 
+/// Used mainly for Motoko
+///
+/// TODO: Copying this type uses `String.clone()` what may be inefficient.
+#[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
+pub enum Import {
+    Canister(String),
+    Ic(String),
+    Lib(String), // TODO: Unused, because package manager never update existing files (but create new dirs)
+    FullPath(PathBuf),
+}
+
+impl Display for Import {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Canister(name) => write!(f, "canister {}", name),
+            Self::Ic(principal) => write!(f, "principal {}", principal),
+            Self::Lib(name) => write!(f, "library {}", name),
+            Self::FullPath(file) => write!(f, "file {}", file.to_string_lossy()),
+        }
+    }
+}
+
 /// A canister pool is a list of canisters.
 pub struct CanisterPool {
     canisters: Vec<Arc<Canister>>,
@@ -499,7 +532,7 @@ impl CanisterPool {
     pub fn get_canister(&self, canister_id: &CanisterId) -> Option<&Canister> {
         for c in &self.canisters {
             let info = &c.info;
-            if Some(canister_id) == info.get_canister_id().ok().as_ref() {
+            if Some(canister_id) == info.get_canister_id_option().as_ref() {
                 return Some(c);
             }
         }
@@ -510,6 +543,7 @@ impl CanisterPool {
         self.canisters.iter().map(|c| c.as_ref()).collect()
     }
 
+    #[allow(unused)] // TODO
     pub fn get_canister_info(&self, canister_id: &CanisterId) -> Option<&CanisterInfo> {
         self.get_canister(canister_id).map(|c| &c.info)
     }
@@ -527,65 +561,180 @@ impl CanisterPool {
         &self.logger
     }
 
+    /// Build only dependencies relevant for `user_specified_canisters`.
+    ///
+    /// TODO: Probably shouldn't be `pub`.
     #[context("Failed to build dependencies graph for canister pool.")]
-    fn build_dependencies_graph(&self) -> DfxResult<DiGraph<CanisterId, ()>> {
-        let mut graph: DiGraph<CanisterId, ()> = DiGraph::new();
-        let mut id_set: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
-
-        // Add all the canisters as nodes.
+    pub fn build_canister_dependencies_graph(
+        &self,
+        env: &dyn Environment,
+        toplevel_canisters: &[&Canister],
+        cache: &dyn Cache,
+    ) -> DfxResult<GraphWithNodesMap<String, ()>> {
         for canister in &self.canisters {
-            let canister_id = canister.info.get_canister_id()?;
-            id_set.insert(canister_id, graph.add_node(canister_id));
-        }
-
-        // Add all the edges.
-        for canister in &self.canisters {
-            let canister_id = canister.canister_id();
-            let canister_info = &canister.info;
-            let deps = canister.builder.get_dependencies(self, canister_info)?;
-            if let Some(node_ix) = id_set.get(&canister_id) {
-                for d in deps {
-                    if let Some(dep_ix) = id_set.get(&d) {
-                        graph.add_edge(*node_ix, *dep_ix, ());
-                    }
-                }
+            // a little inefficient
+            let contains = toplevel_canisters
+                .iter()
+                .map(|canister| canister.get_info().get_name())
+                .contains(&canister.get_info().get_name());
+            if contains {
+                canister
+                    .builder
+                    .read_dependencies(env, self, canister.get_info(), cache)?; // TODO: It is called multiple times during the flow.
             }
         }
 
-        // Verify the graph has no cycles.
-        if let Err(err) = petgraph::algo::toposort(&graph, None) {
-            let message = match graph.node_weight(err.node_id()) {
-                Some(canister_id) => match self.get_canister_info(canister_id) {
-                    Some(info) => info.get_name().to_string(),
-                    None => format!("<{}>", canister_id.to_text()),
-                },
-                None => "<Unknown>".to_string(),
+        let imports = env.get_imports().borrow();
+        let source_graph = imports.graph();
+        let source_ids = imports.nodes();
+        let start: Vec<_> = toplevel_canisters
+            .iter()
+            .map(|canister| Import::Canister(canister.get_name().to_string()))
+            .collect();
+        let start_nodes: Vec<_> = start
+            .into_iter()
+            .filter_map(|node| {
+                if let Some(&id) = source_ids.get(&node) {
+                    Some(id)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        // Transform the graph of file dependencies to graph of canister dependencies.
+        // For this do DFS for each of `start`.
+        let mut dest_graph: GraphWithNodesMap<String, ()> = GraphWithNodesMap::new();
+        for start_node in start_nodes.into_iter() {
+            let mut filtered_dfs = DfsFiltered::new();
+
+            // Add start node:
+            let start = source_graph.node_weight(start_node).unwrap();
+            let start_name = match start {
+                Import::Canister(name) => name,
+                _ => {
+                    panic!("programming error");
+                }
             };
-            Err(DfxError::new(BuildError::DependencyError(format!(
-                "Found circular dependency: {}",
-                message
-            ))))
-        } else {
-            Ok(graph)
+            dest_graph.update_node(start_name);
+
+            filtered_dfs.traverse2(
+                source_graph,
+                |&s| {
+                    let source_id = source_graph.node_weight(s);
+                    if let Some(Import::Canister(_)) = source_id {
+                        Ok(true)
+                    } else {
+                        Ok(false)
+                    }
+                },
+                |&source_parent_id, &source_child_id| {
+                    let parent = source_graph.node_weight(source_parent_id).unwrap();
+                    let parent_name = match parent {
+                        Import::Canister(name) => name,
+                        _ => {
+                            panic!("programming error");
+                        }
+                    };
+
+                    let child = source_graph.node_weight(source_child_id).unwrap();
+                    let child_name = match child {
+                        Import::Canister(name) => name,
+                        _ => {
+                            panic!("programming error");
+                        }
+                    };
+
+                    let dest_parent_id = dest_graph.update_node(parent_name);
+                    let dest_child_id = dest_graph.update_node(child_name);
+                    dest_graph.update_edge(dest_parent_id, dest_child_id, ());
+
+                    Ok(())
+                },
+                start_node,
+            )?;
         }
+
+        Ok(dest_graph)
+    }
+
+    fn canister_dependencies(
+        &self,
+        env: &dyn Environment,
+        toplevel_canisters: &[&Canister],
+    ) -> Vec<Arc<Canister>> {
+        let iter = toplevel_canisters
+            .iter()
+            .flat_map(|canister| {
+                // TODO: Is `unwrap` on the next line legit?
+                let parent_node = *env
+                    .get_imports()
+                    .borrow()
+                    .nodes()
+                    .get(&Import::Canister(canister.get_name().to_owned()))
+                    .unwrap();
+                let imports = env.get_imports().borrow();
+                let neighbors = imports.graph().neighbors(parent_node);
+                neighbors
+                    .filter_map(|id| {
+                        imports.nodes().iter().find_map(move |(k, v)| {
+                            if v == &id {
+                                Some(k.clone())
+                            } else {
+                                None
+                            }
+                        })
+                    }) // TODO: slow
+                    .filter_map(|import| {
+                        if let Import::Canister(name) = import {
+                            self.get_first_canister_with_name(&name)
+                                .map(|canister| (name, canister))
+                        } else {
+                            None
+                        }
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .collect::<HashMap<_, _>>(); // eliminate duplicates
+        iter.values().cloned().collect()
     }
 
     #[context("Failed step_prebuild_all.")]
-    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+    fn step_prebuild_all(&self, build_config: &BuildConfig) -> DfxResult<()> {
+        // cargo audit
+        if self
+            .canisters_to_build(build_config)
+            .iter()
+            .any(|can| can.info.is_rust())
+        {
+            self.run_cargo_audit()?;
+        } else {
+            trace!(
+                self.logger,
+                "No canister of type 'rust' found. Not trying to run 'cargo audit'."
+            )
+        }
+
+        Ok(())
+    }
+
+    fn step_prebuild(
+        &self,
+        env: &dyn Environment,
+        build_config: &BuildConfig,
+        canister: &Canister,
+    ) -> DfxResult<()> {
+        canister.prebuild(self, build_config)?;
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
-        // Because some canisters don't get built these .did files have to be copied over manually.
-        for canister in self.canisters.iter().filter(|c| {
-            build_config
-                .canisters_to_build
-                .as_ref()
-                .map(|cans| !cans.iter().contains(&c.get_name().to_string()))
-                .unwrap_or(false)
-        }) {
+
+        // Copy .did files into this temporary directory.
+        let log = self.get_logger();
+        for canister in self.canister_dependencies(env, &[canister]) {
             let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
                 Some(remote_candid)
             } else {
                 canister.info.get_output_idl_path()
             };
+            // TODO: It tries to copy non-existing files (not yet compiled canisters..)
             if let Some(from) = maybe_from.as_ref() {
                 if from.exists() {
                     let to = build_config.idl_root.join(format!(
@@ -618,58 +767,29 @@ impl CanisterPool {
             }
         }
 
-        // cargo audit
-        if self
-            .canisters_to_build(build_config)
-            .iter()
-            .any(|can| can.info.is_rust())
-        {
-            self.run_cargo_audit()?;
-        } else {
-            trace!(
-                self.logger,
-                "No canister of type 'rust' found. Not trying to run 'cargo audit'."
-            )
-        }
-
         Ok(())
-    }
-
-    fn step_prebuild(&self, build_config: &BuildConfig, canister: &Canister) -> DfxResult<()> {
-        canister.prebuild(self, build_config)
     }
 
     fn step_build<'a>(
         &self,
+        env: &dyn Environment,
         build_config: &BuildConfig,
         canister: &'a Canister,
     ) -> DfxResult<&'a BuildOutput> {
-        canister.build(self, build_config)
+        canister.build(env, self, build_config)
     }
 
     fn step_postbuild(
         &self,
+        env: &dyn Environment,
         build_config: &BuildConfig,
         canister: &Canister,
         build_output: &BuildOutput,
     ) -> DfxResult<()> {
-        canister.candid_post_process(self.get_logger(), build_config, build_output)?;
-
-        canister.wasm_post_process(self.get_logger(), build_output)?;
-
-        build_canister_js(&canister.canister_id(), &canister.info)?;
-
-        canister.postbuild(self, build_config)
-    }
-
-    fn step_postbuild_all(
-        &self,
-        build_config: &BuildConfig,
-        _order: &[CanisterId],
-    ) -> DfxResult<()> {
         // We don't want to simply remove the whole directory, as in the future,
         // we may want to keep the IDL files downloaded from network.
-        for canister in self.canisters_to_build(build_config) {
+        // TODO: The following `map` is a hack.
+        for canister in &self.canister_dependencies(env, &[&canister]) {
             let idl_root = &build_config.idl_root;
             let canister_id = canister.canister_id();
             let idl_file_path = idl_root.join(canister_id.to_text()).with_extension("did");
@@ -678,99 +798,189 @@ impl CanisterPool {
             let _ = std::fs::remove_file(idl_file_path);
         }
 
-        Ok(())
+        canister.candid_post_process(self.get_logger(), build_config, build_output)?;
+
+        canister.wasm_post_process(self.get_logger(), build_output)?;
+
+        build_canister_js(&build_output.canister_id, &canister.info)?;
+
+        canister.postbuild(self, build_config)
+    }
+
+    // fn step_postbuild_all(
+    //     &self,
+    //     _build_config: &BuildConfig,
+    //     _order: &[CanisterId],
+    // ) -> DfxResult<()> {
+    //     Ok(())
+    // }
+
+    pub fn build_order(
+        &self,
+        env: &dyn Environment,
+        toplevel_canisters: &[Arc<Canister>],
+    ) -> DfxResult<Vec<String>> {
+        trace!(env.get_logger(), "Building dependencies graph.");
+        // TODO: The following `map` is a hack.
+        let graph = self.build_canister_dependencies_graph(
+            env,
+            &toplevel_canisters
+                .iter()
+                .map(|canister| canister.as_ref())
+                .collect::<Vec<&Canister>>(),
+            env.get_cache().as_ref(),
+        )?; // TODO: Can `clone` be eliminated?
+
+        let toplevel_nodes: Vec<NodeIndex> = toplevel_canisters
+            .iter()
+            .map(|canister| -> DfxResult<NodeIndex> {
+                graph
+                    .nodes()
+                    .get(&canister.get_name().to_string())
+                    .copied()
+                    .ok_or_else(|| anyhow!("No such canister {}.", canister.get_name()))
+            })
+            .try_collect()?;
+
+        // TODO: The following isn't very efficient.
+
+        let mut reachable_nodes = HashMap::new();
+
+        for &start_node in toplevel_nodes.iter() {
+            let mut bfs = Bfs::new(&graph.graph(), start_node); // or `Dfs`, does not matter
+            while let Some(node) = bfs.next(&graph.graph()) {
+                reachable_nodes.insert(node, ());
+            }
+        }
+
+        let subgraph = graph.graph().filter_map(
+            |node, _| {
+                if reachable_nodes.contains_key(&node) {
+                    Some(node)
+                } else {
+                    None
+                }
+            },
+            |edge, _| Some(edge),
+        );
+
+        let nodes = toposort(&subgraph, None).map_err(|err| {
+            let node = graph.graph().node_weight(err.node_id());
+            if let Some(node) = node {
+                anyhow!("Cycle in node dependencies: {}", node)
+            } else {
+                panic!("programming error");
+            }
+        })?;
+
+        Ok(nodes
+            .iter()
+            .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
+            .map(|idx| graph.graph().node_weight(*idx).unwrap().to_string())
+            .collect())
     }
 
     /// Build all canisters, returning a vector of results of each builds.
+    ///
+    /// TODO: `log` can be got from `env`, can't it?
     #[context("Failed while trying to build all canisters in the canister pool.")]
     pub fn build(
         &self,
+        env: &dyn Environment,
         log: &Logger,
         build_config: &BuildConfig,
-    ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
-        self.step_prebuild_all(log, build_config)
+    ) -> DfxResult {
+        // TODO: The next statement is slow and confusing code.
+        let toplevel_canisters: Vec<Arc<Canister>> =
+            if let Some(canisters) = build_config.user_specified_canisters.clone() {
+                self.canisters
+                    .iter()
+                    .filter(|c| canisters.contains(&c.get_name().to_string()))
+                    .cloned()
+                    .collect()
+            } else {
+                self.canisters.clone()
+            };
+        let order = self.build_order(env, &toplevel_canisters)?; // TODO: Eliminate `clone`.
+
+        self.step_prebuild_all(build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
-        let graph = self.build_dependencies_graph()?;
-        let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
-            let message = match graph.node_weight(cycle.node_id()) {
-                Some(canister_id) => match self.get_canister_info(canister_id) {
-                    Some(info) => info.get_name().to_string(),
-                    None => format!("<{}>", canister_id.to_text()),
-                },
-                None => "<Unknown>".to_string(),
-            };
-            BuildError::DependencyError(format!("Found circular dependency: {}", message))
-        })?;
-        let order: Vec<CanisterId> = nodes
-            .iter()
-            .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
-            .map(|idx| *graph.node_weight(*idx).unwrap())
-            .collect();
-
-        let canisters_to_build = self.canisters_to_build(build_config);
-        let mut result = Vec::new();
-        for canister_id in &order {
-            if let Some(canister) = self.get_canister(canister_id) {
-                if canisters_to_build
-                    .iter()
-                    .map(|c| c.get_name())
-                    .contains(&canister.get_name())
+        for canister_name in &order {
+            if let Some(canister) = self.get_first_canister_with_name(canister_name) {
+                trace!(log, "Building canister '{}'.", canister_name);
+                // TODO:
+                // } else {
+                //     trace!(log, "Not building canister '{}'.", canister.get_name());
+                //     continue;
+                // }
+                if canister
+                    .builder
+                    .should_build(
+                        env,
+                        self,
+                        &canister.info,
+                        env.get_cache().as_ref(),
+                        env.get_logger(),
+                    )
+                    .with_context(|| {
+                        format!("Checking whether to build canister {}", canister.get_name())
+                    })?
                 {
-                    trace!(log, "Building canister '{}'.", canister.get_name());
-                } else {
-                    trace!(log, "Not building canister '{}'.", canister.get_name());
-                    continue;
-                }
-                result.push(
-                    self.step_prebuild(build_config, canister)
+                    self.step_prebuild(env, build_config, canister.as_ref())
                         .map_err(|e| {
                             BuildError::PreBuildStepFailed(
-                                *canister_id,
+                                canister.canister_id(),
                                 canister.get_name().to_string(),
                                 Box::new(e),
                             )
                         })
                         .and_then(|_| {
-                            self.step_build(build_config, canister).map_err(|e| {
-                                BuildError::BuildStepFailed(
-                                    *canister_id,
-                                    canister.get_name().to_string(),
-                                    Box::new(e),
-                                )
-                            })
+                            self.step_build(env, build_config, canister.as_ref())
+                                .map_err(|e| {
+                                    BuildError::BuildStepFailed(
+                                        canister.canister_id(),
+                                        canister.get_name().to_string(),
+                                        Box::new(e),
+                                    )
+                                })
                         })
-                        .and_then(|o| {
-                            self.step_postbuild(build_config, canister, o)
+                        .and_then(|o: &BuildOutput| {
+                            self.step_postbuild(env, build_config, canister.as_ref(), o)
                                 .map_err(|e| {
                                     BuildError::PostBuildStepFailed(
-                                        *canister_id,
+                                        o.canister_id,
                                         canister.get_name().to_string(),
                                         Box::new(e),
                                     )
                                 })
                                 .map(|_| o)
-                        }),
-                );
+                        })?;
+                }
             }
         }
 
-        self.step_postbuild_all(build_config, &order)
-            .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
+        // self.step_postbuild_all(build_config, &order.iter().map(|name| {
+        //     self.get_first_canister_with_name(name).unwrap().canister_id() // TODO: `unwrap()`
+        // }).collect::<Vec<_>>())
+        //     .map_err(|e| DfxError::new(BuildError::PostBuildAllStepFailed(Box::new(e))))?;
 
-        Ok(result)
+        Ok(())
     }
 
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
+    ///
+    /// TODO: `log` can be got from `env`, can't it?
     #[context("Failed while trying to build all canisters.")]
-    pub async fn build_or_fail(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+    pub async fn build_or_fail(
+        &self,
+        env: &dyn Environment,
+        log: &Logger,
+        build_config: &BuildConfig,
+    ) -> DfxResult<()> {
         self.download(build_config).await?;
-        let outputs = self.build(log, build_config)?;
-
-        for output in outputs {
-            output.map_err(DfxError::new)?;
-        }
+        self.build(env, log, build_config)?;
 
         Ok(())
     }
@@ -840,7 +1050,7 @@ impl CanisterPool {
     }
 
     pub fn canisters_to_build(&self, build_config: &BuildConfig) -> Vec<&Arc<Canister>> {
-        if let Some(canister_names) = &build_config.canisters_to_build {
+        if let Some(canister_names) = &build_config.user_specified_canisters {
             self.canisters
                 .iter()
                 .filter(|can| canister_names.contains(&can.info.get_name().to_string()))

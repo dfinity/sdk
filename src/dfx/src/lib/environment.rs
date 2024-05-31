@@ -25,6 +25,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
+use super::graph::graph_nodes_map::GraphWithNodesMap;
+use super::models::canister::Import;
+
 pub trait Environment {
     fn get_cache(&self) -> Arc<dyn Cache>;
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError>;
@@ -84,6 +87,8 @@ pub trait Environment {
             self.get_config()?,
         )
     }
+
+    fn get_imports(&self) -> &RefCell<GraphWithNodesMap<Import, ()>>;
 }
 
 pub enum ProjectConfig {
@@ -108,6 +113,10 @@ pub struct EnvironmentImpl {
     effective_canister_id: Option<Principal>,
 
     extension_manager: ExtensionManager,
+
+    /// Graph currently read imports and their children, not necessarily the entire graph of all imports.
+    /// Invariant: with each node contains all its descendants.
+    imports: RefCell<GraphWithNodesMap<Import, ()>>,
 }
 
 impl EnvironmentImpl {
@@ -125,6 +134,7 @@ impl EnvironmentImpl {
             identity_override: None,
             effective_canister_id: None,
             extension_manager,
+            imports: RefCell::new(GraphWithNodesMap::new()),
         })
     }
 
@@ -263,6 +273,10 @@ impl Environment for EnvironmentImpl {
     fn get_extension_manager(&self) -> &ExtensionManager {
         &self.extension_manager
     }
+
+    fn get_imports(&self) -> &RefCell<GraphWithNodesMap<Import, ()>> {
+        &self.imports
+    }
 }
 
 pub struct AgentEnvironment<'a> {
@@ -270,6 +284,7 @@ pub struct AgentEnvironment<'a> {
     agent: Agent,
     network_descriptor: NetworkDescriptor,
     identity_manager: IdentityManager,
+    imports: RefCell<GraphWithNodesMap<Import, ()>>,
     effective_canister_id: Option<Principal>,
 }
 
@@ -309,6 +324,7 @@ impl<'a> AgentEnvironment<'a> {
             agent: create_agent(logger, url, identity, timeout)?,
             network_descriptor: network_descriptor.clone(),
             identity_manager,
+            imports: RefCell::new(GraphWithNodesMap::new()),
             effective_canister_id,
         })
     }
@@ -392,6 +408,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_extension_manager(&self) -> &ExtensionManager {
         self.backend.get_extension_manager()
+    }
+
+    fn get_imports(&self) -> &RefCell<GraphWithNodesMap<Import, ()>> {
+        &self.imports
     }
 }
 

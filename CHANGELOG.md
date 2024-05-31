@@ -2,6 +2,21 @@
 
 # UNRELEASED
 
+### feat: rebuild only necessary canisters
+
+Cache `get_imports()` (renamed to `add_imports()`) results.
+
+Read only those `--print-deps` dependencies that are necessary to read.
+
+Don't compile canisters for which all dependencies are elder than the `.wasm` file.
+This results in big compilation speedups.
+
+### feat: specify canisters not to deploy
+
+`"deploy": false` canister option makes it not to deploy, unless explicitly specified on the command line.
+
+### chore: Improve help text of `dfx identity new` to include which characters are valid in identity names
+
 # 0.20.2
 
 ### fix: `dfx canister delete` fails

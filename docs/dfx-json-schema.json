@@ -369,6 +369,12 @@
             "type": "string"
           }
         },
+        "deploy": {
+          "title": "Deploy",
+          "description": "`false` value means not to deploy this canister unless it's explicitly specified in the command line (supposed use: canister that are created by other canisters).",
+          "default": true,
+          "type": "boolean"
+        },
         "frontend": {
           "title": "Force Frontend URL",
           "description": "Mostly unused. If this value is not null, a frontend URL is displayed after deployment even if the canister type is not 'asset'.",

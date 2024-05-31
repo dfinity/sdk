@@ -8,6 +8,7 @@ pub mod diagnosis;
 pub mod environment;
 pub mod error;
 pub mod error_code;
+pub mod graph;
 pub mod ic_attributes;
 pub mod identity;
 pub mod info;

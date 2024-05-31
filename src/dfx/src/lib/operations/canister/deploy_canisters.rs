@@ -5,14 +5,12 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::installers::assets::prepare_assets_for_proposal;
-use crate::lib::models::canister::CanisterPool;
+use crate::lib::models::canister::{Canister, CanisterPool};
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
-use crate::lib::operations::canister::{
-    all_project_canisters_with_ids, create_canister, install_canister::install_canister,
-};
+use crate::lib::operations::canister::{create_canister, install_canister::install_canister};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -25,9 +23,14 @@ use ic_utils::interfaces::management_canister::attributes::{
 };
 use ic_utils::interfaces::management_canister::builders::{InstallMode, WasmMemoryLimit};
 use icrc_ledger_types::icrc1::account::Subaccount;
+use itertools::Itertools;
 use slog::info;
+// use core::slice::SlicePattern;
 use std::convert::TryFrom;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
+use super::add_canisters_with_ids;
 
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub enum DeployMode {
@@ -63,7 +66,6 @@ pub async fn deploy_canisters(
     let config = env
         .get_config()?
         .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
-    let initial_canister_id_store = env.get_canister_id_store()?;
 
     let pull_canisters_in_config = config.get_config().get_pull_canisters()?;
     if let Some(canister_name) = some_canister {
@@ -77,7 +79,14 @@ pub async fn deploy_canisters(
 
     let canisters_to_deploy = canister_with_dependencies(&config, some_canister)?;
 
-    let canisters_to_build = match deploy_mode {
+    let required_canisters = config
+        .get_config()
+        .get_canister_names_with_dependencies(some_canister)?;
+    let canisters_to_load = add_canisters_with_ids(&required_canisters, env, &config);
+
+    let canister_pool = CanisterPool::load(env, false, &canisters_to_load)?;
+
+    let toplevel_canisters = match deploy_mode {
         PrepareForProposal(canister_name) | ComputeEvidence(canister_name) => {
             vec![canister_name.clone()]
         }
@@ -96,26 +105,57 @@ pub async fn deploy_canisters(
             })
             .collect(),
     };
+    let toplevel_canisters = toplevel_canisters
+        .into_iter()
+        .map(|name: String| -> DfxResult<_> {
+            canister_pool
+                .get_first_canister_with_name(name.as_str())
+                .ok_or_else(|| {
+                    anyhow!(
+                        "A canister with the name '{}' was not found in the current project.",
+                        name.clone()
+                    )
+                })
+        })
+        // .map(|v| &v)
+        .try_collect::<Arc<Canister>, Vec<Arc<Canister>>, _>()?;
+    let toplevel_canisters: &[Arc<Canister>] = &toplevel_canisters;
 
-    let canisters_to_install: Vec<String> = canisters_to_build
+    // TODO: `build_order` is called two times during deployment of a new canister.
+    let order = canister_pool.build_order(env, toplevel_canisters)?;
+    let order_canisters = order
+        .iter()
+        .map(|name| canister_pool.get_first_canister_with_name(name).unwrap())
+        .collect::<Vec<_>>();
+
+    // Run this before calculating `canisters_to_install` to obtain canisters config.
+    let _new_canister_pool = CanisterPool::load(env, false, &order)?; // with newly registered canisters
+
+    let canisters_to_install: &Vec<String> = &order
         .clone()
         .into_iter()
-        .filter(|canister_name| !pull_canisters_in_config.contains_key(canister_name))
+        .filter(|canister_name| {
+            !pull_canisters_in_config.contains_key(canister_name)
+                && //(some_canister == Some(canister_name) || // do deploy a canister that was explicitly specified
+                    config.get_config().get_canister_config(canister_name).map_or(
+                        true, |canister_config| canister_config.deploy)
+        })
         .collect();
 
+    let canister_id_store = env.get_canister_id_store()?;
+
     if some_canister.is_some() {
-        info!(log, "Deploying: {}", canisters_to_install.join(" "));
     } else {
         info!(log, "Deploying all canisters.");
     }
-    if canisters_to_deploy
+    if canisters_to_install
         .iter()
-        .any(|canister| initial_canister_id_store.find(canister).is_none())
+        .any(|canister| canister_id_store.find(canister).is_none())
     {
         register_canisters(
             env,
-            &canisters_to_deploy,
-            &initial_canister_id_store,
+            canisters_to_install,
+            &canister_id_store,
             with_cycles,
             specified_id_from_cli,
             call_sender,
@@ -130,14 +170,16 @@ pub async fn deploy_canisters(
         info!(env.get_logger(), "All canisters have already been created.");
     }
 
-    let canisters_to_load = all_project_canisters_with_ids(env, &config);
+    // hack to load deployed canister IDs (such as of Rust canisters)
+    let new_canister_pool2 = CanisterPool::load(env, false, &order)?; // with newly registered canisters
 
-    let pool = build_canisters(
+    build_canisters(
         env,
-        &canisters_to_load,
-        &canisters_to_build,
+        order_canisters.as_slice(),
+        // toplevel_canisters,
         &config,
         env_file.clone(),
+        &new_canister_pool2,
     )
     .await?;
 
@@ -146,15 +188,15 @@ pub async fn deploy_canisters(
             let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
             install_canisters(
                 env,
-                &canisters_to_install,
-                &initial_canister_id_store,
+                canisters_to_install,
+                &canister_id_store,
                 &config,
                 argument,
                 argument_type,
                 force_reinstall,
                 upgrade_unchanged,
                 call_sender,
-                pool,
+                new_canister_pool2,
                 skip_consent,
                 env_file.as_deref(),
                 no_asset_upgrade,
@@ -164,11 +206,10 @@ pub async fn deploy_canisters(
             info!(log, "Deployed canisters.");
         }
         PrepareForProposal(canister_name) => {
-            prepare_assets_for_commit(env, &initial_canister_id_store, &config, canister_name)
-                .await?
+            prepare_assets_for_commit(env, &canister_id_store, &config, canister_name).await?
         }
         ComputeEvidence(canister_name) => {
-            compute_evidence(env, &initial_canister_id_store, &config, canister_name).await?
+            compute_evidence(env, &canister_id_store, &config, canister_name).await?
         }
     }
 
@@ -204,7 +245,7 @@ async fn register_canisters(
 ) -> DfxResult {
     let canisters_to_create = canister_names
         .iter()
-        .filter(|n| canister_id_store.find(n).is_none())
+        .filter(|name| canister_id_store.find(name).is_none())
         .cloned()
         .collect::<Vec<String>>();
     if canisters_to_create.is_empty() {
@@ -289,22 +330,26 @@ async fn register_canisters(
 #[context("Failed to build all canisters.")]
 async fn build_canisters(
     env: &dyn Environment,
-    canisters_to_load: &[String],
-    canisters_to_build: &[String],
+    // canisters_to_load: &[String],
+    toplevel_canisters: &[Arc<Canister>],
     config: &Config,
     env_file: Option<PathBuf>,
-) -> DfxResult<CanisterPool> {
+    canister_pool: &CanisterPool,
+) -> DfxResult<()> {
     let log = env.get_logger();
     info!(log, "Building canisters...");
-    let build_mode_check = false;
-    let canister_pool = CanisterPool::load(env, build_mode_check, canisters_to_load)?;
 
     let build_config =
         BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
-            .with_canisters_to_build(canisters_to_build.into())
+            .with_canisters_to_build(
+                toplevel_canisters
+                    .iter()
+                    .map(|canister| canister.get_name().to_string())
+                    .collect(),
+            ) // hack
             .with_env_file(env_file);
-    canister_pool.build_or_fail(log, &build_config).await?;
-    Ok(canister_pool)
+    canister_pool.build_or_fail(env, log, &build_config).await?;
+    Ok(())
 }
 
 #[context("Failed while trying to install all canisters.")]

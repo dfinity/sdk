@@ -4,7 +4,7 @@ import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
 
 <MarkdownChipRow labels={["Reference"]}/>
 
-Use the `dfx deploy` command to register, build, and deploy a dapp on the local canister execution environment, on the IC or on a specified testnet. By default, all canisters defined in the project `dfx.json` configuration file are deployed.
+Use the `dfx deploy` command to register, build, and deploy a dapp on the local canister execution environment, on the IC or on a specified testnet. By default, all canisters defined in the project `dfx.json` configuration file are deployed, except of the canisters with `"deploy": false` option.
 
 This command simplifies the developer workflow by enabling you to run one command instead of running the following commands as separate steps:
 
