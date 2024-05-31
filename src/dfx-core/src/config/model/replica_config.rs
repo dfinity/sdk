@@ -184,7 +184,7 @@ impl HttpHandlerConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 #[serde(tag = "type", rename_all = "snake_case")]
 #[allow(clippy::large_enum_variant)]
 pub enum CachedReplicaConfig<'a> {
@@ -192,7 +192,7 @@ pub enum CachedReplicaConfig<'a> {
     PocketIc,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct CachedConfig<'a> {
     pub replica_rev: String,
     #[serde(flatten)]
