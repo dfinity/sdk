@@ -9,7 +9,7 @@ use console::Style;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
 
-// Prints the url of a canister.
+/// Prints the url of a canister.
 #[derive(Parser)]
 pub struct CanisterUrlOpts {
     /// Specifies the name or id of the canister.

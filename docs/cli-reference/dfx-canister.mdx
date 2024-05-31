@@ -44,6 +44,7 @@ For reference information and examples that illustrate using `dfx canister` comm
 | [`stop`](#dfx-canister-stop)                       | Stops a currently running canister.                                                                                                                    |
 | [`uninstall-code`](#dfx-canister-uninstall-code)   | Uninstalls a canister, removing its code and state. Does not delete the canister.                                                                      |
 | [`update-settings`](#dfx-canister-update-settings) | Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.).                                           |
+| [`url`](#dfx-canister-url)                         | Displays the url of a canister.                                                                                                                        |
 
 ## Overriding the default deployment environment
 
@@ -1015,3 +1016,64 @@ To update the settings of the `hello_world` canister, you can run the following 
 ``` bash
 dfx canister update-settings --freezing-threshold 2592000 --compute-allocation 99 hello_world
 ```
+
+## dfx canister url
+
+Use the `dfx canister url` command to output the canister url for a specific canister.
+
+Note that you can only run this command from within the project directory structure. For example, if your project name
+is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its
+subdirectories.
+
+If the canister has been deployed by the local user, the locally stored canister ID will be provided within the url. 
+You can check the `.dfx/local/canister_ids.json` file in the project directory for details.
+
+If a canister has been deployed by a third party, the user may set the `.canisters[$CANISTER_NAME].remote[$NETWORK]`
+entry in `dfx.json` to the canister ID. In this case, the third party is responsible for maintaining the canister and
+the local user must ensure that they have the correct canister ID.  `dfx` will use the provided canister ID with no
+further checks.
+
+### Basic usage
+
+``` bash
+dfx canister url <canister>
+```
+
+### Arguments
+
+You can use the following argument with the `dfx canister url` command.
+
+| Argument        | Description                                                                     |
+|-----------------|---------------------------------------------------------------------------------|
+| `canister`      | Specifies the name or id of the canister for which you want to display the url. |
+
+### Examples
+
+To display the canister url for the `hello_world_backend` canister, you can run the following command:
+
+``` bash
+dfx canister url hello_world_backend
+```
+
+The command displays output similar to the following:
+
+``` bash
+http://127.0.0.1:4943/?canisterId=br5f7-7uaaa-aaaaa-qaaca-cai&id=bkyz2-fmaaa-aaaaa-qaaaq-cai
+```
+
+The `br5f7-7uaaa-aaaaa-qaaca-cai` is the local canister id for `__Candid_UI` canister. You need to run `dfx deploy`
+to generate the local `__Candid_UI` entry in `.dfx/local/canister_ids.json` first.
+
+If you run: 
+
+``` bash
+dfx canister url hello_world_backend --network ic
+```
+
+The command displays output similar to the following:
+
+``` bash
+https://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.icp0.io/?id=bkyz2-fmaaa-aaaaa-qaaaq-cai
+```
+
+The `a4gq6-oaaaa-aaaab-qaa4q-cai` is the canister id for `__Candid_UI` canister on the IC mainnet.
