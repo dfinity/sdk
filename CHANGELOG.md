@@ -2,6 +2,49 @@
 
 # UNRELEASED
 
+### feat: `dfx start` for the shared local network stores replica state files in unique directories by options
+
+The state files for different replica versions are often incompatible,
+so `dfx start` requires the `--clean` argument in order to reset data when
+using different replica versions or different replica options.
+
+For the local shared network, dfx now stores replica state files in different
+directories, split up by replica version and options.
+
+As an example, you'll be able to do things like this going forward:
+```bash
+dfx +0.21.0 start
+(cd project1 && dfx deploy && dfx canister call ...)
+dfx stop
+
+dfx +0.22.0 start
+# notice --clean is not required.
+# even if --clean were passed, the canisters for project1 would be unaffected.
+(cd project2 && dfx deploy)
+# project1 won't be affected unless you call dfx in its directory
+dfx stop
+
+dfx +0.21.0 start
+# the canisters are still deployed
+(cd project1 && dfx canister call ...)
+```
+
+Prior to this change, the second `dfx start` would have had to include `--clean`,
+which would have reset the state of the shared local network, affecting all projects.
+
+This also means `dfx start` for the shared local network won't ever require you to pass `--clean`.
+
+`dfx start` will delete old replica state directories.  At present, it retains the 10 most recently used.
+
+This doesn't apply to project-specific networks, and it doesn't apply with `--pocketic`.
+
+It doesn't apply to project-specific networks because the project's canister ids would
+reset anyway on first access. If you run `dfx start` in a project directory where dfx.json
+defines the local network, you'll still be prompted to run with `--clean` if using a
+different replica version or different replica options.
+
+It doesn't apply to `--pocketic` because PocketIC does not yet persist any data.
+
 ### feat: `dfx canister url`
 
 Add `dfx canister url` subcommand to display the url of a given canister. Basic usage as below:

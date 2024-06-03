@@ -16,17 +16,21 @@ use crate::util::get_reusable_socket_addr;
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
 use clap::{ArgAction, Parser};
-use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
-use dfx_core::config::model::network_descriptor::NetworkDescriptor;
-use dfx_core::config::model::replica_config::{CachedConfig, ReplicaConfig};
-use dfx_core::config::model::{bitcoin_adapter, canister_http_adapter};
-use dfx_core::json::{load_json_file, save_json_file};
-use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
+use dfx_core::{
+    config::model::{
+        bitcoin_adapter, canister_http_adapter,
+        local_server_descriptor::{LocalNetworkScopeDescriptor, LocalServerDescriptor},
+        network_descriptor::NetworkDescriptor,
+        replica_config::{CachedConfig, ReplicaConfig},
+        settings_digest::get_settings_digest,
+    },
+    fs,
+    json::{load_json_file, save_json_file},
+    network::provider::{create_network_descriptor, LocalBindDetermination},
+};
 use fn_error_context::context;
 use os_str_bytes::{OsStrBytes, OsStringBytes};
 use slog::{info, warn, Logger};
-use std::fs;
-use std::fs::create_dir_all;
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -164,6 +168,7 @@ pub fn exec(
     } else {
         Some(env.get_logger().clone())
     };
+
     let network_descriptor = create_network_descriptor(
         project_config,
         env.get_networks_config(),
@@ -181,9 +186,13 @@ pub fn exec(
         bitcoin_node,
         enable_canister_http,
         domain,
+        use_old_metering,
+        artificial_delay,
+        pocketic,
     )?;
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
+
     let pid_file_path = local_server_descriptor.dfx_pid_path();
 
     check_previous_process_running(local_server_descriptor)?;
@@ -196,18 +205,25 @@ pub fn exec(
 
     let (frontend_url, address_and_port) = frontend_address(local_server_descriptor, background)?;
 
-    let network_temp_dir = local_server_descriptor.data_directory.clone();
-    create_dir_all(&network_temp_dir).with_context(|| {
-        format!(
-            "Failed to create network temp directory {}.",
-            network_temp_dir.to_string_lossy()
-        )
-    })?;
+    fs::create_dir_all(&local_server_descriptor.data_dir_by_settings_digest())?;
 
     if !local_server_descriptor.network_id_path().exists() {
         write_network_id(local_server_descriptor)?;
     }
+    if let LocalNetworkScopeDescriptor::Shared { network_id_path } = &local_server_descriptor.scope
+    {
+        fs::copy(&local_server_descriptor.network_id_path(), network_id_path)?;
+        let effective_config_path_by_settings_digest =
+            local_server_descriptor.effective_config_path_by_settings_digest();
+        if effective_config_path_by_settings_digest.exists() {
+            fs::copy(
+                &effective_config_path_by_settings_digest,
+                &local_server_descriptor.effective_config_path(),
+            )?;
+        }
+    }
 
+    clean_older_state_dirs(local_server_descriptor)?;
     let state_root = local_server_descriptor.state_dir();
 
     let btc_adapter_socket_holder_path = local_server_descriptor.btc_adapter_socket_holder_path();
@@ -232,12 +248,7 @@ pub fn exec(
     // dfx info replica-port will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
     let replica_config_dir = local_server_descriptor.replica_configuration_dir();
-    fs::create_dir_all(&replica_config_dir).with_context(|| {
-        format!(
-            "Failed to create replica config directory {}.",
-            replica_config_dir.display()
-        )
-    })?;
+    fs::create_dir_all(&replica_config_dir)?;
 
     let replica_port_path = empty_writable_path(local_server_descriptor.replica_port_path())?;
     let pocketic_port_path = empty_writable_path(local_server_descriptor.pocketic_port_path())?;
@@ -259,14 +270,7 @@ pub fn exec(
     local_server_descriptor.describe(env.get_logger());
 
     write_pid(&pid_file_path);
-    std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
-        || {
-            format!(
-                "Failed to write webserver port file {}.",
-                webserver_port_path.to_string_lossy()
-            )
-        },
-    )?;
+    fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
     let btc_adapter_config = configure_btc_adapter_if_enabled(
         local_server_descriptor,
@@ -330,7 +334,16 @@ pub fn exec(
         CachedConfig::replica(&replica_config, replica_rev().into())
     };
 
-    if !clean && !force && previous_config_path.exists() {
+    let is_shared_network = matches!(
+        &local_server_descriptor.scope,
+        LocalNetworkScopeDescriptor::Shared { .. }
+    );
+    if is_shared_network && !pocketic {
+        save_json_file(
+            &local_server_descriptor.effective_config_path_by_settings_digest(),
+            &effective_config,
+        )?;
+    } else if !clean && !force && previous_config_path.exists() {
         let previous_config = load_json_file(&previous_config_path)
             .context("Failed to read replica configuration. Rerun with `--clean`.")?;
         if !effective_config.can_share_state(&previous_config) {
@@ -339,8 +352,7 @@ pub fn exec(
             )
         }
     }
-    save_json_file(&previous_config_path, &effective_config)
-        .context("Failed to write replica configuration")?;
+    save_json_file(&previous_config_path, &effective_config)?;
 
     let network_descriptor = network_descriptor.clone();
 
@@ -420,6 +432,54 @@ pub fn exec(
     Ok(())
 }
 
+fn clean_older_state_dirs(local_server_descriptor: &LocalServerDescriptor) -> DfxResult {
+    let directories_to_keep = 10;
+    let settings_digest = local_server_descriptor.settings_digest.as_ref().unwrap();
+
+    let data_dir = &local_server_descriptor.data_directory;
+    if !data_dir.is_dir() {
+        return Ok(());
+    }
+    let mut state_dirs = fs::read_dir(data_dir)?
+        .filter_map(|e| match e {
+            Ok(entry) if is_candidate_state_dir(&entry.path(), settings_digest) => {
+                Some(Ok(entry.path()))
+            }
+            Ok(_) => None,
+            Err(e) => Some(Err(e)),
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    // keep the X most recent directories
+    state_dirs.sort_by_cached_key(|p| {
+        p.metadata()
+            .map(|m| m.modified().unwrap_or(SystemTime::UNIX_EPOCH))
+            .unwrap_or(SystemTime::UNIX_EPOCH)
+    });
+    state_dirs = state_dirs
+        .iter()
+        .rev()
+        .skip(directories_to_keep)
+        .cloned()
+        .collect();
+
+    for dir in state_dirs {
+        fs::remove_dir_all(&dir)?;
+    }
+    Ok(())
+}
+
+fn is_candidate_state_dir(path: &Path, settings_digest: &str) -> bool {
+    path.is_dir()
+        && path
+            .file_name()
+            .map(|f| {
+                let filename: String = f.to_string_lossy().into();
+                filename != *settings_digest
+            })
+            .unwrap_or(true)
+}
+
 pub fn apply_command_line_parameters(
     logger: &Logger,
     network_descriptor: NetworkDescriptor,
@@ -429,6 +489,9 @@ pub fn apply_command_line_parameters(
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
     domain: Vec<String>,
+    use_old_metering: bool,
+    artificial_delay: u32,
+    pocketic: bool,
 ) -> DfxResult<NetworkDescriptor> {
     if enable_canister_http {
         warn!(
@@ -464,6 +527,16 @@ pub fn apply_command_line_parameters(
     if !domain.is_empty() {
         local_server_descriptor = local_server_descriptor.with_proxy_domains(domain)
     }
+
+    let settings_digest = get_settings_digest(
+        replica_rev(),
+        &local_server_descriptor,
+        use_old_metering,
+        artificial_delay,
+        pocketic,
+    );
+
+    local_server_descriptor = local_server_descriptor.with_settings_digest(settings_digest);
 
     Ok(NetworkDescriptor {
         local_server_descriptor: Some(local_server_descriptor),
