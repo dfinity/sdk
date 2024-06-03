@@ -45,6 +45,21 @@ different replica version or different replica options.
 
 It doesn't apply to `--pocketic` because PocketIC does not yet persist any data.
 
+## Dependencies
+
+### Frontend canister
+
+**fix!: URL decoding follows the whatwg standard**
+
+Previously, the frontend canister used custom logic to decode URLs.
+The logic was replaced with a dependency that follows https://url.spec.whatwg.org/#percent-decode, which is what JavaScript's `new Request("https://example.com/% $").url` also uses.
+This also drops support for decoding `%%` to `%`. `%` does no longer need to be encoded.
+
+URLs that contain invalid encodings now return `400 Bad Request` instead of `500 Internal Server Error`
+
+- Module hash: 2cc4ec4381dee231379270a08403c984986c9fc0c2eaadb64488b704a3104cc0
+- https://github.com/dfinity/sdk/pull/3767
+
 # 0.20.2
 
 ### fix: `dfx canister delete` fails

@@ -2887,6 +2887,7 @@ dependencies = [
  "ic-response-verification-test-utils",
  "itertools 0.10.5",
  "num-traits",
+ "percent-encoding",
  "serde",
  "serde_bytes",
  "serde_cbor",
