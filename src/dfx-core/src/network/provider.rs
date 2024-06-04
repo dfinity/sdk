@@ -229,11 +229,7 @@ fn create_shared_network_descriptor(
     let network = shared_config.get_interface().get_network(network_name);
     let network = match (network_name, network) {
         ("local", None) => {
-            if shared_config_file_exists {
-                info!(logger, "Using the default definition for the 'local' shared network because {} does not define it.", shared_config_display_path);
-            } else {
-                info!(logger, "Using the default definition for the 'local' shared network because {} does not exist.", shared_config_display_path);
-            }
+            info!(logger, "Using the default configuration for the local shared network.");
 
             Some(ConfigNetwork::ConfigLocalProvider(ConfigLocalProvider {
                 bind: Some(String::from(DEFAULT_SHARED_LOCAL_BIND)),

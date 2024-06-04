@@ -51,7 +51,7 @@ teardown() {
   assert_command dfx start --host 127.0.0.1:0 --background --verbose
 
   assert_match "There is no project-specific network 'local' defined in .*/some-project/dfx.json."
-  assert_match "Using the default definition for the 'local' shared network because $DFX_CONFIG_ROOT/.config/dfx/networks.json does not exist."
+  assert_match "Using the default configuration for the local shared network"
 
   assert_match "Local server configuration:"
   assert_match "bind address: 127.0.0.1:0 \(default: 127.0.0.1:4943\)"
@@ -65,7 +65,7 @@ teardown() {
   assert_command dfx start --host 127.0.0.1:0 --background --verbose
 
   assert_match "There is no project-specific network 'local' because there is no project \(no dfx.json\)."
-  assert_match "Using the default definition for the 'local' shared network because $DFX_CONFIG_ROOT/.config/dfx/networks.json does not exist."
+  assert_match "Using the default configuration for the local shared network"
 }
 
 @test "dfx start outside of a project with a shared configuration file" {
@@ -74,7 +74,7 @@ teardown() {
   assert_command dfx start --background --verbose
 
   assert_match "There is no project-specific network 'local' because there is no project \(no dfx.json\)."
-  assert_match "Using the default definition for the 'local' shared network because $DFX_CONFIG_ROOT/.config/dfx/networks.json does not define it."
+  assert_match "Using the default configuration for the local shared network"
 }
 
 
