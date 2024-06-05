@@ -408,9 +408,9 @@ pub enum CanisterLogVisibility {
     Public,
 }
 
-impl Into<LogVisibility> for CanisterLogVisibility {
-    fn into(self) -> LogVisibility {
-        match self {
+impl From<CanisterLogVisibility> for LogVisibility {
+    fn from(value: CanisterLogVisibility) -> Self {
+        match value {
             CanisterLogVisibility::Controllers => LogVisibility::Controllers,
             CanisterLogVisibility::Public => LogVisibility::Public,
         }
