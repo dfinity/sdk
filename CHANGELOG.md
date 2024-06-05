@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### fix: simplified log message when using the default shared network configuration
+
+Now displays `Using the default configuration for the local shared network.`
+instead of `Using the default definition for the 'local' shared network because ~/.config/dfx/networks.json does not define it.`
+
 ### feat: `dfx start` for the shared local network stores replica state files in unique directories by options
 
 The state files for different replica versions are often incompatible,
