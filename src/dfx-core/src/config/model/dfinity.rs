@@ -9,6 +9,7 @@ use crate::error::dfx_config::AddDependenciesError::CanisterCircularDependency;
 use crate::error::dfx_config::GetCanisterNamesWithDependenciesError::AddDependenciesFailed;
 use crate::error::dfx_config::GetComputeAllocationError::GetComputeAllocationFailed;
 use crate::error::dfx_config::GetFreezingThresholdError::GetFreezingThresholdFailed;
+use crate::error::dfx_config::GetLogVisibilityError::GetLogVisibilityFailed;
 use crate::error::dfx_config::GetMemoryAllocationError::GetMemoryAllocationFailed;
 use crate::error::dfx_config::GetPullCanistersError::PullCanistersSameId;
 use crate::error::dfx_config::GetRemoteCanisterIdError::GetRemoteCanisterIdFailed;
@@ -17,9 +18,9 @@ use crate::error::dfx_config::GetSpecifiedIdError::GetSpecifiedIdFailed;
 use crate::error::dfx_config::GetWasmMemoryLimitError::GetWasmMemoryLimitFailed;
 use crate::error::dfx_config::{
     AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError,
-    GetComputeAllocationError, GetFreezingThresholdError, GetMemoryAllocationError,
-    GetPullCanistersError, GetRemoteCanisterIdError, GetReservedCyclesLimitError,
-    GetSpecifiedIdError, GetWasmMemoryLimitError,
+    GetComputeAllocationError, GetFreezingThresholdError, GetLogVisibilityError,
+    GetMemoryAllocationError, GetPullCanistersError, GetRemoteCanisterIdError,
+    GetReservedCyclesLimitError, GetSpecifiedIdError, GetWasmMemoryLimitError,
 };
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
@@ -44,6 +45,7 @@ use crate::json::structure::{PossiblyStr, SerdeVec};
 use crate::util::ByteSchema;
 use byte_unit::Byte;
 use candid::Principal;
+use ic_utils::interfaces::management_canister::LogVisibility;
 use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
@@ -398,6 +400,23 @@ impl CanisterTypeProperties {
     }
 }
 
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum CanisterLogVisibility {
+    #[default]
+    Controllers,
+    Public,
+}
+
+impl Into<LogVisibility> for CanisterLogVisibility {
+    fn into(self) -> LogVisibility {
+        match self {
+            CanisterLogVisibility::Controllers => LogVisibility::Controllers,
+            CanisterLogVisibility::Public => LogVisibility::Public,
+        }
+    }
+}
+
 /// # Initial Resource Allocations
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 #[serde(default)]
@@ -445,6 +464,13 @@ pub struct InitializationValues {
     /// Can be specified as an integer, or as an SI unit string (e.g. "4KB", "2 MiB")
     #[schemars(with = "Option<ByteSchema>")]
     pub wasm_memory_limit: Option<Byte>,
+
+    /// # Log Visibility
+    /// Specifies who is allowed to read the canister's logs.
+    ///
+    /// Can be "public" or "controllers".
+    #[schemars(with = "Option<CanisterLogVisibility>")]
+    pub log_visibility: Option<CanisterLogVisibility>,
 }
 
 /// # Declarations Configuration
@@ -963,6 +989,18 @@ impl ConfigInterface {
             .map_err(|e| GetWasmMemoryLimitFailed(canister_name.to_string(), e))?
             .initialization_values
             .wasm_memory_limit)
+    }
+
+    pub fn get_log_visibility(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<LogVisibility>, GetLogVisibilityError> {
+        Ok(self
+            .get_canister_config(canister_name)
+            .map_err(|e| GetLogVisibilityFailed(canister_name.to_string(), e))?
+            .initialization_values
+            .log_visibility
+            .map(|visibility| visibility.into()))
     }
 
     fn get_canister_config(

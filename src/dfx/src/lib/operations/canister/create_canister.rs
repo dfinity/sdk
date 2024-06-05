@@ -218,6 +218,7 @@ async fn create_with_management_canister(
         .with_optional_freezing_threshold(settings.freezing_threshold)
         .with_optional_reserved_cycles_limit(settings.reserved_cycles_limit)
         .with_optional_wasm_memory_limit(settings.wasm_memory_limit)
+        .with_optional_log_visibility(settings.log_visibility)
         .call_and_wait()
         .await;
     const NEEDS_WALLET: &str = "In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
@@ -303,6 +304,9 @@ async fn create_with_wallet(
         }
         if settings.wasm_memory_limit.is_some() {
             bail!("Cannot create a canister using a wallet if the wasm_memory_limit is set. Please create with --no-wallet or use dfx canister update-settings instead.")
+        }
+        if settings.log_visibility.is_some() {
+            bail!("Cannot create a canister using a wallet if log_visibility is set. Please create with --no-wallet or use dfx canister update-settings instead.")
         }
         match wallet
             .wallet_create_canister(

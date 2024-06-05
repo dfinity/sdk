@@ -59,6 +59,12 @@ pub enum GetWasmMemoryLimitError {
 }
 
 #[derive(Error, Debug)]
+pub enum GetLogVisibilityError {
+    #[error("Failed to get log visibility for canister '{0}': {1}")]
+    GetLogVisibilityFailed(String, GetCanisterConfigError),
+}
+
+#[derive(Error, Debug)]
 pub enum GetPullCanistersError {
     #[error("Pull dependencies '{0}' and '{1}' have the same canister ID: {2}")]
     PullCanistersSameId(String, String, Principal),
