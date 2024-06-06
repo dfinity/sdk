@@ -214,7 +214,6 @@ async fn delete_canister(
             let install_result = install_builder
                 .build()
                 .context("Failed to build InstallCode call.")?
-                .call_and_wait()
                 .await;
             if install_result.is_ok() {
                 start_canister(env, canister_id, &CallSender::SelectedId).await?;
@@ -253,7 +252,6 @@ async fn delete_canister(
                                     Argument::from_candid((opt_principal,)),
                                     cycles_to_withdraw,
                                 )
-                                .call_and_wait()
                                 .await
                                 .context("Failed mint call.")
                         }

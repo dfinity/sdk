@@ -113,7 +113,6 @@ pub async fn create_wallet(
             mgr.create_canister()
                 .as_provisional_create_with_amount(None)
                 .with_effective_canister_id(env.get_effective_canister_id())
-                .call_and_wait()
                 .await
                 .context("Failed create canister call.")?
                 .0
@@ -123,7 +122,6 @@ pub async fn create_wallet(
     match mgr
         .install_code(&canister_id, wasm.as_slice())
         .with_mode(InstallMode::Install)
-        .call_and_wait()
         .await
     {
         Err(AgentError::CertifiedReject(RejectResponse {
@@ -143,7 +141,6 @@ pub async fn create_wallet(
 
     wallet
         .wallet_store_wallet_wasm(wasm)
-        .call_and_wait()
         .await
         .context("Failed to store wallet wasm.")?;
 

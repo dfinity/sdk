@@ -55,7 +55,6 @@ where
                 .with_arg(arg)
                 .with_effective_canister_id(destination_canister)
                 .build()
-                .call_and_wait()
                 .await
                 .context("Update call (without wallet) failed.")?
         }
@@ -68,7 +67,6 @@ where
                     Argument::from_candid((arg,)),
                     cycles,
                 )
-                .call_and_wait()
                 .await
                 .context("Update call using wallet failed.")?;
             out

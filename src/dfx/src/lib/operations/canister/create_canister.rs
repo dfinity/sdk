@@ -219,7 +219,6 @@ async fn create_with_management_canister(
         .with_optional_reserved_cycles_limit(settings.reserved_cycles_limit)
         .with_optional_wasm_memory_limit(settings.wasm_memory_limit)
         .with_optional_log_visibility(settings.log_visibility)
-        .call_and_wait()
         .await;
     const NEEDS_WALLET: &str = "In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \
                         To do this, remove the --no-wallet argument and try again. It is also possible to create a canister on this network \
@@ -286,7 +285,6 @@ async fn create_with_wallet(
                 },)),
                 cycles,
             )
-            .call_and_wait()
             .await;
         match call_result {
             Ok((Ok(canister_id),)) => Ok(canister_id),

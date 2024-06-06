@@ -247,7 +247,6 @@ The command line value will be used.",
                     Argument::from_candid((self_id,)),
                     0,
                 )
-                .call_and_wait()
                 .await
                 .context("Failed to authorize your principal with the canister. You can still control the canister by using your wallet with the --wallet flag.")?;
         };
@@ -482,14 +481,12 @@ pub async fn install_wallet(
     let wasm = wallet_wasm(env.get_logger())?;
     mgmt.install_code(&id, &wasm)
         .with_mode(mode)
-        .call_and_wait()
         .await
         .context("Failed to install wallet wasm.")?;
     wait_for_module_hash(env, agent, id, None, &Sha256::digest(&wasm)).await?;
     let wallet = build_wallet_canister(id, agent).await?;
     wallet
         .wallet_store_wallet_wasm(wasm)
-        .call_and_wait()
         .await
         .context("Failed to store wallet wasm in container.")?;
     Ok(())

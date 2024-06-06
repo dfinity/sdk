@@ -60,7 +60,6 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
             ))
             .context("Failed to serialize 'redeem_to_cycles_ledger' arguments.")?,
         )
-        .call_and_wait()
         .await
         .context("Failed 'redeem_to_cycles_ledger' call.")?;
     #[derive(CandidType, Deserialize)]
