@@ -16,7 +16,6 @@ use dfx_core::identity::{Identity, WalletGlobalConfig, WalletNetworkMap, WALLET_
 use dfx_core::json::save_json_file;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
-use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::{ManagementCanister, WalletCanister};
 use slog::info;
