@@ -1,16 +1,21 @@
-use crate::canister_api::{
-    methods::method_names::GET_ASSET_PROPERTIES,
-    types::asset::{AssetDetails, AssetProperties, GetAssetPropertiesArgument},
-};
 use crate::error::GetAssetPropertiesError;
 use crate::error::GetAssetPropertiesError::GetAssetPropertiesFailed;
+use crate::{
+    batch_upload::retryable::retryable,
+    canister_api::{
+        methods::method_names::GET_ASSET_PROPERTIES,
+        types::asset::{AssetDetails, AssetProperties, GetAssetPropertiesArgument},
+    },
+};
+use backoff::backoff::Backoff;
+use backoff::ExponentialBackoffBuilder;
 use futures_intrusive::sync::SharedSemaphore;
 use ic_agent::{agent::RejectResponse, AgentError};
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
-const MAX_CONCURRENT_REQUESTS: usize = 20;
+const MAX_CONCURRENT_REQUESTS: usize = 50;
 
 pub(crate) async fn get_assets_properties(
     canister: &Canister<'_>,
@@ -22,8 +27,29 @@ pub(crate) async fn get_assets_properties(
     let futs = asset_ids
         .iter()
         .map(|asset_id| async {
-            semaphore.acquire(1).await;
-            get_asset_properties(canister, asset_id).await
+            let _releaser = semaphore.acquire(1).await;
+
+            let mut retry_policy = ExponentialBackoffBuilder::new()
+                .with_initial_interval(Duration::from_secs(1))
+                .with_max_interval(Duration::from_secs(16))
+                .with_multiplier(2.0)
+                .with_max_elapsed_time(Some(Duration::from_secs(300)))
+                .build();
+
+            loop {
+                let response = get_asset_properties(canister, asset_id).await;
+
+                match response {
+                    Ok(asset_properties) => break Ok(asset_properties),
+                    Err(agent_err) if !retryable(&agent_err) => {
+                        break Err(agent_err);
+                    }
+                    Err(agent_err) => match retry_policy.next_backoff() {
+                        Some(duration) => tokio::time::sleep(duration).await,
+                        None => break Err(agent_err),
+                    },
+                };
+            }
         })
         .collect::<Vec<_>>();
 
