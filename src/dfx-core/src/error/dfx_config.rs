@@ -60,7 +60,7 @@ pub enum GetWasmMemoryLimitError {
 
 #[derive(Error, Debug)]
 pub enum GetLogVisibilityError {
-    #[error("Failed to get log visibility for canister '{0}': {1}")]
+    #[error("Failed to get log visibility for canister '{0}'")]
     GetLogVisibilityFailed(String, GetCanisterConfigError),
 }
 

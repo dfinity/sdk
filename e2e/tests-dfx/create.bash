@@ -340,3 +340,15 @@ teardown() {
   assert_contains 'Freezing threshold: 604_800'
   assert_contains 'Log visibility: public'
 }
+
+@test "create with default settings" {
+  dfx_start
+  assert_command dfx deploy e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains 'Memory allocation: 0'
+  assert_contains 'Compute allocation: 0'
+  assert_contains 'Reserved cycles limit: 5_000_000_000_000'
+  assert_contains 'Wasm memory limit: 0'
+  assert_contains 'Freezing threshold: 2_592_000'
+  assert_contains 'Log visibility: controllers'
+}
