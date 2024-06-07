@@ -54,8 +54,8 @@ pub enum GetMemoryAllocationError {
 
 #[derive(Error, Debug)]
 pub enum GetWasmMemoryLimitError {
-    #[error("Failed to get Wasm memory limit for canister '{0}': {1}")]
-    GetWasmMemoryLimitFailed(String, GetCanisterConfigError),
+    #[error("Failed to get Wasm memory limit for canister '{0}'")]
+    GetWasmMemoryLimitFailed(String, #[source] GetCanisterConfigError),
 }
 
 #[derive(Error, Debug)]
