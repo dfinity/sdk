@@ -873,11 +873,14 @@ impl CanisterPool {
             }
         })?;
 
-        Ok(nodes
-            .iter()
-            .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
-            .map(|idx| graph.graph().node_weight(*idx).unwrap().to_string())
-            .collect())
+        let order: Vec<String> = nodes
+                .iter()
+                .rev() // Reverse the order, as we have a dependency graph, we want to reverse indices.
+                .map(|idx| graph.graph().node_weight(*idx).unwrap().to_string())
+                .collect();
+        let log = env.get_logger();
+        info!(log, "Build order: {}", order.join(" "));
+        Ok(order)
     }
 
     /// Build all canisters, returning a vector of results of each builds.
