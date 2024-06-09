@@ -815,6 +815,7 @@ impl CanisterPool {
     //     Ok(())
     // }
 
+    // TODO: This function is called twice during deploy of a canister.
     pub fn build_order(
         &self,
         env: &dyn Environment,
