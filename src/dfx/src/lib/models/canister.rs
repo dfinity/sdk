@@ -901,7 +901,7 @@ impl CanisterPool {
             } else {
                 self.canisters.clone()
             };
-        let order = self.build_order(env, &toplevel_canisters)?; // TODO: Eliminate `clone`.
+        let order = self.build_order(env, &toplevel_canisters)?;
 
         self.step_prebuild_all(build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
