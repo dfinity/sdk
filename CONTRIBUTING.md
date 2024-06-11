@@ -1,5 +1,13 @@
 # Contributing to DFX
 
+## Guidelines
+We welcome your contributions to the Internet Computer SDK! Please note the following guidelines that will help
+ensure your work is incorporated with the least friction possible
+
+1. PRs with a large footprint should start as a discussion on GitHub first so that the approach can be fleshed out and agreed upon with members of the SDK team. [Start a discussion](https://github.com/dfinity/sdk/discussions/new?category=feature-requests).
+2. PRs should generally be small and testable and include unit and/or e2e tests.
+3. PRs should be void of any TODO comments, dead code, or remnants of failed experiments, etc. We will be happy to help get your PR into a state that would meet our standards during the review process. 
+
 ## Developing `dfx`
 
 Use `cargo` with the relevant [Rust toolchain](../rust-toolchain.toml) like any other Rust project.
