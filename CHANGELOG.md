@@ -52,6 +52,16 @@ different replica version or different replica options.
 
 It doesn't apply to `--pocketic` because PocketIC does not yet persist any data.
 
+### feat: `dfx canister url`
+
+Add `dfx canister url` subcommand to display the url of a given canister. Basic usage as below:
+
+``` bash
+dfx canister url <canister>
+```
+
+The `<canister>` argument specifies the name or id of the canister for which you want to display the url.
+
 ### feat: `log_visibility` canister setting
 
 Adds support for the `log_visibility` canister setting, which configures which users are allowed to read a canister's logs.

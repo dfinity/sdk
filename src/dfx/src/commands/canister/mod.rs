@@ -24,6 +24,7 @@ mod status;
 mod stop;
 mod uninstall_code;
 mod update_settings;
+mod url;
 
 /// Manages canisters deployed on a network replica.
 #[derive(Parser)]
@@ -60,6 +61,7 @@ pub enum SubCommand {
     UninstallCode(uninstall_code::UninstallCodeOpts),
     UpdateSettings(update_settings::UpdateSettingsOpts),
     Logs(logs::LogsOpts),
+    Url(url::CanisterUrlOpts),
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
@@ -93,6 +95,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::UninstallCode(v) => uninstall_code::exec(env, v, &call_sender).await,
             SubCommand::UpdateSettings(v) => update_settings::exec(env, v, &call_sender).await,
             SubCommand::Logs(v) => logs::exec(env, v, &call_sender).await,
+            SubCommand::Url(v) => url::exec(env, v).await,
         }
     })
 }
