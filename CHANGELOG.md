@@ -50,6 +50,12 @@ different replica version or different replica options.
 
 It doesn't apply to `--pocketic` because PocketIC does not yet persist any data.
 
+### feat: `log_visibility` canister setting
+
+Adds support for the `log_visibility` canister setting, which configures which users are allowed to read a canister's logs.
+Valid options are `controllers` and `public`. The setting can be used with the `--log-visibility` flag in `dfx canister create`
+and `dfx canister update-settings`, or in `dfx.json` under `canisters[].initialization_values.log_visibility`.
+
 ## Dependencies
 
 ### Frontend canister

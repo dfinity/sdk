@@ -112,11 +112,8 @@ async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult
         };
         wallet.update("wallet_call").with_arg(args64)
     };
-    let (result,): (Result<CallResult, String>,) = builder
-        .build()
-        .call_and_wait()
-        .await
-        .context("Failed wallet call.")?;
+    let (result,): (Result<CallResult, String>,) =
+        builder.build().await.context("Failed wallet call.")?;
     Ok(result.map_err(|err| anyhow!(err))?.r#return)
 }
 
@@ -418,7 +415,6 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                 .update(&canister_id, method_name)
                 .with_effective_canister_id(effective_canister_id)
                 .with_arg(arg_value)
-                .call_and_wait()
                 .await
                 .context("Failed update call.")?,
             CallSender::Wallet(wallet_id) => {

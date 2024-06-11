@@ -61,7 +61,6 @@ pub async fn install_ui_canister(
             mgr.create_canister()
                 .as_provisional_create_with_amount(None)
                 .with_effective_canister_id(env.get_effective_canister_id())
-                .call_and_wait()
                 .await
                 .context("Create canister call failed.")?
                 .0
@@ -69,7 +68,6 @@ pub async fn install_ui_canister(
     };
     mgr.install_code(&canister_id, wasm.as_slice())
         .with_mode(InstallMode::Install)
-        .call_and_wait()
         .await
         .context("Install wasm call failed.")?;
     id_store.add(UI_CANISTER, &canister_id.to_text(), None)?;
