@@ -7,6 +7,8 @@
 Now displays `Using the default configuration for the local shared network.`
 instead of `Using the default definition for the 'local' shared network because ~/.config/dfx/networks.json does not define it.`
 
+### chore!: Improved error message about canister ranges when directly connecting to a node on a non-root subnet
+
 ### feat: `dfx start` for the shared local network stores replica state files in unique directories by options
 
 The state files for different replica versions are often incompatible,

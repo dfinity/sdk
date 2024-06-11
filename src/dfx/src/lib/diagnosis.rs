@@ -47,6 +47,8 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
     if let Some(agent_err) = err.downcast_ref::<AgentError>() {
         if not_a_controller(agent_err) {
             return diagnose_http_403();
+        } else if *agent_err == AgentError::CertificateNotAuthorized() {
+            return subnet_not_authorized();
         }
     }
 
@@ -96,6 +98,11 @@ The most common way this error is solved is by running 'dfx canister update-sett
         Some(error_explanation.to_string()),
         Some(action_suggestion.to_string()),
     )
+}
+
+fn subnet_not_authorized() -> Diagnosis {
+    let action_suggestion = "If you are connecting to a node directly instead of a boundary node, try using --provisional-create-canister-effective-canister-id with a canister id in the subnet's canister range. First non-root subnet: 5v3p4-iyaaa-aaaaa-qaaaa-cai, second non-root subnet: jrlun-jiaaa-aaaab-aaaaa-cai";
+    (None, Some(action_suggestion.to_string()))
 }
 
 fn duplicate_asset_key_dist_and_src(sync_error: &SyncError) -> bool {
