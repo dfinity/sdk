@@ -67,7 +67,6 @@ pub async fn notify_create(
             })
             .map_err(NotifyCreateCanisterError::EncodeArguments)?,
         )
-        .call_and_wait()
         .await
         .map_err(NotifyCreateCanisterError::Call)?;
     Decode!(&result, NotifyCreateCanisterResult)
@@ -89,7 +88,6 @@ pub async fn notify_top_up(
             })
             .map_err(NotifyTopUpError::EncodeArguments)?,
         )
-        .call_and_wait()
         .await
         .map_err(NotifyTopUpError::Call)?;
     Decode!(&result, NotifyTopUpResult)
@@ -113,7 +111,6 @@ pub async fn notify_mint_cycles(
             })
             .map_err(NotifyMintCyclesError::EncodeArguments)?,
         )
-        .call_and_wait()
         .await
         .map_err(NotifyMintCyclesError::Call)?;
     Decode!(&result, NotifyMintCyclesResult)
