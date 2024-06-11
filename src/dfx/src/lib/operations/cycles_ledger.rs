@@ -111,7 +111,6 @@ pub async fn transfer(
             .with_arg(arg)
             .build()
             .map(|result: (Result<BlockIndex, TransferError>,)| (result.0,))
-            .call_and_wait()
             .await
             .map(|(result,)| result)
         {
@@ -170,7 +169,6 @@ pub async fn transfer_from(
             .with_arg(arg)
             .build()
             .map(|result: (Result<BlockIndex, TransferFromError>,)| (result.0,))
-            .call_and_wait()
             .await
             .map(|(result,)| result)
         {
@@ -234,7 +232,6 @@ pub async fn approve(
             .with_arg(arg)
             .build()
             .map(|result: (Result<BlockIndex, ApproveError>,)| (result.0,))
-            .call_and_wait()
             .await
             .map(|(result,)| result)
         {
@@ -283,7 +280,6 @@ pub async fn withdraw(
             .with_arg(arg)
             .build()
             .map(|result: (Result<BlockIndex, WithdrawError>,)| (result.0,))
-            .call_and_wait()
             .await
             .map(|(result,)| result)
         {
@@ -355,7 +351,6 @@ pub async fn create_with_cycles_ledger(
         match agent
             .update(&CYCLES_LEDGER_CANISTER_ID, CREATE_CANISTER_METHOD)
             .with_arg(arg.clone())
-            .call_and_wait()
             .await
         {
             Ok(result) => break result,
@@ -409,7 +404,6 @@ pub async fn wallet_deposit_to_cycles_ledger(
             Argument::from_candid((DepositArg { to, memo: None },)),
             cycles_to_withdraw,
         )
-        .call_and_wait()
         .await
         .context("Failed deposit call.")
 }

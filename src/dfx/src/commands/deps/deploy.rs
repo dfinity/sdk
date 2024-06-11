@@ -91,7 +91,6 @@ async fn install_pulled_canister(
         // always reinstall pulled canister
         .with_mode(InstallMode::Reinstall)
         .with_raw_arg(install_args)
-        .call_and_wait()
         .await?;
     Ok(())
 }

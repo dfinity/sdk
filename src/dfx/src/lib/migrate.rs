@@ -122,11 +122,11 @@ async fn migrate_canister(
                             memory_allocation: None,
                             reserved_cycles_limit: None,
                             wasm_memory_limit: None,
+                            log_visibility: None,
                         },
                     },)),
                     0,
                 )
-                .call_and_wait()
                 .await
                 .context("Could not update canister settings")?;
         } else {

@@ -259,6 +259,7 @@ async fn register_canisters(
                         )
                 },
             ).transpose()?;
+            let log_visibility = config_interface.get_log_visibility(canister_name)?;
 
             let controllers = None;
             create_canister(
@@ -276,6 +277,7 @@ async fn register_canisters(
                     freezing_threshold,
                     reserved_cycles_limit,
                     wasm_memory_limit,
+                    log_visibility,
                 },
                 created_at_time,
                 subnet_selection,

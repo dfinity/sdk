@@ -2,14 +2,14 @@ use crate::lib::deps::get_pull_canisters_in_config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
-    get_compute_allocation, get_freezing_threshold, get_memory_allocation,
+    get_compute_allocation, get_freezing_threshold, get_log_visibility, get_memory_allocation,
     get_reserved_cycles_limit, get_wasm_memory_limit, CanisterSettings,
 };
 use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
-    compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
-    reserved_cycles_limit_parser, wasm_memory_limit_parser,
+    compute_allocation_parser, freezing_threshold_parser, log_visibility_parser,
+    memory_allocation_parser, reserved_cycles_limit_parser, wasm_memory_limit_parser,
 };
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
@@ -20,6 +20,7 @@ use clap::{ArgAction, Parser};
 use dfx_core::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
 use ic_agent::Identity as _;
+use ic_utils::interfaces::management_canister::LogVisibility;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 
@@ -88,6 +89,11 @@ pub struct CanisterCreateOpts {
     /// Must be a number between 0 B and 256 TiB, inclusive. Can include units, e.g. "4KiB".
     #[arg(long, value_parser = wasm_memory_limit_parser, hide = true)]
     wasm_memory_limit: Option<Byte>,
+
+    /// Specifies who is allowed to read the canister's logs.
+    /// Can be either "controllers" or "public".
+    #[arg(long, value_parser = log_visibility_parser)]
+    log_visibility: Option<LogVisibility>,
 
     /// Performs the call with the user Identity as the Sender of messages.
     /// Bypasses the Wallet canister.
@@ -195,6 +201,12 @@ pub async fn exec(
             Some(canister_name),
         )
         .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
+        let log_visibility = get_log_visibility(
+            opts.log_visibility,
+            Some(config_interface),
+            Some(canister_name),
+        )
+        .with_context(|| format!("Failed to read log visibility of {canister_name}."))?;
         create_canister(
             env,
             canister_name,
@@ -210,6 +222,7 @@ pub async fn exec(
                 freezing_threshold,
                 reserved_cycles_limit,
                 wasm_memory_limit,
+                log_visibility,
             },
             opts.created_at_time,
             &mut subnet_selection,
@@ -271,6 +284,12 @@ pub async fn exec(
                     Some(canister_name),
                 )
                 .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
+                let log_visibility = get_log_visibility(
+                    opts.log_visibility,
+                    Some(config_interface),
+                    Some(canister_name),
+                )
+                .with_context(|| format!("Failed to read log visibility of {canister_name}."))?;
                 create_canister(
                     env,
                     canister_name,
@@ -286,6 +305,7 @@ pub async fn exec(
                         freezing_threshold,
                         reserved_cycles_limit,
                         wasm_memory_limit,
+                        log_visibility,
                     },
                     opts.created_at_time,
                     &mut subnet_selection,

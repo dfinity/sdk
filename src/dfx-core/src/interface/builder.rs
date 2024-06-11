@@ -15,9 +15,7 @@ use crate::{
     DfxInterface,
 };
 use ic_agent::{
-    agent::http_transport::{
-        reqwest_transport::ReqwestHttpReplicaV2Transport, route_provider::RoundRobinRouteProvider,
-    },
+    agent::http_transport::{route_provider::RoundRobinRouteProvider, ReqwestTransport},
     Agent, Identity,
 };
 use reqwest::Client;
@@ -122,11 +120,9 @@ impl DfxInterfaceBuilder {
             .use_rustls_tls()
             .build()
             .map_err(BuildAgentError::CreateHttpClient)?;
-        let transport = ReqwestHttpReplicaV2Transport::create_with_client_route(
-            Arc::new(route_provider),
-            client,
-        )
-        .map_err(BuildAgentError::CreateTransport)?;
+        let transport =
+            ReqwestTransport::create_with_client_route(Arc::new(route_provider), client)
+                .map_err(BuildAgentError::CreateTransport)?;
         let agent = Agent::builder()
             .with_transport(transport)
             .with_arc_identity(identity)

@@ -68,7 +68,6 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.
                 .with_raw_arg(args.to_vec())
                 .with_mode(mode);
             install_builder
-                .call_and_wait()
                 .await
                 .map_err(CanisterInstallError::InstallWasmError)
         }
@@ -87,7 +86,6 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.
                     Argument::from_candid((install_args,)),
                     0,
                 )
-                .call_and_wait()
                 .await
                 .map_err(CanisterInstallError::InstallWasmError)
         }
