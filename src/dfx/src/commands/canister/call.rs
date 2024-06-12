@@ -194,13 +194,6 @@ pub fn get_effective_canister_id(
                 Decode!(arg_value, In).context("Argument is not valid for InstallChunkedCode")?;
             Ok(in_args.target_canister)
         }
-        // TODO: SDKTG-347
-        // BitcoinGetUtxosQuery and BitcoinGetBalanceQuery are to be removed.
-        // We should remove this match arm when they are removed from `MgmtMethod` in ic-utils.
-        MgmtMethod::BitcoinGetUtxosQuery | MgmtMethod::BitcoinGetBalanceQuery => Err(anyhow!(
-            "Attempted to call an unsupported management canister method: {}",
-            method_name
-        )),
     }
 }
 
