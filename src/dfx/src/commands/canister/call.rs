@@ -197,7 +197,7 @@ pub fn get_effective_canister_id(
         // TODO: SDKTG-347
         // BitcoinGetUtxosQuery and BitcoinGetBalanceQuery are to be removed.
         // We should remove this match arm when they are removed from `MgmtMethod` in ic-utils.
-        _ => Err(anyhow!(
+        MgmtMethod::BitcoinGetUtxosQuery | MgmtMethod::BitcoinGetBalanceQuery => Err(anyhow!(
             "Attempted to call an unsupported management canister method: {}",
             method_name
         )),
