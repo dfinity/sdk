@@ -45,6 +45,9 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
     }
 
     if let Some(agent_err) = err.downcast_ref::<AgentError>() {
+        if wallet_method_not_found(agent_err) {
+            return diagnose_bad_wallet();
+        }
         if not_a_controller(agent_err) {
             return diagnose_http_403();
         } else if *agent_err == AgentError::CertificateNotAuthorized() {
@@ -80,6 +83,22 @@ fn not_a_controller(err: &AgentError) -> bool {
     matches!(err, AgentError::HttpError(payload) if payload.status == 403)
         || matches!(err, AgentError::HttpError(payload) if payload.status == 400 &&
             matches!(std::str::from_utf8(payload.content.as_slice()), Ok("Wrong sender")))
+}
+
+fn wallet_method_not_found(err: &AgentError) -> bool {
+    match err {
+        AgentError::CertifiedReject(RejectResponse {
+            reject_code: RejectCode::CanisterError,
+            reject_message,
+            ..
+        }) if reject_message.contains("Canister has no update method 'wallet_") => true,
+        AgentError::UncertifiedReject(RejectResponse {
+            reject_code: RejectCode::CanisterError,
+            reject_message,
+            ..
+        }) if reject_message.contains("Canister has no query method 'wallet_") => true,
+        _ => false,
+    }
 }
 
 fn diagnose_http_403() -> Diagnosis {
@@ -148,5 +167,23 @@ One or both of the following are a likely explanation:
 
 See also release notes: https://forum.dfinity.org/t/dfx-0-11-0-is-promoted-with-breaking-changes/14327"#;
 
+    (Some(explanation.to_string()), Some(suggestion.to_string()))
+}
+
+fn diagnose_bad_wallet() -> Diagnosis {
+    let explanation = "\
+A wallet has been previously configured (e.g. via `dfx identity set-wallet`).
+However, it did not contain a function that dfx was looking for.
+This may be because:
+    - a wallet was correctly installed, but is outdated
+    - `dfx identity set-wallet` was used on a non-wallet canister";
+    let suggestion = "\
+If you have had the wallet for a while, then you may need to update it with
+`dfx wallet upgrade`. The release notes indicate when there is a new wallet.
+If you recently ran `dfx identity set-wallet`, and the canister may have been
+wrong, you can set a new wallet with
+`dfx identity set-wallet <PRINCIPAL> --identity <IDENTITY>`.
+If you're using a local replica and configuring a wallet was a mistake, you can
+recreate the replica with `dfx stop && dfx start --clean` to start over.";
     (Some(explanation.to_string()), Some(suggestion.to_string()))
 }
