@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat!: remove support for bitcoin query API
+
+`dfx call --query aaaaa-aa bitcoin_get_balance_query/bitcoin_get_utxos_query` will result in an error.
+
 ### fix: simplified log message when using the default shared network configuration
 
 Now displays `Using the default configuration for the local shared network.`
