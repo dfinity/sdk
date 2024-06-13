@@ -28,7 +28,6 @@ pub(crate) async fn create_batch(canister: &Canister<'_>) -> Result<Nat, AgentEr
             .with_arg(&create_batch_args)
             .build()
             .map(|result: (CreateBatchResponse,)| (result.0.batch_id,))
-            .call_and_wait()
             .await;
         match response {
             Ok((batch_id,)) => break Ok(batch_id),
@@ -57,13 +56,7 @@ pub(crate) async fn submit_commit_batch<T: CandidType + Sync>(
         .build();
 
     loop {
-        match canister
-            .update(method_name)
-            .with_arg(&arg)
-            .build()
-            .call_and_wait()
-            .await
-        {
+        match canister.update(method_name).with_arg(&arg).build().await {
             Ok(()) => return Ok(()),
             Err(agent_err) if !retryable(&agent_err) => {
                 return Err(agent_err);
@@ -107,7 +100,6 @@ pub(crate) async fn compute_evidence(
             .with_arg(arg)
             .build()
             .map(|result: (Option<ByteBuf>,)| (result.0,))
-            .call_and_wait()
             .await
         {
             Ok(x) => return Ok(x.0),

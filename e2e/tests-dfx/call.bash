@@ -237,55 +237,6 @@ teardown() {
   assert_match '("Hello, you!")'
 }
 
-@test "call management canister - bitcoin query API on the IC mainnet" {
-  WARNING="call to the management canister cannot be benefit from the \"Replica Signed Queries\" feature.
-The response might not be trustworthy.
-If you want to get reliable result, you can make an update call to the secure alternative:"
-  # bitcoin_get_balance_query
-  ## bitcoin mainnet
-  assert_command dfx canister call --network ic --query aaaaa-aa bitcoin_get_balance_query '(
-  record {
-    network = variant { mainnet };
-    address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
-  }
-)'
-  # shellcheck disable=SC2154
-  assert_contains "bitcoin_get_balance_query $WARNING bitcoin_get_balance" "$stderr"
-
-  # TODO: re-enable when testnet back to normal, tracking at https://dfinity.atlassian.net/browse/SDKTG-323
-
-#   ## bitcoin testnet
-#   assert_command dfx canister call --network ic --query aaaaa-aa bitcoin_get_balance_query '(
-#   record {
-#     network = variant { testnet };
-#     address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
-#   }
-# )'
-#   # shellcheck disable=SC2154
-#   assert_contains "bitcoin_get_balance_query $WARNING bitcoin_get_balance" "$stderr"
-
-  # bitcoin_get_utxos_query
-  ## bitcoin mainnet
-  assert_command dfx canister call --network ic --query aaaaa-aa bitcoin_get_utxos_query '(
-  record {
-    network = variant { mainnet };
-    address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
-  }
-)'
-  # shellcheck disable=SC2154
-  assert_contains "bitcoin_get_utxos_query $WARNING bitcoin_get_utxos" "$stderr"
-
-#   ## bitcoin testnet
-#   assert_command dfx canister call --network ic --query aaaaa-aa bitcoin_get_utxos_query '(
-#   record {
-#     network = variant { testnet };
-#     address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
-#   }
-# )'
-#   # shellcheck disable=SC2154
-#   assert_contains "bitcoin_get_utxos_query $WARNING bitcoin_get_utxos" "$stderr"
-}
-
 @test "inter-canister calls" {
   dfx_new_rust inter
   install_asset inter

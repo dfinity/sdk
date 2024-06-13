@@ -20,7 +20,6 @@ use dfx_core::canister::build_wallet_canister;
 use dfx_core::cli::ask_for_consent;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
-use ic_utils::call::AsyncCall;
 use ic_utils::interfaces::management_canister::attributes::FreezingThreshold;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::management_canister::CanisterStatus;
@@ -193,6 +192,7 @@ async fn delete_canister(
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
                 reserved_cycles_limit: None,
                 wasm_memory_limit: None,
+                log_visibility: None,
             };
             info!(log, "Setting the controller to identity principal.");
             update_settings(env, canister_id, settings, call_sender).await?;
@@ -213,7 +213,6 @@ async fn delete_canister(
             let install_result = install_builder
                 .build()
                 .context("Failed to build InstallCode call.")?
-                .call_and_wait()
                 .await;
             if install_result.is_ok() {
                 start_canister(env, canister_id, &CallSender::SelectedId).await?;
@@ -252,7 +251,6 @@ async fn delete_canister(
                                     Argument::from_candid((opt_principal,)),
                                     cycles_to_withdraw,
                                 )
-                                .call_and_wait()
                                 .await
                                 .context("Failed mint call.")
                         }

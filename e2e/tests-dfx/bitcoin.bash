@@ -196,27 +196,4 @@ set_local_network_bitcoin_enabled() {
   # The error message indicates that the argument is in correct format, only the inner transaction is malformed.
   assert_command_fail dfx canister call --wallet "$WALLET_ID" aaaaa-aa --candid bitcoin.did bitcoin_send_transaction '(record { transaction = vec {0:nat8}; network = variant { regtest } })'
   assert_contains "send_transaction failed: MalformedTransaction"
-
-  # the query Bitcoin API can be called directly
-
-  # bitcoin_get_balance_query
-  assert_command dfx canister call --query aaaaa-aa --candid bitcoin.did bitcoin_get_balance_query '(
-  record {
-    network = variant { regtest };
-    address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
-    min_confirmations = opt (1 : nat32);
-  }
-)'
-  # shellcheck disable=SC2154
-  assert_eq "(0 : nat64)" "$stdout"
-
-  # bitcoin_get_balance_query
-  assert_command dfx canister call --query aaaaa-aa --candid bitcoin.did bitcoin_get_utxos_query '(
-  record {
-    network = variant { regtest };
-    filter = opt variant { min_confirmations = 1 : nat32 };
-    address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
-  }
-)'
-  assert_contains "tip_height = 0 : nat32;"
 }

@@ -131,7 +131,6 @@ pub async fn transfer(
                 })
                 .context("Failed to encode arguments.")?,
             )
-            .call_and_wait()
             .await
         {
             Ok(data) => {

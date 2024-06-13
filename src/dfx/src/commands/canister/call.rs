@@ -112,11 +112,8 @@ async fn do_wallet_call(wallet: &WalletCanister<'_>, args: &CallIn) -> DfxResult
         };
         wallet.update("wallet_call").with_arg(args64)
     };
-    let (result,): (Result<CallResult, String>,) = builder
-        .build()
-        .call_and_wait()
-        .await
-        .context("Failed wallet call.")?;
+    let (result,): (Result<CallResult, String>,) =
+        builder.build().await.context("Failed wallet call.")?;
     Ok(result.map_err(|err| anyhow!(err))?.r#return)
 }
 
@@ -197,9 +194,6 @@ pub fn get_effective_canister_id(
                 Decode!(arg_value, In).context("Argument is not valid for InstallChunkedCode")?;
             Ok(in_args.target_canister)
         }
-        MgmtMethod::BitcoinGetUtxosQuery | MgmtMethod::BitcoinGetBalanceQuery => {
-            Ok(CanisterId::management_canister())
-        }
     }
 }
 
@@ -253,7 +247,6 @@ pub async fn exec(
         opts.always_assist,
     )?;
 
-    let mut disable_verify_query_signatures = false;
     let effective_canister_id = if canister_id == CanisterId::management_canister() {
         let management_method = MgmtMethod::from_str(method_name).map_err(|_| {
             anyhow!(
@@ -261,39 +254,6 @@ pub async fn exec(
                 method_name
             )
         })?;
-
-        if matches!(
-            management_method,
-            MgmtMethod::BitcoinGetBalanceQuery | MgmtMethod::BitcoinGetUtxosQuery
-        ) {
-            match call_sender {
-                CallSender::SelectedId => {
-                    // Query calls to those two bitcoin query methods can not make a following read_state call.
-                    // We have to use a non-verify_query_signatures agent to make the call.
-                    // Rust's lifetime rule forces us to create the special env/agent outside this block.
-                    // agent = non_verify_query_signatures_agent;
-                    disable_verify_query_signatures = true;
-                    let secure_alt = match management_method {
-                        MgmtMethod::BitcoinGetBalanceQuery => "bitcoin_get_balance",
-                        MgmtMethod::BitcoinGetUtxosQuery => "bitcoin_get_utxos",
-                        _ => unreachable!(),
-                    };
-                    warn!(env.get_logger(), "{method_name} call to the management canister cannot be benefit from the \"Replica Signed Queries\" feature.
-The response might not be trustworthy.
-If you want to get reliable result, you can make an update call to the secure alternative: {secure_alt}");
-                }
-                CallSender::Wallet(_) => {
-                    return Err(DiagnosedError::new(
-                        format!(
-                            "{} can only be called directly without a wallet proxy.",
-                            method_name
-                        ),
-                        "Please remove the `--wallet <wallet id>` option.".to_string(),
-                    ))
-                    .context("Method only callable without wallet proxy.");
-                }
-            }
-        }
 
         if matches!(call_sender, CallSender::SelectedId)
             && matches!(
@@ -367,13 +327,7 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                     .query(&canister_id, method_name)
                     .with_effective_canister_id(effective_canister_id)
                     .with_arg(arg_value);
-                match disable_verify_query_signatures {
-                    true => query_builder
-                        .call_without_verification()
-                        .await
-                        .context("Failed query call.")?,
-                    false => query_builder.call().await.context("Failed query call.")?,
-                }
+                query_builder.call().await.context("Failed query call.")?
             }
             CallSender::Wallet(wallet_id) => {
                 let wallet = build_wallet_canister(*wallet_id, agent).await?;
@@ -418,7 +372,6 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                 .update(&canister_id, method_name)
                 .with_effective_canister_id(effective_canister_id)
                 .with_arg(arg_value)
-                .call_and_wait()
                 .await
                 .context("Failed update call.")?,
             CallSender::Wallet(wallet_id) => {

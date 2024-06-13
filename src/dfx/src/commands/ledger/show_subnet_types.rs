@@ -31,7 +31,6 @@ pub async fn exec(env: &dyn Environment, opts: ShowSubnetTypesOpts) -> DfxResult
             GET_SUBNET_TYPES_TO_SUBNETS_METHOD,
         )
         .with_arg(Encode!(&()).context("Failed to encode get_subnet_types_to_subnets arguments.")?)
-        .call_and_wait()
         .await
         .context("get_subnet_types_to_subnets call failed.")?;
     let result = Decode!(&result, GetSubnetTypesToSubnetsResult)

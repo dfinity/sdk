@@ -110,7 +110,6 @@ async fn step_import_wallet(env: &dyn Environment, agent: &Agent, ident: &str) -
         let wasm = wallet_wasm(env.get_logger())?;
         mgmt.install_code(&id, &wasm)
             .with_mode(InstallMode::Install)
-            .call_and_wait()
             .await?;
         WalletCanister::create(agent, id).await?
     };

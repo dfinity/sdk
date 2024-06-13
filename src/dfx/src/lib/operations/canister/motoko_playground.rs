@@ -122,7 +122,6 @@ pub async fn reserve_canister_with_playground(
     let result = agent
         .update(&playground_canister, "getCanisterId")
         .with_arg(get_can_arg)
-        .call_and_wait()
         .await
         .context("Failed to reserve canister at the playground.")?;
     let reserved_canister = Decode!(&result, CanisterInfo)?;
@@ -167,7 +166,6 @@ pub async fn authorize_asset_uploader(
     let _ = agent
         .update(&playground_canister, "callForward")
         .with_arg(call_arg)
-        .call_and_wait()
         .await
         .context("Failed to call playground.")?;
     Ok(())
@@ -206,7 +204,6 @@ pub async fn playground_install_code(
     let result = agent
         .update(&playground_canister, "installCode")
         .with_arg(encoded_arg.as_slice())
-        .call_and_wait()
         .await
         .context("install failed")?;
     let out = Decode!(&result, CanisterInfo)?;

@@ -50,6 +50,7 @@ This branch will be used to create beta releases as well as the final release.
     > ```
     >
     > See also release notes.
+1. Post a message to the forum about availability of the not-yet-promoted beta, linking to the GitHub release notes.
 
 [Sample PR](https://github.com/dfinity/sdk/pull/3477)
 

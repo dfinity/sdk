@@ -59,7 +59,6 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
                     encode_args((opts.coupon_code.clone(), wallet_principal))
                         .context("Failed to serialize redeem_to_wallet arguments.")?,
                 )
-                .call_and_wait()
                 .await
                 .context("Failed redeem_to_wallet call.")?;
             let redeemed_cycles =
@@ -87,7 +86,6 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
                     encode_args((opts.coupon_code.clone(),))
                         .context("Failed to serialize 'redeem' arguments.")?,
                 )
-                .call_and_wait()
                 .await
                 .context("Failed 'redeem' call.")?;
             let new_wallet_address =

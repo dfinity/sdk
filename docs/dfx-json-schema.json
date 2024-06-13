@@ -94,7 +94,7 @@
         "integer",
         "string"
       ],
-      "pattern": "^[0-9]+( *([KkMmGgTtPpEeZzYy]i?)?B)?$"
+      "pattern": "^[0-9]+( *([KkMmGgTtPpEeZzYy]i?)?[Bb])?$"
     },
     "CanisterDeclarationsConfig": {
       "title": "Declarations Configuration",
@@ -135,6 +135,13 @@
           ]
         }
       }
+    },
+    "CanisterLogVisibility": {
+      "type": "string",
+      "enum": [
+        "controllers",
+        "public"
+      ]
     },
     "CanisterMetadataSection": {
       "title": "Canister Metadata Configuration",
@@ -209,7 +216,7 @@
             },
             "package": {
               "title": "Package Name",
-              "description": "Name of the rust package that compiles to this canister's Wasm binary.",
+              "description": "Name of the rust package that compiles to this canister's Wasm.",
               "type": "string"
             },
             "type": {
@@ -410,6 +417,7 @@
           "default": {
             "compute_allocation": null,
             "freezing_threshold": null,
+            "log_visibility": null,
             "memory_allocation": null,
             "reserved_cycles_limit": null,
             "wasm_memory_limit": null
@@ -440,7 +448,6 @@
         "optimize": {
           "title": "Optimize Canister Wasm",
           "description": "Invoke wasm level optimizations after building the canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default. If this option is specified, the `shrink` option will be ignored.",
-          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/WasmOptLevel"
@@ -463,7 +470,6 @@
         "pullable": {
           "title": "Pullable",
           "description": "Defines required properties so that this canister is ready for `dfx deps pull` by other projects.",
-          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/Pullable"
@@ -476,7 +482,6 @@
         "remote": {
           "title": "Remote Configuration",
           "description": "Used to mark the canister as 'remote' on certain networks.",
-          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/ConfigCanistersCanisterRemote"
@@ -505,7 +510,6 @@
         "tech_stack": {
           "title": "Tech Stack",
           "description": "Defines the tech stack used to build this canister.",
-          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/TechStack"
@@ -637,7 +641,6 @@
         "nodes": {
           "title": "Available Nodes",
           "description": "Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient).",
-          "default": null,
           "type": [
             "array",
             "null"
@@ -917,7 +920,6 @@
         "compute_allocation": {
           "title": "Compute Allocation",
           "description": "Must be a number between 0 and 100, inclusively. It indicates how much compute power should be guaranteed to this canister, expressed as a percentage of the maximum compute power that a single canister can allocate.",
-          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/PossiblyStr_for_uint64"
@@ -930,16 +932,26 @@
         "freezing_threshold": {
           "title": "Freezing Threshold",
           "description": "Freezing threshould of the canister, measured in seconds. Valid inputs are numbers (seconds) or strings parsable by humantime (e.g. \"15days 2min 2s\").",
-          "default": null,
           "type": [
             "string",
             "null"
           ]
         },
+        "log_visibility": {
+          "title": "Log Visibility",
+          "description": "Specifies who is allowed to read the canister's logs.\n\nCan be \"public\" or \"controllers\".",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CanisterLogVisibility"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "memory_allocation": {
           "title": "Memory Allocation",
           "description": "Maximum memory (in bytes) this canister is allowed to occupy. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
-          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/Byte"
@@ -952,7 +964,6 @@
         "reserved_cycles_limit": {
           "title": "Reserved Cycles Limit",
           "description": "Specifies the upper limit of the canister's reserved cycles balance.\n\nReserved cycles are cycles that the system sets aside for future use by the canister. If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes, the system sets aside some amount of cycles from the main balance of the canister. These reserved cycles will be used to cover future payments for the newly allocated bytes. The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.\n\nA setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.",
-          "default": null,
           "type": [
             "integer",
             "null"
@@ -963,7 +974,6 @@
         "wasm_memory_limit": {
           "title": "Wasm Memory Limit",
           "description": "Specifies a soft limit (in bytes) on the Wasm memory usage of the canister.\n\nUpdate calls, timers, heartbeats, installs, and post-upgrades fail if the Wasm memory usage exceeds this limit. The main purpose of this setting is to protect against the case when the canister reaches the hard 4GiB limit.\n\nMust be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
-          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/Byte"

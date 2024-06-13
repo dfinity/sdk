@@ -2,6 +2,17 @@
 
 # UNRELEASED
 
+### feat!: remove support for bitcoin query API
+
+`dfx call --query aaaaa-aa bitcoin_get_balance_query/bitcoin_get_utxos_query` will result in an error.
+
+### fix: simplified log message when using the default shared network configuration
+
+Now displays `Using the default configuration for the local shared network.`
+instead of `Using the default definition for the 'local' shared network because ~/.config/dfx/networks.json does not define it.`
+
+### chore!: Improved error message about canister ranges when directly connecting to a node on a non-root subnet
+
 ### feat: `dfx start` for the shared local network stores replica state files in unique directories by options
 
 The state files for different replica versions are often incompatible,
@@ -44,6 +55,22 @@ defines the local network, you'll still be prompted to run with `--clean` if usi
 different replica version or different replica options.
 
 It doesn't apply to `--pocketic` because PocketIC does not yet persist any data.
+
+### feat: `dfx canister url`
+
+Add `dfx canister url` subcommand to display the url of a given canister. Basic usage as below:
+
+``` bash
+dfx canister url <canister>
+```
+
+The `<canister>` argument specifies the name or id of the canister for which you want to display the url.
+
+### feat: `log_visibility` canister setting
+
+Adds support for the `log_visibility` canister setting, which configures which users are allowed to read a canister's logs.
+Valid options are `controllers` and `public`. The setting can be used with the `--log-visibility` flag in `dfx canister create`
+and `dfx canister update-settings`, or in `dfx.json` under `canisters[].initialization_values.log_visibility`.
 
 ## Dependencies
 
