@@ -72,6 +72,12 @@ Adds support for the `log_visibility` canister setting, which configures which u
 Valid options are `controllers` and `public`. The setting can be used with the `--log-visibility` flag in `dfx canister create`
 and `dfx canister update-settings`, or in `dfx.json` under `canisters[].initialization_values.log_visibility`.
 
+## Asset canister synchronization
+
+### feat: upload `br` encoding for `text`, `js`, and `html` MIME types
+
+Asset synchronization now not only uploads `identity` and `gzip` as encodings for MIME types `text`, `js`, and `html`, but also `br` encoding. 
+
 ## Dependencies
 
 ### Frontend canister

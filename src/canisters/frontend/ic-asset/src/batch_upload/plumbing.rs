@@ -370,7 +370,9 @@ fn content_encoding_descriptive_suffix(content_encoding: &str) -> String {
 // todo: make this configurable https://github.com/dfinity/dx-triage/issues/152
 fn applicable_encoders(media_type: &Mime) -> Vec<ContentEncoder> {
     match (media_type.type_(), media_type.subtype()) {
-        (mime::TEXT, _) | (_, mime::JAVASCRIPT) | (_, mime::HTML) => vec![ContentEncoder::Gzip],
+        (mime::TEXT, _) | (_, mime::JAVASCRIPT) | (_, mime::HTML) => {
+            vec![ContentEncoder::Gzip, ContentEncoder::Brotli]
+        }
         _ => vec![],
     }
 }
