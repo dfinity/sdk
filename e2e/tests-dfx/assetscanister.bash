@@ -135,14 +135,14 @@ check_permission_failure() {
   dfx identity get-principal --identity prepare
   dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_contains "Proposed commit of batch 2 with evidence 164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1.  Either commit it by proposal, or delete it."
+  assert_contains "Proposed commit of batch 2 with evidence 1eefb141d169b1b757a04bb3fc354c416d63d8ff925ed2f7606ea1a1407b6912.  Either commit it by proposal, or delete it."
 
   assert_command_fail dfx deploy e2e_project_frontend --by-proposal --identity prepare
   assert_contains "Batch 2 is already proposed.  Delete or execute it to propose another."
 
   assert_command dfx deploy e2e_project_frontend --compute-evidence --identity anonymous
   # shellcheck disable=SC2154
-  assert_eq "164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1" "$stdout"
+  assert_eq "1eefb141d169b1b757a04bb3fc354c416d63d8ff925ed2f7606ea1a1407b6912" "$stdout"
 
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
@@ -162,9 +162,9 @@ check_permission_failure() {
   assert_command_fail dfx canister call e2e_project_frontend commit_proposed_batch "$wrong_commit_args" --identity commit
   assert_match "batch computed evidence .* does not match presented evidence"
 
-  commit_args='(record { batch_id = 2; evidence = blob "\16\4f\cc\4d\93\3f\f9\99\2a\b6\ab\90\9a\4b\f3\50\01\0f\a0\f4\a3\e1\e2\47\bf\c6\79\d3\f4\52\54\e1" } )'
+  commit_args='(record { batch_id = 2; evidence = blob "\1e\ef\b1\41\d1\69\b1\b7\57\a0\4b\b3\fc\35\4c\41\6d\63\d8\ff\92\5e\d2\f7\60\6e\a1\a1\40\7b\69\12" } )'
   assert_command dfx canister call e2e_project_frontend validate_commit_proposed_batch "$commit_args" --identity commit
-  assert_contains "commit proposed batch 2 with evidence 164f"
+  assert_contains "commit proposed batch 2 with evidence 1eef"
   assert_command dfx canister call e2e_project_frontend commit_proposed_batch "$commit_args" --identity commit
   assert_eq "()"
 
