@@ -53,11 +53,11 @@
     },
     "ic-btc-canister": {
         "owner": "dfinity",
-        "sha256": "1b34jpxkk72h07ls0fspwrgmndmj7xhlivdhn82msvgz8mx69x89",
+        "sha256": "1hjc661rkb5qcsxdmags42lka994prpgcj5injvfmk741awx6c0q",
         "type": "file",
-        "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-10-13/ic-btc-canister.wasm.gz",
+        "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2024-01-22/ic-btc-canister.wasm.gz",
         "url_template": "https://github.com/dfinity/bitcoin-canister/releases/download/<version>/ic-btc-canister.wasm.gz",
-        "version": "release%2F2023-10-13"
+        "version": "release%2F2024-01-22"
     },
     "ic-https-outcalls-adapter-x86_64-darwin": {
         "builtin": false,
