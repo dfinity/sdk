@@ -3,14 +3,17 @@ use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::set_wallet_id;
+use crate::lib::operations::cycles_ledger::cycles_ledger_enabled;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
 use anyhow::{anyhow, bail, Context};
 use candid::{encode_args, Decode, Principal};
 use clap::Parser;
+use dfx_core::cli::ask_for_consent;
 use slog::{info, warn};
 
-const DEFAULT_FAUCET_PRINCIPAL: &str = "fg7gi-vyaaa-aaaal-qadca-cai";
+pub const DEFAULT_FAUCET_PRINCIPAL: Principal =
+    Principal::from_slice(&[0, 0, 0, 0, 1, 112, 0, 196, 1, 1]);
 
 /// Redeem a code at the cycles faucet.
 #[derive(Parser)]
@@ -21,6 +24,10 @@ pub struct RedeemFaucetCouponOpts {
     /// Alternative faucet address. If not set, this uses the DFINITY faucet.
     #[arg(long)]
     faucet: Option<String>,
+
+    /// Skips yes/no checks by answering 'yes'. Not recommended outside of CI.
+    #[arg(long, short)]
+    yes: bool,
 }
 
 pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxResult {
@@ -31,11 +38,9 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         Principal::from_text(&alternative_faucet)
             .or_else(|_| canister_id_store.get(&alternative_faucet))?
     } else {
-        Principal::from_text(DEFAULT_FAUCET_PRINCIPAL).unwrap()
+        DEFAULT_FAUCET_PRINCIPAL
     };
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
     if fetch_root_key_if_needed(env).await.is_err() {
         bail!("Failed to connect to the local replica. Did you forget to use '--network ic'?");
     } else if !env.get_network_descriptor().is_ic {
@@ -54,7 +59,6 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
                     encode_args((opts.coupon_code.clone(), wallet_principal))
                         .context("Failed to serialize redeem_to_wallet arguments.")?,
                 )
-                .call_and_wait()
                 .await
                 .context("Failed redeem_to_wallet call.")?;
             let redeemed_cycles =
@@ -70,6 +74,9 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         }
         // identity has no wallet yet - faucet will provide one
         _ => {
+            if cycles_ledger_enabled() && !opts.yes {
+                ask_for_consent("`dfx cycles` is now recommended instead of `dfx wallet`. Are you sure you want to create a new cycles wallet anyway?")?;
+            }
             let identity = env
                 .get_selected_identity()
                 .with_context(|| anyhow!("No identity selected."))?;
@@ -79,7 +86,6 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
                     encode_args((opts.coupon_code.clone(),))
                         .context("Failed to serialize 'redeem' arguments.")?,
                 )
-                .call_and_wait()
                 .await
                 .context("Failed 'redeem' call.")?;
             let new_wallet_address =
@@ -101,5 +107,18 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
             info!(log, "New wallet set.");
             Ok(())
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_faucet_canister_id() {
+        assert_eq!(
+            DEFAULT_FAUCET_PRINCIPAL,
+            Principal::from_text("fg7gi-vyaaa-aaaal-qadca-cai").unwrap()
+        );
     }
 }

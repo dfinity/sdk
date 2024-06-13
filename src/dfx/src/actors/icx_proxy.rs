@@ -22,7 +22,7 @@ pub mod signals {
     #[derive(Message)]
     #[rtype(result = "()")]
     pub struct PortReadySignal {
-        pub port: u16,
+        pub url: String,
     }
 
     #[derive(Message)]
@@ -42,6 +42,9 @@ pub struct IcxProxyConfig {
 
     /// run icx-proxy in non-quiet mode
     pub verbose: bool,
+
+    /// list of domains that can be served (localhost if none specified)
+    pub domains: Vec<String>,
 }
 
 /// The configuration for the icx_proxy actor.
@@ -96,6 +99,7 @@ impl IcxProxy {
                 receiver,
                 fetch_root_key,
                 config.verbose,
+                config.domains.clone(),
             ),
             "Failed to start ICX proxy thread.",
         )?;
@@ -151,13 +155,12 @@ impl Handler<PortReadySignal> for IcxProxy {
     fn handle(&mut self, msg: PortReadySignal, _ctx: &mut Self::Context) {
         debug!(
             self.logger,
-            "replica ready on {}, so re/starting icx-proxy", msg.port
+            "replica ready on {}, so re/starting icx-proxy", msg.url
         );
 
         self.stop_icx_proxy();
 
-        let replica_url = format!("http://localhost:{}", msg.port);
-        let replica_urls = vec![Url::parse(&replica_url).unwrap()];
+        let replica_urls = vec![Url::parse(&msg.url).unwrap()];
 
         self.start_icx_proxy(replica_urls)
             .expect("Could not start icx-proxy");
@@ -189,6 +192,7 @@ fn icx_proxy_start_thread(
     receiver: Receiver<()>,
     fetch_root_key: bool,
     verbose: bool,
+    domains: Vec<String>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
         // Start the process, then wait for the file.
@@ -204,6 +208,9 @@ fn icx_proxy_start_thread(
         for url in &replica_urls {
             let s = format!("{}", url);
             cmd.args(["--replica", &s]);
+        }
+        for domain in domains {
+            cmd.args(["--domain", &domain]);
         }
         if !verbose {
             cmd.arg("-q");

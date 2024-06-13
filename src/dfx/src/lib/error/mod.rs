@@ -1,12 +1,12 @@
 pub mod build;
 pub mod notify_create_canister;
+pub mod notify_mint_cycles;
 pub mod notify_top_up;
 pub mod project;
 
 pub use build::BuildError;
-pub use dfx_core::error::extension::ExtensionError;
-pub use dfx_core::error::identity::IdentityError;
 pub use notify_create_canister::NotifyCreateCanisterError;
+pub use notify_mint_cycles::NotifyMintCyclesError;
 pub use notify_top_up::NotifyTopUpError;
 pub use project::ProjectError;
 

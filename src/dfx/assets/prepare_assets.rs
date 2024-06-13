@@ -35,7 +35,7 @@ fn copy_canisters(out_dir: PathBuf) {
         ));
         for ext in [
             ".did",
-            if can == "assetstorage" {
+            if can == "assetstorage" || can == "wallet" {
                 ".wasm.gz"
             } else {
                 ".wasm"
@@ -113,7 +113,7 @@ fn write_binary_cache(
         Compression::new(6),
     ));
     for (path, bin) in bins.into_iter().chain(
-        ["icx-proxy", "ic-ref", "moc", "mo-doc", "mo-ide"]
+        ["moc", "mo-doc", "mo-ide"]
             .map(|bin| (bin.into(), bin_tars.remove(Path::new(bin)).unwrap())),
     ) {
         let mut header = Header::new_gnu();
@@ -182,11 +182,13 @@ async fn download_binaries(
         "ic-btc-adapter",
         "ic-https-outcalls-adapter",
         "ic-nns-init",
+        "icx-proxy",
         "replica",
         "canister_sandbox",
         "sandbox_launcher",
         "ic-starter",
         "sns",
+        "pocket-ic",
     ] {
         let source = sources
             .get(bin)
@@ -219,13 +221,14 @@ async fn download_bin_tarballs(
     sources: Arc<HashMap<String, Source>>,
 ) -> HashMap<PathBuf, Bytes> {
     let mut map = HashMap::new();
-    let [motoko, icx_proxy, ic_ref] = ["motoko", "icx-proxy", "ic-ref"].map(|pkg| {
+    let [motoko] = ["motoko"].map(|pkg| {
         let client = client.clone();
         let source = sources[pkg].clone();
         spawn(download_and_check_sha(client, source))
     });
-    let (motoko, icx_proxy, ic_ref) = tokio::try_join!(motoko, icx_proxy, ic_ref).unwrap();
-    for tar in [motoko, icx_proxy, ic_ref] {
+    let (motoko,) = tokio::try_join!(motoko,).unwrap();
+    {
+        let tar = motoko;
         tar_xzf(&tar, |path, content| {
             map.insert(path, content);
         });

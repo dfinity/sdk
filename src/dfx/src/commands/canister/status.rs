@@ -6,7 +6,7 @@ use candid::Principal;
 use clap::Parser;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
-use slog::info;
+use ic_utils::interfaces::management_canister::LogVisibility;
 
 /// Returns the current status of a canister: Running, Stopping, or Stopped. Also carries information like balance, current settings, memory used and everything returned by 'info'.
 #[derive(Parser)]
@@ -26,7 +26,6 @@ async fn canister_status(
     canister: &str,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let log = env.get_logger();
     let canister_id_store = env.get_canister_id_store()?;
     let canister_id =
         Principal::from_text(canister).or_else(|_| canister_id_store.get(canister))?;
@@ -41,16 +40,36 @@ async fn canister_status(
         .collect();
     controllers.sort();
 
-    info!(log, "Canister status call result for {}.\nStatus: {}\nControllers: {}\nMemory allocation: {}\nCompute allocation: {}\nFreezing threshold: {}\nMemory Size: {:?}\nBalance: {} Cycles\nModule hash: {}",
-        canister,
-        status.status,
-        controllers.join(" "),
-        status.settings.memory_allocation,
-        status.settings.compute_allocation,
-        status.settings.freezing_threshold,
-        status.memory_size,
-        status.cycles,
-        status.module_hash.map_or_else(|| "None".to_string(), |v| format!("0x{}", hex::encode(v)))
+    let reserved_cycles_limit = if let Some(limit) = status.settings.reserved_cycles_limit {
+        format!("{} Cycles", limit)
+    } else {
+        "Not Set".to_string()
+    };
+
+    let wasm_memory_limit = if let Some(limit) = status.settings.wasm_memory_limit {
+        format!("{} Bytes", limit)
+    } else {
+        "Not Set".to_string()
+    };
+    let log_visibility = match status.settings.log_visibility {
+        LogVisibility::Controllers => "controllers",
+        LogVisibility::Public => "public",
+    };
+
+    println!("Canister status call result for {canister}.\nStatus: {status}\nControllers: {controllers}\nMemory allocation: {memory_allocation}\nCompute allocation: {compute_allocation}\nFreezing threshold: {freezing_threshold}\nMemory Size: {memory_size:?}\nBalance: {balance} Cycles\nReserved: {reserved} Cycles\nReserved cycles limit: {reserved_cycles_limit}\nWasm memory limit: {wasm_memory_limit}\nModule hash: {module_hash}\nNumber of queries: {queries_total}\nInstructions spent in queries: {query_instructions_total}\nTotal query request payload size (bytes): {query_req_payload_total}\nTotal query response payload size (bytes): {query_resp_payload_total}\nLog visibility: {log_visibility}",
+        status = status.status,
+        controllers = controllers.join(" "),
+        memory_allocation = status.settings.memory_allocation,
+        compute_allocation = status.settings.compute_allocation,
+        freezing_threshold = status.settings.freezing_threshold,
+        memory_size = status.memory_size,
+        balance = status.cycles,
+        reserved = status.reserved_cycles,
+        module_hash = status.module_hash.map_or_else(|| "None".to_string(), |v| format!("0x{}", hex::encode(v))),
+        queries_total = status.query_stats.num_calls_total,
+        query_instructions_total = status.query_stats.num_instructions_total,
+        query_req_payload_total = status.query_stats.request_payload_bytes_total,
+        query_resp_payload_total = status.query_stats.response_payload_bytes_total,
     );
     Ok(())
 }

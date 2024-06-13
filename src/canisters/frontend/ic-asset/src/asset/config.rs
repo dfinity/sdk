@@ -23,7 +23,7 @@ pub struct AssetConfig {
     pub(crate) headers: Option<HeadersConfig>,
     pub(crate) ignore: Option<bool>,
     pub(crate) enable_aliasing: Option<bool>,
-    #[derivative(Default(value = "Some(false)"))]
+    #[derivative(Default(value = "Some(true)"))]
     pub(crate) allow_raw_access: Option<bool>,
 }
 
@@ -32,10 +32,6 @@ pub(crate) type HeadersConfig = BTreeMap<String, String>;
 #[derive(Deserialize, Serialize, Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct CacheConfig {
     pub(crate) max_age: Option<u64>,
-}
-
-fn default_raw_access() -> Option<bool> {
-    Some(false)
 }
 
 /// A single configuration object, from `.ic-assets.json` config file
@@ -348,7 +344,6 @@ mod rule_utils {
         headers: Maybe<HeadersConfig>,
         ignore: Option<bool>,
         enable_aliasing: Option<bool>,
-        #[serde(default = "super::default_raw_access")]
         allow_raw_access: Option<bool>,
     }
 
@@ -427,6 +422,16 @@ mod rule_utils {
                     s.push_str(&format!("  - HTTP cache max-age: {}\n", max_age));
                 }
             }
+            if let Some(allow_raw_access) = self.allow_raw_access {
+                s.push_str(&format!(
+                    "  - enable raw access: {}\n",
+                    if allow_raw_access {
+                        "enabled"
+                    } else {
+                        "disabled"
+                    }
+                ));
+            }
             if let Some(aliasing) = self.enable_aliasing {
                 s.push_str(&format!(
                     "  - URL path aliasing: {}\n",
@@ -452,6 +457,8 @@ mod rule_utils {
 mod with_tempdir {
 
     use super::*;
+    #[cfg(target_family = "unix")]
+    use std::error::Error;
     use std::io::Write;
     #[cfg(target_family = "unix")]
     use std::os::unix::prelude::PermissionsExt;
@@ -882,15 +889,19 @@ mod with_tempdir {
 
         let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
         assert_eq!(
-            assets_config.err().unwrap().to_string(),
+            assets_config.as_ref().err().unwrap().to_string(),
             format!(
-                "Failed to read {} as string: Permission denied (os error 13)",
+                "Failed to read {} as string",
                 assets_dir
                     .join(ASSETS_CONFIG_FILENAME_JSON)
                     .as_path()
                     .to_str()
                     .unwrap()
             )
+        );
+        assert_eq!(
+            assets_config.err().unwrap().source().unwrap().to_string(),
+            "Permission denied (os error 13)"
         );
     }
 
@@ -931,9 +942,157 @@ mod with_tempdir {
                 .get_asset_config(assets_dir.join("index.html").as_path())
                 .unwrap(),
             AssetConfig {
-                allow_raw_access: Some(false),
+                allow_raw_access: Some(true),
                 ..Default::default()
             },
         );
+    }
+
+    #[test]
+    fn the_order_does_not_matter() {
+        let cfg = Some(HashMap::from([(
+            "".to_string(),
+            r#"[
+                {
+                    "match": "**/deep/**/*",
+                    "allow_raw_access": false,
+                    "cache": {
+                      "max_age": 22
+                    },
+                    "enable_aliasing": true,
+                    "ignore": true
+                },
+                {
+                    "match": "**/*",
+                    "headers": {
+                        "X-Frame-Options": "DENY"
+                    }
+                }
+            ]
+"#
+            .to_string(),
+        )]));
+        let cfg2 = Some(HashMap::from([(
+            "".to_string(),
+            r#"[
+                {
+                    "match": "**/*",
+                    "headers": {
+                        "X-Frame-Options": "DENY"
+                    }
+                },
+                {
+                    "match": "**/deep/**/*",
+                    "allow_raw_access": false,
+                    "cache": {
+                      "max_age": 22
+                    },
+                    "enable_aliasing": true,
+                    "ignore": true
+                }
+            ]
+            "#
+            .to_string(),
+        )]));
+
+        let x = {
+            let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
+            let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+            let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
+            assets_config
+                .get_asset_config(assets_dir.join("nested/deep/the-next-thing.toml").as_path())
+                .unwrap()
+        };
+        let y = {
+            let assets_temp_dir = create_temporary_assets_directory(cfg2, 0);
+            let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+            let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
+            assets_config
+                .get_asset_config(assets_dir.join("nested/deep/the-next-thing.toml").as_path())
+                .unwrap()
+        };
+
+        dbg!(&x, &y);
+        assert_eq!(x.allow_raw_access, Some(false));
+        assert_eq!(y.allow_raw_access, Some(false));
+        assert_eq!(x.enable_aliasing, Some(true));
+        assert_eq!(y.enable_aliasing, Some(true));
+        assert_eq!(x.ignore, Some(true));
+        assert_eq!(y.ignore, Some(true));
+        assert_eq!(x.cache.clone().unwrap().max_age, Some(22));
+        assert_eq!(y.cache.clone().unwrap().max_age, Some(22));
+
+        // same as above but with different values
+        let cfg = Some(HashMap::from([(
+            "".to_string(),
+            r#"[
+                {
+                    "match": "**/deep/**/*",
+                    "allow_raw_access": true,
+                    "enable_aliasing": false,
+                    "ignore": false,
+                    "headers": {
+                        "X-Frame-Options": "ALLOW"
+                    }
+                },
+                {
+                    "match": "**/*",
+                    "cache": {
+                      "max_age": 22
+                    }
+                }
+            ]
+"#
+            .to_string(),
+        )]));
+        let cfg2 = Some(HashMap::from([(
+            "".to_string(),
+            r#"[
+                {
+                    "match": "**/*",
+                    "cache": {
+                      "max_age": 22
+                    }
+                },
+                {
+                    "match": "**/deep/**/*",
+                    "allow_raw_access": true,
+                    "enable_aliasing": false,
+                    "ignore": false,
+                    "headers": {
+                        "X-Frame-Options": "ALLOW"
+                    }
+                }
+            ]
+            "#
+            .to_string(),
+        )]));
+
+        let x = {
+            let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
+            let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+            let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
+            assets_config
+                .get_asset_config(assets_dir.join("nested/deep/the-next-thing.toml").as_path())
+                .unwrap()
+        };
+        let y = {
+            let assets_temp_dir = create_temporary_assets_directory(cfg2, 0);
+            let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+            let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
+            assets_config
+                .get_asset_config(assets_dir.join("nested/deep/the-next-thing.toml").as_path())
+                .unwrap()
+        };
+
+        dbg!(&x, &y);
+        assert_eq!(x.allow_raw_access, Some(true));
+        assert_eq!(y.allow_raw_access, Some(true));
+        assert_eq!(x.enable_aliasing, Some(false));
+        assert_eq!(y.enable_aliasing, Some(false));
+        assert_eq!(x.ignore, Some(false));
+        assert_eq!(y.ignore, Some(false));
+        assert_eq!(x.cache.clone().unwrap().max_age, Some(22));
+        assert_eq!(y.cache.clone().unwrap().max_age, Some(22));
     }
 }

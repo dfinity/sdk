@@ -82,6 +82,20 @@
         "trace"
       ]
     },
+    "Byte": {
+      "title": "Byte Count",
+      "description": "A quantity of bytes. Representable either as an integer, or as an SI unit string",
+      "examples": [
+        72,
+        "2KB",
+        "4 MiB"
+      ],
+      "type": [
+        "integer",
+        "string"
+      ],
+      "pattern": "^[0-9]+( *([KkMmGgTtPpEeZzYy]i?)?[Bb])?$"
+    },
     "CanisterDeclarationsConfig": {
       "title": "Declarations Configuration",
       "description": "Configurations about which canister interface declarations to generate, and where to generate them.",
@@ -100,7 +114,7 @@
         },
         "env_override": {
           "title": "Canister ID ENV Override",
-          "description": "A string that will replace process.env.{canister_name_uppercase}_CANISTER_ID in the 'src/dfx/assets/language_bindings/canister.js' template.",
+          "description": "A string that will replace process.env.CANISTER_ID_{canister_name_uppercase} in the 'src/dfx/assets/language_bindings/canister.js' template.",
           "type": [
             "string",
             "null"
@@ -121,6 +135,13 @@
           ]
         }
       }
+    },
+    "CanisterLogVisibility": {
+      "type": "string",
+      "enum": [
+        "controllers",
+        "public"
+      ]
     },
     "CanisterMetadataSection": {
       "title": "Canister Metadata Configuration",
@@ -195,7 +216,7 @@
             },
             "package": {
               "title": "Package Name",
-              "description": "Name of the rust package that compiles to this canister's WASM.",
+              "description": "Name of the rust package that compiles to this canister's Wasm.",
               "type": "string"
             },
             "type": {
@@ -237,6 +258,14 @@
               "enum": [
                 "assets"
               ]
+            },
+            "workspace": {
+              "title": "NPM workspace",
+              "description": "The workspace in package.json that this canister is in, if it is not in the root workspace.",
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         },
@@ -251,7 +280,7 @@
           "properties": {
             "build": {
               "title": "Build Commands",
-              "description": "Commands that are executed in order to produce this canister's WASM module. Expected to produce the WASM in the path specified by the 'wasm' field. No build commands are allowed if the `wasm` field is a URL.",
+              "description": "Commands that are executed in order to produce this canister's Wasm module. Expected to produce the Wasm in the path specified by the 'wasm' field. No build commands are allowed if the `wasm` field is a URL.",
               "default": [],
               "allOf": [
                 {
@@ -271,8 +300,8 @@
               ]
             },
             "wasm": {
-              "title": "WASM Path",
-              "description": "Path to WASM to be installed. URLs to a WASM module are also acceptable. A canister that has a URL to a WASM module can not also have `build` steps.",
+              "title": "Wasm Path",
+              "description": "Path to Wasm to be installed. URLs to a Wasm module are also acceptable. A canister that has a URL to a Wasm module can not also have `build` steps.",
               "type": "string"
             }
           }
@@ -359,10 +388,26 @@
           }
         },
         "gzip": {
-          "title": "Gzip Canister WASM",
+          "title": "Gzip Canister Wasm",
           "description": "Disabled by default.",
           "type": [
             "boolean",
+            "null"
+          ]
+        },
+        "init_arg": {
+          "title": "Init Arg",
+          "description": "The Candid initialization argument for installing the canister. If the `--argument` or `--argument-file` argument is also provided, this `init_arg` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "init_arg_file": {
+          "title": "Init Arg File",
+          "description": "The Candid initialization argument file for installing the canister. If the `--argument` or `--argument-file` argument is also provided, this `init_arg_file` field will be ignored.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -372,7 +417,10 @@
           "default": {
             "compute_allocation": null,
             "freezing_threshold": null,
-            "memory_allocation": null
+            "log_visibility": null,
+            "memory_allocation": null,
+            "reserved_cycles_limit": null,
+            "wasm_memory_limit": null
           },
           "allOf": [
             {
@@ -398,9 +446,8 @@
           }
         },
         "optimize": {
-          "title": "Optimize Canister WASM",
+          "title": "Optimize Canister Wasm",
           "description": "Invoke wasm level optimizations after building the canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default. If this option is specified, the `shrink` option will be ignored.",
-          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/WasmOptLevel"
@@ -423,7 +470,6 @@
         "pullable": {
           "title": "Pullable",
           "description": "Defines required properties so that this canister is ready for `dfx deps pull` by other projects.",
-          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/Pullable"
@@ -436,7 +482,6 @@
         "remote": {
           "title": "Remote Configuration",
           "description": "Used to mark the canister as 'remote' on certain networks.",
-          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/ConfigCanistersCanisterRemote"
@@ -447,11 +492,31 @@
           ]
         },
         "shrink": {
-          "title": "Shrink Canister WASM",
+          "title": "Shrink Canister Wasm",
           "description": "Whether run `ic-wasm shrink` after building the Canister. Enabled by default for Rust/Motoko canisters. Disabled by default for custom canisters.",
           "type": [
             "boolean",
             "null"
+          ]
+        },
+        "specified_id": {
+          "title": "Specified Canister ID",
+          "description": "Attempts to create the canister with this Canister ID. This option only works with non-mainnet replica. If the `--specified-id` argument is also provided, this `specified_id` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tech_stack": {
+          "title": "Tech Stack",
+          "description": "Defines the tech stack used to build this canister.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TechStack"
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       }
@@ -526,6 +591,16 @@
             }
           ]
         },
+        "proxy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsProxy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "replica": {
           "anyOf": [
             {
@@ -566,7 +641,6 @@
         "nodes": {
           "title": "Available Nodes",
           "description": "Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient).",
-          "default": null,
           "type": [
             "array",
             "null"
@@ -579,6 +653,7 @@
     },
     "ConfigDefaultsBootstrap": {
       "title": "Bootstrap Server Configuration",
+      "description": "The bootstrap command has been removed.  All of these fields are ignored.",
       "type": "object",
       "properties": {
         "ip": {
@@ -639,6 +714,23 @@
           "allOf": [
             {
               "$ref": "#/definitions/HttpAdapterLogLevel"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigDefaultsProxy": {
+      "description": "Configuration for icx-proxy.",
+      "type": "object",
+      "required": [
+        "domain"
+      ],
+      "properties": {
+        "domain": {
+          "description": "A list of domains that can be served. These are used for canister resolution [default: localhost]",
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
             }
           ]
         }
@@ -733,6 +825,16 @@
             }
           ]
         },
+        "proxy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsProxy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "replica": {
           "anyOf": [
             {
@@ -818,7 +920,6 @@
         "compute_allocation": {
           "title": "Compute Allocation",
           "description": "Must be a number between 0 and 100, inclusively. It indicates how much compute power should be guaranteed to this canister, expressed as a percentage of the maximum compute power that a single canister can allocate.",
-          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/PossiblyStr_for_uint64"
@@ -831,22 +932,56 @@
         "freezing_threshold": {
           "title": "Freezing Threshold",
           "description": "Freezing threshould of the canister, measured in seconds. Valid inputs are numbers (seconds) or strings parsable by humantime (e.g. \"15days 2min 2s\").",
-          "default": null,
           "type": [
             "string",
             "null"
           ]
         },
+        "log_visibility": {
+          "title": "Log Visibility",
+          "description": "Specifies who is allowed to read the canister's logs.\n\nCan be \"public\" or \"controllers\".",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CanisterLogVisibility"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "memory_allocation": {
           "title": "Memory Allocation",
-          "description": "Maximum memory (in bytes) this canister is allowed to occupy.",
-          "default": null,
+          "description": "Maximum memory (in bytes) this canister is allowed to occupy. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Byte"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reserved_cycles_limit": {
+          "title": "Reserved Cycles Limit",
+          "description": "Specifies the upper limit of the canister's reserved cycles balance.\n\nReserved cycles are cycles that the system sets aside for future use by the canister. If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes, the system sets aside some amount of cycles from the main balance of the canister. These reserved cycles will be used to cover future payments for the newly allocated bytes. The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.\n\nA setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.",
           "type": [
             "integer",
             "null"
           ],
-          "format": "uint64",
+          "format": "uint128",
           "minimum": 0.0
+        },
+        "wasm_memory_limit": {
+          "title": "Wasm Memory Limit",
+          "description": "Specifies a soft limit (in bytes) on the Wasm memory usage of the canister.\n\nUpdate calls, timers, heartbeats, installs, and post-upgrades fail if the Wasm memory usage exceeds this limit. The main purpose of this setting is to protect against the case when the canister reaches the hard 4GiB limit.\n\nMust be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Byte"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -925,6 +1060,14 @@
             "type": "string"
           }
         },
+        "init_arg": {
+          "title": "init_arg",
+          "description": "A default initialization argument for the canister that consumers can use.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "init_guide": {
           "title": "init_guide",
           "description": "A message to guide consumers how to initialize the canister.",
@@ -932,7 +1075,15 @@
         },
         "wasm_hash": {
           "title": "wasm_hash",
-          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url.",
+          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified via a URL using the `wasm_hash_url` field. If both are defined, the `wasm_hash_url` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wasm_hash_url": {
+          "title": "wasm_hash_url",
+          "description": "Specify the SHA256 hash of the wasm module via this URL. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified directly using the `wasm_hash` field. If both are defined, the `wasm_hash_url` field will be ignored.",
           "type": [
             "string",
             "null"
@@ -976,6 +1127,78 @@
           }
         }
       ]
+    },
+    "TechStack": {
+      "title": "Tech Stack",
+      "description": "The tech stack used to build a canister.",
+      "type": "object",
+      "properties": {
+        "cdk": {
+          "title": "cdk",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "language": {
+          "title": "language",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "lib": {
+          "title": "lib",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "other": {
+          "title": "other",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "tool": {
+          "title": "tool",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      }
     },
     "WasmOptLevel": {
       "title": "Wasm Optimization Levels",

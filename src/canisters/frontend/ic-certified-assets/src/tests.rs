@@ -10,11 +10,10 @@ use crate::types::{
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
 use candid::{Nat, Principal};
+use ic_certification_testing::CertificateBuilder;
 use ic_crypto_tree_hash::Digest;
-use ic_response_verification::ResponseVerificationError;
 use ic_response_verification_test_utils::{
-    base64_encode, create_canister_id, get_current_timestamp, CanisterData, CertificateBuilder,
-    CertificateData,
+    base64_encode, create_canister_id, get_current_timestamp,
 };
 use serde_bytes::ByteBuf;
 use std::collections::HashMap;
@@ -34,21 +33,20 @@ pub fn verify_response(
     state: &State,
     request: &HttpRequest,
     response: &HttpResponse,
-) -> Result<bool, ResponseVerificationError> {
+) -> anyhow::Result<bool> {
     let mut response = response.clone();
     let current_time = get_current_timestamp();
     let canister_id = create_canister_id("rdmx6-jaaaa-aaaaa-aaadq-cai");
     let min_requested_verification_version = request.get_certificate_version();
 
     // inject certificate into IC-Certificate header with 'certificate=::'
-    let (_cert, root_key, cert_cbor) =
-        CertificateBuilder::new(CertificateData::CanisterData(CanisterData {
-            canister_id,
-            certified_data: Digest(state.root_hash()),
-        }))
-        .with_time(current_time)
-        .build();
-    let replacement_cert_value = base64_encode(&cert_cbor);
+    let data = CertificateBuilder::new(
+        &canister_id.to_string(),
+        Digest(state.root_hash()).as_bytes(),
+    )?
+    .with_time(current_time)
+    .build()?;
+    let replacement_cert_value = base64_encode(&data.cbor_encoded_certificate);
     let (_, header_value) = response
         .headers
         .iter_mut()
@@ -60,31 +58,43 @@ pub fn verify_response(
     );
 
     // actual verification
-    let request = ic_response_verification::types::Request {
+    let request = ic_http_certification::http::HttpRequest {
         method: request.method.clone(),
         url: request.url.clone(),
         headers: request.headers.clone(),
+        body: request.body[..].into(),
     };
-    let response = ic_response_verification::types::Response {
+    let response = ic_http_certification::http::HttpResponse {
         status_code: response.status_code,
         headers: response.headers,
         body: response.body[..].into(),
+        upgrade: None,
     };
-    ic_response_verification::verify_request_response_pair(
+    Ok(ic_response_verification::verify_request_response_pair(
         request,
         response,
         canister_id.as_ref(),
         current_time,
         MAX_CERT_TIME_OFFSET_NS,
-        &root_key,
+        &data.root_key,
         min_requested_verification_version.try_into().unwrap(),
     )
-    .map(|res| res.passed)
+    .map(|res| res.response.is_some())?)
 }
 
 fn certified_http_request(state: &State, request: HttpRequest) -> HttpResponse {
     let response = state.http_request(request.clone(), &[], unused_callback());
-    assert!(verify_response(state, &request, &response).expect("Certificate validation failed."));
+    match verify_response(state, &request, &response) {
+        Err(err) => panic!(
+            "Response verification failed with error {:?}. Response: {:#?}",
+            err, response
+        ),
+        Ok(success) => {
+            if !success {
+                panic!("Response verification failed. Response: {:?}", response)
+            }
+        }
+    }
     response
 }
 
@@ -510,6 +520,8 @@ fn serve_fallback_v2() {
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY]),
+            AssetBuilder::new("/deep/nested/folder/index.html", "text/html")
+                .with_encoding("identity", vec![OTHER_BODY]),
             AssetBuilder::new("/deep/nested/folder/a_file.html", "text/html")
                 .with_encoding("identity", vec![OTHER_BODY]),
             AssetBuilder::new("/deep/nested/sibling/another_file.html", "text/html")
@@ -950,7 +962,7 @@ fn uses_streaming_for_multichunk_assets() {
             .http_request_streaming_callback(StreamingCallbackToken {
                 key: "/index.html".to_string(),
                 content_encoding: "identity".to_string(),
-                index: Nat::from(1),
+                index: Nat::from(1_u8),
                 sha256: None,
             })
             .unwrap_err(),
@@ -993,7 +1005,7 @@ fn get_and_get_chunk_for_multichunk_assets() {
         .get_chunk(GetChunkArg {
             key: "/index.html".to_string(),
             content_encoding: "identity".to_string(),
-            index: Nat::from(1),
+            index: Nat::from(1_u8),
             sha256: chunk_0.sha256,
         })
         .unwrap();
@@ -1005,7 +1017,7 @@ fn get_and_get_chunk_for_multichunk_assets() {
             .get_chunk(GetChunkArg {
                 key: "/index.html".to_string(),
                 content_encoding: "identity".to_string(),
-                index: Nat::from(1),
+                index: Nat::from(1_u8),
                 sha256: None,
             })
             .unwrap_err(),
@@ -1065,21 +1077,32 @@ fn supports_max_age_headers() {
 
 #[test]
 fn check_url_decode() {
-    assert_eq!(
-        url_decode("/%"),
-        Err(UrlDecodeError::InvalidPercentEncoding)
-    );
-    assert_eq!(url_decode("/%%"), Ok("/%".to_string()));
-    assert_eq!(url_decode("/%20a"), Ok("/ a".to_string()));
-    assert_eq!(
-        url_decode("/%%+a%20+%@"),
-        Err(UrlDecodeError::InvalidPercentEncoding)
-    );
+    assert_eq!(url_decode("/%"), Ok("/%".to_string()));
+    assert_eq!(url_decode("/%%"), Ok("/%%".to_string()));
+    assert_eq!(url_decode("/%e%"), Ok("/%e%".to_string()));
+
+    assert_eq!(url_decode("/%20%a"), Ok("/ %a".to_string()));
+    assert_eq!(url_decode("/%%+a%20+%@"), Ok("/%%+a +%@".to_string()));
     assert_eq!(
         url_decode("/has%percent.txt"),
+        Ok("/has%percent.txt".to_string())
+    );
+
+    assert_eq!(url_decode("/%%2"), Ok("/%%2".to_string()));
+    assert_eq!(url_decode("/%C3%A6"), Ok("/æ".to_string()));
+    assert_eq!(url_decode("/%c3%a6"), Ok("/æ".to_string()));
+
+    assert_eq!(url_decode("/a+b+c%20d"), Ok("/a+b+c d".to_string()));
+
+    assert_eq!(
+        url_decode("/capture-d%E2%80%99e%CC%81cran-2023-10-26-a%CC%80.txt"),
+        Ok("/capture-d’écran-2023-10-26-à.txt".to_string())
+    );
+
+    assert_eq!(
+        url_decode("/%FF%FF"),
         Err(UrlDecodeError::InvalidPercentEncoding)
     );
-    assert_eq!(url_decode("/%e6"), Ok("/æ".to_string()));
 }
 
 #[test]
@@ -1601,7 +1624,9 @@ mod allow_raw_access {
             "https://a-b-c.ic0.app/page"
         );
 
-        state.create_test_asset(AssetBuilder::new("/page2.html", "text/html"));
+        state.create_test_asset(
+            AssetBuilder::new("/page2.html", "text/html").with_allow_raw_access(Some(false)),
+        );
         let response = state.fake_http_request("a-b-c.raw.icp0.io", "/page2");
         dbg!(&response);
         assert_eq!(response.status_code, 308);
@@ -1610,7 +1635,9 @@ mod allow_raw_access {
             "https://a-b-c.icp0.io/page2"
         );
 
-        state.create_test_asset(AssetBuilder::new("/index.html", "text/html"));
+        state.create_test_asset(
+            AssetBuilder::new("/index.html", "text/html").with_allow_raw_access(Some(false)),
+        );
         let response = state.fake_http_request("a-b-c.raw.icp0.io", "/");
         dbg!(&response);
         assert_eq!(response.status_code, 308);
@@ -1870,6 +1897,49 @@ mod certification_v2 {
         );
 
         assert!(lookup_header(&response, "ic-certificate").is_some());
+    }
+
+    #[test]
+    fn etag() {
+        // For now only checks that defining a custom etag doesn't break certification.
+        // Serving HTTP 304 responses if the etag matches is part of https://dfinity.atlassian.net/browse/SDK-191
+
+        let mut state = State::default();
+        let time_now = 100_000_000_000;
+
+        const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+
+        create_assets(
+            &mut state,
+            time_now,
+            vec![AssetBuilder::new("/contents.html", "text/html")
+                .with_encoding("identity", vec![BODY])
+                .with_header("etag", "my-etag")],
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(1)
+                .build(),
+        );
+        assert_eq!(
+            lookup_header(&response, "etag").expect("ic-certificate header missing"),
+            "my-etag"
+        );
+
+        let response = certified_http_request(
+            &state,
+            RequestBuilder::get("/contents.html")
+                .with_header("Accept-Encoding", "gzip,identity")
+                .with_certificate_version(2)
+                .build(),
+        );
+        assert_eq!(
+            lookup_header(&response, "etag").expect("ic-certificate header missing"),
+            "my-etag"
+        );
     }
 }
 
@@ -3288,7 +3358,7 @@ mod validate_commit_proposed_batch {
         let time_now = 100_000_000_000;
 
         match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
-            batch_id: 1.into(),
+            batch_id: 1_u8.into(),
             evidence: Default::default(),
         }) {
             Err(err) if err.contains("batch not found") => (),
@@ -3297,7 +3367,7 @@ mod validate_commit_proposed_batch {
 
         match state.commit_proposed_batch(
             CommitProposedBatchArguments {
-                batch_id: 1.into(),
+                batch_id: 1_u8.into(),
                 evidence: Default::default(),
             },
             time_now,

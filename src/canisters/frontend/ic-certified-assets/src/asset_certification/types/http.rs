@@ -4,7 +4,7 @@ use crate::{
     state_machine::{encoding_certification_order, Asset, AssetEncoding},
 };
 use candid::{define_function, CandidType, Deserialize, Nat};
-use ic_certified_map::Hash;
+use ic_certification::Hash;
 use ic_representation_independent_hash::{representation_independent_hash, Value};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
@@ -182,10 +182,15 @@ impl HttpResponse {
         let (status_code, body) = if etags.contains(&enc.sha256) {
             (304, RcBytes::default())
         } else {
-            headers.insert(
-                "etag".to_string(),
-                format!("\"{}\"", hex::encode(enc.sha256)),
-            );
+            if !headers
+                .iter()
+                .any(|(header_name, _)| header_name.eq_ignore_ascii_case("etag"))
+            {
+                headers.insert(
+                    "etag".to_string(),
+                    format!("\"{}\"", hex::encode(enc.sha256)),
+                );
+            }
             (200, enc.content_chunks[chunk_index].clone())
         };
 

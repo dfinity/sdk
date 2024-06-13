@@ -159,6 +159,29 @@ The size of any chunk cannot exceed the message ingress limit.
 
 ## Method Reference
 
+### Method: `init` and `post_upgrade`
+
+```candid
+service: (asset_canister_args: variant {
+  Init: record {};
+  Upgrade: record {
+    set_permissions: opt record {
+      prepare: vec principal;
+      commit: vec principal;
+      manage_permissions: vec principal;
+    };
+  };
+})
+```
+
+The methods `init` and `post_upgrade` are called automatically by the system after new code is installed in the canister.
+
+Both methods take the same argument type by definition. Therefore, to be able to have different arguments for the two cases, an enum is used to make the distinction.
+If `init` is called with the `Upgrade` variant or if `post_upgrade` is called with the `Init` variant the asset canister traps and thereby reverts the code changes.
+
+In `Upgrade`, the field `set_permissions` can be used to (re)set the list of principals with the listed permissions.
+If `set_permissions` that is not `null`, then all permissions are set to the newly provided list of principals and the previous lists of principals are discarded.
+
 ### Method: `get`
 
 ```candid

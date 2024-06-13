@@ -24,19 +24,19 @@ if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
         sudo install -m 0755 -o root -g root -t /usr/local/bin *
     )
 fi
-if [ "$E2E_TEST" = "tests-dfx/build_rust.bash" ]; then
-    cargo uninstall cargo-audit
-fi
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
     wget -O mitmproxy.tar.gz https://snapshots.mitmproxy.org/7.0.4/mitmproxy-7.0.4-linux.tar.gz
     sudo tar --directory /usr/local/bin --extract --file mitmproxy.tar.gz
     echo "mitmproxy version: $(mitmproxy --version)"
 fi
-if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ] || [ "$E2E_TEST" = "tests-dfx/identity.bash" ] || [ "$E2E_TEST" = "tests-dfx/generate.bash" ] || [ "$E2E_TEST" = "tests-dfx/start.bash" ]; then
+if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ] \
+    || [ "$E2E_TEST" = "tests-dfx/identity.bash" ] \
+    || [ "$E2E_TEST" = "tests-dfx/generate.bash" ] \
+    || [ "$E2E_TEST" = "tests-dfx/start.bash" ] \
+    || [ "$E2E_TEST" = "tests-dfx/new.bash" ] \
+    || [ "$E2E_TEST" = "tests-dfx/call.bash" ]
+then
     sudo apt-get install --yes expect
-fi
-if [ "$E2E_TEST" = "tests-dfx/deps.bash" ]; then
-     cargo install ic-wasm
 fi
 
 # Set environment variables.
@@ -44,6 +44,15 @@ echo "$HOME/bin" >> "$GITHUB_PATH"
 
 # Exit temporary directory.
 popd
+
+if [ "$E2E_TEST" = "tests-dfx/build_rust.bash" ]; then
+    cargo uninstall cargo-audit
+fi
+
+if [ "$E2E_TEST" = "tests-dfx/deps.bash" ]; then
+     cargo install cargo-binstall
+     cargo binstall -y ic-wasm
+fi
 
 if [ "$E2E_TEST" = "tests-icx-asset/icx-asset.bash" ]; then
     cargo build -p icx-asset

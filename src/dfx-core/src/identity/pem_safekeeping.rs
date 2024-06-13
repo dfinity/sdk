@@ -3,6 +3,12 @@ use super::IdentityConfiguration;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{DecryptContentFailed, HashPasswordFailed};
 use crate::error::fs::FsError;
+use crate::error::identity::load_pem::LoadPemError;
+use crate::error::identity::load_pem::LoadPemError::LoadFromKeyringFailed;
+use crate::error::identity::load_pem_from_file::LoadPemFromFileError;
+use crate::error::identity::load_pem_from_file::LoadPemFromFileError::{
+    DecryptPemFileFailed, ReadPemFileFailed,
+};
 use crate::error::identity::save_pem::SavePemError;
 use crate::error::identity::save_pem::SavePemError::{
     CannotSavePemContentForHsm, WritePemToKeyringFailed,
@@ -11,14 +17,10 @@ use crate::error::identity::write_pem_to_file::WritePemToFileError;
 use crate::error::identity::write_pem_to_file::WritePemToFileError::{
     EncryptPemFileFailed, WritePemContentFailed,
 };
-use crate::error::identity::IdentityError;
-use crate::error::identity::IdentityError::{
-    DecryptPemFileFailed, LoadPemFromKeyringFailed, ReadPemFileFailed,
-};
 use crate::identity::identity_file_locations::IdentityFileLocations;
 use crate::identity::keyring_mock;
 use crate::identity::pem_safekeeping::PromptMode::{DecryptingToUse, EncryptingToCreate};
-use aes_gcm::aead::{Aead, NewAead};
+use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes256Gcm, Key, Nonce};
 use argon2::{password_hash::PasswordHasher, Argon2};
 use slog::{debug, trace, Logger};
@@ -30,7 +32,7 @@ pub(crate) fn load_pem(
     locations: &IdentityFileLocations,
     identity_name: &str,
     identity_config: &IdentityConfiguration,
-) -> Result<(Vec<u8>, bool), IdentityError> {
+) -> Result<(Vec<u8>, bool), LoadPemError> {
     if identity_config.hsm.is_some() {
         unreachable!("Cannot load pem content for an HSM identity.")
     } else if identity_config.keyring_identity_suffix.is_some() {
@@ -39,11 +41,12 @@ pub(crate) fn load_pem(
             "Found keyring identity suffix - PEM file is stored in keyring."
         );
         let pem = keyring_mock::load_pem_from_keyring(identity_name)
-            .map_err(|err| LoadPemFromKeyringFailed(Box::new(identity_name.to_string()), err))?;
+            .map_err(|err| LoadFromKeyringFailed(Box::new(identity_name.to_string()), err))?;
         Ok((pem, true))
     } else {
         let pem_path = locations.get_identity_pem_path(identity_name, identity_config);
         load_pem_from_file(&pem_path, Some(identity_config))
+            .map_err(LoadPemError::LoadFromFileFailed)
     }
 }
 
@@ -80,7 +83,7 @@ pub(crate) fn save_pem(
 pub fn load_pem_from_file(
     path: &Path,
     config: Option<&IdentityConfiguration>,
-) -> Result<(Vec<u8>, bool), IdentityError> {
+) -> Result<(Vec<u8>, bool), LoadPemFromFileError> {
     let content = crate::fs::read(path).map_err(ReadPemFileFailed)?;
 
     let (content, was_encrypted) = maybe_decrypt_pem(content.as_slice(), config)
@@ -198,7 +201,7 @@ fn encrypt(
     let hash = argon2
         .hash_password(password.as_bytes(), &config.pw_salt)
         .map_err(EncryptionError::HashPasswordFailed)?;
-    let key = Key::clone_from_slice(hash.hash.unwrap().as_ref());
+    let key = Key::<Aes256Gcm>::clone_from_slice(hash.hash.unwrap().as_ref());
     let cipher = Aes256Gcm::new(&key);
     let nonce = Nonce::from_slice(config.file_nonce.as_slice());
 
@@ -222,7 +225,7 @@ fn decrypt(
     let hash = argon2
         .hash_password(password.as_bytes(), &config.pw_salt)
         .map_err(HashPasswordFailed)?;
-    let key = Key::clone_from_slice(hash.hash.unwrap().as_ref());
+    let key = Key::<Aes256Gcm>::clone_from_slice(hash.hash.unwrap().as_ref());
     let cipher = Aes256Gcm::new(&key);
     let nonce = Nonce::from_slice(config.file_nonce.as_slice());
 

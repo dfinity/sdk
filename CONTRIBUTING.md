@@ -1,5 +1,13 @@
 # Contributing to DFX
 
+## Guidelines
+We welcome your contributions to the Internet Computer SDK! Please note the following guidelines that will help
+ensure your work is incorporated with the least friction possible
+
+1. PRs with a large footprint should start as a discussion on GitHub first so that the approach can be fleshed out and agreed upon with members of the SDK team. [Start a discussion](https://github.com/dfinity/sdk/discussions/new?category=feature-requests).
+2. PRs should generally be small and testable and include unit and/or e2e tests.
+3. PRs should be void of any TODO comments, dead code, or remnants of failed experiments, etc. We will be happy to help get your PR into a state that would meet our standards during the review process. 
+
 ## Developing `dfx`
 
 Use `cargo` with the relevant [Rust toolchain](../rust-toolchain.toml) like any other Rust project.
@@ -24,7 +32,7 @@ When you change `ic-certified-assets` code (or `ic-frontend-canister`), you must
 This is done via `./scripts/update-frontend-canister.sh --release-build`. You need to have Docker (buildx >=v0.8) installed and running.
 
 Then update `CHANGELOG.md` to include the newest sha2 hash (*not* git commit hash) and a link to your PR.
-If there is already an entry in the 'Unreleased' section, change it; if not, add a new one. See the example in [#2699](https://github.com/pull/2699/commits/c191ce5ac529de4499c50a0d2bc70ac6a3cb3afc). This step can be automated by running `./scripts/update-frontend-canister.sh --changelog`.
+If there is already an entry in the 'Unreleased' section, change it; if not, add a new one. See the example in [#2699](https://github.com/dfinity/sdk/pull/2699/commits/c191ce5ac529de4499c50a0d2bc70ac6a3cb3afc). This step can be automated by running `./scripts/update-frontend-canister.sh --changelog`.
 
 ## End-to-End Tests
 
@@ -54,6 +62,16 @@ If there is already an entry in the 'Unreleased' section, change it; if not, add
 ``` bash
 sdk $ bats e2e/tests-dfx/*.bash
 sdk $ bats e2e/tests-replica/*.bash
+```
+
+#### Running End-to-End Tests Against Reference IC
+
+This runs the end-to-end tests against the
+[PocketIC emulator](https://github.com/dfinity/pocketic).
+
+``` bash
+sdk $ USE_POCKETIC=1 bats e2e/tests-dfx/*.bash
+sdk $ USE_POCKETIC=1 bats e2e/tests-replica/*.bash
 ```
 
 ## Conventional Commits

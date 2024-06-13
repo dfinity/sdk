@@ -19,14 +19,14 @@ pub struct CanisterIdOpts {
 pub async fn exec(env: &dyn Environment, opts: CanisterIdOpts) -> DfxResult {
     env.get_config_or_anyhow()?;
     let network_descriptor = create_network_descriptor(
-        env.get_config(),
+        env.get_config()?,
         env.get_networks_config(),
         opts.network.to_network_name(),
         None,
         LocalBindDetermination::AsConfigured,
     )?;
     let canister_id_store =
-        CanisterIdStore::new(env.get_logger(), &network_descriptor, env.get_config())?;
+        CanisterIdStore::new(env.get_logger(), &network_descriptor, env.get_config()?)?;
 
     let canister_name = opts.canister.as_str();
     let canister_id =

@@ -6,14 +6,12 @@ use crate::{
 use candid::Principal;
 use ic_agent::Agent;
 use ic_utils::{
-    call::AsyncCall,
     interfaces::{
         management_canister::builders::{CanisterInstall, InstallMode},
         ManagementCanister, WalletCanister,
     },
     Argument,
 };
-use slog::{info, Logger};
 
 pub async fn build_wallet_canister(
     id: Principal,
@@ -30,6 +28,14 @@ pub async fn build_wallet_canister(
     .map_err(CanisterBuilderError::WalletCanisterCaller)
 }
 
+pub fn install_mode_to_prompt(mode: &InstallMode) -> &'static str {
+    match mode {
+        InstallMode::Install => "Installing",
+        InstallMode::Reinstall => "Reinstalling",
+        InstallMode::Upgrade { .. } => "Upgrading",
+    }
+}
+
 pub async fn install_canister_wasm(
     agent: &Agent,
     canister_id: Principal,
@@ -39,7 +45,6 @@ pub async fn install_canister_wasm(
     call_sender: &CallSender,
     wasm_module: Vec<u8>,
     skip_consent: bool,
-    logger: &Logger,
 ) -> Result<(), CanisterInstallError> {
     let mgr = ManagementCanister::create(agent);
     if !skip_consent && mode == InstallMode::Reinstall {
@@ -55,29 +60,14 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.
 "#;
         ask_for_consent(&msg).map_err(CanisterInstallError::UserConsent)?;
     }
-    let mode_str = match mode {
-        InstallMode::Install => "Installing",
-        InstallMode::Reinstall => "Reinstalling",
-        InstallMode::Upgrade => "Upgrading",
-    };
-    if let Some(name) = canister_name {
-        info!(
-            logger,
-            "{mode_str} code for canister {name}, with canister ID {canister_id}",
-        );
-    } else {
-        info!(logger, "{mode_str} code for canister {canister_id}");
-    }
+
     match call_sender {
         CallSender::SelectedId => {
             let install_builder = mgr
-                .install_code(&canister_id, &wasm_module)
+                .install(&canister_id, &wasm_module)
                 .with_raw_arg(args.to_vec())
                 .with_mode(mode);
             install_builder
-                .build()
-                .map_err(CanisterBuilderError::CallSenderBuildError)?
-                .call_and_wait()
                 .await
                 .map_err(CanisterInstallError::InstallWasmError)
         }
@@ -96,7 +86,6 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.
                     Argument::from_candid((install_args,)),
                     0,
                 )
-                .call_and_wait()
                 .await
                 .map_err(CanisterInstallError::InstallWasmError)
         }

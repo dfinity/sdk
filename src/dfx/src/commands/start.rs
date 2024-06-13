@@ -1,8 +1,8 @@
 use crate::actors::icx_proxy::signals::PortReadySubscribe;
 use crate::actors::icx_proxy::IcxProxyConfig;
 use crate::actors::{
-    start_btc_adapter_actor, start_canister_http_adapter_actor, start_emulator_actor,
-    start_icx_proxy_actor, start_replica_actor, start_shutdown_controller,
+    start_btc_adapter_actor, start_canister_http_adapter_actor, start_icx_proxy_actor,
+    start_pocketic_actor, start_replica_actor, start_shutdown_controller,
 };
 use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
@@ -12,24 +12,25 @@ use crate::lib::info::replica_rev;
 use crate::lib::integrations::status::wait_for_integrations_initialized;
 use crate::lib::network::id::write_network_id;
 use crate::lib::replica::status::ping_and_wait;
-use crate::lib::replica_config::ReplicaConfig;
 use crate::util::get_reusable_socket_addr;
 use actix::Recipient;
 use anyhow::{anyhow, bail, Context, Error};
-use candid::Deserialize;
 use clap::{ArgAction, Parser};
-use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
-use dfx_core::config::model::network_descriptor::NetworkDescriptor;
-use dfx_core::config::model::{bitcoin_adapter, canister_http_adapter};
-use dfx_core::json::{load_json_file, save_json_file};
-use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
+use dfx_core::{
+    config::model::{
+        bitcoin_adapter, canister_http_adapter,
+        local_server_descriptor::{LocalNetworkScopeDescriptor, LocalServerDescriptor},
+        network_descriptor::NetworkDescriptor,
+        replica_config::{CachedConfig, ReplicaConfig},
+        settings_digest::get_settings_digest,
+    },
+    fs,
+    json::{load_json_file, save_json_file},
+    network::provider::{create_network_descriptor, LocalBindDetermination},
+};
 use fn_error_context::context;
 use os_str_bytes::{OsStrBytes, OsStringBytes};
-use serde::Serialize;
 use slog::{info, warn, Logger};
-use std::borrow::Cow;
-use std::fs;
-use std::fs::create_dir_all;
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
@@ -53,33 +54,37 @@ pub struct StartOpts {
     #[arg(long)]
     clean: bool,
 
-    /// Runs a dedicated emulator instead of the replica
-    #[arg(long)]
-    emulator: bool,
-
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[arg(long, conflicts_with("emulator"), action = ArgAction::Append)]
+    #[arg(long, action = ArgAction::Append, conflicts_with = "pocketic")]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[arg(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with = "pocketic")]
     enable_bitcoin: bool,
 
     /// enable canister http requests
-    #[arg(long, conflicts_with("emulator"))]
+    #[arg(long, conflicts_with = "pocketic")]
     enable_canister_http: bool,
 
     /// The delay (in milliseconds) an update call should take. Lower values may be expedient in CI.
-    #[arg(long, conflicts_with("emulator"), default_value_t = 600)]
+    #[arg(long, default_value_t = 600, conflicts_with = "pocketic")]
     artificial_delay: u32,
 
     /// Start even if the network config was modified.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "pocketic")]
     force: bool,
 
     /// Use old metering.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "pocketic")]
     use_old_metering: bool,
+
+    /// A list of domains that can be served. These are used for canister resolution [default: localhost]
+    #[arg(long)]
+    domain: Vec<String>,
+
+    /// Runs PocketIC instead of the replica
+    #[clap(long, alias = "emulator")]
+    pocketic: bool,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -138,7 +143,6 @@ pub fn exec(
     StartOpts {
         host,
         background,
-        emulator,
         clean,
         force,
         bitcoin_node,
@@ -146,6 +150,8 @@ pub fn exec(
         enable_canister_http,
         artificial_delay,
         use_old_metering,
+        domain,
+        pocketic,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -155,13 +161,14 @@ pub fn exec(
             dfx_version_str()
         );
     }
-    let project_config = env.get_config();
+    let project_config = env.get_config()?;
 
     let network_descriptor_logger = if background {
         None // so we don't print it out twice
     } else {
         Some(env.get_logger().clone())
     };
+
     let network_descriptor = create_network_descriptor(
         project_config,
         env.get_networks_config(),
@@ -178,10 +185,14 @@ pub fn exec(
         enable_bitcoin,
         bitcoin_node,
         enable_canister_http,
-        emulator,
+        domain,
+        use_old_metering,
+        artificial_delay,
+        pocketic,
     )?;
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
+
     let pid_file_path = local_server_descriptor.dfx_pid_path();
 
     check_previous_process_running(local_server_descriptor)?;
@@ -189,23 +200,30 @@ pub fn exec(
     // As we know no start process is running in this project, we can
     // clean up the state if it is necessary.
     if clean {
-        clean_state(local_server_descriptor, env.get_project_temp_dir())?;
+        clean_state(local_server_descriptor, env.get_project_temp_dir()?)?;
     }
 
     let (frontend_url, address_and_port) = frontend_address(local_server_descriptor, background)?;
 
-    let network_temp_dir = local_server_descriptor.data_directory.clone();
-    create_dir_all(&network_temp_dir).with_context(|| {
-        format!(
-            "Failed to create network temp directory {}.",
-            network_temp_dir.to_string_lossy()
-        )
-    })?;
+    fs::create_dir_all(&local_server_descriptor.data_dir_by_settings_digest())?;
 
     if !local_server_descriptor.network_id_path().exists() {
         write_network_id(local_server_descriptor)?;
     }
+    if let LocalNetworkScopeDescriptor::Shared { network_id_path } = &local_server_descriptor.scope
+    {
+        fs::copy(&local_server_descriptor.network_id_path(), network_id_path)?;
+        let effective_config_path_by_settings_digest =
+            local_server_descriptor.effective_config_path_by_settings_digest();
+        if effective_config_path_by_settings_digest.exists() {
+            fs::copy(
+                &effective_config_path_by_settings_digest,
+                &local_server_descriptor.effective_config_path(),
+            )?;
+        }
+    }
 
+    clean_older_state_dirs(local_server_descriptor)?;
     let state_root = local_server_descriptor.state_dir();
 
     let btc_adapter_socket_holder_path = local_server_descriptor.btc_adapter_socket_holder_path();
@@ -227,18 +245,13 @@ pub fn exec(
 
     let previous_config_path = local_server_descriptor.effective_config_path();
 
-    // dfx bootstrap will read these port files to find out which port to use,
+    // dfx info replica-port will read these port files to find out which port to use,
     // so we need to make sure only one has a valid port in it.
     let replica_config_dir = local_server_descriptor.replica_configuration_dir();
-    fs::create_dir_all(&replica_config_dir).with_context(|| {
-        format!(
-            "Failed to create replica config directory {}.",
-            replica_config_dir.display()
-        )
-    })?;
+    fs::create_dir_all(&replica_config_dir)?;
 
     let replica_port_path = empty_writable_path(local_server_descriptor.replica_port_path())?;
-    let emulator_port_path = empty_writable_path(local_server_descriptor.ic_ref_port_path())?;
+    let pocketic_port_path = empty_writable_path(local_server_descriptor.pocketic_port_path())?;
 
     if background {
         send_background()?;
@@ -257,14 +270,7 @@ pub fn exec(
     local_server_descriptor.describe(env.get_logger());
 
     write_pid(&pid_file_path);
-    std::fs::write(&webserver_port_path, address_and_port.port().to_string()).with_context(
-        || {
-            format!(
-                "Failed to write webserver port file {}.",
-                webserver_port_path.to_string_lossy()
-            )
-        },
-    )?;
+    fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
     let btc_adapter_config = configure_btc_adapter_if_enabled(
         local_server_descriptor,
@@ -291,6 +297,8 @@ pub fn exec(
         .replica
         .log_level
         .unwrap_or_default();
+
+    let proxy_domains = local_server_descriptor.proxy.domain.clone().into_vec();
 
     let replica_config = {
         let replica_config = ReplicaConfig::new(
@@ -320,20 +328,31 @@ pub fn exec(
         replica_config
     };
 
-    let effective_config = if emulator {
-        CachedConfig::emulator()
+    let effective_config = if pocketic {
+        CachedConfig::pocketic(replica_rev().into())
     } else {
-        CachedConfig::replica(&replica_config)
+        CachedConfig::replica(&replica_config, replica_rev().into())
     };
-    if !clean && !force && previous_config_path.exists() {
+
+    let is_shared_network = matches!(
+        &local_server_descriptor.scope,
+        LocalNetworkScopeDescriptor::Shared { .. }
+    );
+    if is_shared_network && !pocketic {
+        save_json_file(
+            &local_server_descriptor.effective_config_path_by_settings_digest(),
+            &effective_config,
+        )?;
+    } else if !clean && !force && previous_config_path.exists() {
         let previous_config = load_json_file(&previous_config_path)
             .context("Failed to read replica configuration. Rerun with `--clean`.")?;
-        if effective_config != previous_config {
-            bail!("The network configuration was changed. Rerun with `--clean`.")
+        if !effective_config.can_share_state(&previous_config) {
+            bail!(
+                "The network state can't be reused with this configuration. Rerun with `--clean`."
+            )
         }
     }
-    save_json_file(&previous_config_path, &effective_config)
-        .context("Failed to write replica configuration")?;
+    save_json_file(&previous_config_path, &effective_config)?;
 
     let network_descriptor = network_descriptor.clone();
 
@@ -341,14 +360,14 @@ pub fn exec(
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
 
-        let port_ready_subscribe: Recipient<PortReadySubscribe> = if emulator {
-            let emulator = start_emulator_actor(
+        let port_ready_subscribe: Recipient<PortReadySubscribe> = if pocketic {
+            let server = start_pocketic_actor(
                 env,
                 local_server_descriptor,
                 shutdown_controller.clone(),
-                emulator_port_path,
+                pocketic_port_path,
             )?;
-            emulator.recipient()
+            server.recipient()
         } else {
             let btc_adapter_ready_subscribe = btc_adapter_config
                 .map(|btc_adapter_config| {
@@ -388,6 +407,7 @@ pub fn exec(
             bind: address_and_port,
             replica_urls: vec![], // will be determined after replica starts
             fetch_root_key: !network_descriptor.is_ic,
+            domains: proxy_domains,
             verbose: env.get_verbose_level() > 0,
         };
 
@@ -412,36 +432,52 @@ pub fn exec(
     Ok(())
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
-#[serde(tag = "type", rename_all = "snake_case")]
-#[allow(clippy::large_enum_variant)]
-pub enum CachedReplicaConfig<'a> {
-    Replica { config: Cow<'a, ReplicaConfig> },
-    Emulator,
+fn clean_older_state_dirs(local_server_descriptor: &LocalServerDescriptor) -> DfxResult {
+    let directories_to_keep = 10;
+    let settings_digest = local_server_descriptor.settings_digest.as_ref().unwrap();
+
+    let data_dir = &local_server_descriptor.data_directory;
+    if !data_dir.is_dir() {
+        return Ok(());
+    }
+    let mut state_dirs = fs::read_dir(data_dir)?
+        .filter_map(|e| match e {
+            Ok(entry) if is_candidate_state_dir(&entry.path(), settings_digest) => {
+                Some(Ok(entry.path()))
+            }
+            Ok(_) => None,
+            Err(e) => Some(Err(e)),
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    // keep the X most recent directories
+    state_dirs.sort_by_cached_key(|p| {
+        p.metadata()
+            .map(|m| m.modified().unwrap_or(SystemTime::UNIX_EPOCH))
+            .unwrap_or(SystemTime::UNIX_EPOCH)
+    });
+    state_dirs = state_dirs
+        .iter()
+        .rev()
+        .skip(directories_to_keep)
+        .cloned()
+        .collect();
+
+    for dir in state_dirs {
+        fs::remove_dir_all(&dir)?;
+    }
+    Ok(())
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq)]
-pub struct CachedConfig<'a> {
-    pub replica_rev: String,
-    #[serde(flatten)]
-    pub config: CachedReplicaConfig<'a>,
-}
-
-impl<'a> CachedConfig<'a> {
-    pub fn replica(config: &'a ReplicaConfig) -> Self {
-        Self {
-            replica_rev: replica_rev().into(),
-            config: CachedReplicaConfig::Replica {
-                config: Cow::Borrowed(config),
-            },
-        }
-    }
-    pub fn emulator() -> Self {
-        Self {
-            replica_rev: replica_rev().into(),
-            config: CachedReplicaConfig::Emulator,
-        }
-    }
+fn is_candidate_state_dir(path: &Path, settings_digest: &str) -> bool {
+    path.is_dir()
+        && path
+            .file_name()
+            .map(|f| {
+                let filename: String = f.to_string_lossy().into();
+                filename != *settings_digest
+            })
+            .unwrap_or(true)
 }
 
 pub fn apply_command_line_parameters(
@@ -452,7 +488,10 @@ pub fn apply_command_line_parameters(
     enable_bitcoin: bool,
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
-    emulator: bool,
+    domain: Vec<String>,
+    use_old_metering: bool,
+    artificial_delay: u32,
+    pocketic: bool,
 ) -> DfxResult<NetworkDescriptor> {
     if enable_canister_http {
         warn!(
@@ -460,13 +499,6 @@ pub fn apply_command_line_parameters(
             "The --enable-canister-http parameter is deprecated."
         );
         warn!(logger, "Canister HTTP suppport is enabled by default.  It can be disabled through dfx.json or networks.json.");
-    }
-
-    if emulator {
-        warn!(
-            logger,
-            "The --emulator parameter is deprecated and will be discontinued soon."
-        );
     }
 
     let _ = network_descriptor.local_server_descriptor()?;
@@ -491,6 +523,20 @@ pub fn apply_command_line_parameters(
     if !bitcoin_nodes.is_empty() {
         local_server_descriptor = local_server_descriptor.with_bitcoin_nodes(bitcoin_nodes)
     }
+
+    if !domain.is_empty() {
+        local_server_descriptor = local_server_descriptor.with_proxy_domains(domain)
+    }
+
+    let settings_digest = get_settings_digest(
+        replica_rev(),
+        &local_server_descriptor,
+        use_old_metering,
+        artificial_delay,
+        pocketic,
+    );
+
+    local_server_descriptor = local_server_descriptor.with_settings_digest(settings_digest);
 
     Ok(NetworkDescriptor {
         local_server_descriptor: Some(local_server_descriptor),

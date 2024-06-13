@@ -1,14 +1,16 @@
 #![allow(dead_code)]
 use crate::lib::error::DfxResult;
 use crate::lib::metadata::config::CanisterMetadataConfig;
-use anyhow::{anyhow, Context};
+
+use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use candid::Principal;
 use core::panic;
 use dfx_core::config::model::dfinity::{
     CanisterDeclarationsConfig, CanisterMetadataSection, CanisterTypeProperties, Config, Pullable,
-    WasmOptLevel,
+    TechStack, WasmOptLevel,
 };
+use dfx_core::fs::canonicalize;
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 use fn_error_context::context;
@@ -57,7 +59,10 @@ pub struct CanisterInfo {
     metadata: CanisterMetadataConfig,
     pullable: Option<Pullable>,
     pull_dependencies: Vec<(String, CanisterId)>,
+    tech_stack: Option<TechStack>,
     gzip: bool,
+    init_arg: Option<String>,
+    init_arg_file: Option<String>,
 }
 
 impl CanisterInfo {
@@ -71,7 +76,7 @@ impl CanisterInfo {
         let build_defaults = config.get_config().get_defaults().get_build();
         let network_name = get_network_context()?;
         let build_root = config
-            .get_temp_path()
+            .get_temp_path()?
             .join(util::network_to_pathcompat(&network_name))
             .join("canisters");
         std::fs::create_dir_all(&build_root)
@@ -112,17 +117,17 @@ impl CanisterInfo {
             .as_ref()
             .and_then(|remote| remote.id.get(&network_name))
             .copied();
-        let remote_candid = canister_config
-            .remote
-            .as_ref()
-            .and_then(|r| r.candid.as_ref())
-            .cloned();
+        let remote_candid = canister_config.remote.as_ref().and_then(|r| {
+            r.candid
+                .as_ref()
+                .and_then(|candid| canonicalize(candid).ok())
+        });
 
         // Fill the default config values if None provided
         let declarations_config = CanisterDeclarationsConfig {
             output: declarations_config_pre
                 .output
-                .or_else(|| Some(PathBuf::from("src/declarations").join(name))),
+                .or_else(|| Some(workspace_root.join("src/declarations").join(name))),
             bindings: declarations_config_pre
                 .bindings
                 .or_else(|| Some(vec!["js".to_string(), "ts".to_string(), "did".to_string()])),
@@ -143,6 +148,8 @@ impl CanisterInfo {
         let metadata = CanisterMetadataConfig::new(&canister_config.metadata, &network_name);
 
         let gzip = canister_config.gzip.unwrap_or(false);
+        let init_arg = canister_config.init_arg.clone();
+        let init_arg_file = canister_config.init_arg_file.clone();
 
         let canister_info = CanisterInfo {
             name: name.to_string(),
@@ -162,8 +169,11 @@ impl CanisterInfo {
             optimize: canister_config.optimize,
             metadata,
             pullable: canister_config.pullable.clone(),
+            tech_stack: canister_config.tech_stack.clone(),
             pull_dependencies,
             gzip,
+            init_arg,
+            init_arg_file,
         };
 
         Ok(canister_info)
@@ -357,7 +367,36 @@ impl CanisterInfo {
         &self.pull_dependencies
     }
 
+    pub fn get_tech_stack(&self) -> Option<&TechStack> {
+        self.tech_stack.as_ref()
+    }
+
     pub fn get_gzip(&self) -> bool {
         self.gzip
+    }
+
+    /// Get the init arg from the dfx.json configuration.
+    ///
+    /// If the `init_arg` field is defined, it will be returned.
+    /// If the `init_arg_file` field is defined, the content of the file will be returned.
+    /// If both fields are defined, an error will be returned.
+    /// If neither field is defined, `None` will be returned.
+    pub fn get_init_arg(&self) -> DfxResult<Option<String>> {
+        let init_arg_value = match (&self.init_arg, &self.init_arg_file) {
+            (Some(_), Some(_)) => {
+                bail!("At most one of the fields 'init_arg' and 'init_arg_file' should be defined in `dfx.json`.
+Please remove one of them or leave both undefined.");
+            }
+            (Some(arg), None) => Some(arg.clone()),
+            (None, Some(arg_file)) => {
+                // The file path is relative to the workspace root.
+                let absolute_path = self.get_workspace_root().join(arg_file);
+                let content = dfx_core::fs::read_to_string(&absolute_path)?;
+                Some(content)
+            }
+            (None, None) => None,
+        };
+
+        Ok(init_arg_value)
     }
 }

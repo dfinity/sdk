@@ -153,11 +153,7 @@ validate_default_project() {
 }
 
 build_release_branch() {
-
     announce "Building branch $BRANCH for release $NEW_DFX_VERSION"
-
-    echo "Cleaning up cargo build files..."
-    $DRY_RUN_ECHO cargo clean --release
 
     echo "Switching to branch: $BRANCH"
     $DRY_RUN_ECHO git switch -c "$BRANCH"
@@ -166,10 +162,8 @@ build_release_branch() {
     # update first version in src/dfx/Cargo.toml to be NEW_DFX_VERSION
     awk 'NR==1,/^version = ".*"/{sub(/^version = ".*"/, "version = \"'"$NEW_DFX_VERSION"'\"")} 1' <src/dfx/Cargo.toml | sponge src/dfx/Cargo.toml
 
-    echo "Building dfx with cargo."
-    # not --locked, because Cargo.lock needs to be updated with the new version
-    # we already checked that it builds with --locked, when building the release candidate.
-    cargo build --release
+    echo "Updating Cargo.lock"
+    cargo update -p dfx
 
     echo "Appending version to public/manifest.json"
     # Append the new version to `public/manifest.json` by appending it to the `versions` list.
@@ -181,7 +175,6 @@ build_release_branch() {
     $DRY_RUN_ECHO git push origin "$BRANCH"
 
     echo "Please open a pull request to the $FINAL_RELEASE_BRANCH branch, review and approve it, then merge it manually."
-    echo "  (The automerge-squash label will not work because the PR is not to the master branch)"
 
     wait_for_response 'PR merged'
 }

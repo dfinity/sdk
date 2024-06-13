@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use std::io::Write;
 
 pub fn exec(env: &dyn Environment) -> DfxResult<()> {
-    let mgr = env.new_extension_manager()?;
+    let mgr = env.get_extension_manager();
     let extensions = mgr.list_installed_extensions()?;
 
     if extensions.is_empty() {

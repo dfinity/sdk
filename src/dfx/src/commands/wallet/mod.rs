@@ -92,7 +92,7 @@ where
     let wallet = get_or_create_wallet_canister(env, network, &identity_name).await?;
 
     let out: O = wallet
-        .query_(method)
+        .query(method)
         .with_arg(arg)
         .build()
         .call()
@@ -108,12 +108,7 @@ where
     O: for<'de> ArgumentDecoder<'de> + Sync + Send,
 {
     let wallet = get_wallet(env).await?;
-    let out: O = wallet
-        .update_(method)
-        .with_arg(arg)
-        .build()
-        .call_and_wait()
-        .await?;
+    let out: O = wallet.update(method).with_arg(arg).build().await?;
     Ok(out)
 }
 

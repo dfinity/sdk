@@ -1,4 +1,4 @@
-set -e
+set -eo pipefail
 load ../utils/bats-support/load
 load ../utils/assertions
 load ../utils/webserver
@@ -54,7 +54,17 @@ standard_teardown() {
 
 dfx_new_frontend() {
     local project_name=${1:-e2e_project}
-    dfx new "${project_name}" --frontend
+    dfx new "${project_name}" --frontend vanilla
+    test -d "${project_name}"
+    test -f "${project_name}"/dfx.json
+    cd "${project_name}"
+
+    echo PWD: "$(pwd)" >&2
+}
+
+dfx_new_assets() {
+    local project_name=${1:-e2e_project}
+    dfx new "${project_name}" --frontend simple-assets
     test -d "${project_name}"
     test -f "${project_name}"/dfx.json
     cd "${project_name}"
@@ -86,32 +96,6 @@ dfx_new_rust() {
     echo PWD: "$(pwd)" >&2
 }
 
-dfx_patchelf() {
-    # Don't run this function during github actions
-    [ "$GITHUB_ACTIONS" ] && return 0
-
-    # Only run this function on Linux
-    (uname -a | grep Linux) || return 0
-
-    local CACHE_DIR LD_LINUX_SO BINARY IS_STATIC USE_LIB64
-
-    echo dfx = "$(which dfx)"
-    CACHE_DIR="$(dfx cache show)"
-
-    dfx cache install
-
-    # Both ldd and iconv are providedin glibc.bin package
-    LD_LINUX_SO=$(ldd "$(which iconv)"|grep ld-linux-x86|cut -d' ' -f3)
-    for binary in ic-starter icx-proxy replica; do
-        BINARY="${CACHE_DIR}/${binary}"
-        test -f "$BINARY" || continue
-        IS_STATIC=$(ldd "${BINARY}" | grep 'not a dynamic executable')
-        USE_LIB64=$(ldd "${BINARY}" | grep '/lib64/ld-linux-x86-64.so.2')
-        chmod +rw "${BINARY}"
-        test -n "$IS_STATIC" || test -z "$USE_LIB64" || patchelf --set-interpreter "${LD_LINUX_SO}" "${BINARY}"
-    done
-}
-
 determine_network_directory() {
     # not perfect: dfx.json can actually exist in a parent
     if [ -f dfx.json ] && [ "$(jq .networks.local dfx.json)" != "null" ]; then
@@ -133,29 +117,56 @@ determine_network_directory() {
 # Start the replica in the background.
 dfx_start() {
     local port dfx_config_root webserver_port
-    dfx_patchelf
 
-    # Start on random port for parallel test execution
-    FRONTEND_HOST="127.0.0.1:0"
+    local args=( "$@" )
+
+    add_default_parameter() {
+        local param_name=$1
+        local has_param=false
+        for arg in "${args[@]}"; do
+            if [[ $arg == "$param_name" ]]; then
+                has_param=true
+                break
+            fi
+        done
+        if ! $has_param; then
+            if [[ $# == 1 ]]; then
+                args+=( "$param_name" )
+            else
+                local param_value=$2
+                args+=( "$param_name" "$param_value" )
+            fi
+        fi
+    }
+
+    # By default, start on random port for parallel test execution
+    add_default_parameter "--host" "127.0.0.1:0"
+    if [[ "$USE_POCKETIC" ]]; then
+        add_default_parameter "--pocketic"
+    else
+        add_default_parameter "--artificial-delay" "100"
+    fi
 
     determine_network_directory
+
     # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
     # wait for it to close. Because `dfx start` leaves child processes running, we need
     # to close this pipe, otherwise Bats will wait indefinitely.
-    if [[ $# -eq 0 ]]; then
-        dfx start --background --host "$FRONTEND_HOST" --artificial-delay 100 3>&- # Start on random port for parallel test execution
+
+    dfx start --background "${args[@]}" 3>&-
+
+    if [[ "$USE_POCKETIC" ]]; then
+        test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
+        port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port")
     else
-        dfx start --background --artificial-delay 100 "$@" 3>&-
+        dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
+        printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
+        test -f "${dfx_config_root}/replica-1.port"
+        port=$(cat "${dfx_config_root}/replica-1.port")
+        if [ "$port" == "" ]; then
+          port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
+        fi
     fi
-
-    dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
-    printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
-    test -f "${dfx_config_root}/replica-1.port"
-    port=$(cat "${dfx_config_root}/replica-1.port")
-    if [ "$port" == "" ]; then
-      port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
-    fi
-
     webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
 
     printf "Replica Configured Port: %s\n" "${port}"
@@ -187,68 +198,6 @@ wait_until_replica_healthy() {
     echo "waiting for replica to become healthy"
     dfx ping --wait-healthy
     echo "replica became healthy"
-}
-
-# Start the replica in the background.
-dfx_replica() {
-    local replica_port dfx_config_root
-    dfx_patchelf
-    determine_network_directory
-
-    # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
-    # wait for it to close. Because `dfx start` leaves child processes running, we need
-    # to close this pipe, otherwise Bats will wait indefinitely.
-    dfx replica --port 0 "$@" 3>&- &
-    export DFX_REPLICA_PID=$!
-
-    timeout 60 sh -c \
-        "until test -s \"$E2E_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port\"; do echo waiting for replica port; sleep 1; done" \
-        || (echo "replica did not write to port file" && exit 1)
-
-    dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
-    test -f "${dfx_config_root}/replica-1.port"
-    replica_port=$(cat "${dfx_config_root}/replica-1.port")
-
-    printf "Replica Configured Port: %s\n" "${replica_port}"
-
-    timeout 5 sh -c \
-        "until nc -z localhost ${replica_port}; do echo waiting for replica; sleep 1; done" \
-        || (echo "could not connect to replica on port ${replica_port}" && exit 1)
-
-    # ping the replica directly, because the bootstrap (that launches icx-proxy, which dfx ping usually connects to)
-    # is not running yet
-    dfx ping --wait-healthy "http://127.0.0.1:${replica_port}"
-}
-
-dfx_bootstrap() {
-    # This only works because we use the network by name
-    #    (implicitly: --network local)
-    # If we passed --network http://127.0.0.1:${replica_port}
-    # we would get errors like this:
-    #    "Cannot find canister ryjl3-tyaaa-aaaaa-aaaba-cai for network http___127_0_0_1_54084"
-    dfx bootstrap --port 0 3>&- &
-    export DFX_BOOTSTRAP_PID=$!
-
-    timeout 5 sh -c \
-        "until nc -z localhost \$(cat \"$E2E_NETWORK_DATA_DIRECTORY/webserver-port\"); do echo waiting for webserver; sleep 1; done" \
-        || (echo "could not connect to webserver on port $(get_webserver_port)" && exit 1)
-
-    wait_until_replica_healthy
-
-    webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
-    printf "Webserver Configured Port: %s\n", "${webserver_port}"
-}
-
-# Stop the `dfx replica` process that is running in the background.
-stop_dfx_replica() {
-    [ "$DFX_REPLICA_PID" ] && kill -TERM "$DFX_REPLICA_PID"
-    unset DFX_REPLICA_PID
-}
-
-# Stop the `dfx bootstrap` process that is running in the background
-stop_dfx_bootstrap() {
-    [ "$DFX_BOOTSTRAP_PID" ] && kill -TERM "$DFX_BOOTSTRAP_PID"
-    unset DFX_BOOTSTRAP_PID
 }
 
 # Stop the replica and verify it is very very stopped.
@@ -288,7 +237,11 @@ setup_actuallylocal_shared_network() {
 
 setup_local_shared_network() {
     local replica_port
-    replica_port=$(get_replica_port)
+    if [[ "$USE_POCKETIC" ]]; then
+        replica_port=$(get_pocketic_port)
+    else
+        replica_port=$(get_replica_port)
+    fi
 
     [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
 
@@ -332,6 +285,14 @@ get_replica_port() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/replica-configuration/replica-1.port"
 }
 
+get_pocketic_pid() {
+  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-pid"
+}
+
+get_pocketic_port() {
+  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
+}
+
 get_btc_adapter_pid() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/ic-btc-adapter-pid"
 }
@@ -365,4 +326,10 @@ get_ephemeral_port() {
     local script_dir
     script_dir=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
     python3 "$script_dir/get_ephemeral_port.py"
+}
+
+stop_and_delete() {
+    assert_command dfx canister stop "$1"
+    assert_command dfx canister delete -y --no-withdrawal "$1"
+    echo "Canister $1 deleted"
 }

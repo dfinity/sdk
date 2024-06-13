@@ -1,49 +1,49 @@
+use crate::actors::pocketic::POCKETIC_EFFECTIVE_CANISTER_ID;
 use crate::config::cache::DiskBasedCache;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
 use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
-use anyhow::{anyhow, Context};
+use anyhow::anyhow;
 use candid::Principal;
 use dfx_core::config::cache::Cache;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{Config, NetworksConfig};
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
-use dfx_core::error::extension::ExtensionError;
 use dfx_core::error::identity::new_identity_manager::NewIdentityManagerError;
+use dfx_core::error::load_dfx_config::LoadDfxConfigError;
 use dfx_core::extension::manager::ExtensionManager;
-use dfx_core::identity::identity_manager::IdentityManager;
+use dfx_core::identity::identity_manager::{IdentityManager, InitializeIdentity};
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use semver::Version;
 use slog::{warn, Logger, Record};
 use std::borrow::Cow;
-use std::fs::create_dir_all;
+use std::cell::RefCell;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
 pub trait Environment {
     fn get_cache(&self) -> Arc<dyn Cache>;
-    fn get_config(&self) -> Option<Arc<Config>>;
+    fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError>;
     fn get_networks_config(&self) -> Arc<NetworksConfig>;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
-    fn is_in_project(&self) -> bool;
     /// Return a temporary directory for the current project.
     /// If there is no project (no dfx.json), there is no project temp dir.
-    fn get_project_temp_dir(&self) -> Option<PathBuf>;
+    fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>>;
 
     fn get_version(&self) -> &Version;
 
     /// This is value of the name passed to dfx `--identity <name>`
     /// Notably, it is _not_ the name of the default identity or selected identity
-    fn get_identity_override(&self) -> &Option<String>;
+    fn get_identity_override(&self) -> Option<&str>;
 
     // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
-    fn get_agent<'a>(&'a self) -> Option<&'a Agent>;
+    fn get_agent<'a>(&'a self) -> &'a Agent;
 
     #[allow(clippy::needless_lifetimes)]
     fn get_network_descriptor<'a>(&'a self) -> &'a NetworkDescriptor;
@@ -54,7 +54,11 @@ pub trait Environment {
     fn new_progress(&self, message: &str) -> ProgressBar;
 
     fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {
-        IdentityManager::new(self.get_logger(), self.get_identity_override())
+        IdentityManager::new(
+            self.get_logger(),
+            self.get_identity_override(),
+            InitializeIdentity::Allow,
+        )
     }
 
     // Explicit lifetimes are actually needed for mockall to work properly.
@@ -69,19 +73,27 @@ pub trait Environment {
 
     fn get_effective_canister_id(&self) -> Principal;
 
-    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError>;
+    fn get_override_effective_canister_id(&self) -> Option<Principal>;
+
+    fn get_extension_manager(&self) -> &ExtensionManager;
 
     fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
         CanisterIdStore::new(
             self.get_logger(),
             self.get_network_descriptor(),
-            self.get_config(),
+            self.get_config()?,
         )
     }
 }
 
+pub enum ProjectConfig {
+    NotLoaded,
+    NoProject,
+    Loaded(Arc<Config>),
+}
+
 pub struct EnvironmentImpl {
-    config: Option<Arc<Config>>,
+    project_config: RefCell<ProjectConfig>,
     shared_networks_config: Arc<NetworksConfig>,
 
     cache: Arc<dyn Cache>,
@@ -93,56 +105,26 @@ pub struct EnvironmentImpl {
 
     identity_override: Option<String>,
 
-    effective_canister_id: Principal,
+    effective_canister_id: Option<Principal>,
+
+    extension_manager: ExtensionManager,
 }
 
 impl EnvironmentImpl {
-    pub fn new() -> DfxResult<Self> {
+    pub fn new(extension_manager: ExtensionManager) -> DfxResult<Self> {
         let shared_networks_config = NetworksConfig::new()?;
-        let config = Config::from_current_dir()?;
-        if let Some(ref config) = config {
-            let temp_dir = config.get_temp_path();
-            create_dir_all(&temp_dir).with_context(|| {
-                format!("Failed to create temp directory {}.", temp_dir.display())
-            })?;
-        }
-
-        // Figure out which version of DFX we should be running. This will use the following
-        // fallback sequence:
-        //   1. DFX_VERSION environment variable
-        //   2. dfx.json "dfx" field
-        //   3. this binary's version
-        // If any of those are empty string, we stop the fallback and use the current version.
-        // If any of those are a valid version, we try to use that directly as is.
-        // If any of those are an invalid version, we will show an error to the user.
-        let version = match std::env::var("DFX_VERSION") {
-            Err(_) => match &config {
-                None => dfx_version().clone(),
-                Some(c) => match &c.get_config().get_dfx() {
-                    None => dfx_version().clone(),
-                    Some(v) => Version::parse(v)
-                        .with_context(|| format!("Failed to parse version from '{}'.", v))?,
-                },
-            },
-            Ok(v) => {
-                if v.is_empty() {
-                    dfx_version().clone()
-                } else {
-                    Version::parse(&v)
-                        .with_context(|| format!("Failed to parse version from '{}'.", &v))?
-                }
-            }
-        };
+        let version = dfx_version().clone();
 
         Ok(EnvironmentImpl {
             cache: Arc::new(DiskBasedCache::with_version(&version)),
-            config: config.map(Arc::new),
+            project_config: RefCell::new(ProjectConfig::NotLoaded),
             shared_networks_config: Arc::new(shared_networks_config),
             version: version.clone(),
             logger: None,
             verbose_level: 0,
             identity_override: None,
-            effective_canister_id: Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 0, 1, 1]),
+            effective_canister_id: None,
+            extension_manager,
         })
     }
 
@@ -163,15 +145,28 @@ impl EnvironmentImpl {
 
     pub fn with_effective_canister_id(mut self, effective_canister_id: Option<String>) -> Self {
         match effective_canister_id {
-            None => self,
+            None => {
+                self.effective_canister_id = None;
+                self
+            }
             Some(canister_id) => match Principal::from_text(canister_id) {
                 Ok(principal) => {
-                    self.effective_canister_id = principal;
+                    self.effective_canister_id = Some(principal);
                     self
                 }
                 Err(_) => self,
             },
         }
+    }
+
+    fn load_config(&self) -> Result<(), LoadDfxConfigError> {
+        let config = Config::from_current_dir(Some(&self.extension_manager))?;
+
+        let project_config = config.map_or(ProjectConfig::NoProject, |config| {
+            ProjectConfig::Loaded(Arc::new(config))
+        });
+        self.project_config.replace(project_config);
+        Ok(())
     }
 }
 
@@ -180,8 +175,17 @@ impl Environment for EnvironmentImpl {
         Arc::clone(&self.cache)
     }
 
-    fn get_config(&self) -> Option<Arc<Config>> {
-        self.config.as_ref().map(Arc::clone)
+    fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
+        if matches!(*self.project_config.borrow(), ProjectConfig::NotLoaded) {
+            self.load_config()?;
+        }
+
+        let config = if let ProjectConfig::Loaded(ref config) = *self.project_config.borrow() {
+            Some(Arc::clone(config))
+        } else {
+            None
+        };
+        Ok(config)
     }
 
     fn get_networks_config(&self) -> Arc<NetworksConfig> {
@@ -189,31 +193,25 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
-        self.get_config().ok_or_else(|| anyhow!(
+        self.get_config()?.ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
     }
 
-    fn is_in_project(&self) -> bool {
-        self.config.is_some()
-    }
-
-    fn get_project_temp_dir(&self) -> Option<PathBuf> {
-        self.config.as_ref().map(|c| c.get_temp_path())
+    fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
+        Ok(self.get_config()?.map(|c| c.get_temp_path()).transpose()?)
     }
 
     fn get_version(&self) -> &Version {
         &self.version
     }
 
-    fn get_identity_override(&self) -> &Option<String> {
-        &self.identity_override
+    fn get_identity_override(&self) -> Option<&str> {
+        self.identity_override.as_deref()
     }
 
-    fn get_agent(&self) -> Option<&Agent> {
-        // create an AgentEnvironment explicitly, in order to specify network and agent.
-        // See install, build for examples.
-        None
+    fn get_agent(&self) -> &Agent {
+        unreachable!("Agent only available from an AgentEnvironment");
     }
 
     fn get_network_descriptor(&self) -> &NetworkDescriptor {
@@ -255,10 +253,15 @@ impl Environment for EnvironmentImpl {
 
     fn get_effective_canister_id(&self) -> Principal {
         self.effective_canister_id
+            .unwrap_or(Principal::from_slice(&[0, 0, 0, 0, 0, 0, 0, 0, 1, 1]))
     }
 
-    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
-        ExtensionManager::new(self.get_version())
+    fn get_override_effective_canister_id(&self) -> Option<Principal> {
+        self.effective_canister_id
+    }
+
+    fn get_extension_manager(&self) -> &ExtensionManager {
+        &self.extension_manager
     }
 }
 
@@ -267,6 +270,7 @@ pub struct AgentEnvironment<'a> {
     agent: Agent,
     network_descriptor: NetworkDescriptor,
     identity_manager: IdentityManager,
+    effective_canister_id: Option<Principal>,
 }
 
 impl<'a> AgentEnvironment<'a> {
@@ -292,12 +296,20 @@ impl<'a> AgentEnvironment<'a> {
                 and use it in mainnet-facing commands with the `--identity` flag", identity.name());
         }
         let url = network_descriptor.first_provider()?;
+        let effective_canister_id = if let Some(d) = &network_descriptor.local_server_descriptor {
+            d.effective_config()?
+                .is_some_and(|c| c.is_pocketic())
+                .then_some(POCKETIC_EFFECTIVE_CANISTER_ID)
+        } else {
+            None
+        };
 
         Ok(AgentEnvironment {
             backend,
             agent: create_agent(logger, url, identity, timeout)?,
             network_descriptor: network_descriptor.clone(),
             identity_manager,
+            effective_canister_id,
         })
     }
 }
@@ -307,7 +319,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_cache()
     }
 
-    fn get_config(&self) -> Option<Arc<Config>> {
+    fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
         self.backend.get_config()
     }
 
@@ -316,16 +328,12 @@ impl<'a> Environment for AgentEnvironment<'a> {
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
-        self.get_config().ok_or_else(|| anyhow!(
+        self.get_config()?.ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
     }
 
-    fn is_in_project(&self) -> bool {
-        self.backend.is_in_project()
-    }
-
-    fn get_project_temp_dir(&self) -> Option<PathBuf> {
+    fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
         self.backend.get_project_temp_dir()
     }
 
@@ -333,12 +341,12 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_version()
     }
 
-    fn get_identity_override(&self) -> &Option<String> {
+    fn get_identity_override(&self) -> Option<&str> {
         self.backend.get_identity_override()
     }
 
-    fn get_agent(&self) -> Option<&Agent> {
-        Some(&self.agent)
+    fn get_agent(&self) -> &Agent {
+        &self.agent
     }
 
     fn get_network_descriptor(&self) -> &NetworkDescriptor {
@@ -370,11 +378,20 @@ impl<'a> Environment for AgentEnvironment<'a> {
     }
 
     fn get_effective_canister_id(&self) -> Principal {
-        self.backend.get_effective_canister_id()
+        self.backend
+            .get_override_effective_canister_id()
+            .unwrap_or_else(|| {
+                self.effective_canister_id
+                    .unwrap_or_else(|| self.backend.get_effective_canister_id())
+            })
     }
 
-    fn new_extension_manager(&self) -> Result<ExtensionManager, ExtensionError> {
-        ExtensionManager::new(self.backend.get_version())
+    fn get_override_effective_canister_id(&self) -> Option<Principal> {
+        self.backend.get_override_effective_canister_id()
+    }
+
+    fn get_extension_manager(&self) -> &ExtensionManager {
+        self.backend.get_extension_manager()
     }
 }
 
@@ -385,11 +402,14 @@ pub fn create_agent(
     identity: Box<dyn Identity + Send + Sync>,
     timeout: Duration,
 ) -> DfxResult<Agent> {
+    let disable_query_verification =
+        std::env::var("DFX_DISABLE_QUERY_VERIFICATION").is_ok_and(|x| !x.trim().is_empty());
     let agent = Agent::builder()
         .with_transport(ic_agent::agent::http_transport::ReqwestTransport::create(
             url,
         )?)
         .with_boxed_identity(identity)
+        .with_verify_query_signatures(!disable_query_verification)
         .with_ingress_expiry(Some(timeout))
         .build()?;
     Ok(agent)

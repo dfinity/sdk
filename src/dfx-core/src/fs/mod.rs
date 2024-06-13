@@ -11,7 +11,7 @@ use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
 
 pub fn canonicalize(path: &Path) -> Result<PathBuf, FsError> {
-    path.canonicalize()
+    dunce::canonicalize(path)
         .map_err(|err| FsError::new(CanonicalizePathFailed(path.to_path_buf(), err)))
 }
 
@@ -100,6 +100,7 @@ pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), FsEr
         .map_err(|err| FsError::new(WritePermissionsFailed(path.to_path_buf(), err)))
 }
 
+#[cfg_attr(not(unix), allow(unused_variables))]
 pub fn set_permissions_readwrite(path: &Path) -> Result<(), FsError> {
     #[cfg(unix)]
     {

@@ -8,13 +8,17 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
-use crate::util::{assets, check_candid_file};
+use crate::util::assets;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
+use candid_parser::utils::CandidSource;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
-use dfx_core::config::model::dfinity::{CanisterMetadataSection, Config, MetadataVisibility};
+use dfx_core::config::model::dfinity::{
+    CanisterMetadataSection, Config, MetadataVisibility, TechStack, WasmOptLevel,
+};
 use fn_error_context::context;
 use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
+use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
@@ -38,6 +42,8 @@ pub struct Canister {
     builder: Arc<dyn CanisterBuilder>,
     output: RefCell<Option<BuildOutput>>,
 }
+unsafe impl Send for Canister {}
+unsafe impl Sync for Canister {}
 
 impl Canister {
     /// Create a new canister.
@@ -127,14 +133,20 @@ impl Canister {
 
         // optimize or shrink
         if let Some(level) = info.get_optimize() {
-            trace!(logger, "Optimizing WASM at level {}", level);
-            ic_wasm::shrink::shrink_with_wasm_opt(&mut m, &level.to_string(), false)
-                .context("Failed to optimize the WASM module.")?;
+            trace!(logger, "Optimizing Wasm at level {}", level);
+            ic_wasm::optimize::optimize(
+                &mut m,
+                &wasm_opt_level_convert(level),
+                false,
+                &None,
+                false,
+            )
+            .context("Failed to optimize the Wasm module.")?;
             modified = true;
         } else if info.get_shrink() == Some(true)
             || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
         {
-            trace!(logger, "Shrinking WASM");
+            trace!(logger, "Shrinking Wasm");
             ic_wasm::shrink::shrink(&mut m);
             modified = true;
         }
@@ -151,9 +163,49 @@ impl Canister {
             public_candid = true;
         }
 
+        // dfx metadata
+        let mut set_dfx_metadata = false;
+        let mut dfx_metadata = DfxMetadata::default();
         if let Some(pullable) = info.get_pullable() {
-            let mut dfx_metadata = DfxMetadata::default();
+            set_dfx_metadata = true;
             dfx_metadata.set_pullable(pullable);
+            // pullable canisters must have public candid:service
+            public_candid = true;
+        }
+
+        if let Some(tech_stack_config) = info.get_tech_stack() {
+            set_dfx_metadata = true;
+            dfx_metadata.set_tech_stack(tech_stack_config, info.get_workspace_root())?;
+        } else if info.is_rust() {
+            // TODO: remove this when we have rust extension
+            set_dfx_metadata = true;
+            let s = r#"{
+                "language" : {
+                    "rust" : {
+                        "version" : "$(rustc --version | cut -d ' ' -f 2)"
+                    }
+                },
+                "cdk" : {
+                    "ic-cdk" : {
+                        "version" : "$(cargo tree -p ic-cdk --depth 0 | cut -d ' ' -f 2 | cut -c 2-)"
+                    }
+                }
+            }"#;
+            let tech_stack_config: TechStack = serde_json::from_str(s)?;
+            dfx_metadata.set_tech_stack(&tech_stack_config, info.get_workspace_root())?;
+        } else if info.is_motoko() {
+            // TODO: remove this when we have motoko extension
+            set_dfx_metadata = true;
+            let s = r#"{
+                "language" : {
+                    "motoko" : {}
+                }
+            }"#;
+            let tech_stack_config: TechStack = serde_json::from_str(s)?;
+            dfx_metadata.set_tech_stack(&tech_stack_config, info.get_workspace_root())?;
+        }
+
+        if set_dfx_metadata {
             let content = serde_json::to_string_pretty(&dfx_metadata)
                 .with_context(|| "Failed to serialize `dfx` metadata.".to_string())?;
             metadata_sections.insert(
@@ -165,7 +217,6 @@ impl Canister {
                     ..Default::default()
                 },
             );
-            public_candid = true;
         }
 
         if public_candid {
@@ -244,7 +295,7 @@ impl Canister {
             // gzip
             // Unlike using gzip CLI, the compression below only takes the wasm bytes
             // So as long as the wasm bytes are the same, the gzip file will be the same on different platforms.
-            trace!(logger, "Compressing WASM");
+            trace!(logger, "Compressing Wasm");
             compress_bytes(&m.emit_wasm())?
         } else {
             m.emit_wasm()
@@ -264,14 +315,14 @@ impl Canister {
 
         let IdlBuildOutput::File(build_idl_path) = &build_output.idl;
 
-        // 1. Copy the complete IDL file to .dfx/local/canisters/NAME/constructor.did.
+        // 1. Separate into constructor.did, service.did and init_args
+        let (constructor_did, service_did, init_args) = separate_candid(build_idl_path)?;
+
+        // 2. Copy the constructor IDL file to .dfx/local/canisters/NAME/constructor.did.
         let constructor_idl_path = self.info.get_constructor_idl_path();
         dfx_core::fs::composite::ensure_parent_dir_exists(&constructor_idl_path)?;
-        dfx_core::fs::copy(build_idl_path, &constructor_idl_path)?;
+        dfx_core::fs::write(&constructor_idl_path, constructor_did)?;
         dfx_core::fs::set_permissions_readwrite(&constructor_idl_path)?;
-
-        // 2. Separate into service.did and init_args
-        let (service_did, init_args) = separate_candid(build_idl_path)?;
 
         // 3. Save service.did into following places in .dfx/local/:
         //   - canisters/NAME/service.did
@@ -311,40 +362,76 @@ impl Canister {
     }
 }
 
-fn separate_candid(path: &Path) -> DfxResult<(String, String)> {
-    let (env, actor) = check_candid_file(path)?;
-    let actor = actor.ok_or_else(|| anyhow!("provided candid file contains no main service"))?;
-    if let candid::types::internal::TypeInner::Class(args, ty) = actor.as_ref() {
-        use candid::bindings::candid::pp_ty;
-        use candid::pretty::{concat, enclose};
+fn wasm_opt_level_convert(opt_level: WasmOptLevel) -> OptLevel {
+    use WasmOptLevel::*;
+    match opt_level {
+        O0 => OptLevel::O0,
+        O1 => OptLevel::O1,
+        O2 => OptLevel::O2,
+        O3 => OptLevel::O3,
+        O4 => OptLevel::O4,
+        Os => OptLevel::Os,
+        Oz => OptLevel::Oz,
+        Size => OptLevel::Oz,
+        Cycles => OptLevel::O3,
+    }
+}
 
-        let actor = Some(ty.clone());
-        let service_did = candid::bindings::candid::compile(&env, &actor);
-        let doc = concat(args.iter().map(pp_ty), ",");
-        let init_args = enclose("(", doc, ")").pretty(80).to_string();
-        Ok((service_did, init_args))
+fn separate_candid(path: &Path) -> DfxResult<(String, String, String)> {
+    use candid::pretty::candid::{compile, pp_args};
+    use candid::types::internal::TypeInner;
+    use candid_parser::{
+        pretty_parse,
+        types::{Dec, IDLProg},
+    };
+    let did = dfx_core::fs::read_to_string(path)?;
+    let prog = pretty_parse::<IDLProg>(&format!("{}", path.display()), &did)?;
+    let has_imports = prog
+        .decs
+        .iter()
+        .any(|dec| matches!(dec, Dec::ImportType(_) | Dec::ImportServ(_)));
+    let (env, actor) = CandidSource::File(path).load()?;
+    let actor = actor.ok_or_else(|| anyhow!("provided candid file contains no main service"))?;
+    let actor = env.trace_type(&actor)?;
+    let has_init_args = matches!(actor.as_ref(), TypeInner::Class(_, _));
+    if has_imports || has_init_args {
+        let (init_args, serv) = match actor.as_ref() {
+            TypeInner::Class(args, ty) => (args.clone(), ty.clone()),
+            TypeInner::Service(_) => (vec![], actor.clone()),
+            _ => unreachable!(),
+        };
+        let init_args = pp_args(&init_args).pretty(80).to_string();
+        let service = compile(&env, &Some(serv));
+        let constructor = compile(&env, &Some(actor));
+        Ok((constructor, service, init_args))
     } else {
-        // The original candid from builder output doesn't contain init_args
-        // Use it directly to avoid items reordering
-        let service_did = dfx_core::fs::read_to_string(path)?;
-        let init_args = String::from("()");
-        Ok((service_did, init_args))
+        // Keep the original did file to preserve comments
+        Ok((did.clone(), did, "()".to_string()))
     }
 }
 
 #[context("{} is not a valid subtype of {}", specified_idl_path.display(), compiled_idl_path.display())]
 fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> DfxResult {
-    let (mut env, opt_specified) =
-        check_candid_file(specified_idl_path).context("Checking specified candid file.")?;
+    use candid::types::subtype::{subtype_with_config, OptReport};
+    let (mut env, opt_specified) = CandidSource::File(specified_idl_path)
+        .load()
+        .context("Checking specified candid file.")?;
     let specified_type =
         opt_specified.expect("Specified did file should contain some service interface");
-    let (env2, opt_compiled) =
-        check_candid_file(compiled_idl_path).context("Checking compiled candid file.")?;
+    let (env2, opt_compiled) = CandidSource::File(compiled_idl_path)
+        .load()
+        .context("Checking compiled candid file.")?;
     let compiled_type =
         opt_compiled.expect("Compiled did file should contain some service interface");
     let mut gamma = HashSet::new();
     let specified_type = env.merge_type(env2, specified_type);
-    candid::types::subtype::subtype(&mut gamma, &env, &compiled_type, &specified_type)?;
+    subtype_with_config(
+        OptReport::Error,
+        &mut gamma,
+        &env,
+        &compiled_type,
+        &specified_type,
+    )?;
     Ok(())
 }
 
@@ -386,7 +473,7 @@ impl CanisterPool {
     ) -> DfxResult<Self> {
         let logger = env.get_logger().new(slog::o!());
         let config = env
-            .get_config()
+            .get_config()?
             .ok_or_else(|| anyhow!("Cannot find dfx configuration file in the current working directory. Did you forget to create one?"))?;
 
         let mut canisters_map = Vec::new();
@@ -784,15 +871,15 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
         .get_service_idl_path()
         .with_extension("did.d.ts");
 
-    let (env, ty) = check_candid_file(&canister_info.get_service_idl_path())?;
-    let content = ensure_trailing_newline(candid::bindings::javascript::compile(&env, &ty));
+    let (env, ty) = CandidSource::File(&canister_info.get_constructor_idl_path()).load()?;
+    let content = ensure_trailing_newline(candid_parser::bindings::javascript::compile(&env, &ty));
     std::fs::write(&output_did_js_path, content).with_context(|| {
         format!(
             "Failed to write to {}.",
             output_did_js_path.to_string_lossy()
         )
     })?;
-    let content = ensure_trailing_newline(candid::bindings::typescript::compile(&env, &ty));
+    let content = ensure_trailing_newline(candid_parser::bindings::typescript::compile(&env, &ty));
     std::fs::write(&output_did_ts_path, content).with_context(|| {
         format!(
             "Failed to write to {}.",
@@ -811,13 +898,17 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
         let mut file_contents = String::new();
         file.read_to_string(&mut file_contents)
             .context("Failed to read file content.")?;
+        let canister_name = canister_info.get_name();
+        let canister_name_ident = canister_name.replace('-', "_");
 
         let new_file_contents = file_contents
             .replace("{canister_id}", &canister_id.to_text())
-            .replace("{canister_name}", canister_info.get_name())
+            .replace("{canister_name}", canister_name)
+            .replace("{canister_name_ident}", &canister_name_ident)
+            .replace("{canister_name_uppercase}", &canister_name.to_uppercase())
             .replace(
-                "{canister_name_uppercase}",
-                &canister_info.get_name().to_uppercase(),
+                "{canister_name_ident_uppercase}",
+                &canister_name_ident.to_uppercase(),
             );
 
         match decode_path_to_str(&file.path()?)? {

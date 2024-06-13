@@ -9,7 +9,7 @@ use candid::Principal;
 use clap::Parser;
 use itertools::Itertools;
 
-/// Get the hash of a canister’s WASM module and its current controllers.
+/// Get the hash of a canister’s Wasm module and its current controllers.
 #[derive(Parser)]
 pub struct InfoOpts {
     /// Specifies the name or id of the canister to get its canister information.
@@ -17,9 +17,7 @@ pub struct InfoOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     let callee_canister = opts.canister.as_str();
     let canister_id_store = env.get_canister_id_store()?;

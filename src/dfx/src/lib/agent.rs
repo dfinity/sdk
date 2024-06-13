@@ -13,7 +13,7 @@ pub fn create_agent_environment<'a>(
     network: Option<String>,
 ) -> DfxResult<AgentEnvironment<'a>> {
     let network_descriptor = create_network_descriptor(
-        env.get_config(),
+        env.get_config()?,
         env.get_networks_config(),
         network,
         None,
@@ -28,7 +28,7 @@ pub fn create_anonymous_agent_environment<'a>(
     network: Option<String>,
 ) -> DfxResult<AgentEnvironment<'a>> {
     let network_descriptor = create_network_descriptor(
-        env.get_config(),
+        env.get_config()?,
         env.get_networks_config(),
         network,
         None,

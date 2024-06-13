@@ -9,7 +9,8 @@ use crate::lib::nns_types::icpts::{ICPTs, TRANSACTION_FEE};
 use crate::lib::operations::cmc::{notify_create, transfer_cmc};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::e8s_parser;
-use anyhow::{anyhow, bail, Context};
+use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
+use anyhow::{bail, Context};
 use candid::Principal;
 use clap::Parser;
 
@@ -51,11 +52,8 @@ pub struct CreateCanisterOpts {
     #[arg(long)]
     created_at_time: Option<u64>,
 
-    /// Specify the optional subnet type to create the canister on. If no
-    /// subnet type is provided, the canister will be created on a random
-    /// default application subnet.
-    #[arg(long)]
-    subnet_type: Option<String>,
+    #[command(flatten)]
+    subnet_selection: SubnetSelectionOpt,
 }
 
 pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult {
@@ -71,14 +69,18 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
         )
     })?;
 
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let agent = env.get_agent();
 
     fetch_root_key_if_needed(env).await?;
 
+    let subnet_selection = opts
+        .subnet_selection
+        .into_subnet_selection_type(env)
+        .await?;
+
     let height = transfer_cmc(
         agent,
+        env.get_logger(),
         memo,
         amount,
         fee,
@@ -89,7 +91,7 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
     .await?;
     println!("Using transfer at block height {height}");
 
-    let result = notify_create(agent, controller, height, opts.subnet_type).await;
+    let result = notify_create(agent, controller, height, subnet_selection).await;
 
     match result {
         Ok(principal) => {

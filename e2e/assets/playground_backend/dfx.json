@@ -19,7 +19,7 @@
   "defaults": {
     "build": {
       "output": "build",
-      "packtool": "mops sources"
+      "packtool": "./mops-sources"
     }
   }
 }

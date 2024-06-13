@@ -1,17 +1,19 @@
 use crate::commands::canister::call::get_effective_canister_id;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::operations::canister::get_local_cid_and_candid_path;
+use crate::lib::operations::canister::get_canister_id_and_candid_path;
 use crate::lib::sign::sign_transport::SignTransport;
 use crate::lib::sign::signed_message::SignedMessageV1;
-use crate::util::clap::parsers::file_or_stdin_parser;
-use crate::util::{arguments_from_file, blob_from_arguments, get_candid_type};
+use crate::util::clap::argument_from_cli::ArgumentFromCliPositionalOpt;
+use crate::util::{blob_from_arguments, get_candid_type};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
+use candid_parser::utils::CandidSource;
 use clap::Parser;
 use dfx_core::identity::CallSender;
 use ic_agent::AgentError;
 use ic_agent::RequestId;
+use ic_utils::interfaces::management_canister::MgmtMethod;
 use slog::info;
 use std::convert::TryInto;
 use std::fs::File;
@@ -24,11 +26,14 @@ use time::OffsetDateTime;
 /// Sign a canister call and generate message file.
 #[derive(Parser)]
 pub struct CanisterSignOpts {
-    /// Specifies the name of the canister to call.
+    /// Specifies the name/id of the canister to call.
     canister_name: String,
 
     /// Specifies the method name to call on the canister.
     method_name: String,
+
+    #[command(flatten)]
+    argument_from_cli: ArgumentFromCliPositionalOpt,
 
     /// Sends a query request to a canister.
     #[arg(long)]
@@ -38,25 +43,14 @@ pub struct CanisterSignOpts {
     #[arg(long, conflicts_with("query"))]
     update: bool,
 
-    /// Specifies the argument to pass to the method.
-    argument: Option<String>,
-
-    /// Specifies the file from which to read the argument to pass to the method.
+    /// Specifies the config for generating random argument.
     #[arg(
         long,
-        value_parser = file_or_stdin_parser,
-        conflicts_with("random"),
-        conflicts_with("argument")
+        conflicts_with("argument"),
+        conflicts_with("argument_file"),
+        conflicts_with("always_assist")
     )]
-    argument_file: Option<PathBuf>,
-
-    /// Specifies the config for generating random argument.
-    #[arg(long, conflicts_with("argument"))]
     random: Option<String>,
-
-    /// Specifies the data type for the argument when making the call using an argument.
-    #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
-    r#type: Option<String>,
 
     /// Specifies how long the message will be valid in seconds, default to be 300s (5 minutes)
     #[arg(long, default_value = "5m")]
@@ -65,6 +59,15 @@ pub struct CanisterSignOpts {
     /// Specifies the output file name.
     #[arg(long, default_value = "message.json")]
     file: PathBuf,
+
+    /// Always use Candid assist when the argument types are all optional.
+    #[arg(
+        long,
+        conflicts_with("argument"),
+        conflicts_with("argument_file"),
+        conflicts_with("random")
+    )]
+    always_assist: bool,
 }
 
 pub async fn exec(
@@ -77,36 +80,16 @@ pub async fn exec(
         bail!("`sign` currently doesn't support proxying through the wallet canister, please use `dfx canister sign --no-wallet ...`.");
     }
 
-    let callee_canister = opts.canister_name.as_str();
     let method_name = opts.method_name.as_str();
-    let canister_id_store = env.get_canister_id_store()?;
 
-    let (canister_id, maybe_candid_path) = match Principal::from_text(callee_canister) {
-        Ok(id) => {
-            if let Some(canister_name) = canister_id_store.get_name(callee_canister) {
-                get_local_cid_and_candid_path(env, canister_name, Some(id))?
-            } else {
-                // TODO fetch candid file from remote canister
-                (id, None)
-            }
-        }
-        Err(_) => {
-            let canister_id = canister_id_store.get(callee_canister)?;
-            get_local_cid_and_candid_path(env, callee_canister, Some(canister_id))?
-        }
-    };
+    let (canister_id, maybe_candid_path) =
+        get_canister_id_and_candid_path(env, opts.canister_name.as_str())?;
 
-    let method_type = maybe_candid_path.and_then(|path| get_candid_type(&path, method_name));
+    let method_type =
+        maybe_candid_path.and_then(|path| get_candid_type(CandidSource::File(&path), method_name));
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
-    let arguments_from_file = opts
-        .argument_file
-        .map(|v| arguments_from_file(&v))
-        .transpose()?;
-    let arguments = opts.argument.as_deref();
-    let arguments = arguments_from_file.as_deref().or(arguments);
-
-    let arg_type = opts.r#type.as_deref();
+    let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument_and_type()?;
     let is_query = match is_query_method {
         Some(true) => !opts.update,
         Some(false) => {
@@ -124,10 +107,16 @@ pub async fn exec(
 
     // Get the argument, get the type, convert the argument to the type and return
     // an error if any of it doesn't work.
-    let arg_value = blob_from_arguments(arguments, opts.random.as_deref(), arg_type, &method_type)?;
-    let agent = env
-        .get_agent()
-        .ok_or_else(|| anyhow!("Cannot get HTTP client from environment."))?;
+    let arg_value = blob_from_arguments(
+        Some(env),
+        argument_from_cli.as_deref(),
+        opts.random.as_deref(),
+        argument_type.as_deref(),
+        &method_type,
+        false,
+        opts.always_assist,
+    )?;
+    let agent = env.get_agent();
 
     let network = env
         .get_network_descriptor()
@@ -172,9 +161,17 @@ pub async fn exec(
     let mut sign_agent = agent.clone();
     sign_agent.set_transport(SignTransport::new(file_name.clone(), message_template));
 
-    let is_management_canister = canister_id == Principal::management_canister();
-    let effective_canister_id =
-        get_effective_canister_id(is_management_canister, method_name, &arg_value, canister_id)?;
+    let effective_canister_id = if canister_id == Principal::management_canister() {
+        let management_method = MgmtMethod::from_str(method_name).map_err(|_| {
+            anyhow!(
+                "Attempted to call an unsupported management canister method: {}",
+                method_name
+            )
+        })?;
+        get_effective_canister_id(&management_method, &arg_value)?
+    } else {
+        canister_id
+    };
 
     if is_query {
         let res = sign_agent

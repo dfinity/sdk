@@ -49,7 +49,7 @@ pub async fn initialize_integration_canister(
     };
     try_create_canister(agent, logger, &canister_id, &pulled_canister).await?;
 
-    let install_arg = blob_from_arguments(Some(init_arg), None, None, &None)?;
+    let install_arg = blob_from_arguments(None, Some(init_arg), None, None, &None, true, false)?;
     install_canister(agent, logger, &canister_id, wasm, install_arg, name).await
 }
 
@@ -68,7 +68,6 @@ async fn install_canister(
         // always reinstall pulled canister
         .with_mode(InstallMode::Reinstall)
         .with_raw_arg(install_args)
-        .call_and_wait()
         .await?;
     Ok(())
 }

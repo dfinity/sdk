@@ -38,10 +38,13 @@ use std::collections::HashMap;
 use std::path::Path;
 use walkdir::WalkDir;
 
+const KNOWN_DIRECTORIES: [&str; 1] = [".well-known"];
+
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
 pub async fn upload_content_and_assemble_sync_operations(
     canister: &Canister<'_>,
     dirs: &[&Path],
+    no_delete: bool,
     logger: &Logger,
 ) -> Result<CommitBatchArguments, UploadContentError> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
@@ -51,7 +54,14 @@ pub async fn upload_content_and_assemble_sync_operations(
         logger,
         "Fetching properties for all assets in the canister."
     );
+    let now = std::time::Instant::now();
     let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
+
+    info!(
+        logger,
+        "Done fetching properties for all assets in the canister. Took {:?}",
+        now.elapsed()
+    );
 
     info!(logger, "Starting batch.");
 
@@ -75,7 +85,10 @@ pub async fn upload_content_and_assemble_sync_operations(
     let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
         project_assets,
         canister_assets,
-        AssetDeletionReason::Obsolete,
+        match no_delete {
+            true => AssetDeletionReason::Incompatible,
+            false => AssetDeletionReason::Obsolete,
+        },
         canister_asset_properties,
         batch_id,
     );
@@ -103,10 +116,11 @@ pub async fn upload_content_and_assemble_sync_operations(
 pub async fn sync(
     canister: &Canister<'_>,
     dirs: &[&Path],
+    no_delete: bool,
     logger: &Logger,
 ) -> Result<(), SyncError> {
     let commit_batch_args =
-        upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
+        upload_content_and_assemble_sync_operations(canister, dirs, no_delete, logger).await?;
     let canister_api_version = api_version(canister).await;
     debug!(logger, "Canister API version: {canister_api_version}. ic-asset API version: {BATCH_UPLOAD_API_VERSION}");
     info!(logger, "Committing batch.");
@@ -138,7 +152,7 @@ async fn commit_in_stages(
         commit_batch(
             canister,
             CommitBatchArguments {
-                batch_id: Nat::from(0),
+                batch_id: Nat::from(0_u8),
                 operations: operations.into(),
             },
         )
@@ -156,7 +170,7 @@ async fn commit_in_stages(
         commit_batch(
             canister,
             CommitBatchArguments {
-                batch_id: Nat::from(0),
+                batch_id: Nat::from(0_u8),
                 operations: operations.into(),
             },
         )
@@ -180,7 +194,7 @@ pub async fn prepare_sync_for_proposal(
     dirs: &[&Path],
     logger: &Logger,
 ) -> Result<(), PrepareSyncForProposalError> {
-    let arg = upload_content_and_assemble_sync_operations(canister, dirs, logger).await?;
+    let arg = upload_content_and_assemble_sync_operations(canister, dirs, false, logger).await?;
     let arg = sort_batch_operations(arg);
     let batch_id = arg.batch_id.clone();
 
@@ -214,15 +228,17 @@ fn sort_batch_operations(mut args: CommitBatchArguments) -> CommitBatchArguments
 }
 
 fn include_entry(entry: &walkdir::DirEntry, config: &AssetConfig) -> bool {
-    let starts_with_a_dot = entry
-        .file_name()
-        .to_str()
-        .map(|s| s.starts_with('.'))
-        .unwrap_or(false);
-
-    match (starts_with_a_dot, config.ignore) {
-        (dot, None) => !dot,
-        (_dot, Some(ignored)) => !ignored,
+    if let Some(ignored) = config.ignore {
+        !ignored
+    } else if let Some(entry_name) = entry.file_name().to_str() {
+        let is_known = if entry.path().is_dir() {
+            KNOWN_DIRECTORIES.contains(&entry_name)
+        } else {
+            false
+        };
+        is_known || !entry_name.starts_with('.')
+    } else {
+        true
     }
 }
 
@@ -239,7 +255,7 @@ pub(crate) fn gather_asset_descriptors(
         let entries = WalkDir::new(&dir)
             .into_iter()
             .filter_entry(|entry| {
-                if let Ok(canonical_path) = &entry.path().canonicalize() {
+                if let Ok(canonical_path) = &dfx_core::fs::canonicalize(entry.path()) {
                     let config = configuration
                         .get_asset_config(canonical_path)
                         .unwrap_or_default();
@@ -772,6 +788,59 @@ mod test_gathering_asset_descriptors_with_tempdir {
             AssetDescriptor::default_from_path(&assets_dir, "file"),
             AssetDescriptor::default_from_path(&assets_dir, "dir/file"),
         ];
+
+        expected_asset_descriptors.sort_by_key(|v| v.source.clone());
+        asset_descriptors.sort_by_key(|v| v.source.clone());
+        assert_eq!(asset_descriptors, expected_asset_descriptors);
+    }
+
+    #[test]
+    fn known_directories_included_by_default() {
+        let files = HashMap::from([
+            // a typical use case of the .well-known folder
+            (
+                Path::new(".well-known/ic-domains").to_path_buf(),
+                "foo.bar.com".to_string(),
+            ),
+        ]);
+
+        let assets_temp_dir = create_temporary_assets_directory(files);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
+
+        let mut expected_asset_descriptors = vec![
+            AssetDescriptor::default_from_path(&assets_dir, "file"),
+            AssetDescriptor::default_from_path(&assets_dir, ".well-known/ic-domains"),
+        ];
+
+        expected_asset_descriptors.sort_by_key(|v| v.source.clone());
+        asset_descriptors.sort_by_key(|v| v.source.clone());
+        assert_eq!(asset_descriptors, expected_asset_descriptors);
+    }
+
+    #[test]
+    fn known_directories_can_be_ignored() {
+        let files = HashMap::from([
+            // a typical use case of the .well-known folder
+            (
+                Path::new(".well-known/ic-domains").to_path_buf(),
+                "foo.bar.com".to_string(),
+            ),
+            (
+                Path::new(".ic-assets.json").to_path_buf(),
+                r#"[
+                    {"match": ".well-known", "ignore": true}
+                ]"#
+                .to_string(),
+            ),
+        ]);
+
+        let assets_temp_dir = create_temporary_assets_directory(files);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
+
+        let mut expected_asset_descriptors =
+            vec![AssetDescriptor::default_from_path(&assets_dir, "file")];
 
         expected_asset_descriptors.sort_by_key(|v| v.source.clone());
         asset_descriptors.sort_by_key(|v| v.source.clone());

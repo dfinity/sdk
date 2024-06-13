@@ -91,15 +91,15 @@ fn config_network_to_network_descriptor(
                 .clone()
                 .or_else(|| project_defaults.and_then(|x| x.bitcoin.clone()))
                 .unwrap_or_default();
-            let bootstrap = local_provider
-                .bootstrap
-                .clone()
-                .or_else(|| project_defaults.and_then(|x| x.bootstrap.clone()))
-                .unwrap_or_default();
             let canister_http = local_provider
                 .canister_http
                 .clone()
                 .or_else(|| project_defaults.and_then(|x| x.canister_http.clone()))
+                .unwrap_or_default();
+            let proxy = local_provider
+                .proxy
+                .clone()
+                .or_else(|| project_defaults.and_then(|x| x.proxy.clone()))
                 .unwrap_or_default();
             let replica = local_provider
                 .replica
@@ -125,8 +125,8 @@ fn config_network_to_network_descriptor(
                 data_directory,
                 bind_address,
                 bitcoin,
-                bootstrap,
                 canister_http,
+                proxy,
                 replica,
                 local_scope,
                 legacy_pid_path,
@@ -229,11 +229,10 @@ fn create_shared_network_descriptor(
     let network = shared_config.get_interface().get_network(network_name);
     let network = match (network_name, network) {
         ("local", None) => {
-            if shared_config_file_exists {
-                info!(logger, "Using the default definition for the 'local' shared network because {} does not define it.", shared_config_display_path);
-            } else {
-                info!(logger, "Using the default definition for the 'local' shared network because {} does not exist.", shared_config_display_path);
-            }
+            info!(
+                logger,
+                "Using the default configuration for the local shared network."
+            );
 
             Some(ConfigNetwork::ConfigLocalProvider(ConfigLocalProvider {
                 bind: Some(String::from(DEFAULT_SHARED_LOCAL_BIND)),
@@ -243,6 +242,7 @@ fn create_shared_network_descriptor(
                 canister_http: None,
                 replica: None,
                 playground: None,
+                proxy: None,
             }))
         }
         (network_name, None) => {
@@ -353,17 +353,16 @@ fn create_project_network_descriptor(
                 network_name,
                 config.get_path().display(),
             );
-            warn!(
-                logger,
-                "Project-specific networks are deprecated and will be removed after February 2023."
-            );
 
-            let data_directory = config.get_temp_path().join("network").join(network_name);
-            let legacy_pid_path = Some(config.get_temp_path().join("pid"));
-            let ephemeral_wallet_config_path = config
-                .get_temp_path()
-                .join("local")
-                .join(WALLET_CONFIG_FILENAME);
+            let temp_path = match config.get_temp_path() {
+                Ok(temp_path) => temp_path,
+                Err(e) => {
+                    return Some(Err(NetworkConfigError::GetTempPath(e)));
+                }
+            };
+            let data_directory = temp_path.join("network").join(network_name);
+            let legacy_pid_path = Some(temp_path.join("pid"));
+            let ephemeral_wallet_config_path = temp_path.join("local").join(WALLET_CONFIG_FILENAME);
             Some(config_network_to_network_descriptor(
                 network_name,
                 config_network,
@@ -480,11 +479,11 @@ mod tests {
     use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
     use crate::config::model::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
     use crate::config::model::dfinity::{
-        to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
-        ConfigDefaultsReplica, ReplicaLogLevel,
+        to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsReplica,
+        ReplicaLogLevel,
     };
     use std::fs;
-    use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+    use std::net::SocketAddr;
     use std::str::FromStr;
 
     #[test]
@@ -598,7 +597,7 @@ mod tests {
             .unwrap();
         }
 
-        let config = Config::from_dir(&project_dir).unwrap().unwrap();
+        let config = Config::from_dir(&project_dir, None).unwrap().unwrap();
         let network_descriptor = create_network_descriptor(
             Some(Arc::new(config)),
             Arc::new(NetworksConfig::new().unwrap()),
@@ -1017,47 +1016,6 @@ mod tests {
             &ConfigDefaultsCanisterHttp {
                 enabled: true,
                 log_level: HttpAdapterLogLevel::Debug
-            }
-        );
-    }
-
-    #[test]
-    fn bootstrap_config_on_local_network() {
-        let config = Config::from_str(
-            r#"{
-              "networks": {
-                "local": {
-                  "bind": "127.0.0.1:8000",
-                  "bootstrap": {
-                    "ip": "0.0.0.0",
-                    "port": 12002,
-                    "timeout": 60000
-                  }
-                }
-              }
-        }"#,
-        )
-        .unwrap();
-
-        let network_descriptor = create_network_descriptor(
-            Some(Arc::new(config)),
-            Arc::new(NetworksConfig::new().unwrap()),
-            None,
-            None,
-            LocalBindDetermination::AsConfigured,
-        )
-        .unwrap();
-        let bootstrap_config = &network_descriptor
-            .local_server_descriptor()
-            .unwrap()
-            .bootstrap;
-
-        assert_eq!(
-            bootstrap_config,
-            &ConfigDefaultsBootstrap {
-                ip: IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)),
-                port: 12002,
-                timeout: 60000
             }
         );
     }

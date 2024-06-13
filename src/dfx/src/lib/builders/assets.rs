@@ -6,6 +6,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::program;
 use crate::util;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
@@ -26,6 +27,8 @@ struct AssetsBuilderExtra {
     /// the canister does not have a frontend or can be built using the default
     /// `npm run build` command.
     build: Vec<String>,
+    /// The NPM workspace that the project is located in.
+    workspace: Option<String>,
 }
 
 impl AssetsBuilderExtra {
@@ -44,10 +47,12 @@ impl AssetsBuilderExtra {
             .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
         let info = info.as_info::<AssetsCanisterInfo>()?;
         let build = info.get_build_tasks().to_owned();
+        let workspace = info.get_npm_workspace().map(str::to_owned);
 
         Ok(AssetsBuilderExtra {
             dependencies,
             build,
+            workspace,
         })
     }
 }
@@ -55,6 +60,8 @@ pub struct AssetsBuilder {
     _cache: Arc<dyn Cache>,
     logger: Logger,
 }
+unsafe impl Send for AssetsBuilder {}
+unsafe impl Sync for AssetsBuilder {}
 
 impl AssetsBuilder {
     #[context("Failed to create AssetBuilder.")]
@@ -106,6 +113,7 @@ impl CanisterBuilder for AssetsBuilder {
         let AssetsBuilderExtra {
             build,
             dependencies,
+            workspace,
         } = AssetsBuilderExtra::try_from(info, pool)?;
 
         let vars = super::get_and_write_environment_variables(
@@ -122,6 +130,7 @@ impl CanisterBuilder for AssetsBuilder {
             &config.network_name,
             vars,
             &build,
+            workspace.as_deref(),
         )?;
 
         let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
@@ -130,33 +139,14 @@ impl CanisterBuilder for AssetsBuilder {
         Ok(())
     }
 
-    #[context("Failed to generate idl for canister '{}'.", info.get_name())]
-    fn generate_idl(
+    fn get_candid_path(
         &self,
         _pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<std::path::PathBuf> {
-        let generate_output_dir = info
-            .get_declarations_config()
-            .output
-            .as_ref()
-            .context("`declarations.output` must not be None")?;
-
-        unpack_did(generate_output_dir)?;
-
-        let idl_path = generate_output_dir.join(Path::new("assetstorage.did"));
-        let idl_path_rename = generate_output_dir
-            .join(info.get_name())
-            .with_extension("")
-            .with_extension("did");
-        if idl_path.exists() {
-            std::fs::rename(&idl_path, &idl_path_rename)
-                .with_context(|| format!("Failed to rename {}.", idl_path.to_string_lossy()))?;
-            dfx_core::fs::set_permissions_readwrite(&idl_path_rename)?;
-        }
-
-        Ok(idl_path_rename)
+        let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
+        Ok(idl_path)
     }
 }
 
@@ -192,6 +182,7 @@ fn build_frontend(
     network_name: &str,
     vars: Vec<super::Env<'_>>,
     build: &[String],
+    workspace: Option<&str>,
 ) -> DfxResult {
     let custom_build_frontend = !build.is_empty();
     let build_frontend = project_root.join("package.json").exists();
@@ -206,24 +197,22 @@ fn build_frontend(
                 command
             );
 
-            // First separate everything as if it was read from a shell.
-            let args = shell_words::split(command)
-                .with_context(|| format!("Cannot parse command '{}'.", command))?;
-            // No commands, noop.
-            if !args.is_empty() {
-                super::run_command(args, &vars, project_root)
-                    .with_context(|| format!("Failed to run {}.", command))?;
-            }
+            super::run_command(command, &vars, project_root)
+                .with_context(|| format!("Failed to run {}.", command))?;
         }
     } else if build_frontend {
         // Frontend build.
         slog::info!(logger, "Building frontend...");
-        let mut cmd = std::process::Command::new("npm");
+        let mut cmd = std::process::Command::new(program::NPM);
 
         // Provide DFX_NETWORK at build time
         cmd.env("DFX_NETWORK", network_name);
 
         cmd.arg("run").arg("build");
+
+        if let Some(workspace) = workspace {
+            cmd.arg("--workspace").arg(workspace);
+        }
 
         if NetworkDescriptor::is_ic(network_name, &vec![]) {
             cmd.env("NODE_ENV", "production");

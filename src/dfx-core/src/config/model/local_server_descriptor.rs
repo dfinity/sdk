@@ -1,15 +1,19 @@
 use crate::config::model::bitcoin_adapter;
 use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
 use crate::config::model::dfinity::{
-    to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsBootstrap, ConfigDefaultsCanisterHttp,
+    to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsProxy,
     ConfigDefaultsReplica, ReplicaLogLevel, ReplicaSubnetType, DEFAULT_PROJECT_LOCAL_BIND,
     DEFAULT_SHARED_LOCAL_BIND,
 };
+use crate::config::model::replica_config::CachedConfig;
 use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
+use crate::error::structured_file::StructuredFileError;
+use crate::json::load_json_file;
+use crate::json::structure::SerdeVec;
 use slog::{debug, info, Logger};
-use std::net::{IpAddr, SocketAddr};
+use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -26,12 +30,13 @@ pub struct LocalServerDescriptor {
     ///     $HOME/.local/share/dfx/network/local
     ///     $APPDATA/dfx/network/local
     pub data_directory: PathBuf,
+    pub settings_digest: Option<String>,
 
     pub bind_address: SocketAddr,
 
     pub bitcoin: ConfigDefaultsBitcoin,
-    pub bootstrap: ConfigDefaultsBootstrap,
     pub canister_http: ConfigDefaultsCanisterHttp,
+    pub proxy: ConfigDefaultsProxy,
     pub replica: ConfigDefaultsReplica,
 
     pub scope: LocalNetworkScopeDescriptor,
@@ -52,19 +57,21 @@ impl LocalServerDescriptor {
         data_directory: PathBuf,
         bind: String,
         bitcoin: ConfigDefaultsBitcoin,
-        bootstrap: ConfigDefaultsBootstrap,
         canister_http: ConfigDefaultsCanisterHttp,
+        proxy: ConfigDefaultsProxy,
         replica: ConfigDefaultsReplica,
         scope: LocalNetworkScopeDescriptor,
         legacy_pid_path: Option<PathBuf>,
     ) -> Result<Self, NetworkConfigError> {
+        let settings_digest = None;
         let bind_address = to_socket_addr(&bind).map_err(ParseBindAddressFailed)?;
         Ok(LocalServerDescriptor {
             data_directory,
+            settings_digest,
             bind_address,
             bitcoin,
-            bootstrap,
             canister_http,
+            proxy,
             replica,
             scope,
             legacy_pid_path,
@@ -74,7 +81,7 @@ impl LocalServerDescriptor {
     /// The contents of this file are different for each `dfx start --clean`
     /// or `dfx start` when the network data directory doesn't already exist
     pub fn network_id_path(&self) -> PathBuf {
-        self.data_directory.join("network-id")
+        self.data_dir_by_settings_digest().join("network-id")
     }
 
     /// This file contains the pid of the process started with `dfx start`
@@ -95,11 +102,6 @@ impl LocalServerDescriptor {
     /// This file contains the pid of the icx-proxy process
     pub fn icx_proxy_pid_path(&self) -> PathBuf {
         self.data_directory.join("icx-proxy-pid")
-    }
-
-    /// This file contains the listening port of the ic-ref process
-    pub fn ic_ref_port_path(&self) -> PathBuf {
-        self.data_directory.join("ic-ref.port")
     }
 
     /// This file contains the pid of the ic-btc-adapter process
@@ -150,9 +152,36 @@ impl LocalServerDescriptor {
         self.replica_configuration_dir().join("replica-pid")
     }
 
+    /// This file contains the listening port of the pocket-ic process
+    pub fn pocketic_port_path(&self) -> PathBuf {
+        self.data_directory.join("pocket-ic-port")
+    }
+
+    pub fn pocketic_pid_path(&self) -> PathBuf {
+        self.data_directory.join("pocket-ic-pid")
+    }
+
+    /// Returns whether the local server is PocketIC (as opposed to the replica)
+    pub fn effective_config(&self) -> Result<Option<CachedConfig<'static>>, StructuredFileError> {
+        let path = self.effective_config_path();
+        path.exists().then(|| load_json_file(&path)).transpose()
+    }
+
+    pub fn data_dir_by_settings_digest(&self) -> PathBuf {
+        if self.scope == LocalNetworkScopeDescriptor::Project {
+            self.data_directory.clone()
+        } else {
+            let settings_digest = self
+                .settings_digest
+                .as_ref()
+                .expect("settings_digest must be set");
+            self.data_directory.join(settings_digest)
+        }
+    }
+
     /// The top-level directory holding state for the replica.
     pub fn state_dir(&self) -> PathBuf {
-        self.data_directory.join("state")
+        self.data_dir_by_settings_digest().join("state")
     }
 
     /// The replicated state of the replica.
@@ -169,6 +198,11 @@ impl LocalServerDescriptor {
     /// This file contains the effective config the replica was started with.
     pub fn effective_config_path(&self) -> PathBuf {
         self.data_directory.join("replica-effective-config.json")
+    }
+
+    pub fn effective_config_path_by_settings_digest(&self) -> PathBuf {
+        self.data_dir_by_settings_digest()
+            .join("replica-effective-config.json")
     }
 }
 
@@ -204,28 +238,18 @@ impl LocalServerDescriptor {
         Self { bitcoin, ..self }
     }
 
-    pub fn with_bootstrap_ip(self, ip: IpAddr) -> LocalServerDescriptor {
-        let bootstrap = ConfigDefaultsBootstrap {
-            ip,
-            ..self.bootstrap
+    pub fn with_proxy_domains(self, domains: Vec<String>) -> LocalServerDescriptor {
+        let proxy = ConfigDefaultsProxy {
+            domain: SerdeVec::Many(domains),
         };
-        Self { bootstrap, ..self }
+        Self { proxy, ..self }
     }
 
-    pub fn with_bootstrap_port(self, port: u16) -> LocalServerDescriptor {
-        let bootstrap = ConfigDefaultsBootstrap {
-            port,
-            ..self.bootstrap
-        };
-        Self { bootstrap, ..self }
-    }
-
-    pub fn with_bootstrap_timeout(self, timeout: u64) -> LocalServerDescriptor {
-        let bootstrap = ConfigDefaultsBootstrap {
-            timeout,
-            ..self.bootstrap
-        };
-        Self { bootstrap, ..self }
+    pub fn with_settings_digest(self, settings_digest: String) -> Self {
+        Self {
+            settings_digest: Some(settings_digest),
+            ..self
+        }
     }
 }
 
@@ -310,31 +334,6 @@ impl LocalServerDescriptor {
         debug!(log, "");
     }
 
-    pub fn describe_bootstrap(&self, log: &Logger) {
-        debug!(log, "Bootstrap configuration:");
-        let default: ConfigDefaultsBootstrap = Default::default();
-        let diffs = if self.bootstrap.ip != default.ip {
-            format!("  (default: {:?})", default.ip)
-        } else {
-            "".to_string()
-        };
-        debug!(log, "  ip: {:?}{}", self.bootstrap.ip, diffs);
-
-        let diffs = if self.bootstrap.port != default.port {
-            format!("  (default: {})", default.port)
-        } else {
-            "".to_string()
-        };
-        debug!(log, "  port: {}{}", self.bootstrap.port, diffs);
-
-        let diffs = if self.bootstrap.timeout != default.timeout {
-            format!("  (default: {})", default.timeout)
-        } else {
-            "".to_string()
-        };
-        debug!(log, "  timeout: {}{}", self.bootstrap.timeout, diffs);
-        debug!(log, "");
-    }
     /// Gets the port of a local replica.
     ///
     /// # Prerequisites
@@ -343,9 +342,8 @@ impl LocalServerDescriptor {
         &self,
         logger: Option<&Logger>,
     ) -> Result<Option<u16>, NetworkConfigError> {
-        let emulator_port_path = self.ic_ref_port_path();
         let replica_port_path = self.replica_port_path();
-
+        let pocketic_port_path = self.pocketic_port_path();
         match read_port_from(&replica_port_path)? {
             Some(port) => {
                 if let Some(logger) = logger {
@@ -353,10 +351,10 @@ impl LocalServerDescriptor {
                 }
                 Ok(Some(port))
             }
-            None => match read_port_from(&emulator_port_path)? {
+            None => match read_port_from(&pocketic_port_path)? {
                 Some(port) => {
                     if let Some(logger) = logger {
-                        info!(logger, "Found local emulator running on port {}", port);
+                        info!(logger, "Found local PocketIC running on port {}", port);
                     }
                     Ok(Some(port))
                 }

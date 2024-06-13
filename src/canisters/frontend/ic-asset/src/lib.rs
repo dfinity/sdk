@@ -3,7 +3,7 @@
 //! # Example
 //!
 //! ```rust,no_run
-//! use ic_agent::agent::{Agent, http_transport::ReqwestHttpReplicaV2Transport};
+//! use ic_agent::agent::{Agent, http_transport::ReqwestTransport};
 //! use ic_agent::identity::BasicIdentity;
 //! use ic_utils::Canister;
 //! use std::time::Duration;
@@ -12,7 +12,7 @@
 //! # let pemfile = "";
 //! # let canister_id = "";
 //! let agent = Agent::builder()
-//!     .with_transport(ReqwestHttpReplicaV2Transport::create(replica_url)?)
+//!     .with_transport(ReqwestTransport::create(replica_url)?)
 //!     .with_identity(BasicIdentity::from_pem_file(pemfile)?)
 //!     .build()?;
 //! let canister = Canister::builder()
@@ -20,7 +20,7 @@
 //!     .with_agent(&agent)
 //!     .build()?;
 //! let logger = slog::Logger::root(slog::Discard, slog::o!());
-//! ic_asset::sync(&canister, &[concat!(env!("CARGO_MANIFEST_DIR"), "assets/").as_ref()], &logger).await?;
+//! ic_asset::sync(&canister, &[concat!(env!("CARGO_MANIFEST_DIR"), "assets/").as_ref()], false, &logger).await?;
 //! # Ok(())
 //! # }
 
