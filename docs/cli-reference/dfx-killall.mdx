@@ -1,0 +1,23 @@
+import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
+
+# dfx stop
+
+<MarkdownChipRow labels={["Reference"]} />
+
+Use the `dfx killall` command to forcibly kill every DFX-related process.
+
+## Basic usage
+
+``` bash
+dfx killall [flag]
+```
+
+## Examples
+
+You can kill a stuck process that is not responding to `dfx stop` with this command:
+
+```bash
+dfx killall
+```
+
+This may impact IDE plugins, including from other versions of DFX. For ordinary usage `dfx stop` should be preferred.

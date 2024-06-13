@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: dfx killall
+
+Introduced `dfx killall`, a command for killing DFX-started processes.
+
 ### feat!: remove support for bitcoin query API
 
 `dfx call --query aaaaa-aa bitcoin_get_balance_query/bitcoin_get_utxos_query` will result in an error.

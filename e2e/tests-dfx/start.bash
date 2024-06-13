@@ -536,3 +536,9 @@ teardown() {
 @test "dfx start then ctrl-c won't hang and panic but stop actors quickly" {
   assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/ctrl_c_right_after_dfx_start.exp"
 }
+
+@test "dfx-started processes can be killed with dfx killall" {
+    dfx_start
+    dfx killall
+    assert_command_fail pgrep dfx replica icx-proxy
+}

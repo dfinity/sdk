@@ -44,24 +44,25 @@ command.
 
 For reference information and examples, select an appropriate subcommand.
 
-| Command                         | Description                                                                                                                                                                    |
-|---------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| bootstrap                       | Removed.  Use the `start` command instead.                                                                                                                                     |
+| Command                          | Description                                                                                                                                                                    |
+|----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| bootstrap                        | Removed.  Use the `start` command instead.                                                                                                                                     |
 | [`build`](./dfx-build.mdx)       | Builds canister output from the source code in your project.                                                                                                                   |
 | [`cache`](./dfx-cache.mdx)       | Manages the `dfx` cache on the local computer.                                                                                                                                 |
-| [`canister`](./dfx-canister.mdx) | Manages deployed canisters .                                                                                                                                                   |                                                                                                                    |
+| [`canister`](./dfx-canister.mdx) | Manages deployed canisters .                                                                                                                                                   |
 | [`deploy`](./dfx-deploy.mdx)     | Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.                                                                      |
-| diagnose                        | Detects known problems in the current environment caused by upgrading DFX, and suggests commands to fix them. These commands can be batch-run automatically via `dfx fix`      |
-| fix                             | Applies one-time fixes for known problems in the current environment caused by upgrading DFX. Makes no changes that would not have been suggested by `dfx diagnose`            |
-| generate                        | Generate type declarations for canisters from the code in your project                                                                                                         |
+| diagnose                         | Detects known problems in the current environment caused by upgrading DFX, and suggests commands to fix them. These commands can be batch-run automatically via `dfx fix`      |
+| fix                              | Applies one-time fixes for known problems in the current environment caused by upgrading DFX. Makes no changes that would not have been suggested by `dfx diagnose`            |
+| generate                         | Generate type declarations for canisters from the code in your project                                                                                                         |
 | [`help`](./dfx-help.mdx)         | Displays usage information for a specified subcommand.                                                                                                                         |
 | [`identity`](./dfx-identity.mdx) | Enables you to create and manage the identities used to communicate with the IC.                                                                                               |
-| info                            | Displays information like port numbers and version numbers.                                                                                                                    |
+| info                             | Displays information like port numbers and version numbers.                                                                                                                    |
+| [`killall`](./dfx-killall.mdx)   | Kills any dfx-related processes that have gotten stuck                                                                                                                         |
 | [`ledger`](./dfx-ledger.mdx)     | Enables you to interact with accounts in the ledger canister running on the Internet Computer.                                                                                 |
 | [`new`](./dfx-new.mdx)           | Creates a new project.                                                                                                                                                         |
 | [`ping`](./dfx-ping.mdx)         | Sends a response request to the IC or the local canister execution environment to determine network connectivity. If the connection is successful, a status reply is returned. |
-| quickstart                      | Perform initial one time setup for your identity and/or wallet.                                                                                                                |
-| remote                          | Commands used to work with remote canisters.                                                                                                                                   |
+| quickstart                       | Perform initial one time setup for your identity and/or wallet.                                                                                                                |
+| remote                           | Commands used to work with remote canisters.                                                                                                                                   |
 | [`replica`](./dfx-replica.mdx)   | Removed.  Use the `start` command instead.                                                                                                                                     |
 | [`schema`](./dfx-schema.mdx)     | Prints the schema for `dfx.json`.                                                                                                                                              |
 | [`start`](./dfx-start.mdx)       | Starts the local canister execution environment a web server for the current project.                                                                                          |
