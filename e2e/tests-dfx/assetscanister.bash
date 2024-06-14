@@ -1316,7 +1316,7 @@ EOF
     },
     {
       "match": "index.html",
-      "encodings": []
+      "encodings": ["identity"]
     }
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 

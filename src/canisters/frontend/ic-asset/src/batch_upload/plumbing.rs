@@ -156,12 +156,13 @@ async fn make_encoding(
     asset_descriptor: &AssetDescriptor,
     canister_assets: &HashMap<String, AssetDetails>,
     content: &Content,
-    encoder: &Option<ContentEncoder>,
+    encoder: &ContentEncoder,
+    make_even_if_identity_is_smaller: bool,
     semaphores: &Semaphores,
     logger: &Logger,
 ) -> Result<Option<(String, ProjectAssetEncoding)>, CreateEncodingError> {
     match encoder {
-        None => {
+        ContentEncoder::Identity => {
             let identity_asset_encoding = make_project_asset_encoding(
                 chunk_upload_target,
                 asset_descriptor,
@@ -178,11 +179,11 @@ async fn make_encoding(
                 identity_asset_encoding,
             )))
         }
-        Some(encoder) => {
+        encoder => {
             let encoded = content.encode(encoder).map_err(|e| {
                 EncodeContentFailed(asset_descriptor.key.clone(), encoder.clone(), e)
             })?;
-            if encoded.data.len() < content.data.len() {
+            if make_even_if_identity_is_smaller || encoded.data.len() < content.data.len() {
                 let content_encoding = format!("{}", encoder);
                 let project_asset_encoding = make_project_asset_encoding(
                     chunk_upload_target,
@@ -211,25 +212,23 @@ async fn make_encodings(
     semaphores: &Semaphores,
     logger: &Logger,
 ) -> Result<HashMap<String, ProjectAssetEncoding>, CreateEncodingError> {
-    let mut encoders = vec![None];
-    let additional_encoders = asset_descriptor
+    let encoders = asset_descriptor
         .config
         .encodings
         .clone()
         .unwrap_or_else(|| default_encoders(&content.media_type));
-    for encoder in additional_encoders {
-        encoders.push(Some(encoder));
-    }
+    let make_even_if_identity_is_smaller = !encoders.contains(&ContentEncoder::Identity);
 
     let encoding_futures: Vec<_> = encoders
         .iter()
-        .map(|maybe_encoder| {
+        .map(|encoder| {
             make_encoding(
                 chunk_upload_target,
                 asset_descriptor,
                 canister_assets,
                 content,
-                maybe_encoder,
+                encoder,
+                make_even_if_identity_is_smaller,
                 semaphores,
                 logger,
             )
@@ -374,7 +373,9 @@ fn content_encoding_descriptive_suffix(content_encoding: &str) -> String {
 
 fn default_encoders(media_type: &Mime) -> Vec<ContentEncoder> {
     match (media_type.type_(), media_type.subtype()) {
-        (mime::TEXT, _) | (_, mime::JAVASCRIPT) | (_, mime::HTML) => vec![ContentEncoder::Gzip],
-        _ => vec![],
+        (mime::TEXT, _) | (_, mime::JAVASCRIPT) | (_, mime::HTML) => {
+            vec![ContentEncoder::Identity, ContentEncoder::Gzip]
+        }
+        _ => vec![ContentEncoder::Identity],
     }
 }

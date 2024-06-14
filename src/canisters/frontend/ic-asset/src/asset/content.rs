@@ -7,6 +7,7 @@ use sha2::{Digest, Sha256};
 use std::io::Write;
 use std::path::Path;
 
+#[derive(Clone)]
 pub(crate) struct Content {
     pub data: Vec<u8>,
     pub media_type: Mime,
@@ -27,6 +28,7 @@ impl Content {
     pub fn encode(&self, encoder: &ContentEncoder) -> Result<Content, std::io::Error> {
         match encoder {
             ContentEncoder::Gzip => self.to_gzip(),
+            ContentEncoder::Identity => Ok(self.clone()),
         }
     }
 
