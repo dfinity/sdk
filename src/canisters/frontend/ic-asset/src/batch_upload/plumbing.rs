@@ -212,7 +212,12 @@ async fn make_encodings(
     logger: &Logger,
 ) -> Result<HashMap<String, ProjectAssetEncoding>, CreateEncodingError> {
     let mut encoders = vec![None];
-    for encoder in applicable_encoders(&content.media_type) {
+    let additional_encoders = asset_descriptor
+        .config
+        .encodings
+        .clone()
+        .unwrap_or_else(|| default_encoders(&content.media_type));
+    for encoder in additional_encoders {
         encoders.push(Some(encoder));
     }
 
@@ -367,8 +372,7 @@ fn content_encoding_descriptive_suffix(content_encoding: &str) -> String {
     }
 }
 
-// todo: make this configurable https://github.com/dfinity/dx-triage/issues/152
-fn applicable_encoders(media_type: &Mime) -> Vec<ContentEncoder> {
+fn default_encoders(media_type: &Mime) -> Vec<ContentEncoder> {
     match (media_type.type_(), media_type.subtype()) {
         (mime::TEXT, _) | (_, mime::JAVASCRIPT) | (_, mime::HTML) => vec![ContentEncoder::Gzip],
         _ => vec![],

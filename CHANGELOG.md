@@ -60,6 +60,23 @@ different replica version or different replica options.
 
 It doesn't apply to `--pocketic` because PocketIC does not yet persist any data.
 
+### feat: allow specifying encodings in `.ic-assets.json`
+
+When uploading assets to an asset canister, `dfx` by default uploads `.txt`, `.html` and `.js` files in `identity` encoding but also in `gzip` encoding to the frontend canister if compression saves bytes.
+It is now possible to specify in `.ic-assets.json` which encodings are used besides `identity`.
+
+Example: To turn off `gzip` for `.js` files and to turn on `gzip` for `.jpg` files, use this in `.ic-assets.json`:
+``` json
+{
+  "match": "**/*.js",
+  "encodings": []
+},
+{
+  "match": "**/*.jpg",
+  "encodings": ["gzip"]
+}
+```
+
 ### feat: `dfx canister url`
 
 Add `dfx canister url` subcommand to display the url of a given canister. Basic usage as below:

@@ -12,6 +12,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use super::content_encoder::ContentEncoder;
+
 pub(crate) const ASSETS_CONFIG_FILENAME_JSON: &str = ".ic-assets.json";
 pub(crate) const ASSETS_CONFIG_FILENAME_JSON5: &str = ".ic-assets.json5";
 
@@ -25,6 +27,7 @@ pub struct AssetConfig {
     pub(crate) enable_aliasing: Option<bool>,
     #[derivative(Default(value = "Some(true)"))]
     pub(crate) allow_raw_access: Option<bool>,
+    pub(crate) encodings: Option<Vec<ContentEncoder>>,
 }
 
 pub(crate) type HeadersConfig = BTreeMap<String, String>;
@@ -60,6 +63,8 @@ pub struct AssetConfigRule {
     /// Redirects the traffic from .raw.icp0.io domain to .icp0.io
     #[serde(skip_serializing_if = "Option::is_none")]
     allow_raw_access: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    encodings: Option<Vec<ContentEncoder>>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -256,6 +261,10 @@ impl AssetConfig {
         if other.allow_raw_access.is_some() {
             self.allow_raw_access = other.allow_raw_access;
         }
+
+        if other.encodings.is_some() {
+            self.encodings = other.encodings.clone();
+        }
         self
     }
 }
@@ -264,8 +273,10 @@ impl AssetConfig {
 /// and pretty-printing of the `AssetConfigRule` data structure.
 mod rule_utils {
     use super::{AssetConfig, AssetConfigRule, CacheConfig, HeadersConfig, Maybe};
+    use crate::asset::content_encoder::ContentEncoder;
     use crate::error::LoadRuleError;
     use globset::{Glob, GlobMatcher};
+    use itertools::Itertools;
     use serde::{Deserialize, Serializer};
     use serde_json::Value;
     use std::collections::BTreeMap;
@@ -345,6 +356,7 @@ mod rule_utils {
         ignore: Option<bool>,
         enable_aliasing: Option<bool>,
         allow_raw_access: Option<bool>,
+        encodings: Option<Vec<ContentEncoder>>,
     }
 
     impl AssetConfigRule {
@@ -356,6 +368,7 @@ mod rule_utils {
                 ignore,
                 enable_aliasing,
                 allow_raw_access,
+                encodings,
             }: InterimAssetConfigRule,
             config_file_parent_dir: &Path,
         ) -> Result<Self, LoadRuleError> {
@@ -378,6 +391,7 @@ mod rule_utils {
                 used: false,
                 enable_aliasing,
                 allow_raw_access,
+                encodings,
             })
         }
     }
@@ -405,6 +419,9 @@ mod rule_utils {
                             s.push_str(" headers");
                         }
                     }
+                }
+                if let Some(encodings) = self.encodings.as_ref() {
+                    s.push_str(&format!(" and {} encodings", encodings.len()));
                 }
                 s.push(')');
             }
@@ -446,6 +463,12 @@ mod rule_utils {
                         value = value
                     ));
                 }
+            }
+            if let Some(encodings) = self.encodings.as_ref() {
+                s.push_str(&format!(
+                    "  - encodings: {}",
+                    encodings.iter().map(|enc| enc.to_string()).join(",")
+                ));
             }
 
             write!(f, "{}", s)
@@ -679,6 +702,40 @@ mod with_tempdir {
                 .unwrap()
                 .iter()
                 .collect::<BTreeMap<_, _>>(),
+        );
+    }
+
+    #[test]
+    fn overriding_encodings() {
+        let cfg = Some(HashMap::from([
+            (
+                "".to_string(),
+                r#"[{"match": "**/*.txt", "encodings": []},{"match": "**/*.unknown", "encodings": ["gzip"]}]"#.to_string(),
+            ),
+        ]));
+        let assets_temp_dir = create_temporary_assets_directory(cfg, 7);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
+        // override default (.unknown defaults to empty list)
+        assert_eq!(
+            assets_config
+                .get_asset_config(assets_dir.join("file.unknown").as_path())
+                .unwrap(),
+            AssetConfig {
+                encodings: Some(Vec::from([ContentEncoder::Gzip])),
+                ..Default::default()
+            }
+        );
+        // override default with empty list (.txt defaults to gzip)
+        assert_eq!(
+            assets_config
+                .get_asset_config(assets_dir.join("text.txt").as_path())
+                .unwrap(),
+            AssetConfig {
+                encodings: Some(Vec::from([])),
+                ..Default::default()
+            }
         );
     }
 
