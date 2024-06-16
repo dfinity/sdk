@@ -10,6 +10,7 @@ impl DfsFiltered {
         Self {}
     }
 
+    // FIXME: For certain input graphs, the number of variants grows exponentially.
     pub fn traverse2<G, NodeId, P, C, NodeWeight>(
         &mut self,
         graph: G,
@@ -40,9 +41,6 @@ impl DfsFiltered {
         P: FnMut(&NodeId) -> DfxResult<bool>,
         NodeId: Copy + Eq,
     {
-        if !predicate(&node_id)? {
-            return Ok(());
-        }
         let ancestor_id = ancestors
             .iter()
             .rev()
@@ -54,9 +52,11 @@ impl DfsFiltered {
                 }
             })
             .transpose()?;
-        if let Some(ancestor_id) = ancestor_id {
-            assert!(ancestor_id != node_id);
-            call(&ancestor_id, &node_id)?;
+        if predicate(&node_id)? {
+            if let Some(ancestor_id) = ancestor_id {
+                assert!(ancestor_id != node_id);
+                call(&ancestor_id, &node_id)?;
+            }
         }
         ancestors.push(node_id);
         for subnode_id in graph.neighbors(node_id) {
