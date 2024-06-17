@@ -30,6 +30,7 @@ pub struct LocalServerDescriptor {
     ///     $HOME/.local/share/dfx/network/local
     ///     $APPDATA/dfx/network/local
     pub data_directory: PathBuf,
+    pub settings_digest: Option<String>,
 
     pub bind_address: SocketAddr,
 
@@ -62,9 +63,11 @@ impl LocalServerDescriptor {
         scope: LocalNetworkScopeDescriptor,
         legacy_pid_path: Option<PathBuf>,
     ) -> Result<Self, NetworkConfigError> {
+        let settings_digest = None;
         let bind_address = to_socket_addr(&bind).map_err(ParseBindAddressFailed)?;
         Ok(LocalServerDescriptor {
             data_directory,
+            settings_digest,
             bind_address,
             bitcoin,
             canister_http,
@@ -78,7 +81,7 @@ impl LocalServerDescriptor {
     /// The contents of this file are different for each `dfx start --clean`
     /// or `dfx start` when the network data directory doesn't already exist
     pub fn network_id_path(&self) -> PathBuf {
-        self.data_directory.join("network-id")
+        self.data_dir_by_settings_digest().join("network-id")
     }
 
     /// This file contains the pid of the process started with `dfx start`
@@ -164,9 +167,21 @@ impl LocalServerDescriptor {
         path.exists().then(|| load_json_file(&path)).transpose()
     }
 
+    pub fn data_dir_by_settings_digest(&self) -> PathBuf {
+        if self.scope == LocalNetworkScopeDescriptor::Project {
+            self.data_directory.clone()
+        } else {
+            let settings_digest = self
+                .settings_digest
+                .as_ref()
+                .expect("settings_digest must be set");
+            self.data_directory.join(settings_digest)
+        }
+    }
+
     /// The top-level directory holding state for the replica.
     pub fn state_dir(&self) -> PathBuf {
-        self.data_directory.join("state")
+        self.data_dir_by_settings_digest().join("state")
     }
 
     /// The replicated state of the replica.
@@ -183,6 +198,11 @@ impl LocalServerDescriptor {
     /// This file contains the effective config the replica was started with.
     pub fn effective_config_path(&self) -> PathBuf {
         self.data_directory.join("replica-effective-config.json")
+    }
+
+    pub fn effective_config_path_by_settings_digest(&self) -> PathBuf {
+        self.data_dir_by_settings_digest()
+            .join("replica-effective-config.json")
     }
 }
 
@@ -223,6 +243,13 @@ impl LocalServerDescriptor {
             domain: SerdeVec::Many(domains),
         };
         Self { proxy, ..self }
+    }
+
+    pub fn with_settings_digest(self, settings_digest: String) -> Self {
+        Self {
+            settings_digest: Some(settings_digest),
+            ..self
+        }
     }
 }
 

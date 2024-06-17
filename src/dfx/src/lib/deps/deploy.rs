@@ -27,7 +27,6 @@ pub async fn try_create_canister(
             info!(logger, "Creating canister: {canister_prompt}");
             mgr.create_canister()
                 .as_provisional_create_with_specified_id(*canister_id)
-                .call_and_wait()
                 .await?;
             Ok(())
         }

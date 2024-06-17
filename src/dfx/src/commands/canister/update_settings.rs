@@ -2,14 +2,14 @@ use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
-    get_compute_allocation, get_freezing_threshold, get_memory_allocation,
+    get_compute_allocation, get_freezing_threshold, get_log_visibility, get_memory_allocation,
     get_reserved_cycles_limit, get_wasm_memory_limit, CanisterSettings,
 };
 use crate::lib::operations::canister::{get_canister_status, update_settings};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
-    compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
-    reserved_cycles_limit_parser, wasm_memory_limit_parser,
+    compute_allocation_parser, freezing_threshold_parser, log_visibility_parser,
+    memory_allocation_parser, reserved_cycles_limit_parser, wasm_memory_limit_parser,
 };
 use anyhow::{bail, Context};
 use byte_unit::Byte;
@@ -20,6 +20,7 @@ use dfx_core::error::identity::instantiate_identity_from_name::InstantiateIdenti
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::identity::Identity;
+use ic_utils::interfaces::management_canister::LogVisibility;
 
 /// Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.)
 #[derive(Parser, Debug)]
@@ -87,6 +88,11 @@ pub struct UpdateSettingsOpts {
     #[arg(long, value_parser = wasm_memory_limit_parser)]
     wasm_memory_limit: Option<Byte>,
 
+    /// Specifies who is allowed to read the canister's logs.
+    /// Can be either "controllers" or "public".
+    #[arg(long, value_parser = log_visibility_parser)]
+    log_visibility: Option<LogVisibility>,
+
     /// Freezing thresholds above ~1.5 years require this flag as confirmation.
     #[arg(long)]
     confirm_very_long_freezing_threshold: bool,
@@ -151,6 +157,8 @@ pub async fn exec(
             get_reserved_cycles_limit(opts.reserved_cycles_limit, config_interface, canister_name)?;
         let wasm_memory_limit =
             get_wasm_memory_limit(opts.wasm_memory_limit, config_interface, canister_name)?;
+        let log_visibility =
+            get_log_visibility(opts.log_visibility, config_interface, canister_name)?;
         if let Some(added) = &opts.add_controller {
             let status = get_canister_status(env, canister_id, call_sender).await?;
             let mut existing_controllers = status.settings.controllers;
@@ -184,6 +192,7 @@ pub async fn exec(
             freezing_threshold,
             reserved_cycles_limit,
             wasm_memory_limit,
+            log_visibility,
         };
         update_settings(env, canister_id, settings, call_sender).await?;
         display_controller_update(&opts, canister_name_or_id);
@@ -231,6 +240,12 @@ pub async fn exec(
                     Some(canister_name),
                 )
                 .with_context(|| format!("Failed to get Wasm memory limit for {canister_name}."))?;
+                let log_visibility = get_log_visibility(
+                    opts.log_visibility,
+                    Some(config_interface),
+                    Some(canister_name),
+                )
+                .with_context(|| format!("Failed to get log visibility for {canister_name}."))?;
                 if let Some(added) = &opts.add_controller {
                     let status = get_canister_status(env, canister_id, call_sender).await?;
                     let mut existing_controllers = status.settings.controllers;
@@ -264,6 +279,7 @@ pub async fn exec(
                     freezing_threshold,
                     reserved_cycles_limit,
                     wasm_memory_limit,
+                    log_visibility,
                 };
                 update_settings(env, canister_id, settings, call_sender).await?;
                 display_controller_update(&opts, canister_name);

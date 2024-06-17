@@ -200,3 +200,14 @@ teardown() {
   assert_match "not part of the controllers" # this is part of the error explanation
   assert_match "'dfx canister update-settings --add-controller <controller principal to add> <canister id/name or --all> \(--network ic\)'" # this is part of the solution
 }
+
+@test "bad wallet canisters get diagnosed" {
+  dfx_new hello
+  dfx_start
+  dfx deploy hello_backend --no-wallet
+  id=$(dfx canister id hello_backend)
+  dfx identity set-wallet "$id" --force
+  assert_command_fail dfx wallet balance
+  assert_contains "it did not contain a function that dfx was looking for"
+  assert_contains "dfx identity set-wallet <PRINCIPAL> --identity <IDENTITY>"
+}

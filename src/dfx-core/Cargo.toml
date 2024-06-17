@@ -35,6 +35,7 @@ sec1 = { workspace = true, features = ["std"] }
 semver = { workspace = true, features = ["serde"] }
 serde.workspace = true
 serde_json.workspace = true
+sha2.workspace = true
 slog = { workspace = true, features = ["max_level_trace"] }
 tar.workspace = true
 tempfile.workspace = true

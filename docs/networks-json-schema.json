@@ -46,7 +46,6 @@
         "nodes": {
           "title": "Available Nodes",
           "description": "Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient).",
-          "default": null,
           "type": [
             "array",
             "null"

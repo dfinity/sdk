@@ -61,6 +61,20 @@ teardown() {
   assert_contains "Canister exceeded its current Wasm memory limit of 8 bytes"
 }
 
+@test "set log visibility" {
+  dfx_new
+  dfx_start
+  assert_command dfx deploy e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Log visibility: controllers"
+  assert_command dfx canister update-settings e2e_project_backend --log-visibility public
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Log visibility: public"
+  assert_command dfx canister update-settings e2e_project_backend --log-visibility controllers
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Log visibility: controllers"
+}
+
 @test "set controller" {
   # Create two identities
   assert_command dfx identity new --storage-mode plaintext alice

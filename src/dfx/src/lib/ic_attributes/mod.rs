@@ -7,6 +7,7 @@ use fn_error_context::context;
 use ic_utils::interfaces::management_canister::{
     attributes::{ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit},
     builders::WasmMemoryLimit,
+    LogVisibility,
 };
 use num_traits::ToPrimitive;
 use std::convert::TryFrom;
@@ -19,6 +20,7 @@ pub struct CanisterSettings {
     pub freezing_threshold: Option<FreezingThreshold>,
     pub reserved_cycles_limit: Option<ReservedCyclesLimit>,
     pub wasm_memory_limit: Option<WasmMemoryLimit>,
+    pub log_visibility: Option<LogVisibility>,
 }
 
 impl From<CanisterSettings>
@@ -47,6 +49,7 @@ impl From<CanisterSettings>
                 .wasm_memory_limit
                 .map(u64::from)
                 .map(candid::Nat::from),
+            log_visibility: value.log_visibility,
         }
     }
 }
@@ -102,6 +105,7 @@ impl TryFrom<ic_utils::interfaces::management_canister::builders::CanisterSettin
                         .context("Wasm memory limit must be between 0 and 2^48-1, inclusively.")
                 })
                 .transpose()?,
+            log_visibility: value.log_visibility,
         })
     }
 }
@@ -211,4 +215,19 @@ pub fn get_wasm_memory_limit(
                 .context("Wasm memory limit must be between 0 and 2^48 (i.e 256TB), inclusively.")
         })
         .transpose()
+}
+
+pub fn get_log_visibility(
+    log_visibility: Option<LogVisibility>,
+    config_interface: Option<&ConfigInterface>,
+    canister_name: Option<&str>,
+) -> DfxResult<Option<LogVisibility>> {
+    let log_visibility = match (log_visibility, config_interface, canister_name) {
+        (Some(log_visibility), _, _) => Some(log_visibility),
+        (None, Some(config_interface), Some(canister_name)) => {
+            config_interface.get_log_visibility(canister_name)?
+        }
+        _ => None,
+    };
+    Ok(log_visibility)
 }
