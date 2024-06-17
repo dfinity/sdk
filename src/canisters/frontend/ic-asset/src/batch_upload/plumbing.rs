@@ -157,7 +157,7 @@ async fn make_encoding(
     canister_assets: &HashMap<String, AssetDetails>,
     content: &Content,
     encoder: &ContentEncoder,
-    make_even_if_identity_is_smaller: bool,
+    force_encoding: bool,
     semaphores: &Semaphores,
     logger: &Logger,
 ) -> Result<Option<(String, ProjectAssetEncoding)>, CreateEncodingError> {
@@ -183,7 +183,7 @@ async fn make_encoding(
             let encoded = content.encode(encoder).map_err(|e| {
                 EncodeContentFailed(asset_descriptor.key.clone(), encoder.to_owned(), e)
             })?;
-            if make_even_if_identity_is_smaller || encoded.data.len() < content.data.len() {
+            if force_encoding || encoded.data.len() < content.data.len() {
                 let content_encoding = format!("{}", encoder);
                 let project_asset_encoding = make_project_asset_encoding(
                     chunk_upload_target,
@@ -217,7 +217,10 @@ async fn make_encodings(
         .encodings
         .clone()
         .unwrap_or_else(|| default_encoders(&content.media_type));
-    let make_even_if_identity_is_smaller = !encoders.contains(&ContentEncoder::Identity);
+    // The identity encoding is always uploaded if it's in the list of chosen encodings.
+    // Other encoding are only uploaded if they save bytes compared to identity.
+    // The encoding is forced through the filter if there is no identity encoding to compare against.
+    let force_encoding = !encoders.contains(&ContentEncoder::Identity);
 
     let encoding_futures: Vec<_> = encoders
         .iter()
@@ -228,7 +231,7 @@ async fn make_encodings(
                 canister_assets,
                 content,
                 encoder,
-                make_even_if_identity_is_smaller,
+                force_encoding,
                 semaphores,
                 logger,
             )
