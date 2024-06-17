@@ -50,7 +50,7 @@ if [ "$E2E_TEST" = "tests-dfx/build_rust.bash" ]; then
 fi
 
 if [ "$E2E_TEST" = "tests-dfx/deps.bash" ]; then
-     cargo install cargo-binstall
+     cargo install cargo-binstall@1.6.9
      cargo binstall -y ic-wasm
 fi
 
