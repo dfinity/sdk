@@ -181,7 +181,7 @@ async fn make_encoding(
         }
         encoder => {
             let encoded = content.encode(encoder).map_err(|e| {
-                EncodeContentFailed(asset_descriptor.key.clone(), encoder.clone(), e)
+                EncodeContentFailed(asset_descriptor.key.clone(), encoder.to_owned(), e)
             })?;
             if make_even_if_identity_is_smaller || encoded.data.len() < content.data.len() {
                 let content_encoding = format!("{}", encoder);
