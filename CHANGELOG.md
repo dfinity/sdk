@@ -64,7 +64,7 @@ It doesn't apply to `--pocketic` because PocketIC does not yet persist any data.
 
 When uploading assets to an asset canister, `dfx` by default uploads `.txt`, `.html` and `.js` files in `identity` encoding but also in `gzip` encoding to the frontend canister if encoding saves bytes.
 It is now possible to specify in `.ic-assets.json` which encodings are used besides `identity`.
-Note that encodings are only used if either `identity` is not a specified encoding or if the encoding saves bytes compared to `identity`.
+Note that encodings are only used if the encoding saves bytes compared to `identity` or if `identity` is not a specified encoding.
 
 Example: To turn off `gzip` for `.js` files and to turn on `gzip` for `.jpg` files, use this in `.ic-assets.json`:
 ``` json
