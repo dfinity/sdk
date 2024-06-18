@@ -6,7 +6,6 @@ pub enum ContentEncoder {
     Gzip,
     #[serde(alias = "br")]
     Brotli,
-    #[serde(alias = "id")]
     Identity,
 }
 

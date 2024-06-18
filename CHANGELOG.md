@@ -96,9 +96,12 @@ and `dfx canister update-settings`, or in `dfx.json` under `canisters[].initiali
 
 ## Asset canister synchronization
 
-### feat: upload `br` encoding for `text`, `js`, and `html` MIME types
+### feat: support `brotli` encoding
 
-Asset synchronization now not only uploads `identity` and `gzip` as encodings for MIME types `text`, `js`, and `html`, but also `br` encoding. 
+Asset synchronization now not only supports `identity` and `gzip`, but also `brotli` encoding.
+The default encodings are still
+- `identity` and `gzip` for MIME types `.txt`, `.html` and `.js`
+- `identity` for anything else
 
 ## Dependencies
 
