@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: dfx killall
+
+Introduced `dfx killall`, a command for killing DFX-started processes.
+
 ### feat!: remove support for bitcoin query API
 
 `dfx call --query aaaaa-aa bitcoin_get_balance_query/bitcoin_get_utxos_query` will result in an error.
@@ -55,6 +59,24 @@ defines the local network, you'll still be prompted to run with `--clean` if usi
 different replica version or different replica options.
 
 It doesn't apply to `--pocketic` because PocketIC does not yet persist any data.
+
+### feat: allow specifying encodings in `.ic-assets.json`
+
+When uploading assets to an asset canister, `dfx` by default uploads `.txt`, `.html` and `.js` files in `identity` encoding but also in `gzip` encoding to the frontend canister if encoding saves bytes.
+It is now possible to specify in `.ic-assets.json` which encodings are used besides `identity`.
+Note that encodings are only used if the encoding saves bytes compared to `identity` or if `identity` is not a specified encoding.
+
+Example: To turn off `gzip` for `.js` files and to turn on `gzip` for `.jpg` files, use this in `.ic-assets.json`:
+``` json
+{
+  "match": "**/*.js",
+  "encodings": ["identity"]
+},
+{
+  "match": "**/*.jpg",
+  "encodings": ["identity", "gzip"]
+}
+```
 
 ### feat: `dfx canister url`
 

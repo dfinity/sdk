@@ -841,6 +841,12 @@ check_permission_failure() {
     echo "some easily duplicate text $i" >>src/e2e_project_frontend/assets/notreally.js
   done
 
+  echo '[{
+      "match": "*.js",
+      "encodings": ["identity", "br"]
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
   dfx_start
   assert_command dfx deploy
   dfx canister call --query e2e_project_frontend list '(record{})'
@@ -1331,6 +1337,40 @@ EOF
   assert_match "content-encoding: my-encoding"
   assert_match "content-type: x-type"
   assert_match "etag: my-custom-etag"
+}
+
+@test "asset configuration via .ic-assets.json5 - overwriting default encodings" {
+  dfx_new_frontend
+
+  dfx_start
+
+  echo '[
+    {
+      "match": "favicon.ico",
+      "encodings": ["gzip"]
+    },
+    {
+      "match": "index.html",
+      "encodings": ["identity"]
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+  dfx deploy
+
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+
+  dfx canister call e2e_project_frontend list '(record{})'
+
+  # favicon.ico is not available in gzip format by default but was configured to be
+  assert_command curl -vv -H "Accept-Encoding: gzip" "http://localhost:$PORT/favicon.ico?canisterId=$ID"
+  assert_match "content-encoding: gzip"
+
+  # index.html is available in gzip format by default but was configured not to be
+  # The asset canister would serve the gzip encoding if it was available, but can't.
+  # Therefore it falls back to the identity encoding, meaning there is no `content-encoding` header present
+  assert_command curl -vv -H "Accept-Encoding: gzip" "http://localhost:$PORT/index.html?canisterId=$ID"
+  assert_not_match "content-encoding"
 }
 
 @test "aliasing rules: <filename> to <filename>.html or <filename>/index.html" {
