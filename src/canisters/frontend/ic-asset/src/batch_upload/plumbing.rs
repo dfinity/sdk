@@ -156,12 +156,13 @@ async fn make_encoding(
     asset_descriptor: &AssetDescriptor,
     canister_assets: &HashMap<String, AssetDetails>,
     content: &Content,
-    encoder: &Option<ContentEncoder>,
+    encoder: &ContentEncoder,
+    force_encoding: bool,
     semaphores: &Semaphores,
     logger: &Logger,
 ) -> Result<Option<(String, ProjectAssetEncoding)>, CreateEncodingError> {
     match encoder {
-        None => {
+        ContentEncoder::Identity => {
             let identity_asset_encoding = make_project_asset_encoding(
                 chunk_upload_target,
                 asset_descriptor,
@@ -178,11 +179,11 @@ async fn make_encoding(
                 identity_asset_encoding,
             )))
         }
-        Some(encoder) => {
+        encoder => {
             let encoded = content.encode(encoder).map_err(|e| {
-                EncodeContentFailed(asset_descriptor.key.clone(), encoder.clone(), e)
+                EncodeContentFailed(asset_descriptor.key.clone(), encoder.to_owned(), e)
             })?;
-            if encoded.data.len() < content.data.len() {
+            if force_encoding || encoded.data.len() < content.data.len() {
                 let content_encoding = format!("{}", encoder);
                 let project_asset_encoding = make_project_asset_encoding(
                     chunk_upload_target,
@@ -211,20 +212,26 @@ async fn make_encodings(
     semaphores: &Semaphores,
     logger: &Logger,
 ) -> Result<HashMap<String, ProjectAssetEncoding>, CreateEncodingError> {
-    let mut encoders = vec![None];
-    for encoder in applicable_encoders(&content.media_type) {
-        encoders.push(Some(encoder));
-    }
+    let encoders = asset_descriptor
+        .config
+        .encodings
+        .clone()
+        .unwrap_or_else(|| default_encoders(&content.media_type));
+    // The identity encoding is always uploaded if it's in the list of chosen encodings.
+    // Other encoding are only uploaded if they save bytes compared to identity.
+    // The encoding is forced through the filter if there is no identity encoding to compare against.
+    let force_encoding = !encoders.contains(&ContentEncoder::Identity);
 
     let encoding_futures: Vec<_> = encoders
         .iter()
-        .map(|maybe_encoder| {
+        .map(|encoder| {
             make_encoding(
                 chunk_upload_target,
                 asset_descriptor,
                 canister_assets,
                 content,
-                maybe_encoder,
+                encoder,
+                force_encoding,
                 semaphores,
                 logger,
             )
@@ -367,10 +374,11 @@ fn content_encoding_descriptive_suffix(content_encoding: &str) -> String {
     }
 }
 
-// todo: make this configurable https://github.com/dfinity/dx-triage/issues/152
-fn applicable_encoders(media_type: &Mime) -> Vec<ContentEncoder> {
+fn default_encoders(media_type: &Mime) -> Vec<ContentEncoder> {
     match (media_type.type_(), media_type.subtype()) {
-        (mime::TEXT, _) | (_, mime::JAVASCRIPT) | (_, mime::HTML) => vec![ContentEncoder::Gzip],
-        _ => vec![],
+        (mime::TEXT, _) | (_, mime::JAVASCRIPT) | (_, mime::HTML) => {
+            vec![ContentEncoder::Identity, ContentEncoder::Gzip]
+        }
+        _ => vec![ContentEncoder::Identity],
     }
 }
