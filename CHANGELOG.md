@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.21.0
+
 ### feat: dfx killall
 
 Introduced `dfx killall`, a command for killing DFX-started processes.
