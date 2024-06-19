@@ -122,6 +122,16 @@ URLs that contain invalid encodings now return `400 Bad Request` instead of `500
 - Module hash: 2cc4ec4381dee231379270a08403c984986c9fc0c2eaadb64488b704a3104cc0
 - https://github.com/dfinity/sdk/pull/3767
 
+### Replica
+
+Updated replica to elected commit 246d0ce0784d9990c06904809722ce5c2c816269.
+This incorporates the following executed proposals:
+
+- [130392](https://dashboard.internetcomputer.org/proposal/130392)
+- [130400](https://dashboard.internetcomputer.org/proposal/130400)
+- [130315](https://dashboard.internetcomputer.org/proposal/130315)
+- [130134](https://dashboard.internetcomputer.org/proposal/130134)
+
 # 0.20.2
 
 ### fix: `dfx canister delete` fails
