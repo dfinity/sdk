@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### feat!: enable cycles ledger support by default
+
 ### feat: dfx killall
 
 Introduced `dfx killall`, a command for killing DFX-started processes.
