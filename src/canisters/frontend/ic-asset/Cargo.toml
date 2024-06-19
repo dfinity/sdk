@@ -13,6 +13,7 @@ keywords = ["internet-computer", "assets", "icp", "dfinity"]
 
 [dependencies]
 backoff.workspace = true
+brotli = "6.0.0"
 candid = { workspace = true }
 derivative = "2.2.0"
 dfx-core = { path = "../../../dfx-core" }

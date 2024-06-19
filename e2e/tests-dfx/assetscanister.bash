@@ -835,6 +835,41 @@ check_permission_failure() {
   diff encoded-compressed-2 src/e2e_project_frontend/assets/notreally.js
 }
 
+@test "can use brotli compression" {
+  install_asset assetscanister
+  for i in $(seq 1 400); do
+    echo "some easily duplicate text $i" >>src/e2e_project_frontend/assets/notreally.js
+  done
+
+  echo '[{
+      "match": "*.js",
+      "encodings": ["identity", "br"]
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+  dfx_start
+  assert_command dfx deploy
+  dfx canister call --query e2e_project_frontend list '(record{})'
+
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+
+  assert_command curl -v --output not-compressed http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+  assert_not_match "content-encoding:"
+  diff not-compressed src/e2e_project_frontend/assets/notreally.js
+
+  assert_command curl -v --output encoded-compressed-1.br -H "Accept-Encoding: br" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+  assert_match "content-encoding: br"
+  brotli --decompress encoded-compressed-1.br
+  diff encoded-compressed-1 src/e2e_project_frontend/assets/notreally.js
+
+  # should split up accept-encoding lines with more than one encoding
+  assert_command curl -v --output encoded-compressed-2.br -H "Accept-Encoding: br, deflate, gzip" http://localhost:"$PORT"/notreally.js?canisterId="$ID"
+  assert_match "content-encoding: br"
+  brotli --decompress encoded-compressed-2.br
+  diff encoded-compressed-2 src/e2e_project_frontend/assets/notreally.js
+}
+
 @test "leaves in place files that were already installed" {
   install_asset assetscanister
   dd if=/dev/urandom of=src/e2e_project_frontend/assets/asset1.bin bs=400000 count=1

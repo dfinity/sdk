@@ -94,6 +94,15 @@ Adds support for the `log_visibility` canister setting, which configures which u
 Valid options are `controllers` and `public`. The setting can be used with the `--log-visibility` flag in `dfx canister create`
 and `dfx canister update-settings`, or in `dfx.json` under `canisters[].initialization_values.log_visibility`.
 
+## Asset canister synchronization
+
+### feat: support `brotli` encoding
+
+Asset synchronization now not only supports `identity` and `gzip`, but also `brotli` encoding.
+The default encodings are still
+- `identity` and `gzip` for MIME types `.txt`, `.html` and `.js`
+- `identity` for anything else
+
 ## Dependencies
 
 ### Frontend canister

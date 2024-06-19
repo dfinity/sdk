@@ -1,5 +1,5 @@
 use crate::asset::content::Content;
-use crate::asset::content_encoder::ContentEncoder::Gzip;
+use crate::asset::content_encoder::ContentEncoder::{Brotli, Gzip};
 use crate::batch_upload::operations::assemble_batch_operations;
 use crate::batch_upload::operations::AssetDeletionReason::Obsolete;
 use crate::batch_upload::plumbing::{make_project_assets, ProjectAsset};
@@ -123,14 +123,15 @@ fn hash_set_asset_content(
 
     let content = {
         let identity = Content::load(&ad.source).map_err(LoadContentFailed)?;
-        if args.content_encoding == "identity" {
-            identity
-        } else if args.content_encoding == "gzip" {
-            identity
+        match args.content_encoding.as_str() {
+            "identity" => identity,
+            "br" | "brotli" => identity
+                .encode(&Brotli)
+                .map_err(|e| EncodeContentFailed(ad.key.clone(), Brotli, e))?,
+            "gzip" => identity
                 .encode(&Gzip)
-                .map_err(|e| EncodeContentFailed(ad.key.clone(), Gzip, e))?
-        } else {
-            unreachable!("unhandled content encoder");
+                .map_err(|e| EncodeContentFailed(ad.key.clone(), Gzip, e))?,
+            _ => unreachable!("unhandled content encoder"),
         }
     };
     hasher.update(&content.data);
