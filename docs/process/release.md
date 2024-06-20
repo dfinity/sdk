@@ -5,6 +5,8 @@
 ### Update the Replica Version
 
 Click the "Run workflow" button on the [Update Replica page](https://github.com/dfinity/sdk/actions/workflows/update-replica-version.yml) workflow.
+This will create a new PR. 
+Incorporate the suggested changes to CHANGELOG.md in the PR branch. To this end, copy the section `## Dependencies`, if not present already, and `## Replica`, including all proposals that have not been listed in the previous release.
 
 Obtain approval and merge the PR.
 
@@ -15,13 +17,13 @@ new dfx version underneath the "# Unreleased" header.  Further changes to dfx
 should be added under the "#Unreleased" header, unless they are ported to
 the release branch.
 
+If you create a new patch version, make sure there will be no breaking changes included.
+
 [Sample PR](https://github.com/dfinity/sdk/pull/3486)
 
 ### Create the Release Branch
 
 Create a release branch from `master`, for example `release-0.15.3`.
-
-If you create a new patch version make sure there will be no breaking changes included.
 
 This branch will be used to create beta releases as well as the final release.
 
@@ -32,9 +34,9 @@ This branch will be used to create beta releases as well as the final release.
    It will:
     - Build `dfx` from clean;
     - Validate the default project interactively;
-    - Create a beta release branch which update the version number in manifest files and push to GitHub;
+    - Create a beta release branch, which updates the version number in the manifest files, and then push to GitHub;
     - Wait for you to:
-        - Create a PR from the new branch to the release branch,
+        - Create a PR from the beta release branch to the release branch,
       e.g. into `release-0.15.3` from `adam/release-0.15.3-beta.0`;
         - Obtain approval and merge the PR;
     - Push a tag which triggers the [publish][publish-workflow] workflow;
@@ -49,7 +51,7 @@ This branch will be used to create beta releases as well as the final release.
     > dfxvm install 0.15.3-beta.1
     > ```
     >
-    > See also release notes.
+    > See also the release notes.
 1. Post a message to the forum about availability of the not-yet-promoted beta, linking to the GitHub release notes.
 
 [Sample PR](https://github.com/dfinity/sdk/pull/3477)
