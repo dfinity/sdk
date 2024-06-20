@@ -44,3 +44,4 @@ pub use evidence::compute_evidence;
 pub use sync::prepare_sync_for_proposal;
 pub use sync::sync;
 pub use upload::upload;
+pub use upload::upload_and_propose;
