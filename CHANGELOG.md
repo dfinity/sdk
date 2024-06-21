@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### chore!: removed `unsafe-eval` CSP from default starter template
+
+To do this, the `@dfinity/agent` version was updated as well.
+
 # 0.21.0
 
 ### feat: dfx killall
