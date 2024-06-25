@@ -15,7 +15,7 @@ pub enum DependencyRequirement {
 }
 
 #[derive(Deserialize, Debug, JsonSchema)]
-pub struct DependencyManifest(
+pub struct ExtensionDependencies(
     pub HashMap<ExtensionVersion, HashMap<DependencyName, DependencyRequirement>>,
 );
 
@@ -35,7 +35,7 @@ fn parse_test_file() {
   }
 }
 "#;
-    let m: Result<DependencyManifest, serde_json::Error> = dbg!(serde_json::from_str(f));
+    let m: Result<ExtensionDependencies, serde_json::Error> = dbg!(serde_json::from_str(f));
     assert!(m.is_ok());
     let manifest = m.unwrap();
 
