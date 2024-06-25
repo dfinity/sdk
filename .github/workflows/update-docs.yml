@@ -34,7 +34,8 @@ jobs:
             echo "(None)"
           else
             echo
-            echo "There are schema changes."
-            echo "Run the above commands locally to update the schema docs."
+            echo "There are code changes to the JSON schema in this PR, but the schema docs have not been updated."
+            echo
+            echo "Run the above commands locally to update the JSON schema docs."
             exit 1
           fi
