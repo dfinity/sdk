@@ -1,4 +1,4 @@
-name: Update Docs
+name: Update Schema Docs
 on: pull_request
 
 concurrency:
@@ -12,16 +12,13 @@ env:
   CURL_HOME: .
 
 jobs:
-  update_dfx_json_schema:
-    # Workflow breaks if it gets executed on an external PR
-    if: github.event.pull_request.head.repo.full_name == github.repository
+  update_all_schema_docs:
+    name: schema-docs:required
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{github.event.pull_request.head.repo.full_name}}
       - name: Check cargo build
         run: cargo build
       - name: Show download worked
@@ -35,12 +32,9 @@ jobs:
           echo "Schema changes:"
           if git diff --exit-code ; then
             echo "(None)"
-          fi
-
-          if [[ -n $(git status --porcelain) ]]; then
-            git config user.name "GitHub Actions Bot"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add docs/*-schema.json
-            git commit -m "update schema docs" || true
-            git push
+          else
+            echo
+            echo "There are schema changes."
+            echo "Run the above commands locally to update the schema docs."
+            exit 1
           fi
