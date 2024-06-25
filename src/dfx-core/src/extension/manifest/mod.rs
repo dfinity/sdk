@@ -7,8 +7,8 @@ pub use compatibility_matrix::ExtensionCompatibilityMatrix;
 /// URL to the `compatibility.json` file.
 pub use compatibility_matrix::COMMON_EXTENSIONS_MANIFEST_LOCATION;
 
-pub mod extension;
 pub mod dependencies;
+pub mod extension;
 
 /// `manifest.json` is a file describing the extension.
 pub use extension::ExtensionManifest;

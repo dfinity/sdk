@@ -1,10 +1,10 @@
 use candid::Deserialize;
 use schemars::JsonSchema;
+use semver::VersionReq;
 use serde::Serialize;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
-use semver::VersionReq;
 
 #[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, PartialEq, Eq)]
 #[serde(untagged)]
@@ -58,9 +58,9 @@ where
 
 #[derive(Debug, Deserialize, JsonSchema)]
 #[serde(transparent)]
-pub struct VersionReqWrapper(#[schemars(with = "String")] pub VersionReq);
+pub struct VersionReqWithJsonSchema(#[schemars(with = "String")] pub VersionReq);
 
-impl Deref for VersionReqWrapper {
+impl Deref for VersionReqWithJsonSchema {
     type Target = VersionReq;
 
     fn deref(&self) -> &Self::Target {
@@ -68,9 +68,8 @@ impl Deref for VersionReqWrapper {
     }
 }
 
-impl DerefMut for VersionReqWrapper {
+impl DerefMut for VersionReqWithJsonSchema {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
 }
-

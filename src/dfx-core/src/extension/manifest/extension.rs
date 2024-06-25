@@ -2,6 +2,7 @@ use crate::error::extension::{
     ConvertExtensionSubcommandIntoClapArgError, ConvertExtensionSubcommandIntoClapCommandError,
     LoadExtensionManifestError,
 };
+use crate::json::structure::VersionReqWithJsonSchema;
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
@@ -10,9 +11,6 @@ use std::{
     collections::{BTreeMap, HashMap},
     path::Path,
 };
-use std::ops::{Deref, DerefMut};
-use semver::VersionReq;
-use crate::json::structure::VersionReqWrapper;
 
 pub static MANIFEST_FILE_NAME: &str = "extension.json";
 
@@ -39,7 +37,7 @@ pub struct ExtensionManifest {
 #[serde(untagged)]
 pub enum ExtensionDependency {
     /// A SemVer version requirement, for example ">=0.17.0".
-    Version(VersionReqWrapper),
+    Version(VersionReqWithJsonSchema),
 }
 
 impl ExtensionManifest {
@@ -379,8 +377,8 @@ fn parse_test_file() {
     let dependencies = manifest.dependencies.as_ref().unwrap();
     let dfx_dep = dependencies.get("dfx").unwrap();
     let ExtensionDependency::Version(req) = dfx_dep;
-    assert!(req.matches(&semver::Version::new(0,8,5)));
-    assert!(!req.matches(&semver::Version::new(0,9,0)));
+    assert!(req.matches(&semver::Version::new(0, 8, 5)));
+    assert!(!req.matches(&semver::Version::new(0, 9, 0)));
 
     let mut subcmds = dbg!(manifest.into_clap_commands().unwrap());
 

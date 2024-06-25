@@ -31,10 +31,10 @@ pub fn exec(opts: SchemaOpts) -> DfxResult {
         Some(ForFile::DfxMetadata) => schema_for!(DfxMetadata),
         Some(ForFile::ExtensionManifest) => {
             schema_for!(dfx_core::extension::manifest::ExtensionManifest)
-        },
+        }
         Some(ForFile::ExtensionDependencies) => {
             schema_for!(dfx_core::extension::manifest::dependencies::DependencyManifest)
-        },
+        }
         _ => schema_for!(ConfigInterface),
     };
     let nice_schema =
