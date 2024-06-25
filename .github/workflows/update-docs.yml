@@ -33,7 +33,9 @@ jobs:
           cargo run -- schema --for dfx-metadata --outfile docs/dfx-metadata-schema.json
 
           echo "Schema changes:"
-          git diff --exit-code || echo "(None)"
+          if git diff --exit-code ; then
+            echo "(None)"
+          fi
 
           if [[ -n $(git status --porcelain) ]]; then
             git config user.name "GitHub Actions Bot"
