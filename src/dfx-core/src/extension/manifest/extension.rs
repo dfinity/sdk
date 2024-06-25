@@ -10,6 +10,9 @@ use std::{
     collections::{BTreeMap, HashMap},
     path::Path,
 };
+use std::ops::{Deref, DerefMut};
+use semver::VersionReq;
+use crate::json::structure::VersionReqWrapper;
 
 pub static MANIFEST_FILE_NAME: &str = "extension.json";
 
@@ -28,8 +31,15 @@ pub struct ExtensionManifest {
     pub keywords: Option<Vec<String>>,
     pub description: Option<String>,
     pub subcommands: Option<ExtensionSubcommandsOpts>,
-    pub dependencies: Option<HashMap<String, String>>,
+    pub dependencies: Option<HashMap<String, ExtensionDependency>>,
     pub canister_type: Option<ExtensionCanisterType>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum ExtensionDependency {
+    /// A SemVer version requirement, for example ">=0.17.0".
+    Version(VersionReqWrapper),
 }
 
 impl ExtensionManifest {
@@ -236,6 +246,9 @@ fn parse_test_file() {
     "sns",
     "nns"
   ],
+  "dependencies": {
+    "dfx": ">=0.8, <0.9"
+  },
   "keywords": [
     "sns",
     "nns",
@@ -361,8 +374,15 @@ fn parse_test_file() {
 
     let m: Result<ExtensionManifest, serde_json::Error> = dbg!(serde_json::from_str(f));
     assert!(m.is_ok());
+    let manifest = m.unwrap();
 
-    let mut subcmds = dbg!(m.unwrap().into_clap_commands().unwrap());
+    let dependencies = manifest.dependencies.as_ref().unwrap();
+    let dfx_dep = dependencies.get("dfx").unwrap();
+    let ExtensionDependency::Version(req) = dfx_dep;
+    assert!(req.matches(&semver::Version::new(0,8,5)));
+    assert!(!req.matches(&semver::Version::new(0,9,0)));
+
+    let mut subcmds = dbg!(manifest.into_clap_commands().unwrap());
 
     use clap::error::ErrorKind::*;
     for c in &mut subcmds {
