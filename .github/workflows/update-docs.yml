@@ -23,7 +23,7 @@ jobs:
         run: cargo build
       - name: Show download worked
         run: cargo run -- --version
-      - name: Update any changed schema docs
+      - name: Check for changes
         run: |
           cargo run -- schema --outfile docs/dfx-json-schema.json
           cargo run -- schema --for networks --outfile docs/networks-json-schema.json
