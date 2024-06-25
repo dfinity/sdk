@@ -1,4 +1,4 @@
-name: Ensure any JSON schema changes applied
+name: Ensure JSON schema docs are up-to-date
 on: pull_request
 
 concurrency:
