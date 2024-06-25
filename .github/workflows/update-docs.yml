@@ -1,4 +1,4 @@
-name: Update Schema Docs
+name: Ensure any JSON schema changes applied
 on: pull_request
 
 concurrency:
@@ -12,8 +12,8 @@ env:
   CURL_HOME: .
 
 jobs:
-  update_all_json_schema_docs:
-    name: json-schema-docs:required
+  check:
+    name: update-json-schema-docs:required
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
