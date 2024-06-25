@@ -28,6 +28,7 @@ jobs:
           cargo run -- schema --outfile docs/dfx-json-schema.json
           cargo run -- schema --for networks --outfile docs/networks-json-schema.json
           cargo run -- schema --for dfx-metadata --outfile docs/dfx-metadata-schema.json
+          cargo run -- schema --for extension-manifest --outfile docs/extension-manifest-schema.json
 
           echo "JSON Schema changes:"
           if git diff --exit-code ; then
