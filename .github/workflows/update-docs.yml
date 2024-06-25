@@ -12,8 +12,8 @@ env:
   CURL_HOME: .
 
 jobs:
-  update_all_schema_docs:
-    name: schema-docs:required
+  update_all_json_schema_docs:
+    name: json-schema-docs:required
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -29,12 +29,13 @@ jobs:
           cargo run -- schema --for networks --outfile docs/networks-json-schema.json
           cargo run -- schema --for dfx-metadata --outfile docs/dfx-metadata-schema.json
 
-          echo "Schema changes:"
+          echo "JSON Schema changes:"
           if git diff --exit-code ; then
             echo "(None)"
           else
             echo
-            echo "There are code changes to the JSON schema in this PR, but the schema docs have not been updated."
+            echo "There are code changes in this PR that the JSON schema should reflect,"
+            echo "but the JSON schema docs have not been updated."
             echo
             echo "Run the above commands locally to update the JSON schema docs."
             exit 1
