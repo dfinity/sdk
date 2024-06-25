@@ -1005,7 +1005,7 @@
     },
     "NetworkType": {
       "title": "Network Type",
-      "description": "Type 'ephemeral' is used for networks that are regularly reset. Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.",
+      "description": "Type 'ephemeral' is used for networks that are regularly reset. Type 'persistent' is used for networks that last for a long time and where it is preferred to store canister IDs in source control.",
       "type": "string",
       "enum": [
         "ephemeral",
