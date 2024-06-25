@@ -1,4 +1,4 @@
-name: Update Docs
+name: Ensure JSON schema docs are up-to-date
 on: pull_request
 
 concurrency:
@@ -12,35 +12,31 @@ env:
   CURL_HOME: .
 
 jobs:
-  update_dfx_json_schema:
-    # Workflow breaks if it gets executed on an external PR
-    if: github.event.pull_request.head.repo.full_name == github.repository
+  check:
+    name: json-schema-docs-up-to-date:required
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{github.event.pull_request.head.repo.full_name}}
       - name: Check cargo build
         run: cargo build
       - name: Show download worked
         run: cargo run -- --version
-      - name: Update any changed schema docs
+      - name: Check for changes
         run: |
           cargo run -- schema --outfile docs/dfx-json-schema.json
           cargo run -- schema --for networks --outfile docs/networks-json-schema.json
           cargo run -- schema --for dfx-metadata --outfile docs/dfx-metadata-schema.json
 
-          echo "Schema changes:"
+          echo "JSON Schema changes:"
           if git diff --exit-code ; then
             echo "(None)"
-          fi
-
-          if [[ -n $(git status --porcelain) ]]; then
-            git config user.name "GitHub Actions Bot"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add docs/*-schema.json
-            git commit -m "update schema docs" || true
-            git push
+          else
+            echo
+            echo "There are code changes in this PR that the JSON schema should reflect,"
+            echo "but the JSON schema docs have not been updated."
+            echo
+            echo "Run the above commands locally to update the JSON schema docs."
+            exit 1
           fi
