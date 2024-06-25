@@ -2,7 +2,7 @@
 
 # UNRELEASED
 
-### feat!: enable cycles ledger support by default
+### feat!: enable cycles ledger support unconditionally
 
 # 0.21.0
 
