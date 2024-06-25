@@ -26,21 +26,19 @@ jobs:
         run: cargo build
       - name: Show download worked
         run: cargo run -- --version
-      - name: Update docs/dfx-json-schema.json
+      - name: Update any changed schema docs
         run: |
           cargo run -- schema --outfile docs/dfx-json-schema.json
           cargo run -- schema --for networks --outfile docs/networks-json-schema.json
           cargo run -- schema --for dfx-metadata --outfile docs/dfx-metadata-schema.json
-          echo "dfx.json schema:"
-          cat docs/dfx-json-schema.json
-          echo "networks.json schema:"
-          cat docs/networks-json-schema.json
-          echo "dfx-metadata schema:"
-          cat docs/dfx-metadata-schema.json
-          if [[ $(git status | wc -l) -eq 2 ]]; then
+
+          echo "Schema changes:"
+          git diff --exit-code || echo "(None)"
+
+          if [[ -n $(git status --porcelain) ]]; then
             git config user.name "GitHub Actions Bot"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add docs/dfx-json-schema.json docs/networks-json-schema.json docs/dfx-metadata-schema.json
-            git commit -m "update dfx-json-schema and networks-json-schema" || true
+            git add docs/*-schema.json
+            git commit -m "update schema docs" || true
             git push
           fi
