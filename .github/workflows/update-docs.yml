@@ -13,7 +13,7 @@ env:
 
 jobs:
   check:
-    name: update-json-schema-docs:required
+    name: json-schema-docs-up-to-date:required
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
