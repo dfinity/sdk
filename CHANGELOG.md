@@ -12,6 +12,15 @@ To do this, the `@dfinity/agent` version was updated as well.
 
 The schema command can now output the schema for extension.json files.
 
+### feat: Enable threshold schnorr signatures for Bip340Secp256k1
+
+Schnorr signature signing for Bip340Secp256k1 is now enabled by default in new projects, or by running `dfx start --clean`.
+A test key id "Bip340Secp256k1:dfx_test_key" is ready to be used by locally created canisters.
+
+### Replica
+
+Updated replica to elected commit dd0bae0156783262a5e8b7a0f9a6d0c87b6c9621.
+
 # 0.21.0
 
 ### feat: dfx killall
