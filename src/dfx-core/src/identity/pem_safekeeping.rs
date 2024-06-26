@@ -183,7 +183,7 @@ fn password_prompt(mode: PromptMode) -> Result<String, EncryptionError> {
         .with_prompt(prompt)
         .validate_with(|password: &String| -> Result<(), &str> {
             // Password may have been set before length check has been implemented, so only reject bad passwords during identity creation
-            if password.len() > 8 || mode == PromptMode::DecryptingToUse {
+            if password.chars().count() > 8 || mode == PromptMode::DecryptingToUse {
                 Ok(())
             } else {
                 Err("Password must be longer than 8 characters.")
