@@ -15,6 +15,7 @@ use crate::canister_api::types::batch_upload::v0;
 use crate::error::CompatibilityError::DowngradeV1TOV0Failed;
 use crate::error::UploadError;
 use crate::error::UploadError::{CommitBatchFailed, CreateBatchFailed, ListAssetsFailed};
+use candid::Nat;
 use ic_utils::Canister;
 use slog::{info, Logger};
 use std::collections::HashMap;
@@ -74,13 +75,15 @@ pub async fn upload(
     .map_err(CommitBatchFailed)
 }
 
-
 /// Upload the specified files
+///
+/// # Returns
+/// The batch ID.
 pub async fn upload_and_propose(
     canister: &Canister<'_>,
     files: HashMap<String, PathBuf>,
     logger: &Logger,
-) -> Result<(), UploadError> {
+) -> Result<Nat, UploadError> {
     let asset_descriptors: Vec<AssetDescriptor> = files
         .iter()
         .map(|x| AssetDescriptor {
@@ -113,7 +116,7 @@ pub async fn upload_and_propose(
         canister_assets,
         AssetDeletionReason::Incompatible,
         HashMap::new(),
-        batch_id,
+        batch_id.clone(),
     );
 
     let canister_api_version = api_version(canister).await;
@@ -126,5 +129,6 @@ pub async fn upload_and_propose(
         }
         BATCH_UPLOAD_API_VERSION.. => propose_commit_batch(canister, commit_batch_args).await,
     }
-    .map_err(CommitBatchFailed)
+    .map_err(CommitBatchFailed)?;
+    Ok(batch_id)
 }
