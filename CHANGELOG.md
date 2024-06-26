@@ -12,6 +12,12 @@ To do this, the `@dfinity/agent` version was updated as well.
 
 The schema command can now output the schema for extension.json files.
 
+### chore!: enforce minimum password length of 9 characters
+
+The [NIST guidelines](https://pages.nist.gov/800-63-3/sp800-63b.html) require passwords to be longer than 8 characters.
+This is now enforced when creating new identities.
+Identities protected by a shorter password can still be decrypted.
+
 # 0.21.0
 
 ### feat: dfx killall
