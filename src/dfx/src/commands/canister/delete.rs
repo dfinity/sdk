@@ -6,9 +6,7 @@ use crate::lib::operations::canister;
 use crate::lib::operations::canister::{
     deposit_cycles, start_canister, stop_canister, update_settings,
 };
-use crate::lib::operations::cycles_ledger::{
-    cycles_ledger_enabled, wallet_deposit_to_cycles_ledger,
-};
+use crate::lib::operations::cycles_ledger::wallet_deposit_to_cycles_ledger;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
 use crate::util::blob_from_arguments;
@@ -138,7 +136,7 @@ async fn delete_canister(
                         // If there is no wallet, then do not attempt to withdraw the cycles.
                         match wallet_canister_id(network, &identity_name)? {
                             Some(canister_id) => WithdrawTarget::Canister { canister_id },
-                            None if cycles_ledger_enabled() => {
+                            None => {
                                 let Some(my_principal) = env.get_selected_identity_principal()
                                 else {
                                     bail!("Identity has no principal attached")
@@ -150,7 +148,6 @@ async fn delete_canister(
                                     },
                                 }
                             }
-                            _ => WithdrawTarget::NoWithdrawal,
                         }
                     }
                 },

@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### feat!: enable cycles ledger support unconditionally
+
 ### feat: add `dfx schema --for extension-manifest`
 
 The schema command can now output the schema for extension.json files.

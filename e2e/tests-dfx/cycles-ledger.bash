@@ -356,9 +356,6 @@ current_time_nanoseconds() {
 }
 
 @test "top-up and deposit-cycles" {
-  # shellcheck disable=SC2030,SC2031
-  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
-
   start_and_install_nns
 
   dfx_new
@@ -561,9 +558,6 @@ current_time_nanoseconds() {
 }
 
 @test "canister creation" {
-  # shellcheck disable=SC2030,SC2031
-  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
-
   start_and_install_nns
   
   dfx_new temporary
@@ -645,9 +639,6 @@ current_time_nanoseconds() {
 }
 
 @test "canister deletion" {
-  # shellcheck disable=SC2030,SC2031
-  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
-
   start_and_install_nns
 
   dfx_new temporary
@@ -721,9 +712,6 @@ current_time_nanoseconds() {
 }
 
 @test "create canister on specific subnet" {
-  # shellcheck disable=SC2030,SC2031
-  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
-
   start_and_install_nns
   
   dfx_new temporary
@@ -762,9 +750,6 @@ current_time_nanoseconds() {
 
 @test "automatically choose subnet" {
   [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: subnet range"
-  # shellcheck disable=SC2030,SC2031
-  export DFX_CYCLES_LEDGER_SUPPORT_ENABLE=1
-
   dfx_start
 
   REGISTRY="rwlgt-iiaaa-aaaaa-aaaaa-cai"
