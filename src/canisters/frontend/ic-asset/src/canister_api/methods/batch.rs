@@ -83,7 +83,7 @@ pub(crate) async fn propose_commit_batch<T: CandidType + Sync>(
     submit_commit_batch(canister, PROPOSE_COMMIT_BATCH, arg).await
 }
 
-pub(crate) async fn compute_evidence(
+pub async fn compute_evidence(
     canister: &Canister<'_>,
     arg: &ComputeEvidenceArguments,
 ) -> Result<Option<ByteBuf>, AgentError> {
