@@ -1,0 +1,233 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExtensionManifest",
+  "type": "object",
+  "required": [
+    "categories",
+    "homepage",
+    "name",
+    "summary",
+    "version"
+  ],
+  "properties": {
+    "authors": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "canister_type": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ExtensionCanisterType"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dependencies": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "homepage": {
+      "type": "string"
+    },
+    "keywords": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "name": {
+      "type": "string"
+    },
+    "subcommands": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ExtensionSubcommandsOpts"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "ArgNumberOfValues": {
+      "oneOf": [
+        {
+          "description": "zero or more values",
+          "type": "object",
+          "required": [
+            "Number"
+          ],
+          "properties": {
+            "Number": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "non-inclusive range",
+          "type": "object",
+          "required": [
+            "Range"
+          ],
+          "properties": {
+            "Range": {
+              "$ref": "#/definitions/Range_of_uint"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "unlimited values",
+          "type": "string",
+          "enum": [
+            "Unlimited"
+          ]
+        }
+      ]
+    },
+    "ExtensionCanisterType": {
+      "type": "object",
+      "properties": {
+        "defaults": {
+          "description": "Default values for the canister type. These values are used when the user does not provide values in dfx.json. The \"metadata\" field, if present, is appended to the metadata field from dfx.json, which has the effect of providing defaults. The \"tech_stack field, if present, it merged with the tech_stack field from dfx.json, which also has the effect of providing defaults.",
+          "default": {},
+          "type": "object",
+          "additionalProperties": true
+        },
+        "evaluation_order": {
+          "description": "If one field depends on another and both specify a handlebars expression, list the fields in the order that they should be evaluated.",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ExtensionSubcommandArgOpts": {
+      "type": "object",
+      "properties": {
+        "about": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "long": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "multiple": {
+          "default": false,
+          "deprecated": true,
+          "type": "boolean"
+        },
+        "short": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1,
+          "minLength": 1
+        },
+        "values": {
+          "$ref": "#/definitions/ArgNumberOfValues"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ExtensionSubcommandOpts": {
+      "type": "object",
+      "properties": {
+        "about": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "args": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "$ref": "#/definitions/ExtensionSubcommandArgOpts"
+          }
+        },
+        "subcommands": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ExtensionSubcommandsOpts"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ExtensionSubcommandsOpts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/ExtensionSubcommandOpts"
+      }
+    },
+    "Range_of_uint": {
+      "type": "object",
+      "required": [
+        "end",
+        "start"
+      ],
+      "properties": {
+        "end": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "start": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        }
+      }
+    }
+  }
+}

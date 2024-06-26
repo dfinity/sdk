@@ -10,6 +10,7 @@ enum ForFile {
     Dfx,
     Networks,
     DfxMetadata,
+    ExtensionManifest,
 }
 
 /// Prints the schema for dfx.json.
@@ -27,6 +28,9 @@ pub fn exec(opts: SchemaOpts) -> DfxResult {
     let schema = match opts.r#for {
         Some(ForFile::Networks) => schema_for!(TopLevelConfigNetworks),
         Some(ForFile::DfxMetadata) => schema_for!(DfxMetadata),
+        Some(ForFile::ExtensionManifest) => {
+            schema_for!(dfx_core::extension::manifest::ExtensionManifest)
+        }
         _ => schema_for!(ConfigInterface),
     };
     let nice_schema =

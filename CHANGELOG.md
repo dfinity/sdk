@@ -2,9 +2,15 @@
 
 # UNRELEASED
 
+### feat!: enable cycles ledger support unconditionally
+
 ### chore!: removed `unsafe-eval` CSP from default starter template
 
 To do this, the `@dfinity/agent` version was updated as well.
+
+### feat: add `dfx schema --for extension-manifest`
+
+The schema command can now output the schema for extension.json files.
 
 # 0.21.0
 
