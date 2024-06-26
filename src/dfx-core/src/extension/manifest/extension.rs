@@ -2,6 +2,7 @@ use crate::error::extension::{
     ConvertExtensionSubcommandIntoClapArgError, ConvertExtensionSubcommandIntoClapCommandError,
     LoadExtensionManifestError,
 };
+use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 use std::path::PathBuf;
@@ -15,7 +16,7 @@ pub static MANIFEST_FILE_NAME: &str = "extension.json";
 type SubcmdName = String;
 type ArgName = String;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExtensionManifest {
     pub name: String,
@@ -62,7 +63,7 @@ impl ExtensionManifest {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 pub struct ExtensionCanisterType {
     /// If one field depends on another and both specify a handlebars expression,
     /// list the fields in the order that they should be evaluated.
@@ -79,10 +80,10 @@ pub struct ExtensionCanisterType {
     pub defaults: BTreeMap<String, Value>,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Default, JsonSchema)]
 pub struct ExtensionSubcommandsOpts(BTreeMap<SubcmdName, ExtensionSubcommandOpts>);
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExtensionSubcommandOpts {
     pub about: Option<String>,
@@ -90,7 +91,7 @@ pub struct ExtensionSubcommandOpts {
     pub subcommands: Option<ExtensionSubcommandsOpts>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExtensionSubcommandArgOpts {
     pub about: Option<String>,
@@ -103,7 +104,7 @@ pub struct ExtensionSubcommandArgOpts {
     pub values: ArgNumberOfValues,
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema)]
 pub enum ArgNumberOfValues {
     /// zero or more values
     Number(usize),
