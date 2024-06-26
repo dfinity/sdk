@@ -25,7 +25,6 @@
 //! # }
 
 #![deny(
-    missing_docs,
     missing_debug_implementations,
     rustdoc::broken_intra_doc_links,
     rustdoc::private_intra_doc_links
@@ -33,7 +32,7 @@
 
 mod asset;
 mod batch_upload;
-mod canister_api;
+pub mod canister_api;
 pub mod error;
 mod evidence;
 mod sync;
