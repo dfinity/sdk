@@ -23,8 +23,8 @@
   "dependencies": {
     "pinia": "^2.1.6",
     "vue": "^3.3.4",
-    "@dfinity/agent": "^0.20.0",
-    "@dfinity/candid": "^0.20.0",
-    "@dfinity/principal": "^0.20.0"
+    "@dfinity/agent": "^1.4.0",
+    "@dfinity/candid": "^1.4.0",
+    "@dfinity/principal": "^1.4.0"
   }
 }
