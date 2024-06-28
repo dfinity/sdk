@@ -3,7 +3,7 @@ use crate::error::extension::{
     FindLatestExtensionCompatibleVersionError, GetExtensionArchiveNameError,
     GetExtensionDownloadUrlError, InstallExtensionError,
 };
-use crate::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
+use crate::extension::manager::ExtensionManager;
 use flate2::read::GzDecoder;
 use reqwest::Url;
 use semver::{BuildMetadata, Prerelease, Version};
@@ -12,6 +12,7 @@ use std::io::Cursor;
 use std::os::unix::fs::PermissionsExt;
 use tar::Archive;
 use tempfile::{tempdir_in, TempDir};
+use crate::extension::manifest::ExtensionDependencies;
 
 const DFINITY_DFX_EXTENSIONS_RELEASES_URL: &str =
     "https://github.com/dfinity/dfx-extensions/releases/download";
@@ -20,9 +21,10 @@ impl ExtensionManager {
     pub fn install_extension(
         &self,
         extension_name: &str,
+        base_url: &Url,
         install_as: Option<&str>,
         version: Option<&Version>,
-    ) -> Result<(), InstallExtensionError> {
+    ) -> Result<Version, InstallExtensionError> {
         let effective_extension_name = install_as.unwrap_or(extension_name);
 
         if self
@@ -36,7 +38,7 @@ impl ExtensionManager {
 
         let extension_version = match version {
             Some(version) => version.clone(),
-            None => self.get_extension_compatible_version(extension_name)?,
+            None => self.get_extension_compatible_version(base_url)?,
         };
         let github_release_tag = get_git_release_tag(extension_name, &extension_version);
         let extension_archive = get_extension_archive_name(extension_name)?;
@@ -51,7 +53,7 @@ impl ExtensionManager {
             temp_dir,
         )?;
 
-        Ok(())
+        Ok(extension_version)
     }
 
     /// Removing the prerelease tag and build metadata, because they should
@@ -66,11 +68,12 @@ impl ExtensionManager {
 
     fn get_extension_compatible_version(
         &self,
-        extension_name: &str,
+        base_url: &Url,
     ) -> Result<Version, FindLatestExtensionCompatibleVersionError> {
-        let manifest = ExtensionCompatibilityMatrix::fetch()?;
+        let dependencies = ExtensionDependencies::fetch(base_url)?;
         let dfx_version = self.dfx_version_strip_semver();
-        manifest.find_latest_compatible_extension_version(extension_name, &dfx_version)
+        dependencies.get_highest_compatible_version(&dfx_version)
+            .ok_or(FindLatestExtensionCompatibleVersionError::NoCompatibleVersionFound())
     }
 
     fn download_and_unpack_extension_to_tempdir(

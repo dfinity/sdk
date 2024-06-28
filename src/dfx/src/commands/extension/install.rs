@@ -30,14 +30,17 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
         bail!("Extension '{}' cannot be installed because it conflicts with an existing command. Consider using '--install-as' flag to install this extension under different name.", opts.name)
     }
 
-    mgr.install_extension(
+    let base_url = mgr.get_extension_base_url(&opts.name)?;
+
+    let installed_version = mgr.install_extension(
         &opts.name,
+        &base_url,
         opts.install_as.as_deref(),
         opts.version.as_ref(),
     )?;
     spinner.finish_with_message(
         format!(
-            "Extension '{}' installed successfully{}",
+            "Extension '{}' version {installed_version} installed successfully{}",
             opts.name,
             if let Some(install_as) = opts.install_as {
                 format!(", and is available as '{}'", install_as)

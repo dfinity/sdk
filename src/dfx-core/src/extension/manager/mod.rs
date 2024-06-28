@@ -2,6 +2,7 @@ use crate::config::cache::get_cache_path_for_version;
 use crate::error::extension::{GetExtensionBinaryError, NewExtensionManagerError};
 use semver::Version;
 use std::path::PathBuf;
+use url::Url;
 
 mod execute;
 mod install;
@@ -51,5 +52,10 @@ impl ExtensionManager {
 
     pub fn is_extension_installed(&self, extension_name: &str) -> bool {
         self.get_extension_directory(extension_name).exists()
+    }
+
+    pub fn get_extension_base_url(&self, name: &str) -> Result<Url, url::ParseError> {
+        let s = format!("https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/{name}/");
+        Url::parse(&s)
     }
 }

@@ -124,20 +124,28 @@ pub enum GetExtensionArchiveNameError {
 
 #[derive(Error, Debug)]
 pub enum FindLatestExtensionCompatibleVersionError {
-    #[error("DFX version '{0}' is not supported.")]
-    DfxVersionNotFoundInCompatibilityJson(semver::Version),
+    #[error(transparent)]
+    FetchExtensionDependenciesError(#[from] FetchExtensionDependenciesError),
 
-    #[error("Extension '{0}' (version '{1}') not found for DFX version {2}.")]
-    ExtensionVersionNotFoundInRepository(String, semver::Version, String),
+    #[error("No compatible version found.")]
+    NoCompatibleVersionFound(),
+}
 
-    #[error("Cannot parse compatibility.json due to malformed semver '{0}'")]
-    MalformedVersionsEntryForExtensionInCompatibilityMatrix(String, #[source] semver::Error),
-
-    #[error("Cannot find compatible extension for dfx version '{1}': compatibility.json (downloaded from '{0}') has empty list of extension versions.")]
-    ListOfVersionsForExtensionIsEmpty(String, semver::Version),
+#[derive(Error, Debug)]
+pub enum FetchExtensionDependenciesError {
+    #[error(transparent)]
+    ParseUrl(url::ParseError),
 
     #[error(transparent)]
-    FetchExtensionCompatibilityMatrix(#[from] FetchExtensionCompatibilityMatrixError),
+    Get(reqwest::Error),
+
+    #[error(transparent)]
+    ParseJson(reqwest::Error),
+}
+
+#[derive(Error, Debug)]
+pub enum GetHighestCompatibleVersionError {
+
 }
 
 #[derive(Error, Debug)]
