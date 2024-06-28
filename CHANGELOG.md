@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### feat: generate .env files for Motoko canisters
+
 ### feat!: enable cycles ledger support unconditionally
 
 ### chore!: removed `unsafe-eval` CSP from default starter template
