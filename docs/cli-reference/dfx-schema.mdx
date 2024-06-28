@@ -16,10 +16,20 @@ dfx schema [option] [flag]
 
 You can use the following option with the `dfx schema` command.
 
-| Option                 | Description                                                                                      |
-|------------------------|--------------------------------------------------------------------------------------------------|
-| `--for <which>`        | Display schema for which JSON file. (default: dfx, possible values: dfx, networks, dfx-metadata, extension-manifest) |
-| `--outfile <outfile>`  | Specifies a file to output the schema to instead of printing it to stdout.                       |
+| Option                 | Description                                                                |
+|------------------------|----------------------------------------------------------------------------|
+| `--for <which>`        | Display schema for which JSON file. (default: dfx)                         |
+| `--outfile <outfile>`  | Specifies a file to output the schema to instead of printing it to stdout. |
+
+The parameter passed to `--for` can be one of the following:
+
+| `<for>` option         | Corresponds To                                         |
+|------------------------|--------------------------------------------------------|
+| dfx                    | dfx.json                                               |
+| networks               | networks.json                                          |
+| dfx-metadata           | dfx-related metadata stored in canister and accessible with `dfx canister metadata <canister> dfx` |
+| extension-manifest     | extension.json [example][example-extension-json]       |
+| extension-dependencies | dependencies.json [example][example-dependencies-json] |
 
 ## Examples
 
@@ -46,3 +56,6 @@ If you want to write the schema for dfx.json to `path/to/file/schema.json`, you 
 ``` bash
 dfx schema --outfile path/to/file/schema.json
 ```
+
+[example-extension-json]: https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/nns/extension.json
+[example-dependencies-json]: https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/nns/dependencies.json

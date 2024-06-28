@@ -8,9 +8,10 @@
 
 To do this, the `@dfinity/agent` version was updated as well.
 
-### feat: add `dfx schema --for extension-manifest`
+### feat: add `dfx schema` support for .json files related to extensions
 
-The schema command can now output the schema for extension.json files.
+- `dfx schema --for extension-manifest` corresponds to extension.json
+- `dfx schema --for extension-dependencies` corresponds to dependencies.json
 
 ### chore!: enforce minimum password length of 9 characters
 
