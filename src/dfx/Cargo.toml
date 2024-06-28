@@ -127,7 +127,7 @@ ci_info = "0.14"
 junction = "1.0.0"
 
 [target.'cfg(unix)'.dependencies]
-pocket-ic = "3.1.0"
+pocket-ic = { path = "../../../ic/packages/pocket-ic" }
 
 [dev-dependencies]
 env_logger = "0.10"
