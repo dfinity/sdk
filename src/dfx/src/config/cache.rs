@@ -151,12 +151,12 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
 
         if dfx_core::fs::rename(temp_p.as_path(), &p).is_ok() {
             if let Some(b) = b {
-                b.finish_with_message(format!("Version v{} installed successfully.", v));
+                b.finish_with_message(format!("Installed dfx {} to cache.", v));
             }
         } else {
             dfx_core::fs::remove_dir_all(temp_p.as_path()).map_err(UnifiedIoError::from)?;
             if let Some(b) = b {
-                b.finish_with_message(format!("Version v{} was already installed.", v));
+                b.finish_with_message(format!("dfx {} was already installed in cache.", v));
             }
         }
         Ok(p)
