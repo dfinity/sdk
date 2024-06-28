@@ -38,7 +38,7 @@
         "null"
       ],
       "additionalProperties": {
-        "type": "string"
+        "$ref": "#/definitions/ExtensionDependency"
       }
     },
     "description": {
@@ -138,6 +138,14 @@
           }
         }
       }
+    },
+    "ExtensionDependency": {
+      "anyOf": [
+        {
+          "description": "A SemVer version requirement, for example \">=0.17.0\".",
+          "type": "string"
+        }
+      ]
     },
     "ExtensionSubcommandArgOpts": {
       "type": "object",
