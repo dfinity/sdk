@@ -105,7 +105,7 @@ pub enum InstallExtensionError {
     GetExtensionArchiveName(#[from] GetExtensionArchiveNameError),
 
     #[error(transparent)]
-    FindLatestExtensionCompatibleVersion(#[from] FindLatestExtensionCompatibleVersionError),
+    GetHighestCompatibleVersion(#[from] GetHighestCompatibleVersionError),
 
     #[error(transparent)]
     GetExtensionDownloadUrl(#[from] GetExtensionDownloadUrlError),
@@ -124,22 +124,32 @@ pub enum GetExtensionArchiveNameError {
 }
 
 #[derive(Error, Debug)]
-pub enum FindLatestExtensionCompatibleVersionError {
-    #[error("DFX version '{0}' is not supported.")]
-    DfxVersionNotFoundInCompatibilityJson(semver::Version),
+pub enum GetHighestCompatibleVersionError {
+    #[error(transparent)]
+    GetDependencies(#[from] GetDependenciesError),
 
-    #[error("Extension '{0}' (version '{1}') not found for DFX version {2}.")]
-    ExtensionVersionNotFoundInRepository(String, semver::Version, String),
-
-    #[error("Cannot parse compatibility.json due to malformed semver '{0}'")]
-    MalformedVersionsEntryForExtensionInCompatibilityMatrix(String, #[source] semver::Error),
-
-    #[error("Cannot find compatible extension for dfx version '{1}': compatibility.json (downloaded from '{0}') has empty list of extension versions.")]
-    ListOfVersionsForExtensionIsEmpty(String, semver::Version),
+    #[error("No compatible version found.")]
+    NoCompatibleVersionFound(),
 
     #[error(transparent)]
-    FetchExtensionCompatibilityMatrix(#[from] FetchExtensionCompatibilityMatrixError),
+    DfxOnlyPossibleDependency(#[from] DfxOnlySupportedDependency),
 }
+
+#[derive(Error, Debug)]
+pub enum GetDependenciesError {
+    #[error(transparent)]
+    ParseUrl(#[from] url::ParseError),
+
+    #[error(transparent)]
+    Get(WrappedReqwestError),
+
+    #[error(transparent)]
+    ParseJson(WrappedReqwestError),
+}
+
+#[derive(Error, Debug)]
+#[error("'dfx' is the only supported dependency")]
+pub struct DfxOnlySupportedDependency;
 
 #[derive(Error, Debug)]
 #[error("Failed to parse extension manifest URL '{url}'")]
