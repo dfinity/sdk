@@ -1,10 +1,10 @@
+use crate::error::extension::{DfxOnlyPossibleDependency, GetDependenciesError};
+use crate::extension::url::ExtensionJsonUrl;
 use crate::json::structure::VersionReqWithJsonSchema;
 use candid::Deserialize;
 use schemars::JsonSchema;
 use semver::Version;
 use std::collections::HashMap;
-use url::Url;
-use crate::error::extension::FetchExtensionDependenciesError;
 
 type ExtensionVersion = Version;
 type DependencyName = String;
@@ -22,19 +22,20 @@ pub struct ExtensionDependencies(
 );
 
 impl ExtensionDependencies {
-    pub fn fetch(base_url: &Url) -> Result<Self, FetchExtensionDependenciesError> {
-        let url = base_url.join("dependencies.json").map_err(FetchExtensionDependenciesError::ParseUrl)?;
-        let resp = reqwest::blocking::get(url).map_err(FetchExtensionDependenciesError::Get)?
-            .error_for_status().map_err(FetchExtensionDependenciesError::Get)?;
+    pub fn fetch(url: &ExtensionJsonUrl) -> Result<Self, GetDependenciesError> {
+        let dependencies_json_url = url.to_dependencies_json()?;
+        let resp = reqwest::blocking::get(dependencies_json_url)
+            .map_err(GetDependenciesError::Get)?
+            .error_for_status()
+            .map_err(GetDependenciesError::Get)?;
 
-        resp.json().map_err(FetchExtensionDependenciesError::ParseJson)
+        resp.json().map_err(GetDependenciesError::ParseJson)
     }
 
     pub fn get_highest_compatible_version(
         &self,
         dfx_version: &Version,
-    ) -> Option<Version> {
-
+    ) -> Result<Option<Version>, DfxOnlyPossibleDependency> {
         let mut keys: Vec<&Version> = self.0.keys().collect();
         keys.sort();
         keys.reverse(); // check higher extension versions first
@@ -46,15 +47,17 @@ impl ExtensionDependencies {
                     match requirements {
                         DependencyRequirement::Version(req) => {
                             if req.matches(dfx_version) {
-                                return Some(key.clone());
+                                return Ok(Some(key.clone()));
                             }
                         }
                     }
+                } else {
+                    return Err(DfxOnlyPossibleDependency);
                 }
             }
         }
 
-        None
+        Ok(None)
     }
 }
 
@@ -101,7 +104,22 @@ fn parse_test_file() {
     assert!(req.matches(&semver::Version::new(0, 9, 6)));
     assert!(!req.matches(&semver::Version::new(0, 9, 5)));
 
-    assert_eq!(manifest.get_highest_compatible_version(&Version::new(0, 8, 5)), Some(Version::new(0, 3, 4)));
-    assert_eq!(manifest.get_highest_compatible_version(&Version::new(0, 9, 6)), Some(Version::new(0, 6, 2)));
-    assert_eq!(manifest.get_highest_compatible_version(&Version::new(0, 9, 10)), Some(Version::new(0, 7, 0)));
+    assert_eq!(
+        manifest
+            .get_highest_compatible_version(&Version::new(0, 8, 5))
+            .unwrap(),
+        Some(Version::new(0, 3, 4))
+    );
+    assert_eq!(
+        manifest
+            .get_highest_compatible_version(&Version::new(0, 9, 6))
+            .unwrap(),
+        Some(Version::new(0, 6, 2))
+    );
+    assert_eq!(
+        manifest
+            .get_highest_compatible_version(&Version::new(0, 9, 10))
+            .unwrap(),
+        Some(Version::new(0, 7, 0))
+    );
 }

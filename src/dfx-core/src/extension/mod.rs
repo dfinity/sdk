@@ -1,5 +1,7 @@
 pub mod manager;
 pub mod manifest;
+pub mod url;
+
 use crate::error::extension::ConvertExtensionIntoClapCommandError;
 use crate::extension::{manager::ExtensionManager, manifest::ExtensionManifest};
 use clap::Command;

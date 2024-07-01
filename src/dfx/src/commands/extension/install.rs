@@ -5,6 +5,7 @@ use crate::lib::error::DfxResult;
 use anyhow::bail;
 use clap::Parser;
 use clap::Subcommand;
+use dfx_core::extension::url::ExtensionJsonUrl;
 use semver::Version;
 
 #[derive(Parser)]
@@ -30,11 +31,11 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
         bail!("Extension '{}' cannot be installed because it conflicts with an existing command. Consider using '--install-as' flag to install this extension under different name.", opts.name)
     }
 
-    let base_url = mgr.get_extension_base_url(&opts.name)?;
+    let url = ExtensionJsonUrl::registered(&opts.name)?;
 
     let installed_version = mgr.install_extension(
         &opts.name,
-        &base_url,
+        &url,
         opts.install_as.as_deref(),
         opts.version.as_ref(),
     )?;

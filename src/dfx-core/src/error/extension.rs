@@ -104,7 +104,7 @@ pub enum InstallExtensionError {
     GetExtensionArchiveName(#[from] GetExtensionArchiveNameError),
 
     #[error(transparent)]
-    FindLatestExtensionCompatibleVersion(#[from] FindLatestExtensionCompatibleVersionError),
+    GetHighestCompatibleVersion(#[from] GetHighestCompatibleVersionError),
 
     #[error(transparent)]
     GetExtensionDownloadUrl(#[from] GetExtensionDownloadUrlError),
@@ -123,18 +123,21 @@ pub enum GetExtensionArchiveNameError {
 }
 
 #[derive(Error, Debug)]
-pub enum FindLatestExtensionCompatibleVersionError {
+pub enum GetHighestCompatibleVersionError {
     #[error(transparent)]
-    FetchExtensionDependenciesError(#[from] FetchExtensionDependenciesError),
+    GetDependencies(#[from] GetDependenciesError),
 
     #[error("No compatible version found.")]
     NoCompatibleVersionFound(),
+
+    #[error(transparent)]
+    DfxOnlyPossibleDependency(#[from] DfxOnlyPossibleDependency),
 }
 
 #[derive(Error, Debug)]
-pub enum FetchExtensionDependenciesError {
+pub enum GetDependenciesError {
     #[error(transparent)]
-    ParseUrl(url::ParseError),
+    ParseUrl(#[from] url::ParseError),
 
     #[error(transparent)]
     Get(reqwest::Error),
@@ -144,9 +147,8 @@ pub enum FetchExtensionDependenciesError {
 }
 
 #[derive(Error, Debug)]
-pub enum GetHighestCompatibleVersionError {
-
-}
+#[error("'dfx' is the only possible dependency")]
+pub struct DfxOnlyPossibleDependency;
 
 #[derive(Error, Debug)]
 #[error("Failed to parse extension manifest URL '{url}'")]

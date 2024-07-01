@@ -1,9 +1,11 @@
 use crate::error::extension::{
     DownloadAndInstallExtensionToTempdirError, FinalizeInstallationError,
-    FindLatestExtensionCompatibleVersionError, GetExtensionArchiveNameError,
-    GetExtensionDownloadUrlError, InstallExtensionError,
+    GetExtensionArchiveNameError, GetExtensionDownloadUrlError, GetHighestCompatibleVersionError,
+    InstallExtensionError,
 };
-use crate::extension::manager::ExtensionManager;
+use crate::extension::{
+    manager::ExtensionManager, manifest::ExtensionDependencies, url::ExtensionJsonUrl,
+};
 use flate2::read::GzDecoder;
 use reqwest::Url;
 use semver::{BuildMetadata, Prerelease, Version};
@@ -12,7 +14,6 @@ use std::io::Cursor;
 use std::os::unix::fs::PermissionsExt;
 use tar::Archive;
 use tempfile::{tempdir_in, TempDir};
-use crate::extension::manifest::ExtensionDependencies;
 
 const DFINITY_DFX_EXTENSIONS_RELEASES_URL: &str =
     "https://github.com/dfinity/dfx-extensions/releases/download";
@@ -21,7 +22,7 @@ impl ExtensionManager {
     pub fn install_extension(
         &self,
         extension_name: &str,
-        base_url: &Url,
+        url: &ExtensionJsonUrl,
         install_as: Option<&str>,
         version: Option<&Version>,
     ) -> Result<Version, InstallExtensionError> {
@@ -38,13 +39,13 @@ impl ExtensionManager {
 
         let extension_version = match version {
             Some(version) => version.clone(),
-            None => self.get_extension_compatible_version(base_url)?,
+            None => self.get_highest_compatible_version(url)?,
         };
         let github_release_tag = get_git_release_tag(extension_name, &extension_version);
         let extension_archive = get_extension_archive_name(extension_name)?;
-        let url = get_extension_download_url(&github_release_tag, &extension_archive)?;
+        let archive_url = get_extension_download_url(&github_release_tag, &extension_archive)?;
 
-        let temp_dir = self.download_and_unpack_extension_to_tempdir(url)?;
+        let temp_dir = self.download_and_unpack_extension_to_tempdir(archive_url)?;
 
         self.finalize_installation(
             extension_name,
@@ -66,14 +67,15 @@ impl ExtensionManager {
         dfx_version
     }
 
-    fn get_extension_compatible_version(
+    fn get_highest_compatible_version(
         &self,
-        base_url: &Url,
-    ) -> Result<Version, FindLatestExtensionCompatibleVersionError> {
-        let dependencies = ExtensionDependencies::fetch(base_url)?;
+        url: &ExtensionJsonUrl,
+    ) -> Result<Version, GetHighestCompatibleVersionError> {
+        let dependencies = ExtensionDependencies::fetch(url)?;
         let dfx_version = self.dfx_version_strip_semver();
-        dependencies.get_highest_compatible_version(&dfx_version)
-            .ok_or(FindLatestExtensionCompatibleVersionError::NoCompatibleVersionFound())
+        dependencies
+            .get_highest_compatible_version(&dfx_version)?
+            .ok_or(GetHighestCompatibleVersionError::NoCompatibleVersionFound())
     }
 
     fn download_and_unpack_extension_to_tempdir(
