@@ -34,8 +34,8 @@ if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ] \
     || [ "$E2E_TEST" = "tests-dfx/generate.bash" ] \
     || [ "$E2E_TEST" = "tests-dfx/start.bash" ] \
     || [ "$E2E_TEST" = "tests-dfx/new.bash" ] \
-    || [ "$E2E_TEST" = "tests-dfx/call.bash" ]
-    || [ "$E2E_TEST" = "tests-dfx/build.bash" ] \
+    || [ "$E2E_TEST" = "tests-dfx/call.bash" ] \
+    || [ "$E2E_TEST" = "tests-dfx/build.bash" ]
 then
     sudo apt-get install --yes expect
 fi
