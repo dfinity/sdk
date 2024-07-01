@@ -2,6 +2,25 @@
 
 # UNRELEASED
 
+### feat: support `"security_policy"` and `"disable_content_security_policy_warning"` in `.ic-assets.json5`
+
+It is now possible to specify a `"security_policy"` field in `.ic-assets.json5` for asset configurations.
+Valid options are `"disabled"`, `"standard"`, and `"hardened"`.
+The security policy provides a set of standard headers to make frontends more secure.
+Headers manually specified in the `"headers"` field take precedence over the security policy headers.
+
+
+
+The standard security policy headers can be seen with `dfx info security-policy`.
+It also contains a lot of suggestions on how to harden the policy.
+
+Updated the starter projects to use `"security_policy"` instead of including the whole security policy.
+
+### feat: `dfx info security-policy`
+
+Shows the headers that get applied to assets that are configured to `"security_policy": "standard"` in `.ic-assets.json5`.
+Produces output that can be directly pasted into a `.json5` document.
+
 ### feat!: enable cycles ledger support unconditionally
 
 ### chore!: removed `unsafe-eval` CSP from default starter template

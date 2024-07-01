@@ -2,6 +2,7 @@ use crate::error::AssetLoadConfigError;
 use crate::error::AssetLoadConfigError::{LoadRuleFailed, MalformedAssetConfigFile};
 use crate::error::GetAssetConfigError;
 use crate::error::GetAssetConfigError::{AssetConfigNotFound, InvalidPath};
+use crate::security_policy::SecurityPolicy;
 use derivative::Derivative;
 use globset::GlobMatcher;
 use serde::{Deserialize, Serialize};
@@ -28,6 +29,34 @@ pub struct AssetConfig {
     #[derivative(Default(value = "Some(true)"))]
     pub(crate) allow_raw_access: Option<bool>,
     pub(crate) encodings: Option<Vec<ContentEncoder>>,
+    pub(crate) security_policy: Option<SecurityPolicy>,
+    pub(crate) disable_content_security_policy_warning: Option<bool>,
+}
+
+impl AssetConfig {
+    pub fn combined_headers(&self) -> Option<HeadersConfig> {
+        if self.headers.is_some()
+            || self.security_policy == Some(SecurityPolicy::Standard)
+            || self.security_policy == Some(SecurityPolicy::Hardened)
+        {
+            let mut headers = self
+                .security_policy
+                .map(|policy| policy.to_headers())
+                .unwrap_or_default();
+            if let Some(custom_headers) = self.headers.clone() {
+                headers.extend(custom_headers.into_iter());
+            }
+            Some(headers)
+        } else {
+            None
+        }
+    }
+
+    pub fn warn_about_unhardened_csp(&self) -> bool {
+        let disable_flag_set = self.disable_content_security_policy_warning == Some(true);
+        let csp_hardened = self.security_policy == Some(SecurityPolicy::Hardened);
+        !disable_flag_set && !csp_hardened
+    }
 }
 
 pub(crate) type HeadersConfig = BTreeMap<String, String>;
@@ -65,6 +94,10 @@ pub struct AssetConfigRule {
     allow_raw_access: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     encodings: Option<Vec<ContentEncoder>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    security_policy: Option<SecurityPolicy>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    disable_content_security_policy_warning: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -222,7 +255,7 @@ impl AssetConfigTreeNode {
     }
 
     /// Fetches asset config in a recursive fashion.
-    /// Marks config rules as *used*, whenever the rule' glob patter matched querried file.
+    /// Marks config rules as *used*, whenever the rule' glob patter matched queried file.
     fn get_config(&mut self, canonical_path: &Path) -> AssetConfig {
         let base_config = match &self.parent {
             Some(parent) => parent.clone().lock().unwrap().get_config(canonical_path),
@@ -265,6 +298,15 @@ impl AssetConfig {
         if other.encodings.is_some() {
             self.encodings = other.encodings.clone();
         }
+
+        if other.security_policy.is_some() {
+            self.security_policy = other.security_policy;
+        }
+
+        if other.disable_content_security_policy_warning.is_some() {
+            self.disable_content_security_policy_warning =
+                other.disable_content_security_policy_warning;
+        }
         self
     }
 }
@@ -272,7 +314,7 @@ impl AssetConfig {
 /// This module contains various utilities needed for serialization/deserialization
 /// and pretty-printing of the `AssetConfigRule` data structure.
 mod rule_utils {
-    use super::{AssetConfig, AssetConfigRule, CacheConfig, HeadersConfig, Maybe};
+    use super::{AssetConfig, AssetConfigRule, CacheConfig, HeadersConfig, Maybe, SecurityPolicy};
     use crate::asset::content_encoder::ContentEncoder;
     use crate::error::LoadRuleError;
     use globset::{Glob, GlobMatcher};
@@ -357,6 +399,8 @@ mod rule_utils {
         enable_aliasing: Option<bool>,
         allow_raw_access: Option<bool>,
         encodings: Option<Vec<ContentEncoder>>,
+        security_policy: Option<SecurityPolicy>,
+        disable_content_security_policy_warning: Option<bool>,
     }
 
     impl AssetConfigRule {
@@ -369,6 +413,8 @@ mod rule_utils {
                 enable_aliasing,
                 allow_raw_access,
                 encodings,
+                security_policy,
+                disable_content_security_policy_warning,
             }: InterimAssetConfigRule,
             config_file_parent_dir: &Path,
         ) -> Result<Self, LoadRuleError> {
@@ -392,6 +438,8 @@ mod rule_utils {
                 enable_aliasing,
                 allow_raw_access,
                 encodings,
+                security_policy,
+                disable_content_security_policy_warning,
             })
         }
     }
@@ -421,7 +469,10 @@ mod rule_utils {
                     }
                 }
                 if let Some(encodings) = self.encodings.as_ref() {
-                    s.push_str(&format!(" and {} encodings", encodings.len()));
+                    s.push_str(&format!(", {} encodings", encodings.len()));
+                }
+                if let Some(policy) = self.security_policy {
+                    s.push_str(&format!(" and security policy '{policy}'"));
                 }
                 s.push(')');
             }
@@ -449,6 +500,9 @@ mod rule_utils {
                     }
                 ));
             }
+            if let Some(policy) = self.security_policy {
+                s.push_str(&format!("  - Security policy: {policy}"));
+            }
             if let Some(aliasing) = self.enable_aliasing {
                 s.push_str(&format!(
                     "  - URL path aliasing: {}\n",
@@ -470,7 +524,11 @@ mod rule_utils {
                     encodings.iter().map(|enc| enc.to_string()).join(",")
                 ));
             }
-
+            if let Some(disable_warning) = self.disable_content_security_policy_warning {
+                s.push_str(&format!(
+                    "  - disable standard security policy warning: {disable_warning}"
+                ));
+            }
             write!(f, "{}", s)
         }
     }

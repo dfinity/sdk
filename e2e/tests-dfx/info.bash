@@ -66,3 +66,27 @@ teardown() {
   assert_command dfx info candid-ui-url  
   assert_eq "http://127.0.0.1:$(dfx info webserver-port)/?canisterId=$(dfx canister id __Candid_UI)"
 }
+
+@test "security-policy produces valid json5" {
+  dfx_new_frontend
+  install_asset assetscanister
+  touch src/e2e_project_frontend/assets/thing.json
+
+  dfx_start
+  dfx canister create --all
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+
+  echo "[
+    {
+      \"match\": \"**/*\",
+      \"headers\": {
+        $(dfx info security-policy)
+      }
+    }
+  ]" > src/e2e_project_frontend/assets/.ic-assets.json5
+  cat src/e2e_project_frontend/assets/.ic-assets.json5
+
+  # fails if the the above produced invalid json5
+  assert_command dfx deploy
+}

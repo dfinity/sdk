@@ -30,9 +30,11 @@ use crate::error::SyncError;
 use crate::error::SyncError::CommitBatchFailed;
 use crate::error::UploadContentError;
 use crate::error::UploadContentError::{CreateBatchFailed, ListAssetsFailed};
+use crate::security_policy::SecurityPolicy;
 use candid::Nat;
 use ic_agent::AgentError;
 use ic_utils::Canister;
+use itertools::Itertools;
 use slog::{debug, info, trace, warn, Logger};
 use std::collections::HashMap;
 use std::path::Path;
@@ -305,6 +307,64 @@ pub(crate) fn gather_asset_descriptors(
             for rule in rules {
                 warn!(logger, "{}", serde_json::to_string_pretty(&rule).unwrap());
             }
+        }
+
+        let no_csp_assets = asset_descriptors
+            .values()
+            .filter(|asset| {
+                asset.config.warn_about_unhardened_csp()
+                    && matches!(
+                        asset.config.security_policy,
+                        None | Some(SecurityPolicy::Disabled)
+                    )
+            })
+            .collect_vec();
+        if no_csp_assets.len() > 0 {
+            warn!(
+                logger,
+                "This project does not define a security policy for some assets."
+            );
+            warn!(
+                logger,
+                "You should define a security policy in .ic-assets.json5.  For example:"
+            );
+            warn!(logger, "[");
+            warn!(logger, "  {{");
+            warn!(logger, r#"    "match": "**/*","#);
+            warn!(logger, r#"    "security_policy": "standard""#);
+            warn!(logger, "  }}");
+            warn!(logger, "]");
+
+            if no_csp_assets.len() == asset_descriptors.len() {
+                warn!(logger, "Assets without any CSP: all");
+            } else {
+                warn!(logger, "Assets without any CSP:");
+                for asset in &no_csp_assets {
+                    warn!(logger, "  - {}", asset.key);
+                }
+            }
+        }
+        let standard_csp_assets = asset_descriptors
+            .values()
+            .filter(|asset| {
+                asset.config.warn_about_unhardened_csp()
+                    && asset.config.security_policy == Some(SecurityPolicy::Standard)
+            })
+            .collect_vec();
+        if standard_csp_assets.len() > 0 {
+            warn!(logger, "This project uses the default security policy for some assets. While it is set up to work with many applications, it is recommended to further harden the policy to increase security against attacks like XSS.");
+            warn!(logger, "To get started, have a look at 'dfx info canister-security-policy'. It shows the default CSP along with suggestions on how to improve it.");
+            if standard_csp_assets.len() == asset_descriptors.len() {
+                warn!(logger, "Unhardened assets: all");
+            } else {
+                warn!(logger, "Unhardened assets:");
+                for asset in &standard_csp_assets {
+                    warn!(logger, "  - {}", asset.key);
+                }
+            }
+        }
+        if standard_csp_assets.len() > 0 || no_csp_assets.len() > 0 {
+            warn!(logger, "To disable the CSP warning, define \"disable_standard_security_policy_warning\": true in .ic-assets.json5.");
         }
     }
     Ok(asset_descriptors.into_values().collect())

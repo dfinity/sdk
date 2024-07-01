@@ -1339,6 +1339,142 @@ EOF
   assert_match "etag: my-custom-etag"
 }
 
+@test "asset configuration via .ic-assets.json5 - security policy" {
+  install_asset assetscanister
+  touch src/e2e_project_frontend/assets/thing.json
+  touch src/e2e_project_frontend/assets/thing2.json
+
+  dfx_start
+  dfx canister create --all
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+
+  # No security policy defined, warning not disabled
+  echo '[]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+  assert_command dfx deploy
+  assert_contains "This project does not define a security policy for some assets."
+  assert_contains "Assets without any CSP: all"
+  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+  assert_not_match "content-security-policy"
+  assert_not_match "permissions-policy"
+
+  # No security policy defined, warning disabled for one asset
+  echo '[
+    {
+      "match": "thing.json",
+      "disable_content_security_policy_warning": true
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+  assert_command dfx deploy
+  assert_contains "This project does not define a security policy for some assets."
+  assert_contains "Assets without any CSP:"
+  assert_contains "- /thing2.json"
+  assert_not_contains "- /thing.json"
+  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+  assert_not_match "content-security-policy"
+  assert_not_match "permissions-policy"
+
+  # No security policy defined, warning disabled for all assets
+  echo '[
+    {
+      "match": "**/*",
+      "disable_content_security_policy_warning": true
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+  assert_command dfx deploy
+  assert_not_contains "This project does not define a security policy for some assets."
+  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+  assert_not_match "content-security-policy"
+  assert_not_match "permissions-policy"
+
+  # Security policy "standard" defined for all assets, warning not disabled
+  echo '[
+    {
+      "match": "**/*",
+      "security_policy": "standard"
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+  assert_command dfx deploy
+  assert_contains "This project uses the default security policy for some assets."
+  assert_contains "Unhardened assets: all"
+  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+  assert_match "content-security-policy"
+  assert_match "permissions-policy"
+
+  # Security policy "standard" defined for all assets, warning disabled for one asset
+  echo '[
+    {
+      "match": "**/*",
+      "security_policy": "standard"
+    },
+    {
+      "match": "thing.json",
+      "disable_content_security_policy_warning": true
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+  assert_command dfx deploy
+  assert_contains "This project uses the default security policy for some assets."
+  assert_contains "Unhardened assets:"
+  assert_contains "- /thing2.json"
+  assert_not_contains "- /thing.json"
+  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+  assert_match "content-security-policy"
+  assert_match "permissions-policy"
+
+  # Security policy "standard" defined for all assets, warning disabled for all assets
+  echo '[
+    {
+      "match": "**/*",
+      "security_policy": "standard",
+      "disable_content_security_policy_warning": true
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+  assert_command dfx deploy
+  assert_not_contains "This project uses the default security policy for some assets."
+  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+  assert_match "content-security-policy"
+  assert_match "permissions-policy"
+
+  # Security policy "hardened" defined for all assets
+  echo '[
+    {
+      "match": "**/*",
+      "security_policy": "hardened"
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+  assert_command dfx deploy
+  assert_not_contains "This project does not define a security policy for some assets."
+  assert_not_contains "This project uses the default security policy for some assets."
+  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+  assert_match "content-security-policy"
+  assert_match "permissions-policy"
+
+  # Security policy "hardened" defined for all assets, with overwiting default security headers
+  echo '[
+    {
+      "match": "**/*",
+      "security_policy": "hardened",
+      "headers": {
+        "content-security-policy": "overwritten"
+      }
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+  assert_command dfx deploy
+  assert_not_contains "This project does not define a security policy for some assets."
+  assert_not_contains "This project uses the default security policy for some assets."
+  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+  assert_match "content-security-policy: overwritten"
+  assert_match "permissions-policy"
+}
+
 @test "asset configuration via .ic-assets.json5 - overwriting default encodings" {
   dfx_new_frontend
 
