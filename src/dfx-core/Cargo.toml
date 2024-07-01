@@ -10,6 +10,7 @@ rust-version.workspace = true
 [dependencies]
 aes-gcm.workspace = true
 argon2.workspace = true
+backoff.workspace = true
 bip32 = "0.4.0"
 byte-unit = { workspace = true, features = ["serde"] }
 bytes.workspace = true

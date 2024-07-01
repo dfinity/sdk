@@ -3,13 +3,17 @@ use crate::error::extension::{
     FindLatestExtensionCompatibleVersionError, GetExtensionArchiveNameError,
     GetExtensionDownloadUrlError, InstallExtensionError,
 };
+use crate::error::reqwest::WrappedReqwestError;
 use crate::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
+use crate::http::get::get_with_retries;
+use backoff::exponential::ExponentialBackoff;
 use flate2::read::GzDecoder;
 use reqwest::Url;
 use semver::{BuildMetadata, Prerelease, Version};
 use std::io::Cursor;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
+use std::time::Duration;
 use tar::Archive;
 use tempfile::{tempdir_in, TempDir};
 
@@ -17,7 +21,7 @@ const DFINITY_DFX_EXTENSIONS_RELEASES_URL: &str =
     "https://github.com/dfinity/dfx-extensions/releases/download";
 
 impl ExtensionManager {
-    pub fn install_extension(
+    pub async fn install_extension(
         &self,
         extension_name: &str,
         install_as: Option<&str>,
@@ -36,13 +40,13 @@ impl ExtensionManager {
 
         let extension_version = match version {
             Some(version) => version.clone(),
-            None => self.get_extension_compatible_version(extension_name)?,
+            None => self.get_highest_compatible_version(extension_name).await?,
         };
         let github_release_tag = get_git_release_tag(extension_name, &extension_version);
         let extension_archive = get_extension_archive_name(extension_name)?;
         let url = get_extension_download_url(&github_release_tag, &extension_archive)?;
 
-        let temp_dir = self.download_and_unpack_extension_to_tempdir(url)?;
+        let temp_dir = self.download_and_unpack_extension_to_tempdir(url).await?;
 
         self.finalize_installation(
             extension_name,
@@ -64,31 +68,31 @@ impl ExtensionManager {
         dfx_version
     }
 
-    fn get_extension_compatible_version(
+    async fn get_highest_compatible_version(
         &self,
         extension_name: &str,
     ) -> Result<Version, FindLatestExtensionCompatibleVersionError> {
-        let manifest = ExtensionCompatibilityMatrix::fetch()?;
+        let manifest = ExtensionCompatibilityMatrix::fetch().await?;
         let dfx_version = self.dfx_version_strip_semver();
         manifest.find_latest_compatible_extension_version(extension_name, &dfx_version)
     }
 
-    fn download_and_unpack_extension_to_tempdir(
+    async fn download_and_unpack_extension_to_tempdir(
         &self,
         download_url: Url,
     ) -> Result<TempDir, DownloadAndInstallExtensionToTempdirError> {
-        let response = reqwest::blocking::get(download_url.clone()).map_err(|e| {
-            DownloadAndInstallExtensionToTempdirError::ExtensionDownloadFailed(
-                download_url.clone(),
-                e,
-            )
-        })?;
+        let retry_policy = ExponentialBackoff {
+            max_elapsed_time: Some(Duration::from_secs(60)),
+            ..Default::default()
+        };
+        let response = get_with_retries(download_url.clone(), retry_policy)
+            .await
+            .map_err(DownloadAndInstallExtensionToTempdirError::ExtensionDownloadFailed)?;
 
-        let bytes = response.bytes().map_err(|e| {
-            DownloadAndInstallExtensionToTempdirError::ExtensionDownloadFailed(
-                download_url.clone(),
+        let bytes = response.bytes().await.map_err(|e| {
+            DownloadAndInstallExtensionToTempdirError::ExtensionDownloadFailed(WrappedReqwestError(
                 e,
-            )
+            ))
         })?;
 
         crate::fs::composite::ensure_dir_exists(&self.dir)

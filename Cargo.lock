@@ -1626,6 +1626,7 @@ version = "0.0.1"
 dependencies = [
  "aes-gcm",
  "argon2",
+ "backoff",
  "bip32",
  "byte-unit",
  "bytes",

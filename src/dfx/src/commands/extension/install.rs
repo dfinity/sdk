@@ -6,6 +6,7 @@ use anyhow::bail;
 use clap::Parser;
 use clap::Subcommand;
 use semver::Version;
+use tokio::runtime::Runtime;
 
 #[derive(Parser)]
 pub struct InstallOpts {
@@ -30,11 +31,16 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
         bail!("Extension '{}' cannot be installed because it conflicts with an existing command. Consider using '--install-as' flag to install this extension under different name.", opts.name)
     }
 
-    mgr.install_extension(
-        &opts.name,
-        opts.install_as.as_deref(),
-        opts.version.as_ref(),
-    )?;
+    let runtime = Runtime::new().expect("Unable to create a runtime");
+
+    runtime.block_on(async {
+        mgr.install_extension(
+            &opts.name,
+            opts.install_as.as_deref(),
+            opts.version.as_ref(),
+        )
+        .await
+    })?;
     spinner.finish_with_message(
         format!(
             "Extension '{}' installed successfully{}",
