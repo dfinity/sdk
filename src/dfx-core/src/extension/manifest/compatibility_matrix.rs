@@ -31,12 +31,14 @@ pub struct ExtensionCompatibleVersions {
 }
 
 impl ExtensionCompatibilityMatrix {
-    pub fn fetch() -> Result<Self, FetchExtensionCompatibilityMatrixError> {
-        let resp = reqwest::blocking::get(COMMON_EXTENSIONS_MANIFEST_LOCATION).map_err(|e| {
-            CompatibilityMatrixFetchError(COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string(), e)
-        })?;
+    pub async fn fetch() -> Result<Self, FetchExtensionCompatibilityMatrixError> {
+        let resp = reqwest::get(COMMON_EXTENSIONS_MANIFEST_LOCATION)
+            .await
+            .map_err(|e| {
+                CompatibilityMatrixFetchError(COMMON_EXTENSIONS_MANIFEST_LOCATION.to_string(), e)
+            })?;
 
-        resp.json().map_err(MalformedCompatibilityMatrix)
+        resp.json().await.map_err(MalformedCompatibilityMatrix)
     }
 
     pub fn find_latest_compatible_extension_version(

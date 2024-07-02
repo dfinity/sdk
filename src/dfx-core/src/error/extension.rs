@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use crate::error::reqwest::WrappedReqwestError;
 use crate::error::structured_file::StructuredFileError;
 use thiserror::Error;
 
@@ -82,8 +83,8 @@ pub enum NewExtensionManagerError {
 
 #[derive(Error, Debug)]
 pub enum DownloadAndInstallExtensionToTempdirError {
-    #[error("Downloading extension from '{0}' failed")]
-    ExtensionDownloadFailed(url::Url, #[source] reqwest::Error),
+    #[error(transparent)]
+    ExtensionDownloadFailed(WrappedReqwestError),
 
     #[error("Cannot get extensions directory")]
     EnsureExtensionDirExistsFailed(#[source] crate::error::fs::FsError),
