@@ -1,10 +1,12 @@
 use crate::error::extension::{
     DownloadAndInstallExtensionToTempdirError, FinalizeInstallationError,
-    FindLatestExtensionCompatibleVersionError, GetExtensionArchiveNameError,
-    GetExtensionDownloadUrlError, InstallExtensionError,
+    GetExtensionArchiveNameError, GetExtensionDownloadUrlError, GetHighestCompatibleVersionError,
+    InstallExtensionError,
 };
 use crate::error::reqwest::WrappedReqwestError;
-use crate::extension::{manager::ExtensionManager, manifest::ExtensionCompatibilityMatrix};
+use crate::extension::{
+    manager::ExtensionManager, manifest::ExtensionDependencies, url::ExtensionJsonUrl,
+};
 use crate::http::get::get_with_retries;
 use backoff::exponential::ExponentialBackoff;
 use flate2::read::GzDecoder;
@@ -24,9 +26,10 @@ impl ExtensionManager {
     pub async fn install_extension(
         &self,
         extension_name: &str,
+        url: &ExtensionJsonUrl,
         install_as: Option<&str>,
         version: Option<&Version>,
-    ) -> Result<(), InstallExtensionError> {
+    ) -> Result<Version, InstallExtensionError> {
         let effective_extension_name = install_as.unwrap_or(extension_name);
 
         if self
@@ -40,13 +43,15 @@ impl ExtensionManager {
 
         let extension_version = match version {
             Some(version) => version.clone(),
-            None => self.get_highest_compatible_version(extension_name).await?,
+            None => self.get_highest_compatible_version(url).await?,
         };
         let github_release_tag = get_git_release_tag(extension_name, &extension_version);
         let extension_archive = get_extension_archive_name(extension_name)?;
-        let url = get_extension_download_url(&github_release_tag, &extension_archive)?;
+        let archive_url = get_extension_download_url(&github_release_tag, &extension_archive)?;
 
-        let temp_dir = self.download_and_unpack_extension_to_tempdir(url).await?;
+        let temp_dir = self
+            .download_and_unpack_extension_to_tempdir(archive_url)
+            .await?;
 
         self.finalize_installation(
             extension_name,
@@ -55,7 +60,7 @@ impl ExtensionManager {
             temp_dir,
         )?;
 
-        Ok(())
+        Ok(extension_version)
     }
 
     /// Removing the prerelease tag and build metadata, because they should
@@ -70,11 +75,13 @@ impl ExtensionManager {
 
     async fn get_highest_compatible_version(
         &self,
-        extension_name: &str,
-    ) -> Result<Version, FindLatestExtensionCompatibleVersionError> {
-        let manifest = ExtensionCompatibilityMatrix::fetch().await?;
+        url: &ExtensionJsonUrl,
+    ) -> Result<Version, GetHighestCompatibleVersionError> {
+        let dependencies = ExtensionDependencies::fetch(url).await?;
         let dfx_version = self.dfx_version_strip_semver();
-        manifest.find_latest_compatible_extension_version(extension_name, &dfx_version)
+        dependencies
+            .find_highest_compatible_version(&dfx_version)?
+            .ok_or(GetHighestCompatibleVersionError::NoCompatibleVersionFound())
     }
 
     async fn download_and_unpack_extension_to_tempdir(

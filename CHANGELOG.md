@@ -21,6 +21,8 @@ The [NIST guidelines](https://pages.nist.gov/800-63-3/sp800-63b.html) require pa
 This is now enforced when creating new identities.
 Identities protected by a shorter password can still be decrypted.
 
+### feat: `dfx extension install` now uses the extension's dependencies.json file to pick the highest compatible version
+
 # 0.21.0
 
 ### feat: dfx killall
