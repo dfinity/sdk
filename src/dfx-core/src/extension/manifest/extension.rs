@@ -4,7 +4,7 @@ use crate::error::extension::{
 };
 use crate::json::structure::VersionReqWithJsonSchema;
 use schemars::JsonSchema;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use std::path::PathBuf;
 use std::{
@@ -17,7 +17,7 @@ pub static MANIFEST_FILE_NAME: &str = "extension.json";
 type SubcmdName = String;
 type ArgName = String;
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExtensionManifest {
     pub name: String,
@@ -33,7 +33,7 @@ pub struct ExtensionManifest {
     pub canister_type: Option<ExtensionCanisterType>,
 }
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum ExtensionDependency {
     /// A SemVer version requirement, for example ">=0.17.0".
@@ -71,7 +71,7 @@ impl ExtensionManifest {
     }
 }
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ExtensionCanisterType {
     /// If one field depends on another and both specify a handlebars expression,
     /// list the fields in the order that they should be evaluated.
@@ -88,10 +88,10 @@ pub struct ExtensionCanisterType {
     pub defaults: BTreeMap<String, Value>,
 }
 
-#[derive(Debug, Deserialize, Default, JsonSchema)]
-pub struct ExtensionSubcommandsOpts(BTreeMap<SubcmdName, ExtensionSubcommandOpts>);
+#[derive(Debug, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ExtensionSubcommandsOpts(pub BTreeMap<SubcmdName, ExtensionSubcommandOpts>);
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExtensionSubcommandOpts {
     pub about: Option<String>,
@@ -99,7 +99,7 @@ pub struct ExtensionSubcommandOpts {
     pub subcommands: Option<ExtensionSubcommandsOpts>,
 }
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExtensionSubcommandArgOpts {
     pub about: Option<String>,
@@ -112,7 +112,7 @@ pub struct ExtensionSubcommandArgOpts {
     pub values: ArgNumberOfValues,
 }
 
-#[derive(Debug, JsonSchema)]
+#[derive(Debug, JsonSchema, Eq, PartialEq)]
 pub enum ArgNumberOfValues {
     /// zero or more values
     Number(usize),
@@ -162,6 +162,22 @@ impl<'de> Deserialize<'de> for ArgNumberOfValues {
             "Invalid format for values: '{}'. Expected 'unlimited' or a positive integer or a range (for example '1..3')",
             s
         )))
+            }
+        }
+    }
+}
+
+impl Serialize for ArgNumberOfValues {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::Number(n) => serializer.serialize_u64(*n as u64),
+            Self::Unlimited => serializer.serialize_str("unlimited"),
+            Self::Range(range) => {
+                let s = format!("{}..{}", range.start, range.end - 1);
+                serializer.serialize_str(&s)
             }
         }
     }
@@ -432,4 +448,43 @@ fn parse_test_file() {
     clap::Command::new("sns")
         .subcommands(&subcmds)
         .debug_assert();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_arg_number_of_values_number_serialization_deserialization() {
+        let original = ArgNumberOfValues::Number(5);
+        let serialized = serde_json::to_string(&original).unwrap();
+        let deserialized: ArgNumberOfValues = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(serialized, "5");
+        assert_eq!(deserialized, ArgNumberOfValues::Number(5));
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_arg_number_of_values_unlimited_serialization_deserialization() {
+        let original = ArgNumberOfValues::Unlimited;
+        let serialized = serde_json::to_string(&original).unwrap();
+        let deserialized: ArgNumberOfValues = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(serialized, "\"unlimited\"");
+        assert_eq!(deserialized, ArgNumberOfValues::Unlimited);
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_arg_number_of_values_range_serialization_deserialization() {
+        let original = ArgNumberOfValues::Range(1..4);
+        let serialized = serde_json::to_string(&original).unwrap();
+        let deserialized: ArgNumberOfValues = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(serialized, "\"1..3\"");
+        assert_eq!(deserialized, ArgNumberOfValues::Range(1_usize..4_usize));
+        assert_eq!(original, deserialized);
+    }
 }

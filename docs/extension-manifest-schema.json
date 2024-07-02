@@ -176,7 +176,12 @@
           "minLength": 1
         },
         "values": {
-          "$ref": "#/definitions/ArgNumberOfValues"
+          "default": 1,
+          "allOf": [
+            {
+              "$ref": "#/definitions/ArgNumberOfValues"
+            }
+          ]
         }
       },
       "additionalProperties": false
