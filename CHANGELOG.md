@@ -30,7 +30,7 @@ A test key id "Bip340Secp256k1:dfx_test_key" is ready to be used by locally crea
 
 ### Replica
 
-Updated replica to elected commit dd0bae0156783262a5e8b7a0f9a6d0c87b6c9621.
+Updated replica to elected commit 2e269c77aa2f6b2353ddad6a4ac3d5ddcac196b1.
 
 # 0.21.0
 
