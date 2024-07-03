@@ -10,6 +10,8 @@ To do this, the `@dfinity/agent` version was updated as well.
 
 ### fix: `dfx build` no longer requires a password for password-protected identities
 
+### chore!: enforce `--wallet` requirement for `dfx canister call --with-cycles` earlier
+
 ### feat: add `dfx schema` support for .json files related to extensions
 
 - `dfx schema --for extension-manifest` corresponds to extension.json
