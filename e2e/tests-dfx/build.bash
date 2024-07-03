@@ -328,3 +328,10 @@ teardown() {
   assert_command ls .dfx/actuallylocal/canisters/e2e_project_backend/
   assert_command ls .dfx/actuallylocal/canisters/e2e_project_backend/e2e_project_backend.wasm
 }
+
+@test "dfx build does not require a password" {
+  assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/init_alice_with_pw.exp"
+  assert_command dfx identity use alice
+
+  assert_command timeout 30s dfx build --check
+}

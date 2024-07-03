@@ -1,7 +1,9 @@
 use candid::Deserialize;
 use schemars::JsonSchema;
+use semver::VersionReq;
 use serde::Serialize;
 use std::fmt::Display;
+use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 
 #[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, PartialEq, Eq)]
@@ -51,5 +53,23 @@ where
             PossiblyStrInner::NotStr(t) => Ok(Self(t)),
             PossiblyStrInner::Str(str) => T::from_str(&str).map(Self),
         }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(transparent)]
+pub struct VersionReqWithJsonSchema(#[schemars(with = "String")] pub VersionReq);
+
+impl Deref for VersionReqWithJsonSchema {
+    type Target = VersionReq;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for VersionReqWithJsonSchema {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
     }
 }

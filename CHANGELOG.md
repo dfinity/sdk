@@ -8,9 +8,20 @@
 
 To do this, the `@dfinity/agent` version was updated as well.
 
-### feat: add `dfx schema --for extension-manifest`
+### fix: `dfx build` no longer requires a password for password-protected identities
 
-The schema command can now output the schema for extension.json files.
+### feat: add `dfx schema` support for .json files related to extensions
+
+- `dfx schema --for extension-manifest` corresponds to extension.json
+- `dfx schema --for extension-dependencies` corresponds to dependencies.json
+
+### chore!: enforce minimum password length of 9 characters
+
+The [NIST guidelines](https://pages.nist.gov/800-63-3/sp800-63b.html) require passwords to be longer than 8 characters.
+This is now enforced when creating new identities.
+Identities protected by a shorter password can still be decrypted.
+
+### feat: `dfx extension install` now uses the extension's dependencies.json file to pick the highest compatible version
 
 ### feat: Enable threshold schnorr signatures for Bip340Secp256k1
 

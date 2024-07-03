@@ -168,6 +168,7 @@ fn maybe_decrypt_pem(
     }
 }
 
+#[derive(PartialEq, Eq)]
 enum PromptMode {
     EncryptingToCreate,
     DecryptingToUse,
@@ -180,6 +181,14 @@ fn password_prompt(mode: PromptMode) -> Result<String, EncryptionError> {
     };
     dialoguer::Password::new()
         .with_prompt(prompt)
+        .validate_with(|password: &String| -> Result<(), &str> {
+            // Password may have been set before length check has been implemented, so only reject bad passwords during identity creation
+            if password.chars().count() > 8 || mode == PromptMode::DecryptingToUse {
+                Ok(())
+            } else {
+                Err("Password must be longer than 8 characters.")
+            }
+        })
         .interact()
         .map_err(EncryptionError::ReadUserPasswordFailed)
 }
