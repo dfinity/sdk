@@ -5,6 +5,7 @@ pub mod error;
 pub mod extension;
 pub mod foundation;
 pub mod fs;
+pub mod http;
 pub mod identity;
 pub mod interface;
 pub mod json;

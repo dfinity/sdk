@@ -6,21 +6,39 @@
 
 This replaces the dashboard link, which is now shown only in verbose mode. This should hopefully be less confusing for new users.
 
+### fix: Allow canisters to be deployed even if unrelated canisters in dfx.json are malformed
+
 ### feat!: enable cycles ledger support unconditionally
 
 ### chore!: removed `unsafe-eval` CSP from default starter template
 
 To do this, the `@dfinity/agent` version was updated as well.
 
-### feat: add `dfx schema --for extension-manifest`
+### fix: `dfx build` no longer requires a password for password-protected identities
 
-The schema command can now output the schema for extension.json files.
+### chore!: enforce `--wallet` requirement for `dfx canister call --with-cycles` earlier
+
+### feat: add `dfx schema` support for .json files related to extensions
+
+- `dfx schema --for extension-manifest` corresponds to extension.json
+- `dfx schema --for extension-dependencies` corresponds to dependencies.json
 
 ### chore!: enforce minimum password length of 9 characters
 
 The [NIST guidelines](https://pages.nist.gov/800-63-3/sp800-63b.html) require passwords to be longer than 8 characters.
 This is now enforced when creating new identities.
 Identities protected by a shorter password can still be decrypted.
+
+### feat: `dfx extension install` now uses the extension's dependencies.json file to pick the highest compatible version
+
+### feat: Enable threshold schnorr signatures for Bip340Secp256k1
+
+Schnorr signature signing for `Bip340Secp256k1` is now enabled.
+A test key id `Bip340Secp256k1:dfx_test_key` is ready to be used by locally created canisters.
+
+### Replica
+
+Updated replica to elected commit 2e269c77aa2f6b2353ddad6a4ac3d5ddcac196b1.
 
 # 0.21.0
 
