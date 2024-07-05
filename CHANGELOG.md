@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### fix: Allow canisters to be deployed even if unrelated canisters in dfx.json are malformed
+
 ### feat!: enable cycles ledger support unconditionally
 
 ### chore!: removed `unsafe-eval` CSP from default starter template
