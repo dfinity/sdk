@@ -25,6 +25,15 @@ Identities protected by a shorter password can still be decrypted.
 
 ### feat: `dfx extension install` now uses the extension's dependencies.json file to pick the highest compatible version
 
+### feat: Enable threshold schnorr signatures for Bip340Secp256k1
+
+Schnorr signature signing for `Bip340Secp256k1` is now enabled.
+A test key id `Bip340Secp256k1:dfx_test_key` is ready to be used by locally created canisters.
+
+### Replica
+
+Updated replica to elected commit 2e269c77aa2f6b2353ddad6a4ac3d5ddcac196b1.
+
 # 0.21.0
 
 ### feat: dfx killall
