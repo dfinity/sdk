@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: display replica port in `dfx start`
+
+This replaces the dashboard link, which is now shown only in verbose mode. This should hopefully be less confusing for new users.
+
 ### feat!: enable cycles ledger support unconditionally
 
 ### chore!: removed `unsafe-eval` CSP from default starter template
