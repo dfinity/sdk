@@ -26,7 +26,7 @@ Identities protected by a shorter password can still be decrypted.
 ### feat: Enable threshold schnorr signatures for Bip340Secp256k1
 
 Schnorr signature signing for Bip340Secp256k1 is now enabled by default in new projects, or by running `dfx start --clean`.
-A test key id "Bip340Secp256k1:dfx_test_key" is ready to be used by locally created canisters.
+A test key id `Bip340Secp256k1:dfx_test_key` is ready to be used by locally created canisters.
 
 ### Replica
 
