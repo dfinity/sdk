@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.22.0
+
 ### asset uploads: retry some HTTP errors returned by the replica
 
 Now retries the following, with exponential backoff as is already done for connect and transport errors:
