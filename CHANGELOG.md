@@ -2,6 +2,15 @@
 
 # UNRELEASED
 
+### asset uploads: retry some HTTP errors returned by the replica
+
+Now retries the following, with exponential backoff as is already done for connect and transport errors:
+- 500 internal server error
+- 502 bad gateway
+- 503 service unavailable
+- 504 gateway timeout
+- 429 many requests
+
 ### fix: Allow canisters to be deployed even if unrelated canisters in dfx.json are malformed
 
 ### feat!: enable cycles ledger support unconditionally
