@@ -17,6 +17,24 @@
         "url": "https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c6570d0/binaries/x86_64-linux/canister_sandbox.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-linux/canister_sandbox.gz"
     },
+    "compiler_sandbox-x86_64-darwin": {
+        "builtin": false,
+        "description": "The compiler_sandbox binary. It must be updated together with the replica binary.",
+        "rev": "5849c6daf2037349bd36dcb6e26ce61c2c6570d0",
+        "sha256": "038wj69wjg3qb24l2lqazv8cwwwishkj5qp05b5m6qvd65mwch39",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c6570d0/binaries/x86_64-darwin/compiler_sandbox.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/compiler_sandbox.gz"
+    },
+    "compiler_sandbox-x86_64-linux": {
+        "builtin": false,
+        "description": "The compiler_sandbox binary. It must be updated together with the replica binary.",
+        "rev": "5849c6daf2037349bd36dcb6e26ce61c2c6570d0",
+        "sha256": "11xla84yk68fzmhqy92vfrz0bxckmall6yn23zjbcin7jh54drip",
+        "type": "file",
+        "url": "https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c6570d0/binaries/x86_64-linux/compiler_sandbox.gz",
+        "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-linux/compiler_sandbox.gz"
+    },
     "ic-admin-x86_64-darwin": {
         "builtin": false,
         "description": "The ic-admin binary.",
@@ -52,7 +70,6 @@
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-linux/ic-btc-adapter.gz"
     },
     "ic-btc-canister": {
-        "owner": "dfinity",
         "sha256": "1b34jpxkk72h07ls0fspwrgmndmj7xhlivdhn82msvgz8mx69x89",
         "type": "file",
         "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-10-13/ic-btc-canister.wasm.gz",
@@ -128,7 +145,6 @@
     "motoko-base": {
         "builtin": false,
         "description": "The Motoko base library",
-        "owner": "dfinity",
         "sha256": "00nz3d2r7rs5gm500fzk370g8vrj89cw7qmck64zp7c4b8yybgah",
         "type": "tarball",
         "url": "https://github.com/dfinity/motoko/releases/download/0.11.1/motoko-base-library.tar.gz",

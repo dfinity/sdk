@@ -28,16 +28,21 @@ sha256 = 'df789889721f50d76d95545deaf29e4f01de94b78bee3841bd4f0b59ff037796'
 [x86_64-darwin.motoko]
 url = 'https://github.com/dfinity/motoko/releases/download/0.11.1/motoko-Darwin-x86_64-0.11.1.tar.gz'
 sha256 = '41c71aa0fea08226147ef1db01c5ca122a894ac0ab20e41cb149b9002ce3a24f'
-# The replica and canister_sandbox binaries must have the same revision.
+# The replica, canister_sandbox and compiler_sandbox binaries must have the same revision.
 
 [x86_64-darwin.replica]
 url = 'https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c6570d0/binaries/x86_64-darwin/replica.gz'
 sha256 = '1f0e2b929490c126b40de61589bd9aa5c8c88e7acc1702faadbae63b9a8c2a43'
-# The replica and canister_sandbox binaries must have the same revision.
+# The replica, canister_sandbox and compiler_sandbox binaries must have the same revision.
 
 [x86_64-darwin.canister_sandbox]
 url = 'https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c6570d0/binaries/x86_64-darwin/canister_sandbox.gz'
 sha256 = '082d115cf88f895430c6b7b6ded47b446799648799a0234dc444a60c77cb22a9'
+# The replica, canister_sandbox and compiler_sandbox binaries must have the same revision.
+
+[x86_64-darwin.compiler_sandbox]
+url = 'https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c6570d0/binaries/x86_64-darwin/compiler_sandbox.gz'
+sha256 = '6940c66b316d6353cb2ae0e22227d49173ced0fe0a53418958783cc993911c0d'
 
 [x86_64-darwin.sandbox_launcher]
 url = 'https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c6570d0/binaries/x86_64-darwin/sandbox_launcher.gz'
@@ -86,16 +91,21 @@ sha256 = '2cdccaf2d249cf73291d93c80a54b849201863ed3432b33c827d8eeadbbb48da'
 [x86_64-linux.motoko]
 url = 'https://github.com/dfinity/motoko/releases/download/0.11.1/motoko-Linux-x86_64-0.11.1.tar.gz'
 sha256 = '6a6c1b9d9d69bb49b40859c1c51b40b0dabf2dd3aabacf37c73817dafee60a70'
-# The replica and canister_sandbox binaries must have the same revision.
+# The replica, canister_sandbox and compiler_sandbox binaries must have the same revision.
 
 [x86_64-linux.replica]
 url = 'https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c6570d0/binaries/x86_64-linux/replica.gz'
 sha256 = '92351e75be63c7bc9ef1da365aab6049c811b94efdab7382428c2bcda7450150'
-# The replica and canister_sandbox binaries must have the same revision.
+# The replica, canister_sandbox and compiler_sandbox binaries must have the same revision.
 
 [x86_64-linux.canister_sandbox]
 url = 'https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c6570d0/binaries/x86_64-linux/canister_sandbox.gz'
 sha256 = 'cbf3489588fe5892500047ac313de58ce29a76f5574a9f401a1dad46fbb722c4'
+# The replica, canister_sandbox and compiler_sandbox binaries must have the same revision.
+
+[x86_64-linux.compiler_sandbox]
+url = 'https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c6570d0/binaries/x86_64-linux/compiler_sandbox.gz'
+sha256 = '37e6460a94c746b6e41fc27a43a9aa93f5057e765b248f61fd0e99e90952b487'
 
 [x86_64-linux.sandbox_launcher]
 url = 'https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c6570d0/binaries/x86_64-linux/sandbox_launcher.gz'
