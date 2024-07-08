@@ -41,9 +41,23 @@ Identities protected by a shorter password can still be decrypted.
 Schnorr signature signing for `Bip340Secp256k1` is now enabled.
 A test key id `Bip340Secp256k1:dfx_test_key` is ready to be used by locally created canisters.
 
+## Dependencies
+
 ### Replica
 
-Updated replica to elected commit 2e269c77aa2f6b2353ddad6a4ac3d5ddcac196b1.
+Updated replica to elected commit 5849c6daf2037349bd36dcb6e26ce61c2c6570d0.
+This incorporates the following executed proposals:
+
+- [130985](https://dashboard.internetcomputer.org/proposal/130985)
+- [130984](https://dashboard.internetcomputer.org/proposal/130984)
+- [130819](https://dashboard.internetcomputer.org/proposal/130819)
+- [130818](https://dashboard.internetcomputer.org/proposal/130818)
+- [130748](https://dashboard.internetcomputer.org/proposal/130748)
+- [130749](https://dashboard.internetcomputer.org/proposal/130749)
+- [130728](https://dashboard.internetcomputer.org/proposal/130728)
+- [130727](https://dashboard.internetcomputer.org/proposal/130727)
+- [130409](https://dashboard.internetcomputer.org/proposal/130409)
+- [130408](https://dashboard.internetcomputer.org/proposal/130408)
 
 # 0.21.0
 
