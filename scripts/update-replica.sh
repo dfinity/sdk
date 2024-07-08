@@ -27,6 +27,8 @@ niv update ic-starter-x86_64-linux -a rev="$SHA"
 
 niv update replica-x86_64-darwin -a rev="$SHA"
 niv update replica-x86_64-linux -a rev="$SHA"
+niv update pocket-ic-x86_64-darwin -a rev="$SHA"
+niv update pocket-ic-x86_64-linux -a rev="$SHA"
 niv update canister_sandbox-x86_64-darwin -a rev="$SHA"
 niv update canister_sandbox-x86_64-linux -a rev="$SHA"
 niv update sandbox_launcher-x86_64-darwin -a rev="$SHA"
