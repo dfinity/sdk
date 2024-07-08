@@ -32,6 +32,8 @@ Identities protected by a shorter password can still be decrypted.
 Schnorr signature signing for `Bip340Secp256k1` is now enabled.
 A test key id `Bip340Secp256k1:dfx_test_key` is ready to be used by locally created canisters.
 
+## Dependencies
+
 ### Replica
 
 Updated replica to elected commit 5849c6daf2037349bd36dcb6e26ce61c2c6570d0.
