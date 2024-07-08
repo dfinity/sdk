@@ -87,10 +87,10 @@ write_replica_rev
 motoko_base_sha="$(calculate_sha256 "motoko-base")"
 for platform in "darwin" "linux";
 do
-    for name in "icx-proxy" "ic-admin" "ic-btc-adapter" "ic-https-outcalls-adapter" "ic-nns-init" "ic-starter" "motoko" "replica" "canister_sandbox" "sandbox_launcher" "sns" "pocket-ic";
+    for name in "icx-proxy" "ic-admin" "ic-btc-adapter" "ic-https-outcalls-adapter" "ic-nns-init" "ic-starter" "motoko" "replica" "canister_sandbox" "compiler_sandbox" "sandbox_launcher" "sns" "pocket-ic";
     do
-        if [[ "$name" == "replica" || "$name" == "canister_sandbox" ]]; then
-            echo "# The replica and canister_sandbox binaries must have the same revision." >>"$DFX_ASSET_SOURCES"
+        if [[ "$name" == "replica" || "$name" == "canister_sandbox" || "$name" == "compiler_sandbox" ]]; then
+            echo "# The replica, canister_sandbox and compiler_sandbox binaries must have the same revision." >>"$DFX_ASSET_SOURCES"
         fi
         write_entry "$name" "x86_64-${platform}"
     done

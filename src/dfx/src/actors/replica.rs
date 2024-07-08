@@ -343,10 +343,6 @@ fn replica_start_thread(
                     socket_path.to_str().unwrap_or_default(),
                 ]);
             }
-
-            // Show debug logs from the bitcoin canister.
-            // This helps developers see, for example, the current tip height.
-            cmd.args(["--debug-overrides", "ic_btc_canister::heartbeat"]);
         }
         if config.canister_http_adapter.enabled {
             cmd.args(["--subnet-features", "http_requests"]);
