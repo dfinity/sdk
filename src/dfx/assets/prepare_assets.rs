@@ -178,17 +178,18 @@ async fn download_binaries(
 ) -> HashMap<PathBuf, Bytes> {
     let mut joinset = JoinSet::new();
     for bin in [
+        "canister_sandbox",
+        "compiler_sandbox",
         "ic-admin",
         "ic-btc-adapter",
         "ic-https-outcalls-adapter",
         "ic-nns-init",
-        "icx-proxy",
-        "replica",
-        "canister_sandbox",
-        "sandbox_launcher",
         "ic-starter",
-        "sns",
+        "icx-proxy",
         "pocket-ic",
+        "replica",
+        "sandbox_launcher",
+        "sns",
     ] {
         let source = sources
             .get(bin)
