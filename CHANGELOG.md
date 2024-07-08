@@ -59,6 +59,10 @@ This incorporates the following executed proposals:
 - [130409](https://dashboard.internetcomputer.org/proposal/130409)
 - [130408](https://dashboard.internetcomputer.org/proposal/130408)
 
+### Motoko
+
+Updated Motoko to [0.11.2](https://github.com/dfinity/motoko/releases/tag/0.11.2)
+
 # 0.21.0
 
 ### feat: dfx killall
