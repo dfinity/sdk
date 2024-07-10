@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ens/poc-unify-output-idl-path
   pull_request:
 
 concurrency:
