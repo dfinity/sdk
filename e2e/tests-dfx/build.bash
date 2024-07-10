@@ -335,3 +335,8 @@ teardown() {
 
   assert_command timeout 30s dfx build --check
 }
+
+@test "dfx build can post-process memory64 Wasm module" {
+  install_asset memory64
+  assert_command dfx build --check
+}
