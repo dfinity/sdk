@@ -120,6 +120,9 @@ impl CanisterInfo {
                 .as_ref()
                 .and_then(|candid| canonicalize(candid).ok())
         });
+        // if let Some(remote_candid) = &remote_candid {
+        //     eprintln!("remote_candid is {}", remote_candid.display());
+        // }
 
         // Fill the default config values if None provided
         let declarations_config = CanisterDeclarationsConfig {
@@ -154,16 +157,22 @@ impl CanisterInfo {
                 }
             }
             CanisterTypeProperties::Motoko => {
-                if let Some(remote_candid) = &remote_candid {
-                    workspace_root.join(remote_candid)
-                } else {
-                    output_root.join(name).with_extension("did")
+                match (&remote_id, &remote_candid) {
+                    (Some(remote_id), Some(remote_candid)) => {
+                        // eprintln!("using workspace root {} because remote candid is {}, remote_id is {:?}", workspace_root.display(), remote_candid.display(), remote_id);
+                        workspace_root.join(remote_candid)
+                    }
+                    _ => {
+                        // eprintln!("using output root {}", output_root.display());
+                        output_root.join(name).with_extension("did")
+                    }
                 }
             }
             CanisterTypeProperties::Pull { id } => {
                 get_candid_path_in_project(workspace_root, id)
             }
         };
+        // eprintln!("output idl path is {}", output_idl_path.display());
 
         let type_specific = canister_config.type_specific.clone();
 

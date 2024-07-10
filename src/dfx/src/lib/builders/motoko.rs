@@ -182,12 +182,14 @@ impl CanisterBuilder for MotokoBuilder {
         };
         motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
+        // eprintln!("output idl path (motoko info): {}", motoko_info.get_output_idl_path().display());
+        // eprintln!("output idl path (canister info): {}", canister_info.get_output_idl_path().unwrap().display());
         Ok(BuildOutput {
             canister_id: canister_info
                 .get_canister_id()
                 .expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(motoko_info.get_output_wasm_path().to_path_buf()),
-            idl: IdlBuildOutput::File(motoko_info.get_output_idl_path().to_path_buf()),
+            idl: IdlBuildOutput::File(canister_info.get_output_idl_path().unwrap()),
         })
     }
 
@@ -200,7 +202,10 @@ impl CanisterBuilder for MotokoBuilder {
         // get the path to candid file from dfx build
         let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
         let idl_from_build = motoko_info.get_output_idl_path().to_path_buf();
-        Ok(idl_from_build)
+        // eprintln!("get_candid_path:");
+        // eprintln!("idl_from_build: {}", idl_from_build.display());
+        // eprintln!("idl (canister info): {}", info.get_output_idl_path().unwrap().display());
+        Ok(info.get_output_idl_path().unwrap())
     }
 }
 
