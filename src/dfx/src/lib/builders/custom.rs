@@ -27,7 +27,7 @@ struct CustomBuilderExtra {
     /// Where to download the candid from
     input_candid_url: Option<Url>,
     /// Where the candid output will be located.
-    candid: PathBuf,
+    candid: PathBuf, // todo remove
     /// A command to run to build this canister. This is optional if the canister
     /// only needs to exist.
     build: Vec<String>,
@@ -47,11 +47,11 @@ impl CustomBuilderExtra {
                     )
             })
             .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
+        let candid = info.get_output_idl_path().unwrap();
         let info = info.as_info::<CustomCanisterInfo>()?;
         let input_wasm_url = info.get_input_wasm_url().to_owned();
         let wasm = info.get_output_wasm_path().to_owned();
         let input_candid_url = info.get_input_candid_url().to_owned();
-        let candid = info.get_output_idl_path().to_owned();
         let build = info.get_build_tasks().to_owned();
 
         Ok(CustomBuilderExtra {
@@ -103,7 +103,7 @@ impl CanisterBuilder for CustomBuilder {
     ) -> DfxResult<BuildOutput> {
         let CustomBuilderExtra {
             input_candid_url: _,
-            candid,
+            candid: _,
             input_wasm_url: _,
             wasm,
             build,
@@ -134,7 +134,7 @@ impl CanisterBuilder for CustomBuilder {
         Ok(BuildOutput {
             canister_id,
             wasm: WasmBuildOutput::File(wasm),
-            idl: IdlBuildOutput::File(candid),
+            idl: IdlBuildOutput::File(info.get_output_idl_path().unwrap()),
         })
     }
 
