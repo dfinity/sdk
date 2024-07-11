@@ -147,32 +147,23 @@ impl CanisterInfo {
                 let output_wasm_path = output_root.join(Path::new("assetstorage.wasm.gz"));
                 output_wasm_path.with_extension("").with_extension("did")
             }
-            CanisterTypeProperties::Custom { wasm: _, candid, build: _ } => {
+            CanisterTypeProperties::Custom {
+                wasm: _,
+                candid,
+                build: _,
+            } => {
                 if Url::parse(candid).is_ok() {
-                    output_root
-                        .join(name)
-                        .with_extension("did")
+                    output_root.join(name).with_extension("did")
                 } else {
                     workspace_root.join(candid)
                 }
             }
-            CanisterTypeProperties::Motoko => {
-                match (&remote_id, &remote_candid) {
-                    (Some(remote_id), Some(remote_candid)) => {
-                        // eprintln!("using workspace root {} because remote candid is {}, remote_id is {:?}", workspace_root.display(), remote_candid.display(), remote_id);
-                        workspace_root.join(remote_candid)
-                    }
-                    _ => {
-                        // eprintln!("using output root {}", output_root.display());
-                        output_root.join(name).with_extension("did")
-                    }
-                }
-            }
-            CanisterTypeProperties::Pull { id } => {
-                get_candid_path_in_project(workspace_root, id)
-            }
+            CanisterTypeProperties::Motoko => match (&remote_id, &remote_candid) {
+                (Some(_remote_id), Some(remote_candid)) => workspace_root.join(remote_candid),
+                _ => output_root.join(name).with_extension("did"),
+            },
+            CanisterTypeProperties::Pull { id } => get_candid_path_in_project(workspace_root, id),
         };
-        // eprintln!("output idl path is {}", output_idl_path.display());
 
         let type_specific = canister_config.type_specific.clone();
 

@@ -200,11 +200,6 @@ impl CanisterBuilder for MotokoBuilder {
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
         // get the path to candid file from dfx build
-        let motoko_info = info.as_info::<MotokoCanisterInfo>()?;
-        let idl_from_build = motoko_info.get_output_idl_path().to_path_buf();
-        // eprintln!("get_candid_path:");
-        // eprintln!("idl_from_build: {}", idl_from_build.display());
-        // eprintln!("idl (canister info): {}", info.get_output_idl_path().unwrap().display());
         Ok(info.get_output_idl_path().unwrap())
     }
 }
