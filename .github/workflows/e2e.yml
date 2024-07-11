@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ens/check-output-idl-path
   pull_request:
 
 concurrency:

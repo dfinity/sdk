@@ -301,7 +301,7 @@ impl CanisterInfo {
     ///
     /// To be separated into service.did and init_args.
     pub fn get_output_idl_path(&self) -> Option<PathBuf> {
-        match &self.type_specific {
+        let path = match &self.type_specific {
             CanisterTypeProperties::Motoko { .. } => self
                 .as_info::<MotokoCanisterInfo>()
                 .map(|x| x.get_output_idl_path().to_path_buf()),
@@ -318,8 +318,8 @@ impl CanisterInfo {
                 .as_info::<PullCanisterInfo>()
                 .map(|x| x.get_output_idl_path().to_path_buf()),
         }
-        .ok()
-        .or_else(|| self.remote_candid.clone())
+        .expect("found a case with no output idl path");
+        Some(path)
     }
 
     #[context("Failed to create <Type>CanisterInfo for canister '{}'.", self.name, )]
