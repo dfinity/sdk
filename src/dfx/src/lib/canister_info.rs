@@ -331,26 +331,6 @@ impl CanisterInfo {
     /// To be separated into service.did and init_args.
     pub fn get_output_idl_path(&self) -> Option<PathBuf> {
         Some(self.output_idl_path.clone())
-        // let x = match &self.type_specific {
-        //     CanisterTypeProperties::Motoko { .. } => self
-        //         .as_info::<MotokoCanisterInfo>()
-        //         .map(|x| x.get_output_idl_path().to_path_buf()),
-        //     CanisterTypeProperties::Custom { .. } => self
-        //         .as_info::<CustomCanisterInfo>()
-        //         .map(|x| x.get_output_idl_path().to_path_buf()),
-        //     CanisterTypeProperties::Assets { .. } => self
-        //         .as_info::<AssetsCanisterInfo>()
-        //         .map(|x| x.get_output_idl_path().to_path_buf()),
-        //     CanisterTypeProperties::Rust { .. } => self
-        //         .as_info::<RustCanisterInfo>()
-        //         .map(|x| x.get_output_idl_path().to_path_buf()),
-        //     CanisterTypeProperties::Pull { .. } => self
-        //         .as_info::<PullCanisterInfo>()
-        //         .map(|x| x.get_output_idl_path().to_path_buf()),
-        // };
-        // x
-        // .ok()
-        // .or_else(|| self.remote_candid.clone())
     }
 
     #[context("Failed to create <Type>CanisterInfo for canister '{}'.", self.name, )]
