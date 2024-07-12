@@ -142,10 +142,7 @@ impl CanisterInfo {
         } else {
             match &canister_config.type_specific {
                 CanisterTypeProperties::Rust { package: _, candid } => workspace_root.join(candid),
-                CanisterTypeProperties::Assets { .. } => {
-                    let output_wasm_path = output_root.join(Path::new("assetstorage.wasm.gz"));
-                    output_wasm_path.with_extension("").with_extension("did")
-                }
+                CanisterTypeProperties::Assets { .. } => output_root.join("assetstorage.did"),
                 CanisterTypeProperties::Custom {
                     wasm: _,
                     candid,
@@ -158,7 +155,6 @@ impl CanisterInfo {
                     }
                 }
                 CanisterTypeProperties::Motoko => output_root.join(name).with_extension("did"),
-
                 CanisterTypeProperties::Pull { id } => {
                     get_candid_path_in_project(workspace_root, id)
                 }
