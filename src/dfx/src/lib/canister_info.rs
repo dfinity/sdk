@@ -138,31 +138,34 @@ impl CanisterInfo {
 
         let output_root = build_root.join(name);
 
-        let output_idl_path: PathBuf = match &canister_config.type_specific {
-            CanisterTypeProperties::Rust { package: _, candid } => {
-                let candid = remote_candid.as_ref().unwrap_or(candid);
-                workspace_root.join(candid)
-            }
-            CanisterTypeProperties::Assets { .. } => {
-                let output_wasm_path = output_root.join(Path::new("assetstorage.wasm.gz"));
-                output_wasm_path.with_extension("").with_extension("did")
-            }
-            CanisterTypeProperties::Custom {
-                wasm: _,
-                candid,
-                build: _,
-            } => {
-                if Url::parse(candid).is_ok() {
-                    output_root.join(name).with_extension("did")
-                } else {
-                    workspace_root.join(candid)
+        let output_idl_path: PathBuf = if let (Some(_id), Some(candid)) =
+            (&remote_id, &remote_candid)
+        {
+            workspace_root.join(candid)
+        } else {
+            match &canister_config.type_specific {
+                CanisterTypeProperties::Rust { package: _, candid } => workspace_root.join(candid),
+                CanisterTypeProperties::Assets { .. } => {
+                    let output_wasm_path = output_root.join(Path::new("assetstorage.wasm.gz"));
+                    output_wasm_path.with_extension("").with_extension("did")
+                }
+                CanisterTypeProperties::Custom {
+                    wasm: _,
+                    candid,
+                    build: _,
+                } => {
+                    if Url::parse(candid).is_ok() {
+                        output_root.join(name).with_extension("did")
+                    } else {
+                        workspace_root.join(candid)
+                    }
+                }
+                CanisterTypeProperties::Motoko => output_root.join(name).with_extension("did"),
+
+                CanisterTypeProperties::Pull { id } => {
+                    get_candid_path_in_project(workspace_root, id)
                 }
             }
-            CanisterTypeProperties::Motoko => match (&remote_id, &remote_candid) {
-                (Some(_remote_id), Some(remote_candid)) => workspace_root.join(remote_candid),
-                _ => output_root.join(name).with_extension("did"),
-            },
-            CanisterTypeProperties::Pull { id } => get_candid_path_in_project(workspace_root, id),
         };
 
         let type_specific = canister_config.type_specific.clone();
