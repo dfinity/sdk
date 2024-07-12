@@ -325,8 +325,8 @@ impl CanisterInfo {
     /// Path to the candid file from canister builder which should contain init types.
     ///
     /// To be separated into service.did and init_args.
-    pub fn get_output_idl_path(&self) -> Option<PathBuf> {
-        Some(self.output_idl_path.clone())
+    pub fn get_output_idl_path(&self) -> &Path {
+        self.output_idl_path.as_path()
     }
 
     #[context("Failed to create <Type>CanisterInfo for canister '{}'.", self.name, )]

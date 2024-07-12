@@ -187,7 +187,7 @@ impl CanisterBuilder for MotokoBuilder {
                 .get_canister_id()
                 .expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(motoko_info.get_output_wasm_path().to_path_buf()),
-            idl: IdlBuildOutput::File(canister_info.get_output_idl_path().unwrap()),
+            idl: IdlBuildOutput::File(canister_info.get_output_idl_path().to_path_buf()),
         })
     }
 
@@ -198,7 +198,7 @@ impl CanisterBuilder for MotokoBuilder {
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
         // get the path to candid file from dfx build
-        Ok(info.get_output_idl_path().unwrap())
+        Ok(info.get_output_idl_path().to_path_buf())
     }
 }
 

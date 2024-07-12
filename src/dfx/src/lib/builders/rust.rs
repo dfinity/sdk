@@ -102,7 +102,7 @@ impl CanisterBuilder for RustBuilder {
         Ok(BuildOutput {
             canister_id,
             wasm: WasmBuildOutput::File(rust_info.get_output_wasm_path().to_path_buf()),
-            idl: IdlBuildOutput::File(canister_info.get_output_idl_path().unwrap()),
+            idl: IdlBuildOutput::File(canister_info.get_output_idl_path().to_path_buf()),
         })
     }
 
@@ -112,7 +112,6 @@ impl CanisterBuilder for RustBuilder {
         info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
-        let output_idl_path = info.get_output_idl_path().unwrap();
-        Ok(output_idl_path)
+        Ok(info.get_output_idl_path().to_path_buf())
     }
 }

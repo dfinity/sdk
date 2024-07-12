@@ -129,7 +129,7 @@ impl CanisterBuilder for CustomBuilder {
         Ok(BuildOutput {
             canister_id,
             wasm: WasmBuildOutput::File(wasm),
-            idl: IdlBuildOutput::File(info.get_output_idl_path().unwrap()),
+            idl: IdlBuildOutput::File(info.get_output_idl_path().to_path_buf()),
         })
     }
 
@@ -140,13 +140,12 @@ impl CanisterBuilder for CustomBuilder {
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
         // get the path to candid file
-        let candid = info.get_output_idl_path().unwrap();
-        Ok(candid)
+        Ok(info.get_output_idl_path().to_path_buf())
     }
 }
 
 pub async fn custom_download(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult {
-    let candid = info.get_output_idl_path().unwrap();
+    let candid = info.get_output_idl_path();
     let CustomBuilderExtra {
         input_candid_url,
         input_wasm_url,
@@ -159,7 +158,7 @@ pub async fn custom_download(info: &CanisterInfo, pool: &CanisterPool) -> DfxRes
         download_file_to_path(&url, &wasm).await?;
     }
     if let Some(url) = input_candid_url {
-        download_file_to_path(&url, &candid).await?;
+        download_file_to_path(&url, candid).await?;
     }
 
     Ok(())

@@ -632,39 +632,31 @@ impl CanisterPool {
                 .map(|cans| !cans.iter().contains(&c.get_name().to_string()))
                 .unwrap_or(false)
         }) {
-            let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
-                Some(remote_candid)
-            } else {
-                canister.info.get_output_idl_path()
-            };
-            if let Some(from) = maybe_from.as_ref() {
-                if from.exists() {
-                    let to = build_config.idl_root.join(format!(
-                        "{}.did",
-                        canister.info.get_canister_id()?.to_text()
-                    ));
-                    trace!(
-                        log,
-                        "Copying .did for canister {} from {} to {}.",
-                        canister.info.get_name(),
-                        from.to_string_lossy(),
-                        to.to_string_lossy()
-                    );
-                    dfx_core::fs::composite::ensure_parent_dir_exists(&to)?;
-                    dfx_core::fs::copy(from, &to)?;
-                    dfx_core::fs::set_permissions_readwrite(&to)?;
-                } else {
-                    warn!(
-                        log,
-                        ".did file for canister '{}' does not exist.",
-                        canister.get_name(),
-                    );
-                }
+            let from = canister
+                .info
+                .get_remote_candid()
+                .unwrap_or_else(|| canister.info.get_output_idl_path().to_path_buf());
+
+            if from.exists() {
+                let to = build_config.idl_root.join(format!(
+                    "{}.did",
+                    canister.info.get_canister_id()?.to_text()
+                ));
+                trace!(
+                    log,
+                    "Copying .did for canister {} from {} to {}.",
+                    canister.info.get_name(),
+                    from.to_string_lossy(),
+                    to.to_string_lossy()
+                );
+                dfx_core::fs::composite::ensure_parent_dir_exists(&to)?;
+                dfx_core::fs::copy(&from, &to)?;
+                dfx_core::fs::set_permissions_readwrite(&to)?;
             } else {
                 warn!(
                     log,
-                    "Canister '{}' has no .did file configured.",
-                    canister.get_name()
+                    ".did file for canister '{}' does not exist.",
+                    canister.get_name(),
                 );
             }
         }

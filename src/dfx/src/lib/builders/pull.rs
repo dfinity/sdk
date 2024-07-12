@@ -48,7 +48,7 @@ impl CanisterBuilder for PullBuilder {
             canister_id: *pull_info.get_canister_id(),
             // It's impossible to know if the downloaded wasm is gzip or not with only the info in `dfx.json`.
             wasm: WasmBuildOutput::None,
-            idl: IdlBuildOutput::File(canister_info.get_output_idl_path().unwrap()),
+            idl: IdlBuildOutput::File(canister_info.get_output_idl_path().to_path_buf()),
         })
     }
 
@@ -58,7 +58,6 @@ impl CanisterBuilder for PullBuilder {
         info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
-        let output_idl_path = info.get_output_idl_path().unwrap();
-        Ok(output_idl_path.to_path_buf())
+        Ok(info.get_output_idl_path().to_path_buf())
     }
 }
