@@ -120,9 +120,6 @@ impl CanisterInfo {
                 .as_ref()
                 .and_then(|candid| canonicalize(candid).ok())
         });
-        // if let Some(remote_candid) = &remote_candid {
-        //     eprintln!("remote_candid is {}", remote_candid.display());
-        // }
 
         // Fill the default config values if None provided
         let declarations_config = CanisterDeclarationsConfig {

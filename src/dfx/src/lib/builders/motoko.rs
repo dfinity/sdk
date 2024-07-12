@@ -182,8 +182,6 @@ impl CanisterBuilder for MotokoBuilder {
         };
         motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
-        // eprintln!("output idl path (motoko info): {}", motoko_info.get_output_idl_path().display());
-        // eprintln!("output idl path (canister info): {}", canister_info.get_output_idl_path().unwrap().display());
         Ok(BuildOutput {
             canister_id: canister_info
                 .get_canister_id()

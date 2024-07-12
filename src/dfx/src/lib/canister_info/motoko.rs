@@ -63,7 +63,6 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let input_path = workspace_root.join(main_path);
         let output_root = info.get_output_root().to_path_buf();
         let output_wasm_path = output_root.join(name).with_extension("wasm");
-        // eprintln!("MotokoCanisterInfo::create: output_idl_path: {:?}", output_idl_path);
         let output_stable_path = output_wasm_path.with_extension("most");
         let output_did_js_path = output_wasm_path.with_extension("did.js");
         let output_canister_js_path = output_wasm_path.with_extension("js");
