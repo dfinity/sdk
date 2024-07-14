@@ -11,6 +11,7 @@ mod call;
 mod create;
 mod delete;
 mod deposit_cycles;
+mod history;
 mod id;
 mod info;
 mod install;
@@ -48,6 +49,7 @@ pub enum SubCommand {
     Create(create::CanisterCreateOpts),
     Delete(delete::CanisterDeleteOpts),
     DepositCycles(deposit_cycles::DepositCyclesOpts),
+    History(history::CanisterHistoryOpts),
     Id(id::CanisterIdOpts),
     Info(info::InfoOpts),
     Install(install::CanisterInstallOpts),
@@ -82,6 +84,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Create(v) => create::exec(env, v, &call_sender).await,
             SubCommand::Delete(v) => delete::exec(env, v, &call_sender).await,
             SubCommand::DepositCycles(v) => deposit_cycles::exec(env, v, &call_sender).await,
+            SubCommand::History(v) => history::exec(env, v, &call_sender).await,
             SubCommand::Id(v) => id::exec(env, v).await,
             SubCommand::Install(v) => install::exec(env, v, &call_sender).await,
             SubCommand::Info(v) => info::exec(env, v).await,
