@@ -8,6 +8,7 @@ setup() {
 }
 
 teardown() {
+  stop_webserver
   dfx_stop
 
   standard_teardown
@@ -178,13 +179,15 @@ EOF
   dfx_start
 }
 
-@test "install extension from official registry" {
+install_extension_from_official_registry() {
+  EXTENSION=$1
+
   assert_command_fail dfx snsx
 
   assert_command dfx extension list
   assert_match 'No extensions installed'
 
-  assert_command dfx extension install sns --install-as snsx --version 0.2.1
+  assert_command dfx extension install "$EXTENSION" --install-as snsx --version 0.2.1
   # TODO: how to capture spinner message?
   # assert_match 'Successfully installed extension'
 
@@ -203,6 +206,118 @@ EOF
   assert_command dfx extension list
   assert_match 'No extensions installed'
 }
+
+@test "install extension by name from official registry" {
+  install_extension_from_official_registry sns
+}
+
+@test "install extension by url from official registry" {
+  install_extension_from_official_registry https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/sns/extension.json
+}
+
+@test "install extension by url from elsewhere" {
+  start_webserver --directory www
+  EXTENSION_URL="http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/extension.json"
+  mkdir -p  www/arbitrary/downloads
+
+  cat > www/arbitrary/extension.json <<EOF
+{
+  "name": "an-extension",
+  "version": "0.1.0",
+  "homepage": "https://github.com/dfinity/dfx-extensions",
+  "authors": "DFINITY",
+  "summary": "Test extension for e2e purposes.",
+  "categories": [],
+  "keywords": [],
+  "download_url_template": "http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/downloads/{{tag}}/{{basename}}.{{archive-format}}"
+}
+EOF
+  cat www/arbitrary/extension.json
+  cat > www/arbitrary/an-extension <<EOF
+#!/usr/bin/env bash
+
+echo "an extension output"
+EOF
+  chmod +x www/arbitrary/an-extension
+
+  cat > www/arbitrary/dependencies.json <<EOF
+{
+  "0.1.0": {
+    "dfx": {
+      "version": ">=0.8.0"
+    }
+  }
+}
+EOF
+
+
+  if [ "$(uname)" == "Darwin" ]; then
+    ARCHIVE_BASENAME="an-extension-aarch64-apple-darwin"
+  else
+    ARCHIVE_BASENAME="an-extension-x86_x86-unknown-linux"
+  fi
+
+  mkdir "$ARCHIVE_BASENAME"
+  cp www/arbitrary/extension.json "$ARCHIVE_BASENAME"
+  cp www/arbitrary/an-extension "$ARCHIVE_BASENAME"
+  tar -czf "$ARCHIVE_BASENAME".tar.gz "$ARCHIVE_BASENAME"
+  rm -rf "$ARCHIVE_BASENAME"
+
+  mkdir -p www/arbitrary/downloads/an-extension-v0.1.0
+  mv "$ARCHIVE_BASENAME".tar.gz www/arbitrary/downloads/an-extension-v0.1.0/
+
+  assert_command dfx extension install "$EXTENSION_URL"
+}
+
+@test "install extension with non-platform-specific archive" {
+  start_webserver --directory www
+  EXTENSION_URL="http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/extension.json"
+  mkdir -p  www/arbitrary/downloads
+
+  cat > www/arbitrary/extension.json <<EOF
+{
+  "name": "an-extension",
+  "version": "0.1.0",
+  "homepage": "https://github.com/dfinity/dfx-extensions",
+  "authors": "DFINITY",
+  "summary": "Test extension for e2e purposes.",
+  "categories": [],
+  "keywords": [],
+  "download_url_template": "http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/downloads/{{tag}}.{{archive-format}}"
+}
+EOF
+  cat www/arbitrary/extension.json
+  cat > www/arbitrary/an-extension <<EOF
+#!/usr/bin/env bash
+
+echo "an extension output"
+EOF
+  chmod +x www/arbitrary/an-extension
+
+  cat > www/arbitrary/dependencies.json <<EOF
+{
+  "0.1.0": {
+    "dfx": {
+      "version": ">=0.8.0"
+    }
+  }
+}
+EOF
+
+
+  ARCHIVE_BASENAME="an-extension-v0.1.0"
+
+  mkdir "$ARCHIVE_BASENAME"
+  cp www/arbitrary/extension.json "$ARCHIVE_BASENAME"
+  cp www/arbitrary/an-extension "$ARCHIVE_BASENAME"
+  tar -czf "$ARCHIVE_BASENAME".tar.gz "$ARCHIVE_BASENAME"
+  rm -rf "$ARCHIVE_BASENAME"
+
+  mv "$ARCHIVE_BASENAME".tar.gz www/arbitrary/downloads/
+
+  assert_command dfx extension install "$EXTENSION_URL"
+}
+
 
 @test "manually create extension" {
   assert_command dfx extension list

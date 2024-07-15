@@ -13,6 +13,8 @@ use std::{
 };
 
 pub static MANIFEST_FILE_NAME: &str = "extension.json";
+const DEFAULT_DOWNLOAD_URL_TEMPLATE: &str =
+    "https://github.com/dfinity/dfx-extensions/releases/download/{{tag}}/{{basename}}.{{archive-format}}";
 
 type SubcmdName = String;
 type ArgName = String;
@@ -31,6 +33,20 @@ pub struct ExtensionManifest {
     pub subcommands: Option<ExtensionSubcommandsOpts>,
     pub dependencies: Option<HashMap<String, ExtensionDependency>>,
     pub canister_type: Option<ExtensionCanisterType>,
+
+    /// Components of the download url template are:
+    /// - `{{tag}}`: the tag of the extension release, which will follow the form "<extension name>_v<extension version>"
+    /// - `{{basename}}`: The basename of the release filename, which will follow the form "<extension name>-<arch>-<platform>", for example "nns-x86_64-unknown-linux-gnu"
+    /// - `{{archive-format}}`: the format of the archive, for example "tar.gz"
+    #[serde(
+        default = "default_download_url_template",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub download_url_template: Option<String>,
+}
+
+fn default_download_url_template() -> Option<String> {
+    Some(DEFAULT_DOWNLOAD_URL_TEMPLATE.to_string())
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
@@ -57,6 +73,12 @@ impl ExtensionManifest {
 
     fn manifest_path(name: &str, extensions_root_dir: &Path) -> PathBuf {
         extensions_root_dir.join(name).join(MANIFEST_FILE_NAME)
+    }
+
+    pub fn download_url_template(&self) -> String {
+        self.download_url_template
+            .clone()
+            .unwrap_or_else(|| DEFAULT_DOWNLOAD_URL_TEMPLATE.to_string())
     }
 
     pub fn into_clap_commands(

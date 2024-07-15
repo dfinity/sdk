@@ -2,6 +2,21 @@
 
 # UNRELEASED
 
+### feat: `dfx extension install <url to extension.json>`
+
+It's now possible for `dfx extension install` to install an extension from
+somewhere other than https://github.com/dfinity/dfx-extensions, by passing
+a URL to an extension.json file rather than an extension name.
+
+For example, these are equivalent:
+```bash
+dfx extension install nns
+dfx extension install https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/nns/extension.json
+```
+
+This update also adds the optional field `download_url_template` to extension.json,
+which dfx will use to locate an extension release archive.
+
 ### feat!: add `crate` field to dfx.json
 
 It is now possible to specify a particular crate within a Rust package to use for a canister module, using the `crate` field.
