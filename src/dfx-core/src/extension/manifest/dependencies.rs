@@ -1,5 +1,4 @@
 use crate::error::extension::{DfxOnlySupportedDependency, GetDependenciesError};
-use crate::error::reqwest::WrappedReqwestError;
 use crate::extension::url::ExtensionJsonUrl;
 use crate::http::get::get_with_retries;
 use crate::json::structure::VersionReqWithJsonSchema;
@@ -36,9 +35,7 @@ impl ExtensionDependencies {
             .await
             .map_err(GetDependenciesError::Get)?;
 
-        resp.json()
-            .await
-            .map_err(|e| GetDependenciesError::ParseJson(WrappedReqwestError(e)))
+        resp.json().await.map_err(GetDependenciesError::ParseJson)
     }
 
     pub fn find_highest_compatible_version(
