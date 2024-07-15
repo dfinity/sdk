@@ -60,15 +60,15 @@ impl ArgumentFromCliLongOpt {
 pub struct ArgumentFromCliPositionalOpt {
     /// Specifies the argument to pass to the method.
     #[arg(conflicts_with("argument_file"))]
-    argument: Option<String>,
+    pub argument: Option<String>,
 
     /// Specifies the data type for the argument when making the call using an argument.
     #[arg(long, requires("argument"), value_parser = ["idl", "raw"])]
-    r#type: Option<String>,
+    pub r#type: Option<String>,
 
     /// Specifies the file from which to read the argument to pass to the method.
     #[arg(long, value_parser = file_or_stdin_parser, conflicts_with("argument"))]
-    argument_file: Option<PathBuf>,
+    pub argument_file: Option<PathBuf>,
 }
 
 impl ArgumentFromCliPositionalOpt {

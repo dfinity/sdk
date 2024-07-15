@@ -28,26 +28,26 @@ use std::str::FromStr;
 pub struct CanisterCallOpts {
     /// Specifies the name/id of the canister to call.
     /// You must specify either a canister or the --all option.
-    canister_name: String,
+    pub canister_name: String,
 
     /// Specifies the method name to call on the canister.
-    method_name: String,
+    pub method_name: String,
 
     #[command(flatten)]
-    argument_from_cli: ArgumentFromCliPositionalOpt,
+    pub argument_from_cli: ArgumentFromCliPositionalOpt,
 
     /// Specifies not to wait for the result of the call to be returned by polling the replica.
     /// Instead return a response ID.
     #[arg(long)]
-    r#async: bool,
+    pub r#async: bool,
 
     /// Sends a query request to a canister instead of an update request.
     #[arg(long, conflicts_with("async"))]
-    query: bool,
+    pub query: bool,
 
     /// Sends an update request to a canister. This is the default if the method is not a query method.
     #[arg(long, conflicts_with("async"), conflicts_with("query"))]
-    update: bool,
+    pub update: bool,
 
     /// Specifies the config for generating random argument.
     #[arg(
@@ -56,23 +56,23 @@ pub struct CanisterCallOpts {
         conflicts_with("argument_file"),
         conflicts_with("always_assist")
     )]
-    random: Option<String>,
+    pub random: Option<String>,
 
     /// Specifies the format for displaying the method's return result.
     #[arg(long, conflicts_with("async"),
         value_parser = ["idl", "raw", "pp", "json"])]
-    output: Option<String>,
+    pub output: Option<String>,
 
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
     /// Requires --wallet as a flag to `dfx canister`.
     #[arg(long, value_parser = cycle_amount_parser, requires("wallet"))]
-    with_cycles: Option<u128>,
+    pub with_cycles: Option<u128>,
 
     /// Provide the .did file with which to decode the response.  Overrides value from dfx.json
     /// for project canisters.
     #[arg(long)]
-    candid: Option<PathBuf>,
+    pub candid: Option<PathBuf>,
 
     /// Always use Candid assist when the argument types are all optional.
     #[arg(
@@ -81,7 +81,7 @@ pub struct CanisterCallOpts {
         conflicts_with("argument_file"),
         conflicts_with("random")
     )]
-    always_assist: bool,
+    pub always_assist: bool,
 }
 
 #[derive(Clone, CandidType, Deserialize, Debug)]
