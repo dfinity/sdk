@@ -253,6 +253,8 @@ The command line value will be used.",
         info!(log, "Uploading assets to asset canister...");
         post_install_store_assets(canister_info, agent, log).await?;
     }
+
+    // bad, untested code
     if !canister_info.get_post_install().is_empty() {
         let config = env.get_config()?;
         run_post_install_tasks(
@@ -262,6 +264,15 @@ The command line value will be used.",
             pool,
             env_file.or_else(|| config.as_ref()?.get_config().output_env_file.as_deref()),
         )?;
+    } else {
+        if let Some(pool) = pool {
+            let dependencies = pool
+                .get_canister_list()
+                .iter()
+                .map(|can| can.canister_id())
+                .collect_vec();
+            get_and_write_environment_variables(canister_info, &network.name, pool, dependencies.as_slice(), env_file)?;
+        }
     }
 
     Ok(())
