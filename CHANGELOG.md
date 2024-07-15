@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+# fix: display error cause of some http-related errors
+
+Some commands that download http resources, for example `dfx extension install`, will
+once again display any error cause.
+
 # 0.22.0
 
 ### asset uploads: retry some HTTP errors returned by the replica
