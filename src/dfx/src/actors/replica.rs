@@ -365,10 +365,6 @@ fn replica_start_thread(
             &format!("{artificial_delay}"),
         ]);
 
-        if config.use_old_metering {
-            cmd.args(["--use-old-metering"]);
-        }
-
         // This should agree with the value at
         // at https://gitlab.com/dfinity-lab/core/ic/-/blob/master/ic-os/guestos/rootfs/etc/systemd/system/ic-replica.service
         cmd.env("RUST_MIN_STACK", "8192000");
