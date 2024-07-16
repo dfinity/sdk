@@ -2,10 +2,12 @@
 
 # UNRELEASED
 
-# fix: display error cause of some http-related errors
+### fix: display error cause of some http-related errors
 
 Some commands that download http resources, for example `dfx extension install`, will
 once again display any error cause.
+
+### chore: remove the deprecated --use-old-metering flag
 
 # 0.22.0
 
