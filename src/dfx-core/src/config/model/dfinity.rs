@@ -335,8 +335,14 @@ pub enum CanisterTypeProperties {
     /// # Rust-Specific Properties
     Rust {
         /// # Package Name
-        /// Name of the rust package that compiles to this canister's Wasm.
+        /// Name of the Rust package that compiles this canister's Wasm.
         package: String,
+
+        /// # Crate name
+        /// Name of the Rust crate that compiles to this canister's Wasm.
+        /// If left unspecified, defaults to the crate with the same name as the package.
+        #[serde(rename = "crate")]
+        crate_name: Option<String>,
 
         /// # Candid File
         /// Path of this canister's candid interface declaration.
@@ -1240,6 +1246,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         let mut wasm = None;
         let mut candid = None;
         let mut package = None;
+        let mut crate_name = None;
         let mut source = None;
         let mut build = None;
         let mut r#type = None;
@@ -1248,6 +1255,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         while let Some(key) = map.next_key::<String>()? {
             match &*key {
                 "package" => package = Some(map.next_value()?),
+                "crate" => crate_name = Some(map.next_value()?),
                 "source" => source = Some(map.next_value()?),
                 "candid" => candid = Some(map.next_value()?),
                 "build" => build = Some(map.next_value()?),
@@ -1263,6 +1271,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
             Some("rust") => CanisterTypeProperties::Rust {
                 candid: PathBuf::from(candid.ok_or_else(|| missing_field("candid"))?),
                 package: package.ok_or_else(|| missing_field("package"))?,
+                crate_name,
             },
             Some("assets") => CanisterTypeProperties::Assets {
                 source: source.ok_or_else(|| missing_field("source"))?,
