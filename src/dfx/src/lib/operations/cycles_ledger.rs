@@ -31,11 +31,6 @@ use icrc_ledger_types::icrc2::approve::ApproveError;
 use icrc_ledger_types::icrc2::transfer_from::TransferFromError;
 use slog::{info, Logger};
 
-/// Cycles ledger feature flag to turn off behavior that would be confusing while cycles ledger is not out of beta yet.
-pub fn cycles_ledger_enabled() -> bool {
-    std::env::var("DFX_CYCLES_LEDGER_SUPPORT_ENABLE").is_ok()
-}
-
 const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
 const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
 const ICRC2_APPROVE_METHOD: &str = "icrc2_approve";

@@ -366,7 +366,7 @@ pub fn get_canister_id_and_candid_path(
     };
     let config = env.get_config_or_anyhow()?;
     let candid_path = match CanisterInfo::load(&config, &canister_name, Some(canister_id)) {
-        Ok(info) => info.get_output_idl_path(),
+        Ok(info) => Some(info.get_output_idl_path().to_path_buf()),
         // In a rare case that the canister was deployed and then removed from dfx.json,
         // the canister_id_store can still resolve the canister id from the canister name.
         // In such case, technically, we are still able to call the canister.

@@ -66,7 +66,7 @@ pub struct CanisterCallOpts {
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
     /// Requires --wallet as a flag to `dfx canister`.
-    #[arg(long, value_parser = cycle_amount_parser)]
+    #[arg(long, value_parser = cycle_amount_parser, requires("wallet"))]
     with_cycles: Option<u128>,
 
     /// Provide the .did file with which to decode the response.  Overrides value from dfx.json

@@ -16,6 +16,12 @@ help()
    echo
 }
 
+die()
+{
+    echo >&2 "$@"
+    exit 1
+}
+
 update_changelog()
 {
     REPO_ROOT=$(git rev-parse --show-toplevel)

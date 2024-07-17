@@ -38,7 +38,6 @@ struct ReplicaSettings {
     pub canister_http_adapter: CanisterHttpAdapterSettings,
     pub log_level: ReplicaLogLevel,
     pub artificial_delay: u32,
-    pub use_old_metering: bool,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq)]
@@ -58,14 +57,13 @@ struct Settings<'a> {
 pub fn get_settings_digest(
     ic_repo_commit: &str,
     local_server_descriptor: &LocalServerDescriptor,
-    use_old_metering: bool,
     artificial_delay: u32,
     pocketic: bool,
 ) -> String {
     let backend = if pocketic {
         BackendSettings::PocketIc
     } else {
-        get_replica_backend_settings(local_server_descriptor, use_old_metering, artificial_delay)
+        get_replica_backend_settings(local_server_descriptor, artificial_delay)
     };
     let settings = Settings {
         ic_repo_commit: ic_repo_commit.into(),
@@ -78,7 +76,6 @@ pub fn get_settings_digest(
 
 fn get_replica_backend_settings(
     local_server_descriptor: &LocalServerDescriptor,
-    use_old_metering: bool,
     artificial_delay: u32,
 ) -> BackendSettings {
     let http_handler = HttpHandlerSettings {
@@ -107,7 +104,6 @@ fn get_replica_backend_settings(
             .log_level
             .unwrap_or_default(),
         artificial_delay,
-        use_old_metering,
     };
     BackendSettings::Replica {
         settings: Cow::Owned(replica_settings),

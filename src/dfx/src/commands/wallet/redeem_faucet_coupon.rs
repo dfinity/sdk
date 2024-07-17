@@ -3,7 +3,6 @@ use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::set_wallet_id;
-use crate::lib::operations::cycles_ledger::cycles_ledger_enabled;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
 use anyhow::{anyhow, bail, Context};
@@ -74,7 +73,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         }
         // identity has no wallet yet - faucet will provide one
         _ => {
-            if cycles_ledger_enabled() && !opts.yes {
+            if !opts.yes {
                 ask_for_consent("`dfx cycles` is now recommended instead of `dfx wallet`. Are you sure you want to create a new cycles wallet anyway?")?;
             }
             let identity = env
