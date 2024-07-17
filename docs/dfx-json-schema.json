@@ -214,9 +214,17 @@
               "description": "Path of this canister's candid interface declaration.",
               "type": "string"
             },
+            "crate": {
+              "title": "Crate name",
+              "description": "Name of the Rust crate that compiles to this canister's Wasm. If left unspecified, defaults to the crate with the same name as the package.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "package": {
               "title": "Package Name",
-              "description": "Name of the rust package that compiles to this canister's Wasm.",
+              "description": "Name of the Rust package that compiles this canister's Wasm.",
               "type": "string"
             },
             "type": {
