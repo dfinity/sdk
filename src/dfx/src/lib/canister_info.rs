@@ -135,31 +135,34 @@ impl CanisterInfo {
 
         let output_root = build_root.join(name);
 
-        let output_idl_path: PathBuf = if let (Some(_id), Some(candid)) =
-            (&remote_id, &remote_candid)
-        {
-            workspace_root.join(candid)
-        } else {
-            match &canister_config.type_specific {
-                CanisterTypeProperties::Rust { package: _, candid } => workspace_root.join(candid),
-                CanisterTypeProperties::Assets { .. } => output_root.join("assetstorage.did"),
-                CanisterTypeProperties::Custom {
-                    wasm: _,
-                    candid,
-                    build: _,
-                } => {
-                    if Url::parse(candid).is_ok() {
-                        output_root.join(name).with_extension("did")
-                    } else {
-                        workspace_root.join(candid)
+        let output_idl_path: PathBuf =
+            if let (Some(_id), Some(candid)) = (&remote_id, &remote_candid) {
+                workspace_root.join(candid)
+            } else {
+                match &canister_config.type_specific {
+                    CanisterTypeProperties::Rust {
+                        package: _,
+                        crate_name: _,
+                        candid,
+                    } => workspace_root.join(candid),
+                    CanisterTypeProperties::Assets { .. } => output_root.join("assetstorage.did"),
+                    CanisterTypeProperties::Custom {
+                        wasm: _,
+                        candid,
+                        build: _,
+                    } => {
+                        if Url::parse(candid).is_ok() {
+                            output_root.join(name).with_extension("did")
+                        } else {
+                            workspace_root.join(candid)
+                        }
+                    }
+                    CanisterTypeProperties::Motoko => output_root.join(name).with_extension("did"),
+                    CanisterTypeProperties::Pull { id } => {
+                        get_candid_path_in_project(workspace_root, id)
                     }
                 }
-                CanisterTypeProperties::Motoko => output_root.join(name).with_extension("did"),
-                CanisterTypeProperties::Pull { id } => {
-                    get_candid_path_in_project(workspace_root, id)
-                }
-            }
-        };
+            };
 
         let type_specific = canister_config.type_specific.clone();
 

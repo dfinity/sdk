@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat!: add `crate` field to dfx.json
+
+It is now possible to specify a particular crate within a Rust package to use for a canister module, using the `crate` field.
+This enables specifying crates with different names than the package. In a few cases these were previously auto-detected
+by dfx, you will need to add this field if you were using such a setup.
+
 ### fix: display error cause of some http-related errors
 
 Some commands that download http resources, for example `dfx extension install`, will
