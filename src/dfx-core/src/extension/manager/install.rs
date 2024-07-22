@@ -21,13 +21,18 @@ use std::time::Duration;
 use tar::Archive;
 use tempfile::{tempdir_in, TempDir};
 
+pub enum InstallOutcome {
+    Installed(Version),
+    AlreadyInstalled(Version),
+}
+
 impl ExtensionManager {
     pub async fn install_extension(
         &self,
         url: &ExtensionJsonUrl,
         install_as: Option<&str>,
         version: Option<&Version>,
-    ) -> Result<Version, InstallExtensionError> {
+    ) -> Result<InstallOutcome, InstallExtensionError> {
         let manifest = Self::get_extension_manifest(url).await?;
         let extension_name: &str = &manifest.name;
 
@@ -37,8 +42,9 @@ impl ExtensionManager {
             .get_extension_directory(effective_extension_name)
             .exists()
         {
-            return Err(InstallExtensionError::ExtensionAlreadyInstalled(
-                effective_extension_name.to_string(),
+            let installed_manifest = ExtensionManifest::load(effective_extension_name, &self.dir)?;
+            return Ok(InstallOutcome::AlreadyInstalled(
+                installed_manifest.version.clone(),
             ));
         }
 
@@ -60,7 +66,7 @@ impl ExtensionManager {
 
         self.finalize_installation(extension_name, effective_extension_name, temp_dir)?;
 
-        Ok(extension_version)
+        Ok(InstallOutcome::Installed(extension_version))
     }
 
     /// Removing the prerelease tag and build metadata, because they should

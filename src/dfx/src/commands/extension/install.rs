@@ -5,8 +5,10 @@ use crate::lib::error::DfxResult;
 use anyhow::bail;
 use clap::Parser;
 use clap::Subcommand;
+use dfx_core::extension::manager::InstallOutcome;
 use dfx_core::extension::url::ExtensionJsonUrl;
 use semver::Version;
+use slog::{error, info, warn};
 use tokio::runtime::Runtime;
 use url::Url;
 
@@ -41,21 +43,35 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
 
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
-    let installed_version = runtime.block_on(async {
+    let install_outcome = runtime.block_on(async {
         mgr.install_extension(&url, opts.install_as.as_deref(), opts.version.as_ref())
             .await
     })?;
-    spinner.finish_with_message(
-        format!(
-            "Extension '{}' version {installed_version} installed successfully{}",
-            opts.name,
-            if let Some(install_as) = opts.install_as {
-                format!(", and is available as '{}'", install_as)
-            } else {
-                "".to_string()
+    spinner.finish_and_clear();
+    let logger = env.get_logger();
+    let install_as = if let Some(install_as) = opts.install_as {
+        format!(", and is available as '{}'", install_as)
+    } else {
+        "".to_string()
+    };
+    let extension = &opts.name;
+    match install_outcome {
+        InstallOutcome::Installed(version) => {
+            info!(logger, "Extension '{extension}' version {version} installed successfully{install_as}");
+            Ok(())
+        }
+        InstallOutcome::AlreadyInstalled(version) => {
+            warn!(logger, "Extension '{extension}' version {version} is already installed{install_as}"
+            );
+            match opts.version {
+                Some(requested_version) if requested_version != version => {
+                    error!(logger, "Requested version {requested_version} is different from installed version {version}",
+                    );
+                    error!(logger, r#"To upgrade, run "dfx extension uninstall {extension}" and then re-run the dfx extension install command"#);
+                    bail!("Requested version not installed");
+                }
+                _ => Ok(()),
             }
-        )
-        .into(),
-    );
-    Ok(())
+        }
+    }
 }

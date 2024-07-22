@@ -118,6 +118,9 @@ pub enum InstallExtensionError {
 
     #[error(transparent)]
     FinalizeInstallation(#[from] FinalizeInstallationError),
+
+    #[error(transparent)]
+    LoadManifest(#[from] LoadExtensionManifestError),
 }
 
 #[derive(Error, Debug)]
