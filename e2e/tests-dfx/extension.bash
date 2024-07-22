@@ -215,6 +215,26 @@ install_extension_from_official_registry() {
   install_extension_from_official_registry https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/sns/extension.json
 }
 
+get_extension_architecture() {
+  _cputype="$(uname -m)"
+  case "$_cputype" in
+
+    x86_64 | x86-64 | x64 | amd64)
+      _cputype=x86_64
+      ;;
+
+    arm64 | aarch64)
+      _cputype=aarch64
+      ;;
+
+    *)
+      err "unknown CPU type: $_cputype"
+      ;;
+
+  esac
+  echo "$_cputype"
+}
+
 @test "install extension by url from elsewhere" {
   start_webserver --directory www
   EXTENSION_URL="http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/extension.json"
@@ -250,11 +270,12 @@ EOF
 }
 EOF
 
+  arch=$(get_extension_architecture)
 
   if [ "$(uname)" == "Darwin" ]; then
-    ARCHIVE_BASENAME="an-extension-aarch64-apple-darwin"
+    ARCHIVE_BASENAME="an-extension-$arch-apple-darwin"
   else
-    ARCHIVE_BASENAME="an-extension-x86_x86-unknown-linux"
+    ARCHIVE_BASENAME="an-extension-$arch-unknown-linux-gnu"
   fi
 
   mkdir "$ARCHIVE_BASENAME"
