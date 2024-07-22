@@ -339,6 +339,12 @@ EOF
   assert_command dfx extension install "$EXTENSION_URL"
 }
 
+@test "install is not an error if already installed" {
+  assert_command_fail dfx nns --help
+  assert_command dfx extension install nns --version 0.4.1
+  assert_command dfx extension install nns --version 0.4.1
+  assert_command dfx nns --help
+}
 
 @test "manually create extension" {
   assert_command dfx extension list
