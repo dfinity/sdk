@@ -3,7 +3,6 @@ use crate::error::extension::{
     GetExtensionArchiveNameError, GetExtensionDownloadUrlError, GetHighestCompatibleVersionError,
     InstallExtensionError,
 };
-use crate::error::reqwest::WrappedReqwestError;
 use crate::extension::{
     manager::ExtensionManager, manifest::ExtensionDependencies, url::ExtensionJsonUrl,
 };
@@ -96,11 +95,10 @@ impl ExtensionManager {
             .await
             .map_err(DownloadAndInstallExtensionToTempdirError::ExtensionDownloadFailed)?;
 
-        let bytes = response.bytes().await.map_err(|e| {
-            DownloadAndInstallExtensionToTempdirError::ExtensionDownloadFailed(WrappedReqwestError(
-                e,
-            ))
-        })?;
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(DownloadAndInstallExtensionToTempdirError::ExtensionDownloadFailed)?;
 
         crate::fs::composite::ensure_dir_exists(&self.dir)
             .map_err(DownloadAndInstallExtensionToTempdirError::EnsureExtensionDirExistsFailed)?;

@@ -6,6 +6,30 @@
 
 This replaces the dashboard link, which is now shown only in verbose mode. This should hopefully be less confusing for new users.
 
+### feat!: add `crate` field to dfx.json
+
+It is now possible to specify a particular crate within a Rust package to use for a canister module, using the `crate` field.
+This enables specifying crates with different names than the package. In a few cases these were previously auto-detected
+by dfx, you will need to add this field if you were using such a setup.
+
+### fix: display error cause of some http-related errors
+
+Some commands that download http resources, for example `dfx extension install`, will
+once again display any error cause.
+
+### chore: remove the deprecated --use-old-metering flag
+
+# 0.22.0
+
+### asset uploads: retry some HTTP errors returned by the replica
+
+Now retries the following, with exponential backoff as is already done for connect and transport errors:
+- 500 internal server error
+- 502 bad gateway
+- 503 service unavailable
+- 504 gateway timeout
+- 429 many requests
+
 ### fix: Allow canisters to be deployed even if unrelated canisters in dfx.json are malformed
 
 ### feat!: enable cycles ledger support unconditionally
@@ -36,9 +60,27 @@ Identities protected by a shorter password can still be decrypted.
 Schnorr signature signing for `Bip340Secp256k1` is now enabled.
 A test key id `Bip340Secp256k1:dfx_test_key` is ready to be used by locally created canisters.
 
+## Dependencies
+
 ### Replica
 
-Updated replica to elected commit 2e269c77aa2f6b2353ddad6a4ac3d5ddcac196b1.
+Updated replica to elected commit 5849c6daf2037349bd36dcb6e26ce61c2c6570d0.
+This incorporates the following executed proposals:
+
+- [130985](https://dashboard.internetcomputer.org/proposal/130985)
+- [130984](https://dashboard.internetcomputer.org/proposal/130984)
+- [130819](https://dashboard.internetcomputer.org/proposal/130819)
+- [130818](https://dashboard.internetcomputer.org/proposal/130818)
+- [130748](https://dashboard.internetcomputer.org/proposal/130748)
+- [130749](https://dashboard.internetcomputer.org/proposal/130749)
+- [130728](https://dashboard.internetcomputer.org/proposal/130728)
+- [130727](https://dashboard.internetcomputer.org/proposal/130727)
+- [130409](https://dashboard.internetcomputer.org/proposal/130409)
+- [130408](https://dashboard.internetcomputer.org/proposal/130408)
+
+### Motoko
+
+Updated Motoko to [0.11.2](https://github.com/dfinity/motoko/releases/tag/0.11.2)
 
 # 0.21.0
 

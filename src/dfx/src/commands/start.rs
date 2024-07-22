@@ -74,10 +74,6 @@ pub struct StartOpts {
     #[arg(long, conflicts_with = "pocketic")]
     force: bool,
 
-    /// Use old metering.
-    #[arg(long, conflicts_with = "pocketic")]
-    use_old_metering: bool,
-
     /// A list of domains that can be served. These are used for canister resolution [default: localhost]
     #[arg(long)]
     domain: Vec<String>,
@@ -149,7 +145,6 @@ pub fn exec(
         enable_bitcoin,
         enable_canister_http,
         artificial_delay,
-        use_old_metering,
         domain,
         pocketic,
     }: StartOpts,
@@ -186,7 +181,6 @@ pub fn exec(
         bitcoin_node,
         enable_canister_http,
         domain,
-        use_old_metering,
         artificial_delay,
         pocketic,
     )?;
@@ -301,13 +295,8 @@ pub fn exec(
     let proxy_domains = local_server_descriptor.proxy.domain.clone().into_vec();
 
     let replica_config = {
-        let replica_config = ReplicaConfig::new(
-            &state_root,
-            subnet_type,
-            log_level,
-            artificial_delay,
-            use_old_metering,
-        );
+        let replica_config =
+            ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay);
         let mut replica_config = if let Some(port) = local_server_descriptor.replica.port {
             replica_config.with_port(port)
         } else {
@@ -489,7 +478,6 @@ pub fn apply_command_line_parameters(
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
     domain: Vec<String>,
-    use_old_metering: bool,
     artificial_delay: u32,
     pocketic: bool,
 ) -> DfxResult<NetworkDescriptor> {
@@ -531,7 +519,6 @@ pub fn apply_command_line_parameters(
     let settings_digest = get_settings_digest(
         replica_rev(),
         &local_server_descriptor,
-        use_old_metering,
         artificial_delay,
         pocketic,
     );

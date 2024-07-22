@@ -57,7 +57,7 @@ teardown() {
   assert_command_fail dfx canister create e2e_project_backend --specified-id nojwb-ieaaa-aaaaa-aaaaa-cai
 
   if [[ "$USE_POCKETIC" ]]; then
-    assert_match "Desired canister ID nojwb-ieaaa-aaaaa-aaaaa-cai not contained on any subnet"
+    assert_match "The effective canister ID nojwb-ieaaa-aaaaa-aaaaa-cai does not belong to an existing subnet and it is not a mainnet canister ID."
   else
     assert_match "Specified CanisterId nojwb-ieaaa-aaaaa-aaaaa-cai is not hosted by subnet"
   fi
