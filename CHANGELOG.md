@@ -17,6 +17,10 @@ dfx extension install https://raw.githubusercontent.com/dfinity/dfx-extensions/m
 This update also adds the optional field `download_url_template` to extension.json,
 which dfx will use to locate an extension release archive.
 
+### feat: display replica port in `dfx start`
+
+This replaces the dashboard link, which is now shown only in verbose mode. This should hopefully be less confusing for new users.
+
 ### feat!: add `crate` field to dfx.json
 
 It is now possible to specify a particular crate within a Rust package to use for a canister module, using the `crate` field.
