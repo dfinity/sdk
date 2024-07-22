@@ -12,6 +12,22 @@ teardown() {
   standard_teardown
 }
 
+@test "error reporting for --wallet parameter" {
+  assert_command_fail dfx canister call hello_backend greet '' --with-cycles 100 --wallet "abc-def"
+  assert_contains "Failed to read principal from id 'abc-def', and did not find a wallet for that identity"
+  assert_contains "Text must be in valid Base32 encoding"
+
+  assert_command_fail dfx canister call hello_backend greet '' --with-cycles 100 --wallet "alice"
+  assert_contains "Failed to read principal from id 'alice', and did not find a wallet for that identity"
+
+  mkdir -p "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY"
+  echo "{}" > "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
+  assert_command_fail dfx canister call hello_backend greet '' --with-cycles 100 --wallet broken
+  assert_contains "Failed to read principal from id 'broken' (Text must be in valid Base32 encoding.), and failed to load the wallet for that identity"
+  assert_contains "missing field \`identities\`"
+}
+
+
 @test "deposit cycles inside a project" {
     dfx_start
 
@@ -143,11 +159,11 @@ teardown() {
   install_asset identity
   dfx_start
   WALLET=$(dfx identity get-wallet)
-  assert_command dfx canister create --all --wallet "$WALLET"
+  assert_command dfx canister create --all --wallet default
   assert_command dfx build
-  assert_command dfx canister install --all --wallet "$WALLET"
+  assert_command dfx canister install --all --wallet default
 
-  CALL_RES=$(dfx canister call e2e_project_backend fromCall --wallet "$WALLET")
+  CALL_RES=$(dfx canister call e2e_project_backend fromCall --wallet default)
   CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
   assert_eq "$CALLER" "$WALLET"
 
@@ -163,7 +179,7 @@ teardown() {
   dfx_start
   WALLET=$(dfx identity get-wallet)
   assert_command dfx deploy --wallet "$WALLET"
-  CALL_RES=$(dfx canister call e2e_project_backend fromCall --wallet "$WALLET")
+  CALL_RES=$(dfx canister call e2e_project_backend fromCall --wallet default)
   CALLER=$(echo "${CALL_RES}" | cut -d'"' -f 2)
   assert_eq "$CALLER" "$WALLET"
 
@@ -180,8 +196,8 @@ teardown() {
   dfx_start
   WALLET=$(dfx identity get-wallet)
   assert_command dfx wallet balance
-  assert_command dfx deploy --wallet "$WALLET"
-  assert_command dfx canister call hello_backend greet '("")' --with-cycles 1 --wallet "$WALLET"
+  assert_command dfx deploy --wallet default
+  assert_command dfx canister call hello_backend greet '("")' --with-cycles 1 --wallet default
   dfx identity new alice --storage-mode plaintext
   ALICE_WALLET=$(dfx identity get-wallet --identity alice)
   dfx wallet send "$ALICE_WALLET" 1
@@ -192,7 +208,8 @@ teardown() {
   dfx_start
   dfx identity new alice --storage-mode plaintext
   dfx deploy --no-wallet hello_backend --identity alice
-  assert_command dfx canister deposit-cycles 1 hello_backend --wallet "$(dfx identity get-wallet)"
+  dfx identity get-wallet
+  assert_command dfx canister deposit-cycles 1 hello_backend --wallet default
 }
 
 @test "dfx canister deposit-cycles uses default wallet if no wallet is specified" {

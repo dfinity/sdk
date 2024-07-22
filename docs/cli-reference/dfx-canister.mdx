@@ -81,8 +81,12 @@ dfx canister call counter get --network http://192.168.3.1:5678
 By default, most `dfx canister` commands to the Internet Computer are signed by and sent from your own principal. (
 Exceptions are commands that require cycles: `dfx canister create` and `dfx canister deposit-cycles`. Those
 automatically go through the wallet.) Occasionally, you may want to make a call from your wallet, e.g. when only your
-wallet is allowed to call a certain function. To send a call through your wallet, you can use the `--wallet` option like
-this:
+wallet is allowed to call a certain function. To send a call through your wallet, you can use the `--wallet` option.
+You will either specify the wallet's principal, or the name of an identity associated with a wallet.
+
+### Specifying a wallet by principal
+
+To specify a wallet by principal, pass the principal directly.
 
 ``` bash
 dfx canister status <canister name> --wallet <wallet id>
@@ -100,6 +104,26 @@ you can then query the status of the canister (let's assume the canister is call
 
 ``` bash
 dfx canister status --network ic --wallet 22ayq-aiaaa-aaaai-qgmma-cai
+```
+
+### Specifying a wallet by identity name
+
+In the previous example, we first looked up the principal of the currently
+selected wallet. We can avoid this step by specifying the name of an identity,
+in which case dfx will look up the wallet's principal for us.
+
+For example, the following command will query the status of a canister,
+using the wallet associated with the default identity on the ic network:
+
+``` bash
+dfx canister status --network ic --wallet default
+```
+
+As another example, the following commands are equivalent:
+
+``` bash
+dfx canister status --network ic --wallet $(dfx identity get-wallet --network ic --identity alice)
+dfx canister status --network ic --wallet alice
 ```
 
 ## dfx canister call
