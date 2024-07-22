@@ -416,7 +416,7 @@ fn replica_start_thread(
                     continue;
                 }
             }
-            info!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
+            debug!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
 
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the replica if done = true.
