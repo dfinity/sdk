@@ -67,7 +67,7 @@ teardown() {
   assert_eq "http://127.0.0.1:$(dfx info webserver-port)/?canisterId=$(dfx canister id __Candid_UI)"
 }
 
-@test "security-policy produces valid json5" {
+@test "security-policy produces valid json5 headers" {
   dfx_new_frontend
   install_asset assetscanister
   touch src/e2e_project_frontend/assets/thing.json

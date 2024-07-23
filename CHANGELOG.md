@@ -2,7 +2,7 @@
 
 # UNRELEASED
 
-### feat: support `"security_policy"` and `"disable_content_security_policy_warning"` in `.ic-assets.json5`
+### feat: support `"security_policy"` and `"disable_security_policy_warning"` in `.ic-assets.json5`
 
 It is now possible to specify a `"security_policy"` field in `.ic-assets.json5` for asset configurations.
 Valid options are `"disabled"`, `"standard"`, and `"hardened"`.
@@ -15,7 +15,7 @@ If `"standard"` is specified, a set of security headers is added to the asset. T
 
 If `"hardened"` is set, the same headers as with `"standard"` are added. However, the asset sync expects that improved headers are set that would improve security where appropriate.
 
-All warnings regarding security policies can be disabled with ``"disable_content_security_policy_warning": true`. It needs to be set per asset.
+All warnings regarding security policies can be disabled with ``"disable_security_policy_warning": true`. It needs to be set per asset.
 
 The standard security policy headers can be seen with `dfx info security-policy`.
 It also contains a lot of suggestions on how to harden the policy.

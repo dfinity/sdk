@@ -30,7 +30,7 @@ pub struct AssetConfig {
     pub(crate) allow_raw_access: Option<bool>,
     pub(crate) encodings: Option<Vec<ContentEncoder>>,
     pub(crate) security_policy: Option<SecurityPolicy>,
-    pub(crate) disable_content_security_policy_warning: Option<bool>,
+    pub(crate) disable_security_policy_warning: Option<bool>,
 }
 
 impl AssetConfig {
@@ -53,7 +53,7 @@ impl AssetConfig {
     }
 
     pub fn warn_about_unhardened_csp(&self) -> bool {
-        let disable_flag_set = self.disable_content_security_policy_warning == Some(true);
+        let disable_flag_set = self.disable_security_policy_warning == Some(true);
         let csp_hardened = self.security_policy == Some(SecurityPolicy::Hardened);
         !disable_flag_set && !csp_hardened
     }
@@ -97,7 +97,7 @@ pub struct AssetConfigRule {
     #[serde(skip_serializing_if = "Option::is_none")]
     security_policy: Option<SecurityPolicy>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    disable_content_security_policy_warning: Option<bool>,
+    disable_security_policy_warning: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -303,9 +303,8 @@ impl AssetConfig {
             self.security_policy = other.security_policy;
         }
 
-        if other.disable_content_security_policy_warning.is_some() {
-            self.disable_content_security_policy_warning =
-                other.disable_content_security_policy_warning;
+        if other.disable_security_policy_warning.is_some() {
+            self.disable_security_policy_warning = other.disable_security_policy_warning;
         }
         self
     }
@@ -400,7 +399,7 @@ mod rule_utils {
         allow_raw_access: Option<bool>,
         encodings: Option<Vec<ContentEncoder>>,
         security_policy: Option<SecurityPolicy>,
-        disable_content_security_policy_warning: Option<bool>,
+        disable_security_policy_warning: Option<bool>,
     }
 
     impl AssetConfigRule {
@@ -414,7 +413,7 @@ mod rule_utils {
                 allow_raw_access,
                 encodings,
                 security_policy,
-                disable_content_security_policy_warning,
+                disable_security_policy_warning,
             }: InterimAssetConfigRule,
             config_file_parent_dir: &Path,
         ) -> Result<Self, LoadRuleError> {
@@ -439,7 +438,7 @@ mod rule_utils {
                 allow_raw_access,
                 encodings,
                 security_policy,
-                disable_content_security_policy_warning,
+                disable_security_policy_warning,
             })
         }
     }
@@ -524,7 +523,7 @@ mod rule_utils {
                     encodings.iter().map(|enc| enc.to_string()).join(",")
                 ));
             }
-            if let Some(disable_warning) = self.disable_content_security_policy_warning {
+            if let Some(disable_warning) = self.disable_security_policy_warning {
                 s.push_str(&format!(
                     "  - disable standard security policy warning: {disable_warning}"
                 ));

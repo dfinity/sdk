@@ -128,7 +128,7 @@ See: https://owasp.org/www-community/attacks/xss/"#
         self.to_policy().to_headers()
     }
 
-    /// Prints the CSP in the format that could be used in `.ic-assets.json5` directly.
+    /// Prints the security policy in the format that could be used in `.ic-assets.json5` directly.
     /// Includes explanatory comments.
     pub fn to_json5_str(&self) -> String {
         self.to_policy().to_json5_str()

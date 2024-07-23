@@ -1363,7 +1363,7 @@ EOF
   echo '[
     {
       "match": "thing.json",
-      "disable_content_security_policy_warning": true
+      "disable_security_policy_warning": true
     }
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
@@ -1380,7 +1380,7 @@ EOF
   echo '[
     {
       "match": "**/*",
-      "disable_content_security_policy_warning": true
+      "disable_security_policy_warning": true
     }
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
@@ -1413,7 +1413,7 @@ EOF
     },
     {
       "match": "thing.json",
-      "disable_content_security_policy_warning": true
+      "disable_security_policy_warning": true
     }
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
@@ -1431,7 +1431,7 @@ EOF
     {
       "match": "**/*",
       "security_policy": "standard",
-      "disable_content_security_policy_warning": true
+      "disable_security_policy_warning": true
     }
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
