@@ -56,7 +56,7 @@ where
     }
 }
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(transparent)]
 pub struct VersionReqWithJsonSchema(#[schemars(with = "String")] pub VersionReq);
 

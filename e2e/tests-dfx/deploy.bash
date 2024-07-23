@@ -150,6 +150,17 @@ teardown() {
 @test "deploy succeeds when specify canister ID in dfx.json" {
   dfx_start
   jq '.canisters.hello_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
+  cat dfx.json
+  assert_command dfx deploy hello_backend
+  assert_command dfx canister id hello_backend
+  assert_match n5n4y-3aaaa-aaaaa-p777q-cai
+}
+
+@test "deploy succeeds when specify canister ID in dfx.json even if other canisters are malformed" {
+  dfx_start
+  jq '.canisters.hello_backend.specified_id="n5n4y-3aaaa-aaaaa-p777q-cai"' dfx.json | sponge dfx.json
+  # add a malformed canister
+  jq '.canisters += {"malformed": {"remote": {"id": {"local": "hptcf-emaaa-aaaaa-qaawq-cai"}}}}' dfx.json | sponge dfx.json
   assert_command dfx deploy hello_backend
   assert_command dfx canister id hello_backend
   assert_match n5n4y-3aaaa-aaaaa-p777q-cai

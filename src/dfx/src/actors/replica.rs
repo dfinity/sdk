@@ -319,8 +319,10 @@ fn replica_start_thread(
             "*",
             "--subnet-type",
             &config.subnet_type.as_ic_starter_string(),
-            "--ecdsa-keyid",
-            "Secp256k1:dfx_test_key",
+            "--chain-key-ids",
+            "ecdsa:Secp256k1:dfx_test_key",
+            "--chain-key-ids",
+            "schnorr:Bip340Secp256k1:dfx_test_key",
             "--log-level",
             &config.log_level.as_ic_starter_string(),
             "--use-specified-ids-allocation-range",
@@ -341,10 +343,6 @@ fn replica_start_thread(
                     socket_path.to_str().unwrap_or_default(),
                 ]);
             }
-
-            // Show debug logs from the bitcoin canister.
-            // This helps developers see, for example, the current tip height.
-            cmd.args(["--debug-overrides", "ic_btc_canister::heartbeat"]);
         }
         if config.canister_http_adapter.enabled {
             cmd.args(["--subnet-features", "http_requests"]);
@@ -366,10 +364,6 @@ fn replica_start_thread(
             // For our production network, we actually set them to 600ms.
             &format!("{artificial_delay}"),
         ]);
-
-        if config.use_old_metering {
-            cmd.args(["--use-old-metering"]);
-        }
 
         // This should agree with the value at
         // at https://gitlab.com/dfinity-lab/core/ic/-/blob/master/ic-os/guestos/rootfs/etc/systemd/system/ic-replica.service
@@ -422,7 +416,7 @@ fn replica_start_thread(
                     continue;
                 }
             }
-            info!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
+            debug!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
 
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the replica if done = true.
