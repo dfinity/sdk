@@ -35,7 +35,7 @@ pub struct ExtensionManifest {
     pub canister_type: Option<ExtensionCanisterType>,
 
     /// Components of the download url template are:
-    /// - `{{tag}}`: the tag of the extension release, which will follow the form "<extension name>_v<extension version>"
+    /// - `{{tag}}`: the tag of the extension release, which will follow the form "<extension name>-v<extension version>"
     /// - `{{basename}}`: The basename of the release filename, which will follow the form "<extension name>-<arch>-<platform>", for example "nns-x86_64-unknown-linux-gnu"
     /// - `{{archive-format}}`: the format of the archive, for example "tar.gz"
     #[serde(
