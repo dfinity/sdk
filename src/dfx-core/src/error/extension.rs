@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use crate::error::fs::FsError;
 use crate::error::structured_file::StructuredFileError;
 use thiserror::Error;
 
@@ -110,6 +111,9 @@ pub enum InstallExtensionError {
     GetExtensionDownloadUrl(#[from] GetExtensionDownloadUrlError),
 
     #[error(transparent)]
+    GetExtensionManifest(#[from] GetExtensionManifestError),
+
+    #[error(transparent)]
     DownloadAndInstallExtensionToTempdir(#[from] DownloadAndInstallExtensionToTempdirError),
 
     #[error(transparent)]
@@ -147,6 +151,15 @@ pub enum GetDependenciesError {
 }
 
 #[derive(Error, Debug)]
+pub enum GetExtensionManifestError {
+    #[error(transparent)]
+    Get(reqwest::Error),
+
+    #[error(transparent)]
+    ParseJson(reqwest::Error),
+}
+
+#[derive(Error, Debug)]
 #[error("'dfx' is the only supported dependency")]
 pub struct DfxOnlySupportedDependency;
 
@@ -158,8 +171,26 @@ pub struct GetExtensionDownloadUrlError {
 }
 
 #[derive(Error, Debug)]
+pub enum GetTopLevelDirectoryError {
+    #[error(transparent)]
+    ReadDir(FsError),
+
+    #[error("No top-level directory found in archive")]
+    NoTopLevelDirectoryEntry,
+
+    #[error("Cannot read directory entry")]
+    ReadDirEntry(#[source] std::io::Error),
+}
+
+#[derive(Error, Debug)]
 #[error(transparent)]
-pub struct FinalizeInstallationError(#[from] crate::error::fs::FsError);
+pub enum FinalizeInstallationError {
+    #[error(transparent)]
+    GetTopLevelDirectory(#[from] GetTopLevelDirectoryError),
+
+    #[error(transparent)]
+    Fs(#[from] FsError),
+}
 
 #[derive(Error, Debug)]
 pub enum FetchExtensionCompatibilityMatrixError {
