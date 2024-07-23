@@ -75,10 +75,9 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
                 logger,
                 "Extension '{name}' is already installed at version {version}"
             );
-            let uninstall = opts.install_as.unwrap_or(opts.name);
             error!(
                 logger,
-                r#"To upgrade, run "dfx extension uninstall {uninstall}" and then re-run the dfx extension install command"#
+                r#"To upgrade, run "dfx extension uninstall {name}" and then re-run the dfx extension install command"#
             );
             bail!("Different version already installed");
         }

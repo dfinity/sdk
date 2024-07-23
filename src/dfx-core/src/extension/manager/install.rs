@@ -46,7 +46,7 @@ impl ExtensionManager {
 
             if matches!(version, Some(v) if *v != *installed_manifest.version) {
                 return Err(InstallExtensionError::OtherVersionAlreadyInstalled(
-                    effective_extension_name.to_string(),
+                    extension_name.to_string(),
                     installed_manifest.version.clone(),
                 ));
             } else {
