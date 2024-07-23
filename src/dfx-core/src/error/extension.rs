@@ -1,6 +1,8 @@
 #![allow(dead_code)]
+
 use crate::error::fs::FsError;
 use crate::error::structured_file::StructuredFileError;
+use semver::Version;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -98,8 +100,8 @@ pub enum DownloadAndInstallExtensionToTempdirError {
 
 #[derive(Error, Debug)]
 pub enum InstallExtensionError {
-    #[error("Extension '{0}' is already installed.")]
-    ExtensionAlreadyInstalled(String),
+    #[error("Extension '{0}' is already installed at version {1}.")]
+    OtherVersionAlreadyInstalled(String, Version),
 
     #[error(transparent)]
     GetExtensionArchiveName(#[from] GetExtensionArchiveNameError),

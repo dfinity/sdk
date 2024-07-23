@@ -22,8 +22,8 @@ use tar::Archive;
 use tempfile::{tempdir_in, TempDir};
 
 pub enum InstallOutcome {
-    Installed(Version),
-    AlreadyInstalled(Version),
+    Installed(String, Version),
+    AlreadyInstalled(String, Version),
 }
 
 impl ExtensionManager {
@@ -43,9 +43,18 @@ impl ExtensionManager {
             .exists()
         {
             let installed_manifest = ExtensionManifest::load(effective_extension_name, &self.dir)?;
-            return Ok(InstallOutcome::AlreadyInstalled(
-                installed_manifest.version.clone(),
-            ));
+
+            if matches!(version, Some(v) if *v != *installed_manifest.version) {
+                return Err(InstallExtensionError::OtherVersionAlreadyInstalled(
+                    effective_extension_name.to_string(),
+                    installed_manifest.version.clone(),
+                ));
+            } else {
+                return Ok(InstallOutcome::AlreadyInstalled(
+                    extension_name.to_string(),
+                    installed_manifest.version.clone(),
+                ));
+            }
         }
 
         let extension_version = match version {
@@ -66,7 +75,10 @@ impl ExtensionManager {
 
         self.finalize_installation(extension_name, effective_extension_name, temp_dir)?;
 
-        Ok(InstallOutcome::Installed(extension_version))
+        Ok(InstallOutcome::Installed(
+            extension_name.to_string(),
+            extension_version,
+        ))
     }
 
     /// Removing the prerelease tag and build metadata, because they should

@@ -1,10 +1,11 @@
 use crate::commands::DfxCommand;
 use crate::config::cache::DiskBasedCache;
 use crate::lib::environment::Environment;
-use crate::lib::error::DfxResult;
+use crate::lib::error::{DfxError, DfxResult};
 use anyhow::bail;
 use clap::Parser;
 use clap::Subcommand;
+use dfx_core::error::extension::InstallExtensionError::OtherVersionAlreadyInstalled;
 use dfx_core::extension::manager::InstallOutcome;
 use dfx_core::extension::url::ExtensionJsonUrl;
 use semver::Version;
@@ -46,32 +47,41 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
     let install_outcome = runtime.block_on(async {
         mgr.install_extension(&url, opts.install_as.as_deref(), opts.version.as_ref())
             .await
-    })?;
+    });
     spinner.finish_and_clear();
     let logger = env.get_logger();
-    let install_as = if let Some(install_as) = opts.install_as {
+    let install_as = if let Some(install_as) = &opts.install_as {
         format!(", and is available as '{}'", install_as)
     } else {
         "".to_string()
     };
-    let extension = &opts.name;
     match install_outcome {
-        InstallOutcome::Installed(version) => {
-            info!(logger, "Extension '{extension}' version {version} installed successfully{install_as}");
+        Ok(InstallOutcome::Installed(name, version)) => {
+            info!(
+                logger,
+                "Extension '{name}' version {version} installed successfully{install_as}"
+            );
             Ok(())
         }
-        InstallOutcome::AlreadyInstalled(version) => {
-            warn!(logger, "Extension '{extension}' version {version} is already installed{install_as}"
+        Ok(InstallOutcome::AlreadyInstalled(name, version)) => {
+            warn!(
+                logger,
+                "Extension '{name}' version {version} is already installed{install_as}"
             );
-            match opts.version {
-                Some(requested_version) if requested_version != version => {
-                    error!(logger, "Requested version {requested_version} is different from installed version {version}",
-                    );
-                    error!(logger, r#"To upgrade, run "dfx extension uninstall {extension}" and then re-run the dfx extension install command"#);
-                    bail!("Requested version not installed");
-                }
-                _ => Ok(()),
-            }
+            Ok(())
         }
+        Err(OtherVersionAlreadyInstalled(name, version)) => {
+            error!(
+                logger,
+                "Extension '{name}' is already installed at version {version}"
+            );
+            let uninstall = opts.install_as.unwrap_or(opts.name);
+            error!(
+                logger,
+                r#"To upgrade, run "dfx extension uninstall {uninstall}" and then re-run the dfx extension install command"#
+            );
+            bail!("Different version already installed");
+        }
+        Err(other) => Err(DfxError::new(other)),
     }
 }
