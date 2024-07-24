@@ -1462,7 +1462,7 @@ EOF
       "match": "**/*",
       "security_policy": "hardened",
       "headers": {
-        "Content-Security-Policy": "overwritten"
+        "content-security-policy": "overwritten"
       }
     }
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5

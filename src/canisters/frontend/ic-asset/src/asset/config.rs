@@ -6,7 +6,7 @@ use crate::security_policy::SecurityPolicy;
 use derivative::Derivative;
 use globset::GlobMatcher;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -35,20 +35,21 @@ pub struct AssetConfig {
 
 impl AssetConfig {
     pub fn combined_headers(&self) -> Option<HeadersConfig> {
-        if self.headers.is_some()
-            || self.security_policy == Some(SecurityPolicy::Standard)
-            || self.security_policy == Some(SecurityPolicy::Hardened)
-        {
-            let mut headers = self
-                .security_policy
-                .map(|policy| policy.to_headers())
-                .unwrap_or_default();
-            if let Some(custom_headers) = self.headers.clone() {
-                headers.extend(custom_headers);
+        match (self.headers.as_ref(), self.security_policy) {
+            (None, None) => None,
+            (None, Some(policy)) => Some(policy.to_headers()),
+            (Some(custom_headers), None) => Some(custom_headers.clone()),
+            (Some(custom_headers), Some(policy)) => {
+                let mut headers = custom_headers.clone();
+                let custom_header_names: HashSet<String> =
+                    HashSet::from_iter(custom_headers.keys().map(|a| a.to_lowercase()));
+                for (policy_header_name, policy_header_value) in policy.to_headers() {
+                    if !custom_header_names.contains(&policy_header_name.to_lowercase()) {
+                        headers.insert(policy_header_name, policy_header_value);
+                    }
+                }
+                Some(headers)
             }
-            Some(headers)
-        } else {
-            None
         }
     }
 
