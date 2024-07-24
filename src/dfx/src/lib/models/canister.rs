@@ -527,29 +527,80 @@ impl CanisterPool {
         &self.logger
     }
 
+    /// Builds a dependency graph for the given canisters.
+    /// Only canisters in `canisters_to_build` and their dependencies will be
+    /// included in the graph.
     #[context("Failed to build dependencies graph for canister pool.")]
-    fn build_dependencies_graph(&self) -> DfxResult<DiGraph<CanisterId, ()>> {
+    fn build_dependencies_graph(
+        &self,
+        canisters_to_build: Vec<&Canister>,
+    ) -> DfxResult<DiGraph<CanisterId, ()>> {
         let mut graph: DiGraph<CanisterId, ()> = DiGraph::new();
-        let mut id_set: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
 
-        // Add all the canisters as nodes.
-        for canister in &self.canisters {
-            let canister_id = canister.info.get_canister_id()?;
-            id_set.insert(canister_id, graph.add_node(canister_id));
+        /// Recursive function that does the actual work of adding the canister
+        /// and its dependencies to the graph.
+        /// This is separate from the top-level function so that the top-level
+        /// function can be called without worrying about the implementation
+        /// details.
+        ///
+        /// Returns the index of the canister's graph node.
+        fn add_canister_and_dependencies_to_graph(
+            canister_pool: &CanisterPool,
+            canister: &Canister,
+            graph: &mut DiGraph<CanisterId, ()>,
+            canister_id_to_canister: &BTreeMap<CanisterId, &Canister>,
+            canister_id_to_index: &mut BTreeMap<CanisterId, NodeIndex<u32>>,
+        ) -> DfxResult<NodeIndex> {
+            let canister_id = canister.canister_id();
+
+            // If this canister has already been visited, return its index. Its
+            // dependencies were already added on a previous visit.
+            if let Some(node_ix) = canister_id_to_index.get(&canister_id) {
+                return Ok(*node_ix);
+            }
+            // Otherwise, add it to the graph.
+            let node_ix = graph.add_node(canister_id);
+            canister_id_to_index.insert(canister_id, node_ix);
+
+            let deps = canister
+                .builder
+                .get_dependencies(canister_pool, &canister.info)?;
+
+            for dependency_id in deps {
+                let dependency = canister_id_to_canister.get(&dependency_id).ok_or_else(|| {
+                    DfxError::new(BuildError::DependencyError(format!(
+                        "Canister '{}' depends on canister '{}' which does not exist.",
+                        canister.info.get_name(),
+                        dependency_id.to_text()
+                    )))
+                })?;
+                let dependency_index = add_canister_and_dependencies_to_graph(
+                    canister_pool,
+                    dependency,
+                    graph,
+                    canister_id_to_canister,
+                    canister_id_to_index,
+                )?;
+                graph.add_edge(node_ix, dependency_index, ());
+            }
+
+            Ok(node_ix)
         }
 
-        // Add all the edges.
-        for canister in &self.canisters {
-            let canister_id = canister.canister_id();
-            let canister_info = &canister.info;
-            let deps = canister.builder.get_dependencies(self, canister_info)?;
-            if let Some(node_ix) = id_set.get(&canister_id) {
-                for d in deps {
-                    if let Some(dep_ix) = id_set.get(&d) {
-                        graph.add_edge(*node_ix, *dep_ix, ());
-                    }
-                }
-            }
+        let mut canister_id_to_index: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
+        let canister_id_to_canister = self
+            .canisters
+            .iter()
+            .map(|c| (c.canister_id(), c.as_ref()))
+            .collect::<BTreeMap<CanisterId, &Canister>>();
+        for canister in canisters_to_build {
+            add_canister_and_dependencies_to_graph(
+                self,
+                canister,
+                &mut graph,
+                &canister_id_to_canister,
+                &mut canister_id_to_index,
+            )?;
         }
 
         // Verify the graph has no cycles.
@@ -581,39 +632,31 @@ impl CanisterPool {
                 .map(|cans| !cans.iter().contains(&c.get_name().to_string()))
                 .unwrap_or(false)
         }) {
-            let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
-                Some(remote_candid)
-            } else {
-                canister.info.get_output_idl_path()
-            };
-            if let Some(from) = maybe_from.as_ref() {
-                if from.exists() {
-                    let to = build_config.idl_root.join(format!(
-                        "{}.did",
-                        canister.info.get_canister_id()?.to_text()
-                    ));
-                    trace!(
-                        log,
-                        "Copying .did for canister {} from {} to {}.",
-                        canister.info.get_name(),
-                        from.to_string_lossy(),
-                        to.to_string_lossy()
-                    );
-                    dfx_core::fs::composite::ensure_parent_dir_exists(&to)?;
-                    dfx_core::fs::copy(from, &to)?;
-                    dfx_core::fs::set_permissions_readwrite(&to)?;
-                } else {
-                    warn!(
-                        log,
-                        ".did file for canister '{}' does not exist.",
-                        canister.get_name(),
-                    );
-                }
+            let from = canister
+                .info
+                .get_remote_candid()
+                .unwrap_or_else(|| canister.info.get_output_idl_path().to_path_buf());
+
+            if from.exists() {
+                let to = build_config.idl_root.join(format!(
+                    "{}.did",
+                    canister.info.get_canister_id()?.to_text()
+                ));
+                trace!(
+                    log,
+                    "Copying .did for canister {} from {} to {}.",
+                    canister.info.get_name(),
+                    from.to_string_lossy(),
+                    to.to_string_lossy()
+                );
+                dfx_core::fs::composite::ensure_parent_dir_exists(&to)?;
+                dfx_core::fs::copy(&from, &to)?;
+                dfx_core::fs::set_permissions_readwrite(&to)?;
             } else {
                 warn!(
                     log,
-                    "Canister '{}' has no .did file configured.",
-                    canister.get_name()
+                    ".did file for canister '{}' does not exist.",
+                    canister.get_name(),
                 );
             }
         }
@@ -691,7 +734,8 @@ impl CanisterPool {
         self.step_prebuild_all(log, build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
-        let graph = self.build_dependencies_graph()?;
+        let canisters_to_build = self.canisters_to_build(build_config);
+        let graph = self.build_dependencies_graph(canisters_to_build.clone())?;
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
@@ -839,14 +883,15 @@ impl CanisterPool {
         Ok(())
     }
 
-    pub fn canisters_to_build(&self, build_config: &BuildConfig) -> Vec<&Arc<Canister>> {
+    pub fn canisters_to_build(&self, build_config: &BuildConfig) -> Vec<&Canister> {
         if let Some(canister_names) = &build_config.canisters_to_build {
             self.canisters
                 .iter()
                 .filter(|can| canister_names.contains(&can.info.get_name().to_string()))
+                .map(Arc::as_ref)
                 .collect()
         } else {
-            self.canisters.iter().collect()
+            self.canisters.iter().map(Arc::as_ref).collect()
         }
     }
 }

@@ -38,10 +38,18 @@
         "null"
       ],
       "additionalProperties": {
-        "type": "string"
+        "$ref": "#/definitions/ExtensionDependency"
       }
     },
     "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "download_url_template": {
+      "description": "Components of the download url template are: - `{{tag}}`: the tag of the extension release, which will follow the form \"<extension name>-v<extension version>\" - `{{basename}}`: The basename of the release filename, which will follow the form \"<extension name>-<arch>-<platform>\", for example \"nns-x86_64-unknown-linux-gnu\" - `{{archive-format}}`: the format of the archive, for example \"tar.gz\"",
+      "default": "https://github.com/dfinity/dfx-extensions/releases/download/{{tag}}/{{basename}}.{{archive-format}}",
       "type": [
         "string",
         "null"
@@ -139,6 +147,14 @@
         }
       }
     },
+    "ExtensionDependency": {
+      "anyOf": [
+        {
+          "description": "A SemVer version requirement, for example \">=0.17.0\".",
+          "type": "string"
+        }
+      ]
+    },
     "ExtensionSubcommandArgOpts": {
       "type": "object",
       "properties": {
@@ -168,7 +184,12 @@
           "minLength": 1
         },
         "values": {
-          "$ref": "#/definitions/ArgNumberOfValues"
+          "default": 1,
+          "allOf": [
+            {
+              "$ref": "#/definitions/ArgNumberOfValues"
+            }
+          ]
         }
       },
       "additionalProperties": false

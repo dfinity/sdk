@@ -1,5 +1,5 @@
 use crate::config::cache::DiskBasedCache;
-use crate::lib::agent::create_agent_environment;
+use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -34,7 +34,7 @@ pub struct CanisterBuildOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
-    let env = create_agent_environment(env, opts.network.to_network_name())?;
+    let env = create_anonymous_agent_environment(env, opts.network.to_network_name())?;
 
     let logger = env.get_logger();
 

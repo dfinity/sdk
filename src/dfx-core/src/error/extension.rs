@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use crate::error::fs::FsError;
 use crate::error::structured_file::StructuredFileError;
 use thiserror::Error;
 
@@ -82,8 +83,8 @@ pub enum NewExtensionManagerError {
 
 #[derive(Error, Debug)]
 pub enum DownloadAndInstallExtensionToTempdirError {
-    #[error("Downloading extension from '{0}' failed")]
-    ExtensionDownloadFailed(url::Url, #[source] reqwest::Error),
+    #[error(transparent)]
+    ExtensionDownloadFailed(reqwest::Error),
 
     #[error("Cannot get extensions directory")]
     EnsureExtensionDirExistsFailed(#[source] crate::error::fs::FsError),
@@ -104,10 +105,13 @@ pub enum InstallExtensionError {
     GetExtensionArchiveName(#[from] GetExtensionArchiveNameError),
 
     #[error(transparent)]
-    FindLatestExtensionCompatibleVersion(#[from] FindLatestExtensionCompatibleVersionError),
+    GetHighestCompatibleVersion(#[from] GetHighestCompatibleVersionError),
 
     #[error(transparent)]
     GetExtensionDownloadUrl(#[from] GetExtensionDownloadUrlError),
+
+    #[error(transparent)]
+    GetExtensionManifest(#[from] GetExtensionManifestError),
 
     #[error(transparent)]
     DownloadAndInstallExtensionToTempdir(#[from] DownloadAndInstallExtensionToTempdirError),
@@ -123,22 +127,41 @@ pub enum GetExtensionArchiveNameError {
 }
 
 #[derive(Error, Debug)]
-pub enum FindLatestExtensionCompatibleVersionError {
-    #[error("DFX version '{0}' is not supported.")]
-    DfxVersionNotFoundInCompatibilityJson(semver::Version),
+pub enum GetHighestCompatibleVersionError {
+    #[error(transparent)]
+    GetDependencies(#[from] GetDependenciesError),
 
-    #[error("Extension '{0}' (version '{1}') not found for DFX version {2}.")]
-    ExtensionVersionNotFoundInRepository(String, semver::Version, String),
-
-    #[error("Cannot parse compatibility.json due to malformed semver '{0}'")]
-    MalformedVersionsEntryForExtensionInCompatibilityMatrix(String, #[source] semver::Error),
-
-    #[error("Cannot find compatible extension for dfx version '{1}': compatibility.json (downloaded from '{0}') has empty list of extension versions.")]
-    ListOfVersionsForExtensionIsEmpty(String, semver::Version),
+    #[error("No compatible version found.")]
+    NoCompatibleVersionFound(),
 
     #[error(transparent)]
-    FetchExtensionCompatibilityMatrix(#[from] FetchExtensionCompatibilityMatrixError),
+    DfxOnlyPossibleDependency(#[from] DfxOnlySupportedDependency),
 }
+
+#[derive(Error, Debug)]
+pub enum GetDependenciesError {
+    #[error(transparent)]
+    ParseUrl(#[from] url::ParseError),
+
+    #[error(transparent)]
+    Get(reqwest::Error),
+
+    #[error(transparent)]
+    ParseJson(reqwest::Error),
+}
+
+#[derive(Error, Debug)]
+pub enum GetExtensionManifestError {
+    #[error(transparent)]
+    Get(reqwest::Error),
+
+    #[error(transparent)]
+    ParseJson(reqwest::Error),
+}
+
+#[derive(Error, Debug)]
+#[error("'dfx' is the only supported dependency")]
+pub struct DfxOnlySupportedDependency;
 
 #[derive(Error, Debug)]
 #[error("Failed to parse extension manifest URL '{url}'")]
@@ -148,8 +171,26 @@ pub struct GetExtensionDownloadUrlError {
 }
 
 #[derive(Error, Debug)]
+pub enum GetTopLevelDirectoryError {
+    #[error(transparent)]
+    ReadDir(FsError),
+
+    #[error("No top-level directory found in archive")]
+    NoTopLevelDirectoryEntry,
+
+    #[error("Cannot read directory entry")]
+    ReadDirEntry(#[source] std::io::Error),
+}
+
+#[derive(Error, Debug)]
 #[error(transparent)]
-pub struct FinalizeInstallationError(#[from] crate::error::fs::FsError);
+pub enum FinalizeInstallationError {
+    #[error(transparent)]
+    GetTopLevelDirectory(#[from] GetTopLevelDirectoryError),
+
+    #[error(transparent)]
+    Fs(#[from] FsError),
+}
 
 #[derive(Error, Debug)]
 pub enum FetchExtensionCompatibilityMatrixError {

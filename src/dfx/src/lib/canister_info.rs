@@ -15,17 +15,14 @@ use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 use fn_error_context::context;
 use std::path::{Path, PathBuf};
+use url::Url;
 
 pub mod assets;
 pub mod custom;
 pub mod motoko;
 pub mod pull;
 pub mod rust;
-use self::pull::PullCanisterInfo;
-use assets::AssetsCanisterInfo;
-use custom::CustomCanisterInfo;
-use motoko::MotokoCanisterInfo;
-use rust::RustCanisterInfo;
+use crate::lib::deps::get_candid_path_in_project;
 
 pub trait CanisterInfoFactory {
     fn create(info: &CanisterInfo) -> DfxResult<Self>
@@ -63,6 +60,7 @@ pub struct CanisterInfo {
     gzip: bool,
     init_arg: Option<String>,
     init_arg_file: Option<String>,
+    output_idl_path: PathBuf,
 }
 
 impl CanisterInfo {
@@ -137,6 +135,35 @@ impl CanisterInfo {
 
         let output_root = build_root.join(name);
 
+        let output_idl_path: PathBuf =
+            if let (Some(_id), Some(candid)) = (&remote_id, &remote_candid) {
+                workspace_root.join(candid)
+            } else {
+                match &canister_config.type_specific {
+                    CanisterTypeProperties::Rust {
+                        package: _,
+                        crate_name: _,
+                        candid,
+                    } => workspace_root.join(candid),
+                    CanisterTypeProperties::Assets { .. } => output_root.join("assetstorage.did"),
+                    CanisterTypeProperties::Custom {
+                        wasm: _,
+                        candid,
+                        build: _,
+                    } => {
+                        if Url::parse(candid).is_ok() {
+                            output_root.join(name).with_extension("did")
+                        } else {
+                            workspace_root.join(candid)
+                        }
+                    }
+                    CanisterTypeProperties::Motoko => output_root.join(name).with_extension("did"),
+                    CanisterTypeProperties::Pull { id } => {
+                        get_candid_path_in_project(workspace_root, id)
+                    }
+                }
+            };
+
         let type_specific = canister_config.type_specific.clone();
 
         let args = match &canister_config.args {
@@ -174,6 +201,7 @@ impl CanisterInfo {
             gzip,
             init_arg,
             init_arg_file,
+            output_idl_path,
         };
 
         Ok(canister_info)
@@ -300,26 +328,8 @@ impl CanisterInfo {
     /// Path to the candid file from canister builder which should contain init types.
     ///
     /// To be separated into service.did and init_args.
-    pub fn get_output_idl_path(&self) -> Option<PathBuf> {
-        match &self.type_specific {
-            CanisterTypeProperties::Motoko { .. } => self
-                .as_info::<MotokoCanisterInfo>()
-                .map(|x| x.get_output_idl_path().to_path_buf()),
-            CanisterTypeProperties::Custom { .. } => self
-                .as_info::<CustomCanisterInfo>()
-                .map(|x| x.get_output_idl_path().to_path_buf()),
-            CanisterTypeProperties::Assets { .. } => self
-                .as_info::<AssetsCanisterInfo>()
-                .map(|x| x.get_output_idl_path().to_path_buf()),
-            CanisterTypeProperties::Rust { .. } => self
-                .as_info::<RustCanisterInfo>()
-                .map(|x| x.get_output_idl_path().to_path_buf()),
-            CanisterTypeProperties::Pull { .. } => self
-                .as_info::<PullCanisterInfo>()
-                .map(|x| x.get_output_idl_path().to_path_buf()),
-        }
-        .ok()
-        .or_else(|| self.remote_candid.clone())
+    pub fn get_output_idl_path(&self) -> &Path {
+        self.output_idl_path.as_path()
     }
 
     #[context("Failed to create <Type>CanisterInfo for canister '{}'.", self.name, )]

@@ -5,7 +5,10 @@ use crate::lib::error::DfxResult;
 use anyhow::bail;
 use clap::Parser;
 use clap::Subcommand;
+use dfx_core::extension::url::ExtensionJsonUrl;
 use semver::Version;
+use tokio::runtime::Runtime;
+use url::Url;
 
 #[derive(Parser)]
 pub struct InstallOpts {
@@ -30,14 +33,21 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
         bail!("Extension '{}' cannot be installed because it conflicts with an existing command. Consider using '--install-as' flag to install this extension under different name.", opts.name)
     }
 
-    mgr.install_extension(
-        &opts.name,
-        opts.install_as.as_deref(),
-        opts.version.as_ref(),
-    )?;
+    let url = if let Ok(url) = Url::parse(&opts.name) {
+        ExtensionJsonUrl::new(url)
+    } else {
+        ExtensionJsonUrl::registered(&opts.name)?
+    };
+
+    let runtime = Runtime::new().expect("Unable to create a runtime");
+
+    let installed_version = runtime.block_on(async {
+        mgr.install_extension(&url, opts.install_as.as_deref(), opts.version.as_ref())
+            .await
+    })?;
     spinner.finish_with_message(
         format!(
-            "Extension '{}' installed successfully{}",
+            "Extension '{}' version {installed_version} installed successfully{}",
             opts.name,
             if let Some(install_as) = opts.install_as {
                 format!(", and is available as '{}'", install_as)

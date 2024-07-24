@@ -10,7 +10,6 @@ pub struct AssetsCanisterInfo {
     source_paths: Vec<PathBuf>,
 
     output_wasm_path: PathBuf,
-    output_idl_path: PathBuf,
     build: Vec<String>,
     workspace: Option<String>,
 }
@@ -21,9 +20,6 @@ impl AssetsCanisterInfo {
             .iter()
             .map(|sp| self.input_root.join(sp))
             .collect::<_>()
-    }
-    pub fn get_output_idl_path(&self) -> &Path {
-        self.output_idl_path.as_path()
     }
     pub fn get_build_tasks(&self) -> &[String] {
         &self.build
@@ -76,13 +72,11 @@ impl CanisterInfoFactory for AssetsCanisterInfo {
         let output_root = info.get_output_root();
 
         let output_wasm_path = output_root.join(Path::new("assetstorage.wasm.gz"));
-        let output_idl_path = output_wasm_path.with_extension("").with_extension("did");
 
         Ok(AssetsCanisterInfo {
             input_root,
             source_paths,
             output_wasm_path,
-            output_idl_path,
             build,
             workspace,
         })

@@ -27,21 +27,100 @@ Updated the starter projects to use `"security_policy"` instead of including the
 Shows the headers that get applied to assets that are configured to `"security_policy": "standard"` in `.ic-assets.json5`.
 Produces output that can be directly pasted into a `.json5` document.
 
+### feat: `dfx extension install <url to extension.json>`
+
+It's now possible for `dfx extension install` to install an extension from
+somewhere other than https://github.com/dfinity/dfx-extensions, by passing
+a URL to an extension.json file rather than an extension name.
+
+For example, these are equivalent:
+```bash
+dfx extension install nns
+dfx extension install https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/nns/extension.json
+```
+
+This update also adds the optional field `download_url_template` to extension.json,
+which dfx will use to locate an extension release archive.
+
+### feat: display replica port in `dfx start`
+
+This replaces the dashboard link, which is now shown only in verbose mode. This should hopefully be less confusing for new users.
+
+### feat!: add `crate` field to dfx.json
+
+It is now possible to specify a particular crate within a Rust package to use for a canister module, using the `crate` field.
+This enables specifying crates with different names than the package. In a few cases these were previously auto-detected
+by dfx, you will need to add this field if you were using such a setup.
+
+### fix: display error cause of some http-related errors
+
+Some commands that download http resources, for example `dfx extension install`, will
+once again display any error cause.
+
+### chore: remove the deprecated --use-old-metering flag
+
+# 0.22.0
+
+### asset uploads: retry some HTTP errors returned by the replica
+
+Now retries the following, with exponential backoff as is already done for connect and transport errors:
+- 500 internal server error
+- 502 bad gateway
+- 503 service unavailable
+- 504 gateway timeout
+- 429 many requests
+
+### fix: Allow canisters to be deployed even if unrelated canisters in dfx.json are malformed
+
 ### feat!: enable cycles ledger support unconditionally
 
 ### chore!: removed `unsafe-eval` CSP from default starter template
 
 To do this, the `@dfinity/agent` version was updated as well.
 
-### feat: add `dfx schema --for extension-manifest`
+### fix: `dfx build` no longer requires a password for password-protected identities
 
-The schema command can now output the schema for extension.json files.
+### chore!: enforce `--wallet` requirement for `dfx canister call --with-cycles` earlier
+
+### feat: add `dfx schema` support for .json files related to extensions
+
+- `dfx schema --for extension-manifest` corresponds to extension.json
+- `dfx schema --for extension-dependencies` corresponds to dependencies.json
 
 ### chore!: enforce minimum password length of 9 characters
 
 The [NIST guidelines](https://pages.nist.gov/800-63-3/sp800-63b.html) require passwords to be longer than 8 characters.
 This is now enforced when creating new identities.
 Identities protected by a shorter password can still be decrypted.
+
+### feat: `dfx extension install` now uses the extension's dependencies.json file to pick the highest compatible version
+
+### feat: Enable threshold schnorr signatures for Bip340Secp256k1
+
+Schnorr signature signing for `Bip340Secp256k1` is now enabled.
+A test key id `Bip340Secp256k1:dfx_test_key` is ready to be used by locally created canisters.
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 5849c6daf2037349bd36dcb6e26ce61c2c6570d0.
+This incorporates the following executed proposals:
+
+- [130985](https://dashboard.internetcomputer.org/proposal/130985)
+- [130984](https://dashboard.internetcomputer.org/proposal/130984)
+- [130819](https://dashboard.internetcomputer.org/proposal/130819)
+- [130818](https://dashboard.internetcomputer.org/proposal/130818)
+- [130748](https://dashboard.internetcomputer.org/proposal/130748)
+- [130749](https://dashboard.internetcomputer.org/proposal/130749)
+- [130728](https://dashboard.internetcomputer.org/proposal/130728)
+- [130727](https://dashboard.internetcomputer.org/proposal/130727)
+- [130409](https://dashboard.internetcomputer.org/proposal/130409)
+- [130408](https://dashboard.internetcomputer.org/proposal/130408)
+
+### Motoko
+
+Updated Motoko to [0.11.2](https://github.com/dfinity/motoko/releases/tag/0.11.2)
 
 # 0.21.0
 

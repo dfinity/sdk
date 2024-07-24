@@ -227,6 +227,7 @@ fn icx_proxy_start_thread(
                 .expect("Could not write to icx-proxy-pid file.");
             std::fs::write(&icx_proxy_pid_path, child.id().to_string())
                 .expect("Could not write to icx-proxy-pid file.");
+            info!(logger, "Replica API running on {address}");
 
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the icx-proxy if done = true.

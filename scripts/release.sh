@@ -7,6 +7,10 @@ die () {
     exit 1
 }
 
+for cmd in cargo sponge jq; do
+    command -v "$cmd" >/dev/null || die "Required command $cmd not installed"
+done
+
 announce() {
     term_green
     echo

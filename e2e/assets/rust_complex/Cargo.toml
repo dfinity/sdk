@@ -1,0 +1,8 @@
+[workspace]
+members = ["can1", "can2"]
+edition = 2021
+resolver = "2"
+
+[workspace.dependencies]
+ic-cdk = "0.15"
+candid = "0.10"

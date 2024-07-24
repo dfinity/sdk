@@ -227,7 +227,9 @@ async fn create_with_management_canister(
             status, content, ..
         })) if (400..500).contains(&status) => {
             let message = String::from_utf8_lossy(&content);
-            if message.contains("not contained on any subnet") {
+            if message.contains(
+                "does not belong to an existing subnet and it is not a mainnet canister ID.",
+            ) {
                 Err(anyhow!("{message}"))
             } else {
                 Err(anyhow!(NEEDS_WALLET))
