@@ -9,11 +9,11 @@ Valid options are `"disabled"`, `"standard"`, and `"hardened"`.
 The security policy provides a set of standard headers to make frontends more secure.
 Headers manually specified in the `"headers"` field take precedence over the security policy headers.
 
-If `"security_policy"` is not specified or `"disabled"` is set, then no headers are added. A warning is displayed that there is no security policy set.
+If `"security_policy"` is not specified or `"disabled"` is set, then no headers are added. If `"security_policy"` is not set at all, a warning is displayed that there is no security policy set.
 
 If `"standard"` is specified, a set of security headers is added to the asset. The headers can be displayed with `dfx info security-policy`. It is a set of security headers that will work for most dapps. A warning is displayed that the headers could be hardened.
 
-If `"hardened"` is set, the same headers as with `"standard"` are added. However, the asset sync expects that improved headers are set that would improve security where appropriate.
+If `"hardened"` is set, the same headers as with `"standard"` are added. However, the asset sync expects that improved headers are set that would improve security where appropriate and therefore does not display the warning.
 
 All warnings regarding security policies can be disabled with ``"disable_security_policy_warning": true`. It needs to be set per asset.
 

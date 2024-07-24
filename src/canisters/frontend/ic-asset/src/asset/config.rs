@@ -61,7 +61,7 @@ impl AssetConfig {
 
     pub fn warn_about_no_security_policy(&self) -> bool {
         let warning_disabled = self.disable_security_policy_warning == Some(true);
-        let no_policy = matches!(self.security_policy, None | Some(SecurityPolicy::Disabled));
+        let no_policy = self.security_policy.is_none();
         no_policy && !warning_disabled
     }
 }

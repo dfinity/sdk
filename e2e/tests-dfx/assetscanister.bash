@@ -1390,6 +1390,21 @@ EOF
   assert_not_match "content-security-policy"
   assert_not_match "permissions-policy"
 
+  # Security policy "disabled" defined for all assets, which disables the warning
+  echo '[
+    {
+      "match": "**/*",
+      "security_policy": "disabled"
+    }
+  ]' > src/e2e_project_frontend/assets/.ic-assets.json5
+
+  assert_command dfx deploy
+  assert_not_contains "This project does not define a security policy for some assets."
+  assert_not_contains "This project uses the default security policy for some assets."
+  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
+  assert_not_match "content-security-policy"
+  assert_not_match "permissions-policy"
+
   # Security policy "standard" defined for all assets, warning not disabled
   echo '[
     {
