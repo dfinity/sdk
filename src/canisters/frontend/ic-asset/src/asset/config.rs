@@ -44,7 +44,7 @@ impl AssetConfig {
                 .map(|policy| policy.to_headers())
                 .unwrap_or_default();
             if let Some(custom_headers) = self.headers.clone() {
-                headers.extend(custom_headers.into_iter());
+                headers.extend(custom_headers);
             }
             Some(headers)
         } else {

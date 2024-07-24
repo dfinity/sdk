@@ -21,7 +21,7 @@ pub enum SecurityPolicy {
     Hardened,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct ConcreteSecurityPolicy {
     /// When displaying the policy this will be a preface to the actual headers
     general_comment: &'static str,
@@ -45,7 +45,7 @@ impl ConcreteSecurityPolicy {
             .lines()
             .map(|line| format!("// {line}"))
             .join("\n");
-        if self.headers.len() > 0 {
+        if !self.headers.is_empty() {
             let headers = self
                 .headers
                 .iter()
@@ -66,7 +66,7 @@ impl ConcreteSecurityPolicy {
 }
 
 impl SecurityPolicy {
-    fn to_policy(&self) -> ConcreteSecurityPolicy {
+    fn to_policy(self) -> ConcreteSecurityPolicy {
         match self {
             SecurityPolicy::Disabled => ConcreteSecurityPolicy {
                 general_comment: "No content security policy.",
@@ -137,13 +137,13 @@ See: https://owasp.org/www-community/attacks/xss/"#
         }
     }
 
-    pub(crate) fn to_headers(&self) -> HeadersConfig {
+    pub(crate) fn to_headers(self) -> HeadersConfig {
         self.to_policy().to_headers()
     }
 
     /// Prints the security policy in the format that could be used in `.ic-assets.json5` directly.
     /// Includes explanatory comments.
-    pub fn to_json5_str(&self) -> String {
+    pub fn to_json5_str(self) -> String {
         self.to_policy().to_json5_str()
     }
 }

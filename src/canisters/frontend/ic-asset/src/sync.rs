@@ -319,7 +319,7 @@ pub(crate) fn gather_asset_descriptors(
                     )
             })
             .collect_vec();
-        if no_policy_assets.len() > 0 {
+        if !no_policy_assets.is_empty() {
             warn!(
                 logger,
                 "This project does not define a security policy for some assets."
@@ -351,7 +351,7 @@ pub(crate) fn gather_asset_descriptors(
                     && asset.config.security_policy == Some(SecurityPolicy::Standard)
             })
             .collect_vec();
-        if standard_policy_assets.len() > 0 {
+        if !standard_policy_assets.is_empty() {
             warn!(logger, "This project uses the default security policy for some assets. While it is set up to work with many applications, it is recommended to further harden the policy to increase security against attacks like XSS.");
             warn!(logger, "To get started, have a look at 'dfx info canister-security-policy'. It shows the default security policy along with suggestions on how to improve it.");
             if standard_policy_assets.len() == asset_descriptors.len() {
@@ -363,7 +363,7 @@ pub(crate) fn gather_asset_descriptors(
                 }
             }
         }
-        if standard_policy_assets.len() > 0 || no_policy_assets.len() > 0 {
+        if !standard_policy_assets.is_empty() || !no_policy_assets.is_empty() {
             warn!(logger, "To disable the policy warning, define \"disable_standard_security_policy_warning\": true in .ic-assets.json5.");
         }
     }
