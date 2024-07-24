@@ -44,17 +44,17 @@ impl ExtensionManager {
         {
             let installed_manifest = ExtensionManifest::load(effective_extension_name, &self.dir)?;
 
-            if matches!(version, Some(v) if *v != *installed_manifest.version) {
-                return Err(InstallExtensionError::OtherVersionAlreadyInstalled(
+            return if matches!(version, Some(v) if *v != *installed_manifest.version) {
+                Err(InstallExtensionError::OtherVersionAlreadyInstalled(
                     extension_name.to_string(),
                     installed_manifest.version.clone(),
-                ));
+                ))
             } else {
-                return Ok(InstallOutcome::AlreadyInstalled(
+                Ok(InstallOutcome::AlreadyInstalled(
                     extension_name.to_string(),
                     installed_manifest.version.clone(),
-                ));
-            }
+                ))
+            };
         }
 
         let extension_version = match version {
