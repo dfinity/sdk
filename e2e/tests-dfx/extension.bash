@@ -188,7 +188,7 @@ install_extension_from_official_registry() {
   assert_match 'No extensions installed'
 
   assert_command dfx extension install "$EXTENSION" --install-as snsx --version 0.2.1
-  assert_contains 'Successfully installed extension'
+  assert_contains "Extension 'sns' version 0.2.1 installed successfully, and is available as 'snsx'"
 
   assert_command dfx extension list
   assert_match 'snsx'
