@@ -52,10 +52,16 @@ impl AssetConfig {
         }
     }
 
-    pub fn warn_about_unhardened_csp(&self) -> bool {
-        let disable_flag_set = self.disable_security_policy_warning == Some(true);
-        let csp_hardened = self.security_policy == Some(SecurityPolicy::Hardened);
-        !disable_flag_set && !csp_hardened
+    pub fn warn_about_standard_security_policy(&self) -> bool {
+        let warning_disabled = self.disable_security_policy_warning == Some(true);
+        let standard_policy = self.security_policy == Some(SecurityPolicy::Standard);
+        standard_policy && !warning_disabled
+    }
+
+    pub fn warn_about_no_security_policy(&self) -> bool {
+        let warning_disabled = self.disable_security_policy_warning == Some(true);
+        let no_policy = matches!(self.security_policy, None | Some(SecurityPolicy::Disabled));
+        no_policy && !warning_disabled
     }
 }
 

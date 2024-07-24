@@ -1354,7 +1354,7 @@ EOF
 
   assert_command dfx deploy
   assert_contains "This project does not define a security policy for some assets."
-  assert_contains "Assets without any CSP: all"
+  assert_contains "Assets without any security policy: all"
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_not_match "content-security-policy"
   assert_not_match "permissions-policy"
@@ -1369,7 +1369,7 @@ EOF
 
   assert_command dfx deploy
   assert_contains "This project does not define a security policy for some assets."
-  assert_contains "Assets without any CSP:"
+  assert_contains "Assets without any security policy:"
   assert_contains "- /thing2.json"
   assert_not_contains "- /thing.json"
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"

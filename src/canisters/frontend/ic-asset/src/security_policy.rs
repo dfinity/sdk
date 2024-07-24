@@ -11,13 +11,13 @@ use crate::asset::config::HeadersConfig;
 #[serde(rename_all = "lowercase")]
 /// Asset synchronization will warn if no
 pub enum SecurityPolicy {
-    /// No CSP provided by asset sync.
+    /// No security policy provided by asset sync.
     Disabled,
-    /// The default CSP that will work for most dapps but could be more secure.
-    /// When using this CSP asset sync will still warn that the CSP could be hardened.
+    /// The default security policy that will work for most dapps but could be more secure.
+    /// When using this security policy asset sync will still warn that the security policy could be hardened.
     Standard,
-    /// Use the default CSP with custom improvements.
-    /// Same as `Standard`, but disables the warning that the CSP could be hardened.
+    /// Use the default security policy with custom improvements.
+    /// Same as `Standard`, but disables the warning that the security policy could be hardened.
     Hardened,
 }
 

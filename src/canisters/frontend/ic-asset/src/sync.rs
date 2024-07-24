@@ -309,24 +309,24 @@ pub(crate) fn gather_asset_descriptors(
             }
         }
 
-        let no_csp_assets = asset_descriptors
+        let no_policy_assets = asset_descriptors
             .values()
             .filter(|asset| {
-                asset.config.warn_about_unhardened_csp()
+                asset.config.warn_about_no_security_policy()
                     && matches!(
                         asset.config.security_policy,
                         None | Some(SecurityPolicy::Disabled)
                     )
             })
             .collect_vec();
-        if no_csp_assets.len() > 0 {
+        if no_policy_assets.len() > 0 {
             warn!(
                 logger,
                 "This project does not define a security policy for some assets."
             );
             warn!(
                 logger,
-                "You should define a security policy in .ic-assets.json5.  For example:"
+                "You should define a security policy in .ic-assets.json5. For example:"
             );
             warn!(logger, "[");
             warn!(logger, "  {{");
@@ -335,36 +335,36 @@ pub(crate) fn gather_asset_descriptors(
             warn!(logger, "  }}");
             warn!(logger, "]");
 
-            if no_csp_assets.len() == asset_descriptors.len() {
-                warn!(logger, "Assets without any CSP: all");
+            if no_policy_assets.len() == asset_descriptors.len() {
+                warn!(logger, "Assets without any security policy: all");
             } else {
-                warn!(logger, "Assets without any CSP:");
-                for asset in &no_csp_assets {
+                warn!(logger, "Assets without any security policy:");
+                for asset in &no_policy_assets {
                     warn!(logger, "  - {}", asset.key);
                 }
             }
         }
-        let standard_csp_assets = asset_descriptors
+        let standard_policy_assets = asset_descriptors
             .values()
             .filter(|asset| {
-                asset.config.warn_about_unhardened_csp()
+                asset.config.warn_about_standard_security_policy()
                     && asset.config.security_policy == Some(SecurityPolicy::Standard)
             })
             .collect_vec();
-        if standard_csp_assets.len() > 0 {
+        if standard_policy_assets.len() > 0 {
             warn!(logger, "This project uses the default security policy for some assets. While it is set up to work with many applications, it is recommended to further harden the policy to increase security against attacks like XSS.");
-            warn!(logger, "To get started, have a look at 'dfx info canister-security-policy'. It shows the default CSP along with suggestions on how to improve it.");
-            if standard_csp_assets.len() == asset_descriptors.len() {
+            warn!(logger, "To get started, have a look at 'dfx info canister-security-policy'. It shows the default security policy along with suggestions on how to improve it.");
+            if standard_policy_assets.len() == asset_descriptors.len() {
                 warn!(logger, "Unhardened assets: all");
             } else {
                 warn!(logger, "Unhardened assets:");
-                for asset in &standard_csp_assets {
+                for asset in &standard_policy_assets {
                     warn!(logger, "  - {}", asset.key);
                 }
             }
         }
-        if standard_csp_assets.len() > 0 || no_csp_assets.len() > 0 {
-            warn!(logger, "To disable the CSP warning, define \"disable_standard_security_policy_warning\": true in .ic-assets.json5.");
+        if standard_policy_assets.len() > 0 || no_policy_assets.len() > 0 {
+            warn!(logger, "To disable the policy warning, define \"disable_standard_security_policy_warning\": true in .ic-assets.json5.");
         }
     }
     Ok(asset_descriptors.into_values().collect())
