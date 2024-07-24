@@ -21,13 +21,18 @@ use std::time::Duration;
 use tar::Archive;
 use tempfile::{tempdir_in, TempDir};
 
+pub enum InstallOutcome {
+    Installed(String, Version),
+    AlreadyInstalled(String, Version),
+}
+
 impl ExtensionManager {
     pub async fn install_extension(
         &self,
         url: &ExtensionJsonUrl,
         install_as: Option<&str>,
         version: Option<&Version>,
-    ) -> Result<Version, InstallExtensionError> {
+    ) -> Result<InstallOutcome, InstallExtensionError> {
         let manifest = Self::get_extension_manifest(url).await?;
         let extension_name: &str = &manifest.name;
 
@@ -37,9 +42,19 @@ impl ExtensionManager {
             .get_extension_directory(effective_extension_name)
             .exists()
         {
-            return Err(InstallExtensionError::ExtensionAlreadyInstalled(
-                effective_extension_name.to_string(),
-            ));
+            let installed_manifest = ExtensionManifest::load(effective_extension_name, &self.dir)?;
+
+            return if matches!(version, Some(v) if *v != *installed_manifest.version) {
+                Err(InstallExtensionError::OtherVersionAlreadyInstalled(
+                    extension_name.to_string(),
+                    installed_manifest.version.clone(),
+                ))
+            } else {
+                Ok(InstallOutcome::AlreadyInstalled(
+                    extension_name.to_string(),
+                    installed_manifest.version.clone(),
+                ))
+            };
         }
 
         let extension_version = match version {
@@ -60,7 +75,10 @@ impl ExtensionManager {
 
         self.finalize_installation(extension_name, effective_extension_name, temp_dir)?;
 
-        Ok(extension_version)
+        Ok(InstallOutcome::Installed(
+            extension_name.to_string(),
+            extension_version,
+        ))
     }
 
     /// Removing the prerelease tag and build metadata, because they should
