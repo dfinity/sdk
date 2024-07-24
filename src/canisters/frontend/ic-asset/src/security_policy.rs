@@ -32,25 +32,38 @@ struct ConcreteSecurityPolicy {
 
 impl ConcreteSecurityPolicy {
     fn to_headers(&self) -> HeadersConfig {
-        self.headers.iter().map(|(name, content, _explanation)| (name.to_string(), content.to_string())).collect()
+        self.headers
+            .iter()
+            .map(|(name, content, _explanation)| (name.to_string(), content.to_string()))
+            .collect()
     }
 
     /// Produces the CSP as a String that can be used as valid json5 with explainer comments
     fn to_json5_str(&self) -> String {
-        let general_comment = self.general_comment.lines().map(|line| format!("// {line}")).join("\n");
+        let general_comment = self
+            .general_comment
+            .lines()
+            .map(|line| format!("// {line}"))
+            .join("\n");
         if self.headers.len() > 0 {
-            let headers = self.headers.iter().map(|(name, content, explanation)| {
-                let explanation = explanation.lines().map(|line| format!("// {line}")).join("\n");
-                let header_line = format!(r#""{name}": "{content}""#);
-                format!("{explanation}\n{header_line}")
-            }).join(",\n\n");
+            let headers = self
+                .headers
+                .iter()
+                .map(|(name, content, explanation)| {
+                    let explanation = explanation
+                        .lines()
+                        .map(|line| format!("// {line}"))
+                        .join("\n");
+                    let header_line = format!(r#""{name}": "{content}""#);
+                    format!("{explanation}\n{header_line}")
+                })
+                .join(",\n\n");
             format!("{general_comment}\n\n{headers}")
         } else {
             general_comment
         }
     }
 }
-
 
 impl SecurityPolicy {
     fn to_policy(&self) -> ConcreteSecurityPolicy {
@@ -118,7 +131,7 @@ See: https://owasp.org/www-project-secure-headers/#x-content-type-options"#
                         "1; mode=block",
                         r#"Security: Enables browser features to mitigate some of the XSS attacks. Note that it has to be in mode=block.
 See: https://owasp.org/www-community/attacks/xss/"#
-                    )  
+                    )
                 ],
             },
         }
