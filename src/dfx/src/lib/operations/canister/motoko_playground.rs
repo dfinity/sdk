@@ -6,7 +6,7 @@ use dfx_core::config::model::network_descriptor::{
     NetworkTypeDescriptor, MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
 };
 use fn_error_context::context;
-use ic_utils::interfaces::management_canister::builders::InstallMode;
+use ic_utils::interfaces::management_canister::builders::{CanisterUpgradeOptions, InstallMode};
 use num_traits::ToPrimitive;
 use rand::Rng;
 use slog::{debug, info};
@@ -65,12 +65,17 @@ impl TryFrom<InstallMode> for PlaygroundInstallMode {
         match m {
             InstallMode::Install => Ok(Self::Install),
             InstallMode::Reinstall => Ok(Self::Reinstall),
-            InstallMode::Upgrade {
-                skip_pre_upgrade: Some(false) | None,
-            } => Ok(Self::Upgrade),
-            InstallMode::Upgrade {
+            InstallMode::Upgrade(
+                Some(CanisterUpgradeOptions {
+                    skip_pre_upgrade: None | Some(false),
+                    ..
+                })
+                | None,
+            ) => Ok(Self::Upgrade),
+            InstallMode::Upgrade(Some(CanisterUpgradeOptions {
                 skip_pre_upgrade: Some(true),
-            } => bail!("Cannot skip pre-upgrade on the playground"),
+                ..
+            })) => bail!("Cannot skip pre-upgrade on the playground"),
         }
     }
 }
