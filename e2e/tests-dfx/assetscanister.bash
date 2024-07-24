@@ -1462,7 +1462,7 @@ EOF
       "match": "**/*",
       "security_policy": "hardened",
       "headers": {
-        "content-security-policy": "overwritten"
+        "Content-Security-Policy": "overwritten"
       }
     }
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
@@ -1470,6 +1470,7 @@ EOF
   assert_command dfx deploy
   assert_not_contains "This project does not define a security policy for some assets."
   assert_not_contains "This project uses the default security policy for some assets."
+  echo "$output" # TODO: rm this line
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_match "content-security-policy: overwritten"
   assert_match "permissions-policy"
