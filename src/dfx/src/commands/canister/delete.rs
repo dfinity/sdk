@@ -1,7 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
-use crate::lib::identity::wallet::wallet_canister_id;
 use crate::lib::operations::canister;
 use crate::lib::operations::canister::{
     deposit_cycles, start_canister, stop_canister, update_settings,
@@ -16,6 +15,7 @@ use candid::Principal;
 use clap::Parser;
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::cli::ask_for_consent;
+use dfx_core::identity::wallet::wallet_canister_id;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::FreezingThreshold;
