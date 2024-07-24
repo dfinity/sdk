@@ -74,8 +74,6 @@ teardown() {
 
   dfx_start
   dfx canister create --all
-  ID=$(dfx canister id e2e_project_frontend)
-  PORT=$(get_webserver_port)
 
   echo "[
     {
