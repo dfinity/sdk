@@ -46,10 +46,6 @@ impl AssetConfig {
             if let Some(custom_headers) = self.headers.clone() {
                 headers.extend(custom_headers);
             }
-            println!(
-                "policy: {:?}, custom headers: {:?}, combined headers: {:?}",
-                self.security_policy, self.headers, headers
-            );
             Some(headers)
         } else {
             None
