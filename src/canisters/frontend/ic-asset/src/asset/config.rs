@@ -72,7 +72,7 @@ impl AssetConfig {
         let has_headers = self
             .headers
             .as_ref()
-            .map(|headers| headers.len() > 0)
+            .map(|headers| !headers.is_empty())
             .unwrap_or_default();
         is_hardened && !has_headers
     }
