@@ -30,7 +30,6 @@ use crate::error::SyncError;
 use crate::error::SyncError::CommitBatchFailed;
 use crate::error::UploadContentError;
 use crate::error::UploadContentError::{CreateBatchFailed, ListAssetsFailed};
-use crate::security_policy::SecurityPolicy;
 use candid::Nat;
 use ic_agent::AgentError;
 use ic_utils::Canister;
@@ -311,13 +310,7 @@ pub(crate) fn gather_asset_descriptors(
 
         let no_policy_assets = asset_descriptors
             .values()
-            .filter(|asset| {
-                asset.config.warn_about_no_security_policy()
-                    && matches!(
-                        asset.config.security_policy,
-                        None | Some(SecurityPolicy::Disabled)
-                    )
-            })
+            .filter(|asset| asset.config.warn_about_no_security_policy())
             .collect_vec();
         if !no_policy_assets.is_empty() {
             warn!(
@@ -346,10 +339,7 @@ pub(crate) fn gather_asset_descriptors(
         }
         let standard_policy_assets = asset_descriptors
             .values()
-            .filter(|asset| {
-                asset.config.warn_about_standard_security_policy()
-                    && asset.config.security_policy == Some(SecurityPolicy::Standard)
-            })
+            .filter(|asset| asset.config.warn_about_standard_security_policy())
             .collect_vec();
         if !standard_policy_assets.is_empty() {
             warn!(logger, "This project uses the default security policy for some assets. While it is set up to work with many applications, it is recommended to further harden the policy to increase security against attacks like XSS.");
@@ -365,6 +355,22 @@ pub(crate) fn gather_asset_descriptors(
         }
         if !standard_policy_assets.is_empty() || !no_policy_assets.is_empty() {
             warn!(logger, "To disable the policy warning, define \"disable_security_policy_warning\": true in .ic-assets.json5.");
+        }
+        let missing_hardening_assets = asset_descriptors
+            .values()
+            .filter(|asset| asset.config.warn_about_missing_hardening_headers())
+            .collect_vec();
+        if !missing_hardening_assets.is_empty() {
+            let mut error = String::new();
+            if missing_hardening_assets.len() == asset_descriptors.len() {
+                error.push_str("Unhardened assets: all");
+            } else {
+                error.push_str("Unhardened assets:");
+                for asset in &missing_hardening_assets {
+                    error.push_str(&format!("\n  - {}", asset.key));
+                }
+            }
+            return Err(GatherAssetDescriptorsError::HardenedSecurityPolicyIsNotHardened(error));
         }
     }
     Ok(asset_descriptors.into_values().collect())

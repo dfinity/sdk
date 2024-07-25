@@ -64,6 +64,18 @@ impl AssetConfig {
         let no_policy = self.security_policy.is_none();
         no_policy && !warning_disabled
     }
+
+    /// If the security policy is `"hardened"` it is expected that some custom headers are present.
+    /// This cannot be silenced with `disable_security_policy_warning`.
+    pub fn warn_about_missing_hardening_headers(&self) -> bool {
+        let is_hardened = self.security_policy == Some(SecurityPolicy::Hardened);
+        let has_headers = self
+            .headers
+            .as_ref()
+            .map(|headers| headers.len() > 0)
+            .unwrap_or_default();
+        is_hardened && !has_headers
+    }
 }
 
 pub(crate) type HeadersConfig = BTreeMap<String, String>;

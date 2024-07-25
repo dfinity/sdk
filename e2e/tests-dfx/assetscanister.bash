@@ -1456,7 +1456,7 @@ EOF
   assert_match "content-security-policy"
   assert_match "permissions-policy"
 
-  # Security policy "hardened" defined for all assets
+  # Security policy "hardened" defined for all assets but no custom headers results in an error
   echo '[
     {
       "match": "**/*",
@@ -1464,12 +1464,8 @@ EOF
     }
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
-  assert_command dfx deploy
-  assert_not_contains "This project does not define a security policy for some assets."
-  assert_not_contains "This project uses the default security policy for some assets."
-  assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
-  assert_match "content-security-policy"
-  assert_match "permissions-policy"
+  assert_command_fail dfx deploy
+  assert_contains "does not actually configure any custom improvements over the standard policy"
 
   # Security policy "hardened" defined for all assets, with overwiting default security headers
   echo '[
