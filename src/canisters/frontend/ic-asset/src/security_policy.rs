@@ -9,7 +9,8 @@ use crate::asset::config::HeadersConfig;
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Copy, Debug)]
 #[serde(rename_all = "lowercase")]
-/// Asset synchronization will warn if no
+/// Asset synchronization will warn if insufficient security headers are set.
+/// To help with security headers these options are provided, which can be set in `.ic-assets.json5` with the `"security_policy"` field.
 pub enum SecurityPolicy {
     /// No security policy provided by asset sync.
     Disabled,
@@ -17,7 +18,7 @@ pub enum SecurityPolicy {
     /// When using this security policy asset sync will still warn that the security policy could be hardened.
     Standard,
     /// Use the default security policy with custom improvements.
-    /// Same as `Standard`, but disables the warning that the security policy could be hardened.
+    /// Same as `Standard`, but disables the warning that the security policy could be hardened if improvements are there.
     Hardened,
 }
 
