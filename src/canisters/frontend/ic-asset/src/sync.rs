@@ -33,6 +33,7 @@ use crate::error::UploadContentError::{CreateBatchFailed, ListAssetsFailed};
 use candid::Nat;
 use ic_agent::AgentError;
 use ic_utils::Canister;
+use itertools::Itertools;
 use slog::{debug, info, trace, warn, Logger};
 use std::collections::HashMap;
 use std::path::Path;
@@ -305,6 +306,71 @@ pub(crate) fn gather_asset_descriptors(
             for rule in rules {
                 warn!(logger, "{}", serde_json::to_string_pretty(&rule).unwrap());
             }
+        }
+
+        let no_policy_assets = asset_descriptors
+            .values()
+            .filter(|asset| asset.config.warn_about_no_security_policy())
+            .collect_vec();
+        if !no_policy_assets.is_empty() {
+            warn!(
+                logger,
+                "This project does not define a security policy for some assets."
+            );
+            warn!(
+                logger,
+                "You should define a security policy in .ic-assets.json5. For example:"
+            );
+            warn!(logger, "[");
+            warn!(logger, "  {{");
+            warn!(logger, r#"    "match": "**/*","#);
+            warn!(logger, r#"    "security_policy": "standard""#);
+            warn!(logger, "  }}");
+            warn!(logger, "]");
+
+            if no_policy_assets.len() == asset_descriptors.len() {
+                warn!(logger, "Assets without any security policy: all");
+            } else {
+                warn!(logger, "Assets without any security policy:");
+                for asset in &no_policy_assets {
+                    warn!(logger, "  - {}", asset.key);
+                }
+            }
+        }
+        let standard_policy_assets = asset_descriptors
+            .values()
+            .filter(|asset| asset.config.warn_about_standard_security_policy())
+            .collect_vec();
+        if !standard_policy_assets.is_empty() {
+            warn!(logger, "This project uses the default security policy for some assets. While it is set up to work with many applications, it is recommended to further harden the policy to increase security against attacks like XSS.");
+            warn!(logger, "To get started, have a look at 'dfx info canister-security-policy'. It shows the default security policy along with suggestions on how to improve it.");
+            if standard_policy_assets.len() == asset_descriptors.len() {
+                warn!(logger, "Unhardened assets: all");
+            } else {
+                warn!(logger, "Unhardened assets:");
+                for asset in &standard_policy_assets {
+                    warn!(logger, "  - {}", asset.key);
+                }
+            }
+        }
+        if !standard_policy_assets.is_empty() || !no_policy_assets.is_empty() {
+            warn!(logger, "To disable the policy warning, define \"disable_security_policy_warning\": true in .ic-assets.json5.");
+        }
+        let missing_hardening_assets = asset_descriptors
+            .values()
+            .filter(|asset| asset.config.warn_about_missing_hardening_headers())
+            .collect_vec();
+        if !missing_hardening_assets.is_empty() {
+            let mut error = String::new();
+            if missing_hardening_assets.len() == asset_descriptors.len() {
+                error.push_str("Unhardened assets: all");
+            } else {
+                error.push_str("Unhardened assets:");
+                for asset in &missing_hardening_assets {
+                    error.push_str(&format!("\n  - {}", asset.key));
+                }
+            }
+            return Err(GatherAssetDescriptorsError::HardenedSecurityPolicyIsNotHardened(error));
         }
     }
     Ok(asset_descriptors.into_values().collect())

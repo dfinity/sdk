@@ -2,10 +2,11 @@ use crate::error::AssetLoadConfigError;
 use crate::error::AssetLoadConfigError::{LoadRuleFailed, MalformedAssetConfigFile};
 use crate::error::GetAssetConfigError;
 use crate::error::GetAssetConfigError::{AssetConfigNotFound, InvalidPath};
+use crate::security_policy::SecurityPolicy;
 use derivative::Derivative;
 use globset::GlobMatcher;
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
@@ -28,6 +29,53 @@ pub struct AssetConfig {
     #[derivative(Default(value = "Some(true)"))]
     pub(crate) allow_raw_access: Option<bool>,
     pub(crate) encodings: Option<Vec<ContentEncoder>>,
+    pub(crate) security_policy: Option<SecurityPolicy>,
+    pub(crate) disable_security_policy_warning: Option<bool>,
+}
+
+impl AssetConfig {
+    pub fn combined_headers(&self) -> Option<HeadersConfig> {
+        match (self.headers.as_ref(), self.security_policy) {
+            (None, None) => None,
+            (None, Some(policy)) => Some(policy.to_headers()),
+            (Some(custom_headers), None) => Some(custom_headers.clone()),
+            (Some(custom_headers), Some(policy)) => {
+                let mut headers = custom_headers.clone();
+                let custom_header_names: HashSet<String> =
+                    HashSet::from_iter(custom_headers.keys().map(|a| a.to_lowercase()));
+                for (policy_header_name, policy_header_value) in policy.to_headers() {
+                    if !custom_header_names.contains(&policy_header_name.to_lowercase()) {
+                        headers.insert(policy_header_name, policy_header_value);
+                    }
+                }
+                Some(headers)
+            }
+        }
+    }
+
+    pub fn warn_about_standard_security_policy(&self) -> bool {
+        let warning_disabled = self.disable_security_policy_warning == Some(true);
+        let standard_policy = self.security_policy == Some(SecurityPolicy::Standard);
+        standard_policy && !warning_disabled
+    }
+
+    pub fn warn_about_no_security_policy(&self) -> bool {
+        let warning_disabled = self.disable_security_policy_warning == Some(true);
+        let no_policy = self.security_policy.is_none();
+        no_policy && !warning_disabled
+    }
+
+    /// If the security policy is `"hardened"` it is expected that some custom headers are present.
+    /// This cannot be silenced with `disable_security_policy_warning`.
+    pub fn warn_about_missing_hardening_headers(&self) -> bool {
+        let is_hardened = self.security_policy == Some(SecurityPolicy::Hardened);
+        let has_headers = self
+            .headers
+            .as_ref()
+            .map(|headers| !headers.is_empty())
+            .unwrap_or_default();
+        is_hardened && !has_headers
+    }
 }
 
 pub(crate) type HeadersConfig = BTreeMap<String, String>;
@@ -65,6 +113,10 @@ pub struct AssetConfigRule {
     allow_raw_access: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     encodings: Option<Vec<ContentEncoder>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    security_policy: Option<SecurityPolicy>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    disable_security_policy_warning: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -222,7 +274,7 @@ impl AssetConfigTreeNode {
     }
 
     /// Fetches asset config in a recursive fashion.
-    /// Marks config rules as *used*, whenever the rule' glob patter matched querried file.
+    /// Marks config rules as *used*, whenever the rule' glob patter matched queried file.
     fn get_config(&mut self, canonical_path: &Path) -> AssetConfig {
         let base_config = match &self.parent {
             Some(parent) => parent.clone().lock().unwrap().get_config(canonical_path),
@@ -265,6 +317,14 @@ impl AssetConfig {
         if other.encodings.is_some() {
             self.encodings = other.encodings.clone();
         }
+
+        if other.security_policy.is_some() {
+            self.security_policy = other.security_policy;
+        }
+
+        if other.disable_security_policy_warning.is_some() {
+            self.disable_security_policy_warning = other.disable_security_policy_warning;
+        }
         self
     }
 }
@@ -272,7 +332,7 @@ impl AssetConfig {
 /// This module contains various utilities needed for serialization/deserialization
 /// and pretty-printing of the `AssetConfigRule` data structure.
 mod rule_utils {
-    use super::{AssetConfig, AssetConfigRule, CacheConfig, HeadersConfig, Maybe};
+    use super::{AssetConfig, AssetConfigRule, CacheConfig, HeadersConfig, Maybe, SecurityPolicy};
     use crate::asset::content_encoder::ContentEncoder;
     use crate::error::LoadRuleError;
     use globset::{Glob, GlobMatcher};
@@ -357,6 +417,8 @@ mod rule_utils {
         enable_aliasing: Option<bool>,
         allow_raw_access: Option<bool>,
         encodings: Option<Vec<ContentEncoder>>,
+        security_policy: Option<SecurityPolicy>,
+        disable_security_policy_warning: Option<bool>,
     }
 
     impl AssetConfigRule {
@@ -369,6 +431,8 @@ mod rule_utils {
                 enable_aliasing,
                 allow_raw_access,
                 encodings,
+                security_policy,
+                disable_security_policy_warning,
             }: InterimAssetConfigRule,
             config_file_parent_dir: &Path,
         ) -> Result<Self, LoadRuleError> {
@@ -392,6 +456,8 @@ mod rule_utils {
                 enable_aliasing,
                 allow_raw_access,
                 encodings,
+                security_policy,
+                disable_security_policy_warning,
             })
         }
     }
@@ -421,7 +487,10 @@ mod rule_utils {
                     }
                 }
                 if let Some(encodings) = self.encodings.as_ref() {
-                    s.push_str(&format!(" and {} encodings", encodings.len()));
+                    s.push_str(&format!(", {} encodings", encodings.len()));
+                }
+                if let Some(policy) = self.security_policy {
+                    s.push_str(&format!(" and security policy '{policy}'"));
                 }
                 s.push(')');
             }
@@ -449,6 +518,9 @@ mod rule_utils {
                     }
                 ));
             }
+            if let Some(policy) = self.security_policy {
+                s.push_str(&format!("  - Security policy: {policy}"));
+            }
             if let Some(aliasing) = self.enable_aliasing {
                 s.push_str(&format!(
                     "  - URL path aliasing: {}\n",
@@ -470,7 +542,11 @@ mod rule_utils {
                     encodings.iter().map(|enc| enc.to_string()).join(",")
                 ));
             }
-
+            if let Some(disable_warning) = self.disable_security_policy_warning {
+                s.push_str(&format!(
+                    "  - disable standard security policy warning: {disable_warning}"
+                ));
+            }
             write!(f, "{}", s)
         }
     }
