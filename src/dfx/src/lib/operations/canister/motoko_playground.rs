@@ -65,12 +65,8 @@ impl TryFrom<InstallMode> for PlaygroundInstallMode {
         match m {
             InstallMode::Install => Ok(Self::Install),
             InstallMode::Reinstall => Ok(Self::Reinstall),
-            InstallMode::Upgrade {
-                skip_pre_upgrade: Some(false) | None,
-            } => Ok(Self::Upgrade),
-            InstallMode::Upgrade {
-                skip_pre_upgrade: Some(true),
-            } => bail!("Cannot skip pre-upgrade on the playground"),
+            InstallMode::Upgrade(None) => Ok(Self::Upgrade),
+            InstallMode::Upgrade(Some(_)) => bail!("Canister upgrade options not supported on the playground"),
         }
     }
 }

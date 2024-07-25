@@ -47,9 +47,7 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
         env,
         agent,
         canister_id,
-        InstallMode::Upgrade {
-            skip_pre_upgrade: Some(false),
-        },
+        InstallMode::Upgrade(None),
     )
     .await?;
 

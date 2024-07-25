@@ -1,7 +1,7 @@
 use super::signed_message::SignedMessageV1;
 use candid::Principal;
 use ic_agent::agent::Transport;
-use ic_agent::{AgentError, RequestId};
+use ic_agent::{AgentError, TransportCallResponse};
 use std::fs::{File, OpenOptions};
 use std::future::Future;
 use std::io::{Read, Write};
@@ -82,18 +82,15 @@ impl Transport for SignTransport {
         &'a self,
         _effective_canister_id: Principal,
         envelope: Vec<u8>,
-        request_id: RequestId,
-    ) -> Pin<Box<dyn Future<Output = Result<(), AgentError>> + Send + 'a>> {
+    ) -> Pin<Box<dyn Future<Output = Result<TransportCallResponse, AgentError>> + Send + 'a>> {
         async fn run(
             s: &SignTransport,
             envelope: Vec<u8>,
-            request_id: RequestId,
-        ) -> Result<(), AgentError> {
+        ) -> Result<TransportCallResponse, AgentError> {
             let message = s
                 .message_template
                 .clone()
                 .with_call_type("update".to_string())
-                .with_request_id(request_id)
                 .with_content(hex::encode(envelope));
             let json = serde_json::to_string(&message)
                 .map_err(|x| AgentError::MessageError(x.to_string()))?;
@@ -111,7 +108,7 @@ impl Transport for SignTransport {
             ))
         }
 
-        Box::pin(run(self, envelope, request_id))
+        Box::pin(run(self, envelope))
     }
 
     fn query<'a>(

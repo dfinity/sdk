@@ -6,6 +6,7 @@ use crate::error::CreateChunkError;
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
 use candid::{Decode, Nat};
+use ic_agent::agent::CallResponse;
 use ic_utils::Canister;
 use std::time::Duration;
 
@@ -37,21 +38,25 @@ pub(crate) async fn create_chunk(
                 .await
         };
 
-        let wait_result = match request_id_result {
-            Ok(request_id) => {
+        let chunk_id_result = match request_id_result {
+            Ok(CallResponse::Poll(request_id)) => {
                 let _releaser = semaphores.create_chunk_wait.acquire(1).await;
-                canister.wait(request_id).await
+                let wait_result = canister.wait(&request_id).await;
+                match wait_result {
+                    Err(err) => Err(err),
+                    Ok(response) => {
+                        let response = Decode!(&response, CreateChunkResponse)
+                            .map_err(CreateChunkError::DecodeCreateChunkResponse)?;
+                        Ok(response.chunk_id)
+                    }
+                }
             }
+            Ok(CallResponse::Response(out)) => Ok(out.0),
             Err(agent_err) => Err(agent_err),
         };
 
-        match wait_result {
-            Ok(response) => {
-                // failure to decode the response is not retryable
-                let response = Decode!(&response, CreateChunkResponse)
-                    .map_err(CreateChunkError::DecodeCreateChunkResponse)?;
-                return Ok(response.chunk_id);
-            }
+        match chunk_id_result {
+            Ok(chunk_id) => return Ok(chunk_id),
             Err(agent_err) if !retryable(&agent_err) => {
                 return Err(CreateChunkError::CreateChunk(agent_err));
             }

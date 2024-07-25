@@ -2,7 +2,6 @@ use crate::lib::error::DfxResult;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use fn_error_context::context;
-use ic_agent::RequestId;
 use serde::{Deserialize, Serialize};
 use serde_cbor::Value;
 use std::convert::TryFrom;
@@ -54,11 +53,6 @@ impl SignedMessageV1 {
 
     pub fn with_call_type(mut self, request_type: String) -> Self {
         self.call_type = request_type;
-        self
-    }
-
-    pub fn with_request_id(mut self, request_id: RequestId) -> Self {
-        self.request_id = Some(String::from(request_id));
         self
     }
 

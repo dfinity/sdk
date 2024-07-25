@@ -13,6 +13,7 @@ use candid_parser::utils::CandidSource;
 use clap::Parser;
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::identity::CallSender;
+use ic_agent::agent::CallResponse;
 use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
 use ic_utils::interfaces::management_canister::MgmtMethod;
@@ -123,13 +124,20 @@ async fn request_id_via_wallet_call(
     method_name: &str,
     args: Argument,
     cycles: u128,
-) -> DfxResult<ic_agent::RequestId> {
+) -> DfxResult<Vec<u8>> {
     let call_forwarder: CallForwarder<'_, '_, (CallResult,)> =
         wallet.call(canister, method_name, args, cycles);
-    call_forwarder
-        .call()
-        .await
-        .map_err(|err| anyhow!("Agent error {}", err))
+    match call_forwarder.call().await {
+        Ok(CallResponse::Poll(request_id)) => {
+            let wait_result = wallet.wait(&request_id).await;
+            match wait_result {
+                Err(agent_err) => Err(anyhow!("Agent error {agent_err}")),
+                Ok(response) => Ok(response),
+            }
+        }
+        Ok(CallResponse::Response(_)) => unimplemented!(),
+        Err(agent_err) => Err(anyhow!("Agent error {agent_err}")),
+    }
 }
 
 // TODO: move to ic_utils? SDKTG-302
@@ -347,13 +355,25 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
         print_idl_blob(&blob, output_type, &method_type)?;
     } else if opts.r#async {
         let request_id = match call_sender {
-            CallSender::SelectedId => agent
+            CallSender::SelectedId => {
+                let response = agent
                 .update(&canister_id, method_name)
                 .with_effective_canister_id(effective_canister_id)
                 .with_arg(arg_value)
                 .call()
                 .await
-                .context("Failed update call.")?,
+                .context("Failed update call.")?;
+                match response {
+                    CallResponse::Poll(request_id) => {
+                        let wait_result = agent.wait(&request_id, effective_canister_id).await;
+                        match wait_result {
+                            Err(agent_err) => return Err(anyhow!("Agent error {agent_err}")),
+                            Ok(response) => Ok(response),
+                        }
+                    }
+                    CallResponse::Response(_) => unimplemented!(),
+                }
+            },
             CallSender::Wallet(wallet_id) => {
                 let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 let mut args = Argument::default();
@@ -361,11 +381,12 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
 
                 request_id_via_wallet_call(&wallet, canister_id, method_name, args, cycles)
                     .await
-                    .context("Failed request via wallet.")?
+                    .context("Failed request via wallet.")
             }
         };
         eprint!("Request ID: ");
-        println!("0x{}", String::from(request_id));
+        let bytes = request_id?;
+        println!("0x{:?}", bytes);
     } else {
         let blob = match call_sender {
             CallSender::SelectedId => agent

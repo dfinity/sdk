@@ -21,7 +21,7 @@ use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::Agent;
-use ic_utils::interfaces::management_canister::builders::InstallMode;
+use ic_utils::interfaces::management_canister::builders::{CanisterUpgradeOptions, InstallMode, WasmMemoryPersistence};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
@@ -65,9 +65,10 @@ pub async fn install_canister(
     );
     let mode = mode.unwrap_or_else(|| {
         if installed_module_hash.is_some() {
-            InstallMode::Upgrade {
-                skip_pre_upgrade: Some(false),
-            }
+            InstallMode::Upgrade(Some(CanisterUpgradeOptions {
+                skip_pre_upgrade: None,
+                wasm_memory_persistence: Some(WasmMemoryPersistence::Keep),
+            }))
         } else {
             InstallMode::Install
         }
