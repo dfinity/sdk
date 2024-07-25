@@ -7,7 +7,7 @@ use crate::{
         agent::create_agent_environment,
         environment::Environment,
         error::DfxResult,
-        identity::wallet::{set_wallet_id, wallet_canister_id},
+        identity::wallet::set_wallet_id,
         ledger_types::Memo,
         nns_types::{
             account_identifier::AccountIdentifier,
@@ -24,6 +24,7 @@ use crate::{
 use anyhow::{bail, Context};
 use candid::Principal;
 use clap::Parser;
+use dfx_core::identity::wallet::wallet_canister_id;
 use dialoguer::{Confirm, Input};
 use ic_agent::Agent;
 use ic_utils::interfaces::{

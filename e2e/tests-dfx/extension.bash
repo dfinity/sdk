@@ -188,8 +188,7 @@ install_extension_from_official_registry() {
   assert_match 'No extensions installed'
 
   assert_command dfx extension install "$EXTENSION" --install-as snsx --version 0.2.1
-  # TODO: how to capture spinner message?
-  # assert_match 'Successfully installed extension'
+  assert_contains "Extension 'sns' version 0.2.1 installed successfully, and is available as 'snsx'"
 
   assert_command dfx extension list
   assert_match 'snsx'
@@ -339,6 +338,33 @@ EOF
   assert_command dfx extension install "$EXTENSION_URL"
 }
 
+@test "install is not an error if already installed" {
+  assert_command_fail dfx nns --help
+  assert_command dfx extension install nns --version 0.4.1
+  assert_command dfx extension install nns --version 0.4.1
+  # shellcheck disable=SC2154
+  assert_eq "WARN: Extension 'nns' version 0.4.1 is already installed" "$stderr"
+  assert_command dfx nns --help
+}
+
+@test "install is not an error if an older version is already installed and no version was specified" {
+  assert_command_fail dfx nns --help
+  assert_command dfx extension install nns --version 0.3.1
+  assert_command dfx extension install nns
+  # shellcheck disable=SC2154
+  assert_eq "WARN: Extension 'nns' version 0.3.1 is already installed" "$stderr"
+  assert_command dfx nns --help
+}
+
+@test "reports error if older version already installed and specific version requested" {
+  assert_command_fail dfx nns --help
+  assert_command dfx extension install nns --version 0.3.1
+  assert_command_fail dfx extension install nns --version 0.4.1
+  # shellcheck disable=SC2154
+  assert_contains "ERROR: Extension 'nns' is already installed at version 0.3.1" "$stderr"
+  # shellcheck disable=SC2154
+  assert_contains 'ERROR: To upgrade, run "dfx extension uninstall nns" and then re-run the dfx extension install command' "$stderr"
+}
 
 @test "manually create extension" {
   assert_command dfx extension list

@@ -5,14 +5,14 @@ use crate::Environment;
 use anyhow::{bail, Context};
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
-use dfx_core::config::directories::get_user_dfx_config_dir;
-use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::error::canister::CanisterBuilderError;
 use dfx_core::error::wallet_config::WalletConfigError;
 use dfx_core::error::wallet_config::WalletConfigError::{
-    EnsureWalletConfigDirFailed, GetWalletConfigPathFailed, SaveWalletConfigFailed,
+    EnsureWalletConfigDirFailed, SaveWalletConfigFailed,
 };
-use dfx_core::identity::{Identity, WalletGlobalConfig, WalletNetworkMap, WALLET_CONFIG_FILENAME};
+use dfx_core::identity::wallet::{get_wallet_config_path, wallet_canister_id};
+use dfx_core::identity::{Identity, WalletGlobalConfig, WalletNetworkMap};
 use dfx_core::json::save_json_file;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
@@ -65,29 +65,6 @@ pub async fn get_or_create_wallet(
         }
         Some(principal) => Ok(principal),
     }
-}
-
-pub fn get_wallet_config_path(
-    network: &NetworkDescriptor,
-    name: &str,
-) -> Result<PathBuf, WalletConfigError> {
-    Ok(match &network.r#type {
-        NetworkTypeDescriptor::Persistent | NetworkTypeDescriptor::Playground { .. } => {
-            // Using the global
-            get_user_dfx_config_dir()
-                .map_err(|e| {
-                    GetWalletConfigPathFailed(
-                        Box::new(name.to_string()),
-                        Box::new(network.name.clone()),
-                        e,
-                    )
-                })?
-                .join("identity")
-                .join(name)
-                .join(WALLET_CONFIG_FILENAME)
-        }
-        NetworkTypeDescriptor::Ephemeral { wallet_config_path } => wallet_config_path.clone(),
-    })
 }
 
 pub async fn create_wallet(
@@ -213,24 +190,6 @@ pub fn remove_wallet_id(network: &NetworkDescriptor, name: &str) -> Result<(), W
         .map_err(EnsureWalletConfigDirFailed)?;
 
     save_json_file(&wallet_path, &config).map_err(SaveWalletConfigFailed)
-}
-
-pub fn wallet_canister_id(
-    network: &NetworkDescriptor,
-    name: &str,
-) -> Result<Option<Principal>, WalletConfigError> {
-    let wallet_path = get_wallet_config_path(network, name)?;
-    if !wallet_path.exists() {
-        return Ok(None);
-    }
-
-    let config = Identity::load_wallet_config(&wallet_path)?;
-
-    let maybe_wallet_principal = config
-        .identities
-        .get(name)
-        .and_then(|wallet_network| wallet_network.networks.get(&network.name).cloned());
-    Ok(maybe_wallet_principal)
 }
 
 fn wallet_config(
