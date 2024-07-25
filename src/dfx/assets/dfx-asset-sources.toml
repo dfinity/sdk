@@ -53,8 +53,8 @@ url = 'https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c657
 sha256 = 'f124b2fffda982fd57890d1d04a2526e0d42a730361f1964e055e7ab905605eb'
 
 [x86_64-darwin.pocket-ic]
-url = 'https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c6570d0/binaries/x86_64-darwin/pocket-ic.gz'
-sha256 = '357febfa30a1879dac8619b053474a4bf068d578a07cf741488eb906ff218519'
+url = 'https://download.dfinity.systems/ic/6aceb6a35248ef2735ddd9ca99d8a1c6f4a13908/binaries/x86_64-darwin/pocket-ic.gz'
+sha256 = 'eb7277324e768a534f6d26640584d2152114d2641d234b854dcd2c2822911c1e'
 
 [x86_64-darwin.motoko-base]
 url = 'https://github.com/dfinity/motoko/releases/download/0.11.2/motoko-base-library.tar.gz'
@@ -116,8 +116,8 @@ url = 'https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c657
 sha256 = '6c115f6a34bf986b9db3f12d77d9b54cf055de03e3ffc794a3bdf3ab7659a263'
 
 [x86_64-linux.pocket-ic]
-url = 'https://download.dfinity.systems/ic/5849c6daf2037349bd36dcb6e26ce61c2c6570d0/binaries/x86_64-linux/pocket-ic.gz'
-sha256 = 'f0eda7bea0916c8017e6f61ac076aae66e4f13c4943c78736d525e81d76a767c'
+url = 'https://download.dfinity.systems/ic/6aceb6a35248ef2735ddd9ca99d8a1c6f4a13908/binaries/x86_64-linux/pocket-ic.gz'
+sha256 = '1679975126cb93b02c3a08726fe073be58309bdd574bb24c7a1f72963eecf206'
 
 [x86_64-linux.motoko-base]
 url = 'https://github.com/dfinity/motoko/releases/download/0.11.2/motoko-base-library.tar.gz'

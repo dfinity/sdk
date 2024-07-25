@@ -1,4 +1,4 @@
-use crate::actors::icx_proxy::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::pocketic_proxy::signals::{PortReadySignal, PortReadySubscribe};
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
@@ -15,6 +15,7 @@ use slog::{debug, error, info, warn, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
+use tempfile::tempdir;
 use tokio::runtime::Builder;
 
 pub mod signals {
@@ -83,12 +84,18 @@ impl PocketIc {
         }
     }
 
-    fn wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
+    fn wait_for_ready(port_file_path: &Path, ready_file_path: &Path) -> DfxResult<u16> {
         let mut retries = 0;
+        let mut ready = false;
         loop {
-            if let Ok(content) = std::fs::read_to_string(file_path) {
-                if let Ok(port) = content.parse::<u16>() {
-                    return Ok(port);
+            if !ready && ready_file_path.exists() {
+                ready = true;
+            }
+            if ready {
+                if let Ok(content) = std::fs::read_to_string(port_file_path) {
+                    if let Ok(port) = content.parse::<u16>() {
+                        return Ok(port);
+                    }
                 }
             }
             if retries >= 3000 {
@@ -201,27 +208,29 @@ fn pocketic_start_thread(
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
-        // Start the process, then wait for the file.
-        let pocketic_path = config.pocketic_path.as_os_str();
-
-        // form the pocket-ic command here similar to the ic-starter command
-        let mut cmd = std::process::Command::new(pocketic_path);
-        if let Some(port) = config.port {
-            cmd.args(["--port", &port.to_string()]);
-        };
-        cmd.args([
-            "--port-file",
-            &config.port_file.to_string_lossy(),
-            "--ttl",
-            "2592000",
-        ]);
-        if !config.verbose {
-            cmd.env("RUST_LOG", "error");
-        }
-        cmd.stdout(std::process::Stdio::inherit());
-        cmd.stderr(std::process::Stdio::inherit());
-
         loop {
+            // Start the process, then wait for the file.
+            let pocketic_path = config.pocketic_path.as_os_str();
+
+            // form the pocket-ic command here similar to the ic-starter command
+            let mut cmd = std::process::Command::new(pocketic_path);
+            if let Some(port) = config.port {
+                cmd.args(["--port", &port.to_string()]);
+            };
+            cmd.args([
+                "--port-file",
+                &config.port_file.to_string_lossy(),
+                "--ttl",
+                "2592000",
+            ]);
+            let tmp = tempdir().expect("Could not create temporary directory.");
+            let ready_file = tmp.path().join("ready");
+            cmd.args(["--ready-file".as_ref(), ready_file.as_os_str()]);
+            if !config.verbose {
+                cmd.env("RUST_LOG", "error");
+            }
+            cmd.stdout(std::process::Stdio::inherit());
+            cmd.stderr(std::process::Stdio::inherit());
             let _ = std::fs::remove_file(&config.port_file);
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting PocketIC...");
@@ -234,7 +243,7 @@ fn pocketic_start_thread(
                 );
             }
 
-            let port = PocketIc::wait_for_port_file(&config.port_file).unwrap();
+            let port = PocketIc::wait_for_ready(&config.port_file, &ready_file).unwrap();
 
             if let Err(e) = block_on_initialize_pocketic(port, logger.clone()) {
                 error!(logger, "Failed to initialize PocketIC: {:#}", e);
