@@ -74,8 +74,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     runtime.block_on(async {
-        let call_sender =
-            || CallSender::from(&opts.wallet, env.get_network_descriptor());
+        let call_sender = || CallSender::from(&opts.wallet, env.get_network_descriptor());
         match opts.subcmd {
             SubCommand::Call(v) => call::exec(env, v, &call_sender()?).await,
             SubCommand::Create(v) => create::exec(env, v, &call_sender()?).await,
