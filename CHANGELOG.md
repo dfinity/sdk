@@ -22,7 +22,7 @@ All warnings regarding security policies can be disabled with ``"disable_securit
 The standard security policy headers can be seen with `dfx info security-policy`.
 It also contains a lot of suggestions on how to harden the policy.
 
-Updated the starter projects to use `"security_policy"` instead of including the whole security policy.
+Updated the starter projects to use `"security_policy"` instead of including the whole security policy by defining individual headers.
 
 ### feat: `dfx info security-policy`
 
