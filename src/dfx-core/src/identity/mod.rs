@@ -41,6 +41,7 @@ pub mod identity_manager;
 pub mod keyring_mock;
 pub mod pem_safekeeping;
 pub mod pem_utils;
+pub mod wallet;
 
 pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 pub const IDENTITY_JSON: &str = "identity.json";

@@ -1,11 +1,11 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::identity::wallet::wallet_canister_id;
 use crate::lib::operations::canister::install_canister::install_wallet;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use anyhow::bail;
 use clap::Parser;
+use dfx_core::identity::wallet::wallet_canister_id;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 
 /// Upgrade the wallet's Wasm module to the current Wasm bundled with DFX.
