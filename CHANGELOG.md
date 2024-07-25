@@ -16,8 +16,9 @@ If `"security_policy"` is not specified or `"disabled"` is set, then no headers 
 If `"standard"` is specified, a set of security headers is added to the asset. The headers can be displayed with `dfx info security-policy`.
 It is a set of security headers that will work for most dapps. A warning is displayed that the headers could be hardened.
 
-If `"hardened"` is set, the same headers as with `"standard"` are added. However, the asset sync expects that improved headers are set that would improve security where appropriate.
-If no improved headers are present the asset sync will fail with an error.
+If `"hardened"` is set, the same headers as with `"standard"` are added.
+The asset sync expects that improved headers are set that would improve security where appropriate.
+If no custom headers are present the asset sync will fail with an error.
 
 All warnings regarding security policies can be disabled with ``"disable_security_policy_warning": true`. It needs to be set per asset.
 
@@ -28,7 +29,7 @@ Updated the starter projects to use `"security_policy"` instead of including the
 
 ### feat: `dfx info security-policy`
 
-Shows the headers that get applied to assets that are configured to `"security_policy": "standard"` in `.ic-assets.json5`.
+Shows the headers that get applied to assets that are configured to `"security_policy": "standard"` or `"security_policy": "hardened"` in `.ic-assets.json5`.
 Produces output that can be directly pasted into a `.json5` document.
 
 ### feat: `dfx extension install <url to extension.json>`
