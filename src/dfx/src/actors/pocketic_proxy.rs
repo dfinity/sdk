@@ -247,23 +247,26 @@ fn pocketic_proxy_start_thread(
                 .expect("Could not write to pocketic-proxy-pid file.");
             let port =
                 PocketIcProxy::wait_for_ready(&pocketic_proxy_port_path, &ready_file).unwrap();
-            if let Err(e) = block_on_initialize_gateway(
+            let _instance = match block_on_initialize_gateway(
                 format!("http://localhost:{port}").parse().unwrap(),
                 replica_url.clone(),
                 domains.clone(),
                 address,
                 logger.clone(),
             ) {
-                error!(logger, "Failed to initialize HTTP gateway: {:#}", e);
-                let _ = child.kill();
-                let _ = child.wait();
-                if receiver.try_recv().is_ok() {
-                    debug!(logger, "Got signal to stop.");
-                    break;
-                } else {
-                    continue;
+                Err(e) => {
+                    error!(logger, "Failed to initialize HTTP gateway: {:#}", e);
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    if receiver.try_recv().is_ok() {
+                        debug!(logger, "Got signal to stop.");
+                        break;
+                    } else {
+                        continue;
+                    }
                 }
-            }
+                Ok(i) => i,
+            };
             info!(logger, "Replica API running on {address}");
 
             // This waits for the child to stop, or the receiver to receive a message.
@@ -307,7 +310,7 @@ fn block_on_initialize_gateway(
     domains: Vec<String>,
     addr: SocketAddr,
     logger: Logger,
-) -> DfxResult {
+) -> DfxResult<usize> {
     Builder::new_current_thread()
         .enable_all()
         .build()
@@ -328,11 +331,13 @@ async fn initialize_gateway(
     domains: Vec<String>,
     addr: SocketAddr,
     logger: Logger,
-) -> DfxResult {
-    use pocket_ic::common::rest::{HttpGatewayBackend, HttpGatewayConfig};
+) -> DfxResult<usize> {
+    use pocket_ic::common::rest::{
+        CreateHttpGatewayResponse, HttpGatewayBackend, HttpGatewayConfig,
+    };
     use reqwest::Client;
     let init_client = Client::new();
-    init_client
+    let resp = init_client
         .post(pocketic_url.join("http_gateway").unwrap())
         .json(&HttpGatewayConfig {
             forward_to: HttpGatewayBackend::Replica(replica_url.to_string()),
@@ -344,11 +349,22 @@ async fn initialize_gateway(
         .send()
         .await?
         .error_for_status()?;
+    let resp = resp.json::<CreateHttpGatewayResponse>().await?;
+    let instance = match resp {
+        CreateHttpGatewayResponse::Error { message } => bail!("Gateway init error: {message}"),
+        CreateHttpGatewayResponse::Created(info) => info.instance_id,
+    };
     info!(logger, "Initialized HTTP gateway.");
-    Ok(())
+    Ok(instance)
 }
 
 #[cfg(not(unix))]
-async fn initialize_gateway(_: Url, _: Url, _: Vec<Url>, _: SocketAddr, _: Logger) -> DfxResult {
+async fn initialize_gateway(
+    _: Url,
+    _: Url,
+    _: Vec<Url>,
+    _: SocketAddr,
+    _: Logger,
+) -> DfxResult<usize> {
     bail!("PocketIC gateway not supported on this platform")
 }

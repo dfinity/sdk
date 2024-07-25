@@ -45,13 +45,7 @@ fn wait_until_all_exited(mut system: System, mut pids: Vec<Pid>) -> DfxResult {
         if retries >= 30 {
             let remaining = pids
                 .iter()
-                .map(|pid| {
-                    format!(
-                        "{pid} {} {:?}",
-                        system.process(*pid).unwrap().cmd().join(" "),
-                        system.process(*pid).unwrap().status()
-                    )
-                })
+                .map(|pid| format!("{pid}"))
                 .collect::<Vec<_>>()
                 .join(" ");
             bail!("Failed to kill all processes.  Remaining: {remaining}");
