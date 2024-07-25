@@ -4,6 +4,8 @@
 
 ### feat: support `"security_policy"` and `"disable_security_policy_warning"` in `.ic-assets.json5`
 
+*This change has an accompanying migration guide. Please see the 0.23.0 migration guide for instructions on how to adapt your project to this feature.*
+
 It is now possible to specify a `"security_policy"` field in `.ic-assets.json5` for asset configurations.
 Valid options are `"disabled"`, `"standard"`, and `"hardened"`.
 The security policy provides a set of standard headers to make frontends more secure.

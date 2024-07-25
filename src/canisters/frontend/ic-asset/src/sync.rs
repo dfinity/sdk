@@ -364,7 +364,7 @@ pub(crate) fn gather_asset_descriptors(
             }
         }
         if !standard_policy_assets.is_empty() || !no_policy_assets.is_empty() {
-            warn!(logger, "To disable the policy warning, define \"disable_standard_security_policy_warning\": true in .ic-assets.json5.");
+            warn!(logger, "To disable the policy warning, define \"disable_security_policy_warning\": true in .ic-assets.json5.");
         }
     }
     Ok(asset_descriptors.into_values().collect())
