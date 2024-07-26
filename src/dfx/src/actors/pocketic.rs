@@ -298,12 +298,14 @@ fn block_on_initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
 
 #[cfg(unix)]
 async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
-    use pocket_ic::common::rest::{ExtendedSubnetConfigSet, RawTime, SubnetSpec};
+    use pocket_ic::common::rest::{
+        CreateInstanceResponse, ExtendedSubnetConfigSet, RawTime, SubnetSpec,
+    };
     use reqwest::Client;
     use time::OffsetDateTime;
     let init_client = Client::new();
     debug!(logger, "Configuring PocketIC server");
-    init_client
+    let resp = init_client
         .post(format!("http://localhost:{port}/instances"))
         .json(&ExtendedSubnetConfigSet {
             nns: Some(SubnetSpec::default()),
@@ -316,7 +318,12 @@ async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
         })
         .send()
         .await?
-        .error_for_status()?;
+        .error_for_status()?
+        .json::<CreateInstanceResponse>()
+        .await?;
+    if let CreateInstanceResponse::Error { message } = resp {
+        bail!("PocketIC init error: {message}");
+    }
     init_client
         .post(format!(
             "http://localhost:{port}/instances/0/update/set_time"
