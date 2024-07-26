@@ -2,6 +2,36 @@
 
 # UNRELEASED
 
+### feat: support `"security_policy"` and `"disable_security_policy_warning"` in `.ic-assets.json5`
+
+*This change has an accompanying migration guide. Please see the 0.23.0 migration guide for instructions on how to adapt your project to this feature.*
+
+It is now possible to specify a `"security_policy"` field in `.ic-assets.json5` for asset configurations.
+Valid options are `"disabled"`, `"standard"`, and `"hardened"`.
+The security policy provides a set of standard headers to make frontends more secure.
+Headers manually specified in the `"headers"` field take precedence over the security policy headers.
+
+If `"security_policy"` is not specified or `"disabled"` is set, then no headers are added. If `"security_policy"` is not set at all, a warning is displayed that there is no security policy set.
+
+If `"standard"` is specified, a set of security headers is added to the asset. The headers can be displayed with `dfx info security-policy`.
+It is a set of security headers that will work for most dapps. A warning is displayed that the headers could be hardened.
+
+If `"hardened"` is set, the same headers as with `"standard"` are added.
+The asset sync expects that improved headers are set that would improve security where appropriate.
+If no custom headers are present the asset sync will fail with an error.
+
+All warnings regarding security policies can be disabled with ``"disable_security_policy_warning": true`. It needs to be set per asset.
+
+The standard/hardened security policy headers can be seen with `dfx info security-policy`.
+It also contains a lot of suggestions on how to harden the policy.
+
+Updated the starter projects to use `"security_policy"` instead of including the whole security policy by defining individual headers.
+
+### feat: `dfx info security-policy`
+
+Shows the headers that get applied to assets that are configured to `"security_policy": "standard"` or `"security_policy": "hardened"` in `.ic-assets.json5`.
+Produces output that can be directly pasted into a `.json5` document.
+
 ### feat: `dfx extension install <url to extension.json>`
 
 It's now possible for `dfx extension install` to install an extension from
@@ -17,6 +47,16 @@ dfx extension install https://raw.githubusercontent.com/dfinity/dfx-extensions/m
 This update also adds the optional field `download_url_template` to extension.json,
 which dfx will use to locate an extension release archive.
 
+### fix: `dfx extension install` no longer reports an error if the extension is already installed
+
+However, if a version is specified with `--version`, and the installed version is different,
+then `dfx extension install` will still report an error.
+
+### fix: `dfx ledger create-canister` sets controller properly
+
+A recent [hotfix](https://forum.dfinity.org/t/nns-update-2024-05-15-cycles-minting-canister-hotfix-proposal-129728/30807) to the CMC changed how the arguments to `notify_create_canister` need to be passed.
+`dfx` now again properly calls that function.
+
 ### feat: display replica port in `dfx start`
 
 This replaces the dashboard link, which is now shown only in verbose mode. This should hopefully be less confusing for new users.
@@ -26,6 +66,14 @@ This replaces the dashboard link, which is now shown only in verbose mode. This 
 It is now possible to specify a particular crate within a Rust package to use for a canister module, using the `crate` field.
 This enables specifying crates with different names than the package. In a few cases these were previously auto-detected
 by dfx, you will need to add this field if you were using such a setup.
+
+### feat: the `--wallet` parameter now accepts an identity name
+
+The `--wallet` parameter can now be either a principal or the name of an identity.
+
+If the name of an identity, dfx looks up the associated wallet's principal.
+
+This means `--wallet <name>` is the equivalent of `--wallet $(dfx identity get-wallet --identity <name>)`.
 
 ### fix: display error cause of some http-related errors
 

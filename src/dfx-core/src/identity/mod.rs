@@ -3,8 +3,11 @@
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
 use crate::config::directories::{get_shared_network_data_directory, get_user_dfx_config_dir};
+use crate::config::model::network_descriptor::NetworkDescriptor;
 use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError;
-use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError::ParsePrincipalFromIdFailed;
+use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError::{
+    ParsePrincipalFromIdFailedAndGetWalletCanisterIdFailed, ParsePrincipalFromIdFailedAndNoWallet,
+};
 use crate::error::identity::load_pem_identity::LoadPemIdentityError;
 use crate::error::identity::load_pem_identity::LoadPemIdentityError::ReadIdentityFileFailed;
 use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError;
@@ -19,6 +22,7 @@ use crate::error::wallet_config::WalletConfigError::{
     EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
 };
 use crate::identity::identity_file_locations::IdentityFileLocations;
+use crate::identity::wallet::wallet_canister_id;
 use crate::json::{load_json_file, save_json_file};
 use candid::Principal;
 use ic_agent::agent::EnvelopeContent;
@@ -41,6 +45,7 @@ pub mod identity_manager;
 pub mod keyring_mock;
 pub mod pem_safekeeping;
 pub mod pem_utils;
+pub mod wallet;
 
 pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 pub const IDENTITY_JSON: &str = "identity.json";
@@ -302,14 +307,33 @@ pub enum CallSender {
     Wallet(Principal),
 }
 
-// Determine whether the selected Identity
-// or the provided wallet canister ID should be the Sender of the call.
+// Determine whether the selected Identity or a wallet should be the sender of the call.
+// If a wallet, the principal can be selected directly, or looked up from an identity name.
 impl CallSender {
-    pub fn from(wallet: &Option<String>) -> Result<Self, CallSenderFromWalletError> {
-        let sender = if let Some(id) = wallet {
-            CallSender::Wallet(
-                Principal::from_text(id).map_err(|e| ParsePrincipalFromIdFailed(id.clone(), e))?,
-            )
+    pub fn from(
+        wallet_principal_or_identity_name: &Option<String>,
+        network: &NetworkDescriptor,
+    ) -> Result<Self, CallSenderFromWalletError> {
+        let sender = if let Some(s) = wallet_principal_or_identity_name {
+            match Principal::from_text(s) {
+                Ok(principal) => CallSender::Wallet(principal),
+                Err(principal_err) => match wallet_canister_id(network, s) {
+                    Ok(Some(principal)) => CallSender::Wallet(principal),
+                    Ok(None) => {
+                        return Err(ParsePrincipalFromIdFailedAndNoWallet(
+                            s.clone(),
+                            principal_err,
+                        ));
+                    }
+                    Err(wallet_err) => {
+                        return Err(ParsePrincipalFromIdFailedAndGetWalletCanisterIdFailed(
+                            s.clone(),
+                            principal_err,
+                            wallet_err,
+                        ));
+                    }
+                },
+            }
         } else {
             CallSender::SelectedId
         };

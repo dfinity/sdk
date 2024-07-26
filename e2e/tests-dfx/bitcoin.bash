@@ -163,13 +163,13 @@ set_local_network_bitcoin_enabled() {
 @test "can call bitcoin API of the management canister" {
   install_asset bitcoin
   dfx_start --enable-bitcoin
+  dfx identity get-wallet
 
   # the non-query Bitcoin API can only be called by a canister not an agent
   # we need to proxy the call through the wallet canister
-  WALLET_ID=$(dfx identity get-wallet)
 
   # bitcoin_get_balance
-  assert_command dfx canister call --wallet "$WALLET_ID" aaaaa-aa --candid bitcoin.did bitcoin_get_balance '(
+  assert_command dfx canister call --wallet default aaaaa-aa --candid bitcoin.did bitcoin_get_balance '(
   record {
     network = variant { regtest };
     address = "bcrt1qu58aj62urda83c00eylc6w34yl2s6e5rkzqet7";
@@ -179,7 +179,7 @@ set_local_network_bitcoin_enabled() {
   assert_eq "(0 : nat64)"
 
   # bitcoin_get_utxos
-  assert_command dfx canister call --wallet "$WALLET_ID" aaaaa-aa --candid bitcoin.did bitcoin_get_utxos '(
+  assert_command dfx canister call --wallet default aaaaa-aa --candid bitcoin.did bitcoin_get_utxos '(
   record {
     network = variant { regtest };
     filter = opt variant { min_confirmations = 1 : nat32 };
@@ -189,11 +189,11 @@ set_local_network_bitcoin_enabled() {
   assert_contains "tip_height = 0 : nat32;"
 
   # bitcoin_get_current_fee_percentiles
-  assert_command dfx canister call --wallet "$WALLET_ID" aaaaa-aa --candid bitcoin.did bitcoin_get_current_fee_percentiles '(record { network = variant { regtest } })'
+  assert_command dfx canister call --wallet default aaaaa-aa --candid bitcoin.did bitcoin_get_current_fee_percentiles '(record { network = variant { regtest } })'
 
   # bitcoin_send_transaction
   # It's hard to test this without a real transaction, but we can at least check that the call fails.
   # The error message indicates that the argument is in correct format, only the inner transaction is malformed.
-  assert_command_fail dfx canister call --wallet "$WALLET_ID" aaaaa-aa --candid bitcoin.did bitcoin_send_transaction '(record { transaction = vec {0:nat8}; network = variant { regtest } })'
+  assert_command_fail dfx canister call --wallet default aaaaa-aa --candid bitcoin.did bitcoin_send_transaction '(record { transaction = vec {0:nat8}; network = variant { regtest } })'
   assert_contains "send_transaction failed: MalformedTransaction"
 }

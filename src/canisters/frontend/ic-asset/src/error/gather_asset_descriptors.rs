@@ -26,4 +26,8 @@ pub enum GatherAssetDescriptorsError {
     /// Failed to load the asset configuration for a directory.
     #[error("Failed to load asset configuration: {0}")]
     LoadConfigFailed(AssetLoadConfigError),
+
+    /// One or more assets use the hardened security policy but don't actually specify any hardenings compared to the standard security policy.
+    #[error("This project uses the hardened security policy for some assets, but does not actually configure any custom improvements over the standard policy. To get started, look at 'dfx info canister-security-policy'. It shows the default security policy along with suggestions on how to improve it.\n{0}")]
+    HardenedSecurityPolicyIsNotHardened(String),
 }

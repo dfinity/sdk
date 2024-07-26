@@ -8,6 +8,8 @@ mod install;
 mod list;
 mod uninstall;
 
+pub use install::InstallOutcome;
+
 pub struct ExtensionManager {
     pub dir: PathBuf,
     pub dfx_version: Version,

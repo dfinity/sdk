@@ -2,7 +2,7 @@ use crate::error::extension::{
     ConvertExtensionSubcommandIntoClapArgError, ConvertExtensionSubcommandIntoClapCommandError,
     LoadExtensionManifestError,
 };
-use crate::json::structure::VersionReqWithJsonSchema;
+use crate::json::structure::{VersionReqWithJsonSchema, VersionWithJsonSchema};
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
@@ -23,7 +23,7 @@ type ArgName = String;
 #[serde(deny_unknown_fields)]
 pub struct ExtensionManifest {
     pub name: String,
-    pub version: String,
+    pub version: VersionWithJsonSchema,
     pub homepage: String,
     pub authors: Option<String>,
     pub summary: String,

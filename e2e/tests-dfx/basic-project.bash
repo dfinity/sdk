@@ -40,7 +40,7 @@ teardown() {
   assert_eq '("Hello, Blueberry!")'
 
   # Call using the wallet's call forwarding
-  assert_command dfx canister call --async hello_backend greet Blueberry --wallet="$(dfx identity get-wallet)"
+  assert_command dfx canister call --async hello_backend greet Blueberry --wallet=default
   # At this point $output is the request ID.
   # shellcheck disable=SC2154
   assert_command dfx canister request-status "$stdout" "$(dfx identity get-wallet)"
@@ -100,7 +100,7 @@ teardown() {
   assert_eq "(1_337 : nat)"
 
   # Call using the wallet's call forwarding
-  assert_command dfx canister call hello_backend read --async --wallet="$(dfx identity get-wallet)"
+  assert_command dfx canister call hello_backend read --async --wallet=default
   assert_command dfx canister request-status "$stdout" "$(dfx identity get-wallet)"
   assert_eq \
 '(

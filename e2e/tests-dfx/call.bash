@@ -207,7 +207,18 @@ teardown() {
   dfx deploy
   assert_command_fail dfx canister call hello_backend greet '' --with-cycles 100
   assert_command dfx canister call hello_backend greet '' --with-cycles 100 --wallet "$(dfx identity get-wallet)"
+  dfx identity whoami
 }
+
+@test "call with cycles with wallet by name or by principal" {
+  dfx_start
+  dfx deploy
+  assert_command_fail dfx canister call hello_backend greet '' --with-cycles 100
+
+  assert_command dfx canister call hello_backend greet '' --with-cycles 100 --wallet "$(dfx identity get-wallet)"
+  assert_command dfx canister call hello_backend greet '' --with-cycles 100 --wallet default
+}
+
 
 @test "call by canister id outside of a project" {
   install_asset greet
