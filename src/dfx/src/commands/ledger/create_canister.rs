@@ -10,7 +10,7 @@ use crate::lib::operations::cmc::{notify_create, transfer_cmc};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::e8s_parser;
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use clap::Parser;
 
@@ -70,6 +70,7 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
     })?;
 
     let agent = env.get_agent();
+    let calling_identity = agent.get_principal().map_err(|err| anyhow!(err))?;
 
     fetch_root_key_if_needed(env).await?;
 
@@ -85,7 +86,7 @@ pub async fn exec(env: &dyn Environment, opts: CreateCanisterOpts) -> DfxResult 
         amount,
         fee,
         opts.from_subaccount,
-        controller,
+        calling_identity,
         opts.created_at_time,
     )
     .await?;

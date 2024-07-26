@@ -217,6 +217,15 @@ tc_to_num() {
   # TODO: assert error message once registry is fixed
   assert_eq "$balance" "$(dfx ledger balance)"
 
+  # Verify that creating a canister under a different principal's control properly sets ownership
+  CONTROLLER_PRINCIPAL="$(dfx --identity default identity get-principal)"
+  assert_command dfx ledger create-canister --amount=100 "$CONTROLLER_PRINCIPAL"
+  echo "created with: $stdout"
+  created_canister_id=$(echo "$stdout" | sed '3q;d' | sed 's/Canister created with id: //;s/"//g')
+  assert_command dfx canister info "$created_canister_id"
+  assert_contains "Controllers: $CONTROLLER_PRINCIPAL"
+  assert_not_contains "$(dfx identity get-principal)"
+
   # Transaction Deduplication
   t=$(current_time_nanoseconds)
 
