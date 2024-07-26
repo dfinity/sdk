@@ -175,7 +175,7 @@ EOF
 
 @test "extension install with an empty cache does not create a corrupt cache" {
   dfx cache delete
-  dfx extension install nns --version 0.2.1
+  dfx_extension_install_nns
   dfx_start
 }
 
@@ -340,8 +340,8 @@ EOF
 
 @test "install is not an error if already installed" {
   assert_command_fail dfx nns --help
-  assert_command dfx extension install nns --version 0.4.1
-  assert_command dfx extension install nns --version 0.4.1
+  assert_command dfx_extension_install_nns
+  assert_command dfx_extension_install_nns
   # shellcheck disable=SC2154
   assert_eq "WARN: Extension 'nns' version 0.4.1 is already installed" "$stderr"
   assert_command dfx nns --help
