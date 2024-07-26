@@ -333,11 +333,3 @@ stop_and_delete() {
     assert_command dfx canister delete -y --no-withdrawal "$1"
     echo "Canister $1 deleted"
 }
-
-dfx_extension_install_nns() {
-    dfx extension install nns --version 0.4.3
-}
-
-dfx_extension_install_sns() {
-    dfx extension install nns --version 0.4.3
-}

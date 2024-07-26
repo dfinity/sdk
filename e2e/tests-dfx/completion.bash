@@ -26,8 +26,8 @@ teardown() {
 }
 
 @test "generate bash completion script with extensions installed" {
-  assert_command dfx_extension_install_nns
-  assert_command dfx_extension_install_sns
+  assert_command dfx extension install nns --version 0.3.1
+  assert_command dfx extension install sns --version 0.3.1
   assert_command dfx completion bash
   assert_contains "dfx__ledger__transfer"
   assert_contains "dfx__identity__new"
@@ -43,8 +43,8 @@ teardown() {
 }
 
 @test "generate zsh completion script with extensions installed" {
-  assert_command dfx_extension_install_nns
-  assert_command dfx_extension_install_sns
+  assert_command dfx extension install nns --version 0.3.1
+  assert_command dfx extension install sns --version 0.3.1
   assert_command dfx completion zsh
   assert_contains "_dfx__ledger__help__balance_commands"
   assert_contains "_dfx__canister__install_commands"
@@ -60,8 +60,8 @@ teardown() {
 }
 
 @test "generate elvish completion script with extensions installed" {
-  assert_command dfx_extension_install_nns
-  assert_command dfx_extension_install_sns
+  assert_command dfx extension install nns --version 0.3.1
+  assert_command dfx extension install sns --version 0.3.1
   assert_command dfx completion elvish
   assert_contains "dfx;nns;install"
   assert_contains "dfx;help;sns;deploy"
@@ -73,8 +73,8 @@ teardown() {
 }
 
 @test "generate fish completion script with extensions installed" {
-  assert_command dfx_extension_install_nns
-  assert_command dfx_extension_install_sns
+  assert_command dfx extension install nns --version 0.3.1
+  assert_command dfx extension install sns --version 0.3.1
   assert_command dfx completion fish
   assert_contains "Install an NNS on the local dfx server"
   assert_contains "Subcommand for preparing dapp canister(s) for 1-proposal SNS creation"
@@ -87,8 +87,8 @@ teardown() {
 }
 
 @test "generate powershell completion script with extensions installed" {
-  assert_command dfx_extension_install_nns
-  assert_command dfx_extension_install_sns
+  assert_command dfx extension install nns --version 0.3.1
+  assert_command dfx extension install sns --version 0.3.1
   assert_command dfx completion powershell
   assert_contains "dfx;ledger;transfer"
   assert_contains "dfx;nns;install"
