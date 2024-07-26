@@ -52,6 +52,11 @@ which dfx will use to locate an extension release archive.
 However, if a version is specified with `--version`, and the installed version is different,
 then `dfx extension install` will still report an error.
 
+### fix: `dfx ledger create-canister` sets controller properly
+
+A recent [hotfix](https://forum.dfinity.org/t/nns-update-2024-05-15-cycles-minting-canister-hotfix-proposal-129728/30807) to the CMC changed how the arguments to `notify_create_canister` need to be passed.
+`dfx` now again properly calls that function.
+
 ### feat: display replica port in `dfx start`
 
 This replaces the dashboard link, which is now shown only in verbose mode. This should hopefully be less confusing for new users.
