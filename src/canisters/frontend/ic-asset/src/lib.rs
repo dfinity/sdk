@@ -36,6 +36,7 @@ mod batch_upload;
 mod canister_api;
 pub mod error;
 mod evidence;
+pub mod security_policy;
 mod sync;
 mod upload;
 

@@ -15,6 +15,8 @@ use dfx_core::config::model::dfinity::NetworksConfig;
 enum InfoType {
     /// Show the URL of the Candid UI canister
     CandidUiUrl,
+    /// Show the headers that gets applied to assets in .ic-assets.json5 if "security_policy" is "standard" or "hardened".
+    SecurityPolicy,
     /// Show the port of the local replica
     ReplicaPort,
     /// Show the revision of the replica shipped with this dfx binary
@@ -47,6 +49,9 @@ pub fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
                     env.get_network_descriptor().name
                 ),
             }
+        }
+        InfoType::SecurityPolicy => {
+            ic_asset::security_policy::SecurityPolicy::Standard.to_json5_str()
         }
         InfoType::ReplicaPort => get_replica_port(env)?,
         InfoType::ReplicaRev => info::replica_rev().to_string(),

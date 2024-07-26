@@ -66,3 +66,35 @@ teardown() {
   assert_command dfx info candid-ui-url  
   assert_eq "http://127.0.0.1:$(dfx info webserver-port)/?canisterId=$(dfx canister id __Candid_UI)"
 }
+
+@test "security-policy shows standard/hardened headers with comments" {
+  assert_command dfx info security-policy
+  assert_contains "Content-Security-Policy" # One of the headers in the standard policy
+  assert_contains "X-XSS-Protection" # One of the headers in the standard policy
+  assert_contains '"nosniff"' # One of the values in the standard policy
+  assert_contains '"same-origin"' # One of the values in the standard policy
+  assert_contains "// Notes about the CSP below:" # One of the comment lines in the standard policy, together with `//` to mark it as a comment in json5
+  assert_contains "// - We added img-src data: because data: images are used often." # One of the comment lines in the standard policy, together with `//` to mark it as a comment in json5
+}
+
+@test "security-policy produces valid json5 headers" {
+  dfx_new_frontend
+  install_asset assetscanister
+  touch src/e2e_project_frontend/assets/thing.json
+
+  dfx_start
+  dfx canister create --all
+
+  echo "[
+    {
+      \"match\": \"**/*\",
+      \"headers\": {
+        $(dfx info security-policy)
+      }
+    }
+  ]" > src/e2e_project_frontend/assets/.ic-assets.json5
+  cat src/e2e_project_frontend/assets/.ic-assets.json5
+
+  # fails if the the above produced invalid json5
+  assert_command dfx deploy
+}
