@@ -362,7 +362,7 @@ async fn initialize_gateway(
 async fn initialize_gateway(
     _: Url,
     _: Url,
-    _: Vec<Url>,
+    _: Vec<String>,
     _: SocketAddr,
     _: Logger,
 ) -> DfxResult<usize> {
