@@ -393,21 +393,6 @@ pub fn exec(
             replica.recipient()
         };
 
-        // let icx_proxy_config = IcxProxyConfig {
-        //     bind: address_and_port,
-        //     replica_urls: vec![], // will be determined after replica starts
-        //     fetch_root_key: !network_descriptor.is_ic,
-        //     domains: proxy_domains,
-        //     verbose: env.get_verbose_level() > 0,
-        // };
-        //
-        // let proxy = start_icx_proxy_actor(
-        //     env,
-        //     icx_proxy_config,
-        //     Some(port_ready_subscribe),
-        //     shutdown_controller,
-        //     icx_proxy_pid_file_path,
-        // )?;
         let pocketic_proxy_config = PocketIcProxyConfig {
             bind: address_and_port,
             replica_url: None,

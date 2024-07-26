@@ -20,7 +20,6 @@ use self::pocketic::PocketIc;
 
 pub mod btc_adapter;
 pub mod canister_http_adapter;
-// pub mod icx_proxy;
 pub mod pocketic;
 pub mod pocketic_proxy;
 pub mod replica;
