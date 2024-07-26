@@ -12,7 +12,7 @@ setup() {
 
   dfx_start_for_nns_install
 
-  dfx extension install nns --version 0.2.1
+  dfx extension install nns --version 0.4.3
   dfx nns install --ledger-accounts 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc
 }
 
@@ -216,6 +216,15 @@ tc_to_num() {
   assert_command_fail dfx ledger create-canister --amount=100 --next-to "$CANISTER_ID" "$(dfx identity get-principal)"
   # TODO: assert error message once registry is fixed
   assert_eq "$balance" "$(dfx ledger balance)"
+
+  # Verify that creating a canister under a different principal's control properly sets ownership
+  CONTROLLER_PRINCIPAL="$(dfx --identity default identity get-principal)"
+  assert_command dfx ledger create-canister --amount=100 "$CONTROLLER_PRINCIPAL"
+  echo "created with: $stdout"
+  created_canister_id=$(echo "$stdout" | sed '3q;d' | sed 's/Canister created with id: //;s/"//g')
+  assert_command dfx canister info "$created_canister_id"
+  assert_contains "Controllers: $CONTROLLER_PRINCIPAL"
+  assert_not_contains "$(dfx identity get-principal)"
 
   # Transaction Deduplication
   t=$(current_time_nanoseconds)

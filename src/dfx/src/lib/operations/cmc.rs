@@ -12,6 +12,7 @@ use crate::lib::operations::ledger::transfer;
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use candid::{Decode, Encode, Principal};
 use ic_agent::Agent;
+use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use icrc_ledger_types::icrc1::account::Subaccount as ICRCSubaccount;
 use icrc_ledger_types::icrc1::transfer::Memo as ICRCMemo;
 use slog::Logger;
@@ -54,6 +55,9 @@ pub async fn notify_create(
     subnet_selection: SubnetSelectionType,
 ) -> Result<Principal, NotifyCreateCanisterError> {
     let user_subnet_selection = subnet_selection.get_user_choice();
+    let caller = agent
+        .get_principal()
+        .map_err(NotifyCreateCanisterError::GetCallerPrincipal)?;
     let result = agent
         .update(
             &MAINNET_CYCLE_MINTER_CANISTER_ID,
@@ -62,8 +66,17 @@ pub async fn notify_create(
         .with_arg(
             Encode!(&NotifyCreateCanisterArg {
                 block_index: block_height,
-                controller,
+                controller: caller, // Must be the caller since https://forum.dfinity.org/t/nns-update-2024-05-15-cycles-minting-canister-hotfix-proposal-129728/30807
                 subnet_selection: user_subnet_selection,
+                settings: Some(CanisterSettings {
+                    controllers: Some(vec![controller]),
+                    compute_allocation: None,
+                    memory_allocation: None,
+                    freezing_threshold: None,
+                    reserved_cycles_limit: None,
+                    wasm_memory_limit: None,
+                    log_visibility: None,
+                })
             })
             .map_err(NotifyCreateCanisterError::EncodeArguments)?,
         )
