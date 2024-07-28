@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: Enable threshold schnorr signatures for Ed25519
+
+Schnorr signature signing for `Ed25519` is now enabled.
+A test key id `Ed25519:dfx_test_key` is ready to be used by locally created canisters.
+
 ### feat: support `"security_policy"` and `"disable_security_policy_warning"` in `.ic-assets.json5`
 
 *This change has an accompanying migration guide. Please see the 0.23.0 migration guide for instructions on how to adapt your project to this feature.*
