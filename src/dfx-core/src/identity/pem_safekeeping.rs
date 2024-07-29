@@ -1,21 +1,21 @@
 use super::identity_manager::EncryptionConfiguration;
 use super::IdentityConfiguration;
-use crate::error::encryption::EncryptionError;
-use crate::error::encryption::EncryptionError::{DecryptContentFailed, HashPasswordFailed};
-use crate::error::fs::FsError;
-use crate::error::identity::load_pem::LoadPemError;
-use crate::error::identity::load_pem::LoadPemError::LoadFromKeyringFailed;
-use crate::error::identity::load_pem_from_file::LoadPemFromFileError;
-use crate::error::identity::load_pem_from_file::LoadPemFromFileError::{
-    DecryptPemFileFailed, ReadPemFileFailed,
-};
-use crate::error::identity::save_pem::SavePemError;
-use crate::error::identity::save_pem::SavePemError::{
-    CannotSavePemContentForHsm, WritePemToKeyringFailed,
-};
-use crate::error::identity::write_pem_to_file::WritePemToFileError;
-use crate::error::identity::write_pem_to_file::WritePemToFileError::{
-    EncryptPemFileFailed, WritePemContentFailed,
+use crate::error::{
+    encryption::{
+        EncryptionError,
+        EncryptionError::{DecryptContentFailed, HashPasswordFailed},
+    },
+    fs::FsError,
+    identity::{
+        LoadPemError,
+        LoadPemError::LoadFromKeyringFailed,
+        LoadPemFromFileError,
+        LoadPemFromFileError::{DecryptPemFileFailed, ReadPemFileFailed},
+        SavePemError,
+        SavePemError::{CannotSavePemContentForHsm, WritePemToKeyringFailed},
+        WritePemToFileError,
+        WritePemToFileError::{EncryptPemFileFailed, WritePemContentFailed},
+    },
 };
 use crate::identity::identity_file_locations::IdentityFileLocations;
 use crate::identity::keyring_mock;
