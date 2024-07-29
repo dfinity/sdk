@@ -9,10 +9,15 @@ pub struct CanonicalizePathError {
 }
 
 #[derive(Error, Debug)]
-pub enum FsErrorKind {
-    #[error("Failed to copy {0} to {1}")]
-    CopyFileFailed(Box<PathBuf>, Box<PathBuf>, #[source] std::io::Error),
+#[error("failed to copy {from} to {to}")]
+pub struct CopyFileError {
+    pub from: PathBuf,
+    pub to: PathBuf,
+    pub source: std::io::Error,
+}
 
+#[derive(Error, Debug)]
+pub enum FsErrorKind {
     #[error("Failed to create {0}")]
     CreateDirectoryFailed(PathBuf, #[source] std::io::Error),
 

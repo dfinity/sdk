@@ -1,6 +1,11 @@
 use crate::error::{
-    config::ConfigError, encryption::EncryptionError, fs::FsError, get_user_home::GetUserHomeError,
-    keyring::KeyringError, structured_file::StructuredFileError, wallet_config::WalletConfigError,
+    config::ConfigError,
+    encryption::EncryptionError,
+    fs::{CopyFileError, FsError},
+    get_user_home::GetUserHomeError,
+    keyring::KeyringError,
+    structured_file::StructuredFileError,
+    wallet_config::WalletConfigError,
 };
 use candid::types::principal::PrincipalError;
 use ic_agent::identity::PemError;
@@ -139,8 +144,8 @@ pub enum InitializeIdentityManagerError {
     #[error(transparent)]
     GetLegacyCredentialsPemPathFailed(#[from] GetLegacyCredentialsPemPathError),
 
-    #[error("Failed to migrate legacy identity")]
-    MigrateLegacyIdentityFailed(#[source] FsError),
+    #[error("failed to migrate legacy identity")]
+    MigrateLegacyIdentityFailed(#[source] CopyFileError),
 
     #[error("Failed to save configuration")]
     SaveConfigurationFailed(#[source] StructuredFileError),

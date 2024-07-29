@@ -1,12 +1,12 @@
 pub mod composite;
 use crate::error::archive::ArchiveError;
 use crate::error::fs::FsErrorKind::{
-    CopyFileFailed, CreateDirectoryFailed, NoParent, ReadDirFailed, ReadFileFailed,
-    ReadMetadataFailed, ReadPermissionsFailed, ReadToStringFailed,
-    RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
-    UnpackingArchiveFailed, WriteFileFailed, WritePermissionsFailed,
+    CreateDirectoryFailed, NoParent, ReadDirFailed, ReadFileFailed, ReadMetadataFailed,
+    ReadPermissionsFailed, ReadToStringFailed, RemoveDirectoryAndContentsFailed,
+    RemoveDirectoryFailed, RemoveFileFailed, RenameFailed, UnpackingArchiveFailed, WriteFileFailed,
+    WritePermissionsFailed,
 };
-use crate::error::fs::{CanonicalizePathError, FsError};
+use crate::error::fs::{CanonicalizePathError, CopyFileError, FsError};
 use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
 
@@ -17,13 +17,11 @@ pub fn canonicalize(path: &Path) -> Result<PathBuf, CanonicalizePathError> {
     })
 }
 
-pub fn copy(from: &Path, to: &Path) -> Result<u64, FsError> {
-    std::fs::copy(from, to).map_err(|err| {
-        FsError::new(CopyFileFailed(
-            Box::new(from.to_path_buf()),
-            Box::new(to.to_path_buf()),
-            err,
-        ))
+pub fn copy(from: &Path, to: &Path) -> Result<u64, CopyFileError> {
+    std::fs::copy(from, to).map_err(|source| CopyFileError {
+        from: from.to_path_buf(),
+        to: to.to_path_buf(),
+        source,
     })
 }
 
