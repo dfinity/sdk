@@ -376,10 +376,28 @@ pub enum WriteDefaultIdentityError {
 }
 
 #[derive(Error, Debug)]
+pub enum WritePemContentError {
+    #[error(transparent)]
+    CreateDirAll(FsError),
+
+    #[error(transparent)]
+    NoParent(FsError),
+
+    #[error(transparent)]
+    ReadPermissions(FsError),
+
+    #[error(transparent)]
+    SetPermissions(FsError),
+
+    #[error(transparent)]
+    Write(FsError),
+}
+
+#[derive(Error, Debug)]
 pub enum WritePemToFileError {
     #[error("Failed to encrypt PEM file")]
     EncryptPemFileFailed(PathBuf, #[source] EncryptionError),
 
-    #[error("Failed to write to PEM file")]
-    WritePemContentFailed(#[source] FsError),
+    #[error("failed to write PEM content")]
+    WritePemContentFailed(#[source] WritePemContentError),
 }
