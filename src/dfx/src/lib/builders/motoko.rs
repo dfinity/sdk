@@ -143,6 +143,17 @@ impl CanisterBuilder for MotokoBuilder {
             dfx_core::fs::write(management_idl_path, management_idl()?)?;
         }
 
+        let dependencies = self
+            .get_dependencies(pool, canister_info)
+            .unwrap_or_default();
+        super::get_and_write_environment_variables(
+            canister_info,
+            &config.network_name,
+            pool,
+            &dependencies,
+            config.env_file.as_deref(),
+        )?;
+
         let package_arguments =
             package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
 
