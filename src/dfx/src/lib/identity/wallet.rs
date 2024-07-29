@@ -8,12 +8,8 @@ use dfx_core::canister::build_wallet_canister;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::error::canister::CanisterBuilderError;
 use dfx_core::error::wallet_config::WalletConfigError;
-use dfx_core::error::wallet_config::WalletConfigError::{
-    EnsureWalletConfigDirFailed, SaveWalletConfigFailed,
-};
 use dfx_core::identity::wallet::{get_wallet_config_path, wallet_canister_id};
 use dfx_core::identity::{Identity, WalletGlobalConfig, WalletNetworkMap};
-use dfx_core::json::save_json_file;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -170,26 +166,7 @@ pub fn set_wallet_id(
 
     network_map.networks.insert(network.name.clone(), id);
 
-    Identity::save_wallet_config(&wallet_path, &config)
-}
-
-#[allow(dead_code)]
-pub fn remove_wallet_id(network: &NetworkDescriptor, name: &str) -> Result<(), WalletConfigError> {
-    let (wallet_path, mut config) = wallet_config(network, name)?;
-    // Update the wallet map in it.
-    let identities = &mut config.identities;
-    let network_map = identities
-        .entry(name.to_string())
-        .or_insert(WalletNetworkMap {
-            networks: BTreeMap::new(),
-        });
-
-    network_map.networks.remove(&network.name);
-
-    dfx_core::fs::composite::ensure_parent_dir_exists(&wallet_path)
-        .map_err(EnsureWalletConfigDirFailed)?;
-
-    save_json_file(&wallet_path, &config).map_err(SaveWalletConfigFailed)
+    Identity::save_wallet_config(&wallet_path, &config).map_err(WalletConfigError::SaveWalletConfig)
 }
 
 fn wallet_config(

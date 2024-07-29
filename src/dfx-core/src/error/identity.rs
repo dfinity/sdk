@@ -5,7 +5,7 @@ use crate::error::{
     get_user_home::GetUserHomeError,
     keyring::KeyringError,
     structured_file::StructuredFileError,
-    wallet_config::WalletConfigError,
+    wallet_config::{SaveWalletConfigError, WalletConfigError},
 };
 use candid::types::principal::PrincipalError;
 use ic_agent::identity::PemError;
@@ -314,6 +314,9 @@ pub enum RenameIdentityError {
 pub enum RenameWalletGlobalConfigKeyError {
     #[error("Failed to rename '{0}' to '{1}' in the global wallet config")]
     RenameWalletFailed(Box<String>, Box<String>, #[source] WalletConfigError),
+
+    #[error(transparent)]
+    SaveWalletConfig(#[from] SaveWalletConfigError),
 }
 
 #[derive(Error, Debug)]

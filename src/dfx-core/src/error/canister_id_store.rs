@@ -24,17 +24,14 @@ pub enum CanisterIdStoreError {
         source: UnifiedIoError,
     },
 
-    #[error("Failed to remove canister '{canister_name}' from id store")]
-    RemoveCanisterId {
-        canister_name: String,
-        source: UnifiedIoError,
-    },
+    #[error(transparent)]
+    RemoveCanisterId(#[from] RemoveCanisterIdError),
 
     #[error("Failed to add canister with name '{canister_name}' and id '{canister_id}' to canister id store")]
     AddCanisterId {
         canister_name: String,
         canister_id: String,
-        source: UnifiedIoError,
+        source: AddCanisterIdError,
     },
 
     #[error(transparent)]
@@ -45,6 +42,49 @@ pub enum CanisterIdStoreError {
 
     #[error(transparent)]
     LoadDfxConfig(#[from] LoadDfxConfigError),
+}
+
+#[derive(Error, Debug)]
+pub enum AddCanisterIdError {
+    #[error("failed to add canister with name '{canister_name}' and id '{canister_id}' to canister id store")]
+    SaveIds {
+        canister_name: String,
+        canister_id: String,
+        source: SaveIdsError,
+    },
+
+    #[error(transparent)]
+    SaveTimestamps(#[from] SaveTimestampsError),
+}
+
+#[derive(Error, Debug)]
+pub enum RemoveCanisterIdError {
+    #[error("failed to remove canister '{canister_name}' from id store")]
+    SaveIds {
+        canister_name: String,
+        source: SaveIdsError,
+    },
+
+    #[error(transparent)]
+    SaveTimestamps(#[from] SaveTimestampsError),
+}
+
+#[derive(Error, Debug)]
+pub enum SaveTimestampsError {
+    #[error(transparent)]
+    EnsureParentDirExists(FsError),
+
+    #[error(transparent)]
+    SaveJsonFile(StructuredFileError),
+}
+
+#[derive(Error, Debug)]
+pub enum SaveIdsError {
+    #[error(transparent)]
+    EnsureParentDirExists(FsError),
+
+    #[error(transparent)]
+    SaveJsonFile(StructuredFileError),
 }
 
 impl From<FsError> for CanisterIdStoreError {

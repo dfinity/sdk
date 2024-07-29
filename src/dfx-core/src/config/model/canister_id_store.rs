@@ -1,7 +1,9 @@
 use crate::config::model::dfinity::Config;
 use crate::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
-use crate::error::canister_id_store::CanisterIdStoreError;
-use crate::error::unified_io::UnifiedIoError;
+use crate::error::canister_id_store::{
+    AddCanisterIdError, CanisterIdStoreError, RemoveCanisterIdError, SaveIdsError,
+    SaveTimestampsError,
+};
 use crate::network::directory::ensure_cohesive_network_directory;
 use candid::Principal as CanisterId;
 use ic_agent::export::Principal;
@@ -218,7 +220,7 @@ impl CanisterIdStore {
             .map(|(canister_name, _)| canister_name)
     }
 
-    pub fn save_ids(&self) -> Result<(), UnifiedIoError> {
+    pub fn save_ids(&self) -> Result<(), SaveIdsError> {
         let path = self
             .canister_ids_path
             .as_ref()
@@ -226,12 +228,13 @@ impl CanisterIdStore {
                 // the only callers of this method have already called Environment::get_config_or_anyhow
                 unreachable!("Must be in a project (call Environment::get_config_or_anyhow()) to save canister ids")
             });
-        crate::fs::composite::ensure_parent_dir_exists(path)?;
-        crate::json::save_json_file(path, &self.ids)?;
+        crate::fs::composite::ensure_parent_dir_exists(path)
+            .map_err(SaveIdsError::EnsureParentDirExists)?;
+        crate::json::save_json_file(path, &self.ids).map_err(SaveIdsError::SaveJsonFile)?;
         Ok(())
     }
 
-    fn save_timestamps(&self) -> Result<(), CanisterIdStoreError> {
+    fn save_timestamps(&self) -> Result<(), SaveTimestampsError> {
         let path = self
             .canister_timestamps_path
             .as_ref()
@@ -239,8 +242,10 @@ impl CanisterIdStore {
                 // the only callers of this method have already called Environment::get_config_or_anyhow
                 unreachable!("Must be in a project (call Environment::get_config_or_anyhow()) to save canister timestamps")
             });
-        crate::fs::composite::ensure_parent_dir_exists(path)?;
-        crate::json::save_json_file(path, &self.acquisition_timestamps)?;
+        crate::fs::composite::ensure_parent_dir_exists(path)
+            .map_err(SaveTimestampsError::EnsureParentDirExists)?;
+        crate::json::save_json_file(path, &self.acquisition_timestamps)
+            .map_err(SaveTimestampsError::SaveJsonFile)?;
         Ok(())
     }
 
@@ -315,7 +320,7 @@ impl CanisterIdStore {
         canister_name: &str,
         canister_id: &str,
         timestamp: Option<AcquisitionDateTime>,
-    ) -> Result<(), CanisterIdStoreError> {
+    ) -> Result<(), AddCanisterIdError> {
         let network_name = &self.network_descriptor.name;
         match self.ids.get_mut(canister_name) {
             Some(network_name_to_canister_id) => {
@@ -331,10 +336,10 @@ impl CanisterIdStore {
             }
         }
         self.save_ids()
-            .map_err(|e| CanisterIdStoreError::AddCanisterId {
+            .map_err(|source| AddCanisterIdError::SaveIds {
                 canister_name: canister_name.to_string(),
                 canister_id: canister_id.to_string(),
-                source: e,
+                source,
             })?;
         if let Some(timestamp) = timestamp {
             match self.acquisition_timestamps.get_mut(canister_name) {
@@ -353,12 +358,12 @@ impl CanisterIdStore {
         Ok(())
     }
 
-    pub fn remove(&mut self, canister_name: &str) -> Result<(), CanisterIdStoreError> {
+    pub fn remove(&mut self, canister_name: &str) -> Result<(), RemoveCanisterIdError> {
         let network_name = &self.network_descriptor.name;
         if let Some(network_name_to_canister_id) = self.ids.get_mut(canister_name) {
             network_name_to_canister_id.remove(network_name);
             self.save_ids()
-                .map_err(|e| CanisterIdStoreError::RemoveCanisterId {
+                .map_err(|e| RemoveCanisterIdError::SaveIds {
                     canister_name: canister_name.to_string(),
                     source: e,
                 })?
@@ -375,7 +380,7 @@ impl CanisterIdStore {
         &mut self,
         log: &Logger,
         timeout: &Duration,
-    ) -> Result<(), CanisterIdStoreError> {
+    ) -> Result<(), RemoveCanisterIdError> {
         let network_name = &self.network_descriptor.name;
         let now = SystemTime::now();
         let prune_cutoff = now.sub(*timeout);
