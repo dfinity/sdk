@@ -365,10 +365,6 @@ fn replica_start_thread(
             &format!("{artificial_delay}"),
         ]);
 
-        if config.use_old_metering {
-            cmd.args(["--use-old-metering"]);
-        }
-
         // This should agree with the value at
         // at https://gitlab.com/dfinity-lab/core/ic/-/blob/master/ic-os/guestos/rootfs/etc/systemd/system/ic-replica.service
         cmd.env("RUST_MIN_STACK", "8192000");
@@ -420,7 +416,7 @@ fn replica_start_thread(
                     continue;
                 }
             }
-            info!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
+            debug!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
 
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the replica if done = true.

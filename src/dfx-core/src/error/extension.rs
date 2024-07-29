@@ -1,6 +1,8 @@
 #![allow(dead_code)]
-use crate::error::reqwest::WrappedReqwestError;
+
+use crate::error::fs::FsError;
 use crate::error::structured_file::StructuredFileError;
+use semver::Version;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -84,7 +86,7 @@ pub enum NewExtensionManagerError {
 #[derive(Error, Debug)]
 pub enum DownloadAndInstallExtensionToTempdirError {
     #[error(transparent)]
-    ExtensionDownloadFailed(WrappedReqwestError),
+    ExtensionDownloadFailed(reqwest::Error),
 
     #[error("Cannot get extensions directory")]
     EnsureExtensionDirExistsFailed(#[source] crate::error::fs::FsError),
@@ -98,8 +100,8 @@ pub enum DownloadAndInstallExtensionToTempdirError {
 
 #[derive(Error, Debug)]
 pub enum InstallExtensionError {
-    #[error("Extension '{0}' is already installed.")]
-    ExtensionAlreadyInstalled(String),
+    #[error("Extension '{0}' is already installed at version {1}.")]
+    OtherVersionAlreadyInstalled(String, Version),
 
     #[error(transparent)]
     GetExtensionArchiveName(#[from] GetExtensionArchiveNameError),
@@ -111,10 +113,16 @@ pub enum InstallExtensionError {
     GetExtensionDownloadUrl(#[from] GetExtensionDownloadUrlError),
 
     #[error(transparent)]
+    GetExtensionManifest(#[from] GetExtensionManifestError),
+
+    #[error(transparent)]
     DownloadAndInstallExtensionToTempdir(#[from] DownloadAndInstallExtensionToTempdirError),
 
     #[error(transparent)]
     FinalizeInstallation(#[from] FinalizeInstallationError),
+
+    #[error(transparent)]
+    LoadManifest(#[from] LoadExtensionManifestError),
 }
 
 #[derive(Error, Debug)]
@@ -141,10 +149,19 @@ pub enum GetDependenciesError {
     ParseUrl(#[from] url::ParseError),
 
     #[error(transparent)]
-    Get(WrappedReqwestError),
+    Get(reqwest::Error),
 
     #[error(transparent)]
-    ParseJson(WrappedReqwestError),
+    ParseJson(reqwest::Error),
+}
+
+#[derive(Error, Debug)]
+pub enum GetExtensionManifestError {
+    #[error(transparent)]
+    Get(reqwest::Error),
+
+    #[error(transparent)]
+    ParseJson(reqwest::Error),
 }
 
 #[derive(Error, Debug)]
@@ -159,8 +176,26 @@ pub struct GetExtensionDownloadUrlError {
 }
 
 #[derive(Error, Debug)]
+pub enum GetTopLevelDirectoryError {
+    #[error(transparent)]
+    ReadDir(FsError),
+
+    #[error("No top-level directory found in archive")]
+    NoTopLevelDirectoryEntry,
+
+    #[error("Cannot read directory entry")]
+    ReadDirEntry(#[source] std::io::Error),
+}
+
+#[derive(Error, Debug)]
 #[error(transparent)]
-pub struct FinalizeInstallationError(#[from] crate::error::fs::FsError);
+pub enum FinalizeInstallationError {
+    #[error(transparent)]
+    GetTopLevelDirectory(#[from] GetTopLevelDirectoryError),
+
+    #[error(transparent)]
+    Fs(#[from] FsError),
+}
 
 #[derive(Error, Debug)]
 pub enum FetchExtensionCompatibilityMatrixError {

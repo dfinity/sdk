@@ -26,8 +26,6 @@ struct CustomBuilderExtra {
     wasm: PathBuf,
     /// Where to download the candid from
     input_candid_url: Option<Url>,
-    /// Where the candid output will be located.
-    candid: PathBuf,
     /// A command to run to build this canister. This is optional if the canister
     /// only needs to exist.
     build: Vec<String>,
@@ -51,7 +49,6 @@ impl CustomBuilderExtra {
         let input_wasm_url = info.get_input_wasm_url().to_owned();
         let wasm = info.get_output_wasm_path().to_owned();
         let input_candid_url = info.get_input_candid_url().to_owned();
-        let candid = info.get_output_idl_path().to_owned();
         let build = info.get_build_tasks().to_owned();
 
         Ok(CustomBuilderExtra {
@@ -59,7 +56,6 @@ impl CustomBuilderExtra {
             input_wasm_url,
             wasm,
             input_candid_url,
-            candid,
             build,
         })
     }
@@ -103,7 +99,6 @@ impl CanisterBuilder for CustomBuilder {
     ) -> DfxResult<BuildOutput> {
         let CustomBuilderExtra {
             input_candid_url: _,
-            candid,
             input_wasm_url: _,
             wasm,
             build,
@@ -134,26 +129,25 @@ impl CanisterBuilder for CustomBuilder {
         Ok(BuildOutput {
             canister_id,
             wasm: WasmBuildOutput::File(wasm),
-            idl: IdlBuildOutput::File(candid),
+            idl: IdlBuildOutput::File(info.get_output_idl_path().to_path_buf()),
         })
     }
 
     fn get_candid_path(
         &self,
-        pool: &CanisterPool,
+        _pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,
     ) -> DfxResult<PathBuf> {
         // get the path to candid file
-        let CustomBuilderExtra { candid, .. } = CustomBuilderExtra::try_from(info, pool)?;
-        Ok(candid)
+        Ok(info.get_output_idl_path().to_path_buf())
     }
 }
 
 pub async fn custom_download(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult {
+    let candid = info.get_output_idl_path();
     let CustomBuilderExtra {
         input_candid_url,
-        candid,
         input_wasm_url,
         wasm,
         build: _,
@@ -164,7 +158,7 @@ pub async fn custom_download(info: &CanisterInfo, pool: &CanisterPool) -> DfxRes
         download_file_to_path(&url, &wasm).await?;
     }
     if let Some(url) = input_candid_url {
-        download_file_to_path(&url, &candid).await?;
+        download_file_to_path(&url, candid).await?;
     }
 
     Ok(())

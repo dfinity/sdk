@@ -173,7 +173,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         (None, _) => NormalDeploy,
     };
 
-    let call_sender = CallSender::from(&opts.wallet)
+    let call_sender = CallSender::from(&opts.wallet, env.get_network_descriptor())
         .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
 
     runtime.block_on(fetch_root_key_if_needed(&env))?;

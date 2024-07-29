@@ -433,9 +433,10 @@ pub fn get_and_write_environment_variables<'a>(
     if let Ok(id) = info.get_canister_id() {
         vars.push((Borrowed("CANISTER_ID"), Owned(format!("{}", id).into())));
     }
-    if let Some(path) = info.get_output_idl_path() {
-        vars.push((Borrowed("CANISTER_CANDID_PATH"), Owned(path.into())))
-    }
+    vars.push((
+        Borrowed("CANISTER_CANDID_PATH"),
+        Owned(info.get_output_idl_path().into()),
+    ));
 
     if let Some(write_path) = write_path {
         write_environment_variables(&vars, write_path)?;

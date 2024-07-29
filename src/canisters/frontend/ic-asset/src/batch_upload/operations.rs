@@ -112,7 +112,7 @@ pub(crate) fn create_new_assets(
                 .as_ref()
                 .and_then(|c| c.max_age);
 
-            let headers = project_asset.asset_descriptor.config.clone().headers;
+            let headers = project_asset.asset_descriptor.config.combined_headers();
             let enable_aliasing = project_asset.asset_descriptor.config.enable_aliasing;
             let allow_raw_access = project_asset.asset_descriptor.config.allow_raw_access;
 
@@ -199,11 +199,12 @@ pub(crate) fn update_properties(
                     }
                 },
                 headers: {
-                    let project_asset_headers = project_asset_properties.headers.map(|hm| {
-                        let mut vec = Vec::from_iter(hm.into_iter());
-                        vec.sort();
-                        vec
-                    });
+                    let project_asset_headers =
+                        project_asset_properties.combined_headers().map(|hm| {
+                            let mut vec = Vec::from_iter(hm.into_iter());
+                            vec.sort();
+                            vec
+                        });
                     let canister_asset_headers =
                         canister_asset_properties.headers.as_ref().map(|hm| {
                             // collect into a vec and sort it

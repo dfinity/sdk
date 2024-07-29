@@ -7,6 +7,7 @@ use crate::lib::nns_types::icpts::ICPTs;
 use candid::CandidType;
 use candid::Nat;
 use candid::Principal;
+use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use icrc_ledger_types::icrc1::account::Subaccount as ICRCSubaccount;
 use icrc_ledger_types::icrc1::transfer::BlockIndex as ICRCBlockIndex;
 use serde::{Deserialize, Serialize};
@@ -133,6 +134,7 @@ pub struct NotifyCreateCanisterArg {
     pub block_index: BlockIndex,
     pub controller: Principal,
     pub subnet_selection: Option<SubnetSelection>,
+    pub settings: Option<CanisterSettings>,
 }
 
 #[derive(CandidType)]

@@ -25,7 +25,7 @@ teardown() {
 start_and_install_nns() {
   dfx_start_for_nns_install
 
-  dfx extension install nns --version 0.3.1 || true
+  dfx extension install nns --version 0.3.1
   dfx nns install --ledger-accounts "$(dfx ledger account-id --identity cycle-giver)"
 }
 

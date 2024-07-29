@@ -71,7 +71,7 @@ ic-asset.workspace = true
 ic-cdk.workspace = true
 ic-identity-hsm = { workspace = true }
 ic-utils = { workspace = true }
-ic-wasm = "0.7.0"
+ic-wasm = "0.8.0"
 icrc-ledger-types = "0.1.5"
 idl2json = "0.10.1"
 indicatif = "0.16.0"
@@ -119,7 +119,7 @@ time = { workspace = true, features = [
 tokio = { workspace = true, features = ["fs"] }
 url.workspace = true
 walkdir.workspace = true
-walrus = "0.20.1"
+walrus = "0.21.1"
 which = "4.2.5"
 ci_info = "0.14"
 
