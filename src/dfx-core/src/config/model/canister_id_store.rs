@@ -123,12 +123,7 @@ impl CanisterIdStore {
                 None => None,
                 Some(config) => {
                     let dir = config.get_temp_path()?.join(name);
-                    ensure_cohesive_network_directory(network_descriptor, &dir).map_err(|e| {
-                        CanisterIdStoreError::EnsureCohesiveNetworkDirectoryFailed {
-                            network: network_descriptor.name.clone(),
-                            source: e.into(),
-                        }
-                    })?;
+                    ensure_cohesive_network_directory(network_descriptor, &dir)?;
                     Some(dir.join("canister_ids.json"))
                 }
             },

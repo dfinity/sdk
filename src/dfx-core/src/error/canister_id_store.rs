@@ -18,11 +18,8 @@ pub enum CanisterIdStoreError {
         network: String,
     },
 
-    #[error("Encountered error while loading canister id store for network '{network}' - ensuring cohesive network directory failed")]
-    EnsureCohesiveNetworkDirectoryFailed {
-        network: String,
-        source: UnifiedIoError,
-    },
+    #[error("failed to ensure cohesive network directory")]
+    EnsureCohesiveNetworkDirectoryFailed(#[from] EnsureCohesiveNetworkDirectoryError),
 
     #[error(transparent)]
     RemoveCanisterId(#[from] RemoveCanisterIdError),
@@ -55,6 +52,21 @@ pub enum AddCanisterIdError {
 
     #[error(transparent)]
     SaveTimestamps(#[from] SaveTimestampsError),
+}
+
+#[derive(Error, Debug)]
+pub enum EnsureCohesiveNetworkDirectoryError {
+    #[error(transparent)]
+    CreateDirAll(FsError),
+
+    #[error(transparent)]
+    ReadToString(FsError),
+
+    #[error(transparent)]
+    RemoveDirAll(FsError),
+
+    #[error(transparent)]
+    Write(FsError),
 }
 
 #[derive(Error, Debug)]
