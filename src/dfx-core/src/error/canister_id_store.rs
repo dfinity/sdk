@@ -1,6 +1,9 @@
 use crate::error::{
-    config::GetTempPathError, dfx_config::GetPullCanistersError, fs::FsError,
-    load_dfx_config::LoadDfxConfigError, structured_file::StructuredFileError,
+    config::GetTempPathError,
+    dfx_config::GetPullCanistersError,
+    fs::{CreateDirAllError, EnsureParentDirExistsError, FsError},
+    load_dfx_config::LoadDfxConfigError,
+    structured_file::StructuredFileError,
     unified_io::UnifiedIoError,
 };
 use thiserror::Error;
@@ -23,13 +26,6 @@ pub enum CanisterIdStoreError {
 
     #[error(transparent)]
     RemoveCanisterId(#[from] RemoveCanisterIdError),
-
-    #[error("Failed to add canister with name '{canister_name}' and id '{canister_id}' to canister id store")]
-    AddCanisterId {
-        canister_name: String,
-        canister_id: String,
-        source: AddCanisterIdError,
-    },
 
     #[error(transparent)]
     GetPullCanistersFailed(#[from] GetPullCanistersError),
@@ -57,7 +53,7 @@ pub enum AddCanisterIdError {
 #[derive(Error, Debug)]
 pub enum EnsureCohesiveNetworkDirectoryError {
     #[error(transparent)]
-    CreateDirAll(FsError),
+    CreateDirAll(CreateDirAllError),
 
     #[error(transparent)]
     ReadToString(FsError),
@@ -84,19 +80,19 @@ pub enum RemoveCanisterIdError {
 #[derive(Error, Debug)]
 pub enum SaveTimestampsError {
     #[error(transparent)]
-    EnsureParentDirExists(FsError),
+    EnsureParentDirExists(#[from] EnsureParentDirExistsError),
 
     #[error(transparent)]
-    SaveJsonFile(StructuredFileError),
+    SaveJsonFile(#[from] StructuredFileError),
 }
 
 #[derive(Error, Debug)]
 pub enum SaveIdsError {
     #[error(transparent)]
-    EnsureParentDirExists(FsError),
+    EnsureParentDirExists(#[from] EnsureParentDirExistsError),
 
     #[error(transparent)]
-    SaveJsonFile(StructuredFileError),
+    SaveJsonFile(#[from] StructuredFileError),
 }
 
 impl From<FsError> for CanisterIdStoreError {

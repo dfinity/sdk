@@ -106,8 +106,8 @@ pub fn write_pem_to_file(
 }
 
 fn write_pem_content(path: &Path, pem_content: &[u8]) -> Result<(), WritePemContentError> {
-    let containing_folder = crate::fs::parent(path).map_err(WritePemContentError::NoParent)?;
-    crate::fs::create_dir_all(&containing_folder).map_err(WritePemContentError::CreateDirAll)?;
+    let containing_folder = crate::fs::parent(path)?;
+    crate::fs::create_dir_all(&containing_folder)?;
     crate::fs::write(path, pem_content).map_err(WritePemContentError::Write)?;
 
     let mut permissions =

@@ -1,7 +1,9 @@
 use crate::error::{
     config::ConfigError,
     encryption::EncryptionError,
-    fs::{CopyFileError, FsError},
+    fs::{
+        CopyFileError, CreateDirAllError, EnsureParentDirExistsError, FsError, NoParentPathError,
+    },
     get_user_home::GetUserHomeError,
     keyring::KeyringError,
     structured_file::StructuredFileError,
@@ -61,7 +63,7 @@ pub enum CreateNewIdentityError {
     CreateMnemonicFromPhraseFailed(String),
 
     #[error("Failed to create temporary identity directory")]
-    CreateTemporaryIdentityDirectoryFailed(#[source] FsError),
+    CreateTemporaryIdentityDirectoryFailed(#[source] CreateDirAllError),
 
     #[error("Failed to generate key")]
     GenerateKeyFailed(#[source] GenerateKeyError),
@@ -136,7 +138,7 @@ pub enum GetLegacyCredentialsPemPathError {
 #[derive(Error, Debug)]
 pub enum InitializeIdentityManagerError {
     #[error("Cannot create identity directory")]
-    CreateIdentityDirectoryFailed(#[source] FsError),
+    CreateIdentityDirectoryFailed(#[source] CreateDirAllError),
 
     #[error("Failed to generate key")]
     GenerateKeyFailed(#[source] GenerateKeyError),
@@ -330,8 +332,8 @@ pub enum RequireIdentityExistsError {
 
 #[derive(Error, Debug)]
 pub enum SaveIdentityConfigurationError {
-    #[error("Failed to ensure identity configuration directory exists")]
-    EnsureIdentityConfigurationDirExistsFailed(#[source] FsError),
+    #[error("failed to ensure identity configuration directory exists")]
+    EnsureIdentityConfigurationDirExistsFailed(#[source] EnsureParentDirExistsError),
 
     #[error("Failed to save identity configuration")]
     SaveIdentityConfigurationFailed(#[source] StructuredFileError),
@@ -381,10 +383,10 @@ pub enum WriteDefaultIdentityError {
 #[derive(Error, Debug)]
 pub enum WritePemContentError {
     #[error(transparent)]
-    CreateDirAll(FsError),
+    CreateDirAll(#[from] CreateDirAllError),
 
     #[error(transparent)]
-    NoParent(FsError),
+    NoParent(#[from] NoParentPathError),
 
     #[error(transparent)]
     ReadPermissions(FsError),

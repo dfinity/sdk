@@ -1,12 +1,13 @@
 pub mod composite;
 use crate::error::archive::ArchiveError;
 use crate::error::fs::FsErrorKind::{
-    CreateDirectoryFailed, NoParent, ReadDirFailed, ReadFileFailed, ReadMetadataFailed,
-    ReadPermissionsFailed, ReadToStringFailed, RemoveDirectoryAndContentsFailed,
-    RemoveDirectoryFailed, RemoveFileFailed, RenameFailed, UnpackingArchiveFailed, WriteFileFailed,
-    WritePermissionsFailed,
+    ReadDirFailed, ReadFileFailed, ReadMetadataFailed, ReadPermissionsFailed, ReadToStringFailed,
+    RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
+    UnpackingArchiveFailed, WriteFileFailed, WritePermissionsFailed,
 };
-use crate::error::fs::{CanonicalizePathError, CopyFileError, FsError};
+use crate::error::fs::{
+    CanonicalizePathError, CopyFileError, CreateDirAllError, FsError, NoParentPathError,
+};
 use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
 
@@ -25,9 +26,11 @@ pub fn copy(from: &Path, to: &Path) -> Result<u64, CopyFileError> {
     })
 }
 
-pub fn create_dir_all(path: &Path) -> Result<(), FsError> {
-    std::fs::create_dir_all(path)
-        .map_err(|err| FsError::new(CreateDirectoryFailed(path.to_path_buf(), err)))
+pub fn create_dir_all(path: &Path) -> Result<(), CreateDirAllError> {
+    std::fs::create_dir_all(path).map_err(|source| CreateDirAllError {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
 pub fn get_archive_path(
@@ -43,9 +46,9 @@ pub fn metadata(path: &Path) -> Result<Metadata, FsError> {
     std::fs::metadata(path).map_err(|err| FsError::new(ReadMetadataFailed(path.to_path_buf(), err)))
 }
 
-pub fn parent(path: &Path) -> Result<PathBuf, FsError> {
+pub fn parent(path: &Path) -> Result<PathBuf, NoParentPathError> {
     match path.parent() {
-        None => Err(FsError::new(NoParent(path.to_path_buf()))),
+        None => Err(NoParentPathError(path.to_path_buf())),
         Some(parent) => Ok(parent.to_path_buf()),
     }
 }

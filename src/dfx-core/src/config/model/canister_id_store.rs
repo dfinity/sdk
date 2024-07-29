@@ -223,9 +223,8 @@ impl CanisterIdStore {
                 // the only callers of this method have already called Environment::get_config_or_anyhow
                 unreachable!("Must be in a project (call Environment::get_config_or_anyhow()) to save canister ids")
             });
-        crate::fs::composite::ensure_parent_dir_exists(path)
-            .map_err(SaveIdsError::EnsureParentDirExists)?;
-        crate::json::save_json_file(path, &self.ids).map_err(SaveIdsError::SaveJsonFile)?;
+        crate::fs::composite::ensure_parent_dir_exists(path)?;
+        crate::json::save_json_file(path, &self.ids)?;
         Ok(())
     }
 
@@ -237,10 +236,8 @@ impl CanisterIdStore {
                 // the only callers of this method have already called Environment::get_config_or_anyhow
                 unreachable!("Must be in a project (call Environment::get_config_or_anyhow()) to save canister timestamps")
             });
-        crate::fs::composite::ensure_parent_dir_exists(path)
-            .map_err(SaveTimestampsError::EnsureParentDirExists)?;
-        crate::json::save_json_file(path, &self.acquisition_timestamps)
-            .map_err(SaveTimestampsError::SaveJsonFile)?;
+        crate::fs::composite::ensure_parent_dir_exists(path)?;
+        crate::json::save_json_file(path, &self.acquisition_timestamps)?;
         Ok(())
     }
 

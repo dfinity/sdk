@@ -195,9 +195,9 @@ impl Identity {
         path: &Path,
         config: &WalletGlobalConfig,
     ) -> Result<(), SaveWalletConfigError> {
-        ensure_parent_dir_exists(path).map_err(SaveWalletConfigError::EnsureParentDirExists)?;
+        ensure_parent_dir_exists(path)?;
 
-        save_json_file(path, &config).map_err(SaveWalletConfigError::SaveJsonFile)?;
+        save_json_file(path, &config)?;
         Ok(())
     }
 

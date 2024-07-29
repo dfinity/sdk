@@ -1,7 +1,7 @@
 use crate::error::AssetLoadConfigError;
 use crate::error::AssetLoadConfigError::{LoadRuleFailed, MalformedAssetConfigFile};
 use crate::error::GetAssetConfigError;
-use crate::error::GetAssetConfigError::{AssetConfigNotFound, InvalidPath};
+use crate::error::GetAssetConfigError::AssetConfigNotFound;
 use crate::security_policy::SecurityPolicy;
 use derivative::Derivative;
 use globset::GlobMatcher;
@@ -176,7 +176,7 @@ impl AssetSourceDirectoryConfiguration {
         &mut self,
         canonical_path: &Path,
     ) -> Result<AssetConfig, GetAssetConfigError> {
-        let parent_dir = dfx_core::fs::parent(canonical_path).map_err(InvalidPath)?;
+        let parent_dir = dfx_core::fs::parent(canonical_path)?;
         Ok(self
             .config_map
             .get(&parent_dir)

@@ -1200,8 +1200,7 @@ impl Config {
                     let p = self.get_project_root().join(p);
 
                     // cannot canonicalize a path that doesn't exist, but the parent should exist
-                    let env_parent =
-                        crate::fs::parent(&p).map_err(GetOutputEnvFileError::Parent)?;
+                    let env_parent = crate::fs::parent(&p)?;
                     let env_parent = crate::fs::canonicalize(&env_parent)?;
                     if !env_parent.starts_with(self.get_project_root()) {
                         Err(GetOutputEnvFileError::OutputEnvFileMustBeInProjectRoot(p))

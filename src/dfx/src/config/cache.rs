@@ -94,7 +94,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
             .map(|byte| byte as char)
             .collect();
         let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))?;
-        dfx_core::fs::create_dir_all(&temp_p).map_err(UnifiedIoError::from)?;
+        dfx_core::fs::create_dir_all(&temp_p)?;
 
         let mut binary_cache_assets =
             util::assets::binary_cache().map_err(CacheError::ReadBinaryCacheStoreFailed)?;

@@ -17,16 +17,36 @@ pub struct CopyFileError {
 }
 
 #[derive(Error, Debug)]
-pub enum FsErrorKind {
-    #[error("Failed to create {0}")]
-    CreateDirectoryFailed(PathBuf, #[source] std::io::Error),
+#[error("failed to create directory {path} and parents")]
+pub struct CreateDirAllError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
 
-    #[error("Cannot determine parent folder for {0}")]
-    NoParent(PathBuf),
+#[derive(Error, Debug)]
+pub enum EnsureDirExistsError {
+    #[error(transparent)]
+    CreateDirAll(#[from] CreateDirAllError),
 
-    #[error("Path {0} is not a directory")]
+    #[error("path {0} is not a directory")]
     NotADirectory(PathBuf),
+}
 
+#[derive(Error, Debug)]
+pub enum EnsureParentDirExistsError {
+    #[error(transparent)]
+    EnsureDirExists(#[from] EnsureDirExistsError),
+
+    #[error(transparent)]
+    NoParentPath(#[from] NoParentPathError),
+}
+
+#[derive(Error, Debug)]
+#[error("failed to determine parent path for '{0}'")]
+pub struct NoParentPathError(pub PathBuf);
+
+#[derive(Error, Debug)]
+pub enum FsErrorKind {
     #[error("Failed to read directory {0}")]
     ReadDirFailed(PathBuf, #[source] std::io::Error),
 
