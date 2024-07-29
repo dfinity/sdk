@@ -1,4 +1,4 @@
-# dfx 0.23.0 Migration Guide
+# dfx 0.22.1 Migration Guide
 
 ## New frontend security header mechanism
 
@@ -7,7 +7,7 @@ Previously, the default projects provided by `dfx new` included a default set of
 While this is a solid default, it is likely that these headers will receive updates in the future and many projects will forget to update their security headers.
 Additionally, it is unlikely that many projects actually improve over the defaults with the individually defined headers.
 
-`dfx` version `0.23.0` introduces a new field `"security_policy"` to `.ic-assets.json5`,
+`dfx` version `0.22.1` introduces a new field `"security_policy"` to `.ic-assets.json5`,
 which can automatically provide all the default security headers and updates that will be shipped in future versions of `dfx`.
 You can check the default security headers with `dfx info security-policy`.
 
