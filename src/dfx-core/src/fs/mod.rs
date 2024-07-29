@@ -1,18 +1,20 @@
 pub mod composite;
 use crate::error::archive::ArchiveError;
-use crate::error::fs::FsError;
 use crate::error::fs::FsErrorKind::{
-    CanonicalizePathFailed, CopyFileFailed, CreateDirectoryFailed, NoParent, ReadDirFailed,
-    ReadFileFailed, ReadMetadataFailed, ReadPermissionsFailed, ReadToStringFailed,
+    CopyFileFailed, CreateDirectoryFailed, NoParent, ReadDirFailed, ReadFileFailed,
+    ReadMetadataFailed, ReadPermissionsFailed, ReadToStringFailed,
     RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
     UnpackingArchiveFailed, WriteFileFailed, WritePermissionsFailed,
 };
+use crate::error::fs::{CanonicalizePathError, FsError};
 use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
 
-pub fn canonicalize(path: &Path) -> Result<PathBuf, FsError> {
-    dunce::canonicalize(path)
-        .map_err(|err| FsError::new(CanonicalizePathFailed(path.to_path_buf(), err)))
+pub fn canonicalize(path: &Path) -> Result<PathBuf, CanonicalizePathError> {
+    dunce::canonicalize(path).map_err(|source| CanonicalizePathError {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
 pub fn copy(from: &Path, to: &Path) -> Result<u64, FsError> {

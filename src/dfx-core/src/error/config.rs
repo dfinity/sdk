@@ -1,5 +1,5 @@
 use crate::error::extension::LoadExtensionManifestError;
-use crate::error::fs::FsError;
+use crate::error::fs::{CanonicalizePathError, FsError};
 use crate::error::get_user_home::GetUserHomeError;
 use handlebars::RenderError;
 use std::path::PathBuf;
@@ -19,8 +19,8 @@ pub enum ConfigError {
 
 #[derive(Error, Debug)]
 pub enum GetOutputEnvFileError {
-    #[error("failed to canonicalize output_env_file")]
-    Canonicalize(#[source] FsError),
+    #[error(transparent)]
+    CanonicalizePath(#[from] CanonicalizePathError),
 
     #[error("The output_env_file must be within the project root, but is {}", .0.display())]
     OutputEnvFileMustBeInProjectRoot(PathBuf),

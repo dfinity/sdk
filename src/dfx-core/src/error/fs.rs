@@ -2,10 +2,14 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum FsErrorKind {
-    #[error("Failed to canonicalize {0}")]
-    CanonicalizePathFailed(PathBuf, #[source] std::io::Error),
+#[error("failed to canonicalize '{path}'")]
+pub struct CanonicalizePathError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
 
+#[derive(Error, Debug)]
+pub enum FsErrorKind {
     #[error("Failed to copy {0} to {1}")]
     CopyFileFailed(Box<PathBuf>, Box<PathBuf>, #[source] std::io::Error),
 
