@@ -1,13 +1,13 @@
 pub mod composite;
 use crate::error::archive::ArchiveError;
 use crate::error::fs::FsErrorKind::{
-    ReadToStringFailed, RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed,
-    RenameFailed, UnpackingArchiveFailed,
+    RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
+    UnpackingArchiveFailed,
 };
 use crate::error::fs::{
     CanonicalizePathError, CopyFileError, CreateDirAllError, FsError, NoParentPathError,
-    ReadDirError, ReadFileError, ReadMetadataError, ReadPermissionsError, SetPermissionsError,
-    SetPermissionsReadWriteError, WriteFileError,
+    ReadDirError, ReadFileError, ReadMetadataError, ReadPermissionsError, ReadToStringError,
+    SetPermissionsError, SetPermissionsReadWriteError, WriteFileError,
 };
 use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
@@ -64,9 +64,11 @@ pub fn read(path: &Path) -> Result<Vec<u8>, ReadFileError> {
     })
 }
 
-pub fn read_to_string(path: &Path) -> Result<String, FsError> {
-    std::fs::read_to_string(path)
-        .map_err(|err| FsError::new(ReadToStringFailed(path.to_path_buf(), err)))
+pub fn read_to_string(path: &Path) -> Result<String, ReadToStringError> {
+    std::fs::read_to_string(path).map_err(|source| ReadToStringError {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
 pub fn read_dir(path: &Path) -> Result<ReadDir, ReadDirError> {

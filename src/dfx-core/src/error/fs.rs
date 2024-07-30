@@ -81,6 +81,13 @@ pub struct ReadPermissionsError {
 }
 
 #[derive(Error, Debug)]
+#[error("failed to read {path} as string")]
+pub struct ReadToStringError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
 #[error("failed to set permissions of {path}")]
 pub struct SetPermissionsError {
     pub path: PathBuf,
@@ -98,9 +105,6 @@ pub enum SetPermissionsReadWriteError {
 
 #[derive(Error, Debug)]
 pub enum FsErrorKind {
-    #[error("Failed to read {0} as string")]
-    ReadToStringFailed(PathBuf, #[source] std::io::Error),
-
     #[error("Failed to remove directory {0}")]
     RemoveDirectoryFailed(PathBuf, #[source] std::io::Error),
 

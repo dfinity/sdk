@@ -1,5 +1,5 @@
 use crate::error::load_rule::LoadRuleError;
-use dfx_core::error::fs::{FsError, ReadDirError};
+use dfx_core::error::fs::{FsError, ReadDirError, ReadToStringError};
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -32,4 +32,8 @@ pub enum AssetLoadConfigError {
     /// Couldn't read a directory when loading asset configuration.
     #[error(transparent)]
     ReadDir(#[from] ReadDirError),
+
+    /// Couldn't read a config file.
+    #[error(transparent)]
+    ReadToString(#[from] ReadToStringError),
 }
