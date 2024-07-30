@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.22.1
+
 ### feat: generate .env files for Motoko canisters
 
 ### feat: support `"security_policy"` and `"disable_security_policy_warning"` in `.ic-assets.json5`
