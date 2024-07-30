@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.22.1
+
 ## Dependencies
 
 ### Replica

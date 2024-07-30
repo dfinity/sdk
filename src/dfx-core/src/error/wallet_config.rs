@@ -1,12 +1,12 @@
 use crate::error::config::ConfigError;
-use crate::error::fs::FsError;
+use crate::error::fs::{CreateDirAllError, EnsureParentDirExistsError};
 use crate::error::structured_file::StructuredFileError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum WalletConfigError {
-    #[error("Failed to ensure existence of parent directory for wallet configuration")]
-    EnsureWalletConfigDirFailed(#[source] FsError),
+    #[error("failed to ensure existence of parent directory for wallet configuration")]
+    EnsureWalletConfigDirFailed(#[source] CreateDirAllError),
 
     #[error("Failed to get wallet configuration path")]
     GetWalletConfigPathFailed(Box<String>, Box<String>, #[source] ConfigError),
@@ -15,5 +15,14 @@ pub enum WalletConfigError {
     LoadWalletConfigFailed(#[source] StructuredFileError),
 
     #[error("Failed to save wallet configuration")]
-    SaveWalletConfigFailed(#[source] StructuredFileError),
+    SaveWalletConfig(#[from] SaveWalletConfigError),
+}
+
+#[derive(Error, Debug)]
+pub enum SaveWalletConfigError {
+    #[error(transparent)]
+    EnsureParentDirExists(#[from] EnsureParentDirExistsError),
+
+    #[error(transparent)]
+    SaveJsonFile(#[from] StructuredFileError),
 }

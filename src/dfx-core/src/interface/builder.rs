@@ -189,7 +189,7 @@ mod tests {
             BuildDfxInterfaceError::{FetchRootKey, NetworkConfig},
             BuildIdentityError::NewIdentityManager,
         },
-        identity::new_identity_manager::NewIdentityManagerError,
+        identity::NewIdentityManagerError,
         network_config::NetworkConfigError::NetworkNotFound,
         root_key::FetchRootKeyError,
         root_key::FetchRootKeyError::AgentError,

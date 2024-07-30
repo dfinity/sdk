@@ -1,6 +1,9 @@
 use crate::error::{
-    config::GetTempPathError, dfx_config::GetPullCanistersError, fs::FsError,
-    load_dfx_config::LoadDfxConfigError, structured_file::StructuredFileError,
+    config::GetTempPathError,
+    dfx_config::GetPullCanistersError,
+    fs::{CreateDirAllError, EnsureParentDirExistsError, FsError},
+    load_dfx_config::LoadDfxConfigError,
+    structured_file::StructuredFileError,
     unified_io::UnifiedIoError,
 };
 use thiserror::Error;
@@ -18,24 +21,11 @@ pub enum CanisterIdStoreError {
         network: String,
     },
 
-    #[error("Encountered error while loading canister id store for network '{network}' - ensuring cohesive network directory failed")]
-    EnsureCohesiveNetworkDirectoryFailed {
-        network: String,
-        source: UnifiedIoError,
-    },
+    #[error("failed to ensure cohesive network directory")]
+    EnsureCohesiveNetworkDirectoryFailed(#[from] EnsureCohesiveNetworkDirectoryError),
 
-    #[error("Failed to remove canister '{canister_name}' from id store")]
-    RemoveCanisterId {
-        canister_name: String,
-        source: UnifiedIoError,
-    },
-
-    #[error("Failed to add canister with name '{canister_name}' and id '{canister_id}' to canister id store")]
-    AddCanisterId {
-        canister_name: String,
-        canister_id: String,
-        source: UnifiedIoError,
-    },
+    #[error(transparent)]
+    RemoveCanisterId(#[from] RemoveCanisterIdError),
 
     #[error(transparent)]
     GetPullCanistersFailed(#[from] GetPullCanistersError),
@@ -45,6 +35,64 @@ pub enum CanisterIdStoreError {
 
     #[error(transparent)]
     LoadDfxConfig(#[from] LoadDfxConfigError),
+}
+
+#[derive(Error, Debug)]
+pub enum AddCanisterIdError {
+    #[error("failed to add canister with name '{canister_name}' and id '{canister_id}' to canister id store")]
+    SaveIds {
+        canister_name: String,
+        canister_id: String,
+        source: SaveIdsError,
+    },
+
+    #[error(transparent)]
+    SaveTimestamps(#[from] SaveTimestampsError),
+}
+
+#[derive(Error, Debug)]
+pub enum EnsureCohesiveNetworkDirectoryError {
+    #[error(transparent)]
+    CreateDirAll(CreateDirAllError),
+
+    #[error(transparent)]
+    ReadToString(FsError),
+
+    #[error(transparent)]
+    RemoveDirAll(FsError),
+
+    #[error(transparent)]
+    Write(FsError),
+}
+
+#[derive(Error, Debug)]
+pub enum RemoveCanisterIdError {
+    #[error("failed to remove canister '{canister_name}' from id store")]
+    SaveIds {
+        canister_name: String,
+        source: SaveIdsError,
+    },
+
+    #[error(transparent)]
+    SaveTimestamps(#[from] SaveTimestampsError),
+}
+
+#[derive(Error, Debug)]
+pub enum SaveTimestampsError {
+    #[error(transparent)]
+    EnsureParentDirExists(#[from] EnsureParentDirExistsError),
+
+    #[error(transparent)]
+    SaveJsonFile(#[from] StructuredFileError),
+}
+
+#[derive(Error, Debug)]
+pub enum SaveIdsError {
+    #[error(transparent)]
+    EnsureParentDirExists(#[from] EnsureParentDirExistsError),
+
+    #[error(transparent)]
+    SaveJsonFile(#[from] StructuredFileError),
 }
 
 impl From<FsError> for CanisterIdStoreError {
