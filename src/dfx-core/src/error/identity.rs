@@ -1,6 +1,13 @@
 use crate::error::{
-    config::ConfigError, encryption::EncryptionError, fs::FsError, get_user_home::GetUserHomeError,
-    keyring::KeyringError, structured_file::StructuredFileError, wallet_config::WalletConfigError,
+    config::ConfigError,
+    encryption::EncryptionError,
+    fs::{
+        CopyFileError, CreateDirAllError, EnsureParentDirExistsError, FsError, NoParentPathError,
+    },
+    get_user_home::GetUserHomeError,
+    keyring::KeyringError,
+    structured_file::StructuredFileError,
+    wallet_config::{SaveWalletConfigError, WalletConfigError},
 };
 use candid::types::principal::PrincipalError;
 use ic_agent::identity::PemError;
@@ -55,8 +62,8 @@ pub enum CreateNewIdentityError {
     #[error("Failed to create mnemonic from phrase: {0}")]
     CreateMnemonicFromPhraseFailed(String),
 
-    #[error("Failed to create temporary identity directory")]
-    CreateTemporaryIdentityDirectoryFailed(#[source] FsError),
+    #[error("failed to create temporary identity directory")]
+    CreateTemporaryIdentityDirectoryFailed(#[source] CreateDirAllError),
 
     #[error("Failed to generate key")]
     GenerateKeyFailed(#[source] GenerateKeyError),
@@ -131,7 +138,7 @@ pub enum GetLegacyCredentialsPemPathError {
 #[derive(Error, Debug)]
 pub enum InitializeIdentityManagerError {
     #[error("Cannot create identity directory")]
-    CreateIdentityDirectoryFailed(#[source] FsError),
+    CreateIdentityDirectoryFailed(#[source] CreateDirAllError),
 
     #[error("Failed to generate key")]
     GenerateKeyFailed(#[source] GenerateKeyError),
@@ -139,8 +146,8 @@ pub enum InitializeIdentityManagerError {
     #[error(transparent)]
     GetLegacyCredentialsPemPathFailed(#[from] GetLegacyCredentialsPemPathError),
 
-    #[error("Failed to migrate legacy identity")]
-    MigrateLegacyIdentityFailed(#[source] FsError),
+    #[error("failed to migrate legacy identity")]
+    MigrateLegacyIdentityFailed(#[source] CopyFileError),
 
     #[error("Failed to save configuration")]
     SaveConfigurationFailed(#[source] StructuredFileError),
@@ -309,6 +316,9 @@ pub enum RenameIdentityError {
 pub enum RenameWalletGlobalConfigKeyError {
     #[error("Failed to rename '{0}' to '{1}' in the global wallet config")]
     RenameWalletFailed(Box<String>, Box<String>, #[source] WalletConfigError),
+
+    #[error(transparent)]
+    SaveWalletConfig(#[from] SaveWalletConfigError),
 }
 
 #[derive(Error, Debug)]
@@ -322,8 +332,8 @@ pub enum RequireIdentityExistsError {
 
 #[derive(Error, Debug)]
 pub enum SaveIdentityConfigurationError {
-    #[error("Failed to ensure identity configuration directory exists")]
-    EnsureIdentityConfigurationDirExistsFailed(#[source] FsError),
+    #[error("failed to ensure identity configuration directory exists")]
+    EnsureIdentityConfigurationDirExistsFailed(#[source] EnsureParentDirExistsError),
 
     #[error("Failed to save identity configuration")]
     SaveIdentityConfigurationFailed(#[source] StructuredFileError),
@@ -371,10 +381,28 @@ pub enum WriteDefaultIdentityError {
 }
 
 #[derive(Error, Debug)]
+pub enum WritePemContentError {
+    #[error(transparent)]
+    CreateDirAll(#[from] CreateDirAllError),
+
+    #[error(transparent)]
+    NoParent(#[from] NoParentPathError),
+
+    #[error(transparent)]
+    ReadPermissions(FsError),
+
+    #[error(transparent)]
+    SetPermissions(FsError),
+
+    #[error(transparent)]
+    Write(FsError),
+}
+
+#[derive(Error, Debug)]
 pub enum WritePemToFileError {
     #[error("Failed to encrypt PEM file")]
     EncryptPemFileFailed(PathBuf, #[source] EncryptionError),
 
-    #[error("Failed to write to PEM file")]
-    WritePemContentFailed(#[source] FsError),
+    #[error("failed to write PEM content")]
+    WritePemContentFailed(#[source] WritePemContentError),
 }

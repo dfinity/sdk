@@ -1,7 +1,14 @@
+use dfx_core::error::fs::{CanonicalizePathError, CreateDirAllError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ProjectError {
+    #[error(transparent)]
+    CanonicalizePath(#[from] CanonicalizePathError),
+
+    #[error(transparent)]
+    CreateDirAll(#[from] CreateDirAllError),
+
     #[error(transparent)]
     StructuredFileError(#[from] dfx_core::error::structured_file::StructuredFileError),
 

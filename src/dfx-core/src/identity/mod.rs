@@ -4,6 +4,7 @@
 //! type.
 use crate::config::directories::{get_shared_network_data_directory, get_user_dfx_config_dir};
 use crate::config::model::network_descriptor::NetworkDescriptor;
+use crate::error::wallet_config::SaveWalletConfigError;
 use crate::error::{
     identity::{
         CallSenderFromWalletError,
@@ -20,13 +21,9 @@ use crate::error::{
         NewIdentityError, RenameWalletGlobalConfigKeyError,
         RenameWalletGlobalConfigKeyError::RenameWalletFailed,
     },
-    wallet_config::{
-        WalletConfigError,
-        WalletConfigError::{
-            EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
-        },
-    },
+    wallet_config::{WalletConfigError, WalletConfigError::LoadWalletConfigFailed},
 };
+use crate::fs::composite::ensure_parent_dir_exists;
 use crate::identity::identity_file_locations::IdentityFileLocations;
 use crate::identity::wallet::wallet_canister_id;
 use crate::json::{load_json_file, save_json_file};
@@ -197,12 +194,11 @@ impl Identity {
     pub fn save_wallet_config(
         path: &Path,
         config: &WalletGlobalConfig,
-    ) -> Result<(), WalletConfigError> {
-        crate::fs::parent(path)
-            .and_then(|path| crate::fs::create_dir_all(&path))
-            .map_err(EnsureWalletConfigDirFailed)?;
+    ) -> Result<(), SaveWalletConfigError> {
+        ensure_parent_dir_exists(path)?;
 
-        save_json_file(path, &config).map_err(SaveWalletConfigFailed)
+        save_json_file(path, &config)?;
+        Ok(())
     }
 
     fn rename_wallet_global_config_key(
@@ -220,6 +216,7 @@ impl Identity {
                     });
                 identities.insert(renamed_identity.to_string(), v);
                 Identity::save_wallet_config(&wallet_path, &config)
+                    .map_err(WalletConfigError::SaveWalletConfig)
             })
             .map_err(|err| {
                 RenameWalletFailed(

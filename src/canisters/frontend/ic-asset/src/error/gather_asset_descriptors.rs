@@ -1,6 +1,6 @@
 use crate::error::get_asset_config::GetAssetConfigError;
 use crate::error::load_config::AssetLoadConfigError;
-use dfx_core::error::fs::FsError;
+use dfx_core::error::fs::CanonicalizePathError;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -16,12 +16,12 @@ pub enum GatherAssetDescriptorsError {
     GetAssetConfigFailed(#[from] GetAssetConfigError),
 
     /// Failed to canonicalize a directory entry.
-    #[error("Invalid directory entry: {0}")]
-    InvalidDirectoryEntry(FsError),
+    #[error("invalid directory entry")]
+    InvalidDirectoryEntry(#[source] CanonicalizePathError),
 
     /// Failed to canonicalize a source directory.
-    #[error("Invalid source directory: {0}")]
-    InvalidSourceDirectory(FsError),
+    #[error("invalid source directory")]
+    InvalidSourceDirectory(#[source] CanonicalizePathError),
 
     /// Failed to load the asset configuration for a directory.
     #[error("Failed to load asset configuration: {0}")]
