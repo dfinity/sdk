@@ -10,7 +10,7 @@ use crate::error::{
         LoadPemError,
         LoadPemError::LoadFromKeyringFailed,
         LoadPemFromFileError,
-        LoadPemFromFileError::{DecryptPemFileFailed, ReadPemFileFailed},
+        LoadPemFromFileError::DecryptPemFileFailed,
         SavePemError,
         SavePemError::{CannotSavePemContentForHsm, WritePemToKeyringFailed},
         WritePemToFileError,
@@ -84,7 +84,7 @@ pub fn load_pem_from_file(
     path: &Path,
     config: Option<&IdentityConfiguration>,
 ) -> Result<(Vec<u8>, bool), LoadPemFromFileError> {
-    let content = crate::fs::read(path).map_err(ReadPemFileFailed)?;
+    let content = crate::fs::read(path)?;
 
     let (content, was_encrypted) = maybe_decrypt_pem(content.as_slice(), config)
         .map_err(|err| DecryptPemFileFailed(path.to_path_buf(), err))?;

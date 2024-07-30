@@ -2,7 +2,7 @@ use super::{
     archive::ArchiveError, fs::FsError, structured_file::StructuredFileError,
     unified_io::UnifiedIoError,
 };
-use crate::error::fs::{CreateDirAllError, ReadDirError};
+use crate::error::fs::{CreateDirAllError, ReadDirError, ReadFileError};
 use crate::error::get_current_exe::GetCurrentExeError;
 use crate::error::get_user_home::GetUserHomeError;
 use thiserror::Error;
@@ -20,6 +20,9 @@ pub enum CacheError {
 
     #[error(transparent)]
     UnifiedIo(#[from] crate::error::unified_io::UnifiedIoError),
+
+    #[error(transparent)]
+    ReadFile(#[from] ReadFileError),
 
     #[error(transparent)]
     ProcessError(#[from] crate::error::process::ProcessError),

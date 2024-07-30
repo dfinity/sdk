@@ -131,11 +131,8 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         // Copy our own binary in the cache.
         let dfx = temp_p.join("dfx");
         #[allow(clippy::needless_borrows_for_generic_args)]
-        dfx_core::fs::write(
-            &dfx,
-            dfx_core::fs::read(&current_exe).map_err(UnifiedIoError::from)?,
-        )
-        .map_err(UnifiedIoError::from)?;
+        dfx_core::fs::write(&dfx, dfx_core::fs::read(&current_exe)?)
+            .map_err(UnifiedIoError::from)?;
         // On *nix we need to set the execute permission as the tgz doesn't include it
         #[cfg(unix)]
         {

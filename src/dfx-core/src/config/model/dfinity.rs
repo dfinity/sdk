@@ -36,9 +36,7 @@ use crate::error::socket_addr_conversion::SocketAddrConversionError::{
     EmptyIterator, ParseSocketAddrFailed,
 };
 use crate::error::structured_file::StructuredFileError;
-use crate::error::structured_file::StructuredFileError::{
-    DeserializeJsonFileFailed, ReadJsonFileFailed,
-};
+use crate::error::structured_file::StructuredFileError::DeserializeJsonFileFailed;
 use crate::extension::manager::ExtensionManager;
 use crate::fs::create_dir_all;
 use crate::json::save_json_file;
@@ -1113,7 +1111,7 @@ impl Config {
         path: &Path,
         extension_manager: Option<&ExtensionManager>,
     ) -> Result<Config, LoadDfxConfigError> {
-        let content = crate::fs::read(path).map_err(LoadDfxConfigError::ReadFile)?;
+        let content = crate::fs::read(path)?;
         Config::from_slice(path.to_path_buf(), &content, extension_manager)
     }
 
@@ -1325,7 +1323,7 @@ impl NetworksConfig {
     }
 
     fn from_file(path: &Path) -> Result<NetworksConfig, StructuredFileError> {
-        let content = crate::fs::read(path).map_err(ReadJsonFileFailed)?;
+        let content = crate::fs::read(path)?;
 
         let networks: BTreeMap<String, ConfigNetwork> = serde_json::from_slice(&content)
             .map_err(|e| DeserializeJsonFileFailed(Box::new(path.to_path_buf()), e))?;

@@ -1,4 +1,4 @@
-use dfx_core::error::fs::{CanonicalizePathError, CreateDirAllError};
+use dfx_core::error::fs::{CanonicalizePathError, CreateDirAllError, ReadFileError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -14,6 +14,9 @@ pub enum ProjectError {
 
     #[error(transparent)]
     IoError(#[from] dfx_core::error::fs::FsError),
+
+    #[error(transparent)]
+    ReadFile(#[from] ReadFileError),
 
     #[error("Can't convert string '{0}' to path")]
     ConvertingStringToPathFailed(String, #[source] std::convert::Infallible),

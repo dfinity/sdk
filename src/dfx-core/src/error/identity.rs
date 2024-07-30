@@ -1,3 +1,4 @@
+use crate::error::fs::ReadFileError;
 use crate::error::{
     config::ConfigError,
     encryption::EncryptionError,
@@ -191,8 +192,8 @@ pub enum LoadPemFromFileError {
     #[error("Failed to decrypt PEM file at {0}")]
     DecryptPemFileFailed(PathBuf, #[source] EncryptionError),
 
-    #[error("Failed to read pem file")]
-    ReadPemFileFailed(#[source] FsError),
+    #[error("failed to read pem file")]
+    ReadPemFileFailed(#[from] ReadFileError),
 }
 
 #[derive(Error, Debug)]
