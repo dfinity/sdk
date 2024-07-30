@@ -1,3 +1,4 @@
+use crate::error::fs::WriteFileError;
 use crate::error::{
     config::GetTempPathError,
     dfx_config::GetPullCanistersError,
@@ -62,7 +63,7 @@ pub enum EnsureCohesiveNetworkDirectoryError {
     RemoveDirAll(FsError),
 
     #[error(transparent)]
-    Write(FsError),
+    Write(#[from] WriteFileError),
 }
 
 #[derive(Error, Debug)]

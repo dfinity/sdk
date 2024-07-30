@@ -35,8 +35,7 @@ pub fn ensure_cohesive_network_directory(
             if !directory.exists() {
                 crate::fs::create_dir_all(directory)
                     .map_err(EnsureCohesiveNetworkDirectoryError::CreateDirAll)?;
-                crate::fs::write(&project_network_id_path, &network_id)
-                    .map_err(EnsureCohesiveNetworkDirectoryError::Write)?;
+                crate::fs::write(&project_network_id_path, &network_id)?;
             }
         }
     }

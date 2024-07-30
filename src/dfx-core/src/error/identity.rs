@@ -1,4 +1,4 @@
-use crate::error::fs::ReadFileError;
+use crate::error::fs::{ReadFileError, WriteFileError};
 use crate::error::{
     config::ConfigError,
     encryption::EncryptionError,
@@ -396,7 +396,7 @@ pub enum WritePemContentError {
     SetPermissions(FsError),
 
     #[error(transparent)]
-    Write(FsError),
+    Write(#[from] WriteFileError),
 }
 
 #[derive(Error, Debug)]

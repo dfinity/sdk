@@ -3,11 +3,11 @@ use crate::error::archive::ArchiveError;
 use crate::error::fs::FsErrorKind::{
     ReadMetadataFailed, ReadPermissionsFailed, ReadToStringFailed,
     RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
-    UnpackingArchiveFailed, WriteFileFailed, WritePermissionsFailed,
+    UnpackingArchiveFailed, WritePermissionsFailed,
 };
 use crate::error::fs::{
     CanonicalizePathError, CopyFileError, CreateDirAllError, FsError, NoParentPathError,
-    ReadDirError, ReadFileError,
+    ReadDirError, ReadFileError, WriteFileError,
 };
 use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
@@ -130,7 +130,9 @@ pub fn tar_unpack_in<P: AsRef<Path>>(
     Ok(())
 }
 
-pub fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<(), FsError> {
-    std::fs::write(path.as_ref(), contents)
-        .map_err(|err| FsError::new(WriteFileFailed(path.as_ref().to_path_buf(), err)))
+pub fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<(), WriteFileError> {
+    std::fs::write(path.as_ref(), contents).map_err(|source| WriteFileError {
+        path: path.as_ref().to_path_buf(),
+        source,
+    })
 }

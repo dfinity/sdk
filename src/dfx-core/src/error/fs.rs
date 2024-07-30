@@ -53,8 +53,15 @@ pub struct ReadDirError {
 }
 
 #[derive(Error, Debug)]
-#[error("failed to read directory {path}")]
+#[error("failed to read file {path}")]
 pub struct ReadFileError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
+#[error("failed to write file {path}")]
+pub struct WriteFileError {
     pub path: PathBuf,
     pub source: std::io::Error,
 }
@@ -84,9 +91,6 @@ pub enum FsErrorKind {
 
     #[error("Failed to unpack archive in {0}")]
     UnpackingArchiveFailed(PathBuf, #[source] std::io::Error),
-
-    #[error("Failed to write to {0}")]
-    WriteFileFailed(PathBuf, #[source] std::io::Error),
 
     #[error("Failed to set permissions of {0}")]
     WritePermissionsFailed(PathBuf, #[source] std::io::Error),
