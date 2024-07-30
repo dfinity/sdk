@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::error::fs::{EnsureDirExistsError, FsError, ReadDirError};
+use crate::error::fs::{EnsureDirExistsError, FsError, ReadDirError, SetPermissionsError};
 use crate::error::structured_file::StructuredFileError;
 use semver::Version;
 use thiserror::Error;
@@ -195,6 +195,9 @@ pub enum FinalizeInstallationError {
 
     #[error(transparent)]
     Fs(#[from] FsError),
+
+    #[error(transparent)]
+    SetPermissions(#[from] SetPermissionsError),
 }
 
 #[derive(Error, Debug)]

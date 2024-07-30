@@ -1,4 +1,4 @@
-use crate::error::fs::{ReadFileError, WriteFileError};
+use crate::error::fs::{ReadFileError, ReadPermissionsError, SetPermissionsError, WriteFileError};
 use crate::error::{
     config::ConfigError,
     encryption::EncryptionError,
@@ -390,10 +390,10 @@ pub enum WritePemContentError {
     NoParent(#[from] NoParentPathError),
 
     #[error(transparent)]
-    ReadPermissions(FsError),
+    ReadPermissions(#[from] ReadPermissionsError),
 
     #[error(transparent)]
-    SetPermissions(FsError),
+    SetPermissions(#[from] SetPermissionsError),
 
     #[error(transparent)]
     Write(#[from] WriteFileError),

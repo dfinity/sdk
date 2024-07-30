@@ -67,12 +67,32 @@ pub struct WriteFileError {
 }
 
 #[derive(Error, Debug)]
+#[error("failed to read permissions of {path}")]
+pub struct ReadPermissionsError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
+#[error("failed to set permissions of {path}")]
+pub struct SetPermissionsError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
+pub enum SetPermissionsReadWriteError {
+    #[error(transparent)]
+    ReadPermissions(#[from] ReadPermissionsError),
+
+    #[error(transparent)]
+    SetPermissions(#[from] SetPermissionsError),
+}
+
+#[derive(Error, Debug)]
 pub enum FsErrorKind {
     #[error("Failed to read metadata of {0}")]
     ReadMetadataFailed(PathBuf, #[source] std::io::Error),
-
-    #[error("Failed to read permissions of {0}")]
-    ReadPermissionsFailed(PathBuf, #[source] std::io::Error),
 
     #[error("Failed to read {0} as string")]
     ReadToStringFailed(PathBuf, #[source] std::io::Error),
@@ -91,9 +111,6 @@ pub enum FsErrorKind {
 
     #[error("Failed to unpack archive in {0}")]
     UnpackingArchiveFailed(PathBuf, #[source] std::io::Error),
-
-    #[error("Failed to set permissions of {0}")]
-    WritePermissionsFailed(PathBuf, #[source] std::io::Error),
 }
 
 #[derive(Error, Debug)]
