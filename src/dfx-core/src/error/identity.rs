@@ -1,4 +1,6 @@
-use crate::error::fs::{ReadFileError, ReadPermissionsError, SetPermissionsError, WriteFileError};
+use crate::error::fs::{
+    ReadFileError, ReadPermissionsError, RemoveDirectoryError, SetPermissionsError, WriteFileError,
+};
 use crate::error::{
     config::ConfigError,
     encryption::EncryptionError,
@@ -264,8 +266,8 @@ pub enum RemoveIdentityError {
     #[error("If you want to remove an identity with configured wallets, please use the --drop-wallets flag.")]
     DropWalletsFlagRequiredToRemoveIdentityWithWallets(),
 
-    #[error("Failed to remove identity directory")]
-    RemoveIdentityDirectoryFailed(#[source] FsError),
+    #[error("failed to remove identity directory")]
+    RemoveIdentityDirectoryFailed(#[source] RemoveDirectoryError),
 
     #[error("Failed to remove identity file")]
     RemoveIdentityFileFailed(#[source] FsError),

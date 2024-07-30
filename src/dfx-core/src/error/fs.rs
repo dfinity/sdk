@@ -60,6 +60,13 @@ pub struct ReadFileError {
 }
 
 #[derive(Error, Debug)]
+#[error("failed to remove directory {path}")]
+pub struct RemoveDirectoryError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
 #[error("failed to write file {path}")]
 pub struct WriteFileError {
     pub path: PathBuf,
@@ -105,9 +112,6 @@ pub enum SetPermissionsReadWriteError {
 
 #[derive(Error, Debug)]
 pub enum FsErrorKind {
-    #[error("Failed to remove directory {0}")]
-    RemoveDirectoryFailed(PathBuf, #[source] std::io::Error),
-
     #[error("Failed to remove directory {0} and its contents")]
     RemoveDirectoryAndContentsFailed(PathBuf, #[source] std::io::Error),
 
