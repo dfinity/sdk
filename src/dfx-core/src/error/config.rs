@@ -21,7 +21,7 @@ pub enum ConfigError {
 
 #[derive(Error, Debug)]
 pub enum GetOutputEnvFileError {
-    #[error(transparent)]
+    #[error("failed to canonicalize output_env_file")]
     CanonicalizePath(#[from] CanonicalizePathError),
 
     #[error("The output_env_file must be within the project root, but is {}", .0.display())]
