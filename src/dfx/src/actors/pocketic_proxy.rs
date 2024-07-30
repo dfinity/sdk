@@ -8,10 +8,11 @@ use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use slog::{debug, error, info, Logger};
 use std::net::SocketAddr;
+use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -127,7 +128,11 @@ impl PocketIcProxy {
         }
     }
 
-    fn wait_for_ready(port_file_path: &Path, ready_file_path: &Path) -> DfxResult<u16> {
+    fn wait_for_ready(
+        port_file_path: &Path,
+        ready_file_path: &Path,
+        shutdown_signal: Receiver<()>,
+    ) -> Result<u16, ControlFlow<(), DfxError>> {
         let mut retries = 0;
         let mut ready = false;
         loop {
@@ -141,8 +146,11 @@ impl PocketIcProxy {
                     }
                 }
             }
+            if shutdown_signal.try_recv().is_ok() {
+                return Err(Break(()));
+            }
             if retries >= 3000 {
-                bail!("Cannot start pocket-ic: timed out");
+                return Err(Continue(anyhow!("Timed out")));
             }
             std::thread::sleep(Duration::from_millis(100));
             retries += 1;
@@ -245,8 +253,24 @@ fn pocketic_proxy_start_thread(
                 .expect("Could not write to pocketic-proxy-pid file.");
             std::fs::write(&pocketic_proxy_pid_path, child.id().to_string())
                 .expect("Could not write to pocketic-proxy-pid file.");
-            let port =
-                PocketIcProxy::wait_for_ready(&pocketic_proxy_port_path, &ready_file).unwrap();
+            let port = match PocketIcProxy::wait_for_ready(
+                &pocketic_proxy_port_path,
+                &ready_file,
+                receiver.clone(),
+            ) {
+                Ok(p) => p,
+                Err(e) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    if let Continue(e) = e {
+                        error!(logger, "Failed to start HTTP gateway: {e:#}");
+                        continue;
+                    } else {
+                        debug!(logger, "Got signal to stop");
+                        break;
+                    }
+                }
+            };
             if let Err(e) = block_on_initialize_gateway(
                 format!("http://localhost:{port}").parse().unwrap(),
                 replica_url.clone(),
@@ -254,7 +278,7 @@ fn pocketic_proxy_start_thread(
                 address,
                 logger.clone(),
             ) {
-                error!(logger, "Failed to initialize HTTP gateway: {:#}", e);
+                error!(logger, "Failed to initialize HTTP gateway: {e:#}");
                 let _ = child.kill();
                 let _ = child.wait();
                 if receiver.try_recv().is_ok() {
@@ -339,8 +363,8 @@ async fn initialize_gateway(
         .post(pocketic_url.join("http_gateway").unwrap())
         .json(&HttpGatewayConfig {
             forward_to: HttpGatewayBackend::Replica(replica_url.to_string()),
-            //TODO use the rest of the addr
-            listen_at: Some(addr.port()),
+            ip_addr: Some(addr.ip().to_string()),
+            port: Some(addr.port()),
             domains: Some(domains),
             https_config: None,
         })

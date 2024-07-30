@@ -4549,8 +4549,7 @@ dependencies = [
 [[package]]
 name = "pocket-ic"
 version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "629f46b7ab8a8d2fee02220ef8e99ae552c7e220117efa1ce0882ff09c8fb038"
+source = "git+https://github.com/dfinity/ic?rev=8447d147ea478a9e4ce1d71aba328b62d7c97c28#8447d147ea478a9e4ce1d71aba328b62d7c97c28"
 dependencies = [
  "base64 0.13.1",
  "candid",

@@ -8,10 +8,11 @@ use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use candid::Principal;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use slog::{debug, error, info, warn, Logger};
+use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
@@ -84,7 +85,11 @@ impl PocketIc {
         }
     }
 
-    fn wait_for_ready(port_file_path: &Path, ready_file_path: &Path) -> DfxResult<u16> {
+    fn wait_for_ready(
+        port_file_path: &Path,
+        ready_file_path: &Path,
+        shutdown_signal: Receiver<()>,
+    ) -> Result<u16, ControlFlow<(), DfxError>> {
         let mut retries = 0;
         let mut ready = false;
         loop {
@@ -98,8 +103,11 @@ impl PocketIc {
                     }
                 }
             }
+            if shutdown_signal.try_recv().is_ok() {
+                return Err(Break(()));
+            }
             if retries >= 3000 {
-                bail!("Cannot start pocket-ic: timed out");
+                return Err(Continue(anyhow!("Timed out")));
             }
             std::thread::sleep(Duration::from_millis(100));
             retries += 1;
@@ -243,10 +251,23 @@ fn pocketic_start_thread(
                 );
             }
 
-            let port = PocketIc::wait_for_ready(&config.port_file, &ready_file).unwrap();
-
+            let port =
+                match PocketIc::wait_for_ready(&config.port_file, &ready_file, receiver.clone()) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        if let Continue(e) = e {
+                            error!(logger, "Failed to start pocket-ic: {e:#}");
+                            continue;
+                        } else {
+                            debug!(logger, "Got signal to stop");
+                            break;
+                        }
+                    }
+                };
             if let Err(e) = block_on_initialize_pocketic(port, logger.clone()) {
-                error!(logger, "Failed to initialize PocketIC: {:#}", e);
+                error!(logger, "Failed to initialize PocketIC: {e:#}");
                 let _ = child.kill();
                 let _ = child.wait();
                 if receiver.try_recv().is_ok() {
@@ -299,7 +320,7 @@ fn block_on_initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
 #[cfg(unix)]
 async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
     use pocket_ic::common::rest::{
-        CreateInstanceResponse, ExtendedSubnetConfigSet, RawTime, SubnetSpec,
+        CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig, RawTime, SubnetSpec,
     };
     use reqwest::Client;
     use time::OffsetDateTime;
@@ -307,14 +328,18 @@ async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
     debug!(logger, "Configuring PocketIC server");
     let resp = init_client
         .post(format!("http://localhost:{port}/instances"))
-        .json(&ExtendedSubnetConfigSet {
-            nns: Some(SubnetSpec::default()),
-            sns: Some(SubnetSpec::default()),
-            ii: None,
-            fiduciary: None,
-            bitcoin: None,
-            system: vec![],
-            application: vec![SubnetSpec::default()],
+        .json(&InstanceConfig {
+            subnet_config_set: ExtendedSubnetConfigSet {
+                nns: Some(SubnetSpec::default()),
+                sns: Some(SubnetSpec::default()),
+                ii: None,
+                fiduciary: None,
+                bitcoin: None,
+                system: vec![],
+                application: vec![SubnetSpec::default()],
+            },
+            state_dir: None,
+            nonmainnet_features: true,
         })
         .send()
         .await?
