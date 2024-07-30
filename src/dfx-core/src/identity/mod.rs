@@ -4,22 +4,28 @@
 //! type.
 use crate::config::directories::{get_shared_network_data_directory, get_user_dfx_config_dir};
 use crate::config::model::network_descriptor::NetworkDescriptor;
-use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError;
-use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError::{
-    ParsePrincipalFromIdFailedAndGetWalletCanisterIdFailed, ParsePrincipalFromIdFailedAndNoWallet,
-};
-use crate::error::identity::load_pem_identity::LoadPemIdentityError;
-use crate::error::identity::load_pem_identity::LoadPemIdentityError::ReadIdentityFileFailed;
-use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError;
-use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError::RenameWalletGlobalConfigKeyFailed;
-use crate::error::identity::new_hardware_identity::NewHardwareIdentityError;
-use crate::error::identity::new_hardware_identity::NewHardwareIdentityError::InstantiateHardwareIdentityFailed;
-use crate::error::identity::new_identity::NewIdentityError;
-use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError;
-use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError::RenameWalletFailed;
-use crate::error::wallet_config::WalletConfigError;
-use crate::error::wallet_config::WalletConfigError::{
-    EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
+use crate::error::{
+    identity::{
+        CallSenderFromWalletError,
+        CallSenderFromWalletError::{
+            ParsePrincipalFromIdFailedAndGetWalletCanisterIdFailed,
+            ParsePrincipalFromIdFailedAndNoWallet,
+        },
+        LoadPemIdentityError,
+        LoadPemIdentityError::ReadIdentityFileFailed,
+        MapWalletsToRenamedIdentityError,
+        MapWalletsToRenamedIdentityError::RenameWalletGlobalConfigKeyFailed,
+        NewHardwareIdentityError,
+        NewHardwareIdentityError::InstantiateHardwareIdentityFailed,
+        NewIdentityError, RenameWalletGlobalConfigKeyError,
+        RenameWalletGlobalConfigKeyError::RenameWalletFailed,
+    },
+    wallet_config::{
+        WalletConfigError,
+        WalletConfigError::{
+            EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
+        },
+    },
 };
 use crate::identity::identity_file_locations::IdentityFileLocations;
 use crate::identity::wallet::wallet_canister_id;
