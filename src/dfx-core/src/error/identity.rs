@@ -62,7 +62,7 @@ pub enum CreateNewIdentityError {
     #[error("Failed to create mnemonic from phrase: {0}")]
     CreateMnemonicFromPhraseFailed(String),
 
-    #[error("Failed to create temporary identity directory")]
+    #[error("failed to create temporary identity directory")]
     CreateTemporaryIdentityDirectoryFailed(#[source] CreateDirAllError),
 
     #[error("Failed to generate key")]

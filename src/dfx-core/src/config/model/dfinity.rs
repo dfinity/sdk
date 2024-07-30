@@ -22,6 +22,7 @@ use crate::error::dfx_config::{
     GetMemoryAllocationError, GetPullCanistersError, GetRemoteCanisterIdError,
     GetReservedCyclesLimitError, GetSpecifiedIdError, GetWasmMemoryLimitError,
 };
+use crate::error::fs::CanonicalizePathError;
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
     DetermineCurrentWorkingDirFailed, ResolveConfigPath,
@@ -1090,8 +1091,8 @@ pub struct Config {
 
 #[allow(dead_code)]
 impl Config {
-    fn resolve_config_path(working_dir: &Path) -> Result<Option<PathBuf>, LoadDfxConfigError> {
-        let mut curr = crate::fs::canonicalize(working_dir).map_err(ResolveConfigPath)?;
+    fn resolve_config_path(working_dir: &Path) -> Result<Option<PathBuf>, CanonicalizePathError> {
+        let mut curr = crate::fs::canonicalize(working_dir)?;
         while curr.parent().is_some() {
             if curr.join(CONFIG_FILE_NAME).is_file() {
                 return Ok(Some(curr.join(CONFIG_FILE_NAME)));
@@ -1120,7 +1121,7 @@ impl Config {
         working_dir: &Path,
         extension_manager: Option<&ExtensionManager>,
     ) -> Result<Option<Config>, LoadDfxConfigError> {
-        let path = Config::resolve_config_path(working_dir)?;
+        let path = Config::resolve_config_path(working_dir).map_err(ResolveConfigPath)?;
         path.map(|path| Config::from_file(&path, extension_manager))
             .transpose()
     }

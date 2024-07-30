@@ -166,7 +166,8 @@ pub fn set_wallet_id(
 
     network_map.networks.insert(network.name.clone(), id);
 
-    Identity::save_wallet_config(&wallet_path, &config).map_err(WalletConfigError::SaveWalletConfig)
+    Identity::save_wallet_config(&wallet_path, &config)?;
+    Ok(())
 }
 
 fn wallet_config(

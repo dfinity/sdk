@@ -15,7 +15,7 @@ pub enum WalletConfigError {
     LoadWalletConfigFailed(#[source] StructuredFileError),
 
     #[error("Failed to save wallet configuration")]
-    SaveWalletConfig(#[source] SaveWalletConfigError),
+    SaveWalletConfig(#[from] SaveWalletConfigError),
 }
 
 #[derive(Error, Debug)]
