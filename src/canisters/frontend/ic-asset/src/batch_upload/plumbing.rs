@@ -255,9 +255,7 @@ async fn make_project_asset(
     semaphores: &Semaphores,
     logger: &Logger,
 ) -> Result<ProjectAsset, CreateProjectAssetError> {
-    let file_size = dfx_core::fs::metadata(&asset_descriptor.source)
-        .map_err(CreateProjectAssetError::DetermineAssetSizeFailed)?
-        .len();
+    let file_size = dfx_core::fs::metadata(&asset_descriptor.source)?.len();
     let permits = std::cmp::max(
         1,
         std::cmp::min(

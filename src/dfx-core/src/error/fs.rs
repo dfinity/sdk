@@ -67,6 +67,13 @@ pub struct WriteFileError {
 }
 
 #[derive(Error, Debug)]
+#[error("failed to read metadata of {path}")]
+pub struct ReadMetadataError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
 #[error("failed to read permissions of {path}")]
 pub struct ReadPermissionsError {
     pub path: PathBuf,
@@ -91,9 +98,6 @@ pub enum SetPermissionsReadWriteError {
 
 #[derive(Error, Debug)]
 pub enum FsErrorKind {
-    #[error("Failed to read metadata of {0}")]
-    ReadMetadataFailed(PathBuf, #[source] std::io::Error),
-
     #[error("Failed to read {0} as string")]
     ReadToStringFailed(PathBuf, #[source] std::io::Error),
 

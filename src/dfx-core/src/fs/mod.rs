@@ -1,12 +1,12 @@
 pub mod composite;
 use crate::error::archive::ArchiveError;
 use crate::error::fs::FsErrorKind::{
-    ReadMetadataFailed, ReadToStringFailed, RemoveDirectoryAndContentsFailed,
-    RemoveDirectoryFailed, RemoveFileFailed, RenameFailed, UnpackingArchiveFailed,
+    ReadToStringFailed, RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed,
+    RenameFailed, UnpackingArchiveFailed,
 };
 use crate::error::fs::{
     CanonicalizePathError, CopyFileError, CreateDirAllError, FsError, NoParentPathError,
-    ReadDirError, ReadFileError, ReadPermissionsError, SetPermissionsError,
+    ReadDirError, ReadFileError, ReadMetadataError, ReadPermissionsError, SetPermissionsError,
     SetPermissionsReadWriteError, WriteFileError,
 };
 use std::fs::{Metadata, Permissions, ReadDir};
@@ -43,8 +43,11 @@ pub fn get_archive_path(
     Ok(path.to_path_buf())
 }
 
-pub fn metadata(path: &Path) -> Result<Metadata, FsError> {
-    std::fs::metadata(path).map_err(|err| FsError::new(ReadMetadataFailed(path.to_path_buf(), err)))
+pub fn metadata(path: &Path) -> Result<Metadata, ReadMetadataError> {
+    std::fs::metadata(path).map_err(|source| ReadMetadataError {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
 pub fn parent(path: &Path) -> Result<PathBuf, NoParentPathError> {
