@@ -46,10 +46,14 @@ pub enum EnsureParentDirExistsError {
 pub struct NoParentPathError(pub PathBuf);
 
 #[derive(Error, Debug)]
-pub enum FsErrorKind {
-    #[error("Failed to read directory {0}")]
-    ReadDirFailed(PathBuf, #[source] std::io::Error),
+#[error("Failed to read directory {path}")]
+pub struct ReadDirError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
 
+#[derive(Error, Debug)]
+pub enum FsErrorKind {
     #[error("Failed to read {0}")]
     ReadFileFailed(PathBuf, #[source] std::io::Error),
 

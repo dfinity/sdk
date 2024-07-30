@@ -1,5 +1,5 @@
 use crate::error::load_rule::LoadRuleError;
-use dfx_core::error::fs::FsError;
+use dfx_core::error::fs::{FsError, ReadDirError};
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -28,4 +28,8 @@ pub enum AssetLoadConfigError {
     crate::asset::config::ASSETS_CONFIG_FILENAME_JSON5,
     .0.display())]
     MultipleConfigurationFiles(PathBuf),
+
+    /// Couldn't read a directory when loading asset configuration.
+    #[error(transparent)]
+    ReadDir(#[from] ReadDirError),
 }

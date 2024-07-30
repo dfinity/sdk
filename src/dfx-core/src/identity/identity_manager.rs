@@ -3,7 +3,7 @@ use super::{keyring_mock, WALLET_CONFIG_FILENAME};
 use crate::config::directories::get_user_dfx_config_dir;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
-use crate::error::fs::FsError;
+use crate::error::fs::ReadDirError;
 use crate::error::identity::{
     ConvertMnemonicToKeyError,
     ConvertMnemonicToKeyError::DeriveExtendedKeyFromPathFailed,
@@ -456,7 +456,7 @@ impl IdentityManager {
     }
 
     /// Return a sorted list of all available identity names
-    pub fn get_identity_names(&self, log: &Logger) -> Result<Vec<String>, FsError> {
+    pub fn get_identity_names(&self, log: &Logger) -> Result<Vec<String>, ReadDirError> {
         let mut names = crate::fs::read_dir(self.file_locations.root())?
             .filter_map(|entry_result| match entry_result {
                 Ok(dir_entry) => match dir_entry.file_type() {

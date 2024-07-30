@@ -9,8 +9,7 @@ impl ExtensionManager {
         if !&self.dir.exists() {
             return Ok(vec![]);
         }
-        let dir_content = crate::fs::read_dir(&self.dir)
-            .map_err(ListInstalledExtensionsError::ExtensionsDirectoryIsNotReadable)?;
+        let dir_content = crate::fs::read_dir(&self.dir)?;
 
         Ok(dir_content
             .filter_map(|v| {
