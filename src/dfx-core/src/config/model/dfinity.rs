@@ -22,9 +22,10 @@ use crate::error::dfx_config::{
     GetMemoryAllocationError, GetPullCanistersError, GetRemoteCanisterIdError,
     GetReservedCyclesLimitError, GetSpecifiedIdError, GetWasmMemoryLimitError,
 };
+use crate::error::fs::CanonicalizePathError;
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
-    DetermineCurrentWorkingDirFailed, ResolveConfigPathFailed,
+    DetermineCurrentWorkingDirFailed, ResolveConfigPath,
 };
 use crate::error::load_networks_config::LoadNetworksConfigError;
 use crate::error::load_networks_config::LoadNetworksConfigError::{
@@ -1090,8 +1091,8 @@ pub struct Config {
 
 #[allow(dead_code)]
 impl Config {
-    fn resolve_config_path(working_dir: &Path) -> Result<Option<PathBuf>, LoadDfxConfigError> {
-        let mut curr = crate::fs::canonicalize(working_dir).map_err(ResolveConfigPathFailed)?;
+    fn resolve_config_path(working_dir: &Path) -> Result<Option<PathBuf>, CanonicalizePathError> {
+        let mut curr = crate::fs::canonicalize(working_dir)?;
         while curr.parent().is_some() {
             if curr.join(CONFIG_FILE_NAME).is_file() {
                 return Ok(Some(curr.join(CONFIG_FILE_NAME)));
@@ -1120,7 +1121,7 @@ impl Config {
         working_dir: &Path,
         extension_manager: Option<&ExtensionManager>,
     ) -> Result<Option<Config>, LoadDfxConfigError> {
-        let path = Config::resolve_config_path(working_dir)?;
+        let path = Config::resolve_config_path(working_dir).map_err(ResolveConfigPath)?;
         path.map(|path| Config::from_file(&path, extension_manager))
             .transpose()
     }
@@ -1200,10 +1201,8 @@ impl Config {
                     let p = self.get_project_root().join(p);
 
                     // cannot canonicalize a path that doesn't exist, but the parent should exist
-                    let env_parent =
-                        crate::fs::parent(&p).map_err(GetOutputEnvFileError::Parent)?;
-                    let env_parent = crate::fs::canonicalize(&env_parent)
-                        .map_err(GetOutputEnvFileError::Canonicalize)?;
+                    let env_parent = crate::fs::parent(&p)?;
+                    let env_parent = crate::fs::canonicalize(&env_parent)?;
                     if !env_parent.starts_with(self.get_project_root()) {
                         Err(GetOutputEnvFileError::OutputEnvFileMustBeInProjectRoot(p))
                     } else {

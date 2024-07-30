@@ -2,12 +2,16 @@ use super::{
     archive::ArchiveError, fs::FsError, structured_file::StructuredFileError,
     unified_io::UnifiedIoError,
 };
+use crate::error::fs::CreateDirAllError;
 use crate::error::get_current_exe::GetCurrentExeError;
 use crate::error::get_user_home::GetUserHomeError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CacheError {
+    #[error(transparent)]
+    CreateDirAll(#[from] CreateDirAllError),
+
     #[error(transparent)]
     GetCurrentExeError(#[from] GetCurrentExeError),
 
@@ -20,8 +24,8 @@ pub enum CacheError {
     #[error(transparent)]
     ProcessError(#[from] crate::error::process::ProcessError),
 
-    #[error("Cannot create cache directory")]
-    CreateCacheDirectoryFailed(#[source] crate::error::fs::FsError),
+    #[error("failed to create cache directory")]
+    CreateCacheDirectoryFailed(#[source] CreateDirAllError),
 
     #[error("Cannot find cache directory at '{0}'.")]
     FindCacheDirectoryFailed(std::path::PathBuf),

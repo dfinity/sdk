@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::util::clap::parsers::hsm_key_id_parser;
 use anyhow::Context;
 use clap::Parser;
-use dfx_core::error::identity::create_new_identity::CreateNewIdentityError::SwitchBackToIdentityFailed;
+use dfx_core::error::identity::CreateNewIdentityError::SwitchBackToIdentityFailed;
 use dfx_core::identity::identity_manager::{
     HardwareIdentityConfiguration, IdentityCreationParameters, IdentityStorageMode,
 };

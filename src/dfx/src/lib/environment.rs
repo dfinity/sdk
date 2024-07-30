@@ -11,7 +11,7 @@ use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{Config, NetworksConfig};
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
-use dfx_core::error::identity::new_identity_manager::NewIdentityManagerError;
+use dfx_core::error::identity::NewIdentityManagerError;
 use dfx_core::error::load_dfx_config::LoadDfxConfigError;
 use dfx_core::extension::manager::ExtensionManager;
 use dfx_core::identity::identity_manager::{IdentityManager, InitializeIdentity};

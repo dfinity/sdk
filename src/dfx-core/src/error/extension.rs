@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::error::fs::FsError;
+use crate::error::fs::{EnsureDirExistsError, FsError};
 use crate::error::structured_file::StructuredFileError;
 use semver::Version;
 use thiserror::Error;
@@ -88,8 +88,8 @@ pub enum DownloadAndInstallExtensionToTempdirError {
     #[error(transparent)]
     ExtensionDownloadFailed(reqwest::Error),
 
-    #[error("Cannot get extensions directory")]
-    EnsureExtensionDirExistsFailed(#[source] crate::error::fs::FsError),
+    #[error(transparent)]
+    EnsureExtensionDirExistsFailed(#[from] EnsureDirExistsError),
 
     #[error("Cannot create temporary directory at '{0}'")]
     CreateTemporaryDirectoryFailed(std::path::PathBuf, #[source] std::io::Error),

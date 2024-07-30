@@ -1,33 +1,36 @@
 pub mod composite;
 use crate::error::archive::ArchiveError;
-use crate::error::fs::FsError;
 use crate::error::fs::FsErrorKind::{
-    CanonicalizePathFailed, CopyFileFailed, CreateDirectoryFailed, NoParent, ReadDirFailed,
-    ReadFileFailed, ReadMetadataFailed, ReadPermissionsFailed, ReadToStringFailed,
+    ReadDirFailed, ReadFileFailed, ReadMetadataFailed, ReadPermissionsFailed, ReadToStringFailed,
     RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
     UnpackingArchiveFailed, WriteFileFailed, WritePermissionsFailed,
+};
+use crate::error::fs::{
+    CanonicalizePathError, CopyFileError, CreateDirAllError, FsError, NoParentPathError,
 };
 use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
 
-pub fn canonicalize(path: &Path) -> Result<PathBuf, FsError> {
-    dunce::canonicalize(path)
-        .map_err(|err| FsError::new(CanonicalizePathFailed(path.to_path_buf(), err)))
-}
-
-pub fn copy(from: &Path, to: &Path) -> Result<u64, FsError> {
-    std::fs::copy(from, to).map_err(|err| {
-        FsError::new(CopyFileFailed(
-            Box::new(from.to_path_buf()),
-            Box::new(to.to_path_buf()),
-            err,
-        ))
+pub fn canonicalize(path: &Path) -> Result<PathBuf, CanonicalizePathError> {
+    dunce::canonicalize(path).map_err(|source| CanonicalizePathError {
+        path: path.to_path_buf(),
+        source,
     })
 }
 
-pub fn create_dir_all(path: &Path) -> Result<(), FsError> {
-    std::fs::create_dir_all(path)
-        .map_err(|err| FsError::new(CreateDirectoryFailed(path.to_path_buf(), err)))
+pub fn copy(from: &Path, to: &Path) -> Result<u64, CopyFileError> {
+    std::fs::copy(from, to).map_err(|source| CopyFileError {
+        from: from.to_path_buf(),
+        to: to.to_path_buf(),
+        source,
+    })
+}
+
+pub fn create_dir_all(path: &Path) -> Result<(), CreateDirAllError> {
+    std::fs::create_dir_all(path).map_err(|source| CreateDirAllError {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
 pub fn get_archive_path(
@@ -43,9 +46,9 @@ pub fn metadata(path: &Path) -> Result<Metadata, FsError> {
     std::fs::metadata(path).map_err(|err| FsError::new(ReadMetadataFailed(path.to_path_buf(), err)))
 }
 
-pub fn parent(path: &Path) -> Result<PathBuf, FsError> {
+pub fn parent(path: &Path) -> Result<PathBuf, NoParentPathError> {
     match path.parent() {
-        None => Err(FsError::new(NoParent(path.to_path_buf()))),
+        None => Err(NoParentPathError(path.to_path_buf())),
         Some(parent) => Ok(parent.to_path_buf()),
     }
 }
