@@ -3,8 +3,8 @@ use super::{
     unified_io::UnifiedIoError,
 };
 use crate::error::fs::{
-    CreateDirAllError, ReadDirError, ReadFileError, ReadPermissionsError, SetPermissionsError,
-    WriteFileError,
+    CreateDirAllError, ReadDirError, ReadFileError, ReadPermissionsError,
+    RemoveDirectoryAndContentsError, SetPermissionsError, WriteFileError,
 };
 use crate::error::get_current_exe::GetCurrentExeError;
 use crate::error::get_user_home::GetUserHomeError;
@@ -29,6 +29,9 @@ pub enum CacheError {
 
     #[error(transparent)]
     ReadPermissions(#[from] ReadPermissionsError),
+
+    #[error(transparent)]
+    RemoveDirectoryAndContents(#[from] RemoveDirectoryAndContentsError),
 
     #[error(transparent)]
     SetPermissions(#[from] SetPermissionsError),

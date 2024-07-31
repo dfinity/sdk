@@ -1,5 +1,6 @@
 use crate::error::fs::{
-    ReadFileError, ReadPermissionsError, RemoveDirectoryError, SetPermissionsError, WriteFileError,
+    ReadFileError, ReadPermissionsError, RemoveDirectoryAndContentsError, RemoveDirectoryError,
+    SetPermissionsError, WriteFileError,
 };
 use crate::error::{
     config::ConfigError,
@@ -51,7 +52,7 @@ pub enum CreateNewIdentityError {
     CannotCreateAnonymousIdentity(),
 
     #[error("Failed to clean up previous creation attempts")]
-    CleanupPreviousCreationAttemptsFailed(#[source] FsError),
+    CleanupPreviousCreationAttemptsFailed(#[from] RemoveDirectoryAndContentsError),
 
     #[error("Failed to create identity config")]
     ConvertMnemonicToKeyFailed(#[source] ConvertMnemonicToKeyError),

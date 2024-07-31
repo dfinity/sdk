@@ -140,7 +140,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
 
         // atomically install cache version into place
         if force && p.exists() {
-            dfx_core::fs::remove_dir_all(&p).map_err(UnifiedIoError::from)?;
+            dfx_core::fs::remove_dir_all(&p)?;
         }
 
         if dfx_core::fs::rename(temp_p.as_path(), &p).is_ok() {
@@ -148,7 +148,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
                 b.finish_with_message(format!("Installed dfx {} to cache.", v));
             }
         } else {
-            dfx_core::fs::remove_dir_all(temp_p.as_path()).map_err(UnifiedIoError::from)?;
+            dfx_core::fs::remove_dir_all(temp_p.as_path())?;
             if let Some(b) = b {
                 b.finish_with_message(format!("dfx {} was already installed in cache.", v));
             }

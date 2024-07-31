@@ -11,10 +11,9 @@ use crate::error::identity::{
     CreateIdentityConfigError::GenerateFreshEncryptionConfigurationFailed,
     CreateNewIdentityError,
     CreateNewIdentityError::{
-        CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
-        CreateMnemonicFromPhraseFailed, CreateTemporaryIdentityDirectoryFailed,
-        RenameTemporaryIdentityDirectoryFailed, SwitchBackToIdentityFailed,
-        SwitchToAnonymousIdentityFailed,
+        ConvertSecretKeyToSec1PemFailed, CreateMnemonicFromPhraseFailed,
+        CreateTemporaryIdentityDirectoryFailed, RenameTemporaryIdentityDirectoryFailed,
+        SwitchBackToIdentityFailed, SwitchToAnonymousIdentityFailed,
     },
     ExportIdentityError,
     ExportIdentityError::TranslatePemContentToTextFailed,
@@ -374,8 +373,7 @@ impl IdentityManager {
         let temp_identity_dir = self.get_identity_dir_path(&temp_identity_name);
         if temp_identity_dir.exists() {
             // clean traces from previous identity creation attempts
-            crate::fs::remove_dir_all(&temp_identity_dir)
-                .map_err(CleanupPreviousCreationAttemptsFailed)?;
+            crate::fs::remove_dir_all(&temp_identity_dir)?;
         }
 
         let identity_config;

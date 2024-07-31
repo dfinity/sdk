@@ -1,4 +1,4 @@
-use crate::error::fs::{ReadToStringError, WriteFileError};
+use crate::error::fs::{ReadToStringError, RemoveDirectoryAndContentsError, WriteFileError};
 use crate::error::{
     config::GetTempPathError,
     dfx_config::GetPullCanistersError,
@@ -60,7 +60,7 @@ pub enum EnsureCohesiveNetworkDirectoryError {
     ReadToString(#[from] ReadToStringError),
 
     #[error(transparent)]
-    RemoveDirAll(FsError),
+    RemoveDirAll(#[from] RemoveDirectoryAndContentsError),
 
     #[error(transparent)]
     Write(#[from] WriteFileError),
