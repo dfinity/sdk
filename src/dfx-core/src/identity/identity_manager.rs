@@ -35,7 +35,7 @@ use crate::error::identity::{
     RemoveIdentityError,
     RemoveIdentityError::{
         DisplayLinkedWalletsFailed, DropWalletsFlagRequiredToRemoveIdentityWithWallets,
-        RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed,
+        RemoveIdentityDirectoryFailed,
     },
     RenameIdentityError,
     RenameIdentityError::{
@@ -834,7 +834,7 @@ pub(super) fn save_identity_configuration(
 /// Removes the file if it exists.
 fn remove_identity_file(file: &Path) -> Result<(), RemoveIdentityError> {
     if file.exists() {
-        crate::fs::remove_file(file).map_err(RemoveIdentityFileFailed)?;
+        crate::fs::remove_file(file)?;
     }
     Ok(())
 }

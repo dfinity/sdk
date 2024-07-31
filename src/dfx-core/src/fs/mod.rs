@@ -1,10 +1,10 @@
 pub mod composite;
 use crate::error::archive::ArchiveError;
-use crate::error::fs::FsErrorKind::{RemoveFileFailed, RenameFailed, UnpackingArchiveFailed};
+use crate::error::fs::FsErrorKind::{RenameFailed, UnpackingArchiveFailed};
 use crate::error::fs::{
     CanonicalizePathError, CopyFileError, CreateDirAllError, FsError, NoParentPathError,
     ReadDirError, ReadFileError, ReadMetadataError, ReadPermissionsError, ReadToStringError,
-    RemoveDirectoryAndContentsError, RemoveDirectoryError, SetPermissionsError,
+    RemoveDirectoryAndContentsError, RemoveDirectoryError, RemoveFileError, SetPermissionsError,
     SetPermissionsReadWriteError, WriteFileError,
 };
 use std::fs::{Metadata, Permissions, ReadDir};
@@ -109,9 +109,11 @@ pub fn remove_dir_all(path: &Path) -> Result<(), RemoveDirectoryAndContentsError
     })
 }
 
-pub fn remove_file(path: &Path) -> Result<(), FsError> {
-    std::fs::remove_file(path)
-        .map_err(|err| FsError::new(RemoveFileFailed(path.to_path_buf(), err)))
+pub fn remove_file(path: &Path) -> Result<(), RemoveFileError> {
+    std::fs::remove_file(path).map_err(|source| RemoveFileError {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
 pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), SetPermissionsError> {

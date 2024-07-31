@@ -1,6 +1,6 @@
 use crate::error::fs::{
     ReadFileError, ReadPermissionsError, RemoveDirectoryAndContentsError, RemoveDirectoryError,
-    SetPermissionsError, WriteFileError,
+    RemoveFileError, SetPermissionsError, WriteFileError,
 };
 use crate::error::{
     config::ConfigError,
@@ -271,7 +271,7 @@ pub enum RemoveIdentityError {
     RemoveIdentityDirectoryFailed(#[source] RemoveDirectoryError),
 
     #[error("Failed to remove identity file")]
-    RemoveIdentityFileFailed(#[source] FsError),
+    RemoveIdentityFileFailed(#[from] RemoveFileError),
 
     #[error("Failed to remove identity from keyring")]
     RemoveIdentityFromKeyringFailed(#[source] KeyringError),

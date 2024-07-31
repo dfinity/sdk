@@ -102,6 +102,13 @@ pub struct RemoveDirectoryAndContentsError {
 }
 
 #[derive(Error, Debug)]
+#[error("failed to remove file {path}")]
+pub struct RemoveFileError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
 #[error("failed to set permissions of {path}")]
 pub struct SetPermissionsError {
     pub path: PathBuf,
@@ -119,9 +126,6 @@ pub enum SetPermissionsReadWriteError {
 
 #[derive(Error, Debug)]
 pub enum FsErrorKind {
-    #[error("Failed to remove file {0}")]
-    RemoveFileFailed(PathBuf, #[source] std::io::Error),
-
     #[error("Failed to rename {0} to {1}")]
     RenameFailed(Box<PathBuf>, Box<PathBuf>, #[source] std::io::Error),
 
