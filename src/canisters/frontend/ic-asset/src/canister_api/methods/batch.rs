@@ -1,3 +1,4 @@
+//! Methods associated with creating and committing batches
 use crate::batch_upload::retryable::retryable;
 use crate::canister_api::methods::method_names::{
     COMMIT_BATCH, COMPUTE_EVIDENCE, CREATE_BATCH, PROPOSE_COMMIT_BATCH,
@@ -83,6 +84,7 @@ pub(crate) async fn propose_commit_batch<T: CandidType + Sync>(
     submit_commit_batch(canister, PROPOSE_COMMIT_BATCH, arg).await
 }
 
+/// Instruct the asset canister to compute the evide remotely
 pub async fn compute_evidence(
     canister: &Canister<'_>,
     arg: &ComputeEvidenceArguments,

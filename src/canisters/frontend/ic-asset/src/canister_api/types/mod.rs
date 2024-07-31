@@ -1,3 +1,4 @@
-pub mod asset;
+//! Types associated with the canister api
+pub(crate) mod asset;
 pub mod batch_upload;
-pub mod list;
+pub(crate) mod list;
