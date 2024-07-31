@@ -1,3 +1,4 @@
+use crate::error::fs::{ReadToStringError, WriteFileError};
 use crate::error::{
     config::GetTempPathError,
     dfx_config::GetPullCanistersError,
@@ -53,16 +54,16 @@ pub enum AddCanisterIdError {
 #[derive(Error, Debug)]
 pub enum EnsureCohesiveNetworkDirectoryError {
     #[error(transparent)]
-    CreateDirAll(CreateDirAllError),
+    CreateDirAll(#[from] CreateDirAllError),
 
     #[error(transparent)]
-    ReadToString(FsError),
+    ReadToString(#[from] ReadToStringError),
 
     #[error(transparent)]
     RemoveDirAll(FsError),
 
     #[error(transparent)]
-    Write(FsError),
+    Write(#[from] WriteFileError),
 }
 
 #[derive(Error, Debug)]

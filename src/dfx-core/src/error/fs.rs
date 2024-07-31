@@ -46,25 +46,72 @@ pub enum EnsureParentDirExistsError {
 pub struct NoParentPathError(pub PathBuf);
 
 #[derive(Error, Debug)]
+#[error("failed to read directory {path}")]
+pub struct ReadDirError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
+#[error("failed to read from {path}")]
+pub struct ReadFileError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
+#[error("failed to remove directory {path}")]
+pub struct RemoveDirectoryError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
+#[error("failed to write to {path}")]
+pub struct WriteFileError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
+#[error("failed to read metadata of {path}")]
+pub struct ReadMetadataError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
+#[error("failed to read permissions of {path}")]
+pub struct ReadPermissionsError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
+#[error("failed to read {path} as string")]
+pub struct ReadToStringError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
+#[error("failed to set permissions of {path}")]
+pub struct SetPermissionsError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
+pub enum SetPermissionsReadWriteError {
+    #[error(transparent)]
+    ReadPermissions(#[from] ReadPermissionsError),
+
+    #[error(transparent)]
+    SetPermissions(#[from] SetPermissionsError),
+}
+
+#[derive(Error, Debug)]
 pub enum FsErrorKind {
-    #[error("Failed to read directory {0}")]
-    ReadDirFailed(PathBuf, #[source] std::io::Error),
-
-    #[error("Failed to read {0}")]
-    ReadFileFailed(PathBuf, #[source] std::io::Error),
-
-    #[error("Failed to read metadata of {0}")]
-    ReadMetadataFailed(PathBuf, #[source] std::io::Error),
-
-    #[error("Failed to read permissions of {0}")]
-    ReadPermissionsFailed(PathBuf, #[source] std::io::Error),
-
-    #[error("Failed to read {0} as string")]
-    ReadToStringFailed(PathBuf, #[source] std::io::Error),
-
-    #[error("Failed to remove directory {0}")]
-    RemoveDirectoryFailed(PathBuf, #[source] std::io::Error),
-
     #[error("Failed to remove directory {0} and its contents")]
     RemoveDirectoryAndContentsFailed(PathBuf, #[source] std::io::Error),
 
@@ -76,12 +123,6 @@ pub enum FsErrorKind {
 
     #[error("Failed to unpack archive in {0}")]
     UnpackingArchiveFailed(PathBuf, #[source] std::io::Error),
-
-    #[error("Failed to write to {0}")]
-    WriteFileFailed(PathBuf, #[source] std::io::Error),
-
-    #[error("Failed to set permissions of {0}")]
-    WritePermissionsFailed(PathBuf, #[source] std::io::Error),
 }
 
 #[derive(Error, Debug)]

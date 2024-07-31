@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::error::fs::{EnsureDirExistsError, FsError};
+use crate::error::fs::{EnsureDirExistsError, FsError, ReadDirError, SetPermissionsError};
 use crate::error::structured_file::StructuredFileError;
 use semver::Version;
 use thiserror::Error;
@@ -32,7 +32,7 @@ pub enum ConvertExtensionSubcommandIntoClapCommandError {
 #[derive(Error, Debug)]
 pub enum ListInstalledExtensionsError {
     #[error(transparent)]
-    ExtensionsDirectoryIsNotReadable(#[from] crate::error::fs::FsError),
+    ExtensionsDirectoryIsNotReadable(#[from] ReadDirError),
 }
 
 #[derive(Error, Debug)]
@@ -178,7 +178,7 @@ pub struct GetExtensionDownloadUrlError {
 #[derive(Error, Debug)]
 pub enum GetTopLevelDirectoryError {
     #[error(transparent)]
-    ReadDir(FsError),
+    ReadDir(#[from] ReadDirError),
 
     #[error("No top-level directory found in archive")]
     NoTopLevelDirectoryEntry,
@@ -195,6 +195,9 @@ pub enum FinalizeInstallationError {
 
     #[error(transparent)]
     Fs(#[from] FsError),
+
+    #[error(transparent)]
+    SetPermissions(#[from] SetPermissionsError),
 }
 
 #[derive(Error, Debug)]

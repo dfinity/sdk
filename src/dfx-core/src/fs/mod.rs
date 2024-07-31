@@ -1,12 +1,12 @@
 pub mod composite;
 use crate::error::archive::ArchiveError;
 use crate::error::fs::FsErrorKind::{
-    ReadDirFailed, ReadFileFailed, ReadMetadataFailed, ReadPermissionsFailed, ReadToStringFailed,
-    RemoveDirectoryAndContentsFailed, RemoveDirectoryFailed, RemoveFileFailed, RenameFailed,
-    UnpackingArchiveFailed, WriteFileFailed, WritePermissionsFailed,
+    RemoveDirectoryAndContentsFailed, RemoveFileFailed, RenameFailed, UnpackingArchiveFailed,
 };
 use crate::error::fs::{
     CanonicalizePathError, CopyFileError, CreateDirAllError, FsError, NoParentPathError,
+    ReadDirError, ReadFileError, ReadMetadataError, ReadPermissionsError, ReadToStringError,
+    RemoveDirectoryError, SetPermissionsError, SetPermissionsReadWriteError, WriteFileError,
 };
 use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
@@ -42,8 +42,11 @@ pub fn get_archive_path(
     Ok(path.to_path_buf())
 }
 
-pub fn metadata(path: &Path) -> Result<Metadata, FsError> {
-    std::fs::metadata(path).map_err(|err| FsError::new(ReadMetadataFailed(path.to_path_buf(), err)))
+pub fn metadata(path: &Path) -> Result<Metadata, ReadMetadataError> {
+    std::fs::metadata(path).map_err(|source| ReadMetadataError {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
 pub fn parent(path: &Path) -> Result<PathBuf, NoParentPathError> {
@@ -53,18 +56,25 @@ pub fn parent(path: &Path) -> Result<PathBuf, NoParentPathError> {
     }
 }
 
-pub fn read(path: &Path) -> Result<Vec<u8>, FsError> {
-    std::fs::read(path).map_err(|err| FsError::new(ReadFileFailed(path.to_path_buf(), err)))
+pub fn read(path: &Path) -> Result<Vec<u8>, ReadFileError> {
+    std::fs::read(path).map_err(|source| ReadFileError {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
-pub fn read_to_string(path: &Path) -> Result<String, FsError> {
-    std::fs::read_to_string(path)
-        .map_err(|err| FsError::new(ReadToStringFailed(path.to_path_buf(), err)))
+pub fn read_to_string(path: &Path) -> Result<String, ReadToStringError> {
+    std::fs::read_to_string(path).map_err(|source| ReadToStringError {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
-pub fn read_dir(path: &Path) -> Result<ReadDir, FsError> {
-    path.read_dir()
-        .map_err(|err| FsError::new(ReadDirFailed(path.to_path_buf(), err)))
+pub fn read_dir(path: &Path) -> Result<ReadDir, ReadDirError> {
+    path.read_dir().map_err(|source| ReadDirError {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
 pub fn rename(from: &Path, to: &Path) -> Result<(), FsError> {
@@ -77,15 +87,20 @@ pub fn rename(from: &Path, to: &Path) -> Result<(), FsError> {
     })
 }
 
-pub fn read_permissions(path: &Path) -> Result<Permissions, FsError> {
+pub fn read_permissions(path: &Path) -> Result<Permissions, ReadPermissionsError> {
     std::fs::metadata(path)
-        .map_err(|err| FsError::new(ReadPermissionsFailed(path.to_path_buf(), err)))
+        .map_err(|source| ReadPermissionsError {
+            path: path.to_path_buf(),
+            source,
+        })
         .map(|x| x.permissions())
 }
 
-pub fn remove_dir(path: &Path) -> Result<(), FsError> {
-    std::fs::remove_dir(path)
-        .map_err(|err| FsError::new(RemoveDirectoryFailed(path.to_path_buf(), err)))
+pub fn remove_dir(path: &Path) -> Result<(), RemoveDirectoryError> {
+    std::fs::remove_dir(path).map_err(|source| RemoveDirectoryError {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
 pub fn remove_dir_all(path: &Path) -> Result<(), FsError> {
@@ -98,13 +113,15 @@ pub fn remove_file(path: &Path) -> Result<(), FsError> {
         .map_err(|err| FsError::new(RemoveFileFailed(path.to_path_buf(), err)))
 }
 
-pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), FsError> {
-    std::fs::set_permissions(path, permissions)
-        .map_err(|err| FsError::new(WritePermissionsFailed(path.to_path_buf(), err)))
+pub fn set_permissions(path: &Path, permissions: Permissions) -> Result<(), SetPermissionsError> {
+    std::fs::set_permissions(path, permissions).map_err(|source| SetPermissionsError {
+        path: path.to_path_buf(),
+        source,
+    })
 }
 
 #[cfg_attr(not(unix), allow(unused_variables))]
-pub fn set_permissions_readwrite(path: &Path) -> Result<(), FsError> {
+pub fn set_permissions_readwrite(path: &Path) -> Result<(), SetPermissionsReadWriteError> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -124,7 +141,9 @@ pub fn tar_unpack_in<P: AsRef<Path>>(
     Ok(())
 }
 
-pub fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<(), FsError> {
-    std::fs::write(path.as_ref(), contents)
-        .map_err(|err| FsError::new(WriteFileFailed(path.as_ref().to_path_buf(), err)))
+pub fn write<P: AsRef<Path>, C: AsRef<[u8]>>(path: P, contents: C) -> Result<(), WriteFileError> {
+    std::fs::write(path.as_ref(), contents).map_err(|source| WriteFileError {
+        path: path.as_ref().to_path_buf(),
+        source,
+    })
 }

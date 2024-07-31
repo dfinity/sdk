@@ -1,3 +1,6 @@
+use crate::error::fs::{
+    ReadFileError, ReadPermissionsError, RemoveDirectoryError, SetPermissionsError, WriteFileError,
+};
 use crate::error::{
     config::ConfigError,
     encryption::EncryptionError,
@@ -191,8 +194,8 @@ pub enum LoadPemFromFileError {
     #[error("Failed to decrypt PEM file at {0}")]
     DecryptPemFileFailed(PathBuf, #[source] EncryptionError),
 
-    #[error("Failed to read pem file")]
-    ReadPemFileFailed(#[source] FsError),
+    #[error("failed to read pem file")]
+    ReadPemFileFailed(#[from] ReadFileError),
 }
 
 #[derive(Error, Debug)]
@@ -263,8 +266,8 @@ pub enum RemoveIdentityError {
     #[error("If you want to remove an identity with configured wallets, please use the --drop-wallets flag.")]
     DropWalletsFlagRequiredToRemoveIdentityWithWallets(),
 
-    #[error("Failed to remove identity directory")]
-    RemoveIdentityDirectoryFailed(#[source] FsError),
+    #[error("failed to remove identity directory")]
+    RemoveIdentityDirectoryFailed(#[source] RemoveDirectoryError),
 
     #[error("Failed to remove identity file")]
     RemoveIdentityFileFailed(#[source] FsError),
@@ -389,13 +392,13 @@ pub enum WritePemContentError {
     NoParent(#[from] NoParentPathError),
 
     #[error(transparent)]
-    ReadPermissions(FsError),
+    ReadPermissions(#[from] ReadPermissionsError),
 
     #[error(transparent)]
-    SetPermissions(FsError),
+    SetPermissions(#[from] SetPermissionsError),
 
     #[error(transparent)]
-    Write(FsError),
+    Write(#[from] WriteFileError),
 }
 
 #[derive(Error, Debug)]

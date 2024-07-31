@@ -560,9 +560,9 @@ Installing canister: $CANISTER_ID_C (dep_c)"
   WASM_PATH_A="$DFX_CACHE_ROOT/.cache/dfinity/pulled/$CANISTER_ID_A/canister.wasm"
   mv "$WASM_PATH_A" "$WASM_PATH_A.bak"
   assert_command_fail dfx deps init
-  assert_contains "Failed to read $WASM_PATH_A"
+  assert_contains "failed to read from $WASM_PATH_A"
   assert_command_fail dfx deps deploy
-  assert_contains "Failed to read $WASM_PATH_A"
+  assert_contains "failed to read from $WASM_PATH_A"
   mv "$WASM_PATH_A.bak" "$WASM_PATH_A"
 
   ## 2.2. wasm_hash_download is not valid hex string

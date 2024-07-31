@@ -1,5 +1,5 @@
 use crate::error::config::ApplyExtensionCanisterTypesError;
-use crate::error::fs::{CanonicalizePathError, FsError};
+use crate::error::fs::{CanonicalizePathError, ReadFileError};
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -15,7 +15,7 @@ pub enum LoadDfxConfigError {
     ResolveConfigPath(#[source] CanonicalizePathError),
 
     #[error("Failed to load dfx configuration")]
-    ReadFile(#[source] FsError),
+    ReadFile(#[from] ReadFileError),
 
     #[error("Failed to determine current working dir")]
     DetermineCurrentWorkingDirFailed(#[source] std::io::Error),
