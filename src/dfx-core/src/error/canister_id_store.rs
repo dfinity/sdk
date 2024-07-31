@@ -2,18 +2,14 @@ use crate::error::fs::{ReadToStringError, RemoveDirectoryAndContentsError, Write
 use crate::error::{
     config::GetTempPathError,
     dfx_config::GetPullCanistersError,
-    fs::{CreateDirAllError, EnsureParentDirExistsError, FsError},
+    fs::{CreateDirAllError, EnsureParentDirExistsError},
     load_dfx_config::LoadDfxConfigError,
     structured_file::StructuredFileError,
-    unified_io::UnifiedIoError,
 };
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum CanisterIdStoreError {
-    #[error(transparent)]
-    UnifiedIoError(#[from] UnifiedIoError),
-
     #[error(
         "Cannot find canister id. Please issue 'dfx canister create {canister_name}{network}'."
     )]
@@ -36,6 +32,9 @@ pub enum CanisterIdStoreError {
 
     #[error(transparent)]
     LoadDfxConfig(#[from] LoadDfxConfigError),
+
+    #[error(transparent)]
+    StructuredFileError(#[from] StructuredFileError),
 }
 
 #[derive(Error, Debug)]
@@ -94,16 +93,4 @@ pub enum SaveIdsError {
 
     #[error(transparent)]
     SaveJsonFile(#[from] StructuredFileError),
-}
-
-impl From<FsError> for CanisterIdStoreError {
-    fn from(e: FsError) -> Self {
-        Into::<UnifiedIoError>::into(e).into()
-    }
-}
-
-impl From<StructuredFileError> for CanisterIdStoreError {
-    fn from(e: StructuredFileError) -> Self {
-        Into::<UnifiedIoError>::into(e).into()
-    }
 }
