@@ -1,7 +1,7 @@
-//! This module contains the methods that are exposed by the asset canister.
-pub mod api_version;
-pub mod asset_properties;
+//! The methods that are exposed by the asset canister.
+pub(crate) mod api_version;
+pub(crate) mod asset_properties;
 pub mod batch;
-pub mod chunk;
-pub mod list;
-pub mod method_names;
+pub(crate) mod chunk;
+pub(crate) mod list;
+pub(crate) mod method_names;

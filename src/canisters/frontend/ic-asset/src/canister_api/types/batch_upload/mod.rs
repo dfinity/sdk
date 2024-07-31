@@ -1,3 +1,4 @@
+//! Types associated with creating, uploading and committing batches
 pub mod common;
-pub mod v0;
-pub mod v1;
+pub(crate) mod v0;
+pub(crate) mod v1;

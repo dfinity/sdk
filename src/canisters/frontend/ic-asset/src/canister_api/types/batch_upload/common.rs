@@ -1,3 +1,4 @@
+//! Common types related to creating and uploading batches
 use crate::asset::config::HeadersConfig;
 use candid::{CandidType, Nat};
 use serde::Deserialize;
