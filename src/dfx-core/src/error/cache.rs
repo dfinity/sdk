@@ -1,4 +1,4 @@
-use crate::error::archive::ArchiveError;
+use crate::error::archive::GetArchivePathError;
 use crate::error::fs::{
     CreateDirAllError, ReadDirError, ReadFileError, ReadPermissionsError,
     RemoveDirectoryAndContentsError, SetPermissionsError, UnpackingArchiveError, WriteFileError,
@@ -10,7 +10,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum CacheError {
     #[error(transparent)]
-    Archive(#[from] ArchiveError),
+    Archive(#[from] GetArchivePathError),
 
     #[error(transparent)]
     CreateDirAll(#[from] CreateDirAllError),

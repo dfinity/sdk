@@ -1,5 +1,5 @@
 pub mod composite;
-use crate::error::archive::ArchiveError;
+use crate::error::archive::GetArchivePathError;
 use crate::error::fs::{
     CanonicalizePathError, CopyFileError, CreateDirAllError, NoParentPathError, ReadDirError,
     ReadFileError, ReadMetadataError, ReadPermissionsError, ReadToStringError,
@@ -33,10 +33,8 @@ pub fn create_dir_all(path: &Path) -> Result<(), CreateDirAllError> {
 
 pub fn get_archive_path(
     archive: &tar::Entry<flate2::read::GzDecoder<&'static [u8]>>,
-) -> Result<PathBuf, ArchiveError> {
-    let path = archive
-        .path()
-        .map_err(ArchiveError::ArchiveFileInvalidPath)?;
+) -> Result<PathBuf, GetArchivePathError> {
+    let path = archive.path().map_err(GetArchivePathError)?;
     Ok(path.to_path_buf())
 }
 
