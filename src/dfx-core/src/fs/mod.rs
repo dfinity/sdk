@@ -1,11 +1,10 @@
 pub mod composite;
 use crate::error::archive::ArchiveError;
-use crate::error::fs::FsErrorKind::UnpackingArchiveFailed;
 use crate::error::fs::{
-    CanonicalizePathError, CopyFileError, CreateDirAllError, FsError, NoParentPathError,
-    ReadDirError, ReadFileError, ReadMetadataError, ReadPermissionsError, ReadToStringError,
+    CanonicalizePathError, CopyFileError, CreateDirAllError, NoParentPathError, ReadDirError,
+    ReadFileError, ReadMetadataError, ReadPermissionsError, ReadToStringError,
     RemoveDirectoryAndContentsError, RemoveDirectoryError, RemoveFileError, RenameError,
-    SetPermissionsError, SetPermissionsReadWriteError, WriteFileError,
+    SetPermissionsError, SetPermissionsReadWriteError, UnpackingArchiveError, WriteFileError,
 };
 use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
@@ -136,9 +135,12 @@ pub fn set_permissions_readwrite(path: &Path) -> Result<(), SetPermissionsReadWr
 pub fn tar_unpack_in<P: AsRef<Path>>(
     path: P,
     tar: &mut tar::Entry<flate2::read::GzDecoder<&'static [u8]>>,
-) -> Result<(), FsError> {
+) -> Result<(), UnpackingArchiveError> {
     tar.unpack_in(&path)
-        .map_err(|e| FsError::new(UnpackingArchiveFailed(path.as_ref().to_path_buf(), e)))?;
+        .map_err(|source| UnpackingArchiveError {
+            path: path.as_ref().to_path_buf(),
+            source,
+        })?;
     Ok(())
 }
 

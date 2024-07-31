@@ -6,7 +6,6 @@ use dfx_core::config::cache::{
     is_version_installed, Cache,
 };
 use dfx_core::error::cache::CacheError;
-use dfx_core::error::unified_io::UnifiedIoError;
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -108,8 +107,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
             if file.header().entry_type().is_dir() {
                 continue;
             }
-            dfx_core::fs::tar_unpack_in(temp_p.as_path(), &mut file)
-                .map_err(UnifiedIoError::from)?;
+            dfx_core::fs::tar_unpack_in(temp_p.as_path(), &mut file)?;
             // On *nix we need to set the execute permission as the tgz doesn't include it
             #[cfg(unix)]
             {

@@ -133,9 +133,16 @@ pub enum SetPermissionsReadWriteError {
 }
 
 #[derive(Error, Debug)]
+#[error("failed to unpack archive in {path}")]
+pub struct UnpackingArchiveError {
+    pub path: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
 pub enum FsErrorKind {
     #[error("Failed to unpack archive in {0}")]
-    UnpackingArchiveFailed(PathBuf, #[source] std::io::Error),
+    Foo(PathBuf, #[source] std::io::Error),
 }
 
 #[derive(Error, Debug)]
