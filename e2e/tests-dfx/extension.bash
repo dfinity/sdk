@@ -378,19 +378,19 @@ echo testoutput' > "$CACHE_DIR"/extensions/test_extension/test_extension
   chmod +x "$CACHE_DIR"/extensions/test_extension/test_extension
 
   assert_command_fail dfx extension list
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx extension run test_extension
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx test_extension
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx --help
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx test_extension --help
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   echo "{}" > "$CACHE_DIR"/extensions/test_extension/extension.json
 

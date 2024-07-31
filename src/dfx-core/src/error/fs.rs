@@ -53,7 +53,7 @@ pub struct ReadDirError {
 }
 
 #[derive(Error, Debug)]
-#[error("failed to read file {path}")]
+#[error("failed to read from {path}")]
 pub struct ReadFileError {
     pub path: PathBuf,
     pub source: std::io::Error,
@@ -67,7 +67,7 @@ pub struct RemoveDirectoryError {
 }
 
 #[derive(Error, Debug)]
-#[error("failed to write file {path}")]
+#[error("failed to write to {path}")]
 pub struct WriteFileError {
     pub path: PathBuf,
     pub source: std::io::Error,
