@@ -1,11 +1,11 @@
 pub mod composite;
 use crate::error::archive::ArchiveError;
-use crate::error::fs::FsErrorKind::{RenameFailed, UnpackingArchiveFailed};
+use crate::error::fs::FsErrorKind::UnpackingArchiveFailed;
 use crate::error::fs::{
     CanonicalizePathError, CopyFileError, CreateDirAllError, FsError, NoParentPathError,
     ReadDirError, ReadFileError, ReadMetadataError, ReadPermissionsError, ReadToStringError,
-    RemoveDirectoryAndContentsError, RemoveDirectoryError, RemoveFileError, SetPermissionsError,
-    SetPermissionsReadWriteError, WriteFileError,
+    RemoveDirectoryAndContentsError, RemoveDirectoryError, RemoveFileError, RenameError,
+    SetPermissionsError, SetPermissionsReadWriteError, WriteFileError,
 };
 use std::fs::{Metadata, Permissions, ReadDir};
 use std::path::{Path, PathBuf};
@@ -76,13 +76,11 @@ pub fn read_dir(path: &Path) -> Result<ReadDir, ReadDirError> {
     })
 }
 
-pub fn rename(from: &Path, to: &Path) -> Result<(), FsError> {
-    std::fs::rename(from, to).map_err(|err| {
-        FsError::new(RenameFailed(
-            Box::new(from.to_path_buf()),
-            Box::new(to.to_path_buf()),
-            err,
-        ))
+pub fn rename(from: &Path, to: &Path) -> Result<(), RenameError> {
+    std::fs::rename(from, to).map_err(|source| RenameError {
+        from: from.to_path_buf(),
+        to: to.to_path_buf(),
+        source,
     })
 }
 

@@ -12,8 +12,8 @@ use crate::error::identity::{
     CreateNewIdentityError,
     CreateNewIdentityError::{
         ConvertSecretKeyToSec1PemFailed, CreateMnemonicFromPhraseFailed,
-        CreateTemporaryIdentityDirectoryFailed, RenameTemporaryIdentityDirectoryFailed,
-        SwitchBackToIdentityFailed, SwitchToAnonymousIdentityFailed,
+        CreateTemporaryIdentityDirectoryFailed, SwitchBackToIdentityFailed,
+        SwitchToAnonymousIdentityFailed,
     },
     ExportIdentityError,
     ExportIdentityError::TranslatePemContentToTextFailed,
@@ -39,8 +39,8 @@ use crate::error::identity::{
     },
     RenameIdentityError,
     RenameIdentityError::{
-        GetIdentityConfigFailed, LoadPemFailed, MapWalletsToRenamedIdentityFailed,
-        RenameIdentityDirectoryFailed, SavePemFailed, SwitchDefaultIdentitySettingsFailed,
+        GetIdentityConfigFailed, LoadPemFailed, MapWalletsToRenamedIdentityFailed, SavePemFailed,
+        SwitchDefaultIdentitySettingsFailed,
     },
     RequireIdentityExistsError, SaveIdentityConfigurationError,
     SaveIdentityConfigurationError::EnsureIdentityConfigurationDirExistsFailed,
@@ -443,8 +443,7 @@ impl IdentityManager {
 
         // Everything is created. Now move from the temporary directory to the actual identity location.
         let identity_dir = self.get_identity_dir_path(name);
-        crate::fs::rename(&temp_identity_dir, &identity_dir)
-            .map_err(RenameTemporaryIdentityDirectoryFailed)?;
+        crate::fs::rename(&temp_identity_dir, &identity_dir)?;
 
         if temporarily_use_anonymous_identity {
             self.use_identity_named(log, &identity_in_use)
@@ -577,7 +576,7 @@ impl IdentityManager {
 
         DfxIdentity::map_wallets_to_renamed_identity(project_temp_dir, from, to)
             .map_err(MapWalletsToRenamedIdentityFailed)?;
-        crate::fs::rename(&from_dir, &to_dir).map_err(RenameIdentityDirectoryFailed)?;
+        crate::fs::rename(&from_dir, &to_dir)?;
         if let Some(keyring_identity_suffix) = &identity_config.keyring_identity_suffix {
             debug!(log, "Migrating keyring content.");
             let (pem, _) =

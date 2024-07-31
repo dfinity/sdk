@@ -1,13 +1,11 @@
 use crate::error::fs::{
     ReadFileError, ReadPermissionsError, RemoveDirectoryAndContentsError, RemoveDirectoryError,
-    RemoveFileError, SetPermissionsError, WriteFileError,
+    RemoveFileError, RenameError, SetPermissionsError, WriteFileError,
 };
 use crate::error::{
     config::ConfigError,
     encryption::EncryptionError,
-    fs::{
-        CopyFileError, CreateDirAllError, EnsureParentDirExistsError, FsError, NoParentPathError,
-    },
+    fs::{CopyFileError, CreateDirAllError, EnsureParentDirExistsError, NoParentPathError},
     get_user_home::GetUserHomeError,
     keyring::KeyringError,
     structured_file::StructuredFileError,
@@ -82,7 +80,7 @@ pub enum CreateNewIdentityError {
     RemoveIdentityFailed(#[source] RemoveIdentityError),
 
     #[error("Failed to rename temporary directory to permanent identity directory")]
-    RenameTemporaryIdentityDirectoryFailed(#[source] FsError),
+    RenameTemporaryIdentityDirectoryFailed(#[from] RenameError),
 
     #[error("Failed to save identity configuration")]
     SaveIdentityConfigurationFailed(#[source] SaveIdentityConfigurationError),
@@ -303,8 +301,8 @@ pub enum RenameIdentityError {
     #[error("Failed to remove identity from keyring")]
     RemoveIdentityFromKeyringFailed(#[source] KeyringError),
 
-    #[error("Cannot rename identity directory")]
-    RenameIdentityDirectoryFailed(#[source] FsError),
+    #[error("failed to rename identity directory")]
+    RenameIdentityDirectoryFailed(#[from] RenameError),
 
     #[error("Failed to save identity configuration")]
     SaveIdentityConfigurationFailed(#[source] SaveIdentityConfigurationError),

@@ -109,6 +109,14 @@ pub struct RemoveFileError {
 }
 
 #[derive(Error, Debug)]
+#[error("Failed to rename {from} to {to}")]
+pub struct RenameError {
+    pub from: PathBuf,
+    pub to: PathBuf,
+    pub source: std::io::Error,
+}
+
+#[derive(Error, Debug)]
 #[error("failed to set permissions of {path}")]
 pub struct SetPermissionsError {
     pub path: PathBuf,
@@ -126,9 +134,6 @@ pub enum SetPermissionsReadWriteError {
 
 #[derive(Error, Debug)]
 pub enum FsErrorKind {
-    #[error("Failed to rename {0} to {1}")]
-    RenameFailed(Box<PathBuf>, Box<PathBuf>, #[source] std::io::Error),
-
     #[error("Failed to unpack archive in {0}")]
     UnpackingArchiveFailed(PathBuf, #[source] std::io::Error),
 }

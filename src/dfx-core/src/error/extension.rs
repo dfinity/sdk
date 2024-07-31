@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use crate::error::fs::{
-    EnsureDirExistsError, FsError, ReadDirError, RemoveDirectoryAndContentsError,
+    EnsureDirExistsError, ReadDirError, RemoveDirectoryAndContentsError, RenameError,
     SetPermissionsError,
 };
 use crate::error::structured_file::StructuredFileError;
@@ -197,7 +197,7 @@ pub enum FinalizeInstallationError {
     GetTopLevelDirectory(#[from] GetTopLevelDirectoryError),
 
     #[error(transparent)]
-    Fs(#[from] FsError),
+    Rename(#[from] RenameError),
 
     #[error(transparent)]
     SetPermissions(#[from] SetPermissionsError),
