@@ -8,15 +8,15 @@ use crate::canister_api::types::batch_upload::common::{
 };
 use crate::canister_api::types::batch_upload::v1::{BatchOperationKind, CommitBatchArguments};
 use candid::Nat;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 pub(crate) const BATCH_UPLOAD_API_VERSION: u16 = 1;
 
 pub(crate) fn assemble_batch_operations(
-    project_assets: &HashMap<String, ProjectAsset>,
-    canister_assets: HashMap<String, AssetDetails>,
+    project_assets: &BTreeMap<String, ProjectAsset>,
+    canister_assets: BTreeMap<String, AssetDetails>,
     asset_deletion_reason: AssetDeletionReason,
-    canister_asset_properties: HashMap<String, AssetProperties>,
+    canister_asset_properties: BTreeMap<String, AssetProperties>,
 ) -> Vec<BatchOperationKind> {
     let mut canister_assets = canister_assets;
 
@@ -37,10 +37,10 @@ pub(crate) fn assemble_batch_operations(
 }
 
 pub(crate) fn assemble_commit_batch_arguments(
-    project_assets: HashMap<String, ProjectAsset>,
-    canister_assets: HashMap<String, AssetDetails>,
+    project_assets: BTreeMap<String, ProjectAsset>,
+    canister_assets: BTreeMap<String, AssetDetails>,
     asset_deletion_reason: AssetDeletionReason,
-    canister_asset_properties: HashMap<String, AssetProperties>,
+    canister_asset_properties: BTreeMap<String, AssetProperties>,
     batch_id: Nat,
 ) -> CommitBatchArguments {
     let operations = assemble_batch_operations(
@@ -62,8 +62,8 @@ pub(crate) enum AssetDeletionReason {
 
 pub(crate) fn delete_assets(
     operations: &mut Vec<BatchOperationKind>,
-    project_assets: &HashMap<String, ProjectAsset>,
-    canister_assets: &mut HashMap<String, AssetDetails>,
+    project_assets: &BTreeMap<String, ProjectAsset>,
+    canister_assets: &mut BTreeMap<String, AssetDetails>,
     reason: AssetDeletionReason,
 ) {
     let mut deleted_canister_assets = vec![];
@@ -100,8 +100,8 @@ pub(crate) fn delete_assets(
 
 pub(crate) fn create_new_assets(
     operations: &mut Vec<BatchOperationKind>,
-    project_assets: &HashMap<String, ProjectAsset>,
-    canister_assets: &HashMap<String, AssetDetails>,
+    project_assets: &BTreeMap<String, ProjectAsset>,
+    canister_assets: &BTreeMap<String, AssetDetails>,
 ) {
     for (key, project_asset) in project_assets {
         if !canister_assets.contains_key(key) {
@@ -130,8 +130,8 @@ pub(crate) fn create_new_assets(
 
 pub(crate) fn unset_obsolete_encodings(
     operations: &mut Vec<BatchOperationKind>,
-    project_assets: &HashMap<String, ProjectAsset>,
-    canister_assets: &HashMap<String, AssetDetails>,
+    project_assets: &BTreeMap<String, ProjectAsset>,
+    canister_assets: &BTreeMap<String, AssetDetails>,
 ) {
     for (key, details) in canister_assets {
         // delete_obsolete_assets handles the case where key is not found in project_assets
@@ -155,7 +155,7 @@ pub(crate) fn unset_obsolete_encodings(
 
 pub(crate) fn set_encodings(
     operations: &mut Vec<BatchOperationKind>,
-    project_assets: &HashMap<String, ProjectAsset>,
+    project_assets: &BTreeMap<String, ProjectAsset>,
 ) {
     for (key, project_asset) in project_assets {
         for (content_encoding, v) in &project_asset.encodings {
@@ -177,8 +177,8 @@ pub(crate) fn set_encodings(
 
 pub(crate) fn update_properties(
     operations: &mut Vec<BatchOperationKind>,
-    project_assets: &HashMap<String, ProjectAsset>,
-    canister_asset_properties: &HashMap<String, AssetProperties>,
+    project_assets: &BTreeMap<String, ProjectAsset>,
+    canister_asset_properties: &BTreeMap<String, AssetProperties>,
 ) {
     for (key, project_asset) in project_assets {
         let project_asset_properties = project_asset.asset_descriptor.config.clone();
@@ -256,13 +256,13 @@ mod test_update_properties {
     use crate::batch_upload::plumbing::{AssetDescriptor, ProjectAsset};
     use crate::canister_api::types::asset::{AssetProperties, SetAssetPropertiesArguments};
     use crate::canister_api::types::batch_upload::v1::BatchOperationKind;
-    use std::collections::{BTreeMap, HashMap};
+    use std::collections::BTreeMap;
     use std::path::PathBuf;
 
     fn dummy_project_asset(key: &str, asset_props: AssetConfig) -> ProjectAsset {
         ProjectAsset {
             media_type: mime::TEXT_PLAIN,
-            encodings: HashMap::new(),
+            encodings: BTreeMap::new(),
             asset_descriptor: AssetDescriptor {
                 key: key.to_string(),
                 source: PathBuf::from(""),
@@ -273,8 +273,8 @@ mod test_update_properties {
 
     #[test]
     fn basic_test() {
-        let mut project_assets = HashMap::new();
-        let mut canister_asset_properties = HashMap::new();
+        let mut project_assets = BTreeMap::new();
+        let mut canister_asset_properties = BTreeMap::new();
         project_assets.insert(
             "key1".to_string(),
             dummy_project_asset(
@@ -305,7 +305,7 @@ mod test_update_properties {
             "key1".to_string(),
             AssetProperties {
                 max_age: Some(1),
-                headers: Some(HashMap::new()),
+                headers: Some(BTreeMap::new()),
                 is_aliased: Some(true),
                 allow_raw_access: Some(true),
             },
@@ -327,8 +327,8 @@ mod test_update_properties {
 
     #[test]
     fn update_no_properties() {
-        let mut project_assets = HashMap::new();
-        let mut canister_asset_properties = HashMap::new();
+        let mut project_assets = BTreeMap::new();
+        let mut canister_asset_properties = BTreeMap::new();
         project_assets.insert(
             "key1".to_string(),
             dummy_project_asset(
@@ -359,7 +359,7 @@ mod test_update_properties {
             "key1".to_string(),
             AssetProperties {
                 max_age: Some(100),
-                headers: Some(HashMap::new()),
+                headers: Some(BTreeMap::new()),
                 is_aliased: Some(true),
                 allow_raw_access: Some(true),
             },
@@ -368,7 +368,7 @@ mod test_update_properties {
             "key3".to_string(),
             AssetProperties {
                 max_age: Some(100),
-                headers: Some(HashMap::new()),
+                headers: Some(BTreeMap::new()),
                 is_aliased: Some(true),
                 allow_raw_access: Some(true),
             },
@@ -380,8 +380,8 @@ mod test_update_properties {
 
     #[test]
     fn update_with_nones() {
-        let mut project_assets = HashMap::new();
-        let mut canister_asset_properties = HashMap::new();
+        let mut project_assets = BTreeMap::new();
+        let mut canister_asset_properties = BTreeMap::new();
         project_assets.insert(
             "key1".to_string(),
             dummy_project_asset(
@@ -399,7 +399,7 @@ mod test_update_properties {
             "key1".to_string(),
             AssetProperties {
                 max_age: Some(100),
-                headers: Some(HashMap::from([("key".to_string(), "value".to_string())])),
+                headers: Some(BTreeMap::from([("key".to_string(), "value".to_string())])),
                 is_aliased: Some(true),
                 allow_raw_access: Some(true),
             },

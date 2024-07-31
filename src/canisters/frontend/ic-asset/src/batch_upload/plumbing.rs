@@ -14,7 +14,7 @@ use futures::TryFutureExt;
 use ic_utils::Canister;
 use mime::Mime;
 use slog::{debug, info, Logger};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -43,7 +43,7 @@ pub(crate) struct ProjectAssetEncoding {
 pub(crate) struct ProjectAsset {
     pub(crate) asset_descriptor: AssetDescriptor,
     pub(crate) media_type: Mime,
-    pub(crate) encodings: HashMap<String, ProjectAssetEncoding>,
+    pub(crate) encodings: BTreeMap<String, ProjectAssetEncoding>,
 }
 
 pub(crate) struct ChunkUploader<'agent> {
@@ -84,7 +84,7 @@ impl<'agent> ChunkUploader<'agent> {
 async fn make_project_asset_encoding(
     chunk_upload_target: Option<&ChunkUploader<'_>>,
     asset_descriptor: &AssetDescriptor,
-    canister_assets: &HashMap<String, AssetDetails>,
+    canister_assets: &BTreeMap<String, AssetDetails>,
     content: &Content,
     content_encoding: &str,
     semaphores: &Semaphores,
@@ -154,7 +154,7 @@ async fn make_project_asset_encoding(
 async fn make_encoding(
     chunk_upload_target: Option<&ChunkUploader<'_>>,
     asset_descriptor: &AssetDescriptor,
-    canister_assets: &HashMap<String, AssetDetails>,
+    canister_assets: &BTreeMap<String, AssetDetails>,
     content: &Content,
     encoder: &ContentEncoder,
     force_encoding: bool,
@@ -207,11 +207,11 @@ async fn make_encoding(
 async fn make_encodings(
     chunk_upload_target: Option<&ChunkUploader<'_>>,
     asset_descriptor: &AssetDescriptor,
-    canister_assets: &HashMap<String, AssetDetails>,
+    canister_assets: &BTreeMap<String, AssetDetails>,
     content: &Content,
     semaphores: &Semaphores,
     logger: &Logger,
-) -> Result<HashMap<String, ProjectAssetEncoding>, CreateEncodingError> {
+) -> Result<BTreeMap<String, ProjectAssetEncoding>, CreateEncodingError> {
     let encoders = asset_descriptor
         .config
         .encodings
@@ -240,7 +240,7 @@ async fn make_encodings(
 
     let encodings = try_join_all(encoding_futures).await?;
 
-    let mut result: HashMap<String, ProjectAssetEncoding> = HashMap::new();
+    let mut result: BTreeMap<String, ProjectAssetEncoding> = BTreeMap::new();
 
     for (key, value) in encodings.into_iter().flatten() {
         result.insert(key, value);
@@ -251,7 +251,7 @@ async fn make_encodings(
 async fn make_project_asset(
     chunk_upload_target: Option<&ChunkUploader<'_>>,
     asset_descriptor: AssetDescriptor,
-    canister_assets: &HashMap<String, AssetDetails>,
+    canister_assets: &BTreeMap<String, AssetDetails>,
     semaphores: &Semaphores,
     logger: &Logger,
 ) -> Result<ProjectAsset, CreateProjectAssetError> {
@@ -289,9 +289,9 @@ async fn make_project_asset(
 pub(crate) async fn make_project_assets(
     chunk_upload_target: Option<&ChunkUploader<'_>>,
     asset_descriptors: Vec<AssetDescriptor>,
-    canister_assets: &HashMap<String, AssetDetails>,
+    canister_assets: &BTreeMap<String, AssetDetails>,
     logger: &Logger,
-) -> Result<HashMap<String, ProjectAsset>, CreateProjectAssetError> {
+) -> Result<BTreeMap<String, ProjectAsset>, CreateProjectAssetError> {
     let semaphores = Semaphores::new();
 
     let project_asset_futures: Vec<_> = asset_descriptors
@@ -308,7 +308,7 @@ pub(crate) async fn make_project_assets(
         .collect();
     let project_assets = try_join_all(project_asset_futures).await?;
 
-    let mut hm = HashMap::new();
+    let mut hm = BTreeMap::new();
     for project_asset in project_assets {
         hm.insert(project_asset.asset_descriptor.key.clone(), project_asset);
     }

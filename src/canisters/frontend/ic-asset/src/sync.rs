@@ -35,7 +35,7 @@ use ic_agent::AgentError;
 use ic_utils::Canister;
 use itertools::Itertools;
 use slog::{debug, info, trace, warn, Logger};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::Path;
 use walkdir::WalkDir;
 
@@ -247,7 +247,7 @@ pub(crate) fn gather_asset_descriptors(
     dirs: &[&Path],
     logger: &Logger,
 ) -> Result<Vec<AssetDescriptor>, GatherAssetDescriptorsError> {
-    let mut asset_descriptors: HashMap<String, AssetDescriptor> = HashMap::new();
+    let mut asset_descriptors: BTreeMap<String, AssetDescriptor> = BTreeMap::new();
     for dir in dirs {
         let dir = dfx_core::fs::canonicalize(dir).map_err(InvalidSourceDirectory)?;
         let mut configuration =
@@ -383,7 +383,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
     use super::AssetDescriptor;
     use std::{
-        collections::HashMap,
+        collections::BTreeMap,
         fs,
         path::{Path, PathBuf},
     };
@@ -406,7 +406,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
                 config: Default::default(),
             }
         }
-        fn with_headers(mut self, headers: HashMap<&str, &str>) -> Self {
+        fn with_headers(mut self, headers: BTreeMap<&str, &str>) -> Self {
             let headers = headers
                 .into_iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))
@@ -452,14 +452,14 @@ mod test_gathering_asset_descriptors_with_tempdir {
     ///    ├── .ic-assets.json
     ///    ├── .hfile
     ///    └── file
-    fn create_temporary_assets_directory(modified_files: HashMap<PathBuf, String>) -> TempDir {
+    fn create_temporary_assets_directory(modified_files: BTreeMap<PathBuf, String>) -> TempDir {
         let assets_tempdir = Builder::new()
             .prefix("assets")
             .rand_bytes(5)
             .tempdir()
             .unwrap();
 
-        let mut default_files = HashMap::from([
+        let mut default_files = BTreeMap::from([
             (Path::new(".ic-assets.json").to_path_buf(), "[]".to_string()),
             (Path::new(".hfile").to_path_buf(), "".to_string()),
             (Path::new("file").to_path_buf(), "".to_string()),
@@ -511,7 +511,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
     #[test]
     /// test gathering all files (including dotfiles in nested dotdirs)
     fn gather_all_files() {
-        let files = HashMap::from([(
+        let files = BTreeMap::from([(
             Path::new(".ic-assets.json").to_path_buf(),
             r#"[
                 {"match": ".*", "ignore": false}
@@ -545,7 +545,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
     #[test]
     /// test gathering all non-dot files, from non-dot dirs
     fn gather_all_nondot_files_from_nondot_dirs() {
-        let files = HashMap::from([(
+        let files = BTreeMap::from([(
             Path::new(".ic-assets.json").to_path_buf(),
             r#"[
                     {"match": ".*", "ignore": true}
@@ -560,7 +560,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
         assert_eq!(asset_descriptors, expected_asset_descriptors);
 
         // same but without the `ignore` flag (defaults to `true`)
-        let files = HashMap::from([(
+        let files = BTreeMap::from([(
             Path::new(".ic-assets.json").to_path_buf(),
             r#"[
                     {"match": ".*"}
@@ -575,7 +575,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
         assert_eq!(asset_descriptors, expected_asset_descriptors);
 
         // different glob pattern
-        let files = HashMap::from([(
+        let files = BTreeMap::from([(
             Path::new(".ic-assets.json").to_path_buf(),
             r#"[
                     {"match": "*"}
@@ -590,7 +590,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
         assert_eq!(asset_descriptors, expected_asset_descriptors);
 
         // different glob pattern
-        let files = HashMap::from([(
+        let files = BTreeMap::from([(
             Path::new(".ic-assets.json").to_path_buf(),
             r#"[
                     {"match": "**/*"}
@@ -613,7 +613,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
     /// The behaviour will have to stay until this lands:
     /// https://github.com/BurntSushi/ripgrep/issues/2229
     fn failed_to_include_hidden_dir() {
-        let files = HashMap::from([(
+        let files = BTreeMap::from([(
             Path::new(".hidden-dir/.ic-assets.json").to_path_buf(),
             r#"[
                     {"match": ".", "ignore": false},
@@ -653,7 +653,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
     #[test]
     fn configuring_dotfiles_step_by_step() {
-        let files = HashMap::from([
+        let files = BTreeMap::from([
             (
                 Path::new(".ic-assets.json").to_path_buf(),
                 r#"[{"match": ".hidden-dir", "ignore": false}]"#.to_string(),
@@ -684,15 +684,15 @@ mod test_gathering_asset_descriptors_with_tempdir {
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, "file"),
             AssetDescriptor::default_from_path(&assets_dir, ".hidden-dir/.hfile")
-                .with_headers(HashMap::from([("B", "y"), ("A", "z")])),
+                .with_headers(BTreeMap::from([("B", "y"), ("A", "z")])),
             AssetDescriptor::default_from_path(&assets_dir, ".hidden-dir/file"),
             AssetDescriptor::default_from_path(&assets_dir, ".hidden-dir/.hidden-dir-nested/file")
-                .with_headers(HashMap::from([("A", "z"), ("C", "x")])),
+                .with_headers(BTreeMap::from([("A", "z"), ("C", "x")])),
             AssetDescriptor::default_from_path(
                 &assets_dir,
                 ".hidden-dir/.hidden-dir-nested/.hfile",
             )
-            .with_headers(HashMap::from([("D", "w"), ("A", "z"), ("C", "x")])),
+            .with_headers(BTreeMap::from([("D", "w"), ("A", "z"), ("C", "x")])),
         ];
 
         expected_asset_descriptors.sort_by_key(|v| v.source.clone());
@@ -702,7 +702,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
     #[test]
     fn include_only_a_specific_dotfile() {
-        let files = HashMap::from([
+        let files = BTreeMap::from([
             (
                 Path::new(".ic-assets.json").to_path_buf(),
                 r#"[
@@ -737,7 +737,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
             &assets_dir,
             ".hidden-dir/.hidden-dir-nested/.hfile",
         )
-        .with_headers(HashMap::from([("D", "w")]))];
+        .with_headers(BTreeMap::from([("D", "w")]))];
 
         expected_asset_descriptors.sort_by_key(|v| v.source.clone());
         asset_descriptors.sort_by_key(|v| v.source.clone());
@@ -746,7 +746,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
     #[test]
     fn include_all_files_except_one() {
-        let files = HashMap::from([
+        let files = BTreeMap::from([
             (
                 Path::new(".ic-assets.json").to_path_buf(),
                 r#"[
@@ -787,7 +787,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
     #[test]
     fn possible_to_reinclude_previously_ignored_file() {
-        let files = HashMap::from([
+        let files = BTreeMap::from([
             (
                 Path::new(".ic-assets.json").to_path_buf(),
                 r#"[
@@ -825,7 +825,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
     #[test]
     /// It is not possible to include a file if its parent directory has been excluded
     fn impossible_to_reinclude_file_from_already_ignored_directory() {
-        let files = HashMap::from([
+        let files = BTreeMap::from([
             // additional, non-dot dirs and files
             (Path::new("dir/file").to_path_buf(), "".to_string()),
             (Path::new("anotherdir/file").to_path_buf(), "".to_string()),
@@ -862,7 +862,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
     #[test]
     fn known_directories_included_by_default() {
-        let files = HashMap::from([
+        let files = BTreeMap::from([
             // a typical use case of the .well-known folder
             (
                 Path::new(".well-known/ic-domains").to_path_buf(),
@@ -886,7 +886,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
     #[test]
     fn known_directories_can_be_ignored() {
-        let files = HashMap::from([
+        let files = BTreeMap::from([
             // a typical use case of the .well-known folder
             (
                 Path::new(".well-known/ic-domains").to_path_buf(),
@@ -915,7 +915,7 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
     #[test]
     fn bonanza() {
-        let files = HashMap::from([
+        let files = BTreeMap::from([
             // additional, non-dot dirs and files
             (Path::new("dir/file").to_path_buf(), "".to_string()),
             (
@@ -961,17 +961,17 @@ mod test_gathering_asset_descriptors_with_tempdir {
 
         let mut expected_asset_descriptors = vec![
             AssetDescriptor::default_from_path(&assets_dir, ".hfile")
-                .with_headers(HashMap::from([("X-Content-Type-Options", "*")]))
+                .with_headers(BTreeMap::from([("X-Content-Type-Options", "*")]))
                 .with_cache(CacheConfig { max_age: Some(11) }),
             AssetDescriptor::default_from_path(&assets_dir, ".hidden-dir/.hfile")
-                .with_headers(HashMap::from([("X-Content-Type-Options", "*")]))
+                .with_headers(BTreeMap::from([("X-Content-Type-Options", "*")]))
                 .with_cache(CacheConfig { max_age: Some(11) }),
             AssetDescriptor::default_from_path(&assets_dir, ".hidden-dir/file")
-                .with_headers(HashMap::from([("X-Content-Type-Options", "nosniff")]))
+                .with_headers(BTreeMap::from([("X-Content-Type-Options", "nosniff")]))
                 .with_cache(CacheConfig { max_age: Some(11) }),
             AssetDescriptor::default_from_path(&assets_dir, ".hidden-dir-flat/file")
-                .with_headers(HashMap::from([("X-Content-Type-Options", "nosniff")]))
-                .with_headers(HashMap::from([(
+                .with_headers(BTreeMap::from([("X-Content-Type-Options", "nosniff")]))
+                .with_headers(BTreeMap::from([(
                     "Cross-Origin-Resource-Policy",
                     "same-origin",
                 )]))
@@ -979,12 +979,12 @@ mod test_gathering_asset_descriptors_with_tempdir {
             AssetDescriptor::default_from_path(&assets_dir, "anotherdir/file")
                 .with_cache(CacheConfig { max_age: Some(42) }),
             AssetDescriptor::default_from_path(&assets_dir, "dir/file")
-                .with_headers(HashMap::from([("X-Content-Type-Options", "nosniff")]))
-                .with_headers(HashMap::from([("Access-Control-Allow-Origin", "null")]))
+                .with_headers(BTreeMap::from([("X-Content-Type-Options", "nosniff")]))
+                .with_headers(BTreeMap::from([("Access-Control-Allow-Origin", "null")]))
                 .with_cache(CacheConfig { max_age: Some(11) }),
             AssetDescriptor::default_from_path(&assets_dir, "file")
                 .with_cache(CacheConfig { max_age: Some(11) })
-                .with_headers(HashMap::from([("X-Content-Type-Options", "nosniff")])),
+                .with_headers(BTreeMap::from([("X-Content-Type-Options", "nosniff")])),
         ];
 
         expected_asset_descriptors.sort_by_key(|v| v.source.clone());

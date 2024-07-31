@@ -13,14 +13,15 @@ use futures_intrusive::sync::SharedSemaphore;
 use ic_agent::{agent::RejectResponse, AgentError};
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
-use std::{collections::HashMap, time::Duration};
+use std::collections::BTreeMap;
+use std::time::Duration;
 
 const MAX_CONCURRENT_REQUESTS: usize = 50;
 
 pub(crate) async fn get_assets_properties(
     canister: &Canister<'_>,
-    canister_assets: &HashMap<String, AssetDetails>,
-) -> Result<HashMap<String, AssetProperties>, GetAssetPropertiesError> {
+    canister_assets: &BTreeMap<String, AssetDetails>,
+) -> Result<BTreeMap<String, AssetProperties>, GetAssetPropertiesError> {
     let semaphore = SharedSemaphore::new(true, MAX_CONCURRENT_REQUESTS);
 
     let asset_ids = canister_assets.keys().cloned().collect::<Vec<_>>();
@@ -55,7 +56,7 @@ pub(crate) async fn get_assets_properties(
 
     let results = futures::future::join_all(futs).await;
 
-    let mut all_assets_properties = HashMap::new();
+    let mut all_assets_properties = BTreeMap::new();
     for (index, result) in results.into_iter().enumerate() {
         match result {
             Ok(asset_properties) => {

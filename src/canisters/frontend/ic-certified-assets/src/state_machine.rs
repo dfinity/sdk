@@ -30,7 +30,7 @@ use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
 use sha2::Digest;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryInto;
 
 /// The amount of time a batch is kept alive. Modifying the batch
@@ -77,7 +77,7 @@ pub struct AssetEncoding {
     pub certified: bool,
     pub sha256: [u8; 32],
     pub certificate_expression: Option<CertificateExpression>,
-    pub response_hashes: Option<HashMap<u16, [u8; 32]>>,
+    pub response_hashes: Option<BTreeMap<u16, [u8; 32]>>,
 }
 
 impl AssetEncoding {
@@ -110,11 +110,11 @@ impl AssetEncoding {
 
     fn compute_response_hashes(
         &self,
-        headers: &Option<HashMap<String, String>>,
+        headers: &Option<BTreeMap<String, String>>,
         max_age: &Option<u64>,
         content_type: &str,
         encoding_name: &str,
-    ) -> HashMap<u16, [u8; 32]> {
+    ) -> BTreeMap<u16, [u8; 32]> {
         // Collect all user-defined headers
         let base_headers: Vec<(String, Value)> = build_headers(
             headers.as_ref().map(|h| h.iter()),
@@ -134,7 +134,7 @@ impl AssetEncoding {
         let empty_body_hash: [u8; 32] = sha2::Sha256::digest([]).into();
         let ResponseHash(response_hash_304) = response_hash(&base_headers, 304, &empty_body_hash);
 
-        let mut response_hashes = HashMap::new();
+        let mut response_hashes = BTreeMap::new();
         response_hashes.insert(200, response_hash_200);
         response_hashes.insert(304, response_hash_304);
 
@@ -149,9 +149,9 @@ impl AssetEncoding {
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct Asset {
     pub content_type: String,
-    pub encodings: HashMap<String, AssetEncoding>,
+    pub encodings: BTreeMap<String, AssetEncoding>,
     pub max_age: Option<u64>,
-    pub headers: Option<HashMap<String, String>>,
+    pub headers: Option<BTreeMap<String, String>>,
     pub is_aliased: Option<bool>,
     pub allow_raw_access: Option<bool>,
 }
@@ -207,13 +207,13 @@ pub struct Configuration {
 
 #[derive(Default)]
 pub struct State {
-    assets: HashMap<AssetKey, Asset>,
+    assets: BTreeMap<AssetKey, Asset>,
     configuration: Configuration,
 
-    chunks: HashMap<ChunkId, Chunk>,
+    chunks: BTreeMap<ChunkId, Chunk>,
     next_chunk_id: ChunkId,
 
-    batches: HashMap<BatchId, Batch>,
+    batches: BTreeMap<BatchId, Batch>,
     next_batch_id: BatchId,
 
     // permissions
@@ -235,7 +235,7 @@ pub struct StableStatePermissions {
 pub struct StableState {
     authorized: Vec<Principal>, // ignored if permissions is Some(_)
     permissions: Option<StableStatePermissions>,
-    stable_assets: HashMap<String, Asset>,
+    stable_assets: BTreeMap<String, Asset>,
 
     next_batch_id: Option<BatchId>,
     configuration: Option<Configuration>,
@@ -271,7 +271,7 @@ impl Asset {
         &self,
         encoding_name: &str,
         cert_version: u16,
-    ) -> HashMap<String, String> {
+    ) -> BTreeMap<String, String> {
         let ce = if cert_version != 1 {
             self.encodings
                 .get(encoding_name)
@@ -367,7 +367,7 @@ impl State {
             arg.key,
             Asset {
                 content_type: arg.content_type,
-                encodings: HashMap::new(),
+                encodings: BTreeMap::new(),
                 max_age: arg.max_age,
                 headers: arg.headers,
                 is_aliased: arg.enable_aliasing,
@@ -1122,8 +1122,8 @@ fn build_headers(
     content_type: impl Into<String>,
     encoding_name: impl Into<String>,
     cert_expr: Option<&CertificateExpression>,
-) -> HashMap<String, String> {
-    let mut headers = HashMap::from([("content-type".to_string(), content_type.into())]);
+) -> BTreeMap<String, String> {
+    let mut headers = BTreeMap::from([("content-type".to_string(), content_type.into())]);
     if let Some(max_age) = max_age {
         headers.insert("cache-control".to_string(), format!("max-age={}", max_age));
     }

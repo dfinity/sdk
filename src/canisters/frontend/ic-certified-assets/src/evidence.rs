@@ -10,7 +10,7 @@ use crate::types::{
 use itertools::Itertools;
 use serde_bytes::ByteBuf;
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 const TAG_FALSE: [u8; 1] = [0];
 const TAG_TRUE: [u8; 1] = [1];
@@ -54,7 +54,7 @@ impl EvidenceComputation {
         }
     }
 
-    pub fn advance(self, args: &CommitBatchArguments, chunks: &HashMap<ChunkId, Chunk>) -> Self {
+    pub fn advance(self, args: &CommitBatchArguments, chunks: &BTreeMap<ChunkId, Chunk>) -> Self {
         match self {
             NextOperation {
                 operation_index,
@@ -131,7 +131,7 @@ fn next_chunk_index(
     operation_index: usize,
     chunk_index: usize,
     mut hasher: Sha256,
-    chunks: &HashMap<ChunkId, Chunk>,
+    chunks: &BTreeMap<ChunkId, Chunk>,
 ) -> EvidenceComputation {
     if let Some(SetAssetContent(sac)) = args.operations.get(operation_index) {
         if let Some(chunk_id) = sac.chunk_ids.get(chunk_index) {
@@ -151,7 +151,7 @@ fn next_chunk_index(
     }
 }
 
-fn hash_chunk_by_id(hasher: &mut Sha256, chunk_id: &ChunkId, chunks: &HashMap<ChunkId, Chunk>) {
+fn hash_chunk_by_id(hasher: &mut Sha256, chunk_id: &ChunkId, chunks: &BTreeMap<ChunkId, Chunk>) {
     if let Some(chunk) = chunks.get(chunk_id) {
         hasher.update(&chunk.content);
     }
@@ -246,7 +246,7 @@ fn hash_opt_bytebuf(hasher: &mut Sha256, buf: Option<&ByteBuf>) {
     }
 }
 
-fn hash_headers(hasher: &mut Sha256, headers: Option<&HashMap<String, String>>) {
+fn hash_headers(hasher: &mut Sha256, headers: Option<&BTreeMap<String, String>>) {
     if let Some(headers) = headers {
         hasher.update(TAG_SOME);
         for k in headers.keys().sorted() {

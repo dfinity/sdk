@@ -3,7 +3,7 @@
 use crate::asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde_bytes::ByteBuf;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 pub type BatchId = Nat;
 pub type ChunkId = Nat;
@@ -29,7 +29,7 @@ pub struct CreateAssetArguments {
     pub key: AssetKey,
     pub content_type: String,
     pub max_age: Option<u64>,
-    pub headers: Option<HashMap<String, String>>,
+    pub headers: Option<BTreeMap<String, String>>,
     pub enable_aliasing: Option<bool>,
     pub allow_raw_access: Option<bool>,
 }
@@ -137,7 +137,7 @@ pub struct CreateChunkResponse {
 #[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
 pub struct AssetProperties {
     pub max_age: Option<u64>,
-    pub headers: Option<HashMap<String, String>>,
+    pub headers: Option<BTreeMap<String, String>>,
     pub allow_raw_access: Option<bool>,
     pub is_aliased: Option<bool>,
 }
@@ -146,7 +146,7 @@ pub struct AssetProperties {
 pub struct SetAssetPropertiesArguments {
     pub key: AssetKey,
     pub max_age: Option<Option<u64>>,
-    pub headers: Option<Option<HashMap<String, String>>>,
+    pub headers: Option<Option<BTreeMap<String, String>>>,
     pub allow_raw_access: Option<Option<bool>>,
     pub is_aliased: Option<Option<bool>>,
 }

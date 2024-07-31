@@ -18,7 +18,7 @@ use crate::sync::gather_asset_descriptors;
 use ic_utils::Canister;
 use sha2::{Digest, Sha256};
 use slog::{info, Logger};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 use std::path::Path;
 
 const TAG_FALSE: [u8; 1] = [0];
@@ -78,7 +78,7 @@ pub async fn compute_evidence(
 fn hash_operation(
     hasher: &mut Sha256,
     op: &BatchOperationKind,
-    project_assets: &HashMap<String, ProjectAsset>,
+    project_assets: &BTreeMap<String, ProjectAsset>,
 ) -> Result<(), HashContentError> {
     match op {
         BatchOperationKind::CreateAsset(args) => hash_create_asset(hasher, args),
@@ -111,7 +111,7 @@ fn hash_create_asset(hasher: &mut Sha256, args: &CreateAssetArguments) {
 fn hash_set_asset_content(
     hasher: &mut Sha256,
     args: &SetAssetContentArguments,
-    project_assets: &HashMap<String, ProjectAsset>,
+    project_assets: &BTreeMap<String, ProjectAsset>,
 ) -> Result<(), HashContentError> {
     hasher.update(TAG_SET_ASSET_CONTENT);
     hasher.update(&args.key);

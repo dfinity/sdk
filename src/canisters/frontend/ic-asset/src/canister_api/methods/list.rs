@@ -3,11 +3,11 @@ use crate::canister_api::types::{asset::AssetDetails, list::ListAssetsRequest};
 use ic_agent::AgentError;
 use ic_utils::call::SyncCall;
 use ic_utils::Canister;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 pub(crate) async fn list_assets(
     canister: &Canister<'_>,
-) -> Result<HashMap<String, AssetDetails>, AgentError> {
+) -> Result<BTreeMap<String, AssetDetails>, AgentError> {
     let (entries,): (Vec<AssetDetails>,) = canister
         .query(LIST)
         .with_arg(ListAssetsRequest {})
@@ -15,7 +15,7 @@ pub(crate) async fn list_assets(
         .call()
         .await?;
 
-    let assets: HashMap<_, _> = entries.into_iter().map(|d| (d.key.clone(), d)).collect();
+    let assets: BTreeMap<_, _> = entries.into_iter().map(|d| (d.key.clone(), d)).collect();
 
     Ok(assets)
 }

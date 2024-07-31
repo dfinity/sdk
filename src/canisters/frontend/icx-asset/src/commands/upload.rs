@@ -1,7 +1,7 @@
 use crate::UploadOpts;
 use ic_utils::Canister;
 use slog::Logger;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::str::FromStr;
 use walkdir::WalkDir;
@@ -16,8 +16,8 @@ pub(crate) async fn upload(
     Ok(())
 }
 
-fn get_key_map(files: &[String]) -> anyhow::Result<HashMap<String, PathBuf>> {
-    let mut key_map: HashMap<String, PathBuf> = HashMap::new();
+fn get_key_map(files: &[String]) -> anyhow::Result<BTreeMap<String, PathBuf>> {
+    let mut key_map: BTreeMap<String, PathBuf> = BTreeMap::new();
 
     for arg in files {
         let (key, source): (String, PathBuf) = {

@@ -19,13 +19,13 @@ use crate::error::UploadError::{CommitBatchFailed, CreateBatchFailed, ListAssets
 use candid::Nat;
 use ic_utils::Canister;
 use slog::{info, Logger};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 /// Upload the specified files
 pub async fn upload(
     canister: &Canister<'_>,
-    files: HashMap<String, PathBuf>,
+    files: BTreeMap<String, PathBuf>,
     logger: &Logger,
 ) -> Result<(), UploadError> {
     let commit_batch_args = stage_upload(canister, files, logger).await?;
@@ -49,7 +49,7 @@ pub async fn upload(
 /// The batch ID.
 pub async fn upload_and_propose(
     canister: &Canister<'_>,
-    files: HashMap<String, PathBuf>,
+    files: BTreeMap<String, PathBuf>,
     logger: &Logger,
 ) -> Result<Nat, UploadError> {
     let commit_batch_args = stage_upload(canister, files, logger).await?;
@@ -72,7 +72,7 @@ pub async fn upload_and_propose(
 
 async fn stage_upload(
     canister: &Canister<'_>,
-    files: HashMap<String, PathBuf>,
+    files: BTreeMap<String, PathBuf>,
     logger: &Logger,
 ) -> Result<CommitBatchArguments, UploadError> {
     let asset_descriptors: Vec<AssetDescriptor> = files
@@ -106,7 +106,7 @@ async fn stage_upload(
         project_assets,
         canister_assets,
         AssetDeletionReason::Incompatible,
-        HashMap::new(),
+        BTreeMap::new(),
         batch_id.clone(),
     );
 

@@ -6,9 +6,8 @@ use crate::security_policy::SecurityPolicy;
 use derivative::Derivative;
 use globset::GlobMatcher;
 use serde::{Deserialize, Serialize};
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::{
-    collections::HashMap,
     path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
@@ -41,8 +40,8 @@ impl AssetConfig {
             (Some(custom_headers), None) => Some(custom_headers.clone()),
             (Some(custom_headers), Some(policy)) => {
                 let mut headers = custom_headers.clone();
-                let custom_header_names: HashSet<String> =
-                    HashSet::from_iter(custom_headers.keys().map(|a| a.to_lowercase()));
+                let custom_header_names: BTreeSet<String> =
+                    BTreeSet::from_iter(custom_headers.keys().map(|a| a.to_lowercase()));
                 for (policy_header_name, policy_header_value) in policy.to_headers() {
                     if !custom_header_names.contains(&policy_header_name.to_lowercase()) {
                         headers.insert(policy_header_name, policy_header_value);
@@ -141,7 +140,7 @@ impl AssetConfigRule {
 }
 
 type ConfigNode = Arc<Mutex<AssetConfigTreeNode>>;
-type ConfigMap = HashMap<PathBuf, ConfigNode>;
+type ConfigMap = BTreeMap<PathBuf, ConfigNode>;
 
 /// The main public interface for aggregating `.ic-assets.json` files
 /// nested in directories. Each sub/directory will be represented
@@ -165,7 +164,7 @@ impl AssetSourceDirectoryConfiguration {
         if !root_dir.has_root() {
             return Err(AssetLoadConfigError::InvalidRootDir(root_dir.to_path_buf()));
         }
-        let mut config_map = HashMap::new();
+        let mut config_map = BTreeMap::new();
         AssetConfigTreeNode::load(None, root_dir, &mut config_map)?;
 
         Ok(Self { config_map })
@@ -187,8 +186,8 @@ impl AssetSourceDirectoryConfiguration {
     }
 
     /// Returns a collection of unused configuration objects from all `.ic-assets.json` files
-    pub fn get_unused_configs(&self) -> HashMap<PathBuf, Vec<AssetConfigRule>> {
-        let mut hm = HashMap::new();
+    pub fn get_unused_configs(&self) -> BTreeMap<PathBuf, Vec<AssetConfigRule>> {
+        let mut hm = BTreeMap::new();
         // aggregate
         for node in self.config_map.values() {
             let config_node = &node.lock().unwrap();
@@ -565,7 +564,7 @@ mod with_tempdir {
     use tempfile::{Builder, TempDir};
 
     fn create_temporary_assets_directory(
-        config_files: Option<HashMap<String, String>>,
+        config_files: Option<BTreeMap<String, String>>,
         assets_count: usize,
     ) -> TempDir {
         let assets_dir = Builder::new()
@@ -595,7 +594,7 @@ mod with_tempdir {
         });
 
         let new_empty_config = |directory: &str| (directory.to_string(), "[]".to_string());
-        let mut h = HashMap::from([
+        let mut h = BTreeMap::from([
             new_empty_config(""),
             new_empty_config("css"),
             new_empty_config("js"),
@@ -619,7 +618,7 @@ mod with_tempdir {
 
     #[test]
     fn match_only_nested_files() {
-        let cfg = HashMap::from([(
+        let cfg = BTreeMap::from([(
             "nested".to_string(),
             r#"[{"match": "*", "cache": {"max_age": 333}}]"#.to_string(),
         )]);
@@ -656,7 +655,7 @@ mod with_tempdir {
 
     #[test]
     fn overriding_cache_rules() {
-        let cfg = Some(HashMap::from([
+        let cfg = Some(BTreeMap::from([
             (
                 "nested".to_string(),
                 r#"[{"match": "*", "cache": {"max_age": 111}}]"#.to_string(),
@@ -703,7 +702,7 @@ mod with_tempdir {
     #[test]
     fn overriding_headers() {
         use serde_json::Value::*;
-        let cfg = Some(HashMap::from([(
+        let cfg = Some(BTreeMap::from([(
             "".to_string(),
             r#"
     [
@@ -783,7 +782,7 @@ mod with_tempdir {
 
     #[test]
     fn overriding_encodings() {
-        let cfg = Some(HashMap::from([
+        let cfg = Some(BTreeMap::from([
             (
                 "".to_string(),
                 r#"[{"match": "**/*.txt", "encodings": []},{"match": "**/*.unknown", "encodings": ["gzip"]}]"#.to_string(),
@@ -819,7 +818,7 @@ mod with_tempdir {
     fn prioritization() {
         // 1. the most deeply nested config file takes precedens over the one in parent dir
         // 2. order of rules withing file matters - last rule in config file takes precedens over the first one
-        let cfg = Some(HashMap::from([
+        let cfg = Some(BTreeMap::from([
             (
                 "".to_string(),
                 r#"[
@@ -893,7 +892,7 @@ mod with_tempdir {
 
     #[test]
     fn json5_config_file_with_comments() {
-        let cfg = Some(HashMap::from([(
+        let cfg = Some(BTreeMap::from([(
             "".to_string(),
             r#"[
 // comment
@@ -921,7 +920,7 @@ mod with_tempdir {
 
     #[test]
     fn no_content_config_file() {
-        let cfg = Some(HashMap::from([
+        let cfg = Some(BTreeMap::from([
             ("".to_string(), "".to_string()),
             ("css".to_string(), "".to_string()),
             ("js".to_string(), "".to_string()),
@@ -946,7 +945,7 @@ mod with_tempdir {
 
     #[test]
     fn invalid_json_config_file() {
-        let cfg = Some(HashMap::from([("".to_string(), "[[[{{{".to_string())]));
+        let cfg = Some(BTreeMap::from([("".to_string(), "[[[{{{".to_string())]));
         let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
         let assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir);
@@ -965,7 +964,7 @@ mod with_tempdir {
 
     #[test]
     fn invalid_glob_pattern() {
-        let cfg = Some(HashMap::from([(
+        let cfg = Some(BTreeMap::from([(
             "".to_string(),
             r#"[
         {"match": "{{{\\\", "cache": {"max_age": 900}},
@@ -990,7 +989,7 @@ mod with_tempdir {
 
     #[test]
     fn invalid_asset_path() {
-        let cfg = Some(HashMap::new());
+        let cfg = Some(BTreeMap::new());
         let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
         let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
@@ -1005,7 +1004,7 @@ mod with_tempdir {
     #[cfg(target_family = "unix")]
     #[test]
     fn no_read_permission() {
-        let cfg = Some(HashMap::from([(
+        let cfg = Some(BTreeMap::from([(
             "".to_string(),
             r#"[
         {"match": "*", "cache": {"max_age": 20}}
@@ -1040,7 +1039,7 @@ mod with_tempdir {
 
     #[test]
     fn allow_raw_access_flag() {
-        let cfg = Some(HashMap::from([(
+        let cfg = Some(BTreeMap::from([(
             "".to_string(),
             r#"[
   {
@@ -1066,7 +1065,7 @@ mod with_tempdir {
 
     #[test]
     fn default_value_for_allow_raw_access_flag() {
-        let cfg = Some(HashMap::from([("".to_string(), "[]".to_string())]));
+        let cfg = Some(BTreeMap::from([("".to_string(), "[]".to_string())]));
         let assets_temp_dir = create_temporary_assets_directory(cfg, 0);
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
         let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
@@ -1083,7 +1082,7 @@ mod with_tempdir {
 
     #[test]
     fn the_order_does_not_matter() {
-        let cfg = Some(HashMap::from([(
+        let cfg = Some(BTreeMap::from([(
             "".to_string(),
             r#"[
                 {
@@ -1105,7 +1104,7 @@ mod with_tempdir {
 "#
             .to_string(),
         )]));
-        let cfg2 = Some(HashMap::from([(
+        let cfg2 = Some(BTreeMap::from([(
             "".to_string(),
             r#"[
                 {
@@ -1156,7 +1155,7 @@ mod with_tempdir {
         assert_eq!(y.cache.clone().unwrap().max_age, Some(22));
 
         // same as above but with different values
-        let cfg = Some(HashMap::from([(
+        let cfg = Some(BTreeMap::from([(
             "".to_string(),
             r#"[
                 {
@@ -1178,7 +1177,7 @@ mod with_tempdir {
 "#
             .to_string(),
         )]));
-        let cfg2 = Some(HashMap::from([(
+        let cfg2 = Some(BTreeMap::from([(
             "".to_string(),
             r#"[
                 {

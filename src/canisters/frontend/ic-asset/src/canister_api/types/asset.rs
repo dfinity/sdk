@@ -1,6 +1,6 @@
 use candid::CandidType;
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// Information about a content encoding stored for an asset.
 #[derive(CandidType, Debug, Deserialize)]
@@ -30,7 +30,7 @@ pub struct AssetProperties {
     /// Asset's cache max_age property
     pub max_age: Option<u64>,
     /// Asset's HTTP response headers
-    pub headers: Option<HashMap<String, String>>,
+    pub headers: Option<BTreeMap<String, String>>,
     /// Asset's toggle for whether to serve the asset over .raw domain
     pub allow_raw_access: Option<bool>,
     /// Asset's toggle for whether to serve the .html asset both as /route and /route.html
