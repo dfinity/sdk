@@ -138,28 +138,3 @@ pub struct UnpackingArchiveError {
     pub path: PathBuf,
     pub source: std::io::Error,
 }
-
-#[derive(Error, Debug)]
-pub enum FsErrorKind {
-    #[error("Failed to unpack archive in {0}")]
-    Foo(PathBuf, #[source] std::io::Error),
-}
-
-#[derive(Error, Debug)]
-#[error(transparent)]
-pub struct FsError(pub Box<FsErrorKind>);
-
-impl FsError {
-    pub fn new(kind: FsErrorKind) -> Self {
-        FsError(Box::new(kind))
-    }
-}
-
-impl<E> From<E> for FsError
-where
-    FsErrorKind: From<E>,
-{
-    fn from(err: E) -> Self {
-        FsError(Box::new(FsErrorKind::from(err)))
-    }
-}
