@@ -1,21 +1,21 @@
 use super::identity_manager::EncryptionConfiguration;
 use super::IdentityConfiguration;
-use crate::error::encryption::EncryptionError;
-use crate::error::encryption::EncryptionError::{DecryptContentFailed, HashPasswordFailed};
-use crate::error::fs::FsError;
-use crate::error::identity::load_pem::LoadPemError;
-use crate::error::identity::load_pem::LoadPemError::LoadFromKeyringFailed;
-use crate::error::identity::load_pem_from_file::LoadPemFromFileError;
-use crate::error::identity::load_pem_from_file::LoadPemFromFileError::{
-    DecryptPemFileFailed, ReadPemFileFailed,
-};
-use crate::error::identity::save_pem::SavePemError;
-use crate::error::identity::save_pem::SavePemError::{
-    CannotSavePemContentForHsm, WritePemToKeyringFailed,
-};
-use crate::error::identity::write_pem_to_file::WritePemToFileError;
-use crate::error::identity::write_pem_to_file::WritePemToFileError::{
-    EncryptPemFileFailed, WritePemContentFailed,
+use crate::error::identity::WritePemContentError;
+use crate::error::{
+    encryption::{
+        EncryptionError,
+        EncryptionError::{DecryptContentFailed, HashPasswordFailed},
+    },
+    identity::{
+        LoadPemError,
+        LoadPemError::LoadFromKeyringFailed,
+        LoadPemFromFileError,
+        LoadPemFromFileError::{DecryptPemFileFailed, ReadPemFileFailed},
+        SavePemError,
+        SavePemError::{CannotSavePemContentForHsm, WritePemToKeyringFailed},
+        WritePemToFileError,
+        WritePemToFileError::{EncryptPemFileFailed, WritePemContentFailed},
+    },
 };
 use crate::identity::identity_file_locations::IdentityFileLocations;
 use crate::identity::keyring_mock;
@@ -105,12 +105,13 @@ pub fn write_pem_to_file(
     write_pem_content(path, &pem_content).map_err(WritePemContentFailed)
 }
 
-fn write_pem_content(path: &Path, pem_content: &[u8]) -> Result<(), FsError> {
+fn write_pem_content(path: &Path, pem_content: &[u8]) -> Result<(), WritePemContentError> {
     let containing_folder = crate::fs::parent(path)?;
     crate::fs::create_dir_all(&containing_folder)?;
-    crate::fs::write(path, pem_content)?;
+    crate::fs::write(path, pem_content).map_err(WritePemContentError::Write)?;
 
-    let mut permissions = crate::fs::read_permissions(path)?;
+    let mut permissions =
+        crate::fs::read_permissions(path).map_err(WritePemContentError::ReadPermissions)?;
 
     permissions.set_readonly(true);
     // On *nix, set the read permission to owner-only.
@@ -120,7 +121,8 @@ fn write_pem_content(path: &Path, pem_content: &[u8]) -> Result<(), FsError> {
         permissions.set_mode(0o400);
     }
 
-    crate::fs::set_permissions(path, permissions)
+    crate::fs::set_permissions(path, permissions).map_err(WritePemContentError::SetPermissions)?;
+    Ok(())
 }
 
 /// If the IndentityConfiguration suggests that the content of the pem file should be encrypted,

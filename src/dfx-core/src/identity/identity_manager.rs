@@ -4,54 +4,52 @@ use crate::config::directories::get_user_dfx_config_dir;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
 use crate::error::fs::FsError;
-use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError;
-use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError::DeriveExtendedKeyFromPathFailed;
-use crate::error::identity::create_identity_config::CreateIdentityConfigError;
-use crate::error::identity::create_identity_config::CreateIdentityConfigError::GenerateFreshEncryptionConfigurationFailed;
-use crate::error::identity::create_new_identity::CreateNewIdentityError;
-use crate::error::identity::create_new_identity::CreateNewIdentityError::{
-    CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
-    CreateMnemonicFromPhraseFailed, CreateTemporaryIdentityDirectoryFailed,
-    RenameTemporaryIdentityDirectoryFailed, SwitchBackToIdentityFailed,
-    SwitchToAnonymousIdentityFailed,
+use crate::error::identity::{
+    ConvertMnemonicToKeyError,
+    ConvertMnemonicToKeyError::DeriveExtendedKeyFromPathFailed,
+    CreateIdentityConfigError,
+    CreateIdentityConfigError::GenerateFreshEncryptionConfigurationFailed,
+    CreateNewIdentityError,
+    CreateNewIdentityError::{
+        CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
+        CreateMnemonicFromPhraseFailed, CreateTemporaryIdentityDirectoryFailed,
+        RenameTemporaryIdentityDirectoryFailed, SwitchBackToIdentityFailed,
+        SwitchToAnonymousIdentityFailed,
+    },
+    ExportIdentityError,
+    ExportIdentityError::TranslatePemContentToTextFailed,
+    GenerateKeyError,
+    GenerateKeyError::GenerateFreshSecp256k1KeyFailed,
+    GetIdentityConfigOrDefaultError,
+    GetIdentityConfigOrDefaultError::LoadIdentityConfigurationFailed,
+    GetLegacyCredentialsPemPathError,
+    GetLegacyCredentialsPemPathError::GetLegacyPemPathFailed,
+    InitializeIdentityManagerError,
+    InitializeIdentityManagerError::{
+        CreateIdentityDirectoryFailed, GenerateKeyFailed, MigrateLegacyIdentityFailed,
+        WritePemToFileFailed,
+    },
+    InstantiateIdentityFromNameError,
+    InstantiateIdentityFromNameError::{GetIdentityPrincipalFailed, LoadIdentityFailed},
+    LoadIdentityError, NewIdentityManagerError,
+    NewIdentityManagerError::LoadIdentityManagerConfigurationFailed,
+    RemoveIdentityError,
+    RemoveIdentityError::{
+        DisplayLinkedWalletsFailed, DropWalletsFlagRequiredToRemoveIdentityWithWallets,
+        RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed,
+    },
+    RenameIdentityError,
+    RenameIdentityError::{
+        GetIdentityConfigFailed, LoadPemFailed, MapWalletsToRenamedIdentityFailed,
+        RenameIdentityDirectoryFailed, SavePemFailed, SwitchDefaultIdentitySettingsFailed,
+    },
+    RequireIdentityExistsError, SaveIdentityConfigurationError,
+    SaveIdentityConfigurationError::EnsureIdentityConfigurationDirExistsFailed,
+    UseIdentityByNameError,
+    UseIdentityByNameError::WriteDefaultIdentityFailed,
+    WriteDefaultIdentityError,
+    WriteDefaultIdentityError::SaveIdentityManagerConfigurationFailed,
 };
-use crate::error::identity::export_identity::ExportIdentityError;
-use crate::error::identity::export_identity::ExportIdentityError::TranslatePemContentToTextFailed;
-use crate::error::identity::generate_key::GenerateKeyError;
-use crate::error::identity::generate_key::GenerateKeyError::GenerateFreshSecp256k1KeyFailed;
-use crate::error::identity::get_identity_config_or_default::GetIdentityConfigOrDefaultError;
-use crate::error::identity::get_identity_config_or_default::GetIdentityConfigOrDefaultError::LoadIdentityConfigurationFailed;
-use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError;
-use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError::GetLegacyPemPathFailed;
-use crate::error::identity::initialize_identity_manager::InitializeIdentityManagerError;
-use crate::error::identity::initialize_identity_manager::InitializeIdentityManagerError::{
-    CreateIdentityDirectoryFailed, GenerateKeyFailed, MigrateLegacyIdentityFailed,
-    WritePemToFileFailed,
-};
-use crate::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError;
-use crate::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError::{
-    GetIdentityPrincipalFailed, LoadIdentityFailed,
-};
-use crate::error::identity::load_identity::LoadIdentityError;
-use crate::error::identity::new_identity_manager::NewIdentityManagerError;
-use crate::error::identity::new_identity_manager::NewIdentityManagerError::LoadIdentityManagerConfigurationFailed;
-use crate::error::identity::remove_identity::RemoveIdentityError;
-use crate::error::identity::remove_identity::RemoveIdentityError::{
-    DisplayLinkedWalletsFailed, DropWalletsFlagRequiredToRemoveIdentityWithWallets,
-    RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed,
-};
-use crate::error::identity::rename_identity::RenameIdentityError;
-use crate::error::identity::rename_identity::RenameIdentityError::{
-    GetIdentityConfigFailed, LoadPemFailed, MapWalletsToRenamedIdentityFailed,
-    RenameIdentityDirectoryFailed, SavePemFailed, SwitchDefaultIdentitySettingsFailed,
-};
-use crate::error::identity::require_identity_exists::RequireIdentityExistsError;
-use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError;
-use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError::EnsureIdentityConfigurationDirExistsFailed;
-use crate::error::identity::use_identity_by_name::UseIdentityByNameError;
-use crate::error::identity::use_identity_by_name::UseIdentityByNameError::WriteDefaultIdentityFailed;
-use crate::error::identity::write_default_identity::WriteDefaultIdentityError;
-use crate::error::identity::write_default_identity::WriteDefaultIdentityError::SaveIdentityManagerConfigurationFailed;
 use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
 use crate::fs::composite::ensure_parent_dir_exists;
