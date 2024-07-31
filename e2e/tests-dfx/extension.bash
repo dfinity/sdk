@@ -396,27 +396,27 @@ echo testoutput' > "$CACHE_DIR"/extensions/test_extension/test_extension
 
   assert_command_fail dfx extension list
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json"
   assert_match "missing field .* at line .* column .*"
 
   assert_command_fail dfx extension run test_extension
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json.*"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json.*"
   assert_match "missing field .* at line .* column .*"
 
   assert_command_fail dfx test_extension
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json.*"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json.*"
   assert_match "missing field .* at line .* column .*"
 
   assert_command_fail dfx --help
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json.*"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json.*"
   assert_match "missing field .* at line .* column .*"
 
   assert_command_fail dfx test_extension --help
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json.*"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json.*"
   assert_match "missing field .* at line .* column .*"
 
   echo '{
