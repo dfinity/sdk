@@ -1,8 +1,9 @@
 #[cfg(windows)]
 use crate::config::directories::project_dirs;
 use crate::error::cache::{
-    CacheError, DeleteCacheError, GetBinaryCommandPathError, GetBinaryPathFromVersionError,
-    IsCacheInstalledError, ListCacheVersionsError,
+    DeleteCacheError, GetBinCacheRootError, GetBinaryCommandPathError,
+    GetBinaryPathFromVersionError, GetCacheRootError, IsCacheInstalledError,
+    ListCacheVersionsError,
 };
 #[cfg(not(windows))]
 use crate::foundation::get_user_home;
@@ -23,7 +24,7 @@ pub trait Cache {
     ) -> Result<std::process::Command, GetBinaryCommandPathError>;
 }
 
-pub fn get_cache_root() -> Result<PathBuf, CacheError> {
+pub fn get_cache_root() -> Result<PathBuf, GetCacheRootError> {
     let cache_root = std::env::var_os("DFX_CACHE_ROOT");
     // dirs-next is not used for *nix to preserve existing paths
     #[cfg(not(windows))]
@@ -38,32 +39,32 @@ pub fn get_cache_root() -> Result<PathBuf, CacheError> {
         None => project_dirs()?.cache_dir().to_owned(),
     };
     if p.exists() && !p.is_dir() {
-        return Err(CacheError::FindCacheDirectoryFailed(p));
+        return Err(GetCacheRootError::FindCacheDirectoryFailed(p));
     }
     Ok(p)
 }
 
 /// Constructs and returns <cache root>/versions/<version> without creating any directories.
-pub fn get_cache_path_for_version(v: &str) -> Result<PathBuf, CacheError> {
+pub fn get_cache_path_for_version(v: &str) -> Result<PathBuf, GetCacheRootError> {
     let p = get_cache_root()?.join("versions").join(v);
     Ok(p)
 }
 
 /// Return the binary cache root. It constructs it if not present
 /// already.
-pub fn get_bin_cache_root() -> Result<PathBuf, CacheError> {
+pub fn get_bin_cache_root() -> Result<PathBuf, GetBinCacheRootError> {
     let p = get_cache_root()?.join("versions");
 
     if !p.exists() {
-        crate::fs::create_dir_all(&p).map_err(CacheError::CreateCacheDirectoryFailed)?;
+        crate::fs::create_dir_all(&p).map_err(GetBinCacheRootError::CreateCacheDirectoryFailed)?;
     } else if !p.is_dir() {
-        return Err(CacheError::FindCacheDirectoryFailed(p));
+        return Err(GetBinCacheRootError::FindCacheDirectoryFailed(p));
     }
 
     Ok(p)
 }
 
-pub fn get_bin_cache(v: &str) -> Result<PathBuf, CacheError> {
+pub fn get_bin_cache(v: &str) -> Result<PathBuf, GetBinCacheRootError> {
     let root = get_bin_cache_root()?;
     Ok(root.join(v))
 }
@@ -94,7 +95,7 @@ pub fn get_binary_path_from_version(
     }
 
     Ok(get_bin_cache(version)
-        .map_err(crate::error::cache::GetBinaryPathFromVersionError::GetBinCache)?
+        .map_err(GetBinaryPathFromVersionError::GetBinCache)?
         .join(binary_name))
 }
 
@@ -109,7 +110,7 @@ pub fn binary_command_from_version(
 }
 
 pub fn list_versions() -> Result<Vec<Version>, ListCacheVersionsError> {
-    let root = get_bin_cache_root().map_err(ListCacheVersionsError::GetBinCacheRoot)?;
+    let root = get_bin_cache_root()?;
     let mut result: Vec<Version> = Vec::new();
 
     for entry in crate::fs::read_dir(&root)? {

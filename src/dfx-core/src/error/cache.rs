@@ -19,22 +19,43 @@ pub enum GetBinaryCommandPathError {
 #[derive(Error, Debug)]
 pub enum GetBinaryPathFromVersionError {
     #[error(transparent)]
-    GetBinCache(CacheError),
+    GetBinCache(GetBinCacheRootError),
 }
 
 #[derive(Error, Debug)]
 pub enum DeleteCacheError {
     #[error(transparent)]
-    GetBinCache(#[from] CacheError),
+    GetBinCache(#[from] GetBinCacheRootError),
 
     #[error(transparent)]
     RemoveDirectoryAndContents(#[from] RemoveDirectoryAndContentsError),
 }
 
 #[derive(Error, Debug)]
+pub enum GetBinCacheRootError {
+    #[error("failed to create cache directory")]
+    CreateCacheDirectoryFailed(#[source] CreateDirAllError),
+
+    #[error("Cannot find cache directory at '{0}'.")]
+    FindCacheDirectoryFailed(std::path::PathBuf),
+
+    #[error(transparent)]
+    GetCacheRoot(#[from] GetCacheRootError),
+}
+
+#[derive(Error, Debug)]
+pub enum GetCacheRootError {
+    #[error(transparent)]
+    GetUserHomeError(#[from] GetUserHomeError),
+
+    #[error("Cannot find cache directory at '{0}'.")]
+    FindCacheDirectoryFailed(std::path::PathBuf),
+}
+
+#[derive(Error, Debug)]
 pub enum IsCacheInstalledError {
     #[error(transparent)]
-    GetBinCache(#[from] CacheError),
+    GetBinCache(#[from] GetBinCacheRootError),
 }
 
 #[derive(Error, Debug)]
@@ -43,7 +64,7 @@ pub enum ListCacheVersionsError {
     ReadDir(#[from] ReadDirError),
 
     #[error(transparent)]
-    GetBinCacheRoot(CacheError),
+    GetBinCacheRoot(#[from] GetBinCacheRootError),
 
     #[error("failed to parse '{0}' as Semantic Version")]
     MalformedSemverString(String, #[source] semver::Error),
@@ -61,7 +82,7 @@ pub enum InstallCacheError {
     GetArchivePath(#[from] GetArchivePathError),
 
     #[error(transparent)]
-    GetBinCache(CacheError),
+    GetBinCache(#[from] GetBinCacheRootError),
 
     #[error(transparent)]
     GetCurrentExeError(#[from] GetCurrentExeError),
@@ -98,18 +119,4 @@ pub enum InstallCacheError {
 
     #[error(transparent)]
     WriteFile(#[from] WriteFileError),
-}
-
-#[derive(Error, Debug)]
-pub enum CacheError {
-    #[error(transparent)]
-    GetUserHomeError(#[from] GetUserHomeError),
-
-    // #[error(transparent)]
-    // RemoveDirectoryAndContents(#[from] RemoveDirectoryAndContentsError),
-    #[error("failed to create cache directory")]
-    CreateCacheDirectoryFailed(#[source] CreateDirAllError),
-
-    #[error("Cannot find cache directory at '{0}'.")]
-    FindCacheDirectoryFailed(std::path::PathBuf),
 }

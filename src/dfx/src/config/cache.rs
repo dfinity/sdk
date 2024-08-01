@@ -75,7 +75,7 @@ impl Cache for DiskBasedCache {
 }
 
 pub fn install_version(v: &str, force: bool) -> Result<PathBuf, InstallCacheError> {
-    let p = get_bin_cache(v).map_err(InstallCacheError::GetBinCache)?;
+    let p = get_bin_cache(v)?;
     if !force && is_version_installed(v).unwrap_or(false) {
         return Ok(p);
     }
@@ -102,8 +102,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, InstallCacheErro
             .take(12)
             .map(|byte| byte as char)
             .collect();
-        let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))
-            .map_err(InstallCacheError::GetBinCache)?;
+        let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))?;
         dfx_core::fs::create_dir_all(&temp_p)?;
 
         let mut binary_cache_assets =
