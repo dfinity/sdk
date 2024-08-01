@@ -36,7 +36,7 @@ pub enum GetBinCacheRootError {
     #[error("failed to create cache directory")]
     CreateCacheDirectoryFailed(#[source] CreateDirAllError),
 
-    #[error("Cannot find cache directory at '{0}'.")]
+    #[error("failed to find cache directory at '{0}'.")]
     FindCacheDirectoryFailed(std::path::PathBuf),
 
     #[error(transparent)]
@@ -48,7 +48,7 @@ pub enum GetCacheRootError {
     #[error(transparent)]
     GetUserHomeError(#[from] GetUserHomeError),
 
-    #[error("Cannot find cache directory at '{0}'.")]
+    #[error("failed to find cache directory at '{0}'.")]
     FindCacheDirectoryFailed(std::path::PathBuf),
 }
 
