@@ -1,5 +1,8 @@
 use crate::error::archive::GetArchivePathError;
-use crate::error::fs::{CreateDirAllError, EnsureDirExistsError, ReadDirError, ReadFileError, ReadPermissionsError, RemoveDirectoryAndContentsError, SetPermissionsError, UnpackingArchiveError, WriteFileError};
+use crate::error::fs::{
+    CreateDirAllError, EnsureDirExistsError, ReadDirError, ReadFileError, ReadPermissionsError,
+    RemoveDirectoryAndContentsError, SetPermissionsError, UnpackingArchiveError, WriteFileError,
+};
 use crate::error::get_current_exe::GetCurrentExeError;
 use crate::error::get_user_home::GetUserHomeError;
 use thiserror::Error;
