@@ -2,7 +2,7 @@ use crate::lib::{environment::Environment, error::DfxResult};
 
 use anyhow::Error;
 use clap::Parser;
-use dfx_core::config::cache::get_bin_cache_root;
+use dfx_core::config::cache::get_or_create_cache_versions_root;
 use slog::info;
 use sysinfo::{ProcessExt, System, SystemExt};
 
@@ -24,7 +24,7 @@ pub fn exec(env: &dyn Environment, _: KillallOpts) -> DfxResult {
     }
     // then, kill anything that was installed alongside dfx
     info.refresh_processes();
-    let versions_dir = get_bin_cache_root()?;
+    let versions_dir = get_or_create_cache_versions_root()?;
     for (pid, proc) in info.processes() {
         if *pid != self_pid && proc.exe().starts_with(&versions_dir) {
             n += 1;

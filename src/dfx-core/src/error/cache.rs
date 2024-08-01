@@ -1,11 +1,17 @@
 use crate::error::archive::GetArchivePathError;
-use crate::error::fs::{
-    CreateDirAllError, ReadDirError, ReadFileError, ReadPermissionsError,
-    RemoveDirectoryAndContentsError, SetPermissionsError, UnpackingArchiveError, WriteFileError,
-};
+use crate::error::fs::{CreateDirAllError, EnsureDirExistsError, ReadDirError, ReadFileError, ReadPermissionsError, RemoveDirectoryAndContentsError, SetPermissionsError, UnpackingArchiveError, WriteFileError};
 use crate::error::get_current_exe::GetCurrentExeError;
 use crate::error::get_user_home::GetUserHomeError;
 use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum DeleteCacheError {
+    #[error(transparent)]
+    GetBinCache(#[from] GetCacheVersionsRootError),
+
+    #[error(transparent)]
+    RemoveDirectoryAndContents(#[from] RemoveDirectoryAndContentsError),
+}
 
 #[derive(Error, Debug)]
 pub enum GetBinaryCommandPathError {
@@ -13,31 +19,13 @@ pub enum GetBinaryCommandPathError {
     Install(#[from] InstallCacheError),
 
     #[error(transparent)]
-    GetBinaryPathFromVersion(#[from] GetBinaryPathFromVersionError),
+    GetBinCacheRoot(#[from] GetCacheVersionsRootError),
 }
 
 #[derive(Error, Debug)]
-pub enum GetBinaryPathFromVersionError {
+pub enum GetCacheVersionsRootError {
     #[error(transparent)]
-    GetBinCache(GetBinCacheRootError),
-}
-
-#[derive(Error, Debug)]
-pub enum DeleteCacheError {
-    #[error(transparent)]
-    GetBinCache(#[from] GetBinCacheRootError),
-
-    #[error(transparent)]
-    RemoveDirectoryAndContents(#[from] RemoveDirectoryAndContentsError),
-}
-
-#[derive(Error, Debug)]
-pub enum GetBinCacheRootError {
-    #[error("failed to create cache directory")]
-    CreateCacheDirectoryFailed(#[source] CreateDirAllError),
-
-    #[error("failed to find cache directory at '{0}'.")]
-    FindCacheDirectoryFailed(std::path::PathBuf),
+    EnsureDirExists(#[from] EnsureDirExistsError),
 
     #[error(transparent)]
     GetCacheRoot(#[from] GetCacheRootError),
@@ -53,27 +41,6 @@ pub enum GetCacheRootError {
 }
 
 #[derive(Error, Debug)]
-pub enum IsCacheInstalledError {
-    #[error(transparent)]
-    GetBinCache(#[from] GetBinCacheRootError),
-}
-
-#[derive(Error, Debug)]
-pub enum ListCacheVersionsError {
-    #[error(transparent)]
-    ReadDir(#[from] ReadDirError),
-
-    #[error(transparent)]
-    GetBinCacheRoot(#[from] GetBinCacheRootError),
-
-    #[error("failed to parse '{0}' as Semantic Version")]
-    MalformedSemverString(String, #[source] semver::Error),
-
-    #[error("failed to read entry in cache directory")]
-    ReadCacheEntryFailed(#[source] std::io::Error),
-}
-
-#[derive(Error, Debug)]
 pub enum InstallCacheError {
     #[error(transparent)]
     CreateDirAll(#[from] CreateDirAllError),
@@ -82,7 +49,7 @@ pub enum InstallCacheError {
     GetArchivePath(#[from] GetArchivePathError),
 
     #[error(transparent)]
-    GetBinCache(#[from] GetBinCacheRootError),
+    GetBinCache(#[from] GetCacheVersionsRootError),
 
     #[error(transparent)]
     GetCurrentExeError(#[from] GetCurrentExeError),
@@ -119,4 +86,25 @@ pub enum InstallCacheError {
 
     #[error(transparent)]
     WriteFile(#[from] WriteFileError),
+}
+
+#[derive(Error, Debug)]
+pub enum IsCacheInstalledError {
+    #[error(transparent)]
+    GetBinCache(#[from] GetCacheVersionsRootError),
+}
+
+#[derive(Error, Debug)]
+pub enum ListCacheVersionsError {
+    #[error(transparent)]
+    ReadDir(#[from] ReadDirError),
+
+    #[error(transparent)]
+    GetBinCacheRoot(#[from] GetCacheVersionsRootError),
+
+    #[error("failed to parse '{0}' as Semantic Version")]
+    MalformedSemverString(String, #[source] semver::Error),
+
+    #[error("failed to read entry in cache directory")]
+    ReadCacheEntryFailed(#[source] std::io::Error),
 }

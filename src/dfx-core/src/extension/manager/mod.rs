@@ -1,4 +1,4 @@
-use crate::config::cache::get_cache_path_for_version;
+use crate::config::cache::get_existing_cache_path_for_version;
 use crate::error::extension::{GetExtensionBinaryError, NewExtensionManagerError};
 use semver::Version;
 use std::path::PathBuf;
@@ -17,7 +17,7 @@ pub struct ExtensionManager {
 
 impl ExtensionManager {
     pub fn new(version: &Version) -> Result<Self, NewExtensionManagerError> {
-        let extensions_dir = get_cache_path_for_version(&version.to_string())?.join("extensions");
+        let extensions_dir = get_existing_cache_path_for_version(&version.to_string())?.join("extensions");
 
         Ok(Self {
             dir: extensions_dir,

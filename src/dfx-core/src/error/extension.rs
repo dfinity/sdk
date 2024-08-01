@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use crate::error::cache::{GetBinCacheRootError, GetCacheRootError};
+use crate::error::cache::{GetCacheRootError, GetCacheVersionsRootError};
 use crate::error::fs::{
     EnsureDirExistsError, ReadDirError, RemoveDirectoryAndContentsError, RenameError,
     SetPermissionsError,
@@ -51,7 +51,7 @@ pub enum RunExtensionError {
     InvalidExtensionName(std::ffi::OsString),
 
     #[error("Cannot find cache directory")]
-    FindCacheDirectoryFailed(#[from] GetBinCacheRootError),
+    FindCacheDirectoryFailed(#[from] GetCacheVersionsRootError),
 
     #[error("Failed to run extension '{0}'")]
     FailedToLaunchExtension(String, #[source] std::io::Error),
