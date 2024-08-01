@@ -5,7 +5,7 @@ use dfx_core::config::cache::{
     binary_command_from_version, delete_version, get_bin_cache, get_binary_path_from_version,
     is_version_installed, Cache,
 };
-use dfx_core::error::cache::CacheError;
+use dfx_core::error::cache::{CacheError, GetBinaryCommandPathError};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -53,14 +53,22 @@ impl Cache for DiskBasedCache {
         delete_version(&self.version_str()).map(|_| {})
     }
 
-    fn get_binary_command_path(&self, binary_name: &str) -> Result<PathBuf, CacheError> {
+    fn get_binary_command_path(
+        &self,
+        binary_name: &str,
+    ) -> Result<PathBuf, GetBinaryCommandPathError> {
         Self::install(&self.version_str())?;
-        get_binary_path_from_version(&self.version_str(), binary_name)
+        let path = get_binary_path_from_version(&self.version_str(), binary_name)?;
+        Ok(path)
     }
 
-    fn get_binary_command(&self, binary_name: &str) -> Result<std::process::Command, CacheError> {
+    fn get_binary_command(
+        &self,
+        binary_name: &str,
+    ) -> Result<std::process::Command, GetBinaryCommandPathError> {
         Self::install(&self.version_str())?;
-        binary_command_from_version(&self.version_str(), binary_name)
+        let path = binary_command_from_version(&self.version_str(), binary_name)?;
+        Ok(path)
     }
 }
 

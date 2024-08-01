@@ -1,6 +1,6 @@
 #[cfg(windows)]
 use crate::config::directories::project_dirs;
-use crate::error::cache::CacheError;
+use crate::error::cache::{CacheError, GetBinaryCommandPathError, GetBinaryPathFromVersionError};
 #[cfg(not(windows))]
 use crate::foundation::get_user_home;
 use semver::Version;
@@ -10,8 +10,14 @@ pub trait Cache {
     fn version_str(&self) -> String;
     fn is_installed(&self) -> Result<bool, CacheError>;
     fn delete(&self) -> Result<(), CacheError>;
-    fn get_binary_command_path(&self, binary_name: &str) -> Result<PathBuf, CacheError>;
-    fn get_binary_command(&self, binary_name: &str) -> Result<std::process::Command, CacheError>;
+    fn get_binary_command_path(
+        &self,
+        binary_name: &str,
+    ) -> Result<PathBuf, GetBinaryCommandPathError>;
+    fn get_binary_command(
+        &self,
+        binary_name: &str,
+    ) -> Result<std::process::Command, GetBinaryCommandPathError>;
 }
 
 pub fn get_cache_root() -> Result<PathBuf, CacheError> {
@@ -77,20 +83,22 @@ pub fn delete_version(v: &str) -> Result<bool, CacheError> {
 pub fn get_binary_path_from_version(
     version: &str,
     binary_name: &str,
-) -> Result<PathBuf, CacheError> {
+) -> Result<PathBuf, GetBinaryPathFromVersionError> {
     let env_var_name = format!("DFX_{}_PATH", binary_name.replace('-', "_").to_uppercase());
 
     if let Ok(path) = std::env::var(env_var_name) {
         return Ok(PathBuf::from(path));
     }
 
-    Ok(get_bin_cache(version)?.join(binary_name))
+    Ok(get_bin_cache(version)
+        .map_err(crate::error::cache::GetBinaryPathFromVersionError::GetBinCache)?
+        .join(binary_name))
 }
 
 pub fn binary_command_from_version(
     version: &str,
     name: &str,
-) -> Result<std::process::Command, CacheError> {
+) -> Result<std::process::Command, GetBinaryPathFromVersionError> {
     let path = get_binary_path_from_version(version, name)?;
     let cmd = std::process::Command::new(path);
 

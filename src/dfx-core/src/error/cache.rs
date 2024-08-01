@@ -8,6 +8,21 @@ use crate::error::get_user_home::GetUserHomeError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+pub enum GetBinaryCommandPathError {
+    #[error(transparent)]
+    Install(#[from] CacheError),
+
+    #[error(transparent)]
+    GetBinaryPathFromVersion(#[from] GetBinaryPathFromVersionError),
+}
+
+#[derive(Error, Debug)]
+pub enum GetBinaryPathFromVersionError {
+    #[error(transparent)]
+    GetBinCache(CacheError),
+}
+
+#[derive(Error, Debug)]
 pub enum CacheError {
     #[error(transparent)]
     Archive(#[from] GetArchivePathError),
