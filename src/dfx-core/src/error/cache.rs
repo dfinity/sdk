@@ -23,6 +23,15 @@ pub enum GetBinaryPathFromVersionError {
 }
 
 #[derive(Error, Debug)]
+pub enum DeleteCacheError {
+    #[error(transparent)]
+    GetBinCache(#[from] CacheError),
+
+    #[error(transparent)]
+    RemoveDirectoryAndContents(#[from] RemoveDirectoryAndContentsError),
+}
+
+#[derive(Error, Debug)]
 pub enum ListCacheVersionsError {
     #[error(transparent)]
     ReadDir(#[from] ReadDirError),
@@ -90,9 +99,8 @@ pub enum CacheError {
     #[error(transparent)]
     GetUserHomeError(#[from] GetUserHomeError),
 
-    #[error(transparent)]
-    RemoveDirectoryAndContents(#[from] RemoveDirectoryAndContentsError),
-
+    // #[error(transparent)]
+    // RemoveDirectoryAndContents(#[from] RemoveDirectoryAndContentsError),
     #[error("failed to create cache directory")]
     CreateCacheDirectoryFailed(#[source] CreateDirAllError),
 

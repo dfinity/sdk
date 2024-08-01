@@ -5,7 +5,9 @@ use dfx_core::config::cache::{
     binary_command_from_version, delete_version, get_bin_cache, get_binary_path_from_version,
     is_version_installed, Cache,
 };
-use dfx_core::error::cache::{CacheError, GetBinaryCommandPathError, InstallCacheError};
+use dfx_core::error::cache::{
+    CacheError, DeleteCacheError, GetBinaryCommandPathError, InstallCacheError,
+};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -49,7 +51,7 @@ impl Cache for DiskBasedCache {
         is_version_installed(&self.version_str())
     }
 
-    fn delete(&self) -> Result<(), CacheError> {
+    fn delete(&self) -> Result<(), DeleteCacheError> {
         delete_version(&self.version_str()).map(|_| {})
     }
 

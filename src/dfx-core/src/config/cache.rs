@@ -1,7 +1,8 @@
 #[cfg(windows)]
 use crate::config::directories::project_dirs;
 use crate::error::cache::{
-    CacheError, GetBinaryCommandPathError, GetBinaryPathFromVersionError, ListCacheVersionsError,
+    CacheError, DeleteCacheError, GetBinaryCommandPathError, GetBinaryPathFromVersionError,
+    ListCacheVersionsError,
 };
 #[cfg(not(windows))]
 use crate::foundation::get_user_home;
@@ -11,7 +12,7 @@ use std::path::PathBuf;
 pub trait Cache {
     fn version_str(&self) -> String;
     fn is_installed(&self) -> Result<bool, CacheError>;
-    fn delete(&self) -> Result<(), CacheError>;
+    fn delete(&self) -> Result<(), DeleteCacheError>;
     fn get_binary_command_path(
         &self,
         binary_name: &str,
@@ -71,7 +72,7 @@ pub fn is_version_installed(v: &str) -> Result<bool, CacheError> {
     get_bin_cache(v).map(|c| c.is_dir())
 }
 
-pub fn delete_version(v: &str) -> Result<bool, CacheError> {
+pub fn delete_version(v: &str) -> Result<bool, DeleteCacheError> {
     if !is_version_installed(v).unwrap_or(false) {
         return Ok(false);
     }
