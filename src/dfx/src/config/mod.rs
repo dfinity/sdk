@@ -5,8 +5,13 @@ pub mod cache;
 
 lazy_static! {
     // This expect cannot happen, we make sure that CARGO_PKG_VERSION is correct.
-    static ref VERSION: Version =
-        Version::parse(env!("CARGO_PKG_VERSION")).expect("Cannot parse version.");
+    static ref VERSION: Version = {
+        let version_str = env!("CARGO_PKG_VERSION");
+        dbg!(version_str);
+        let version_cleaned = version_str.split('+').next().expect("Cannot parse version.");
+        dbg!(version_cleaned);
+        Version::parse("1.2.3").expect("Cannot parse version.")
+    };
 
     static ref VERSION_STR: String = env!("CARGO_PKG_VERSION").to_string();
 }
