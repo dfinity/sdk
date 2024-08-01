@@ -1,6 +1,8 @@
 #[cfg(windows)]
 use crate::config::directories::project_dirs;
-use crate::error::cache::{CacheError, GetBinaryCommandPathError, GetBinaryPathFromVersionError};
+use crate::error::cache::{
+    CacheError, GetBinaryCommandPathError, GetBinaryPathFromVersionError, ListCacheVersionsError,
+};
 #[cfg(not(windows))]
 use crate::foundation::get_user_home;
 use semver::Version;
@@ -105,21 +107,20 @@ pub fn binary_command_from_version(
     Ok(cmd)
 }
 
-pub fn list_versions() -> Result<Vec<Version>, CacheError> {
-    let root = get_bin_cache_root()?;
+pub fn list_versions() -> Result<Vec<Version>, ListCacheVersionsError> {
+    let root = get_bin_cache_root().map_err(ListCacheVersionsError::GetBinCacheRoot)?;
     let mut result: Vec<Version> = Vec::new();
 
     for entry in crate::fs::read_dir(&root)? {
-        let entry = entry.map_err(CacheError::ReadCacheEntryFailed)?;
+        let entry = entry.map_err(ListCacheVersionsError::ReadCacheEntryFailed)?;
         if let Some(version) = entry.file_name().to_str() {
             if version.starts_with('_') {
                 // temp directory for version being installed
                 continue;
             }
-            result.push(
-                Version::parse(version)
-                    .map_err(|e| CacheError::MalformedSemverString(version.to_string(), e))?,
-            );
+            result.push(Version::parse(version).map_err(|e| {
+                ListCacheVersionsError::MalformedSemverString(version.to_string(), e)
+            })?);
         }
     }
 

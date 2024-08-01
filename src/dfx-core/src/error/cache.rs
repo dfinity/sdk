@@ -23,6 +23,21 @@ pub enum GetBinaryPathFromVersionError {
 }
 
 #[derive(Error, Debug)]
+pub enum ListCacheVersionsError {
+    #[error(transparent)]
+    ReadDir(#[from] ReadDirError),
+
+    #[error(transparent)]
+    GetBinCacheRoot(CacheError),
+
+    #[error("failed to parse '{0}' as Semantic Version")]
+    MalformedSemverString(String, #[source] semver::Error),
+
+    #[error("failed to read entry in cache directory")]
+    ReadCacheEntryFailed(#[source] std::io::Error),
+}
+
+#[derive(Error, Debug)]
 pub enum CacheError {
     #[error(transparent)]
     Archive(#[from] GetArchivePathError),
