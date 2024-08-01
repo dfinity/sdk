@@ -6,7 +6,7 @@ use dfx_core::config::cache::{
     is_version_installed, Cache,
 };
 use dfx_core::error::cache::{
-    CacheError, DeleteCacheError, GetBinaryCommandPathError, InstallCacheError,
+    DeleteCacheError, GetBinaryCommandPathError, InstallCacheError, IsCacheInstalledError,
 };
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
@@ -47,7 +47,7 @@ impl Cache for DiskBasedCache {
         format!("{}", self.version)
     }
 
-    fn is_installed(&self) -> Result<bool, CacheError> {
+    fn is_installed(&self) -> Result<bool, IsCacheInstalledError> {
         is_version_installed(&self.version_str())
     }
 

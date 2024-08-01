@@ -32,6 +32,12 @@ pub enum DeleteCacheError {
 }
 
 #[derive(Error, Debug)]
+pub enum IsCacheInstalledError {
+    #[error(transparent)]
+    GetBinCache(#[from] CacheError),
+}
+
+#[derive(Error, Debug)]
 pub enum ListCacheVersionsError {
     #[error(transparent)]
     ReadDir(#[from] ReadDirError),
