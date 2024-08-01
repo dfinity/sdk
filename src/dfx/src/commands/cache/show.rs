@@ -11,7 +11,7 @@ pub fn exec(env: &dyn Environment, _opts: CacheShowOpts) -> DfxResult {
     let v = format!("{}", env.get_version());
     println!(
         "{}",
-        dfx_core::config::cache::join_cache_dir_for_version(&v)?
+        dfx_core::config::cache::get_bin_cache(&v)?
             .as_path()
             .display()
     );

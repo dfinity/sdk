@@ -1,5 +1,5 @@
 use super::ExtensionManager;
-use crate::config::cache::join_cache_dir_for_version;
+use crate::config::cache::get_bin_cache;
 use crate::error::extension::RunExtensionError;
 use std::ffi::OsString;
 
@@ -14,7 +14,7 @@ impl ExtensionManager {
             .map_err(RunExtensionError::InvalidExtensionName)?;
 
         let mut extension_binary = self.get_extension_binary(&extension_name)?;
-        let dfx_cache = join_cache_dir_for_version(self.dfx_version.to_string().as_str())?;
+        let dfx_cache = get_bin_cache(self.dfx_version.to_string().as_str())?;
 
         params.extend(["--dfx-cache-path".into(), dfx_cache.into_os_string()]);
 

@@ -45,7 +45,7 @@ pub fn get_cache_root() -> Result<PathBuf, GetCacheRootError> {
 }
 
 /// Constructs and returns <cache root>/versions/<version> without creating any directories.
-pub fn get_existing_cache_path_for_version(v: &str) -> Result<PathBuf, GetCacheRootError> {
+pub fn get_cache_path_for_version(v: &str) -> Result<PathBuf, GetCacheRootError> {
     let p = get_cache_root()?.join("versions").join(v);
     Ok(p)
 }
@@ -60,13 +60,14 @@ pub fn ensure_cache_versions_dir() -> Result<PathBuf, EnsureCacheVersionsDirErro
     Ok(p)
 }
 
-pub fn join_cache_dir_for_version(v: &str) -> Result<PathBuf, EnsureCacheVersionsDirError> {
+/// Doesn't create the version dir, but does create everything up to it
+pub fn get_bin_cache(v: &str) -> Result<PathBuf, EnsureCacheVersionsDirError> {
     let root = ensure_cache_versions_dir()?;
     Ok(root.join(v))
 }
 
 pub fn is_version_installed(v: &str) -> Result<bool, IsCacheInstalledError> {
-    Ok(join_cache_dir_for_version(v)?.is_dir())
+    Ok(get_bin_cache(v)?.is_dir())
 }
 
 pub fn delete_version(v: &str) -> Result<bool, DeleteCacheError> {
@@ -74,7 +75,7 @@ pub fn delete_version(v: &str) -> Result<bool, DeleteCacheError> {
         return Ok(false);
     }
 
-    let root = join_cache_dir_for_version(v)?;
+    let root = get_bin_cache(v)?;
     crate::fs::remove_dir_all(&root)?;
 
     Ok(true)
@@ -90,7 +91,7 @@ pub fn get_binary_path_from_version(
         return Ok(PathBuf::from(path));
     }
 
-    Ok(join_cache_dir_for_version(version)?.join(binary_name))
+    Ok(get_bin_cache(version)?.join(binary_name))
 }
 
 pub fn binary_command_from_version(
