@@ -25,8 +25,7 @@ pub fn ensure_cohesive_network_directory(
                     || crate::fs::read_to_string(&project_network_id_path)? != network_id);
 
             if reset {
-                crate::fs::remove_dir_all(directory)
-                    .map_err(EnsureCohesiveNetworkDirectoryError::RemoveDirAll)?;
+                crate::fs::remove_dir_all(directory)?;
             };
 
             if !directory.exists() {

@@ -1,15 +1,11 @@
 use crate::error::load_rule::LoadRuleError;
-use dfx_core::error::fs::{FsError, ReadDirError, ReadToStringError};
+use dfx_core::error::fs::{ReadDirError, ReadToStringError};
 use std::path::PathBuf;
 use thiserror::Error;
 
 /// Errors related to loading asset configuration.
 #[derive(Error, Debug)]
 pub enum AssetLoadConfigError {
-    /// Failed a filesystem operation; the inner error contains the details.
-    #[error(transparent)]
-    FsError(#[from] FsError),
-
     /// Failed to canonicalize the root directory.
     #[error("root_dir '{0}' is expected to be a canonical path")]
     InvalidRootDir(PathBuf),

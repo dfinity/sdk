@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
-use crate::error::fs::{EnsureDirExistsError, FsError, ReadDirError, SetPermissionsError};
+use crate::error::fs::{
+    EnsureDirExistsError, ReadDirError, RemoveDirectoryAndContentsError, RenameError,
+    SetPermissionsError,
+};
 use crate::error::structured_file::StructuredFileError;
 use semver::Version;
 use thiserror::Error;
@@ -194,7 +197,7 @@ pub enum FinalizeInstallationError {
     GetTopLevelDirectory(#[from] GetTopLevelDirectoryError),
 
     #[error(transparent)]
-    Fs(#[from] FsError),
+    Rename(#[from] RenameError),
 
     #[error(transparent)]
     SetPermissions(#[from] SetPermissionsError),
@@ -211,4 +214,4 @@ pub enum FetchExtensionCompatibilityMatrixError {
 
 #[derive(Error, Debug)]
 #[error(transparent)]
-pub struct UninstallExtensionError(#[from] crate::error::fs::FsError);
+pub struct UninstallExtensionError(#[from] RemoveDirectoryAndContentsError);

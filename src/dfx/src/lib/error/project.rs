@@ -15,9 +15,6 @@ pub enum ProjectError {
     StructuredFileError(#[from] dfx_core::error::structured_file::StructuredFileError),
 
     #[error(transparent)]
-    IoError(#[from] dfx_core::error::fs::FsError),
-
-    #[error(transparent)]
     ReadFile(#[from] ReadFileError),
 
     #[error(transparent)]
