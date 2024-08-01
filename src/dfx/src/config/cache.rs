@@ -5,7 +5,7 @@ use dfx_core::config::cache::{
     binary_command_from_version, delete_version, get_bin_cache, get_binary_path_from_version,
     is_version_installed, Cache,
 };
-use dfx_core::error::cache::{CacheError, GetBinaryCommandPathError};
+use dfx_core::error::cache::{CacheError, GetBinaryCommandPathError, InstallCacheError};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -31,10 +31,10 @@ impl DiskBasedCache {
             version: version.clone(),
         }
     }
-    pub fn install(version: &str) -> Result<(), CacheError> {
+    pub fn install(version: &str) -> Result<(), InstallCacheError> {
         install_version(version, false).map(|_| {})
     }
-    pub fn force_install(version: &str) -> Result<(), CacheError> {
+    pub fn force_install(version: &str) -> Result<(), InstallCacheError> {
         install_version(version, true).map(|_| {})
     }
 }
@@ -72,13 +72,13 @@ impl Cache for DiskBasedCache {
     }
 }
 
-pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
-    let p = get_bin_cache(v)?;
+pub fn install_version(v: &str, force: bool) -> Result<PathBuf, InstallCacheError> {
+    let p = get_bin_cache(v).map_err(InstallCacheError::GetBinCache)?;
     if !force && is_version_installed(v).unwrap_or(false) {
         return Ok(p);
     }
 
-    if Version::parse(v).map_err(|e| CacheError::MalformedSemverString(v.to_string(), e))?
+    if Version::parse(v).map_err(|e| InstallCacheError::MalformedSemverString(v.to_string(), e))?
         == *dfx_version()
     {
         // Dismiss as fast as possible. We use the current_exe variable after an
@@ -100,17 +100,18 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
             .take(12)
             .map(|byte| byte as char)
             .collect();
-        let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))?;
+        let temp_p = get_bin_cache(&format!("_{}_{}", v, rand_string))
+            .map_err(InstallCacheError::GetBinCache)?;
         dfx_core::fs::create_dir_all(&temp_p)?;
 
         let mut binary_cache_assets =
-            util::assets::binary_cache().map_err(CacheError::ReadBinaryCacheStoreFailed)?;
+            util::assets::binary_cache().map_err(InstallCacheError::ReadBinaryCacheStoreFailed)?;
         // Write binaries and set them to be executable.
         for file in binary_cache_assets
             .entries()
-            .map_err(CacheError::ReadBinaryCacheEntriesFailed)?
+            .map_err(InstallCacheError::ReadBinaryCacheEntriesFailed)?
         {
-            let mut file = file.map_err(CacheError::ReadBinaryCacheEntryFailed)?;
+            let mut file = file.map_err(InstallCacheError::ReadBinaryCacheEntryFailed)?;
 
             if file.header().entry_type().is_dir() {
                 continue;
@@ -161,6 +162,6 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         }
         Ok(p)
     } else {
-        Err(CacheError::InvalidCacheForDfxVersion(v.to_owned()))
+        Err(InstallCacheError::InvalidCacheForDfxVersion(v.to_owned()))
     }
 }

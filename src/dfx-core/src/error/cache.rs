@@ -10,7 +10,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum GetBinaryCommandPathError {
     #[error(transparent)]
-    Install(#[from] CacheError),
+    Install(#[from] InstallCacheError),
 
     #[error(transparent)]
     GetBinaryPathFromVersion(#[from] GetBinaryPathFromVersionError),
@@ -38,21 +38,33 @@ pub enum ListCacheVersionsError {
 }
 
 #[derive(Error, Debug)]
-pub enum CacheError {
-    #[error(transparent)]
-    Archive(#[from] GetArchivePathError),
-
+pub enum InstallCacheError {
     #[error(transparent)]
     CreateDirAll(#[from] CreateDirAllError),
 
     #[error(transparent)]
+    GetArchivePath(#[from] GetArchivePathError),
+
+    #[error(transparent)]
+    GetBinCache(CacheError),
+
+    #[error(transparent)]
     GetCurrentExeError(#[from] GetCurrentExeError),
 
-    #[error(transparent)]
-    GetUserHomeError(#[from] GetUserHomeError),
+    #[error("invalid cache for version '{0}'.")]
+    InvalidCacheForDfxVersion(String),
 
-    #[error(transparent)]
-    UnpackingArchive(#[from] UnpackingArchiveError),
+    #[error("failed to parse '{0}' as Semantic Version")]
+    MalformedSemverString(String, #[source] semver::Error),
+
+    #[error("failed to iterate through binary cache")]
+    ReadBinaryCacheEntriesFailed(#[source] std::io::Error),
+
+    #[error("failed to read binary cache entry")]
+    ReadBinaryCacheEntryFailed(#[source] std::io::Error),
+
+    #[error("failed to read binary cache")]
+    ReadBinaryCacheStoreFailed(#[source] std::io::Error),
 
     #[error(transparent)]
     ReadFile(#[from] ReadFileError),
@@ -67,35 +79,23 @@ pub enum CacheError {
     SetPermissions(#[from] SetPermissionsError),
 
     #[error(transparent)]
-    WriteFile(#[from] WriteFileError),
+    UnpackingArchive(#[from] UnpackingArchiveError),
 
     #[error(transparent)]
-    ProcessError(#[from] crate::error::process::ProcessError),
+    WriteFile(#[from] WriteFileError),
+}
+
+#[derive(Error, Debug)]
+pub enum CacheError {
+    #[error(transparent)]
+    GetUserHomeError(#[from] GetUserHomeError),
+
+    #[error(transparent)]
+    RemoveDirectoryAndContents(#[from] RemoveDirectoryAndContentsError),
 
     #[error("failed to create cache directory")]
     CreateCacheDirectoryFailed(#[source] CreateDirAllError),
 
     #[error("Cannot find cache directory at '{0}'.")]
     FindCacheDirectoryFailed(std::path::PathBuf),
-
-    #[error("Invalid cache for version '{0}'.")]
-    InvalidCacheForDfxVersion(String),
-
-    #[error("Unable to parse '{0}' as Semantic Version")]
-    MalformedSemverString(String, #[source] semver::Error),
-
-    #[error("Failed to read binary cache")]
-    ReadBinaryCacheStoreFailed(#[source] std::io::Error),
-
-    #[error("Failed to iterate through binary cache")]
-    ReadBinaryCacheEntriesFailed(#[source] std::io::Error),
-
-    #[error("Failed to read binary cache entry")]
-    ReadBinaryCacheEntryFailed(#[source] std::io::Error),
-
-    #[error("Failed to read entry in cache directory")]
-    ReadCacheEntryFailed(#[source] std::io::Error),
-
-    #[error(transparent)]
-    ReadDir(#[from] ReadDirError),
 }
