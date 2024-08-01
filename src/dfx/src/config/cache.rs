@@ -3,7 +3,7 @@ use crate::util;
 use dfx_core;
 use dfx_core::config::cache::{
     binary_command_from_version, delete_version, get_binary_path_from_version,
-    get_cache_dir_for_version, is_version_installed, Cache,
+    is_version_installed, join_cache_dir_for_version, Cache,
 };
 use dfx_core::error::cache::{
     DeleteCacheError, GetBinaryCommandPathError, InstallCacheError, IsCacheInstalledError,
@@ -75,7 +75,7 @@ impl Cache for DiskBasedCache {
 }
 
 pub fn install_version(v: &str, force: bool) -> Result<PathBuf, InstallCacheError> {
-    let p = get_cache_dir_for_version(v)?;
+    let p = join_cache_dir_for_version(v)?;
     if !force && is_version_installed(v).unwrap_or(false) {
         return Ok(p);
     }
@@ -102,7 +102,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, InstallCacheErro
             .take(12)
             .map(|byte| byte as char)
             .collect();
-        let temp_p = get_cache_dir_for_version(&format!("_{}_{}", v, rand_string))?;
+        let temp_p = join_cache_dir_for_version(&format!("_{}_{}", v, rand_string))?;
         dfx_core::fs::create_dir_all(&temp_p)?;
 
         let mut binary_cache_assets =

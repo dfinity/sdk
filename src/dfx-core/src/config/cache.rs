@@ -60,13 +60,13 @@ pub fn ensure_cache_versions_dir() -> Result<PathBuf, EnsureCacheVersionsDirErro
     Ok(p)
 }
 
-pub fn get_cache_dir_for_version(v: &str) -> Result<PathBuf, EnsureCacheVersionsDirError> {
+pub fn join_cache_dir_for_version(v: &str) -> Result<PathBuf, EnsureCacheVersionsDirError> {
     let root = ensure_cache_versions_dir()?;
     Ok(root.join(v))
 }
 
 pub fn is_version_installed(v: &str) -> Result<bool, IsCacheInstalledError> {
-    Ok(get_cache_dir_for_version(v)?.is_dir())
+    Ok(join_cache_dir_for_version(v)?.is_dir())
 }
 
 pub fn delete_version(v: &str) -> Result<bool, DeleteCacheError> {
@@ -74,7 +74,7 @@ pub fn delete_version(v: &str) -> Result<bool, DeleteCacheError> {
         return Ok(false);
     }
 
-    let root = get_cache_dir_for_version(v)?;
+    let root = join_cache_dir_for_version(v)?;
     crate::fs::remove_dir_all(&root)?;
 
     Ok(true)
@@ -90,7 +90,7 @@ pub fn get_binary_path_from_version(
         return Ok(PathBuf::from(path));
     }
 
-    Ok(get_cache_dir_for_version(version)?.join(binary_name))
+    Ok(join_cache_dir_for_version(version)?.join(binary_name))
 }
 
 pub fn binary_command_from_version(
