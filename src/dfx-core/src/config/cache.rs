@@ -1,7 +1,7 @@
 #[cfg(windows)]
 use crate::config::directories::project_dirs;
 use crate::error::cache::{
-    DeleteCacheError, GetBinaryCommandPathError, GetCacheRootError, GetCacheVersionsRootError,
+    DeleteCacheError, EnsureCacheVersionsDirError, GetBinaryCommandPathError, GetCacheRootError,
     IsCacheInstalledError, ListCacheVersionsError,
 };
 #[cfg(not(windows))]
@@ -52,7 +52,7 @@ pub fn get_existing_cache_path_for_version(v: &str) -> Result<PathBuf, GetCacheR
 
 /// Return the binary cache root. It constructs it if not present
 /// already.
-pub fn get_or_create_cache_versions_root() -> Result<PathBuf, GetCacheVersionsRootError> {
+pub fn ensure_cache_versions_dir() -> Result<PathBuf, EnsureCacheVersionsDirError> {
     let p = get_cache_root()?.join("versions");
 
     ensure_dir_exists(&p)?;
@@ -60,8 +60,8 @@ pub fn get_or_create_cache_versions_root() -> Result<PathBuf, GetCacheVersionsRo
     Ok(p)
 }
 
-pub fn get_cache_dir_for_version(v: &str) -> Result<PathBuf, GetCacheVersionsRootError> {
-    let root = get_or_create_cache_versions_root()?;
+pub fn get_cache_dir_for_version(v: &str) -> Result<PathBuf, EnsureCacheVersionsDirError> {
+    let root = ensure_cache_versions_dir()?;
     Ok(root.join(v))
 }
 
@@ -83,7 +83,7 @@ pub fn delete_version(v: &str) -> Result<bool, DeleteCacheError> {
 pub fn get_binary_path_from_version(
     version: &str,
     binary_name: &str,
-) -> Result<PathBuf, GetCacheVersionsRootError> {
+) -> Result<PathBuf, EnsureCacheVersionsDirError> {
     let env_var_name = format!("DFX_{}_PATH", binary_name.replace('-', "_").to_uppercase());
 
     if let Ok(path) = std::env::var(env_var_name) {
@@ -96,7 +96,7 @@ pub fn get_binary_path_from_version(
 pub fn binary_command_from_version(
     version: &str,
     name: &str,
-) -> Result<std::process::Command, GetCacheVersionsRootError> {
+) -> Result<std::process::Command, EnsureCacheVersionsDirError> {
     let path = get_binary_path_from_version(version, name)?;
     let cmd = std::process::Command::new(path);
 
@@ -104,7 +104,7 @@ pub fn binary_command_from_version(
 }
 
 pub fn list_versions() -> Result<Vec<Version>, ListCacheVersionsError> {
-    let root = get_or_create_cache_versions_root()?;
+    let root = ensure_cache_versions_dir()?;
     let mut result: Vec<Version> = Vec::new();
 
     for entry in crate::fs::read_dir(&root)? {

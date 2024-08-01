@@ -10,7 +10,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum DeleteCacheError {
     #[error(transparent)]
-    GetBinCache(#[from] GetCacheVersionsRootError),
+    GetBinCache(#[from] EnsureCacheVersionsDirError),
 
     #[error(transparent)]
     RemoveDirectoryAndContents(#[from] RemoveDirectoryAndContentsError),
@@ -22,11 +22,11 @@ pub enum GetBinaryCommandPathError {
     Install(#[from] InstallCacheError),
 
     #[error(transparent)]
-    GetBinCacheRoot(#[from] GetCacheVersionsRootError),
+    GetBinCacheRoot(#[from] EnsureCacheVersionsDirError),
 }
 
 #[derive(Error, Debug)]
-pub enum GetCacheVersionsRootError {
+pub enum EnsureCacheVersionsDirError {
     #[error(transparent)]
     EnsureDirExists(#[from] EnsureDirExistsError),
 
@@ -52,7 +52,7 @@ pub enum InstallCacheError {
     GetArchivePath(#[from] GetArchivePathError),
 
     #[error(transparent)]
-    GetBinCache(#[from] GetCacheVersionsRootError),
+    GetBinCache(#[from] EnsureCacheVersionsDirError),
 
     #[error(transparent)]
     GetCurrentExeError(#[from] GetCurrentExeError),
@@ -94,7 +94,7 @@ pub enum InstallCacheError {
 #[derive(Error, Debug)]
 pub enum IsCacheInstalledError {
     #[error(transparent)]
-    GetBinCache(#[from] GetCacheVersionsRootError),
+    GetBinCache(#[from] EnsureCacheVersionsDirError),
 }
 
 #[derive(Error, Debug)]
@@ -103,7 +103,7 @@ pub enum ListCacheVersionsError {
     ReadDir(#[from] ReadDirError),
 
     #[error(transparent)]
-    GetBinCacheRoot(#[from] GetCacheVersionsRootError),
+    GetBinCacheRoot(#[from] EnsureCacheVersionsDirError),
 
     #[error("failed to parse '{0}' as Semantic Version")]
     MalformedSemverString(String, #[source] semver::Error),
