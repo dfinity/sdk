@@ -43,12 +43,13 @@ pub(crate) fn assemble_commit_batch_arguments(
     canister_asset_properties: HashMap<String, AssetProperties>,
     batch_id: Nat,
 ) -> CommitBatchArguments {
-    let operations = assemble_batch_operations(
+    let mut operations = assemble_batch_operations(
         &project_assets,
         canister_assets,
         asset_deletion_reason,
         canister_asset_properties,
     );
+    operations.sort();
     CommitBatchArguments {
         operations,
         batch_id,
