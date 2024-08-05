@@ -13,9 +13,7 @@ struct NetworkMetadata {
 
 #[context("Failed write network id to {}.", local_server_descriptor.network_id_path().display())]
 pub fn write_network_id(local_server_descriptor: &LocalServerDescriptor) -> DfxResult {
-    let settings_digest = local_server_descriptor
-        .settings_digest()
-        .to_string();
+    let settings_digest = local_server_descriptor.settings_digest().to_string();
     let contents = NetworkMetadata {
         created: OffsetDateTime::now_utc(),
         settings_digest,

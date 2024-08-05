@@ -168,8 +168,7 @@ impl LocalServerDescriptor {
     }
 
     pub fn settings_digest(&self) -> &str {
-        self
-            .settings_digest
+        self.settings_digest
             .as_ref()
             .expect("settings_digest must be set")
     }
