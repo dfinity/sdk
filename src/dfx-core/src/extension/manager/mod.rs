@@ -17,9 +17,7 @@ pub struct ExtensionManager {
 
 impl ExtensionManager {
     pub fn new(version: &Version) -> Result<Self, NewExtensionManagerError> {
-        let extensions_dir = get_cache_path_for_version(&version.to_string())
-            .map_err(NewExtensionManagerError::FindCacheDirectoryFailed)?
-            .join("extensions");
+        let extensions_dir = get_cache_path_for_version(&version.to_string())?.join("extensions");
 
         Ok(Self {
             dir: extensions_dir,

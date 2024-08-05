@@ -378,45 +378,45 @@ echo testoutput' > "$CACHE_DIR"/extensions/test_extension/test_extension
   chmod +x "$CACHE_DIR"/extensions/test_extension/test_extension
 
   assert_command_fail dfx extension list
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx extension run test_extension
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx test_extension
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx --help
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx test_extension --help
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   echo "{}" > "$CACHE_DIR"/extensions/test_extension/extension.json
 
   assert_command_fail dfx extension list
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json"
   assert_match "missing field .* at line .* column .*"
 
   assert_command_fail dfx extension run test_extension
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json.*"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json.*"
   assert_match "missing field .* at line .* column .*"
 
   assert_command_fail dfx test_extension
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json.*"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json.*"
   assert_match "missing field .* at line .* column .*"
 
   assert_command_fail dfx --help
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json.*"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json.*"
   assert_match "missing field .* at line .* column .*"
 
   assert_command_fail dfx test_extension --help
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json.*"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json.*"
   assert_match "missing field .* at line .* column .*"
 
   echo '{

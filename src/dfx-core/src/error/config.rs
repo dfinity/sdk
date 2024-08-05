@@ -1,5 +1,7 @@
 use crate::error::extension::LoadExtensionManifestError;
-use crate::error::fs::FsError;
+use crate::error::fs::{
+    CanonicalizePathError, CreateDirAllError, EnsureDirExistsError, NoParentPathError,
+};
 use crate::error::get_user_home::GetUserHomeError;
 use handlebars::RenderError;
 use std::path::PathBuf;
@@ -7,8 +9,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
-    #[error("Failed to ensure config directory exists")]
-    EnsureConfigDirectoryExistsFailed(#[source] FsError),
+    #[error("failed to ensure config directory exists")]
+    EnsureConfigDirectoryExistsFailed(#[source] EnsureDirExistsError),
 
     #[error("Failed to determine config directory path")]
     DetermineConfigDirectoryFailed(#[source] GetUserHomeError),
@@ -20,7 +22,7 @@ pub enum ConfigError {
 #[derive(Error, Debug)]
 pub enum GetOutputEnvFileError {
     #[error("failed to canonicalize output_env_file")]
-    Canonicalize(#[source] FsError),
+    CanonicalizePath(#[from] CanonicalizePathError),
 
     #[error("The output_env_file must be within the project root, but is {}", .0.display())]
     OutputEnvFileMustBeInProjectRoot(PathBuf),
@@ -29,13 +31,13 @@ pub enum GetOutputEnvFileError {
     OutputEnvFileMustBeRelative(PathBuf),
 
     #[error(transparent)]
-    Parent(FsError),
+    NoParentPath(#[from] NoParentPathError),
 }
 
 #[derive(Error, Debug)]
 pub enum GetTempPathError {
     #[error(transparent)]
-    CreateDirAll(#[from] FsError),
+    CreateDirAll(#[from] CreateDirAllError),
 }
 
 #[derive(Error, Debug)]

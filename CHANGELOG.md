@@ -2,6 +2,23 @@
 
 # UNRELEASED
 
+# 0.22.1
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 2c0b76cfc7e596d5c4304cff5222a2619294c8c1.
+This incorporates the following executed proposals:
+
+- [131390](https://dashboard.internetcomputer.org/proposal/131390)
+- [131055](https://dashboard.internetcomputer.org/proposal/131055)
+- [131054](https://dashboard.internetcomputer.org/proposal/131054)
+- [131032](https://dashboard.internetcomputer.org/proposal/131032)
+- [131028](https://dashboard.internetcomputer.org/proposal/131028)
+
+### feat: generate .env files for Motoko canisters
+
 ### feat: support `"security_policy"` and `"disable_security_policy_warning"` in `.ic-assets.json5`
 
 *This change has an accompanying migration guide. Please see the 0.23.0 migration guide for instructions on how to adapt your project to this feature.*
