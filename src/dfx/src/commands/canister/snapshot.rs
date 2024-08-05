@@ -88,100 +88,136 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     fetch_root_key_if_needed(env).await?;
-    let canisters = env.get_canister_id_store()?;
-    let logger = env.get_logger();
     match opts.subcmd {
         SnapshotSubcommand::Create {
             canister,
             replace,
             force,
-        } => {
-            let canister_id = canister.parse().or_else(|_| canisters.get(&canister))?;
-            if !force {
-                let status = get_canister_status(env, canister_id, call_sender)
-                    .await
-                    .with_context(|| format!("Could not retrieve status of canister {canister}"))?;
-                match status.status {
-                    CanisterStatus::Stopped => {}
-                    CanisterStatus::Running => bail!("Canister {canister} is running and snapshots should not be taken of running canisters. Run `dfx canister stop` first (or override with `--force`)"),
-                    CanisterStatus::Stopping => bail!("Canister {canister} is stopping but is not yet stopped. Wait a few seconds and try again"),
-                }
-            }
-            let id = take_canister_snapshot(
-                env,
-                canister_id,
-                replace.as_ref().map(|x| &*x.0),
-                call_sender,
-            )
-            .await
-            .with_context(|| format!("Failed to take snapshot of canister {canister}"))?;
-            info!(
-                logger,
-                "Created a new snapshot of canister {canister}. Snapshot ID: {}",
-                SnapshotId(id.id)
-            );
-        }
+        } => create(env, canister, replacce, force, call_sender).await?,
         SnapshotSubcommand::Load {
             canister,
             snapshot,
             force,
-        } => {
-            let canister_id = canister.parse().or_else(|_| canisters.get(&canister))?;
-            if !force {
-                let status = get_canister_status(env, canister_id, call_sender)
-                    .await
-                    .with_context(|| format!("Could not retrieve status of canister {canister}"))?;
-                match status.status {
-                    CanisterStatus::Stopped => {}
-                    CanisterStatus::Running => bail!("Canister {canister} is running and snapshots should not be applied to running canisters. Run `dfx canister stop` first (or override with `--force`)"),
-                    CanisterStatus::Stopping => bail!("Canister {canister} is stopping but is not yet stopped. Wait a few seconds and try again"),
-                }
-            }
-            load_canister_snapshot(env, canister_id, &snapshot.0, call_sender)
-                .await
-                .with_context(|| {
-                    format!("Failed to load snapshot {snapshot} in canister {canister}")
-                })?;
-            info!(logger, "Loaded snapshot {snapshot} in canister {canister}");
-        }
+        } => load(env, canister, snapshot, force, call_sender).await?,
         SnapshotSubcommand::Delete { canister, snapshot } => {
-            let canister_id = canisters.get(&canister)?;
-            delete_canister_snapshot(env, canister_id, &snapshot.0, call_sender)
-                .await
-                .with_context(|| {
-                    format!("Failed to delete snapshot {snapshot} in canister {canister}")
-                })?;
-            info!(
-                logger,
-                "Deleted snapshot {snapshot} from canister {canister}"
-            );
+            delete(env, canister, snapshot, call_sender)?
         }
-        SnapshotSubcommand::List { canister } => {
-            let canister_id = canister.parse().or_else(|_| canisters.get(&canister))?;
-            let snapshots = list_canister_snapshots(env, canister_id, call_sender)
-                .await
-                .with_context(|| {
-                    format!("Failed to retrieve snapshot list from canister {canister}")
-                })?;
-            if snapshots.is_empty() {
-                info!(logger, "No snapshots found in canister {canister}");
-            } else {
-                let time_fmt =
-                    format_description!("[year]-[month]-[day] [hour]:[minute]:[second] UTC");
-                let snapshots = snapshots.into_iter().format_with("\n", |s, f| {
-                    f(&format_args!(
-                        "{}: {}, taken at {}",
-                        SnapshotId(s.id),
-                        HumanBytes(s.total_size),
-                        OffsetDateTime::from_unix_timestamp_nanos(s.taken_at_timestamp as i128)
-                            .unwrap()
-                            .format(&time_fmt)
-                            .unwrap()
-                    ))
-                });
-                info!(logger, "{snapshots}");
-            }
+        SnapshotSubcommand::List { canister } => list(env, canister, call_sender).await?,
+    }
+    Ok(())
+}
+
+async fn create(
+    env: &dyn Environment,
+    canister: String,
+    replace: Option<SnapshotId>,
+    force: bool,
+    call_sender: &CallSender,
+) -> DfxResult {
+    let canister_id = canister
+        .parse()
+        .or_else(|_| env.get_canister_id_store().get(&canister))?;
+    if !force {
+        let status = get_canister_status(env, canister_id, call_sender)
+            .await
+            .with_context(|| format!("Could not retrieve status of canister {canister}"))?;
+        match status.status {
+            CanisterStatus::Stopped => {}
+            CanisterStatus::Running => bail!("Canister {canister} is running and snapshots should not be taken of running canisters. Run `dfx canister stop` first (or override with `--force`)"),
+            CanisterStatus::Stopping => bail!("Canister {canister} is stopping but is not yet stopped. Wait a few seconds and try again"),
         }
+    }
+    let id = take_canister_snapshot(
+        env,
+        canister_id,
+        replace.as_ref().map(|x| &*x.0),
+        call_sender,
+    )
+    .await
+    .with_context(|| format!("Failed to take snapshot of canister {canister}"))?;
+    info!(
+        env.get_logger(),
+        "Created a new snapshot of canister {canister}. Snapshot ID: {}",
+        SnapshotId(id.id)
+    );
+    Ok(())
+}
+
+async fn load(
+    env: &dyn Environment,
+    canister: String,
+    snapshot: SnapshotId,
+    force: bool,
+    call_sender: &CallSender,
+) -> DfxResult {
+    let canister_id = canister
+        .parse()
+        .or_else(|_| env.get_canister_id_store().get(&canister))?;
+    if !force {
+        let status = get_canister_status(env, canister_id, call_sender)
+            .await
+            .with_context(|| format!("Could not retrieve status of canister {canister}"))?;
+        match status.status {
+            CanisterStatus::Stopped => {}
+            CanisterStatus::Running => bail!("Canister {canister} is running and snapshots should not be applied to running canisters. Run `dfx canister stop` first (or override with `--force`)"),
+            CanisterStatus::Stopping => bail!("Canister {canister} is stopping but is not yet stopped. Wait a few seconds and try again"),
+        }
+    }
+    load_canister_snapshot(env, canister_id, &snapshot.0, call_sender)
+        .await
+        .with_context(|| format!("Failed to load snapshot {snapshot} in canister {canister}"))?;
+    info!(
+        env.get_logger(),
+        "Loaded snapshot {snapshot} in canister {canister}"
+    );
+    Ok(())
+}
+
+async fn delete(
+    env: &dyn Environment,
+    canister: String,
+    snapshot: SnapshotId,
+    call_sender: &CallSender,
+) -> DfxResult {
+    let canister_id = canister
+        .parse()
+        .or_else(|| env.get_canister_id_store().get(&canister))?;
+    delete_canister_snapshot(env, canister_id, &snapshot.0, call_sender)
+        .await
+        .with_context(|| format!("Failed to delete snapshot {snapshot} in canister {canister}"))?;
+    info!(
+        env.get_logger(),
+        "Deleted snapshot {snapshot} from canister {canister}"
+    );
+    Ok(())
+}
+
+async fn list(env: &dyn Environment, canister: String, call_sender: &CallSender) -> DfxResult {
+    let canister_id = canister
+        .parse()
+        .or_else(|_| env.get_canister_id_store().get(&canister))?;
+    let snapshots = list_canister_snapshots(env, canister_id, call_sender)
+        .await
+        .with_context(|| format!("Failed to retrieve snapshot list from canister {canister}"))?;
+    if snapshots.is_empty() {
+        info!(
+            env.get_logger(),
+            "No snapshots found in canister {canister}"
+        );
+    } else {
+        let time_fmt = format_description!("[year]-[month]-[day] [hour]:[minute]:[second] UTC");
+        let snapshots = snapshots.into_iter().format_with("\n", |s, f| {
+            f(&format_args!(
+                "{}: {}, taken at {}",
+                SnapshotId(s.id),
+                HumanBytes(s.total_size),
+                OffsetDateTime::from_unix_timestamp_nanos(s.taken_at_timestamp as i128)
+                    .unwrap()
+                    .format(&time_fmt)
+                    .unwrap()
+            ))
+        });
+        info!(env.get_logger(), "{snapshots}");
     }
     Ok(())
 }
