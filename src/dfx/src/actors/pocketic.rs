@@ -1,4 +1,4 @@
-use crate::actors::icx_proxy::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::pocketic_proxy::signals::{PortReadySignal, PortReadySubscribe};
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
@@ -8,13 +8,15 @@ use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use candid::Principal;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use slog::{debug, error, info, warn, Logger};
+use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
+use tempfile::tempdir;
 use tokio::runtime::Builder;
 
 pub mod signals {
@@ -83,16 +85,29 @@ impl PocketIc {
         }
     }
 
-    fn wait_for_port_file(file_path: &Path) -> DfxResult<u16> {
+    fn wait_for_ready(
+        port_file_path: &Path,
+        ready_file_path: &Path,
+        shutdown_signal: Receiver<()>,
+    ) -> Result<u16, ControlFlow<(), DfxError>> {
         let mut retries = 0;
+        let mut ready = false;
         loop {
-            if let Ok(content) = std::fs::read_to_string(file_path) {
-                if let Ok(port) = content.parse::<u16>() {
-                    return Ok(port);
+            if !ready && ready_file_path.exists() {
+                ready = true;
+            }
+            if ready {
+                if let Ok(content) = std::fs::read_to_string(port_file_path) {
+                    if let Ok(port) = content.parse::<u16>() {
+                        return Ok(port);
+                    }
                 }
             }
+            if shutdown_signal.try_recv().is_ok() {
+                return Err(Break(()));
+            }
             if retries >= 3000 {
-                bail!("Cannot start pocket-ic: timed out");
+                return Err(Continue(anyhow!("Timed out")));
             }
             std::thread::sleep(Duration::from_millis(100));
             retries += 1;
@@ -201,27 +216,29 @@ fn pocketic_start_thread(
     receiver: Receiver<()>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
-        // Start the process, then wait for the file.
-        let pocketic_path = config.pocketic_path.as_os_str();
-
-        // form the pocket-ic command here similar to the ic-starter command
-        let mut cmd = std::process::Command::new(pocketic_path);
-        if let Some(port) = config.port {
-            cmd.args(["--port", &port.to_string()]);
-        };
-        cmd.args([
-            "--port-file",
-            &config.port_file.to_string_lossy(),
-            "--ttl",
-            "2592000",
-        ]);
-        if !config.verbose {
-            cmd.env("RUST_LOG", "error");
-        }
-        cmd.stdout(std::process::Stdio::inherit());
-        cmd.stderr(std::process::Stdio::inherit());
-
         loop {
+            // Start the process, then wait for the file.
+            let pocketic_path = config.pocketic_path.as_os_str();
+
+            // form the pocket-ic command here similar to the ic-starter command
+            let mut cmd = std::process::Command::new(pocketic_path);
+            if let Some(port) = config.port {
+                cmd.args(["--port", &port.to_string()]);
+            };
+            cmd.args([
+                "--port-file",
+                &config.port_file.to_string_lossy(),
+                "--ttl",
+                "2592000",
+            ]);
+            let tmp = tempdir().expect("Could not create temporary directory.");
+            let ready_file = tmp.path().join("ready");
+            cmd.args(["--ready-file".as_ref(), ready_file.as_os_str()]);
+            if !config.verbose {
+                cmd.env("RUST_LOG", "error");
+            }
+            cmd.stdout(std::process::Stdio::inherit());
+            cmd.stderr(std::process::Stdio::inherit());
             let _ = std::fs::remove_file(&config.port_file);
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting PocketIC...");
@@ -234,10 +251,23 @@ fn pocketic_start_thread(
                 );
             }
 
-            let port = PocketIc::wait_for_port_file(&config.port_file).unwrap();
-
+            let port =
+                match PocketIc::wait_for_ready(&config.port_file, &ready_file, receiver.clone()) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        if let Continue(e) = e {
+                            error!(logger, "Failed to start pocket-ic: {e:#}");
+                            continue;
+                        } else {
+                            debug!(logger, "Got signal to stop");
+                            break;
+                        }
+                    }
+                };
             if let Err(e) = block_on_initialize_pocketic(port, logger.clone()) {
-                error!(logger, "Failed to initialize PocketIC: {:#}", e);
+                error!(logger, "Failed to initialize PocketIC: {e:#}");
                 let _ = child.kill();
                 let _ = child.wait();
                 if receiver.try_recv().is_ok() {
@@ -289,25 +319,36 @@ fn block_on_initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
 
 #[cfg(unix)]
 async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
-    use pocket_ic::common::rest::{ExtendedSubnetConfigSet, RawTime, SubnetSpec};
+    use pocket_ic::common::rest::{
+        CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig, RawTime, SubnetSpec,
+    };
     use reqwest::Client;
     use time::OffsetDateTime;
     let init_client = Client::new();
     debug!(logger, "Configuring PocketIC server");
-    init_client
+    let resp = init_client
         .post(format!("http://localhost:{port}/instances"))
-        .json(&ExtendedSubnetConfigSet {
-            nns: Some(SubnetSpec::default()),
-            sns: Some(SubnetSpec::default()),
-            ii: None,
-            fiduciary: None,
-            bitcoin: None,
-            system: vec![],
-            application: vec![SubnetSpec::default()],
+        .json(&InstanceConfig {
+            subnet_config_set: ExtendedSubnetConfigSet {
+                nns: Some(SubnetSpec::default()),
+                sns: Some(SubnetSpec::default()),
+                ii: None,
+                fiduciary: None,
+                bitcoin: None,
+                system: vec![],
+                application: vec![SubnetSpec::default()],
+            },
+            state_dir: None,
+            nonmainnet_features: true,
         })
         .send()
         .await?
-        .error_for_status()?;
+        .error_for_status()?
+        .json::<CreateInstanceResponse>()
+        .await?;
+    if let CreateInstanceResponse::Error { message } = resp {
+        bail!("PocketIC init error: {message}");
+    }
     init_client
         .post(format!(
             "http://localhost:{port}/instances/0/update/set_time"

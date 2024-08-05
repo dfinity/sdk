@@ -185,7 +185,6 @@ async fn download_binaries(
         "ic-https-outcalls-adapter",
         "ic-nns-init",
         "ic-starter",
-        "icx-proxy",
         "pocket-ic",
         "replica",
         "sandbox_launcher",
