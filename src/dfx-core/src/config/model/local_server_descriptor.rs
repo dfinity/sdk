@@ -167,15 +167,18 @@ impl LocalServerDescriptor {
         path.exists().then(|| load_json_file(&path)).transpose()
     }
 
+    pub fn settings_digest(&self) -> &str {
+        self
+            .settings_digest
+            .as_ref()
+            .expect("settings_digest must be set")
+    }
+
     pub fn data_dir_by_settings_digest(&self) -> PathBuf {
         if self.scope == LocalNetworkScopeDescriptor::Project {
             self.data_directory.clone()
         } else {
-            let settings_digest = self
-                .settings_digest
-                .as_ref()
-                .expect("settings_digest must be set");
-            self.data_directory.join(settings_digest)
+            self.data_directory.join(self.settings_digest())
         }
     }
 

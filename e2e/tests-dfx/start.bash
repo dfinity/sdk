@@ -12,6 +12,15 @@ teardown() {
   standard_teardown
 }
 
+@test "network-id contains settings digest" {
+  dfx_start
+
+  NETWORK_ID_PATH="$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/network-id"
+  SETTINGS_DIGEST=$(jq -r '.settings_digest' "$NETWORK_ID_PATH")
+  NETWORK_ID_BY_SETTINGS_DIGEST_PATH="$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/$SETTINGS_DIGEST/network-id"
+  assert_command diff "$NETWORK_ID_PATH" "$NETWORK_ID_BY_SETTINGS_DIGEST_PATH"
+}
+
 @test "start and stop with different options" {
   [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: artificial delay, and clean required"
   dfx_start --artificial-delay 101

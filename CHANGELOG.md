@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### feat: Added settings_digest field to the network-id file
+
 # 0.22.1
 
 ## Dependencies
