@@ -103,8 +103,8 @@ pub async fn exec(
                     .with_context(|| format!("Could not retrieve status of canister {canister}"))?;
                 match status.status {
                     CanisterStatus::Stopped => {}
-                    CanisterStatus::Running => bail!("Canister {canister_id} is running and snapshots should not be taken of running canisters. Run `dfx canister stop` first (or override with `--force`)"),
-                    CanisterStatus::Stopping => bail!("Canister {canister_id} is stopping but is not yet stopped. Wait a few seconds and try again"),
+                    CanisterStatus::Running => bail!("Canister {canister} is running and snapshots should not be taken of running canisters. Run `dfx canister stop` first (or override with `--force`)"),
+                    CanisterStatus::Stopping => bail!("Canister {canister} is stopping but is not yet stopped. Wait a few seconds and try again"),
                 }
             }
             let id = take_canister_snapshot(
