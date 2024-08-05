@@ -817,6 +817,130 @@ command:
 
 `dfx canister send message.json`
 
+## dfx canister snapshot create
+
+Use the `dfx canister snapshot create` command to create a snapshot of a stopped canister.
+It can later be applied with `dfx canister snapshot load` to reset the canister to that state.
+
+At both times, the canister must be stopped with `dfx canister stop`. You can use the `--force` flag to override this.
+
+### Basic usage
+
+```bash
+dfx canister snapshot create <canister> [--replace <replace>] [--force]
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister snapshot create` command.
+
+| Argument              | Description                                                                                                 |
+|-----------------------|-------------------------------------------------------------------------------------------------------------|
+| `<canister>`          | The canister to snapshot.                                                                                   |
+| `--replace <replace>` | If a snapshot ID is specified, this snapshot will replace it and reuse the ID.                              |
+| `-f`, `--force`       | Force snapshot creation even if the canister is running. Not recommended unless you know what you're doing. |
+
+### Examples
+
+Use the `dfx canister snapshot create` command to take a snapshot of canister `hello`:
+
+```sh
+dfx canister stop hello
+dfx canister snapshot create hello
+dfx canister start hello
+```
+
+To replace an existing snapshot to save space:
+
+```sh
+dfx canister stop hello
+dfx canister snapshot create hello --replace a1b2c3d4
+dfx canister start hello
+```
+
+## dfx canister snapshot load
+
+Use the `dfx canister snapshot load` command to load a canister snapshot previously taken with `dfx canister snapshot create`.
+
+At both times, the canister must be stopped with `dfx canister stop`. You can use the `--force` flag to override this.
+
+### Basic usage
+
+```sh
+dfx canister snapshot load <canister> <snapshot> [--force]
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister snapshot load` command.
+
+| Argument        | Description                                                                                                |
+|-----------------|------------------------------------------------------------------------------------------------------------|
+| `<canister>`    | The canister to load the snapshot in.                                                                      |
+| `<snapshot>`    | The ID of the snapshot to load.                                                                            |
+| `-f`, `--force` | Force snapshot loading even if the canister is running. Not recommended unless you know what you're doing. |
+
+### Examples
+
+Use the `dfx canister snapshot load` command to load a previously-taken snapshot in canister `hello`, deleting any data since the snapshot was taken:
+
+```sh
+dfx canister snapshot load hello 1a2b3c4d
+```
+
+## dfx canister snapshot delete
+
+Use the `dfx canister snapshot delete` command to delete a canister snapshot previously taken with `dfx canister snapshot create`.
+
+### Basic usage 
+
+```sh
+dfx canister snapshot delete <canister> <snapshot>
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister snapshot delete` command.
+
+| Argument     | Description                               |
+|--------------|-------------------------------------------|
+| `<canister>` | The canister to delete the snapshot from. |
+| `<snapshot>` | The ID of the snapshot to delete.         |
+
+### Examples
+
+Use the `dfx canister snapshot delete` command to delete a snapshot from canister `hello`:
+
+```sh
+dfx canister snapshot delete hello 1a2b3c4d
+```
+
+## dfx canister snapshot list
+
+Use the `dfx canister snapshot list` command to display all saved snapshots for a canister. They can be loaded with `dfx canister snapshot load` or deleted with `dfx canister snapshot delete`.
+
+### Basic usage
+
+```sh
+dfx canister snapshot list <canister>
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister snapshot list` command.
+
+| Argument     | Description                          |
+|--------------|--------------------------------------|
+| `<canister>` | The canister to list snapshots from. |
+
+### Examples
+
+Use the `dfx canister snapshot list` command to list the snapshots in canister `hello`:
+
+```sh
+dfx canister snapshot list hello
+```
+
 ## dfx canister start
 
 Use the `dfx canister start` command to restart a stopped canister on the Internet Computer or the local canister
@@ -1069,9 +1193,9 @@ dfx canister url <canister>
 
 You can use the following argument with the `dfx canister url` command.
 
-| Argument        | Description                                                                     |
-|-----------------|---------------------------------------------------------------------------------|
-| `canister`      | Specifies the name or id of the canister for which you want to display the url. |
+| Argument   | Description                                                                     |
+|------------|---------------------------------------------------------------------------------|
+| `canister` | Specifies the name or id of the canister for which you want to display the url. |
 
 ### Examples
 

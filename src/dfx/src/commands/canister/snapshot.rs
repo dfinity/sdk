@@ -28,26 +28,40 @@ pub struct SnapshotOpts {
     subcmd: SnapshotSubcommand,
 }
 
+/// Controls canister snapshots that can reset a canister to an earlier state of execution.
 #[derive(Subcommand)]
 enum SnapshotSubcommand {
+    /// Creates a new snapshot of a canister. The canister must be stopped.
     Create {
+        /// The canister to snapshot.
         canister: String,
+        /// If a snapshot ID is specified, this snapshot will replace it and reuse the ID.
         #[arg(long)]
         replace: Option<SnapshotId>,
+        /// Force snapshot creation even if the canister is running. Not recommended unless you know what you're doing.
         #[arg(long, short)]
         force: bool,
     },
+    /// Loads a canister snapshot, overwriting its execution state. All data since that snapshot will be lost. The canister must be stopped.
     Load {
+        /// The canister to load the snapshot in.
         canister: String,
+        /// The ID of the snapshot to load.
         snapshot: SnapshotId,
+        /// Force snapshot loading even if the canister is running. Not recommended unless you know what you're doing.
         #[arg(long, short)]
         force: bool,
     },
+    /// Lists a canister's existing snapshots.
     List {
+        /// The canister to list snapshots from.
         canister: String,
     },
+    /// Deletes a snapshot from a canister.
     Delete {
+        /// The canister to delete the snapshot from.
         canister: String,
+        /// The ID of the snapshot to delete.
         snapshot: SnapshotId,
     },
 }

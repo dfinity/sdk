@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: Add canister snapshots
+
+The new `dfx canister snapshot` command can be used to create, apply, and delete snapshots of stopped canisters.
+
 ### feat: Enable threshold schnorr signatures for Ed25519
 
 Schnorr signature signing for `Ed25519` is now enabled.
