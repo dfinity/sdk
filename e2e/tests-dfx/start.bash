@@ -87,6 +87,53 @@ teardown() {
   assert_contains "Module hash: None"
 }
 
+@test "pocket-ic proxy domain configuration in string form" {
+  create_networks_json
+  jq '.local.proxy.domain="xyz.domain"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+
+  dfx_start
+
+  domains="$(curl "http://localhost:$(get_pocketic_proxy_port)/http_gateway" \
+    | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
+
+  assert_eq '["xyz.domain"]' "$domains"
+}
+
+@test "pocket-ic proxy domain configuration in vector form" {
+  create_networks_json
+  jq '.local.proxy.domain=["xyz.domain", "abc.something"]' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+
+  dfx_start
+
+  domains="$(curl "http://localhost:$(get_pocketic_proxy_port)/http_gateway" \
+    | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
+
+  assert_eq '["abc.something","xyz.domain"]' "$domains"
+}
+
+@test "pocket-ic proxy domain configuration from project defaults" {
+  dfx_new
+  define_project_network
+
+  jq '.defaults.proxy.domain=["xyz.domain", "abc.something"]' dfx.json | sponge dfx.json
+
+  dfx_start
+
+  domains="$(curl "http://localhost:$(get_pocketic_proxy_port)/http_gateway" \
+    | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
+
+  assert_eq '["abc.something","xyz.domain"]' "$domains"
+}
+
+@test "pocket-ic proxy domain configuration from command-line" {
+  dfx_start --domain xyz.domain --domain def.somewhere
+
+  domains="$(curl "http://localhost:$(get_pocketic_proxy_port)/http_gateway" \
+    | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
+
+  assert_eq '["def.somewhere","xyz.domain"]' "$domains"
+}
+
 @test "dfx restarts the replica" {
   [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: state persistence"
   dfx_new hello
