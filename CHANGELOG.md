@@ -15,6 +15,8 @@ icx-proxy's HTTP gateway has been replaced with PocketIC's. (This does not impac
 Schnorr signature signing for `Ed25519` is now enabled.
 A test key id `Ed25519:dfx_test_key` is ready to be used by locally created canisters.
 
+### feat: Added settings_digest field to the network-id file
+
 ## Dependencies
 
 ### Replica
