@@ -669,7 +669,7 @@ pub struct ConfigDefaultsReplica {
     pub log_level: Option<ReplicaLogLevel>,
 }
 
-/// Configuration for icx-proxy.
+/// Configuration for the HTTP gateway.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsProxy {
     /// A list of domains that can be served. These are used for canister resolution [default: localhost]

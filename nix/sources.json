@@ -126,22 +126,6 @@
         "url": "https://download.dfinity.systems/ic/2c0b76cfc7e596d5c4304cff5222a2619294c8c1/binaries/x86_64-linux/ic-starter.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-linux/ic-starter.gz"
     },
-    "icx-proxy-x86_64-darwin": {
-        "builtin": false,
-        "rev": "f2cd225b621674b19f3d601ebb42555d0c6f614d",
-        "sha256": "05qmk7rn3pqp8rl7ppkw6kmbs4lqjv0hq5lkzbvlday6lc5bi3x6",
-        "type": "file",
-        "url": "https://download.dfinity.systems/ic/f2cd225b621674b19f3d601ebb42555d0c6f614d/binaries/x86_64-darwin/icx-proxy-dev.gz",
-        "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/icx-proxy-dev.gz"
-    },
-    "icx-proxy-x86_64-linux": {
-        "builtin": false,
-        "rev": "f2cd225b621674b19f3d601ebb42555d0c6f614d",
-        "sha256": "15kn0rpxk27rs6fba2ikmaqhbmg1myhjgyx5rjg3803g3cwap9pr",
-        "type": "file",
-        "url": "https://download.dfinity.systems/ic/f2cd225b621674b19f3d601ebb42555d0c6f614d/binaries/x86_64-linux/icx-proxy-dev.gz",
-        "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-linux/icx-proxy-dev.gz"
-    },
     "motoko-base": {
         "builtin": false,
         "description": "The Motoko base library",

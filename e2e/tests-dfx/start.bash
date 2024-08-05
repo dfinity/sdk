@@ -226,7 +226,7 @@ teardown() {
   POCKETIC_PROXY_PID=$(get_pocketic_proxy_pid)
 
   echo "replica pid is $REPLICA_PID"
-  echo "icx-proxy pid is $POCKETIC_PROXY_PID"
+  echo "pocket-ic proxy pid is $POCKETIC_PROXY_PID"
 
   kill -KILL "$REPLICA_PID"
   assert_process_exits "$REPLICA_PID" 15s
@@ -544,5 +544,5 @@ teardown() {
 @test "dfx-started processes can be killed with dfx killall" {
     dfx_start
     dfx killall
-    assert_command_fail pgrep dfx replica pocket-ic icx-proxy
+    assert_command_fail pgrep dfx replica pocket-ic
 }

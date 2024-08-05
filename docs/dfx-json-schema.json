@@ -728,7 +728,7 @@
       }
     },
     "ConfigDefaultsProxy": {
-      "description": "Configuration for icx-proxy.",
+      "description": "Configuration for the HTTP gateway.",
       "type": "object",
       "required": [
         "domain"

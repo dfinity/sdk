@@ -99,11 +99,6 @@ impl LocalServerDescriptor {
         pid_paths
     }
 
-    /// This file contains the pid of the icx-proxy process
-    pub fn icx_proxy_pid_path(&self) -> PathBuf {
-        self.data_directory.join("icx-proxy-pid")
-    }
-
     /// This file contains the pid of the ic-btc-adapter process
     pub fn btc_adapter_pid_path(&self) -> PathBuf {
         self.data_directory.join("ic-btc-adapter-pid")
@@ -200,7 +195,7 @@ impl LocalServerDescriptor {
         self.state_dir().join("replicated_state")
     }
 
-    /// This file contains the listening port of the icx-proxy.
+    /// This file contains the listening port of the HTTP gateway.
     /// This is the port that the agent connects to.
     pub fn webserver_port_path(&self) -> PathBuf {
         self.data_directory.join("webserver-port")
