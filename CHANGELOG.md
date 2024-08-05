@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: Enable threshold schnorr signatures for Ed25519
+
+Schnorr signature signing for `Ed25519` is now enabled.
+A test key id `Ed25519:dfx_test_key` is ready to be used by locally created canisters.
+
+
 # 0.22.1
 
 ## Dependencies
