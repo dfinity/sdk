@@ -87,6 +87,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Info(v) => info::exec(env, v).await,
             SubCommand::Metadata(v) => metadata::exec(env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(env, v).await,
+            SubCommand::Send(v) => send::exec(env, v, &call_sender()?).await,
             SubCommand::Sign(v) => sign::exec(env, v, &call_sender()?).await,
             SubCommand::Snapshot(v) => snapshot::exec(env, v, &call_sender()?).await,
             SubCommand::Start(v) => start::exec(env, v, &call_sender()?).await,
