@@ -99,11 +99,6 @@ impl LocalServerDescriptor {
         pid_paths
     }
 
-    /// This file contains the pid of the icx-proxy process
-    pub fn icx_proxy_pid_path(&self) -> PathBuf {
-        self.data_directory.join("icx-proxy-pid")
-    }
-
     /// This file contains the pid of the ic-btc-adapter process
     pub fn btc_adapter_pid_path(&self) -> PathBuf {
         self.data_directory.join("ic-btc-adapter-pid")
@@ -152,13 +147,24 @@ impl LocalServerDescriptor {
         self.replica_configuration_dir().join("replica-pid")
     }
 
-    /// This file contains the listening port of the pocket-ic process
+    /// This file contains the configuration/API port of the pocket-ic replica process
     pub fn pocketic_port_path(&self) -> PathBuf {
         self.data_directory.join("pocket-ic-port")
     }
 
+    /// This file contains the pid of the pocket-ic replica process
     pub fn pocketic_pid_path(&self) -> PathBuf {
         self.data_directory.join("pocket-ic-pid")
+    }
+
+    /// This file contains the configuration port of the pocket-ic gateway process
+    pub fn pocketic_proxy_port_path(&self) -> PathBuf {
+        self.data_directory.join("pocket-ic-proxy-port")
+    }
+
+    /// This file contains the pid of the pocket-ic gateway process
+    pub fn pocketic_proxy_pid_path(&self) -> PathBuf {
+        self.data_directory.join("pocket-ic-proxy-pid")
     }
 
     /// Returns whether the local server is PocketIC (as opposed to the replica)
@@ -189,7 +195,7 @@ impl LocalServerDescriptor {
         self.state_dir().join("replicated_state")
     }
 
-    /// This file contains the listening port of the icx-proxy.
+    /// This file contains the listening port of the HTTP gateway.
     /// This is the port that the agent connects to.
     pub fn webserver_port_path(&self) -> PathBuf {
         self.data_directory.join("webserver-port")
