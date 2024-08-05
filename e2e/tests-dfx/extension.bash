@@ -8,6 +8,7 @@ setup() {
 }
 
 teardown() {
+  stop_webserver
   dfx_stop
 
   standard_teardown
@@ -178,15 +179,16 @@ EOF
   dfx_start
 }
 
-@test "install extension from official registry" {
+install_extension_from_official_registry() {
+  EXTENSION=$1
+
   assert_command_fail dfx snsx
 
   assert_command dfx extension list
   assert_match 'No extensions installed'
 
-  assert_command dfx extension install sns --install-as snsx --version 0.2.1
-  # TODO: how to capture spinner message?
-  # assert_match 'Successfully installed extension'
+  assert_command dfx extension install "$EXTENSION" --install-as snsx --version 0.2.1
+  assert_contains "Extension 'sns' version 0.2.1 installed successfully, and is available as 'snsx'"
 
   assert_command dfx extension list
   assert_match 'snsx'
@@ -204,6 +206,166 @@ EOF
   assert_match 'No extensions installed'
 }
 
+@test "install extension by name from official registry" {
+  install_extension_from_official_registry sns
+}
+
+@test "install extension by url from official registry" {
+  install_extension_from_official_registry https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/sns/extension.json
+}
+
+get_extension_architecture() {
+  _cputype="$(uname -m)"
+  case "$_cputype" in
+
+    x86_64 | x86-64 | x64 | amd64)
+      _cputype=x86_64
+      ;;
+
+    arm64 | aarch64)
+      _cputype=aarch64
+      ;;
+
+    *)
+      err "unknown CPU type: $_cputype"
+      ;;
+
+  esac
+  echo "$_cputype"
+}
+
+@test "install extension by url from elsewhere" {
+  start_webserver --directory www
+  EXTENSION_URL="http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/extension.json"
+  mkdir -p  www/arbitrary/downloads
+
+  cat > www/arbitrary/extension.json <<EOF
+{
+  "name": "an-extension",
+  "version": "0.1.0",
+  "homepage": "https://github.com/dfinity/dfx-extensions",
+  "authors": "DFINITY",
+  "summary": "Test extension for e2e purposes.",
+  "categories": [],
+  "keywords": [],
+  "download_url_template": "http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/downloads/{{tag}}/{{basename}}.{{archive-format}}"
+}
+EOF
+  cat www/arbitrary/extension.json
+  cat > www/arbitrary/an-extension <<EOF
+#!/usr/bin/env bash
+
+echo "an extension output"
+EOF
+  chmod +x www/arbitrary/an-extension
+
+  cat > www/arbitrary/dependencies.json <<EOF
+{
+  "0.1.0": {
+    "dfx": {
+      "version": ">=0.8.0"
+    }
+  }
+}
+EOF
+
+  arch=$(get_extension_architecture)
+
+  if [ "$(uname)" == "Darwin" ]; then
+    ARCHIVE_BASENAME="an-extension-$arch-apple-darwin"
+  else
+    ARCHIVE_BASENAME="an-extension-$arch-unknown-linux-gnu"
+  fi
+
+  mkdir "$ARCHIVE_BASENAME"
+  cp www/arbitrary/extension.json "$ARCHIVE_BASENAME"
+  cp www/arbitrary/an-extension "$ARCHIVE_BASENAME"
+  tar -czf "$ARCHIVE_BASENAME".tar.gz "$ARCHIVE_BASENAME"
+  rm -rf "$ARCHIVE_BASENAME"
+
+  mkdir -p www/arbitrary/downloads/an-extension-v0.1.0
+  mv "$ARCHIVE_BASENAME".tar.gz www/arbitrary/downloads/an-extension-v0.1.0/
+
+  assert_command dfx extension install "$EXTENSION_URL"
+}
+
+@test "install extension with non-platform-specific archive" {
+  start_webserver --directory www
+  EXTENSION_URL="http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/extension.json"
+  mkdir -p  www/arbitrary/downloads
+
+  cat > www/arbitrary/extension.json <<EOF
+{
+  "name": "an-extension",
+  "version": "0.1.0",
+  "homepage": "https://github.com/dfinity/dfx-extensions",
+  "authors": "DFINITY",
+  "summary": "Test extension for e2e purposes.",
+  "categories": [],
+  "keywords": [],
+  "download_url_template": "http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/downloads/{{tag}}.{{archive-format}}"
+}
+EOF
+  cat www/arbitrary/extension.json
+  cat > www/arbitrary/an-extension <<EOF
+#!/usr/bin/env bash
+
+echo "an extension output"
+EOF
+  chmod +x www/arbitrary/an-extension
+
+  cat > www/arbitrary/dependencies.json <<EOF
+{
+  "0.1.0": {
+    "dfx": {
+      "version": ">=0.8.0"
+    }
+  }
+}
+EOF
+
+
+  ARCHIVE_BASENAME="an-extension-v0.1.0"
+
+  mkdir "$ARCHIVE_BASENAME"
+  cp www/arbitrary/extension.json "$ARCHIVE_BASENAME"
+  cp www/arbitrary/an-extension "$ARCHIVE_BASENAME"
+  tar -czf "$ARCHIVE_BASENAME".tar.gz "$ARCHIVE_BASENAME"
+  rm -rf "$ARCHIVE_BASENAME"
+
+  mv "$ARCHIVE_BASENAME".tar.gz www/arbitrary/downloads/
+
+  assert_command dfx extension install "$EXTENSION_URL"
+}
+
+@test "install is not an error if already installed" {
+  assert_command_fail dfx nns --help
+  assert_command dfx extension install nns --version 0.4.1
+  assert_command dfx extension install nns --version 0.4.1
+  # shellcheck disable=SC2154
+  assert_eq "WARN: Extension 'nns' version 0.4.1 is already installed" "$stderr"
+  assert_command dfx nns --help
+}
+
+@test "install is not an error if an older version is already installed and no version was specified" {
+  assert_command_fail dfx nns --help
+  assert_command dfx extension install nns --version 0.3.1
+  assert_command dfx extension install nns
+  # shellcheck disable=SC2154
+  assert_eq "WARN: Extension 'nns' version 0.3.1 is already installed" "$stderr"
+  assert_command dfx nns --help
+}
+
+@test "reports error if older version already installed and specific version requested" {
+  assert_command_fail dfx nns --help
+  assert_command dfx extension install nns --version 0.3.1
+  assert_command_fail dfx extension install nns --version 0.4.1
+  # shellcheck disable=SC2154
+  assert_contains "ERROR: Extension 'nns' is already installed at version 0.3.1" "$stderr"
+  # shellcheck disable=SC2154
+  assert_contains 'ERROR: To upgrade, run "dfx extension uninstall nns" and then re-run the dfx extension install command' "$stderr"
+}
+
 @test "manually create extension" {
   assert_command dfx extension list
   assert_match 'No extensions installed'
@@ -216,45 +378,45 @@ echo testoutput' > "$CACHE_DIR"/extensions/test_extension/test_extension
   chmod +x "$CACHE_DIR"/extensions/test_extension/test_extension
 
   assert_command_fail dfx extension list
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx extension run test_extension
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx test_extension
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx --help
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   assert_command_fail dfx test_extension --help
-  assert_match "Error.*Failed to load extension manifest.*Failed to read JSON file.*Failed to read .*extensions/test_extension/extension.json.*No such file or directory"
+  assert_match "Error.*Failed to load extension manifest.*failed to read JSON file.*failed to read .*extensions/test_extension/extension.json.*No such file or directory"
 
   echo "{}" > "$CACHE_DIR"/extensions/test_extension/extension.json
 
   assert_command_fail dfx extension list
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json"
   assert_match "missing field .* at line .* column .*"
 
   assert_command_fail dfx extension run test_extension
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json.*"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json.*"
   assert_match "missing field .* at line .* column .*"
 
   assert_command_fail dfx test_extension
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json.*"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json.*"
   assert_match "missing field .* at line .* column .*"
 
   assert_command_fail dfx --help
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json.*"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json.*"
   assert_match "missing field .* at line .* column .*"
 
   assert_command_fail dfx test_extension --help
   assert_contains "Failed to load extension manifest"
-  assert_match "Failed to parse contents of .*extensions/test_extension/extension.json as json.*"
+  assert_match "failed to parse contents of .*extensions/test_extension/extension.json as json.*"
   assert_match "missing field .* at line .* column .*"
 
   echo '{

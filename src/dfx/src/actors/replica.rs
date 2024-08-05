@@ -323,6 +323,8 @@ fn replica_start_thread(
             "ecdsa:Secp256k1:dfx_test_key",
             "--chain-key-ids",
             "schnorr:Bip340Secp256k1:dfx_test_key",
+            "--chain-key-ids",
+            "schnorr:Ed25519:dfx_test_key",
             "--log-level",
             &config.log_level.as_ic_starter_string(),
             "--use-specified-ids-allocation-range",
@@ -416,7 +418,7 @@ fn replica_start_thread(
                     continue;
                 }
             }
-            info!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
+            debug!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
 
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the replica if done = true.

@@ -3,22 +3,29 @@
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
 use crate::config::directories::{get_shared_network_data_directory, get_user_dfx_config_dir};
-use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError;
-use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError::ParsePrincipalFromIdFailed;
-use crate::error::identity::load_pem_identity::LoadPemIdentityError;
-use crate::error::identity::load_pem_identity::LoadPemIdentityError::ReadIdentityFileFailed;
-use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError;
-use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError::RenameWalletGlobalConfigKeyFailed;
-use crate::error::identity::new_hardware_identity::NewHardwareIdentityError;
-use crate::error::identity::new_hardware_identity::NewHardwareIdentityError::InstantiateHardwareIdentityFailed;
-use crate::error::identity::new_identity::NewIdentityError;
-use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError;
-use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError::RenameWalletFailed;
-use crate::error::wallet_config::WalletConfigError;
-use crate::error::wallet_config::WalletConfigError::{
-    EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
+use crate::config::model::network_descriptor::NetworkDescriptor;
+use crate::error::wallet_config::SaveWalletConfigError;
+use crate::error::{
+    identity::{
+        CallSenderFromWalletError,
+        CallSenderFromWalletError::{
+            ParsePrincipalFromIdFailedAndGetWalletCanisterIdFailed,
+            ParsePrincipalFromIdFailedAndNoWallet,
+        },
+        LoadPemIdentityError,
+        LoadPemIdentityError::ReadIdentityFileFailed,
+        MapWalletsToRenamedIdentityError,
+        MapWalletsToRenamedIdentityError::RenameWalletGlobalConfigKeyFailed,
+        NewHardwareIdentityError,
+        NewHardwareIdentityError::InstantiateHardwareIdentityFailed,
+        NewIdentityError, RenameWalletGlobalConfigKeyError,
+        RenameWalletGlobalConfigKeyError::RenameWalletFailed,
+    },
+    wallet_config::{WalletConfigError, WalletConfigError::LoadWalletConfigFailed},
 };
+use crate::fs::composite::ensure_parent_dir_exists;
 use crate::identity::identity_file_locations::IdentityFileLocations;
+use crate::identity::wallet::wallet_canister_id;
 use crate::json::{load_json_file, save_json_file};
 use candid::Principal;
 use ic_agent::agent::EnvelopeContent;
@@ -41,6 +48,7 @@ pub mod identity_manager;
 pub mod keyring_mock;
 pub mod pem_safekeeping;
 pub mod pem_utils;
+pub mod wallet;
 
 pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 pub const IDENTITY_JSON: &str = "identity.json";
@@ -186,12 +194,11 @@ impl Identity {
     pub fn save_wallet_config(
         path: &Path,
         config: &WalletGlobalConfig,
-    ) -> Result<(), WalletConfigError> {
-        crate::fs::parent(path)
-            .and_then(|path| crate::fs::create_dir_all(&path))
-            .map_err(EnsureWalletConfigDirFailed)?;
+    ) -> Result<(), SaveWalletConfigError> {
+        ensure_parent_dir_exists(path)?;
 
-        save_json_file(path, &config).map_err(SaveWalletConfigFailed)
+        save_json_file(path, &config)?;
+        Ok(())
     }
 
     fn rename_wallet_global_config_key(
@@ -209,6 +216,7 @@ impl Identity {
                     });
                 identities.insert(renamed_identity.to_string(), v);
                 Identity::save_wallet_config(&wallet_path, &config)
+                    .map_err(WalletConfigError::SaveWalletConfig)
             })
             .map_err(|err| {
                 RenameWalletFailed(
@@ -302,14 +310,33 @@ pub enum CallSender {
     Wallet(Principal),
 }
 
-// Determine whether the selected Identity
-// or the provided wallet canister ID should be the Sender of the call.
+// Determine whether the selected Identity or a wallet should be the sender of the call.
+// If a wallet, the principal can be selected directly, or looked up from an identity name.
 impl CallSender {
-    pub fn from(wallet: &Option<String>) -> Result<Self, CallSenderFromWalletError> {
-        let sender = if let Some(id) = wallet {
-            CallSender::Wallet(
-                Principal::from_text(id).map_err(|e| ParsePrincipalFromIdFailed(id.clone(), e))?,
-            )
+    pub fn from(
+        wallet_principal_or_identity_name: &Option<String>,
+        network: &NetworkDescriptor,
+    ) -> Result<Self, CallSenderFromWalletError> {
+        let sender = if let Some(s) = wallet_principal_or_identity_name {
+            match Principal::from_text(s) {
+                Ok(principal) => CallSender::Wallet(principal),
+                Err(principal_err) => match wallet_canister_id(network, s) {
+                    Ok(Some(principal)) => CallSender::Wallet(principal),
+                    Ok(None) => {
+                        return Err(ParsePrincipalFromIdFailedAndNoWallet(
+                            s.clone(),
+                            principal_err,
+                        ));
+                    }
+                    Err(wallet_err) => {
+                        return Err(ParsePrincipalFromIdFailedAndGetWalletCanisterIdFailed(
+                            s.clone(),
+                            principal_err,
+                            wallet_err,
+                        ));
+                    }
+                },
+            }
         } else {
             CallSender::SelectedId
         };

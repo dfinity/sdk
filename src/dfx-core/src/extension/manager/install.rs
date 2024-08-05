@@ -1,10 +1,12 @@
 use crate::error::extension::{
     DownloadAndInstallExtensionToTempdirError, FinalizeInstallationError,
-    GetExtensionArchiveNameError, GetExtensionDownloadUrlError, GetHighestCompatibleVersionError,
-    InstallExtensionError,
+    GetExtensionArchiveNameError, GetExtensionDownloadUrlError, GetExtensionManifestError,
+    GetHighestCompatibleVersionError, GetTopLevelDirectoryError, InstallExtensionError,
 };
 use crate::extension::{
-    manager::ExtensionManager, manifest::ExtensionDependencies, url::ExtensionJsonUrl,
+    manager::ExtensionManager,
+    manifest::{ExtensionDependencies, ExtensionManifest},
+    url::ExtensionJsonUrl,
 };
 use crate::http::get::get_with_retries;
 use backoff::exponential::ExponentialBackoff;
@@ -14,30 +16,45 @@ use semver::{BuildMetadata, Prerelease, Version};
 use std::io::Cursor;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 use tar::Archive;
 use tempfile::{tempdir_in, TempDir};
 
-const DFINITY_DFX_EXTENSIONS_RELEASES_URL: &str =
-    "https://github.com/dfinity/dfx-extensions/releases/download";
+pub enum InstallOutcome {
+    Installed(String, Version),
+    AlreadyInstalled(String, Version),
+}
 
 impl ExtensionManager {
     pub async fn install_extension(
         &self,
-        extension_name: &str,
         url: &ExtensionJsonUrl,
         install_as: Option<&str>,
         version: Option<&Version>,
-    ) -> Result<Version, InstallExtensionError> {
+    ) -> Result<InstallOutcome, InstallExtensionError> {
+        let manifest = Self::get_extension_manifest(url).await?;
+        let extension_name: &str = &manifest.name;
+
         let effective_extension_name = install_as.unwrap_or(extension_name);
 
         if self
             .get_extension_directory(effective_extension_name)
             .exists()
         {
-            return Err(InstallExtensionError::ExtensionAlreadyInstalled(
-                effective_extension_name.to_string(),
-            ));
+            let installed_manifest = ExtensionManifest::load(effective_extension_name, &self.dir)?;
+
+            return if matches!(version, Some(v) if *v != *installed_manifest.version) {
+                Err(InstallExtensionError::OtherVersionAlreadyInstalled(
+                    extension_name.to_string(),
+                    installed_manifest.version.clone(),
+                ))
+            } else {
+                Ok(InstallOutcome::AlreadyInstalled(
+                    extension_name.to_string(),
+                    installed_manifest.version.clone(),
+                ))
+            };
         }
 
         let extension_version = match version {
@@ -46,20 +63,22 @@ impl ExtensionManager {
         };
         let github_release_tag = get_git_release_tag(extension_name, &extension_version);
         let extension_archive = get_extension_archive_name(extension_name)?;
-        let archive_url = get_extension_download_url(&github_release_tag, &extension_archive)?;
+        let archive_url = get_extension_download_url(
+            &manifest.download_url_template(),
+            &github_release_tag,
+            &extension_archive,
+        )?;
 
         let temp_dir = self
             .download_and_unpack_extension_to_tempdir(archive_url)
             .await?;
 
-        self.finalize_installation(
-            extension_name,
-            effective_extension_name,
-            &extension_archive,
-            temp_dir,
-        )?;
+        self.finalize_installation(extension_name, effective_extension_name, temp_dir)?;
 
-        Ok(extension_version)
+        Ok(InstallOutcome::Installed(
+            extension_name.to_string(),
+            extension_version,
+        ))
     }
 
     /// Removing the prerelease tag and build metadata, because they should
@@ -81,6 +100,22 @@ impl ExtensionManager {
         dependencies
             .find_highest_compatible_version(&dfx_version)?
             .ok_or(GetHighestCompatibleVersionError::NoCompatibleVersionFound())
+    }
+
+    async fn get_extension_manifest(
+        url: &ExtensionJsonUrl,
+    ) -> Result<ExtensionManifest, GetExtensionManifestError> {
+        let retry_policy = ExponentialBackoff {
+            max_elapsed_time: Some(Duration::from_secs(60)),
+            ..Default::default()
+        };
+        let resp = get_with_retries(url.as_url().clone(), retry_policy)
+            .await
+            .map_err(GetExtensionManifestError::Get)?;
+
+        resp.json()
+            .await
+            .map_err(GetExtensionManifestError::ParseJson)
     }
 
     async fn download_and_unpack_extension_to_tempdir(
@@ -122,14 +157,11 @@ impl ExtensionManager {
         &self,
         extension_name: &str,
         effective_extension_name: &str,
-        extension_unarchived_dir_name: &str,
         temp_dir: TempDir,
     ) -> Result<(), FinalizeInstallationError> {
         let effective_extension_dir = &self.get_extension_directory(effective_extension_name);
-        crate::fs::rename(
-            &temp_dir.path().join(extension_unarchived_dir_name),
-            effective_extension_dir,
-        )?;
+        let top_level_dir = get_top_level_directory(temp_dir.path())?;
+        crate::fs::rename(&top_level_dir, effective_extension_dir)?;
         if extension_name != effective_extension_name {
             // rename the binary
             crate::fs::rename(
@@ -146,11 +178,26 @@ impl ExtensionManager {
     }
 }
 
+fn get_top_level_directory(dir: &Path) -> Result<PathBuf, GetTopLevelDirectoryError> {
+    // the archive will have a single top-level subdirectory
+    // return that subdirectory
+    Ok(crate::fs::read_dir(dir)?
+        .next()
+        .ok_or(GetTopLevelDirectoryError::NoTopLevelDirectoryEntry)?
+        .map_err(GetTopLevelDirectoryError::ReadDirEntry)?
+        .path())
+}
+
 fn get_extension_download_url(
+    download_url_template: &str,
     github_release_tag: &str,
     extension_archive_name: &str,
 ) -> Result<Url, GetExtensionDownloadUrlError> {
-    let download_url = format!("{DFINITY_DFX_EXTENSIONS_RELEASES_URL}/{github_release_tag}/{extension_archive_name}.tar.gz",);
+    let download_url = download_url_template
+        .replace("{{tag}}", github_release_tag)
+        .replace("{{basename}}", extension_archive_name)
+        .replace("{{archive-format}}", "tar.gz");
+
     Url::parse(&download_url).map_err(|source| GetExtensionDownloadUrlError {
         url: download_url,
         source,

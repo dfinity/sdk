@@ -3,6 +3,10 @@ use url::Url;
 pub struct ExtensionJsonUrl(Url);
 
 impl ExtensionJsonUrl {
+    pub fn new(url: Url) -> Self {
+        ExtensionJsonUrl(url)
+    }
+
     pub fn registered(name: &str) -> Result<Self, url::ParseError> {
         let s = format!(
             "https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/{name}/extension.json"

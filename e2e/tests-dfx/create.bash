@@ -208,7 +208,7 @@ teardown() {
 
   assert_command_fail dfx deploy
   assert_command_fail dfx deploy --identity alice
-  assert_command dfx deploy --identity alice --wallet "${ALICE_WALLET}"
+  assert_command dfx deploy --identity alice --wallet alice
 }
 
 @test "create accepts --controller <controller> named parameter, with controller by name of selected identity" {

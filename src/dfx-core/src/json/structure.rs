@@ -1,6 +1,6 @@
 use candid::Deserialize;
 use schemars::JsonSchema;
-use semver::VersionReq;
+use semver::{Version, VersionReq};
 use serde::Serialize;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
@@ -69,6 +69,24 @@ impl Deref for VersionReqWithJsonSchema {
 }
 
 impl DerefMut for VersionReqWithJsonSchema {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(transparent)]
+pub struct VersionWithJsonSchema(#[schemars(with = "String")] pub Version);
+
+impl Deref for VersionWithJsonSchema {
+    type Target = Version;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for VersionWithJsonSchema {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
