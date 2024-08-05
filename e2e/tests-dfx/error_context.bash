@@ -23,11 +23,11 @@ teardown() {
   echo "invalid json" >"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
 
   assert_command_fail dfx identity get-wallet
-  assert_match "Failed to parse contents of .*/network/local/wallets.json as json"
+  assert_match "failed to parse contents of .*/network/local/wallets.json as json"
   assert_match "expected value at line 1 column 1"
 
   assert_command_fail dfx wallet upgrade
-  assert_match "Failed to parse contents of .*/network/local/wallets.json as json"
+  assert_match "failed to parse contents of .*/network/local/wallets.json as json"
   assert_match "expected value at line 1 column 1"
 
   echo '{ "identities": {} }' >"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
@@ -35,18 +35,18 @@ teardown() {
   # maybe you were sudo when you made it
   chmod u=w,go= "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
   assert_command_fail dfx identity get-wallet
-  assert_match "Failed to read .*/network/local/wallets.json"
+  assert_match "failed to read .*/network/local/wallets.json"
   assert_match "Permission denied"
 
   assert_command_fail dfx wallet upgrade
-  assert_match "Failed to read .*/network/local/wallets.json"
+  assert_match "failed to read .*/network/local/wallets.json"
   assert_match "Permission denied"
 
   # can't write it?
   chmod u=r,go= "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
   assert_command dfx identity new --storage-mode plaintext alice
   assert_command_fail dfx identity get-wallet --identity alice
-  assert_match "Failed to write to .*/local/wallets.json"
+  assert_match "failed to write to .*/local/wallets.json"
   assert_match "Permission denied"
 }
 

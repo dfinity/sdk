@@ -18,25 +18,19 @@ pub fn ensure_cohesive_network_directory(
 
     if let Some(LocalNetworkScopeDescriptor::Shared { network_id_path }) = &scope {
         if network_id_path.is_file() {
-            let network_id = crate::fs::read_to_string(network_id_path)
-                .map_err(EnsureCohesiveNetworkDirectoryError::ReadToString)?;
+            let network_id = crate::fs::read_to_string(network_id_path)?;
             let project_network_id_path = directory.join("network-id");
             let reset = directory.is_dir()
                 && (!project_network_id_path.exists()
-                    || crate::fs::read_to_string(&project_network_id_path)
-                        .map_err(EnsureCohesiveNetworkDirectoryError::ReadToString)?
-                        != network_id);
+                    || crate::fs::read_to_string(&project_network_id_path)? != network_id);
 
             if reset {
-                crate::fs::remove_dir_all(directory)
-                    .map_err(EnsureCohesiveNetworkDirectoryError::RemoveDirAll)?;
+                crate::fs::remove_dir_all(directory)?;
             };
 
             if !directory.exists() {
-                crate::fs::create_dir_all(directory)
-                    .map_err(EnsureCohesiveNetworkDirectoryError::CreateDirAll)?;
-                crate::fs::write(&project_network_id_path, &network_id)
-                    .map_err(EnsureCohesiveNetworkDirectoryError::Write)?;
+                crate::fs::create_dir_all(directory)?;
+                crate::fs::write(&project_network_id_path, &network_id)?;
             }
         }
     }

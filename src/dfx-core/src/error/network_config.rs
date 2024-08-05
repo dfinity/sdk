@@ -1,5 +1,5 @@
 use crate::error::config::{ConfigError, GetTempPathError};
-use crate::error::fs::FsError;
+use crate::error::fs::ReadToStringError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError;
 use crate::error::uri::UriError;
 
@@ -11,7 +11,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum NetworkConfigError {
     #[error(transparent)]
-    FsError(#[from] crate::error::fs::FsError),
+    ReadToString(#[from] ReadToStringError),
 
     #[error(transparent)]
     Config(#[from] ConfigError),
@@ -53,7 +53,7 @@ pub enum NetworkConfigError {
     ParseProviderUrlFailed(Box<String>, #[source] url::ParseError),
 
     #[error("Failed to read webserver port")]
-    ReadWebserverPortFailed(#[source] FsError),
+    ReadWebserverPortFailed(#[source] ReadToStringError),
 
     #[error("Failed to parse principal '{0}'")]
     ParsePrincipalFailed(String, #[source] PrincipalError),

@@ -1,5 +1,5 @@
 use crate::error::create_encoding::CreateEncodingError;
-use dfx_core::error::fs::FsError;
+use dfx_core::error::fs::{ReadFileError, ReadMetadataError};
 use thiserror::Error;
 
 /// Errors related to creating an asset found in the project in the asset canister.
@@ -10,10 +10,10 @@ pub enum CreateProjectAssetError {
     CreateEncodingError(#[from] CreateEncodingError),
 
     /// Failed to find out the file size of an asset.
-    #[error("Failed to determine asset size: {0}")]
-    DetermineAssetSizeFailed(FsError),
+    #[error("failed to determine asset size")]
+    DetermineAssetSizeFailed(#[from] ReadMetadataError),
 
     /// Failed to load asset content from the filesystem.
-    #[error("Failed to load asset content: {0}")]
-    LoadContentFailed(FsError),
+    #[error("failed to load asset content")]
+    LoadContentFailed(#[from] ReadFileError),
 }

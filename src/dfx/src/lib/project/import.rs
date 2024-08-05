@@ -2,6 +2,7 @@ use crate::lib::error::ProjectError;
 use dfx_core::config::model::canister_id_store;
 use dfx_core::config::model::canister_id_store::CanisterIds;
 use dfx_core::config::model::dfinity::Config;
+use dfx_core::error::fs::ReadFileError;
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use serde_json::{Map, Value};
@@ -275,13 +276,15 @@ impl Loader {
         url: &Url,
     ) -> Result<Option<Vec<u8>>, ProjectError> {
         if url.scheme() == "file" {
-            Self::read_optional_file_contents(&PathBuf::from(url.path()))
+            Ok(Self::read_optional_file_contents(&PathBuf::from(
+                url.path(),
+            ))?)
         } else {
             self.get_optional_url_body(url).await
         }
     }
 
-    fn read_optional_file_contents(path: &Path) -> Result<Option<Vec<u8>>, ProjectError> {
+    fn read_optional_file_contents(path: &Path) -> Result<Option<Vec<u8>>, ReadFileError> {
         if path.exists() {
             let contents = dfx_core::fs::read(path)?;
             Ok(Some(contents))

@@ -1,9 +1,11 @@
+use crate::error::fs::{
+    ReadFileError, ReadPermissionsError, RemoveDirectoryAndContentsError, RemoveDirectoryError,
+    RemoveFileError, RenameError, SetPermissionsError, WriteFileError,
+};
 use crate::error::{
     config::ConfigError,
     encryption::EncryptionError,
-    fs::{
-        CopyFileError, CreateDirAllError, EnsureParentDirExistsError, FsError, NoParentPathError,
-    },
+    fs::{CopyFileError, CreateDirAllError, EnsureParentDirExistsError, NoParentPathError},
     get_user_home::GetUserHomeError,
     keyring::KeyringError,
     structured_file::StructuredFileError,
@@ -48,7 +50,7 @@ pub enum CreateNewIdentityError {
     CannotCreateAnonymousIdentity(),
 
     #[error("Failed to clean up previous creation attempts")]
-    CleanupPreviousCreationAttemptsFailed(#[source] FsError),
+    CleanupPreviousCreationAttemptsFailed(#[from] RemoveDirectoryAndContentsError),
 
     #[error("Failed to create identity config")]
     ConvertMnemonicToKeyFailed(#[source] ConvertMnemonicToKeyError),
@@ -78,7 +80,7 @@ pub enum CreateNewIdentityError {
     RemoveIdentityFailed(#[source] RemoveIdentityError),
 
     #[error("Failed to rename temporary directory to permanent identity directory")]
-    RenameTemporaryIdentityDirectoryFailed(#[source] FsError),
+    RenameTemporaryIdentityDirectoryFailed(#[from] RenameError),
 
     #[error("Failed to save identity configuration")]
     SaveIdentityConfigurationFailed(#[source] SaveIdentityConfigurationError),
@@ -191,8 +193,8 @@ pub enum LoadPemFromFileError {
     #[error("Failed to decrypt PEM file at {0}")]
     DecryptPemFileFailed(PathBuf, #[source] EncryptionError),
 
-    #[error("Failed to read pem file")]
-    ReadPemFileFailed(#[source] FsError),
+    #[error("failed to read pem file")]
+    ReadPemFileFailed(#[from] ReadFileError),
 }
 
 #[derive(Error, Debug)]
@@ -263,11 +265,11 @@ pub enum RemoveIdentityError {
     #[error("If you want to remove an identity with configured wallets, please use the --drop-wallets flag.")]
     DropWalletsFlagRequiredToRemoveIdentityWithWallets(),
 
-    #[error("Failed to remove identity directory")]
-    RemoveIdentityDirectoryFailed(#[source] FsError),
+    #[error("failed to remove identity directory")]
+    RemoveIdentityDirectoryFailed(#[source] RemoveDirectoryError),
 
     #[error("Failed to remove identity file")]
-    RemoveIdentityFileFailed(#[source] FsError),
+    RemoveIdentityFileFailed(#[from] RemoveFileError),
 
     #[error("Failed to remove identity from keyring")]
     RemoveIdentityFromKeyringFailed(#[source] KeyringError),
@@ -299,8 +301,8 @@ pub enum RenameIdentityError {
     #[error("Failed to remove identity from keyring")]
     RemoveIdentityFromKeyringFailed(#[source] KeyringError),
 
-    #[error("Cannot rename identity directory")]
-    RenameIdentityDirectoryFailed(#[source] FsError),
+    #[error("failed to rename identity directory")]
+    RenameIdentityDirectoryFailed(#[from] RenameError),
 
     #[error("Failed to save identity configuration")]
     SaveIdentityConfigurationFailed(#[source] SaveIdentityConfigurationError),
@@ -389,13 +391,13 @@ pub enum WritePemContentError {
     NoParent(#[from] NoParentPathError),
 
     #[error(transparent)]
-    ReadPermissions(FsError),
+    ReadPermissions(#[from] ReadPermissionsError),
 
     #[error(transparent)]
-    SetPermissions(FsError),
+    SetPermissions(#[from] SetPermissionsError),
 
     #[error(transparent)]
-    Write(FsError),
+    Write(#[from] WriteFileError),
 }
 
 #[derive(Error, Debug)]
