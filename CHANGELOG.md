@@ -2,11 +2,14 @@
 
 # UNRELEASED
 
+### feat: PocketIC HTTP gateway
+
+icx-proxy's HTTP gateway has been replaced with PocketIC's. (This does not impact the meaning of `--pocketic` in `dfx start`.)
+
 ### feat: Enable threshold schnorr signatures for Ed25519
 
 Schnorr signature signing for `Ed25519` is now enabled.
 A test key id `Ed25519:dfx_test_key` is ready to be used by locally created canisters.
-
 
 # 0.22.1
 
