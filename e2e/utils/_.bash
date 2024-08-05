@@ -305,7 +305,7 @@ get_pocketic_proxy_pid() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-proxy-pid"
 }
 
-get_pocketic_proxy_port() {
+get_pocketic_proxy_config_port() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-proxy-port"
 }
 

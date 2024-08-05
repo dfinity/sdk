@@ -93,7 +93,7 @@ teardown() {
 
   dfx_start
 
-  domains="$(curl "http://localhost:$(get_pocketic_proxy_port)/http_gateway" \
+  domains="$(curl "http://localhost:$(get_pocketic_proxy_config_port)/http_gateway" \
     | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
 
   assert_eq '["xyz.domain"]' "$domains"
@@ -105,7 +105,7 @@ teardown() {
 
   dfx_start
 
-  domains="$(curl "http://localhost:$(get_pocketic_proxy_port)/http_gateway" \
+  domains="$(curl "http://localhost:$(get_pocketic_proxy_config_port)/http_gateway" \
     | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
 
   assert_eq '["abc.something","xyz.domain"]' "$domains"
@@ -119,7 +119,7 @@ teardown() {
 
   dfx_start
 
-  domains="$(curl "http://localhost:$(get_pocketic_proxy_port)/http_gateway" \
+  domains="$(curl "http://localhost:$(get_pocketic_proxy_config_port)/http_gateway" \
     | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
 
   assert_eq '["abc.something","xyz.domain"]' "$domains"
@@ -128,7 +128,7 @@ teardown() {
 @test "pocket-ic proxy domain configuration from command-line" {
   dfx_start --domain xyz.domain --domain def.somewhere
 
-  domains="$(curl "http://localhost:$(get_pocketic_proxy_port)/http_gateway" \
+  domains="$(curl "http://localhost:$(get_pocketic_proxy_config_port)/http_gateway" \
     | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
 
   assert_eq '["def.somewhere","xyz.domain"]' "$domains"
