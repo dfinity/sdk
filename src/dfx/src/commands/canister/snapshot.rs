@@ -38,9 +38,6 @@ enum SnapshotSubcommand {
         /// If a snapshot ID is specified, this snapshot will replace it and reuse the ID.
         #[arg(long)]
         replace: Option<SnapshotId>,
-        /// Force snapshot creation even if the canister is running. Not recommended unless you know what you're doing.
-        #[arg(long, short)]
-        force: bool,
     },
     /// Loads a canister snapshot, overwriting its execution state. All data since that snapshot will be lost. The canister must be stopped.
     Load {
@@ -48,9 +45,6 @@ enum SnapshotSubcommand {
         canister: String,
         /// The ID of the snapshot to load.
         snapshot: SnapshotId,
-        /// Force snapshot loading even if the canister is running. Not recommended unless you know what you're doing.
-        #[arg(long, short)]
-        force: bool,
     },
     /// Lists a canister's existing snapshots.
     List {
@@ -89,16 +83,12 @@ pub async fn exec(
 ) -> DfxResult {
     fetch_root_key_if_needed(env).await?;
     match opts.subcmd {
-        SnapshotSubcommand::Create {
-            canister,
-            replace,
-            force,
-        } => create(env, canister, replace, force, call_sender).await?,
-        SnapshotSubcommand::Load {
-            canister,
-            snapshot,
-            force,
-        } => load(env, canister, snapshot, force, call_sender).await?,
+        SnapshotSubcommand::Create { canister, replace } => {
+            create(env, canister, replace, call_sender).await?
+        }
+        SnapshotSubcommand::Load { canister, snapshot } => {
+            load(env, canister, snapshot, call_sender).await?
+        }
         SnapshotSubcommand::Delete { canister, snapshot } => {
             delete(env, canister, snapshot, call_sender).await?
         }
@@ -107,26 +97,28 @@ pub async fn exec(
     Ok(())
 }
 
+fn ensure_status(status: CanisterStatus, canister: &str, phrasing: &str) -> DfxResult {
+    match status {
+        CanisterStatus::Stopped => {}
+        CanisterStatus::Running => bail!("Canister {canister} is running and snapshots should not be {phrasing} running canisters. Run `dfx canister stop` first"),
+        CanisterStatus::Stopping => bail!("Canister {canister} is stopping but is not yet stopped. Wait a few seconds and try again"),
+    }
+    Ok(())
+}
+
 async fn create(
     env: &dyn Environment,
     canister: String,
     replace: Option<SnapshotId>,
-    force: bool,
     call_sender: &CallSender,
 ) -> DfxResult {
     let canister_id = canister
         .parse()
         .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
-    if !force {
-        let status = get_canister_status(env, canister_id, call_sender)
-            .await
-            .with_context(|| format!("Could not retrieve status of canister {canister}"))?;
-        match status.status {
-            CanisterStatus::Stopped => {}
-            CanisterStatus::Running => bail!("Canister {canister} is running and snapshots should not be taken of running canisters. Run `dfx canister stop` first (or override with `--force`)"),
-            CanisterStatus::Stopping => bail!("Canister {canister} is stopping but is not yet stopped. Wait a few seconds and try again"),
-        }
-    }
+    let status = get_canister_status(env, canister_id, call_sender)
+        .await
+        .with_context(|| format!("Could not retrieve status of canister {canister}"))?;
+    ensure_status(status.status, &canister, "taken of")?;
     let id = take_canister_snapshot(
         env,
         canister_id,
@@ -147,22 +139,15 @@ async fn load(
     env: &dyn Environment,
     canister: String,
     snapshot: SnapshotId,
-    force: bool,
     call_sender: &CallSender,
 ) -> DfxResult {
     let canister_id = canister
         .parse()
         .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
-    if !force {
-        let status = get_canister_status(env, canister_id, call_sender)
-            .await
-            .with_context(|| format!("Could not retrieve status of canister {canister}"))?;
-        match status.status {
-            CanisterStatus::Stopped => {}
-            CanisterStatus::Running => bail!("Canister {canister} is running and snapshots should not be applied to running canisters. Run `dfx canister stop` first (or override with `--force`)"),
-            CanisterStatus::Stopping => bail!("Canister {canister} is stopping but is not yet stopped. Wait a few seconds and try again"),
-        }
-    }
+    let status = get_canister_status(env, canister_id, call_sender)
+        .await
+        .with_context(|| format!("Could not retrieve status of canister {canister}"))?;
+    ensure_status(status.status, &canister, "applied to")?;
     load_canister_snapshot(env, canister_id, &snapshot.0, call_sender)
         .await
         .with_context(|| format!("Failed to load snapshot {snapshot} in canister {canister}"))?;

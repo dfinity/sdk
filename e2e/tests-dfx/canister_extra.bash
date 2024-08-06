@@ -43,5 +43,4 @@ teardown() {
 
     assert_command_fail dfx canister snapshot create hello_backend
     assert_contains 'Canister hello_backend is running and snapshots should not be taken of running canisters'
-    assert_command dfx canister snapshot create hello_backend -f
 }

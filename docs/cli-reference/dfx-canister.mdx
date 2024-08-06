@@ -822,23 +822,22 @@ command:
 Use the `dfx canister snapshot create` command to create a snapshot of a stopped canister.
 It can later be applied with `dfx canister snapshot load` to reset the canister to that state.
 
-At both times, the canister must be stopped with `dfx canister stop`. You can use the `--force` flag to override this.
+At both times, the canister must be stopped with `dfx canister stop`.
 
 ### Basic usage
 
 ```bash
-dfx canister snapshot create <canister> [--replace <replace>] [--force]
+dfx canister snapshot create <canister> [--replace <replace>]
 ```
 
 ### Arguments
 
 You can use the following arguments with the `dfx canister snapshot create` command.
 
-| Argument              | Description                                                                                                 |
-|-----------------------|-------------------------------------------------------------------------------------------------------------|
-| `<canister>`          | The canister to snapshot.                                                                                   |
-| `--replace <replace>` | If a snapshot ID is specified, this snapshot will replace it and reuse the ID.                              |
-| `-f`, `--force`       | Force snapshot creation even if the canister is running. Not recommended unless you know what you're doing. |
+| Argument              | Description                                                                    |
+|-----------------------|--------------------------------------------------------------------------------|
+| `<canister>`          | The canister to snapshot.                                                      |
+| `--replace <replace>` | If a snapshot ID is specified, this snapshot will replace it and reuse the ID. |
 
 ### Examples
 
@@ -862,23 +861,22 @@ dfx canister start hello
 
 Use the `dfx canister snapshot load` command to load a canister snapshot previously taken with `dfx canister snapshot create`.
 
-At both times, the canister must be stopped with `dfx canister stop`. You can use the `--force` flag to override this.
+At both times, the canister must be stopped with `dfx canister stop`.
 
 ### Basic usage
 
 ```sh
-dfx canister snapshot load <canister> <snapshot> [--force]
+dfx canister snapshot load <canister> <snapshot>
 ```
 
 ### Arguments
 
 You can use the following arguments with the `dfx canister snapshot load` command.
 
-| Argument        | Description                                                                                                |
-|-----------------|------------------------------------------------------------------------------------------------------------|
-| `<canister>`    | The canister to load the snapshot in.                                                                      |
-| `<snapshot>`    | The ID of the snapshot to load.                                                                            |
-| `-f`, `--force` | Force snapshot loading even if the canister is running. Not recommended unless you know what you're doing. |
+| Argument     | Description                           |
+|--------------|---------------------------------------|
+| `<canister>` | The canister to load the snapshot in. |
+| `<snapshot>` | The ID of the snapshot to load.       |
 
 ### Examples
 
