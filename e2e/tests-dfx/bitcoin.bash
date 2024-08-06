@@ -79,8 +79,8 @@ set_local_network_bitcoin_enabled() {
   ID=$(dfx canister id hello_frontend)
 
   timeout 15s sh -c \
-    "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
-    || (echo "icx-proxy did not restart" && ps aux && exit 1)
+    "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for pocket-ic proxy to restart; sleep 1; done" \
+    || (echo "pocket-ic proxy did not restart" && ps aux && exit 1)
 
   assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }

@@ -11,9 +11,6 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum NetworkConfigError {
     #[error(transparent)]
-    FsError(#[from] crate::error::fs::FsError),
-
-    #[error(transparent)]
     ReadToString(#[from] ReadToStringError),
 
     #[error(transparent)]

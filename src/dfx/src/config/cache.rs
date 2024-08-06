@@ -5,8 +5,9 @@ use dfx_core::config::cache::{
     binary_command_from_version, delete_version, get_bin_cache, get_binary_path_from_version,
     is_version_installed, Cache,
 };
-use dfx_core::error::cache::CacheError;
-use dfx_core::error::unified_io::UnifiedIoError;
+use dfx_core::error::cache::{
+    DeleteCacheError, GetBinaryCommandPathError, InstallCacheError, IsCacheInstalledError,
+};
 use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
@@ -32,10 +33,10 @@ impl DiskBasedCache {
             version: version.clone(),
         }
     }
-    pub fn install(version: &str) -> Result<(), CacheError> {
+    pub fn install(version: &str) -> Result<(), InstallCacheError> {
         install_version(version, false).map(|_| {})
     }
-    pub fn force_install(version: &str) -> Result<(), CacheError> {
+    pub fn force_install(version: &str) -> Result<(), InstallCacheError> {
         install_version(version, true).map(|_| {})
     }
 }
@@ -46,32 +47,40 @@ impl Cache for DiskBasedCache {
         format!("{}", self.version)
     }
 
-    fn is_installed(&self) -> Result<bool, CacheError> {
+    fn is_installed(&self) -> Result<bool, IsCacheInstalledError> {
         is_version_installed(&self.version_str())
     }
 
-    fn delete(&self) -> Result<(), CacheError> {
+    fn delete(&self) -> Result<(), DeleteCacheError> {
         delete_version(&self.version_str()).map(|_| {})
     }
 
-    fn get_binary_command_path(&self, binary_name: &str) -> Result<PathBuf, CacheError> {
+    fn get_binary_command_path(
+        &self,
+        binary_name: &str,
+    ) -> Result<PathBuf, GetBinaryCommandPathError> {
         Self::install(&self.version_str())?;
-        get_binary_path_from_version(&self.version_str(), binary_name)
+        let path = get_binary_path_from_version(&self.version_str(), binary_name)?;
+        Ok(path)
     }
 
-    fn get_binary_command(&self, binary_name: &str) -> Result<std::process::Command, CacheError> {
+    fn get_binary_command(
+        &self,
+        binary_name: &str,
+    ) -> Result<std::process::Command, GetBinaryCommandPathError> {
         Self::install(&self.version_str())?;
-        binary_command_from_version(&self.version_str(), binary_name)
+        let path = binary_command_from_version(&self.version_str(), binary_name)?;
+        Ok(path)
     }
 }
 
-pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
+pub fn install_version(v: &str, force: bool) -> Result<PathBuf, InstallCacheError> {
     let p = get_bin_cache(v)?;
     if !force && is_version_installed(v).unwrap_or(false) {
         return Ok(p);
     }
 
-    if Version::parse(v).map_err(|e| CacheError::MalformedSemverString(v.to_string(), e))?
+    if Version::parse(v).map_err(|e| InstallCacheError::MalformedSemverString(v.to_string(), e))?
         == *dfx_version()
     {
         // Dismiss as fast as possible. We use the current_exe variable after an
@@ -97,19 +106,18 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
         dfx_core::fs::create_dir_all(&temp_p)?;
 
         let mut binary_cache_assets =
-            util::assets::binary_cache().map_err(CacheError::ReadBinaryCacheStoreFailed)?;
+            util::assets::binary_cache().map_err(InstallCacheError::ReadBinaryCacheStoreFailed)?;
         // Write binaries and set them to be executable.
         for file in binary_cache_assets
             .entries()
-            .map_err(CacheError::ReadBinaryCacheEntriesFailed)?
+            .map_err(InstallCacheError::ReadBinaryCacheEntriesFailed)?
         {
-            let mut file = file.map_err(CacheError::ReadBinaryCacheEntryFailed)?;
+            let mut file = file.map_err(InstallCacheError::ReadBinaryCacheEntryFailed)?;
 
             if file.header().entry_type().is_dir() {
                 continue;
             }
-            dfx_core::fs::tar_unpack_in(temp_p.as_path(), &mut file)
-                .map_err(UnifiedIoError::from)?;
+            dfx_core::fs::tar_unpack_in(temp_p.as_path(), &mut file)?;
             // On *nix we need to set the execute permission as the tgz doesn't include it
             #[cfg(unix)]
             {
@@ -140,7 +148,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
 
         // atomically install cache version into place
         if force && p.exists() {
-            dfx_core::fs::remove_dir_all(&p).map_err(UnifiedIoError::from)?;
+            dfx_core::fs::remove_dir_all(&p)?;
         }
 
         if dfx_core::fs::rename(temp_p.as_path(), &p).is_ok() {
@@ -148,13 +156,13 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, CacheError> {
                 b.finish_with_message(format!("Installed dfx {} to cache.", v));
             }
         } else {
-            dfx_core::fs::remove_dir_all(temp_p.as_path()).map_err(UnifiedIoError::from)?;
+            dfx_core::fs::remove_dir_all(temp_p.as_path())?;
             if let Some(b) = b {
                 b.finish_with_message(format!("dfx {} was already installed in cache.", v));
             }
         }
         Ok(p)
     } else {
-        Err(CacheError::InvalidCacheForDfxVersion(v.to_owned()))
+        Err(InstallCacheError::InvalidCacheForDfxVersion(v.to_owned()))
     }
 }

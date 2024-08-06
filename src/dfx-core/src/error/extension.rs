@@ -1,6 +1,10 @@
 #![allow(dead_code)]
 
-use crate::error::fs::{EnsureDirExistsError, FsError, ReadDirError, SetPermissionsError};
+use crate::error::cache::{EnsureCacheVersionsDirError, GetCacheRootError};
+use crate::error::fs::{
+    EnsureDirExistsError, ReadDirError, RemoveDirectoryAndContentsError, RenameError,
+    SetPermissionsError,
+};
 use crate::error::structured_file::StructuredFileError;
 use semver::Version;
 use thiserror::Error;
@@ -47,7 +51,7 @@ pub enum RunExtensionError {
     InvalidExtensionName(std::ffi::OsString),
 
     #[error("Cannot find cache directory")]
-    FindCacheDirectoryFailed(#[source] crate::error::cache::CacheError),
+    FindCacheDirectoryFailed(#[from] EnsureCacheVersionsDirError),
 
     #[error("Failed to run extension '{0}'")]
     FailedToLaunchExtension(String, #[source] std::io::Error),
@@ -80,7 +84,7 @@ pub enum GetExtensionBinaryError {
 #[derive(Error, Debug)]
 pub enum NewExtensionManagerError {
     #[error("Cannot find cache directory")]
-    FindCacheDirectoryFailed(#[source] crate::error::cache::CacheError),
+    FindCacheDirectoryFailed(#[from] GetCacheRootError),
 }
 
 #[derive(Error, Debug)]
@@ -194,7 +198,7 @@ pub enum FinalizeInstallationError {
     GetTopLevelDirectory(#[from] GetTopLevelDirectoryError),
 
     #[error(transparent)]
-    Fs(#[from] FsError),
+    Rename(#[from] RenameError),
 
     #[error(transparent)]
     SetPermissions(#[from] SetPermissionsError),
@@ -211,4 +215,4 @@ pub enum FetchExtensionCompatibilityMatrixError {
 
 #[derive(Error, Debug)]
 #[error(transparent)]
-pub struct UninstallExtensionError(#[from] crate::error::fs::FsError);
+pub struct UninstallExtensionError(#[from] RemoveDirectoryAndContentsError);

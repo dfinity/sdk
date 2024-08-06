@@ -3,6 +3,16 @@
 # UNRELEASED
 
 # 0.23.0
+### feat: PocketIC HTTP gateway
+
+icx-proxy's HTTP gateway has been replaced with PocketIC's. (This does not impact the meaning of `--pocketic` in `dfx start`.)
+
+### feat: Enable threshold schnorr signatures for Ed25519
+
+Schnorr signature signing for `Ed25519` is now enabled.
+A test key id `Ed25519:dfx_test_key` is ready to be used by locally created canisters.
+
+### feat: Added settings_digest field to the network-id file
 
 ## Dependencies
 
@@ -16,50 +26,6 @@ This incorporates the following executed proposals:
 - [131054](https://dashboard.internetcomputer.org/proposal/131054)
 - [131032](https://dashboard.internetcomputer.org/proposal/131032)
 - [131028](https://dashboard.internetcomputer.org/proposal/131028)
-- [130985](https://dashboard.internetcomputer.org/proposal/130985)
-- [130984](https://dashboard.internetcomputer.org/proposal/130984)
-- [130819](https://dashboard.internetcomputer.org/proposal/130819)
-- [130818](https://dashboard.internetcomputer.org/proposal/130818)
-- [130748](https://dashboard.internetcomputer.org/proposal/130748)
-- [130749](https://dashboard.internetcomputer.org/proposal/130749)
-- [130728](https://dashboard.internetcomputer.org/proposal/130728)
-- [130727](https://dashboard.internetcomputer.org/proposal/130727)
-- [130409](https://dashboard.internetcomputer.org/proposal/130409)
-- [130408](https://dashboard.internetcomputer.org/proposal/130408)
-- [130392](https://dashboard.internetcomputer.org/proposal/130392)
-- [130400](https://dashboard.internetcomputer.org/proposal/130400)
-- [130315](https://dashboard.internetcomputer.org/proposal/130315)
-- [130134](https://dashboard.internetcomputer.org/proposal/130134)
-- [130083](https://dashboard.internetcomputer.org/proposal/130083)
-- [129747](https://dashboard.internetcomputer.org/proposal/129747)
-- [129746](https://dashboard.internetcomputer.org/proposal/129746)
-- [129706](https://dashboard.internetcomputer.org/proposal/129706)
-- [129697](https://dashboard.internetcomputer.org/proposal/129697)
-- [129696](https://dashboard.internetcomputer.org/proposal/129696)
-- [129628](https://dashboard.internetcomputer.org/proposal/129628)
-- [129627](https://dashboard.internetcomputer.org/proposal/129627)
-- [129494](https://dashboard.internetcomputer.org/proposal/129494)
-- [129493](https://dashboard.internetcomputer.org/proposal/129493)
-- [129428](https://dashboard.internetcomputer.org/proposal/129428)
-- [129427](https://dashboard.internetcomputer.org/proposal/129427)
-- [129423](https://dashboard.internetcomputer.org/proposal/129423)
-- [129408](https://dashboard.internetcomputer.org/proposal/129408)
-- [129379](https://dashboard.internetcomputer.org/proposal/129379)
-- [129378](https://dashboard.internetcomputer.org/proposal/129378)
-- [129084](https://dashboard.internetcomputer.org/proposal/129084)
-- [129081](https://dashboard.internetcomputer.org/proposal/129081)
-- [129035](https://dashboard.internetcomputer.org/proposal/129035)
-- [128876](https://dashboard.internetcomputer.org/proposal/128876)
-- [128904](https://dashboard.internetcomputer.org/proposal/128904)
-- [128864](https://dashboard.internetcomputer.org/proposal/128864)
-- [128816](https://dashboard.internetcomputer.org/proposal/128816)
-- [128846](https://dashboard.internetcomputer.org/proposal/128846)
-- [128806](https://dashboard.internetcomputer.org/proposal/128806)
-- [128805](https://dashboard.internetcomputer.org/proposal/128805)
-- [128296](https://dashboard.internetcomputer.org/proposal/128296)
-- [128295](https://dashboard.internetcomputer.org/proposal/128295)
-- [128171](https://dashboard.internetcomputer.org/proposal/128171)
-- [128155](https://dashboard.internetcomputer.org/proposal/128155)
 
 ### feat: generate .env files for Motoko canisters
 

@@ -14,8 +14,7 @@ impl ExtensionManager {
             .map_err(RunExtensionError::InvalidExtensionName)?;
 
         let mut extension_binary = self.get_extension_binary(&extension_name)?;
-        let dfx_cache = get_bin_cache(self.dfx_version.to_string().as_str())
-            .map_err(RunExtensionError::FindCacheDirectoryFailed)?;
+        let dfx_cache = get_bin_cache(self.dfx_version.to_string().as_str())?;
 
         params.extend(["--dfx-cache-path".into(), dfx_cache.into_os_string()]);
 
