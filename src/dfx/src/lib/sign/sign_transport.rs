@@ -1,6 +1,7 @@
 use super::signed_message::SignedMessageV1;
 use candid::Principal;
-use ic_agent::agent::{EnvelopeContent, Transport};
+use ic_agent::agent::signed::SignedUpdate;
+use ic_agent::agent::Transport;
 use ic_agent::{AgentError, TransportCallResponse};
 use std::fs::{File, OpenOptions};
 use std::future::Future;
@@ -87,7 +88,7 @@ impl Transport for SignTransport {
             s: &SignTransport,
             envelope: Vec<u8>,
         ) -> Result<TransportCallResponse, AgentError> {
-            let request_id = serde_cbor::from_slice::<EnvelopeContent>(&envelope)?.to_request_id();
+            let request_id = serde_cbor::from_slice::<SignedUpdate>(&envelope)?.request_id;
             let message = s
                 .message_template
                 .clone()
