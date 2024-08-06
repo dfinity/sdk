@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ens/sdk-1796-extension-registry
   pull_request:
 
 concurrency:

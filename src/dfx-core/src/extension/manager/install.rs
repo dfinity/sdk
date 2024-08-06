@@ -4,6 +4,7 @@ use crate::error::extension::{
     GetHighestCompatibleVersionError, GetTopLevelDirectoryError, InstallExtensionError,
 };
 use crate::extension::{
+    catalog::ExtensionCatalog,
     manager::ExtensionManager,
     manifest::{ExtensionDependencies, ExtensionManifest},
     url::ExtensionJsonUrl,
@@ -29,11 +30,21 @@ pub enum InstallOutcome {
 impl ExtensionManager {
     pub async fn install_extension(
         &self,
-        url: &ExtensionJsonUrl,
+        name: &str,
+        catalog_url: Option<&Url>,
         install_as: Option<&str>,
         version: Option<&Version>,
     ) -> Result<InstallOutcome, InstallExtensionError> {
-        let manifest = Self::get_extension_manifest(url).await?;
+        let url = if let Ok(url) = Url::parse(name) {
+            ExtensionJsonUrl::new(url)
+        } else {
+            ExtensionCatalog::fetch(catalog_url)
+                .await?
+                .lookup(name)
+                .ok_or(InstallExtensionError::ExtensionNotFound(name.to_string()))?
+        };
+
+        let manifest = Self::get_extension_manifest(&url).await?;
         let extension_name: &str = &manifest.name;
 
         let effective_extension_name = install_as.unwrap_or(extension_name);
@@ -59,7 +70,7 @@ impl ExtensionManager {
 
         let extension_version = match version {
             Some(version) => version.clone(),
-            None => self.get_highest_compatible_version(url).await?,
+            None => self.get_highest_compatible_version(&url).await?,
         };
         let github_release_tag = get_git_release_tag(extension_name, &extension_version);
         let extension_archive = get_extension_archive_name(extension_name)?;

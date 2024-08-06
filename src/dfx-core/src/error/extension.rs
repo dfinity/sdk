@@ -104,8 +104,14 @@ pub enum DownloadAndInstallExtensionToTempdirError {
 
 #[derive(Error, Debug)]
 pub enum InstallExtensionError {
+    #[error("extension '{0}' not found in catalog")]
+    ExtensionNotFound(String),
+
     #[error("Extension '{0}' is already installed at version {1}.")]
     OtherVersionAlreadyInstalled(String, Version),
+
+    #[error(transparent)]
+    FetchCatalog(#[from] FetchCatalogError),
 
     #[error(transparent)]
     GetExtensionArchiveName(#[from] GetExtensionArchiveNameError),
@@ -216,3 +222,15 @@ pub enum FetchExtensionCompatibilityMatrixError {
 #[derive(Error, Debug)]
 #[error(transparent)]
 pub struct UninstallExtensionError(#[from] RemoveDirectoryAndContentsError);
+
+#[derive(Error, Debug)]
+pub enum FetchCatalogError {
+    #[error(transparent)]
+    ParseUrl(#[from] url::ParseError),
+
+    #[error(transparent)]
+    Get(reqwest::Error),
+
+    #[error(transparent)]
+    ParseJson(reqwest::Error),
+}

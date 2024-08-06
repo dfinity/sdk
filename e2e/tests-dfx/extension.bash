@@ -179,7 +179,7 @@ EOF
   dfx_start
 }
 
-install_extension_from_official_registry() {
+install_extension_from_dfx_extensions_repo() {
   EXTENSION=$1
 
   assert_command_fail dfx snsx
@@ -206,12 +206,12 @@ install_extension_from_official_registry() {
   assert_match 'No extensions installed'
 }
 
-@test "install extension by name from official registry" {
-  install_extension_from_official_registry sns
+@test "install extension by name from official catalog" {
+  install_extension_from_dfx_extensions_repo sns
 }
 
-@test "install extension by url from official registry" {
-  install_extension_from_official_registry https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/sns/extension.json
+@test "install hosted extension by url" {
+  install_extension_from_dfx_extensions_repo https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/sns/extension.json
 }
 
 get_extension_architecture() {
@@ -233,6 +233,73 @@ get_extension_architecture() {
   esac
   echo "$_cputype"
 }
+
+@test "install extension from catalog" {
+  start_webserver --directory www
+
+  CATALOG_URL="http://localhost:$E2E_WEB_SERVER_PORT/arbitrary-1/catalog.json"
+  mkdir -p www/arbitrary-1
+  cat > www/arbitrary-1/catalog.json <<EOF
+{
+  "foo": "http://localhost:$E2E_WEB_SERVER_PORT/arbitrary-2/foo/extension.json",
+  "bar": "http://localhost:$E2E_WEB_SERVER_PORT/arbitrary-2/bar/extension.json"
+}
+EOF
+
+
+  EXTENSION_URL="http://localhost:$E2E_WEB_SERVER_PORT/arbitrary-2/foo/extension.json"
+  mkdir -p  www/arbitrary-2/foo/downloads
+
+  cat > www/arbitrary-2/foo/extension.json <<EOF
+{
+  "name": "foo",
+  "version": "0.1.0",
+  "homepage": "https://github.com/dfinity/dfx-extensions",
+  "authors": "DFINITY",
+  "summary": "Test extension for e2e purposes.",
+  "categories": [],
+  "keywords": [],
+  "download_url_template": "http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/downloads/{{tag}}/{{basename}}.{{archive-format}}"
+}
+EOF
+  cat www/arbitrary-2/foo/extension.json
+  cat > www/arbitrary-2/foo/foo <<EOF
+#!/usr/bin/env bash
+
+echo "the foo output"
+EOF
+  chmod +x www/arbitrary-2/foo/foo
+
+  cat > www/arbitrary-2/foo/dependencies.json <<EOF
+{
+  "0.1.0": {
+    "dfx": {
+      "version": ">=0.8.0"
+    }
+  }
+}
+EOF
+
+  arch=$(get_extension_architecture)
+
+  if [ "$(uname)" == "Darwin" ]; then
+    ARCHIVE_BASENAME="foo-$arch-apple-darwin"
+  else
+    ARCHIVE_BASENAME="foo-$arch-unknown-linux-gnu"
+  fi
+
+  mkdir "$ARCHIVE_BASENAME"
+  cp www/arbitrary-2/foo/extension.json "$ARCHIVE_BASENAME"
+  cp www/arbitrary-2/foo/foo "$ARCHIVE_BASENAME"
+  tar -czf "$ARCHIVE_BASENAME".tar.gz "$ARCHIVE_BASENAME"
+  rm -rf "$ARCHIVE_BASENAME"
+
+  mkdir -p www/arbitrary/downloads/foo-v0.1.0
+  mv "$ARCHIVE_BASENAME".tar.gz www/arbitrary/downloads/foo-v0.1.0/
+
+  assert_command dfx extension install foo --catalog-url "$CATALOG_URL"
+}
+
 
 @test "install extension by url from elsewhere" {
   start_webserver --directory www
