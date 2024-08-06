@@ -93,14 +93,14 @@ pub async fn exec(
             canister,
             replace,
             force,
-        } => create(env, canister, replacce, force, call_sender).await?,
+        } => create(env, canister, replace, force, call_sender).await?,
         SnapshotSubcommand::Load {
             canister,
             snapshot,
             force,
         } => load(env, canister, snapshot, force, call_sender).await?,
         SnapshotSubcommand::Delete { canister, snapshot } => {
-            delete(env, canister, snapshot, call_sender)?
+            delete(env, canister, snapshot, call_sender).await?
         }
         SnapshotSubcommand::List { canister } => list(env, canister, call_sender).await?,
     }
@@ -116,7 +116,7 @@ async fn create(
 ) -> DfxResult {
     let canister_id = canister
         .parse()
-        .or_else(|_| env.get_canister_id_store().get(&canister))?;
+        .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
     if !force {
         let status = get_canister_status(env, canister_id, call_sender)
             .await
@@ -152,7 +152,7 @@ async fn load(
 ) -> DfxResult {
     let canister_id = canister
         .parse()
-        .or_else(|_| env.get_canister_id_store().get(&canister))?;
+        .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
     if !force {
         let status = get_canister_status(env, canister_id, call_sender)
             .await
@@ -181,7 +181,7 @@ async fn delete(
 ) -> DfxResult {
     let canister_id = canister
         .parse()
-        .or_else(|| env.get_canister_id_store().get(&canister))?;
+        .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
     delete_canister_snapshot(env, canister_id, &snapshot.0, call_sender)
         .await
         .with_context(|| format!("Failed to delete snapshot {snapshot} in canister {canister}"))?;
@@ -195,7 +195,7 @@ async fn delete(
 async fn list(env: &dyn Environment, canister: String, call_sender: &CallSender) -> DfxResult {
     let canister_id = canister
         .parse()
-        .or_else(|_| env.get_canister_id_store().get(&canister))?;
+        .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
     let snapshots = list_canister_snapshots(env, canister_id, call_sender)
         .await
         .with_context(|| format!("Failed to retrieve snapshot list from canister {canister}"))?;

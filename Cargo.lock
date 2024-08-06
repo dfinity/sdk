@@ -2673,7 +2673,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.37.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=6c445e8648b0029c36915329e4f7bf18728df684#6c445e8648b0029c36915329e4f7bf18728df684"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=60a64dd2d5368180f03a75df80f475d6e2caf21a#60a64dd2d5368180f03a75df80f475d6e2caf21a"
 dependencies = [
  "async-lock 3.3.0",
  "backoff",
@@ -3113,7 +3113,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.37.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=6c445e8648b0029c36915329e4f7bf18728df684#6c445e8648b0029c36915329e4f7bf18728df684"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=60a64dd2d5368180f03a75df80f475d6e2caf21a#60a64dd2d5368180f03a75df80f475d6e2caf21a"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3213,7 +3213,7 @@ dependencies = [
 [[package]]
 name = "ic-transport-types"
 version = "0.37.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=6c445e8648b0029c36915329e4f7bf18728df684#6c445e8648b0029c36915329e4f7bf18728df684"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=60a64dd2d5368180f03a75df80f475d6e2caf21a#60a64dd2d5368180f03a75df80f475d6e2caf21a"
 dependencies = [
  "candid",
  "hex",
@@ -3282,7 +3282,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.37.1"
-source = "git+https://github.com/dfinity/agent-rs.git?rev=6c445e8648b0029c36915329e4f7bf18728df684#6c445e8648b0029c36915329e4f7bf18728df684"
+source = "git+https://github.com/dfinity/agent-rs.git?rev=60a64dd2d5368180f03a75df80f475d6e2caf21a#60a64dd2d5368180f03a75df80f475d6e2caf21a"
 dependencies = [
  "async-trait",
  "candid",

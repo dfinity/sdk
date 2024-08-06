@@ -13,6 +13,7 @@ use candid_parser::utils::CandidSource;
 use clap::Parser;
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::identity::CallSender;
+use ic_agent::agent::CallResponse;
 use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
 use ic_utils::interfaces::management_canister::MgmtMethod;
@@ -123,7 +124,7 @@ async fn request_id_via_wallet_call(
     method_name: &str,
     args: Argument,
     cycles: u128,
-) -> DfxResult<ic_agent::RequestId> {
+) -> DfxResult<CallResponse<(CallResult,)>> {
     let call_forwarder: CallForwarder<'_, '_, (CallResult,)> =
         wallet.call(canister, method_name, args, cycles);
     call_forwarder
@@ -350,7 +351,7 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
         };
         print_idl_blob(&blob, output_type, &method_type)?;
     } else if opts.r#async {
-        let request_id = match call_sender {
+        let call_response = match call_sender {
             CallSender::SelectedId => agent
                 .update(&canister_id, method_name)
                 .with_effective_canister_id(effective_canister_id)
@@ -366,10 +367,18 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                 request_id_via_wallet_call(&wallet, canister_id, method_name, args, cycles)
                     .await
                     .context("Failed request via wallet.")?
+                    .map(|(res,)| res.r#return)
             }
         };
-        eprint!("Request ID: ");
-        println!("0x{}", String::from(request_id));
+        match call_response {
+            CallResponse::Poll(request_id) => {
+                eprint!("Request ID: ");
+                println!("0x{}", String::from(request_id));
+            }
+            CallResponse::Response(response) => {
+                print_idl_blob(&response, output_type, &method_type)?;
+            }
+        }
     } else {
         let blob = match call_sender {
             CallSender::SelectedId => agent
