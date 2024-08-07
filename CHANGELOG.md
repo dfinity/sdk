@@ -3,6 +3,11 @@
 # UNRELEASED
 
 # 0.23.0
+
+### feat: Add canister snapshots
+
+The new `dfx canister snapshot` command can be used to create, apply, and delete snapshots of stopped canisters.
+
 ### feat: PocketIC HTTP gateway
 
 icx-proxy's HTTP gateway has been replaced with PocketIC's. (This does not impact the meaning of `--pocketic` in `dfx start`.)
@@ -13,6 +18,17 @@ Schnorr signature signing for `Ed25519` is now enabled.
 A test key id `Ed25519:dfx_test_key` is ready to be used by locally created canisters.
 
 ### feat: Added settings_digest field to the network-id file
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 3d0b3f10417fc6708e8b5d844a0bac5e86f3e17d.
+This incorporates the following executed proposals:
+
+- [131473](https://dashboard.internetcomputer.org/proposal/131473)
+
+# 0.22.1
 
 ## Dependencies
 
