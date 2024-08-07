@@ -65,9 +65,7 @@ pub async fn install_canister(
     );
     let mode = mode.unwrap_or_else(|| {
         if installed_module_hash.is_some() {
-            InstallMode::Upgrade {
-                skip_pre_upgrade: Some(false),
-            }
+            InstallMode::Upgrade(None)
         } else {
             InstallMode::Install
         }
