@@ -19,9 +19,9 @@ A test key id `Ed25519:dfx_test_key` is ready to be used by locally created cani
 
 ### feat: install extensions using the catalog
 
-`dfx extension install` now locates extension using the extension catalog at
-https://github.com/dfinity/dfx-extensions/blob/main/catalog.json. This can be
-overridden with the `--catalog-url` parameter.
+`dfx extension install` now locates extensions using the
+[extension catalog](https://github.com/dfinity/dfx-extensions/blob/main/catalog.json).
+This can be overridden with the `--catalog-url` parameter.
 
 ## Dependencies
 
