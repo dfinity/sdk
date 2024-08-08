@@ -34,6 +34,7 @@ use candid::Nat;
 use ic_agent::AgentError;
 use ic_utils::Canister;
 use itertools::Itertools;
+use serde_bytes::ByteBuf;
 use slog::{debug, info, trace, warn, Logger};
 use std::collections::HashMap;
 use std::path::Path;
@@ -194,7 +195,7 @@ pub async fn prepare_sync_for_proposal(
     canister: &Canister<'_>,
     dirs: &[&Path],
     logger: &Logger,
-) -> Result<(), PrepareSyncForProposalError> {
+) -> Result<(Nat, ByteBuf), PrepareSyncForProposalError> {
     let arg = upload_content_and_assemble_sync_operations(canister, dirs, false, logger).await?;
     let arg = sort_batch_operations(arg);
     let batch_id = arg.batch_id.clone();
@@ -218,9 +219,9 @@ pub async fn prepare_sync_for_proposal(
         }
     };
 
-    info!(logger, "Proposed commit of batch {} with evidence {}.  Either commit it by proposal, or delete it.", batch_id, hex::encode(evidence));
+    info!(logger, "Proposed commit of batch {} with evidence {}.  Either commit it by proposal, or delete it.", batch_id, hex::encode(&evidence));
 
-    Ok(())
+    Ok((batch_id, evidence))
 }
 
 fn sort_batch_operations(mut args: CommitBatchArguments) -> CommitBatchArguments {
