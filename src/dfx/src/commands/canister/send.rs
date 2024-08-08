@@ -105,7 +105,7 @@ pub async fn exec(
             )
             .context("Failed to read request_id.")?;
             transport
-                .call(canister_id, content, request_id)
+                .call(canister_id, content)
                 .await
                 .with_context(|| format!("Update call to {} failed.", canister_id))?;
 

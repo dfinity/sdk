@@ -21,10 +21,6 @@ niv update ic-nns-init-x86_64-linux -a rev="$SHA"
 niv update ic-starter-x86_64-darwin -a rev="$SHA"
 niv update ic-starter-x86_64-linux -a rev="$SHA"
 
-# icx-proxy is pinned at f2cd225b621674b19f3d601ebb42555d0c6f614d
-# niv update icx-proxy-x86_64-darwin -a rev="$SHA"
-# niv update icx-proxy-x86_64-linux -a rev="$SHA"
-
 niv update replica-x86_64-darwin -a rev="$SHA"
 niv update replica-x86_64-linux -a rev="$SHA"
 niv update pocket-ic-x86_64-darwin -a rev="$SHA"

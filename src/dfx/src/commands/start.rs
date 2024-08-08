@@ -1,8 +1,7 @@
-use crate::actors::icx_proxy::signals::PortReadySubscribe;
-use crate::actors::icx_proxy::IcxProxyConfig;
+use crate::actors::pocketic_proxy::{signals::PortReadySubscribe, PocketIcProxyConfig};
 use crate::actors::{
-    start_btc_adapter_actor, start_canister_http_adapter_actor, start_icx_proxy_actor,
-    start_pocketic_actor, start_replica_actor, start_shutdown_controller,
+    start_btc_adapter_actor, start_canister_http_adapter_actor, start_pocketic_actor,
+    start_pocketic_proxy_actor, start_replica_actor, start_shutdown_controller,
 };
 use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
@@ -233,8 +232,10 @@ pub fn exec(
         empty_writable_path(local_server_descriptor.canister_http_adapter_pid_path())?;
     let canister_http_adapter_config_path =
         empty_writable_path(local_server_descriptor.canister_http_adapter_config_path())?;
-    let icx_proxy_pid_file_path =
-        empty_writable_path(local_server_descriptor.icx_proxy_pid_path())?;
+    let pocketic_proxy_pid_file_path =
+        empty_writable_path(local_server_descriptor.pocketic_proxy_pid_path())?;
+    let pocketic_proxy_port_file_path =
+        empty_writable_path(local_server_descriptor.pocketic_proxy_port_path())?;
     let webserver_port_path = empty_writable_path(local_server_descriptor.webserver_port_path())?;
 
     let previous_config_path = local_server_descriptor.effective_config_path();
@@ -392,20 +393,20 @@ pub fn exec(
             replica.recipient()
         };
 
-        let icx_proxy_config = IcxProxyConfig {
+        let pocketic_proxy_config = PocketIcProxyConfig {
             bind: address_and_port,
-            replica_urls: vec![], // will be determined after replica starts
+            replica_url: None,
             fetch_root_key: !network_descriptor.is_ic,
             domains: proxy_domains,
             verbose: env.get_verbose_level() > 0,
         };
-
-        let proxy = start_icx_proxy_actor(
+        let proxy = start_pocketic_proxy_actor(
             env,
-            icx_proxy_config,
+            pocketic_proxy_config,
             Some(port_ready_subscribe),
             shutdown_controller,
-            icx_proxy_pid_file_path,
+            pocketic_proxy_pid_file_path,
+            pocketic_proxy_port_file_path,
         )?;
         Ok::<_, Error>(proxy)
     })?;

@@ -2,7 +2,7 @@ use crate::actors::btc_adapter::signals::{BtcAdapterReady, BtcAdapterReadySubscr
 use crate::actors::canister_http_adapter::signals::{
     CanisterHttpAdapterReady, CanisterHttpAdapterReadySubscribe,
 };
-use crate::actors::icx_proxy::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::pocketic_proxy::signals::{PortReadySignal, PortReadySubscribe};
 use crate::actors::replica::signals::ReplicaRestarted;
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
@@ -323,6 +323,8 @@ fn replica_start_thread(
             "ecdsa:Secp256k1:dfx_test_key",
             "--chain-key-ids",
             "schnorr:Bip340Secp256k1:dfx_test_key",
+            "--chain-key-ids",
+            "schnorr:Ed25519:dfx_test_key",
             "--log-level",
             &config.log_level.as_ic_starter_string(),
             "--use-specified-ids-allocation-range",
@@ -398,8 +400,6 @@ fn replica_start_thread(
                     None => break,
                 }
             };
-            addr.do_send(signals::ReplicaRestarted { port });
-            let log_clone = logger.clone();
 
             if let Err(e) = block_on_initialize_replica(
                 port,
@@ -416,6 +416,8 @@ fn replica_start_thread(
                     continue;
                 }
             }
+            addr.do_send(signals::ReplicaRestarted { port });
+            let log_clone = logger.clone();
             debug!(log_clone, "Dashboard: http://localhost:{port}/_/dashboard");
 
             // This waits for the child to stop, or the receiver to receive a message.

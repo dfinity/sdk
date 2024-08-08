@@ -181,8 +181,7 @@ impl ExtensionManager {
 fn get_top_level_directory(dir: &Path) -> Result<PathBuf, GetTopLevelDirectoryError> {
     // the archive will have a single top-level subdirectory
     // return that subdirectory
-    Ok(crate::fs::read_dir(dir)
-        .map_err(GetTopLevelDirectoryError::ReadDir)?
+    Ok(crate::fs::read_dir(dir)?
         .next()
         .ok_or(GetTopLevelDirectoryError::NoTopLevelDirectoryEntry)?
         .map_err(GetTopLevelDirectoryError::ReadDirEntry)?
