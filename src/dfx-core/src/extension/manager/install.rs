@@ -164,7 +164,7 @@ impl ExtensionManager {
         Ok(temp_dir)
     }
 
-    #[allow(clippy::collapsible-if)]
+    #[allow(clippy::collapsible_if)]
     fn finalize_installation(
         &self,
         extension_name: &str,
