@@ -164,6 +164,7 @@ impl ExtensionManager {
         Ok(temp_dir)
     }
 
+    #[allow(clippy::collapsible_if)]
     fn finalize_installation(
         &self,
         extension_name: &str,
@@ -173,17 +174,23 @@ impl ExtensionManager {
         let effective_extension_dir = &self.get_extension_directory(effective_extension_name);
         let top_level_dir = get_top_level_directory(temp_dir.path())?;
         crate::fs::rename(&top_level_dir, effective_extension_dir)?;
-        if extension_name != effective_extension_name {
-            // rename the binary
-            crate::fs::rename(
-                &effective_extension_dir.join(extension_name),
-                &effective_extension_dir.join(effective_extension_name),
-            )?;
-        }
-        #[cfg(unix)]
+
+        let installed_manifest = ExtensionManifest::load(effective_extension_name, &self.dir)?;
+
+        if matches!(installed_manifest.subcommands, Some(subcommands) if !subcommands.0.is_empty())
         {
-            let bin = effective_extension_dir.join(effective_extension_name);
-            crate::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o500))?;
+            if extension_name != effective_extension_name {
+                // rename the binary
+                crate::fs::rename(
+                    &effective_extension_dir.join(extension_name),
+                    &effective_extension_dir.join(effective_extension_name),
+                )?;
+            }
+            #[cfg(unix)]
+            {
+                let bin = effective_extension_dir.join(effective_extension_name);
+                crate::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o500))?;
+            }
         }
         Ok(())
     }
