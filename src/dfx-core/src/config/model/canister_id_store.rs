@@ -203,7 +203,7 @@ impl CanisterIdStore {
                 self.well_known_ids
                     .iter()
                     .find(|(_, id)| &&principal == id)
-                    .and_then(|(name, _)| Some(name))
+                    .map(|(name, _)| name)
             })
             .or_else(|| self.get_name_in_project(canister_id))
             .or_else(|| self.get_name_in_pull_ids(canister_id))
@@ -262,11 +262,7 @@ impl CanisterIdStore {
             .as_ref()
             .and_then(|remote_ids| self.find_in(canister_name, remote_ids))
             .or_else(|| self.find_in(canister_name, &self.ids))
-            .or_else(|| {
-                self.well_known_ids
-                    .get(canister_name)
-                    .map(|c| CanisterId::from(*c))
-            })
+            .or_else(|| self.well_known_ids.get(canister_name).copied())
             .or_else(|| self.pull_ids.get(canister_name).copied())
     }
     pub fn get_name_id_map(&self) -> BTreeMap<String, String> {
