@@ -9,9 +9,10 @@ use candid::Principal as CanisterId;
 use ic_agent::export::Principal;
 use serde::{Deserialize, Serialize, Serializer};
 use slog::{warn, Logger};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::ops::{Deref, DerefMut, Sub};
 use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 use time::format_description::well_known::Rfc3339;
@@ -96,7 +97,7 @@ pub struct CanisterIdStore {
     // which does not include remote canister ids
     ids: CanisterIds,
 
-    well_known_ids: CanisterIds,
+    well_known_ids: HashMap<CanisterName, Principal>,
 
     // Only canisters that will time out at some point have their timestamp of acquisition saved
     acquisition_timestamps: CanisterTimestamps,
@@ -194,7 +195,16 @@ impl CanisterIdStore {
         self.remote_ids
             .as_ref()
             .and_then(|remote_ids| self.get_name_in(canister_id, remote_ids))
-            .or_else(|| self.get_name_in(canister_id, &self.well_known_ids))
+            .or_else(|| {
+                let principal = match Principal::from_str(canister_id) {
+                    Ok(p) => p,
+                    Err(_) => return None,
+                };
+                self.well_known_ids
+                    .iter()
+                    .find(|(_, id)| &&principal == id)
+                    .and_then(|(name, _)| Some(name))
+            })
             .or_else(|| self.get_name_in_project(canister_id))
             .or_else(|| self.get_name_in_pull_ids(canister_id))
     }
@@ -252,7 +262,11 @@ impl CanisterIdStore {
             .as_ref()
             .and_then(|remote_ids| self.find_in(canister_name, remote_ids))
             .or_else(|| self.find_in(canister_name, &self.ids))
-            .or_else(|| self.find_in(canister_name, &self.well_known_ids))
+            .or_else(|| {
+                self.well_known_ids
+                    .get(canister_name)
+                    .map(|c| CanisterId::from(*c))
+            })
             .or_else(|| self.pull_ids.get(canister_name).copied())
     }
     pub fn get_name_id_map(&self) -> BTreeMap<String, String> {
@@ -301,10 +315,7 @@ impl CanisterIdStore {
     }
 
     pub fn is_well_known(&self, canister_id: &CanisterId) -> bool {
-        let canister_str = canister_id.to_string();
-        self.well_known_ids
-            .values()
-            .any(|val| val.values().any(|k| &canister_str == k))
+        self.well_known_ids.values().any(|val| val == canister_id)
     }
 
     pub fn get(&self, canister_name: &str) -> Result<CanisterId, CanisterIdStoreError> {

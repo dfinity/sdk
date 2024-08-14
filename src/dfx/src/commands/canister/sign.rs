@@ -76,9 +76,6 @@ pub async fn exec(
     opts: CanisterSignOpts,
     call_sender: &CallSender,
 ) -> DfxResult {
-    let agent = env.get_agent();
-    fetch_root_key_if_needed(env).await?;
-
     let log = env.get_logger();
     if *call_sender != CallSender::SelectedId {
         bail!("`sign` currently doesn't support proxying through the wallet canister, please use `dfx canister sign --no-wallet ...`.");
@@ -93,9 +90,13 @@ pub async fn exec(
         .and_then(|path| get_candid_type(CandidSource::File(&path), method_name))
     {
         Some(mt) => Some(mt),
-        None => fetch_remote_did_file(agent, canister_id)
-            .await
-            .and_then(|did| get_candid_type(CandidSource::Text(&did), method_name)),
+        None => {
+            let agent = env.get_agent();
+            fetch_root_key_if_needed(env).await?;
+            fetch_remote_did_file(agent, canister_id)
+                .await
+                .and_then(|did| get_candid_type(CandidSource::Text(&did), method_name))
+        }
     };
 
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
