@@ -93,7 +93,7 @@ pub async fn exec(
         .and_then(|path| get_candid_type(CandidSource::File(&path), method_name))
     {
         Some(mt) => Some(mt),
-        None => fetch_remote_did_file(&agent, canister_id)
+        None => fetch_remote_did_file(agent, canister_id)
             .await
             .and_then(|did| get_candid_type(CandidSource::Text(&did), method_name)),
     };
