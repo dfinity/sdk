@@ -304,8 +304,7 @@ impl CanisterIdStore {
         let canister_str = canister_id.to_string();
         self.well_known_ids
             .values()
-            .find(|val| val.values().find(|k| &&canister_str == k).is_some())
-            .is_some()
+            .any(|val| val.values().any(|k| &canister_str == k))
     }
 
     pub fn get(&self, canister_name: &str) -> Result<CanisterId, CanisterIdStoreError> {
