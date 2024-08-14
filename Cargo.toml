@@ -54,7 +54,6 @@ pem = "1.0.2"
 proptest = "1.0.0"
 reqwest = { version = "0.12.4", default-features = false, features = [
     "rustls-tls",
-    "blocking",
 ] }
 ring = "0.16.11"
 schemars = "0.8"
