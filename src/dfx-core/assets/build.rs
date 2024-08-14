@@ -4,14 +4,15 @@ use itertools::Itertools;
 use serde_json::Value;
 
 fn define_well_known_canisters() {
-    let well_known_canisters = std::fs::read_to_string(format!(
-        "{}/src/assets/canister_ids.json",
-        env!("CARGO_MANIFEST_DIR")
-    ))
+    let well_known_canisters = serde_json::from_str::<Value>(
+        &std::fs::read_to_string(format!(
+            "{}/assets/canister_ids.json",
+            env!("CARGO_MANIFEST_DIR")
+        ))
+        .unwrap(),
+    )
     .unwrap();
-    let well_known_canisters = serde_json::from_str::<Value>(&well_known_canisters).unwrap();
     let well_known_canisters = well_known_canisters.as_object().unwrap();
-
     let well_known_canisters = well_known_canisters.iter().map(|(key, val)| {
         (
             key.as_str(),

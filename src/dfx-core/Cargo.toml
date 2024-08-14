@@ -6,7 +6,7 @@ edition.workspace = true
 repository.workspace = true
 license.workspace = true
 rust-version.workspace = true
-build = "src/build.rs"
+build = "assets/build.rs"
 
 [build-dependencies]
 serde_json.workspace = true
