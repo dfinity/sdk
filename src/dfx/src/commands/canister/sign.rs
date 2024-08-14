@@ -2,10 +2,11 @@ use crate::commands::canister::call::get_effective_canister_id;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::get_canister_id_and_candid_path;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::sign::sign_transport::SignTransport;
 use crate::lib::sign::signed_message::SignedMessageV1;
 use crate::util::clap::argument_from_cli::ArgumentFromCliPositionalOpt;
-use crate::util::{blob_from_arguments, get_candid_type};
+use crate::util::{blob_from_arguments, fetch_remote_did_file, get_candid_type};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
 use candid_parser::utils::CandidSource;
@@ -75,6 +76,9 @@ pub async fn exec(
     opts: CanisterSignOpts,
     call_sender: &CallSender,
 ) -> DfxResult {
+    let agent = env.get_agent();
+    fetch_root_key_if_needed(env).await?;
+
     let log = env.get_logger();
     if *call_sender != CallSender::SelectedId {
         bail!("`sign` currently doesn't support proxying through the wallet canister, please use `dfx canister sign --no-wallet ...`.");
@@ -85,8 +89,15 @@ pub async fn exec(
     let (canister_id, maybe_candid_path) =
         get_canister_id_and_candid_path(env, opts.canister_name.as_str())?;
 
-    let method_type =
-        maybe_candid_path.and_then(|path| get_candid_type(CandidSource::File(&path), method_name));
+    let method_type = match maybe_candid_path
+        .and_then(|path| get_candid_type(CandidSource::File(&path), method_name))
+    {
+        Some(mt) => Some(mt),
+        None => fetch_remote_did_file(&agent, canister_id)
+            .await
+            .and_then(|did| get_candid_type(CandidSource::Text(&did), method_name)),
+    };
+
     let is_query_method = method_type.as_ref().map(|(_, f)| f.is_query());
 
     let (argument_from_cli, argument_type) = opts.argument_from_cli.get_argument_and_type()?;

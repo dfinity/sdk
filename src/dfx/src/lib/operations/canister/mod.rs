@@ -357,18 +357,21 @@ pub fn get_canister_id_and_candid_path(
 ) -> DfxResult<(CanisterId, Option<PathBuf>)> {
     let canister_id_store = env.get_canister_id_store()?;
     let (canister_name, canister_id) = if let Ok(id) = Principal::from_text(canister) {
+        if canister_id_store.is_well_known(&id) {
+            return Ok((id, None));
+        }
+
         if let Some(canister_name) = canister_id_store.get_name(canister) {
             (canister_name.to_string(), id)
         } else {
             return Ok((id, None));
         }
     } else {
-        if env.get_network_descriptor().is_ic {
-            if let Some(id) = canister_id_store.find_in_ids(canister) {
-                return Ok((id, None));
-            }
+        let canister_id = canister_id_store.get(canister)?;
+        if canister_id_store.is_well_known(&canister_id) {
+            return Ok((canister_id, None));
         }
-        (canister.to_string(), canister_id_store.get(canister)?)
+        (canister.to_string(), canister_id)
     };
     let config = env.get_config_or_anyhow()?;
     let candid_path = match CanisterInfo::load(&config, &canister_name, Some(canister_id)) {

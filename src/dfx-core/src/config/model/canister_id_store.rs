@@ -96,6 +96,8 @@ pub struct CanisterIdStore {
     // which does not include remote canister ids
     ids: CanisterIds,
 
+    well_known_ids: CanisterIds,
+
     // Only canisters that will time out at some point have their timestamp of acquisition saved
     acquisition_timestamps: CanisterTimestamps,
 
@@ -154,7 +156,7 @@ impl CanisterIdStore {
         };
         let ids = match &canister_ids_path {
             Some(path) if path.is_file() => crate::json::load_json_file(path)?,
-            _ => map_wellknown_canisters(),
+            _ => CanisterIds::new(),
         };
         let acquisition_timestamps = match &canister_timestamps_path {
             Some(path) if path.is_file() => crate::json::load_json_file(path)?,
@@ -168,6 +170,7 @@ impl CanisterIdStore {
             acquisition_timestamps,
             remote_ids,
             pull_ids,
+            well_known_ids: map_wellknown_canisters(),
         };
 
         if let NetworkTypeDescriptor::Playground {
@@ -181,10 +184,6 @@ impl CanisterIdStore {
         Ok(store)
     }
 
-    pub fn get_ids(&self) -> &CanisterIds {
-        &self.ids
-    }
-
     pub fn get_timestamp(&self, canister_name: &str) -> Option<&AcquisitionDateTime> {
         self.acquisition_timestamps
             .get(canister_name)
@@ -195,6 +194,7 @@ impl CanisterIdStore {
         self.remote_ids
             .as_ref()
             .and_then(|remote_ids| self.get_name_in(canister_id, remote_ids))
+            .or_else(|| self.get_name_in(canister_id, &self.well_known_ids))
             .or_else(|| self.get_name_in_project(canister_id))
             .or_else(|| self.get_name_in_pull_ids(canister_id))
     }
@@ -251,7 +251,8 @@ impl CanisterIdStore {
         self.remote_ids
             .as_ref()
             .and_then(|remote_ids| self.find_in(canister_name, remote_ids))
-            .or_else(|| self.find_in_ids(canister_name))
+            .or_else(|| self.find_in(canister_name, &self.ids))
+            .or_else(|| self.find_in(canister_name, &self.well_known_ids))
             .or_else(|| self.pull_ids.get(canister_name).copied())
     }
     pub fn get_name_id_map(&self) -> BTreeMap<String, String> {
@@ -299,8 +300,12 @@ impl CanisterIdStore {
             .and_then(|s| CanisterId::from_text(s).ok())
     }
 
-    pub fn find_in_ids(&self, canister_name: &str) -> Option<CanisterId> {
-        self.find_in(canister_name, &self.ids)
+    pub fn is_well_known(&self, canister_id: &CanisterId) -> bool {
+        let canister_str = canister_id.to_string();
+        self.well_known_ids
+            .values()
+            .find(|val| val.values().find(|k| &&canister_str == k).is_some())
+            .is_some()
     }
 
     pub fn get(&self, canister_name: &str) -> Result<CanisterId, CanisterIdStoreError> {
