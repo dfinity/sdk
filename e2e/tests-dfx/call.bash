@@ -297,3 +297,17 @@ teardown() {
   assert_command dfx canister call inter2_mo read
   assert_match '(8 : nat)'
 }
+
+@test "call well known canisters" {
+    assert_command dfx canister --ic call governance list_proposals '(
+      record {
+        include_reward_status = vec {};
+        omit_large_fields = null;
+        before_proposal = null;
+        limit = 1 : nat32;
+        exclude_topic = vec {};
+        include_all_manage_neuron_proposals = null;
+        include_status = vec {};
+      },
+    )'
+}

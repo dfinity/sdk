@@ -81,3 +81,12 @@ Signed request_status append to update message in [message-inc.json]"
 
   rm "$TMP_NAME_FILE"
 }
+
+@test "sign query message for a well known canister" {
+  cd "$E2E_TEMP_DIR"
+  mkdir not-a-project-dir
+  cd not-a-project-dir
+
+  assert_command dfx canister sign --query registry read --network ic
+  assert_match "Query message generated at \[message.json\]"
+}
