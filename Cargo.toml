@@ -54,6 +54,7 @@ pem = "1.0.2"
 proptest = "1.0.0"
 reqwest = { version = "0.12.4", default-features = false, features = [
     "rustls-tls",
+    "blocking",
 ] }
 ring = "0.16.11"
 schemars = "0.8"
@@ -72,7 +73,7 @@ tempfile = "3.3.0"
 thiserror = "1.0.24"
 time = "0.3.9"
 tokio = "1.35"
-url = {  version="2.1.0", features=["serde"] }
+url = { version = "2.1.0", features = ["serde"] }
 walkdir = "2.3.2"
 
 [profile.release]

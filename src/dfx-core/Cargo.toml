@@ -6,6 +6,10 @@ edition.workspace = true
 repository.workspace = true
 license.workspace = true
 rust-version.workspace = true
+build = "src/build.rs"
+
+[build-dependencies]
+reqwest.workspace = true
 
 [dependencies]
 aes-gcm.workspace = true

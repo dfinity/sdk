@@ -363,6 +363,11 @@ pub fn get_canister_id_and_candid_path(
             return Ok((id, None));
         }
     } else {
+        if env.get_network_descriptor().is_ic {
+            if let Some(id) = canister_id_store.find_in_ids(canister) {
+                return Ok((id, None));
+            }
+        }
         (canister.to_string(), canister_id_store.get(canister)?)
     };
     let config = env.get_config_or_anyhow()?;

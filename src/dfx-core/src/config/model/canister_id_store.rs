@@ -17,6 +17,8 @@ use std::time::{Duration, SystemTime};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
+include!(concat!(env!("OUT_DIR"), "/well_known_canisters.rs"));
+
 pub type CanisterName = String;
 pub type NetworkName = String;
 pub type CanisterIdString = String;
@@ -152,7 +154,7 @@ impl CanisterIdStore {
         };
         let ids = match &canister_ids_path {
             Some(path) if path.is_file() => crate::json::load_json_file(path)?,
-            _ => CanisterIds::new(),
+            _ => map_wellknown_canisters(),
         };
         let acquisition_timestamps = match &canister_timestamps_path {
             Some(path) if path.is_file() => crate::json::load_json_file(path)?,
@@ -177,6 +179,10 @@ impl CanisterIdStore {
         }
 
         Ok(store)
+    }
+
+    pub fn get_ids(&self) -> &CanisterIds {
+        &self.ids
     }
 
     pub fn get_timestamp(&self, canister_name: &str) -> Option<&AcquisitionDateTime> {
@@ -245,7 +251,7 @@ impl CanisterIdStore {
         self.remote_ids
             .as_ref()
             .and_then(|remote_ids| self.find_in(canister_name, remote_ids))
-            .or_else(|| self.find_in(canister_name, &self.ids))
+            .or_else(|| self.find_in_ids(canister_name))
             .or_else(|| self.pull_ids.get(canister_name).copied())
     }
     pub fn get_name_id_map(&self) -> BTreeMap<String, String> {
@@ -291,6 +297,10 @@ impl CanisterIdStore {
                     .or_else(|| network_name_to_canister_id.get(CanisterIdStore::DEFAULT))
             })
             .and_then(|s| CanisterId::from_text(s).ok())
+    }
+
+    pub fn find_in_ids(&self, canister_name: &str) -> Option<CanisterId> {
+        self.find_in(canister_name, &self.ids)
     }
 
     pub fn get(&self, canister_name: &str) -> Result<CanisterId, CanisterIdStoreError> {
