@@ -10,6 +10,7 @@ use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
 use crate::error::structured_file::StructuredFileError;
+use crate::error::structured_file::StructuredFileError::DeserializeJsonFileFailed;
 use crate::json::load_json_file;
 use crate::json::structure::SerdeVec;
 use serde::{Deserialize, Serialize};
@@ -181,14 +182,21 @@ impl LocalServerDescriptor {
         path.exists().then(|| load_json_file(&path)).transpose()
     }
 
-    pub fn settings_digest(&self) -> String {
-        self.settings_digest.clone().unwrap_or_else(|| {
-            let network_id_contents = crate::fs::read(&self.data_directory.join("network-id"))
-                .expect("Could not read network-id file.");
+    pub fn load_settings_digest(&mut self) -> Result<(), StructuredFileError> {
+        if self.settings_digest.is_none() {
+            let network_id_path = self.data_directory.join("network-id");
+            let network_id_contents = crate::fs::read(&network_id_path)?;
             let network_metadata: NetworkMetadata = serde_json::from_slice(&network_id_contents)
-                .expect("Could not parse network-id contents.");
-            network_metadata.settings_digest
-        })
+                .map_err(|e| DeserializeJsonFileFailed(Box::new(network_id_path), e))?;
+            self.settings_digest = Some(network_metadata.settings_digest);
+        }
+        Ok(())
+    }
+
+    pub fn settings_digest(&self) -> &str {
+        self.settings_digest
+            .as_ref()
+            .expect("settings_digest must be set")
     }
 
     pub fn data_dir_by_settings_digest(&self) -> PathBuf {
