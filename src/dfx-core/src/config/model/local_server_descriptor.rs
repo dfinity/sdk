@@ -10,7 +10,6 @@ use crate::error::network_config::{
     NetworkConfigError, NetworkConfigError::ParseBindAddressFailed,
 };
 use crate::error::structured_file::StructuredFileError;
-use crate::error::structured_file::StructuredFileError::DeserializeJsonFileFailed;
 use crate::json::load_json_file;
 use crate::json::structure::SerdeVec;
 use serde::{Deserialize, Serialize};
@@ -185,9 +184,7 @@ impl LocalServerDescriptor {
     pub fn load_settings_digest(&mut self) -> Result<(), StructuredFileError> {
         if self.settings_digest.is_none() {
             let network_id_path = self.data_directory.join("network-id");
-            let network_id_contents = crate::fs::read(&network_id_path)?;
-            let network_metadata: NetworkMetadata = serde_json::from_slice(&network_id_contents)
-                .map_err(|e| DeserializeJsonFileFailed(Box::new(network_id_path), e))?;
+            let network_metadata: NetworkMetadata = load_json_file(&network_id_path)?;
             self.settings_digest = Some(network_metadata.settings_digest);
         }
         Ok(())
