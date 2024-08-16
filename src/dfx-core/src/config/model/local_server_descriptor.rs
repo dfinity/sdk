@@ -12,9 +12,17 @@ use crate::error::network_config::{
 use crate::error::structured_file::StructuredFileError;
 use crate::json::load_json_file;
 use crate::json::structure::SerdeVec;
+use serde::{Deserialize, Serialize};
 use slog::{debug, info, Logger};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+use time::OffsetDateTime;
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct NetworkMetadata {
+    pub created: OffsetDateTime,
+    pub settings_digest: String,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LocalNetworkScopeDescriptor {
@@ -173,10 +181,14 @@ impl LocalServerDescriptor {
         path.exists().then(|| load_json_file(&path)).transpose()
     }
 
-    pub fn settings_digest(&self) -> &str {
-        self.settings_digest
-            .as_ref()
-            .expect("settings_digest must be set")
+    pub fn settings_digest(&self) -> String {
+        self.settings_digest.clone().unwrap_or_else(|| {
+            let network_id_contents = crate::fs::read(&self.data_directory.join("network-id"))
+                .expect("Could not read network-id file.");
+            let network_metadata: NetworkMetadata = serde_json::from_slice(&network_id_contents)
+                .expect("Could not parse network-id contents.");
+            network_metadata.settings_digest
+        })
     }
 
     pub fn data_dir_by_settings_digest(&self) -> PathBuf {
