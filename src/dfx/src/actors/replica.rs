@@ -329,8 +329,10 @@ fn replica_start_thread(
             &config.log_level.as_ic_starter_string(),
             "--use-specified-ids-allocation-range",
         ]);
-        #[cfg(target_os = "macos")]
-        cmd.args(["--consensus-pool-backend", "rocksdb"]);
+        if config.use_rocksdb {
+            #[cfg(target_os = "macos")]
+            cmd.args(["--consensus-pool-backend", "rocksdb"]);
+        }
         if let Some(port) = port {
             cmd.args(["--http-port", &port.to_string()]);
         }

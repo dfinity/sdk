@@ -80,6 +80,10 @@ pub struct StartOpts {
     /// Runs PocketIC instead of the replica
     #[clap(long, alias = "emulator")]
     pocketic: bool,
+
+    /// Falls back to the previous rocksdb consensus pool backend. Only has an effect on macOS builds.
+    #[arg(long)]
+    rocksdb: bool,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -146,6 +150,7 @@ pub fn exec(
         artificial_delay,
         domain,
         pocketic,
+        rocksdb,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -296,8 +301,13 @@ pub fn exec(
     let proxy_domains = local_server_descriptor.proxy.domain.clone().into_vec();
 
     let replica_config = {
-        let replica_config =
-            ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay);
+        let replica_config = ReplicaConfig::new(
+            &state_root,
+            subnet_type,
+            log_level,
+            artificial_delay,
+            rocksdb,
+        );
         let mut replica_config = if let Some(port) = local_server_descriptor.replica.port {
             replica_config.with_port(port)
         } else {
