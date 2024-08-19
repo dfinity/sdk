@@ -248,7 +248,7 @@ impl LocalServerDescriptor {
 
     pub fn with_proxy_domains(self, domains: Vec<String>) -> LocalServerDescriptor {
         let proxy = ConfigDefaultsProxy {
-            domain: SerdeVec::Many(domains),
+            domain: Some(SerdeVec::Many(domains)),
         };
         Self { proxy, ..self }
     }
