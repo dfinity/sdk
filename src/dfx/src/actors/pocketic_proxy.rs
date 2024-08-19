@@ -380,6 +380,12 @@ async fn initialize_gateway(
 }
 
 #[cfg(not(unix))]
-async fn initialize_gateway(_: Url, _: Url, _: Vec<String>, _: SocketAddr, _: Logger) -> DfxResult {
+async fn initialize_gateway(
+    _: Url,
+    _: Url,
+    _: Option<Vec<String>>,
+    _: SocketAddr,
+    _: Logger,
+) -> DfxResult {
     bail!("PocketIC gateway not supported on this platform")
 }
