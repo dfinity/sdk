@@ -107,15 +107,15 @@
     "ConfigDefaultsProxy": {
       "description": "Configuration for the HTTP gateway.",
       "type": "object",
-      "required": [
-        "domain"
-      ],
       "properties": {
         "domain": {
           "description": "A list of domains that can be served. These are used for canister resolution [default: localhost]",
-          "allOf": [
+          "anyOf": [
             {
               "$ref": "#/definitions/SerdeVec_for_String"
+            },
+            {
+              "type": "null"
             }
           ]
         }

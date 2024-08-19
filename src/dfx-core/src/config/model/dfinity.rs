@@ -673,7 +673,7 @@ pub struct ConfigDefaultsReplica {
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsProxy {
     /// A list of domains that can be served. These are used for canister resolution [default: localhost]
-    pub domain: SerdeVec<String>,
+    pub domain: Option<SerdeVec<String>>,
 }
 
 // Schemars doesn't add the enum value's docstrings. Therefore the explanations have to be up here.
