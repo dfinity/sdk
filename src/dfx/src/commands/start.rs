@@ -353,6 +353,7 @@ pub fn exec(
         let port_ready_subscribe: Recipient<PortReadySubscribe> = if pocketic {
             let server = start_pocketic_actor(
                 env,
+                replica_config,
                 local_server_descriptor,
                 shutdown_controller.clone(),
                 pocketic_port_path,

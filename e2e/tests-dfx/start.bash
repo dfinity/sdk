@@ -144,7 +144,6 @@ teardown() {
 }
 
 @test "dfx restarts the replica" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: state persistence"
   dfx_new hello
   dfx_start
 
@@ -153,7 +152,7 @@ teardown() {
   assert_command dfx canister call hello_backend greet '("Alpha")'
   assert_eq '("Hello, Alpha!")'
 
-  REPLICA_PID=$(get_replica_pid)
+  REPLICA_PID=$([[ "$USE_POCKETIC" ]] && get_pocketic_pid || get_replica_pid)
 
   echo "replica pid is $REPLICA_PID"
 

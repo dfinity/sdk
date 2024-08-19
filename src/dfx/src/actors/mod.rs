@@ -183,6 +183,7 @@ pub fn start_pocketic_proxy_actor(
 #[context("Failed to start PocketIC actor.")]
 pub fn start_pocketic_actor(
     env: &dyn Environment,
+    replica_config: ReplicaConfig,
     local_server_descriptor: &LocalServerDescriptor,
     shutdown_controller: Addr<ShutdownController>,
     pocketic_port_path: PathBuf,
@@ -202,6 +203,7 @@ pub fn start_pocketic_actor(
 
     let actor_config = pocketic::Config {
         pocketic_path,
+        replica_config,
         port: local_server_descriptor.replica.port,
         port_file: pocketic_port_path,
         pid_file: local_server_descriptor.pocketic_pid_path(),

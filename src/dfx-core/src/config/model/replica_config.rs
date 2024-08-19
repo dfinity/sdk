@@ -215,12 +215,6 @@ impl<'a> CachedConfig<'a> {
         matches!(self.config, CachedReplicaConfig::PocketIc)
     }
     pub fn can_share_state(&self, other: &Self) -> bool {
-        match (&self.config, &other.config) {
-            (CachedReplicaConfig::PocketIc, _) | (_, CachedReplicaConfig::PocketIc) => false,
-            (
-                CachedReplicaConfig::Replica { config: config1 },
-                CachedReplicaConfig::Replica { config: config2 },
-            ) => self.replica_rev == other.replica_rev && config1 == config2,
-        }
+        self == other
     }
 }

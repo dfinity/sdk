@@ -11,6 +11,7 @@ use actix::{
 use anyhow::{anyhow, bail};
 use candid::Principal;
 use crossbeam::channel::{unbounded, Receiver, Sender};
+use dfx_core::config::model::replica_config::ReplicaConfig;
 use slog::{debug, error, info, warn, Logger};
 use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
@@ -38,6 +39,7 @@ pub const POCKETIC_EFFECTIVE_CANISTER_ID: Principal =
 #[derive(Clone)]
 pub struct Config {
     pub pocketic_path: PathBuf,
+    pub replica_config: ReplicaConfig,
     pub port: Option<u16>,
     pub port_file: PathBuf,
     pub pid_file: PathBuf,
@@ -266,7 +268,11 @@ fn pocketic_start_thread(
                         }
                     }
                 };
-            if let Err(e) = block_on_initialize_pocketic(port, logger.clone()) {
+            if let Err(e) = block_on_initialize_pocketic(
+                port,
+                config.replica_config.state_manager.state_root.clone(),
+                logger.clone(),
+            ) {
                 error!(logger, "Failed to initialize PocketIC: {e:#}");
                 let _ = child.kill();
                 let _ = child.wait();
@@ -309,16 +315,16 @@ fn pocketic_start_thread(
         .map_err(DfxError::from)
 }
 
-fn block_on_initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
+fn block_on_initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> DfxResult {
     Builder::new_current_thread()
         .enable_all()
         .build()
         .unwrap()
-        .block_on(async move { initialize_pocketic(port, logger).await })
+        .block_on(async move { initialize_pocketic(port, state_dir, logger).await })
 }
 
 #[cfg(unix)]
-async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
+async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> DfxResult {
     use pocket_ic::common::rest::{
         CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig, RawTime, SubnetSpec,
     };
@@ -338,7 +344,7 @@ async fn initialize_pocketic(port: u16, logger: Logger) -> DfxResult {
                 system: vec![],
                 application: vec![SubnetSpec::default()],
             },
-            state_dir: None,
+            state_dir: Some(state_dir),
             nonmainnet_features: true,
         })
         .send()
