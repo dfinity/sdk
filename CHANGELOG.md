@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: Default to LMDB backend on macOS
+
+MacOS builds of dfx now use the LMDB artifact pool backend by default. If you encounter any
+issues with the new backend, you can switch to the old one using the `--rocksdb` flag on 
+`dfx start`.
+
 ### feat: Add canister snapshots
 
 The new `dfx canister snapshot` command can be used to create, apply, and delete snapshots of stopped canisters.
