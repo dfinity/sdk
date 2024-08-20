@@ -382,7 +382,7 @@ async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> D
 }
 
 #[cfg(not(unix))]
-fn initialize_pocketic(_: u16, _: Logger) -> DfxResult<usize> {
+fn initialize_pocketic(_: u16, _: PathBuf, _: Logger) -> DfxResult<usize> {
     bail!("PocketIC not supported on this platform")
 }
 
