@@ -65,6 +65,15 @@ teardown() {
   assert_match "Connection refused"
 }
 
+@test "dfx routes frontend based on subdomain" {
+  dfx_start
+  PORT=$(get_webserver_port)
+  dfx deploy
+  ID=$(dfx canister id e2e_project_frontend)
+  assert_command curl "http://$ID.localhost:$PORT/"
+  assert_match "<head>"
+}
+
 @test "dfx uses .ic-assets.json file provided in src/__project_name__frontend/assets" {
   echo '[{"match": "*", "headers": {"x-key": "x-value"}}]' > src/e2e_project_frontend/assets/.ic-assets.json5
 

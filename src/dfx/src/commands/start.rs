@@ -293,7 +293,11 @@ pub fn exec(
         .log_level
         .unwrap_or_default();
 
-    let proxy_domains = local_server_descriptor.proxy.domain.clone().into_vec();
+    let proxy_domains = local_server_descriptor
+        .proxy
+        .domain
+        .clone()
+        .map(|v| v.into_vec());
 
     let replica_config = {
         let replica_config =
