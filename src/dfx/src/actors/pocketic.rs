@@ -18,7 +18,6 @@ use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 use tempfile::tempdir;
-use tokio::runtime::Builder;
 
 pub mod signals {
     use actix::prelude::*;
@@ -268,27 +267,34 @@ fn pocketic_start_thread(
                         }
                     }
                 };
-            if let Err(e) = block_on_initialize_pocketic(
+            let instance = match initialize_pocketic(
                 port,
                 config.replica_config.state_manager.state_root.clone(),
                 logger.clone(),
             ) {
-                error!(logger, "Failed to initialize PocketIC: {e:#}");
-                let _ = child.kill();
-                let _ = child.wait();
-                if receiver.try_recv().is_ok() {
-                    debug!(logger, "Got signal to stop.");
-                    break;
-                } else {
-                    continue;
+                Err(e) => {
+                    error!(logger, "Failed to initialize PocketIC: {e:#}");
+
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    if receiver.try_recv().is_ok() {
+                        debug!(logger, "Got signal to stop.");
+                        break;
+                    } else {
+                        continue;
+                    }
                 }
-            }
+                Ok(i) => i,
+            };
             addr.do_send(signals::PocketIcRestarted { port });
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the server if done = true.
             match wait_for_child_or_receiver(&mut child, &receiver) {
                 ChildOrReceiver::Receiver => {
                     debug!(logger, "Got signal to stop. Killing PocketIC process...");
+                    if let Err(e) = shutdown_pocketic(port, instance, logger.clone()) {
+                        error!(logger, "Error shutting down PocketIC gracefully: {e}");
+                    }
                     let _ = child.kill();
                     let _ = child.wait();
                     break;
@@ -315,16 +321,9 @@ fn pocketic_start_thread(
         .map_err(DfxError::from)
 }
 
-fn block_on_initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> DfxResult {
-    Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async move { initialize_pocketic(port, state_dir, logger).await })
-}
-
 #[cfg(unix)]
-async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> DfxResult {
+#[tokio::main(flavor = "current_thread")]
+async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> DfxResult<usize> {
     use pocket_ic::common::rest::{
         CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig, RawTime, SubnetSpec,
     };
@@ -352,12 +351,15 @@ async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> D
         .error_for_status()?
         .json::<CreateInstanceResponse>()
         .await?;
-    if let CreateInstanceResponse::Error { message } = resp {
-        bail!("PocketIC init error: {message}");
-    }
+    let instance = match resp {
+        CreateInstanceResponse::Error { message } => {
+            bail!("PocketIC init error: {message}");
+        }
+        CreateInstanceResponse::Created { instance_id, .. } => instance_id,
+    };
     init_client
         .post(format!(
-            "http://localhost:{port}/instances/0/update/set_time"
+            "http://localhost:{port}/instances/{instance}/update/set_time"
         ))
         .json(&RawTime {
             nanos_since_epoch: OffsetDateTime::now_utc()
@@ -369,15 +371,36 @@ async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> D
         .await?
         .error_for_status()?;
     init_client
-        .post(format!("http://localhost:{port}/instances/0/auto_progress"))
+        .post(format!(
+            "http://localhost:{port}/instances/{instance}/auto_progress"
+        ))
         .send()
         .await?
         .error_for_status()?;
     info!(logger, "Initialized PocketIC.");
+    Ok(instance)
+}
+
+#[cfg(not(unix))]
+fn initialize_pocketic(_: u16, _: Logger) -> DfxResult<usize> {
+    bail!("PocketIC not supported on this platform")
+}
+
+#[cfg(unix)]
+#[tokio::main(flavor = "current_thread")]
+async fn shutdown_pocketic(port: u16, instance: usize, logger: Logger) -> DfxResult {
+    use reqwest::Client;
+    let shutdown_client = Client::new();
+    debug!(logger, "Sending shutdown request to PocketIC server");
+    shutdown_client
+        .delete(format!("http://localhost:{port}/instances/{instance}"))
+        .send()
+        .await?
+        .error_for_status()?;
     Ok(())
 }
 
 #[cfg(not(unix))]
-async fn initialize_pocketic(_: u16, _: Logger) -> DfxResult {
+fn shutdown_pocketic(_: u16, _: usize, _: Logger) -> DfxResult {
     bail!("PocketIC not supported on this platform")
 }

@@ -319,7 +319,7 @@ pub fn exec(
     };
 
     let effective_config = if pocketic {
-        CachedConfig::pocketic(replica_rev().into())
+        CachedConfig::pocketic(&replica_config, replica_rev().into())
     } else {
         CachedConfig::replica(&replica_config, replica_rev().into())
     };
