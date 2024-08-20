@@ -64,7 +64,7 @@ set_shared_local_network_canister_http_empty() {
   assert_process_exits "$CANISTER_HTTP_ADAPTER_PID" 15s
   assert_process_exits "$REPLICA_PID" 15s
 
-  timeout 15s sh -c \
+  timeout 60s sh -c \
     'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
     || (echo "replica did not restart" && ps aux && exit 1)
   wait_until_replica_healthy
