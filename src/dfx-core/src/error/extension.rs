@@ -204,6 +204,9 @@ pub enum FinalizeInstallationError {
     GetTopLevelDirectory(#[from] GetTopLevelDirectoryError),
 
     #[error(transparent)]
+    LoadExtensionManifest(#[from] LoadExtensionManifestError),
+
+    #[error(transparent)]
     Rename(#[from] RenameError),
 
     #[error(transparent)]

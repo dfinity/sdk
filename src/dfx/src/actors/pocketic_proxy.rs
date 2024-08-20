@@ -47,7 +47,7 @@ pub struct PocketIcProxyConfig {
     pub verbose: bool,
 
     /// list of domains that can be served (localhost if none specified)
-    pub domains: Vec<String>,
+    pub domains: Option<Vec<String>>,
 }
 
 /// The configuration for the pocketic_proxy actor.
@@ -225,7 +225,7 @@ fn pocketic_proxy_start_thread(
     pocketic_proxy_port_path: PathBuf,
     receiver: Receiver<()>,
     verbose: bool,
-    domains: Vec<String>,
+    domains: Option<Vec<String>>,
 ) -> DfxResult<std::thread::JoinHandle<()>> {
     let thread_handler = move || {
         loop {
@@ -329,7 +329,7 @@ fn pocketic_proxy_start_thread(
 async fn initialize_gateway(
     pocketic_url: Url,
     replica_url: Url,
-    domains: Vec<String>,
+    domains: Option<Vec<String>>,
     addr: SocketAddr,
     logger: Logger,
 ) -> DfxResult {
@@ -345,7 +345,7 @@ async fn initialize_gateway(
             forward_to: HttpGatewayBackend::Replica(replica_url.to_string()),
             ip_addr: Some(addr.ip().to_string()),
             port: Some(addr.port()),
-            domains: Some(domains),
+            domains,
             https_config: None,
         })
         .send()
@@ -360,6 +360,12 @@ async fn initialize_gateway(
 }
 
 #[cfg(not(unix))]
-fn initialize_gateway(_: Url, _: Url, _: Vec<String>, _: SocketAddr, _: Logger) -> DfxResult {
+fn initialize_gateway(
+    _: Url,
+    _: Url,
+    _: Option<Vec<String>>,
+    _: SocketAddr,
+    _: Logger,
+) -> DfxResult {
     bail!("PocketIC gateway not supported on this platform")
 }
