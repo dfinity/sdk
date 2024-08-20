@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ens/check-flaky-test
   pull_request:
 
 concurrency:

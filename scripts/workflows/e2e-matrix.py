@@ -14,7 +14,8 @@ def test_scripts(prefix):
 test = sorted(test_scripts("dfx") + test_scripts("replica") + test_scripts("icx-asset"))
 
 matrix = {
-    "test": test,
+    "test": [ "dfx/canister_http", "dfx/bitcoin"],
+    "iterations": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
     "backend": ["pocketic", "replica"],
     "os": ["macos-12", "ubuntu-20.04"],
     "exclude": [
