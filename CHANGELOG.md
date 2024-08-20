@@ -5,8 +5,8 @@
 ### feat: Default to LMDB backend on macOS
 
 MacOS builds of dfx now use the LMDB artifact pool backend by default. If you encounter any
-issues with the new backend, you can switch to the old one using the `--rocksdb` flag on 
-`dfx start`.
+issues with the new backend, please let us know here: https://github.com/dfinity/sdk/discussions/3880.
+You'll still be able to switch to the old backend using the `--rocksdb` flag on `dfx start`.
 
 ### feat: Add canister snapshots
 
