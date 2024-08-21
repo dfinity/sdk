@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### fix: Also report Motoko stable compatibility warnings
+
+Report upgrade compatibility warnings for Motoko, such as deleted stable variables, in addition to compatibility errors.
+
 ### feat: Add canister snapshots
 
 The new `dfx canister snapshot` command can be used to create, apply, and delete snapshots of stopped canisters.
