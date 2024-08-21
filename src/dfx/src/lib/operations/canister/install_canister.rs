@@ -96,9 +96,13 @@ pub async fn install_canister(
         let stable_types = read_module_metadata(agent, canister_id, "motoko:stable-types").await;
         if let Some(stable_types) = &stable_types {
             match check_stable_compatibility(canister_info, env, stable_types) {
-                Ok(None) => (),
-                Ok(Some(err)) => {
-                    let msg = format!("Stable interface compatibility check failed for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &err;
+                Ok(StableCompatibility::Okay) => (),
+                Ok(StableCompatibility::Warning(details)) => {
+                    let msg = format!("Stable interface compatibility check issued a WARNING for canister '{}'.\n\n", canister_info.get_name()) + &details;
+                    ask_for_consent(&msg)?;
+                }
+                Ok(StableCompatibility::Error(details)) => {
+                    let msg = format!("Stable interface compatibility check issued an ERROR for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &details;
                     ask_for_consent(&msg)?;
                 }
                 Err(e) => {
@@ -366,11 +370,17 @@ async fn wait_for_module_hash(
     Ok(())
 }
 
+enum StableCompatibility {
+    Okay,
+    Warning(String),
+    Error(String),
+}
+
 fn check_stable_compatibility(
     canister_info: &CanisterInfo,
     env: &dyn Environment,
     stable_types: &str,
-) -> anyhow::Result<Option<String>> {
+) -> anyhow::Result<StableCompatibility> {
     use crate::lib::canister_info::motoko::MotokoCanisterInfo;
     let info = canister_info.as_info::<MotokoCanisterInfo>()?;
     let stable_path = info.get_output_stable_path();
@@ -389,10 +399,13 @@ fn check_stable_compatibility(
         .arg(stable_path)
         .output()
         .context("Failed to run 'moc'.")?;
+    let message = String::from_utf8_lossy(&output.stderr).to_string();
     Ok(if !output.status.success() {
-        Some(String::from_utf8_lossy(&output.stderr).to_string())
+        StableCompatibility::Error(message)
+    } else if !output.stderr.is_empty() {
+        StableCompatibility::Warning(message)
     } else {
-        None
+        StableCompatibility::Okay
     })
 }
 
