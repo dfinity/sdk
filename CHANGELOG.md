@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: PocketIC state
+
+`dfx start --pocketic` no longer requires `--clean`, and can persist replica state between runs.
+
 ### feat: Add canister snapshots
 
 The new `dfx canister snapshot` command can be used to create, apply, and delete snapshots of stopped canisters.
