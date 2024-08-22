@@ -82,14 +82,15 @@ impl ExtensionManifest {
     }
 
     pub fn into_clap_commands(
-        self,
+        &self,
     ) -> Result<Vec<clap::Command>, ConvertExtensionSubcommandIntoClapCommandError> {
-        self.subcommands
-            .unwrap_or_default()
-            .0
-            .into_iter()
-            .map(|(subcmd, opts)| opts.into_clap_command(subcmd))
-            .collect::<Result<Vec<_>, _>>()
+        if let Some(sc) = self.subcommands.as_ref() {
+            sc.0.iter()
+                .map(|(subcmd, opts)| opts.as_clap_command(subcmd))
+                .collect::<Result<Vec<_>, _>>()
+        } else {
+            Ok(vec![])
+        }
     }
 }
 
@@ -206,31 +207,31 @@ impl Serialize for ArgNumberOfValues {
 }
 
 impl ExtensionSubcommandArgOpts {
-    pub fn into_clap_arg(
-        self,
-        name: String,
+    pub fn as_clap_arg(
+        &self,
+        name: &str,
     ) -> Result<clap::Arg, ConvertExtensionSubcommandIntoClapArgError> {
-        let mut arg = clap::Arg::new(name.clone());
-        if let Some(about) = self.about {
+        let mut arg = clap::Arg::new(name.to_string());
+        if let Some(about) = &self.about {
             arg = arg.help(about);
         } else {
             return Err(ConvertExtensionSubcommandIntoClapArgError::ExtensionSubcommandArgMissingDescription(
-                name,
+                name.to_string(),
             ));
         }
-        if let Some(l) = self.long {
+        if let Some(l) = &self.long {
             arg = arg.long(l);
         }
-        if let Some(s) = self.short {
-            arg = arg.short(s);
+        if let Some(s) = &self.short {
+            arg = arg.short(*s);
         }
         #[allow(deprecated)]
         if self.multiple {
             arg = arg.num_args(0..);
         } else {
-            arg = match self.values {
-                ArgNumberOfValues::Number(n) => arg.num_args(n),
-                ArgNumberOfValues::Range(r) => arg.num_args(r),
+            arg = match &self.values {
+                ArgNumberOfValues::Number(n) => arg.num_args(*n),
+                ArgNumberOfValues::Range(r) => arg.num_args(r.clone()),
                 ArgNumberOfValues::Unlimited => arg.num_args(0..),
             };
         }
@@ -243,25 +244,25 @@ impl ExtensionSubcommandArgOpts {
 }
 
 impl ExtensionSubcommandOpts {
-    pub fn into_clap_command(
-        self,
-        name: String,
+    pub fn as_clap_command(
+        &self,
+        name: &str,
     ) -> Result<clap::Command, ConvertExtensionSubcommandIntoClapCommandError> {
-        let mut cmd = clap::Command::new(name);
+        let mut cmd = clap::Command::new(name.to_string());
 
-        if let Some(about) = self.about {
+        if let Some(about) = &self.about {
             cmd = cmd.about(about);
         }
 
-        if let Some(args) = self.args {
+        if let Some(args) = &self.args {
             for (name, opts) in args {
-                cmd = cmd.arg(opts.into_clap_arg(name)?);
+                cmd = cmd.arg(opts.as_clap_arg(name)?);
             }
         }
 
-        if let Some(subcommands) = self.subcommands {
-            for (name, subcommand) in subcommands.0 {
-                cmd = cmd.subcommand(subcommand.into_clap_command(name)?);
+        if let Some(subcommands) = &self.subcommands {
+            for (name, subcommand) in &subcommands.0 {
+                cmd = cmd.subcommand(subcommand.as_clap_command(name)?);
             }
         }
 

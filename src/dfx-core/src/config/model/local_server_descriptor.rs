@@ -12,9 +12,17 @@ use crate::error::network_config::{
 use crate::error::structured_file::StructuredFileError;
 use crate::json::load_json_file;
 use crate::json::structure::SerdeVec;
+use serde::{Deserialize, Serialize};
 use slog::{debug, info, Logger};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+use time::OffsetDateTime;
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct NetworkMetadata {
+    pub created: OffsetDateTime,
+    pub settings_digest: String,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LocalNetworkScopeDescriptor {
@@ -173,6 +181,15 @@ impl LocalServerDescriptor {
         path.exists().then(|| load_json_file(&path)).transpose()
     }
 
+    pub fn load_settings_digest(&mut self) -> Result<(), StructuredFileError> {
+        if self.settings_digest.is_none() {
+            let network_id_path = self.data_directory.join("network-id");
+            let network_metadata: NetworkMetadata = load_json_file(&network_id_path)?;
+            self.settings_digest = Some(network_metadata.settings_digest);
+        }
+        Ok(())
+    }
+
     pub fn settings_digest(&self) -> &str {
         self.settings_digest
             .as_ref()
@@ -248,7 +265,7 @@ impl LocalServerDescriptor {
 
     pub fn with_proxy_domains(self, domains: Vec<String>) -> LocalServerDescriptor {
         let proxy = ConfigDefaultsProxy {
-            domain: SerdeVec::Many(domains),
+            domain: Some(SerdeVec::Many(domains)),
         };
         Self { proxy, ..self }
     }
