@@ -114,8 +114,8 @@ pub async fn exec(
     )?;
     let agent = env.get_agent();
 
-    let network = env
-        .get_network_descriptor()
+    let network_descriptor = env.get_network_descriptor();
+    let network = network_descriptor
         .providers
         .first()
         .expect("Cannot get network provider (url).")
@@ -140,6 +140,7 @@ pub async fn exec(
         creation,
         expiration,
         network,
+        network_descriptor.is_ic,
         sender,
         canister_id,
         method_name.to_string(),

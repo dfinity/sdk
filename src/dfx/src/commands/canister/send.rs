@@ -36,6 +36,9 @@ pub async fn exec(
 
     let network = message.network.clone();
     let agent = Agent::builder().with_url(&network).build()?;
+    if !message.is_ic {
+        agent.fetch_root_key().await?;
+    }
     let content = hex::decode(&message.content).context("Failed to decode message content.")?;
     let canister_id = Principal::from_text(&message.canister_id)
         .with_context(|| format!("Failed to parse canister id {:?}.", message.canister_id))?;
