@@ -40,6 +40,15 @@ pub enum ListInstalledExtensionsError {
 }
 
 #[derive(Error, Debug)]
+pub enum LoadExtensionManifestsError {
+    #[error(transparent)]
+    ListInstalledExtensions(#[from] ListInstalledExtensionsError),
+
+    #[error(transparent)]
+    LoadExtensionManifest(#[from] LoadExtensionManifestError),
+}
+
+#[derive(Error, Debug)]
 pub enum ConvertExtensionSubcommandIntoClapArgError {
     #[error("Extension's subcommand argument '{0}' is missing description.")]
     ExtensionSubcommandArgMissingDescription(String),
