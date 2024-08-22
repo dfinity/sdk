@@ -4,8 +4,10 @@ use crate::lib::diagnosis::{diagnose, Diagnosis};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::DfxResult;
 use crate::lib::logger::{create_root_logger, LoggingMode};
+use crate::lib::project::templates::builtin_templates;
 use anyhow::Error;
 use clap::{ArgAction, CommandFactory, Parser};
+use dfx_core::config::project_templates;
 use dfx_core::extension::installed::InstalledExtensionManifests;
 use dfx_core::extension::manager::ExtensionManager;
 use std::collections::HashMap;
@@ -135,6 +137,7 @@ fn get_args_altered_for_extension_run(
 fn inner_main() -> DfxResult {
     let em = ExtensionManager::new(dfx_version())?;
     let installed_extension_manifests = em.load_installed_extension_manifests()?;
+    project_templates::populate(builtin_templates());
 
     let args = get_args_altered_for_extension_run(&installed_extension_manifests)?;
 

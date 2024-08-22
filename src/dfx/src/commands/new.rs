@@ -7,8 +7,13 @@ use crate::lib::program;
 use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
 use anyhow::{anyhow, bail, ensure, Context};
+use clap::builder::PossibleValuesParser;
 use clap::{Parser, ValueEnum};
 use console::{style, Style};
+use dfx_core::config::project_templates::{
+    get_project_template, get_sorted_templates, project_template_cli_names, Category,
+    ProjectTemplateName, ResourceLocation,
+};
 use dfx_core::json::{load_json_file, save_json_file};
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::{FuzzySelect, MultiSelect};
@@ -38,6 +43,10 @@ const AGENT_JS_DEFAULT_INSTALL_DIST_TAG: &str = "latest";
 // check.
 const CHECK_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
 
+const BACKEND_MOTOKO: &str = "motoko";
+const BACKEND_RUST: &str = "rust";
+const BACKEND_AZLE: &str = "azle";
+
 /// Creates a new project.
 #[derive(Parser)]
 pub struct NewOpts {
@@ -46,8 +55,8 @@ pub struct NewOpts {
     project_name: String,
 
     /// Choose the type of canister in the starter project.
-    #[arg(long, value_enum)]
-    r#type: Option<BackendType>,
+    #[arg(long, value_parser=backend_project_template_name_parser())]
+    r#type: Option<String>,
 
     /// Provides a preview the directories and files to be created without adding them to the file system.
     #[arg(long)]
@@ -70,24 +79,8 @@ pub struct NewOpts {
     extras: Vec<Extra>,
 }
 
-#[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq)]
-enum BackendType {
-    Motoko,
-    Rust,
-    Azle,
-    Kybra,
-}
-
-impl Display for BackendType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Motoko => "Motoko",
-            Self::Rust => "Rust",
-            Self::Azle => "TypeScript (Azle)",
-            Self::Kybra => "Python (Kybra)",
-        }
-        .fmt(f)
-    }
+fn backend_project_template_name_parser() -> PossibleValuesParser {
+    PossibleValuesParser::new(project_template_cli_names(Category::Backend))
 }
 
 #[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq)]
@@ -466,19 +459,17 @@ fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
 }
 
 pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
-    use BackendType::*;
     let log = env.get_logger();
     let dry_run = opts.dry_run;
 
     let r#type = if let Some(r#type) = opts.r#type {
-        r#type
+        ProjectTemplateName(r#type)
     } else if opts.frontend.is_none() && opts.extras.is_empty() && io::stdout().is_terminal() {
         opts = get_opts_interactively(opts)?;
-        opts.r#type.unwrap()
+        ProjectTemplateName(opts.r#type.unwrap())
     } else {
-        Motoko
+        ProjectTemplateName(BACKEND_MOTOKO.to_string())
     };
-
     let project_name = Path::new(opts.project_name.as_str());
     if project_name.exists() {
         bail!("Cannot create a new project because the directory already exists.");
@@ -560,7 +551,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         opts.frontend.unwrap_or(FrontendType::Vanilla)
     };
 
-    if r#type == Azle || frontend.has_js() {
+    if r#type.0 == BACKEND_AZLE || frontend.has_js() {
         write_files_from_entries(
             log,
             &mut assets::new_project_js_files().context("Failed to get JS config archive.")?,
@@ -570,20 +561,21 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         )?;
     }
 
-    // Default to start with motoko
-    let mut new_project_files = match r#type {
-        Rust => assets::new_project_rust_files().context("Failed to get rust archive.")?,
-        Motoko => assets::new_project_motoko_files().context("Failed to get motoko archive.")?,
-        Azle => assets::new_project_azle_files().context("Failed to get azle archive.")?,
-        Kybra => assets::new_project_kybra_files().context("Failed to get kybra archive.")?,
+    let new_project_template = get_project_template(&r#type);
+    match new_project_template.resource_location {
+        ResourceLocation::Bundled { get_archive_fn } => {
+            let mut new_project_files = get_archive_fn().with_context(|| {
+                format!("Failed to get {} archive.", new_project_template.name.0)
+            })?;
+            write_files_from_entries(
+                log,
+                &mut new_project_files,
+                project_name,
+                dry_run,
+                &variables,
+            )?;
+        }
     };
-    write_files_from_entries(
-        log,
-        &mut new_project_files,
-        project_name,
-        dry_run,
-        &variables,
-    )?;
 
     if opts.extras.contains(&Extra::InternetIdentity) {
         write_files_from_entries(
@@ -645,7 +637,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
             init_git(log, project_name)?;
         }
 
-        if r#type == Rust {
+        if r#type.0 == BACKEND_RUST {
             // dfx build will use --locked, so update the lockfile beforehand
             const MSG: &str = "You will need to run it yourself (or a similar command like `cargo vendor`), because `dfx build` will use the --locked flag with Cargo.";
             if let Ok(code) = Command::new("cargo")
@@ -683,17 +675,21 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
 }
 
 fn get_opts_interactively(opts: NewOpts) -> DfxResult<NewOpts> {
-    use BackendType::*;
     use Extra::*;
     use FrontendType::*;
     let theme = ColorfulTheme::default();
-    let backends_list = [Motoko, Rust, Azle, Kybra];
+    let backend_templates = get_sorted_templates(Category::Backend);
+    let backends_list = backend_templates
+        .iter()
+        .map(|t| t.display.clone())
+        .collect::<Vec<_>>();
+
     let backend = FuzzySelect::with_theme(&theme)
         .items(&backends_list)
         .default(0)
         .with_prompt("Select a backend language:")
         .interact()?;
-    let backend = backends_list[backend];
+    let backend = &backend_templates[backend];
     let frontends_list = [SvelteKit, React, Vue, Vanilla, SimpleAssets, None];
     let frontend = FuzzySelect::with_theme(&theme)
         .items(&frontends_list)
@@ -715,7 +711,7 @@ fn get_opts_interactively(opts: NewOpts) -> DfxResult<NewOpts> {
     let opts = NewOpts {
         extras,
         frontend: Some(frontend),
-        r#type: Some(backend),
+        r#type: Some(backend.name.0.clone()),
         ..opts
     };
     Ok(opts)
