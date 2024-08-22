@@ -6,6 +6,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::logger::{create_root_logger, LoggingMode};
 use anyhow::Error;
 use clap::{ArgAction, CommandFactory, Parser};
+use dfx_core::extension::installed::InstalledExtensionManifests;
 use dfx_core::extension::manager::ExtensionManager;
 use std::collections::HashMap;
 use std::ffi::OsString;
@@ -110,10 +111,12 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
     }
 }
 
-fn get_args_altered_for_extension_run(em: &ExtensionManager) -> DfxResult<Vec<OsString>> {
+fn get_args_altered_for_extension_run(
+    installed: &InstalledExtensionManifests,
+) -> DfxResult<Vec<OsString>> {
     let mut args = std::env::args_os().collect::<Vec<OsString>>();
 
-    let installed_extensions = em.installed_extensions_as_clap_commands()?;
+    let installed_extensions = installed.as_clap_commands()?;
     if !installed_extensions.is_empty() {
         let mut app = CliOpts::command_for_update().subcommands(&installed_extensions);
         sort_clap_commands(&mut app);
@@ -121,7 +124,7 @@ fn get_args_altered_for_extension_run(em: &ExtensionManager) -> DfxResult<Vec<Os
         let app = app.get_matches();
         // ...therefore we can safely unwrap here because we know a subcommand was provided
         let subcmd = app.subcommand().unwrap().0;
-        if em.is_extension_installed(subcmd) {
+        if installed.contains(subcmd) {
             let idx = args.iter().position(|arg| arg == subcmd).unwrap();
             args.splice(idx..idx, ["extension", "run"].iter().map(OsString::from));
         }
@@ -131,8 +134,9 @@ fn get_args_altered_for_extension_run(em: &ExtensionManager) -> DfxResult<Vec<Os
 
 fn inner_main() -> DfxResult {
     let em = ExtensionManager::new(dfx_version())?;
+    let installed_extension_manifests = em.load_installed_extension_manifests()?;
 
-    let args = get_args_altered_for_extension_run(&em)?;
+    let args = get_args_altered_for_extension_run(&installed_extension_manifests)?;
 
     let cli_opts = CliOpts::parse_from(args);
 
