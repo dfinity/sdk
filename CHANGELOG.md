@@ -2,7 +2,7 @@
 
 # UNRELEASED
 
-# 0.24.0
+# 0.23.0
 
 ### feat: Add canister snapshots
 
@@ -34,7 +34,6 @@ This incorporates the following executed proposals:
 
 - [131473](https://dashboard.internetcomputer.org/proposal/131473)
 
-# 0.23.0
 
 ## Dependencies
 
