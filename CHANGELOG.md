@@ -6,6 +6,8 @@
 
 `dfx start --pocketic` no longer requires `--clean`, and can persist replica state between runs.
 
+# 0.23.0
+
 ### feat: Add canister snapshots
 
 The new `dfx canister snapshot` command can be used to create, apply, and delete snapshots of stopped canisters.
@@ -36,7 +38,6 @@ This incorporates the following executed proposals:
 
 - [131473](https://dashboard.internetcomputer.org/proposal/131473)
 
-# 0.22.1
 
 ## Dependencies
 
