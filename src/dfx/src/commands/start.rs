@@ -323,7 +323,7 @@ pub fn exec(
     };
 
     let effective_config = if pocketic {
-        CachedConfig::pocketic(replica_rev().into())
+        CachedConfig::pocketic(&replica_config, replica_rev().into())
     } else {
         CachedConfig::replica(&replica_config, replica_rev().into())
     };
@@ -357,6 +357,7 @@ pub fn exec(
         let port_ready_subscribe: Recipient<PortReadySubscribe> = if pocketic {
             let server = start_pocketic_actor(
                 env,
+                replica_config,
                 local_server_descriptor,
                 shutdown_controller.clone(),
                 pocketic_port_path,

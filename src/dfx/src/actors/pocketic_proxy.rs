@@ -17,7 +17,6 @@ use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::Duration;
 use tempfile::tempdir;
-use tokio::runtime::Builder;
 use url::Url;
 
 pub mod signals {
@@ -271,7 +270,7 @@ fn pocketic_proxy_start_thread(
                     }
                 }
             };
-            if let Err(e) = block_on_initialize_gateway(
+            if let Err(e) = initialize_gateway(
                 format!("http://localhost:{port}").parse().unwrap(),
                 replica_url.clone(),
                 domains.clone(),
@@ -325,27 +324,8 @@ fn pocketic_proxy_start_thread(
         .map_err(DfxError::from)
 }
 
-fn block_on_initialize_gateway(
-    pocketic_url: Url,
-    replica_url: Url,
-    domains: Option<Vec<String>>,
-    addr: SocketAddr,
-    logger: Logger,
-) -> DfxResult {
-    Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(initialize_gateway(
-            pocketic_url,
-            replica_url,
-            domains,
-            addr,
-            logger,
-        ))
-}
-
 #[cfg(unix)]
+#[tokio::main(flavor = "current_thread")]
 async fn initialize_gateway(
     pocketic_url: Url,
     replica_url: Url,
@@ -380,7 +360,7 @@ async fn initialize_gateway(
 }
 
 #[cfg(not(unix))]
-async fn initialize_gateway(
+fn initialize_gateway(
     _: Url,
     _: Url,
     _: Option<Vec<String>>,
