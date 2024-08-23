@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: PocketIC state
+
+`dfx start --pocketic` no longer requires `--clean`, and can persist replica state between runs.
+
 # 0.23.0
 
 ### feat: Add canister snapshots
