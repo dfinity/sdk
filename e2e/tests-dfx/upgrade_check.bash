@@ -59,7 +59,7 @@ teardown() {
   jq '.canisters.hello_backend.main="v3_bad.mo"' dfx.json | sponge dfx.json
   echo yes | (
   assert_command dfx deploy
-  assert_match "Candid interface compatibility check failed
+  assert_match "Candid interface compatibility check failed"
   )
   assert_command dfx canister call hello_backend read2 '()'
   assert_match "(1 : int)"
