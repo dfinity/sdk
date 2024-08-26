@@ -6,6 +6,17 @@
 
 `dfx start --pocketic` no longer requires `--clean`, and can persist replica state between runs.
 
+### Replica
+
+Updated replica to elected commit 3d6a76efba59d6f03026d6b7c1c9a1dfce96ee93.
+This incorporates the following executed proposals:
+
+- [132149](https://dashboard.internetcomputer.org/proposal/132149)
+- [132148](https://dashboard.internetcomputer.org/proposal/132148)
+- [131787](https://dashboard.internetcomputer.org/proposal/131787)
+- [131757](https://dashboard.internetcomputer.org/proposal/131757)
+- [131697](https://dashboard.internetcomputer.org/proposal/131697)
+
 # 0.23.0
 
 ### feat: Add canister snapshots
