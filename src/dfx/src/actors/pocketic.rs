@@ -272,6 +272,7 @@ fn pocketic_start_thread(
                 port,
                 config.replica_config.state_manager.state_root.clone(),
                 config.replica_config.log_level,
+                config.replica_config.artificial_delay as u64,
                 logger.clone(),
             ) {
                 Err(e) => {
@@ -329,6 +330,7 @@ async fn initialize_pocketic(
     port: u16,
     state_dir: PathBuf,
     log_level: ReplicaLogLevel,
+    artificial_delay: u64,
     logger: Logger,
 ) -> DfxResult<usize> {
     use pocket_ic::common::rest::{
@@ -395,7 +397,13 @@ async fn initialize_pocketic(
 }
 
 #[cfg(not(unix))]
-fn initialize_pocketic(_: u16, _: PathBuf, _: ReplicaLogLevel, _: Logger) -> DfxResult<usize> {
+fn initialize_pocketic(
+    _: u16,
+    _: PathBuf,
+    _: ReplicaLogLevel,
+    _: u64,
+    _: Logger,
+) -> DfxResult<usize> {
     bail!("PocketIC not supported on this platform")
 }
 
