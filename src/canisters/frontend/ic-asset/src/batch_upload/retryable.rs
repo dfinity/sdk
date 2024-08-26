@@ -1,4 +1,4 @@
-use ic_agent::agent::http_transport::reqwest_transport::reqwest::StatusCode;
+use ic_agent::export::reqwest::StatusCode;
 use ic_agent::AgentError;
 
 pub(crate) fn retryable(agent_error: &AgentError) -> bool {
