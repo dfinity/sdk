@@ -51,7 +51,7 @@ teardown() {
   dfx deploy
   jq '.canisters.test.wasm="classical-actor.wasm"' dfx.json | sponge dfx.json
   assert_command_fail dfx deploy
-  assert_match "The ``wasm_memory_persistence: opt Keep`` upgrade option requires that the new canister module supports enhanced orthogonal persistence."
+  assert_match "The \`wasm_memory_persistence: opt Keep\` upgrade option requires that the new canister module supports enhanced orthogonal persistence."
 }
 
 @test "re-install Motoko enhanced orthogonal persistence with classical persistence" {
