@@ -11,7 +11,6 @@ use actix::{
 use anyhow::{anyhow, bail};
 use candid::Principal;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-#[cfg(unix)]
 use dfx_core::config::model::dfinity::ReplicaLogLevel;
 use dfx_core::config::model::replica_config::ReplicaConfig;
 use slog::{debug, error, info, warn, Logger};
@@ -350,7 +349,7 @@ async fn initialize_pocketic(
                 bitcoin: None,
                 system: vec![],
                 application: vec![SubnetSpec::default()],
-                verified_application: vec![SubnetSpec::default()],
+                verified_application: vec![],
             },
             state_dir: Some(state_dir),
             nonmainnet_features: true,
