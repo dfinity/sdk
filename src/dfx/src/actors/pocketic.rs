@@ -332,7 +332,8 @@ async fn initialize_pocketic(
     logger: Logger,
 ) -> DfxResult<usize> {
     use pocket_ic::common::rest::{
-        CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig, RawTime, SubnetSpec,
+        AutoProgressConfig, CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig,
+        RawTime, SubnetSpec,
     };
     use reqwest::Client;
     use time::OffsetDateTime;
@@ -383,6 +384,9 @@ async fn initialize_pocketic(
         .post(format!(
             "http://localhost:{port}/instances/{instance}/auto_progress"
         ))
+        .json(&AutoProgressConfig {
+            artificial_delay_ms: Some(1),
+        })
         .send()
         .await?
         .error_for_status()?;
