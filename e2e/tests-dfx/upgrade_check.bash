@@ -90,5 +90,5 @@ teardown() {
   assert_match "Stable interface compatibility check issued an ERROR"
   )
   assert_command dfx canister call hello_backend read '()'
-  assert_match "(0 : nat)"
+  assert_match "(0 : int)"
 }
