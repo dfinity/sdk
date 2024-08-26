@@ -11,6 +11,8 @@ use actix::{
 use anyhow::{anyhow, bail};
 use candid::Principal;
 use crossbeam::channel::{unbounded, Receiver, Sender};
+#[cfg(unix)]
+use dfx_core::config::model::dfinity::ReplicaLogLevel;
 use dfx_core::config::model::replica_config::ReplicaConfig;
 use slog::{debug, error, info, warn, Logger};
 use std::ops::ControlFlow::{self, *};
@@ -270,6 +272,7 @@ fn pocketic_start_thread(
             let instance = match initialize_pocketic(
                 port,
                 config.replica_config.state_manager.state_root.clone(),
+                config.replica_config.log_level,
                 logger.clone(),
             ) {
                 Err(e) => {
@@ -323,7 +326,12 @@ fn pocketic_start_thread(
 
 #[cfg(unix)]
 #[tokio::main(flavor = "current_thread")]
-async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> DfxResult<usize> {
+async fn initialize_pocketic(
+    port: u16,
+    state_dir: PathBuf,
+    log_level: ReplicaLogLevel,
+    logger: Logger,
+) -> DfxResult<usize> {
     use pocket_ic::common::rest::{
         CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig, RawTime, SubnetSpec,
     };
@@ -342,9 +350,11 @@ async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> D
                 bitcoin: None,
                 system: vec![],
                 application: vec![SubnetSpec::default()],
+                verified_application: vec![SubnetSpec::default()],
             },
             state_dir: Some(state_dir),
             nonmainnet_features: true,
+            log_level: Some(log_level.as_slog_string()),
         })
         .send()
         .await?

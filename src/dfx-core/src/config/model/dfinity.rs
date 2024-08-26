@@ -641,7 +641,7 @@ impl Default for ReplicaLogLevel {
 }
 
 impl ReplicaLogLevel {
-    pub fn as_ic_starter_string(&self) -> String {
+    pub fn as_slog_string(&self) -> String {
         match self {
             Self::Critical => "critical".to_string(),
             Self::Error => "error".to_string(),
