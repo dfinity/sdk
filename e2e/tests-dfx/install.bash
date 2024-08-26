@@ -108,6 +108,20 @@ teardown() {
   assert_match 'hello-script'
 }
 
+@test "post-install tasks run in project root" {
+  install_asset post_install
+  dfx_start
+
+  assert_command dfx canister create --all
+  assert_command dfx build
+
+  cd src/e2e_project_backend
+
+  assert_command dfx canister install postinstall_script
+  assert_match 'hello-script'
+  assert_match "working directory of post-install script: '.*/working-dir/e2e_project'"
+}
+
 @test "post-install tasks receive environment variables" {
   install_asset post_install
   dfx_start

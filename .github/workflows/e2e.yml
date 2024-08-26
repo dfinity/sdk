@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ens/sdk-1814-set-cwd-for-scripts
   pull_request:
 
 concurrency:

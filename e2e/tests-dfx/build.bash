@@ -279,6 +279,21 @@ teardown() {
   assert_match CUSTOM_CANISTER2_BUILD_DONE
 }
 
+@test "custom canister build script runs in project root" {
+  install_asset custom_canister
+  install_asset wasm/identity
+
+  dfx_start
+  dfx canister create custom2
+
+  cd src/e2e_project_backend
+  pwd
+
+  assert_command dfx build custom2
+  assert_match CUSTOM_CANISTER2_BUILD_DONE
+  assert_match "working directory of build script: '.*/working-dir/e2e_project'"
+}
+
 @test "build succeeds with network parameter" {
   dfx_start
   dfx canister create --all --network local
