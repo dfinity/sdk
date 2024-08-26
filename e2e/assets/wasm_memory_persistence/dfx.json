@@ -1,0 +1,9 @@
+{
+  "canisters": {
+    "test": {
+      "type": "custom",
+      "candid": "actor.did",
+      "wasm": "classical-actor.wasm"
+    }
+  }
+}
