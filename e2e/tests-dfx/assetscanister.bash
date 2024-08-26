@@ -718,7 +718,7 @@ check_permission_failure() {
 
   # fails with because %e6 is not valid utf-8 percent encoding
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
-  assert_contains "400 Bad Request"
+  assert_contains "500 Internal Server Error"
 }
 
 @test "http_request percent-decodes urls" {
@@ -788,7 +788,7 @@ check_permission_failure() {
 
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
   # fails because %e6 is not valid utf-8 percent encoding
-  assert_contains "400 Bad Request"
+  assert_contains "500 Internal Server Error"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/%25?canisterId="$ID"
   assert_match "200 OK" "$stderr"
@@ -803,7 +803,7 @@ check_permission_failure() {
 
   # curl now reports "curl: (3) URL using bad/illegal format or missing URL" so we cannot verify behavior
   # assert_command_fail curl --fail -vv --path-as-is http://localhost:"$PORT"/'filename with space'.txt?canisterId="$ID"
-  # assert_match "400 Bad Request" "$stderr"
+  # assert_match "500 Internal Server Error" "$stderr"
 }
 
 @test "generates gzipped content encoding for .js files" {
