@@ -2,11 +2,9 @@
 
 # UNRELEASED
 
-### feat: support `wasm_memory_persistence` for canister upgrades
+### feat: Support for Motoko's enhanced orthogonal persistence.
 
-Support Motoko enhanced orthogonal persistence with the canister upgrade option `wasm_memory_persistence`.
-* For all Motoko canisters with the installed version using enhanced orthogonal persistence: `Keep` the main memory.
-* For all other canisters, non-Motoko or Motoko with classical persistence: Use the `None` as default mode.
+Support Motoko's enhanced orthogonal persistence by automatically setting the canister upgrade option `wasm_memory_persistence` based on the Wasm metadata.
 
 ### feat: PocketIC state
 
