@@ -19,6 +19,6 @@ teardown() {
   dfx deploy
   ID=$(dfx canister id __Candid_UI)
   PORT=$(get_webserver_port)
-  assert_command curl http://localhost:"$PORT"/?canisterId="$ID"
+  assert_command curl http://raw.localhost:"$PORT"/?canisterId="$ID"
   assert_match "Candid UI"
 }
