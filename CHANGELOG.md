@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: support `wasm_memory_persistence` for canister upgrades
+
+Support Motoko enhanced orthogonal persistence with the canister upgrade option `wasm_memory_persistence`.
+* For all Motoko canisters with the installed version using enhanced orthogonal persistence: `Keep` the main memory.
+* For all other canisters, non-Motoko or Motoko with classical persistence: Use the `None` as default mode.
+
 ### feat: PocketIC state
 
 `dfx start --pocketic` no longer requires `--clean`, and can persist replica state between runs.
