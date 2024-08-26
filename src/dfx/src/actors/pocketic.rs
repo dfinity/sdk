@@ -387,7 +387,7 @@ async fn initialize_pocketic(
             "http://localhost:{port}/instances/{instance}/auto_progress"
         ))
         .json(&AutoProgressConfig {
-            artificial_delay_ms: Some(1),
+            artificial_delay_ms: Some(artificial_delay),
         })
         .send()
         .await?
