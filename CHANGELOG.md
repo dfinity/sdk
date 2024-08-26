@@ -6,6 +6,17 @@
 
 `dfx start --pocketic` no longer requires `--clean`, and can persist replica state between runs.
 
+### fix: Scripts always run with current directory set to the project root
+
+Build scripts and other scripts now always run with the working directory
+set to the project root (directory containing dfx.json).
+
+This applies to the following:
+ - build scripts
+ - extension run
+ - tech stack value computation
+ - packtool (vessel, mops etc)
+
 # 0.23.0
 
 ### feat: Add canister snapshots
