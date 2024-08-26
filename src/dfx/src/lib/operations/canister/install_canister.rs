@@ -66,10 +66,9 @@ pub async fn install_canister(
         installed_module_hash.as_ref().map(hex::encode)
     );
     let wasm_memory_persistence =
-        match read_module_metadata(agent, canister_id, "enhanced-orthogonal-persistence").await {
-            Some(_) => Some(WasmMemoryPersistence::Keep),
-            None => None,
-        };
+        read_module_metadata(agent, canister_id, "enhanced-orthogonal-persistence")
+            .await
+            .map(|_| WasmMemoryPersistence::Keep);
     let mode = mode.unwrap_or_else(|| {
         if installed_module_hash.is_some() {
             InstallMode::Upgrade(Some(CanisterUpgradeOptions {

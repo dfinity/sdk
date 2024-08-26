@@ -5,4 +5,8 @@ actor {
 
     version += 1;
     Prim.debugPrint("Deployed actor version " # debug_show (version));
+
+    public query func getVersion() : async Nat {
+        return version;
+    };
 };
