@@ -396,6 +396,7 @@ fn check_stable_compatibility(
         .arg("--stable-compatible")
         .arg(&deployed_stable_path)
         .arg(stable_path)
+        .current_dir(canister_info.get_workspace_root())
         .output()
         .context("Failed to run 'moc'.")?;
     Ok(if !output.status.success() {
