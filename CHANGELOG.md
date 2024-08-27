@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+## Dependencies
+
 ### feat: PocketIC state
 
 `dfx start --pocketic` no longer requires `--clean`, and can persist replica state between runs.
@@ -17,11 +19,9 @@ This incorporates the following executed proposals:
 - [131757](https://dashboard.internetcomputer.org/proposal/131757)
 - [131697](https://dashboard.internetcomputer.org/proposal/131697)
 
-## Dependencies
+### Frontend canister
 
 Updated dependencies.
-
-### Frontend canister
 
 - Module hash: 40b724e15709e9a7ac546e845c5922ed9c1c62a105bb1c906b717e142e536631
 - https://github.com/dfinity/sdk/pull/3889
