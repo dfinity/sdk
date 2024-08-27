@@ -4,7 +4,7 @@ use crate::lib::{
 use anyhow::Context;
 use dfx_core::config::model::dfinity::DEFAULT_IC_GATEWAY;
 use fn_error_context::context;
-use ic_agent::{agent::http_transport::ReqwestTransport, Agent};
+use ic_agent::Agent;
 use rust_decimal::Decimal;
 
 /// How many cycles you get per XDR when converting ICP to cycles
@@ -15,10 +15,7 @@ const CYCLES_PER_XDR: u128 = 1_000_000_000_000;
 #[context("Encountered a problem while fetching the exchange rate between ICP and cycles. If this issue continues to happen, please specify an amount in cycles directly.")]
 pub async fn as_cycles_with_current_exchange_rate(icpts: &ICPTs) -> DfxResult<u128> {
     let agent = Agent::builder()
-        .with_transport(
-            ReqwestTransport::create(DEFAULT_IC_GATEWAY)
-                .context("Failed to create transport object to default ic gateway.")?,
-        )
+        .with_url(DEFAULT_IC_GATEWAY)
         .build()
         .context("Cannot create mainnet agent.")?;
     let xdr_permyriad_per_icp = xdr_permyriad_per_icp(&agent).await?;
