@@ -44,6 +44,8 @@ You can use the following options with the `dfx deploy` command.
 | `--subnet-type <subnet-type>`      | Specify the subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                                                                                                             |
 | `--subnet <subnet-principal>`      | Specify the subnet to create the canister on. If no subnet is provided, the canister will be created on a random default application subnet.                                                                                                                       |
 | `--next-to <canister-principal>`   | Create canisters on the same subnet as this canister.                                                                                                                                                                                                              |
+| `--skip-pre-upgrade`               | Skip the pre_upgrade hook on upgrade. This requires the upgrade/auto mode.                                                                                                                                                                                         |
+| `--wasm-memory-persistence <mode>` | Keep or replace the Wasm main memory on upgrade. Possible values: keep, replace. This requires the upgrade/auto mode.                                                                                                                                              |
 
 ### Specifies the argument to pass to the init entrypoint
 
