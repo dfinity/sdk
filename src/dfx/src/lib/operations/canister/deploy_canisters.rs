@@ -144,11 +144,9 @@ pub async fn deploy_canisters(
 
     match deploy_mode {
         NormalDeploy | ForceReinstallSingleCanister(_) => {
-            // let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
             install_canisters(
                 env,
                 &canisters_to_install,
-                // &initial_canister_id_store,
                 &config,
                 argument,
                 argument_type,
@@ -314,7 +312,6 @@ async fn build_canisters(
 async fn install_canisters(
     env: &dyn Environment,
     canister_names: &[String],
-    // initial_canister_id_store: &CanisterIdStore,
     config: &Config,
     argument: Option<&str>,
     argument_type: Option<&str>,
@@ -332,15 +329,6 @@ async fn install_canisters(
     let mut canister_id_store = env.get_canister_id_store()?;
 
     for canister_name in canister_names {
-        // let install_mode = if force_reinstall {
-        //     Some(InstallMode::Reinstall)
-        // } else {
-        //     match initial_canister_id_store.find(canister_name) {
-        //         Some(_) => None,
-        //         None => Some(InstallMode::Install),
-        //     }
-        // };
-
         let canister_id = canister_id_store.get(canister_name)?;
         let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
 
