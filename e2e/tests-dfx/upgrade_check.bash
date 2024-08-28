@@ -33,7 +33,7 @@ teardown() {
   jq '.canisters.hello_backend.main="v2_bad.mo"' dfx.json | sponge dfx.json
   echo yes | (
   assert_command dfx deploy
-  assert_match "Stable interface compatibility check failed"
+  assert_match "Stable interface compatibility check issued an ERROR"
   )
   assert_command dfx canister call hello_backend read '()'
   assert_match "(0 : nat)"
@@ -77,4 +77,18 @@ teardown() {
   )
   assert_command dfx canister call hello_backend f '()'
   assert_match "(opt \"\")"
+}
+
+@test "warning when dropping stable variable" {
+  install_asset upgrade
+  dfx_start
+  dfx deploy
+  dfx canister call hello_backend inc '()'
+  jq '.canisters.hello_backend.main="v5.mo"' dfx.json | sponge dfx.json
+  echo yes | (
+  assert_command dfx deploy
+  assert_match "Stable interface compatibility check issued an ERROR"
+  )
+  assert_command dfx canister call hello_backend read '()'
+  assert_match "(0 : int)"
 }
