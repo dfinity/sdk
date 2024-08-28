@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: Also report Motoko stable compatibility warnings
+
+Report upgrade compatibility warnings for Motoko, such as deleted stable variables, in addition to compatibility errors.
+
 ### feat: Support for Motoko's enhanced orthogonal persistence.
 
 Support Motoko's enhanced orthogonal persistence by automatically setting the canister upgrade option `wasm_memory_persistence` based on the Wasm metadata.
