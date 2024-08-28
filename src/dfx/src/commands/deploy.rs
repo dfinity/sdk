@@ -9,10 +9,11 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
+use crate::util::clap::install_mode::InstallModeOpt;
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
 use crate::util::url::{construct_frontend_url, construct_ui_canister_url};
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail};
 use candid::Principal;
 use clap::Parser;
 use console::Style;
@@ -23,7 +24,6 @@ use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
-use std::str::FromStr;
 use tokio::runtime::Runtime;
 use url::Url;
 
@@ -37,12 +37,8 @@ pub struct DeployOpts {
     #[command(flatten)]
     argument_from_cli: ArgumentFromCliLongOpt,
 
-    /// Force the type of deployment to be reinstall, which overwrites the module.
-    /// In other words, this erases all data in the canister.
-    /// By default, upgrade will be chosen automatically if the module already exists,
-    /// or install if it does not.
-    #[arg(long, short, value_parser = ["reinstall"])]
-    mode: Option<String>,
+    #[command(flatten)]
+    install_mode: InstallModeOpt,
 
     /// Upgrade the canister even if the .wasm did not change.
     #[arg(long)]
@@ -127,13 +123,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     if argument_from_cli.is_some() && canister_name.is_none() {
         bail!("The init argument can only be set when deploying a single canister.");
     }
-    let mode = opts
-        .mode
-        .as_deref()
-        .map(InstallMode::from_str)
-        .transpose()
-        .map_err(|err| anyhow!(err))
-        .context("Failed to parse InstallMode.")?;
+    let mode = opts.install_mode.mode_for_deploy()?;
     let config = env.get_config_or_anyhow()?;
     let env_file = config.get_output_env_file(opts.output_env_file)?;
     let mut subnet_selection =
@@ -156,7 +146,8 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
             bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister.");
         }
         (Some(_), _) => {
-            unreachable!("The only valid option for --mode is --mode=reinstall");
+            // unreachable!("The only valid option for --mode is --mode=reinstall");
+            NormalDeploy
         }
         (None, None) if opts.by_proposal => {
             bail!("The --by-proposal flag is only valid when deploying a single canister.");
@@ -184,6 +175,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         argument_from_cli.as_deref(),
         argument_type.as_deref(),
         &deploy_mode,
+        mode,
         opts.upgrade_unchanged,
         with_cycles,
         opts.created_at_time,

@@ -45,6 +45,7 @@ pub async fn deploy_canisters(
     argument: Option<&str>,
     argument_type: Option<&str>,
     deploy_mode: &DeployMode,
+    install_mode: Option<InstallMode>,
     upgrade_unchanged: bool,
     with_cycles: Option<u128>,
     created_at_time: Option<u64>,
@@ -143,15 +144,15 @@ pub async fn deploy_canisters(
 
     match deploy_mode {
         NormalDeploy | ForceReinstallSingleCanister(_) => {
-            let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
+            // let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
             install_canisters(
                 env,
                 &canisters_to_install,
-                &initial_canister_id_store,
+                // &initial_canister_id_store,
                 &config,
                 argument,
                 argument_type,
-                force_reinstall,
+                install_mode,
                 upgrade_unchanged,
                 call_sender,
                 pool,
@@ -313,11 +314,11 @@ async fn build_canisters(
 async fn install_canisters(
     env: &dyn Environment,
     canister_names: &[String],
-    initial_canister_id_store: &CanisterIdStore,
+    // initial_canister_id_store: &CanisterIdStore,
     config: &Config,
     argument: Option<&str>,
     argument_type: Option<&str>,
-    force_reinstall: bool,
+    install_mode: Option<InstallMode>,
     upgrade_unchanged: bool,
     call_sender: &CallSender,
     pool: CanisterPool,
@@ -331,14 +332,14 @@ async fn install_canisters(
     let mut canister_id_store = env.get_canister_id_store()?;
 
     for canister_name in canister_names {
-        let install_mode = if force_reinstall {
-            Some(InstallMode::Reinstall)
-        } else {
-            match initial_canister_id_store.find(canister_name) {
-                Some(_) => None,
-                None => Some(InstallMode::Install),
-            }
-        };
+        // let install_mode = if force_reinstall {
+        //     Some(InstallMode::Reinstall)
+        // } else {
+        //     match initial_canister_id_store.find(canister_name) {
+        //         Some(_) => None,
+        //         None => Some(InstallMode::Install),
+        //     }
+        // };
 
         let canister_id = canister_id_store.get(canister_name)?;
         let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;

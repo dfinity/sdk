@@ -6,16 +6,16 @@ use crate::lib::operations::canister::install_canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::blob_from_arguments;
 use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
+use crate::util::clap::install_mode::InstallModeOpt;
 use dfx_core::canister::{install_canister_wasm, install_mode_to_prompt};
 use dfx_core::identity::CallSender;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use candid::Principal;
 use clap::Parser;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use slog::info;
 use std::path::PathBuf;
-use std::str::FromStr;
 
 /// Installs compiled code in a canister.
 #[derive(Parser, Clone)]
@@ -36,11 +36,8 @@ pub struct CanisterInstallOpts {
     #[arg(long)]
     async_call: bool,
 
-    /// Specifies the type of deployment. You can set the canister deployment modes to install, reinstall, or upgrade.
-    /// If auto is selected, either install or upgrade will be used depending on if the canister has already been installed.
-    #[arg(long, short, default_value("install"),
-        value_parser = ["install", "reinstall", "upgrade", "auto"])]
-    mode: String,
+    #[command(flatten)]
+    install_mode: InstallModeOpt,
 
     /// Upgrade the canister even if the .wasm did not change.
     #[arg(long)]
@@ -82,11 +79,7 @@ pub async fn exec(
 ) -> DfxResult {
     fetch_root_key_if_needed(env).await?;
 
-    let mode = if opts.mode == "auto" {
-        None
-    } else {
-        Some(InstallMode::from_str(&opts.mode).map_err(|err| anyhow!(err))?)
-    };
+    let mode = opts.install_mode.mode_for_canister_install()?;
     let mut canister_id_store = env.get_canister_id_store()?;
     let network = env.get_network_descriptor();
 
