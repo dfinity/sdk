@@ -11,7 +11,7 @@ use actix::{
 use anyhow::{anyhow, bail};
 use candid::Principal;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use dfx_core::config::model::replica_config::ReplicaConfig;
+use dfx_core::config::model::{dfinity::ReplicaSubnetType, replica_config::ReplicaConfig};
 use slog::{debug, error, info, warn, Logger};
 use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
@@ -267,11 +267,7 @@ fn pocketic_start_thread(
                         }
                     }
                 };
-            let instance = match initialize_pocketic(
-                port,
-                config.replica_config.state_manager.state_root.clone(),
-                logger.clone(),
-            ) {
+            let instance = match initialize_pocketic(port, &config.replica_config, logger.clone()) {
                 Err(e) => {
                     error!(logger, "Failed to initialize PocketIC: {e:#}");
 
@@ -323,28 +319,43 @@ fn pocketic_start_thread(
 
 #[cfg(unix)]
 #[tokio::main(flavor = "current_thread")]
-async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> DfxResult<usize> {
+async fn initialize_pocketic(
+    port: u16,
+    replica_config: &ReplicaConfig,
+    logger: Logger,
+) -> DfxResult<usize> {
     use pocket_ic::common::rest::{
-        CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig, RawTime, SubnetSpec,
+        AutoProgressConfig, CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig,
+        RawTime, SubnetSpec,
     };
     use reqwest::Client;
     use time::OffsetDateTime;
     let init_client = Client::new();
     debug!(logger, "Configuring PocketIC server");
+    let mut subnet_config_set = ExtendedSubnetConfigSet {
+        nns: Some(SubnetSpec::default()),
+        sns: Some(SubnetSpec::default()),
+        ii: None,
+        fiduciary: None,
+        bitcoin: None,
+        system: vec![],
+        verified_application: vec![],
+        application: vec![],
+    };
+    match replica_config.subnet_type {
+        ReplicaSubnetType::Application => subnet_config_set.application.push(<_>::default()),
+        ReplicaSubnetType::System => subnet_config_set.system.push(<_>::default()),
+        ReplicaSubnetType::VerifiedApplication => {
+            subnet_config_set.verified_application.push(<_>::default())
+        }
+    }
     let resp = init_client
         .post(format!("http://localhost:{port}/instances"))
         .json(&InstanceConfig {
-            subnet_config_set: ExtendedSubnetConfigSet {
-                nns: Some(SubnetSpec::default()),
-                sns: Some(SubnetSpec::default()),
-                ii: None,
-                fiduciary: None,
-                bitcoin: None,
-                system: vec![],
-                application: vec![SubnetSpec::default()],
-            },
-            state_dir: Some(state_dir),
+            subnet_config_set,
+            state_dir: Some(replica_config.state_manager.state_root.clone()),
             nonmainnet_features: true,
+            log_level: None,
         })
         .send()
         .await?
@@ -374,6 +385,9 @@ async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> D
         .post(format!(
             "http://localhost:{port}/instances/{instance}/auto_progress"
         ))
+        .json(&AutoProgressConfig {
+            artificial_delay_ms: Some(replica_config.artificial_delay as u64),
+        })
         .send()
         .await?
         .error_for_status()?;
@@ -382,7 +396,7 @@ async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> D
 }
 
 #[cfg(not(unix))]
-fn initialize_pocketic(_: u16, _: PathBuf, _: Logger) -> DfxResult<usize> {
+fn initialize_pocketic(_: u16, _: &ReplicaConfig, _: Logger) -> DfxResult<usize> {
     bail!("PocketIC not supported on this platform")
 }
 

@@ -4562,7 +4562,7 @@ dependencies = [
 [[package]]
 name = "pocket-ic"
 version = "4.0.0"
-source = "git+https://github.com/dfinity/ic?rev=3d0b3f10417fc6708e8b5d844a0bac5e86f3e17d#3d0b3f10417fc6708e8b5d844a0bac5e86f3e17d"
+source = "git+https://github.com/dfinity/ic?rev=3d6a76efba59d6f03026d6b7c1c9a1dfce96ee93#3d6a76efba59d6f03026d6b7c1c9a1dfce96ee93"
 dependencies = [
  "base64 0.13.1",
  "candid",
@@ -4574,6 +4574,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "sha2 0.10.8",
+ "slog",
  "tokio",
  "tracing",
  "tracing-appender",

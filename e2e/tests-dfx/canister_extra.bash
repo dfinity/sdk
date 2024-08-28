@@ -44,3 +44,16 @@ teardown() {
     assert_command_fail dfx canister snapshot create hello_backend
     assert_contains 'Canister hello_backend is running and snapshots should not be taken of running canisters'
 }
+
+@test "can query a website" {
+  dfx_start
+
+  dfx_new
+  install_asset canister_http
+
+  dfx deploy
+
+  assert_command dfx canister call e2e_project_backend get_url '("www.githubstatus.com:443","https://www.githubstatus.com:443")'
+  assert_contains "Git Operations"
+  assert_contains "API Requests"
+}
