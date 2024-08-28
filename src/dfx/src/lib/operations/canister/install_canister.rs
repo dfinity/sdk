@@ -21,7 +21,9 @@ use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::Agent;
-use ic_utils::interfaces::management_canister::builders::InstallMode;
+use ic_utils::interfaces::management_canister::builders::{
+    CanisterUpgradeOptions, InstallMode, WasmMemoryPersistence,
+};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
@@ -63,9 +65,16 @@ pub async fn install_canister(
         "Previously installed module hash: {:?}",
         installed_module_hash.as_ref().map(hex::encode)
     );
+    let wasm_memory_persistence =
+        read_module_metadata(agent, canister_id, "enhanced-orthogonal-persistence")
+            .await
+            .map(|_| WasmMemoryPersistence::Keep);
     let mode = mode.unwrap_or_else(|| {
         if installed_module_hash.is_some() {
-            InstallMode::Upgrade(None)
+            InstallMode::Upgrade(Some(CanisterUpgradeOptions {
+                wasm_memory_persistence,
+                skip_pre_upgrade: None,
+            }))
         } else {
             InstallMode::Install
         }
@@ -397,6 +406,7 @@ fn check_stable_compatibility(
         .arg("--stable-compatible")
         .arg(&deployed_stable_path)
         .arg(stable_path)
+        .current_dir(canister_info.get_workspace_root())
         .output()
         .context("Failed to run 'moc'.")?;
     let message = String::from_utf8_lossy(&output.stderr).to_string();

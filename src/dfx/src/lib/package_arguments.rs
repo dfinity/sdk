@@ -2,6 +2,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use anyhow::{anyhow, bail};
 use dfx_core::config::cache::Cache;
 use fn_error_context::context;
+use std::path::Path;
 use std::process::Command;
 
 /// Package arguments for moc or mo-ide as returned by
@@ -10,7 +11,11 @@ use std::process::Command;
 pub type PackageArguments = Vec<String>;
 
 #[context("Failed to load package arguments.")]
-pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageArguments> {
+pub fn load(
+    cache: &dyn Cache,
+    packtool: &Option<String>,
+    project_root: &Path,
+) -> DfxResult<PackageArguments> {
     if packtool.is_none() {
         let stdlib_path = cache
             .get_binary_command_path("base")?
@@ -29,6 +34,8 @@ pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageAr
         .collect();
 
     let mut cmd = Command::new(commandline[0].clone());
+    cmd.current_dir(project_root);
+
     for arg in commandline.iter().skip(1) {
         cmd.arg(arg);
     }
