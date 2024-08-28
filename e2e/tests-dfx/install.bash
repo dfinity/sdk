@@ -339,3 +339,20 @@ Please remove one of them or leave both undefined."
   echo yes | dfx canister install --mode=reinstall custom
   done
 }
+
+@test "specify upgrade options (skip_pre_upgrade, wasm_memory_persistence)" {
+  dfx_start
+  dfx deploy e2e_project_backend
+
+  assert_command dfx canister install e2e_project_backend --skip-pre-upgrade
+  assert_command dfx canister install e2e_project_backend --wasm-memory-persistence keep
+  assert_command dfx canister install e2e_project_backend --wasm-memory-persistence replace
+  assert_command dfx canister install e2e_project_backend --skip-pre-upgrade --wasm-memory-persistence keep
+  assert_command dfx canister install e2e_project_backend --mode auto --skip-pre-upgrade
+  assert_command dfx canister install e2e_project_backend --mode upgrade --skip-pre-upgrade
+
+  assert_command_fail dfx canister install e2e_project_backend --mode install --skip-pre-upgrade
+  assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
+  assert_command_fail dfx canister install e2e_project_backend --mode install --wasm-memory-persistence keep
+  assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
+}
