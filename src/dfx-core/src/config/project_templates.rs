@@ -7,6 +7,7 @@ type GetArchiveFn = fn() -> Result<tar::Archive<flate2::read::GzDecoder<&'static
 
 #[derive(Debug, Clone)]
 pub enum ResourceLocation {
+    /// The template's assets are compiled into the dfx binary
     Bundled { get_archive_fn: GetArchiveFn },
 }
 
@@ -20,14 +21,28 @@ pub struct ProjectTemplateName(pub String);
 
 #[derive(Debug, Clone)]
 pub struct ProjectTemplate {
+    /// The name of the template as specified on the command line, for example `--type rust`
     pub name: ProjectTemplateName,
-    pub display: String,
-    pub resource_location: ResourceLocation,
-    pub category: Category,
-    pub sort_order: u32,
 
+    /// The name used for display and sorting
+    pub display: String,
+
+    /// How to obtain the template's files
+    pub resource_location: ResourceLocation,
+
+    /// Used to determine which CLI group (`--type`, `--backend`, `--frontend`)
+    /// as well as for interactive selection
+    pub category: Category,
+
+    /// If true, run `cargo update` after creating the project.
     pub update_cargo_lockfile: bool,
+
+    /// If true, patch in the any_js template files.
     pub has_js: bool,
+
+    /// The sort order of the template. This will be fixed (motoko=0, rust=1, everything else=2)
+    /// and not settable in properties
+    pub sort_order: u32,
 }
 
 type ProjectTemplates = BTreeMap<ProjectTemplateName, ProjectTemplate>;
