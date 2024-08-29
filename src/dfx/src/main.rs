@@ -194,10 +194,10 @@ pub fn sort_clap_commands(cmd: &mut clap::Command) {
 
 #[cfg(test)]
 mod tests {
+    use crate::lib::project::templates::builtin_templates;
+    use crate::CliOpts;
     use clap::CommandFactory;
     use dfx_core::config::project_templates;
-    use crate::CliOpts;
-    use crate::lib::project::templates::builtin_templates;
 
     #[test]
     fn validate_cli() {
