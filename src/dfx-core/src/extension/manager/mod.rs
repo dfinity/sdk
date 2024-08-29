@@ -1,12 +1,8 @@
 use crate::config::cache::get_cache_path_for_version;
 use crate::error::extension::{
-    GetExtensionBinaryError, LoadExtensionManifestsError,
-    NewExtensionManagerError,
+    GetExtensionBinaryError, LoadExtensionManifestsError, NewExtensionManagerError,
 };
-use crate::extension::{
-    installed::InstalledExtensionManifests,
-    manifest::ExtensionManifest,
-};
+use crate::extension::{installed::InstalledExtensionManifests, manifest::ExtensionManifest};
 pub use install::InstallOutcome;
 use semver::Version;
 use std::collections::HashMap;

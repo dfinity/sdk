@@ -3,8 +3,8 @@ use std::vec;
 use super::ExtensionManager;
 use crate::error::extension::ListInstalledExtensionsError;
 use crate::extension::catalog::ExtensionCatalog;
-use crate::extension::ExtensionName;
 use crate::extension::installed::InstalledExtensionList;
+use crate::extension::ExtensionName;
 
 use url::Url;
 
@@ -37,11 +37,10 @@ impl ExtensionManager {
 
     pub async fn list_remote_extensions(
         &self,
-        catalog_url: Option<&Url>
-    ) -> Result<RemoteExtensionList, ListInstalledExtensionsError>
-    {
-        let _catalog = ExtensionCatalog::fetch(catalog_url).await.unwrap();
-        let extensions : Vec<String> = _catalog.0.into_keys().collect();
+        catalog_url: Option<&Url>,
+    ) -> Result<RemoteExtensionList, ListInstalledExtensionsError> {
+        let catalog = ExtensionCatalog::fetch(catalog_url).await.unwrap();
+        let extensions: Vec<String> = catalog.0.into_keys().collect();
 
         Ok(extensions)
     }

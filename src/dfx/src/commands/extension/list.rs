@@ -8,9 +8,7 @@ use url::Url;
 #[derive(Parser)]
 pub struct ListOpts {
     /// Specifies to list the installed extensions.
-    #[arg(long,
-        conflicts_with("catalog_url"),
-    )]
+    #[arg(long, conflicts_with("catalog_url"))]
     installed: bool,
     /// Specifies the URL of the catalog to use to find the extension.
     #[clap(long)]
@@ -18,8 +16,6 @@ pub struct ListOpts {
 }
 
 pub fn exec(env: &dyn Environment, opts: ListOpts) -> DfxResult<()> {
-    // println!("{}", opts.installed);
-
     let mgr = env.get_extension_manager();
     let extensions;
     let extension_msg_1;
@@ -31,10 +27,8 @@ pub fn exec(env: &dyn Environment, opts: ListOpts) -> DfxResult<()> {
         extension_msg_2 = "Installed extensions:";
     } else {
         let runtime = Runtime::new().expect("Unable to create a runtime");
-        extensions = runtime.block_on(async {
-            mgr.list_remote_extensions(opts.catalog_url.as_ref())
-            .await
-        })?;
+        extensions = runtime
+            .block_on(async { mgr.list_remote_extensions(opts.catalog_url.as_ref()).await })?;
 
         extension_msg_1 = "No remote extensions available.";
         extension_msg_2 = "Remote extensions:";
