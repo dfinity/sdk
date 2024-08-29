@@ -1,10 +1,10 @@
 use crate::config::cache::get_cache_path_for_version;
 use crate::error::extension::{
-    GetExtensionBinaryError, ListInstalledExtensionsError, LoadExtensionManifestsError,
+    GetExtensionBinaryError, LoadExtensionManifestsError,
     NewExtensionManagerError,
 };
 use crate::extension::{
-    installed::{InstalledExtensionList, InstalledExtensionManifests},
+    installed::InstalledExtensionManifests,
     manifest::ExtensionManifest,
 };
 pub use install::InstallOutcome;
@@ -14,6 +14,7 @@ use std::path::PathBuf;
 
 mod execute;
 mod install;
+mod list;
 mod uninstall;
 
 pub struct ExtensionManager {
@@ -57,30 +58,6 @@ impl ExtensionManager {
 
     pub fn is_extension_installed(&self, extension_name: &str) -> bool {
         self.get_extension_directory(extension_name).exists()
-    }
-
-    pub fn list_installed_extensions(
-        &self,
-    ) -> Result<InstalledExtensionList, ListInstalledExtensionsError> {
-        if !self.dir.exists() {
-            return Ok(vec![]);
-        }
-        let dir_content = crate::fs::read_dir(&self.dir)?;
-
-        let extensions = dir_content
-            .filter_map(|v| {
-                let dir_entry = v.ok()?;
-                if dir_entry.file_type().map_or(false, |e| e.is_dir())
-                    && !dir_entry.file_name().to_str()?.starts_with(".tmp")
-                {
-                    let name = dir_entry.file_name().to_string_lossy().to_string();
-                    Some(name)
-                } else {
-                    None
-                }
-            })
-            .collect();
-        Ok(extensions)
     }
 
     pub fn load_installed_extension_manifests(
