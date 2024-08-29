@@ -349,6 +349,7 @@ pub fn execute_command(
         sh_cmd.args(["-c", command]);
         sh_cmd
     };
+    cmd.current_dir(cwd);
 
     if !catch_output {
         cmd.stdin(Stdio::inherit())

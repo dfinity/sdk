@@ -675,6 +675,48 @@ EOF
   assert_eq "pamparam the param is 123"
 }
 
+@test "extension run uses project root" {
+  CACHE_DIR=$(dfx cache show)
+  mkdir -p "$CACHE_DIR"/extensions/test_extension
+
+  cat > "$CACHE_DIR"/extensions/test_extension/test_extension << "EOF"
+#!/usr/bin/env bash
+
+echo "the current directory is '$(pwd)'"
+
+EOF
+
+  chmod +x "$CACHE_DIR"/extensions/test_extension/test_extension
+
+  cat > "$CACHE_DIR"/extensions/test_extension/extension.json <<EOF
+{
+  "name": "test_extension",
+  "version": "0.1.0",
+  "homepage": "https://github.com/dfinity/dfx-extensions",
+  "authors": "DFINITY",
+  "summary": "Test extension for e2e purposes.",
+  "categories": [],
+  "keywords": [],
+  "subcommands": {
+  "abc": {
+  "about": "something something",
+  "args": {
+  }
+  }
+  }
+}
+EOF
+
+  mkdir -p project || exit
+  cd project || exit
+  echo "{}" >dfx.json
+  mkdir -p subdir || exit
+  cd subdir || exit
+
+  assert_command dfx test_extension abc
+  assert_match "the current directory is '.*/working-dir/project'"
+}
+
 @test "run with multiple values for the same parameter" {
   CACHE_DIR=$(dfx cache show)
   mkdir -p "$CACHE_DIR"/extensions/test_extension

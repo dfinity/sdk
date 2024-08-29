@@ -271,6 +271,7 @@ pub struct ConfigCanistersCanister {
 
     /// # Post-Install Commands
     /// One or more commands to run post canister installation.
+    /// These commands are executed in the root of the project.
     #[serde(default)]
     pub post_install: SerdeVec<String>,
 
@@ -379,6 +380,7 @@ pub enum CanisterTypeProperties {
         /// Commands that are executed in order to produce this canister's Wasm module.
         /// Expected to produce the Wasm in the path specified by the 'wasm' field.
         /// No build commands are allowed if the `wasm` field is a URL.
+        /// These commands are executed in the root of the project.
         #[schemars(default)]
         build: SerdeVec<String>,
     },
@@ -617,6 +619,7 @@ impl Default for ConfigDefaultsBootstrap {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBuild {
     /// Main command to run the packtool.
+    /// This command is executed in the root of the project.
     pub packtool: Option<String>,
 
     /// Arguments for packtool.
