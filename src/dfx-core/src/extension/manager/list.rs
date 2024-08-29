@@ -1,7 +1,7 @@
 use std::vec;
 
 use super::ExtensionManager;
-use crate::error::extension::ListInstalledExtensionsError;
+use crate::error::extension::{ListInstalledExtensionsError, ListRemoteExtensionsError};
 use crate::extension::catalog::ExtensionCatalog;
 use crate::extension::installed::InstalledExtensionList;
 use crate::extension::ExtensionName;
@@ -38,8 +38,10 @@ impl ExtensionManager {
     pub async fn list_remote_extensions(
         &self,
         catalog_url: Option<&Url>,
-    ) -> Result<RemoteExtensionList, ListInstalledExtensionsError> {
-        let catalog = ExtensionCatalog::fetch(catalog_url).await.unwrap();
+    ) -> Result<RemoteExtensionList, ListRemoteExtensionsError> {
+        let catalog = ExtensionCatalog::fetch(catalog_url)
+            .await
+            .map_err(ListRemoteExtensionsError::FetchCatalog)?;
         let extensions: Vec<String> = catalog.0.into_keys().collect();
 
         Ok(extensions)

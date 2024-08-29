@@ -40,6 +40,12 @@ pub enum ListInstalledExtensionsError {
 }
 
 #[derive(Error, Debug)]
+pub enum ListRemoteExtensionsError {
+    #[error(transparent)]
+    FetchCatalog(#[from] FetchCatalogError),
+}
+
+#[derive(Error, Debug)]
 pub enum LoadExtensionManifestsError {
     #[error(transparent)]
     ListInstalledExtensions(#[from] ListInstalledExtensionsError),
