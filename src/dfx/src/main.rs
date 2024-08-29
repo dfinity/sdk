@@ -195,11 +195,14 @@ pub fn sort_clap_commands(cmd: &mut clap::Command) {
 #[cfg(test)]
 mod tests {
     use clap::CommandFactory;
-
+    use dfx_core::config::project_templates;
     use crate::CliOpts;
+    use crate::lib::project::templates::builtin_templates;
 
     #[test]
     fn validate_cli() {
+        project_templates::populate(builtin_templates());
+
         CliOpts::command().debug_assert();
     }
 }
