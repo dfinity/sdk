@@ -21,7 +21,8 @@ pub struct ProjectTemplateName(pub String);
 
 #[derive(Debug, Clone)]
 pub struct ProjectTemplate {
-    /// The name of the template as specified on the command line, for example `--type rust`
+    /// The name of the template as specified on the command line,
+    /// for example `--type rust`
     pub name: ProjectTemplateName,
 
     /// The name used for display and sorting
@@ -34,14 +35,16 @@ pub struct ProjectTemplate {
     /// as well as for interactive selection
     pub category: Category,
 
-    /// If true, run `cargo update` after creating the project.
+    /// If true, run `cargo update` after creating the project
     pub update_cargo_lockfile: bool,
 
-    /// If true, patch in the any_js template files.
+    /// If true, patch in the any_js template files
     pub has_js: bool,
 
-    /// The sort order of the template. This will be fixed (motoko=0, rust=1, everything else=2)
-    /// and not settable in properties
+    /// The sort order is fixed rather than settable in properties:
+    /// - motoko=0
+    /// - rust=1
+    /// - everything else=2 (and then by display name)
     pub sort_order: u32,
 }
 
