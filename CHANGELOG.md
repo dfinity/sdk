@@ -25,6 +25,8 @@ This applies to the following:
  - tech stack value computation
  - packtool (vessel, mops etc)
 
+### chore: update Candid UI canister with commit <tbd>
+
 ## Dependencies
 
 ### Replica
