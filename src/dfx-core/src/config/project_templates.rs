@@ -25,6 +25,9 @@ pub struct ProjectTemplate {
     pub resource_location: ResourceLocation,
     pub category: Category,
     pub sort_order: u32,
+
+    pub update_cargo_lockfile: bool,
+    pub has_js: bool,
 }
 
 type ProjectTemplates = BTreeMap<ProjectTemplateName, ProjectTemplate>;

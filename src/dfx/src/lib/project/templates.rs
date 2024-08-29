@@ -12,6 +12,8 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         },
         category: Category::Backend,
         sort_order: 0,
+        update_cargo_lockfile: false,
+        has_js: false,
     };
 
     let rust = ProjectTemplate {
@@ -22,6 +24,8 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         },
         category: Category::Backend,
         sort_order: 1,
+        update_cargo_lockfile: true,
+        has_js: false,
     };
 
     let azle = ProjectTemplate {
@@ -32,6 +36,8 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         },
         category: Category::Backend,
         sort_order: 2,
+        update_cargo_lockfile: false,
+        has_js: true,
     };
 
     let kybra = ProjectTemplate {
@@ -42,6 +48,8 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         },
         category: Category::Backend,
         sort_order: 2,
+        update_cargo_lockfile: false,
+        has_js: false,
     };
 
     vec![motoko, rust, azle, kybra]

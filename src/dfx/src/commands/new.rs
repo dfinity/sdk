@@ -44,8 +44,6 @@ const AGENT_JS_DEFAULT_INSTALL_DIST_TAG: &str = "latest";
 const CHECK_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
 
 const BACKEND_MOTOKO: &str = "motoko";
-const BACKEND_RUST: &str = "rust";
-const BACKEND_AZLE: &str = "azle";
 
 /// Creates a new project.
 #[derive(Parser)]
@@ -551,7 +549,9 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         opts.frontend.unwrap_or(FrontendType::Vanilla)
     };
 
-    if r#type.0 == BACKEND_AZLE || frontend.has_js() {
+    let backend_project_template = get_project_template(&r#type);
+
+    if backend_project_template.has_js || frontend.has_js() {
         write_files_from_entries(
             log,
             &mut assets::new_project_js_files().context("Failed to get JS config archive.")?,
@@ -561,11 +561,10 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         )?;
     }
 
-    let new_project_template = get_project_template(&r#type);
-    match new_project_template.resource_location {
+    match backend_project_template.resource_location {
         ResourceLocation::Bundled { get_archive_fn } => {
             let mut new_project_files = get_archive_fn().with_context(|| {
-                format!("Failed to get {} archive.", new_project_template.name.0)
+                format!("Failed to get {} archive.", backend_project_template.name.0)
             })?;
             write_files_from_entries(
                 log,
@@ -637,7 +636,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
             init_git(log, project_name)?;
         }
 
-        if r#type.0 == BACKEND_RUST {
+        if backend_project_template.update_cargo_lockfile {
             // dfx build will use --locked, so update the lockfile beforehand
             const MSG: &str = "You will need to run it yourself (or a similar command like `cargo vendor`), because `dfx build` will use the --locked flag with Cargo.";
             if let Ok(code) = Command::new("cargo")
