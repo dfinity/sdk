@@ -460,7 +460,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
     let log = env.get_logger();
     let dry_run = opts.dry_run;
 
-    let r#type = if let Some(r#type) = opts.r#type {
+    let backend_template_name = if let Some(r#type) = opts.r#type {
         ProjectTemplateName(r#type)
     } else if opts.frontend.is_none() && opts.extras.is_empty() && io::stdout().is_terminal() {
         opts = get_opts_interactively(opts)?;
@@ -549,9 +549,9 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         opts.frontend.unwrap_or(FrontendType::Vanilla)
     };
 
-    let backend_project_template = get_project_template(&r#type);
+    let backend = get_project_template(&backend_template_name);
 
-    if backend_project_template.has_js || frontend.has_js() {
+    if backend.has_js || frontend.has_js() {
         write_files_from_entries(
             log,
             &mut assets::new_project_js_files().context("Failed to get JS config archive.")?,
@@ -561,11 +561,10 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         )?;
     }
 
-    match backend_project_template.resource_location {
+    match backend.resource_location {
         ResourceLocation::Bundled { get_archive_fn } => {
-            let mut new_project_files = get_archive_fn().with_context(|| {
-                format!("Failed to get {} archive.", backend_project_template.name.0)
-            })?;
+            let mut new_project_files = get_archive_fn()
+                .with_context(|| format!("Failed to get {} archive.", backend.name.0))?;
             write_files_from_entries(
                 log,
                 &mut new_project_files,
@@ -636,7 +635,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
             init_git(log, project_name)?;
         }
 
-        if backend_project_template.update_cargo_lockfile {
+        if backend.update_cargo_lockfile {
             // dfx build will use --locked, so update the lockfile beforehand
             const MSG: &str = "You will need to run it yourself (or a similar command like `cargo vendor`), because `dfx build` will use the --locked flag with Cargo.";
             if let Ok(code) = Command::new("cargo")
