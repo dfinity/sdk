@@ -1,14 +1,12 @@
-use std::vec;
-
 use super::ExtensionManager;
-use crate::error::extension::{ListInstalledExtensionsError, ListRemoteExtensionsError};
+use crate::error::extension::{ListAvailableExtensionsError, ListInstalledExtensionsError};
 use crate::extension::catalog::ExtensionCatalog;
 use crate::extension::installed::InstalledExtensionList;
 use crate::extension::ExtensionName;
-
+use std::vec;
 use url::Url;
 
-pub type RemoteExtensionList = Vec<ExtensionName>;
+pub type AvailableExtensionList = Vec<ExtensionName>;
 
 impl ExtensionManager {
     pub fn list_installed_extensions(
@@ -35,13 +33,13 @@ impl ExtensionManager {
         Ok(extensions)
     }
 
-    pub async fn list_remote_extensions(
+    pub async fn list_available_extensions(
         &self,
         catalog_url: Option<&Url>,
-    ) -> Result<RemoteExtensionList, ListRemoteExtensionsError> {
+    ) -> Result<AvailableExtensionList, ListAvailableExtensionsError> {
         let catalog = ExtensionCatalog::fetch(catalog_url)
             .await
-            .map_err(ListRemoteExtensionsError::FetchCatalog)?;
+            .map_err(ListAvailableExtensionsError::FetchCatalog)?;
         let extensions: Vec<String> = catalog.0.into_keys().collect();
 
         Ok(extensions)

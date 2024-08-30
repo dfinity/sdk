@@ -7,9 +7,9 @@ use url::Url;
 
 #[derive(Parser)]
 pub struct ListOpts {
-    /// Specifies to list the installed extensions.
-    #[arg(long, conflicts_with("catalog_url"))]
-    installed: bool,
+    /// Specifies to list the available remote extensions.
+    #[arg(long)]
+    available: bool,
     /// Specifies the URL of the catalog to use to find the extension.
     #[clap(long)]
     catalog_url: Option<Url>,
@@ -18,28 +18,44 @@ pub struct ListOpts {
 pub fn exec(env: &dyn Environment, opts: ListOpts) -> DfxResult<()> {
     let mgr = env.get_extension_manager();
     let extensions;
-    let extension_msg_1;
-    let extension_msg_2;
 
-    if opts.installed {
-        extensions = mgr.list_installed_extensions()?;
-        extension_msg_1 = "No extensions installed.";
-        extension_msg_2 = "Installed extensions:";
-    } else {
+    let result;
+    if opts.available || opts.catalog_url.is_some() {
         let runtime = Runtime::new().expect("Unable to create a runtime");
-        extensions = runtime
-            .block_on(async { mgr.list_remote_extensions(opts.catalog_url.as_ref()).await })?;
+        extensions = runtime.block_on(async {
+            mgr.list_available_extensions(opts.catalog_url.as_ref())
+                .await
+        })?;
 
-        extension_msg_1 = "No remote extensions available.";
-        extension_msg_2 = "Remote extensions:";
+        result = display_extension_list(
+            &extensions,
+            "No extensions available.",
+            "Available extensions:",
+        );
+    } else {
+        extensions = mgr.list_installed_extensions()?;
+
+        result = display_extension_list(
+            &extensions,
+            "No extensions installed.",
+            "Installed extensions:",
+        );
     };
 
+    result
+}
+
+fn display_extension_list(
+    extensions: &Vec<String>,
+    empty_msg: &str,
+    header_msg: &str,
+) -> DfxResult<()> {
     if extensions.is_empty() {
-        eprintln!("{}", extension_msg_1);
+        eprintln!("{}", empty_msg);
         return Ok(());
     }
 
-    eprintln!("{}", extension_msg_2);
+    eprintln!("{}", header_msg);
     for extension in extensions {
         eprint!("  ");
         std::io::stderr().flush()?;
