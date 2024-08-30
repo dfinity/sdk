@@ -1629,6 +1629,7 @@ dependencies = [
  "ic-agent",
  "ic-identity-hsm",
  "ic-utils 0.37.1",
+ "itertools 0.10.5",
  "k256 0.11.6",
  "keyring",
  "lazy_static",
