@@ -47,7 +47,11 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
             .get_build()
             .get_packtool();
 
-        let mut package_arguments = package_arguments::load(env.get_cache().as_ref(), packtool)?;
+        let mut package_arguments = package_arguments::load(
+            env.get_cache().as_ref(),
+            packtool,
+            config.get_project_root(),
+        )?;
 
         // Include actor alias flags
         let canister_names = config

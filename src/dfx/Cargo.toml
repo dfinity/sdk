@@ -66,11 +66,11 @@ hyper-rustls = { version = "0.24.1", default-features = false, features = [
     "webpki-roots",
     "http2",
 ] }
-ic-agent = { workspace = true, features = ["reqwest"] }
+ic-agent.workspace = true
 ic-asset.workspace = true
 ic-cdk.workspace = true
-ic-identity-hsm = { workspace = true }
-ic-utils = { workspace = true }
+ic-identity-hsm.workspace = true
+ic-utils.workspace = true
 ic-wasm = "0.8.0"
 icrc-ledger-types = "0.1.5"
 idl2json = "0.10.1"
@@ -116,7 +116,7 @@ time = { workspace = true, features = [
     "macros",
     "serde-human-readable",
 ] }
-tokio = { workspace = true, features = ["fs"] }
+tokio = { workspace = true, features = ["full"] }
 url.workspace = true
 walkdir.workspace = true
 walrus = "0.21.1"

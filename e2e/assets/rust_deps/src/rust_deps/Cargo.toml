@@ -11,7 +11,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 candid = "0.10"
-ic-cdk = "0.12"
+ic-cdk = "0.16"
 
 [build-dependencies]
 ic-cdk-bindgen = "0.1"

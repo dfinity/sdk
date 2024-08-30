@@ -28,9 +28,9 @@ flate2 = { workspace = true, default-features = false, features = ["zlib-ng"] }
 handlebars.workspace = true
 hex = { workspace = true, features = ["serde"] }
 humantime-serde = "1.1.1"
-ic-agent = { workspace = true, features = ["reqwest"] }
+ic-agent.workspace = true
 ic-utils.workspace = true
-ic-identity-hsm = { workspace = true }
+ic-identity-hsm.workspace = true
 k256 = { version = "0.11.4", features = ["pem"] }
 keyring.workspace = true
 lazy_static.workspace = true
@@ -47,10 +47,7 @@ tar.workspace = true
 tempfile.workspace = true
 thiserror.workspace = true
 tiny-bip39 = "1.0.0"
-time = { workspace = true, features = [
-    "serde",
-    "serde-human-readable",
-] }
+time = { workspace = true, features = ["serde", "serde-human-readable"] }
 url.workspace = true
 
 [dev-dependencies]

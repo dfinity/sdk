@@ -32,13 +32,12 @@ teardown() {
   assert_eq "Error: [message.json] already exists, please specify a different output file name."
 
   assert_command dfx canister sign --update hello_backend inc --file message-inc.json
-  assert_eq "Update message generated at [message-inc.json]
-Signed request_status append to update message in [message-inc.json]"
+  assert_eq "Update and request_status message generated at [message-inc.json]"
 
   sleep 10
   echo y | assert_command dfx canister send message-inc.json
   assert_command dfx canister send message-inc.json --status
-  assert_match "To see the content of response, copy-paste the encoded string into cbor.me."
+  assert_match "Response:"
 }
 
 @test "sign outside of a dfx project" {

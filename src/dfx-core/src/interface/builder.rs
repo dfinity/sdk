@@ -14,10 +14,7 @@ use crate::{
     },
     DfxInterface,
 };
-use ic_agent::{
-    agent::http_transport::{route_provider::RoundRobinRouteProvider, ReqwestTransport},
-    Agent, Identity,
-};
+use ic_agent::{agent::route_provider::RoundRobinRouteProvider, Agent, Identity};
 use reqwest::Client;
 use std::sync::Arc;
 
@@ -120,11 +117,9 @@ impl DfxInterfaceBuilder {
             .use_rustls_tls()
             .build()
             .map_err(BuildAgentError::CreateHttpClient)?;
-        let transport =
-            ReqwestTransport::create_with_client_route(Arc::new(route_provider), client)
-                .map_err(BuildAgentError::CreateTransport)?;
         let agent = Agent::builder()
-            .with_transport(transport)
+            .with_http_client(client)
+            .with_route_provider(route_provider)
             .with_arc_identity(identity)
             .build()
             .map_err(BuildAgentError::CreateAgent)?;
