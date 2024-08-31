@@ -195,6 +195,8 @@ impl CanisterIdStore {
         self.remote_ids
             .as_ref()
             .and_then(|remote_ids| self.get_name_in(canister_id, remote_ids))
+            .or_else(|| self.get_name_in_project(canister_id))
+            .or_else(|| self.get_name_in_pull_ids(canister_id))
             .or_else(|| {
                 let principal = match Principal::from_str(canister_id) {
                     Ok(p) => p,
@@ -205,8 +207,6 @@ impl CanisterIdStore {
                     .find(|(_, id)| &&principal == id)
                     .map(|(name, _)| name)
             })
-            .or_else(|| self.get_name_in_project(canister_id))
-            .or_else(|| self.get_name_in_pull_ids(canister_id))
     }
 
     pub fn get_name_in_project(&self, canister_id: &str) -> Option<&String> {
@@ -262,8 +262,8 @@ impl CanisterIdStore {
             .as_ref()
             .and_then(|remote_ids| self.find_in(canister_name, remote_ids))
             .or_else(|| self.find_in(canister_name, &self.ids))
-            .or_else(|| self.well_known_ids.get(canister_name).copied())
             .or_else(|| self.pull_ids.get(canister_name).copied())
+            .or_else(|| self.well_known_ids.get(canister_name).copied())
     }
     pub fn get_name_id_map(&self) -> BTreeMap<String, String> {
         let mut ids: BTreeMap<_, _> = self
