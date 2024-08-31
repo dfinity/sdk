@@ -18,8 +18,7 @@ fn define_well_known_canisters() {
             key.as_str(),
             val.as_object()
                 .unwrap()
-                .values()
-                .last()
+                .get("mainnet")
                 .unwrap()
                 .as_str()
                 .unwrap(),
