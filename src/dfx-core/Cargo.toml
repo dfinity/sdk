@@ -6,6 +6,11 @@ edition.workspace = true
 repository.workspace = true
 license.workspace = true
 rust-version.workspace = true
+build = "assets/build.rs"
+
+[build-dependencies]
+serde_json.workspace = true
+itertools.workspace = true
 
 [dependencies]
 aes-gcm.workspace = true
