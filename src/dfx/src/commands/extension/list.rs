@@ -17,32 +17,28 @@ pub struct ListOpts {
 
 pub fn exec(env: &dyn Environment, opts: ListOpts) -> DfxResult<()> {
     let mgr = env.get_extension_manager();
-    let extensions;
 
-    let result;
     if opts.available || opts.catalog_url.is_some() {
         let runtime = Runtime::new().expect("Unable to create a runtime");
-        extensions = runtime.block_on(async {
+        let extensions = runtime.block_on(async {
             mgr.list_available_extensions(opts.catalog_url.as_ref())
                 .await
         })?;
 
-        result = display_extension_list(
+        display_extension_list(
             &extensions,
             "No extensions available.",
             "Available extensions:",
-        );
+        )
     } else {
-        extensions = mgr.list_installed_extensions()?;
+        let extensions = mgr.list_installed_extensions()?;
 
-        result = display_extension_list(
+        display_extension_list(
             &extensions,
             "No extensions installed.",
             "Installed extensions:",
-        );
-    };
-
-    result
+        )
+    }
 }
 
 fn display_extension_list(

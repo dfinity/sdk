@@ -24,7 +24,7 @@ pub enum SubCommand {
     Uninstall(uninstall::UninstallOpts),
     /// Execute an extension.
     Run(run::RunOpts),
-    /// List installed or remote extensions.
+    /// List installed or available extensions.
     List(list::ListOpts),
 }
 
