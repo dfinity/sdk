@@ -6,7 +6,9 @@
 
 `dfx canister install` and `dfx deploy` takes options `--skip-pre-upgrade` and `--wasm-memory-persistence`.
 
-`dfx deploy --mode` now takes the same possible values as `dfx canister install --mode`: install, reinstall, upgrade, auto.
+`dfx deploy --mode` now takes the same possible values as `dfx canister install --mode`: "install", "reinstall", "upgrade" and "auto".
+
+In "auto" mode, the upgrade options are hints which only take effects when the actual install mode is "upgrade". 
 
 To maintain backward compatibility, a minor difference between the two commands remains.
 If the `--mode` is not set, `dfx deploy` defaults to "auto", while `dfx canister install` defaults to "install".

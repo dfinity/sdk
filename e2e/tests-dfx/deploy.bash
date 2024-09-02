@@ -263,9 +263,12 @@ teardown() {
 
 @test "specify upgrade options (skip_pre_upgrade, wasm_memory_persistence)" {
   dfx_start
-  assert_command dfx deploy
 
+  # The default mode in deploy is 'auto'.
+  # When the canister is not deployed yet, the actual InstallMode is 'install'.
+  # In this case, the provided upgrade options are just hint which doesn't take effect.
   assert_command dfx deploy --skip-pre-upgrade
+
   assert_command dfx deploy --wasm-memory-persistence keep
   assert_command dfx deploy --wasm-memory-persistence replace
   assert_command dfx deploy --skip-pre-upgrade --wasm-memory-persistence keep
@@ -274,6 +277,6 @@ teardown() {
 
   assert_command_fail dfx deploy --mode install --skip-pre-upgrade
   assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
-  assert_command_fail dfx deploy --mode install --wasm-memory-persistence keep
+  assert_command_fail dfx deploy --mode reinstall --wasm-memory-persistence keep
   assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
 }

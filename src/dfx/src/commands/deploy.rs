@@ -9,7 +9,7 @@ use crate::lib::operations::canister::deploy_canisters::DeployMode::{
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
-use crate::util::clap::install_mode::InstallModeOpt;
+use crate::util::clap::install_mode::{InstallModeHint, InstallModeOpt};
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
 use crate::util::url::{construct_frontend_url, construct_ui_canister_url};
@@ -19,7 +19,6 @@ use clap::Parser;
 use console::Style;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
-use ic_utils::interfaces::management_canister::builders::InstallMode;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 use std::collections::BTreeMap;
@@ -123,15 +122,15 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     if argument_from_cli.is_some() && canister_name.is_none() {
         bail!("The init argument can only be set when deploying a single canister.");
     }
-    let mode = opts.install_mode.mode_for_deploy()?;
+    let mode_hint = opts.install_mode.mode_for_deploy()?;
     let config = env.get_config_or_anyhow()?;
     let env_file = config.get_output_env_file(opts.output_env_file)?;
     let mut subnet_selection =
         runtime.block_on(opts.subnet_selection.into_subnet_selection_type(&env))?;
     let with_cycles = opts.with_cycles;
 
-    let deploy_mode = match (mode, canister_name) {
-        (Some(InstallMode::Reinstall), Some(canister_name)) => {
+    let deploy_mode = match (&mode_hint, canister_name) {
+        (InstallModeHint::Reinstall, Some(canister_name)) => {
             let network = env.get_network_descriptor();
             if config
                 .get_config()
@@ -142,25 +141,22 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
             }
             ForceReinstallSingleCanister(canister_name.to_string())
         }
-        (Some(InstallMode::Reinstall), None) => {
+        (InstallModeHint::Reinstall, None) => {
             bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister.");
         }
-        (Some(_), _) => {
-            NormalDeploy
-        }
-        (None, None) if opts.by_proposal => {
+        (_, None) if opts.by_proposal => {
             bail!("The --by-proposal flag is only valid when deploying a single canister.");
         }
-        (None, Some(canister_name)) if opts.by_proposal => {
+        (_, Some(canister_name)) if opts.by_proposal => {
             PrepareForProposal(canister_name.to_string())
         }
-        (None, None) if opts.compute_evidence => {
+        (_, None) if opts.compute_evidence => {
             bail!("The --compute-evidence flag is only valid when deploying a single canister.");
         }
-        (None, Some(canister_name)) if opts.compute_evidence => {
+        (_, Some(canister_name)) if opts.compute_evidence => {
             ComputeEvidence(canister_name.to_string())
         }
-        (None, _) => NormalDeploy,
+        (_, _) => NormalDeploy,
     };
 
     let call_sender = CallSender::from(&opts.wallet, env.get_network_descriptor())
@@ -174,7 +170,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         argument_from_cli.as_deref(),
         argument_type.as_deref(),
         &deploy_mode,
-        mode,
+        &mode_hint,
         opts.upgrade_unchanged,
         with_cycles,
         opts.created_at_time,
