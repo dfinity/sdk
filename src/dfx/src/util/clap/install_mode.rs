@@ -6,7 +6,7 @@ use ic_utils::interfaces::management_canister::builders::{
 
 use crate::lib::error::DfxResult;
 
-/// CLI options for the mode of installing canister.
+/// CLI options for the mode of canister installation.
 ///
 /// Reused in `dfx canister install` and `dfx deploy`.
 #[derive(Args, Clone, Debug, Default)]

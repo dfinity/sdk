@@ -146,7 +146,6 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
             bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister.");
         }
         (Some(_), _) => {
-            // unreachable!("The only valid option for --mode is --mode=reinstall");
             NormalDeploy
         }
         (None, None) if opts.by_proposal => {
