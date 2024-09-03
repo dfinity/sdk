@@ -106,6 +106,7 @@ pub fn create_root_logger(verbose_level: i64, mode: LoggingMode) -> Logger {
         }
     };
 
+    eprintln!("Log level: {}", log_level);
     let drain = slog::LevelFilter::new(create_drain(mode), log_level).fuse();
     let drain = slog_async::Async::new(drain).build().fuse();
 
