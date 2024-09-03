@@ -36,6 +36,14 @@ This applies to the following:
  - tech stack value computation
  - packtool (vessel, mops etc)
 
+## Dependencies
+
+### Frontend canister
+
+Added `create_chunks`. It has the same behavior as `create_chunk`, except that it takes a `vec blob` and returns a `vec BatchId` instead of non-`vec` variants.
+
+Module hash: 3a533f511b3960b4186e76cf9abfbd8222a2c507456a66ec55671204ee70cae3
+
 # 0.23.0
 
 ### feat: Add canister snapshots
