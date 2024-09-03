@@ -161,7 +161,6 @@ jobs:
           echo "archive=$(pwd)/e2e/archive" >> "$GITHUB_ENV"
           echo "assets=$(pwd)/e2e/assets" >> "$GITHUB_ENV"
           echo "utils=$(pwd)/e2e/utils" >> "$GITHUB_ENV"
-          echo "RUST_LOG=trace" >> "$GITHUB_ENV"
           if [ "${{ matrix.backend == 'pocketic' || '' }}" ]; then
             echo "USE_POCKETIC=1" >> "$GITHUB_ENV"
           fi
