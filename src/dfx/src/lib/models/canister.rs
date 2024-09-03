@@ -137,7 +137,7 @@ impl Canister {
         // optimize or shrink
         if let Some(level) = info.get_optimize() {
             eprintln!("wasm_post_process {} optimizing wasm at level {}", self.info.get_name(), level);
-            trace!(logger, "Optimizing Wasm at level {}", level);
+            debug!(logger, "Optimizing Wasm at level {}", level);
             ic_wasm::optimize::optimize(
                 &mut m,
                 &wasm_opt_level_convert(level),
