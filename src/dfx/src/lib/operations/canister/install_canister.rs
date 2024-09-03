@@ -9,6 +9,7 @@ use crate::lib::operations::canister::all_project_canisters_with_ids;
 use crate::lib::operations::canister::motoko_playground::authorize_asset_uploader;
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::util::assets::wallet_wasm;
+use crate::util::clap::install_mode::InstallModeHint;
 use crate::util::{blob_from_arguments, get_candid_init_type, read_module_metadata};
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
@@ -21,9 +22,7 @@ use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::Agent;
-use ic_utils::interfaces::management_canister::builders::{
-    CanisterUpgradeOptions, InstallMode, WasmMemoryPersistence,
-};
+use ic_utils::interfaces::management_canister::builders::{InstallMode, WasmMemoryPersistence};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
@@ -44,7 +43,7 @@ pub async fn install_canister(
     wasm_path_override: Option<&Path>,
     argument_from_cli: Option<&str>,
     argument_type_from_cli: Option<&str>,
-    mode: Option<InstallMode>,
+    mode_hint: &InstallModeHint,
     call_sender: &CallSender,
     upgrade_unchanged: bool,
     pool: Option<&CanisterPool>,
@@ -65,20 +64,37 @@ pub async fn install_canister(
         "Previously installed module hash: {:?}",
         installed_module_hash.as_ref().map(hex::encode)
     );
-    let wasm_memory_persistence =
+    let wasm_memory_persistence_embeded =
         read_module_metadata(agent, canister_id, "enhanced-orthogonal-persistence")
             .await
             .map(|_| WasmMemoryPersistence::Keep);
-    let mode = mode.unwrap_or_else(|| {
-        if installed_module_hash.is_some() {
-            InstallMode::Upgrade(Some(CanisterUpgradeOptions {
-                wasm_memory_persistence,
-                skip_pre_upgrade: None,
-            }))
-        } else {
-            InstallMode::Install
-        }
-    });
+    // let mode = if let InstallModeHint::Auto(options) = mode_hint {
+    //     if installed_module_hash.is_some() {
+    //         InstallMode::Upgrade(Some(CanisterUpgradeOptions {
+    //             wasm_memory_persistence,
+    //             skip_pre_upgrade: None,
+    //         }))
+    //     } else {
+    //         InstallMode::Install
+    //     }
+    // } else {
+    //     InstallMode::Install
+    // };
+    let mode = mode_hint.to_install_mode(
+        installed_module_hash.is_some(),
+        wasm_memory_persistence_embeded,
+    );
+
+    // let mode = mode.unwrap_or_else(|| {
+    //     if installed_module_hash.is_some() {
+    //         InstallMode::Upgrade(Some(CanisterUpgradeOptions {
+    //             wasm_memory_persistence,
+    //             skip_pre_upgrade: None,
+    //         }))
+    //     } else {
+    //         InstallMode::Install
+    //     }
+    // });
     let mode_str = install_mode_to_prompt(&mode);
     let canister_name = canister_info.get_name();
     info!(
