@@ -252,3 +252,31 @@ teardown() {
   assert_command dfx canister call fake-cmc last_create_canister_args
   assert_contains 'subnet_type = opt "custom_subnet_type"'
 }
+
+@test "specify install mode" {
+  dfx_start
+  assert_command dfx deploy --mode install
+  assert_command dfx deploy hello_backend --mode reinstall --yes
+  assert_command dfx deploy --mode upgrade
+  assert_command dfx deploy --mode auto
+}
+
+@test "specify upgrade options (skip_pre_upgrade, wasm_memory_persistence)" {
+  dfx_start
+
+  # The default mode in deploy is 'auto'.
+  # When the canister is not deployed yet, the actual InstallMode is 'install'.
+  # In this case, the provided upgrade options are just hint which doesn't take effect.
+  assert_command dfx deploy --skip-pre-upgrade
+
+  assert_command dfx deploy --wasm-memory-persistence keep
+  assert_command dfx deploy --wasm-memory-persistence replace
+  assert_command dfx deploy --skip-pre-upgrade --wasm-memory-persistence keep
+  assert_command dfx deploy --mode auto --skip-pre-upgrade
+  assert_command dfx deploy --mode upgrade --skip-pre-upgrade
+
+  assert_command_fail dfx deploy --mode install --skip-pre-upgrade
+  assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
+  assert_command_fail dfx deploy --mode reinstall --wasm-memory-persistence keep
+  assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
+}
