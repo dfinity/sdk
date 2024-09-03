@@ -151,7 +151,7 @@ impl Canister {
             || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
         {
             eprintln!("wasm_post_process {} shxrinking wasm", self.info.get_name());
-            debug!(logger, "Shrinking Wasm");
+            info!(logger, "Shrinking Wasm");
             ic_wasm::shrink::shrink(&mut m);
             modified = true;
         }
