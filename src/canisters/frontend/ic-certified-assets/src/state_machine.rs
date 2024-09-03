@@ -582,8 +582,32 @@ impl State {
     }
 
     pub fn create_chunk(&mut self, arg: CreateChunkArg, now: u64) -> Result<ChunkId, String> {
+        let ids = self.create_chunks_helper(arg.batch_id, vec![arg.content], now)?;
+        ids.into_iter()
+            .next()
+            .ok_or_else(|| "Bug: created chunk did not return a chunk id.".to_string())
+    }
+
+    pub fn create_chunks(
+        &mut self,
+        CreateChunksArg {
+            batch_id,
+            content: chunks,
+        }: CreateChunksArg,
+        now: u64,
+    ) -> Result<Vec<ChunkId>, String> {
+        self.create_chunks_helper(batch_id, chunks, now)
+    }
+
+    /// Post-condition: `chunks.len() == output_chunk_ids.len()`
+    fn create_chunks_helper(
+        &mut self,
+        batch_id: Nat,
+        chunks: Vec<ByteBuf>,
+        now: u64,
+    ) -> Result<Vec<ChunkId>, String> {
         if let Some(max_chunks) = self.configuration.max_chunks {
-            if self.chunks.len() + 1 > max_chunks as usize {
+            if self.chunks.len() + chunks.len() > max_chunks as usize {
                 return Err("chunk limit exceeded".to_string());
             }
         }
@@ -591,14 +615,14 @@ impl State {
             let current_total_bytes = &self.batches.iter().fold(0, |acc, (_batch_id, batch)| {
                 acc + batch.chunk_content_total_size
             });
-
-            if current_total_bytes + arg.content.as_ref().len() > max_bytes as usize {
+            let new_bytes: usize = chunks.iter().map(|chunk| chunk.len()).sum();
+            if current_total_bytes + new_bytes > max_bytes as usize {
                 return Err("byte limit exceeded".to_string());
             }
         }
         let batch = self
             .batches
-            .get_mut(&arg.batch_id)
+            .get_mut(&batch_id)
             .ok_or_else(|| "batch not found".to_string())?;
         if batch.commit_batch_arguments.is_some() {
             return Err("batch has been proposed".to_string());
@@ -606,19 +630,26 @@ impl State {
 
         batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
 
-        let chunk_id = self.next_chunk_id.clone();
-        self.next_chunk_id += 1_u8;
-        batch.chunk_content_total_size += arg.content.as_ref().len();
+        #[cfg(debug_assertions)]
+        let chunks_len = chunks.len();
 
-        self.chunks.insert(
-            chunk_id.clone(),
-            Chunk {
-                batch_id: arg.batch_id,
-                content: RcBytes::from(arg.content),
-            },
-        );
+        let mut chunk_ids = Vec::with_capacity(chunks.len());
+        for chunk in chunks {
+            let chunk_id = self.next_chunk_id.clone();
+            self.next_chunk_id += 1_u8;
+            batch.chunk_content_total_size += chunk.len();
+            self.chunks.insert(
+                chunk_id.clone(),
+                Chunk {
+                    batch_id: batch_id.clone(),
+                    content: RcBytes::from(chunk),
+                },
+            );
+            chunk_ids.push(chunk_id);
+        }
 
-        Ok(chunk_id)
+        debug_assert!(chunks_len == chunk_ids.len());
+        Ok(chunk_ids)
     }
 
     pub fn commit_batch(&mut self, arg: CommitBatchArguments, now: u64) -> Result<(), String> {
