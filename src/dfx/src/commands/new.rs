@@ -277,8 +277,7 @@ fn write_files_from_entries<R: Sized + Read>(
             Ok(mut s) => {
                 // Perform replacements.
                 variables.iter().for_each(|(name, value)| {
-                    let pattern = "{".to_owned() + name + "}";
-                    s = s.replace(pattern.as_str(), value);
+                    s = s.replace(&format!("__{name}__"), value);
                 });
                 s.into_bytes()
             }
@@ -292,8 +291,7 @@ fn write_files_from_entries<R: Sized + Read>(
             .to_string();
 
         variables.iter().for_each(|(name, value)| {
-            let pattern = "__".to_owned() + name + "__";
-            p = p.replace(pattern.as_str(), value);
+            p = p.replace(&format!("__{name}__"), value);
         });
 
         let p = PathBuf::from(p);
