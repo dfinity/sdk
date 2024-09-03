@@ -630,7 +630,6 @@ impl State {
 
         batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
 
-        #[cfg(debug_assertions)]
         let chunks_len = chunks.len();
 
         let mut chunk_ids = Vec::with_capacity(chunks.len());
