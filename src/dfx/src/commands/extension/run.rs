@@ -24,6 +24,9 @@ impl From<Vec<OsString>> for RunOpts {
 
 pub fn exec(env: &dyn Environment, opts: RunOpts) -> DfxResult<()> {
     let mgr = env.get_extension_manager();
-    mgr.run_extension(opts.name, opts.params)?;
+    let project_root = env
+        .get_config()?
+        .map(|c| c.get_project_root().to_path_buf());
+    mgr.run_extension(opts.name, opts.params, project_root)?;
     Ok(())
 }

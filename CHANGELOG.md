@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: Also report Motoko stable compatibility warnings
+
+Report upgrade compatibility warnings for Motoko, such as deleted stable variables, in addition to compatibility errors.
+
 ### feat: Support for Motoko's enhanced orthogonal persistence.
 
 Support Motoko's enhanced orthogonal persistence by automatically setting the canister upgrade option `wasm_memory_persistence` based on the Wasm metadata.
@@ -9,6 +13,17 @@ Support Motoko's enhanced orthogonal persistence by automatically setting the ca
 ### feat: PocketIC state
 
 `dfx start --pocketic` no longer requires `--clean`, and can persist replica state between runs.
+
+### fix: Scripts always run with current directory set to the project root
+
+Build scripts and other scripts now always run with the working directory
+set to the project root (directory containing dfx.json).
+
+This applies to the following:
+ - build scripts
+ - extension run
+ - tech stack value computation
+ - packtool (vessel, mops etc)
 
 # 0.23.0
 

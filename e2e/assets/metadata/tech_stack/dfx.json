@@ -114,6 +114,17 @@
         "k": {
             "type": "motoko",
             "main": "main.mo"
+        },
+        "m": {
+            "type": "motoko",
+            "main": "main.mo",
+            "tech_stack": {
+                "other": {
+                    "command": {
+                        "cwd": "$(pwd)"
+                    }
+                }
+            }
         }
     }
 }

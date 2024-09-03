@@ -66,6 +66,7 @@ impl CanisterBuilder for RustBuilder {
         cargo
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
+            .current_dir(canister_info.get_workspace_root())
             .arg("build")
             .arg("--target")
             .arg("wasm32-unknown-unknown")
