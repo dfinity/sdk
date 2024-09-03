@@ -159,6 +159,7 @@ teardown() {
   assert_command dfx build custom -vvv
   # shellcheck disable=SC2154
   assert_match "Shrinking Wasm" "$stderr"
+  echo "stderr is $stderr"
 }
 
 @test "build custom canister default no optimize" {
