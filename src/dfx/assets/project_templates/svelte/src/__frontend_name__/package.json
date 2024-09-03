@@ -1,10 +1,10 @@
 {
-  "name": "{frontend_name}",
+  "name": "__frontend_name__",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "setup": "npm i && dfx canister create {backend_name} && dfx generate {backend_name} && dfx deploy",
+    "setup": "npm i && dfx canister create __backend_name__ && dfx generate __backend_name__ && dfx deploy",
     "start": "vite --port 3000",
     "prebuild": "dfx generate",
     "build": "tsc && vite build",

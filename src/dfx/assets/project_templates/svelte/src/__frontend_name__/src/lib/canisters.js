@@ -1,4 +1,4 @@
-import { createActor, canisterId } from 'declarations/{backend_name}';
+import { createActor, canisterId } from 'declarations/__backend_name__';
 import { building } from '$app/environment';
 
 function dummyActor() {

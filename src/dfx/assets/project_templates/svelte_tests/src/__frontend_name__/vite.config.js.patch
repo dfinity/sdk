@@ -1,5 +1,5 @@
---- a/src/{frontend_name}/vite.config.js
-+++ b/src/{frontend_name}/vite.config.js
+--- a/src/__frontend_name__/vite.config.js
++++ b/src/__frontend_name__/vite.config.js
 @@ -1,1 +1,2 @@
 +/// <reference types="vitest" />
  import { fileURLToPath, URL } from 'url';

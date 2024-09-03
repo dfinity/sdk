@@ -167,6 +167,15 @@ fn create_chunk(arg: CreateChunkArg) -> CreateChunkResponse {
     })
 }
 
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn create_chunks(arg: CreateChunksArg) -> CreateChunksResponse {
+    STATE.with(|s| match s.borrow_mut().create_chunks(arg, time()) {
+        Ok(chunk_ids) => CreateChunksResponse { chunk_ids },
+        Err(msg) => trap(&msg),
+    })
+}
+
 #[update(guard = "can_commit")]
 #[candid_method(update)]
 fn create_asset(arg: CreateAssetArguments) {

@@ -9,6 +9,7 @@ use crate::types::{
     SetAssetPropertiesArguments,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
+use crate::CreateChunksArg;
 use candid::{Nat, Principal};
 use ic_certification_testing::CertificateBuilder;
 use ic_crypto_tree_hash::Digest;
@@ -724,8 +725,18 @@ fn cannot_create_chunk_in_proposed_batch_() {
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
     match state.create_chunk(
         CreateChunkArg {
-            batch_id: batch_1,
+            batch_id: batch_1.clone(),
             content: ByteBuf::from(BODY.to_vec()),
+        },
+        time_now,
+    ) {
+        Err(err) if err == *"batch has been proposed" => {}
+        other => panic!("expected batch already proposed error, got: {:?}", other),
+    }
+    match state.create_chunks(
+        CreateChunksArg {
+            batch_id: batch_1,
+            content: vec![ByteBuf::from(BODY.to_vec())],
         },
         time_now,
     ) {
@@ -3765,6 +3776,18 @@ mod enforce_limits {
                 time_now,
             )
             .unwrap();
+        assert_eq!(
+            state
+                .create_chunks(
+                    CreateChunksArg {
+                        batch_id: batch_2.clone(),
+                        content: vec![ByteBuf::new(), ByteBuf::new()]
+                    },
+                    time_now
+                )
+                .unwrap_err(),
+            "chunk limit exceeded"
+        );
         state
             .create_chunk(
                 CreateChunkArg {
@@ -3818,20 +3841,27 @@ mod enforce_limits {
 
         let batch_1 = state.create_batch(time_now).unwrap();
         let batch_2 = state.create_batch(time_now).unwrap();
+        assert_eq!(
+            state
+                .create_chunks(
+                    CreateChunksArg {
+                        batch_id: batch_1.clone(),
+                        content: vec![
+                            ByteBuf::from(c0.clone()),
+                            ByteBuf::from(c1.clone()),
+                            ByteBuf::from(c2.clone())
+                        ]
+                    },
+                    time_now
+                )
+                .unwrap_err(),
+            "byte limit exceeded"
+        );
         state
-            .create_chunk(
-                CreateChunkArg {
+            .create_chunks(
+                CreateChunksArg {
                     batch_id: batch_1.clone(),
-                    content: ByteBuf::from(c0),
-                },
-                time_now,
-            )
-            .unwrap();
-        state
-            .create_chunk(
-                CreateChunkArg {
-                    batch_id: batch_2.clone(),
-                    content: ByteBuf::from(c1),
+                    content: vec![ByteBuf::from(c0), ByteBuf::from(c1)],
                 },
                 time_now,
             )
