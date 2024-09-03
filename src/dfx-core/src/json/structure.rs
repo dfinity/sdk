@@ -5,6 +5,7 @@ use serde::Serialize;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
+use url::Url;
 
 #[derive(Serialize, Deserialize, Debug, Clone, JsonSchema, PartialEq, Eq)]
 #[serde(untagged)]
@@ -87,6 +88,24 @@ impl Deref for VersionWithJsonSchema {
 }
 
 impl DerefMut for VersionWithJsonSchema {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(transparent)]
+pub struct UrlWithJsonSchema(#[schemars(with = "String")] pub Url);
+
+impl Deref for UrlWithJsonSchema {
+    type Target = Url;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for UrlWithJsonSchema {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }

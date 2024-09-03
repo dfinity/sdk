@@ -288,7 +288,7 @@
           "properties": {
             "build": {
               "title": "Build Commands",
-              "description": "Commands that are executed in order to produce this canister's Wasm module. Expected to produce the Wasm in the path specified by the 'wasm' field. No build commands are allowed if the `wasm` field is a URL.",
+              "description": "Commands that are executed in order to produce this canister's Wasm module. Expected to produce the Wasm in the path specified by the 'wasm' field. No build commands are allowed if the `wasm` field is a URL. These commands are executed in the root of the project.",
               "default": [],
               "allOf": [
                 {
@@ -467,7 +467,7 @@
         },
         "post_install": {
           "title": "Post-Install Commands",
-          "description": "One or more commands to run post canister installation.",
+          "description": "One or more commands to run post canister installation. These commands are executed in the root of the project.",
           "default": [],
           "allOf": [
             {
@@ -698,7 +698,7 @@
           ]
         },
         "packtool": {
-          "description": "Main command to run the packtool.",
+          "description": "Main command to run the packtool. This command is executed in the root of the project.",
           "type": [
             "string",
             "null"

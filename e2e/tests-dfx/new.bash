@@ -35,6 +35,22 @@ teardown() {
   assert_command_fail dfx new 'a:b'
 }
 
+@test "dfx new --help shows possible backend template names" {
+  assert_command dfx new --help
+  assert_match "\[possible values.*motoko.*\]"
+  assert_match "\[possible values.*rust.*\]"
+  assert_match "\[possible values.*kybra.*\]"
+  assert_match "\[possible values.*azle.*\]"
+}
+
+@test "dfx new --type <bad type> shows possible values" {
+  assert_command_fail dfx new --type bad_type
+  assert_match "\[possible values.*motoko.*\]"
+  assert_match "\[possible values.*rust.*\]"
+  assert_match "\[possible values.*kybra.*\]"
+  assert_match "\[possible values.*azle.*\]"
+}
+
 @test "dfx new readmes contain appropriate links" {
   assert_command dfx new --type rust e2e_rust --no-frontend
   assert_command grep "https://docs.rs/ic-cdk" e2e_rust/README.md

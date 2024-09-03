@@ -1,15 +1,8 @@
 use crate::lib::error::DfxResult;
 use anyhow::Context;
-use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
+use dfx_core::config::model::local_server_descriptor::{LocalServerDescriptor, NetworkMetadata};
 use fn_error_context::context;
-use serde::{Deserialize, Serialize};
 use time::OffsetDateTime;
-
-#[derive(Deserialize, Serialize, Debug)]
-struct NetworkMetadata {
-    created: OffsetDateTime,
-    settings_digest: String,
-}
 
 #[context("Failed write network id to {}.", local_server_descriptor.network_id_path().display())]
 pub fn write_network_id(local_server_descriptor: &LocalServerDescriptor) -> DfxResult {

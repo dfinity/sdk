@@ -7,7 +7,6 @@ use clap::Parser;
 use clap::Subcommand;
 use dfx_core::error::extension::InstallExtensionError::OtherVersionAlreadyInstalled;
 use dfx_core::extension::manager::InstallOutcome;
-use dfx_core::extension::url::ExtensionJsonUrl;
 use semver::Version;
 use slog::{error, info, warn};
 use tokio::runtime::Runtime;
@@ -23,6 +22,9 @@ pub struct InstallOpts {
     /// Installs a specific version of the extension, bypassing version checks
     #[clap(long)]
     version: Option<Version>,
+    /// Specifies the URL of the catalog to use to find the extension.
+    #[clap(long)]
+    catalog_url: Option<Url>,
 }
 
 pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
@@ -36,17 +38,16 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
         bail!("Extension '{}' cannot be installed because it conflicts with an existing command. Consider using '--install-as' flag to install this extension under different name.", opts.name)
     }
 
-    let url = if let Ok(url) = Url::parse(&opts.name) {
-        ExtensionJsonUrl::new(url)
-    } else {
-        ExtensionJsonUrl::registered(&opts.name)?
-    };
-
     let runtime = Runtime::new().expect("Unable to create a runtime");
 
     let install_outcome = runtime.block_on(async {
-        mgr.install_extension(&url, opts.install_as.as_deref(), opts.version.as_ref())
-            .await
+        mgr.install_extension(
+            &opts.name,
+            opts.catalog_url.as_ref(),
+            opts.install_as.as_deref(),
+            opts.version.as_ref(),
+        )
+        .await
     });
     spinner.finish_and_clear();
     let logger = env.get_logger();

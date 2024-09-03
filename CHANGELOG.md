@@ -2,6 +2,48 @@
 
 # UNRELEASED
 
+### feat: expose canister upgrade options in CLI
+
+`dfx canister install` and `dfx deploy` takes options `--skip-pre-upgrade` and `--wasm-memory-persistence`.
+
+`dfx deploy --mode` now takes the same possible values as `dfx canister install --mode`: "install", "reinstall", "upgrade" and "auto".
+
+In "auto" mode, the upgrade options are hints which only take effects when the actual install mode is "upgrade". 
+
+To maintain backward compatibility, a minor difference between the two commands remains.
+If the `--mode` is not set, `dfx deploy` defaults to "auto", while `dfx canister install` defaults to "install".
+
+### feat: Also report Motoko stable compatibility warnings
+
+Report upgrade compatibility warnings for Motoko, such as deleted stable variables, in addition to compatibility errors.
+
+### feat: Support for Motoko's enhanced orthogonal persistence.
+
+Support Motoko's enhanced orthogonal persistence by automatically setting the canister upgrade option `wasm_memory_persistence` based on the Wasm metadata.
+
+### feat: PocketIC state
+
+`dfx start --pocketic` no longer requires `--clean`, and can persist replica state between runs.
+
+### fix: Scripts always run with current directory set to the project root
+
+Build scripts and other scripts now always run with the working directory
+set to the project root (directory containing dfx.json).
+
+This applies to the following:
+ - build scripts
+ - extension run
+ - tech stack value computation
+ - packtool (vessel, mops etc)
+
+## Dependencies
+
+### Frontend canister
+
+Added `create_chunks`. It has the same behavior as `create_chunk`, except that it takes a `vec blob` and returns a `vec BatchId` instead of non-`vec` variants.
+
+Module hash: 3a533f511b3960b4186e76cf9abfbd8222a2c507456a66ec55671204ee70cae3
+
 # 0.23.0
 
 ### feat: Add canister snapshots
@@ -19,6 +61,12 @@ A test key id `Ed25519:dfx_test_key` is ready to be used by locally created cani
 
 ### feat: Added settings_digest field to the network-id file
 
+### feat: install extensions using the catalog
+
+`dfx extension install` now locates extensions using the
+[extension catalog](https://github.com/dfinity/dfx-extensions/blob/main/catalog.json).
+This can be overridden with the `--catalog-url` parameter.
+
 ## Dependencies
 
 ### Replica
@@ -28,7 +76,6 @@ This incorporates the following executed proposals:
 
 - [131473](https://dashboard.internetcomputer.org/proposal/131473)
 
-# 0.22.1
 
 ## Dependencies
 

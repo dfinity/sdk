@@ -40,6 +40,15 @@ pub enum ListInstalledExtensionsError {
 }
 
 #[derive(Error, Debug)]
+pub enum LoadExtensionManifestsError {
+    #[error(transparent)]
+    ListInstalledExtensions(#[from] ListInstalledExtensionsError),
+
+    #[error(transparent)]
+    LoadExtensionManifest(#[from] LoadExtensionManifestError),
+}
+
+#[derive(Error, Debug)]
 pub enum ConvertExtensionSubcommandIntoClapArgError {
     #[error("Extension's subcommand argument '{0}' is missing description.")]
     ExtensionSubcommandArgMissingDescription(String),
@@ -104,8 +113,14 @@ pub enum DownloadAndInstallExtensionToTempdirError {
 
 #[derive(Error, Debug)]
 pub enum InstallExtensionError {
+    #[error("extension '{0}' not found in catalog")]
+    ExtensionNotFound(String),
+
     #[error("Extension '{0}' is already installed at version {1}.")]
     OtherVersionAlreadyInstalled(String, Version),
+
+    #[error(transparent)]
+    FetchCatalog(#[from] FetchCatalogError),
 
     #[error(transparent)]
     GetExtensionArchiveName(#[from] GetExtensionArchiveNameError),
@@ -198,6 +213,9 @@ pub enum FinalizeInstallationError {
     GetTopLevelDirectory(#[from] GetTopLevelDirectoryError),
 
     #[error(transparent)]
+    LoadExtensionManifest(#[from] LoadExtensionManifestError),
+
+    #[error(transparent)]
     Rename(#[from] RenameError),
 
     #[error(transparent)]
@@ -216,3 +234,15 @@ pub enum FetchExtensionCompatibilityMatrixError {
 #[derive(Error, Debug)]
 #[error(transparent)]
 pub struct UninstallExtensionError(#[from] RemoveDirectoryAndContentsError);
+
+#[derive(Error, Debug)]
+pub enum FetchCatalogError {
+    #[error(transparent)]
+    ParseUrl(#[from] url::ParseError),
+
+    #[error(transparent)]
+    Get(reqwest::Error),
+
+    #[error(transparent)]
+    ParseJson(reqwest::Error),
+}

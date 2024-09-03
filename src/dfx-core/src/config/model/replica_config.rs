@@ -186,7 +186,7 @@ impl HttpHandlerConfig {
 #[allow(clippy::large_enum_variant)]
 pub enum CachedReplicaConfig<'a> {
     Replica { config: Cow<'a, ReplicaConfig> },
-    PocketIc,
+    PocketIc { config: Cow<'a, ReplicaConfig> },
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
@@ -205,22 +205,18 @@ impl<'a> CachedConfig<'a> {
             },
         }
     }
-    pub fn pocketic(replica_rev: String) -> Self {
+    pub fn pocketic(config: &'a ReplicaConfig, replica_rev: String) -> Self {
         Self {
             replica_rev,
-            config: CachedReplicaConfig::PocketIc,
+            config: CachedReplicaConfig::PocketIc {
+                config: Cow::Borrowed(config),
+            },
         }
     }
     pub fn is_pocketic(&self) -> bool {
-        matches!(self.config, CachedReplicaConfig::PocketIc)
+        matches!(self.config, CachedReplicaConfig::PocketIc { .. })
     }
     pub fn can_share_state(&self, other: &Self) -> bool {
-        match (&self.config, &other.config) {
-            (CachedReplicaConfig::PocketIc, _) | (_, CachedReplicaConfig::PocketIc) => false,
-            (
-                CachedReplicaConfig::Replica { config: config1 },
-                CachedReplicaConfig::Replica { config: config2 },
-            ) => self.replica_rev == other.replica_rev && config1 == config2,
-        }
+        self == other
     }
 }

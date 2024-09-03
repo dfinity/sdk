@@ -144,7 +144,6 @@ teardown() {
 }
 
 @test "dfx restarts the replica" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: state persistence"
   dfx_new hello
   dfx_start
 
@@ -153,10 +152,11 @@ teardown() {
   assert_command dfx canister call hello_backend greet '("Alpha")'
   assert_eq '("Hello, Alpha!")'
 
-  REPLICA_PID=$(get_replica_pid)
+  REPLICA_PID=$([[ "$USE_POCKETIC" ]] && get_pocketic_pid || get_replica_pid)
 
   echo "replica pid is $REPLICA_PID"
 
+  [[ "$USE_POCKETIC" ]] && curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
   kill -KILL "$REPLICA_PID"
   assert_process_exits "$REPLICA_PID" 15s
 
@@ -166,13 +166,13 @@ teardown() {
   wait_until_replica_healthy
 
   # Sometimes initially get an error like:
-  #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
+  #     IC0537: Attempt to execute a message on canister <>> which contains no Wasm module
   # but the condition clears.
   timeout 30s sh -c \
     "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
     || (echo "canister call did not succeed") # but continue, for better error reporting
   # even after the above, still sometimes fails with
-  #     IC0515: Certified state is not available yet. Please try again...
+  #     IC0208: Certified state is not available yet. Please try again...
   sleep 10
   timeout 30s sh -c \
     "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
@@ -180,20 +180,6 @@ teardown() {
 
   assert_command dfx canister call hello_backend greet '("Omega")'
   assert_eq '("Hello, Omega!")'
-}
-
-@test "dfx restarts pocketic" {
-  [[ "$USE_POCKETIC" ]] || skip "skipped for replica"
-  dfx_start
-
-  POCKETIC_PID=$(get_pocketic_pid)
-  echo "pocketic pid is $POCKETIC_PID"
-  kill -KILL "$POCKETIC_PID"
-  assert_process_exits "$POCKETIC_PID" 15s
-  timeout 15s sh -c \
-    'until dfx ping; do echo waiting for pocketic to restart; sleep 1; done' \
-    || (echo "pocketic did not restart" && ps aux && exit 1)
-  assert_command wait_until_replica_healthy
 }
 
 @test "dfx restarts pocketic proxy" {
@@ -222,7 +208,6 @@ teardown() {
 }
 
 @test "dfx restarts pocketic proxy when the replica restarts" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: state persistence"
   dfx_new_assets hello
   dfx_start
 
@@ -231,12 +216,13 @@ teardown() {
   assert_command dfx canister call hello_backend greet '("Alpha")'
   assert_eq '("Hello, Alpha!")'
 
-  REPLICA_PID=$(get_replica_pid)
+  REPLICA_PID=$([[ "$USE_POCKETIC" ]] && get_pocketic_pid || get_replica_pid)
   POCKETIC_PROXY_PID=$(get_pocketic_proxy_pid)
 
   echo "replica pid is $REPLICA_PID"
   echo "pocket-ic proxy pid is $POCKETIC_PROXY_PID"
 
+  [[ "$USE_POCKETIC" ]] && curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
   kill -KILL "$REPLICA_PID"
   assert_process_exits "$REPLICA_PID" 15s
   assert_process_exits "$POCKETIC_PROXY_PID" 15s
@@ -247,13 +233,13 @@ teardown() {
   wait_until_replica_healthy
 
   # Sometimes initially get an error like:
-  #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
+  #     IC0537: Attempt to execute a message on canister <>> which contains no Wasm module
   # but the condition clears.
   timeout 30s sh -c \
     "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
     || (echo "canister call did not succeed") # but continue, for better error reporting
   # even after the above, still sometimes fails with
-  #     IC0515: Certified state is not available yet. Please try again...
+  #     IC0208: Certified state is not available yet. Please try again...
   sleep 10
   timeout 30s sh -c \
     "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
@@ -263,34 +249,6 @@ teardown() {
   assert_eq '("Hello, Omega!")'
 
   ID=$(dfx canister id hello_frontend)
-
-  timeout 15s sh -c \
-    "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for pocket-ic proxy to restart; sleep 1; done" \
-    || (echo "pocket-ic proxy did not restart" && ps aux && exit 1)
-
-  assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
-}
-
-@test "dfx restarts pocketic proxy when pocketic restarts" {
-  [[ "$USE_POCKETIC" ]] || skip "skipped for replica"
-  dfx_start
-  POCKETIC_PID=$(get_pocketic_pid)
-  POCKETIC_PROXY_PID=$(get_pocketic_proxy_pid)
-  echo "pocketic pid is $POCKETIC_PID"
-  echo "pocketic proxy pid is $POCKETIC_PROXY_PID"
-
-  kill -KILL "$POCKETIC_PID"
-  assert_process_exits "$POCKETIC_PID" 15s
-  assert_process_exits "$POCKETIC_PROXY_PID" 15s
-  
-  timeout 15s sh -c \
-    'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
-    || (echo "replica did not restart" && ps aux && exit 1)
-  assert_command wait_until_replica_healthy
-  POCKETIC_NETWORK="http://localhost:$(get_pocketic_port)/instances/0/"
-  dfx_new_assets hello
-  assert_command dfx deploy --network "$POCKETIC_NETWORK"
-  ID=$(dfx canister id hello_frontend --network "$POCKETIC_NETWORK")
 
   timeout 15s sh -c \
     "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for pocket-ic proxy to restart; sleep 1; done" \

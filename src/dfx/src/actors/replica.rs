@@ -22,7 +22,6 @@ use slog::{debug, error, info, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::Duration;
-use tokio::runtime::Builder;
 
 pub mod signals {
     use actix::prelude::*;
@@ -401,11 +400,9 @@ fn replica_start_thread(
                 }
             };
 
-            if let Err(e) = block_on_initialize_replica(
-                port,
-                logger.clone(),
-                bitcoin_integration_config.clone(),
-            ) {
+            if let Err(e) =
+                initialize_replica(port, logger.clone(), bitcoin_integration_config.clone())
+            {
                 error!(logger, "Failed to initialize replica: {:#}", e);
                 let _ = child.kill();
                 let _ = child.wait();
@@ -452,18 +449,7 @@ fn replica_start_thread(
         .map_err(DfxError::from)
 }
 
-fn block_on_initialize_replica(
-    port: u16,
-    logger: Logger,
-    bitcoin_integration_config: Option<BitcoinIntegrationConfig>,
-) -> DfxResult {
-    Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async move { initialize_replica(port, logger, bitcoin_integration_config).await })
-}
-
+#[tokio::main(flavor = "current_thread")]
 async fn initialize_replica(
     port: u16,
     logger: Logger,
