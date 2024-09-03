@@ -70,11 +70,11 @@
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-linux/ic-btc-adapter.gz"
     },
     "ic-btc-canister": {
-        "sha256": "1b34jpxkk72h07ls0fspwrgmndmj7xhlivdhn82msvgz8mx69x89",
+        "sha256": "0giwl43l1rlwc116zrnr4ss8cb23c0jxk2jxshvmy189pqaadbfh",
         "type": "file",
-        "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-10-13/ic-btc-canister.wasm.gz",
+        "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2024-08-30/ic-btc-canister.wasm.gz",
         "url_template": "https://github.com/dfinity/bitcoin-canister/releases/download/<version>/ic-btc-canister.wasm.gz",
-        "version": "release%2F2023-10-13"
+        "version": "release%2F2024-08-30"
     },
     "ic-https-outcalls-adapter-x86_64-darwin": {
         "builtin": false,
