@@ -114,6 +114,7 @@ impl Canister {
         logger: &Logger,
         build_output: &BuildOutput,
     ) -> DfxResult {
+        eprintln!("wasm_post_process {}", self.info.get_name());
         let build_output_wasm_path = match &build_output.wasm {
             WasmBuildOutput::File(p) => p,
             WasmBuildOutput::None => {
@@ -131,8 +132,11 @@ impl Canister {
         let mut m = read_wasm_module(build_output_wasm_path)?;
         let mut modified = false;
 
+        eprintln!("wasm_post_process {} check optimize or shrink", self.info.get_name());
+
         // optimize or shrink
         if let Some(level) = info.get_optimize() {
+            eprintln!("wasm_post_process {} optimizing wasm at level {}", self.info.get_name(), level);
             trace!(logger, "Optimizing Wasm at level {}", level);
             ic_wasm::optimize::optimize(
                 &mut m,
@@ -146,6 +150,7 @@ impl Canister {
         } else if info.get_shrink() == Some(true)
             || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
         {
+            eprintln!("wasm_post_process {} shxrinking wasm", self.info.get_name());
             trace!(logger, "Shrinking Wasm");
             ic_wasm::shrink::shrink(&mut m);
             modified = true;

@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ens/troubleshoot-replica-test-failures
   pull_request:
 
 concurrency:
