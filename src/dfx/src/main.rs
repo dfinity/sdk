@@ -11,6 +11,7 @@ use dfx_core::extension::manager::ExtensionManager;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
+use slog::{debug, error, info, trace};
 
 mod actors;
 mod commands;
@@ -145,6 +146,10 @@ fn inner_main() -> DfxResult {
     }
 
     let (verbose_level, log) = setup_logging(&cli_opts);
+    error!("this is error level");
+    info!(log, "this is info level");
+    debug!(log, "this is debug level");
+    trace!(log, "this is trace level");
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
 
