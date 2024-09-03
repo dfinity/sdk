@@ -152,11 +152,13 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build custom -vvv
-  assert_not_match "Shrinking Wasm"
+  # shellcheck disable=SC2154
+  assert_not_match "Shrinking Wasm" "$stderr"
 
   jq '.canisters.custom.shrink=true' dfx.json | sponge dfx.json
   assert_command dfx build custom -vvv
-  assert_match "Shrinking Wasm"
+  # shellcheck disable=SC2154
+  assert_match "Shrinking Wasm" "$stderr"
 }
 
 @test "build custom canister default no optimize" {
@@ -166,11 +168,13 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build custom -vvv
-  assert_not_match "Optimizing"
+  # shellcheck disable=SC2154
+  assert_not_match "Optimizing" "$stderr"
 
   jq '.canisters.custom.optimize="size"' dfx.json | sponge dfx.json
   assert_command dfx build custom -vvv
-  assert_match "Optimizing Wasm at level"
+  # shellcheck disable=SC2154
+  assert_match "Optimizing Wasm at level" "$stderr"
 }
 
 @test "build succeeds if enable gzip" {

@@ -161,6 +161,7 @@ jobs:
           echo "archive=$(pwd)/e2e/archive" >> "$GITHUB_ENV"
           echo "assets=$(pwd)/e2e/assets" >> "$GITHUB_ENV"
           echo "utils=$(pwd)/e2e/utils" >> "$GITHUB_ENV"
+          echo "RUST_LOG=trace" >> "$GITHUB_ENV"
           if [ "${{ matrix.backend == 'pocketic' || '' }}" ]; then
             echo "USE_POCKETIC=1" >> "$GITHUB_ENV"
           fi
@@ -173,6 +174,8 @@ jobs:
           path: |
             e2e/assets/playground_backend/.mops
           key: playground-backend-mops-${{ hashFiles('e2e/assets/playground_backend/mops.toml') }}
+      - name: Show environment
+        run: export
       - name: Run e2e test
         run: timeout 2400 bats "e2e/$E2E_TEST"
 
