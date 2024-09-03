@@ -146,7 +146,7 @@ fn inner_main() -> DfxResult {
     }
 
     let (verbose_level, log) = setup_logging(&cli_opts);
-    error!("this is error level");
+    error!(log, "this is error level");
     info!(log, "this is info level");
     debug!(log, "this is debug level");
     trace!(log, "this is trace level");
