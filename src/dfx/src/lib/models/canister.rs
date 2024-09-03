@@ -22,7 +22,7 @@ use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
-use slog::{debug, error, info, trace, warn, Logger};
+use slog::{debug, error, info, trace, warn, Drain, Logger};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashSet};
 use std::convert::TryFrom;
@@ -151,6 +151,10 @@ impl Canister {
             || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
         {
             eprintln!("wasm_post_process {} shxrinking wasm", self.info.get_name());
+            eprintln!("is info enabled? {}", logger.is_enabled(slog::Level::Info));
+            eprintln!("is error enabled? {}", logger.is_enabled(slog::Level::Error));
+            eprintln!("is debug enabled? {}", logger.is_enabled(slog::Level::Debug));
+            eprintln!("is trace enabled? {}", logger.is_enabled(slog::Level::Trace));
             trace!(logger, "Shrinking Wasm");
             ic_wasm::shrink::shrink(&mut m);
             modified = true;
