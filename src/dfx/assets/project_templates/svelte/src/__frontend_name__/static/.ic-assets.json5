@@ -9,6 +9,10 @@
         // Options are: "hardened" | "standard" | "disabled".
         "security_policy": "standard",
 
+        "headers": {
+            "Content-Security-Policy": "default-src 'self';script-src 'self' 'unsafe-eval' 'unsafe-inline';connect-src 'self' http://localhost:* https://icp0.io https://*.icp0.io https://icp-api.io;img-src 'self' data:;style-src * 'unsafe-inline';style-src-elem * 'unsafe-inline';font-src *;object-src 'none';base-uri 'self';frame-ancestors 'none';form-action 'self';upgrade-insecure-requests;",
+        },
+
         // Uncomment to disable the warning about using the
         // standard security policy, if you understand the risk
         // "disable_security_policy_warning": true,
