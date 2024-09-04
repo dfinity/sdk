@@ -63,7 +63,7 @@ Added `create_chunks`. It has the same behavior as `create_chunk`, except that i
 
 Updated dependencies.
 
-- Module hash: 40b724e15709e9a7ac546e845c5922ed9c1c62a105bb1c906b717e142e536631
+- Module hash: 3a533f511b3960b4186e76cf9abfbd8222a2c507456a66ec55671204ee70cae3
 - https://github.com/dfinity/sdk/pull/3898
 - https://github.com/dfinity/sdk/pull/3889
 
