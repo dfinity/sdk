@@ -26,6 +26,7 @@ humantime-serde = "1.1.1"
 ic-agent.workspace = true
 ic-utils.workspace = true
 ic-identity-hsm.workspace = true
+itertools.workspace = true
 k256 = { version = "0.11.4", features = ["pem"] }
 keyring.workspace = true
 lazy_static.workspace = true

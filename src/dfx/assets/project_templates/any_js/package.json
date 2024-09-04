@@ -1,5 +1,5 @@
 {
-    "name": "{project_name}",
+    "name": "__project_name__",
     "type": "module",
     "scripts": {
         "start": "npm start --workspaces --if-present",

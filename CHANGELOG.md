@@ -2,6 +2,17 @@
 
 # UNRELEASED
 
+### feat: expose canister upgrade options in CLI
+
+`dfx canister install` and `dfx deploy` takes options `--skip-pre-upgrade` and `--wasm-memory-persistence`.
+
+`dfx deploy --mode` now takes the same possible values as `dfx canister install --mode`: "install", "reinstall", "upgrade" and "auto".
+
+In "auto" mode, the upgrade options are hints which only take effects when the actual install mode is "upgrade". 
+
+To maintain backward compatibility, a minor difference between the two commands remains.
+If the `--mode` is not set, `dfx deploy` defaults to "auto", while `dfx canister install` defaults to "install".
+
 ### feat: Also report Motoko stable compatibility warnings
 
 Report upgrade compatibility warnings for Motoko, such as deleted stable variables, in addition to compatibility errors.
@@ -27,6 +38,12 @@ This applies to the following:
 
 ### chore: update Candid UI canister with commit 8c20762b734316613792226fb247a2aabd8fb823
 
+### feat: `dfx extension list` supports listing available extensions
+
+`dfx extension list` now support `--available` flag to list available extensions from the
+[extension catalog](https://github.com/dfinity/dfx-extensions/blob/main/catalog.json).
+The extension catalog can be overridden with the `--catalog-url` parameter.
+
 ## Dependencies
 
 ### Replica
@@ -42,9 +59,12 @@ This incorporates the following executed proposals:
 
 ### Frontend canister
 
+Added `create_chunks`. It has the same behavior as `create_chunk`, except that it takes a `vec blob` and returns a `vec BatchId` instead of non-`vec` variants.
+
 Updated dependencies.
 
 - Module hash: 40b724e15709e9a7ac546e845c5922ed9c1c62a105bb1c906b717e142e536631
+- https://github.com/dfinity/sdk/pull/3898
 - https://github.com/dfinity/sdk/pull/3889
 
 # 0.23.0
