@@ -36,6 +36,12 @@ This applies to the following:
  - tech stack value computation
  - packtool (vessel, mops etc)
 
+### feat: `dfx extension list` supports listing available extensions
+
+`dfx extension list` now support `--available` flag to list available extensions from the
+[extension catalog](https://github.com/dfinity/dfx-extensions/blob/main/catalog.json).
+The extension catalog can be overridden with the `--catalog-url` parameter.
+
 ## Dependencies
 
 ### Frontend canister
