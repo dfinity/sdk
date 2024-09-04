@@ -46,6 +46,10 @@ Module hash: 3a533f511b3960b4186e76cf9abfbd8222a2c507456a66ec55671204ee70cae3
 
 # 0.23.0
 
+### fix: relax content security policy for sveltekit starter
+
+We had to roll back part of the increased default security policy for the sveltekit starter due to the framework's use of inline scripts
+
 ### feat: Add canister snapshots
 
 The new `dfx canister snapshot` command can be used to create, apply, and delete snapshots of stopped canisters.
