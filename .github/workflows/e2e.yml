@@ -86,6 +86,12 @@ jobs:
       - name: Build
         run: |
           cargo build --target ${{ matrix.target }} --locked --release
+      - name: Print with v
+          ${{ matrix.binary_path }} -v info webserver-port
+      - name: Print with vv
+          ${{ matrix.binary_path }} -vv info webserver-port
+      - name: Print with vvv
+          ${{ matrix.binary_path }} -vvv info webserver-port
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -175,6 +181,12 @@ jobs:
           key: playground-backend-mops-${{ hashFiles('e2e/assets/playground_backend/mops.toml') }}
       - name: Show environment
         run: export
+      - name: Print with v
+          ${{ matrix.binary_path }} -v info webserver-port
+      - name: Print with vv
+          ${{ matrix.binary_path }} -vv info webserver-port
+      - name: Print with vvv
+          ${{ matrix.binary_path }} -vvv info webserver-port
       - name: Run e2e test
         run: timeout 2400 bats "e2e/$E2E_TEST"
 

@@ -56,6 +56,7 @@ pub struct CliOpts {
 fn setup_logging(opts: &CliOpts) -> (i64, slog::Logger) {
     // Create a logger with our argument matches.
     let verbose_level = opts.verbose as i64 - opts.quiet as i64;
+    eprintln!("Verbose level: {}", verbose_level);
 
     let mode = match opts.logmode.as_str() {
         "tee" => LoggingMode::Tee(PathBuf::from(opts.logfile.as_deref().unwrap_or("log.txt"))),
