@@ -22,7 +22,7 @@ use fn_error_context::context;
 use ic_agent::{Agent, AgentError};
 use ic_wasm::metadata::get_metadata;
 use sha2::{Digest, Sha256};
-use slog::{error, info, trace, warn, Logger};
+use slog::{debug, error, info, warn, Logger};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::io::Write;
 use std::path::Path;
@@ -166,7 +166,7 @@ async fn download_and_generate_pulled_canister(
                 cache_hit = true;
                 pulled_canister.gzip = gzip;
                 pulled_canister.wasm_hash_download = hex::encode(hash_cache);
-                trace!(logger, "The canister wasm was found in the cache.");
+                debug!(logger, "The canister wasm was found in the cache.");
             }
             break;
         }
@@ -280,14 +280,14 @@ async fn get_hash_on_chain(
         warn!(logger, "Canister {canister_id} specified both `wasm_hash` and `wasm_hash_url`. `wasm_hash` will be used.");
     };
     if let Some(wasm_hash_str) = &pullable.wasm_hash {
-        trace!(
+        debug!(
             logger,
             "Canister {canister_id} specified a custom hash: {wasm_hash_str}"
         );
         Ok(hex::decode(wasm_hash_str)
             .with_context(|| format!("Failed to decode {wasm_hash_str} as sha256 hash."))?)
     } else if let Some(wasm_hash_url) = &pullable.wasm_hash_url {
-        trace!(
+        debug!(
             logger,
             "Canister {canister_id} specified a custom hash via url: {wasm_hash_url}"
         );

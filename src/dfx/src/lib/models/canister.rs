@@ -22,7 +22,7 @@ use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
 use rand::{thread_rng, RngCore};
-use slog::{error, info, trace, warn, Logger};
+use slog::{debug, error, info, trace, warn, Logger};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashSet};
 use std::convert::TryFrom;
@@ -133,7 +133,7 @@ impl Canister {
 
         // optimize or shrink
         if let Some(level) = info.get_optimize() {
-            trace!(logger, "Optimizing Wasm at level {}", level);
+            debug!(logger, "Optimizing Wasm at level {}", level);
             ic_wasm::optimize::optimize(
                 &mut m,
                 &wasm_opt_level_convert(level),
@@ -146,7 +146,7 @@ impl Canister {
         } else if info.get_shrink() == Some(true)
             || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
         {
-            trace!(logger, "Shrinking Wasm");
+            debug!(logger, "Shrinking Wasm");
             ic_wasm::shrink::shrink(&mut m);
             modified = true;
         }
@@ -761,9 +761,9 @@ impl CanisterPool {
                     .map(|c| c.get_name())
                     .contains(&canister.get_name())
                 {
-                    trace!(log, "Building canister '{}'.", canister.get_name());
+                    debug!(log, "Building canister '{}'.", canister.get_name());
                 } else {
-                    trace!(log, "Not building canister '{}'.", canister.get_name());
+                    debug!(log, "Not building canister '{}'.", canister.get_name());
                     continue;
                 }
                 result.push(
