@@ -54,6 +54,10 @@ Module hash: 3a533f511b3960b4186e76cf9abfbd8222a2c507456a66ec55671204ee70cae3
 
 # 0.23.0
 
+### fix: relax content security policy for sveltekit starter
+
+We had to roll back part of the increased default security policy for the sveltekit starter due to the framework's use of inline scripts
+
 ### feat: Add canister snapshots
 
 The new `dfx canister snapshot` command can be used to create, apply, and delete snapshots of stopped canisters.
@@ -729,7 +733,7 @@ For reference, these formats were removed (any '-' characters were replaced by '
 
 ### feat: add `dfx canister logs <canister_id>` for fetching canister's logs (preview)
 
-There is a new subcommand `logs` to fetch canister's logs. 
+There is a new subcommand `logs` to fetch canister's logs.
 When printing the log entries it tries to guess if the content can be converted to UTF-8 text and prints an array of hex bytes if it fails.
 
 **Note**
@@ -745,7 +749,7 @@ The query parameter format is not removed because Safari does not support localh
 
 ### fix: .env files sometimes missing some canister ids
 
-Made it so `dfx deploy` and `dfx canister install` will always write 
+Made it so `dfx deploy` and `dfx canister install` will always write
 environment variables for all canisters in the project that have canister ids
 to the .env file, even if they aren't being deployed/installed
 or a dependency of a canister being deployed/installed.
@@ -755,7 +759,7 @@ or a dependency of a canister being deployed/installed.
 There are a few subcommands that take `--argument`/`--argument-file` options to set canister call/init arguments.
 
 We unify the related logic to provide consistent user experience.
- 
+
 The notable changes are:
 
 - `dfx deploy` now accepts `--argument-file`.
@@ -763,7 +767,7 @@ The notable changes are:
 
 ### feat: candid assist feature
 
-Ask for user input when Candid argument is not provided in `dfx canister call`, `dfx canister install` and `dfx deploy`. 
+Ask for user input when Candid argument is not provided in `dfx canister call`, `dfx canister install` and `dfx deploy`.
 Previously, we cannot call `dfx deploy --all` when multiple canisters require init args, unless the init args are specified in `dfx.json`. With the Candid assist feature, dfx now asks for init args in terminal when a canister requires init args.
 
 ### fix: restored access to URLs like http://localhost:8080/api/v2/status through icx-proxy
@@ -912,7 +916,7 @@ If you build with custom canister type, add the following into `dfx.json`:
 
 ```
 "metadata": [
-  { 
+  {
     "name": "candid:service"
   }
 ]
@@ -947,7 +951,7 @@ Fix the bug that when parsing `vec \{1;2;3\}` with `blob` type, dfx silently ign
 ### fix: support `import` for local did file
 
 If the local did file contains `import` or init args, dfx will rewrite the did file when storing in canister metadata.
-Due to current limitations of the Candid parser, comments will be dropped during rewriting. 
+Due to current limitations of the Candid parser, comments will be dropped during rewriting.
 If the local did file doesn't contain `import` or init args, we will not perform the rewriting, thus preserving the comments.
 
 ### fix: subtyping check reports the special opt rule as error
@@ -1336,7 +1340,7 @@ This incorporates the following executed proposals:
 - [124537](https://dashboard.internetcomputer.org/proposal/124537)
 - [124488](https://dashboard.internetcomputer.org/proposal/124488)
 - [124487](https://dashboard.internetcomputer.org/proposal/124487)
-  
+
 # 0.15.0
 
 ## DFX
