@@ -133,7 +133,7 @@ impl PocketIcProxy {
         let mut retries = 0;
         loop {
             if let Ok(content) = std::fs::read_to_string(port_file_path) {
-                if content.contains("\n") {
+                if content.contains('\n') {
                     if let Ok(port) = content.trim_end().parse::<u16>() {
                         return Ok(port);
                     }
