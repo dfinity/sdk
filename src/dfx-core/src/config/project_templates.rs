@@ -14,9 +14,12 @@ pub enum ResourceLocation {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum Category {
     Backend,
+    Frontend,
+    FrontendTest,
+    Extra,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ProjectTemplateName(pub String);
 
 #[derive(Debug, Clone)]
@@ -41,10 +44,26 @@ pub struct ProjectTemplate {
     /// If true, patch in the any_js template files
     pub has_js: bool,
 
+    /// If true, run npm install
+    pub install_node_dependencies: bool,
+
     /// The sort order is fixed rather than settable in properties:
-    /// - motoko=0
-    /// - rust=1
-    /// - everything else=2 (and then by display name)
+    /// For backend:
+    ///   - motoko=0
+    ///   - rust=1
+    ///   - everything else=2 (and then by display name)
+    /// For frontend:
+    ///   - SvelteKit=0
+    ///   - React=1
+    ///   - Vue=2
+    ///   - Vanilla JS=3
+    ///   - No JS Template=4
+    ///   - everything else=5 (and then by display name)
+    /// For extras:
+    ///   - Internet Identity=0
+    ///   - Bitcoin=1
+    ///   - everything else=2 (and then by display name)
+    ///   - Frontend Tests
     pub sort_order: u32,
 }
 
@@ -63,6 +82,10 @@ pub fn populate(builtin_templates: Vec<ProjectTemplate>) {
 
 pub fn get_project_template(name: &ProjectTemplateName) -> ProjectTemplate {
     PROJECT_TEMPLATES.get().unwrap().get(name).cloned().unwrap()
+}
+
+pub fn find_project_template(name: &ProjectTemplateName) -> Option<ProjectTemplate> {
+    PROJECT_TEMPLATES.get().unwrap().get(name).cloned()
 }
 
 pub fn get_sorted_templates(category: Category) -> Vec<ProjectTemplate> {
