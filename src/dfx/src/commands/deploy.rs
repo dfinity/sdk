@@ -24,7 +24,6 @@ use slog::info;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
-use url::Url;
 
 /// Deploys all or a specific canister from the code in your project. By default, all canisters are deployed.
 #[derive(Parser)]
@@ -198,7 +197,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
     let canister_id_store = env.get_canister_id_store()?;
 
     let mut frontend_urls = BTreeMap::new();
-    let mut candid_urls: BTreeMap<&String, Url> = BTreeMap::new();
+    let mut candid_urls = BTreeMap::new();
 
     if let Some(canisters) = &config.get_config().canisters {
         for (canister_name, canister_config) in canisters {
