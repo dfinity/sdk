@@ -50,6 +50,10 @@ Added `create_chunks`. It has the same behavior as `create_chunk`, except that i
 
 Module hash: 3a533f511b3960b4186e76cf9abfbd8222a2c507456a66ec55671204ee70cae3
 
+### Motoko
+
+Updated Motoko to [0.12.1](https://github.com/dfinity/motoko/releases/tag/0.12.1)
+
 # 0.23.0
 
 ### fix: relax content security policy for sveltekit starter
