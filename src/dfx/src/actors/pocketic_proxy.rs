@@ -16,7 +16,6 @@ use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::Duration;
-use tempfile::tempdir;
 use url::Url;
 
 pub mod signals {
@@ -129,18 +128,13 @@ impl PocketIcProxy {
 
     fn wait_for_ready(
         port_file_path: &Path,
-        ready_file_path: &Path,
         shutdown_signal: Receiver<()>,
     ) -> Result<u16, ControlFlow<(), DfxError>> {
         let mut retries = 0;
-        let mut ready = false;
         loop {
-            if !ready && ready_file_path.exists() {
-                ready = true;
-            }
-            if ready {
-                if let Ok(content) = std::fs::read_to_string(port_file_path) {
-                    if let Ok(port) = content.parse::<u16>() {
+            if let Ok(content) = std::fs::read_to_string(port_file_path) {
+                if content.contains("\n") {
+                    if let Ok(port) = content.trim_end().parse::<u16>() {
                         return Ok(port);
                     }
                 }
@@ -239,9 +233,6 @@ fn pocketic_proxy_start_thread(
 
             cmd.args(["--ttl", "2592000"]);
             cmd.args(["--port-file".as_ref(), pocketic_proxy_port_path.as_os_str()]);
-            let tmp = tempdir().expect("Could not create temporary directory.");
-            let ready_file = tmp.path().join("ready");
-            cmd.args(["--ready-file".as_ref(), ready_file.as_os_str()]);
             cmd.stdout(std::process::Stdio::inherit());
             cmd.stderr(std::process::Stdio::inherit());
             let last_start = std::time::Instant::now();
@@ -252,24 +243,21 @@ fn pocketic_proxy_start_thread(
                 .expect("Could not write to pocketic-proxy-pid file.");
             std::fs::write(&pocketic_proxy_pid_path, child.id().to_string())
                 .expect("Could not write to pocketic-proxy-pid file.");
-            let port = match PocketIcProxy::wait_for_ready(
-                &pocketic_proxy_port_path,
-                &ready_file,
-                receiver.clone(),
-            ) {
-                Ok(p) => p,
-                Err(e) => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    if let Continue(e) = e {
-                        error!(logger, "Failed to start HTTP gateway: {e:#}");
-                        continue;
-                    } else {
-                        debug!(logger, "Got signal to stop");
-                        break;
+            let port =
+                match PocketIcProxy::wait_for_ready(&pocketic_proxy_port_path, receiver.clone()) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        if let Continue(e) = e {
+                            error!(logger, "Failed to start HTTP gateway: {e:#}");
+                            continue;
+                        } else {
+                            debug!(logger, "Got signal to stop");
+                            break;
+                        }
                     }
-                }
-            };
+                };
             if let Err(e) = initialize_gateway(
                 format!("http://localhost:{port}").parse().unwrap(),
                 replica_url.clone(),

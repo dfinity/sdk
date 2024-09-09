@@ -48,9 +48,12 @@ The extension catalog can be overridden with the `--catalog-url` parameter.
 
 ### Replica
 
-Updated replica to elected commit 3d6a76efba59d6f03026d6b7c1c9a1dfce96ee93.
+Updated replica to elected commit 843e71b994e1bf28edf80ad7746a7355259de91a.
 This incorporates the following executed proposals:
 
+- [132376](https://dashboard.internetcomputer.org/proposal/132376)
+- [132375](https://dashboard.internetcomputer.org/proposal/132375)
+- [132222](https://dashboard.internetcomputer.org/proposal/132222)
 - [132149](https://dashboard.internetcomputer.org/proposal/132149)
 - [132148](https://dashboard.internetcomputer.org/proposal/132148)
 - [131787](https://dashboard.internetcomputer.org/proposal/131787)

@@ -4563,7 +4563,7 @@ dependencies = [
 [[package]]
 name = "pocket-ic"
 version = "4.0.0"
-source = "git+https://github.com/dfinity/ic?rev=3d6a76efba59d6f03026d6b7c1c9a1dfce96ee93#3d6a76efba59d6f03026d6b7c1c9a1dfce96ee93"
+source = "git+https://github.com/dfinity/ic?rev=843e71b994e1bf28edf80ad7746a7355259de91a#843e71b994e1bf28edf80ad7746a7355259de91a"
 dependencies = [
  "base64 0.13.1",
  "candid",
