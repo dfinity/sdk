@@ -18,7 +18,6 @@ use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
-use tempfile::tempdir;
 
 pub mod signals {
     use actix::prelude::*;
@@ -89,18 +88,13 @@ impl PocketIc {
 
     fn wait_for_ready(
         port_file_path: &Path,
-        ready_file_path: &Path,
         shutdown_signal: Receiver<()>,
     ) -> Result<u16, ControlFlow<(), DfxError>> {
         let mut retries = 0;
-        let mut ready = false;
         loop {
-            if !ready && ready_file_path.exists() {
-                ready = true;
-            }
-            if ready {
-                if let Ok(content) = std::fs::read_to_string(port_file_path) {
-                    if let Ok(port) = content.parse::<u16>() {
+            if let Ok(content) = std::fs::read_to_string(port_file_path) {
+                if content.contains('\n') {
+                    if let Ok(port) = content.trim_end().parse::<u16>() {
                         return Ok(port);
                     }
                 }
@@ -233,9 +227,6 @@ fn pocketic_start_thread(
                 "--ttl",
                 "2592000",
             ]);
-            let tmp = tempdir().expect("Could not create temporary directory.");
-            let ready_file = tmp.path().join("ready");
-            cmd.args(["--ready-file".as_ref(), ready_file.as_os_str()]);
             if !config.verbose {
                 cmd.env("RUST_LOG", "error");
             }
@@ -253,21 +244,20 @@ fn pocketic_start_thread(
                 );
             }
 
-            let port =
-                match PocketIc::wait_for_ready(&config.port_file, &ready_file, receiver.clone()) {
-                    Ok(p) => p,
-                    Err(e) => {
-                        let _ = child.kill();
-                        let _ = child.wait();
-                        if let Continue(e) = e {
-                            error!(logger, "Failed to start pocket-ic: {e:#}");
-                            continue;
-                        } else {
-                            debug!(logger, "Got signal to stop");
-                            break;
-                        }
+            let port = match PocketIc::wait_for_ready(&config.port_file, receiver.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    if let Continue(e) = e {
+                        error!(logger, "Failed to start pocket-ic: {e:#}");
+                        continue;
+                    } else {
+                        debug!(logger, "Got signal to stop");
+                        break;
                     }
-                };
+                }
+            };
             let instance = match initialize_pocketic(
                 port,
                 config.replica_config.state_manager.state_root.clone(),
