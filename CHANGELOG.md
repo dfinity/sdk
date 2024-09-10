@@ -4,6 +4,8 @@
 
 # 0.24.0
 
+### fix: pin Typescript version in Svelte starter template
+
 ### feat: expose canister upgrade options in CLI
 
 `dfx canister install` and `dfx deploy` takes options `--skip-pre-upgrade` and `--wasm-memory-persistence`.
