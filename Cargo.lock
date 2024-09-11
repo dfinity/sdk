@@ -4563,7 +4563,7 @@ dependencies = [
 [[package]]
 name = "pocket-ic"
 version = "4.0.0"
-source = "git+https://github.com/dfinity/ic?rev=843e71b994e1bf28edf80ad7746a7355259de91a#843e71b994e1bf28edf80ad7746a7355259de91a"
+source = "git+https://github.com/dfinity/ic?rev=dfb1c634d08ec2248feb4d5792554bbe43e068c7#dfb1c634d08ec2248feb4d5792554bbe43e068c7"
 dependencies = [
  "base64 0.13.1",
  "candid",
@@ -6221,9 +6221,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.39.3"
+version = "1.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9babc99b9923bfa4804bd74722ff02c0381021eafa4db9949217e3be8e84fff5"
+checksum = "e2b070231665d27ad9ec9b8df639893f46727666c6767db40317fbe920a5d998"
 dependencies = [
  "backtrace",
  "bytes",

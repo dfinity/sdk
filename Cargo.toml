@@ -71,7 +71,7 @@ semver = "1.0.6"
 tempfile = "3.3.0"
 thiserror = "1.0.24"
 time = "0.3.9"
-tokio = "1.35"
+tokio = "1.40"
 url = { version = "2.1.0", features = ["serde"] }
 walkdir = "2.3.2"
 

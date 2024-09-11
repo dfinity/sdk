@@ -13,7 +13,7 @@ use url::Url;
 pub fn construct_frontend_url(
     network: &NetworkDescriptor,
     canister_id: &Principal,
-) -> DfxResult<(String, Option<String>)> {
+) -> DfxResult<(Url, Option<Url>)> {
     let mut url = Url::parse(&network.providers[0]).with_context(|| {
         format!(
             "Failed to parse url for network provider {}.",
@@ -30,7 +30,7 @@ pub fn construct_frontend_url(
         subdomain_url
             .set_host(Some(&localhost_with_subdomain))
             .with_context(|| format!("Failed to set host to {}.", localhost_with_subdomain))?;
-        Some(url2_string)
+        Some(subdomain_url)
     } else {
         None
     };
@@ -44,14 +44,14 @@ pub fn construct_frontend_url(
         url.set_query(Some(&query));
     };
 
-    Ok((url_string, url2))
+    Ok((url, url2))
 }
 
 #[context("Failed to construct ui canister url for {} on network '{}'.", canister_id, env.get_network_descriptor().name)]
 pub fn construct_ui_canister_url(
     env: &dyn Environment,
     canister_id: &Principal,
-) -> DfxResult<Option<String>> {
+) -> DfxResult<Option<Url>> {
     let mut url = get_ui_canister_url(env)?;
     if let Some(base_url) = url.as_mut() {
         let query_with_canister_id = if let Some(query) = base_url.query() {
@@ -61,5 +61,5 @@ pub fn construct_ui_canister_url(
         };
         base_url.set_query(Some(&query_with_canister_id));
     };
-    Ok(url_string)
+    Ok(url)
 }
