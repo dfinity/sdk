@@ -8,7 +8,7 @@ use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
 use anyhow::{anyhow, bail, ensure, Context};
 use clap::builder::PossibleValuesParser;
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 use console::{style, Style};
 use dfx_core::config::project_templates::{
     find_project_template, get_project_template, get_sorted_templates, project_template_cli_names,
@@ -22,7 +22,6 @@ use indicatif::HumanBytes;
 use semver::Version;
 use slog::{info, warn, Logger};
 use std::collections::BTreeMap;
-use std::fmt::{self, Display, Formatter};
 use std::io::{self, IsTerminal, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -91,24 +90,6 @@ fn extras_project_template_name_parser() -> PossibleValuesParser {
     let mut options = project_template_cli_names(Category::Extra);
     options.push("frontend-tests".to_string());
     PossibleValuesParser::new(options)
-}
-
-#[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq)]
-enum Extra {
-    InternetIdentity,
-    Bitcoin,
-    FrontendTests,
-}
-
-impl Display for Extra {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::InternetIdentity => "Internet Identity",
-            Self::Bitcoin => "Bitcoin (Regtest)",
-            Self::FrontendTests => "Frontend tests",
-        }
-        .fmt(f)
-    }
 }
 
 enum Status<'a> {
