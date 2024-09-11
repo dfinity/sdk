@@ -30,8 +30,6 @@ pub fn construct_frontend_url(
         subdomain_url
             .set_host(Some(&localhost_with_subdomain))
             .with_context(|| format!("Failed to set host to {}.", localhost_with_subdomain))?;
-        // workaround(SDK-1821): `127.0.0.1` is not supported by the gateway, use `localhost` instead
-        let url2_string = subdomain_url.to_string().replace("127.0.0.1", "localhost");
         Some(url2_string)
     } else {
         None
@@ -46,8 +44,6 @@ pub fn construct_frontend_url(
         url.set_query(Some(&query));
     };
 
-    // workaround(SDK-1821): `127.0.0.1` is not supported by the gateway, use `localhost` instead
-    let url_string = url.to_string().replace("127.0.0.1", "localhost");
     Ok((url_string, url2))
 }
 
@@ -65,7 +61,5 @@ pub fn construct_ui_canister_url(
         };
         base_url.set_query(Some(&query_with_canister_id));
     };
-    // workaround(SDK-1821): `127.0.0.1` is not supported by the gateway, use `localhost` instead
-    let url_string = url.map(|u| u.to_string().replace("127.0.0.1", "localhost"));
     Ok(url_string)
 }
