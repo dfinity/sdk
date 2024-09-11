@@ -17,7 +17,7 @@
     {
         "op": "add",
         "path": "/devDependencies/vitest",
-        "value": "^0.32.2"
+        "value": "^2.0.5"
     },
     {
         "op": "add",
