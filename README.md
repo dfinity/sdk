@@ -40,7 +40,7 @@ but typically are used as part of the whole `IC SDK`.
 
 #### Install Rust
 
-To compile and deploy projects, `dfx` uses Rust on the backend. You will need to install Rust in your environment with the command:
+To develop Rust projects, you will need to install Rust in your environment with the command:
 
 ```
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
