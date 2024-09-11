@@ -36,6 +36,15 @@ but typically are used as part of the whole `IC SDK`.
 
 ## Getting Started
 
+### Prerequisites 
+
+ICP smart contracts are compiled into WebAssembly modules. To support this compilation, install the `wasm32-unknown-unknown` package:
+
+```
+cargo build
+rustup target add wasm32-unknown-unknown
+```
+
 ### Installing
 
 You can install the `IC SDK` a few different ways.
