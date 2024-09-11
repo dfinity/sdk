@@ -38,10 +38,19 @@ but typically are used as part of the whole `IC SDK`.
 
 ### Prerequisites 
 
-ICP smart contracts are compiled into WebAssembly modules. To support this compilation, install the `wasm32-unknown-unknown` package:
+#### Install Rust
+
+To compile and deploy projects, `dfx` uses Rust on the backend. You will need to install Rust in your environment with the command:
 
 ```
-cargo build
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+#### Install `wasm32-unknown-unknown` target
+
+ICP smart contracts are compiled into WebAssembly modules. To support this compilation, install the `wasm32-unknown-unknown` target:
+
+```
 rustup target add wasm32-unknown-unknown
 ```
 
