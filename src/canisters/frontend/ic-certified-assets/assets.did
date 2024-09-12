@@ -199,6 +199,7 @@ service: (asset_canister_args: opt AssetCanisterArgs) -> {
   create_batch : (record {}) -> (record { batch_id: BatchId });
 
   create_chunk: (record { batch_id: BatchId; content: blob }) -> (record { chunk_id: ChunkId });
+  create_chunks: (record { batch_id: BatchId; content: vec blob }) -> (record { chunk_ids: vec ChunkId });
 
   // Perform all operations successfully, or reject
   commit_batch: (CommitBatchArguments) -> ();

@@ -24,8 +24,8 @@ if [ "$E2E_TEST" = "tests-dfx/build_rust.bash" ]; then
     cargo uninstall cargo-audit
 fi
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
-     brew fetch --retry mitmproxy
-     brew install mitmproxy
+     brew fetch --retry --cask mitmproxy
+     brew install --cask mitmproxy --no-quarantine
 fi
 if [ "$E2E_TEST" = "tests-dfx/deps.bash" ]; then
      cargo install cargo-binstall@1.6.9 --locked
