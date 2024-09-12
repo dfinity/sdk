@@ -356,7 +356,7 @@ async fn initialize_pocketic(
             subnet_config_set,
             state_dir: Some(replica_config.state_manager.state_root.clone()),
             nonmainnet_features: true,
-            log_level: None,
+            log_level: Some(replica_config.log_level.to_ic_starter_string()),
         })
         .send()
         .await?
