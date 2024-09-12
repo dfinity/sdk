@@ -11,7 +11,7 @@ use actix::{
 use anyhow::{anyhow, bail};
 use candid::Principal;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use dfx_core::config::model::{dfinity::ReplicaSubnetType, replica_config::ReplicaConfig};
+use dfx_core::config::model::replica_config::ReplicaConfig;
 use slog::{debug, error, info, warn, Logger};
 use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
@@ -324,6 +324,7 @@ async fn initialize_pocketic(
     replica_config: &ReplicaConfig,
     logger: Logger,
 ) -> DfxResult<usize> {
+    use dfx_core::config::model::dfinity::ReplicaSubnetType;
     use pocket_ic::common::rest::{
         AutoProgressConfig, CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig,
         RawTime, SubnetSpec,
