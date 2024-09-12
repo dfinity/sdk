@@ -4,7 +4,24 @@
 
 ### feat: More PocketIC flags supported
 
-`dfx start --pocketic` is now compatible with `--artificial-delay` and the `subnet_type` configuration option, and enables `--enable-canister-http` by default.
+`dfx start --pocketic` is now compatible with `--artificial-delay` and the `subnet_type`  configuration option, and enables `--enable-canister-http` by default.
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 99ab7f03700ba6cf832eb18ffd55228f56ae927a.
+
+This incorporates the following elected proposals:
+
+- [132416](https://dashboard.internetcomputer.org/proposal/132416)
+- [132413](https://dashboard.internetcomputer.org/proposal/132413)
+- [132414](https://dashboard.internetcomputer.org/proposal/132414)
+- [132412](https://dashboard.internetcomputer.org/proposal/132412)
+- [132376](https://dashboard.internetcomputer.org/proposal/132376)
+- [132375](https://dashboard.internetcomputer.org/proposal/132375)
+- [132223](https://dashboard.internetcomputer.org/proposal/132223)
+- [132222](https://dashboard.internetcomputer.org/proposal/132222)
 
 # 0.24.0
 
