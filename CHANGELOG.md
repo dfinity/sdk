@@ -75,6 +75,10 @@ Updated dependencies.
 - https://github.com/dfinity/sdk/pull/3898
 - https://github.com/dfinity/sdk/pull/3889
 
+### Motoko
+
+Updated Motoko to [0.12.1](https://github.com/dfinity/motoko/releases/tag/0.12.1)
+
 # 0.23.0
 
 ### fix: relax content security policy for sveltekit starter
