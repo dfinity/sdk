@@ -127,7 +127,7 @@ ci_info = "0.14"
 junction = "1.0.0"
 
 [target.'cfg(unix)'.dependencies]
-pocket-ic = { git = "https://github.com/dfinity/ic", rev = "dfb1c634d08ec2248feb4d5792554bbe43e068c7" }
+pocket-ic = { git = "https://github.com/dfinity/ic", rev = "179973553248415fc85679d853b48b0e0ec231c6" }
 
 [dev-dependencies]
 env_logger = "0.10"
