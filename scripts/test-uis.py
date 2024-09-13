@@ -56,6 +56,7 @@ Error: Server returned an error:
 ]
 _CANDID_UI_ERRORS_TO_IGNORE = [
     ("Failed to load resource: the server responded with a status of 404 (Not Found)", "/read_state"),
+    ("Error: Please provide a URL to your local Internet Identity service using the `ii` query parameter", "/index.js"),
 ]
 # `page.route` does not support additional function parameters
 _FRONTEND_URL = None
