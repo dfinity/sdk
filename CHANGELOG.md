@@ -14,6 +14,10 @@ Updated replica to elected commit 99ab7f03700ba6cf832eb18ffd55228f56ae927a.
 
 This incorporates the following elected proposals:
 
+- [132507](https://dashboard.internetcomputer.org/proposal/132507)
+- [132482](https://dashboard.internetcomputer.org/proposal/132482)
+- [132481](https://dashboard.internetcomputer.org/proposal/132481)
+- [132500](https://dashboard.internetcomputer.org/proposal/132500)
 - [132416](https://dashboard.internetcomputer.org/proposal/132416)
 - [132413](https://dashboard.internetcomputer.org/proposal/132413)
 - [132414](https://dashboard.internetcomputer.org/proposal/132414)
