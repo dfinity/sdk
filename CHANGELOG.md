@@ -10,7 +10,7 @@
 
 ### Replica
 
-Updated replica to elected commit 99ab7f03700ba6cf832eb18ffd55228f56ae927a.
+Updated replica to elected commit 179973553248415fc85679d853b48b0e0ec231c6.
 
 This incorporates the following elected proposals:
 
