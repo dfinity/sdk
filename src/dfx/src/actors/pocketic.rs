@@ -93,7 +93,7 @@ impl PocketIc {
         loop {
             if let Ok(content) = std::fs::read_to_string(port_file_path) {
                 if content.ends_with('\n') {
-                    if let Ok(port) = content.parse::<u16>() {
+                    if let Ok(port) = content.trim().parse::<u16>() {
                         return Ok(port);
                     }
                 }
