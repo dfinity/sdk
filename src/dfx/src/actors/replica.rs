@@ -327,6 +327,7 @@ fn replica_start_thread(
             "--log-level",
             &config.log_level.to_ic_starter_string(),
             "--use-specified-ids-allocation-range",
+            "--metrics-addr=[100::]:0",
         ]);
         #[cfg(target_os = "macos")]
         cmd.args(["--consensus-pool-backend", "rocksdb"]);
