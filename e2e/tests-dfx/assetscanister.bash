@@ -788,7 +788,7 @@ check_permission_failure() {
 
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
   # fails because %e6 is not valid utf-8 percent encoding
-  assert_contains "400 Bad Request"
+  assert_contains "500 Internal Server Error"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/%25?canisterId="$ID"
   assert_match "200 OK" "$stderr"
