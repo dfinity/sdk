@@ -32,6 +32,10 @@ This incorporates the following elected proposals:
 - [131757](https://dashboard.internetcomputer.org/proposal/131757)
 - [131697](https://dashboard.internetcomputer.org/proposal/131697)
 
+### Candid UI
+
+Module hash 15da2adc4426b8037c9e716b81cb6a8cf1a835ac37589be2cef8cb3f4a04adaa
+
 # 0.24.0
 
 ### fix: bumps sveltekit starter dependency versions to prevent typescript config error
