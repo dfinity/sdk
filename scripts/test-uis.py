@@ -69,6 +69,14 @@ Error: Please provide a URL to your local Internet Identity service using the `i
     at async http://localhost:4943/index.js:2:314291""".strip(),
         "/index.js",
     ),
+    (
+        """
+Error: Please provide a URL to your local Internet Identity service using the `ii` query parameter
+    at http://127.0.0.1:4943/index.js:2:300040
+    at t.renderAuth (http://127.0.0.1:4943/index.js:2:301237)
+    at async http://127.0.0.1:4943/index.js:2:314291""".strip(),
+        "/index.js",
+    ),
 ]
 # `page.route` does not support additional function parameters
 _FRONTEND_URL = None
