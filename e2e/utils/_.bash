@@ -143,9 +143,8 @@ dfx_start() {
     add_default_parameter "--host" "127.0.0.1:0"
     if [[ "$USE_POCKETIC" ]]; then
         add_default_parameter "--pocketic"
-    else
-        add_default_parameter "--artificial-delay" "100"
     fi
+    add_default_parameter "--artificial-delay" "100"
 
     determine_network_directory
 

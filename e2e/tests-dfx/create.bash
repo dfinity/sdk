@@ -348,7 +348,7 @@ teardown() {
   assert_contains 'Memory allocation: 0'
   assert_contains 'Compute allocation: 0'
   assert_contains 'Reserved cycles limit: 5_000_000_000_000'
-  assert_contains 'Wasm memory limit: 0'
+  assert_contains 'Wasm memory limit: 3_221_225_472'
   assert_contains 'Freezing threshold: 2_592_000'
   assert_contains 'Log visibility: controllers'
 }

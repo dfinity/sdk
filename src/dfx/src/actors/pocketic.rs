@@ -17,7 +17,6 @@ use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
-use tempfile::tempdir;
 
 pub mod signals {
     use actix::prelude::*;
@@ -88,18 +87,13 @@ impl PocketIc {
 
     fn wait_for_ready(
         port_file_path: &Path,
-        ready_file_path: &Path,
         shutdown_signal: Receiver<()>,
     ) -> Result<u16, ControlFlow<(), DfxError>> {
         let mut retries = 0;
-        let mut ready = false;
         loop {
-            if !ready && ready_file_path.exists() {
-                ready = true;
-            }
-            if ready {
-                if let Ok(content) = std::fs::read_to_string(port_file_path) {
-                    if let Ok(port) = content.parse::<u16>() {
+            if let Ok(content) = std::fs::read_to_string(port_file_path) {
+                if content.ends_with('\n') {
+                    if let Ok(port) = content.trim().parse::<u16>() {
                         return Ok(port);
                     }
                 }
@@ -232,9 +226,6 @@ fn pocketic_start_thread(
                 "--ttl",
                 "2592000",
             ]);
-            let tmp = tempdir().expect("Could not create temporary directory.");
-            let ready_file = tmp.path().join("ready");
-            cmd.args(["--ready-file".as_ref(), ready_file.as_os_str()]);
             if !config.verbose {
                 cmd.env("RUST_LOG", "error");
             }
@@ -252,26 +243,21 @@ fn pocketic_start_thread(
                 );
             }
 
-            let port =
-                match PocketIc::wait_for_ready(&config.port_file, &ready_file, receiver.clone()) {
-                    Ok(p) => p,
-                    Err(e) => {
-                        let _ = child.kill();
-                        let _ = child.wait();
-                        if let Continue(e) = e {
-                            error!(logger, "Failed to start pocket-ic: {e:#}");
-                            continue;
-                        } else {
-                            debug!(logger, "Got signal to stop");
-                            break;
-                        }
+            let port = match PocketIc::wait_for_ready(&config.port_file, receiver.clone()) {
+                Ok(p) => p,
+                Err(e) => {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    if let Continue(e) = e {
+                        error!(logger, "Failed to start pocket-ic: {e:#}");
+                        continue;
+                    } else {
+                        debug!(logger, "Got signal to stop");
+                        break;
                     }
-                };
-            let instance = match initialize_pocketic(
-                port,
-                config.replica_config.state_manager.state_root.clone(),
-                logger.clone(),
-            ) {
+                }
+            };
+            let instance = match initialize_pocketic(port, &config.replica_config, logger.clone()) {
                 Err(e) => {
                     error!(logger, "Failed to initialize PocketIC: {e:#}");
 
@@ -323,28 +309,44 @@ fn pocketic_start_thread(
 
 #[cfg(unix)]
 #[tokio::main(flavor = "current_thread")]
-async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> DfxResult<usize> {
+async fn initialize_pocketic(
+    port: u16,
+    replica_config: &ReplicaConfig,
+    logger: Logger,
+) -> DfxResult<usize> {
+    use dfx_core::config::model::dfinity::ReplicaSubnetType;
     use pocket_ic::common::rest::{
-        CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig, RawTime, SubnetSpec,
+        AutoProgressConfig, CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig,
+        RawTime, SubnetSpec,
     };
     use reqwest::Client;
     use time::OffsetDateTime;
     let init_client = Client::new();
     debug!(logger, "Configuring PocketIC server");
+    let mut subnet_config_set = ExtendedSubnetConfigSet {
+        nns: Some(SubnetSpec::default()),
+        sns: Some(SubnetSpec::default()),
+        ii: None,
+        fiduciary: None,
+        bitcoin: None,
+        system: vec![],
+        verified_application: vec![],
+        application: vec![],
+    };
+    match replica_config.subnet_type {
+        ReplicaSubnetType::Application => subnet_config_set.application.push(<_>::default()),
+        ReplicaSubnetType::System => subnet_config_set.system.push(<_>::default()),
+        ReplicaSubnetType::VerifiedApplication => {
+            subnet_config_set.verified_application.push(<_>::default())
+        }
+    }
     let resp = init_client
         .post(format!("http://localhost:{port}/instances"))
         .json(&InstanceConfig {
-            subnet_config_set: ExtendedSubnetConfigSet {
-                nns: Some(SubnetSpec::default()),
-                sns: Some(SubnetSpec::default()),
-                ii: None,
-                fiduciary: None,
-                bitcoin: None,
-                system: vec![],
-                application: vec![SubnetSpec::default()],
-            },
-            state_dir: Some(state_dir),
+            subnet_config_set,
+            state_dir: Some(replica_config.state_manager.state_root.clone()),
             nonmainnet_features: true,
+            log_level: Some(replica_config.log_level.to_ic_starter_string()),
         })
         .send()
         .await?
@@ -374,6 +376,9 @@ async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> D
         .post(format!(
             "http://localhost:{port}/instances/{instance}/auto_progress"
         ))
+        .json(&AutoProgressConfig {
+            artificial_delay_ms: Some(replica_config.artificial_delay as u64),
+        })
         .send()
         .await?
         .error_for_status()?;
@@ -382,7 +387,7 @@ async fn initialize_pocketic(port: u16, state_dir: PathBuf, logger: Logger) -> D
 }
 
 #[cfg(not(unix))]
-fn initialize_pocketic(_: u16, _: PathBuf, _: Logger) -> DfxResult<usize> {
+fn initialize_pocketic(_: u16, _: &ReplicaConfig, _: Logger) -> DfxResult<usize> {
     bail!("PocketIC not supported on this platform")
 }
 

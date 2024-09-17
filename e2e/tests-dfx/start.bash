@@ -22,7 +22,7 @@ teardown() {
 }
 
 @test "start and stop with different options" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: artificial delay, and clean required"
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: clean required"
   dfx_start --artificial-delay 101
   dfx_stop
 
@@ -32,7 +32,6 @@ teardown() {
 }
 
 @test "project networks still need --clean" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: artificial delay"
   dfx_new hello
   define_project_network
 
@@ -43,7 +42,7 @@ teardown() {
 }
 
 @test "stop and start with other options does not disrupt projects" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: artificial delay"
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: clean required"
   dfx_start --artificial-delay 101
 
   dfx_new p1
@@ -487,7 +486,6 @@ teardown() {
 }
 
 @test "flags count as configuration modification and require --clean for a project network" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: --artificial-delay"
   dfx_new
   define_project_network
 
