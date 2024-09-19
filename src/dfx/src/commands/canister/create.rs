@@ -9,8 +9,8 @@ use crate::lib::ic_attributes::{
 use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
-    compute_allocation_parser, freezing_threshold_parser, log_visibility_parser,
-    memory_allocation_parser, reserved_cycles_limit_parser, wasm_memory_limit_parser,
+    compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
+    reserved_cycles_limit_parser, wasm_memory_limit_parser,
 };
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
@@ -21,7 +21,6 @@ use clap::{ArgAction, Parser};
 use dfx_core::error::identity::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
 use ic_agent::Identity as _;
-use ic_utils::interfaces::management_canister::LogVisibility;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 
@@ -90,17 +89,6 @@ pub struct CanisterCreateOpts {
     /// Must be a number between 0 B and 256 TiB, inclusive. Can include units, e.g. "4KiB".
     #[arg(long, value_parser = wasm_memory_limit_parser, hide = true)]
     wasm_memory_limit: Option<Byte>,
-
-    /// Specifies who is allowed to read the canister's logs.
-    /// Can be either "controllers" or "public".
-    #[arg(
-        long,
-        value_parser = log_visibility_parser,
-        conflicts_with("add_log_viewer"),
-        conflicts_with("remove_log_viewer"),
-        conflicts_with("set_log_viewer"),
-    )]
-    log_visibility: Option<LogVisibility>,
 
     #[command(flatten)]
     log_visibility_opt: Option<LogVisibilityOpt>,
