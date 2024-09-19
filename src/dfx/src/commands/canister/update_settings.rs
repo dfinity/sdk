@@ -156,10 +156,14 @@ pub async fn exec(
         let wasm_memory_limit =
             get_wasm_memory_limit(opts.wasm_memory_limit, config_interface, canister_name)?;
         let log_visibility = get_log_visibility(
+            env,
             opts.log_visibility_opt.as_ref(),
             config_interface,
             canister_name,
-        )?;
+            Some(canister_id),
+            call_sender,
+        )
+        .await?;
         if let Some(added) = &opts.add_controller {
             let status = get_canister_status(env, canister_id, call_sender).await?;
             let mut existing_controllers = status.settings.controllers;
@@ -242,10 +246,14 @@ pub async fn exec(
                 )
                 .with_context(|| format!("Failed to get Wasm memory limit for {canister_name}."))?;
                 let log_visibility = get_log_visibility(
+                    env,
                     opts.log_visibility_opt.as_ref(),
                     Some(config_interface),
                     Some(canister_name),
+                    Some(canister_id),
+                    call_sender,
                 )
+                .await
                 .with_context(|| format!("Failed to get log visibility for {canister_name}."))?;
                 if let Some(added) = &opts.add_controller {
                     let status = get_canister_status(env, canister_id, call_sender).await?;

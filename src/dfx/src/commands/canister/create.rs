@@ -212,10 +212,14 @@ pub async fn exec(
         )
         .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
         let log_visibility = get_log_visibility(
+            env,
             opts.log_visibility_opt.as_ref(),
             Some(config_interface),
             Some(canister_name),
+            None,
+            call_sender,
         )
+        .await
         .with_context(|| format!("Failed to read log visibility of {canister_name}."))?;
         create_canister(
             env,
@@ -295,10 +299,14 @@ pub async fn exec(
                 )
                 .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
                 let log_visibility = get_log_visibility(
+                    env,
                     opts.log_visibility_opt.as_ref(),
                     Some(config_interface),
                     Some(canister_name),
+                    None,
+                    call_sender,
                 )
+                .await
                 .with_context(|| format!("Failed to read log visibility of {canister_name}."))?;
                 create_canister(
                     env,
