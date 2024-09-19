@@ -1,3 +1,4 @@
+use crate::lib::canister_logs::log_visibility::LogVisibilityOpt;
 use crate::lib::deps::get_pull_canisters_in_config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
@@ -92,8 +93,17 @@ pub struct CanisterCreateOpts {
 
     /// Specifies who is allowed to read the canister's logs.
     /// Can be either "controllers" or "public".
-    #[arg(long, value_parser = log_visibility_parser)]
+    #[arg(
+        long,
+        value_parser = log_visibility_parser,
+        conflicts_with("add_log_viewer"),
+        conflicts_with("remove_log_viewer"),
+        conflicts_with("set_log_viewer"),
+    )]
     log_visibility: Option<LogVisibility>,
+
+    #[command(flatten)]
+    log_visibility_opt: Option<LogVisibilityOpt>,
 
     /// Performs the call with the user Identity as the Sender of messages.
     /// Bypasses the Wallet canister.
@@ -202,7 +212,7 @@ pub async fn exec(
         )
         .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
         let log_visibility = get_log_visibility(
-            opts.log_visibility,
+            opts.log_visibility_opt.as_ref(),
             Some(config_interface),
             Some(canister_name),
         )
@@ -285,7 +295,7 @@ pub async fn exec(
                 )
                 .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
                 let log_visibility = get_log_visibility(
-                    opts.log_visibility,
+                    opts.log_visibility_opt.as_ref(),
                     Some(config_interface),
                     Some(canister_name),
                 )

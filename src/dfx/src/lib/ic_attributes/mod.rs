@@ -1,3 +1,4 @@
+use crate::lib::canister_logs::log_visibility::LogVisibilityOpt;
 use crate::lib::error::DfxResult;
 use anyhow::{anyhow, Context, Error};
 use byte_unit::Byte;
@@ -218,12 +219,12 @@ pub fn get_wasm_memory_limit(
 }
 
 pub fn get_log_visibility(
-    log_visibility: Option<LogVisibility>,
+    log_visibility: Option<&LogVisibilityOpt>,
     config_interface: Option<&ConfigInterface>,
     canister_name: Option<&str>,
 ) -> DfxResult<Option<LogVisibility>> {
     let log_visibility = match (log_visibility, config_interface, canister_name) {
-        (Some(log_visibility), _, _) => Some(log_visibility),
+        (Some(log_visibility), _, _) => Some(log_visibility.to_log_visibility().unwrap().clone()),
         (None, Some(config_interface), Some(canister_name)) => {
             config_interface.get_log_visibility(canister_name)?
         }
