@@ -16,7 +16,7 @@ backoff.workspace = true
 brotli = "6.0.0"
 candid = { workspace = true }
 derivative = "2.2.0"
-dfx-core = { path = "../../../dfx-core" }
+dfx-core.workspace = true
 flate2.workspace = true
 futures.workspace = true
 futures-intrusive = "0.4.0"

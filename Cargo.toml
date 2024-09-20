@@ -21,8 +21,9 @@ license = "Apache-2.0"
 [workspace.dependencies]
 candid = "0.10.4"
 candid_parser = "0.1.4"
+dfx-core = { path = "src/dfx-core", version = "0.1.0" }
 ic-agent = "0.38"
-ic-asset = { path = "src/canisters/frontend/ic-asset" }
+ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.21.0" }
 ic-cdk = "0.13.1"
 ic-identity-hsm = "0.38"
 ic-utils = "0.38"
