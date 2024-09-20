@@ -137,10 +137,29 @@
       }
     },
     "CanisterLogVisibility": {
-      "type": "string",
-      "enum": [
-        "controllers",
-        "public"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "controllers",
+            "public"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "allowedviewers"
+          ],
+          "properties": {
+            "allowedviewers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
       ]
     },
     "CanisterMetadataSection": {
@@ -947,7 +966,7 @@
         },
         "log_visibility": {
           "title": "Log Visibility",
-          "description": "Specifies who is allowed to read the canister's logs.\n\nCan be \"public\" or \"controllers\".",
+          "description": "Specifies who is allowed to read the canister's logs.\n\nCan be \"public\", \"controllers\" or \"allowedviewers\" with a list of Principals.",
           "anyOf": [
             {
               "$ref": "#/definitions/CanisterLogVisibility"
