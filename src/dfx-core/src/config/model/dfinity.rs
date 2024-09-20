@@ -483,7 +483,7 @@ pub struct InitializationValues {
     /// # Log Visibility
     /// Specifies who is allowed to read the canister's logs.
     ///
-    /// Can be "public", "controllers" or "allowed_viewers" with a list of Principals.
+    /// Can be "public", "controllers" or "allowed_viewers" with a list of principals.
     #[schemars(with = "Option<CanisterLogVisibility>")]
     pub log_visibility: Option<CanisterLogVisibility>,
 }

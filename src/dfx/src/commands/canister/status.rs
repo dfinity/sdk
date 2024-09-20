@@ -55,12 +55,16 @@ async fn canister_status(
         LogVisibility::Controllers => "controllers".to_string(),
         LogVisibility::Public => "public".to_string(),
         LogVisibility::AllowedViewers(allowed_list) => {
-            let mut ids_str = "Allowed List:".to_string();
-            for principal in allowed_list {
-                ids_str.push(' ');
-                ids_str.push_str(principal.to_text().as_str());
+            if allowed_list.is_empty() {
+                "Allowed List is empty".to_string()
+            } else {
+                let mut ids_str = "Allowed List:".to_string();
+                for principal in allowed_list {
+                    ids_str.push(' ');
+                    ids_str.push_str(principal.to_text().as_str());
+                }
+                ids_str
             }
-            ids_str
         }
     };
 

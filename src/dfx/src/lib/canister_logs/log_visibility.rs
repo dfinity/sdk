@@ -112,20 +112,11 @@ impl LogVisibilityOpt {
                 let principal = Principal::from_text(viewer).unwrap();
                 if let Some(idx) = viewers.iter().position(|x| *x == principal) {
                     viewers.swap_remove(idx);
+                } else {
+                    slog::warn!(logger, "WARNING!");
+                    slog::warn!(logger, "Principal '{}' is not in the allowed list.", viewer);
                 }
             }
-        }
-
-        // If no viewer in the list, e.g. all removed.
-        if viewers.is_empty() {
-            if let Some(visibility) = &current_visibility {
-                return match visibility {
-                    LogVisibility::Public => Ok(LogVisibility::Public),
-                    _ => Ok(LogVisibility::Controllers),
-                };
-            }
-
-            return Ok(LogVisibility::Controllers);
         }
 
         Ok(LogVisibility::AllowedViewers(viewers))
