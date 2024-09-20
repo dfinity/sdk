@@ -6,6 +6,9 @@ edition.workspace = true
 repository.workspace = true
 license.workspace = true
 rust-version.workspace = true
+description = "dfx core library"
+documentation = "https://docs.rs/dfx-core"
+keywords = ["internet-computer", "icp", "dfinity"]
 
 [dependencies]
 aes-gcm.workspace = true
