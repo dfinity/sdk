@@ -77,21 +77,17 @@ impl LogVisibilityOpt {
 
         // Adding.
         if let Some(added) = self.add_log_viewer.as_ref() {
-            if let Some(visibility) = &current_visibility {
-                match visibility {
-                    LogVisibility::Public => {
-                        // TODO:
-                        // Warning for taking away view rights for everyone.
-                    }
-                    _ => (),
-                }
+            if let Some(LogVisibility::Public) = current_visibility {
+                // TODO:
+                // Warning for taking away view rights for everyone.
+                eprintln!("WARNING!");
             }
+
             for viewer in added {
                 let principal = Principal::from_text(viewer).unwrap();
-                if let Some(_) = viewers.iter().position(|x| *x == principal) {
-                    continue;
+                if !viewers.iter().any(|x| *x == principal) {
+                    viewers.push(principal);
                 }
-                viewers.push(principal);
             }
         }
 
@@ -115,7 +111,7 @@ impl LogVisibilityOpt {
         }
 
         // If no viewer in the list, e.g. all removed.
-        if viewers.len() == 0 {
+        if viewers.is_empty() {
             if let Some(visibility) = &current_visibility {
                 return match visibility {
                     LogVisibility::Public => Ok(LogVisibility::Public),
@@ -126,6 +122,6 @@ impl LogVisibilityOpt {
             return Ok(LogVisibility::Controllers);
         }
 
-        return Ok(LogVisibility::AllowedViewers(viewers));
+        Ok(LogVisibility::AllowedViewers(viewers))
     }
 }
