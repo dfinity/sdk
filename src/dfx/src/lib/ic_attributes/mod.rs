@@ -5,12 +5,11 @@ use anyhow::{anyhow, Context, Error};
 use byte_unit::Byte;
 use candid::Principal;
 use dfx_core::config::model::dfinity::ConfigInterface;
-use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::{
     attributes::{ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit},
     builders::WasmMemoryLimit,
-    LogVisibility,
+    LogVisibility, StatusCallResult,
 };
 use num_traits::ToPrimitive;
 use std::convert::TryFrom;
@@ -220,19 +219,17 @@ pub fn get_wasm_memory_limit(
         .transpose()
 }
 
-pub async fn get_log_visibility(
+pub fn get_log_visibility(
     env: &dyn Environment,
     log_visibility: Option<&LogVisibilityOpt>,
+    current_settings: Option<&StatusCallResult>,
     config_interface: Option<&ConfigInterface>,
     canister_name: Option<&str>,
-    canister_id: Option<Principal>,
-    call_sender: &CallSender,
 ) -> DfxResult<Option<LogVisibility>> {
     let log_visibility = match (log_visibility, config_interface, canister_name) {
         (Some(log_visibility), _, _) => Some(
             log_visibility
-                .to_log_visibility(env, canister_id, call_sender)
-                .await
+                .to_log_visibility(env, current_settings)
                 .unwrap(),
         ),
         (None, Some(config_interface), Some(canister_name)) => {

@@ -1,11 +1,9 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::operations::canister::get_canister_status;
 use crate::util::clap::parsers::log_visibility_parser;
 use candid::Principal;
 use clap::{ArgAction, Args};
-use dfx_core::identity::CallSender;
-use ic_utils::interfaces::management_canister::LogVisibility;
+use ic_utils::interfaces::management_canister::{LogVisibility, StatusCallResult};
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct LogVisibilityOpt {
@@ -40,12 +38,17 @@ pub struct LogVisibilityOpt {
 }
 
 impl LogVisibilityOpt {
-    pub async fn to_log_visibility(
+    pub fn require_current_settings(&self) -> bool {
+        self.add_log_viewer.is_some() || self.remove_log_viewer.is_some()
+    }
+
+    pub fn to_log_visibility(
         &self,
         env: &dyn Environment,
-        canister_id: Option<Principal>,
-        call_sender: &CallSender,
+        current_status: Option<&StatusCallResult>,
     ) -> Result<LogVisibility, String> {
+        let logger = env.get_logger();
+
         // For public and controllers.
         if let Some(log_visibility) = self.log_visibility.as_ref() {
             return Ok(log_visibility.clone());
@@ -63,12 +66,11 @@ impl LogVisibilityOpt {
 
         // Get the current viewer list for adding and removing, only for update-settings.
         let mut current_visibility: Option<LogVisibility> = None;
-        let mut viewers = match canister_id {
-            Some(id) => {
-                let status = get_canister_status(env, id, call_sender).await.unwrap();
+        let mut viewers = match current_status {
+            Some(status) => {
                 current_visibility = Some(status.settings.log_visibility.clone());
-                match status.settings.log_visibility {
-                    LogVisibility::AllowedViewers(viewers) => viewers,
+                match &status.settings.log_visibility {
+                    LogVisibility::AllowedViewers(viewers) => viewers.clone(),
                     _ => vec![],
                 }
             }
@@ -80,7 +82,7 @@ impl LogVisibilityOpt {
             if let Some(LogVisibility::Public) = current_visibility {
                 // TODO:
                 // Warning for taking away view rights for everyone.
-                eprintln!("WARNING!");
+                slog::warn!(logger, "WARNING!");
             }
 
             for viewer in added {

@@ -408,7 +408,7 @@ impl CanisterTypeProperties {
 }
 
 #[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum CanisterLogVisibility {
     #[default]
     Controllers,
@@ -483,7 +483,7 @@ pub struct InitializationValues {
     /// # Log Visibility
     /// Specifies who is allowed to read the canister's logs.
     ///
-    /// Can be "public", "controllers" or "allowedviewers" with a list of Principals.
+    /// Can be "public", "controllers" or "allowed_viewers" with a list of Principals.
     #[schemars(with = "Option<CanisterLogVisibility>")]
     pub log_visibility: Option<CanisterLogVisibility>,
 }
