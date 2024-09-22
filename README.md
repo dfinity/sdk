@@ -17,7 +17,7 @@ The `IC SDK` installation script installs several components in default location
 | Component    | Description                                                                                        | Default location                              |
 |--------------|----------------------------------------------------------------------------------------------------|-----------------------------------------------|
 | dfx          | Command-line interface (CLI)                                                     | `/usr/local/bin/dfx`                          |
-| dfxvm        | Command-line interface, version manager (CLI)                                    | `/usr/local/bin/dfxvm`                          |
+| dfxvm        | Command-line interface, version manager                                          | `/usr/local/bin/dfxvm`                          |
 | moc          | Motoko runtime compiler                                                                            | `~/.cache/dfinity/versions/<VERSION>/moc`     |
 | replica      | Internet Computer local network binary                                                             | `~/.cache/dfinity/versions/<VERSION>/replica` |
 | uninstall.sh | Script to remove the SDK and all of its components                                    | `~/.cache/dfinity/uninstall.sh`               |
