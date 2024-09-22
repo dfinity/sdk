@@ -17,6 +17,7 @@ The `IC SDK` installation script installs several components in default location
 | Component    | Description                                                                                        | Default location                              |
 |--------------|----------------------------------------------------------------------------------------------------|-----------------------------------------------|
 | dfx          | Command-line interface (CLI)                                                     | `/usr/local/bin/dfx`                          |
+| dfxvm        | Command-line interface, version manager (CLI)                                    | `/usr/local/bin/dfxvm`                          |
 | moc          | Motoko runtime compiler                                                                            | `~/.cache/dfinity/versions/<VERSION>/moc`     |
 | replica      | Internet Computer local network binary                                                             | `~/.cache/dfinity/versions/<VERSION>/replica` |
 | uninstall.sh | Script to remove the SDK and all of its components                                    | `~/.cache/dfinity/uninstall.sh`               |
@@ -28,8 +29,10 @@ There are a few components above worth expanding on:
 
 1. **dfx** - `dfx` is the command-line interface for the `IC SDK`. This is why many commands for the IC SDK start with the command "`dfx ..`" such as `dfx new` or `dfx stop`.
 
-2. **Canister Development Kit (CDK)** - A CDK is an adapter used by the IC SDK so a programming language has the features needed to create and manage canisters. 
-The IC SDK comes with a few CDKs already installed for you so you can use them in the language of yoru choice. That is why there is a [Rust CDK](https://github.com/dfinity/cdk-rs), [Python CDK](https://demergent-labs.github.io/kybra/), 
+2. **dfxvm** - `dfxvm` is the version manager for `dfx`, i.e. a CLI for selecting and managing installed `dfx` versions.
+
+3. **Canister Development Kit (CDK)** - A CDK is an adapter used by the IC SDK so a programming language has the features needed to create and manage canisters. 
+The IC SDK comes with a few CDKs already installed for you so you can use them in the language of your choice. That is why there is a [Rust CDK](https://github.com/dfinity/cdk-rs), [Python CDK](https://demergent-labs.github.io/kybra/), 
 [TypeScript CDK](https://demergent-labs.github.io/azle/), etc... Since CDKs are components used the SDK, some developer choose to use the CDK directly (without the `IC SDK`), 
 but typically are used as part of the whole `IC SDK`.
 
