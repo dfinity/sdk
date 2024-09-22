@@ -34,6 +34,12 @@ pub enum ConvertExtensionSubcommandIntoClapCommandError {
 }
 
 #[derive(Error, Debug)]
+pub enum ListAvailableExtensionsError {
+    #[error(transparent)]
+    FetchCatalog(#[from] FetchCatalogError),
+}
+
+#[derive(Error, Debug)]
 pub enum ListInstalledExtensionsError {
     #[error(transparent)]
     ExtensionsDirectoryIsNotReadable(#[from] ReadDirError),

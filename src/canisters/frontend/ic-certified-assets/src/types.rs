@@ -134,6 +134,17 @@ pub struct CreateChunkResponse {
     pub chunk_id: ChunkId,
 }
 
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct CreateChunksArg {
+    pub batch_id: BatchId,
+    pub content: Vec<ByteBuf>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct CreateChunksResponse {
+    pub chunk_ids: Vec<ChunkId>,
+}
+
 #[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
 pub struct AssetProperties {
     pub max_age: Option<u64>,

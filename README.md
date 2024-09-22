@@ -36,6 +36,24 @@ but typically are used as part of the whole `IC SDK`.
 
 ## Getting Started
 
+### Prerequisites 
+
+#### Install Rust
+
+To develop Rust projects, you will need to install Rust in your environment with the command:
+
+```
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+#### Install `wasm32-unknown-unknown` target
+
+ICP smart contracts are compiled into WebAssembly modules. To support this compilation, install the `wasm32-unknown-unknown` target:
+
+```
+rustup target add wasm32-unknown-unknown
+```
+
 ### Installing
 
 You can install the `IC SDK` a few different ways.

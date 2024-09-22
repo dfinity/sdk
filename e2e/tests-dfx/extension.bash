@@ -767,3 +767,28 @@ EOF
   assert_command dfx extension run test_extension abc --the-another-param 464646 --the-param 123 456 789
   assert_eq "abc --the-another-param 464646 --the-param 123 456 789 --dfx-cache-path $CACHE_DIR"
 }
+
+@test "list available extensions from official catalog" {
+  assert_command dfx extension list --available
+  assert_contains "sns"
+  assert_contains "nns"
+}
+
+@test "list available extensions from customized catalog" {
+  start_webserver --directory www
+  CATALOG_URL_URL="http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/catalog.json"
+  mkdir -p  www/arbitrary
+
+    cat > www/arbitrary/catalog.json <<EOF
+{
+  "nns": "https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/nns/extension.json",
+  "sns": "https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/sns/extension.json",
+  "test": "https://raw.githubusercontent.com/dfinity/dfx-extensions/main/extensions/sns/extension.json"
+}
+EOF
+
+  assert_command dfx extension list --catalog-url="$CATALOG_URL_URL"
+  assert_contains "sns"
+  assert_contains "nns"
+  assert_contains "test"
+}

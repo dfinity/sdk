@@ -267,7 +267,7 @@ Required Permission: [Prepare](#permission-prepare)
   create_chunk: (
     record { 
       batch_id: BatchId;
-      content: blob 
+      content: blob
     }
   ) -> (record { 
     chunk_id: ChunkId
@@ -275,6 +275,31 @@ Required Permission: [Prepare](#permission-prepare)
 ```
 
 This method stores a content chunk and extends the batch expiry time.
+
+When creating chunks for a given content encoding, the size of each chunk except the last must be the same.
+
+The asset canister must retain all data related to a batch for at least the [Minimum Batch Retention Duration](#constant-minimum-batch-retention-duration) after creating a chunk in a batch.
+
+Preconditions:
+- The batch exists.
+- Creation of the chunk would not exceed chunk creation limits.
+
+Required Permission: [Prepare](#permission-prepare)
+
+### Method: `create_chunks`
+
+```candid
+  create_chunks: (
+    record {
+      batch_id: BatchId;
+      content: vec blob;
+    }
+  ) -> (
+    chunk_ids: vec ChunkId;
+  );
+```
+
+This method stores a number of chunks and extends the batch expiry time.
 
 When creating chunks for a given content encoding, the size of each chunk except the last must be the same.
 

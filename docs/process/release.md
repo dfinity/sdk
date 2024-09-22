@@ -103,12 +103,6 @@ Obtain approval, but do not merge them yet.
 
 [motoko-playground]: https://github.com/dfinity/motoko-playground
 
-### Update the [dfx-extensions](https://github.com/dfinity/dfx-extensions) compatibility list
-
-Add a record for the release version in the [compatibility record](https://github.com/dfinity/dfx-extensions/blob/main/compatibility.json).
-
-[Sample PR](https://github.com/dfinity/dfx-extensions/pull/86)
-
 ### Update the [examples](https://github.com/dfinity/examples) default dfx
 
 Modify `DFX_VERSION` in these two files:
@@ -127,12 +121,11 @@ Modify `DFX_VERSION` in these two files:
 
 ### Merge PRs
 
-Merge all 5 PRs created in the previous stage:
+Merge all 4 PRs created in the previous stage:
 
 - Promote the release
 - Update the portal
 - Update the motoko-playground
-- Update the dfx-extensions
 - Update the examples
 
 ### Post to the forum

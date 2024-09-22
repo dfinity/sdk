@@ -1514,7 +1514,7 @@ checksum = "322ef0094744e63628e6f0eb2295517f79276a5b342a4c2ff3042566ca181d4e"
 
 [[package]]
 name = "dfx"
-version = "0.22.0"
+version = "0.23.0-beta.3"
 dependencies = [
  "actix",
  "aes-gcm",
@@ -4563,7 +4563,7 @@ dependencies = [
 [[package]]
 name = "pocket-ic"
 version = "4.0.0"
-source = "git+https://github.com/dfinity/ic?rev=3d0b3f10417fc6708e8b5d844a0bac5e86f3e17d#3d0b3f10417fc6708e8b5d844a0bac5e86f3e17d"
+source = "git+https://github.com/dfinity/ic?rev=179973553248415fc85679d853b48b0e0ec231c6#179973553248415fc85679d853b48b0e0ec231c6"
 dependencies = [
  "base64 0.13.1",
  "candid",
@@ -4575,6 +4575,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "sha2 0.10.8",
+ "slog",
  "tokio",
  "tracing",
  "tracing-appender",
@@ -4827,9 +4828,9 @@ dependencies = [
 
 [[package]]
 name = "quinn-proto"
-version = "0.11.6"
+version = "0.11.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba92fb39ec7ad06ca2582c0ca834dfeadcaf06ddfc8e635c80aa7e1c05315fdd"
+checksum = "fadfaed2cd7f389d0161bb73eeb07b7b78f8691047a6f3e73caaeae55310a4a6"
 dependencies = [
  "bytes",
  "rand",
@@ -6220,9 +6221,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.39.3"
+version = "1.40.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9babc99b9923bfa4804bd74722ff02c0381021eafa4db9949217e3be8e84fff5"
+checksum = "e2b070231665d27ad9ec9b8df639893f46727666c6767db40317fbe920a5d998"
 dependencies = [
  "backtrace",
  "bytes",
