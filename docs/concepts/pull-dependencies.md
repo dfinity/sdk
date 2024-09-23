@@ -49,9 +49,9 @@ SHA256 hash of the wasm module located at `wasm_url`.
 
 This field is optional.
 
-In most cases, the wasm module at `wasm_url` will be the same as the on-chain wasm module. This means that dfx can read the state tree to obtain and verify the module hash.
+In most cases, the wasm module at `wasm_url` will be the same as the onchain wasm module. This means that dfx can read the state tree to obtain and verify the module hash.
 
-In other cases, the wasm module at `wasm_url` is not the same as the on-chain wasm module. For example, the Internet Identity canister provides Development flavor to be integrated locally. In these cases, `wasm_hash` provides the expected hash, and dfx verifies the downloaded wasm against this.
+In other cases, the wasm module at `wasm_url` is not the same as the onchain wasm module. For example, the Internet Identity canister provides Development flavor to be integrated locally. In these cases, `wasm_hash` provides the expected hash, and dfx verifies the downloaded wasm against this.
 
 ### `wasm_hash_url` 
 
