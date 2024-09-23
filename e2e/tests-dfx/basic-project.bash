@@ -15,9 +15,9 @@ teardown() {
 @test "build + install + call + request-status -- greet_mo" {
   dfx_new hello
   install_asset greet
-  dfx_start
-  dfx canister create --all
-  dfx build
+  dfx_start --artificial-delay 10000
+  dfx canister create hello_backend
+  dfx build hello_backend
   # INSTALL_REQUEST_ID=$(dfx canister install hello_backend --async)
   # dfx canister request-status $INSTALL_REQUEST_ID
   dfx canister install hello_backend
