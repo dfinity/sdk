@@ -227,11 +227,9 @@ pub fn get_log_visibility(
     canister_name: Option<&str>,
 ) -> DfxResult<Option<LogVisibility>> {
     let log_visibility = match (log_visibility, config_interface, canister_name) {
-        (Some(log_visibility), _, _) => Some(
-            log_visibility
-                .to_log_visibility(env, current_settings)
-                .unwrap(),
-        ),
+        (Some(log_visibility), _, _) => {
+            Some(log_visibility.to_log_visibility(env, current_settings)?)
+        }
         (None, Some(config_interface), Some(canister_name)) => {
             config_interface.get_log_visibility(canister_name)?
         }

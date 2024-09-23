@@ -105,6 +105,9 @@ teardown() {
   assert_command dfx canister status e2e_project_backend
   assert_contains "${ALICE_PRINCIPAL}"
 
+  assert_command dfx canister update-settings --remove-log-viewer="${BOB_PRINCIPAL}" e2e_project_backend
+  assert_contains "'${BOB_PRINCIPAL}' is not in the allowed list"
+
   assert_command dfx canister update-settings --add-log-viewer="${BOB_PRINCIPAL}" --remove-log-viewer="${ALICE_PRINCIPAL}" e2e_project_backend
   assert_command dfx canister status e2e_project_backend
   assert_contains "${BOB_PRINCIPAL}"
@@ -136,6 +139,9 @@ teardown() {
   assert_command dfx canister update-settings --log-visibility controllers e2e_project_backend
   assert_command dfx canister status e2e_project_backend
   assert_contains "Log visibility: controllers"
+
+  assert_command_fail dfx canister update-settings --remove-log-viewer="${BOB_PRINCIPAL}" e2e_project_backend
+  assert_contains "Removing reviewers is not allowed with 'public' or 'controllers' log visibility."
 
   # Test --all code path.
   assert_command dfx canister update-settings --add-log-viewer="${ALICE_PRINCIPAL}" --all

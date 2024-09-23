@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::clap::parsers::log_visibility_parser;
+use anyhow::anyhow;
 use candid::Principal;
 use clap::{ArgAction, Args};
 use dfx_core::cli::ask_for_consent;
@@ -47,7 +48,7 @@ impl LogVisibilityOpt {
         &self,
         env: &dyn Environment,
         current_status: Option<&StatusCallResult>,
-    ) -> Result<LogVisibility, String> {
+    ) -> DfxResult<LogVisibility> {
         let logger = env.get_logger();
 
         // For public and controllers.
@@ -81,11 +82,8 @@ impl LogVisibilityOpt {
         // Adding.
         if let Some(added) = self.add_log_viewer.as_ref() {
             if let Some(LogVisibility::Public) = current_visibility {
-                // TODO:
-                // Warning for taking away view rights for everyone.
-
                 let msg = "Current log is public to everyone. Adding log reviewers will make the log only visible to the reviewers.";
-                ask_for_consent(msg).map_err(|e| e.to_string())?;
+                ask_for_consent(msg)?;
             }
 
             for viewer in added {
@@ -101,9 +99,7 @@ impl LogVisibilityOpt {
             if let Some(visibility) = &current_visibility {
                 match visibility {
                     LogVisibility::Public | LogVisibility::Controllers => {
-                        slog::warn!(logger, "WARNING!");
-                        slog::warn!(logger, "Removing reviewers is not allowed with 'public' or 'controllers' log visibility");
-                        return Err("Removing reviewers is not allowed with 'public' or 'controllers' log visibility.".to_string());
+                        return Err(anyhow!("Removing reviewers is not allowed with 'public' or 'controllers' log visibility."));
                     }
                     _ => (),
                 }
@@ -113,7 +109,6 @@ impl LogVisibilityOpt {
                 if let Some(idx) = viewers.iter().position(|x| *x == principal) {
                     viewers.swap_remove(idx);
                 } else {
-                    slog::warn!(logger, "WARNING!");
                     slog::warn!(logger, "Principal '{}' is not in the allowed list.", viewer);
                 }
             }
