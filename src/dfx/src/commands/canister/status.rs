@@ -52,8 +52,13 @@ async fn canister_status(
         "Not Set".to_string()
     };
     let log_visibility = match status.settings.log_visibility {
-        LogVisibility::Controllers => "controllers",
-        LogVisibility::Public => "public",
+        LogVisibility::Controllers => "controllers".to_string(),
+        LogVisibility::Public => "public".to_string(),
+        LogVisibility::AllowedViewers(viewers) => {
+            let mut viewers: Vec<_> = viewers.iter().map(Principal::to_text).collect();
+            viewers.sort();
+            format!("allowed viewers: {}", viewers.join(", "))
+        }
     };
 
     println!("Canister status call result for {canister}.\nStatus: {status}\nControllers: {controllers}\nMemory allocation: {memory_allocation}\nCompute allocation: {compute_allocation}\nFreezing threshold: {freezing_threshold}\nMemory Size: {memory_size:?}\nBalance: {balance} Cycles\nReserved: {reserved} Cycles\nReserved cycles limit: {reserved_cycles_limit}\nWasm memory limit: {wasm_memory_limit}\nModule hash: {module_hash}\nNumber of queries: {queries_total}\nInstructions spent in queries: {query_instructions_total}\nTotal query request payload size (bytes): {query_req_payload_total}\nTotal query response payload size (bytes): {query_resp_payload_total}\nLog visibility: {log_visibility}",
