@@ -352,3 +352,35 @@ teardown() {
   assert_contains 'Freezing threshold: 2_592_000'
   assert_contains 'Log visibility: controllers'
 }
+
+@test "create with log allowed viewer list" {
+  skip
+
+  # Create two identities
+  assert_command dfx identity new --storage-mode plaintext alice
+  assert_command dfx identity new --storage-mode plaintext bob
+  ALICE_PRINCIPAL=$(dfx identity get-principal --identity alice)
+  BOB_PRINCIPAL=$(dfx identity get-principal --identity bob)
+
+  jq '.canisters.e2e_project_backend.initialization_values={
+    "compute_allocation": 5,
+    "freezing_threshold": "7days",
+    "memory_allocation": "2 GiB",
+    "reserved_cycles_limit": 1000000000000,
+    "wasm_memory_limit": "1 GiB",
+    "log_visibility": {
+      "allowed_viewers" :
+       ['\""$ALICE_PRINCIPAL"\"', '\""$BOB_PRINCIPAL"\"']
+    }
+  }' dfx.json | sponge dfx.json
+  dfx_start
+  assert_command dfx deploy e2e_project_backend --no-wallet
+  assert_command dfx canister status e2e_project_backend
+  assert_contains 'Memory allocation: 2_147_483_648'
+  assert_contains 'Compute allocation: 5'
+  assert_contains 'Reserved cycles limit: 1_000_000_000_000'
+  assert_contains 'Wasm memory limit: 1_073_741_824'
+  assert_contains 'Freezing threshold: 604_800'
+  assert_contains "${ALICE_PRINCIPAL}"
+  assert_contains "${BOB_PRINCIPAL}"
+}
