@@ -12,6 +12,7 @@ pub mod fs;
 pub mod get_current_exe;
 pub mod get_user_home;
 pub mod identity;
+pub mod interface;
 pub mod keyring;
 pub mod load_dfx_config;
 pub mod load_networks_config;
