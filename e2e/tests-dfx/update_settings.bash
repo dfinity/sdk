@@ -86,8 +86,6 @@ teardown() {
 }
 
 @test "update log allowed viewer list" {
-  skip
-
   # Create two identities
   assert_command dfx identity new --storage-mode plaintext alice
   assert_command dfx identity new --storage-mode plaintext bob
