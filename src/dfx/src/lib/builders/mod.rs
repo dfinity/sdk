@@ -18,7 +18,7 @@ use std::fmt::Write;
 use std::fs;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::sync::Arc;
 
 mod assets;
@@ -27,6 +27,7 @@ mod motoko;
 mod pull;
 mod rust;
 
+use crate::util::command::direct_or_shell_command;
 pub use custom::custom_download;
 
 #[derive(Debug)]
@@ -336,20 +337,7 @@ pub fn execute_command(
     if command.is_empty() {
         return Ok(vec![]);
     }
-    let words = shell_words::split(command)
-        .with_context(|| format!("Cannot parse command '{}'.", command))?;
-    let canonical_result = dfx_core::fs::canonicalize(&cwd.join(&words[0]));
-    let mut cmd = if words.len() == 1 && canonical_result.is_ok() {
-        // If the command is a file, execute it directly.
-        let file = canonical_result.unwrap();
-        Command::new(file)
-    } else {
-        // Execute the command in `sh -c` to allow pipes.
-        let mut sh_cmd = Command::new("sh");
-        sh_cmd.args(["-c", command]);
-        sh_cmd
-    };
-    cmd.current_dir(cwd);
+    let mut cmd = direct_or_shell_command(command, cwd)?;
 
     if !catch_output {
         cmd.stdin(Stdio::inherit())

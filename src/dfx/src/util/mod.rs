@@ -24,6 +24,7 @@ use std::time::Duration;
 
 pub mod assets;
 pub mod clap;
+pub mod command;
 pub mod currency_conversion;
 pub mod stderr_wrapper;
 pub mod url;
