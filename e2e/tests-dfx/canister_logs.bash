@@ -81,6 +81,9 @@ dfx_canister_logs_tail_n_1() {
   # Create identity for viewers.
   assert_command dfx identity new --storage-mode plaintext alice
   ALICE_PRINCIPAL=$(dfx identity get-principal --identity alice)
+
+  assert_command_fail dfx canister logs e2e_project --identity alice
+  
   assert_command dfx canister update-settings --add-log-viewer="${ALICE_PRINCIPAL}" e2e_project
   assert_command dfx canister status e2e_project
   assert_contains "${ALICE_PRINCIPAL}"

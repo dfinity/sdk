@@ -8,7 +8,7 @@
 
 ### feat: Support canister log allowed viewer list
 
-Added support for the canister log allowed viewer list, which configures which users are allowed to read a canister's logs, with no need to be set as controller of the canister.
+Added support for the canister log allowed viewer list, enabling specified users to access a canister's logs without needing to be set as the canister's controller.
 Valid settings are:
 - `--add-log-viewer`, `--remove-log-viewer` and `--set-log-viewer` flags with `dfx canister update-settings` 
 - `--log-viewer` flag with `dfx canister create`
