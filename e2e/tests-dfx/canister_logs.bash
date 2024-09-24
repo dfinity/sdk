@@ -67,8 +67,6 @@ dfx_canister_logs_tail_n_1() {
 }
 
 @test "canister logs only visible to allowed viewers." {
-  skip
-  
   install_asset logs
   dfx_start
   dfx canister create --all
