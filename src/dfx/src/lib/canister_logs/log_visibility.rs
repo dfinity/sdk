@@ -44,6 +44,31 @@ impl LogVisibilityOpt {
         self.add_log_viewer.is_some() || self.remove_log_viewer.is_some()
     }
 
+    pub fn from(
+        log_visibility: &Option<LogVisibility>,
+        log_viewer: &Option<Vec<String>>,
+    ) -> Option<LogVisibilityOpt> {
+        if let Some(log_visibility) = log_visibility {
+            return Some(LogVisibilityOpt {
+                log_visibility: Some(log_visibility.clone()),
+                add_log_viewer: None,
+                remove_log_viewer: None,
+                set_log_viewer: None,
+            });
+        }
+
+        if let Some(log_viewer) = log_viewer {
+            return Some(LogVisibilityOpt {
+                log_visibility: None,
+                add_log_viewer: None,
+                remove_log_viewer: None,
+                set_log_viewer: Some(log_viewer.clone()),
+            });
+        }
+
+        None
+    }
+
     pub fn to_log_visibility(
         &self,
         env: &dyn Environment,

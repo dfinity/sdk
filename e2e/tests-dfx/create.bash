@@ -353,7 +353,7 @@ teardown() {
   assert_contains 'Log visibility: controllers'
 }
 
-@test "create with log allowed viewer list" {
+@test "create with multiple log allowed viewer list in dfx.json" {
   # Create two identities
   assert_command dfx identity new --storage-mode plaintext alice
   assert_command dfx identity new --storage-mode plaintext bob
@@ -379,6 +379,21 @@ teardown() {
   assert_contains 'Reserved cycles limit: 1_000_000_000_000'
   assert_contains 'Wasm memory limit: 1_073_741_824'
   assert_contains 'Freezing threshold: 604_800'
+  assert_contains "${ALICE_PRINCIPAL}"
+  assert_contains "${BOB_PRINCIPAL}"
+}
+
+@test "create with multiple log allowed viewer list" {
+  # Create two identities
+  assert_command dfx identity new --storage-mode plaintext alice
+  assert_command dfx identity new --storage-mode plaintext bob
+  ALICE_PRINCIPAL=$(dfx identity get-principal --identity alice)
+  BOB_PRINCIPAL=$(dfx identity get-principal --identity bob)
+
+  dfx_start
+  assert_command dfx canister create --all --log-viewer "${ALICE_PRINCIPAL}" --log-viewer "${BOB_PRINCIPAL}"  --no-wallet
+  assert_command dfx deploy e2e_project_backend --no-wallet
+  assert_command dfx canister status e2e_project_backend
   assert_contains "${ALICE_PRINCIPAL}"
   assert_contains "${BOB_PRINCIPAL}"
 }

@@ -9,8 +9,8 @@ use crate::lib::ic_attributes::{
 use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
-    compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
-    reserved_cycles_limit_parser, wasm_memory_limit_parser,
+    compute_allocation_parser, freezing_threshold_parser, log_visibility_parser,
+    memory_allocation_parser, reserved_cycles_limit_parser, wasm_memory_limit_parser,
 };
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
@@ -21,6 +21,7 @@ use clap::{ArgAction, Parser};
 use dfx_core::error::identity::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
 use ic_agent::Identity as _;
+use ic_utils::interfaces::management_canister::LogVisibility;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 
@@ -90,8 +91,14 @@ pub struct CanisterCreateOpts {
     #[arg(long, value_parser = wasm_memory_limit_parser, hide = true)]
     wasm_memory_limit: Option<Byte>,
 
-    #[command(flatten)]
-    log_visibility_opt: Option<LogVisibilityOpt>,
+    /// Specifies who is allowed to read the canister's logs.
+    /// Can be either "controllers" or "public".
+    #[arg(long, value_parser = log_visibility_parser, conflicts_with("log_viewer"))]
+    log_visibility: Option<LogVisibility>,
+
+    /// Specifies the identity name or the principal of the new controller.
+    #[arg(long, action = ArgAction::Append, conflicts_with("log_visibility"))]
+    log_viewer: Option<Vec<String>>,
 
     /// Performs the call with the user Identity as the Sender of messages.
     /// Bypasses the Wallet canister.
@@ -201,7 +208,7 @@ pub async fn exec(
         .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
         let log_visibility = get_log_visibility(
             env,
-            opts.log_visibility_opt.as_ref(),
+            LogVisibilityOpt::from(&opts.log_visibility, &opts.log_viewer).as_ref(),
             None,
             Some(config_interface),
             Some(canister_name),
@@ -286,7 +293,7 @@ pub async fn exec(
                 .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
                 let log_visibility = get_log_visibility(
                     env,
-                    opts.log_visibility_opt.as_ref(),
+                    LogVisibilityOpt::from(&opts.log_visibility, &opts.log_viewer).as_ref(),
                     None,
                     Some(config_interface),
                     Some(canister_name),
