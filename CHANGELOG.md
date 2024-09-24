@@ -6,6 +6,14 @@
 
 `dfx start --pocketic` is now compatible with `--artificial-delay` and the `subnet_type`  configuration option, and enables `--enable-canister-http` by default.
 
+### feat: Support canister log allowed viewer list
+
+Added support for the canister log allowed viewer list, which configures which users are allowed to read a canister's logs, with no need to be set as controller of the canister.
+Valid settings are:
+- `--add-log-viewer`, `--remove-log-viewer` and `--set-log-viewer` flags with `dfx canister update-settings` 
+- `--log-viewer` flag with `dfx canister create`
+- `canisters[].initialization_values.log_visibility.allowed_viewers` in `dfx.json`
+
 ## Dependencies
 
 ### Replica

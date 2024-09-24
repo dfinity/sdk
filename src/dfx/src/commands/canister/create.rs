@@ -96,7 +96,8 @@ pub struct CanisterCreateOpts {
     #[arg(long, value_parser = log_visibility_parser, conflicts_with("log_viewer"))]
     log_visibility: Option<LogVisibility>,
 
-    /// Specifies the identity name or the principal of the new controller.
+    /// Specifies the the principal of the log viewer of the canister.
+    /// Can be specified more than once.
     #[arg(long, action = ArgAction::Append, conflicts_with("log_visibility"))]
     log_viewer: Option<Vec<String>>,
 
