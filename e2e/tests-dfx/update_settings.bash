@@ -118,7 +118,7 @@ teardown() {
 
   assert_command dfx canister update-settings --remove-log-viewer="${ALICE_PRINCIPAL}" e2e_project_backend
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Allowed List is empty"
+  assert_contains "allowed viewers list is empty"
 
   assert_command dfx canister update-settings --add-log-viewer="${BOB_PRINCIPAL}" --add-log-viewer="${ALICE_PRINCIPAL}" e2e_project_backend
   assert_command dfx canister status e2e_project_backend
@@ -127,7 +127,7 @@ teardown() {
 
   assert_command dfx canister update-settings --remove-log-viewer="${ALICE_PRINCIPAL}" --remove-log-viewer="${BOB_PRINCIPAL}" e2e_project_backend
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Allowed List is empty"
+  assert_contains "allowed viewers list is empty"
 
   assert_command dfx canister update-settings --set-log-viewer="${BOB_PRINCIPAL}" --set-log-viewer="${ALICE_PRINCIPAL}" e2e_project_backend
   assert_command dfx canister status e2e_project_backend
@@ -148,7 +148,7 @@ teardown() {
 
   assert_command dfx canister update-settings --remove-log-viewer="${ALICE_PRINCIPAL}" --all
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Allowed List is empty"
+  assert_contains "allowed viewers list is empty"
 
   assert_command dfx canister update-settings --set-log-viewer="${ALICE_PRINCIPAL}" --all
   assert_command dfx canister status e2e_project_backend
