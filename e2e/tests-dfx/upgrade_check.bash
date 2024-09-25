@@ -87,7 +87,7 @@ teardown() {
   jq '.canisters.hello_backend.main="v5.mo"' dfx.json | sponge dfx.json
   echo yes | (
   assert_command dfx deploy
-  assert_match "Stable interface compatibility check issued an ERROR"
+  assert_match "Stable interface compatibility check issued a WARNING"
   )
   assert_command dfx canister call hello_backend read '()'
   assert_match "(0 : int)"
