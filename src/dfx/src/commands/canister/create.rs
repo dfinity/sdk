@@ -285,7 +285,7 @@ pub async fn exec(
                 )
                 .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
                 let log_visibility = get_log_visibility(
-                    opts.log_visibility,
+                    opts.log_visibility.clone(),
                     Some(config_interface),
                     Some(canister_name),
                 )
