@@ -22,11 +22,11 @@ license = "Apache-2.0"
 candid = "0.10.4"
 candid_parser = "0.1.4"
 dfx-core = { path = "src/dfx-core", version = "0.1.0" }
-ic-agent = "0.38"
+ic-agent = { version = "0.38", git = "https://github.com/dfinity/agent-rs", rev = "729398880545a1f49a4c6286d0dd0c94254b236f" }
 ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.21.0" }
 ic-cdk = "0.13.1"
-ic-identity-hsm = "0.38"
-ic-utils = "0.38"
+ic-identity-hsm = { version = "0.38", git = "https://github.com/dfinity/agent-rs", rev = "729398880545a1f49a4c6286d0dd0c94254b236f" }
+ic-utils = { version = "0.38", git = "https://github.com/dfinity/agent-rs", rev = "729398880545a1f49a4c6286d0dd0c94254b236f" }
 
 aes-gcm = "0.10.3"
 anyhow = "1.0.56"
