@@ -63,7 +63,8 @@ impl CanisterInfoFactory for RustCanisterInfo {
             (format!("crate `{package}`"), package.clone())
         };
         let mut candidate_targets = package_info.targets.iter().filter(|x| {
-            x.name == crate_name && x.crate_types.iter().any(|c| c == "cdylib" || c == "bin")
+            x.name == crate_name.replace("-", "_")
+                && x.crate_types.iter().any(|c| c == "cdylib" || c == "bin")
         });
         let Some(target) = candidate_targets.next() else {
             if let Some(wrong_type_crate) =
