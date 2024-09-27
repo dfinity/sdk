@@ -14,7 +14,7 @@ Updated Motoko to [0.13.0](https://github.com/dfinity/motoko/releases/tag/0.13.0
 
 ### Replica
 
-Updated replica to elected commit 179973553248415fc85679d853b48b0e0ec231c6.
+Updated replica to elected commit c43a4880199c00135c8415957851e823b3fb769e.
 
 This incorporates the following elected proposals:
 
