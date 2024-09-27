@@ -3,6 +3,12 @@ use dfx_core::config::project_templates::{
     Category, ProjectTemplate, ProjectTemplateName, ResourceLocation,
 };
 
+const NPM_INSTALL: &str = "npm install --quiet --no-progress --workspaces --if-present";
+const NPM_INSTALL_SPINNER_MESSAGE: &str = "Installing node dependencies...";
+const NPM_INSTALL_FAILURE_WARNING: &str =
+    "An error occurred. See the messages above for more details.";
+const CARGO_UPDATE_FAILURE_MESSAGE: &str = "You will need to run it yourself (or a similar command like `cargo vendor`), because `dfx build` will use the --locked flag with Cargo.";
+
 pub fn builtin_templates() -> Vec<ProjectTemplate> {
     let motoko = ProjectTemplate {
         name: ProjectTemplateName("motoko".to_string()),
@@ -11,10 +17,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_motoko_files,
         },
         category: Category::Backend,
+        post_create: vec![],
+        post_create_failure_warning: None,
+        post_create_spinner_message: None,
+        requirements: vec![],
         sort_order: 0,
-        update_cargo_lockfile: false,
-        has_js: false,
-        install_node_dependencies: false,
     };
 
     let rust = ProjectTemplate {
@@ -24,10 +31,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_rust_files,
         },
         category: Category::Backend,
+        post_create: vec!["cargo update".to_string()],
+        post_create_failure_warning: Some(CARGO_UPDATE_FAILURE_MESSAGE.to_string()),
+        post_create_spinner_message: None,
+        requirements: vec![],
         sort_order: 1,
-        update_cargo_lockfile: true,
-        has_js: false,
-        install_node_dependencies: false,
     };
 
     let azle = ProjectTemplate {
@@ -37,10 +45,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_azle_files,
         },
         category: Category::Backend,
+        post_create: vec![],
+        post_create_failure_warning: None,
+        post_create_spinner_message: None,
+        requirements: vec![ProjectTemplateName("dfx_js_base".to_string())],
         sort_order: 2,
-        update_cargo_lockfile: false,
-        has_js: true,
-        install_node_dependencies: false,
     };
 
     let kybra = ProjectTemplate {
@@ -50,10 +59,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_kybra_files,
         },
         category: Category::Backend,
+        post_create: vec![],
+        post_create_failure_warning: None,
+        post_create_spinner_message: None,
+        requirements: vec![],
         sort_order: 2,
-        update_cargo_lockfile: false,
-        has_js: false,
-        install_node_dependencies: false,
     };
 
     let sveltekit = ProjectTemplate {
@@ -63,10 +73,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_svelte_files,
         },
         category: Category::Frontend,
+        post_create: vec![NPM_INSTALL.to_string()],
+        post_create_failure_warning: Some(NPM_INSTALL_FAILURE_WARNING.to_string()),
+        post_create_spinner_message: Some(NPM_INSTALL_SPINNER_MESSAGE.to_string()),
+        requirements: vec![ProjectTemplateName("dfx_js_base".to_string())],
         sort_order: 0,
-        update_cargo_lockfile: false,
-        has_js: true,
-        install_node_dependencies: true,
     };
 
     let react = ProjectTemplate {
@@ -76,10 +87,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_react_files,
         },
         category: Category::Frontend,
+        post_create: vec![NPM_INSTALL.to_string()],
+        post_create_failure_warning: Some(NPM_INSTALL_FAILURE_WARNING.to_string()),
+        post_create_spinner_message: Some(NPM_INSTALL_SPINNER_MESSAGE.to_string()),
+        requirements: vec![ProjectTemplateName("dfx_js_base".to_string())],
         sort_order: 1,
-        update_cargo_lockfile: false,
-        has_js: true,
-        install_node_dependencies: true,
     };
 
     let vue = ProjectTemplate {
@@ -89,10 +101,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_vue_files,
         },
         category: Category::Frontend,
+        post_create: vec![NPM_INSTALL.to_string()],
+        post_create_failure_warning: Some(NPM_INSTALL_FAILURE_WARNING.to_string()),
+        post_create_spinner_message: Some(NPM_INSTALL_SPINNER_MESSAGE.to_string()),
+        requirements: vec![ProjectTemplateName("dfx_js_base".to_string())],
         sort_order: 2,
-        update_cargo_lockfile: false,
-        has_js: true,
-        install_node_dependencies: true,
     };
 
     let vanilla = ProjectTemplate {
@@ -102,10 +115,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_vanillajs_files,
         },
         category: Category::Frontend,
+        post_create: vec![NPM_INSTALL.to_string()],
+        post_create_failure_warning: Some(NPM_INSTALL_FAILURE_WARNING.to_string()),
+        post_create_spinner_message: Some(NPM_INSTALL_SPINNER_MESSAGE.to_string()),
+        requirements: vec![ProjectTemplateName("dfx_js_base".to_string())],
         sort_order: 3,
-        update_cargo_lockfile: false,
-        has_js: true,
-        install_node_dependencies: true,
     };
 
     let simple_assets = ProjectTemplate {
@@ -115,10 +129,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_assets_files,
         },
         category: Category::Frontend,
+        post_create: vec![],
+        post_create_failure_warning: None,
+        post_create_spinner_message: None,
+        requirements: vec![],
         sort_order: 4,
-        update_cargo_lockfile: false,
-        has_js: false,
-        install_node_dependencies: false,
     };
 
     let sveltekit_tests = ProjectTemplate {
@@ -128,10 +143,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_svelte_test_files,
         },
         category: Category::FrontendTest,
+        post_create: vec![],
+        post_create_failure_warning: None,
+        post_create_spinner_message: None,
+        requirements: vec![],
         sort_order: 0,
-        update_cargo_lockfile: false,
-        has_js: false,
-        install_node_dependencies: false,
     };
 
     let react_tests = ProjectTemplate {
@@ -141,10 +157,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_react_test_files,
         },
         category: Category::FrontendTest,
+        post_create: vec![],
+        post_create_failure_warning: None,
+        post_create_spinner_message: None,
+        requirements: vec![],
         sort_order: 0,
-        update_cargo_lockfile: false,
-        has_js: false,
-        install_node_dependencies: false,
     };
 
     let vue_tests = ProjectTemplate {
@@ -154,10 +171,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_vue_test_files,
         },
         category: Category::FrontendTest,
+        post_create: vec![],
+        post_create_failure_warning: None,
+        post_create_spinner_message: None,
+        requirements: vec![],
         sort_order: 0,
-        update_cargo_lockfile: false,
-        has_js: false,
-        install_node_dependencies: false,
     };
 
     let vanillajs_tests = ProjectTemplate {
@@ -167,10 +185,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_vanillajs_test_files,
         },
         category: Category::FrontendTest,
+        post_create: vec![],
+        post_create_failure_warning: None,
+        post_create_spinner_message: None,
+        requirements: vec![],
         sort_order: 0,
-        update_cargo_lockfile: false,
-        has_js: false,
-        install_node_dependencies: false,
     };
 
     let internet_identity = ProjectTemplate {
@@ -180,10 +199,11 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_internet_identity_files,
         },
         category: Category::Extra,
+        post_create: vec![],
+        post_create_failure_warning: None,
+        post_create_spinner_message: None,
+        requirements: vec![],
         sort_order: 0,
-        update_cargo_lockfile: false,
-        has_js: false,
-        install_node_dependencies: false,
     };
 
     let bitcoin = ProjectTemplate {
@@ -193,10 +213,25 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_bitcoin_files,
         },
         category: Category::Extra,
+        post_create: vec![],
+        post_create_failure_warning: None,
+        post_create_spinner_message: None,
+        requirements: vec![],
         sort_order: 1,
-        update_cargo_lockfile: false,
-        has_js: false,
-        install_node_dependencies: false,
+    };
+
+    let js_base = ProjectTemplate {
+        name: ProjectTemplateName("dfx_js_base".to_string()),
+        display: "<never shown>>".to_string(),
+        resource_location: ResourceLocation::Bundled {
+            get_archive_fn: assets::new_project_js_files,
+        },
+        category: Category::Support,
+        post_create: vec![],
+        post_create_failure_warning: None,
+        post_create_spinner_message: None,
+        requirements: vec![],
+        sort_order: 2,
     };
 
     vec![
@@ -215,5 +250,6 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         vanillajs_tests,
         internet_identity,
         bitcoin,
+        js_base,
     ]
 }

@@ -1,5 +1,6 @@
 use itertools::Itertools;
 use std::collections::BTreeMap;
+use std::fmt::Display;
 use std::io;
 use std::sync::OnceLock;
 
@@ -17,10 +18,17 @@ pub enum Category {
     Frontend,
     FrontendTest,
     Extra,
+    Support,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct ProjectTemplateName(pub String);
+
+impl Display for ProjectTemplateName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct ProjectTemplate {
@@ -38,14 +46,17 @@ pub struct ProjectTemplate {
     /// as well as for interactive selection
     pub category: Category,
 
-    /// If true, run `cargo update` after creating the project
-    pub update_cargo_lockfile: bool,
+    /// Other project templates to patch in alongside this one
+    pub requirements: Vec<ProjectTemplateName>,
 
-    /// If true, patch in the any_js template files
-    pub has_js: bool,
+    /// Run a command after adding the canister to dfx.json
+    pub post_create: Vec<String>,
 
-    /// If true, run npm install
-    pub install_node_dependencies: bool,
+    /// If set, display a spinner while this command runs
+    pub post_create_spinner_message: Option<String>,
+
+    /// If the post-create command fails, display this warning but don't fail
+    pub post_create_failure_warning: Option<String>,
 
     /// The sort order is fixed rather than settable in properties:
     /// For backend:
