@@ -699,12 +699,17 @@ fn can_propose_commit_batch_exactly_once() {
     let batch_1 = state.create_batch(time_now).unwrap();
 
     let args = CommitBatchArguments {
-        batch_id: batch_1,
+        batch_id: batch_1.clone(),
         operations: vec![],
     };
     assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
     match state.propose_commit_batch(args) {
-        Err(err) if err == *"batch already has proposed CommitBatchArguments" => {}
+        Err(err)
+            if err
+                == format!(
+                    "batch {} already has proposed CommitBatchArguments",
+                    batch_1,
+                ) => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     };
 }
@@ -730,17 +735,17 @@ fn cannot_create_chunk_in_proposed_batch_() {
         },
         time_now,
     ) {
-        Err(err) if err == *"batch has been proposed" => {}
+        Err(err) if err == format!("batch {} has been proposed", batch_1) => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     }
     match state.create_chunks(
         CreateChunksArg {
-            batch_id: batch_1,
+            batch_id: batch_1.clone(),
             content: vec![ByteBuf::from(BODY.to_vec())],
         },
         time_now,
     ) {
-        Err(err) if err == *"batch has been proposed" => {}
+        Err(err) if err == format!("batch {} has been proposed", batch_1) => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     }
 }
@@ -822,12 +827,12 @@ fn batches_with_evidence_do_not_expire() {
 
     match state.create_chunk(
         CreateChunkArg {
-            batch_id: batch_1,
+            batch_id: batch_1.clone(),
             content: ByteBuf::from(BODY.to_vec()),
         },
         time_now,
     ) {
-        Err(err) if err == *"batch has been proposed" => {}
+        Err(err) if err == format!("batch {} has been proposed", batch_1) => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     }
 }
