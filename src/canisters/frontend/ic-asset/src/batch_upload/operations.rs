@@ -163,11 +163,14 @@ pub(crate) fn set_encodings(
                 continue;
             }
 
+            let mut chunk_ids = v.chunk_ids.clone();
+            chunk_ids.sort();
+
             operations.push(BatchOperationKind::SetAssetContent(
                 SetAssetContentArguments {
                     key: key.clone(),
                     content_encoding: content_encoding.clone(),
-                    chunk_ids: v.chunk_ids.clone(),
+                    chunk_ids,
                     sha256: Some(v.sha256.clone()),
                 },
             ));
