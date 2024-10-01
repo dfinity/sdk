@@ -17,7 +17,7 @@ use crate::error::HashContentError::{EncodeContentFailed, LoadContentFailed};
 use crate::sync::gather_asset_descriptors;
 use ic_utils::Canister;
 use sha2::{Digest, Sha256};
-use slog::{info, Logger};
+use slog::{info, trace, Logger};
 use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 
@@ -65,6 +65,7 @@ pub async fn compute_evidence(
         canister_asset_properties,
     );
     operations.sort();
+    trace!(logger, "{:?}", operations);
 
     let mut sha = Sha256::new();
     for op in operations {
