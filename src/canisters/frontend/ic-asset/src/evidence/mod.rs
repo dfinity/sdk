@@ -65,7 +65,7 @@ pub async fn compute_evidence(
         canister_asset_properties,
     );
     operations.sort();
-    trace!(logger, "{:?}", operations);
+    trace!(logger, "{:#?}", operations);
 
     let mut sha = Sha256::new();
     for op in operations {
