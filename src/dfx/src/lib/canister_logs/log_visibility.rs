@@ -1,6 +1,6 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::util::clap::parsers::log_visibility_parser;
+use crate::util::clap::parsers::{log_visibility_parser, principal_parser};
 use anyhow::anyhow;
 use candid::Principal;
 use clap::{ArgAction, Args};
@@ -21,22 +21,23 @@ pub struct LogVisibilityOpt {
     log_visibility: Option<LogVisibility>,
 
     /// Add a principal to the list of log viewers of the canister.
-    #[arg(long, action = ArgAction::Append, conflicts_with("set_log_viewer"))]
-    add_log_viewer: Option<Vec<String>>,
+    #[arg(long, action = ArgAction::Append, value_parser = principal_parser, conflicts_with("set_log_viewer"))]
+    add_log_viewer: Option<Vec<Principal>>,
 
     /// Removes a principal from the list of log viewers of the canister.
-    #[arg(long, action = ArgAction::Append, conflicts_with("set_log_viewer"))]
-    remove_log_viewer: Option<Vec<String>>,
+    #[arg(long, action = ArgAction::Append, value_parser = principal_parser, conflicts_with("set_log_viewer"))]
+    remove_log_viewer: Option<Vec<Principal>>,
 
     /// Specifies the the principal of the log viewer of the canister.
     /// Can be specified more than once.
     #[arg(
         long,
         action = ArgAction::Append,
+        value_parser = principal_parser,
         conflicts_with("add_log_viewer"),
         conflicts_with("remove_log_viewer"),
     )]
-    set_log_viewer: Option<Vec<String>>,
+    set_log_viewer: Option<Vec<Principal>>,
 }
 
 impl LogVisibilityOpt {
@@ -46,7 +47,7 @@ impl LogVisibilityOpt {
 
     pub fn from(
         log_visibility: &Option<LogVisibility>,
-        log_viewer: &Option<Vec<String>>,
+        log_viewer: &Option<Vec<Principal>>,
     ) -> Option<LogVisibilityOpt> {
         if let Some(log_visibility) = log_visibility {
             return Some(LogVisibilityOpt {
@@ -82,13 +83,8 @@ impl LogVisibilityOpt {
         }
 
         // For setting viewers.
-        if let Some(viewers) = self.set_log_viewer.as_ref() {
-            let principals: DfxResult<Vec<_>> = viewers
-                .iter()
-                .map(|viewer| Ok(Principal::from_text(viewer).unwrap()))
-                .collect();
-
-            return Ok(LogVisibility::AllowedViewers(principals.unwrap()));
+        if let Some(principals) = self.set_log_viewer.as_ref() {
+            return Ok(LogVisibility::AllowedViewers(principals.clone()));
         }
 
         // Get the current viewer list for adding and removing, only for update-settings.
@@ -111,10 +107,9 @@ impl LogVisibilityOpt {
                 ask_for_consent(msg)?;
             }
 
-            for viewer in added {
-                let principal = Principal::from_text(viewer).unwrap();
-                if !viewers.iter().any(|x| *x == principal) {
-                    viewers.push(principal);
+            for principal in added {
+                if !viewers.iter().any(|x| x == principal) {
+                    viewers.push(*principal);
                 }
             }
         }
@@ -129,12 +124,15 @@ impl LogVisibilityOpt {
                     _ => (),
                 }
             }
-            for viewer in removed {
-                let principal = Principal::from_text(viewer).unwrap();
-                if let Some(idx) = viewers.iter().position(|x| *x == principal) {
+            for principal in removed {
+                if let Some(idx) = viewers.iter().position(|x| x == principal) {
                     viewers.swap_remove(idx);
                 } else {
-                    slog::warn!(logger, "Principal '{}' is not in the allowed list.", viewer);
+                    slog::warn!(
+                        logger,
+                        "Principal '{}' is not in the allowed list.",
+                        principal.to_text()
+                    );
                 }
             }
         }

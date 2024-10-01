@@ -413,7 +413,8 @@ pub enum CanisterLogVisibility {
     #[default]
     Controllers,
     Public,
-    AllowedViewers(Vec<String>),
+    #[schemars(with = "Vec::<String>")]
+    AllowedViewers(Vec<Principal>),
 }
 
 impl From<CanisterLogVisibility> for LogVisibility {
@@ -422,11 +423,7 @@ impl From<CanisterLogVisibility> for LogVisibility {
             CanisterLogVisibility::Controllers => LogVisibility::Controllers,
             CanisterLogVisibility::Public => LogVisibility::Public,
             CanisterLogVisibility::AllowedViewers(viewers) => {
-                let principals: Vec<_> = viewers
-                    .iter()
-                    .map(|v| Principal::from_text(v).unwrap())
-                    .collect();
-                LogVisibility::AllowedViewers(principals)
+                LogVisibility::AllowedViewers(viewers)
             }
         }
     }

@@ -10,7 +10,8 @@ use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, log_visibility_parser,
-    memory_allocation_parser, reserved_cycles_limit_parser, wasm_memory_limit_parser,
+    memory_allocation_parser, principal_parser, reserved_cycles_limit_parser,
+    wasm_memory_limit_parser,
 };
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
@@ -98,8 +99,8 @@ pub struct CanisterCreateOpts {
 
     /// Specifies the the principal of the log viewer of the canister.
     /// Can be specified more than once.
-    #[arg(long, action = ArgAction::Append, conflicts_with("log_visibility"))]
-    log_viewer: Option<Vec<String>>,
+    #[arg(long, action = ArgAction::Append, value_parser = principal_parser, conflicts_with("log_visibility"))]
+    log_viewer: Option<Vec<candid::Principal>>,
 
     /// Performs the call with the user Identity as the Sender of messages.
     /// Bypasses the Wallet canister.
