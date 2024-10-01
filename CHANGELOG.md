@@ -16,6 +16,14 @@ Valid settings are:
 
 ## Dependencies
 
+### Frontend canister
+
+#### feat: Better error messages when proposing a batch
+
+Add the batch id in the error messages of `propose_commit_batch`.
+
+Module hash: 2c9e30df9be951a6884c702a97bbb8c0b438f33d4208fa612b1de6fb1752db76
+
 ### Motoko
 
 Updated Motoko to [0.13.0](https://github.com/dfinity/motoko/releases/tag/0.13.0)
