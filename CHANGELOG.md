@@ -22,10 +22,17 @@ Updated Motoko to [0.13.0](https://github.com/dfinity/motoko/releases/tag/0.13.0
 
 ### Replica
 
-Updated replica to elected commit 179973553248415fc85679d853b48b0e0ec231c6.
+Updated replica to elected commit c43a4880199c00135c8415957851e823b3fb769e.
+This incorporates the following executed proposals:
 
-This incorporates the following elected proposals:
-
+- [133144](https://dashboard.internetcomputer.org/proposal/133144)
+- [133143](https://dashboard.internetcomputer.org/proposal/133143)
+- [133142](https://dashboard.internetcomputer.org/proposal/133142)
+- [133063](https://dashboard.internetcomputer.org/proposal/133063)
+- [133062](https://dashboard.internetcomputer.org/proposal/133062)
+- [133061](https://dashboard.internetcomputer.org/proposal/133061)
+- [132548](https://dashboard.internetcomputer.org/proposal/132548)
+- [132547](https://dashboard.internetcomputer.org/proposal/132547)
 - [132507](https://dashboard.internetcomputer.org/proposal/132507)
 - [132482](https://dashboard.internetcomputer.org/proposal/132482)
 - [132481](https://dashboard.internetcomputer.org/proposal/132481)
