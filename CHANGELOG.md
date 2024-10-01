@@ -10,7 +10,7 @@
 
 ### Frontend canister
 
-####feat: Better error messages when proposing a batch
+#### feat: Better error messages when proposing a batch
 
 Add the batch id in the error messages of `propose_commit_batch`.
 
