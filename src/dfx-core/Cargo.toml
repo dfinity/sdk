@@ -1,11 +1,14 @@
 [package]
 name = "dfx-core"
-version = "0.0.1"
+version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
 license.workspace = true
 rust-version.workspace = true
+description = "dfx core library"
+documentation = "https://docs.rs/dfx-core"
+keywords = ["internet-computer", "icp", "dfinity"]
 
 [dependencies]
 aes-gcm.workspace = true

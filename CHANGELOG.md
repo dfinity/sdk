@@ -2,6 +2,61 @@
 
 # UNRELEASED
 
+# 0.24.1
+
+### feat: More PocketIC flags supported
+
+`dfx start --pocketic` is now compatible with `--artificial-delay` and the `subnet_type`  configuration option, and enables `--enable-canister-http` by default.
+
+## Dependencies
+
+### Frontend canister
+
+#### feat: Better error messages when proposing a batch
+
+Add the batch id in the error messages of `propose_commit_batch`.
+
+Module hash: 2c9e30df9be951a6884c702a97bbb8c0b438f33d4208fa612b1de6fb1752db76
+
+### Motoko
+
+Updated Motoko to [0.13.0](https://github.com/dfinity/motoko/releases/tag/0.13.0)
+
+### Replica
+
+Updated replica to elected commit c43a4880199c00135c8415957851e823b3fb769e.
+This incorporates the following executed proposals:
+
+- [133144](https://dashboard.internetcomputer.org/proposal/133144)
+- [133143](https://dashboard.internetcomputer.org/proposal/133143)
+- [133142](https://dashboard.internetcomputer.org/proposal/133142)
+- [133063](https://dashboard.internetcomputer.org/proposal/133063)
+- [133062](https://dashboard.internetcomputer.org/proposal/133062)
+- [133061](https://dashboard.internetcomputer.org/proposal/133061)
+- [132548](https://dashboard.internetcomputer.org/proposal/132548)
+- [132547](https://dashboard.internetcomputer.org/proposal/132547)
+- [132507](https://dashboard.internetcomputer.org/proposal/132507)
+- [132482](https://dashboard.internetcomputer.org/proposal/132482)
+- [132481](https://dashboard.internetcomputer.org/proposal/132481)
+- [132500](https://dashboard.internetcomputer.org/proposal/132500)
+- [132416](https://dashboard.internetcomputer.org/proposal/132416)
+- [132413](https://dashboard.internetcomputer.org/proposal/132413)
+- [132414](https://dashboard.internetcomputer.org/proposal/132414)
+- [132412](https://dashboard.internetcomputer.org/proposal/132412)
+- [132376](https://dashboard.internetcomputer.org/proposal/132376)
+- [132375](https://dashboard.internetcomputer.org/proposal/132375)
+- [132223](https://dashboard.internetcomputer.org/proposal/132223)
+- [132222](https://dashboard.internetcomputer.org/proposal/132222)
+- [132149](https://dashboard.internetcomputer.org/proposal/132149)
+- [132148](https://dashboard.internetcomputer.org/proposal/132148)
+- [131787](https://dashboard.internetcomputer.org/proposal/131787)
+- [131757](https://dashboard.internetcomputer.org/proposal/131757)
+- [131697](https://dashboard.internetcomputer.org/proposal/131697)
+
+### Candid UI
+
+Module hash 15da2adc4426b8037c9e716b81cb6a8cf1a835ac37589be2cef8cb3f4a04adaa
+
 # 0.24.0
 
 ### fix: bumps sveltekit starter dependency versions to prevent typescript config error
