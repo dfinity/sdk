@@ -15,9 +15,7 @@ path = "src/main.rs"
 [build-dependencies]
 backoff = { version = "0.4.0", features = ["futures", "tokio"] }
 bytes = "1"
-flate2 = { version = "1.0.11", default-features = false, features = [
-    "zlib-ng",
-] }
+flate2 = { version = "1.0.11" }
 hex = "0.4.3"
 reqwest.workspace = true
 serde = { version = "1.0", features = ["derive"] }
@@ -55,7 +53,7 @@ ctrlc = { version = "3.2.1", features = ["termination"] }
 dfx-core = { path = "../dfx-core" }
 dialoguer = { workspace = true, features = ["fuzzy-select"] }
 directories-next.workspace = true
-flate2 = { workspace = true, default-features = false, features = ["zlib-ng"] }
+flate2 = { workspace = true }
 fn-error-context = "0.2.0"
 futures-util = "0.3.21"
 futures.workspace = true

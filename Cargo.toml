@@ -39,7 +39,7 @@ clap = "4.5"
 clap_complete = "4.5"
 dialoguer = "0.11.0"
 directories-next = "2.0.0"
-flate2 = { version = "1.0.11", default-features = false }
+flate2 = { version = "1.0.11" }
 futures = "0.3.21"
 handlebars = "4.3.3"
 hex = "0.4.3"
