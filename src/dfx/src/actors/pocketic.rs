@@ -326,7 +326,7 @@ async fn initialize_pocketic(
     let mut subnet_config_set = ExtendedSubnetConfigSet {
         nns: Some(SubnetSpec::default()),
         sns: Some(SubnetSpec::default()),
-        ii: None,
+        ii: Some(SubnetSpec::default()),
         fiduciary: None,
         bitcoin: None,
         system: vec![],
