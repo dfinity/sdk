@@ -55,9 +55,13 @@ async fn canister_status(
         LogVisibility::Controllers => "controllers".to_string(),
         LogVisibility::Public => "public".to_string(),
         LogVisibility::AllowedViewers(viewers) => {
-            let mut viewers: Vec<_> = viewers.iter().map(Principal::to_text).collect();
-            viewers.sort();
-            format!("allowed viewers: {}", viewers.join(", "))
+            if viewers.is_empty() {
+                "allowed viewers list is empty".to_string()
+            } else {
+                let mut viewers: Vec<_> = viewers.iter().map(Principal::to_text).collect();
+                viewers.sort();
+                format!("allowed viewers: {}", viewers.join(", "))
+            }
         }
     };
 
