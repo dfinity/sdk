@@ -1,3 +1,5 @@
+use crate::lib::canister_logs::log_visibility::LogVisibilityOpt;
+use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use anyhow::{anyhow, Context, Error};
 use byte_unit::Byte;
@@ -7,7 +9,7 @@ use fn_error_context::context;
 use ic_utils::interfaces::management_canister::{
     attributes::{ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit},
     builders::WasmMemoryLimit,
-    LogVisibility,
+    LogVisibility, StatusCallResult,
 };
 use num_traits::ToPrimitive;
 use std::convert::TryFrom;
@@ -218,12 +220,16 @@ pub fn get_wasm_memory_limit(
 }
 
 pub fn get_log_visibility(
-    log_visibility: Option<LogVisibility>,
+    env: &dyn Environment,
+    log_visibility: Option<&LogVisibilityOpt>,
+    current_settings: Option<&StatusCallResult>,
     config_interface: Option<&ConfigInterface>,
     canister_name: Option<&str>,
 ) -> DfxResult<Option<LogVisibility>> {
     let log_visibility = match (log_visibility, config_interface, canister_name) {
-        (Some(log_visibility), _, _) => Some(log_visibility),
+        (Some(log_visibility), _, _) => {
+            Some(log_visibility.to_log_visibility(env, current_settings)?)
+        }
         (None, Some(config_interface), Some(canister_name)) => {
             config_interface.get_log_visibility(canister_name)?
         }

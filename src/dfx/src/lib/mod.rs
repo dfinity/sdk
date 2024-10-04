@@ -1,6 +1,7 @@
 pub mod agent;
 pub mod builders;
 pub mod canister_info;
+pub mod canister_logs;
 pub mod cycles_ledger_types;
 pub mod deps;
 pub mod dfxvm;
