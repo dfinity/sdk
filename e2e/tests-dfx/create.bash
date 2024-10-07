@@ -401,9 +401,9 @@ teardown() {
 # The following function decodes a canister id in the textual form into its binary form
 # and is taken from the [IC Interface Specification](https://internetcomputer.org/docs/current/references/ic-interface-spec#principal).
 function textual_decode() {
-  echo -n "$1" | tr -d - | tr a-z A-Z |
+  echo -n "$1" | tr -d - | tr "[:lower:]" "[:upper:]" |
   fold -w 8 | xargs -n1 printf '%-8s' | tr ' ' = |
-  base32 -d | xxd -p | tr -d '\n' | cut -b9- | tr a-z A-Z
+  base32 -d | xxd -p | tr -d '\n' | cut -b9- | tr "[:lower:]" "[:upper:]"
 }
 
 @test "create targets application subnet in PocketIC" {
@@ -420,11 +420,11 @@ function textual_decode() {
   # find application subnet id in the topology
   for subnet_id in $(echo "${TOPOLOGY}" | jq keys[])
   do
-    SUBNET_KIND="$(echo $TOPOLOGY | jq -r ".${subnet_id}.\"subnet_kind\"")"
+    SUBNET_KIND="$(echo "$TOPOLOGY" | jq -r ".${subnet_id}.\"subnet_kind\"")"
     if [ "${SUBNET_KIND}" == "Application" ]
     then
       # find the expected canister id as the beginning of the first canister range of the app subnet
-      EXPECTED_CANISTER_ID_BASE64="$(echo $TOPOLOGY | jq -r ".${subnet_id}.\"canister_ranges\"[0].\"start\".\"canister_id\"")"
+      EXPECTED_CANISTER_ID_BASE64="$(echo "$TOPOLOGY" | jq -r ".${subnet_id}.\"canister_ranges\"[0].\"start\".\"canister_id\"")"
     fi
   done
   # check if the actual canister id matches the expected canister id
