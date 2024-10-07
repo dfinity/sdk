@@ -74,7 +74,7 @@ jobs:
       - name: Check dynamically-linked libraries (macos)
         run: |
           ACTUAL="$(otool -L ${{ matrix.binary_path }}/dfx | awk 'NR > 1{ print $1 }' | grep -v /System/Library/Frameworks | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
-          EXPECTED="/usr/lib/libSystem.B.dylib /usr/lib/libc++.1.dylib /usr/lib/libiconv.2.dylib /usr/lib/libobjc.A.dylib"
+          EXPECTED="/usr/lib/libSystem.B.dylib /usr/lib/libc++.1.dylib /usr/lib/libiconv.2.dylib"
           echo "Dynamically-linked libraries:"
           echo "  Actual:   $ACTUAL"
           echo "  Expected: $EXPECTED"
