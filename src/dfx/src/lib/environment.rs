@@ -1,4 +1,3 @@
-use crate::actors::pocketic::POCKETIC_EFFECTIVE_CANISTER_ID;
 use crate::config::cache::DiskBasedCache;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
@@ -298,8 +297,7 @@ impl<'a> AgentEnvironment<'a> {
         let url = network_descriptor.first_provider()?;
         let effective_canister_id = if let Some(d) = &network_descriptor.local_server_descriptor {
             d.effective_config()?
-                .is_some_and(|c| c.is_pocketic())
-                .then_some(POCKETIC_EFFECTIVE_CANISTER_ID)
+                .and_then(|c| c.get_effective_canister_id())
         } else {
             None
         };

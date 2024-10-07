@@ -4,6 +4,7 @@ use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::info::replica_rev;
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
@@ -11,7 +12,8 @@ use actix::{
 use anyhow::{anyhow, bail};
 use candid::Principal;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use dfx_core::config::model::replica_config::ReplicaConfig;
+use dfx_core::config::model::replica_config::{CachedConfig, ReplicaConfig};
+use dfx_core::json::save_json_file;
 use slog::{debug, error, info, warn, Logger};
 use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
@@ -30,13 +32,11 @@ pub mod signals {
     }
 }
 
-pub const POCKETIC_EFFECTIVE_CANISTER_ID: Principal =
-    Principal::from_slice(&[0xff, 0xff, 0xff, 0xff, 0xff, 0xc0, 0x00, 0x00, 0x01, 0x01]);
-
 /// The configuration for the PocketIC actor.
 #[derive(Clone)]
 pub struct Config {
     pub pocketic_path: PathBuf,
+    pub effective_config_path: PathBuf,
     pub replica_config: ReplicaConfig,
     pub port: Option<u16>,
     pub port_file: PathBuf,
@@ -257,7 +257,12 @@ fn pocketic_start_thread(
                     }
                 }
             };
-            let instance = match initialize_pocketic(port, &config.replica_config, logger.clone()) {
+            let instance = match initialize_pocketic(
+                port,
+                &config.effective_config_path,
+                &config.replica_config,
+                logger.clone(),
+            ) {
                 Err(e) => {
                     error!(logger, "Failed to initialize PocketIC: {e:#}");
 
@@ -311,6 +316,7 @@ fn pocketic_start_thread(
 #[tokio::main(flavor = "current_thread")]
 async fn initialize_pocketic(
     port: u16,
+    effective_config_path: &Path,
     replica_config: &ReplicaConfig,
     logger: Logger,
 ) -> DfxResult<usize> {
@@ -357,7 +363,33 @@ async fn initialize_pocketic(
         CreateInstanceResponse::Error { message } => {
             bail!("PocketIC init error: {message}");
         }
-        CreateInstanceResponse::Created { instance_id, .. } => instance_id,
+        CreateInstanceResponse::Created {
+            instance_id,
+            topology,
+        } => {
+            let subnets = match replica_config.subnet_type {
+                ReplicaSubnetType::Application => topology.get_app_subnets(),
+                ReplicaSubnetType::System => topology.get_system_subnets(),
+                ReplicaSubnetType::VerifiedApplication => topology.get_verified_app_subnets(),
+            };
+            if subnets.len() != 1 {
+                return Err(anyhow!("Internal error: PocketIC topology contains multiple subnets of the same subnet kind."));
+            }
+            let subnet_id = subnets[0];
+            let subnet_config = topology.0.get(&subnet_id).ok_or(anyhow!(
+                "Internal error: subnet id {} not found in PocketIC topology",
+                subnet_id
+            ))?;
+            let effective_canister_id =
+                Principal::from_slice(&subnet_config.canister_ranges[0].start.canister_id);
+            let effective_config = CachedConfig::pocketic(
+                replica_config,
+                replica_rev().into(),
+                Some(effective_canister_id),
+            );
+            save_json_file(effective_config_path, &effective_config)?;
+            instance_id
+        }
     };
     init_client
         .post(format!(
