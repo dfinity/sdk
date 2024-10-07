@@ -419,7 +419,7 @@ async fn initialize_pocketic(
 }
 
 #[cfg(not(unix))]
-fn initialize_pocketic(_: u16, _: &ReplicaConfig, _: Logger) -> DfxResult<usize> {
+fn initialize_pocketic(_: u16, _: &Path, _: &ReplicaConfig, _: Logger) -> DfxResult<usize> {
     bail!("PocketIC not supported on this platform")
 }
 
