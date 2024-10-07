@@ -397,3 +397,40 @@ teardown() {
   assert_contains "${ALICE_PRINCIPAL}"
   assert_contains "${BOB_PRINCIPAL}"
 }
+
+# The following function decodes a canister id in the textual form into its binary form
+# and is taken from the [IC Interface Specification](https://internetcomputer.org/docs/current/references/ic-interface-spec#principal).
+function textual_decode() {
+  echo -n "$1" | tr -d - | tr "[:lower:]" "[:upper:]" |
+  fold -w 8 | xargs -n1 printf '%-8s' | tr ' ' = |
+  base32 -d | xxd -p | tr -d '\n' | cut -b9- | tr "[:lower:]" "[:upper:]"
+}
+
+@test "create targets application subnet in PocketIC" {
+  [[ ! "$USE_POCKETIC" ]] && skip "skipped for replica: no support for multiple subnets"
+  dfx_start
+  # create the backend canister without a wallet canister so that the backend canister is the only canister ever created
+  assert_command dfx canister create e2e_project_backend --no-wallet
+  # actual canister id
+  CANISTER_ID="$(dfx canister id e2e_project_backend)"
+  # base64 encode the actual canister id
+  CANISTER_ID_BASE64="$(textual_decode "${CANISTER_ID}" | xxd -r -p | base64)"
+  # fetch topology from PocketIC server
+  TOPOLOGY="$(curl "http://127.0.0.1:$(dfx info replica-port)/instances/0/read/topology")"
+  # find application subnet id in the topology
+  for subnet_id in $(echo "${TOPOLOGY}" | jq keys[])
+  do
+    SUBNET_KIND="$(echo "$TOPOLOGY" | jq -r ".${subnet_id}.\"subnet_kind\"")"
+    if [ "${SUBNET_KIND}" == "Application" ]
+    then
+      # find the expected canister id as the beginning of the first canister range of the app subnet
+      EXPECTED_CANISTER_ID_BASE64="$(echo "$TOPOLOGY" | jq -r ".${subnet_id}.\"canister_ranges\"[0].\"start\".\"canister_id\"")"
+    fi
+  done
+  # check if the actual canister id matches the expected canister id
+  if [ "${CANISTER_ID_BASE64}" != "${EXPECTED_CANISTER_ID_BASE64}" ]
+  then
+    echo "Canister id ${CANISTER_ID_BASE64} does not match expected canister id ${EXPECTED_CANISTER_ID_BASE64}"
+    exit 1
+  fi
+}
