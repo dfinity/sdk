@@ -4,15 +4,20 @@ use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::error::{DfxError, DfxResult};
+#[cfg(unix)]
 use crate::lib::info::replica_rev;
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
 use anyhow::{anyhow, bail};
+#[cfg(unix)]
 use candid::Principal;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use dfx_core::config::model::replica_config::{CachedConfig, ReplicaConfig};
+#[cfg(unix)]
+use dfx_core::config::model::replica_config::CachedConfig;
+use dfx_core::config::model::replica_config::ReplicaConfig;
+#[cfg(unix)]
 use dfx_core::json::save_json_file;
 use slog::{debug, error, info, warn, Logger};
 use std::ops::ControlFlow::{self, *};
