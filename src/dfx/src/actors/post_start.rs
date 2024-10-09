@@ -1,5 +1,5 @@
-use crate::actors::post_start::signals::{PocketIcProxyReadySignal, PocketIcProxyReadySubscribe};
 use crate::actors::pocketic_proxy::PocketIcProxy;
+use crate::actors::post_start::signals::{PocketIcProxyReadySignal, PocketIcProxyReadySubscribe};
 use actix::{Actor, Addr, AsyncContext, Context, Handler};
 use slog::{info, Logger};
 
