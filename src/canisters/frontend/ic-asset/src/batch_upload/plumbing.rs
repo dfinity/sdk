@@ -49,14 +49,16 @@ pub(crate) struct ProjectAsset {
     pub(crate) encodings: HashMap<String, ProjectAssetEncoding>,
 }
 
+type IdMapping = BTreeMap<usize, Nat>;
+type UploadQueue = Vec<(usize, Vec<u8>)>;
 pub(crate) struct ChunkUploader<'agent> {
     canister: Canister<'agent>,
     batch_id: Nat,
     chunks: Arc<AtomicUsize>,
     bytes: Arc<AtomicUsize>,
     // maps uploader_chunk_id to canister_chunk_id
-    id_mapping: Arc<Mutex<BTreeMap<usize, Nat>>>,
-    upload_queue: Arc<Mutex<Vec<(usize, Vec<u8>)>>>,
+    id_mapping: Arc<Mutex<IdMapping>>,
+    upload_queue: Arc<Mutex<UploadQueue>>,
 }
 
 impl<'agent> ChunkUploader<'agent> {
