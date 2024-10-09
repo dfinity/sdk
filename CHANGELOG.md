@@ -10,6 +10,11 @@ Valid settings are:
 - `--log-viewer` flag with `dfx canister create`
 - `canisters[].initialization_values.log_visibility.allowed_viewers` in `dfx.json`
 
+### feat: batch upload assets
+
+The frontend canister sync now tries to batch multiple small content chunks into a single call using the `create_chunks` method added earlier.
+This should lead to significantly faster upload times for frontends with many small files.
+
 # 0.24.1
 
 ### feat: More PocketIC flags supported
