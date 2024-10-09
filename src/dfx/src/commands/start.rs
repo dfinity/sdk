@@ -1,7 +1,8 @@
 use crate::actors::pocketic_proxy::{signals::PortReadySubscribe, PocketIcProxyConfig};
 use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_pocketic_actor,
-    start_pocketic_proxy_actor, start_replica_actor, start_shutdown_controller,
+    start_pocketic_proxy_actor, start_post_start_actor, start_replica_actor,
+    start_shutdown_controller,
 };
 use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
@@ -264,6 +265,10 @@ pub fn exec(
     }
     local_server_descriptor.describe(env.get_logger());
 
+    // Get the original background flag set by the user from the command arguments.
+    // Get it from the environment variable as the `--background` flag will be ignored by the send_background() method.
+    let original_background = std::env::var("original_background").is_ok();
+
     write_pid(&pid_file_path);
     fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
@@ -413,7 +418,10 @@ pub fn exec(
             pocketic_proxy_pid_file_path,
             pocketic_proxy_port_file_path,
         )?;
-        Ok::<_, Error>(proxy)
+
+        let post_start = start_post_start_actor(env, original_background, Some(proxy))?;
+
+        Ok::<_, Error>(post_start)
     })?;
     system.run()?;
 
@@ -574,7 +582,8 @@ fn send_background() -> DfxResult<()> {
             .skip(1)
             .filter(|a| !a.eq("--background"))
             .filter(|a| !a.eq("--clean")),
-    );
+    )
+    .env("original_background", "true"); // Set the `original_background` environment variable which will be used by the second start.
 
     cmd.spawn().context("Failed to spawn child process.")?;
     Ok(())
