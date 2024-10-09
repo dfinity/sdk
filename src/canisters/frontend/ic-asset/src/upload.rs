@@ -53,12 +53,14 @@ pub async fn upload(
     .await?;
 
     let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
+        &chunk_upload_target,
         project_assets,
         canister_assets,
         AssetDeletionReason::Incompatible,
         HashMap::new(),
         batch_id,
-    );
+    )
+    .await;
 
     let canister_api_version = api_version(canister).await;
     info!(logger, "Committing batch.");

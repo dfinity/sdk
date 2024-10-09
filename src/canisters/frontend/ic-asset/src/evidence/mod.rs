@@ -59,11 +59,13 @@ pub async fn compute_evidence(
         make_project_assets(None, asset_descriptors, &canister_assets, logger).await?;
 
     let mut operations = assemble_batch_operations(
+        None,
         &project_assets,
         canister_assets,
         Obsolete,
         canister_asset_properties,
-    );
+    )
+    .await;
     operations.sort();
 
     let mut sha = Sha256::new();

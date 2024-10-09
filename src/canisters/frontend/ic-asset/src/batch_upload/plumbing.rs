@@ -3,6 +3,7 @@ use crate::asset::content::Content;
 use crate::asset::content_encoder::ContentEncoder;
 use crate::batch_upload::semaphores::Semaphores;
 use crate::canister_api::methods::chunk::create_chunk;
+use crate::canister_api::methods::chunk::create_chunks;
 use crate::canister_api::types::asset::AssetDetails;
 use crate::error::CreateChunkError;
 use crate::error::CreateEncodingError;
@@ -14,10 +15,12 @@ use futures::TryFutureExt;
 use ic_utils::Canister;
 use mime::Mime;
 use slog::{debug, info, Logger};
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use tokio::sync::Mutex;
 
 const CONTENT_ENCODING_IDENTITY: &str = "identity";
 
@@ -35,7 +38,7 @@ pub(crate) struct AssetDescriptor {
 }
 
 pub(crate) struct ProjectAssetEncoding {
-    pub(crate) chunk_ids: Vec<Nat>,
+    pub(crate) uploader_chunk_ids: Vec<usize>,
     pub(crate) sha256: Vec<u8>,
     pub(crate) already_in_place: bool,
 }
@@ -51,7 +54,11 @@ pub(crate) struct ChunkUploader<'agent> {
     batch_id: Nat,
     chunks: Arc<AtomicUsize>,
     bytes: Arc<AtomicUsize>,
+    // maps uploader_chunk_id to canister_chunk_id
+    id_mapping: Arc<Mutex<BTreeMap<usize, Nat>>>,
+    upload_queue: Arc<Mutex<Vec<(usize, Vec<u8>)>>>,
 }
+
 impl<'agent> ChunkUploader<'agent> {
     pub(crate) fn new(canister: Canister<'agent>, batch_id: Nat) -> Self {
         Self {
@@ -59,17 +66,45 @@ impl<'agent> ChunkUploader<'agent> {
             batch_id,
             chunks: Arc::new(AtomicUsize::new(0)),
             bytes: Arc::new(AtomicUsize::new(0)),
+            id_mapping: Arc::new(Mutex::new(BTreeMap::new())),
+            upload_queue: Arc::new(Mutex::new(vec![])),
         }
     }
 
+    /// Returns an uploader_chunk_id, which is different from the chunk id on the asset canister.
+    /// uploader_chunk_id can be mapped to canister_chunk_id using `uploader_ids_to_canister_chunk_ids`
+    /// once `finalize_upload` has completed.
     pub(crate) async fn create_chunk(
         &self,
         contents: &[u8],
         semaphores: &Semaphores,
-    ) -> Result<Nat, CreateChunkError> {
-        self.chunks.fetch_add(1, Ordering::SeqCst);
+    ) -> Result<usize, CreateChunkError> {
+        let uploader_chunk_id = self.chunks.fetch_add(1, Ordering::SeqCst);
         self.bytes.fetch_add(contents.len(), Ordering::SeqCst);
-        create_chunk(&self.canister, &self.batch_id, contents, semaphores).await
+        if contents.len() == MAX_CHUNK_SIZE {
+            let canister_chunk_id =
+                create_chunk(&self.canister, &self.batch_id, contents, semaphores).await?;
+            let mut map = self.id_mapping.lock().await;
+            map.insert(uploader_chunk_id, canister_chunk_id);
+            Ok(uploader_chunk_id)
+        } else {
+            self.add_to_upload_queue(uploader_chunk_id, contents).await;
+            // Larger `leftover_bytes` leads to batches that are filled closer to the max size.
+            // `4 * MAX_CHUNK_SIZE` leads to a pretty small memory footprint but still offers solid fill rates.
+            // Mini experiment:
+            //  - Tested with: `for i in $(seq 1 50); do dd if=/dev/urandom of="src/hello_frontend/assets/file_$i.bin" bs=$(shuf -i 1-2000000 -n 1) count=1; done && dfx deploy hello_frontend`
+            //  - Result: Roughly 15% of batches under 90% full.
+            // With other byte ranges (e.g. `shuf -i 1-3000000 -n 1`) stats improve significantly
+            self.upload_chunks(4 * MAX_CHUNK_SIZE, semaphores).await?;
+            Ok(uploader_chunk_id)
+        }
+    }
+
+    pub(crate) async fn finalize_upload(
+        &self,
+        semaphores: &Semaphores,
+    ) -> Result<(), CreateChunkError> {
+        self.upload_chunks(0, semaphores).await
     }
 
     pub(crate) fn bytes(&self) -> usize {
@@ -77,6 +112,78 @@ impl<'agent> ChunkUploader<'agent> {
     }
     pub(crate) fn chunks(&self) -> usize {
         self.chunks.load(Ordering::SeqCst)
+    }
+
+    /// Call only after `finalize_upload` has completed
+    pub(crate) async fn uploader_ids_to_canister_chunk_ids(
+        &self,
+        uploader_ids: &[usize],
+    ) -> Vec<Nat> {
+        let mapping = self.id_mapping.lock().await;
+        uploader_ids
+            .iter()
+            .map(|id| {
+                mapping
+                    .get(id)
+                    .expect("Chunk uploader did not upload all chunks. This is a bug.")
+                    .clone()
+            })
+            .collect()
+    }
+
+    async fn add_to_upload_queue(&self, uploader_chunk_id: usize, contents: &[u8]) {
+        let mut queue = self.upload_queue.lock().await;
+        queue.push((uploader_chunk_id, contents.into()));
+    }
+
+    /// Calls `upload_chunks` with batches of chunks from `self.upload_queue` until at most `leftover_bytes`
+    /// bytes remain in the upload queue. Larger `leftover_bytes` will lead to better batch fill rates
+    /// but also leave a larger memory footprint.
+    async fn upload_chunks(
+        &self,
+        leftover_bytes: usize,
+        semaphores: &Semaphores,
+    ) -> Result<(), CreateChunkError> {
+        let mut queue = self.upload_queue.lock().await;
+
+        let mut batches = vec![];
+        while queue
+            .iter()
+            .map(|(_, content)| content.len())
+            .sum::<usize>()
+            > leftover_bytes
+        {
+            // Greedily fills batch with the largest chunk that fits
+            queue.sort_unstable_by_key(|(_, content)| content.len());
+            let mut batch = vec![];
+            let mut batch_size = 0;
+            for (uploader_chunk_id, content) in std::mem::take(&mut *queue).into_iter().rev() {
+                if content.len() <= MAX_CHUNK_SIZE - batch_size {
+                    batch_size += content.len();
+                    batch.push((uploader_chunk_id, content));
+                } else {
+                    queue.push((uploader_chunk_id, content));
+                }
+            }
+            batches.push(batch);
+        }
+
+        try_join_all(batches.into_iter().map(|chunks| async move {
+            let (uploader_chunk_ids, chunks): (Vec<_>, Vec<_>) = chunks.into_iter().unzip();
+            let canister_chunk_ids =
+                create_chunks(&self.canister, &self.batch_id, chunks, semaphores).await?;
+            let mut map = self.id_mapping.lock().await;
+            for (uploader_id, canister_id) in uploader_chunk_ids
+                .into_iter()
+                .zip(canister_chunk_ids.into_iter())
+            {
+                map.insert(uploader_id, canister_id);
+            }
+            Ok(())
+        }))
+        .await?;
+
+        Ok(())
     }
 }
 
@@ -110,7 +217,7 @@ async fn make_project_asset_encoding(
         false
     };
 
-    let chunk_ids = if already_in_place {
+    let uploader_chunk_ids = if already_in_place {
         info!(
             logger,
             "  {}{} ({} bytes) sha {} is already installed",
@@ -144,7 +251,7 @@ async fn make_project_asset_encoding(
     };
 
     Ok(ProjectAssetEncoding {
-        chunk_ids,
+        uploader_chunk_ids,
         sha256,
         already_in_place,
     })
@@ -305,6 +412,13 @@ pub(crate) async fn make_project_assets(
         })
         .collect();
     let project_assets = try_join_all(project_asset_futures).await?;
+    if let Some(uploader) = chunk_upload_target {
+        uploader.finalize_upload(&semaphores).await.map_err(|err| {
+            CreateProjectAssetError::CreateEncodingError(CreateEncodingError::CreateChunkFailed(
+                err,
+            ))
+        })?;
+    }
 
     let mut hm = HashMap::new();
     for project_asset in project_assets {
@@ -321,7 +435,7 @@ async fn upload_content_chunks(
     content_encoding: &str,
     semaphores: &Semaphores,
     logger: &Logger,
-) -> Result<Vec<Nat>, CreateChunkError> {
+) -> Result<Vec<usize>, CreateChunkError> {
     if content.data.is_empty() {
         let empty = vec![];
         let chunk_id = chunk_uploader.create_chunk(&empty, semaphores).await?;

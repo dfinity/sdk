@@ -85,6 +85,7 @@ pub async fn upload_content_and_assemble_sync_operations(
     .await?;
 
     let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
+        &chunk_uploader,
         project_assets,
         canister_assets,
         match no_delete {
@@ -93,7 +94,8 @@ pub async fn upload_content_and_assemble_sync_operations(
         },
         canister_asset_properties,
         batch_id,
-    );
+    )
+    .await;
 
     // -v
     debug!(
