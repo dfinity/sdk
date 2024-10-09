@@ -54,6 +54,7 @@ type UploadQueue = Vec<(usize, Vec<u8>)>;
 pub(crate) struct ChunkUploader<'agent> {
     canister: Canister<'agent>,
     batch_id: Nat,
+    api_version: u16,
     chunks: Arc<AtomicUsize>,
     bytes: Arc<AtomicUsize>,
     // maps uploader_chunk_id to canister_chunk_id
@@ -62,10 +63,11 @@ pub(crate) struct ChunkUploader<'agent> {
 }
 
 impl<'agent> ChunkUploader<'agent> {
-    pub(crate) fn new(canister: Canister<'agent>, batch_id: Nat) -> Self {
+    pub(crate) fn new(canister: Canister<'agent>, api_version: u16, batch_id: Nat) -> Self {
         Self {
             canister,
             batch_id,
+            api_version,
             chunks: Arc::new(AtomicUsize::new(0)),
             bytes: Arc::new(AtomicUsize::new(0)),
             id_mapping: Arc::new(Mutex::new(BTreeMap::new())),
@@ -83,11 +85,12 @@ impl<'agent> ChunkUploader<'agent> {
     ) -> Result<usize, CreateChunkError> {
         let uploader_chunk_id = self.chunks.fetch_add(1, Ordering::SeqCst);
         self.bytes.fetch_add(contents.len(), Ordering::SeqCst);
-        if contents.len() == MAX_CHUNK_SIZE {
+        if contents.len() == MAX_CHUNK_SIZE || self.api_version < 2 {
             let canister_chunk_id =
                 create_chunk(&self.canister, &self.batch_id, contents, semaphores).await?;
             let mut map = self.id_mapping.lock().await;
             map.insert(uploader_chunk_id, canister_chunk_id);
+            println!("directly uploaded {uploader_chunk_id}");
             Ok(uploader_chunk_id)
         } else {
             self.add_to_upload_queue(uploader_chunk_id, contents).await;
@@ -97,7 +100,8 @@ impl<'agent> ChunkUploader<'agent> {
             //  - Tested with: `for i in $(seq 1 50); do dd if=/dev/urandom of="src/hello_frontend/assets/file_$i.bin" bs=$(shuf -i 1-2000000 -n 1) count=1; done && dfx deploy hello_frontend`
             //  - Result: Roughly 15% of batches under 90% full.
             // With other byte ranges (e.g. `shuf -i 1-3000000 -n 1`) stats improve significantly
-            self.upload_chunks(4 * MAX_CHUNK_SIZE, semaphores).await?;
+            self.upload_chunks(4 * MAX_CHUNK_SIZE, usize::MAX, semaphores)
+                .await?;
             Ok(uploader_chunk_id)
         }
     }
@@ -106,7 +110,8 @@ impl<'agent> ChunkUploader<'agent> {
         &self,
         semaphores: &Semaphores,
     ) -> Result<(), CreateChunkError> {
-        self.upload_chunks(0, semaphores).await
+        self.upload_chunks(0, 0, semaphores).await?;
+        Ok(())
     }
 
     pub(crate) fn bytes(&self) -> usize {
@@ -139,11 +144,12 @@ impl<'agent> ChunkUploader<'agent> {
     }
 
     /// Calls `upload_chunks` with batches of chunks from `self.upload_queue` until at most `max_retained_bytes`
-    /// bytes remain in the upload queue. Larger `max_retained_bytes` will lead to better batch fill rates
-    /// but also leave a larger memory footprint.
+    /// bytes and at most `max_retained_chunks` chunks remain in the upload queue. Larger values
+    /// will lead to better batch fill rates but also leave a larger memory footprint.
     async fn upload_chunks(
         &self,
         max_retained_bytes: usize,
+        max_retained_chunks: usize,
         semaphores: &Semaphores,
     ) -> Result<(), CreateChunkError> {
         let mut queue = self.upload_queue.lock().await;
@@ -154,6 +160,7 @@ impl<'agent> ChunkUploader<'agent> {
             .map(|(_, content)| content.len())
             .sum::<usize>()
             > max_retained_bytes
+            || queue.len() > max_retained_chunks
         {
             // Greedily fills batch with the largest chunk that fits
             queue.sort_unstable_by_key(|(_, content)| content.len());

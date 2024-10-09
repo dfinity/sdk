@@ -39,10 +39,12 @@ pub async fn upload(
     info!(logger, "Starting batch.");
 
     let batch_id = create_batch(canister).await.map_err(CreateBatchFailed)?;
+    let canister_api_version = api_version(canister).await;
 
     info!(logger, "Staging contents of new and changed assets:");
 
-    let chunk_upload_target = ChunkUploader::new(canister.clone(), batch_id.clone());
+    let chunk_upload_target =
+        ChunkUploader::new(canister.clone(), canister_api_version, batch_id.clone());
 
     let project_assets = make_project_assets(
         Some(&chunk_upload_target),

@@ -15,6 +15,15 @@ Valid settings are:
 The frontend canister sync now tries to batch multiple small content chunks into a single call using the `create_chunks` method added earlier.
 This should lead to significantly faster upload times for frontends with many small files.
 
+## Dependencies
+
+### Frontend canister
+
+Bumped `api_version` to `2` for the previous addition of `create_chunks` since the improved file sync relies on it.
+
+- Module hash: 9e4485d4358dd910aebcc025843547d05604cf28c6dc7c2cc2f8c76d083112e8
+- https://github.com/dfinity/sdk/pull/3947
+
 # 0.24.1
 
 ### feat: More PocketIC flags supported
