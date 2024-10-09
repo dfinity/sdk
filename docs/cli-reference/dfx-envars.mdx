@@ -68,3 +68,11 @@ DFX_VERSION=0.13.1 dfx deploy --network ic
 ## DFX_DISABLE_QUERY_VERIFICATION
 
 Set this to a non-empty value to disable verification of replica-signed queries.
+
+## DFX_REPLICA_PATH
+
+Use the `DFX_REPLICA_PATH` environment variable to specify a file path to a local version of the replica. If this option is used, `canister_sandbox` and `sandbox_launcher` must be in the same directory with the desired replica version.
+
+## DFX_IC_STARTER_PATH
+
+Use the `DFX_IC_STARTER_PATH` environment variable to specify a file path to a local version of `ic-starter`. 

@@ -625,7 +625,7 @@ impl State {
             .get_mut(&batch_id)
             .ok_or_else(|| "batch not found".to_string())?;
         if batch.commit_batch_arguments.is_some() {
-            return Err("batch has been proposed".to_string());
+            return Err(format!("batch {} has been proposed", batch_id));
         }
 
         batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
@@ -674,7 +674,10 @@ impl State {
             .get_mut(&arg.batch_id)
             .expect("batch not found");
         if batch.commit_batch_arguments.is_some() {
-            return Err("batch already has proposed CommitBatchArguments".to_string());
+            return Err(format!(
+                "batch {} already has proposed CommitBatchArguments",
+                arg.batch_id
+            ));
         };
         batch.commit_batch_arguments = Some(arg);
         Ok(())

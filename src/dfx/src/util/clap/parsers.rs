@@ -1,4 +1,5 @@
 use byte_unit::{Byte, ByteUnit};
+use candid::Principal;
 use ic_utils::interfaces::management_canister::LogVisibility;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use rust_decimal::Decimal;
@@ -134,6 +135,13 @@ pub fn log_visibility_parser(log_visibility: &str) -> Result<LogVisibility, Stri
         "public" => Ok(LogVisibility::Public),
         "controllers" => Ok(LogVisibility::Controllers),
         _ => Err("Must be `controllers` or `public`.".to_string()),
+    }
+}
+
+pub fn principal_parser(principal_text: &str) -> Result<Principal, String> {
+    match Principal::from_text(principal_text) {
+        Ok(principal) => Ok(principal),
+        _ => Err(("Failed to convert to a principal.").to_string()),
     }
 }
 

@@ -6,7 +6,8 @@ use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
 use crate::lib::program;
 use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
-use anyhow::{anyhow, bail, ensure, Context};
+use crate::util::command::direct_or_shell_command;
+use anyhow::{anyhow, bail, ensure, Context, Error};
 use clap::builder::PossibleValuesParser;
 use clap::Parser;
 use console::{style, Style};
@@ -21,10 +22,10 @@ use fn_error_context::context;
 use indicatif::HumanBytes;
 use semver::Version;
 use slog::{info, warn, Logger};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::io::{self, IsTerminal, Read};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Command, ExitStatus, Stdio};
 use std::time::Duration;
 use tar::Archive;
 
@@ -216,6 +217,13 @@ pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
     Ok(())
 }
 
+fn replace_variables(mut s: String, variables: &BTreeMap<String, String>) -> String {
+    variables.iter().for_each(|(name, value)| {
+        s = s.replace(&format!("__{name}__"), value);
+    });
+    s
+}
+
 #[context("Failed to unpack archive to {}.", root.to_string_lossy())]
 fn write_files_from_entries<R: Sized + Read>(
     log: &Logger,
@@ -236,25 +244,17 @@ fn write_files_from_entries<R: Sized + Read>(
 
         let v = match String::from_utf8(v) {
             Err(err) => err.into_bytes(),
-            Ok(mut s) => {
-                // Perform replacements.
-                variables.iter().for_each(|(name, value)| {
-                    s = s.replace(&format!("__{name}__"), value);
-                });
-                s.into_bytes()
-            }
+            Ok(s) => replace_variables(s, variables).into_bytes(),
         };
 
         // Perform path replacements.
-        let mut p = root
+        let p = root
             .join(file.header().path()?)
             .to_str()
             .expect("Non unicode project name path.")
             .to_string();
 
-        variables.iter().for_each(|(name, value)| {
-            p = p.replace(&format!("__{name}__"), value);
-        });
+        let p = replace_variables(p, variables);
 
         let p = PathBuf::from(p);
         if p.extension() == Some("json-patch".as_ref()) {
@@ -269,27 +269,12 @@ fn write_files_from_entries<R: Sized + Read>(
     Ok(())
 }
 
-#[context("Failed to run 'npm install'.")]
-fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
-    Command::new(program::NPM)
-        .arg("install")
-        .arg("--quiet")
-        .arg("--no-progress")
-        .arg("--workspaces")
-        .arg("--if-present")
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .current_dir(location)
-        .spawn()
-        .map_err(DfxError::from)
-}
-
 #[context("Failed to scaffold frontend code.")]
 fn scaffold_frontend_code(
     env: &dyn Environment,
     dry_run: bool,
     project_name: &Path,
-    frontend: ProjectTemplate,
+    frontend: &ProjectTemplate,
     frontend_tests: Option<ProjectTemplate>,
     agent_version: &Option<String>,
     variables: &BTreeMap<String, String>,
@@ -318,7 +303,7 @@ fn scaffold_frontend_code(
             project_name_str.to_uppercase(),
         );
 
-        write_project_template_resources(log, &frontend, project_name, dry_run, &variables)?;
+        write_project_template_resources(log, frontend, project_name, dry_run, &variables)?;
 
         if let Some(frontend_tests) = frontend_tests {
             write_project_template_resources(
@@ -331,19 +316,8 @@ fn scaffold_frontend_code(
         }
 
         // Only install node dependencies if we're not running in dry run.
-        if !dry_run && frontend.install_node_dependencies {
-            // Install node modules. Error is not blocking, we just show a message instead.
-            if node_installed {
-                let b = env.new_spinner("Installing node dependencies...".into());
-
-                if npm_install(project_name)?.wait().is_ok() {
-                    b.finish_with_message("Done.".into());
-                } else {
-                    b.finish_with_message(
-                        "An error occurred. See the messages above for more details.".into(),
-                    );
-                }
-            }
+        if !dry_run {
+            run_post_create_command(env, project_name, frontend, &variables)?;
         }
     } else {
         if !node_installed {
@@ -371,7 +345,6 @@ fn scaffold_frontend_code(
             variables,
         )?;
     }
-
     Ok(())
 }
 
@@ -520,20 +493,15 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         None
     };
 
-    if backend.has_js || frontend.as_ref().map_or(false, |t| t.has_js) {
-        write_files_from_entries(
-            log,
-            &mut assets::new_project_js_files().context("Failed to get JS config archive.")?,
-            project_name,
-            dry_run,
-            &variables,
-        )?;
+    let requirements = get_requirements(&backend, frontend.as_ref(), &extras)?;
+    for requirement in &requirements {
+        write_project_template_resources(log, requirement, project_name, dry_run, &variables)?;
     }
 
     write_project_template_resources(log, &backend, project_name, dry_run, &variables)?;
 
-    for extra in extras {
-        write_project_template_resources(log, &extra, project_name, dry_run, &variables)?;
+    for extra in &extras {
+        write_project_template_resources(log, extra, project_name, dry_run, &variables)?;
     }
 
     if let Some(frontend) = frontend {
@@ -541,7 +509,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
             env,
             dry_run,
             project_name,
-            frontend,
+            &frontend,
             frontend_tests,
             &opts.agent_version,
             &variables,
@@ -578,26 +546,12 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
             init_git(log, project_name)?;
         }
 
-        if backend.update_cargo_lockfile {
-            // dfx build will use --locked, so update the lockfile beforehand
-            const MSG: &str = "You will need to run it yourself (or a similar command like `cargo vendor`), because `dfx build` will use the --locked flag with Cargo.";
-            if let Ok(code) = Command::new("cargo")
-                .arg("update")
-                .arg("--manifest-path")
-                .arg(project_name.join("Cargo.toml"))
-                .stderr(Stdio::inherit())
-                .stdout(Stdio::inherit())
-                .status()
-            {
-                if !code.success() {
-                    warn!(log, "Failed to run `cargo update`. {MSG}");
-                }
-            } else {
-                warn!(
-                    log,
-                    "Failed to run `cargo update` - is Cargo installed? {MSG}"
-                )
-            }
+        run_post_create_command(env, project_name, &backend, &variables)?;
+        for extra in extras {
+            run_post_create_command(env, project_name, &extra, &variables)?
+        }
+        for requirement in &requirements {
+            run_post_create_command(env, project_name, requirement, &variables)?;
         }
     }
 
@@ -612,6 +566,133 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         project_name_str
     );
 
+    Ok(())
+}
+
+fn get_requirements(
+    backend: &ProjectTemplate,
+    frontend: Option<&ProjectTemplate>,
+    extras: &[ProjectTemplate],
+) -> DfxResult<Vec<ProjectTemplate>> {
+    let mut requirements = vec![];
+
+    let mut have = HashMap::new();
+    have.insert(backend.name.clone(), backend.clone());
+    if let Some(frontend) = frontend {
+        have.insert(frontend.name.clone(), frontend.clone());
+    }
+    for extra in extras {
+        have.insert(extra.name.clone(), extra.clone());
+    }
+
+    loop {
+        let new_requirements = have
+            .iter()
+            .flat_map(|(_, template)| template.requirements.clone())
+            .filter(|requirement| !have.contains_key(requirement))
+            .collect::<Vec<_>>();
+
+        for new_requirement in &new_requirements {
+            let Some(requirement) = find_project_template(new_requirement) else {
+                bail!("Did not find required project template {}", new_requirement)
+            };
+            have.insert(requirement.name.clone(), requirement.clone());
+            requirements.push(requirement);
+        }
+
+        if new_requirements.is_empty() {
+            break;
+        }
+    }
+
+    Ok(requirements)
+}
+
+fn run_post_create_command(
+    env: &dyn Environment,
+    root: &Path,
+    project_template: &ProjectTemplate,
+    variables: &BTreeMap<String, String>,
+) -> DfxResult {
+    let log = env.get_logger();
+
+    for command in &project_template.post_create {
+        let command = replace_variables(command.clone(), variables);
+        let mut cmd = direct_or_shell_command(&command, root)?;
+
+        let spinner = project_template
+            .post_create_spinner_message
+            .as_ref()
+            .map(|msg| env.new_spinner(msg.clone().into()));
+
+        let status = cmd
+            .stderr(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .status()
+            .with_context(|| {
+                format!(
+                    "Failed to run post-create command '{}' for project template '{}.",
+                    &command, &project_template.name
+                )
+            });
+
+        if let Some(spinner) = spinner {
+            let message = match status {
+                Ok(status) if status.success() => "Done.",
+                _ => "Failed.",
+            };
+            spinner.finish_with_message(message.into());
+        }
+        if let Some(warning) = &project_template.post_create_failure_warning {
+            warn_on_post_create_error(log, status, &command, warning);
+        } else {
+            fail_on_post_create_error(command, status)?;
+        }
+    }
+    Ok(())
+}
+
+fn warn_on_post_create_error(
+    log: &Logger,
+    status: Result<ExitStatus, Error>,
+    command: &str,
+    warning: &str,
+) {
+    match status {
+        Ok(status) if status.success() => {}
+        Ok(status) => match status.code() {
+            Some(code) => {
+                warn!(
+                    log,
+                    "Post-create command '{command}' failed with exit code {code}. {warning}",
+                );
+            }
+            None => {
+                warn!(log, "Post-create command '{command}' failed. {warning}");
+            }
+        },
+        Err(e) => {
+            warn!(
+                log,
+                "Failed to execute post-create command '{command}': {e}. {warning}"
+            );
+        }
+    }
+}
+
+fn fail_on_post_create_error(
+    command: String,
+    status: Result<ExitStatus, Error>,
+) -> Result<(), Error> {
+    let status = status?;
+    if !status.success() {
+        match status.code() {
+            Some(code) => {
+                bail!("Post-create command '{command}' failed with exit code {code}.")
+            }
+            None => bail!("Post-create command '{command}' failed."),
+        }
+    }
     Ok(())
 }
 
