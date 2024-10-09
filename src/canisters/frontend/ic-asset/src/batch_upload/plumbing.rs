@@ -91,7 +91,7 @@ impl<'agent> ChunkUploader<'agent> {
             Ok(uploader_chunk_id)
         } else {
             self.add_to_upload_queue(uploader_chunk_id, contents).await;
-            // Larger `leftover_bytes` leads to batches that are filled closer to the max size.
+            // Larger `max_retained_bytes` leads to batches that are filled closer to the max size.
             // `4 * MAX_CHUNK_SIZE` leads to a pretty small memory footprint but still offers solid fill rates.
             // Mini experiment:
             //  - Tested with: `for i in $(seq 1 50); do dd if=/dev/urandom of="src/hello_frontend/assets/file_$i.bin" bs=$(shuf -i 1-2000000 -n 1) count=1; done && dfx deploy hello_frontend`
@@ -138,12 +138,12 @@ impl<'agent> ChunkUploader<'agent> {
         queue.push((uploader_chunk_id, contents.into()));
     }
 
-    /// Calls `upload_chunks` with batches of chunks from `self.upload_queue` until at most `leftover_bytes`
-    /// bytes remain in the upload queue. Larger `leftover_bytes` will lead to better batch fill rates
+    /// Calls `upload_chunks` with batches of chunks from `self.upload_queue` until at most `max_retained_bytes`
+    /// bytes remain in the upload queue. Larger `max_retained_bytes` will lead to better batch fill rates
     /// but also leave a larger memory footprint.
     async fn upload_chunks(
         &self,
-        leftover_bytes: usize,
+        max_retained_bytes: usize,
         semaphores: &Semaphores,
     ) -> Result<(), CreateChunkError> {
         let mut queue = self.upload_queue.lock().await;
@@ -153,7 +153,7 @@ impl<'agent> ChunkUploader<'agent> {
             .iter()
             .map(|(_, content)| content.len())
             .sum::<usize>()
-            > leftover_bytes
+            > max_retained_bytes
         {
             // Greedily fills batch with the largest chunk that fits
             queue.sort_unstable_by_key(|(_, content)| content.len());
