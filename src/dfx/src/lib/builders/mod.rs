@@ -3,6 +3,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
+use crate::util::command::direct_or_shell_command;
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
@@ -27,7 +28,6 @@ mod motoko;
 mod pull;
 mod rust;
 
-use crate::util::command::direct_or_shell_command;
 pub use custom::custom_download;
 
 #[derive(Debug)]

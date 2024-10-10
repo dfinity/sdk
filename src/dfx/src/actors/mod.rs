@@ -203,6 +203,7 @@ pub fn start_pocketic_actor(
 
     let actor_config = pocketic::Config {
         pocketic_path,
+        effective_config_path: local_server_descriptor.effective_config_path(),
         replica_config,
         port: local_server_descriptor.replica.port,
         port_file: pocketic_port_path,

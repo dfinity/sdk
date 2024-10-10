@@ -2,11 +2,29 @@
 
 # UNRELEASED
 
+### feat: Support canister log allowed viewer list
+
+Added support for the canister log allowed viewer list, enabling specified users to access a canister's logs without needing to be set as the canister's controller.
+Valid settings are:
+- `--add-log-viewer`, `--remove-log-viewer` and `--set-log-viewer` flags with `dfx canister update-settings` 
+- `--log-viewer` flag with `dfx canister create`
+- `canisters[].initialization_values.log_visibility.allowed_viewers` in `dfx.json`
+
+# 0.24.1
+
 ### feat: More PocketIC flags supported
 
 `dfx start --pocketic` is now compatible with `--artificial-delay` and the `subnet_type`  configuration option, and enables `--enable-canister-http` by default.
 
 ## Dependencies
+
+### Frontend canister
+
+#### feat: Better error messages when proposing a batch
+
+Add the batch id in the error messages of `propose_commit_batch`.
+
+Module hash: 2c9e30df9be951a6884c702a97bbb8c0b438f33d4208fa612b1de6fb1752db76
 
 ### Motoko
 

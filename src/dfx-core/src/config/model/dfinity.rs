@@ -407,12 +407,14 @@ impl CanisterTypeProperties {
     }
 }
 
-#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "lowercase")]
+#[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum CanisterLogVisibility {
     #[default]
     Controllers,
     Public,
+    #[schemars(with = "Vec::<String>")]
+    AllowedViewers(Vec<Principal>),
 }
 
 impl From<CanisterLogVisibility> for LogVisibility {
@@ -420,6 +422,9 @@ impl From<CanisterLogVisibility> for LogVisibility {
         match value {
             CanisterLogVisibility::Controllers => LogVisibility::Controllers,
             CanisterLogVisibility::Public => LogVisibility::Public,
+            CanisterLogVisibility::AllowedViewers(viewers) => {
+                LogVisibility::AllowedViewers(viewers)
+            }
         }
     }
 }
@@ -475,7 +480,7 @@ pub struct InitializationValues {
     /// # Log Visibility
     /// Specifies who is allowed to read the canister's logs.
     ///
-    /// Can be "public" or "controllers".
+    /// Can be "public", "controllers" or "allowed_viewers" with a list of principals.
     #[schemars(with = "Option<CanisterLogVisibility>")]
     pub log_visibility: Option<CanisterLogVisibility>,
 }
@@ -1008,6 +1013,7 @@ impl ConfigInterface {
             .map_err(|e| GetLogVisibilityFailed(canister_name.to_string(), e))?
             .initialization_values
             .log_visibility
+            .clone()
             .map(|visibility| visibility.into()))
     }
 
