@@ -20,13 +20,17 @@ Module hash: 2c9e30df9be951a6884c702a97bbb8c0b438f33d4208fa612b1de6fb1752db76
 
 ### Motoko
 
-Updated Motoko to [0.13.0](https://github.com/dfinity/motoko/releases/tag/0.13.0)
+Updated Motoko to [0.13.1](https://github.com/dfinity/motoko/releases/tag/0.13.1)
 
 ### Replica
 
-Updated replica to elected commit c43a4880199c00135c8415957851e823b3fb769e.
-This incorporates the following executed proposals:
+Updated replica to elected commit 0a6d829cddc1534c29e0d2c3c3ebd1024bff8d1a.
 
+This incorporates the following elected proposals:
+
+- [133327](https://dashboard.internetcomputer.org/proposal/133327)
+- [133310](https://dashboard.internetcomputer.org/proposal/133310)
+- [133309](https://dashboard.internetcomputer.org/proposal/133309)
 - [133144](https://dashboard.internetcomputer.org/proposal/133144)
 - [133143](https://dashboard.internetcomputer.org/proposal/133143)
 - [133142](https://dashboard.internetcomputer.org/proposal/133142)
