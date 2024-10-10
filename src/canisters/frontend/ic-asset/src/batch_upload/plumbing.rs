@@ -90,7 +90,6 @@ impl<'agent> ChunkUploader<'agent> {
                 create_chunk(&self.canister, &self.batch_id, contents, semaphores).await?;
             let mut map = self.id_mapping.lock().await;
             map.insert(uploader_chunk_id, canister_chunk_id);
-            println!("directly uploaded {uploader_chunk_id}");
             Ok(uploader_chunk_id)
         } else {
             self.add_to_upload_queue(uploader_chunk_id, contents).await;
