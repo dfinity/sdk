@@ -15,6 +15,10 @@ pub enum UploadContentError {
     #[error("Failed to create project asset: {0}")]
     CreateProjectAssetError(#[from] CreateProjectAssetError),
 
+    /// Failed when assembling commit_batch argument.
+    #[error("Failed to assemble commit_batch argument: {0}")]
+    AssembleCommitBatchArgumentError(String),
+
     /// Failed when building list of assets to synchronize.
     #[error("Failed to gather asset descriptors: {0}")]
     GatherAssetDescriptorsFailed(#[from] GatherAssetDescriptorsError),

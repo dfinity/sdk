@@ -143,6 +143,8 @@ fn next_chunk_index(
                     hasher,
                 };
             }
+        } else if let Some(chunk_content) = sac.asset_content.as_ref() {
+            hash_chunk_by_content(&mut hasher, chunk_content);
         }
     }
     NextOperation {
@@ -155,6 +157,10 @@ fn hash_chunk_by_id(hasher: &mut Sha256, chunk_id: &ChunkId, chunks: &HashMap<Ch
     if let Some(chunk) = chunks.get(chunk_id) {
         hasher.update(&chunk.content);
     }
+}
+
+fn hash_chunk_by_content(hasher: &mut Sha256, chunk_content: &ByteBuf) {
+    hasher.update(chunk_content);
 }
 
 fn hash_create_asset(hasher: &mut Sha256, args: &CreateAssetArguments) {
