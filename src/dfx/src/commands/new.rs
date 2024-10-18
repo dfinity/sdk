@@ -765,7 +765,7 @@ fn get_opts_interactively(opts: NewOpts) -> DfxResult<NewOpts> {
 
     let opts = NewOpts {
         extras,
-        frontend: frontend.map(|f| f.name.0.clone()),
+        frontend: Some(frontend.map_or_else(|| "none".to_string(), |f| f.name.0.clone())),
         r#type: Some(backend.name.0.clone()),
         ..opts
     };

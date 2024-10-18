@@ -45,6 +45,7 @@ const KNOWN_DIRECTORIES: [&str; 1] = [".well-known"];
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
 pub async fn upload_content_and_assemble_sync_operations(
     canister: &Canister<'_>,
+    canister_api_version: u16,
     dirs: &[&Path],
     no_delete: bool,
     logger: &Logger,
@@ -74,7 +75,8 @@ pub async fn upload_content_and_assemble_sync_operations(
         "Staging contents of new and changed assets in batch {}:", batch_id
     );
 
-    let chunk_uploader = ChunkUploader::new(canister.clone(), batch_id.clone());
+    let chunk_uploader =
+        ChunkUploader::new(canister.clone(), canister_api_version, batch_id.clone());
 
     let project_assets = make_project_assets(
         Some(&chunk_uploader),
@@ -85,6 +87,7 @@ pub async fn upload_content_and_assemble_sync_operations(
     .await?;
 
     let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
+        &chunk_uploader,
         project_assets,
         canister_assets,
         match no_delete {
@@ -93,7 +96,8 @@ pub async fn upload_content_and_assemble_sync_operations(
         },
         canister_asset_properties,
         batch_id,
-    );
+    )
+    .await;
 
     // -v
     debug!(
@@ -121,9 +125,15 @@ pub async fn sync(
     no_delete: bool,
     logger: &Logger,
 ) -> Result<(), SyncError> {
-    let commit_batch_args =
-        upload_content_and_assemble_sync_operations(canister, dirs, no_delete, logger).await?;
     let canister_api_version = api_version(canister).await;
+    let commit_batch_args = upload_content_and_assemble_sync_operations(
+        canister,
+        canister_api_version,
+        dirs,
+        no_delete,
+        logger,
+    )
+    .await?;
     debug!(logger, "Canister API version: {canister_api_version}. ic-asset API version: {BATCH_UPLOAD_API_VERSION}");
     info!(logger, "Committing batch.");
     match canister_api_version {
@@ -196,7 +206,15 @@ pub async fn prepare_sync_for_proposal(
     dirs: &[&Path],
     logger: &Logger,
 ) -> Result<(Nat, ByteBuf), PrepareSyncForProposalError> {
-    let arg = upload_content_and_assemble_sync_operations(canister, dirs, false, logger).await?;
+    let canister_api_version = api_version(canister).await;
+    let arg = upload_content_and_assemble_sync_operations(
+        canister,
+        canister_api_version,
+        dirs,
+        false,
+        logger,
+    )
+    .await?;
     let arg = sort_batch_operations(arg);
     let batch_id = arg.batch_id.clone();
 

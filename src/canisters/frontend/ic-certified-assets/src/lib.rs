@@ -35,7 +35,7 @@ thread_local! {
 #[query]
 #[candid_method(query)]
 fn api_version() -> u16 {
-    1
+    2
 }
 
 #[update(guard = "is_manager_or_controller")]
