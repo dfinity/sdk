@@ -65,7 +65,8 @@ pub async fn compute_evidence(
         Obsolete,
         canister_asset_properties,
     )
-    .await;
+    .await
+    .map_err(ComputeEvidenceError::AssembleCommitBatchArgumentError)?;
     operations.sort();
 
     let mut sha = Sha256::new();

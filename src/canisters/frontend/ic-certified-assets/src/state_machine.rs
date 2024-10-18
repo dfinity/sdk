@@ -382,8 +382,10 @@ impl State {
         arg: SetAssetContentArguments,
         now: u64,
     ) -> Result<(), String> {
-        if arg.chunk_ids.is_empty() {
-            return Err("encoding must have at least one chunk".to_string());
+        if arg.chunk_ids.is_empty() && arg.asset_content.is_none() {
+            return Err(
+                "encoding must have at least one chunk or contain asset_content".to_string(),
+            );
         }
 
         let dependent_keys = self.dependent_keys(&arg.key);
@@ -395,9 +397,13 @@ impl State {
         let now = Int::from(now);
 
         let mut content_chunks = vec![];
-        for chunk_id in arg.chunk_ids.iter() {
-            let chunk = self.chunks.remove(chunk_id).expect("chunk not found");
-            content_chunks.push(chunk.content);
+        if arg.chunk_ids.len() > 0 {
+            for chunk_id in arg.chunk_ids.iter() {
+                let chunk = self.chunks.remove(chunk_id).expect("chunk not found");
+                content_chunks.push(chunk.content);
+            }
+        } else if let Some(encoding_content) = arg.asset_content {
+            content_chunks.push(encoding_content.into());
         }
 
         let sha256: [u8; 32] = match arg.sha256 {

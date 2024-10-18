@@ -49,6 +49,22 @@ pub(crate) struct ProjectAsset {
     pub(crate) encodings: HashMap<String, ProjectAssetEncoding>,
 }
 
+enum UploaderState {
+    Uploading,
+    /// Uploader has uploaded chunks - commit will reference chunk ids to specify asset content
+    FinalizedWithUploads,
+    /// Uploader has not uploaded chunks - commit will contain asset content directly
+    FinalizedWithoutUploads,
+}
+
+pub(crate) enum UploaderIdMapping {
+    Error(String),
+    /// Chunks are uploaded to the canister with these ids
+    CanisterChunkIds(Vec<Nat>),
+    /// Chunks are not uploaded and should be included in the SetAssetContent operations directly
+    IncludeChunksDirectly(Vec<Vec<u8>>),
+}
+
 type IdMapping = BTreeMap<usize, Nat>;
 type UploadQueue = Vec<(usize, Vec<u8>)>;
 pub(crate) struct ChunkUploader<'agent> {
@@ -60,6 +76,7 @@ pub(crate) struct ChunkUploader<'agent> {
     // maps uploader_chunk_id to canister_chunk_id
     id_mapping: Arc<Mutex<IdMapping>>,
     upload_queue: Arc<Mutex<UploadQueue>>,
+    uploader_state: Arc<Mutex<UploaderState>>,
 }
 
 impl<'agent> ChunkUploader<'agent> {
@@ -72,6 +89,7 @@ impl<'agent> ChunkUploader<'agent> {
             bytes: Arc::new(AtomicUsize::new(0)),
             id_mapping: Arc::new(Mutex::new(BTreeMap::new())),
             upload_queue: Arc::new(Mutex::new(vec![])),
+            uploader_state: Arc::new(Mutex::new(UploaderState::Uploading)),
         }
     }
 
@@ -109,7 +127,23 @@ impl<'agent> ChunkUploader<'agent> {
         &self,
         semaphores: &Semaphores,
     ) -> Result<(), CreateChunkError> {
-        self.upload_chunks(0, 0, semaphores).await?;
+        let queue = self.upload_queue.lock().await;
+        let mut uploader_state = self.uploader_state.lock().await;
+
+        // Can skip upload if every chunk submitted for uploading is still in the queue.
+        // Additionally, chunks in the queue are small enough that there is plenty of space in the commit message to include all of them.
+        let skip_upload = queue.len() == self.chunks.fetch_add(0, Ordering::SeqCst)
+            && queue.iter().map(|(_, chunk)| chunk.len()).sum::<usize>() < MAX_CHUNK_SIZE / 2;
+        drop(queue);
+        // Potential for further improvement: unconditional upload_chunks(MAX_CHUNK_SIZE / 2, usize::MAX, semaphores)
+        // Then allow mix of uploaded chunks and asset content that is part of the commit args.
+
+        if skip_upload {
+            *uploader_state = UploaderState::FinalizedWithoutUploads;
+        } else {
+            self.upload_chunks(0, 0, semaphores).await?;
+            *uploader_state = UploaderState::FinalizedWithUploads;
+        }
         Ok(())
     }
 
@@ -124,17 +158,44 @@ impl<'agent> ChunkUploader<'agent> {
     pub(crate) async fn uploader_ids_to_canister_chunk_ids(
         &self,
         uploader_ids: &[usize],
-    ) -> Vec<Nat> {
-        let mapping = self.id_mapping.lock().await;
-        uploader_ids
-            .iter()
-            .map(|id| {
-                mapping
-                    .get(id)
-                    .expect("Chunk uploader did not upload all chunks. This is a bug.")
-                    .clone()
-            })
-            .collect()
+    ) -> UploaderIdMapping {
+        let uploader_state = self.uploader_state.lock().await;
+        match *uploader_state {
+            UploaderState::Uploading => UploaderIdMapping::Error(
+                "Bug: Tried to map uploader ids to canister ids before finalizing".to_string(),
+            ),
+            UploaderState::FinalizedWithUploads => {
+                let mapping = self.id_mapping.lock().await;
+                let ids = uploader_ids
+                    .iter()
+                    .map(|id| {
+                        mapping
+                            .get(id)
+                            .expect("Chunk uploader did not upload all chunks but is not aware of it. This is a bug.")
+                            .clone()
+                    })
+                    .collect();
+                UploaderIdMapping::CanisterChunkIds(ids)
+            }
+            UploaderState::FinalizedWithoutUploads => {
+                let queue = self.upload_queue.lock().await;
+                match uploader_ids
+                    .iter()
+                    .map(|uploader_id| {
+                        queue.iter().find_map(|(id, content)| {
+                            if id == uploader_id {
+                                Some(content.clone())
+                            } else {
+                                None
+                            }
+                        }).ok_or_else(|| format!("Chunk uploader does not have a chunk with uploader id {uploader_id}. This is a bug."))
+                    })
+                    .collect() {
+                        Ok(asset_content) =>  UploaderIdMapping::IncludeChunksDirectly(asset_content),
+                        Err(err) => UploaderIdMapping::Error(err)
+                    }
+            }
+        }
     }
 
     async fn add_to_upload_queue(&self, uploader_chunk_id: usize, contents: &[u8]) {
@@ -411,7 +472,7 @@ pub(crate) async fn make_project_assets(
         .iter()
         .map(|loc| {
             make_project_asset(
-                chunk_upload_target,
+                chunk_upload_target.as_deref(),
                 loc.clone(),
                 canister_assets,
                 &semaphores,

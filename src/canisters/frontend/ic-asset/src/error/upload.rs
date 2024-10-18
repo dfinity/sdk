@@ -18,6 +18,10 @@ pub enum UploadError {
     #[error("Create batch failed: {0}")]
     CreateBatchFailed(AgentError),
 
+    /// Failed when assembling commit_batch argument.
+    #[error("Failed to assemble commit_batch argument: {0}")]
+    AssembleCommitBatchArgumentError(String),
+
     /// Failed when creating project assets.
     #[error("Failed to create project asset: {0}")]
     CreateProjectAssetFailed(#[from] CreateProjectAssetError),

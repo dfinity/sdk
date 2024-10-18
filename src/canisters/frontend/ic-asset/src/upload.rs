@@ -62,7 +62,8 @@ pub async fn upload(
         HashMap::new(),
         batch_id,
     )
-    .await;
+    .await
+    .map_err(UploadError::AssembleCommitBatchArgumentError)?;
 
     let canister_api_version = api_version(canister).await;
     info!(logger, "Committing batch.");

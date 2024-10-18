@@ -20,6 +20,10 @@ pub enum ComputeEvidenceError {
     #[error(transparent)]
     GetAssetProperties(#[from] GetAssetPropertiesError),
 
+    /// Failed when assembling commit_batch argument.
+    #[error("Failed to assemble commit_batch argument: {0}")]
+    AssembleCommitBatchArgumentError(String),
+
     /// Failed when computing hashes of asset content.
     #[error(transparent)]
     HashContent(#[from] HashContentError),
