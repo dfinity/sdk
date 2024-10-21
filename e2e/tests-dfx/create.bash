@@ -417,14 +417,15 @@ function textual_decode() {
   CANISTER_ID_BASE64="$(textual_decode "${CANISTER_ID}" | xxd -r -p | base64)"
   # fetch topology from PocketIC server
   TOPOLOGY="$(curl "http://127.0.0.1:$(dfx info replica-port)/instances/0/read/topology")"
+  echo "${TOPOLOGY}"
   # find application subnet id in the topology
-  for subnet_id in $(echo "${TOPOLOGY}" | jq keys[])
+  for subnet_id in $(echo "${TOPOLOGY}" | jq '.subnet_configs | keys[]')
   do
-    SUBNET_KIND="$(echo "$TOPOLOGY" | jq -r ".${subnet_id}.\"subnet_kind\"")"
+    SUBNET_KIND="$(echo "$TOPOLOGY" | jq -r ".subnet_configs.${subnet_id}.\"subnet_kind\"")"
     if [ "${SUBNET_KIND}" == "Application" ]
     then
       # find the expected canister id as the beginning of the first canister range of the app subnet
-      EXPECTED_CANISTER_ID_BASE64="$(echo "$TOPOLOGY" | jq -r ".${subnet_id}.\"canister_ranges\"[0].\"start\".\"canister_id\"")"
+      EXPECTED_CANISTER_ID_BASE64="$(echo "$TOPOLOGY" | jq -r ".subnet_configs.${subnet_id}.\"canister_ranges\"[0].\"start\".\"canister_id\"")"
     fi
   done
   # check if the actual canister id matches the expected canister id
