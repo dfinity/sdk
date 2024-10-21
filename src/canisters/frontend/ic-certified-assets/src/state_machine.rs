@@ -396,11 +396,9 @@ impl State {
         let now = Int::from(now);
 
         let mut content_chunks = vec![];
-        if !arg.chunk_ids.is_empty() {
-            for chunk_id in arg.chunk_ids.iter() {
-                let chunk = self.chunks.remove(chunk_id).expect("chunk not found");
-                content_chunks.push(chunk.content);
-            }
+        for chunk_id in arg.chunk_ids.iter() {
+            let chunk = self.chunks.remove(chunk_id).expect("chunk not found");
+            content_chunks.push(chunk.content);
         }
         if let Some(encoding_content) = arg.last_chunk {
             content_chunks.push(encoding_content.into());

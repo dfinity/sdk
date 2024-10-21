@@ -2,7 +2,7 @@ use thiserror::Error;
 
 use super::SetEncodingError;
 
-/// Errors related to creating an asset found in the project in the asset canister.
+/// Errors related to assembling commit_batch arguments for the asset canister.
 #[derive(Error, Debug)]
 pub enum AssembleCommitBatchArgumentError {
     /// Failed to set encoding.

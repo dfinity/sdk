@@ -121,7 +121,6 @@ impl<'agent> ChunkUploader<'agent> {
     }
 
     /// Call only after `finalize_upload` has completed.
-    /// Returns `(chunk_ids, Option<last_chunk>)`
     pub(crate) async fn uploader_ids_to_canister_chunk_ids(
         &self,
         uploader_ids: &[usize],
