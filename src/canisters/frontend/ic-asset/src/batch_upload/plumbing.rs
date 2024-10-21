@@ -472,7 +472,7 @@ pub(crate) async fn make_project_assets(
         .iter()
         .map(|loc| {
             make_project_asset(
-                chunk_upload_target.as_deref(),
+                chunk_upload_target,
                 loc.clone(),
                 canister_assets,
                 &semaphores,

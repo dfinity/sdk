@@ -26,6 +26,7 @@ use crate::{
 use candid::{CandidType, Deserialize, Int, Nat, Principal};
 use ic_certification::{AsHashTree, Hash};
 use ic_representation_independent_hash::Value;
+use itertools::fold;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
@@ -397,7 +398,7 @@ impl State {
         let now = Int::from(now);
 
         let mut content_chunks = vec![];
-        if arg.chunk_ids.len() > 0 {
+        if !arg.chunk_ids.is_empty() {
             for chunk_id in arg.chunk_ids.iter() {
                 let chunk = self.chunks.remove(chunk_id).expect("chunk not found");
                 content_chunks.push(chunk.content);
@@ -612,20 +613,7 @@ impl State {
         chunks: Vec<ByteBuf>,
         now: u64,
     ) -> Result<Vec<ChunkId>, String> {
-        if let Some(max_chunks) = self.configuration.max_chunks {
-            if self.chunks.len() + chunks.len() > max_chunks as usize {
-                return Err("chunk limit exceeded".to_string());
-            }
-        }
-        if let Some(max_bytes) = self.configuration.max_bytes {
-            let current_total_bytes = &self.batches.iter().fold(0, |acc, (_batch_id, batch)| {
-                acc + batch.chunk_content_total_size
-            });
-            let new_bytes: usize = chunks.iter().map(|chunk| chunk.len()).sum();
-            if current_total_bytes + new_bytes > max_bytes as usize {
-                return Err("byte limit exceeded".to_string());
-            }
-        }
+        self.check_batch_limits(chunks.len(), chunks.iter().map(|chunk| chunk.len()).sum())?;
         let batch = self
             .batches
             .get_mut(&batch_id)
@@ -657,7 +645,50 @@ impl State {
         Ok(chunk_ids)
     }
 
+    fn check_batch_limits(&self, chunks_added: usize, bytes_added: usize) -> Result<(), String> {
+        if let Some(max_chunks) = self.configuration.max_chunks {
+            if self.chunks.len() + chunks_added > max_chunks as usize {
+                return Err("chunk limit exceeded".to_string());
+            }
+        }
+        if let Some(max_bytes) = self.configuration.max_bytes {
+            let current_total_bytes = &self.batches.iter().fold(0, |acc, (_batch_id, batch)| {
+                acc + batch.chunk_content_total_size
+            });
+            if current_total_bytes + bytes_added > max_bytes as usize {
+                return Err("byte limit exceeded".to_string());
+            }
+        }
+        Ok(())
+    }
+
+    fn commit_batch_check_limits(&self, arg: &CommitBatchArguments) -> Result<(), String> {
+        let (new_chunk_amount, new_byte_amount) = fold(
+            arg.operations.iter().map(|op| {
+                if let BatchOperation::SetAssetContent(SetAssetContentArguments {
+                    asset_content: Some(content),
+                    ..
+                }) = op
+                {
+                    Some(content.len())
+                } else {
+                    None
+                }
+            }),
+            (0, 0),
+            |(chunk_count, byte_count), asset_len| {
+                if let Some(len) = asset_len {
+                    (chunk_count + 1, byte_count + len)
+                } else {
+                    (chunk_count, byte_count)
+                }
+            },
+        );
+        self.check_batch_limits(new_chunk_amount, new_byte_amount)
+    }
+
     pub fn commit_batch(&mut self, arg: CommitBatchArguments, now: u64) -> Result<(), String> {
+        self.commit_batch_check_limits(&arg)?;
         let batch_id = arg.batch_id;
         for op in arg.operations {
             match op {
