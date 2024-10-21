@@ -99,7 +99,7 @@ pub async fn upload_content_and_assemble_sync_operations(
         batch_id,
     )
     .await
-    .map_err(UploadContentError::AssembleCommitBatchArgumentError)?;
+    .map_err(UploadContentError::AssembleCommitBatchArgumentFailed)?;
 
     // -v
     debug!(

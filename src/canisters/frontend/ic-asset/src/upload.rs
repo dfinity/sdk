@@ -12,8 +12,7 @@ use crate::canister_api::methods::{
 };
 use crate::canister_api::types::batch_upload::v0;
 use crate::error::CompatibilityError::DowngradeV1TOV0Failed;
-use crate::error::UploadError;
-use crate::error::UploadError::{CommitBatchFailed, CreateBatchFailed, ListAssetsFailed};
+use crate::error::UploadError::{self, CommitBatchFailed, CreateBatchFailed, ListAssetsFailed};
 use ic_utils::Canister;
 use slog::{info, Logger};
 use std::collections::HashMap;
@@ -63,7 +62,7 @@ pub async fn upload(
         batch_id,
     )
     .await
-    .map_err(UploadError::AssembleCommitBatchArgumentError)?;
+    .map_err(UploadError::AssembleCommitBatchArgumentFailed)?;
 
     let canister_api_version = api_version(canister).await;
     info!(logger, "Committing batch.");

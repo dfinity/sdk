@@ -7,6 +7,7 @@ use crate::canister_api::types::batch_upload::common::{
     UnsetAssetContentArguments,
 };
 use crate::canister_api::types::batch_upload::v1::{BatchOperationKind, CommitBatchArguments};
+use crate::error::{AssembleCommitBatchArgumentError, SetEncodingError};
 use candid::Nat;
 use std::collections::HashMap;
 
@@ -20,7 +21,7 @@ pub(crate) async fn assemble_batch_operations(
     canister_assets: HashMap<String, AssetDetails>,
     asset_deletion_reason: AssetDeletionReason,
     canister_asset_properties: HashMap<String, AssetProperties>,
-) -> Result<Vec<BatchOperationKind>, String> {
+) -> Result<Vec<BatchOperationKind>, AssembleCommitBatchArgumentError> {
     let mut canister_assets = canister_assets;
 
     let mut operations = vec![];
@@ -33,7 +34,9 @@ pub(crate) async fn assemble_batch_operations(
     );
     create_new_assets(&mut operations, project_assets, &canister_assets);
     unset_obsolete_encodings(&mut operations, project_assets, &canister_assets);
-    set_encodings(&mut operations, chunk_uploader, project_assets).await?;
+    set_encodings(&mut operations, chunk_uploader, project_assets)
+        .await
+        .map_err(AssembleCommitBatchArgumentError::SetEncodingFailed)?;
     update_properties(&mut operations, project_assets, &canister_asset_properties);
 
     Ok(operations)
@@ -46,7 +49,7 @@ pub(crate) async fn assemble_commit_batch_arguments(
     asset_deletion_reason: AssetDeletionReason,
     canister_asset_properties: HashMap<String, AssetProperties>,
     batch_id: Nat,
-) -> Result<CommitBatchArguments, String> {
+) -> Result<CommitBatchArguments, AssembleCommitBatchArgumentError> {
     let operations = assemble_batch_operations(
         Some(chunk_uploader),
         &project_assets,
@@ -163,51 +166,29 @@ pub(crate) async fn set_encodings(
     operations: &mut Vec<BatchOperationKind>,
     chunk_uploader: Option<&ChunkUploader<'_>>,
     project_assets: &HashMap<String, ProjectAsset>,
-) -> Result<(), String> {
+) -> Result<(), SetEncodingError> {
     for (key, project_asset) in project_assets {
         for (content_encoding, v) in &project_asset.encodings {
             if v.already_in_place {
                 continue;
             }
-            if let Some(uploader) = chunk_uploader {
-                match uploader
-                    .uploader_ids_to_canister_chunk_ids(&v.uploader_chunk_ids)
-                    .await
-                {
-                    super::plumbing::UploaderIdMapping::Error(err) => return Err(err),
-                    super::plumbing::UploaderIdMapping::CanisterChunkIds(chunk_ids) => operations
-                        .push(BatchOperationKind::SetAssetContent(
-                            SetAssetContentArguments {
-                                key: key.clone(),
-                                content_encoding: content_encoding.clone(),
-                                chunk_ids,
-                                asset_content: None,
-                                sha256: Some(v.sha256.clone()),
-                            },
-                        )),
-                    super::plumbing::UploaderIdMapping::IncludeChunksDirectly(asset_content) => {
-                        operations.push(BatchOperationKind::SetAssetContent(
-                            SetAssetContentArguments {
-                                key: key.clone(),
-                                content_encoding: content_encoding.clone(),
-                                chunk_ids: vec![],
-                                asset_content: Some(asset_content.concat()),
-                                sha256: Some(v.sha256.clone()),
-                            },
-                        ))
-                    }
+            let (chunk_ids, last_chunk) = match chunk_uploader {
+                Some(uploader) => {
+                    uploader
+                        .uploader_ids_to_canister_chunk_ids(&v.uploader_chunk_ids)
+                        .await?
                 }
-            } else {
-                operations.push(BatchOperationKind::SetAssetContent(
-                    SetAssetContentArguments {
-                        key: key.clone(),
-                        content_encoding: content_encoding.clone(),
-                        chunk_ids: vec![],
-                        asset_content: None,
-                        sha256: Some(v.sha256.clone()),
-                    },
-                ));
+                None => (vec![], None),
             };
+            operations.push(BatchOperationKind::SetAssetContent(
+                SetAssetContentArguments {
+                    key: key.clone(),
+                    content_encoding: content_encoding.clone(),
+                    chunk_ids,
+                    last_chunk,
+                    sha256: Some(v.sha256.clone()),
+                },
+            ));
         }
     }
     Ok(())

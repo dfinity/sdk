@@ -383,10 +383,8 @@ impl State {
         arg: SetAssetContentArguments,
         now: u64,
     ) -> Result<(), String> {
-        if arg.chunk_ids.is_empty() && arg.asset_content.is_none() {
-            return Err(
-                "encoding must have at least one chunk or contain asset_content".to_string(),
-            );
+        if arg.chunk_ids.is_empty() && arg.last_chunk.is_none() {
+            return Err("encoding must have at least one chunk or contain last_chunk".to_string());
         }
 
         let dependent_keys = self.dependent_keys(&arg.key);
@@ -403,7 +401,8 @@ impl State {
                 let chunk = self.chunks.remove(chunk_id).expect("chunk not found");
                 content_chunks.push(chunk.content);
             }
-        } else if let Some(encoding_content) = arg.asset_content {
+        }
+        if let Some(encoding_content) = arg.last_chunk {
             content_chunks.push(encoding_content.into());
         }
 
@@ -662,11 +661,14 @@ impl State {
         Ok(())
     }
 
-    fn commit_batch_check_limits(&self, arg: &CommitBatchArguments) -> Result<(), String> {
-        let (new_chunk_amount, new_byte_amount) = fold(
+    /// Computes the data required to perform `self.check_batch_limits` against
+    /// the data carried in `last_chunk` fields.
+    fn compute_last_chunk_data(&self, arg: &CommitBatchArguments) -> (usize, usize) {
+        fold(
             arg.operations.iter().map(|op| {
                 if let BatchOperation::SetAssetContent(SetAssetContentArguments {
-                    asset_content: Some(content),
+                    last_chunk: Some(content),
+                    // Chunks defined in `chunk_ids` are already accounted for and can be ignored here
                     ..
                 }) = op
                 {
@@ -676,19 +678,20 @@ impl State {
                 }
             }),
             (0, 0),
-            |(chunk_count, byte_count), asset_len| {
+            |(chunks_added, bytes_added), asset_len| {
                 if let Some(len) = asset_len {
-                    (chunk_count + 1, byte_count + len)
+                    (chunks_added + 1, bytes_added + len)
                 } else {
-                    (chunk_count, byte_count)
+                    (chunks_added, bytes_added)
                 }
             },
-        );
-        self.check_batch_limits(new_chunk_amount, new_byte_amount)
+        )
     }
 
     pub fn commit_batch(&mut self, arg: CommitBatchArguments, now: u64) -> Result<(), String> {
-        self.commit_batch_check_limits(&arg)?;
+        let (chunks_added, bytes_added) = self.compute_last_chunk_data(&arg);
+        self.check_batch_limits(chunks_added, bytes_added)?;
+
         let batch_id = arg.batch_id;
         for op in arg.operations {
             match op {

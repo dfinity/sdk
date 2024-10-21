@@ -1,5 +1,6 @@
 //! Error types
 
+mod assemble_commit_batch_argument;
 mod compatibility;
 mod compute_evidence;
 mod create_chunk;
@@ -13,10 +14,12 @@ mod hash_content;
 mod load_config;
 mod load_rule;
 mod prepare_sync_for_proposal;
+mod set_encoding;
 mod sync;
 mod upload;
 mod upload_content;
 
+pub use assemble_commit_batch_argument::AssembleCommitBatchArgumentError;
 pub use compatibility::CompatibilityError;
 pub use compute_evidence::ComputeEvidenceError;
 pub use create_chunk::CreateChunkError;
@@ -30,6 +33,7 @@ pub use hash_content::HashContentError;
 pub use load_config::AssetLoadConfigError;
 pub use load_rule::LoadRuleError;
 pub use prepare_sync_for_proposal::PrepareSyncForProposalError;
+pub use set_encoding::SetEncodingError;
 pub use sync::SyncError;
 pub use upload::UploadError;
 pub use upload_content::UploadContentError;

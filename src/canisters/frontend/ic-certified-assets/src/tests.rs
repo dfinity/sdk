@@ -297,7 +297,7 @@ fn assemble_create_assets_and_set_contents_operations(
                     key: asset.name.clone(),
                     content_encoding: enc,
                     chunk_ids,
-                    asset_content: None,
+                    last_chunk: None,
                     sha256: None,
                 }
             }));
@@ -1995,7 +1995,7 @@ mod evidence_computation {
             key: "/a/b/c".to_string(),
             content_encoding: "identity".to_string(),
             chunk_ids: vec![chunk_1],
-            asset_content: None,
+            last_chunk: None,
             sha256: None,
         };
         let cba = CommitBatchArguments {
@@ -2061,7 +2061,7 @@ mod evidence_computation {
             key: "/a/b/c".to_string(),
             content_encoding: "identity".to_string(),
             chunk_ids: vec![chunk_1, chunk_2],
-            asset_content: None,
+            last_chunk: None,
             sha256: None,
         };
         let cba = CommitBatchArguments {
@@ -2138,7 +2138,7 @@ mod evidence_computation {
             key: "/a/b/c".to_string(),
             content_encoding: "identity".to_string(),
             chunk_ids: vec![],
-            asset_content: None,
+            last_chunk: None,
             sha256: None,
         };
         let cba = CommitBatchArguments {
@@ -2761,7 +2761,7 @@ mod evidence_computation {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
                     chunk_ids: vec![],
-                    asset_content: None,
+                    last_chunk: None,
                     sha256: None,
                 })],
             })
@@ -2783,7 +2783,7 @@ mod evidence_computation {
                     key: "/2".to_string(),
                     content_encoding: "identity".to_string(),
                     chunk_ids: vec![],
-                    asset_content: None,
+                    last_chunk: None,
                     sha256: None,
                 })],
             })
@@ -2812,7 +2812,7 @@ mod evidence_computation {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
                     chunk_ids: vec![],
-                    asset_content: None,
+                    last_chunk: None,
                     sha256: None,
                 })],
             })
@@ -2834,7 +2834,7 @@ mod evidence_computation {
                     key: "/1".to_string(),
                     content_encoding: "gzip".to_string(),
                     chunk_ids: vec![],
-                    asset_content: None,
+                    last_chunk: None,
                     sha256: None,
                 })],
             })
@@ -2875,7 +2875,7 @@ mod evidence_computation {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
                     chunk_ids: vec![chunk_1],
-                    asset_content: None,
+                    last_chunk: None,
                     sha256: None,
                 })],
             })
@@ -2906,7 +2906,7 @@ mod evidence_computation {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
                     chunk_ids: vec![chunk_2],
-                    asset_content: None,
+                    last_chunk: None,
                     sha256: None,
                 })],
             })
@@ -2958,7 +2958,7 @@ mod evidence_computation {
                         key: "/1".to_string(),
                         content_encoding: "identity".to_string(),
                         chunk_ids: vec![chunk_1, chunk_2],
-                        asset_content: None,
+                        last_chunk: None,
                         sha256: None,
                     })],
                 })
@@ -3000,7 +3000,7 @@ mod evidence_computation {
                         key: "/1".to_string(),
                         content_encoding: "identity".to_string(),
                         chunk_ids: vec![chunk_1, chunk_2],
-                        asset_content: None,
+                        last_chunk: None,
                         sha256: None,
                     })],
                 })
@@ -3032,7 +3032,7 @@ mod evidence_computation {
                 operations: vec![SetAssetContent(SetAssetContentArguments {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
-                    asset_content: None,
+                    last_chunk: None,
                     chunk_ids: vec![],
                     sha256: Some(sha256_1),
                 })],
@@ -3054,7 +3054,7 @@ mod evidence_computation {
                 operations: vec![SetAssetContent(SetAssetContentArguments {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
-                    asset_content: None,
+                    last_chunk: None,
                     chunk_ids: vec![],
                     sha256: Some(sha256_2),
                 })],

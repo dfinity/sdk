@@ -143,7 +143,7 @@ fn next_chunk_index(
                     hasher,
                 };
             }
-        } else if let Some(chunk_content) = sac.asset_content.as_ref() {
+        } else if let Some(chunk_content) = sac.last_chunk.as_ref() {
             hash_chunk_by_content(&mut hasher, chunk_content);
         }
     }
