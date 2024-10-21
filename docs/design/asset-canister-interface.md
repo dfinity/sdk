@@ -483,11 +483,15 @@ type SetAssetContentArguments = record {
   key: Key;
   content_encoding: text;
   chunk_ids: vec ChunkId;
+  asset_content: opt blob;
   sha256: opt blob;
 };
 ```
 
 This operation adds or changes a single content encoding for an asset.  It also updates the modification time of the content encoding.
+The content of the encoding can be specified with either `chunk_ids` with previously uploaded data,
+or if `chunk_ids` contains no ids, then `asset_content` may contain the encoding's content directly.
+If both `chunk_ids` and `asset_content` contains data, then `asset_content` is ignored.
 
 If `sha256` is not passed, the asset canister will compute the hash of the content.
 
