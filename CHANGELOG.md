@@ -15,6 +15,14 @@ Valid settings are:
 The frontend canister sync now tries to batch multiple small content chunks into a single call using the `create_chunks` method added earlier.
 This should lead to significantly faster upload times for frontends with many small files.
 
+### chore!: improve `dfx start` messages.
+
+For `dfx start`, show below messages to users to indicate what to do next.
+```
+The dfx server is running.
+You can start a new terminal to continue developing, or quit with 'Ctrl-C'.
+```
+
 ## Dependencies
 
 ### Frontend canister
