@@ -20,7 +20,7 @@ This should lead to significantly faster upload times for frontends with many sm
 
 ### Frontend canister
 
-`SetAssetContentArguments` has a new field `asset_content: opt blob` which can be used instead of `chunk_ids` so that small assets can be uploaded as part of `commit_batch`,
+`SetAssetContentArguments` has a new field `last_chunk: opt blob` which can be used in addition to `chunk_ids` so that small assets can be uploaded as part of `commit_batch`,
 skipping the need to await a separate `create_chunk` call.
 
 Bumped `api_version` to `2` for the previous addition of `create_chunks` since the improved file sync relies on it.
