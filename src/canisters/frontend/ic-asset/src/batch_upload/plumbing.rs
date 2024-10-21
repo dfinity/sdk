@@ -100,8 +100,7 @@ impl<'agent> ChunkUploader<'agent> {
             //  - Tested with: `for i in $(seq 1 50); do dd if=/dev/urandom of="src/hello_frontend/assets/file_$i.bin" bs=$(shuf -i 1-2000000 -n 1) count=1; done && dfx deploy hello_frontend`
             //  - Result: Roughly 15% of batches under 90% full.
             // With other byte ranges (e.g. `shuf -i 1-3000000 -n 1`) stats improve significantly
-            self.upload_chunks(4 * MAX_CHUNK_SIZE, usize::MAX, semaphores)
-                .await?;
+            self.upload_chunks(4 * MAX_CHUNK_SIZE, semaphores).await?;
             Ok(uploader_chunk_id)
         }
     }
@@ -110,8 +109,8 @@ impl<'agent> ChunkUploader<'agent> {
         &self,
         semaphores: &Semaphores,
     ) -> Result<(), CreateChunkError> {
-        self.upload_chunks(MAX_CHUNK_SIZE / 2, usize::MAX, semaphores)
-            .await
+        // Crude estimate: If `MAX_CHUNK_SIZE / 2` bytes are added as data to the `commit_batch` args the message won't be above the message size limit.
+        self.upload_chunks(MAX_CHUNK_SIZE / 2, semaphores).await
     }
 
     pub(crate) fn bytes(&self) -> usize {
@@ -161,7 +160,6 @@ impl<'agent> ChunkUploader<'agent> {
     async fn upload_chunks(
         &self,
         max_retained_bytes: usize,
-        max_retained_chunks: usize,
         semaphores: &Semaphores,
     ) -> Result<(), CreateChunkError> {
         let mut queue = self.upload_queue.lock().await;
@@ -172,7 +170,6 @@ impl<'agent> ChunkUploader<'agent> {
             .map(|(_, content)| content.len())
             .sum::<usize>()
             > max_retained_bytes
-            || queue.len() > max_retained_chunks
         {
             // Greedily fills batch with the largest chunk that fits
             queue.sort_unstable_by_key(|(_, content)| content.len());
