@@ -358,6 +358,7 @@ async fn initialize_pocketic(
             state_dir: Some(replica_config.state_manager.state_root.clone()),
             nonmainnet_features: true,
             log_level: Some(replica_config.log_level.to_ic_starter_string()),
+            bitcoind_addr: None,
         })
         .send()
         .await?
@@ -381,7 +382,7 @@ async fn initialize_pocketic(
                 return Err(anyhow!("Internal error: PocketIC topology contains multiple subnets of the same subnet kind."));
             }
             let subnet_id = subnets[0];
-            let subnet_config = topology.0.get(&subnet_id).ok_or(anyhow!(
+            let subnet_config = topology.subnet_configs.get(&subnet_id).ok_or(anyhow!(
                 "Internal error: subnet id {} not found in PocketIC topology",
                 subnet_id
             ))?;
