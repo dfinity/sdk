@@ -2,6 +2,7 @@ use crate::lib::{error::DfxResult, metadata::dfx::DfxMetadata};
 use anyhow::Context;
 use clap::{Parser, ValueEnum};
 use dfx_core::config::model::dfinity::{ConfigInterface, TopLevelConfigNetworks};
+use dfx_core::extension::catalog::ExtensionCatalog;
 use dfx_core::extension::manifest::{ExtensionDependencies, ExtensionManifest};
 use schemars::schema_for;
 use std::path::PathBuf;
@@ -13,6 +14,7 @@ enum ForFile {
     DfxMetadata,
     ExtensionDependencies,
     ExtensionManifest,
+    ExtensionCatalog,
 }
 
 /// Prints the schema for dfx.json.
@@ -32,6 +34,7 @@ pub fn exec(opts: SchemaOpts) -> DfxResult {
         Some(ForFile::DfxMetadata) => schema_for!(DfxMetadata),
         Some(ForFile::ExtensionDependencies) => schema_for!(ExtensionDependencies),
         Some(ForFile::ExtensionManifest) => schema_for!(ExtensionManifest),
+        Some(ForFile::ExtensionCatalog) => schema_for!(ExtensionCatalog),
         _ => schema_for!(ConfigInterface),
     };
     let nice_schema =

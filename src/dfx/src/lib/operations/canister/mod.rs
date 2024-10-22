@@ -4,6 +4,7 @@ pub(crate) mod install_canister;
 pub mod motoko_playground;
 
 pub use create_canister::create_canister;
+use ic_utils::interfaces::management_canister::Snapshot;
 pub use install_canister::install_wallet;
 
 use crate::lib::canister_info::CanisterInfo;
@@ -404,4 +405,115 @@ pub fn all_project_canisters_with_ids(env: &dyn Environment, config: &Config) ->
                 .unwrap_or_default()
         })
         .unwrap_or_default()
+}
+
+#[context("Failed to take snapshot in canister {canister_id}")]
+pub async fn take_canister_snapshot(
+    env: &dyn Environment,
+    canister_id: Principal,
+    replace_snapshot: Option<&[u8]>,
+    call_sender: &CallSender,
+) -> DfxResult<Snapshot> {
+    #[derive(CandidType)]
+    struct In<'a> {
+        canister_id: Principal,
+        replace_snapshot: Option<&'a [u8]>,
+    }
+    let (snapshot,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::TakeCanisterSnapshot.as_ref(),
+        &In {
+            canister_id,
+            replace_snapshot,
+        },
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(snapshot)
+}
+
+#[context(
+    "Failed to load snapshot {} in canister {canister_id}",
+    hex::encode(snapshot_id)
+)]
+pub async fn load_canister_snapshot(
+    env: &dyn Environment,
+    canister_id: Principal,
+    snapshot_id: &[u8],
+    call_sender: &CallSender,
+) -> DfxResult {
+    #[derive(CandidType)]
+    struct In<'a> {
+        canister_id: Principal,
+        snapshot_id: &'a [u8],
+        sender_canister_version: Option<u64>,
+    }
+    do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::LoadCanisterSnapshot.as_ref(),
+        &In {
+            canister_id,
+            snapshot_id,
+            sender_canister_version: None,
+        },
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(())
+}
+
+#[context("Failed to list snapshots in canister {canister_id}")]
+pub async fn list_canister_snapshots(
+    env: &dyn Environment,
+    canister_id: Principal,
+    call_sender: &CallSender,
+) -> DfxResult<Vec<Snapshot>> {
+    #[derive(CandidType)]
+    struct In {
+        canister_id: Principal,
+    }
+    let (snapshots,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::ListCanisterSnapshots.as_ref(),
+        &In { canister_id },
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(snapshots)
+}
+
+#[context(
+    "Failed to delete canister snapshot {} in canister {canister_id}",
+    hex::encode(snapshot_id)
+)]
+pub async fn delete_canister_snapshot(
+    env: &dyn Environment,
+    canister_id: Principal,
+    snapshot_id: &[u8],
+    call_sender: &CallSender,
+) -> DfxResult {
+    #[derive(CandidType)]
+    struct In<'a> {
+        canister_id: Principal,
+        snapshot_id: &'a [u8],
+    }
+    do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::DeleteCanisterSnapshot.as_ref(),
+        &In {
+            canister_id,
+            snapshot_id,
+        },
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(())
 }

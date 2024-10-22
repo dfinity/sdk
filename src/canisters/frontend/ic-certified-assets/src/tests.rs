@@ -9,6 +9,7 @@ use crate::types::{
     SetAssetPropertiesArguments,
 };
 use crate::url_decode::{url_decode, UrlDecodeError};
+use crate::CreateChunksArg;
 use candid::{Nat, Principal};
 use ic_certification_testing::CertificateBuilder;
 use ic_crypto_tree_hash::Digest;
@@ -296,6 +297,7 @@ fn assemble_create_assets_and_set_contents_operations(
                     key: asset.name.clone(),
                     content_encoding: enc,
                     chunk_ids,
+                    last_chunk: None,
                     sha256: None,
                 }
             }));
@@ -698,12 +700,17 @@ fn can_propose_commit_batch_exactly_once() {
     let batch_1 = state.create_batch(time_now).unwrap();
 
     let args = CommitBatchArguments {
-        batch_id: batch_1,
+        batch_id: batch_1.clone(),
         operations: vec![],
     };
     assert_eq!(Ok(()), state.propose_commit_batch(args.clone()));
     match state.propose_commit_batch(args) {
-        Err(err) if err == *"batch already has proposed CommitBatchArguments" => {}
+        Err(err)
+            if err
+                == format!(
+                    "batch {} already has proposed CommitBatchArguments",
+                    batch_1,
+                ) => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     };
 }
@@ -724,12 +731,22 @@ fn cannot_create_chunk_in_proposed_batch_() {
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
     match state.create_chunk(
         CreateChunkArg {
-            batch_id: batch_1,
+            batch_id: batch_1.clone(),
             content: ByteBuf::from(BODY.to_vec()),
         },
         time_now,
     ) {
-        Err(err) if err == *"batch has been proposed" => {}
+        Err(err) if err == format!("batch {} has been proposed", batch_1) => {}
+        other => panic!("expected batch already proposed error, got: {:?}", other),
+    }
+    match state.create_chunks(
+        CreateChunksArg {
+            batch_id: batch_1.clone(),
+            content: vec![ByteBuf::from(BODY.to_vec())],
+        },
+        time_now,
+    ) {
+        Err(err) if err == format!("batch {} has been proposed", batch_1) => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     }
 }
@@ -811,12 +828,12 @@ fn batches_with_evidence_do_not_expire() {
 
     match state.create_chunk(
         CreateChunkArg {
-            batch_id: batch_1,
+            batch_id: batch_1.clone(),
             content: ByteBuf::from(BODY.to_vec()),
         },
         time_now,
     ) {
-        Err(err) if err == *"batch has been proposed" => {}
+        Err(err) if err == format!("batch {} has been proposed", batch_1) => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
     }
 }
@@ -1978,6 +1995,7 @@ mod evidence_computation {
             key: "/a/b/c".to_string(),
             content_encoding: "identity".to_string(),
             chunk_ids: vec![chunk_1],
+            last_chunk: None,
             sha256: None,
         };
         let cba = CommitBatchArguments {
@@ -2043,6 +2061,7 @@ mod evidence_computation {
             key: "/a/b/c".to_string(),
             content_encoding: "identity".to_string(),
             chunk_ids: vec![chunk_1, chunk_2],
+            last_chunk: None,
             sha256: None,
         };
         let cba = CommitBatchArguments {
@@ -2119,6 +2138,7 @@ mod evidence_computation {
             key: "/a/b/c".to_string(),
             content_encoding: "identity".to_string(),
             chunk_ids: vec![],
+            last_chunk: None,
             sha256: None,
         };
         let cba = CommitBatchArguments {
@@ -2741,6 +2761,7 @@ mod evidence_computation {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
                     chunk_ids: vec![],
+                    last_chunk: None,
                     sha256: None,
                 })],
             })
@@ -2762,6 +2783,7 @@ mod evidence_computation {
                     key: "/2".to_string(),
                     content_encoding: "identity".to_string(),
                     chunk_ids: vec![],
+                    last_chunk: None,
                     sha256: None,
                 })],
             })
@@ -2790,6 +2812,7 @@ mod evidence_computation {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
                     chunk_ids: vec![],
+                    last_chunk: None,
                     sha256: None,
                 })],
             })
@@ -2811,6 +2834,7 @@ mod evidence_computation {
                     key: "/1".to_string(),
                     content_encoding: "gzip".to_string(),
                     chunk_ids: vec![],
+                    last_chunk: None,
                     sha256: None,
                 })],
             })
@@ -2851,6 +2875,7 @@ mod evidence_computation {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
                     chunk_ids: vec![chunk_1],
+                    last_chunk: None,
                     sha256: None,
                 })],
             })
@@ -2881,6 +2906,7 @@ mod evidence_computation {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
                     chunk_ids: vec![chunk_2],
+                    last_chunk: None,
                     sha256: None,
                 })],
             })
@@ -2932,6 +2958,7 @@ mod evidence_computation {
                         key: "/1".to_string(),
                         content_encoding: "identity".to_string(),
                         chunk_ids: vec![chunk_1, chunk_2],
+                        last_chunk: None,
                         sha256: None,
                     })],
                 })
@@ -2973,6 +3000,7 @@ mod evidence_computation {
                         key: "/1".to_string(),
                         content_encoding: "identity".to_string(),
                         chunk_ids: vec![chunk_1, chunk_2],
+                        last_chunk: None,
                         sha256: None,
                     })],
                 })
@@ -3004,6 +3032,7 @@ mod evidence_computation {
                 operations: vec![SetAssetContent(SetAssetContentArguments {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
+                    last_chunk: None,
                     chunk_ids: vec![],
                     sha256: Some(sha256_1),
                 })],
@@ -3025,6 +3054,7 @@ mod evidence_computation {
                 operations: vec![SetAssetContent(SetAssetContentArguments {
                     key: "/1".to_string(),
                     content_encoding: "identity".to_string(),
+                    last_chunk: None,
                     chunk_ids: vec![],
                     sha256: Some(sha256_2),
                 })],
@@ -3765,6 +3795,18 @@ mod enforce_limits {
                 time_now,
             )
             .unwrap();
+        assert_eq!(
+            state
+                .create_chunks(
+                    CreateChunksArg {
+                        batch_id: batch_2.clone(),
+                        content: vec![ByteBuf::new(), ByteBuf::new()]
+                    },
+                    time_now
+                )
+                .unwrap_err(),
+            "chunk limit exceeded"
+        );
         state
             .create_chunk(
                 CreateChunkArg {
@@ -3818,20 +3860,27 @@ mod enforce_limits {
 
         let batch_1 = state.create_batch(time_now).unwrap();
         let batch_2 = state.create_batch(time_now).unwrap();
+        assert_eq!(
+            state
+                .create_chunks(
+                    CreateChunksArg {
+                        batch_id: batch_1.clone(),
+                        content: vec![
+                            ByteBuf::from(c0.clone()),
+                            ByteBuf::from(c1.clone()),
+                            ByteBuf::from(c2.clone())
+                        ]
+                    },
+                    time_now
+                )
+                .unwrap_err(),
+            "byte limit exceeded"
+        );
         state
-            .create_chunk(
-                CreateChunkArg {
+            .create_chunks(
+                CreateChunksArg {
                     batch_id: batch_1.clone(),
-                    content: ByteBuf::from(c0),
-                },
-                time_now,
-            )
-            .unwrap();
-        state
-            .create_chunk(
-                CreateChunkArg {
-                    batch_id: batch_2.clone(),
-                    content: ByteBuf::from(c1),
+                    content: vec![ByteBuf::from(c0), ByteBuf::from(c1)],
                 },
                 time_now,
             )

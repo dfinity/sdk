@@ -2,7 +2,184 @@
 
 # UNRELEASED
 
-# 0.22.1
+### feat: Support canister log allowed viewer list
+
+Added support for the canister log allowed viewer list, enabling specified users to access a canister's logs without needing to be set as the canister's controller.
+Valid settings are:
+- `--add-log-viewer`, `--remove-log-viewer` and `--set-log-viewer` flags with `dfx canister update-settings` 
+- `--log-viewer` flag with `dfx canister create`
+- `canisters[].initialization_values.log_visibility.allowed_viewers` in `dfx.json`
+
+### feat: batch upload assets
+
+The frontend canister sync now tries to batch multiple small content chunks into a single call using the `create_chunks` method added earlier.
+And for small amounts of uploaded data the asset sync can now skip chunk creation entirely.
+This should lead to significantly faster upload times for frontends with many small files.
+
+## Dependencies
+
+### Frontend canister
+
+`SetAssetContentArguments` has a new field `last_chunk: opt blob` which can be used in addition to `chunk_ids` so that small assets can be uploaded as part of `commit_batch`,
+skipping the need to await a separate `create_chunk` call.
+
+Bumped `api_version` to `2` for the previous addition of `create_chunks` since the improved file sync relies on it.
+
+- Module hash: 296d1ad1a7f8b15f90ff8b728658646b649cabd159f360f1b427297f4c76763e
+- https://github.com/dfinity/sdk/pull/3954
+- https://github.com/dfinity/sdk/pull/3947
+
+# 0.24.1
+
+### feat: More PocketIC flags supported
+
+`dfx start --pocketic` is now compatible with `--artificial-delay` and the `subnet_type`  configuration option, and enables `--enable-canister-http` by default.
+
+## Dependencies
+
+### Frontend canister
+
+#### feat: Better error messages when proposing a batch
+
+Add the batch id in the error messages of `propose_commit_batch`.
+
+Module hash: 2c9e30df9be951a6884c702a97bbb8c0b438f33d4208fa612b1de6fb1752db76
+
+### Motoko
+
+Updated Motoko to [0.13.1](https://github.com/dfinity/motoko/releases/tag/0.13.1)
+
+### Replica
+
+Updated replica to elected commit 0a6d829cddc1534c29e0d2c3c3ebd1024bff8d1a.
+
+This incorporates the following elected proposals:
+
+- [133327](https://dashboard.internetcomputer.org/proposal/133327)
+- [133310](https://dashboard.internetcomputer.org/proposal/133310)
+- [133309](https://dashboard.internetcomputer.org/proposal/133309)
+- [133144](https://dashboard.internetcomputer.org/proposal/133144)
+- [133143](https://dashboard.internetcomputer.org/proposal/133143)
+- [133142](https://dashboard.internetcomputer.org/proposal/133142)
+- [133063](https://dashboard.internetcomputer.org/proposal/133063)
+- [133062](https://dashboard.internetcomputer.org/proposal/133062)
+- [133061](https://dashboard.internetcomputer.org/proposal/133061)
+- [132548](https://dashboard.internetcomputer.org/proposal/132548)
+- [132547](https://dashboard.internetcomputer.org/proposal/132547)
+- [132507](https://dashboard.internetcomputer.org/proposal/132507)
+- [132482](https://dashboard.internetcomputer.org/proposal/132482)
+- [132481](https://dashboard.internetcomputer.org/proposal/132481)
+- [132500](https://dashboard.internetcomputer.org/proposal/132500)
+- [132416](https://dashboard.internetcomputer.org/proposal/132416)
+- [132413](https://dashboard.internetcomputer.org/proposal/132413)
+- [132414](https://dashboard.internetcomputer.org/proposal/132414)
+- [132412](https://dashboard.internetcomputer.org/proposal/132412)
+- [132376](https://dashboard.internetcomputer.org/proposal/132376)
+- [132375](https://dashboard.internetcomputer.org/proposal/132375)
+- [132223](https://dashboard.internetcomputer.org/proposal/132223)
+- [132222](https://dashboard.internetcomputer.org/proposal/132222)
+- [132149](https://dashboard.internetcomputer.org/proposal/132149)
+- [132148](https://dashboard.internetcomputer.org/proposal/132148)
+- [131787](https://dashboard.internetcomputer.org/proposal/131787)
+- [131757](https://dashboard.internetcomputer.org/proposal/131757)
+- [131697](https://dashboard.internetcomputer.org/proposal/131697)
+
+### Candid UI
+
+Module hash 15da2adc4426b8037c9e716b81cb6a8cf1a835ac37589be2cef8cb3f4a04adaa
+
+# 0.24.0
+
+### fix: bumps sveltekit starter dependency versions to prevent typescript config error
+
+### feat: expose canister upgrade options in CLI
+
+`dfx canister install` and `dfx deploy` takes options `--skip-pre-upgrade` and `--wasm-memory-persistence`.
+
+`dfx deploy --mode` now takes the same possible values as `dfx canister install --mode`: "install", "reinstall", "upgrade" and "auto".
+
+In "auto" mode, the upgrade options are hints which only take effects when the actual install mode is "upgrade". 
+
+To maintain backward compatibility, a minor difference between the two commands remains.
+If the `--mode` is not set, `dfx deploy` defaults to "auto", while `dfx canister install` defaults to "install".
+
+### feat: Also report Motoko stable compatibility warnings
+
+Report upgrade compatibility warnings for Motoko, such as deleted stable variables, in addition to compatibility errors.
+
+### feat: Support for Motoko's enhanced orthogonal persistence.
+
+Support Motoko's enhanced orthogonal persistence by automatically setting the canister upgrade option `wasm_memory_persistence` based on the Wasm metadata.
+
+### feat: PocketIC state
+
+`dfx start --pocketic` no longer requires `--clean`, and can persist replica state between runs.
+
+### fix: Scripts always run with current directory set to the project root
+
+Build scripts and other scripts now always run with the working directory
+set to the project root (directory containing dfx.json).
+
+This applies to the following:
+ - build scripts
+ - extension run
+ - tech stack value computation
+ - packtool (vessel, mops etc)
+
+### feat: `dfx extension list` supports listing available extensions
+
+`dfx extension list` now support `--available` flag to list available extensions from the
+[extension catalog](https://github.com/dfinity/dfx-extensions/blob/main/catalog.json).
+The extension catalog can be overridden with the `--catalog-url` parameter.
+
+## Dependencies
+
+### Frontend canister
+
+Added `create_chunks`. It has the same behavior as `create_chunk`, except that it takes a `vec blob` and returns a `vec BatchId` instead of non-`vec` variants.
+
+Module hash: 3a533f511b3960b4186e76cf9abfbd8222a2c507456a66ec55671204ee70cae3
+
+### Motoko
+
+Updated Motoko to [0.12.1](https://github.com/dfinity/motoko/releases/tag/0.12.1)
+
+# 0.23.0
+
+### fix: relax content security policy for sveltekit starter
+
+We had to roll back part of the increased default security policy for the sveltekit starter due to the framework's use of inline scripts
+
+### feat: Add canister snapshots
+
+The new `dfx canister snapshot` command can be used to create, apply, and delete snapshots of stopped canisters.
+
+### feat: PocketIC HTTP gateway
+
+icx-proxy's HTTP gateway has been replaced with PocketIC's. (This does not impact the meaning of `--pocketic` in `dfx start`.)
+
+### feat: Enable threshold schnorr signatures for Ed25519
+
+Schnorr signature signing for `Ed25519` is now enabled.
+A test key id `Ed25519:dfx_test_key` is ready to be used by locally created canisters.
+
+### feat: Added settings_digest field to the network-id file
+
+### feat: install extensions using the catalog
+
+`dfx extension install` now locates extensions using the
+[extension catalog](https://github.com/dfinity/dfx-extensions/blob/main/catalog.json).
+This can be overridden with the `--catalog-url` parameter.
+
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit 3d0b3f10417fc6708e8b5d844a0bac5e86f3e17d.
+This incorporates the following executed proposals:
+
+- [131473](https://dashboard.internetcomputer.org/proposal/131473)
+
 
 ## Dependencies
 
@@ -16,50 +193,6 @@ This incorporates the following executed proposals:
 - [131054](https://dashboard.internetcomputer.org/proposal/131054)
 - [131032](https://dashboard.internetcomputer.org/proposal/131032)
 - [131028](https://dashboard.internetcomputer.org/proposal/131028)
-- [130985](https://dashboard.internetcomputer.org/proposal/130985)
-- [130984](https://dashboard.internetcomputer.org/proposal/130984)
-- [130819](https://dashboard.internetcomputer.org/proposal/130819)
-- [130818](https://dashboard.internetcomputer.org/proposal/130818)
-- [130748](https://dashboard.internetcomputer.org/proposal/130748)
-- [130749](https://dashboard.internetcomputer.org/proposal/130749)
-- [130728](https://dashboard.internetcomputer.org/proposal/130728)
-- [130727](https://dashboard.internetcomputer.org/proposal/130727)
-- [130409](https://dashboard.internetcomputer.org/proposal/130409)
-- [130408](https://dashboard.internetcomputer.org/proposal/130408)
-- [130392](https://dashboard.internetcomputer.org/proposal/130392)
-- [130400](https://dashboard.internetcomputer.org/proposal/130400)
-- [130315](https://dashboard.internetcomputer.org/proposal/130315)
-- [130134](https://dashboard.internetcomputer.org/proposal/130134)
-- [130083](https://dashboard.internetcomputer.org/proposal/130083)
-- [129747](https://dashboard.internetcomputer.org/proposal/129747)
-- [129746](https://dashboard.internetcomputer.org/proposal/129746)
-- [129706](https://dashboard.internetcomputer.org/proposal/129706)
-- [129697](https://dashboard.internetcomputer.org/proposal/129697)
-- [129696](https://dashboard.internetcomputer.org/proposal/129696)
-- [129628](https://dashboard.internetcomputer.org/proposal/129628)
-- [129627](https://dashboard.internetcomputer.org/proposal/129627)
-- [129494](https://dashboard.internetcomputer.org/proposal/129494)
-- [129493](https://dashboard.internetcomputer.org/proposal/129493)
-- [129428](https://dashboard.internetcomputer.org/proposal/129428)
-- [129427](https://dashboard.internetcomputer.org/proposal/129427)
-- [129423](https://dashboard.internetcomputer.org/proposal/129423)
-- [129408](https://dashboard.internetcomputer.org/proposal/129408)
-- [129379](https://dashboard.internetcomputer.org/proposal/129379)
-- [129378](https://dashboard.internetcomputer.org/proposal/129378)
-- [129084](https://dashboard.internetcomputer.org/proposal/129084)
-- [129081](https://dashboard.internetcomputer.org/proposal/129081)
-- [129035](https://dashboard.internetcomputer.org/proposal/129035)
-- [128876](https://dashboard.internetcomputer.org/proposal/128876)
-- [128904](https://dashboard.internetcomputer.org/proposal/128904)
-- [128864](https://dashboard.internetcomputer.org/proposal/128864)
-- [128816](https://dashboard.internetcomputer.org/proposal/128816)
-- [128846](https://dashboard.internetcomputer.org/proposal/128846)
-- [128806](https://dashboard.internetcomputer.org/proposal/128806)
-- [128805](https://dashboard.internetcomputer.org/proposal/128805)
-- [128296](https://dashboard.internetcomputer.org/proposal/128296)
-- [128295](https://dashboard.internetcomputer.org/proposal/128295)
-- [128171](https://dashboard.internetcomputer.org/proposal/128171)
-- [128155](https://dashboard.internetcomputer.org/proposal/128155)
 
 ### feat: generate .env files for Motoko canisters
 
@@ -692,7 +825,7 @@ For reference, these formats were removed (any '-' characters were replaced by '
 
 ### feat: add `dfx canister logs <canister_id>` for fetching canister's logs (preview)
 
-There is a new subcommand `logs` to fetch canister's logs. 
+There is a new subcommand `logs` to fetch canister's logs.
 When printing the log entries it tries to guess if the content can be converted to UTF-8 text and prints an array of hex bytes if it fails.
 
 **Note**
@@ -708,7 +841,7 @@ The query parameter format is not removed because Safari does not support localh
 
 ### fix: .env files sometimes missing some canister ids
 
-Made it so `dfx deploy` and `dfx canister install` will always write 
+Made it so `dfx deploy` and `dfx canister install` will always write
 environment variables for all canisters in the project that have canister ids
 to the .env file, even if they aren't being deployed/installed
 or a dependency of a canister being deployed/installed.
@@ -718,7 +851,7 @@ or a dependency of a canister being deployed/installed.
 There are a few subcommands that take `--argument`/`--argument-file` options to set canister call/init arguments.
 
 We unify the related logic to provide consistent user experience.
- 
+
 The notable changes are:
 
 - `dfx deploy` now accepts `--argument-file`.
@@ -726,7 +859,7 @@ The notable changes are:
 
 ### feat: candid assist feature
 
-Ask for user input when Candid argument is not provided in `dfx canister call`, `dfx canister install` and `dfx deploy`. 
+Ask for user input when Candid argument is not provided in `dfx canister call`, `dfx canister install` and `dfx deploy`.
 Previously, we cannot call `dfx deploy --all` when multiple canisters require init args, unless the init args are specified in `dfx.json`. With the Candid assist feature, dfx now asks for init args in terminal when a canister requires init args.
 
 ### fix: restored access to URLs like http://localhost:8080/api/v2/status through icx-proxy
@@ -875,7 +1008,7 @@ If you build with custom canister type, add the following into `dfx.json`:
 
 ```
 "metadata": [
-  { 
+  {
     "name": "candid:service"
   }
 ]
@@ -910,7 +1043,7 @@ Fix the bug that when parsing `vec \{1;2;3\}` with `blob` type, dfx silently ign
 ### fix: support `import` for local did file
 
 If the local did file contains `import` or init args, dfx will rewrite the did file when storing in canister metadata.
-Due to current limitations of the Candid parser, comments will be dropped during rewriting. 
+Due to current limitations of the Candid parser, comments will be dropped during rewriting.
 If the local did file doesn't contain `import` or init args, we will not perform the rewriting, thus preserving the comments.
 
 ### fix: subtyping check reports the special opt rule as error
@@ -1299,7 +1432,7 @@ This incorporates the following executed proposals:
 - [124537](https://dashboard.internetcomputer.org/proposal/124537)
 - [124488](https://dashboard.internetcomputer.org/proposal/124488)
 - [124487](https://dashboard.internetcomputer.org/proposal/124487)
-  
+
 # 0.15.0
 
 ## DFX

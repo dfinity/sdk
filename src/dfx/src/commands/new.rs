@@ -6,9 +6,15 @@ use crate::lib::manifest::{get_latest_version, is_upgrade_necessary};
 use crate::lib::program;
 use crate::util::assets;
 use crate::util::clap::parsers::project_name_parser;
-use anyhow::{anyhow, bail, ensure, Context};
-use clap::{Parser, ValueEnum};
+use crate::util::command::direct_or_shell_command;
+use anyhow::{anyhow, bail, ensure, Context, Error};
+use clap::builder::PossibleValuesParser;
+use clap::Parser;
 use console::{style, Style};
+use dfx_core::config::project_templates::{
+    find_project_template, get_project_template, get_sorted_templates, project_template_cli_names,
+    Category, ProjectTemplate, ProjectTemplateName, ResourceLocation,
+};
 use dfx_core::json::{load_json_file, save_json_file};
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::{FuzzySelect, MultiSelect};
@@ -16,11 +22,10 @@ use fn_error_context::context;
 use indicatif::HumanBytes;
 use semver::Version;
 use slog::{info, warn, Logger};
-use std::collections::BTreeMap;
-use std::fmt::{self, Display, Formatter};
+use std::collections::{BTreeMap, HashMap};
 use std::io::{self, IsTerminal, Read};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Command, ExitStatus, Stdio};
 use std::time::Duration;
 use tar::Archive;
 
@@ -38,6 +43,8 @@ const AGENT_JS_DEFAULT_INSTALL_DIST_TAG: &str = "latest";
 // check.
 const CHECK_VERSION_TIMEOUT: Duration = Duration::from_secs(2);
 
+const BACKEND_MOTOKO: &str = "motoko";
+
 /// Creates a new project.
 #[derive(Parser)]
 pub struct NewOpts {
@@ -46,16 +53,16 @@ pub struct NewOpts {
     project_name: String,
 
     /// Choose the type of canister in the starter project.
-    #[arg(long, value_enum)]
-    r#type: Option<BackendType>,
+    #[arg(long, value_parser=backend_project_template_name_parser())]
+    r#type: Option<String>,
 
     /// Provides a preview the directories and files to be created without adding them to the file system.
     #[arg(long)]
     dry_run: bool,
 
     /// Choose the type of frontend in the starter project. Defaults to vanilla.
-    #[arg(long, value_enum, default_missing_value = "vanilla")]
-    frontend: Option<FrontendType>,
+    #[arg(long, value_parser=frontend_project_template_name_parser(), default_missing_value = "vanilla")]
+    frontend: Option<String>,
 
     /// Skip installing the frontend code example.
     #[arg(long, conflicts_with = "frontend")]
@@ -66,77 +73,24 @@ pub struct NewOpts {
     #[arg(long, requires("frontend"))]
     agent_version: Option<String>,
 
-    #[arg(long, value_enum)]
-    extras: Vec<Extra>,
+    #[arg(long, value_parser=extras_project_template_name_parser())]
+    extras: Vec<String>,
 }
 
-#[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq)]
-enum BackendType {
-    Motoko,
-    Rust,
-    Azle,
-    Kybra,
+fn backend_project_template_name_parser() -> PossibleValuesParser {
+    PossibleValuesParser::new(project_template_cli_names(Category::Backend))
 }
 
-impl Display for BackendType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Motoko => "Motoko",
-            Self::Rust => "Rust",
-            Self::Azle => "TypeScript (Azle)",
-            Self::Kybra => "Python (Kybra)",
-        }
-        .fmt(f)
-    }
+fn frontend_project_template_name_parser() -> PossibleValuesParser {
+    let mut options = project_template_cli_names(Category::Frontend);
+    options.push("none".to_string());
+    PossibleValuesParser::new(options)
 }
 
-#[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq)]
-enum FrontendType {
-    #[value(name = "sveltekit")]
-    SvelteKit,
-    Vanilla,
-    Vue,
-    React,
-    SimpleAssets,
-    None,
-}
-
-impl Display for FrontendType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::SvelteKit => "SvelteKit",
-            Self::Vanilla => "Vanilla JS",
-            Self::Vue => "Vue",
-            Self::React => "React",
-            Self::SimpleAssets => "No JS template",
-            Self::None => "No frontend canister",
-        }
-        .fmt(f)
-    }
-}
-
-impl FrontendType {
-    fn has_js(&self) -> bool {
-        !matches!(self, Self::None | Self::SimpleAssets)
-    }
-}
-
-#[derive(ValueEnum, Debug, Copy, Clone, PartialEq, Eq)]
-enum Extra {
-    InternetIdentity,
-    Bitcoin,
-    FrontendTests,
-}
-
-impl Display for Extra {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::InternetIdentity => "Internet Identity",
-            Self::Bitcoin => "Bitcoin (Regtest)",
-            Self::FrontendTests => "Frontend tests",
-        }
-        .fmt(f)
-    }
+fn extras_project_template_name_parser() -> PossibleValuesParser {
+    let mut options = project_template_cli_names(Category::Extra);
+    options.push("frontend-tests".to_string());
+    PossibleValuesParser::new(options)
 }
 
 enum Status<'a> {
@@ -263,6 +217,13 @@ pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
     Ok(())
 }
 
+fn replace_variables(mut s: String, variables: &BTreeMap<String, String>) -> String {
+    variables.iter().for_each(|(name, value)| {
+        s = s.replace(&format!("__{name}__"), value);
+    });
+    s
+}
+
 #[context("Failed to unpack archive to {}.", root.to_string_lossy())]
 fn write_files_from_entries<R: Sized + Read>(
     log: &Logger,
@@ -283,27 +244,17 @@ fn write_files_from_entries<R: Sized + Read>(
 
         let v = match String::from_utf8(v) {
             Err(err) => err.into_bytes(),
-            Ok(mut s) => {
-                // Perform replacements.
-                variables.iter().for_each(|(name, value)| {
-                    let pattern = "{".to_owned() + name + "}";
-                    s = s.replace(pattern.as_str(), value);
-                });
-                s.into_bytes()
-            }
+            Ok(s) => replace_variables(s, variables).into_bytes(),
         };
 
         // Perform path replacements.
-        let mut p = root
+        let p = root
             .join(file.header().path()?)
             .to_str()
             .expect("Non unicode project name path.")
             .to_string();
 
-        variables.iter().for_each(|(name, value)| {
-            let pattern = "__".to_owned() + name + "__";
-            p = p.replace(pattern.as_str(), value);
-        });
+        let p = replace_variables(p, variables);
 
         let p = PathBuf::from(p);
         if p.extension() == Some("json-patch".as_ref()) {
@@ -318,28 +269,13 @@ fn write_files_from_entries<R: Sized + Read>(
     Ok(())
 }
 
-#[context("Failed to run 'npm install'.")]
-fn npm_install(location: &Path) -> DfxResult<std::process::Child> {
-    Command::new(program::NPM)
-        .arg("install")
-        .arg("--quiet")
-        .arg("--no-progress")
-        .arg("--workspaces")
-        .arg("--if-present")
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .current_dir(location)
-        .spawn()
-        .map_err(DfxError::from)
-}
-
 #[context("Failed to scaffold frontend code.")]
 fn scaffold_frontend_code(
     env: &dyn Environment,
     dry_run: bool,
     project_name: &Path,
-    frontend: FrontendType,
-    extras: &[Extra],
+    frontend: &ProjectTemplate,
+    frontend_tests: Option<ProjectTemplate>,
     agent_version: &Option<String>,
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
@@ -367,49 +303,21 @@ fn scaffold_frontend_code(
             project_name_str.to_uppercase(),
         );
 
-        let mut new_project_files = match frontend {
-            FrontendType::Vanilla => assets::new_project_vanillajs_files(),
-            FrontendType::SvelteKit => assets::new_project_svelte_files(),
-            FrontendType::Vue => assets::new_project_vue_files(),
-            FrontendType::React => assets::new_project_react_files(),
-            FrontendType::SimpleAssets => assets::new_project_assets_files(),
-            FrontendType::None => unreachable!(),
-        }?;
-        write_files_from_entries(
-            log,
-            &mut new_project_files,
-            project_name,
-            dry_run,
-            &variables,
-        )?;
-        if extras.contains(&Extra::FrontendTests) {
-            let mut test_files = match frontend {
-                FrontendType::SvelteKit => assets::new_project_svelte_test_files(),
-                FrontendType::React => assets::new_project_react_test_files(),
-                FrontendType::Vue => assets::new_project_vue_test_files(),
-                FrontendType::Vanilla => assets::new_project_vanillajs_test_files(),
-                FrontendType::SimpleAssets => {
-                    bail!("Cannot add frontend tests to --frontend-type simple-assets")
-                }
-                FrontendType::None => bail!("Cannot add frontend tests to --no-frontend"),
-            }?;
-            write_files_from_entries(log, &mut test_files, project_name, dry_run, &variables)?;
+        write_project_template_resources(log, frontend, project_name, dry_run, &variables)?;
+
+        if let Some(frontend_tests) = frontend_tests {
+            write_project_template_resources(
+                log,
+                &frontend_tests,
+                project_name,
+                dry_run,
+                &variables,
+            )?;
         }
 
         // Only install node dependencies if we're not running in dry run.
-        if !dry_run && frontend != FrontendType::SimpleAssets {
-            // Install node modules. Error is not blocking, we just show a message instead.
-            if node_installed {
-                let b = env.new_spinner("Installing node dependencies...".into());
-
-                if npm_install(project_name)?.wait().is_ok() {
-                    b.finish_with_message("Done.".into());
-                } else {
-                    b.finish_with_message(
-                        "An error occurred. See the messages above for more details.".into(),
-                    );
-                }
-            }
+        if !dry_run {
+            run_post_create_command(env, project_name, frontend, &variables)?;
         }
     } else {
         if !node_installed {
@@ -437,7 +345,6 @@ fn scaffold_frontend_code(
             variables,
         )?;
     }
-
     Ok(())
 }
 
@@ -466,19 +373,17 @@ fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
 }
 
 pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
-    use BackendType::*;
     let log = env.get_logger();
     let dry_run = opts.dry_run;
 
-    let r#type = if let Some(r#type) = opts.r#type {
-        r#type
+    let backend_template_name = if let Some(r#type) = opts.r#type {
+        ProjectTemplateName(r#type)
     } else if opts.frontend.is_none() && opts.extras.is_empty() && io::stdout().is_terminal() {
         opts = get_opts_interactively(opts)?;
-        opts.r#type.unwrap()
+        ProjectTemplateName(opts.r#type.unwrap())
     } else {
-        Motoko
+        ProjectTemplateName(BACKEND_MOTOKO.to_string())
     };
-
     let project_name = Path::new(opts.project_name.as_str());
     if project_name.exists() {
         bail!("Cannot create a new project because the directory already exists.");
@@ -554,66 +459,62 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         &variables,
     )?;
 
-    let frontend = if opts.no_frontend {
-        FrontendType::None
+    let frontend: Option<ProjectTemplate> =
+        if opts.no_frontend || matches!(opts.frontend.as_ref(), Some(s) if s == "none") {
+            None
+        } else {
+            let name = ProjectTemplateName(opts.frontend.unwrap_or("vanilla".to_string()));
+            Some(get_project_template(&name))
+        };
+
+    let backend = get_project_template(&backend_template_name);
+
+    let extras: Vec<ProjectTemplate> = opts
+        .extras
+        .iter()
+        .filter(|s| *s != "frontend-tests")
+        .map(|s| get_project_template(&ProjectTemplateName(s.clone())))
+        .collect();
+
+    let frontend_tests = if opts.extras.iter().any(|s| s == "frontend-tests") {
+        let Some(ref frontend) = frontend else {
+            bail!("Cannot add frontend tests to --no-frontend")
+        };
+
+        let template_name = ProjectTemplateName(format!("{}-tests", frontend.name.0));
+        let Some(template) = find_project_template(&template_name) else {
+            bail!(format!(
+                "Cannot add frontend tests to --frontend-type {}",
+                frontend.name.0
+            ))
+        };
+        Some(template)
     } else {
-        opts.frontend.unwrap_or(FrontendType::Vanilla)
+        None
     };
 
-    if r#type == Azle || frontend.has_js() {
-        write_files_from_entries(
-            log,
-            &mut assets::new_project_js_files().context("Failed to get JS config archive.")?,
-            project_name,
-            dry_run,
-            &variables,
-        )?;
+    let requirements = get_requirements(&backend, frontend.as_ref(), &extras)?;
+    for requirement in &requirements {
+        write_project_template_resources(log, requirement, project_name, dry_run, &variables)?;
     }
 
-    // Default to start with motoko
-    let mut new_project_files = match r#type {
-        Rust => assets::new_project_rust_files().context("Failed to get rust archive.")?,
-        Motoko => assets::new_project_motoko_files().context("Failed to get motoko archive.")?,
-        Azle => assets::new_project_azle_files().context("Failed to get azle archive.")?,
-        Kybra => assets::new_project_kybra_files().context("Failed to get kybra archive.")?,
-    };
-    write_files_from_entries(
-        log,
-        &mut new_project_files,
-        project_name,
-        dry_run,
-        &variables,
-    )?;
+    write_project_template_resources(log, &backend, project_name, dry_run, &variables)?;
 
-    if opts.extras.contains(&Extra::InternetIdentity) {
-        write_files_from_entries(
-            log,
-            &mut assets::new_project_internet_identity_files()?,
-            project_name,
-            dry_run,
-            &variables,
-        )?;
+    for extra in &extras {
+        write_project_template_resources(log, extra, project_name, dry_run, &variables)?;
     }
-    if opts.extras.contains(&Extra::Bitcoin) {
-        write_files_from_entries(
-            log,
-            &mut assets::new_project_bitcoin_files()?,
-            project_name,
-            dry_run,
-            &variables,
-        )?;
-    }
-    if frontend != FrontendType::None {
+
+    if let Some(frontend) = frontend {
         scaffold_frontend_code(
             env,
             dry_run,
             project_name,
-            frontend,
-            &opts.extras,
+            &frontend,
+            frontend_tests,
             &opts.agent_version,
             &variables,
         )?;
-    }
+    };
 
     if !dry_run {
         // If on mac, we should validate that XCode toolchain was installed.
@@ -645,26 +546,12 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
             init_git(log, project_name)?;
         }
 
-        if r#type == Rust {
-            // dfx build will use --locked, so update the lockfile beforehand
-            const MSG: &str = "You will need to run it yourself (or a similar command like `cargo vendor`), because `dfx build` will use the --locked flag with Cargo.";
-            if let Ok(code) = Command::new("cargo")
-                .arg("update")
-                .arg("--manifest-path")
-                .arg(project_name.join("Cargo.toml"))
-                .stderr(Stdio::inherit())
-                .stdout(Stdio::inherit())
-                .status()
-            {
-                if !code.success() {
-                    warn!(log, "Failed to run `cargo update`. {MSG}");
-                }
-            } else {
-                warn!(
-                    log,
-                    "Failed to run `cargo update` - is Cargo installed? {MSG}"
-                )
-            }
+        run_post_create_command(env, project_name, &backend, &variables)?;
+        for extra in extras {
+            run_post_create_command(env, project_name, &extra, &variables)?
+        }
+        for requirement in &requirements {
+            run_post_create_command(env, project_name, requirement, &variables)?;
         }
     }
 
@@ -682,40 +569,204 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
     Ok(())
 }
 
+fn get_requirements(
+    backend: &ProjectTemplate,
+    frontend: Option<&ProjectTemplate>,
+    extras: &[ProjectTemplate],
+) -> DfxResult<Vec<ProjectTemplate>> {
+    let mut requirements = vec![];
+
+    let mut have = HashMap::new();
+    have.insert(backend.name.clone(), backend.clone());
+    if let Some(frontend) = frontend {
+        have.insert(frontend.name.clone(), frontend.clone());
+    }
+    for extra in extras {
+        have.insert(extra.name.clone(), extra.clone());
+    }
+
+    loop {
+        let new_requirements = have
+            .iter()
+            .flat_map(|(_, template)| template.requirements.clone())
+            .filter(|requirement| !have.contains_key(requirement))
+            .collect::<Vec<_>>();
+
+        for new_requirement in &new_requirements {
+            let Some(requirement) = find_project_template(new_requirement) else {
+                bail!("Did not find required project template {}", new_requirement)
+            };
+            have.insert(requirement.name.clone(), requirement.clone());
+            requirements.push(requirement);
+        }
+
+        if new_requirements.is_empty() {
+            break;
+        }
+    }
+
+    Ok(requirements)
+}
+
+fn run_post_create_command(
+    env: &dyn Environment,
+    root: &Path,
+    project_template: &ProjectTemplate,
+    variables: &BTreeMap<String, String>,
+) -> DfxResult {
+    let log = env.get_logger();
+
+    for command in &project_template.post_create {
+        let command = replace_variables(command.clone(), variables);
+        let mut cmd = direct_or_shell_command(&command, root)?;
+
+        let spinner = project_template
+            .post_create_spinner_message
+            .as_ref()
+            .map(|msg| env.new_spinner(msg.clone().into()));
+
+        let status = cmd
+            .stderr(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .status()
+            .with_context(|| {
+                format!(
+                    "Failed to run post-create command '{}' for project template '{}.",
+                    &command, &project_template.name
+                )
+            });
+
+        if let Some(spinner) = spinner {
+            let message = match status {
+                Ok(status) if status.success() => "Done.",
+                _ => "Failed.",
+            };
+            spinner.finish_with_message(message.into());
+        }
+        if let Some(warning) = &project_template.post_create_failure_warning {
+            warn_on_post_create_error(log, status, &command, warning);
+        } else {
+            fail_on_post_create_error(command, status)?;
+        }
+    }
+    Ok(())
+}
+
+fn warn_on_post_create_error(
+    log: &Logger,
+    status: Result<ExitStatus, Error>,
+    command: &str,
+    warning: &str,
+) {
+    match status {
+        Ok(status) if status.success() => {}
+        Ok(status) => match status.code() {
+            Some(code) => {
+                warn!(
+                    log,
+                    "Post-create command '{command}' failed with exit code {code}. {warning}",
+                );
+            }
+            None => {
+                warn!(log, "Post-create command '{command}' failed. {warning}");
+            }
+        },
+        Err(e) => {
+            warn!(
+                log,
+                "Failed to execute post-create command '{command}': {e}. {warning}"
+            );
+        }
+    }
+}
+
+fn fail_on_post_create_error(
+    command: String,
+    status: Result<ExitStatus, Error>,
+) -> Result<(), Error> {
+    let status = status?;
+    if !status.success() {
+        match status.code() {
+            Some(code) => {
+                bail!("Post-create command '{command}' failed with exit code {code}.")
+            }
+            None => bail!("Post-create command '{command}' failed."),
+        }
+    }
+    Ok(())
+}
+
+fn write_project_template_resources(
+    logger: &Logger,
+    template: &ProjectTemplate,
+    project_name: &Path,
+    dry_run: bool,
+    variables: &BTreeMap<String, String>,
+) -> DfxResult {
+    let mut resources = match template.resource_location {
+        ResourceLocation::Bundled { get_archive_fn } => get_archive_fn()?,
+    };
+    write_files_from_entries(logger, &mut resources, project_name, dry_run, variables)
+}
+
 fn get_opts_interactively(opts: NewOpts) -> DfxResult<NewOpts> {
-    use BackendType::*;
-    use Extra::*;
-    use FrontendType::*;
     let theme = ColorfulTheme::default();
-    let backends_list = [Motoko, Rust, Azle, Kybra];
+    let backend_templates = get_sorted_templates(Category::Backend);
+    let backends_list = backend_templates
+        .iter()
+        .map(|t| t.display.clone())
+        .collect::<Vec<_>>();
+
     let backend = FuzzySelect::with_theme(&theme)
         .items(&backends_list)
         .default(0)
         .with_prompt("Select a backend language:")
         .interact()?;
-    let backend = backends_list[backend];
-    let frontends_list = [SvelteKit, React, Vue, Vanilla, SimpleAssets, None];
+    let backend = &backend_templates[backend];
+    let frontend_templates = get_sorted_templates(Category::Frontend);
+    let mut frontends_list = frontend_templates
+        .iter()
+        .map(|t| t.display.clone())
+        .collect::<Vec<_>>();
+    frontends_list.push("None".to_string());
     let frontend = FuzzySelect::with_theme(&theme)
         .items(&frontends_list)
         .default(0)
         .with_prompt("Select a frontend framework:")
         .interact()?;
-    let frontend = frontends_list[frontend];
-    let mut extras_list = vec![InternetIdentity, Bitcoin];
-    if frontend != None && frontend != SimpleAssets {
-        extras_list.push(FrontendTests);
+    let frontend = frontend_templates.get(frontend);
+
+    let extra_templates: Vec<_> = get_sorted_templates(Category::Extra);
+    let mut extras_display_names = extra_templates
+        .iter()
+        .map(|t| t.display.clone())
+        .collect::<Vec<_>>();
+
+    let mut extras_template_names = extra_templates
+        .iter()
+        .map(|t| t.name.0.clone())
+        .collect::<Vec<_>>();
+    if let Some(frontend_template) = frontend {
+        let fe_tests = ProjectTemplateName(format!("{}-tests", frontend_template.name.0));
+        if find_project_template(&fe_tests).is_some() {
+            extras_display_names.push("Frontend tests".to_string());
+            extras_template_names.push("frontend-tests".to_string());
+        }
     }
     let extras = MultiSelect::with_theme(&theme)
-        .items(&extras_list)
+        .items(&extras_display_names)
         .with_prompt("Add extra features (space to select, enter to confirm)")
         .interact()?;
 
-    let extras = extras.into_iter().map(|x| extras_list[x]).collect();
+    let extras = extras
+        .into_iter()
+        .map(|x| extras_template_names[x].clone())
+        .collect();
 
     let opts = NewOpts {
         extras,
-        frontend: Some(frontend),
-        r#type: Some(backend),
+        frontend: Some(frontend.map_or_else(|| "none".to_string(), |f| f.name.0.clone())),
+        r#type: Some(backend.name.0.clone()),
         ..opts
     };
     Ok(opts)

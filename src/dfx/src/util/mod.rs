@@ -24,6 +24,7 @@ use std::time::Duration;
 
 pub mod assets;
 pub mod clap;
+pub mod command;
 pub mod currency_conversion;
 pub mod stderr_wrapper;
 pub mod url;
@@ -32,9 +33,7 @@ const DECIMAL_POINT: char = '.';
 
 // The user can pass in port "0" to dfx start i.e. "127.0.0.1:0" or "[::1]:0",
 // thus, we need to recreate SocketAddr with the kernel-provided dynamically allocated port here.
-// TcpBuilder is used with reuse_address and reuse_port set to "true" because
-// the Actix HttpServer in webserver.rs will bind to this SocketAddr.
-#[context("Failed to find reusable socket address")]
+#[context("Failed to find available socket address")]
 pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> {
     let socket = if ip.is_ipv4() {
         Socket::new(Domain::IPV4, socket2::Type::STREAM, None)
@@ -43,14 +42,6 @@ pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> 
         Socket::new(Domain::IPV6, socket2::Type::STREAM, None)
             .context("Failed to create IPv6 socket.")?
     };
-    socket
-        .set_reuse_address(true)
-        .context("Failed to set option reuse_address of tcp builder.")?;
-    // On Windows, SO_REUSEADDR without SO_EXCLUSIVEADDRUSE acts like SO_REUSEPORT (among other things), so this is only necessary on *nix.
-    #[cfg(unix)]
-    socket
-        .set_reuse_port(true)
-        .context("Failed to set option reuse_port of tcp builder.")?;
     socket
         .set_linger(Some(Duration::from_secs(10)))
         .context("Failed to set linger duration of tcp listener.")?;

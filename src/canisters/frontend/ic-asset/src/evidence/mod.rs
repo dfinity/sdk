@@ -13,7 +13,7 @@ use crate::canister_api::types::batch_upload::common::{
 use crate::canister_api::types::batch_upload::v1::BatchOperationKind;
 use crate::error::ComputeEvidenceError;
 use crate::error::HashContentError;
-use crate::error::HashContentError::{EncodeContentFailed, LoadContentFailed};
+use crate::error::HashContentError::EncodeContentFailed;
 use crate::sync::gather_asset_descriptors;
 use ic_utils::Canister;
 use sha2::{Digest, Sha256};
@@ -59,11 +59,14 @@ pub async fn compute_evidence(
         make_project_assets(None, asset_descriptors, &canister_assets, logger).await?;
 
     let mut operations = assemble_batch_operations(
+        None,
         &project_assets,
         canister_assets,
         Obsolete,
         canister_asset_properties,
-    );
+    )
+    .await
+    .map_err(ComputeEvidenceError::AssembleCommitBatchArgumentFailed)?;
     operations.sort();
     trace!(logger, "{:#?}", operations);
 
@@ -123,7 +126,7 @@ fn hash_set_asset_content(
     let ad = &project_asset.asset_descriptor;
 
     let content = {
-        let identity = Content::load(&ad.source).map_err(LoadContentFailed)?;
+        let identity = Content::load(&ad.source)?;
         match args.content_encoding.as_str() {
             "identity" => identity,
             "br" | "brotli" => identity

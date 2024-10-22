@@ -1,3 +1,4 @@
+use crate::lib::canister_logs::log_visibility::LogVisibilityOpt;
 use crate::lib::deps::get_pull_canisters_in_config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
@@ -9,7 +10,8 @@ use crate::lib::operations::canister::create_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, log_visibility_parser,
-    memory_allocation_parser, reserved_cycles_limit_parser, wasm_memory_limit_parser,
+    memory_allocation_parser, principal_parser, reserved_cycles_limit_parser,
+    wasm_memory_limit_parser,
 };
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
@@ -92,8 +94,13 @@ pub struct CanisterCreateOpts {
 
     /// Specifies who is allowed to read the canister's logs.
     /// Can be either "controllers" or "public".
-    #[arg(long, value_parser = log_visibility_parser)]
+    #[arg(long, value_parser = log_visibility_parser, conflicts_with("log_viewer"))]
     log_visibility: Option<LogVisibility>,
+
+    /// Specifies the the principal of the log viewer of the canister.
+    /// Can be specified more than once.
+    #[arg(long, action = ArgAction::Append, value_parser = principal_parser, conflicts_with("log_visibility"))]
+    log_viewer: Option<Vec<candid::Principal>>,
 
     /// Performs the call with the user Identity as the Sender of messages.
     /// Bypasses the Wallet canister.
@@ -202,7 +209,9 @@ pub async fn exec(
         )
         .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
         let log_visibility = get_log_visibility(
-            opts.log_visibility,
+            env,
+            LogVisibilityOpt::from(&opts.log_visibility, &opts.log_viewer).as_ref(),
+            None,
             Some(config_interface),
             Some(canister_name),
         )
@@ -285,7 +294,9 @@ pub async fn exec(
                 )
                 .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
                 let log_visibility = get_log_visibility(
-                    opts.log_visibility,
+                    env,
+                    LogVisibilityOpt::from(&opts.log_visibility, &opts.log_viewer).as_ref(),
+                    None,
                     Some(config_interface),
                     Some(canister_name),
                 )

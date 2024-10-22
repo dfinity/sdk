@@ -16,6 +16,8 @@ pub struct MotokoCanisterInfo {
 
     packtool: Option<String>,
     moc_args: Option<String>,
+
+    workspace_root: PathBuf,
 }
 
 impl MotokoCanisterInfo {
@@ -46,6 +48,9 @@ impl MotokoCanisterInfo {
     pub fn get_args(&self) -> &Option<String> {
         &self.moc_args
     }
+    pub fn get_workspace_root(&self) -> &Path {
+        self.workspace_root.as_path()
+    }
 }
 
 impl CanisterInfoFactory for MotokoCanisterInfo {
@@ -67,6 +72,7 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let output_did_js_path = output_wasm_path.with_extension("did.js");
         let output_canister_js_path = output_wasm_path.with_extension("js");
         let output_assets_root = output_root.join("assets");
+        let workspace_root = workspace_root.to_path_buf();
 
         Ok(MotokoCanisterInfo {
             input_path,
@@ -78,6 +84,7 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
             output_assets_root,
             packtool: info.get_packtool().clone(),
             moc_args: info.get_args().clone(),
+            workspace_root,
         })
     }
 }

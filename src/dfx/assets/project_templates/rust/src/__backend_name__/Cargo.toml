@@ -1,5 +1,5 @@
 [package]
-name = "{backend_name}"
+name = "__backend_name__"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,5 +10,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 candid = "0.10"
-ic-cdk = "0.13"
-ic-cdk-timers = "0.7" # Feel free to remove this dependency if you don't need timers
+ic-cdk = "0.16"
+ic-cdk-timers = "0.10" # Feel free to remove this dependency if you don't need timers

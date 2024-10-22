@@ -60,7 +60,7 @@ calculate_sha256() {
 
     tar -xf "$TEMP_FILE" -C "$TEMP_DIR"
     EXPECTED_BASE32_SHA256=$(jq -r .'"'"$KEY"'".sha256' "$NIX_SOURCES_JSON")
-    ACTUAL_BASE32_SHA256="$(nix-hash --base32 --type sha256 "$TEMP_DIR")"
+    ACTUAL_BASE32_SHA256="$(nix-hash --base32 --type sha256 "$(realpath "$TEMP_DIR")")"
 
     SHA256="$(shasum -a 256 "$TEMP_FILE" |  awk '{print $1}' )"
 
@@ -87,7 +87,7 @@ write_replica_rev
 motoko_base_sha="$(calculate_sha256 "motoko-base")"
 for platform in "darwin" "linux";
 do
-    for name in "icx-proxy" "ic-admin" "ic-btc-adapter" "ic-https-outcalls-adapter" "ic-nns-init" "ic-starter" "motoko" "replica" "canister_sandbox" "compiler_sandbox" "sandbox_launcher" "sns" "pocket-ic";
+    for name in "ic-admin" "ic-btc-adapter" "ic-https-outcalls-adapter" "ic-nns-init" "ic-starter" "motoko" "replica" "canister_sandbox" "compiler_sandbox" "sandbox_launcher" "sns" "pocket-ic";
     do
         if [[ "$name" == "replica" || "$name" == "canister_sandbox" || "$name" == "compiler_sandbox" ]]; then
             echo "# The replica, canister_sandbox and compiler_sandbox binaries must have the same revision." >>"$DFX_ASSET_SOURCES"

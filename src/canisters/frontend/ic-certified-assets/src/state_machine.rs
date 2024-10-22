@@ -26,6 +26,7 @@ use crate::{
 use candid::{CandidType, Deserialize, Int, Nat, Principal};
 use ic_certification::{AsHashTree, Hash};
 use ic_representation_independent_hash::Value;
+use itertools::fold;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
@@ -382,8 +383,8 @@ impl State {
         arg: SetAssetContentArguments,
         now: u64,
     ) -> Result<(), String> {
-        if arg.chunk_ids.is_empty() {
-            return Err("encoding must have at least one chunk".to_string());
+        if arg.chunk_ids.is_empty() && arg.last_chunk.is_none() {
+            return Err("encoding must have at least one chunk or contain last_chunk".to_string());
         }
 
         let dependent_keys = self.dependent_keys(&arg.key);
@@ -398,6 +399,9 @@ impl State {
         for chunk_id in arg.chunk_ids.iter() {
             let chunk = self.chunks.remove(chunk_id).expect("chunk not found");
             content_chunks.push(chunk.content);
+        }
+        if let Some(encoding_content) = arg.last_chunk {
+            content_chunks.push(encoding_content.into());
         }
 
         let sha256: [u8; 32] = match arg.sha256 {
@@ -582,8 +586,65 @@ impl State {
     }
 
     pub fn create_chunk(&mut self, arg: CreateChunkArg, now: u64) -> Result<ChunkId, String> {
+        let ids = self.create_chunks_helper(arg.batch_id, vec![arg.content], now)?;
+        ids.into_iter()
+            .next()
+            .ok_or_else(|| "Bug: created chunk did not return a chunk id.".to_string())
+    }
+
+    pub fn create_chunks(
+        &mut self,
+        CreateChunksArg {
+            batch_id,
+            content: chunks,
+        }: CreateChunksArg,
+        now: u64,
+    ) -> Result<Vec<ChunkId>, String> {
+        self.create_chunks_helper(batch_id, chunks, now)
+    }
+
+    /// Post-condition: `chunks.len() == output_chunk_ids.len()`
+    fn create_chunks_helper(
+        &mut self,
+        batch_id: Nat,
+        chunks: Vec<ByteBuf>,
+        now: u64,
+    ) -> Result<Vec<ChunkId>, String> {
+        self.check_batch_limits(chunks.len(), chunks.iter().map(|chunk| chunk.len()).sum())?;
+        let batch = self
+            .batches
+            .get_mut(&batch_id)
+            .ok_or_else(|| "batch not found".to_string())?;
+        if batch.commit_batch_arguments.is_some() {
+            return Err(format!("batch {} has been proposed", batch_id));
+        }
+
+        batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
+
+        let chunks_len = chunks.len();
+
+        let mut chunk_ids = Vec::with_capacity(chunks.len());
+        for chunk in chunks {
+            let chunk_id = self.next_chunk_id.clone();
+            self.next_chunk_id += 1_u8;
+            batch.chunk_content_total_size += chunk.len();
+            self.chunks.insert(
+                chunk_id.clone(),
+                Chunk {
+                    batch_id: batch_id.clone(),
+                    content: RcBytes::from(chunk),
+                },
+            );
+            chunk_ids.push(chunk_id);
+        }
+
+        debug_assert!(chunks_len == chunk_ids.len());
+        Ok(chunk_ids)
+    }
+
+    fn check_batch_limits(&self, chunks_added: usize, bytes_added: usize) -> Result<(), String> {
         if let Some(max_chunks) = self.configuration.max_chunks {
-            if self.chunks.len() + 1 > max_chunks as usize {
+            if self.chunks.len() + chunks_added > max_chunks as usize {
                 return Err("chunk limit exceeded".to_string());
             }
         }
@@ -591,37 +652,44 @@ impl State {
             let current_total_bytes = &self.batches.iter().fold(0, |acc, (_batch_id, batch)| {
                 acc + batch.chunk_content_total_size
             });
-
-            if current_total_bytes + arg.content.as_ref().len() > max_bytes as usize {
+            if current_total_bytes + bytes_added > max_bytes as usize {
                 return Err("byte limit exceeded".to_string());
             }
         }
-        let batch = self
-            .batches
-            .get_mut(&arg.batch_id)
-            .ok_or_else(|| "batch not found".to_string())?;
-        if batch.commit_batch_arguments.is_some() {
-            return Err("batch has been proposed".to_string());
-        }
+        Ok(())
+    }
 
-        batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
-
-        let chunk_id = self.next_chunk_id.clone();
-        self.next_chunk_id += 1_u8;
-        batch.chunk_content_total_size += arg.content.as_ref().len();
-
-        self.chunks.insert(
-            chunk_id.clone(),
-            Chunk {
-                batch_id: arg.batch_id,
-                content: RcBytes::from(arg.content),
+    /// Computes the data required to perform `self.check_batch_limits` against
+    /// the data carried in `last_chunk` fields.
+    fn compute_last_chunk_data(&self, arg: &CommitBatchArguments) -> (usize, usize) {
+        fold(
+            arg.operations.iter().map(|op| {
+                if let BatchOperation::SetAssetContent(SetAssetContentArguments {
+                    last_chunk: Some(content),
+                    // Chunks defined in `chunk_ids` are already accounted for and can be ignored here
+                    ..
+                }) = op
+                {
+                    Some(content.len())
+                } else {
+                    None
+                }
+            }),
+            (0, 0),
+            |(chunks_added, bytes_added), asset_len| {
+                if let Some(len) = asset_len {
+                    (chunks_added + 1, bytes_added + len)
+                } else {
+                    (chunks_added, bytes_added)
+                }
             },
-        );
-
-        Ok(chunk_id)
+        )
     }
 
     pub fn commit_batch(&mut self, arg: CommitBatchArguments, now: u64) -> Result<(), String> {
+        let (chunks_added, bytes_added) = self.compute_last_chunk_data(&arg);
+        self.check_batch_limits(chunks_added, bytes_added)?;
+
         let batch_id = arg.batch_id;
         for op in arg.operations {
             match op {
@@ -644,7 +712,10 @@ impl State {
             .get_mut(&arg.batch_id)
             .expect("batch not found");
         if batch.commit_batch_arguments.is_some() {
-            return Err("batch already has proposed CommitBatchArguments".to_string());
+            return Err(format!(
+                "batch {} already has proposed CommitBatchArguments",
+                arg.batch_id
+            ));
         };
         batch.commit_batch_arguments = Some(arg);
         Ok(())

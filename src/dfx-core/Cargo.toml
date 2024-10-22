@@ -1,11 +1,14 @@
 [package]
 name = "dfx-core"
-version = "0.0.1"
+version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
 license.workspace = true
 rust-version.workspace = true
+description = "dfx core library"
+documentation = "https://docs.rs/dfx-core"
+keywords = ["internet-computer", "icp", "dfinity"]
 
 [dependencies]
 aes-gcm.workspace = true
@@ -23,9 +26,10 @@ flate2 = { workspace = true }
 handlebars.workspace = true
 hex = { workspace = true, features = ["serde"] }
 humantime-serde = "1.1.1"
-ic-agent = { workspace = true, features = ["reqwest"] }
+ic-agent.workspace = true
 ic-utils.workspace = true
-ic-identity-hsm = { workspace = true }
+ic-identity-hsm.workspace = true
+itertools.workspace = true
 k256 = { version = "0.11.4", features = ["pem"] }
 keyring.workspace = true
 lazy_static.workspace = true
@@ -42,7 +46,7 @@ tar.workspace = true
 tempfile.workspace = true
 thiserror.workspace = true
 tiny-bip39 = "1.0.0"
-time.workspace = true
+time = { workspace = true, features = ["serde", "serde-human-readable"] }
 url.workspace = true
 
 [dev-dependencies]

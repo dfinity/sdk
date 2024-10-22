@@ -1024,7 +1024,7 @@ mod with_tempdir {
         assert_eq!(
             assets_config.as_ref().err().unwrap().to_string(),
             format!(
-                "Failed to read {} as string",
+                "failed to read {} as string",
                 assets_dir
                     .join(ASSETS_CONFIG_FILENAME_JSON)
                     .as_path()

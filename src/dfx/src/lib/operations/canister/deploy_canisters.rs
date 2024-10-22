@@ -13,6 +13,7 @@ use crate::lib::operations::canister::motoko_playground::reserve_canister_with_p
 use crate::lib::operations::canister::{
     all_project_canisters_with_ids, create_canister, install_canister::install_canister,
 };
+use crate::util::clap::install_mode::InstallModeHint;
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -23,7 +24,7 @@ use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit,
 };
-use ic_utils::interfaces::management_canister::builders::{InstallMode, WasmMemoryLimit};
+use ic_utils::interfaces::management_canister::builders::WasmMemoryLimit;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 use std::convert::TryFrom;
@@ -45,6 +46,7 @@ pub async fn deploy_canisters(
     argument: Option<&str>,
     argument_type: Option<&str>,
     deploy_mode: &DeployMode,
+    mode_hint: &InstallModeHint,
     upgrade_unchanged: bool,
     with_cycles: Option<u128>,
     created_at_time: Option<u64>,
@@ -143,15 +145,13 @@ pub async fn deploy_canisters(
 
     match deploy_mode {
         NormalDeploy | ForceReinstallSingleCanister(_) => {
-            let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
             install_canisters(
                 env,
                 &canisters_to_install,
-                &initial_canister_id_store,
                 &config,
                 argument,
                 argument_type,
-                force_reinstall,
+                mode_hint,
                 upgrade_unchanged,
                 call_sender,
                 pool,
@@ -313,11 +313,10 @@ async fn build_canisters(
 async fn install_canisters(
     env: &dyn Environment,
     canister_names: &[String],
-    initial_canister_id_store: &CanisterIdStore,
     config: &Config,
     argument: Option<&str>,
     argument_type: Option<&str>,
-    force_reinstall: bool,
+    mode_hint: &InstallModeHint,
     upgrade_unchanged: bool,
     call_sender: &CallSender,
     pool: CanisterPool,
@@ -331,15 +330,6 @@ async fn install_canisters(
     let mut canister_id_store = env.get_canister_id_store()?;
 
     for canister_name in canister_names {
-        let install_mode = if force_reinstall {
-            Some(InstallMode::Reinstall)
-        } else {
-            match initial_canister_id_store.find(canister_name) {
-                Some(_) => None,
-                None => Some(InstallMode::Install),
-            }
-        };
-
         let canister_id = canister_id_store.get(canister_name)?;
         let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
 
@@ -351,7 +341,7 @@ async fn install_canisters(
             None,
             argument,
             argument_type,
-            install_mode,
+            mode_hint,
             call_sender,
             upgrade_unchanged,
             Some(&pool),

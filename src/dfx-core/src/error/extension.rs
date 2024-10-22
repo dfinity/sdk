@@ -1,6 +1,10 @@
 #![allow(dead_code)]
 
-use crate::error::fs::{EnsureDirExistsError, FsError};
+use crate::error::cache::{EnsureCacheVersionsDirError, GetCacheRootError};
+use crate::error::fs::{
+    EnsureDirExistsError, ReadDirError, RemoveDirectoryAndContentsError, RenameError,
+    SetPermissionsError,
+};
 use crate::error::structured_file::StructuredFileError;
 use semver::Version;
 use thiserror::Error;
@@ -30,9 +34,24 @@ pub enum ConvertExtensionSubcommandIntoClapCommandError {
 }
 
 #[derive(Error, Debug)]
+pub enum ListAvailableExtensionsError {
+    #[error(transparent)]
+    FetchCatalog(#[from] FetchCatalogError),
+}
+
+#[derive(Error, Debug)]
 pub enum ListInstalledExtensionsError {
     #[error(transparent)]
-    ExtensionsDirectoryIsNotReadable(#[from] crate::error::fs::FsError),
+    ExtensionsDirectoryIsNotReadable(#[from] ReadDirError),
+}
+
+#[derive(Error, Debug)]
+pub enum LoadExtensionManifestsError {
+    #[error(transparent)]
+    ListInstalledExtensions(#[from] ListInstalledExtensionsError),
+
+    #[error(transparent)]
+    LoadExtensionManifest(#[from] LoadExtensionManifestError),
 }
 
 #[derive(Error, Debug)]
@@ -47,7 +66,7 @@ pub enum RunExtensionError {
     InvalidExtensionName(std::ffi::OsString),
 
     #[error("Cannot find cache directory")]
-    FindCacheDirectoryFailed(#[source] crate::error::cache::CacheError),
+    FindCacheDirectoryFailed(#[from] EnsureCacheVersionsDirError),
 
     #[error("Failed to run extension '{0}'")]
     FailedToLaunchExtension(String, #[source] std::io::Error),
@@ -80,7 +99,7 @@ pub enum GetExtensionBinaryError {
 #[derive(Error, Debug)]
 pub enum NewExtensionManagerError {
     #[error("Cannot find cache directory")]
-    FindCacheDirectoryFailed(#[source] crate::error::cache::CacheError),
+    FindCacheDirectoryFailed(#[from] GetCacheRootError),
 }
 
 #[derive(Error, Debug)]
@@ -100,8 +119,14 @@ pub enum DownloadAndInstallExtensionToTempdirError {
 
 #[derive(Error, Debug)]
 pub enum InstallExtensionError {
+    #[error("extension '{0}' not found in catalog")]
+    ExtensionNotFound(String),
+
     #[error("Extension '{0}' is already installed at version {1}.")]
     OtherVersionAlreadyInstalled(String, Version),
+
+    #[error(transparent)]
+    FetchCatalog(#[from] FetchCatalogError),
 
     #[error(transparent)]
     GetExtensionArchiveName(#[from] GetExtensionArchiveNameError),
@@ -178,7 +203,7 @@ pub struct GetExtensionDownloadUrlError {
 #[derive(Error, Debug)]
 pub enum GetTopLevelDirectoryError {
     #[error(transparent)]
-    ReadDir(FsError),
+    ReadDir(#[from] ReadDirError),
 
     #[error("No top-level directory found in archive")]
     NoTopLevelDirectoryEntry,
@@ -194,7 +219,13 @@ pub enum FinalizeInstallationError {
     GetTopLevelDirectory(#[from] GetTopLevelDirectoryError),
 
     #[error(transparent)]
-    Fs(#[from] FsError),
+    LoadExtensionManifest(#[from] LoadExtensionManifestError),
+
+    #[error(transparent)]
+    Rename(#[from] RenameError),
+
+    #[error(transparent)]
+    SetPermissions(#[from] SetPermissionsError),
 }
 
 #[derive(Error, Debug)]
@@ -208,4 +239,16 @@ pub enum FetchExtensionCompatibilityMatrixError {
 
 #[derive(Error, Debug)]
 #[error(transparent)]
-pub struct UninstallExtensionError(#[from] crate::error::fs::FsError);
+pub struct UninstallExtensionError(#[from] RemoveDirectoryAndContentsError);
+
+#[derive(Error, Debug)]
+pub enum FetchCatalogError {
+    #[error(transparent)]
+    ParseUrl(#[from] url::ParseError),
+
+    #[error(transparent)]
+    Get(reqwest::Error),
+
+    #[error(transparent)]
+    ParseJson(reqwest::Error),
+}

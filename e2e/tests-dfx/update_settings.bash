@@ -66,6 +66,8 @@ teardown() {
   dfx_start
   assert_command dfx deploy e2e_project_backend
   assert_command dfx canister status e2e_project_backend
+
+  # Test against a single canister.
   assert_contains "Log visibility: controllers"
   assert_command dfx canister update-settings e2e_project_backend --log-visibility public
   assert_command dfx canister status e2e_project_backend
@@ -73,6 +75,84 @@ teardown() {
   assert_command dfx canister update-settings e2e_project_backend --log-visibility controllers
   assert_command dfx canister status e2e_project_backend
   assert_contains "Log visibility: controllers"
+
+  # Test --all code path.
+  assert_command dfx canister update-settings --log-visibility public --all
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Log visibility: public"
+  assert_command dfx canister update-settings --log-visibility controllers --all
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Log visibility: controllers"
+}
+
+@test "update log allowed viewer list" {
+  # Create two identities
+  assert_command dfx identity new --storage-mode plaintext alice
+  assert_command dfx identity new --storage-mode plaintext bob
+  ALICE_PRINCIPAL=$(dfx identity get-principal --identity alice)
+  BOB_PRINCIPAL=$(dfx identity get-principal --identity bob)
+  
+  dfx_new
+  dfx_start
+  assert_command dfx deploy e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Log visibility: controllers"
+
+  # Test against a single canister.
+  assert_command dfx canister update-settings --add-log-viewer="${ALICE_PRINCIPAL}" e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "${ALICE_PRINCIPAL}"
+
+  assert_command dfx canister update-settings --remove-log-viewer="${BOB_PRINCIPAL}" e2e_project_backend
+  assert_contains "'${BOB_PRINCIPAL}' is not in the allowed list"
+
+  assert_command dfx canister update-settings --add-log-viewer="${BOB_PRINCIPAL}" --remove-log-viewer="${ALICE_PRINCIPAL}" e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "${BOB_PRINCIPAL}"
+  assert_not_contains "${ALICE_PRINCIPAL}"
+
+  assert_command dfx canister update-settings --set-log-viewer="${ALICE_PRINCIPAL}" e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "${ALICE_PRINCIPAL}"
+  assert_not_contains "${BOB_PRINCIPAL}"
+
+  assert_command dfx canister update-settings --remove-log-viewer="${ALICE_PRINCIPAL}" e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "allowed viewers list is empty"
+
+  assert_command dfx canister update-settings --add-log-viewer="${BOB_PRINCIPAL}" --add-log-viewer="${ALICE_PRINCIPAL}" e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "${ALICE_PRINCIPAL}"
+  assert_contains "${BOB_PRINCIPAL}"
+
+  assert_command dfx canister update-settings --remove-log-viewer="${ALICE_PRINCIPAL}" --remove-log-viewer="${BOB_PRINCIPAL}" e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "allowed viewers list is empty"
+
+  assert_command dfx canister update-settings --set-log-viewer="${BOB_PRINCIPAL}" --set-log-viewer="${ALICE_PRINCIPAL}" e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "${ALICE_PRINCIPAL}"
+  assert_contains "${BOB_PRINCIPAL}"
+
+  assert_command dfx canister update-settings --log-visibility controllers e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Log visibility: controllers"
+
+  assert_command_fail dfx canister update-settings --remove-log-viewer="${BOB_PRINCIPAL}" e2e_project_backend
+  assert_contains "Removing reviewers is not allowed with 'public' or 'controllers' log visibility."
+
+  # Test --all code path.
+  assert_command dfx canister update-settings --add-log-viewer="${ALICE_PRINCIPAL}" --all
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "${ALICE_PRINCIPAL}"
+
+  assert_command dfx canister update-settings --remove-log-viewer="${ALICE_PRINCIPAL}" --all
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "allowed viewers list is empty"
+
+  assert_command dfx canister update-settings --set-log-viewer="${ALICE_PRINCIPAL}" --all
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "${ALICE_PRINCIPAL}"
 }
 
 @test "set controller" {

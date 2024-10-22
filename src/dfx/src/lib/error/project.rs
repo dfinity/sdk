@@ -1,4 +1,6 @@
-use dfx_core::error::fs::{CanonicalizePathError, CreateDirAllError};
+use dfx_core::error::fs::{
+    CanonicalizePathError, CreateDirAllError, ReadFileError, WriteFileError,
+};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -13,7 +15,10 @@ pub enum ProjectError {
     StructuredFileError(#[from] dfx_core::error::structured_file::StructuredFileError),
 
     #[error(transparent)]
-    IoError(#[from] dfx_core::error::fs::FsError),
+    ReadFile(#[from] ReadFileError),
+
+    #[error(transparent)]
+    WriteFile(#[from] WriteFileError),
 
     #[error("Can't convert string '{0}' to path")]
     ConvertingStringToPathFailed(String, #[source] std::convert::Infallible),

@@ -3,7 +3,7 @@ use super::{keyring_mock, WALLET_CONFIG_FILENAME};
 use crate::config::directories::get_user_dfx_config_dir;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
-use crate::error::fs::FsError;
+use crate::error::fs::ReadDirError;
 use crate::error::identity::{
     ConvertMnemonicToKeyError,
     ConvertMnemonicToKeyError::DeriveExtendedKeyFromPathFailed,
@@ -11,9 +11,8 @@ use crate::error::identity::{
     CreateIdentityConfigError::GenerateFreshEncryptionConfigurationFailed,
     CreateNewIdentityError,
     CreateNewIdentityError::{
-        CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
-        CreateMnemonicFromPhraseFailed, CreateTemporaryIdentityDirectoryFailed,
-        RenameTemporaryIdentityDirectoryFailed, SwitchBackToIdentityFailed,
+        ConvertSecretKeyToSec1PemFailed, CreateMnemonicFromPhraseFailed,
+        CreateTemporaryIdentityDirectoryFailed, SwitchBackToIdentityFailed,
         SwitchToAnonymousIdentityFailed,
     },
     ExportIdentityError,
@@ -36,12 +35,12 @@ use crate::error::identity::{
     RemoveIdentityError,
     RemoveIdentityError::{
         DisplayLinkedWalletsFailed, DropWalletsFlagRequiredToRemoveIdentityWithWallets,
-        RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed,
+        RemoveIdentityDirectoryFailed,
     },
     RenameIdentityError,
     RenameIdentityError::{
-        GetIdentityConfigFailed, LoadPemFailed, MapWalletsToRenamedIdentityFailed,
-        RenameIdentityDirectoryFailed, SavePemFailed, SwitchDefaultIdentitySettingsFailed,
+        GetIdentityConfigFailed, LoadPemFailed, MapWalletsToRenamedIdentityFailed, SavePemFailed,
+        SwitchDefaultIdentitySettingsFailed,
     },
     RequireIdentityExistsError, SaveIdentityConfigurationError,
     SaveIdentityConfigurationError::EnsureIdentityConfigurationDirExistsFailed,
@@ -374,8 +373,7 @@ impl IdentityManager {
         let temp_identity_dir = self.get_identity_dir_path(&temp_identity_name);
         if temp_identity_dir.exists() {
             // clean traces from previous identity creation attempts
-            crate::fs::remove_dir_all(&temp_identity_dir)
-                .map_err(CleanupPreviousCreationAttemptsFailed)?;
+            crate::fs::remove_dir_all(&temp_identity_dir)?;
         }
 
         let identity_config;
@@ -445,8 +443,7 @@ impl IdentityManager {
 
         // Everything is created. Now move from the temporary directory to the actual identity location.
         let identity_dir = self.get_identity_dir_path(name);
-        crate::fs::rename(&temp_identity_dir, &identity_dir)
-            .map_err(RenameTemporaryIdentityDirectoryFailed)?;
+        crate::fs::rename(&temp_identity_dir, &identity_dir)?;
 
         if temporarily_use_anonymous_identity {
             self.use_identity_named(log, &identity_in_use)
@@ -456,7 +453,7 @@ impl IdentityManager {
     }
 
     /// Return a sorted list of all available identity names
-    pub fn get_identity_names(&self, log: &Logger) -> Result<Vec<String>, FsError> {
+    pub fn get_identity_names(&self, log: &Logger) -> Result<Vec<String>, ReadDirError> {
         let mut names = crate::fs::read_dir(self.file_locations.root())?
             .filter_map(|entry_result| match entry_result {
                 Ok(dir_entry) => match dir_entry.file_type() {
@@ -579,7 +576,7 @@ impl IdentityManager {
 
         DfxIdentity::map_wallets_to_renamed_identity(project_temp_dir, from, to)
             .map_err(MapWalletsToRenamedIdentityFailed)?;
-        crate::fs::rename(&from_dir, &to_dir).map_err(RenameIdentityDirectoryFailed)?;
+        crate::fs::rename(&from_dir, &to_dir)?;
         if let Some(keyring_identity_suffix) = &identity_config.keyring_identity_suffix {
             debug!(log, "Migrating keyring content.");
             let (pem, _) =
@@ -836,7 +833,7 @@ pub(super) fn save_identity_configuration(
 /// Removes the file if it exists.
 fn remove_identity_file(file: &Path) -> Result<(), RemoveIdentityError> {
     if file.exists() {
-        crate::fs::remove_file(file).map_err(RemoveIdentityFileFailed)?;
+        crate::fs::remove_file(file)?;
     }
     Ok(())
 }

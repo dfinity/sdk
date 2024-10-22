@@ -64,20 +64,20 @@ set_shared_local_network_canister_http_empty() {
   assert_process_exits "$CANISTER_HTTP_ADAPTER_PID" 15s
   assert_process_exits "$REPLICA_PID" 15s
 
-  timeout 15s sh -c \
+  timeout 30s sh -c \
     'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
     || (echo "replica did not restart" && ps aux && exit 1)
   wait_until_replica_healthy
 
   # Sometimes initially get an error like:
-  #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
+  #     IC0537: Attempt to execute a message on canister <>> which contains no Wasm module
   # but the condition clears.
   timeout 30s sh -c \
     "until dfx canister call hello_backend greet '(\"wait 1\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
     || (echo "canister call did not succeed") # but continue, for better error reporting
 
   # Even so, after that passes, sometimes this happens:
-  #     IC0515: Certified state is not available yet. Please try again...
+  #     IC0208: Certified state is not available yet. Please try again...
   sleep 10
   timeout 30s sh -c \
     "until dfx canister call hello_backend greet '(\"wait 2\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
@@ -89,8 +89,8 @@ set_shared_local_network_canister_http_empty() {
   ID=$(dfx canister id hello_frontend)
 
   timeout 15s sh -c \
-    "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
-    || (echo "icx-proxy did not restart" && ps aux && exit 1)
+    "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for pocket-ic proxy to restart; sleep 1; done" \
+    || (echo "pocket-ic proxy did not restart" && ps aux && exit 1)
 
   assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
@@ -201,17 +201,4 @@ set_shared_local_network_canister_http_empty() {
   jq '.local.canister_http.log_level="critical"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
   assert_command dfx start --background --verbose
   assert_match "log level: Critical"
-}
-
-@test "can query a website" {
-  dfx_start
-
-  dfx_new
-  install_asset canister_http
-
-  dfx deploy
-
-  assert_command dfx canister call e2e_project_backend get_url '("www.githubstatus.com:443","https://www.githubstatus.com:443")'
-  assert_contains "Git Operations"
-  assert_contains "API Requests"
 }

@@ -143,9 +143,8 @@ dfx_start() {
     add_default_parameter "--host" "127.0.0.1:0"
     if [[ "$USE_POCKETIC" ]]; then
         add_default_parameter "--pocketic"
-    else
-        add_default_parameter "--artificial-delay" "100"
     fi
+    add_default_parameter "--artificial-delay" "100"
 
     determine_network_directory
 
@@ -202,11 +201,11 @@ wait_until_replica_healthy() {
 
 # Stop the replica and verify it is very very stopped.
 dfx_stop() {
-    # to help tell if other icx-proxy processes are from this test:
+    # to help tell if other pocket-ic proxy processes are from this test:
     echo "pwd: $(pwd)"
-    # A suspicion: "address already is use" errors are due to an extra icx-proxy process.
-    echo "icx-proxy processes:"
-    pgrep -l icx-proxy || echo "no ps/grep/icx-proxy output"
+    # A suspicion: "address already is use" errors are due to an extra pocket-ic proxy process.
+    echo "pocket-ic processes:"
+    pgrep -l pocket-ic || echo "no ps/grep/pocket-ic output"
 
     dfx stop
     local dfx_root=.dfx/
@@ -301,8 +300,12 @@ get_canister_http_adapter_pid() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 }
 
-get_icx_proxy_pid() {
-  cat "$E2E_NETWORK_DATA_DIRECTORY/icx-proxy-pid"
+get_pocketic_proxy_pid() {
+  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-proxy-pid"
+}
+
+get_pocketic_proxy_config_port() {
+  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-proxy-port"
 }
 
 create_networks_json() {

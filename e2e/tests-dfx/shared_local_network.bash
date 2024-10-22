@@ -12,16 +12,6 @@ teardown() {
   standard_teardown
 }
 
-@test "shared local network always requires --clean with pocketic" {
-  [[ "$USE_POCKETIC" ]] || skip "specific to dfx start --pocketic"
-
-  assert_command dfx_start
-  assert_command dfx stop
-
-  assert_command_fail dfx start --pocketic
-  assert_contains "The network state can't be reused with this configuration. Rerun with \`--clean\`"
-}
-
 @test "dfx start creates no files in the current directory when run from an empty directory" {
   dfx_start
   assert_command find .
@@ -37,7 +27,6 @@ teardown() {
 }
 
 @test "project data is cleared after dfx start --clean from outside the project" {
-  [[ "$USE_POCKETIC" ]] && skip "dfx_start does not support parameters with pocketic"
   mkdir somewhere
   (
     cd somewhere
@@ -104,7 +93,6 @@ teardown() {
 
 
 @test "wallet config file is reset after start --clean" {
-  [[ "$USE_POCKETIC" ]] && skip "dfx_start does not support parameters with pocketic"
   dfx_start
 
   (

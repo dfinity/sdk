@@ -18,6 +18,7 @@ mod metadata;
 mod request_status;
 mod send;
 mod sign;
+mod snapshot;
 mod start;
 mod status;
 mod stop;
@@ -54,6 +55,7 @@ pub enum SubCommand {
     RequestStatus(request_status::RequestStatusOpts),
     Send(send::CanisterSendOpts),
     Sign(sign::CanisterSignOpts),
+    Snapshot(snapshot::SnapshotOpts),
     Start(start::CanisterStartOpts),
     Status(status::CanisterStatusOpts),
     Stop(stop::CanisterStopOpts),
@@ -87,6 +89,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::RequestStatus(v) => request_status::exec(env, v).await,
             SubCommand::Send(v) => send::exec(env, v, &call_sender()?).await,
             SubCommand::Sign(v) => sign::exec(env, v, &call_sender()?).await,
+            SubCommand::Snapshot(v) => snapshot::exec(env, v, &call_sender()?).await,
             SubCommand::Start(v) => start::exec(env, v, &call_sender()?).await,
             SubCommand::Status(v) => status::exec(env, v, &call_sender()?).await,
             SubCommand::Stop(v) => stop::exec(env, v, &call_sender()?).await,

@@ -36,9 +36,7 @@ use crate::error::socket_addr_conversion::SocketAddrConversionError::{
     EmptyIterator, ParseSocketAddrFailed,
 };
 use crate::error::structured_file::StructuredFileError;
-use crate::error::structured_file::StructuredFileError::{
-    DeserializeJsonFileFailed, ReadJsonFileFailed,
-};
+use crate::error::structured_file::StructuredFileError::DeserializeJsonFileFailed;
 use crate::extension::manager::ExtensionManager;
 use crate::fs::create_dir_all;
 use crate::json::save_json_file;
@@ -273,6 +271,7 @@ pub struct ConfigCanistersCanister {
 
     /// # Post-Install Commands
     /// One or more commands to run post canister installation.
+    /// These commands are executed in the root of the project.
     #[serde(default)]
     pub post_install: SerdeVec<String>,
 
@@ -381,6 +380,7 @@ pub enum CanisterTypeProperties {
         /// Commands that are executed in order to produce this canister's Wasm module.
         /// Expected to produce the Wasm in the path specified by the 'wasm' field.
         /// No build commands are allowed if the `wasm` field is a URL.
+        /// These commands are executed in the root of the project.
         #[schemars(default)]
         build: SerdeVec<String>,
     },
@@ -407,12 +407,14 @@ impl CanisterTypeProperties {
     }
 }
 
-#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "lowercase")]
+#[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum CanisterLogVisibility {
     #[default]
     Controllers,
     Public,
+    #[schemars(with = "Vec::<String>")]
+    AllowedViewers(Vec<Principal>),
 }
 
 impl From<CanisterLogVisibility> for LogVisibility {
@@ -420,6 +422,9 @@ impl From<CanisterLogVisibility> for LogVisibility {
         match value {
             CanisterLogVisibility::Controllers => LogVisibility::Controllers,
             CanisterLogVisibility::Public => LogVisibility::Public,
+            CanisterLogVisibility::AllowedViewers(viewers) => {
+                LogVisibility::AllowedViewers(viewers)
+            }
         }
     }
 }
@@ -475,7 +480,7 @@ pub struct InitializationValues {
     /// # Log Visibility
     /// Specifies who is allowed to read the canister's logs.
     ///
-    /// Can be "public" or "controllers".
+    /// Can be "public", "controllers" or "allowed_viewers" with a list of principals.
     #[schemars(with = "Option<CanisterLogVisibility>")]
     pub log_visibility: Option<CanisterLogVisibility>,
 }
@@ -619,6 +624,7 @@ impl Default for ConfigDefaultsBootstrap {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBuild {
     /// Main command to run the packtool.
+    /// This command is executed in the root of the project.
     pub packtool: Option<String>,
 
     /// Arguments for packtool.
@@ -643,7 +649,7 @@ impl Default for ReplicaLogLevel {
 }
 
 impl ReplicaLogLevel {
-    pub fn as_ic_starter_string(&self) -> String {
+    pub fn to_ic_starter_string(&self) -> String {
         match self {
             Self::Critical => "critical".to_string(),
             Self::Error => "error".to_string(),
@@ -671,11 +677,11 @@ pub struct ConfigDefaultsReplica {
     pub log_level: Option<ReplicaLogLevel>,
 }
 
-/// Configuration for icx-proxy.
+/// Configuration for the HTTP gateway.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsProxy {
     /// A list of domains that can be served. These are used for canister resolution [default: localhost]
-    pub domain: SerdeVec<String>,
+    pub domain: Option<SerdeVec<String>>,
 }
 
 // Schemars doesn't add the enum value's docstrings. Therefore the explanations have to be up here.
@@ -1007,6 +1013,7 @@ impl ConfigInterface {
             .map_err(|e| GetLogVisibilityFailed(canister_name.to_string(), e))?
             .initialization_values
             .log_visibility
+            .clone()
             .map(|visibility| visibility.into()))
     }
 
@@ -1113,7 +1120,7 @@ impl Config {
         path: &Path,
         extension_manager: Option<&ExtensionManager>,
     ) -> Result<Config, LoadDfxConfigError> {
-        let content = crate::fs::read(path).map_err(LoadDfxConfigError::ReadFile)?;
+        let content = crate::fs::read(path)?;
         Config::from_slice(path.to_path_buf(), &content, extension_manager)
     }
 
@@ -1325,7 +1332,7 @@ impl NetworksConfig {
     }
 
     fn from_file(path: &Path) -> Result<NetworksConfig, StructuredFileError> {
-        let content = crate::fs::read(path).map_err(ReadJsonFileFailed)?;
+        let content = crate::fs::read(path)?;
 
         let networks: BTreeMap<String, ConfigNetwork> = serde_json::from_slice(&content)
             .map_err(|e| DeserializeJsonFileFailed(Box::new(path.to_path_buf()), e))?;

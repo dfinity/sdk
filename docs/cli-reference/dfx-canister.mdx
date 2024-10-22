@@ -280,7 +280,8 @@ You can use the following options with the `dfx canister create` command.
 | `--memory-allocation <memory>`            | Specifies how much memory the canister is allowed to use in total. This should be a value in the range [0..12 GiB]. A setting of 0 means the canister will have access to memory on a “best-effort” basis: It will only be charged for the memory it uses, but at any point in time may stop running if it tries to allocate more memory when there isn’t space available on the subnet. |
 | `--reserved-cycles-limit <limit>`         | Specifies the upper limit for the canister's reserved cycles.                                                                                                                                                                                                                                                                                                                            |
 | `--wasm-memory-limit <limit>`             | Specifies a soft upper limit for the canister's heap memory.                                                                                                                                                                                                                                                                                                                             |
-| `--log-visibility <visibility>`           | Specifies who is allowed to read the canister's logs. Can be either "controllers" or "public".                                                                                                                                                                                                                                                                                           |
+| `--log-viewer <principal>`                | Specifies the principal as an allowed viewers. Can be specified more than once. Cannot be used with `--log-visibility`.                                                                                                                                                                                                                                                                  |
+| `--log-visibility <visibility>`           | Specifies who can read the canister's logs: "controllers" or "public". For custom allowed viewers, use `--log-viewer`.                                                                                                                                                                                                                                                                   |
 | `--no-wallet`                             | Performs the call with the user Identity as the Sender of messages. Bypasses the Wallet canister. Enabled by default.                                                                                                                                                                                                                                                                    |
 | `--with-cycles <number-of-cycles>`        | Specifies the initial cycle balance to deposit into the newly created canister. The specified amount needs to take the canister create fee into account. This amount is deducted from the wallet's cycle balance.                                                                                                                                                                        |
 | `--specified-id <PRINCIPAL>`              | Attempts to create the canister with this Canister ID                                                                                                                                                                                                                                                                                                                                    |
@@ -534,17 +535,19 @@ dfx canister install [option] [--all | canister_name]
 
 You can use the following options with the `dfx canister install` command.
 
-| Option                            | Description                                                                                                                                                                                                                                                           |
-|-----------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--argument <argument>`           | Specifies an argument to pass to the canister during installation.                                                                                                                                                                                                    |
-| `--argument-type <argument-type>` | Specifies the data type for the argument when making the call using an argument [possible values: idl, raw]                                                                                                                                                           |
-| `--argument-file <argument-file>` | Specifies the file from which to read the argument to pass to the init method.  Stdin may be referred to as `-`.                                                                                                                                                      |
-| `--async-call`                    | Enables you to continue without waiting for the result of the installation to be returned by polling the Internet Computer or the local canister execution environment.                                                                                               |
-| `-m`, `--mode <mode>`             | Specifies whether you want to `install`, `reinstall`, or `upgrade` canisters. Defaults to `install`. For more information about installation modes and canister management, see [managing canisters](/docs/current/developer-docs/smart-contracts/maintain/settings). |
-| `--no-wallet`                     | Performs the call with the user Identity as the Sender of messages. Bypasses the Wallet canister. Enabled by default.                                                                                                                                                 |
-| `--no-asset-upgrade`              | Skips upgrading the asset canister, to only install the assets themselves.                                                                                                                                                                                            |
-| `--upgrade-unchanged`             | Upgrade the canister even if the .wasm did not change.                                                                                                                                                                                                                |
-| `--wasm <file.wasm>`              | Specifies a particular Wasm file to install, bypassing the dfx.json project settings.                                                                                                                                                                                 |
+| Option                             | Description                                                                                                                                                                                                                                                           |
+|------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--argument <argument>`            | Specifies an argument to pass to the canister during installation.                                                                                                                                                                                                    |
+| `--argument-type <argument-type>`  | Specifies the data type for the argument when making the call using an argument [possible values: idl, raw]                                                                                                                                                           |
+| `--argument-file <argument-file>`  | Specifies the file from which to read the argument to pass to the init method.  Stdin may be referred to as `-`.                                                                                                                                                      |
+| `--async-call`                     | Enables you to continue without waiting for the result of the installation to be returned by polling the Internet Computer or the local canister execution environment.                                                                                               |
+| `-m`, `--mode <mode>`              | Specifies whether you want to `install`, `reinstall`, or `upgrade` canisters. Defaults to `install`. For more information about installation modes and canister management, see [managing canisters](/docs/current/developer-docs/smart-contracts/maintain/settings). |
+| `--no-wallet`                      | Performs the call with the user Identity as the Sender of messages. Bypasses the Wallet canister. Enabled by default.                                                                                                                                                 |
+| `--no-asset-upgrade`               | Skips upgrading the asset canister, to only install the assets themselves.                                                                                                                                                                                            |
+| `--upgrade-unchanged`              | Upgrade the canister even if the .wasm did not change.                                                                                                                                                                                                                |
+| `--wasm <file.wasm>`               | Specifies a particular Wasm file to install, bypassing the dfx.json project settings.                                                                                                                                                                                 |
+| `--skip-pre-upgrade`               | Skip the pre_upgrade hook on upgrade. This requires the upgrade/auto mode.                                                                                                                                                                                            |
+| `--wasm-memory-persistence <mode>` | Keep or replace the Wasm main memory on upgrade. Possible values: keep, replace. This requires the upgrade/auto mode.                                                                                                                                                 |
 
 #### Specifies the argument to pass to the init entrypoint
 
@@ -817,6 +820,128 @@ command:
 
 `dfx canister send message.json`
 
+## dfx canister snapshot create
+
+Use the `dfx canister snapshot create` command to create a snapshot of a stopped canister.
+It can later be applied with `dfx canister snapshot load` to reset the canister to that state.
+
+At both times, the canister must be stopped with `dfx canister stop`.
+
+### Basic usage
+
+```bash
+dfx canister snapshot create <canister> [--replace <replace>]
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister snapshot create` command.
+
+| Argument              | Description                                                                    |
+|-----------------------|--------------------------------------------------------------------------------|
+| `<canister>`          | The canister to snapshot.                                                      |
+| `--replace <replace>` | If a snapshot ID is specified, this snapshot will replace it and reuse the ID. |
+
+### Examples
+
+Use the `dfx canister snapshot create` command to take a snapshot of canister `hello`:
+
+```sh
+dfx canister stop hello
+dfx canister snapshot create hello
+dfx canister start hello
+```
+
+To replace an existing snapshot to save space:
+
+```sh
+dfx canister stop hello
+dfx canister snapshot create hello --replace a1b2c3d4
+dfx canister start hello
+```
+
+## dfx canister snapshot load
+
+Use the `dfx canister snapshot load` command to load a canister snapshot previously taken with `dfx canister snapshot create`.
+
+At both times, the canister must be stopped with `dfx canister stop`.
+
+### Basic usage
+
+```sh
+dfx canister snapshot load <canister> <snapshot>
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister snapshot load` command.
+
+| Argument     | Description                           |
+|--------------|---------------------------------------|
+| `<canister>` | The canister to load the snapshot in. |
+| `<snapshot>` | The ID of the snapshot to load.       |
+
+### Examples
+
+Use the `dfx canister snapshot load` command to load a previously-taken snapshot in canister `hello`, deleting any data since the snapshot was taken:
+
+```sh
+dfx canister snapshot load hello 1a2b3c4d
+```
+
+## dfx canister snapshot delete
+
+Use the `dfx canister snapshot delete` command to delete a canister snapshot previously taken with `dfx canister snapshot create`.
+
+### Basic usage 
+
+```sh
+dfx canister snapshot delete <canister> <snapshot>
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister snapshot delete` command.
+
+| Argument     | Description                               |
+|--------------|-------------------------------------------|
+| `<canister>` | The canister to delete the snapshot from. |
+| `<snapshot>` | The ID of the snapshot to delete.         |
+
+### Examples
+
+Use the `dfx canister snapshot delete` command to delete a snapshot from canister `hello`:
+
+```sh
+dfx canister snapshot delete hello 1a2b3c4d
+```
+
+## dfx canister snapshot list
+
+Use the `dfx canister snapshot list` command to display all saved snapshots for a canister. They can be loaded with `dfx canister snapshot load` or deleted with `dfx canister snapshot delete`.
+
+### Basic usage
+
+```sh
+dfx canister snapshot list <canister>
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister snapshot list` command.
+
+| Argument     | Description                          |
+|--------------|--------------------------------------|
+| `<canister>` | The canister to list snapshots from. |
+
+### Examples
+
+Use the `dfx canister snapshot list` command to list the snapshots in canister `hello`:
+
+```sh
+dfx canister snapshot list hello
+```
+
 ## dfx canister start
 
 Use the `dfx canister start` command to restart a stopped canister on the Internet Computer or the local canister
@@ -1013,14 +1138,17 @@ You can specify the following options for the `dfx canister update-settings` com
 | Option                                    | Description                                                                                                                                                                                                                                                                                                                                                                              |
 |-------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `--add-controller <principal>`            | Add a principal to the list of controllers of the canister.                                                                                                                                                                                                                                                                                                                              |
+| `--add-log-viewer <principal>`            | Add a principal to the list of log viewers of the canister. Can be specified more than once to add multiple log viewers. If current log visibility is `public` or `controllers`, it will be changed to the custom allowed viewer list.                                                                                                                                                   |
 | `-c`, `--compute-allocation <allocation>` | Specifies the canister's compute allocation. This should be a percent in the range [0..100].                                                                                                                                                                                                                                                                                             |
 | `--confirm-very-long-freezing-threshold`  | Freezing thresholds above ~1.5 years require this option as confirmation.                                                                                                                                                                                                                                                                                                                |
 | `--set-controller <principal>`            | Specifies the identity name or the principal of the new controller. Can be specified more than once, indicating the canister will have multiple controllers. If any controllers are set with this parameter, any other controllers will be removed.                                                                                                                                      |
+| `--set-log-viewer <principal>`            | Specifies the the principal of the log viewer of the canister. Can be specified more than once, indicating the canister will have multiple log viewers. If any log viewers are set with this parameter, any other log viewers will be removed. If current log visibility is `public` or `controllers`, it will be changed to the custom allowed viewer list.                             |
 | `--memory-allocation <allocation>`        | Specifies how much memory the canister is allowed to use in total. This should be a value in the range [0..12 GiB]. A setting of 0 means the canister will have access to memory on a “best-effort” basis: It will only be charged for the memory it uses, but at any point in time may stop running if it tries to allocate more memory when there isn’t space available on the subnet. |
 | `--reserved-cycles-limit <limit>`         | Specifies the upper limit of the canister's reserved cycles.                                                                                                                                                                                                                                                                                                                             |
 | `--wasm-memory-limit <limit>`             | Specifies a soft upper limit for the canister's heap memory.                                                                                                                                                                                                                                                                                                                             |
-| `--log-visibility <visibility>`           | Specifies who is allowed to read the canister's logs. Can be either "controllers" or "public".                                                                                                                                                                                                                                                                                           |
+| `--log-visibility <visibility>`           | Specifies who is allowed to read the canister's logs. Can be either "controllers" or "public". For custom allowed viewers, use `--set-log-viewer` or `--add-log-viewer`.                                                                                                                                                                                                                 |
 | `--remove-controller <principal>`         | Removes a principal from the list of controllers of the canister.                                                                                                                                                                                                                                                                                                                        |
+| `--remove-log-viewer <principal>`         | Removes a principal from the list of log viewers of the canister. Can be specified more than once to remove multiple log viewers.                                                                                                                                                                                                                                                        |
 | `--freezing-threshold <seconds>`          | Set the [freezing threshold](https://internetcomputer.org/docs/current/references/ic-interface-spec/#ic-create_canister) in seconds for a canister. This should be a value in the range [0..2^64^-1]. Very long thresholds require the `--confirm-very-long-freezing-threshold` option.                                                                                                  |
 | `-y`, `--yes`                             | Skips yes/no checks by answering 'yes'. Such checks can result in loss of control, so this is not recommended outside of CI.                                                                                                                                                                                                                                                             |
 
@@ -1069,9 +1197,9 @@ dfx canister url <canister>
 
 You can use the following argument with the `dfx canister url` command.
 
-| Argument        | Description                                                                     |
-|-----------------|---------------------------------------------------------------------------------|
-| `canister`      | Specifies the name or id of the canister for which you want to display the url. |
+| Argument   | Description                                                                     |
+|------------|---------------------------------------------------------------------------------|
+| `canister` | Specifies the name or id of the canister for which you want to display the url. |
 
 ### Examples
 

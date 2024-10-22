@@ -2,8 +2,6 @@ use crate::actors::btc_adapter::signals::BtcAdapterReadySubscribe;
 use crate::actors::btc_adapter::BtcAdapter;
 use crate::actors::canister_http_adapter::signals::CanisterHttpAdapterReadySubscribe;
 use crate::actors::canister_http_adapter::CanisterHttpAdapter;
-use crate::actors::icx_proxy::signals::PortReadySubscribe;
-use crate::actors::icx_proxy::{IcxProxy, IcxProxyConfig};
 use crate::actors::replica::{BitcoinIntegrationConfig, Replica};
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::environment::Environment;
@@ -13,6 +11,8 @@ use anyhow::Context;
 use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
 use dfx_core::config::model::replica_config::ReplicaConfig;
 use fn_error_context::context;
+use pocketic_proxy::signals::PortReadySubscribe;
+use pocketic_proxy::{PocketIcProxy, PocketIcProxyConfig};
 use std::fs;
 use std::path::PathBuf;
 
@@ -20,8 +20,8 @@ use self::pocketic::PocketIc;
 
 pub mod btc_adapter;
 pub mod canister_http_adapter;
-pub mod icx_proxy;
 pub mod pocketic;
+pub mod pocketic_proxy;
 pub mod replica;
 mod shutdown;
 pub mod shutdown_controller;
@@ -158,32 +158,32 @@ pub fn start_replica_actor(
     Ok(Replica::new(actor_config).start())
 }
 
-#[context("Failed to start icx proxy actor.")]
-pub fn start_icx_proxy_actor(
+#[context("Failed to start HTTP gateway actor.")]
+pub fn start_pocketic_proxy_actor(
     env: &dyn Environment,
-    icx_proxy_config: IcxProxyConfig,
+    pocketic_proxy_config: PocketIcProxyConfig,
     port_ready_subscribe: Option<Recipient<PortReadySubscribe>>,
     shutdown_controller: Addr<ShutdownController>,
-    icx_proxy_pid_path: PathBuf,
-) -> DfxResult<Addr<IcxProxy>> {
-    let icx_proxy_path = env.get_cache().get_binary_command_path("icx-proxy")?;
-
-    let actor_config = icx_proxy::Config {
+    pocketic_proxy_pid_path: PathBuf,
+    pocketic_proxy_port_path: PathBuf,
+) -> DfxResult<Addr<PocketIcProxy>> {
+    let pocketic_proxy_path = env.get_cache().get_binary_command_path("pocket-ic")?;
+    let actor_config = pocketic_proxy::Config {
         logger: Some(env.get_logger().clone()),
-
         port_ready_subscribe,
         shutdown_controller,
-
-        icx_proxy_config,
-        icx_proxy_path,
-        icx_proxy_pid_path,
+        pocketic_proxy_config,
+        pocketic_proxy_path,
+        pocketic_proxy_pid_path,
+        pocketic_proxy_port_path,
     };
-    Ok(IcxProxy::new(actor_config).start())
+    Ok(PocketIcProxy::new(actor_config).start())
 }
 
 #[context("Failed to start PocketIC actor.")]
 pub fn start_pocketic_actor(
     env: &dyn Environment,
+    replica_config: ReplicaConfig,
     local_server_descriptor: &LocalServerDescriptor,
     shutdown_controller: Addr<ShutdownController>,
     pocketic_port_path: PathBuf,
@@ -203,6 +203,8 @@ pub fn start_pocketic_actor(
 
     let actor_config = pocketic::Config {
         pocketic_path,
+        effective_config_path: local_server_descriptor.effective_config_path(),
+        replica_config,
         port: local_server_descriptor.replica.port,
         port_file: pocketic_port_path,
         pid_file: local_server_descriptor.pocketic_pid_path(),

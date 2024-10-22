@@ -1,4 +1,5 @@
 use crate::config::model::dfinity::{ReplicaLogLevel, ReplicaSubnetType};
+use candid::Principal;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::default::Default;
@@ -186,12 +187,13 @@ impl HttpHandlerConfig {
 #[allow(clippy::large_enum_variant)]
 pub enum CachedReplicaConfig<'a> {
     Replica { config: Cow<'a, ReplicaConfig> },
-    PocketIc,
+    PocketIc { config: Cow<'a, ReplicaConfig> },
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct CachedConfig<'a> {
     pub replica_rev: String,
+    pub effective_canister_id: Option<Principal>,
     #[serde(flatten)]
     pub config: CachedReplicaConfig<'a>,
 }
@@ -200,27 +202,29 @@ impl<'a> CachedConfig<'a> {
     pub fn replica(config: &'a ReplicaConfig, replica_rev: String) -> Self {
         Self {
             replica_rev,
+            effective_canister_id: None,
             config: CachedReplicaConfig::Replica {
                 config: Cow::Borrowed(config),
             },
         }
     }
-    pub fn pocketic(replica_rev: String) -> Self {
+    pub fn pocketic(
+        config: &'a ReplicaConfig,
+        replica_rev: String,
+        effective_canister_id: Option<Principal>,
+    ) -> Self {
         Self {
             replica_rev,
-            config: CachedReplicaConfig::PocketIc,
+            effective_canister_id,
+            config: CachedReplicaConfig::PocketIc {
+                config: Cow::Borrowed(config),
+            },
         }
-    }
-    pub fn is_pocketic(&self) -> bool {
-        matches!(self.config, CachedReplicaConfig::PocketIc)
     }
     pub fn can_share_state(&self, other: &Self) -> bool {
-        match (&self.config, &other.config) {
-            (CachedReplicaConfig::PocketIc, _) | (_, CachedReplicaConfig::PocketIc) => false,
-            (
-                CachedReplicaConfig::Replica { config: config1 },
-                CachedReplicaConfig::Replica { config: config2 },
-            ) => self.replica_rev == other.replica_rev && config1 == config2,
-        }
+        self == other
+    }
+    pub fn get_effective_canister_id(&self) -> Option<Principal> {
+        self.effective_canister_id
     }
 }

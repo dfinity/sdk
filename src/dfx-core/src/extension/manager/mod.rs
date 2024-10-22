@@ -1,14 +1,17 @@
 use crate::config::cache::get_cache_path_for_version;
-use crate::error::extension::{GetExtensionBinaryError, NewExtensionManagerError};
+use crate::error::extension::{
+    GetExtensionBinaryError, LoadExtensionManifestsError, NewExtensionManagerError,
+};
+use crate::extension::{installed::InstalledExtensionManifests, manifest::ExtensionManifest};
+pub use install::InstallOutcome;
 use semver::Version;
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 mod execute;
 mod install;
 mod list;
 mod uninstall;
-
-pub use install::InstallOutcome;
 
 pub struct ExtensionManager {
     pub dir: PathBuf,
@@ -17,9 +20,7 @@ pub struct ExtensionManager {
 
 impl ExtensionManager {
     pub fn new(version: &Version) -> Result<Self, NewExtensionManagerError> {
-        let extensions_dir = get_cache_path_for_version(&version.to_string())
-            .map_err(NewExtensionManagerError::FindCacheDirectoryFailed)?
-            .join("extensions");
+        let extensions_dir = get_cache_path_for_version(&version.to_string())?.join("extensions");
 
         Ok(Self {
             dir: extensions_dir,
@@ -53,5 +54,19 @@ impl ExtensionManager {
 
     pub fn is_extension_installed(&self, extension_name: &str) -> bool {
         self.get_extension_directory(extension_name).exists()
+    }
+
+    pub fn load_installed_extension_manifests(
+        &self,
+    ) -> Result<InstalledExtensionManifests, LoadExtensionManifestsError> {
+        let manifests = self
+            .list_installed_extensions()?
+            .into_iter()
+            .map(|name| {
+                ExtensionManifest::load(&name, &self.dir)
+                    .map(|manifest| (manifest.name.clone(), manifest))
+            })
+            .collect::<Result<HashMap<_, _>, _>>()?;
+        Ok(InstalledExtensionManifests(manifests))
     }
 }

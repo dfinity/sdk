@@ -7,17 +7,21 @@ use crate::canister_api::types::batch_upload::common::{
     UnsetAssetContentArguments,
 };
 use crate::canister_api::types::batch_upload::v1::{BatchOperationKind, CommitBatchArguments};
+use crate::error::{AssembleCommitBatchArgumentError, SetEncodingError};
 use candid::Nat;
 use std::collections::HashMap;
 
+use super::plumbing::ChunkUploader;
+
 pub(crate) const BATCH_UPLOAD_API_VERSION: u16 = 1;
 
-pub(crate) fn assemble_batch_operations(
+pub(crate) async fn assemble_batch_operations(
+    chunk_uploader: Option<&ChunkUploader<'_>>,
     project_assets: &HashMap<String, ProjectAsset>,
     canister_assets: HashMap<String, AssetDetails>,
     asset_deletion_reason: AssetDeletionReason,
     canister_asset_properties: HashMap<String, AssetProperties>,
-) -> Vec<BatchOperationKind> {
+) -> Result<Vec<BatchOperationKind>, AssembleCommitBatchArgumentError> {
     let mut canister_assets = canister_assets;
 
     let mut operations = vec![];
@@ -30,29 +34,34 @@ pub(crate) fn assemble_batch_operations(
     );
     create_new_assets(&mut operations, project_assets, &canister_assets);
     unset_obsolete_encodings(&mut operations, project_assets, &canister_assets);
-    set_encodings(&mut operations, project_assets);
+    set_encodings(&mut operations, chunk_uploader, project_assets)
+        .await
+        .map_err(AssembleCommitBatchArgumentError::SetEncodingFailed)?;
     update_properties(&mut operations, project_assets, &canister_asset_properties);
 
-    operations
+    Ok(operations)
 }
 
-pub(crate) fn assemble_commit_batch_arguments(
+pub(crate) async fn assemble_commit_batch_arguments(
+    chunk_uploader: &ChunkUploader<'_>,
     project_assets: HashMap<String, ProjectAsset>,
     canister_assets: HashMap<String, AssetDetails>,
     asset_deletion_reason: AssetDeletionReason,
     canister_asset_properties: HashMap<String, AssetProperties>,
     batch_id: Nat,
-) -> CommitBatchArguments {
+) -> Result<CommitBatchArguments, AssembleCommitBatchArgumentError> {
     let operations = assemble_batch_operations(
+        Some(chunk_uploader),
         &project_assets,
         canister_assets,
         asset_deletion_reason,
         canister_asset_properties,
-    );
-    CommitBatchArguments {
+    )
+    .await?;
+    Ok(CommitBatchArguments {
         operations,
         batch_id,
-    }
+    })
 }
 
 pub(crate) enum AssetDeletionReason {
@@ -153,29 +162,39 @@ pub(crate) fn unset_obsolete_encodings(
     }
 }
 
-pub(crate) fn set_encodings(
+pub(crate) async fn set_encodings(
     operations: &mut Vec<BatchOperationKind>,
+    chunk_uploader: Option<&ChunkUploader<'_>>,
     project_assets: &HashMap<String, ProjectAsset>,
-) {
+) -> Result<(), SetEncodingError> {
     for (key, project_asset) in project_assets {
         for (content_encoding, v) in &project_asset.encodings {
             if v.already_in_place {
                 continue;
             }
 
-            let mut chunk_ids = v.chunk_ids.clone();
-            chunk_ids.sort();
+            let (mut chunk_ids, last_chunk) = match chunk_uploader {
+                Some(uploader) => {
+                    uploader
+                        .uploader_ids_to_canister_chunk_ids(&v.uploader_chunk_ids)
+                        .await?
+                }
+                None => (vec![], None),
+            };
 
+            chunk_ids.sort();
             operations.push(BatchOperationKind::SetAssetContent(
                 SetAssetContentArguments {
                     key: key.clone(),
                     content_encoding: content_encoding.clone(),
                     chunk_ids,
+                    last_chunk,
                     sha256: Some(v.sha256.clone()),
                 },
             ));
         }
     }
+    Ok(())
 }
 
 pub(crate) fn update_properties(

@@ -1,20 +1,21 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::sign::signed_message::SignedMessageV1;
-use anyhow::{anyhow, bail, Context};
-use candid::Principal;
+use anyhow::{bail, Context};
+use candid::{IDLArgs, Principal};
 use clap::Parser;
 use dfx_core::identity::CallSender;
-use ic_agent::agent::Transport;
-use ic_agent::{agent::http_transport::ReqwestTransport, RequestId};
-use std::{fs::File, path::Path};
-use std::{io::Read, str::FromStr};
+use dfx_core::json::load_json_file;
+use ic_agent::agent::{CallResponse, RequestStatusResponse};
+use ic_agent::Agent;
+use ic_agent::RequestId;
+use std::path::PathBuf;
 
 /// Send a previously-signed message.
 #[derive(Parser)]
 pub struct CanisterSendOpts {
     /// Specifies the file name of the message
-    file_name: String,
+    file_name: PathBuf,
 
     /// Send the signed request-status call in the message
     #[arg(long)]
@@ -30,38 +31,64 @@ pub async fn exec(
         bail!("`send` currently doesn't support proxying through the wallet canister, please use `dfx canister send --no-wallet ...`.");
     }
     let file_name = opts.file_name;
-    let path = Path::new(&file_name);
-    let mut file = File::open(path).map_err(|_| anyhow!("Message file doesn't exist."))?;
-    let mut json = String::new();
-    file.read_to_string(&mut json)
-        .map_err(|_| anyhow!("Cannot read the message file."))?;
-    let message: SignedMessageV1 =
-        serde_json::from_str(&json).map_err(|_| anyhow!("Invalid json message."))?;
+    let message: SignedMessageV1 = load_json_file(&file_name)?;
     message.validate()?;
 
     let network = message.network.clone();
-    let transport =
-        ReqwestTransport::create(network).context("Failed to create transport object.")?;
+    let agent = Agent::builder().with_url(&network).build()?;
+    if !message.is_ic {
+        agent.fetch_root_key().await?;
+    }
     let content = hex::decode(&message.content).context("Failed to decode message content.")?;
-    let canister_id = Principal::from_text(message.canister_id.clone())
+    let canister_id = Principal::from_text(&message.canister_id)
         .with_context(|| format!("Failed to parse canister id {:?}.", message.canister_id))?;
 
     if opts.status {
-        if message.call_type.clone().as_str() != "update" {
+        if message.call_type != "update" {
             bail!("Can only check request_status on update calls.");
         }
-        if message.signed_request_status.is_none() {
-            bail!("No signed_request_status in [{}].", file_name);
-        }
-        let envelope = hex::decode(message.signed_request_status.unwrap())
-            .context("Failed to decode envelope.")?;
-        let response = transport
-            .read_state(canister_id, envelope)
+        let Some(signed_request_status) = message.signed_request_status else {
+            bail!("No signed_request_status in [{}].", file_name.display());
+        };
+        let envelope = hex::decode(signed_request_status).context("Failed to decode envelope.")?;
+        let Some(request_id) = message.request_id else {
+            bail!("No request_id in [{}].", file_name.display());
+        };
+        let request_id = request_id
+            .parse::<RequestId>()
+            .context("Failed to decode request ID.")?;
+        let response = agent
+            .request_status_signed(&request_id, canister_id, envelope)
             .await
             .with_context(|| format!("Failed to read canister state of {}.", canister_id))?;
-        eprintln!("To see the content of response, copy-paste the encoded string into cbor.me.");
         eprint!("Response: ");
-        println!("{}", hex::encode(response));
+        match response {
+            RequestStatusResponse::Received => eprintln!("Received, not yet processing"),
+            RequestStatusResponse::Processing => eprintln!("Processing, not yet done"),
+            RequestStatusResponse::Rejected(response) => {
+                if let Some(error_code) = response.error_code {
+                    println!(
+                        "Rejected ({:?}): {}, error code {}",
+                        response.reject_code, response.reject_message, error_code
+                    );
+                } else {
+                    println!(
+                        "Rejected ({:?}): {}",
+                        response.reject_code, response.reject_message
+                    );
+                }
+            }
+            RequestStatusResponse::Replied(response) => {
+                eprint!("Replied: ");
+                if let Ok(idl) = IDLArgs::from_bytes(&response.arg) {
+                    println!("{idl}");
+                } else {
+                    println!("{}", hex::encode(&response.arg));
+                }
+            }
+            RequestStatusResponse::Done => println!("Done, response no longer available"),
+            RequestStatusResponse::Unknown => println!("Unknown"),
+        }
         return Ok(());
     }
 
@@ -87,37 +114,43 @@ pub async fn exec(
 
     match message.call_type.as_str() {
         "query" => {
-            let response = transport
-                .query(canister_id, content)
+            let response = agent
+                .query_signed(canister_id, content)
                 .await
                 .with_context(|| format!("Query call to {} failed.", canister_id))?;
-            eprintln!(
-                "To see the content of response, copy-paste the encoded string into cbor.me."
-            );
             eprint!("Response: ");
-            println!("{}", hex::encode(response));
+            if let Ok(idl) = IDLArgs::from_bytes(&response) {
+                println!("{}", idl)
+            } else {
+                println!("{}", hex::encode(&response));
+            }
         }
         "update" => {
-            let request_id = RequestId::from_str(
-                &message
-                    .request_id
-                    .expect("Cannot get request_id from the update message."),
-            )
-            .context("Failed to read request_id.")?;
-            transport
-                .call(canister_id, content, request_id)
+            let call_response = agent
+                .update_signed(canister_id, content)
                 .await
                 .with_context(|| format!("Update call to {} failed.", canister_id))?;
-
-            eprintln!(
-                "To check the status of this update call, append `--status` to current command."
-            );
-            eprintln!("e.g. `dfx canister send message.json --status`");
-            eprintln!("Alternatively, if you have the correct identity on this machine, using `dfx canister request-status` with following arguments.");
-            eprint!("Request ID: ");
-            println!("0x{}", String::from(request_id));
-            eprint!("Canister ID: ");
-            println!("{}", canister_id);
+            match call_response {
+                CallResponse::Poll(request_id) => {
+                    eprintln!(
+                        "To check the status of this update call, append `--status` to current command."
+                    );
+                    eprintln!("e.g. `dfx canister send message.json --status`");
+                    eprintln!("Alternatively, if you have the correct identity on this machine, using `dfx canister request-status` with following arguments.");
+                    eprint!("Request ID: ");
+                    println!("0x{}", String::from(request_id));
+                    eprint!("Canister ID: ");
+                    println!("{}", canister_id);
+                }
+                CallResponse::Response(response) => {
+                    eprint!("Response: ");
+                    if let Ok(idl) = IDLArgs::from_bytes(&response) {
+                        println!("{idl}");
+                    } else {
+                        println!("{}", hex::encode(&response));
+                    }
+                }
+            }
         }
         // message.validate() guarantee that call_type must be query or update
         _ => unreachable!(),

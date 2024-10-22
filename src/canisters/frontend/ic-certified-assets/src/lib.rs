@@ -35,7 +35,7 @@ thread_local! {
 #[query]
 #[candid_method(query)]
 fn api_version() -> u16 {
-    1
+    2
 }
 
 #[update(guard = "is_manager_or_controller")]
@@ -163,6 +163,15 @@ fn create_batch() -> CreateBatchResponse {
 fn create_chunk(arg: CreateChunkArg) -> CreateChunkResponse {
     STATE.with(|s| match s.borrow_mut().create_chunk(arg, time()) {
         Ok(chunk_id) => CreateChunkResponse { chunk_id },
+        Err(msg) => trap(&msg),
+    })
+}
+
+#[update(guard = "can_prepare")]
+#[candid_method(update)]
+fn create_chunks(arg: CreateChunksArg) -> CreateChunksResponse {
+    STATE.with(|s| match s.borrow_mut().create_chunks(arg, time()) {
+        Ok(chunk_ids) => CreateChunksResponse { chunk_ids },
         Err(msg) => trap(&msg),
     })
 }

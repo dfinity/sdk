@@ -46,6 +46,7 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo) -> DfxResult<BTreeS
     #[context("Failed recursive dependency detection at {}.", file.display())]
     fn get_imports_recursive(
         cache: &dyn Cache,
+        workspace_root: &Path,
         file: &Path,
         result: &mut BTreeSet<MotokoImport>,
     ) -> DfxResult {
@@ -56,6 +57,7 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo) -> DfxResult<BTreeS
         result.insert(MotokoImport::Relative(file.to_path_buf()));
 
         let mut command = cache.get_binary_command("moc")?;
+        command.current_dir(workspace_root);
         let command = command.arg("--print-deps").arg(file);
         let output = command
             .output()
@@ -66,7 +68,7 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo) -> DfxResult<BTreeS
             let import = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
             match import {
                 MotokoImport::Relative(path) => {
-                    get_imports_recursive(cache, path.as_path(), result)?;
+                    get_imports_recursive(cache, workspace_root, path.as_path(), result)?;
                 }
                 _ => {
                     result.insert(import);
@@ -78,7 +80,12 @@ fn get_imports(cache: &dyn Cache, info: &MotokoCanisterInfo) -> DfxResult<BTreeS
     }
 
     let mut result = BTreeSet::new();
-    get_imports_recursive(cache, info.get_main_path(), &mut result)?;
+    get_imports_recursive(
+        cache,
+        info.get_workspace_root(),
+        info.get_main_path(),
+        &mut result,
+    )?;
 
     Ok(result)
 }
@@ -154,8 +161,11 @@ impl CanisterBuilder for MotokoBuilder {
             config.env_file.as_deref(),
         )?;
 
-        let package_arguments =
-            package_arguments::load(cache.as_ref(), motoko_info.get_packtool())?;
+        let package_arguments = package_arguments::load(
+            cache.as_ref(),
+            motoko_info.get_packtool(),
+            canister_info.get_workspace_root(),
+        )?;
 
         let moc_arguments = match motoko_info.get_args() {
             Some(args) => [
@@ -190,6 +200,7 @@ impl CanisterBuilder for MotokoBuilder {
             output: output_wasm_path,
             idl_path: idl_dir_path,
             idl_map: &id_map,
+            workspace_root: canister_info.get_workspace_root(),
         };
         motoko_compile(&self.logger, cache.as_ref(), &params)?;
 
@@ -221,6 +232,7 @@ enum BuildTarget {
 
 struct MotokoParams<'a> {
     build_target: BuildTarget,
+    workspace_root: &'a Path,
     idl_path: &'a Path,
     idl_map: &'a CanisterIdMap,
     package_arguments: &'a PackageArguments,
@@ -263,6 +275,7 @@ impl MotokoParams<'_> {
 #[context("Failed to compile Motoko.")]
 fn motoko_compile(logger: &Logger, cache: &dyn Cache, params: &MotokoParams<'_>) -> DfxResult {
     let mut cmd = cache.get_binary_command("moc")?;
+    cmd.current_dir(params.workspace_root);
     params.to_args(&mut cmd);
     run_command(logger, &mut cmd, params.suppress_warning).context("Failed to run 'moc'.")?;
     Ok(())

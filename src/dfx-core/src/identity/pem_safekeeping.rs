@@ -10,7 +10,7 @@ use crate::error::{
         LoadPemError,
         LoadPemError::LoadFromKeyringFailed,
         LoadPemFromFileError,
-        LoadPemFromFileError::{DecryptPemFileFailed, ReadPemFileFailed},
+        LoadPemFromFileError::DecryptPemFileFailed,
         SavePemError,
         SavePemError::{CannotSavePemContentForHsm, WritePemToKeyringFailed},
         WritePemToFileError,
@@ -84,7 +84,7 @@ pub fn load_pem_from_file(
     path: &Path,
     config: Option<&IdentityConfiguration>,
 ) -> Result<(Vec<u8>, bool), LoadPemFromFileError> {
-    let content = crate::fs::read(path).map_err(ReadPemFileFailed)?;
+    let content = crate::fs::read(path)?;
 
     let (content, was_encrypted) = maybe_decrypt_pem(content.as_slice(), config)
         .map_err(|err| DecryptPemFileFailed(path.to_path_buf(), err))?;
@@ -108,10 +108,9 @@ pub fn write_pem_to_file(
 fn write_pem_content(path: &Path, pem_content: &[u8]) -> Result<(), WritePemContentError> {
     let containing_folder = crate::fs::parent(path)?;
     crate::fs::create_dir_all(&containing_folder)?;
-    crate::fs::write(path, pem_content).map_err(WritePemContentError::Write)?;
+    crate::fs::write(path, pem_content)?;
 
-    let mut permissions =
-        crate::fs::read_permissions(path).map_err(WritePemContentError::ReadPermissions)?;
+    let mut permissions = crate::fs::read_permissions(path)?;
 
     permissions.set_readonly(true);
     // On *nix, set the read permission to owner-only.
@@ -121,7 +120,7 @@ fn write_pem_content(path: &Path, pem_content: &[u8]) -> Result<(), WritePemCont
         permissions.set_mode(0o400);
     }
 
-    crate::fs::set_permissions(path, permissions).map_err(WritePemContentError::SetPermissions)?;
+    crate::fs::set_permissions(path, permissions)?;
     Ok(())
 }
 
