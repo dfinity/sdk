@@ -25,7 +25,7 @@ skipping the need to await a separate `create_chunk` call.
 
 Bumped `api_version` to `2` for the previous addition of `create_chunks` since the improved file sync relies on it.
 
-- Module hash: c8b4a8938db62aabe598c2817693016487dfdd321bb42b130b8249fa1576b1e5
+- Module hash: 296d1ad1a7f8b15f90ff8b728658646b649cabd159f360f1b427297f4c76763e
 - https://github.com/dfinity/sdk/pull/3954
 - https://github.com/dfinity/sdk/pull/3947
 
