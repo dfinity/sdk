@@ -132,25 +132,25 @@
         "owner": "dfinity",
         "sha256": "096icqgg2ab713zjxw8v5kn30ickp0av632j38ympwll7rb3rjl5",
         "type": "tarball",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.13.1/motoko-base-library.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.13.2/motoko-base-library.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-base-library.tar.gz",
-        "version": "0.13.1"
+        "version": "0.13.2"
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
         "sha256": "1gz7k5xnq7cifdvsbpi5ymfcfn61wk6av4xidal1w23xx0q90m4q",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.13.1/motoko-Darwin-x86_64-0.13.1.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.13.2/motoko-Darwin-x86_64-0.13.1.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Darwin-x86_64-<version>.tar.gz",
-        "version": "0.13.1"
+        "version": "0.13.2"
     },
     "motoko-x86_64-linux": {
         "builtin": false,
         "sha256": "0yi6vxin5hyrzp3av66rzs4058d90dbjzi5kp0yi3xr4jki9rjb9",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.13.1/motoko-Linux-x86_64-0.13.1.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.13.2/motoko-Linux-x86_64-0.13.1.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Linux-x86_64-<version>.tar.gz",
-        "version": "0.13.1"
+        "version": "0.13.2"
     },
     "pocket-ic-x86_64-darwin": {
         "rev": "3c76b9142f67da01393d9280c705f88b6e522a93",
