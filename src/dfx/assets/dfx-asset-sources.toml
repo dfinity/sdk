@@ -22,7 +22,7 @@ url = 'https://download.dfinity.systems/ic/3c76b9142f67da01393d9280c705f88b6e522
 sha256 = '156ace51ba5ae2dada64f2dc4d57ff917c437a06c3a7523f9d002e5e5e1039f0'
 
 [x86_64-darwin.motoko]
-url = 'https://github.com/dfinity/motoko/releases/download/0.13.1/motoko-Darwin-x86_64-0.13.1.tar.gz'
+url = 'https://github.com/dfinity/motoko/releases/download/0.13.2/motoko-Darwin-x86_64-0.13.2.tar.gz'
 sha256 = '98549030e87d081ea86ab193adcce4c158c75cf525dea57773911d6c7b99e7bf'
 # The replica, canister_sandbox and compiler_sandbox binaries must have the same revision.
 
@@ -53,7 +53,7 @@ url = 'https://download.dfinity.systems/ic/3c76b9142f67da01393d9280c705f88b6e522
 sha256 = '89a3ee5796d9fab8b07596e527d4f30d1326010ea4bd8ee9e0ec71f82e027c79'
 
 [x86_64-darwin.motoko-base]
-url = 'https://github.com/dfinity/motoko/releases/download/0.13.1/motoko-base-library.tar.gz'
+url = 'https://github.com/dfinity/motoko/releases/download/0.13.2/motoko-base-library.tar.gz'
 sha256 = '810edcae82dc1255edbf5dbd779aa7dbeb0ad79463be9fb502a23b7f13792f27'
 
 [x86_64-darwin.ic-btc-canister]
@@ -81,7 +81,7 @@ url = 'https://download.dfinity.systems/ic/3c76b9142f67da01393d9280c705f88b6e522
 sha256 = '3ab0ed26ecfb43e7cc891dd8a27b20085269de5948f804a51e5235c6a4da0bbc'
 
 [x86_64-linux.motoko]
-url = 'https://github.com/dfinity/motoko/releases/download/0.13.1/motoko-Linux-x86_64-0.13.1.tar.gz'
+url = 'https://github.com/dfinity/motoko/releases/download/0.13.2/motoko-Linux-x86_64-0.13.2.tar.gz'
 sha256 = '69c99ce29424f7113db8b3c42f5703a9a10288fed998adc6fdd9c36263df267a'
 # The replica, canister_sandbox and compiler_sandbox binaries must have the same revision.
 
@@ -112,7 +112,7 @@ url = 'https://download.dfinity.systems/ic/3c76b9142f67da01393d9280c705f88b6e522
 sha256 = '9ba9c4a46c07d6c859a8e5e6f015a295c59d67bc5dd334024ce541edf706ba28'
 
 [x86_64-linux.motoko-base]
-url = 'https://github.com/dfinity/motoko/releases/download/0.13.1/motoko-base-library.tar.gz'
+url = 'https://github.com/dfinity/motoko/releases/download/0.13.2/motoko-base-library.tar.gz'
 sha256 = '810edcae82dc1255edbf5dbd779aa7dbeb0ad79463be9fb502a23b7f13792f27'
 
 [x86_64-linux.ic-btc-canister]
