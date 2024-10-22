@@ -9,6 +9,7 @@ use crate::error::CreateChunkError;
 use crate::error::CreateEncodingError;
 use crate::error::CreateEncodingError::EncodeContentFailed;
 use crate::error::CreateProjectAssetError;
+use crate::error::SetEncodingError;
 use candid::Nat;
 use futures::future::try_join_all;
 use futures::TryFutureExt;
@@ -99,8 +100,7 @@ impl<'agent> ChunkUploader<'agent> {
             //  - Tested with: `for i in $(seq 1 50); do dd if=/dev/urandom of="src/hello_frontend/assets/file_$i.bin" bs=$(shuf -i 1-2000000 -n 1) count=1; done && dfx deploy hello_frontend`
             //  - Result: Roughly 15% of batches under 90% full.
             // With other byte ranges (e.g. `shuf -i 1-3000000 -n 1`) stats improve significantly
-            self.upload_chunks(4 * MAX_CHUNK_SIZE, usize::MAX, semaphores)
-                .await?;
+            self.upload_chunks(4 * MAX_CHUNK_SIZE, semaphores).await?;
             Ok(uploader_chunk_id)
         }
     }
@@ -109,8 +109,8 @@ impl<'agent> ChunkUploader<'agent> {
         &self,
         semaphores: &Semaphores,
     ) -> Result<(), CreateChunkError> {
-        self.upload_chunks(0, 0, semaphores).await?;
-        Ok(())
+        // Crude estimate: If `MAX_CHUNK_SIZE / 2` bytes are added as data to the `commit_batch` args the message won't be above the message size limit.
+        self.upload_chunks(MAX_CHUNK_SIZE / 2, semaphores).await
     }
 
     pub(crate) fn bytes(&self) -> usize {
@@ -120,21 +120,32 @@ impl<'agent> ChunkUploader<'agent> {
         self.chunks.load(Ordering::SeqCst)
     }
 
-    /// Call only after `finalize_upload` has completed
+    /// Call only after `finalize_upload` has completed.
     pub(crate) async fn uploader_ids_to_canister_chunk_ids(
         &self,
         uploader_ids: &[usize],
-    ) -> Vec<Nat> {
+    ) -> Result<(Vec<Nat>, Option<Vec<u8>>), SetEncodingError> {
+        let mut chunk_ids = vec![];
+        let mut last_chunk: Option<Vec<u8>> = None;
         let mapping = self.id_mapping.lock().await;
-        uploader_ids
-            .iter()
-            .map(|id| {
-                mapping
-                    .get(id)
-                    .expect("Chunk uploader did not upload all chunks. This is a bug.")
-                    .clone()
-            })
-            .collect()
+        let queue = self.upload_queue.lock().await;
+        for uploader_id in uploader_ids {
+            if let Some(item) = mapping.get(uploader_id) {
+                chunk_ids.push(item.clone());
+            } else if let Some(last_chunk_data) =
+                queue
+                    .iter()
+                    .find_map(|(id, data)| if id == uploader_id { Some(data) } else { None })
+            {
+                match last_chunk.as_mut() {
+                    Some(existing_data) => existing_data.extend(last_chunk_data.iter()),
+                    None => last_chunk = Some(last_chunk_data.clone()),
+                }
+            } else {
+                return Err(SetEncodingError::UnknownUploaderChunkId(*uploader_id));
+            }
+        }
+        Ok((chunk_ids, last_chunk))
     }
 
     async fn add_to_upload_queue(&self, uploader_chunk_id: usize, contents: &[u8]) {
@@ -148,7 +159,6 @@ impl<'agent> ChunkUploader<'agent> {
     async fn upload_chunks(
         &self,
         max_retained_bytes: usize,
-        max_retained_chunks: usize,
         semaphores: &Semaphores,
     ) -> Result<(), CreateChunkError> {
         let mut queue = self.upload_queue.lock().await;
@@ -159,7 +169,6 @@ impl<'agent> ChunkUploader<'agent> {
             .map(|(_, content)| content.len())
             .sum::<usize>()
             > max_retained_bytes
-            || queue.len() > max_retained_chunks
         {
             // Greedily fills batch with the largest chunk that fits
             queue.sort_unstable_by_key(|(_, content)| content.len());

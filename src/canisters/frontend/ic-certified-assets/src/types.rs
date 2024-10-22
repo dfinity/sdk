@@ -39,6 +39,8 @@ pub struct SetAssetContentArguments {
     pub key: AssetKey,
     pub content_encoding: String,
     pub chunk_ids: Vec<ChunkId>,
+    /// If set: appended as the final chunk.
+    pub last_chunk: Option<ByteBuf>,
     pub sha256: Option<ByteBuf>,
 }
 
