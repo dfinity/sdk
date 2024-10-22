@@ -140,7 +140,7 @@
         "builtin": false,
         "sha256": "1gz7k5xnq7cifdvsbpi5ymfcfn61wk6av4xidal1w23xx0q90m4q",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.13.2/motoko-Darwin-x86_64-0.13.1.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.13.2/motoko-Darwin-x86_64-0.13.2.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Darwin-x86_64-<version>.tar.gz",
         "version": "0.13.2"
     },
@@ -148,7 +148,7 @@
         "builtin": false,
         "sha256": "0yi6vxin5hyrzp3av66rzs4058d90dbjzi5kp0yi3xr4jki9rjb9",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.13.2/motoko-Linux-x86_64-0.13.1.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.13.2/motoko-Linux-x86_64-0.13.2.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Linux-x86_64-<version>.tar.gz",
         "version": "0.13.2"
     },
