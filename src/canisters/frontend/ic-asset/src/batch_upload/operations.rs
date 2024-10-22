@@ -172,8 +172,7 @@ pub(crate) async fn set_encodings(
             if v.already_in_place {
                 continue;
             }
-
-            let (mut chunk_ids, last_chunk) = match chunk_uploader {
+            let (chunk_ids, last_chunk) = match chunk_uploader {
                 Some(uploader) => {
                     uploader
                         .uploader_ids_to_canister_chunk_ids(&v.uploader_chunk_ids)
@@ -181,8 +180,6 @@ pub(crate) async fn set_encodings(
                 }
                 None => (vec![], None),
             };
-
-            chunk_ids.sort();
             operations.push(BatchOperationKind::SetAssetContent(
                 SetAssetContentArguments {
                     key: key.clone(),
