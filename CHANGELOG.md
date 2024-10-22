@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.24.2
+
 ### feat: Support canister log allowed viewer list
 
 Added support for the canister log allowed viewer list, enabling specified users to access a canister's logs without needing to be set as the canister's controller.
