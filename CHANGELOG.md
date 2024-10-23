@@ -20,6 +20,10 @@ This should lead to significantly faster upload times for frontends with many sm
 
 ## Dependencies
 
+### Motoko
+
+Updated Motoko to [0.13.2](https://github.com/dfinity/motoko/releases/tag/0.13.2)
+
 ### Frontend canister
 
 `SetAssetContentArguments` has a new field `last_chunk: opt blob` which can be used in addition to `chunk_ids` so that small assets can be uploaded as part of `commit_batch`,
