@@ -2,6 +2,39 @@
 
 # UNRELEASED
 
+# 0.24.2
+
+### feat: Support canister log allowed viewer list
+
+Added support for the canister log allowed viewer list, enabling specified users to access a canister's logs without needing to be set as the canister's controller.
+Valid settings are:
+- `--add-log-viewer`, `--remove-log-viewer` and `--set-log-viewer` flags with `dfx canister update-settings` 
+- `--log-viewer` flag with `dfx canister create`
+- `canisters[].initialization_values.log_visibility.allowed_viewers` in `dfx.json`
+
+### feat: batch upload assets
+
+The frontend canister sync now tries to batch multiple small content chunks into a single call using the `create_chunks` method added earlier.
+And for small amounts of uploaded data the asset sync can now skip chunk creation entirely.
+This should lead to significantly faster upload times for frontends with many small files.
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.13.2](https://github.com/dfinity/motoko/releases/tag/0.13.2)
+
+### Frontend canister
+
+`SetAssetContentArguments` has a new field `last_chunk: opt blob` which can be used in addition to `chunk_ids` so that small assets can be uploaded as part of `commit_batch`,
+skipping the need to await a separate `create_chunk` call.
+
+Bumped `api_version` to `2` for the previous addition of `create_chunks` since the improved file sync relies on it.
+
+- Module hash: 296d1ad1a7f8b15f90ff8b728658646b649cabd159f360f1b427297f4c76763e
+- https://github.com/dfinity/sdk/pull/3954
+- https://github.com/dfinity/sdk/pull/3947
+
 # 0.24.1
 
 ### feat: More PocketIC flags supported

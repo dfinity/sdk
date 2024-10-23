@@ -5,9 +5,15 @@ use crate::error::hash_content::HashContentError;
 use ic_agent::AgentError;
 use thiserror::Error;
 
+use super::AssembleCommitBatchArgumentError;
+
 /// Errors related to computing evidence for a proposed update.
 #[derive(Error, Debug)]
 pub enum ComputeEvidenceError {
+    /// Failed when assembling commit_batch argument.
+    #[error(transparent)]
+    AssembleCommitBatchArgumentFailed(#[from] AssembleCommitBatchArgumentError),
+
     /// Failed when inspecting assets to be updated.
     #[error(transparent)]
     ProcessProjectAsset(#[from] CreateProjectAssetError),

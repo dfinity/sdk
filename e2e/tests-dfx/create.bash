@@ -352,3 +352,86 @@ teardown() {
   assert_contains 'Freezing threshold: 2_592_000'
   assert_contains 'Log visibility: controllers'
 }
+
+@test "create with multiple log allowed viewer list in dfx.json" {
+  # Create two identities
+  assert_command dfx identity new --storage-mode plaintext alice
+  assert_command dfx identity new --storage-mode plaintext bob
+  ALICE_PRINCIPAL=$(dfx identity get-principal --identity alice)
+  BOB_PRINCIPAL=$(dfx identity get-principal --identity bob)
+
+  jq '.canisters.e2e_project_backend.initialization_values={
+    "compute_allocation": 5,
+    "freezing_threshold": "7days",
+    "memory_allocation": "2 GiB",
+    "reserved_cycles_limit": 1000000000000,
+    "wasm_memory_limit": "1 GiB",
+    "log_visibility": {
+      "allowed_viewers" :
+       ['\""$ALICE_PRINCIPAL"\"', '\""$BOB_PRINCIPAL"\"']
+    }
+  }' dfx.json | sponge dfx.json
+  dfx_start
+  assert_command dfx deploy e2e_project_backend --no-wallet
+  assert_command dfx canister status e2e_project_backend
+  assert_contains 'Memory allocation: 2_147_483_648'
+  assert_contains 'Compute allocation: 5'
+  assert_contains 'Reserved cycles limit: 1_000_000_000_000'
+  assert_contains 'Wasm memory limit: 1_073_741_824'
+  assert_contains 'Freezing threshold: 604_800'
+  assert_contains "${ALICE_PRINCIPAL}"
+  assert_contains "${BOB_PRINCIPAL}"
+}
+
+@test "create with multiple log allowed viewer list" {
+  # Create two identities
+  assert_command dfx identity new --storage-mode plaintext alice
+  assert_command dfx identity new --storage-mode plaintext bob
+  ALICE_PRINCIPAL=$(dfx identity get-principal --identity alice)
+  BOB_PRINCIPAL=$(dfx identity get-principal --identity bob)
+
+  dfx_start
+  assert_command dfx canister create --all --log-viewer "${ALICE_PRINCIPAL}" --log-viewer "${BOB_PRINCIPAL}"  --no-wallet
+  assert_command dfx deploy e2e_project_backend --no-wallet
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "${ALICE_PRINCIPAL}"
+  assert_contains "${BOB_PRINCIPAL}"
+}
+
+# The following function decodes a canister id in the textual form into its binary form
+# and is taken from the [IC Interface Specification](https://internetcomputer.org/docs/current/references/ic-interface-spec#principal).
+function textual_decode() {
+  echo -n "$1" | tr -d - | tr "[:lower:]" "[:upper:]" |
+  fold -w 8 | xargs -n1 printf '%-8s' | tr ' ' = |
+  base32 -d | xxd -p | tr -d '\n' | cut -b9- | tr "[:lower:]" "[:upper:]"
+}
+
+@test "create targets application subnet in PocketIC" {
+  [[ ! "$USE_POCKETIC" ]] && skip "skipped for replica: no support for multiple subnets"
+  dfx_start
+  # create the backend canister without a wallet canister so that the backend canister is the only canister ever created
+  assert_command dfx canister create e2e_project_backend --no-wallet
+  # actual canister id
+  CANISTER_ID="$(dfx canister id e2e_project_backend)"
+  # base64 encode the actual canister id
+  CANISTER_ID_BASE64="$(textual_decode "${CANISTER_ID}" | xxd -r -p | base64)"
+  # fetch topology from PocketIC server
+  TOPOLOGY="$(curl "http://127.0.0.1:$(dfx info replica-port)/instances/0/read/topology")"
+  echo "${TOPOLOGY}"
+  # find application subnet id in the topology
+  for subnet_id in $(echo "${TOPOLOGY}" | jq '.subnet_configs | keys[]')
+  do
+    SUBNET_KIND="$(echo "$TOPOLOGY" | jq -r ".subnet_configs.${subnet_id}.\"subnet_kind\"")"
+    if [ "${SUBNET_KIND}" == "Application" ]
+    then
+      # find the expected canister id as the beginning of the first canister range of the app subnet
+      EXPECTED_CANISTER_ID_BASE64="$(echo "$TOPOLOGY" | jq -r ".subnet_configs.${subnet_id}.\"canister_ranges\"[0].\"start\".\"canister_id\"")"
+    fi
+  done
+  # check if the actual canister id matches the expected canister id
+  if [ "${CANISTER_ID_BASE64}" != "${EXPECTED_CANISTER_ID_BASE64}" ]
+  then
+    echo "Canister id ${CANISTER_ID_BASE64} does not match expected canister id ${EXPECTED_CANISTER_ID_BASE64}"
+    exit 1
+  fi
+}

@@ -55,18 +55,23 @@ async fn canister_status(
         LogVisibility::Controllers => "controllers".to_string(),
         LogVisibility::Public => "public".to_string(),
         LogVisibility::AllowedViewers(viewers) => {
-            let mut viewers: Vec<_> = viewers.iter().map(Principal::to_text).collect();
-            viewers.sort();
-            format!("allowed viewers: {}", viewers.join(", "))
+            if viewers.is_empty() {
+                "allowed viewers list is empty".to_string()
+            } else {
+                let mut viewers: Vec<_> = viewers.iter().map(Principal::to_text).collect();
+                viewers.sort();
+                format!("allowed viewers: {}", viewers.join(", "))
+            }
         }
     };
 
-    println!("Canister status call result for {canister}.\nStatus: {status}\nControllers: {controllers}\nMemory allocation: {memory_allocation}\nCompute allocation: {compute_allocation}\nFreezing threshold: {freezing_threshold}\nMemory Size: {memory_size:?}\nBalance: {balance} Cycles\nReserved: {reserved} Cycles\nReserved cycles limit: {reserved_cycles_limit}\nWasm memory limit: {wasm_memory_limit}\nModule hash: {module_hash}\nNumber of queries: {queries_total}\nInstructions spent in queries: {query_instructions_total}\nTotal query request payload size (bytes): {query_req_payload_total}\nTotal query response payload size (bytes): {query_resp_payload_total}\nLog visibility: {log_visibility}",
+    println!("Canister status call result for {canister}.\nStatus: {status}\nControllers: {controllers}\nMemory allocation: {memory_allocation}\nCompute allocation: {compute_allocation}\nFreezing threshold: {freezing_threshold}\nIdle cycles burned per day: {idle_cycles_burned_per_day}\nMemory Size: {memory_size:?}\nBalance: {balance} Cycles\nReserved: {reserved} Cycles\nReserved cycles limit: {reserved_cycles_limit}\nWasm memory limit: {wasm_memory_limit}\nModule hash: {module_hash}\nNumber of queries: {queries_total}\nInstructions spent in queries: {query_instructions_total}\nTotal query request payload size (bytes): {query_req_payload_total}\nTotal query response payload size (bytes): {query_resp_payload_total}\nLog visibility: {log_visibility}",
         status = status.status,
         controllers = controllers.join(" "),
         memory_allocation = status.settings.memory_allocation,
         compute_allocation = status.settings.compute_allocation,
         freezing_threshold = status.settings.freezing_threshold,
+        idle_cycles_burned_per_day = status.idle_cycles_burned_per_day,
         memory_size = status.memory_size,
         balance = status.cycles,
         reserved = status.reserved_cycles,

@@ -1,4 +1,5 @@
 use crate::config::model::dfinity::{ReplicaLogLevel, ReplicaSubnetType};
+use candid::Principal;
 use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::default::Default;
@@ -192,6 +193,7 @@ pub enum CachedReplicaConfig<'a> {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct CachedConfig<'a> {
     pub replica_rev: String,
+    pub effective_canister_id: Option<Principal>,
     #[serde(flatten)]
     pub config: CachedReplicaConfig<'a>,
 }
@@ -200,23 +202,29 @@ impl<'a> CachedConfig<'a> {
     pub fn replica(config: &'a ReplicaConfig, replica_rev: String) -> Self {
         Self {
             replica_rev,
+            effective_canister_id: None,
             config: CachedReplicaConfig::Replica {
                 config: Cow::Borrowed(config),
             },
         }
     }
-    pub fn pocketic(config: &'a ReplicaConfig, replica_rev: String) -> Self {
+    pub fn pocketic(
+        config: &'a ReplicaConfig,
+        replica_rev: String,
+        effective_canister_id: Option<Principal>,
+    ) -> Self {
         Self {
             replica_rev,
+            effective_canister_id,
             config: CachedReplicaConfig::PocketIc {
                 config: Cow::Borrowed(config),
             },
         }
     }
-    pub fn is_pocketic(&self) -> bool {
-        matches!(self.config, CachedReplicaConfig::PocketIc { .. })
-    }
     pub fn can_share_state(&self, other: &Self) -> bool {
         self == other
+    }
+    pub fn get_effective_canister_id(&self) -> Option<Principal> {
+        self.effective_canister_id
     }
 }

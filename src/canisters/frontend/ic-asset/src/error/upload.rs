@@ -1,3 +1,4 @@
+use super::AssembleCommitBatchArgumentError;
 use crate::error::compatibility::CompatibilityError;
 use crate::error::create_project_asset::CreateProjectAssetError;
 use ic_agent::AgentError;
@@ -17,6 +18,10 @@ pub enum UploadError {
     /// Failed when calling create_batch.
     #[error("Create batch failed: {0}")]
     CreateBatchFailed(AgentError),
+
+    /// Failed when assembling commit_batch argument.
+    #[error("Failed to assemble commit_batch argument: {0}")]
+    AssembleCommitBatchArgumentFailed(#[from] AssembleCommitBatchArgumentError),
 
     /// Failed when creating project assets.
     #[error("Failed to create project asset: {0}")]
