@@ -18,6 +18,14 @@ The frontend canister sync now tries to batch multiple small content chunks into
 And for small amounts of uploaded data the asset sync can now skip chunk creation entirely.
 This should lead to significantly faster upload times for frontends with many small files.
 
+### chore!: improve `dfx start` messages.
+
+For `dfx start`, show below messages to users to indicate what to do next.
+```
+The dfx server is running.
+You can start a new terminal to continue developing, or quit with 'Ctrl-C'.
+```
+
 ## Dependencies
 
 ### Motoko
