@@ -22,7 +22,7 @@ pub struct CreateCanisterOpts {
     /// Specify the controller of the new canister
     controller: String,
 
-    /// Subaccount to withdraw from
+    /// Subaccount to withdraw from aaaaa
     #[arg(long)]
     from_subaccount: Option<Subaccount>,
 
