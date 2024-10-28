@@ -144,7 +144,9 @@ type AssetCanisterArgs = variant {
   Upgrade: UpgradeArgs;
 };
 
-type InitArgs = record {};
+type InitArgs = record {
+  set_permissions: opt SetPermissions;
+};
 
 type UpgradeArgs = record {
   set_permissions: opt SetPermissions;
