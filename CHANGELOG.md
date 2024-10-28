@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### Frontend canister
+
+Allow setting permissions lists in init arguments just like in upgrade arguments.
+
+- Module hash: 296d1ad1a7f8b15f90ff8b728658646b649cabd159f360f1b427297f4c76763e
+
 # 0.24.2
 
 ### feat: Support canister log allowed viewer list
