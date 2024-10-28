@@ -423,16 +423,23 @@ fn is_controller() -> Result<(), String> {
 }
 
 pub fn init(args: Option<AssetCanisterArgs>) {
-    if let Some(upgrade_arg) = args {
-        let AssetCanisterArgs::Init(InitArgs {}) = upgrade_arg else {
-            ic_cdk::trap("Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.")
-        };
-    }
     STATE.with(|s| {
         let mut s = s.borrow_mut();
         s.clear();
         s.grant_permission(caller(), &Permission::Commit);
     });
+
+    if let Some(upgrade_arg) = args {
+        let AssetCanisterArgs::Init(init_args) = upgrade_arg else {
+            ic_cdk::trap("Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.")
+        };
+        STATE.with(|s| {
+            let mut state = s.borrow_mut();
+            if let Some(set_permissions) = init_args.set_permissions {
+                state.set_permissions(set_permissions);
+            }
+        });
+    }
 }
 
 pub fn pre_upgrade() -> StableState {

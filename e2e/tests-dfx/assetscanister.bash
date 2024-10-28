@@ -1988,6 +1988,45 @@ WARN: {
   assert_command      dfx deploy
 }
 
+@test "set permissions through init argument" {
+  dfx_start
+  dfx deploy
+
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
+  assert_eq "(vec {})"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_match "$(dfx identity get-principal)"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
+  assert_eq "(vec {})"
+
+  dfx identity new alice --storage-mode plaintext
+  ALICE="$(dfx --identity alice identity get-principal)"
+
+  dfx canister install e2e_project_frontend --mode reinstall --argument "(opt variant {
+    Upgrade = record {
+      set_permissions = opt record {
+        prepare = vec {
+          principal \"${ALICE}\";
+        };
+        commit = vec {
+          principal \"$(dfx identity get-principal)\";
+          principal \"aaaaa-aa\";
+        };
+        manage_permissions = vec {
+          principal \"$(dfx identity get-principal)\";
+        };
+      }
+    }
+  })"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
+  assert_match "${ALICE}"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_match "$(dfx identity get-principal)"
+  assert_match '"aaaaa-aa"'
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
+  assert_match "$(dfx identity get-principal)"
+}
+
 @test "set permissions through upgrade argument" {
   dfx_start
   dfx deploy
