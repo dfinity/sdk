@@ -6,7 +6,8 @@
 
 Allow setting permissions lists in init arguments just like in upgrade arguments.
 
-- Module hash: 296d1ad1a7f8b15f90ff8b728658646b649cabd159f360f1b427297f4c76763e
+- Module hash: 2c24b5e1584890a7965011d5d1d827aca68c489c9a6308475730420fa53372e8
+- https://github.com/dfinity/sdk/pull/3965
 
 # 0.24.2
 
