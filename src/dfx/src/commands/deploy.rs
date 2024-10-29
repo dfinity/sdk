@@ -162,7 +162,9 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
     let call_sender = CallSender::from(&opts.wallet, env.get_network_descriptor())
         .map_err(|e| anyhow!("Failed to determine call sender: {}", e))?;
 
-    runtime.block_on(fetch_root_key_if_needed(&env))?;
+    // This is where we try to talk to replica first.
+    runtime.block_on(fetch_root_key_if_needed(&env))
+        .map_err(|e| anyhow!("Failed to fetch the root key, did you run 'dfx start' to start the local replica?\n{}", e))?;
 
     runtime.block_on(deploy_canisters(
         &env,

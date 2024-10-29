@@ -187,6 +187,11 @@ teardown() {
   assert_contains "Creating a wallet canister"
 }
 
+@test "deploy without starting returns the correct error message" {
+  assert_command_fail dfx deploy
+  assert_contains "Failed to fetch the root key, did you run 'dfx start' to start the local replica?"
+}
+
 @test "can deploy gzip wasm" {
   jq '.canisters.hello_backend.gzip=true' dfx.json | sponge dfx.json
   dfx_start
