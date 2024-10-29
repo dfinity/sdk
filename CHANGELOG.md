@@ -9,6 +9,14 @@ Allow setting permissions lists in init arguments just like in upgrade arguments
 - Module hash: 2c24b5e1584890a7965011d5d1d827aca68c489c9a6308475730420fa53372e8
 - https://github.com/dfinity/sdk/pull/3965
 
+### chore!: improve `dfx deploy` messages.
+
+If users run `dfx deploy` without running `dfx start`, show below messages to indicate what to do next.
+```
+Error: Failed to fetch the root key, did you run 'dfx start' to start the local replica?
+An error happened during communication with the replica: error sending request for url (http://127.0.0.1:4943/api/v2/status)
+```
+
 # 0.24.2
 
 ### feat: Support canister log allowed viewer list
