@@ -4,9 +4,15 @@ use crate::error::get_asset_properties::GetAssetPropertiesError;
 use ic_agent::AgentError;
 use thiserror::Error;
 
+use super::AssembleCommitBatchArgumentError;
+
 /// Errors related to uploading content to the asset canister.
 #[derive(Error, Debug)]
 pub enum UploadContentError {
+    /// Failed when assembling commit_batch argument.
+    #[error("Failed to assemble commit_batch argument: {0}")]
+    AssembleCommitBatchArgumentFailed(AssembleCommitBatchArgumentError),
+
     /// Failed when calling create_batch.
     #[error("Failed to create batch: {0}")]
     CreateBatchFailed(AgentError),
