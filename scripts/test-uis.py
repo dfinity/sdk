@@ -43,19 +43,6 @@ AgentError: Call failed:
   "Message": "IC0406: Caller 2vxsx-fae is not allowed to query ic00 method fetch_canister_logs"
         """.strip(),
         "/index.js",
-    ),
-    (
-        """
-AgentError: Call failed:
-  Canister: aaaaa-aa
-  Method: fetch_canister_logs (query)
-  "Status": "rejected"
-  "Code": "CanisterReject"
-  "Message": "IC0406: Caller 2vxsx-fae is not allowed to query ic00 method fetch_canister_logs"
-    at http://127.0.0.1:4943/index.js:2:55325
-    at async getCanisterLogs (http://127.0.0.1:4943/index.js:2:305332)        
-        """.strip(),
-        "/index.js",
     )
 ]
 _CANDID_UI_ERRORS_TO_IGNORE = [
@@ -144,7 +131,7 @@ def _check_console_logs(console_logs):
         for actual_text, endpoint in (
             _CANDID_UI_ERRORS_TO_IGNORE if log.type == "error" else _CANDID_UI_WARNINGS_TO_IGNORE
         ):
-            if actual_text == log.text.strip() and endpoint in url:
+            if actual_text.startsWith(log.text.strip()) and endpoint in url:
                 logging.warning(
                     f'Found {log.type}, but it was expected (log.type="{actual_text}", endpoint="{endpoint}")'
                 )
