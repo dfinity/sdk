@@ -131,7 +131,7 @@ def _check_console_logs(console_logs):
         for actual_text, endpoint in (
             _CANDID_UI_ERRORS_TO_IGNORE if log.type == "error" else _CANDID_UI_WARNINGS_TO_IGNORE
         ):
-            if actual_text.startswith(log.text.strip()) and endpoint in url:
+            if log.text.strip().startswith(actual_text) and endpoint in url:
                 logging.warning(
                     f'Found {log.type}, but it was expected (log.type="{actual_text}", endpoint="{endpoint}")'
                 )
