@@ -11,7 +11,7 @@ Allow setting permissions lists in init arguments just like in upgrade arguments
 
 ### Candid UI
 
-- Module hash: 6f071cd4174f52b0335080028d139a4ab16f2c204cdea7dd949b5667d899168b
+- Module hash: f45db224b40fac516c877e3108dc809d4b22fa42d05ee8dfa5002536a3a3daed
 - Bump agent-js to fix error code
 
 # 0.24.2
