@@ -9,7 +9,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-/// Creates a new identity from a PEM file.
+/// Creates a new identity from a PEM file or seed phrase file.
 #[derive(Parser)]
 pub struct ImportOpts {
     /// The identity to create.
