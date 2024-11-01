@@ -673,3 +673,16 @@ Installing canister: $CANISTER_ID_C (dep_c)"
   # this command will fail if the pulled.json is not correct
   assert_command dfx deps init
 }
+
+@test "dfx deps pull can get facade dependencies of ICP ledger" {
+  use_test_specific_cache_root # dfx deps pull will download files to cache
+
+  dfx_new
+  jq '.canisters.e2e_project_backend.dependencies=["icp_ledger"]' dfx.json | sponge dfx.json
+  jq '.canisters.icp_ledger.type="pull"' dfx.json | sponge dfx.json
+  jq '.canisters.icp_ledger.id="ryjl3-tyaaa-aaaaa-aaaba-cai"' dfx.json | sponge dfx.json
+
+  dfx_start
+  assert_command_fail dfx deps pull --network local
+  assert_contains "Using facade dependencies for canister ryjl3-tyaaa-aaaaa-aaaba-cai."
+}
