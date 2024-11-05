@@ -117,6 +117,11 @@ current_time_nanoseconds() {
   assert_eq "2.900 TC (trillion cycles)."
 }
 
+@test "balance without cycles ledger failed as expected" {
+  assert_command_fail dfx cycles balance
+  assert_contains "Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' cannot be found."
+}
+
 @test "transfer" {
   start_and_install_nns
 

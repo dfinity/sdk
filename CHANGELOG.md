@@ -9,6 +9,16 @@ Allow setting permissions lists in init arguments just like in upgrade arguments
 - Module hash: 2c24b5e1584890a7965011d5d1d827aca68c489c9a6308475730420fa53372e8
 - https://github.com/dfinity/sdk/pull/3965
 
+### chore!: improve `dfx cycles balance` messages.
+
+If users run `dfx cycles balance` without running the `--ic` flag, show below messages to indicate what to do next.
+```
+Error explanation:
+Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' cannot be found.
+How to resolve the error:
+Run the command with '--ic' flag if you want to access the cycles ledger on the mainnet.
+```
+
 # 0.24.2
 
 ### feat: Support canister log allowed viewer list
