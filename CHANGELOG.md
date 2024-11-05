@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### chore: improve error message when trying to use the local replica when it is not running
+
 ### Frontend canister
 
 Allow setting permissions lists in init arguments just like in upgrade arguments.
