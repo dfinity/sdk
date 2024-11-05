@@ -198,9 +198,9 @@ fn cycles_ledger_not_found(err: &AnyhowError) -> bool {
 
 fn diagnose_cycles_ledger_not_found() -> Diagnosis {
     let explanation =
-        "Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' cannot be found.";
+        "Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' is not installed.";
     let suggestion =
-        "Run the command with '--ic' flag if you want to access the cycles ledger on the mainnet.";
+        "Run the command with '--ic' flag if you want to manage the cycles on the mainnet.";
 
     (Some(explanation.to_string()), Some(suggestion.to_string()))
 }
