@@ -126,6 +126,7 @@ jobs:
           time dfx new smoke
           cd smoke
           time dfx start --background
+          time npm install
           time dfx deploy
           time dfx canister call smoke_backend greet '("fire")'
           time curl --fail http://localhost:"$(dfx info webserver-port)"/sample-asset.txt?canisterId=$(dfx canister id smoke_frontend)
@@ -207,6 +208,7 @@ jobs:
           dfx new e2e_project
           cd e2e_project
           dfx start --background --clean
+          npm install
           dfx deploy 2>&1 | tee deploy.log
           echo FRONTEND_URL=$(grep "_frontend:" deploy.log | grep -Eo "(http|https)://[a-zA-Z0-9./?=_&%:-]*") >> $GITHUB_ENV
           echo CANDID_URL=$(grep "_backend:" deploy.log | grep -Eo "(http|https)://[a-zA-Z0-9./?=_&%:-]*") >> $GITHUB_ENV
