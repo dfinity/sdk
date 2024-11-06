@@ -11,9 +11,6 @@
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss}\""
   },
   "dependencies": {
-    "@dfinity/agent": "^1.4.0",
-    "@dfinity/candid": "^1.4.0",
-    "@dfinity/principal": "^1.4.0"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.4",
