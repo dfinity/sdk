@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### chore: update agent version in frontend templates. move the dependencies to top-level package.json 
+
 ### chore: improve error message when trying to use the local replica when it is not running
 
 ### Frontend canister
