@@ -22,7 +22,7 @@ use std::io::Write;
 use std::path::Path;
 
 mod facade;
-use facade::facade_dependencies;
+use facade::{facade_dependencies, facade_download};
 
 pub async fn resolve_all_dependencies(
     agent: &Agent,
@@ -102,6 +102,9 @@ async fn download_and_generate_pulled_canister(
     canister_id: Principal,
 ) -> DfxResult<PulledCanister> {
     info!(logger, "Pulling canister {canister_id}...");
+    if let Some(pulled_canister) = facade_download(&canister_id).await? {
+        return Ok(pulled_canister);
+    }
 
     let mut pulled_canister = PulledCanister::default();
 
