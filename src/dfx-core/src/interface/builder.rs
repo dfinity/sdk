@@ -1,3 +1,4 @@
+use crate::config::cache::get_version_from_cache_path;
 use crate::error::extension::NewExtensionManagerError;
 use crate::error::interface::NewExtensionManagerFromCachePathError;
 use crate::extension::manager::ExtensionManager;
@@ -100,20 +101,7 @@ impl DfxInterfaceBuilder {
         self,
         cache_path: &Path,
     ) -> Result<Self, NewExtensionManagerFromCachePathError> {
-        let version = {
-            let version = cache_path
-                .file_name()
-                .ok_or(NewExtensionManagerFromCachePathError::NoCachePathFilename(
-                    cache_path.to_path_buf(),
-                ))?
-                .to_str()
-                .ok_or(
-                    NewExtensionManagerFromCachePathError::CachePathFilenameNotUtf8(
-                        cache_path.to_path_buf(),
-                    ),
-                )?;
-            Version::parse(version)?
-        };
+        let version = get_version_from_cache_path(cache_path)?;
 
         Ok(self.with_extension_manager(version)?)
     }
