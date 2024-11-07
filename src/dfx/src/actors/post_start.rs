@@ -48,9 +48,9 @@ impl Handler<PocketIcProxyReadySignal> for PostStart {
     fn handle(&mut self, _msg: PocketIcProxyReadySignal, _ctx: &mut Self::Context) -> Self::Result {
         let logger = &self.config.logger;
         if self.config.background {
-            info!(logger, "The dfx server is running in the background.")
+            info!(logger, "Success! The dfx server is running in the background.")
         } else {
-            info!(logger, "The dfx server is running.\nYou can start a new terminal to continue developing, or quit with 'Ctrl-C'.");
+            info!(logger, "Success! The dfx server is running.\nYou must open a new terminal to continue developing. If you'd prefer to stop, quit with 'Ctrl-C'.");
         }
     }
 }

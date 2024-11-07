@@ -50,6 +50,10 @@ pub struct StartOpts {
     #[arg(long)]
     background: bool,
 
+    /// Indicates if the actual dfx process is running in the background.
+    #[arg(long, env = "DFX_RUNNING_IN_BACKGROUND", hide = true)]
+    running_in_background: bool,
+
     /// Cleans the state of the current project.
     #[arg(long)]
     clean: bool,
@@ -139,6 +143,7 @@ pub fn exec(
     StartOpts {
         host,
         background,
+        running_in_background,
         clean,
         force,
         bitcoin_node,
@@ -264,10 +269,6 @@ pub fn exec(
             });
     }
     local_server_descriptor.describe(env.get_logger());
-
-    // Get the original background flag set by the user from the command arguments.
-    // Get it from the environment variable as the `--background` flag will be ignored by the send_background() method.
-    let original_background = std::env::var("original_background").is_ok();
 
     write_pid(&pid_file_path);
     fs::write(&webserver_port_path, address_and_port.port().to_string())?;
@@ -419,7 +420,7 @@ pub fn exec(
             pocketic_proxy_port_file_path,
         )?;
 
-        let post_start = start_post_start_actor(env, original_background, Some(proxy))?;
+        let post_start = start_post_start_actor(env, running_in_background, Some(proxy))?;
 
         Ok::<_, Error>(post_start)
     })?;
@@ -583,7 +584,7 @@ fn send_background() -> DfxResult<()> {
             .filter(|a| !a.eq("--background"))
             .filter(|a| !a.eq("--clean")),
     )
-    .env("original_background", "true"); // Set the `original_background` environment variable which will be used by the second start.
+    .env("DFX_RUNNING_IN_BACKGROUND", "true"); // Set the `DFX_RUNNING_IN_BACKGROUND` environment variable which will be used by the second start.
 
     cmd.spawn().context("Failed to spawn child process.")?;
     Ok(())

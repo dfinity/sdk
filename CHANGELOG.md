@@ -16,6 +16,14 @@ Allow setting permissions lists in init arguments just like in upgrade arguments
 - Module hash: f45db224b40fac516c877e3108dc809d4b22fa42d05ee8dfa5002536a3a3daed
 - Bump agent-js to fix error code
 
+### chore: improve `dfx start` messages.
+
+For `dfx start`, show below messages to users to indicate what to do next.
+```
+Success! The dfx server is running.
+You must open a new terminal to continue developing. If you'd prefer to stop, quit with 'Ctrl-C'.
+```
+
 # 0.24.2
 
 ### feat: Support canister log allowed viewer list
@@ -31,14 +39,6 @@ Valid settings are:
 The frontend canister sync now tries to batch multiple small content chunks into a single call using the `create_chunks` method added earlier.
 And for small amounts of uploaded data the asset sync can now skip chunk creation entirely.
 This should lead to significantly faster upload times for frontends with many small files.
-
-### chore!: improve `dfx start` messages.
-
-For `dfx start`, show below messages to users to indicate what to do next.
-```
-The dfx server is running.
-You can start a new terminal to continue developing, or quit with 'Ctrl-C'.
-```
 
 ## Dependencies
 
