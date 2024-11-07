@@ -1,5 +1,6 @@
 use crate::lib::error_code;
 use anyhow::Error as AnyhowError;
+use dfx_core::error::root_key::FetchRootKeyError;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
 use ic_asset::error::{GatherAssetDescriptorsError, SyncError, UploadContentError};
@@ -55,6 +56,10 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
         }
     }
 
+    if local_replica_not_running(err) {
+        return diagnose_local_replica_not_running();
+    }
+
     if let Some(sync_error) = err.downcast_ref::<SyncError>() {
         if duplicate_asset_key_dist_and_src(sync_error) {
             return diagnose_duplicate_asset_key_dist_and_src();
@@ -62,6 +67,32 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
     }
 
     NULL_DIAGNOSIS
+}
+
+fn local_replica_not_running(err: &AnyhowError) -> bool {
+    let maybe_agent_error = {
+        if let Some(FetchRootKeyError::AgentError(agent_error)) =
+            err.downcast_ref::<FetchRootKeyError>()
+        {
+            Some(agent_error)
+        } else {
+            err.downcast_ref::<AgentError>()
+        }
+    };
+    if let Some(AgentError::TransportError(transport_error)) = maybe_agent_error {
+        transport_error.is_connect()
+            && transport_error
+                .url()
+                .and_then(|url| url.host())
+                .map(|host| match host {
+                    url::Host::Domain(domain) => domain == "localhost",
+                    url::Host::Ipv4(ipv4_addr) => ipv4_addr.is_loopback(),
+                    url::Host::Ipv6(ipv6_addr) => ipv6_addr.is_loopback(),
+                })
+                .unwrap_or(false)
+    } else {
+        false
+    }
 }
 
 fn not_a_controller(err: &AgentError) -> bool {
@@ -113,6 +144,17 @@ To add a principal to the list of controllers, one of the existing controllers h
 If your wallet is a controller, but not your own principal, then you have to make your wallet perform the call by adding '--wallet <your wallet id>' to the command.
 
 The most common way this error is solved is by running 'dfx canister update-settings --network ic --wallet \"$(dfx identity get-wallet)\" --all --add-controller \"$(dfx identity get-principal)\"'.";
+    (
+        Some(error_explanation.to_string()),
+        Some(action_suggestion.to_string()),
+    )
+}
+
+fn diagnose_local_replica_not_running() -> Diagnosis {
+    let error_explanation =
+        "You are trying to connect to the local replica but dfx cannot connect to it.";
+    let action_suggestion =
+        "Target a different network or run 'dfx start' to start the local replica.";
     (
         Some(error_explanation.to_string()),
         Some(action_suggestion.to_string()),
