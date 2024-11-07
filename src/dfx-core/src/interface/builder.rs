@@ -1,16 +1,16 @@
-use crate::config::cache::get_version_from_cache_path;
-use crate::error::extension::NewExtensionManagerError;
-use crate::error::interface::NewExtensionManagerFromCachePathError;
-use crate::extension::manager::ExtensionManager;
 use crate::{
+    config::cache::get_version_from_cache_path,
     config::model::{
         dfinity::{Config, NetworksConfig},
         network_descriptor::NetworkDescriptor,
     },
     error::{
         builder::{BuildAgentError, BuildDfxInterfaceError, BuildIdentityError},
+        extension::NewExtensionManagerError,
+        interface::NewExtensionManagerFromCachePathError,
         network_config::NetworkConfigError,
     },
+    extension::manager::ExtensionManager,
     identity::{identity_manager::InitializeIdentity, IdentityManager},
     network::{
         provider::{create_network_descriptor, LocalBindDetermination},
