@@ -2,6 +2,15 @@
 
 # UNRELEASED
 
+### feat: facade pull ICP, ckBTC, ckETH ledger canisters
+
+The ledger canisters can be pulled even though they are not really "pullable".
+The metadata like wasm_url and init_guide are hardcoded inside `dfx deps pull` logic.
+
+- ICP ledger: `ryjl3-tyaaa-aaaaa-aaaba-cai`
+- ckBTC ledger: `mxzaz-hqaaa-aaaar-qaada-cai`
+- ckETH ledger: `ss2fx-dyaaa-aaaar-qacoq-cai`
+
 ### chore: update agent version in frontend templates, and include `resolve.dedupe` in Vite config
 
 ### chore: improve error message when trying to use the local replica when it is not running
