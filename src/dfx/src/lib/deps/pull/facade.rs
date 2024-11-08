@@ -20,7 +20,6 @@ struct Facade {
     candid_url: String,
     dependencies: Vec<Principal>,
     init_guide: String,
-    init_arg: String,
 }
 
 lazy_static::lazy_static! {
@@ -33,18 +32,21 @@ lazy_static::lazy_static! {
                 wasm_url: format!("https://download.dfinity.systems/ic/{IC_REV}/canisters/ledger-canister.wasm.gz"),
                 candid_url: format!("https://raw.githubusercontent.com/dfinity/ic/{IC_REV}/rs/ledger_suite/icp/ledger.did"),
                 dependencies:vec![],
-                init_guide: "The account of the anonymous identity will be the minting_account.".to_string(),
-                init_arg:
-r#"(variant { 
+                init_guide: r#"
+1. Create a 'minter' identity: dfx identity new minter
+2. Run the following multi-line command:
+
+dfx deps init ryjl3-tyaaa-aaaaa-aaaba-cai --argument "(variant { 
     Init = record {
-        minting_account = "1c7a48ba6a562aa9eaa2481a9049cdf0433b9738c992d698c31d8abf89cadc79";
+        minting_account = \"$(dfx --identity minter ledger account-id)\";
         initial_values = vec {};
         send_whitelist = vec {};
         transfer_fee = opt record { e8s = 10_000 : nat64; };
-        token_symbol = opt "LICP";
-        token_name = opt "Local ICP"; 
+        token_symbol = opt \"LICP\";
+        token_name = opt \"Local ICP\"; 
     }
-})"#.to_string()
+})"
+"#.to_string(),
             }
         );
         m
@@ -62,7 +64,6 @@ pub(super) async fn facade_download(canister_id: &Principal) -> DfxResult<Option
         let mut pulled_canister = PulledCanister {
             dependencies: facade.dependencies.clone(),
             init_guide: facade.init_guide.clone(),
-            init_arg: Some(facade.init_arg.clone()),
             gzip: facade.wasm_url.ends_with(".gz"),
             ..Default::default()
         };

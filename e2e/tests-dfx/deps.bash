@@ -686,8 +686,38 @@ Installing canister: $CANISTER_ID_C (dep_c)"
   assert_command dfx deps pull --network local
   assert_contains "Using facade dependencies for canister ryjl3-tyaaa-aaaaa-aaaba-cai."
 
-  # set init argument for ICP ledger with the pre-defined value
-  assert_command dfx deps init icp_ledger
+  dfx identity new --storage-mode plaintext minter
+  assert_command_fail dfx deps init icp_ledger
+  assert_contains "1. Create a 'minter' identity: dfx identity new minter
+2. Run the following multi-line command:"
+
+  assert_command dfx deps init ryjl3-tyaaa-aaaaa-aaaba-cai --argument "(variant { 
+    Init = record {
+        minting_account = \"$(dfx --identity minter ledger account-id)\";
+        initial_values = vec {};
+        send_whitelist = vec {};
+        transfer_fee = opt record { e8s = 10_000 : nat64; };
+        token_symbol = opt \"LICP\";
+        token_name = opt \"Local ICP\"; 
+    }
+})"
 
   assert_command dfx deps deploy
+
+  # Can mint tokens (transfer from minting_account)
+  assert_command dfx --identity minter canister call icp_ledger icrc1_transfer "(
+  record {
+    to = record {
+      owner = principal \"$(dfx --identity default identity get-principal)\";
+    };
+    amount = 1_000_000 : nat;
+  },
+)"
+
+  assert_command dfx canister call icp_ledger icrc1_balance_of "(
+  record {
+    owner = principal \"$(dfx --identity default identity get-principal)\";
+  },
+)"
+  assert_eq "(1_000_000 : nat)"
 }
