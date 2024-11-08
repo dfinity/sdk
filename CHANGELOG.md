@@ -2,12 +2,21 @@
 
 # UNRELEASED
 
+### chore: update agent version in frontend templates, and include `resolve.dedupe` in Vite config
+
+### chore: improve error message when trying to use the local replica when it is not running
+
 ### Frontend canister
 
 Allow setting permissions lists in init arguments just like in upgrade arguments.
 
 - Module hash: 2c24b5e1584890a7965011d5d1d827aca68c489c9a6308475730420fa53372e8
 - https://github.com/dfinity/sdk/pull/3965
+
+### Candid UI
+
+- Module hash: f45db224b40fac516c877e3108dc809d4b22fa42d05ee8dfa5002536a3a3daed
+- Bump agent-js to fix error code
 
 # 0.24.2
 
