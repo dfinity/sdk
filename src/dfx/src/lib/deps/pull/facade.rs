@@ -28,6 +28,7 @@ lazy_static::lazy_static! {
     static ref CKETH_LEDGER: Principal=Principal::from_text("ss2fx-dyaaa-aaaar-qacoq-cai").unwrap();
     static ref FACADE: HashMap<Principal, Facade> = {
         let mut m = HashMap::new();
+        // https://internetcomputer.org/docs/current/developer-docs/defi/tokens/ledger/setup/icp_ledger_setup
         m.insert(
             *ICP_LEDGER,
             Facade {
@@ -51,6 +52,7 @@ dfx deps init ryjl3-tyaaa-aaaaa-aaaba-cai --argument "(variant {
 "#.to_string(),
             }
         );
+        // https://github.com/dfinity/ic/blob/master/rs/bitcoin/ckbtc/mainnet/README.md#installing-the-ledger-mxzaz-hqaaa-aaaar-qaada-cai
         m.insert(
             *CKBTC_LEDGER,
             Facade {
@@ -83,6 +85,7 @@ dfx deps init mxzaz-hqaaa-aaaar-qaada-cai --argument "(variant {
 "#.to_string(),
             }
         );
+        // https://github.com/dfinity/ic/blob/master/rs/ethereum/cketh/mainnet/README.md#installing-the-ledger
         m.insert(
             *CKETH_LEDGER,
             Facade {
