@@ -24,6 +24,8 @@ struct Facade {
 
 lazy_static::lazy_static! {
     static ref ICP_LEDGER: Principal=Principal::from_text("ryjl3-tyaaa-aaaaa-aaaba-cai").unwrap();
+    static ref CKBTC_LEDGER: Principal=Principal::from_text("mxzaz-hqaaa-aaaar-qaada-cai").unwrap();
+    static ref CKETH_LEDGER: Principal=Principal::from_text("ss2fx-dyaaa-aaaar-qacoq-cai").unwrap();
     static ref FACADE: HashMap<Principal, Facade> = {
         let mut m = HashMap::new();
         m.insert(
@@ -44,6 +46,72 @@ dfx deps init ryjl3-tyaaa-aaaaa-aaaba-cai --argument "(variant {
         transfer_fee = opt record { e8s = 10_000 : nat64; };
         token_symbol = opt \"LICP\";
         token_name = opt \"Local ICP\"; 
+    }
+})"
+"#.to_string(),
+            }
+        );
+        m.insert(
+            *CKBTC_LEDGER,
+            Facade {
+                wasm_url: format!("https://download.dfinity.systems/ic/{IC_REV}/canisters/ic-icrc1-ledger.wasm.gz"),
+                candid_url: format!("https://raw.githubusercontent.com/dfinity/ic/{IC_REV}/rs/ledger_suite/icrc1/ledger/ledger.did"),
+                dependencies:vec![],
+                init_guide: r#"
+1. Create a 'minter' identity: dfx identity new minter
+2. Run the following multi-line command:
+
+dfx deps init mxzaz-hqaaa-aaaar-qaada-cai --argument "(variant {
+    Init = record {
+        minting_account = record { owner = principal \"$(dfx --identity minter identity get-principal)\"; };
+        transfer_fee = 10;
+        token_symbol = \"ckBTC\";
+        token_name = \"ckBTC\";
+        metadata = vec {};
+        initial_balances = vec {};
+        max_memo_length = opt 80;
+        archive_options = record {
+            num_blocks_to_archive = 1000;
+            trigger_threshold = 2000;
+            max_message_size_bytes = null;
+            cycles_for_archive_creation = opt 100_000_000_000_000;
+            node_max_memory_size_bytes = opt 3_221_225_472;
+            controller_id = principal \"2vxsx-fae\"
+        }
+    }
+})"
+"#.to_string(),
+            }
+        );
+        m.insert(
+            *CKETH_LEDGER,
+            Facade {
+                wasm_url: format!("https://download.dfinity.systems/ic/{IC_REV}/canisters/ic-icrc1-ledger-u256.wasm.gz"),
+                candid_url: format!("https://raw.githubusercontent.com/dfinity/ic/{IC_REV}/rs/ledger_suite/icrc1/ledger/ledger.did"),
+                dependencies:vec![],
+                init_guide: r#"
+1. Create a 'minter' identity: dfx identity new minter
+2. Run the following multi-line command:
+
+dfx deps init ss2fx-dyaaa-aaaar-qacoq-cai --argument "(variant {
+    Init = record {
+        minting_account = record { owner = principal \"$(dfx --identity minter identity get-principal)\"; };
+        decimals = opt 18;
+        max_memo_length = opt 80;
+        transfer_fee = 2_000_000_000_000;
+        token_symbol = \"ckETH\";
+        token_name = \"ckETH\";
+        feature_flags = opt record { icrc2 = true };
+        metadata = vec {};
+        initial_balances = vec {};
+        archive_options = record {
+            num_blocks_to_archive = 1000;
+            trigger_threshold = 2000;
+            max_message_size_bytes = null;
+            cycles_for_archive_creation = opt 100_000_000_000_000;
+            node_max_memory_size_bytes = opt 3_221_225_472;
+            controller_id = principal \"2vxsx-fae\"
+        }
     }
 })"
 "#.to_string(),
