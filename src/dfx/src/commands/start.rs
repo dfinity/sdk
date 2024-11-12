@@ -332,7 +332,7 @@ pub fn exec(
         &local_server_descriptor.scope,
         LocalNetworkScopeDescriptor::Shared { .. }
     );
-    if is_shared_network && !pocketic {
+    if is_shared_network {
         save_json_file(
             &local_server_descriptor.effective_config_path_by_settings_digest(),
             &effective_config,

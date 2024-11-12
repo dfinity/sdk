@@ -22,7 +22,6 @@ teardown() {
 }
 
 @test "start and stop with different options" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: clean required"
   dfx_start --artificial-delay 101
   dfx_stop
 
@@ -42,7 +41,6 @@ teardown() {
 }
 
 @test "stop and start with other options does not disrupt projects" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: clean required"
   dfx_start --artificial-delay 101
 
   dfx_new p1
@@ -457,7 +455,6 @@ teardown() {
 }
 
 @test "modifying networks.json does not require --clean on restart" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: --force"
   dfx_start
   dfx stop
   assert_command dfx_start
@@ -467,7 +464,6 @@ teardown() {
 }
 
 @test "project-local networks require --clean if dfx.json was updated" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: --force"
   dfx_new
   define_project_network
   dfx_start
