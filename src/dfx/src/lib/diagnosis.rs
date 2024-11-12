@@ -54,6 +54,9 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
         } else if *agent_err == AgentError::CertificateNotAuthorized() {
             return subnet_not_authorized();
         }
+        if cycles_ledger_not_found(err) {
+            return diagnose_cycles_ledger_not_found();
+        }
     }
 
     if local_replica_not_running(err) {
@@ -227,5 +230,19 @@ wrong, you can set a new wallet with
 `dfx identity set-wallet <PRINCIPAL> --identity <IDENTITY>`.
 If you're using a local replica and configuring a wallet was a mistake, you can
 recreate the replica with `dfx stop && dfx start --clean` to start over.";
+    (Some(explanation.to_string()), Some(suggestion.to_string()))
+}
+
+fn cycles_ledger_not_found(err: &AnyhowError) -> bool {
+    err.to_string()
+        .contains("Canister um5iw-rqaaa-aaaaq-qaaba-cai not found")
+}
+
+fn diagnose_cycles_ledger_not_found() -> Diagnosis {
+    let explanation =
+        "Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' is not installed.";
+    let suggestion =
+        "Run the command with '--ic' flag if you want to manage the cycles on the mainnet.";
+
     (Some(explanation.to_string()), Some(suggestion.to_string()))
 }
