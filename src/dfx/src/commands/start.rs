@@ -70,7 +70,7 @@ pub struct StartOpts {
     artificial_delay: u32,
 
     /// Start even if the network config was modified.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "pocketic")]
     force: bool,
 
     /// A list of domains that can be served. These are used for canister resolution [default: localhost]
@@ -332,7 +332,7 @@ pub fn exec(
         &local_server_descriptor.scope,
         LocalNetworkScopeDescriptor::Shared { .. }
     );
-    if is_shared_network {
+    if is_shared_network && !pocketic {
         save_json_file(
             &local_server_descriptor.effective_config_path_by_settings_digest(),
             &effective_config,
