@@ -15,6 +15,7 @@ use std::{
 };
 
 pub mod deploy;
+pub mod pull;
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct PulledJson {
