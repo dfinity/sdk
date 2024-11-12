@@ -21,6 +21,14 @@ teardown() {
   assert_command diff "$NETWORK_ID_PATH" "$NETWORK_ID_BY_SETTINGS_DIGEST_PATH"
 }
 
+@test "start and stop" {
+  dfx_start
+  dfx_stop
+
+  dfx_start
+  dfx_stop
+}
+
 @test "start and stop with different options" {
   [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: clean required"
   dfx_start --artificial-delay 101
