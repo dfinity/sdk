@@ -37,6 +37,14 @@ How to resolve the error:
 Run the command with '--ic' flag if you want to manage the cycles on the mainnet.
 ```
 
+### chore: improve `dfx start` messages.
+
+For `dfx start`, show below messages to users to indicate what to do next.
+```
+Success! The dfx server is running.
+You must open a new terminal to continue developing. If you'd prefer to stop, quit with 'Ctrl-C'.
+```
+
 # 0.24.2
 
 ### feat: Support canister log allowed viewer list
