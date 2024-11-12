@@ -22,7 +22,7 @@ pub struct PulledJson {
     pub canisters: BTreeMap<Principal, PulledCanister>,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 pub struct PulledCanister {
     /// Name of `type: pull` in dfx.json. Omitted if indirect dependency.
     #[serde(skip_serializing_if = "Option::is_none")]

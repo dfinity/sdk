@@ -21,6 +21,9 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::io::Write;
 use std::path::Path;
 
+mod facade;
+use facade::{facade_dependencies, facade_download};
+
 pub async fn resolve_all_dependencies(
     agent: &Agent,
     logger: &Logger,
@@ -32,7 +35,15 @@ pub async fn resolve_all_dependencies(
     while let Some(canister_id) = canisters_to_resolve.pop_front() {
         if !checked.contains(&canister_id) {
             checked.insert(canister_id);
-            let dependencies = get_dependencies(agent, logger, &canister_id).await?;
+            let dependencies = if let Some(deps) = facade_dependencies(&canister_id) {
+                info!(
+                    logger,
+                    "Using facade dependencies for canister {canister_id}."
+                );
+                deps
+            } else {
+                get_dependencies(agent, logger, &canister_id).await?
+            };
             canisters_to_resolve.extend(dependencies.iter());
         }
     }
@@ -91,6 +102,9 @@ async fn download_and_generate_pulled_canister(
     canister_id: Principal,
 ) -> DfxResult<PulledCanister> {
     info!(logger, "Pulling canister {canister_id}...");
+    if let Some(pulled_canister) = facade_download(&canister_id).await? {
+        return Ok(pulled_canister);
+    }
 
     let mut pulled_canister = PulledCanister::default();
 
