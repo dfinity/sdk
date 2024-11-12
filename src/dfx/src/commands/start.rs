@@ -70,7 +70,7 @@ pub struct StartOpts {
     artificial_delay: u32,
 
     /// Start even if the network config was modified.
-    #[arg(long, conflicts_with = "pocketic")]
+    #[arg(long)]
     force: bool,
 
     /// A list of domains that can be served. These are used for canister resolution [default: localhost]
