@@ -68,7 +68,8 @@ teardown() {
 }
 
 @test "start and stop outside project" {
-  dfx_start
+  assert_command dfx_start
+  assert_contains "Success! The dfx server is running in the background."
 
   mkdir subdir
   cd subdir || exit 1
