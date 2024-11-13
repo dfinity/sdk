@@ -4,6 +4,7 @@ use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
+use crate::lib::network::network_opt::NetworkOpt;
 use clap::Parser;
 use tokio::runtime::Runtime;
 
@@ -14,14 +15,12 @@ pub struct GenerateOpts {
     /// If you do not specify a canister name, generates types for all canisters.
     canister_name: Option<String>,
 
-    // Deprecated/hidden because it had/has no effect.
-    // Cannot use 'hide' on a flattened  object - inlined the flattened network specifier
-    #[arg(long, global = true, hide = true)]
-    network: Option<String>,
+    #[command(flatten)]
+    network: NetworkOpt,
 }
 
 pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
-    let env = create_anonymous_agent_environment(env, None)?;
+    let env = create_anonymous_agent_environment(env, opts.network.to_network_name())?;
     let log = env.get_logger();
 
     // Read the config.
