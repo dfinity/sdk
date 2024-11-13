@@ -45,6 +45,34 @@ Success! The dfx server is running.
 You must open a new terminal to continue developing. If you'd prefer to stop, quit with 'Ctrl-C'.
 ```
 
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit a62848817cec7ae50618a87a526c85d020283fd9.
+This incorporates the following executed proposals:
+
+- [134036](https://dashboard.internetcomputer.org/proposal/134036)
+- [134035](https://dashboard.internetcomputer.org/proposal/134035)
+- [134034](https://dashboard.internetcomputer.org/proposal/134034)
+- [134032](https://dashboard.internetcomputer.org/proposal/134032)
+- [133939](https://dashboard.internetcomputer.org/proposal/133939)
+- [133953](https://dashboard.internetcomputer.org/proposal/133953)
+- [133952](https://dashboard.internetcomputer.org/proposal/133952)
+- [133951](https://dashboard.internetcomputer.org/proposal/133951)
+- [133950](https://dashboard.internetcomputer.org/proposal/133950)
+- [133902](https://dashboard.internetcomputer.org/proposal/133902)
+- [133901](https://dashboard.internetcomputer.org/proposal/133901)
+- [133900](https://dashboard.internetcomputer.org/proposal/133900)
+- [133798](https://dashboard.internetcomputer.org/proposal/133798)
+- [133799](https://dashboard.internetcomputer.org/proposal/133799)
+- [133800](https://dashboard.internetcomputer.org/proposal/133800)
+- [133457](https://dashboard.internetcomputer.org/proposal/133457)
+- [133450](https://dashboard.internetcomputer.org/proposal/133450)
+- [133443](https://dashboard.internetcomputer.org/proposal/133443)
+- [133397](https://dashboard.internetcomputer.org/proposal/133397)
+- [133396](https://dashboard.internetcomputer.org/proposal/133396)
+
 # 0.24.2
 
 ### feat: Support canister log allowed viewer list
