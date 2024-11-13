@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.24.3
+
 ### feat: facade pull ICP, ckBTC, ckETH ledger canisters
 
 The ledger canisters can be pulled even though they are not really "pullable".
