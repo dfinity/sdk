@@ -13,6 +13,7 @@ use dfx_core::config::model::replica_config::ReplicaConfig;
 use fn_error_context::context;
 use pocketic_proxy::signals::PortReadySubscribe;
 use pocketic_proxy::{PocketIcProxy, PocketIcProxyConfig};
+use post_start::PostStart;
 use std::fs;
 use std::path::PathBuf;
 
@@ -22,6 +23,7 @@ pub mod btc_adapter;
 pub mod canister_http_adapter;
 pub mod pocketic;
 pub mod pocketic_proxy;
+pub mod post_start;
 pub mod replica;
 mod shutdown;
 pub mod shutdown_controller;
@@ -213,4 +215,18 @@ pub fn start_pocketic_actor(
         verbose: env.get_verbose_level() > 0,
     };
     Ok(pocketic::PocketIc::new(actor_config).start())
+}
+
+#[context("Failed to start PostStart actor.")]
+pub fn start_post_start_actor(
+    env: &dyn Environment,
+    background: bool,
+    pocketic_proxy: Option<Addr<PocketIcProxy>>,
+) -> DfxResult<Addr<PostStart>> {
+    let config = post_start::Config {
+        logger: env.get_logger().clone(),
+        background,
+        pocketic_proxy,
+    };
+    Ok(PostStart::new(config).start())
 }

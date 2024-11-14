@@ -211,3 +211,13 @@ teardown() {
   assert_contains "it did not contain a function that dfx was looking for"
   assert_contains "dfx identity set-wallet <PRINCIPAL> --identity <IDENTITY>"
 }
+
+@test "Local replica not running has nice error messages" {
+  dfx_new
+  assert_command_fail dfx ping local
+  assert_contains "You are trying to connect to the local replica but dfx cannot connect to it."
+  assert_command_fail dfx deploy
+  assert_contains "You are trying to connect to the local replica but dfx cannot connect to it."
+  assert_command_fail dfx canister call um5iw-rqaaa-aaaaq-qaaba-cai some_method
+  assert_contains "You are trying to connect to the local replica but dfx cannot connect to it."
+}

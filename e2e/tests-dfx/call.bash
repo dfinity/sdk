@@ -199,6 +199,7 @@ teardown() {
   dfx canister create --all
   dfx build
   dfx canister install hello_backend
+  [[ "$USE_POCKETIC" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_backend
   assert_command dfx canister call hello_backend recurse 100
 }
 

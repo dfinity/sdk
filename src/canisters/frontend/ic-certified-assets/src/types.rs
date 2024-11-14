@@ -207,7 +207,9 @@ pub enum AssetCanisterArgs {
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct InitArgs {}
+pub struct InitArgs {
+    pub set_permissions: Option<SetPermissions>,
+}
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct UpgradeArgs {
