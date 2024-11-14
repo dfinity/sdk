@@ -2,7 +2,6 @@
 
 # UNRELEASED
 
-
 # 0.24.3
 
 ### feat: Bitcoin support in PocketIC
