@@ -49,6 +49,10 @@ You must open a new terminal to continue developing. If you'd prefer to stop, qu
 
 ## Dependencies
 
+### Motoko
+
+Updated Motoko to [0.13.3](https://github.com/dfinity/motoko/releases/tag/0.13.3)
+
 ### Replica
 
 Updated replica to elected commit a62848817cec7ae50618a87a526c85d020283fd9.
@@ -76,6 +80,15 @@ This incorporates the following executed proposals:
 - [133396](https://dashboard.internetcomputer.org/proposal/133396)
 
 # 0.24.2
+
+### feat: all commands will use the DFX_NETWORK from the environment
+
+If `DFX_NETWORK` is set in the environment, all commands will use that network by default.
+The `--network` parameter will take precedence if provided.
+
+### fix: dfx generate now honors the --network parameter
+This fixes an issue where `dfx deploy --playground` would fail if the project
+had not been previously built for the local network.
 
 ### feat: Support canister log allowed viewer list
 

@@ -9,7 +9,7 @@ pub struct NetworkOpt {
     /// A valid URL (starting with `http:` or `https:`) can be used here, and a special
     /// ephemeral network will be created specifically for this request. E.g.
     /// "http://localhost:12345/" is a valid network name.
-    #[arg(long, global(true), group = "network-select")]
+    #[arg(long, env = "DFX_NETWORK", global(true), group = "network-select")]
     network: Option<String>,
 
     /// Shorthand for --network=playground.
