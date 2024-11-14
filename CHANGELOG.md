@@ -56,6 +56,10 @@ You must open a new terminal to continue developing. If you'd prefer to stop, qu
 
 ## Dependencies
 
+### Motoko
+
+Updated Motoko to [0.13.3](https://github.com/dfinity/motoko/releases/tag/0.13.3)
+
 ### Replica
 
 Updated replica to elected commit a62848817cec7ae50618a87a526c85d020283fd9.
