@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: Bitcoin support in PocketIC
+
+`dfx start --pocketic` is now compatible with `--bitcoin-node` and `--enable-bitcoin`.
+
 ### feat: all commands will use the DFX_NETWORK from the environment
 
 If `DFX_NETWORK` is set in the environment, all commands will use that network by default.

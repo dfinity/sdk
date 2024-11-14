@@ -37,6 +37,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "dfx restarts replica when ic-btc-adapter restarts" {
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: PocketIC does not expose bitcoin adapter"
   dfx_new_assets hello
   dfx_start --enable-bitcoin
 
@@ -86,6 +87,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "dfx start --bitcoin-node <node> implies --enable-bitcoin" {
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: PocketIC does not expose bitcoin adapter"
   dfx_new hello
   dfx_start "--bitcoin-node" "127.0.0.1:18444"
 
@@ -93,6 +95,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "dfx start --enable-bitcoin with no other configuration succeeds" {
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: PocketIC does not expose bitcoin adapter"
   dfx_new hello
 
   dfx_start --enable-bitcoin
@@ -111,6 +114,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "can enable bitcoin through default configuration - dfx start" {
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: PocketIC does not expose bitcoin adapter"
   dfx_new hello
   define_project_network
   set_project_default_bitcoin_enabled
@@ -121,6 +125,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "can enable bitcoin through shared local network - dfx start" {
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: PocketIC does not expose bitcoin adapter"
   dfx_new hello
   set_shared_local_network_bitcoin_enabled
 
@@ -130,6 +135,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "can enable bitcoin through local network configuration - dfx start" {
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: PocketIC does not expose bitcoin adapter"
   dfx_new hello
   set_local_network_bitcoin_enabled
 
@@ -139,6 +145,7 @@ set_local_network_bitcoin_enabled() {
 }
 
 @test "dfx start with both bitcoin and canister http enabled" {
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: PocketIC does not expose bitcoin adapter"
   dfx_new hello
 
   dfx_start --enable-bitcoin --enable-canister-http
