@@ -7,7 +7,9 @@ use crate::actors::BitcoinIntegrationConfig;
 use crate::lib::error::{DfxError, DfxResult};
 #[cfg(unix)]
 use crate::lib::info::replica_rev;
+#[cfg(unix)]
 use crate::lib::integrations::bitcoin::initialize_bitcoin_canister;
+#[cfg(unix)]
 use crate::lib::integrations::create_integrations_agent;
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
