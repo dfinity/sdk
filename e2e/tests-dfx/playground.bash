@@ -71,6 +71,20 @@ setup_playground() {
   assert_command dfx canister --playground info "$CANISTER"
 }
 
+@test "deploy fresh project to playground" {
+  cd ..
+  rm -rf hello
+  dfx_new_frontend hello
+
+  [[ "$USE_POCKETIC" ]] && assert_command dfx canister create --all --playground
+  [[ "$USE_POCKETIC" ]] && assert_command dfx ledger fabricate-cycles --t 9999999 --canister hello_backend --playground
+  [[ "$USE_POCKETIC" ]] && assert_command dfx ledger fabricate-cycles --t 9999999 --canister hello_frontend --playground
+
+  assert_command dfx deploy --playground
+  assert_command dfx canister --playground call hello_backend greet '("player")'
+  assert_match "Hello, player!"
+}
+
 @test "Handle timeout correctly" {
   assert_command dfx canister create hello_backend --playground -vv
   assert_match "Reserved canister 'hello_backend'"
