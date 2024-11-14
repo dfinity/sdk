@@ -1,5 +1,6 @@
 use crate::lib::error_code;
 use anyhow::Error as AnyhowError;
+use dfx_core::error::root_key::FetchRootKeyError;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
 use ic_asset::error::{GatherAssetDescriptorsError, SyncError, UploadContentError};
@@ -53,6 +54,13 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
         } else if *agent_err == AgentError::CertificateNotAuthorized() {
             return subnet_not_authorized();
         }
+        if cycles_ledger_not_found(err) {
+            return diagnose_cycles_ledger_not_found();
+        }
+    }
+
+    if local_replica_not_running(err) {
+        return diagnose_local_replica_not_running();
     }
 
     if let Some(sync_error) = err.downcast_ref::<SyncError>() {
@@ -62,6 +70,32 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
     }
 
     NULL_DIAGNOSIS
+}
+
+fn local_replica_not_running(err: &AnyhowError) -> bool {
+    let maybe_agent_error = {
+        if let Some(FetchRootKeyError::AgentError(agent_error)) =
+            err.downcast_ref::<FetchRootKeyError>()
+        {
+            Some(agent_error)
+        } else {
+            err.downcast_ref::<AgentError>()
+        }
+    };
+    if let Some(AgentError::TransportError(transport_error)) = maybe_agent_error {
+        transport_error.is_connect()
+            && transport_error
+                .url()
+                .and_then(|url| url.host())
+                .map(|host| match host {
+                    url::Host::Domain(domain) => domain == "localhost",
+                    url::Host::Ipv4(ipv4_addr) => ipv4_addr.is_loopback(),
+                    url::Host::Ipv6(ipv6_addr) => ipv6_addr.is_loopback(),
+                })
+                .unwrap_or(false)
+    } else {
+        false
+    }
 }
 
 fn not_a_controller(err: &AgentError) -> bool {
@@ -113,6 +147,17 @@ To add a principal to the list of controllers, one of the existing controllers h
 If your wallet is a controller, but not your own principal, then you have to make your wallet perform the call by adding '--wallet <your wallet id>' to the command.
 
 The most common way this error is solved is by running 'dfx canister update-settings --network ic --wallet \"$(dfx identity get-wallet)\" --all --add-controller \"$(dfx identity get-principal)\"'.";
+    (
+        Some(error_explanation.to_string()),
+        Some(action_suggestion.to_string()),
+    )
+}
+
+fn diagnose_local_replica_not_running() -> Diagnosis {
+    let error_explanation =
+        "You are trying to connect to the local replica but dfx cannot connect to it.";
+    let action_suggestion =
+        "Target a different network or run 'dfx start' to start the local replica.";
     (
         Some(error_explanation.to_string()),
         Some(action_suggestion.to_string()),
@@ -185,5 +230,19 @@ wrong, you can set a new wallet with
 `dfx identity set-wallet <PRINCIPAL> --identity <IDENTITY>`.
 If you're using a local replica and configuring a wallet was a mistake, you can
 recreate the replica with `dfx stop && dfx start --clean` to start over.";
+    (Some(explanation.to_string()), Some(suggestion.to_string()))
+}
+
+fn cycles_ledger_not_found(err: &AnyhowError) -> bool {
+    err.to_string()
+        .contains("Canister um5iw-rqaaa-aaaaq-qaaba-cai not found")
+}
+
+fn diagnose_cycles_ledger_not_found() -> Diagnosis {
+    let explanation =
+        "Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' is not installed.";
+    let suggestion =
+        "Run the command with '--ic' flag if you want to manage the cycles on the mainnet.";
+
     (Some(explanation.to_string()), Some(suggestion.to_string()))
 }

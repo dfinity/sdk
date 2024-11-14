@@ -20,7 +20,7 @@ if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
      brew fetch --retry bitcoin
      brew install bitcoin
 fi
-if [ "$E2E_TEST" = "tests-dfx/build_rust.bash" ]; then
+if [ "$E2E_TEST" = "tests-dfx/build_rust.bash" ] && command -v cargo-audit &>/dev/null; then
     cargo uninstall cargo-audit
 fi
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then

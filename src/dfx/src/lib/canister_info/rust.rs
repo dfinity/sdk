@@ -64,7 +64,7 @@ impl CanisterInfoFactory for RustCanisterInfo {
         };
         let mut candidate_targets = package_info.targets.iter().filter(|x| {
             x.crate_types.iter().any(|c| {
-                (c == "cdylib" && x.name == crate_name.replace('-', "_"))
+                (c == "cdylib" && x.name.replace('-', "_") == crate_name.replace('-', "_"))
                     || (c == "bin" && x.name == crate_name)
             })
         });
