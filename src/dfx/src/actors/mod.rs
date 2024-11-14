@@ -203,10 +203,19 @@ pub fn start_pocketic_actor(
         )
     })?;
 
+    let bitcoin_integration_config = if local_server_descriptor.bitcoin.enabled {
+        Some(BitcoinIntegrationConfig {
+            canister_init_arg: local_server_descriptor.bitcoin.canister_init_arg.clone(),
+        })
+    } else {
+        None
+    };
     let actor_config = pocketic::Config {
         pocketic_path,
         effective_config_path: local_server_descriptor.effective_config_path(),
         replica_config,
+        bitcoind_addr: local_server_descriptor.bitcoin.nodes.clone(),
+        bitcoin_integration_config,
         port: local_server_descriptor.replica.port,
         port_file: pocketic_port_path,
         pid_file: local_server_descriptor.pocketic_pid_path(),

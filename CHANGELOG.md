@@ -2,7 +2,12 @@
 
 # UNRELEASED
 
+
 # 0.24.3
+
+### feat: Bitcoin support in PocketIC
+
+`dfx start --pocketic` is now compatible with `--bitcoin-node` and `--enable-bitcoin`.
 
 ### feat: facade pull ICP, ckBTC, ckETH ledger canisters
 
