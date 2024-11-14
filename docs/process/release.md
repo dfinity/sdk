@@ -25,7 +25,7 @@ If you create a new patch version make sure there will be no breaking changes in
 
 This branch will be used to create beta releases as well as the final release.
 
-## Stage 2: Beta releases - day 1 ~ 2
+## Stage 2: Beta release
 
 1. Check out the release branch;
 1. Run the release script, for example `./scripts/release.sh 0.15.3-beta.0`.
@@ -56,17 +56,19 @@ This branch will be used to create beta releases as well as the final release.
 
 [publish-workflow]: https://github.com/dfinity/sdk/blob/master/.github/workflows/publish.yml
 
-## Stage 3: Final Release - day 3
+## Stage 3: Promoting the release
 
-Once the beta releases are ready to be promoted:
+Once the beta release is ready to be promoted:
 
 1. Check out the release branch;
 1. Run the release script, for example `./scripts/release.sh 0.15.3`;
 1. Follow the same steps as for the beta releases;
 
+> Tip: using a keyring-enabled identity while running the release script will fail. Use a plaintext identity instead.
+
 [Sample PR](https://github.com/dfinity/sdk/pull/3490)
 
-## Stage 4: Draft PRs to prepare for promotion - day 3
+## Stage 4: Draft PRs to prepare for promotion
 
 All following PRs should be created as "draft".
 
@@ -112,7 +114,7 @@ Modify `DFX_VERSION` in these two files:
 
 [Sample PR](https://github.com/dfinity/examples/pull/704)
 
-## Stage 5: Promote the release - day 4
+## Stage 5: Finalize promotion
 
 ### Update the GitHub release
 
