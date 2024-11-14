@@ -21,10 +21,6 @@ matrix = {
         {
             "backend": "pocketic",
             "test": "dfx/canister_http_adapter"
-        },
-        {
-            "backend": "pocketic",
-            "test": "dfx/canister_logs"
         }
     ]
 }
