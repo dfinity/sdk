@@ -36,9 +36,9 @@ Allow setting permissions lists in init arguments just like in upgrade arguments
 - Module hash: f45db224b40fac516c877e3108dc809d4b22fa42d05ee8dfa5002536a3a3daed
 - Bump agent-js to fix error code
 
-### chore!: improve the messages for the subcommands of `dfx cycles`.
+### chore!: improve the messages for the subcommands of `dfx cycles` and `dfx ledger`.
 
-If users run subcommands of `dfx cycles` without the `--ic` flag, show below messages to indicate what to do next.
+If users run subcommands of `dfx cycles` or `dfx ledger` without the `--ic` flag, show below messages to indicate what to do next.
 ```
 Error explanation:
 Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' is not installed.
