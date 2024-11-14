@@ -2,6 +2,94 @@
 
 # UNRELEASED
 
+### feat: Bitcoin support in PocketIC
+
+`dfx start --pocketic` is now compatible with `--bitcoin-node` and `--enable-bitcoin`.
+
+### feat: all commands will use the DFX_NETWORK from the environment
+
+If `DFX_NETWORK` is set in the environment, all commands will use that network by default.
+The `--network` parameter will take precedence if provided.
+
+### fix: dfx generate now honors the --network parameter
+This fixes an issue where `dfx deploy --playground` would fail if the project
+had not been previously built for the local network.
+
+### feat: facade pull ICP, ckBTC, ckETH ledger canisters
+
+The ledger canisters can be pulled even though they are not really "pullable".
+The metadata like wasm_url and init_guide are hardcoded inside `dfx deps pull` logic.
+
+- ICP ledger: `ryjl3-tyaaa-aaaaa-aaaba-cai`
+- ckBTC ledger: `mxzaz-hqaaa-aaaar-qaada-cai`
+- ckETH ledger: `ss2fx-dyaaa-aaaar-qacoq-cai`
+
+### chore: update agent version in frontend templates, and include `resolve.dedupe` in Vite config
+
+### chore: improve error message when trying to use the local replica when it is not running
+
+### Frontend canister
+
+Allow setting permissions lists in init arguments just like in upgrade arguments.
+
+- Module hash: 2c24b5e1584890a7965011d5d1d827aca68c489c9a6308475730420fa53372e8
+- https://github.com/dfinity/sdk/pull/3965
+
+### Candid UI
+
+- Module hash: f45db224b40fac516c877e3108dc809d4b22fa42d05ee8dfa5002536a3a3daed
+- Bump agent-js to fix error code
+
+### chore!: improve the messages for the subcommands of `dfx cycles`.
+
+If users run subcommands of `dfx cycles` without the `--ic` flag, show below messages to indicate what to do next.
+```
+Error explanation:
+Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' is not installed.
+How to resolve the error:
+Run the command with '--ic' flag if you want to manage the cycles on the mainnet.
+```
+
+### chore: improve `dfx start` messages.
+
+For `dfx start`, show below messages to users to indicate what to do next.
+```
+Success! The dfx server is running.
+You must open a new terminal to continue developing. If you'd prefer to stop, quit with 'Ctrl-C'.
+```
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.13.3](https://github.com/dfinity/motoko/releases/tag/0.13.3)
+
+### Replica
+
+Updated replica to elected commit a62848817cec7ae50618a87a526c85d020283fd9.
+This incorporates the following executed proposals:
+
+- [134036](https://dashboard.internetcomputer.org/proposal/134036)
+- [134035](https://dashboard.internetcomputer.org/proposal/134035)
+- [134034](https://dashboard.internetcomputer.org/proposal/134034)
+- [134032](https://dashboard.internetcomputer.org/proposal/134032)
+- [133939](https://dashboard.internetcomputer.org/proposal/133939)
+- [133953](https://dashboard.internetcomputer.org/proposal/133953)
+- [133952](https://dashboard.internetcomputer.org/proposal/133952)
+- [133951](https://dashboard.internetcomputer.org/proposal/133951)
+- [133950](https://dashboard.internetcomputer.org/proposal/133950)
+- [133902](https://dashboard.internetcomputer.org/proposal/133902)
+- [133901](https://dashboard.internetcomputer.org/proposal/133901)
+- [133900](https://dashboard.internetcomputer.org/proposal/133900)
+- [133798](https://dashboard.internetcomputer.org/proposal/133798)
+- [133799](https://dashboard.internetcomputer.org/proposal/133799)
+- [133800](https://dashboard.internetcomputer.org/proposal/133800)
+- [133457](https://dashboard.internetcomputer.org/proposal/133457)
+- [133450](https://dashboard.internetcomputer.org/proposal/133450)
+- [133443](https://dashboard.internetcomputer.org/proposal/133443)
+- [133397](https://dashboard.internetcomputer.org/proposal/133397)
+- [133396](https://dashboard.internetcomputer.org/proposal/133396)
+
 # 0.24.2
 
 ### feat: all commands will use the DFX_NETWORK from the environment

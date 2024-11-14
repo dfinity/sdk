@@ -27,6 +27,7 @@ setup_playground() {
   dfx_start
   dfx deploy backend
   dfx ledger fabricate-cycles --t 9999999 --canister backend
+
   PLAYGROUND_CANISTER_ID=$(dfx canister id backend)
   export PLAYGROUND_CANISTER_ID
   echo "PLAYGROUND_CANISTER_ID is $PLAYGROUND_CANISTER_ID"
@@ -45,6 +46,10 @@ setup_playground() {
 }
 
 @test "canister lifecycle" {
+  assert_command dfx canister create --all --playground
+  [[ "$USE_POCKETIC" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_backend --playground
+  [[ "$USE_POCKETIC" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_frontend --playground
+
   assert_command dfx deploy --playground
   assert_command dfx canister --playground call hello_backend greet '("player")'
   assert_match "Hello, player!"
@@ -101,6 +106,10 @@ setup_playground() {
 # If the hashes didn't match then the playground would attempt to
 # instrument the asset canister during upload which would run into execution limits.
 @test "playground-installed asset canister is same wasm as normal asset canister" {
+  assert_command dfx canister create --all --playground
+  [[ "$USE_POCKETIC" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_backend --playground
+  [[ "$USE_POCKETIC" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_frontend --playground
+
   assert_command dfx deploy --playground
   PLAYGROUND_HASH=$(dfx canister --playground info hello_frontend | grep hash)
   echo "PLAYGROUND_HASH: ${PLAYGROUND_HASH}"

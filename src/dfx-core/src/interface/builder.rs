@@ -1,12 +1,16 @@
 use crate::{
+    config::cache::get_version_from_cache_path,
     config::model::{
         dfinity::{Config, NetworksConfig},
         network_descriptor::NetworkDescriptor,
     },
     error::{
         builder::{BuildAgentError, BuildDfxInterfaceError, BuildIdentityError},
+        extension::NewExtensionManagerError,
+        interface::NewExtensionManagerFromCachePathError,
         network_config::NetworkConfigError,
     },
+    extension::manager::ExtensionManager,
     identity::{identity_manager::InitializeIdentity, IdentityManager},
     network::{
         provider::{create_network_descriptor, LocalBindDetermination},
@@ -16,6 +20,8 @@ use crate::{
 };
 use ic_agent::{agent::route_provider::RoundRobinRouteProvider, Agent, Identity};
 use reqwest::Client;
+use semver::Version;
+use std::path::Path;
 use std::sync::Arc;
 
 #[derive(PartialEq)]
@@ -42,14 +48,17 @@ pub struct DfxInterfaceBuilder {
     /// There is no need to set this for the local network, where the root key is fetched by default.
     /// This would typically be set for a testnet, or an alias for the local network.
     force_fetch_root_key_insecure_non_mainnet_only: bool,
+
+    extension_manager: Option<ExtensionManager>,
 }
 
 impl DfxInterfaceBuilder {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             identity: IdentityPicker::Selected,
             network: NetworkPicker::Local,
             force_fetch_root_key_insecure_non_mainnet_only: false,
+            extension_manager: None,
         }
     }
 
@@ -77,6 +86,26 @@ impl DfxInterfaceBuilder {
         self.with_network(NetworkPicker::Named(name.to_string()))
     }
 
+    pub fn with_extension_manager(
+        self,
+        version: Version,
+    ) -> Result<Self, NewExtensionManagerError> {
+        let extension_manager = Some(ExtensionManager::new(&version)?);
+        Ok(Self {
+            extension_manager,
+            ..self
+        })
+    }
+
+    pub fn with_extension_manager_from_cache_path(
+        self,
+        cache_path: &Path,
+    ) -> Result<Self, NewExtensionManagerFromCachePathError> {
+        let version = get_version_from_cache_path(cache_path)?;
+
+        Ok(self.with_extension_manager(version)?)
+    }
+
     pub fn with_force_fetch_root_key_insecure_non_mainnet_only(self) -> Self {
         Self {
             force_fetch_root_key_insecure_non_mainnet_only: true,
@@ -88,7 +117,7 @@ impl DfxInterfaceBuilder {
         let fetch_root_key = self.network == NetworkPicker::Local
             || self.force_fetch_root_key_insecure_non_mainnet_only;
         let networks_config = NetworksConfig::new()?;
-        let config = Config::from_current_dir(None)?.map(Arc::new);
+        let config = Config::from_current_dir(self.extension_manager.as_ref())?.map(Arc::new);
         let network_descriptor = self.build_network_descriptor(config.clone(), &networks_config)?;
         let identity = self.build_identity()?;
         let agent = self.build_agent(identity.clone(), &network_descriptor)?;

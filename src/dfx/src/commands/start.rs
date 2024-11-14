@@ -1,7 +1,8 @@
 use crate::actors::pocketic_proxy::{signals::PortReadySubscribe, PocketIcProxyConfig};
 use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_pocketic_actor,
-    start_pocketic_proxy_actor, start_replica_actor, start_shutdown_controller,
+    start_pocketic_proxy_actor, start_post_start_actor, start_replica_actor,
+    start_shutdown_controller,
 };
 use crate::config::dfx_version_str;
 use crate::error_invalid_argument;
@@ -49,16 +50,20 @@ pub struct StartOpts {
     #[arg(long)]
     background: bool,
 
+    /// Indicates if the actual dfx process is running in the background.
+    #[arg(long, env = "DFX_RUNNING_IN_BACKGROUND", hide = true)]
+    running_in_background: bool,
+
     /// Cleans the state of the current project.
     #[arg(long)]
     clean: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[arg(long, action = ArgAction::Append, conflicts_with = "pocketic")]
+    #[arg(long, action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[arg(long, conflicts_with = "pocketic")]
+    #[arg(long)]
     enable_bitcoin: bool,
 
     /// enable canister http requests (on by default for --pocketic)
@@ -138,6 +143,7 @@ pub fn exec(
     StartOpts {
         host,
         background,
+        running_in_background,
         clean,
         force,
         bitcoin_node,
@@ -413,7 +419,10 @@ pub fn exec(
             pocketic_proxy_pid_file_path,
             pocketic_proxy_port_file_path,
         )?;
-        Ok::<_, Error>(proxy)
+
+        let post_start = start_post_start_actor(env, running_in_background, Some(proxy))?;
+
+        Ok::<_, Error>(post_start)
     })?;
     system.run()?;
 
@@ -574,7 +583,8 @@ fn send_background() -> DfxResult<()> {
             .skip(1)
             .filter(|a| !a.eq("--background"))
             .filter(|a| !a.eq("--clean")),
-    );
+    )
+    .env("DFX_RUNNING_IN_BACKGROUND", "true"); // Set the `DFX_RUNNING_IN_BACKGROUND` environment variable which will be used by the second start.
 
     cmd.spawn().context("Failed to spawn child process.")?;
     Ok(())
