@@ -20,10 +20,6 @@ matrix = {
     "exclude": [
         {
             "backend": "pocketic",
-            "test": "dfx/bitcoin"
-        },
-        {
-            "backend": "pocketic",
             "test": "dfx/canister_http_adapter"
         },
         {

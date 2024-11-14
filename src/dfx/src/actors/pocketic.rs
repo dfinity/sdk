@@ -3,9 +3,12 @@ use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
+use crate::actors::BitcoinIntegrationConfig;
 use crate::lib::error::{DfxError, DfxResult};
 #[cfg(unix)]
 use crate::lib::info::replica_rev;
+use crate::lib::integrations::bitcoin::initialize_bitcoin_canister;
+use crate::lib::integrations::create_integrations_agent;
 use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
@@ -20,6 +23,7 @@ use dfx_core::config::model::replica_config::ReplicaConfig;
 #[cfg(unix)]
 use dfx_core::json::save_json_file;
 use slog::{debug, error, info, warn, Logger};
+use std::net::SocketAddr;
 use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
@@ -43,6 +47,8 @@ pub struct Config {
     pub pocketic_path: PathBuf,
     pub effective_config_path: PathBuf,
     pub replica_config: ReplicaConfig,
+    pub bitcoind_addr: Option<Vec<SocketAddr>>,
+    pub bitcoin_integration_config: Option<BitcoinIntegrationConfig>,
     pub port: Option<u16>,
     pub port_file: PathBuf,
     pub pid_file: PathBuf,
@@ -265,6 +271,8 @@ fn pocketic_start_thread(
             let instance = match initialize_pocketic(
                 port,
                 &config.effective_config_path,
+                &config.bitcoind_addr,
+                &config.bitcoin_integration_config,
                 &config.replica_config,
                 logger.clone(),
             ) {
@@ -322,6 +330,8 @@ fn pocketic_start_thread(
 async fn initialize_pocketic(
     port: u16,
     effective_config_path: &Path,
+    bitcoind_addr: &Option<Vec<SocketAddr>>,
+    bitcoin_integration_config: &Option<BitcoinIntegrationConfig>,
     replica_config: &ReplicaConfig,
     logger: Logger,
 ) -> DfxResult<usize> {
@@ -339,7 +349,7 @@ async fn initialize_pocketic(
         sns: Some(SubnetSpec::default()),
         ii: Some(SubnetSpec::default()),
         fiduciary: None,
-        bitcoin: None,
+        bitcoin: Some(SubnetSpec::default()),
         system: vec![],
         verified_application: vec![],
         application: vec![],
@@ -358,7 +368,7 @@ async fn initialize_pocketic(
             state_dir: Some(replica_config.state_manager.state_root.clone()),
             nonmainnet_features: true,
             log_level: Some(replica_config.log_level.to_ic_starter_string()),
-            bitcoind_addr: None,
+            bitcoind_addr: bitcoind_addr.clone(),
         })
         .send()
         .await?
@@ -420,12 +430,30 @@ async fn initialize_pocketic(
         .send()
         .await?
         .error_for_status()?;
+
+    let agent_url = format!("http://localhost:{port}/instances/{instance}/");
+
+    debug!(logger, "Waiting for replica to report healthy status");
+    crate::lib::replica::status::ping_and_wait(&agent_url).await?;
+
+    if let Some(bitcoin_integration_config) = bitcoin_integration_config {
+        let agent = create_integrations_agent(&agent_url, &logger).await?;
+        initialize_bitcoin_canister(&agent, &logger, bitcoin_integration_config.clone()).await?;
+    }
+
     info!(logger, "Initialized PocketIC.");
     Ok(instance)
 }
 
 #[cfg(not(unix))]
-fn initialize_pocketic(_: u16, _: &Path, _: &ReplicaConfig, _: Logger) -> DfxResult<usize> {
+fn initialize_pocketic(
+    _: u16,
+    _: &Path,
+    _: &Option<Vec<SocketAddr>>,
+    _: &Option<BitcoinIntegrationConfig>,
+    _: &ReplicaConfig,
+    _: Logger,
+) -> DfxResult<usize> {
     bail!("PocketIC not supported on this platform")
 }
 
