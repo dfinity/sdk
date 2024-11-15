@@ -597,10 +597,10 @@ fn frontend_address(
 ) -> DfxResult<(String, SocketAddr)> {
     let mut address_and_port = local_server_descriptor.bind_address;
 
-    if !background {
+    if !background && address_and_port.port() == 0 {
         // Since the user may have provided port "0", we need to grab a dynamically
-        // allocated port and construct a resuable SocketAddr which the actix
-        // HttpServer will bind to
+        // allocated port and construct a resuable SocketAddr
+        // to which the PocketIC HTTP gateway later binds.
         address_and_port =
             get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())?;
     }
