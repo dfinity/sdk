@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: Bitcoin support in PocketIC
+
+`dfx start --pocketic` is now compatible with `--bitcoin-node` and `--enable-bitcoin`.
+
 ### feat: all commands will use the DFX_NETWORK from the environment
 
 If `DFX_NETWORK` is set in the environment, all commands will use that network by default.
@@ -87,6 +91,15 @@ This incorporates the following executed proposals:
 - [133396](https://dashboard.internetcomputer.org/proposal/133396)
 
 # 0.24.2
+
+### feat: all commands will use the DFX_NETWORK from the environment
+
+If `DFX_NETWORK` is set in the environment, all commands will use that network by default.
+The `--network` parameter will take precedence if provided.
+
+### fix: dfx generate now honors the --network parameter
+This fixes an issue where `dfx deploy --playground` would fail if the project
+had not been previously built for the local network.
 
 ### feat: Support canister log allowed viewer list
 

@@ -59,11 +59,11 @@ pub struct StartOpts {
     clean: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[arg(long, action = ArgAction::Append, conflicts_with = "pocketic")]
+    #[arg(long, action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[arg(long, conflicts_with = "pocketic")]
+    #[arg(long)]
     enable_bitcoin: bool,
 
     /// enable canister http requests (on by default for --pocketic)
