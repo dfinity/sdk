@@ -63,8 +63,7 @@ EOF
 
 
 @test "extension canister type" {
-  install_shared_asset subnet_type/shared_network_settings/system
-  dfx_start_for_nns_install
+  dfx_start
 
   install_asset wasm/identity
   CACHE_DIR=$(dfx cache show)
