@@ -242,7 +242,7 @@ install_extension_from_dfx_extensions_repo() {
   assert_match 'snsx'
 
   assert_command dfx --help
-  assert_match 'snsx.*Toolkit for'
+  assert_match 'snsx.*Initialize, deploy and interact with an SNS'
 
   assert_command dfx snsx --help
 
