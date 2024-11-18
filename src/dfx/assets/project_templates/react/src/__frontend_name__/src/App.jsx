@@ -4,26 +4,27 @@ import { __backend_name_ident__ } from 'declarations/__backend_name__';
 function App() {
   const [greeting, setGreeting] = useState('');
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     const name = event.target.elements.name.value;
-    __backend_name_ident__.greet(name).then((greeting) => {
-      setGreeting(greeting);
-    });
+    const greeting = await __backend_name_ident__.greet(name);
+    setGreeting(greeting);
     return false;
   }
 
   return (
-    <main>
-      <img src="/logo2.svg" alt="DFINITY logo" />
-      <br />
-      <br />
-      <form action="#" onSubmit={handleSubmit}>
-        <label htmlFor="name">Enter your name: &nbsp;</label>
-        <input id="name" alt="Name" type="text" />
-        <button type="submit">Click Me!</button>
-      </form>
-      <section id="greeting">{greeting}</section>
+    <main className="container">
+      <div className="card">
+        <h1>{greeting}</h1>
+
+        <form action="#" onSubmit={handleSubmit}>
+          <label htmlFor="name">Enter your name:</label>
+          <input type="text" id="name" required />
+          <button type="submit">Click Me!</button>
+        </form>
+
+        <img src="/logo2.svg" alt="DFINITY logo" width="256" />
+      </div>
     </main>
   );
 }
