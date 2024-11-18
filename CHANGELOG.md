@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: `dfx start --pocketic` supports `--force` and shared networks.
+
+`dfx start --pocketic` is now compatible with `--force` and shared networks.
+
 # 0.24.3
 
 ### feat: Bitcoin support in PocketIC
