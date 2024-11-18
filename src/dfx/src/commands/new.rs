@@ -198,7 +198,7 @@ pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
         .status();
 
     if init_status.is_ok() && init_status.unwrap().success() {
-        info!(log, "Creating git repository...");
+        info!(log, "Initializing git repository...");
         std::process::Command::new("git")
             .arg("add")
             .current_dir(project_name)
