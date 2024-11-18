@@ -334,7 +334,8 @@ async fn wait_for_module_hash(
                     // Playground may modify wasm before installing, therefore we cannot predict what the hash is supposed to be.
                     debug!(
                         env.get_logger(),
-                        "Module hash verification is skipped for playground deployments."
+                        "Canister {} has been successfully leased. Installing new code.",
+                        canister_id
                     );
                     break;
                 }
