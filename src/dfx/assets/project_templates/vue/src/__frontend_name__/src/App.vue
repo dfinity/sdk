@@ -15,7 +15,7 @@ async function handleSubmit(e) {
 
 <template>
   <main>
-    <img src="/logo2.svg" alt="DFINITY logo" />
+    <img src="/logo.svg" alt="DFINITY logo" />
     <br />
     <br />
     <form action="#" @submit="handleSubmit">
