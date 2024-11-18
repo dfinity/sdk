@@ -559,7 +559,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
     info!(
         log,
         "===============================================================================
-        Welcome to the internet computer developer community!
+        Welcome to the Internet Computer!
 
 To learn more before you start coding, check out the developer docs and samples:
 
