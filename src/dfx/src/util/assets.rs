@@ -6,20 +6,6 @@ use std::io::Read;
 
 include!(concat!(env!("OUT_DIR"), "/load_assets.rs"));
 
-pub fn dfinity_logo() -> String {
-    let colors = supports_color::on(supports_color::Stream::Stdout);
-    if let Some(colors) = colors {
-        //Some terminals, notably MacOS's Terminal.app, do not support Truecolor (RGB-colored characters) properly.
-        //Therefore we use xterm256 coloring when the program is running in such a terminal.
-        if colors.has_16m {
-            return include_str!("../../assets/dfinity-color.aart").to_string();
-        } else if colors.has_256 {
-            return include_str!("../../assets/dfinity-color-xterm256.aart").to_string();
-        }
-    }
-    include_str!("../../assets/dfinity-nocolor.aart").to_string()
-}
-
 #[context("Failed to load wallet wasm.")]
 pub fn wallet_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
     if let Ok(dfx_wallet_wasm) = std::env::var("DFX_WALLET_WASM") {
