@@ -239,7 +239,11 @@ fn build_frontend(
             )));
         } else if !output.stderr.is_empty() {
             // Cannot use eprintln, because it would interfere with the progress bar.
-            slog::warn!(logger, "{}", String::from_utf8_lossy(&output.stderr));
+            slog::debug!(
+                logger,
+                "Frontend build succeed:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
         }
     }
     Ok(())
