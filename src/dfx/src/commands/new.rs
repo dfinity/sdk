@@ -21,7 +21,7 @@ use dialoguer::{FuzzySelect, MultiSelect};
 use fn_error_context::context;
 use indicatif::HumanBytes;
 use semver::Version;
-use slog::{info, warn, Logger};
+use slog::{info, trace, warn, Logger};
 use std::collections::{BTreeMap, HashMap};
 use std::io::{self, IsTerminal, Read};
 use std::path::{Path, PathBuf};
@@ -130,7 +130,7 @@ pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> 
             .with_context(|| format!("Failed to write to {}.", path.to_string_lossy()))?;
     }
 
-    info!(log, "{}", Status::Create(path, content.len()));
+    trace!(log, "{}", Status::Create(path, content.len()));
     Ok(())
 }
 
@@ -184,7 +184,7 @@ pub fn create_dir<P: AsRef<Path>>(log: &Logger, path: P, dry_run: bool) -> DfxRe
             .with_context(|| format!("Failed to create directory {}.", path.to_string_lossy()))?;
     }
 
-    info!(log, "{}", Status::CreateDir(path));
+    trace!(log, "{}", Status::CreateDir(path));
     Ok(())
 }
 
