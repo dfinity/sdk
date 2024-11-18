@@ -21,7 +21,7 @@ use dialoguer::{FuzzySelect, MultiSelect};
 use fn_error_context::context;
 use indicatif::HumanBytes;
 use semver::Version;
-use slog::{info, warn, Logger};
+use slog::{info, trace, warn, Logger};
 use std::collections::{BTreeMap, HashMap};
 use std::io::{self, IsTerminal, Read};
 use std::path::{Path, PathBuf};
@@ -130,7 +130,7 @@ pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> 
             .with_context(|| format!("Failed to write to {}.", path.to_string_lossy()))?;
     }
 
-    info!(log, "{}", Status::Create(path, content.len()));
+    trace!(log, "{}", Status::Create(path, content.len()));
     Ok(())
 }
 
@@ -184,7 +184,7 @@ pub fn create_dir<P: AsRef<Path>>(log: &Logger, path: P, dry_run: bool) -> DfxRe
             .with_context(|| format!("Failed to create directory {}.", path.to_string_lossy()))?;
     }
 
-    info!(log, "{}", Status::CreateDir(path));
+    trace!(log, "{}", Status::CreateDir(path));
     Ok(())
 }
 
@@ -198,7 +198,7 @@ pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
         .status();
 
     if init_status.is_ok() && init_status.unwrap().success() {
-        info!(log, "Creating git repository...");
+        info!(log, "Initializing git repository...");
         std::process::Command::new("git")
             .arg("add")
             .current_dir(project_name)
@@ -558,12 +558,14 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
     // Print welcome message.
     info!(
         log,
-        // This needs to be included here because we cannot use the result of a function for
-        // the format!() rule (and so it cannot be moved in the util::assets module).
-        include_str!("../../assets/welcome.txt"),
-        version_str,
-        assets::dfinity_logo(),
-        project_name_str
+        "===============================================================================
+        Welcome to the internet computer developer community!
+
+To learn more before you start coding, check out the developer docs and samples:
+
+- Documentation: https://internetcomputer.org/docs/current/developer-docs
+- Samples: https://internetcomputer.org/samples
+==============================================================================="
     );
 
     Ok(())
