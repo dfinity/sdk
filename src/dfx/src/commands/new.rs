@@ -558,11 +558,14 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
     // Print welcome message.
     info!(
         log,
-        // This needs to be included here because we cannot use the result of a function for
-        // the format!() rule (and so it cannot be moved in the util::assets module).
-        include_str!("../../assets/welcome.txt"),
-        version_str,
-        project_name_str
+        "===============================================================================
+        Welcome to the internet computer developer community!
+
+To learn more before you start coding, check out the developer docs and samples:
+
+- Documentation: https://internetcomputer.org/docs/current/developer-docs
+- Samples: https://internetcomputer.org/samples
+==============================================================================="
     );
 
     Ok(())
