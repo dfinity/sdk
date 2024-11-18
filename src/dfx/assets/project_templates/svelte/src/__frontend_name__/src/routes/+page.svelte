@@ -21,6 +21,6 @@
       <button type="submit">Click Me!</button>
     </form>
 
-    <img src="/logo2.svg" alt="DFINITY logo" width="256" />
+    <img src="/logo.svg" alt="DFINITY logo" width="256" />
   </div>
 </main>

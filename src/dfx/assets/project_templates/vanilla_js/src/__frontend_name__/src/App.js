@@ -1,9 +1,9 @@
 import { html, render } from 'lit-html';
 import { __backend_name_ident__ } from 'declarations/__backend_name__';
-import logo from './logo2.svg';
+import logo from './logo.svg';
 
 class App {
-  greeting = '';
+  greeting = "";
 
   constructor() {
     this.#render();
@@ -11,29 +11,31 @@ class App {
 
   #handleSubmit = async (e) => {
     e.preventDefault();
-    const name = document.getElementById('name').value;
+    const name = document.getElementById("name").value;
     this.greeting = await __backend_name_ident__.greet(name);
     this.#render();
   };
 
   #render() {
     let body = html`
-      <main>
-        <img src="${logo}" alt="DFINITY logo" />
-        <br />
-        <br />
-        <form action="#">
-          <label for="name">Enter your name: &nbsp;</label>
-          <input id="name" alt="Name" type="text" />
-          <button type="submit">Click Me!</button>
-        </form>
-        <section id="greeting">${this.greeting}</section>
-      </main>
+        <main class="container">
+            <div class="card">
+                <h1>{greeting}</h1>
+
+                <form action="#">
+                    <label for="name">Enter your name:</label>
+                    <input type="text" id="name" required />
+                    <button type="submit">Click Me!</button>
+                </form>
+
+                <img src="${logo}" alt="DFINITY logo" width="256" />
+            </div>
+        </main>
     `;
-    render(body, document.getElementById('root'));
+    render(body, document.getElementById("root"));
     document
-      .querySelector('form')
-      .addEventListener('submit', this.#handleSubmit);
+      .querySelector("form")
+      .addEventListener("submit", this.#handleSubmit);
   }
 }
 
