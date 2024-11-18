@@ -3,8 +3,6 @@
         Welcome to the internet computer developer community!
                         You're using dfx {0}
 
-{1}
-
 To learn more before you start coding, see the documentation available online:
 
 - Quick Start: https://internetcomputer.org/docs/current/tutorials/deploy_sample_app
@@ -15,7 +13,7 @@ To learn more before you start coding, see the documentation available online:
 
 If you want to work on programs right away, try the following commands to get started:
 
-    cd {2}
+    cd {1}
     dfx help
     dfx new --help
 

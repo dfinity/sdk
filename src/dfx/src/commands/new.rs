@@ -562,7 +562,6 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         // the format!() rule (and so it cannot be moved in the util::assets module).
         include_str!("../../assets/welcome.txt"),
         version_str,
-        assets::dfinity_logo(),
         project_name_str
     );
 
