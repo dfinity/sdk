@@ -34,7 +34,7 @@ const DECIMAL_POINT: char = '.';
 // thus, we need to recreate SocketAddr with the kernel-provided dynamically allocated port here.
 #[context("Failed to find available socket address")]
 pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> {
-    let listener = TcpListener::bind(&SocketAddr::new(ip, port))
+    let listener = TcpListener::bind(SocketAddr::new(ip, port))
         .with_context(|| format!("Failed to bind socket to {}:{}.", ip, port))?;
     listener
         .local_addr()
