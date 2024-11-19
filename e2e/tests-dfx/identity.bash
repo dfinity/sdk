@@ -186,15 +186,15 @@ teardown() {
   assert_eq '(blob "hello")' "$stdout"
 }
 
-@test "using an unencrypted identity on mainnet provokes a warning" {
-  assert_command dfx ledger balance --network ic
-  assert_match "WARN: The default identity is not stored securely." "$stderr"
+@test "using an unencrypted identity on mainnet provokes a hard error which can be surpressed" {
+  assert_command_fail dfx ledger balance --network ic
+  assert_match "The default identity is not stored securely." "$stderr"
   assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/init_alice_with_pw.exp"
   assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/get_ledger_balance.exp"
   dfx identity new bob --storage-mode plaintext
-  assert_command dfx ledger balance --network ic --identity bob
-  assert_match "WARN: The bob identity is not stored securely." "$stderr"
-
+  assert_command_fail dfx ledger balance --network ic --identity bob
+  assert_match "The bob identity is not stored securely." "$stderr"
+  # can surpress the error
   export DFX_WARNING=-mainnet_plaintext_identity
   assert_command dfx ledger balance --network ic --identity bob
   assert_not_contains "not stored securely" "$stderr"
