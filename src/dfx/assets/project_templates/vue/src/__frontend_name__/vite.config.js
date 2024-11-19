@@ -33,8 +33,8 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       scss: {
-        api: "modern-compiler",
-        silenceDeprecations: ["legacy-js-api"],
+        api: 'modern-compiler',
+        silenceDeprecations: ['legacy-js-api'],
       },
     },
   },
@@ -44,5 +44,5 @@ export default defineConfig({
       { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
     ],
     dedupe: ['@dfinity/agent'],
-  }
+  },
 });
