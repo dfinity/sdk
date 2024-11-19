@@ -44,7 +44,8 @@ teardown() {
   cd "$E2E_TEMP_DIR"
   mkdir not-a-project-dir
   cd not-a-project-dir
-
+  # surpress the error
+  export DFX_WARNING=-mainnet_plaintext_identity
   assert_command dfx canister sign --query rwlgt-iiaaa-aaaaa-aaaaa-cai read --network ic
   assert_match "Query message generated at \[message.json\]"
 }
