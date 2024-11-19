@@ -10,7 +10,7 @@ describe('App', () => {
         <App />
       </StrictMode>,
     );
-    expect(document.body.innerHTML).toMatchInlineSnapshot('"<div><main class="container"><div class=\"card\"><h1>{greeting}</h1><form action=\"#\"><label for=\"name\">Enter your name:</label><input type=\"text" id=\"name" required /><button type=\"submit\">Click Me!</button></form><img src=\"/logo.svg" alt=\"DFINITY logo" width=\"256" /></div></main></div>"');
+    expect(document.body.innerHTML).toMatchInlineSnapshot('"<div><main class="container"><div class="card"><h1></h1><form action="#"><label for="name">Enter your name:</label><input type="text" id="name" required=""><button type="submit">Click Me!</button></form><img src="/logo.svg" alt="DFINITY logo" width="256"></div></main></div>"');
     expect(1).toEqual(1);
   });
 });
