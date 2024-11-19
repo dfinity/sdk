@@ -15,7 +15,6 @@ use idl2json::{idl2json, Idl2JsonOptions};
 use num_traits::FromPrimitive;
 use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
-use socket2::{Domain, Socket};
 use std::collections::BTreeMap;
 use std::io::{stderr, stdin, stdout, IsTerminal, Read};
 use std::net::{IpAddr, SocketAddr, TcpListener};
@@ -35,22 +34,8 @@ const DECIMAL_POINT: char = '.';
 // thus, we need to recreate SocketAddr with the kernel-provided dynamically allocated port here.
 #[context("Failed to find available socket address")]
 pub fn get_reusable_socket_addr(ip: IpAddr, port: u16) -> DfxResult<SocketAddr> {
-    let socket = if ip.is_ipv4() {
-        Socket::new(Domain::IPV4, socket2::Type::STREAM, None)
-            .context("Failed to create IPv4 socket.")?
-    } else {
-        Socket::new(Domain::IPV6, socket2::Type::STREAM, None)
-            .context("Failed to create IPv6 socket.")?
-    };
-    socket
-        .set_linger(Some(Duration::from_secs(10)))
-        .context("Failed to set linger duration of tcp listener.")?;
-    socket
-        .bind(&SocketAddr::new(ip, port).into())
+    let listener = TcpListener::bind(&SocketAddr::new(ip, port))
         .with_context(|| format!("Failed to bind socket to {}:{}.", ip, port))?;
-    socket.listen(128).context("Failed to listen on socket.")?;
-
-    let listener: TcpListener = socket.into();
     listener
         .local_addr()
         .context("Failed to fetch local address.")
