@@ -284,23 +284,26 @@ fn pocketic_proxy_start_thread(
                         }
                     }
                 };
-            if let Err(e) = initialize_gateway(
+            let instance = match initialize_gateway(
                 format!("http://localhost:{port}").parse().unwrap(),
                 replica_url.clone(),
                 domains.clone(),
                 address,
                 logger.clone(),
             ) {
-                error!(logger, "Failed to initialize HTTP gateway: {e:#}");
-                let _ = child.kill();
-                let _ = child.wait();
-                if receiver.try_recv().is_ok() {
-                    debug!(logger, "Got signal to stop.");
-                    break;
-                } else {
-                    continue;
+                Err(e) => {
+                    error!(logger, "Failed to initialize HTTP gateway: {e:#}");
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    if receiver.try_recv().is_ok() {
+                        debug!(logger, "Got signal to stop.");
+                        break;
+                    } else {
+                        continue;
+                    }
                 }
-            }
+                Ok(i) => i,
+            };
             info!(logger, "Replica API running on {address}");
 
             // Send PocketIcProxyReadySignal to PocketIcProxy.
@@ -314,6 +317,9 @@ fn pocketic_proxy_start_thread(
                         logger,
                         "Got signal to stop. Killing pocket-ic gateway process..."
                     );
+                    if let Err(e) = shutdown_pocketic_proxy(port, instance, logger.clone()) {
+                        error!(logger, "Error shutting down PocketIC gracefully: {e}");
+                    }
                     let _ = child.kill();
                     let _ = child.wait();
                     break;
@@ -349,7 +355,7 @@ async fn initialize_gateway(
     domains: Option<Vec<String>>,
     addr: SocketAddr,
     logger: Logger,
-) -> DfxResult {
+) -> DfxResult<usize> {
     use pocket_ic::common::rest::{
         CreateHttpGatewayResponse, HttpGatewayBackend, HttpGatewayConfig,
     };
@@ -369,11 +375,12 @@ async fn initialize_gateway(
         .await?
         .error_for_status()?;
     let resp = resp.json::<CreateHttpGatewayResponse>().await?;
-    if let CreateHttpGatewayResponse::Error { message } = resp {
-        bail!("Gateway init error: {message}")
-    }
+    let instance = match resp {
+        CreateHttpGatewayResponse::Created(info) => info.instance_id,
+        CreateHttpGatewayResponse::Error { message } => bail!("Gateway init error: {message}"),
+    };
     info!(logger, "Initialized HTTP gateway.");
-    Ok(())
+    Ok(instance)
 }
 
 #[cfg(not(unix))]
@@ -383,6 +390,27 @@ fn initialize_gateway(
     _: Option<Vec<String>>,
     _: SocketAddr,
     _: Logger,
-) -> DfxResult {
+) -> DfxResult<usize> {
     bail!("PocketIC gateway not supported on this platform")
+}
+
+#[cfg(unix)]
+#[tokio::main(flavor = "current_thread")]
+async fn shutdown_pocketic_proxy(port: u16, instance: usize, logger: Logger) -> DfxResult {
+    use reqwest::Client;
+    let shutdown_client = Client::new();
+    debug!(logger, "Sending shutdown request to HTTP gateway");
+    shutdown_client
+        .post(format!(
+            "http://localhost:{port}/http_gateway/{instance}/stop"
+        ))
+        .send()
+        .await?
+        .error_for_status()?;
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn shutdown_pocketic(_: u16, _: usize, _: Logger) -> DfxResult {
+    bail!("PocketIC not supported on this platform")
 }
