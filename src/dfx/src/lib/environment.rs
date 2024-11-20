@@ -21,7 +21,7 @@ use slog::{warn, Logger, Record};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 pub trait Environment {
@@ -43,6 +43,8 @@ pub trait Environment {
     // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
     fn get_agent<'a>(&'a self) -> &'a Agent;
+
+    fn get_pocketic_handle(&self) -> Arc<RwLock<Option<pocket_ic::nonblocking::PocketIc>>>;
 
     #[allow(clippy::needless_lifetimes)]
     fn get_network_descriptor<'a>(&'a self) -> &'a NetworkDescriptor;
@@ -107,6 +109,8 @@ pub struct EnvironmentImpl {
     effective_canister_id: Option<Principal>,
 
     extension_manager: ExtensionManager,
+
+    pocketic_handle: Arc<RwLock<Option<pocket_ic::nonblocking::PocketIc>>>,
 }
 
 impl EnvironmentImpl {
@@ -124,6 +128,7 @@ impl EnvironmentImpl {
             identity_override: None,
             effective_canister_id: None,
             extension_manager,
+            pocketic_handle: Arc::new(RwLock::new(None)),
         })
     }
 
@@ -213,6 +218,10 @@ impl Environment for EnvironmentImpl {
         unreachable!("Agent only available from an AgentEnvironment");
     }
 
+    fn get_pocketic_handle(&self) -> Arc<RwLock<Option<pocket_ic::nonblocking::PocketIc>>> {
+        self.pocketic_handle.clone()
+    }
+
     fn get_network_descriptor(&self) -> &NetworkDescriptor {
         // It's not valid to call get_network_descriptor on an EnvironmentImpl.
         // All of the places that call this have an AgentEnvironment anyway.
@@ -270,6 +279,7 @@ pub struct AgentEnvironment<'a> {
     network_descriptor: NetworkDescriptor,
     identity_manager: IdentityManager,
     effective_canister_id: Option<Principal>,
+    pocketic_handle: Arc<RwLock<Option<pocket_ic::nonblocking::PocketIc>>>,
 }
 
 impl<'a> AgentEnvironment<'a> {
@@ -295,7 +305,15 @@ impl<'a> AgentEnvironment<'a> {
                 and use it in mainnet-facing commands with the `--identity` flag", identity.name());
         }
         let url = network_descriptor.first_provider()?;
-        let effective_canister_id = if let Some(d) = &network_descriptor.local_server_descriptor {
+        let pocketic_handle_lock = backend.get_pocketic_handle();
+        let pocketic_handle = pocketic_handle_lock.read().unwrap();
+        let effective_canister_id = if let Some(ref pic) = *pocketic_handle {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            let topology = rt.block_on(pic.topology());
+            Some(Principal::from_slice(
+                &topology.default_effective_canister_id.canister_id,
+            ))
+        } else if let Some(d) = &network_descriptor.local_server_descriptor {
             d.effective_config()?
                 .and_then(|c| c.get_effective_canister_id())
         } else {
@@ -308,6 +326,7 @@ impl<'a> AgentEnvironment<'a> {
             network_descriptor: network_descriptor.clone(),
             identity_manager,
             effective_canister_id,
+            pocketic_handle: backend.get_pocketic_handle(),
         })
     }
 }
@@ -345,6 +364,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_agent(&self) -> &Agent {
         &self.agent
+    }
+
+    fn get_pocketic_handle(&self) -> Arc<RwLock<Option<pocket_ic::nonblocking::PocketIc>>> {
+        self.pocketic_handle.clone()
     }
 
     fn get_network_descriptor(&self) -> &NetworkDescriptor {

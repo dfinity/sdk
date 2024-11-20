@@ -15,7 +15,7 @@ use actix::{
     Actor, ActorContext, ActorFutureExt, Addr, AsyncContext, Context, Handler, Recipient,
     ResponseActFuture, Running, WrapFuture,
 };
-use anyhow::{anyhow, bail};
+use anyhow::anyhow;
 #[cfg(unix)]
 use candid::Principal;
 use crossbeam::channel::{unbounded, Receiver, Sender};
@@ -28,6 +28,7 @@ use slog::{debug, error, info, warn, Logger};
 use std::net::SocketAddr;
 use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, RwLock};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
@@ -40,6 +41,7 @@ pub mod signals {
     #[rtype(result = "()")]
     pub(super) struct PocketIcRestarted {
         pub port: u16,
+        pub pocketic_handle: pocket_ic::nonblocking::PocketIc,
     }
 }
 
@@ -75,9 +77,12 @@ pub struct PocketIc {
     logger: Logger,
     config: Config,
 
+    // PocketIC library handle to the PocketIC instance.
+    pocketic_handle: Arc<RwLock<Option<pocket_ic::nonblocking::PocketIc>>>,
+
     // We keep the port to send to subscribers on subscription.
     port: Option<u16>,
-    stop_sender: Option<Sender<()>>,
+    stop_sender: Option<Sender<pocket_ic::nonblocking::PocketIc>>,
     thread_join: Option<JoinHandle<()>>,
 
     /// Ready Signal subscribers.
@@ -85,22 +90,26 @@ pub struct PocketIc {
 }
 
 impl PocketIc {
-    pub fn new(config: Config) -> Self {
+    pub fn new(
+        config: Config,
+        pocketic_handle: Arc<RwLock<Option<pocket_ic::nonblocking::PocketIc>>>,
+    ) -> Self {
         let logger =
             (config.logger.clone()).unwrap_or_else(|| Logger::root(slog::Discard, slog::o!()));
         Self {
+            logger,
             config,
+            pocketic_handle,
             port: None,
             stop_sender: None,
             thread_join: None,
             ready_subscribers: Vec::new(),
-            logger,
         }
     }
 
     fn wait_for_ready(
         port_file_path: &Path,
-        shutdown_signal: Receiver<()>,
+        shutdown_signal: Receiver<pocket_ic::nonblocking::PocketIc>,
     ) -> Result<u16, ControlFlow<(), DfxError>> {
         let mut retries = 0;
         loop {
@@ -111,7 +120,9 @@ impl PocketIc {
                     }
                 }
             }
-            if shutdown_signal.try_recv().is_ok() {
+            if let Ok(pocketic_handle) = shutdown_signal.try_recv() {
+                let rt = tokio::runtime::Runtime::new().unwrap();
+                rt.block_on(pocketic_handle.drop());
                 return Err(Break(()));
             }
             if retries >= 3000 {
@@ -123,12 +134,10 @@ impl PocketIc {
     }
 
     fn start_pocketic(&mut self, addr: Addr<Self>) -> DfxResult {
-        let logger = self.logger.clone();
-
         let (sender, receiver) = unbounded();
 
         let handle = anyhow::Context::context(
-            pocketic_start_thread(logger, self.config.clone(), addr, receiver),
+            self.pocketic_start_thread(addr, receiver),
             "Failed to start PocketIC thread.",
         )?;
 
@@ -143,6 +152,119 @@ impl PocketIc {
                 url: format!("http://localhost:{port}/instances/0/"),
             });
         }
+    }
+
+    fn pocketic_start_thread(
+        &mut self,
+        addr: Addr<PocketIc>,
+        receiver: Receiver<pocket_ic::nonblocking::PocketIc>,
+    ) -> DfxResult<std::thread::JoinHandle<()>> {
+        let logger = self.logger.clone();
+        let config = self.config.clone();
+        let thread_handler = move || {
+            loop {
+                // Start the process, then wait for the file.
+                let pocketic_path = config.pocketic_path.as_os_str();
+
+                // form the pocket-ic command here similar to the ic-starter command
+                let mut cmd = std::process::Command::new(pocketic_path);
+                if let Some(port) = config.port {
+                    cmd.args(["--port", &port.to_string()]);
+                };
+                cmd.args([
+                    "--port-file",
+                    &config.port_file.to_string_lossy(),
+                    "--ttl",
+                    "2592000",
+                ]);
+                if !config.verbose {
+                    cmd.env("RUST_LOG", "error");
+                }
+                cmd.stdout(std::process::Stdio::inherit());
+                cmd.stderr(std::process::Stdio::inherit());
+                let _ = std::fs::remove_file(&config.port_file);
+                let last_start = std::time::Instant::now();
+                debug!(logger, "Starting PocketIC...");
+                let mut child = cmd.spawn().expect("Could not start PocketIC.");
+                if let Err(e) = std::fs::write(&config.pid_file, child.id().to_string()) {
+                    warn!(
+                        logger,
+                        "Failed to write PocketIC PID to {}: {e}",
+                        config.pid_file.display()
+                    );
+                }
+
+                let port = match PocketIc::wait_for_ready(&config.port_file, receiver.clone()) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        if let Continue(e) = e {
+                            error!(logger, "Failed to start pocket-ic: {e:#}");
+                            continue;
+                        } else {
+                            debug!(logger, "Got signal to stop");
+                            break;
+                        }
+                    }
+                };
+                let pocketic_handle = match initialize_pocketic(
+                    port,
+                    &config.effective_config_path,
+                    &config.bitcoind_addr,
+                    &config.bitcoin_integration_config,
+                    &config.replica_config,
+                    logger.clone(),
+                ) {
+                    Err(e) => {
+                        error!(logger, "Failed to initialize PocketIC: {e:#}");
+
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        if receiver.try_recv().is_ok() {
+                            debug!(logger, "Got signal to stop.");
+                            break;
+                        } else {
+                            continue;
+                        }
+                    }
+                    Ok(pocketic_handle) => pocketic_handle,
+                };
+                addr.do_send(signals::PocketIcRestarted {
+                    port,
+                    pocketic_handle,
+                });
+                // This waits for the child to stop, or the receiver to receive a message.
+                // We don't restart the server if done = true.
+                match wait_for_child_or_receiver(&mut child, &receiver) {
+                    ChildOrReceiver::Receiver(pocketic_handle) => {
+                        debug!(logger, "Got signal to stop. Killing PocketIC process...");
+                        let rt = tokio::runtime::Runtime::new().unwrap();
+                        rt.block_on(pocketic_handle.drop());
+                        let _ = child.kill();
+                        let _ = child.wait();
+                        break;
+                    }
+                    ChildOrReceiver::Child => {
+                        debug!(logger, "PocketIC process failed.");
+                        // If it took less than two seconds to exit, wait a bit before trying again.
+                        if Instant::now().duration_since(last_start) < Duration::from_secs(2) {
+                            std::thread::sleep(Duration::from_secs(2));
+                        } else {
+                            debug!(
+                                logger,
+                                "Last PocketIC seemed to have been healthy, not waiting..."
+                            );
+                        }
+                    }
+                }
+            }
+        };
+
+        std::thread::Builder::new()
+            .name("pocketic-actor".to_owned())
+            .spawn(thread_handler)
+            .map_err(DfxError::from)
     }
 }
 
@@ -161,7 +283,10 @@ impl Actor for PocketIc {
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
         info!(self.logger, "Stopping PocketIC...");
         if let Some(sender) = self.stop_sender.take() {
-            let _ = sender.send(());
+            let mut pocketic_handle = self.pocketic_handle.write().unwrap();
+            if let Some(pocketic_handle) = pocketic_handle.take() {
+                let _ = sender.send(pocketic_handle);
+            }
         }
 
         if let Some(join) = self.thread_join.take() {
@@ -197,6 +322,10 @@ impl Handler<signals::PocketIcRestarted> for PocketIc {
         _ctx: &mut Self::Context,
     ) -> Self::Result {
         self.port = Some(msg.port);
+        {
+            let mut pocketic_handle = self.pocketic_handle.write().unwrap();
+            *pocketic_handle = Some(msg.pocketic_handle);
+        }
         self.send_ready_signal(msg.port);
     }
 }
@@ -217,116 +346,6 @@ impl Handler<Shutdown> for PocketIc {
     }
 }
 
-fn pocketic_start_thread(
-    logger: Logger,
-    config: Config,
-    addr: Addr<PocketIc>,
-    receiver: Receiver<()>,
-) -> DfxResult<std::thread::JoinHandle<()>> {
-    let thread_handler = move || {
-        loop {
-            // Start the process, then wait for the file.
-            let pocketic_path = config.pocketic_path.as_os_str();
-
-            // form the pocket-ic command here similar to the ic-starter command
-            let mut cmd = std::process::Command::new(pocketic_path);
-            if let Some(port) = config.port {
-                cmd.args(["--port", &port.to_string()]);
-            };
-            cmd.args([
-                "--port-file",
-                &config.port_file.to_string_lossy(),
-                "--ttl",
-                "2592000",
-            ]);
-            if !config.verbose {
-                cmd.env("RUST_LOG", "error");
-            }
-            cmd.stdout(std::process::Stdio::inherit());
-            cmd.stderr(std::process::Stdio::inherit());
-            let _ = std::fs::remove_file(&config.port_file);
-            let last_start = std::time::Instant::now();
-            debug!(logger, "Starting PocketIC...");
-            let mut child = cmd.spawn().expect("Could not start PocketIC.");
-            if let Err(e) = std::fs::write(&config.pid_file, child.id().to_string()) {
-                warn!(
-                    logger,
-                    "Failed to write PocketIC PID to {}: {e}",
-                    config.pid_file.display()
-                );
-            }
-
-            let port = match PocketIc::wait_for_ready(&config.port_file, receiver.clone()) {
-                Ok(p) => p,
-                Err(e) => {
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    if let Continue(e) = e {
-                        error!(logger, "Failed to start pocket-ic: {e:#}");
-                        continue;
-                    } else {
-                        debug!(logger, "Got signal to stop");
-                        break;
-                    }
-                }
-            };
-            let instance = match initialize_pocketic(
-                port,
-                &config.effective_config_path,
-                &config.bitcoind_addr,
-                &config.bitcoin_integration_config,
-                &config.replica_config,
-                logger.clone(),
-            ) {
-                Err(e) => {
-                    error!(logger, "Failed to initialize PocketIC: {e:#}");
-
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    if receiver.try_recv().is_ok() {
-                        debug!(logger, "Got signal to stop.");
-                        break;
-                    } else {
-                        continue;
-                    }
-                }
-                Ok(i) => i,
-            };
-            addr.do_send(signals::PocketIcRestarted { port });
-            // This waits for the child to stop, or the receiver to receive a message.
-            // We don't restart the server if done = true.
-            match wait_for_child_or_receiver(&mut child, &receiver) {
-                ChildOrReceiver::Receiver => {
-                    debug!(logger, "Got signal to stop. Killing PocketIC process...");
-                    if let Err(e) = shutdown_pocketic(port, instance, logger.clone()) {
-                        error!(logger, "Error shutting down PocketIC gracefully: {e}");
-                    }
-                    let _ = child.kill();
-                    let _ = child.wait();
-                    break;
-                }
-                ChildOrReceiver::Child => {
-                    debug!(logger, "PocketIC process failed.");
-                    // If it took less than two seconds to exit, wait a bit before trying again.
-                    if Instant::now().duration_since(last_start) < Duration::from_secs(2) {
-                        std::thread::sleep(Duration::from_secs(2));
-                    } else {
-                        debug!(
-                            logger,
-                            "Last PocketIC seemed to have been healthy, not waiting..."
-                        );
-                    }
-                }
-            }
-        }
-    };
-
-    std::thread::Builder::new()
-        .name("pocketic-actor".to_owned())
-        .spawn(thread_handler)
-        .map_err(DfxError::from)
-}
-
 #[cfg(unix)]
 #[tokio::main(flavor = "current_thread")]
 async fn initialize_pocketic(
@@ -336,104 +355,60 @@ async fn initialize_pocketic(
     bitcoin_integration_config: &Option<BitcoinIntegrationConfig>,
     replica_config: &ReplicaConfig,
     logger: Logger,
-) -> DfxResult<usize> {
+) -> DfxResult<pocket_ic::nonblocking::PocketIc> {
     use dfx_core::config::model::dfinity::ReplicaSubnetType;
-    use pocket_ic::common::rest::{
-        AutoProgressConfig, CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig,
-        RawTime, SubnetSpec,
-    };
-    use reqwest::Client;
-    use time::OffsetDateTime;
-    let init_client = Client::new();
     debug!(logger, "Configuring PocketIC server");
-    let mut subnet_config_set = ExtendedSubnetConfigSet {
-        nns: Some(SubnetSpec::default()),
-        sns: Some(SubnetSpec::default()),
-        ii: Some(SubnetSpec::default()),
-        fiduciary: None,
-        bitcoin: Some(SubnetSpec::default()),
-        system: vec![],
-        verified_application: vec![],
-        application: vec![],
-    };
-    match replica_config.subnet_type {
-        ReplicaSubnetType::Application => subnet_config_set.application.push(<_>::default()),
-        ReplicaSubnetType::System => subnet_config_set.system.push(<_>::default()),
-        ReplicaSubnetType::VerifiedApplication => {
-            subnet_config_set.verified_application.push(<_>::default())
-        }
+    let server_url = reqwest::Url::parse(&format!("http://localhost:{port}")).unwrap();
+    let mut builder = pocket_ic::PocketIcBuilder::new()
+        .with_nns_subnet()
+        .with_sns_subnet()
+        .with_ii_subnet()
+        .with_bitcoin_subnet()
+        .with_state_dir(replica_config.state_manager.state_root.clone())
+        .with_nonmainnet_features(true)
+        .with_log_level(replica_config.log_level.to_level())
+        .with_server_url(server_url);
+    if let Some(bitcoind_addr) = bitcoind_addr {
+        builder = builder.with_bitcoind_addr(*bitcoind_addr.first().unwrap()); // TODO: pass all bitcoind_addr
     }
-    let resp = init_client
-        .post(format!("http://localhost:{port}/instances"))
-        .json(&InstanceConfig {
-            subnet_config_set,
-            state_dir: Some(replica_config.state_manager.state_root.clone()),
-            nonmainnet_features: true,
-            log_level: Some(replica_config.log_level.to_ic_starter_string()),
-            bitcoind_addr: bitcoind_addr.clone(),
-        })
-        .send()
-        .await?
-        .error_for_status()?
-        .json::<CreateInstanceResponse>()
-        .await?;
-    let instance = match resp {
-        CreateInstanceResponse::Error { message } => {
-            bail!("PocketIC init error: {message}");
-        }
-        CreateInstanceResponse::Created {
-            instance_id,
-            topology,
-        } => {
-            let subnets = match replica_config.subnet_type {
-                ReplicaSubnetType::Application => topology.get_app_subnets(),
-                ReplicaSubnetType::System => topology.get_system_subnets(),
-                ReplicaSubnetType::VerifiedApplication => topology.get_verified_app_subnets(),
-            };
-            if subnets.len() != 1 {
-                return Err(anyhow!("Internal error: PocketIC topology contains multiple subnets of the same subnet kind."));
-            }
-            let subnet_id = subnets[0];
-            let subnet_config = topology.subnet_configs.get(&subnet_id).ok_or(anyhow!(
-                "Internal error: subnet id {} not found in PocketIC topology",
-                subnet_id
-            ))?;
-            let effective_canister_id =
-                Principal::from_slice(&subnet_config.canister_ranges[0].start.canister_id);
-            let effective_config = CachedConfig::pocketic(
-                replica_config,
-                replica_rev().into(),
-                Some(effective_canister_id),
-            );
-            save_json_file(effective_config_path, &effective_config)?;
-            instance_id
-        }
+    builder = match replica_config.subnet_type {
+        ReplicaSubnetType::Application => builder.with_application_subnet(),
+        ReplicaSubnetType::System => builder.with_system_subnet(),
+        ReplicaSubnetType::VerifiedApplication => builder.with_verified_application_subnet(),
     };
-    init_client
-        .post(format!(
-            "http://localhost:{port}/instances/{instance}/update/set_time"
-        ))
-        .json(&RawTime {
-            nanos_since_epoch: OffsetDateTime::now_utc()
-                .unix_timestamp_nanos()
-                .try_into()
-                .unwrap(),
-        })
-        .send()
-        .await?
-        .error_for_status()?;
-    init_client
-        .post(format!(
-            "http://localhost:{port}/instances/{instance}/auto_progress"
-        ))
-        .json(&AutoProgressConfig {
-            artificial_delay_ms: Some(replica_config.artificial_delay as u64),
-        })
-        .send()
-        .await?
-        .error_for_status()?;
+    let pocketic_handle = builder.build_async().await;
+    let topology = pocketic_handle.topology().await;
+    let subnets = match replica_config.subnet_type {
+        ReplicaSubnetType::Application => topology.get_app_subnets(),
+        ReplicaSubnetType::System => topology.get_system_subnets(),
+        ReplicaSubnetType::VerifiedApplication => topology.get_verified_app_subnets(),
+    };
+    if subnets.len() != 1 {
+        return Err(anyhow!(
+            "Internal error: PocketIC topology contains multiple subnets of the same subnet kind."
+        ));
+    }
+    let subnet_id = subnets[0];
+    let subnet_config = topology.subnet_configs.get(&subnet_id).ok_or(anyhow!(
+        "Internal error: subnet id {} not found in PocketIC topology",
+        subnet_id
+    ))?;
+    let effective_canister_id =
+        Principal::from_slice(&subnet_config.canister_ranges[0].start.canister_id);
+    let effective_config = CachedConfig::pocketic(
+        replica_config,
+        replica_rev().into(),
+        Some(effective_canister_id),
+    );
+    save_json_file(effective_config_path, &effective_config)?;
 
-    let agent_url = format!("http://localhost:{port}/instances/{instance}/");
+    pocketic_handle.set_time(std::time::SystemTime::now()).await;
+    pocketic_handle.auto_progress().await;
+
+    let agent_url = format!(
+        "http://localhost:{port}/instances/{}/",
+        pocketic_handle.instance_id
+    );
 
     debug!(logger, "Waiting for replica to report healthy status");
     crate::lib::replica::status::ping_and_wait(&agent_url).await?;
@@ -444,7 +419,7 @@ async fn initialize_pocketic(
     }
 
     info!(logger, "Initialized PocketIC.");
-    Ok(instance)
+    Ok(pocketic_handle)
 }
 
 #[cfg(not(unix))]
@@ -456,24 +431,5 @@ fn initialize_pocketic(
     _: &ReplicaConfig,
     _: Logger,
 ) -> DfxResult<usize> {
-    bail!("PocketIC not supported on this platform")
-}
-
-#[cfg(unix)]
-#[tokio::main(flavor = "current_thread")]
-async fn shutdown_pocketic(port: u16, instance: usize, logger: Logger) -> DfxResult {
-    use reqwest::Client;
-    let shutdown_client = Client::new();
-    debug!(logger, "Sending shutdown request to PocketIC server");
-    shutdown_client
-        .delete(format!("http://localhost:{port}/instances/{instance}"))
-        .send()
-        .await?
-        .error_for_status()?;
-    Ok(())
-}
-
-#[cfg(not(unix))]
-fn shutdown_pocketic(_: u16, _: usize, _: Logger) -> DfxResult {
     bail!("PocketIC not supported on this platform")
 }

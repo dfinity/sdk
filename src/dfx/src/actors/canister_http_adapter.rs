@@ -228,7 +228,7 @@ fn canister_http_adapter_start_thread(
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the adapter if done = true.
             match wait_for_child_or_receiver(&mut child, &receiver) {
-                ChildOrReceiver::Receiver => {
+                ChildOrReceiver::Receiver(()) => {
                     debug!(
                         logger,
                         "Got signal to stop. Killing ic-https-outcalls-adapter process..."

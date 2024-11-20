@@ -3,17 +3,17 @@ use crossbeam::channel::Receiver;
 /// Differentiate between:
 ///   - the process exited (Child)
 ///   - shutdown was requested (Receiver)
-pub enum ChildOrReceiver {
+pub enum ChildOrReceiver<T> {
     Child,
-    Receiver,
+    Receiver(T),
 }
 
 /// Function that waits for a child or a receiver to stop. This encapsulate the polling so
 /// it is easier to maintain.
-pub fn wait_for_child_or_receiver(
+pub fn wait_for_child_or_receiver<T>(
     child: &mut std::process::Child,
-    receiver: &Receiver<()>,
-) -> ChildOrReceiver {
+    receiver: &Receiver<T>,
+) -> ChildOrReceiver<T> {
     loop {
         // Check if either the child exited or a shutdown has been requested.
         // These can happen in either order in response to Ctrl-C, so increase the chance
@@ -22,9 +22,9 @@ pub fn wait_for_child_or_receiver(
         let receiver_signalled = receiver.recv_timeout(std::time::Duration::from_millis(100));
 
         match (receiver_signalled, child_try_wait) {
-            (Ok(()), _) => {
+            (Ok(t), _) => {
                 // Prefer to indicate the shutdown request
-                return ChildOrReceiver::Receiver;
+                return ChildOrReceiver::Receiver(t);
             }
             (Err(_), Ok(Some(_))) => {
                 return ChildOrReceiver::Child;

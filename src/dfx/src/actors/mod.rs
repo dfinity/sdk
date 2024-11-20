@@ -223,7 +223,7 @@ pub fn start_pocketic_actor(
         logger: Some(env.get_logger().clone()),
         verbose: env.get_verbose_level() > 0,
     };
-    Ok(pocketic::PocketIc::new(actor_config).start())
+    Ok(pocketic::PocketIc::new(actor_config, env.get_pocketic_handle()).start())
 }
 
 #[context("Failed to start PostStart actor.")]

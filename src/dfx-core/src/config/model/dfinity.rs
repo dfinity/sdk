@@ -659,6 +659,17 @@ impl ReplicaLogLevel {
             Self::Trace => "trace".to_string(),
         }
     }
+
+    pub fn to_level(&self) -> slog::Level {
+        match self {
+            Self::Critical => slog::Level::Critical,
+            Self::Error => slog::Level::Error,
+            Self::Warning => slog::Level::Warning,
+            Self::Info => slog::Level::Info,
+            Self::Debug => slog::Level::Debug,
+            Self::Trace => slog::Level::Trace,
+        }
+    }
 }
 
 /// # Local Replica Configuration
