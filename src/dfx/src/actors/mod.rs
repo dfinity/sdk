@@ -212,7 +212,6 @@ pub fn start_pocketic_actor(
     };
     let actor_config = pocketic::Config {
         pocketic_path,
-        effective_config_path: local_server_descriptor.effective_config_path(),
         replica_config,
         bitcoind_addr: local_server_descriptor.bitcoin.nodes.clone(),
         bitcoin_integration_config,

@@ -313,9 +313,6 @@ impl<'a> AgentEnvironment<'a> {
             Some(Principal::from_slice(
                 &topology.default_effective_canister_id.canister_id,
             ))
-        } else if let Some(d) = &network_descriptor.local_server_descriptor {
-            d.effective_config()?
-                .and_then(|c| c.get_effective_canister_id())
         } else {
             None
         };

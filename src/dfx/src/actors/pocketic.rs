@@ -6,8 +6,6 @@ use crate::actors::shutdown_controller::ShutdownController;
 use crate::actors::BitcoinIntegrationConfig;
 use crate::lib::error::{DfxError, DfxResult};
 #[cfg(unix)]
-use crate::lib::info::replica_rev;
-#[cfg(unix)]
 use crate::lib::integrations::bitcoin::initialize_bitcoin_canister;
 #[cfg(unix)]
 use crate::lib::integrations::create_integrations_agent;
@@ -16,14 +14,9 @@ use actix::{
     ResponseActFuture, Running, WrapFuture,
 };
 use anyhow::anyhow;
-#[cfg(unix)]
-use candid::Principal;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 #[cfg(unix)]
-use dfx_core::config::model::replica_config::CachedConfig;
 use dfx_core::config::model::replica_config::ReplicaConfig;
-#[cfg(unix)]
-use dfx_core::json::save_json_file;
 use slog::{debug, error, info, warn, Logger};
 use std::net::SocketAddr;
 use std::ops::ControlFlow::{self, *};
@@ -49,7 +42,6 @@ pub mod signals {
 #[derive(Clone)]
 pub struct Config {
     pub pocketic_path: PathBuf,
-    pub effective_config_path: PathBuf,
     pub replica_config: ReplicaConfig,
     pub bitcoind_addr: Option<Vec<SocketAddr>>,
     pub bitcoin_integration_config: Option<BitcoinIntegrationConfig>,
@@ -210,7 +202,6 @@ impl PocketIc {
                 };
                 let pocketic_handle = match initialize_pocketic(
                     port,
-                    &config.effective_config_path,
                     &config.bitcoind_addr,
                     &config.bitcoin_integration_config,
                     &config.replica_config,
@@ -350,7 +341,6 @@ impl Handler<Shutdown> for PocketIc {
 #[tokio::main(flavor = "current_thread")]
 async fn initialize_pocketic(
     port: u16,
-    effective_config_path: &Path,
     bitcoind_addr: &Option<Vec<SocketAddr>>,
     bitcoin_integration_config: &Option<BitcoinIntegrationConfig>,
     replica_config: &ReplicaConfig,
@@ -377,30 +367,6 @@ async fn initialize_pocketic(
         ReplicaSubnetType::VerifiedApplication => builder.with_verified_application_subnet(),
     };
     let pocketic_handle = builder.build_async().await;
-    let topology = pocketic_handle.topology().await;
-    let subnets = match replica_config.subnet_type {
-        ReplicaSubnetType::Application => topology.get_app_subnets(),
-        ReplicaSubnetType::System => topology.get_system_subnets(),
-        ReplicaSubnetType::VerifiedApplication => topology.get_verified_app_subnets(),
-    };
-    if subnets.len() != 1 {
-        return Err(anyhow!(
-            "Internal error: PocketIC topology contains multiple subnets of the same subnet kind."
-        ));
-    }
-    let subnet_id = subnets[0];
-    let subnet_config = topology.subnet_configs.get(&subnet_id).ok_or(anyhow!(
-        "Internal error: subnet id {} not found in PocketIC topology",
-        subnet_id
-    ))?;
-    let effective_canister_id =
-        Principal::from_slice(&subnet_config.canister_ranges[0].start.canister_id);
-    let effective_config = CachedConfig::pocketic(
-        replica_config,
-        replica_rev().into(),
-        Some(effective_canister_id),
-    );
-    save_json_file(effective_config_path, &effective_config)?;
 
     pocketic_handle.set_time(std::time::SystemTime::now()).await;
     pocketic_handle.auto_progress().await;
@@ -425,7 +391,6 @@ async fn initialize_pocketic(
 #[cfg(not(unix))]
 fn initialize_pocketic(
     _: u16,
-    _: &Path,
     _: &Option<Vec<SocketAddr>>,
     _: &Option<BitcoinIntegrationConfig>,
     _: &ReplicaConfig,
