@@ -4,6 +4,15 @@
 
 ### chore: `dfx deploy --ic` does not set `NODE_ENV` to `production` anymore
 
+### feat: error when using insecure identity on mainnet
+
+This used to be a warning. A hard error can abort the command so that no insecure state will be on the mainnet.
+
+Users can surpress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
+
+The warning won't display when executing commands like `dfx deploy --playground`.
+
+
 # 0.24.3
 
 ### feat: Bitcoin support in PocketIC
