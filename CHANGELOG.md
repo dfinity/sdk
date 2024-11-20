@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### chore: `dfx deploy --ic` does not set `NODE_ENV` to `production` anymore
+
 # 0.24.3
 
 ### feat: Bitcoin support in PocketIC
