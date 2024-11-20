@@ -396,6 +396,6 @@ fn initialize_pocketic(
     _: &Option<BitcoinIntegrationConfig>,
     _: &ReplicaConfig,
     _: Logger,
-) -> DfxResult<usize> {
+) -> DfxResult<pocket_ic::nonblocking::PocketIc> {
     bail!("PocketIC not supported on this platform")
 }
