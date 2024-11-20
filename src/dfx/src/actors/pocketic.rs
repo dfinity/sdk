@@ -14,8 +14,9 @@ use actix::{
     ResponseActFuture, Running, WrapFuture,
 };
 use anyhow::anyhow;
+#[cfg(not(unix))]
+use anyhow::bail;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-#[cfg(unix)]
 use dfx_core::config::model::replica_config::ReplicaConfig;
 use slog::{debug, error, info, warn, Logger};
 use std::net::SocketAddr;
