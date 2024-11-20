@@ -1590,7 +1590,6 @@ dependencies = [
  "slog",
  "slog-async",
  "slog-term",
- "socket2 0.5.7",
  "supports-color",
  "sysinfo",
  "tar",
