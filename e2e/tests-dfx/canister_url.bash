@@ -4,7 +4,9 @@ load ../utils/_
 
 setup() {
   standard_setup
-
+  # some of the tests run on mainnet with default plaintext identity
+  # so we need to set this to avoid the error
+  export DFX_WARNING=-mainnet_plaintext_identity
   dfx_new_assets hello
 }
 
@@ -58,7 +60,7 @@ teardown() {
   echo "{}" > canister_ids.json
   jq '.hello_frontend.ic = "qsgof-4qaaa-aaaan-qekqq-cai"' canister_ids.json | sponge canister_ids.json
   frontend_id=$(dfx canister id hello_frontend --ic)
-  
+
   assert_command dfx canister url hello_frontend --ic
   assert_match "https://${frontend_id}.icp0.io"
 

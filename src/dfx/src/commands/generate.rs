@@ -77,7 +77,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
     }
 
     for canister in canister_pool_load.canisters_to_build(&generate_config) {
-        canister.generate(&canister_pool_load, &generate_config)?;
+        canister.generate(log, &canister_pool_load, &generate_config)?;
     }
 
     Ok(())
