@@ -278,7 +278,7 @@ The command line value will be used.",
         };
 
         info!(log, "Uploading assets to asset canister...");
-        post_install_store_assets(canister_info, agent, log).await?;
+        post_install_store_assets(canister_info, agent, env.get_network_descriptor(), log).await?;
     }
     if !canister_info.get_post_install().is_empty() {
         let config = env.get_config()?;

@@ -39,6 +39,7 @@ pub async fn compute_evidence(
     canister: &Canister<'_>,
     dirs: &[&Path],
     logger: &Logger,
+    insecure_dev_mode: bool,
 ) -> Result<String, ComputeEvidenceError> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
@@ -64,6 +65,7 @@ pub async fn compute_evidence(
         canister_assets,
         Obsolete,
         canister_asset_properties,
+        insecure_dev_mode,
     )
     .await
     .map_err(ComputeEvidenceError::AssembleCommitBatchArgumentFailed)?;

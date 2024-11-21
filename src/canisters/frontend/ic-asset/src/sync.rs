@@ -49,6 +49,7 @@ pub async fn upload_content_and_assemble_sync_operations(
     dirs: &[&Path],
     no_delete: bool,
     logger: &Logger,
+    insecure_dev_mode: bool,
 ) -> Result<CommitBatchArguments, UploadContentError> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
@@ -97,6 +98,7 @@ pub async fn upload_content_and_assemble_sync_operations(
         },
         canister_asset_properties,
         batch_id,
+        insecure_dev_mode,
     )
     .await
     .map_err(UploadContentError::AssembleCommitBatchArgumentFailed)?;
@@ -126,6 +128,7 @@ pub async fn sync(
     dirs: &[&Path],
     no_delete: bool,
     logger: &Logger,
+    insecure_dev_mode: bool,
 ) -> Result<(), SyncError> {
     let canister_api_version = api_version(canister).await;
     let commit_batch_args = upload_content_and_assemble_sync_operations(
@@ -134,6 +137,7 @@ pub async fn sync(
         dirs,
         no_delete,
         logger,
+        insecure_dev_mode,
     )
     .await?;
     debug!(logger, "Canister API version: {canister_api_version}. ic-asset API version: {BATCH_UPLOAD_API_VERSION}");
@@ -207,6 +211,7 @@ pub async fn prepare_sync_for_proposal(
     canister: &Canister<'_>,
     dirs: &[&Path],
     logger: &Logger,
+    insecure_dev_mode: bool,
 ) -> Result<(Nat, ByteBuf), PrepareSyncForProposalError> {
     let canister_api_version = api_version(canister).await;
     let arg = upload_content_and_assemble_sync_operations(
@@ -215,6 +220,7 @@ pub async fn prepare_sync_for_proposal(
         dirs,
         false,
         logger,
+        insecure_dev_mode,
     )
     .await?;
     let arg = sort_batch_operations(arg);

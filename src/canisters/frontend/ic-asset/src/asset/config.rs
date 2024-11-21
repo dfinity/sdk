@@ -31,14 +31,15 @@ pub struct AssetConfig {
     pub(crate) encodings: Option<Vec<ContentEncoder>>,
     pub(crate) security_policy: Option<SecurityPolicy>,
     pub(crate) disable_security_policy_warning: Option<bool>,
+    pub(crate) disable_secure_headers_in_dev_mode: Option<bool>,
 }
 
 impl AssetConfig {
-    pub fn combined_headers(&self) -> Option<HeadersConfig> {
-        match (self.headers.as_ref(), self.security_policy) {
-            (None, None) => None,
-            (None, Some(policy)) => Some(policy.to_headers()),
-            (Some(custom_headers), None) => Some(custom_headers.clone()),
+    pub fn combined_headers(&self, insecure_dev_mode: bool) -> Option<HeadersConfig> {
+        let mut combined_headers = match (self.headers.as_ref(), self.security_policy) {
+            (None, None) => return None,
+            (None, Some(policy)) => policy.to_headers(),
+            (Some(custom_headers), None) => custom_headers.clone(),
             (Some(custom_headers), Some(policy)) => {
                 let mut headers = custom_headers.clone();
                 let custom_header_names: HashSet<String> =
@@ -48,8 +49,49 @@ impl AssetConfig {
                         headers.insert(policy_header_name, policy_header_value);
                     }
                 }
-                Some(headers)
+                headers
             }
+        };
+        self.postprocess_headers(&mut combined_headers, insecure_dev_mode);
+        Some(combined_headers)
+    }
+
+    fn postprocess_headers(&self, headers: &mut HeadersConfig, insecure_dev_mode: bool) {
+        if insecure_dev_mode && self.disable_secure_headers_in_dev_mode != Some(false) {
+            headers.retain(|header_name, header_value| {
+                if header_name.eq_ignore_ascii_case("Strict-Transport-Security") {
+                    // Block the `Strict-Transport-Security` header to prevent attempting to fetch this page over HTTPS.
+                    false // delete the header
+                } else if header_name.eq_ignore_ascii_case("Content-Security-Policy") {
+                    // Remove the upgrade-insecure-requests directive from the `Content-Security-Policy` header to prevent
+                    // attempting to fetch linked assets over HTTPS.
+                    let mut upgrade_directive = None;
+                    for directive in header_value.split(';') {
+                        if directive.trim() == "upgrade-insecure-requests" {
+                            upgrade_directive = Some(directive);
+                        }
+                    }
+                    if let Some(upgrade_directive) = upgrade_directive {
+                        // mild hack but soon to be str::substr_range
+                        let mut l =
+                            upgrade_directive.as_ptr() as usize - header_value.as_ptr() as usize;
+                        let mut r = l + upgrade_directive.len();
+                        // also remove one `;` separator if this is not the only directive
+                        if l != 0 {
+                            l -= 1;
+                        } else if r != header_value.len() {
+                            r += 1;
+                        }
+                        header_value.replace_range(l..r, "");
+                    }
+                    // delete the header if this was the only directive
+                    header_value
+                        .find(|c: char| !c.is_whitespace() && c != ';')
+                        .is_some()
+                } else {
+                    true // do not delete the header
+                }
+            });
         }
     }
 
@@ -117,6 +159,8 @@ pub struct AssetConfigRule {
     security_policy: Option<SecurityPolicy>,
     #[serde(skip_serializing_if = "Option::is_none")]
     disable_security_policy_warning: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    disable_secure_headers_in_dev_mode: Option<bool>,
 }
 
 #[derive(Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -325,6 +369,11 @@ impl AssetConfig {
         if other.disable_security_policy_warning.is_some() {
             self.disable_security_policy_warning = other.disable_security_policy_warning;
         }
+
+        if other.disable_secure_headers_in_dev_mode.is_some() {
+            self.disable_secure_headers_in_dev_mode = other.disable_secure_headers_in_dev_mode;
+        }
+
         self
     }
 }
@@ -419,6 +468,7 @@ mod rule_utils {
         encodings: Option<Vec<ContentEncoder>>,
         security_policy: Option<SecurityPolicy>,
         disable_security_policy_warning: Option<bool>,
+        disable_secure_headers_in_dev_mode: Option<bool>,
     }
 
     impl AssetConfigRule {
@@ -433,6 +483,7 @@ mod rule_utils {
                 encodings,
                 security_policy,
                 disable_security_policy_warning,
+                disable_secure_headers_in_dev_mode,
             }: InterimAssetConfigRule,
             config_file_parent_dir: &Path,
         ) -> Result<Self, LoadRuleError> {
@@ -458,6 +509,7 @@ mod rule_utils {
                 encodings,
                 security_policy,
                 disable_security_policy_warning,
+                disable_secure_headers_in_dev_mode,
             })
         }
     }
@@ -1227,5 +1279,99 @@ mod with_tempdir {
         assert_eq!(y.ignore, Some(false));
         assert_eq!(x.cache.clone().unwrap().max_age, Some(22));
         assert_eq!(y.cache.clone().unwrap().max_age, Some(22));
+    }
+
+    #[test]
+    fn dev_mode_removes_headers() {
+        let secstandard_csp_minus_upgrade = SecurityPolicy::Standard.to_headers()
+            ["Content-Security-Policy"]
+            .replace("upgrade-insecure-requests;", "");
+        let cfg = r#"[
+            {
+                "match": "*.html",
+                "headers": {
+                    "Content-Security-Policy": "upgrade-insecure-requests",
+                    "Strict-Transport-Security": "max-age=60; includeSubDomains",
+                    "Content-Language": "en-US"
+                }
+            },
+            {
+                "match": "nested/*",
+                "security_policy": "standard"
+            },
+            {
+                "match": "js/*",
+                "headers": {
+                    "Content-Security-Policy": "upgrade-insecure-requests",
+                    "Strict-Transport-Security": "max-age=60; includeSubDomains",
+                    "Content-Language": "en-US"
+                },
+                "disable_secure_headers_in_dev_mode": false
+            },
+            {
+                "match": "css/*",
+                "security_policy": "standard",
+                "disable_secure_headers_in_dev_mode": false
+            },
+        ]"#;
+        fn assert_weak(case: &str, headers: &BTreeMap<String, String>) {
+            assert!(
+                !headers.contains_key("Strict-Transport-Security"),
+                "{case} has STS: {headers:#?}"
+            );
+            assert!(
+                !headers
+                    .get("Content-Security-Policy")
+                    .is_some_and(|csp| csp.contains("upgrade-insecure-requests")),
+                "{case} has strong CSP: {headers:#?}"
+            );
+        }
+        fn assert_strong(case: &str, headers: &BTreeMap<String, String>) {
+            assert!(
+                headers.contains_key("Strict-Transport-Security"),
+                "{case} lacks STS: {headers:#?}"
+            );
+            assert!(
+                headers
+                    .get("Content-Security-Policy")
+                    .is_some_and(|csp| csp.contains("upgrade-insecure-requests")),
+                "{case} has weak CSP: {headers:#?}"
+            );
+        }
+        let assets_temp_dir =
+            create_temporary_assets_directory(Some(HashMap::from([("".into(), cfg.into())])), 0);
+        let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
+        let mut assets_config = AssetSourceDirectoryConfiguration::load(&assets_dir).unwrap();
+
+        let explicit = assets_config
+            .get_asset_config(&assets_dir.join("index.html"))
+            .unwrap();
+        let explicit_dev = explicit.combined_headers(true).unwrap();
+        assert_weak("a1", &explicit_dev);
+        assert!(!explicit_dev.contains_key("Content-Security-Policy"));
+        assert_strong("a2", &explicit.combined_headers(false).unwrap());
+
+        let implicit = assets_config
+            .get_asset_config(&assets_dir.join("nested/the-thing.txt"))
+            .unwrap();
+        let implicit_dev = implicit.combined_headers(true).unwrap();
+        assert_weak("b1", &implicit_dev);
+        assert_eq!(
+            implicit_dev["Content-Security-Policy"],
+            secstandard_csp_minus_upgrade
+        );
+        assert_strong("b2", &implicit.combined_headers(false).unwrap());
+
+        let explicit_rigid = assets_config
+            .get_asset_config(&assets_dir.join("js/index.js"))
+            .unwrap();
+        assert_strong("c1", &explicit_rigid.combined_headers(true).unwrap());
+        assert_strong("c2", &explicit_rigid.combined_headers(false).unwrap());
+
+        let implicit_rigid = assets_config
+            .get_asset_config(&assets_dir.join("css/main.css"))
+            .unwrap();
+        assert_strong("d1", &implicit_rigid.combined_headers(true).unwrap());
+        assert_strong("d2", &implicit_rigid.combined_headers(false).unwrap());
     }
 }

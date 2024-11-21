@@ -2,6 +2,7 @@ use crate::lib::canister_info::assets::AssetsCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::error::DfxResult;
 use anyhow::Context;
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use fn_error_context::context;
 use ic_agent::Agent;
 use slog::Logger;
@@ -11,6 +12,7 @@ use std::path::Path;
 pub async fn post_install_store_assets(
     info: &CanisterInfo,
     agent: &Agent,
+    network_descriptor: &NetworkDescriptor,
     logger: &Logger,
 ) -> DfxResult {
     let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
@@ -27,7 +29,9 @@ pub async fn post_install_store_assets(
         .build()
         .context("Failed to build asset canister caller.")?;
 
-    ic_asset::sync(&canister, &source_paths, false, logger)
+    let insecure_dev_mode = !network_descriptor.is_ic;
+
+    ic_asset::sync(&canister, &source_paths, false, logger, insecure_dev_mode)
         .await
         .with_context(|| {
             format!(
@@ -43,6 +47,7 @@ pub async fn post_install_store_assets(
 pub async fn prepare_assets_for_proposal(
     info: &CanisterInfo,
     agent: &Agent,
+    network_descriptor: &NetworkDescriptor,
     logger: &Logger,
 ) -> DfxResult {
     let assets_canister_info = info.as_info::<AssetsCanisterInfo>()?;
@@ -59,7 +64,9 @@ pub async fn prepare_assets_for_proposal(
         .build()
         .context("Failed to build asset canister caller.")?;
 
-    ic_asset::prepare_sync_for_proposal(&canister, &source_paths, logger)
+    let insecure_dev_mode = !network_descriptor.is_ic;
+
+    ic_asset::prepare_sync_for_proposal(&canister, &source_paths, logger, insecure_dev_mode)
         .await
         .with_context(|| {
             format!(

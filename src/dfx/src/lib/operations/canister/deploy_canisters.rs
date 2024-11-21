@@ -375,7 +375,13 @@ async fn prepare_assets_for_commit(
 
     let agent = env.get_agent();
 
-    prepare_assets_for_proposal(&canister_info, agent, env.get_logger()).await?;
+    prepare_assets_for_proposal(
+        &canister_info,
+        agent,
+        env.get_network_descriptor(),
+        env.get_logger(),
+    )
+    .await?;
 
     Ok(())
 }
@@ -412,8 +418,15 @@ async fn compute_evidence(
         .with_canister_id(canister_id)
         .build()
         .context("Failed to build asset canister caller.")?;
+    let insecure_dev_mode = !env.get_network_descriptor().is_ic;
 
-    let evidence = ic_asset::compute_evidence(&canister, &source_paths, env.get_logger()).await?;
+    let evidence = ic_asset::compute_evidence(
+        &canister,
+        &source_paths,
+        env.get_logger(),
+        insecure_dev_mode,
+    )
+    .await?;
     println!("{}", evidence);
 
     Ok(())

@@ -21,6 +21,7 @@ pub(crate) async fn assemble_batch_operations(
     canister_assets: HashMap<String, AssetDetails>,
     asset_deletion_reason: AssetDeletionReason,
     canister_asset_properties: HashMap<String, AssetProperties>,
+    insecure_dev_mode: bool,
 ) -> Result<Vec<BatchOperationKind>, AssembleCommitBatchArgumentError> {
     let mut canister_assets = canister_assets;
 
@@ -32,12 +33,22 @@ pub(crate) async fn assemble_batch_operations(
         &mut canister_assets,
         asset_deletion_reason,
     );
-    create_new_assets(&mut operations, project_assets, &canister_assets);
+    create_new_assets(
+        &mut operations,
+        project_assets,
+        &canister_assets,
+        insecure_dev_mode,
+    );
     unset_obsolete_encodings(&mut operations, project_assets, &canister_assets);
     set_encodings(&mut operations, chunk_uploader, project_assets)
         .await
         .map_err(AssembleCommitBatchArgumentError::SetEncodingFailed)?;
-    update_properties(&mut operations, project_assets, &canister_asset_properties);
+    update_properties(
+        &mut operations,
+        project_assets,
+        &canister_asset_properties,
+        insecure_dev_mode,
+    );
 
     Ok(operations)
 }
@@ -49,6 +60,7 @@ pub(crate) async fn assemble_commit_batch_arguments(
     asset_deletion_reason: AssetDeletionReason,
     canister_asset_properties: HashMap<String, AssetProperties>,
     batch_id: Nat,
+    insecure_dev_mode: bool,
 ) -> Result<CommitBatchArguments, AssembleCommitBatchArgumentError> {
     let operations = assemble_batch_operations(
         Some(chunk_uploader),
@@ -56,6 +68,7 @@ pub(crate) async fn assemble_commit_batch_arguments(
         canister_assets,
         asset_deletion_reason,
         canister_asset_properties,
+        insecure_dev_mode,
     )
     .await?;
     Ok(CommitBatchArguments {
@@ -111,6 +124,7 @@ pub(crate) fn create_new_assets(
     operations: &mut Vec<BatchOperationKind>,
     project_assets: &HashMap<String, ProjectAsset>,
     canister_assets: &HashMap<String, AssetDetails>,
+    insecure_dev_mode: bool,
 ) {
     for (key, project_asset) in project_assets {
         if !canister_assets.contains_key(key) {
@@ -121,7 +135,10 @@ pub(crate) fn create_new_assets(
                 .as_ref()
                 .and_then(|c| c.max_age);
 
-            let headers = project_asset.asset_descriptor.config.combined_headers();
+            let headers = project_asset
+                .asset_descriptor
+                .config
+                .combined_headers(insecure_dev_mode);
             let enable_aliasing = project_asset.asset_descriptor.config.enable_aliasing;
             let allow_raw_access = project_asset.asset_descriptor.config.allow_raw_access;
 
@@ -198,6 +215,7 @@ pub(crate) fn update_properties(
     operations: &mut Vec<BatchOperationKind>,
     project_assets: &HashMap<String, ProjectAsset>,
     canister_asset_properties: &HashMap<String, AssetProperties>,
+    insecure_dev_mode: bool,
 ) {
     for (key, project_asset) in project_assets {
         let project_asset_properties = project_asset.asset_descriptor.config.clone();
@@ -218,8 +236,9 @@ pub(crate) fn update_properties(
                     }
                 },
                 headers: {
-                    let project_asset_headers =
-                        project_asset_properties.combined_headers().map(|hm| {
+                    let project_asset_headers = project_asset_properties
+                        .combined_headers(insecure_dev_mode)
+                        .map(|hm| {
                             let mut vec = Vec::from_iter(hm.into_iter());
                             vec.sort();
                             vec
@@ -330,7 +349,12 @@ mod test_update_properties {
             },
         );
         let mut operations = vec![];
-        update_properties(&mut operations, &project_assets, &canister_asset_properties);
+        update_properties(
+            &mut operations,
+            &project_assets,
+            &canister_asset_properties,
+            false,
+        );
         assert_eq!(operations.len(), 1);
         assert_eq!(
             operations[0],
@@ -393,7 +417,12 @@ mod test_update_properties {
             },
         );
         let mut operations = vec![];
-        update_properties(&mut operations, &project_assets, &canister_asset_properties);
+        update_properties(
+            &mut operations,
+            &project_assets,
+            &canister_asset_properties,
+            false,
+        );
         assert_eq!(operations.len(), 0);
     }
 
@@ -424,7 +453,12 @@ mod test_update_properties {
             },
         );
         let mut operations = vec![];
-        update_properties(&mut operations, &project_assets, &canister_asset_properties);
+        update_properties(
+            &mut operations,
+            &project_assets,
+            &canister_asset_properties,
+            false,
+        );
         assert_eq!(operations.len(), 1);
         assert_eq!(
             operations[0],
