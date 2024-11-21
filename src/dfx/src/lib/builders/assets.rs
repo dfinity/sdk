@@ -12,7 +12,6 @@ use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use console::style;
 use dfx_core::config::cache::Cache;
-use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use fn_error_context::context;
 use slog::{o, Logger};
 use std::fs;
@@ -212,10 +211,6 @@ fn build_frontend(
 
         if let Some(workspace) = workspace {
             cmd.arg("--workspace").arg(workspace);
-        }
-
-        if NetworkDescriptor::is_ic(network_name, &vec![]) {
-            cmd.env("NODE_ENV", "production");
         }
 
         for (var, value) in vars {
