@@ -39,6 +39,8 @@ teardown() {
 
 @test "ledger fabricate-cycles fails on real IC" {
   install_asset greet
+  # without DFX_WARNING, the command would fail with different error (Failed to create AgentEnvironment...)
+  export DFX_WARNING=-mainnet_plaintext_identity
   assert_command_fail dfx ledger fabricate-cycles --all --network ic
   assert_match "Cannot run this on the real IC."
   assert_command_fail dfx ledger fabricate-cycles --all --ic

@@ -12,6 +12,7 @@ use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 use fn_error_context::context;
 use handlebars::Handlebars;
+use slog::{trace, Logger};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
@@ -94,6 +95,7 @@ pub trait CanisterBuilder {
     /// Generate type declarations for the canister
     fn generate(
         &self,
+        logger: &Logger,
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,
@@ -137,8 +139,9 @@ pub trait CanisterBuilder {
             return Ok(());
         }
 
-        eprintln!(
-            "Generating type declarations for canister {}:",
+        trace!(
+            logger,
+            "Generating type declarations for canister {}",
             &info.get_name()
         );
 
@@ -172,7 +175,7 @@ pub trait CanisterBuilder {
                     output_did_ts_path.to_string_lossy()
                 )
             })?;
-            eprintln!("  {}", &output_did_ts_path.display());
+            trace!(logger, "  {}", &output_did_ts_path.display());
 
             compile_handlebars_files("ts", info, generate_output_dir)?;
         }
@@ -191,7 +194,7 @@ pub trait CanisterBuilder {
                     output_did_js_path.to_string_lossy()
                 )
             })?;
-            eprintln!("  {}", &output_did_js_path.display());
+            trace!(logger, "  {}", &output_did_js_path.display());
 
             compile_handlebars_files("js", info, generate_output_dir)?;
         }
@@ -206,7 +209,7 @@ pub trait CanisterBuilder {
             std::fs::write(&output_mo_path, content).with_context(|| {
                 format!("Failed to write to {}.", output_mo_path.to_string_lossy())
             })?;
-            eprintln!("  {}", &output_mo_path.display());
+            trace!(logger, "  {}", &output_mo_path.display());
         }
 
         // Candid
@@ -216,7 +219,7 @@ pub trait CanisterBuilder {
                 .with_extension("did");
             dfx_core::fs::copy(&did_from_build, &output_did_path)?;
             dfx_core::fs::set_permissions_readwrite(&output_did_path)?;
-            eprintln!("  {}", &output_did_path.display());
+            trace!(logger, "  {}", &output_did_path.display());
         }
 
         Ok(())

@@ -2,18 +2,19 @@
 
 # UNRELEASED
 
+### feat: error when using insecure identity on mainnet
+
+This used to be a warning. A hard error can abort the command so that no insecure state will be on the mainnet.
+
+Users can surpress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
+
+The warning won't display when executing commands like `dfx deploy --playground`.
+
+# 0.24.3
+
 ### feat: Bitcoin support in PocketIC
 
 `dfx start --pocketic` is now compatible with `--bitcoin-node` and `--enable-bitcoin`.
-
-### feat: all commands will use the DFX_NETWORK from the environment
-
-If `DFX_NETWORK` is set in the environment, all commands will use that network by default.
-The `--network` parameter will take precedence if provided.
-
-### fix: dfx generate now honors the --network parameter
-This fixes an issue where `dfx deploy --playground` would fail if the project
-had not been previously built for the local network.
 
 ### feat: facade pull ICP, ckBTC, ckETH ledger canisters
 
@@ -91,6 +92,15 @@ This incorporates the following executed proposals:
 - [133396](https://dashboard.internetcomputer.org/proposal/133396)
 
 # 0.24.2
+
+### feat: all commands will use the DFX_NETWORK from the environment
+
+If `DFX_NETWORK` is set in the environment, all commands will use that network by default.
+The `--network` parameter will take precedence if provided.
+
+### fix: dfx generate now honors the --network parameter
+This fixes an issue where `dfx deploy --playground` would fail if the project
+had not been previously built for the local network.
 
 ### feat: Support canister log allowed viewer list
 
