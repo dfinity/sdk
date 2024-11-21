@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: added a dev mode to `.ic-assets.json5`
+
+When uploading assets to a local dev replica, the `Strict-Transport-Security` header and the `upgrade-insecure-requests` directive of the `Content-Security-Policy` header will now be stripped out. This permits loading `http://` pages in Safari and other browsers that do not treat localhost specially for this directive.
+
+A new field in `.ic-assets.json5`, `disable_secure_headers_in_dev_mode`, can be set to `false` to disable this behavior.
+
 ### feat: error when using insecure identity on mainnet
 
 This used to be a warning. A hard error can abort the command so that no insecure state will be on the mainnet.
