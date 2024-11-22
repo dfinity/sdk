@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: `dfx start --pocketic` supports `--force` and shared networks.
+
+`dfx start --pocketic` is now compatible with `--force` and shared networks.
+
 ### feat: error when using insecure identity on mainnet
 
 This used to be a warning. A hard error can abort the command so that no insecure state will be on the mainnet.
