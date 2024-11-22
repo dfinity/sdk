@@ -20,7 +20,7 @@
 //!     .with_agent(&agent)
 //!     .build()?;
 //! let logger = slog::Logger::root(slog::Discard, slog::o!());
-//! ic_asset::sync(&canister, &[concat!(env!("CARGO_MANIFEST_DIR"), "assets/").as_ref()], false, &logger).await?;
+//! ic_asset::sync(&canister, &[concat!(env!("CARGO_MANIFEST_DIR"), "assets/").as_ref()], false, &logger, false).await?;
 //! # Ok(())
 //! # }
 
