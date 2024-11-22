@@ -104,8 +104,14 @@ impl Canister {
     }
 
     #[context("Failed while trying to generate type declarations for '{}'.", self.info.get_name())]
-    pub fn generate(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
-        self.builder.generate(pool, &self.info, build_config)
+    pub fn generate(
+        &self,
+        logger: &Logger,
+        pool: &CanisterPool,
+        build_config: &BuildConfig,
+    ) -> DfxResult {
+        self.builder
+            .generate(logger, pool, &self.info, build_config)
     }
 
     #[context("Failed to post-process wasm of canister '{}'.", self.info.get_name())]

@@ -99,13 +99,13 @@ teardown() {
 
   assert_command_fail dfx diagnose --network ic
   assert_contains "The test_id identity is not stored securely."
-  assert_contains "use it in mainnet-facing commands"
-  assert_contains "No wallet found; nothing to do"
+  assert_contains "in mainnet-facing commands"
+  assert_contains "you can suppress this warning"
 
   assert_command_fail dfx diagnose --ic
   assert_contains "The test_id identity is not stored securely."
-  assert_contains "use it in mainnet-facing commands"
-  assert_contains "No wallet found; nothing to do"
+  assert_contains "in mainnet-facing commands"
+  assert_contains "you can suppress this warning"
 
   assert_command dfx diagnose
   assert_not_contains "identity is not stored securely"
