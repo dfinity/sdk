@@ -57,6 +57,9 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
         if cycles_ledger_not_found(err) {
             return diagnose_cycles_ledger_not_found();
         }
+        if ledger_not_found(err) {
+            return diagnose_ledger_not_found();
+        }
     }
 
     if local_replica_not_running(err) {
@@ -243,6 +246,19 @@ fn diagnose_cycles_ledger_not_found() -> Diagnosis {
         "Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' is not installed.";
     let suggestion =
         "Run the command with '--ic' flag if you want to manage the cycles on the mainnet.";
+
+    (Some(explanation.to_string()), Some(suggestion.to_string()))
+}
+
+fn ledger_not_found(err: &AnyhowError) -> bool {
+    err.to_string()
+        .contains("Canister ryjl3-tyaaa-aaaaa-aaaba-cai not found")
+}
+
+fn diagnose_ledger_not_found() -> Diagnosis {
+    let explanation = "ICP Ledger with canister ID 'ryjl3-tyaaa-aaaaa-aaaba-cai' is not installed.";
+    let suggestion =
+        "Run the command with '--ic' flag if you want to manage the ICP on the mainnet.";
 
     (Some(explanation.to_string()), Some(suggestion.to_string()))
 }
