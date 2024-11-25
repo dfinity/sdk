@@ -5,7 +5,7 @@ use crate::error::extension::{
     LoadExtensionManifestError,
 };
 use crate::extension::manager::ExtensionManager;
-use crate::json::structure::{VersionReqWithJsonSchema, VersionWithJsonSchema};
+use crate::json::structure::{SerdeVec, VersionReqWithJsonSchema, VersionWithJsonSchema};
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
@@ -74,7 +74,7 @@ pub struct ExtensionProjectTemplate {
     pub requirements: Vec<String>,
 
     /// Run a command after adding the canister to dfx.json
-    pub post_create: Vec<String>,
+    pub post_create: SerdeVec<String>,
 
     /// If set, display a spinner while this command runs
     pub post_create_spinner_message: Option<String>,
@@ -144,7 +144,7 @@ impl ExtensionManifest {
                     resource_location,
                     category: template.category.clone(),
                     requirements,
-                    post_create: template.post_create.clone(),
+                    post_create: template.post_create.clone().into_vec(),
                     post_create_spinner_message: template.post_create_spinner_message.clone(),
                     post_create_failure_warning: template.post_create_failure_warning.clone(),
                     sort_order,
