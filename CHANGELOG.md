@@ -16,8 +16,8 @@ The warning won't display when executing commands like `dfx deploy --playground`
 
 ### feat: extensions can define project templates
 
-An extension can define 1 or more project templates that can be used with `dfx new`.
-These can replace the built-in project templates or be additional templates.
+An extension can define one or more project templates for `dfx new` to use.
+These can be new templates or replace the built-in project templates.
 
 # 0.24.3
 
