@@ -85,6 +85,12 @@ pub struct StartOpts {
     /// Runs PocketIC instead of the replica
     #[clap(long, alias = "emulator")]
     pocketic: bool,
+
+    /// Runs the replica instead of pocketic.
+    /// Currently this has no effect.
+    #[clap(long, conflicts_with = "pocketic")]
+    #[allow(unused)]
+    replica: bool,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -152,6 +158,7 @@ pub fn exec(
         artificial_delay,
         domain,
         pocketic,
+        replica: _,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
