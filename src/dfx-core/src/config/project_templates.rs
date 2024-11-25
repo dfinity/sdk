@@ -1,3 +1,4 @@
+use crate::config::model::project_template::ProjectTemplateCategory;
 use itertools::Itertools;
 use std::collections::BTreeMap;
 use std::fmt::Display;
@@ -10,15 +11,6 @@ type GetArchiveFn = fn() -> Result<tar::Archive<flate2::read::GzDecoder<&'static
 pub enum ResourceLocation {
     /// The template's assets are compiled into the dfx binary
     Bundled { get_archive_fn: GetArchiveFn },
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub enum Category {
-    Backend,
-    Frontend,
-    FrontendTest,
-    Extra,
-    Support,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -44,7 +36,7 @@ pub struct ProjectTemplate {
 
     /// Used to determine which CLI group (`--type`, `--backend`, `--frontend`)
     /// as well as for interactive selection
-    pub category: Category,
+    pub category: ProjectTemplateCategory,
 
     /// Other project templates to patch in alongside this one
     pub requirements: Vec<ProjectTemplateName>,
@@ -99,7 +91,7 @@ pub fn find_project_template(name: &ProjectTemplateName) -> Option<ProjectTempla
     PROJECT_TEMPLATES.get().unwrap().get(name).cloned()
 }
 
-pub fn get_sorted_templates(category: Category) -> Vec<ProjectTemplate> {
+pub fn get_sorted_templates(category: ProjectTemplateCategory) -> Vec<ProjectTemplate> {
     PROJECT_TEMPLATES
         .get()
         .unwrap()
@@ -114,7 +106,7 @@ pub fn get_sorted_templates(category: Category) -> Vec<ProjectTemplate> {
         .collect()
 }
 
-pub fn project_template_cli_names(category: Category) -> Vec<String> {
+pub fn project_template_cli_names(category: ProjectTemplateCategory) -> Vec<String> {
     PROJECT_TEMPLATES
         .get()
         .unwrap()
