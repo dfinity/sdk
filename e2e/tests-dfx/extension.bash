@@ -34,7 +34,7 @@ teardown() {
       "display": "rust by extension",
       "requirements": [],
       "post_create": "cargo update",
-      "port_create_failure_warning": "You will need to run it yourself (or a similar command like `cargo vendor`), because `dfx build` will use the --locked flag with Cargo."
+      "port_create_failure_warning": "You will need to run it yourself (or a similar command like 'cargo vendor'), because 'dfx build' will use the --locked flag with Cargo."
     }
   },
   "download_url_template": "http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/downloads/{{tag}}.{{archive-format}}"
