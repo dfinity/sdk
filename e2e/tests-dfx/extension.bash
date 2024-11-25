@@ -70,17 +70,19 @@ EOF
   setup_rust
 
   dfx new rbe --type rust-by-extension --no-frontend
-  dfx new rbc --type rust --no-frontend
+  #dfx new rbc --type rust --no-frontend
   echo "RBE"
   cat rbe/dfx.json
   find rbe -type f
-  echo "RBC"
-  cat rbc/dfx.json
-  find rbc -type f
+  #echo "RBC"
+  #cat rbc/dfx.json
+  #find rbc -type f
   cd rbe || exit
-  cargo update
+  #cargo update
   dfx_start
   assert_command dfx deploy
+  assert_command dfx canister call rbe_backend greet '("Rust By Extension")'
+  assert_contains "Hello, Rust By Extension!"
 }
 
 @test "run an extension command with a canister type defined by another extension" {
