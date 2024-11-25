@@ -65,8 +65,6 @@ EOF
 
   assert_command dfx extension install "$EXTENSION_URL"
 
-  find "$(dfx cache show)"/extensions -print
-
   setup_rust
 
   dfx new rbe --type rust-by-extension --no-frontend
@@ -128,8 +126,6 @@ EOF
   mv "$ARCHIVE_BASENAME".tar.gz www/arbitrary/downloads/
 
   assert_command dfx extension install "$EXTENSION_URL"
-
-  find "$(dfx cache show)"/extensions -print
 
   setup_rust
 
