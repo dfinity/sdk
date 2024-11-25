@@ -1,4 +1,6 @@
+use crate::config::project_templates::ProjectTemplate;
 use crate::error::extension::ConvertExtensionIntoClapCommandError;
+use crate::extension::manager::ExtensionManager;
 use crate::extension::manifest::ExtensionManifest;
 use crate::extension::ExtensionName;
 use clap::Command;
@@ -27,5 +29,12 @@ impl InstalledExtensionManifests {
 
     pub fn contains(&self, extension: &str) -> bool {
         self.0.contains_key(extension)
+    }
+
+    pub fn loaded_templates(&self, em: &ExtensionManager) -> Vec<ProjectTemplate> {
+        self.0
+            .values()
+            .flat_map(|manifest| manifest.project_templates(em))
+            .collect()
     }
 }

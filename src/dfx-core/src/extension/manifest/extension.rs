@@ -1,7 +1,10 @@
+use crate::config::model::project_template::ProjectTemplateCategory;
+use crate::config::project_templates::{ProjectTemplate, ProjectTemplateName, ResourceLocation};
 use crate::error::extension::{
     ConvertExtensionSubcommandIntoClapArgError, ConvertExtensionSubcommandIntoClapCommandError,
     LoadExtensionManifestError,
 };
+use crate::extension::manager::ExtensionManager;
 use crate::json::structure::{VersionReqWithJsonSchema, VersionWithJsonSchema};
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -34,6 +37,8 @@ pub struct ExtensionManifest {
     pub dependencies: Option<HashMap<String, ExtensionDependency>>,
     pub canister_type: Option<ExtensionCanisterType>,
 
+    pub project_templates: Option<HashMap<String, ExtensionProjectTemplate>>,
+
     /// Components of the download url template are:
     /// - `{{tag}}`: the tag of the extension release, which will follow the form "<extension name>-v<extension version>"
     /// - `{{basename}}`: The basename of the release filename, which will follow the form "<extension name>-<arch>-<platform>", for example "nns-x86_64-unknown-linux-gnu"
@@ -54,6 +59,28 @@ fn default_download_url_template() -> Option<String> {
 pub enum ExtensionDependency {
     /// A SemVer version requirement, for example ">=0.17.0".
     Version(VersionReqWithJsonSchema),
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ExtensionProjectTemplate {
+    /// The name used for display and sorting
+    pub display: String,
+
+    /// Used to determine which CLI group (`--type`, `--backend`, `--frontend`)
+    /// as well as for interactive selection
+    pub category: ProjectTemplateCategory,
+
+    /// Other project templates to patch in alongside this one
+    pub requirements: Vec<String>,
+
+    /// Run a command after adding the canister to dfx.json
+    pub post_create: Vec<String>,
+
+    /// If set, display a spinner while this command runs
+    pub post_create_spinner_message: Option<String>,
+
+    /// If the post-create command fails, display this warning but don't fail
+    pub post_create_failure_warning: Option<String>,
 }
 
 impl ExtensionManifest {
@@ -91,6 +118,39 @@ impl ExtensionManifest {
         } else {
             Ok(vec![])
         }
+    }
+
+    pub fn project_templates(&self, em: &ExtensionManager) -> Vec<ProjectTemplate> {
+        let Some(project_templates) = self.project_templates.as_ref() else {
+            return vec![];
+        };
+
+        let extension_dir = em.get_extension_directory(&self.name);
+
+        project_templates
+            .iter()
+            .map(|(name, template)| {
+                let resource_dir = extension_dir.join("project_templates").join(name);
+                let resource_location = ResourceLocation::Directory { path: resource_dir };
+                let sort_order = 6;
+                let requirements = template
+                    .requirements
+                    .iter()
+                    .map(|r| ProjectTemplateName(r.clone()))
+                    .collect();
+                ProjectTemplate {
+                    name: ProjectTemplateName(name.clone()),
+                    display: template.display.clone(),
+                    resource_location,
+                    category: template.category.clone(),
+                    requirements,
+                    post_create: template.post_create.clone(),
+                    post_create_spinner_message: template.post_create_spinner_message.clone(),
+                    post_create_failure_warning: template.post_create_failure_warning.clone(),
+                    sort_order,
+                }
+            })
+            .collect()
     }
 }
 

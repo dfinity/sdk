@@ -137,7 +137,8 @@ fn get_args_altered_for_extension_run(
 fn inner_main() -> DfxResult {
     let em = ExtensionManager::new(dfx_version())?;
     let installed_extension_manifests = em.load_installed_extension_manifests()?;
-    project_templates::populate(builtin_templates());
+    let loaded_templates = installed_extension_manifests.loaded_templates(&em);
+    project_templates::populate(builtin_templates(), loaded_templates);
 
     let args = get_args_altered_for_extension_run(&installed_extension_manifests)?;
 
@@ -201,7 +202,7 @@ mod tests {
 
     #[test]
     fn validate_cli() {
-        project_templates::populate(builtin_templates());
+        project_templates::populate(builtin_templates(), vec![]);
 
         CliOpts::command().debug_assert();
     }
