@@ -15,6 +15,11 @@ pub struct CanisterStatusOpts {
     /// You must specify either a canister name or the --all flag.
     canister: Option<String>,
 
+    /// Send request on behalf of the specified principal.
+    /// This option only works for a local PocketIC instance.
+    #[arg(long)]
+    impersonate: Option<Principal>,
+
     /// Returns status information for all of the canisters configured in the dfx.json file.
     #[arg(long, required_unless_present("canister"))]
     all: bool,
@@ -87,8 +92,13 @@ async fn canister_status(
 pub async fn exec(
     env: &dyn Environment,
     opts: CanisterStatusOpts,
-    call_sender: &CallSender,
+    mut call_sender: &CallSender,
 ) -> DfxResult {
+    let call_sender_override = opts.impersonate.map(CallSender::Impersonate);
+    if let Some(ref call_sender_override) = call_sender_override {
+        call_sender = call_sender_override;
+    };
+
     fetch_root_key_if_needed(env).await?;
 
     if let Some(canister) = opts.canister.as_deref() {

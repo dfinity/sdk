@@ -66,6 +66,14 @@ async fn deposit_cycles(
             )
             .await?;
         }
+        CallSender::Impersonate(_) => {
+            let pocketic = env.get_pocketic();
+            if let Some(pocketic) = pocketic {
+                pocketic.add_cycles(canister_id, cycles).await;
+            } else {
+                bail!("Impersonating sender is only supported for a local PocketIC instance.")
+            }
+        }
         CallSender::Wallet(_) => {
             canister::deposit_cycles(env, canister_id, call_sender, cycles).await?
         }

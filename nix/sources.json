@@ -153,17 +153,17 @@
         "version": "0.13.3"
     },
     "pocket-ic-x86_64-darwin": {
-        "rev": "a62848817cec7ae50618a87a526c85d020283fd9",
-        "sha256": "1xlsd1lkv22raw0z9n02li6ghg6vpb30hygr8s1g0fvchzhsnizx",
+        "rev": "ab625a1b5498d6c5f44c918a419afb6ff3f92fb6",
+        "sha256": "9a601c1a7ebb231739c55f83c9dd646210a9836066abded2582871ebce7bd9ac",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/a62848817cec7ae50618a87a526c85d020283fd9/binaries/x86_64-darwin/pocket-ic.gz",
+        "url": "https://download.dfinity.systems/ic/ab625a1b5498d6c5f44c918a419afb6ff3f92fb6/binaries/x86_64-darwin/pocket-ic.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-darwin/pocket-ic.gz"
     },
     "pocket-ic-x86_64-linux": {
-        "rev": "a62848817cec7ae50618a87a526c85d020283fd9",
-        "sha256": "16ch04yghl21pr8lk9mcdrvw1f7l8rbpbslh34bsn96xjshy453v",
+        "rev": "ab625a1b5498d6c5f44c918a419afb6ff3f92fb6",
+        "sha256": "6dfee7582c9282868f2fae3acddb98085bf748a5a48beea0bcd68b3fcb9fd12c",
         "type": "file",
-        "url": "https://download.dfinity.systems/ic/a62848817cec7ae50618a87a526c85d020283fd9/binaries/x86_64-linux/pocket-ic.gz",
+        "url": "https://download.dfinity.systems/ic/ab625a1b5498d6c5f44c918a419afb6ff3f92fb6/binaries/x86_64-linux/pocket-ic.gz",
         "url_template": "https://download.dfinity.systems/ic/<rev>/binaries/x86_64-linux/pocket-ic.gz"
     },
     "replica-x86_64-darwin": {

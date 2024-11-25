@@ -15,6 +15,7 @@ use crate::util::clap::parsers::{
 use anyhow::{bail, Context};
 use byte_unit::Byte;
 use candid::Principal as CanisterId;
+use candid::Principal;
 use clap::{ArgAction, Parser};
 use dfx_core::cli::ask_for_consent;
 use dfx_core::error::identity::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
@@ -100,13 +101,23 @@ pub struct UpdateSettingsOpts {
     /// so this is not recommended outside of CI.
     #[arg(long, short)]
     yes: bool,
+
+    /// Send request on behalf of the specified principal.
+    /// This option only works for a local PocketIC instance.
+    #[arg(long)]
+    impersonate: Option<Principal>,
 }
 
 pub async fn exec(
     env: &dyn Environment,
     opts: UpdateSettingsOpts,
-    call_sender: &CallSender,
+    mut call_sender: &CallSender,
 ) -> DfxResult {
+    let call_sender_override = opts.impersonate.map(CallSender::Impersonate);
+    if let Some(ref call_sender_override) = call_sender_override {
+        call_sender = call_sender_override;
+    };
+
     // sanity checks
     if let Some(threshold_in_seconds) = opts.freezing_threshold {
         if threshold_in_seconds > 50_000_000 /* ~1.5 years */ && !opts.confirm_very_long_freezing_threshold
@@ -342,6 +353,7 @@ fn user_is_removing_themselves_as_controller(
             .get_selected_identity_principal()
             .context("Selected identity is not instantiated")?
             .to_string(),
+        CallSender::Impersonate(principal) => principal.to_string(),
         CallSender::Wallet(principal) => principal.to_string(),
     };
     let removes_themselves =

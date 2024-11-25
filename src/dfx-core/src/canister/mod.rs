@@ -71,6 +71,9 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.
                 .await
                 .map_err(CanisterInstallError::InstallWasmError)
         }
+        CallSender::Impersonate(_) => {
+            unreachable!("Impersonating sender is not supported for canister installation.")
+        }
         CallSender::Wallet(wallet_id) => {
             let wallet = build_wallet_canister(*wallet_id, agent).await?;
             let install_args = CanisterInstall {
