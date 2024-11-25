@@ -14,6 +14,11 @@ Users can surpress this error by setting `export DFX_WARNING=-mainnet_plaintext_
 
 The warning won't display when executing commands like `dfx deploy --playground`.
 
+### feat: extensions can define project templates
+
+An extension can define 1 or more project templates that can be used with `dfx new`.
+These can replace the built-in project templates or be additional templates.
+
 # 0.24.3
 
 ### feat: Bitcoin support in PocketIC
