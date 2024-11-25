@@ -14,14 +14,14 @@ The `project_templates` field in an extension's `extension.json` defines the pro
 included in the extension.  It is an object field mapping `project template name -> project template properties`.
 These are the properties of a project template:
 
-| Field                        | Type                      | Description                                                       |
-|------------------------------|---------------------------|-------------------------------------------------------------------|
-| `display`                    | String                    | Display name of the project template                              |
-| `category`                   | String                    | Category for inclusion in `--backend` and `--frontend` CLI options |
-| `requirements`               | Array of String           | Required project templates                                        |
-| `post_create`                | String or Array of String | Command(s) to run after adding the canister to the project        |
-| `post_create_spinner_message` | String                    | Message to display while running the post_create command         |
-| `post_create_failure_warning` | String                    | Warning to display if the post_create command fails              |
+| Field                        | Type                      | Description                                                                                          |
+|------------------------------|---------------------------|------------------------------------------------------------------------------------------------------|
+| `display`                    | String                    | Display name of the project template                                                                 |
+| `category`                   | String                    | Category for inclusion in `--backend` and `--frontend` CLI options, as well as interactive selection |
+| `requirements`               | Array of String           | Required project templates                                                                           |
+| `post_create`                | String or Array of String | Command(s) to run after adding the canister to the project                                           |
+| `post_create_spinner_message` | String                    | Message to display while running the post_create command                                            |
+| `post_create_failure_warning` | String                    | Warning to display if the post_create command fails                                                 |
 
 Within the files distributed with the extension, the project template files are
 located in the `project_templates/{project template name}` directory.
