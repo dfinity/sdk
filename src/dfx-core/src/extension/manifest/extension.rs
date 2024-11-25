@@ -120,19 +120,39 @@ impl ExtensionManifest {
         }
     }
 
-    pub fn project_templates(&self, em: &ExtensionManager) -> Vec<ProjectTemplate> {
+    pub fn project_templates(
+        &self,
+        em: &ExtensionManager,
+        builtin_templates: &[ProjectTemplate],
+    ) -> Vec<ProjectTemplate> {
         let Some(project_templates) = self.project_templates.as_ref() else {
             return vec![];
         };
 
         let extension_dir = em.get_extension_directory(&self.name);
 
+        // the default sort order is after everything built-in
+        let default_sort_order = builtin_templates
+            .iter()
+            .map(|t| t.sort_order)
+            .max()
+            .unwrap_or(0)
+            + 1;
+
         project_templates
             .iter()
             .map(|(name, template)| {
                 let resource_dir = extension_dir.join("project_templates").join(name);
                 let resource_location = ResourceLocation::Directory { path: resource_dir };
-                let sort_order = 6;
+
+                // keep the sort order as a built-in template of the same name,
+                // otherwise put it after everything else
+                let sort_order = builtin_templates
+                    .iter()
+                    .find(|t| t.name == ProjectTemplateName(name.clone()))
+                    .map(|t| t.sort_order)
+                    .unwrap_or(default_sort_order);
+
                 let requirements = template
                     .requirements
                     .iter()

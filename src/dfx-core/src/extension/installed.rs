@@ -31,10 +31,14 @@ impl InstalledExtensionManifests {
         self.0.contains_key(extension)
     }
 
-    pub fn loaded_templates(&self, em: &ExtensionManager) -> Vec<ProjectTemplate> {
+    pub fn loaded_templates(
+        &self,
+        em: &ExtensionManager,
+        builtin_templates: &[ProjectTemplate],
+    ) -> Vec<ProjectTemplate> {
         self.0
             .values()
-            .flat_map(|manifest| manifest.project_templates(em))
+            .flat_map(|manifest| manifest.project_templates(em, builtin_templates))
             .collect()
     }
 }

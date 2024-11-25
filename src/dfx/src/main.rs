@@ -137,8 +137,9 @@ fn get_args_altered_for_extension_run(
 fn inner_main() -> DfxResult {
     let em = ExtensionManager::new(dfx_version())?;
     let installed_extension_manifests = em.load_installed_extension_manifests()?;
-    let loaded_templates = installed_extension_manifests.loaded_templates(&em);
-    project_templates::populate(builtin_templates(), loaded_templates);
+    let builtin_templates = builtin_templates();
+    let loaded_templates = installed_extension_manifests.loaded_templates(&em, &builtin_templates);
+    project_templates::populate(builtin_templates, loaded_templates);
 
     let args = get_args_altered_for_extension_run(&installed_extension_manifests)?;
 
