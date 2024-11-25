@@ -1,4 +1,4 @@
-# Extension-Defined Canister Types
+# Extension-Defined Project Templates
 
 ## Overview
 
