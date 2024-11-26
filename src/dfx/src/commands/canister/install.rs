@@ -10,6 +10,7 @@ use crate::util::clap::install_mode::{InstallModeHint, InstallModeOpt};
 use dfx_core::canister::{install_canister_wasm, install_mode_to_prompt};
 use dfx_core::identity::CallSender;
 
+use crate::lib::operations::canister::skip_remote_canister;
 use anyhow::bail;
 use candid::Principal;
 use clap::Parser;
@@ -187,7 +188,6 @@ pub async fn exec(
     } else if opts.all {
         // Install all canisters.
         let config = env.get_config_or_anyhow()?;
-        let config_interface = config.get_config();
         let env_file = config.get_output_env_file(opts.output_env_file)?;
         let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
         if let Some(canisters) = &config.get_config().canisters {
@@ -195,13 +195,7 @@ pub async fn exec(
                 if pull_canisters_in_config.contains_key(canister) {
                     continue;
                 }
-                if config_interface.is_remote_canister(canister, &network.name)? {
-                    info!(
-                        env.get_logger(),
-                        "Skipping canister '{}' because it is remote for network '{}'",
-                        canister,
-                        &network.name,
-                    );
+                if skip_remote_canister(env, canister)? {
                     continue;
                 }
 
