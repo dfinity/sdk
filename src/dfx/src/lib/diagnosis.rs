@@ -73,8 +73,8 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
         }
     }
 
-    if let Some(_create_canister_err) = err.downcast_ref::<CreateCanisterError>() {
-        if insufficient_cycles(_create_canister_err) {
+    if let Some(create_canister_err) = err.downcast_ref::<CreateCanisterError>() {
+        if insufficient_cycles(create_canister_err) {
             return diagnose_insufficient_cycles();
         }
     }
