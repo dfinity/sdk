@@ -271,10 +271,7 @@ fn diagnose_ledger_not_found() -> Diagnosis {
 }
 
 fn insufficient_cycles(err: &CreateCanisterError) -> bool {
-    match err {
-        CreateCanisterError::InsufficientFunds { balance: _ } => true,
-        _ => false,
-    }
+    matches!(err, CreateCanisterError::InsufficientFunds { balance: _ })
 }
 
 fn diagnose_insufficient_cycles() -> Diagnosis {
