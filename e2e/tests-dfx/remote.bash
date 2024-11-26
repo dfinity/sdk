@@ -210,6 +210,12 @@ teardown() {
   assert_command dfx canister stop --all --network actuallylocal
   assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
 
+  assert_command dfx canister start --all --network actuallylocal
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+
+  # have to stop to uninstall
+  assert_command dfx canister stop --all --network actuallylocal
+
   assert_command dfx canister uninstall-code --all --network actuallylocal
   assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
 
