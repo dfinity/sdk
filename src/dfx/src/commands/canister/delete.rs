@@ -350,8 +350,21 @@ pub async fn exec(
         )
         .await
     } else if opts.all {
-        if let Some(canisters) = &config.get_config().canisters {
+        let config_interface = config.get_config();
+        let network = env.get_network_descriptor();
+        if let Some(canisters) = &config_interface.canisters {
             for canister in canisters.keys() {
+                let canister_is_remote =
+                    config_interface.is_remote_canister(canister, &network.name)?;
+                if canister_is_remote {
+                    info!(
+                        env.get_logger(),
+                        "Skipping canister '{canister}' because it is remote for network '{}'",
+                        &network.name,
+                    );
+
+                    continue;
+                }
                 delete_canister(
                     env,
                     canister,
