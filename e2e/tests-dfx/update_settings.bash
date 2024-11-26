@@ -14,25 +14,6 @@ teardown() {
   standard_teardown
 }
 
-@test "the --all option excludes remote canisters" {
-  dfx_new
-  dfx_start
-  assert_command dfx deploy e2e_project_backend
-  assert_command dfx canister status e2e_project_backend
-
-  jq '.canisters.internet_identity.remote.id.local = "rdmx6-jaaaa-aaaaa-aaadq-cai"' dfx.json | sponge dfx.json
-
-  # Test --all code path.
-  assert_command dfx canister update-settings --log-visibility public --all
-  assert_contains "Skipping canister 'internet_identity' because it is remote for network 'local'"
-  assert_command dfx canister status e2e_project_backend
-  assert_contains "Log visibility: public"
-  assert_command dfx canister update-settings --log-visibility controllers --all
-  assert_command dfx canister status e2e_project_backend
-  assert_contains "Log visibility: controllers"
-
-}
-
 @test "set reserved cycles limit" {
     dfx_start
     assert_command dfx deploy hello_backend

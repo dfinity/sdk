@@ -201,6 +201,9 @@ teardown() {
   assert_command jq .remote canister_ids.json
   assert_eq "null"
 
+  assert_command dfx canister update-settings --log-visibility public --all --network actuallylocal
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+
   assert_command dfx canister stop --all --network actuallylocal
   assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
 
