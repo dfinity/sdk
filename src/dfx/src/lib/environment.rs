@@ -457,7 +457,6 @@ pub fn create_agent(
 
 #[context("Failed to create PocketIC handle with url {}.", url)]
 pub fn create_pocketic(url: &Url) -> DfxResult<PocketIc> {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    let pocketic = rt.block_on(PocketIc::new_from_existing_instance(url.clone(), 0, None));
+    let pocketic = PocketIc::new_from_existing_instance(url.clone(), 0, None);
     Ok(pocketic)
 }

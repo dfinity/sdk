@@ -86,7 +86,7 @@ os_str_bytes = { version = "6.3.0", features = ["conversions"] }
 patch = "0.7.0"
 pem.workspace = true
 petgraph = "0.6.0"
-pocket-ic = { git = "https://github.com/dfinity/ic", rev = "ab625a1b5498d6c5f44c918a419afb6ff3f92fb6" }
+pocket-ic = { git = "https://github.com/dfinity/ic", rev = "f57426504d502d1c42d68b537e92f3fd4e7fa25c" }
 rand = "0.8.5"
 regex = "1.5.5"
 reqwest = { workspace = true, features = ["blocking", "json"] }

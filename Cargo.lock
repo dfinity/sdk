@@ -4583,7 +4583,7 @@ dependencies = [
 [[package]]
 name = "pocket-ic"
 version = "6.0.0"
-source = "git+https://github.com/dfinity/ic?rev=ab625a1b5498d6c5f44c918a419afb6ff3f92fb6#ab625a1b5498d6c5f44c918a419afb6ff3f92fb6"
+source = "git+https://github.com/dfinity/ic?rev=f57426504d502d1c42d68b537e92f3fd4e7fa25c#f57426504d502d1c42d68b537e92f3fd4e7fa25c"
 dependencies = [
  "base64 0.13.1",
  "candid",
@@ -6519,6 +6519,7 @@ dependencies = [
  "sharded-slab",
  "smallvec",
  "thread_local",
+ "time",
  "tracing",
  "tracing-core",
  "tracing-log",
