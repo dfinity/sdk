@@ -70,6 +70,15 @@
     "name": {
       "type": "string"
     },
+    "project_templates": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {
+        "$ref": "#/definitions/ExtensionProjectTemplate"
+      }
+    },
     "subcommands": {
       "anyOf": [
         {
@@ -155,6 +164,58 @@
         }
       ]
     },
+    "ExtensionProjectTemplate": {
+      "type": "object",
+      "required": [
+        "category",
+        "display",
+        "post_create",
+        "requirements"
+      ],
+      "properties": {
+        "category": {
+          "description": "Used to determine which CLI group (`--type`, `--backend`, `--frontend`) as well as for interactive selection",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ProjectTemplateCategory"
+            }
+          ]
+        },
+        "display": {
+          "description": "The name used for display and sorting",
+          "type": "string"
+        },
+        "post_create": {
+          "description": "Run a command after adding the canister to dfx.json",
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
+            }
+          ]
+        },
+        "post_create_failure_warning": {
+          "description": "If the post-create command fails, display this warning but don't fail",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "post_create_spinner_message": {
+          "description": "If set, display a spinner while this command runs",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requirements": {
+          "description": "Other project templates to patch in alongside this one",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "ExtensionSubcommandArgOpts": {
       "type": "object",
       "properties": {
@@ -231,6 +292,16 @@
         "$ref": "#/definitions/ExtensionSubcommandOpts"
       }
     },
+    "ProjectTemplateCategory": {
+      "type": "string",
+      "enum": [
+        "backend",
+        "frontend",
+        "frontend-test",
+        "extra",
+        "support"
+      ]
+    },
     "Range_of_uint": {
       "type": "object",
       "required": [
@@ -249,6 +320,19 @@
           "minimum": 0.0
         }
       }
+    },
+    "SerdeVec_for_String": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
     }
   }
 }
