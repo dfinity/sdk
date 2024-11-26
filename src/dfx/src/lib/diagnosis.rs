@@ -1,3 +1,4 @@
+use crate::lib::cycles_ledger_types::create_canister::CreateCanisterError;
 use crate::lib::error_code;
 use anyhow::Error as AnyhowError;
 use dfx_core::error::root_key::FetchRootKeyError;
@@ -69,6 +70,12 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
     if let Some(sync_error) = err.downcast_ref::<SyncError>() {
         if duplicate_asset_key_dist_and_src(sync_error) {
             return diagnose_duplicate_asset_key_dist_and_src();
+        }
+    }
+
+    if let Some(_create_canister_err) = err.downcast_ref::<CreateCanisterError>() {
+        if insufficient_cycles(_create_canister_err) {
+            return diagnose_insufficient_cycles();
         }
     }
 
@@ -260,5 +267,19 @@ fn diagnose_ledger_not_found() -> Diagnosis {
     let suggestion =
         "Run the command with '--ic' flag if you want to manage the ICP on the mainnet.";
 
+    (Some(explanation.to_string()), Some(suggestion.to_string()))
+}
+
+fn insufficient_cycles(err: &CreateCanisterError) -> bool {
+    match err {
+        CreateCanisterError::InsufficientFunds { balance: _ } => true,
+        _ => false,
+    }
+}
+
+fn diagnose_insufficient_cycles() -> Diagnosis {
+    let explanation = "Insufficient cycles balance to create the canister.";
+    let suggestion = "Please top up your cycles balance by converting ICP to cycles like below:
+'dfx cycles convert --amount=0.123 --ic'.";
     (Some(explanation.to_string()), Some(suggestion.to_string()))
 }
