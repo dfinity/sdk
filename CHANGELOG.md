@@ -20,6 +20,18 @@ Added a flag `--replica` to `dfx start`. This flag currently has no effect.
 Once PocketIC becomes the default for `dfx start` this flag will start the replica instead.
 You can use the `--replica` flag already to write scripts that anticipate that change.
 
+### fix: all commands with --all parameter skip remote canisters
+
+This affects the following commands:
+- `dfx canister delete`
+- `dfx canister deposit-cycles`
+- `dfx canister start`
+- `dfx canister status`
+- `dfx canister stop`
+- `dfx canister uninstall-code`
+- `dfx canister update-settings`
+- `dfx ledger fabricate-cycles`
+
 # 0.24.3
 
 ### feat: Bitcoin support in PocketIC
