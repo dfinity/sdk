@@ -2,10 +2,12 @@ pub(crate) mod create_canister;
 pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
 pub mod motoko_playground;
+mod skip_remote_canister;
 
 pub use create_canister::create_canister;
 use ic_utils::interfaces::management_canister::Snapshot;
 pub use install_canister::install_wallet;
+pub use skip_remote_canister::skip_remote_canister;
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;

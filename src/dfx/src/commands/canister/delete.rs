@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::operations::canister;
 use crate::lib::operations::canister::{
-    deposit_cycles, start_canister, stop_canister, update_settings,
+    deposit_cycles, skip_remote_canister, start_canister, stop_canister, update_settings,
 };
 use crate::lib::operations::cycles_ledger::wallet_deposit_to_cycles_ledger;
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -350,19 +350,9 @@ pub async fn exec(
         )
         .await
     } else if opts.all {
-        let config_interface = config.get_config();
-        let network = env.get_network_descriptor();
-        if let Some(canisters) = &config_interface.canisters {
+        if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                let canister_is_remote =
-                    config_interface.is_remote_canister(canister, &network.name)?;
-                if canister_is_remote {
-                    info!(
-                        env.get_logger(),
-                        "Skipping canister '{canister}' because it is remote for network '{}'",
-                        &network.name,
-                    );
-
+                if skip_remote_canister(env, canister)? {
                     continue;
                 }
                 delete_canister(

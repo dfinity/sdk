@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister;
+use crate::lib::operations::canister::skip_remote_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use candid::Principal;
 use clap::Parser;
@@ -53,20 +54,10 @@ pub async fn exec(
         uninstall_code(env, canister, call_sender).await
     } else if opts.all {
         let config = env.get_config_or_anyhow()?;
-        let config_interface = config.get_config();
-        let network = env.get_network_descriptor();
 
-        if let Some(canisters) = &config_interface.canisters {
+        if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                let canister_is_remote =
-                    config_interface.is_remote_canister(canister, &network.name)?;
-                if canister_is_remote {
-                    info!(
-                        env.get_logger(),
-                        "Skipping canister '{canister}' because it is remote for network '{}'",
-                        &network.name,
-                    );
-
+                if skip_remote_canister(env, canister)? {
                     continue;
                 }
                 uninstall_code(env, canister, call_sender).await?;

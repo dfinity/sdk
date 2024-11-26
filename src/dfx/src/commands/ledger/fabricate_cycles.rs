@@ -3,6 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::operations::canister;
+use crate::lib::operations::canister::skip_remote_canister;
 use crate::lib::root_key::fetch_root_key_or_anyhow;
 use crate::util::clap::parsers::{cycle_amount_parser, e8s_parser, trillion_cycle_amount_parser};
 use crate::util::currency_conversion::as_cycles_with_current_exchange_rate;
@@ -120,19 +121,10 @@ pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult
         deposit_minted_cycles(env, canister, &CallSender::SelectedId, cycles).await
     } else if opts.all {
         let config = env.get_config_or_anyhow()?;
-        let config_interface = config.get_config();
-        let network = env.get_network_descriptor();
-        if let Some(canisters) = &config_interface.canisters {
-            for canister in canisters.keys() {
-                let canister_is_remote =
-                    config_interface.is_remote_canister(canister, &network.name)?;
-                if canister_is_remote {
-                    info!(
-                        env.get_logger(),
-                        "Skipping canister '{canister}' because it is remote for network '{}'",
-                        &network.name,
-                    );
 
+        if let Some(canisters) = &config.get_config().canisters {
+            for canister in canisters.keys() {
+                if skip_remote_canister(env, canister)? {
                     continue;
                 }
 

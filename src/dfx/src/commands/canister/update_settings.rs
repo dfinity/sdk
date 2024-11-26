@@ -6,7 +6,9 @@ use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_log_visibility, get_memory_allocation,
     get_reserved_cycles_limit, get_wasm_memory_limit, CanisterSettings,
 };
-use crate::lib::operations::canister::{get_canister_status, update_settings};
+use crate::lib::operations::canister::{
+    get_canister_status, skip_remote_canister, update_settings,
+};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
@@ -22,7 +24,6 @@ use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::identity::Identity;
 use ic_utils::interfaces::management_canister::StatusCallResult;
-use slog::info;
 
 /// Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.)
 #[derive(Parser, Debug)]
@@ -221,18 +222,10 @@ pub async fn exec(
         // Update all canister settings.
         let config = env.get_config_or_anyhow()?;
         let config_interface = config.get_config();
-        let network = env.get_network_descriptor();
+
         if let Some(canisters) = &config_interface.canisters {
             for canister_name in canisters.keys() {
-                let canister_is_remote =
-                    config_interface.is_remote_canister(canister_name, &network.name)?;
-                if canister_is_remote {
-                    info!(
-                        env.get_logger(),
-                        "Skipping canister '{canister_name}' because it is remote for network '{}'",
-                        &network.name,
-                    );
-
+                if skip_remote_canister(env, canister_name)? {
                     continue;
                 }
                 let mut controllers = controllers.clone();

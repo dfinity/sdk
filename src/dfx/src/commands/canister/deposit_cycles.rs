@@ -3,6 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister;
+use crate::lib::operations::canister::skip_remote_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::lib::{environment::Environment, operations::cycles_ledger};
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
@@ -144,20 +145,10 @@ pub async fn exec(
         .await
     } else if opts.all {
         let config = env.get_config_or_anyhow()?;
-        let config_interface = config.get_config();
-        let network = env.get_network_descriptor();
 
-        if let Some(canisters) = &config_interface.canisters {
+        if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
-                let canister_is_remote =
-                    config_interface.is_remote_canister(canister, &network.name)?;
-                if canister_is_remote {
-                    info!(
-                        env.get_logger(),
-                        "Skipping canister '{canister}' because it is remote for network '{}'",
-                        &network.name,
-                    );
-
+                if skip_remote_canister(env, canister)? {
                     continue;
                 }
 
