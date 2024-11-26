@@ -201,6 +201,9 @@ teardown() {
   assert_command jq .remote canister_ids.json
   assert_eq "null"
 
+  assert_command dfx canister stop --all --network actuallylocal
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+
   # Assert frontend declarations are actually created
   dfx generate
   assert_file_exists "src/declarations/remote/remote.did"
