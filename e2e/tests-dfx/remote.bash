@@ -201,6 +201,9 @@ teardown() {
   assert_command jq .remote canister_ids.json
   assert_eq "null"
 
+  assert_command dfx ledger fabricate-cycles --all --t 100 --network actuallylocal
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+
   assert_command dfx canister status --all --network actuallylocal
   assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
 
