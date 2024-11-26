@@ -22,6 +22,7 @@ use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::identity::Identity;
 use ic_utils::interfaces::management_canister::StatusCallResult;
+use slog::info;
 
 /// Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.)
 #[derive(Parser, Debug)]
@@ -220,8 +221,20 @@ pub async fn exec(
         // Update all canister settings.
         let config = env.get_config_or_anyhow()?;
         let config_interface = config.get_config();
+        let network = env.get_network_descriptor();
         if let Some(canisters) = &config_interface.canisters {
             for canister_name in canisters.keys() {
+                let canister_is_remote =
+                    config_interface.is_remote_canister(canister_name, &network.name)?;
+                if canister_is_remote {
+                    info!(
+                        env.get_logger(),
+                        "Skipping canister '{canister_name}' because it is remote for network '{}'",
+                        &network.name,
+                    );
+
+                    continue;
+                }
                 let mut controllers = controllers.clone();
                 let canister_id = canister_id_store.get(canister_name)?;
                 let compute_allocation = get_compute_allocation(
