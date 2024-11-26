@@ -20,6 +20,11 @@ Added a flag `--replica` to `dfx start`. This flag currently has no effect.
 Once PocketIC becomes the default for `dfx start` this flag will start the replica instead.
 You can use the `--replica` flag already to write scripts that anticipate that change.
 
+### feat: extensions can define project templates
+
+An extension can define one or more project templates for `dfx new` to use.
+These can be new templates or replace the built-in project templates.
+
 ### fix: all commands with --all parameter skip remote canisters
 
 This affects the following commands:
