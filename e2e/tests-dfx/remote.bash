@@ -204,6 +204,9 @@ teardown() {
   assert_command dfx canister stop --all --network actuallylocal
   assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
 
+  assert_command dfx canister uninstall-code --all --network actuallylocal
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+
   # Assert frontend declarations are actually created
   dfx generate
   assert_file_exists "src/declarations/remote/remote.did"
