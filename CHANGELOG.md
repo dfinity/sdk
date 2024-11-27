@@ -37,6 +37,17 @@ This affects the following commands:
 - `dfx canister update-settings`
 - `dfx ledger fabricate-cycles`
 
+### chore: improve `dfx deploy` messages.
+
+If users run `dfx deploy` without enough cycles, show additional messages to indicate what to do next.
+```
+Error explanation:
+Insufficient cycles balance to create the canister.
+How to resolve the error:
+Please top up your cycles balance by converting ICP to cycles like below:
+'dfx cycles convert --amount=0.123'.
+```
+
 # 0.24.3
 
 ### feat: Bitcoin support in PocketIC
