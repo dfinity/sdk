@@ -45,7 +45,7 @@ Error explanation:
 Insufficient cycles balance to create the canister.
 How to resolve the error:
 Please top up your cycles balance by converting ICP to cycles like below:
-'dfx cycles convert --amount=0.123 --ic'.
+'dfx cycles convert --amount=0.123'.
 ```
 
 # 0.24.3

@@ -2,6 +2,7 @@ use crate::lib::cycles_ledger_types::create_canister::CreateCanisterError;
 use crate::lib::error_code;
 use anyhow::Error as AnyhowError;
 use dfx_core::error::root_key::FetchRootKeyError;
+use dfx_core::network::provider::get_network_context;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
 use ic_asset::error::{GatherAssetDescriptorsError, SyncError, UploadContentError};
@@ -275,8 +276,22 @@ fn insufficient_cycles(err: &CreateCanisterError) -> bool {
 }
 
 fn diagnose_insufficient_cycles() -> Diagnosis {
+    let network = match get_network_context() {
+        Ok(value) => {
+            if value == "local" {
+                "".to_string()
+            } else {
+                format!(" --network {}", value)
+            }
+        }
+        Err(_) => "".to_string(),
+    };
+
     let explanation = "Insufficient cycles balance to create the canister.";
-    let suggestion = "Please top up your cycles balance by converting ICP to cycles like below:
-'dfx cycles convert --amount=0.123 --ic'.";
-    (Some(explanation.to_string()), Some(suggestion.to_string()))
+    let suggestion = format!(
+        "Please top up your cycles balance by converting ICP to cycles like below:
+'dfx cycles convert --amount=0.123{}'",
+        network
+    );
+    (Some(explanation.to_string()), Some(suggestion))
 }
