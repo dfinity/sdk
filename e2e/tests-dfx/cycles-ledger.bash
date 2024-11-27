@@ -591,6 +591,17 @@ current_time_nanoseconds() {
 
   assert_command dfx deploy
 
+  # Test canister creation failure before topping up cycles.
+  cd ..
+  dfx_new canister_creation_failed
+
+  export DFX_DISABLE_AUTO_WALLET=1
+  assert_command_fail dfx canister create canister_creation_failed_backend --with-cycles 1T --identity alice
+  assert_contains "Insufficient cycles balance to create the canister."
+
+  ## Back to top up cycles.
+  cd ../temporary
+
   assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 13_400_000_000_000;})" --identity cycle-giver
   assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 2_600_000_000_000;})" --identity cycle-giver
 
