@@ -595,6 +595,7 @@ current_time_nanoseconds() {
   cd ..
   dfx_new canister_creation_failed
 
+  # shellcheck disable=SC2030,SC2031
   export DFX_DISABLE_AUTO_WALLET=1
   assert_command_fail dfx canister create canister_creation_failed_backend --with-cycles 1T --identity alice
   assert_contains "Insufficient cycles balance to create the canister."
@@ -605,6 +606,7 @@ current_time_nanoseconds() {
   assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 13_400_000_000_000;})" --identity cycle-giver
   assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 2_600_000_000_000;})" --identity cycle-giver
 
+  # shellcheck disable=SC2103
   cd ..
   dfx_new
   # setup done
