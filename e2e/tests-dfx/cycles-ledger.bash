@@ -458,6 +458,13 @@ current_time_nanoseconds() {
   assert_eq "2399699700000 cycles."
   assert_command dfx canister status e2e_project_backend
   assert_contains "Balance: 3_100_002_100_000 Cycles"
+
+  # deposit-cycles --all skips remote canisters
+  jq '.canisters.remote.remote.id.local="rdmx6-jaaaa-aaaaa-aaadq-cai"' dfx.json | sponge dfx.json
+  assert_command dfx canister deposit-cycles 10000 --all --identity bob
+  assert_contains "Skipping canister 'remote' because it is remote for network 'local'"
+  assert_contains "Depositing 10000 cycles onto e2e_project_backend"
+  assert_not_contains "Depositing 10000 cycles onto remote"
 }
 
 @test "top-up deduplication" {
