@@ -45,7 +45,12 @@ Error explanation:
 Insufficient ICP balance to finish the transfer transaction.
 How to resolve the error:
 Please top up your ICP balance.
-Please run 'dfx ledger account-id' to get the address for receiving ICP tokens.
+
+Please run 'dfx ledger account-id' to get your account address for receiving ICP from centralized exchanges.
+(Example: a9e20b8d042cb7b73144de94e9091e8f2620dfc1e617cbfaa19d624322451b9d)
+
+Please run 'dfx identity get-principal' to get your principal for receiving ICP from ICP wallets and decentralized exchanges.
+(Exmaple: treln-6wg26-lak4v-sh7p6-qm7hn-ohcjl-ut3os-lemuf-ypxvr-zcamm-gae)
 ```
 
 # 0.24.3
