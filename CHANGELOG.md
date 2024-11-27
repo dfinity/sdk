@@ -20,6 +20,17 @@ Added a flag `--replica` to `dfx start`. This flag currently has no effect.
 Once PocketIC becomes the default for `dfx start` this flag will start the replica instead.
 You can use the `--replica` flag already to write scripts that anticipate that change.
 
+### chore: improve `dfx cycles convert` messages.
+
+If users run `dfx cycles convert` without enough ICP tokens, show additional messages to indicate what to do next.
+```
+Error explanation:
+Insufficient ICP balance to finish the transfer transaction.
+How to resolve the error:
+Please top up your ICP balance.
+Please run 'dfx ledger account-id' to get the address for receiving ICP tokens.
+```
+
 # 0.24.3
 
 ### feat: Bitcoin support in PocketIC

@@ -1,4 +1,5 @@
 use crate::lib::error_code;
+use crate::lib::ledger_types::TransferError as ICPTransferError;
 use anyhow::Error as AnyhowError;
 use dfx_core::error::root_key::FetchRootKeyError;
 use ic_agent::agent::{RejectCode, RejectResponse};
@@ -69,6 +70,12 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
     if let Some(sync_error) = err.downcast_ref::<SyncError>() {
         if duplicate_asset_key_dist_and_src(sync_error) {
             return diagnose_duplicate_asset_key_dist_and_src();
+        }
+    }
+
+    if let Some(transfer_error) = err.downcast_ref::<ICPTransferError>() {
+        if insufficient_icp(transfer_error) {
+            return diagnose_insufficient_icp();
         }
     }
 
@@ -260,5 +267,16 @@ fn diagnose_ledger_not_found() -> Diagnosis {
     let suggestion =
         "Run the command with '--ic' flag if you want to manage the ICP on the mainnet.";
 
+    (Some(explanation.to_string()), Some(suggestion.to_string()))
+}
+
+fn insufficient_icp(err: &ICPTransferError) -> bool {
+    matches!(err, ICPTransferError::InsufficientFunds { balance: _ })
+}
+
+fn diagnose_insufficient_icp() -> Diagnosis {
+    let explanation = "Insufficient ICP balance to finish the transfer transaction.";
+    let suggestion = "Please top up your ICP balance.
+Please run 'dfx ledger account-id' to get the address for receiving ICP tokens.";
     (Some(explanation.to_string()), Some(suggestion.to_string()))
 }
