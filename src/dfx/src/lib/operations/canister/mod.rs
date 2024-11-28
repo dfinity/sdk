@@ -137,7 +137,7 @@ where
         }
         CallSender::Impersonate(_) => {
             unreachable!(
-                "Impersonating sender in management canister query calls in not supported."
+                "Impersonating sender in management canister query calls is not supported."
             )
         }
         CallSender::Wallet(wallet_id) => {
