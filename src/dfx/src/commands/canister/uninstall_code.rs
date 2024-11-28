@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister;
+use crate::lib::operations::canister::skip_remote_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use candid::Principal;
 use clap::Parser;
@@ -56,6 +57,9 @@ pub async fn exec(
 
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
+                if skip_remote_canister(env, canister)? {
+                    continue;
+                }
                 uninstall_code(env, canister, call_sender).await?;
             }
         }

@@ -26,6 +26,34 @@ Added a flag `--replica` to `dfx start`. This flag currently has no effect.
 Once PocketIC becomes the default for `dfx start` this flag will start the replica instead.
 You can use the `--replica` flag already to write scripts that anticipate that change.
 
+### feat: extensions can define project templates
+
+An extension can define one or more project templates for `dfx new` to use.
+These can be new templates or replace the built-in project templates.
+
+### fix: all commands with --all parameter skip remote canisters
+
+This affects the following commands:
+- `dfx canister delete`
+- `dfx canister deposit-cycles`
+- `dfx canister start`
+- `dfx canister status`
+- `dfx canister stop`
+- `dfx canister uninstall-code`
+- `dfx canister update-settings`
+- `dfx ledger fabricate-cycles`
+
+### chore: improve `dfx deploy` messages.
+
+If users run `dfx deploy` without enough cycles, show additional messages to indicate what to do next.
+```
+Error explanation:
+Insufficient cycles balance to create the canister.
+How to resolve the error:
+Please top up your cycles balance by converting ICP to cycles like below:
+'dfx cycles convert --amount=0.123'.
+```
+
 # 0.24.3
 
 ### feat: Bitcoin support in PocketIC
