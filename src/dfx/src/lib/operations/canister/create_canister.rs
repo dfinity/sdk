@@ -173,15 +173,8 @@ The command line value will be used.",
                     .await
             }
         }
-        CallSender::Impersonate(principal) => {
-            let pocketic = env.get_pocketic();
-            if let Some(pocketic) = pocketic {
-                Ok(pocketic
-                    .create_canister_with_settings(Some(principal), None)
-                    .await)
-            } else {
-                bail!("Impersonating sender is only supported for a local PocketIC instance.")
-            }
+        CallSender::Impersonate(_) => {
+            unreachable!("Impersonating sender when creating canisters in not supported.")
         }
         CallSender::Wallet(wallet_id) => {
             create_with_wallet(agent, &wallet_id, with_cycles, settings, subnet_selection).await

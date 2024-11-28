@@ -75,13 +75,14 @@ where
                     )
                     .await
                     .map_err(|err| anyhow!("Failed to submit management canister call: {}", err))?;
-                let res = pocketic.await_call(msg_id).await.map_err(|err| {
-                    anyhow!("Failed to await management canister call response: {}", err)
-                })?;
+                let res = pocketic
+                    .await_call_no_ticks(msg_id)
+                    .await
+                    .map_err(|err| anyhow!("Management canister call failed: {}", err))?;
                 match res {
                     WasmResult::Reply(data) => decode_args(&data)
                         .context("Could not decode management canister response.")?,
-                    WasmResult::Reject(err) => bail!("Unexpected reject: {}", err),
+                    WasmResult::Reject(err) => bail!("Management canister call rejected: {}", err),
                 }
             } else {
                 bail!("Impersonating sender is only supported for a local PocketIC instance.")

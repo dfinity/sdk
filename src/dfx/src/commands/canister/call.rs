@@ -402,7 +402,7 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                             arg_value,
                         )
                         .await
-                        .map_err(|err| anyhow!("Failed to submit update call: {}", err))?
+                        .map_err(|err| anyhow!("Failed to submit canister call: {}", err))?
                         .message_id;
                     CallResponse::Poll(RequestId::new(msg_id.as_slice().try_into().unwrap()))
                 } else {
@@ -451,15 +451,14 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                             arg_value,
                         )
                         .await
-                        .map_err(|err| {
-                            anyhow!("Failed to submit management canister call: {}", err)
-                        })?;
-                    let res = pocketic.await_call(msg_id).await.map_err(|err| {
-                        anyhow!("Failed to await management canister call response: {}", err)
-                    })?;
+                        .map_err(|err| anyhow!("Failed to submit canister call: {}", err))?;
+                    let res = pocketic
+                        .await_call_no_ticks(msg_id)
+                        .await
+                        .map_err(|err| anyhow!("Canister call failed: {}", err))?;
                     match res {
                         WasmResult::Reply(data) => data,
-                        WasmResult::Reject(err) => bail!("Unexpected reject: {}", err),
+                        WasmResult::Reject(err) => bail!("Canister rejected: {}", err),
                     }
                 } else {
                     bail!("Impersonating sender is only supported for a local PocketIC instance.")

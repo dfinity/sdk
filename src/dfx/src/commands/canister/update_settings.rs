@@ -353,7 +353,7 @@ fn user_is_removing_themselves_as_controller(
             .get_selected_identity_principal()
             .context("Selected identity is not instantiated")?
             .to_string(),
-        CallSender::Impersonate(principal) => principal.to_string(),
+        CallSender::Impersonate(sender) => sender.to_string(),
         CallSender::Wallet(principal) => principal.to_string(),
     };
     let removes_themselves =
