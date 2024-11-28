@@ -352,12 +352,20 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                 let pocketic = env.get_pocketic();
                 if let Some(pocketic) = pocketic {
                     let res = pocketic
-                        .query_call(canister_id, *sender, method_name, arg_value)
+                        .query_call_with_effective_principal(
+                            canister_id,
+                            RawEffectivePrincipal::CanisterId(
+                                effective_canister_id.as_slice().to_vec(),
+                            ),
+                            *sender,
+                            method_name,
+                            arg_value,
+                        )
                         .await
                         .map_err(|err| anyhow!("Failed to perform query call: {}", err))?;
                     match res {
                         WasmResult::Reply(data) => data,
-                        WasmResult::Reject(err) => bail!("Query call rejected: {}", err),
+                        WasmResult::Reject(err) => bail!("Canister rejected: {}", err),
                     }
                 } else {
                     bail!("Impersonating sender is only supported for a local PocketIC instance.")

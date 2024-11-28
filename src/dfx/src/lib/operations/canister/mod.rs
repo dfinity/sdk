@@ -135,10 +135,28 @@ where
                 .await
                 .context("Query call (without wallet) failed.")?
         }
-        CallSender::Impersonate(_) => {
-            unreachable!(
-                "Impersonating sender in management canister query calls is not supported."
-            )
+        CallSender::Impersonate(sender) => {
+            let pocketic = env.get_pocketic();
+            if let Some(pocketic) = pocketic {
+                let res = pocketic
+                    .query_call_with_effective_principal(
+                        Principal::management_canister(),
+                        RawEffectivePrincipal::CanisterId(destination_canister.as_slice().to_vec()),
+                        *sender,
+                        method,
+                        encode_args((arg,)).unwrap(),
+                    )
+                    .await
+                    .map_err(|err| anyhow!("Failed to perform query call: {}", err))?;
+                match res {
+                    WasmResult::Reply(data) => {
+                        decode_args(&data).context("Failed to decode query call response.")?
+                    }
+                    WasmResult::Reject(err) => bail!("Canister rejected: {}", err),
+                }
+            } else {
+                bail!("Impersonating sender is only supported for a local PocketIC instance.")
+            }
         }
         CallSender::Wallet(wallet_id) => {
             let wallet = build_wallet_canister(*wallet_id, agent).await?;
