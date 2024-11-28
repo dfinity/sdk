@@ -11,9 +11,10 @@ use anyhow::{anyhow, bail, ensure, Context, Error};
 use clap::builder::PossibleValuesParser;
 use clap::Parser;
 use console::{style, Style};
+use dfx_core::config::model::project_template::ProjectTemplateCategory as Category;
 use dfx_core::config::project_templates::{
     find_project_template, get_project_template, get_sorted_templates, project_template_cli_names,
-    Category, ProjectTemplate, ProjectTemplateName, ResourceLocation,
+    ProjectTemplate, ProjectTemplateName, ResourceLocation,
 };
 use dfx_core::json::{load_json_file, save_json_file};
 use dialoguer::theme::ColorfulTheme;
