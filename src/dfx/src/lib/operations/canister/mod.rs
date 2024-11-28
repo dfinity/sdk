@@ -84,7 +84,7 @@ where
                 match res {
                     WasmResult::Reply(data) => decode_args(&data)
                         .context("Could not decode management canister response.")?,
-                    WasmResult::Reject(err) => bail!("Management canister call rejected: {}", err),
+                    WasmResult::Reject(err) => bail!("Management canister rejected: {}", err),
                 }
             } else {
                 bail!("Impersonating sender is only supported for a local PocketIC instance.")
