@@ -64,6 +64,9 @@ jobs:
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             binary_path: target/x86_64-unknown-linux-gnu/release/dfx
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            binary_path: target/x86_64-unknown-linux-gnu/release/dfx
           - os: windows-2022
             target: x86_64-pc-windows-msvc
             binary_path: target\x86_64-pc-windows-msvc\release\dfx.exe
