@@ -239,14 +239,6 @@ impl LocalServerDescriptor {
         }
     }
 
-    pub fn with_replica_port(self, port: u16) -> Self {
-        let replica = ConfigDefaultsReplica {
-            port: Some(port),
-            ..self.replica
-        };
-        Self { replica, ..self }
-    }
-
     pub fn with_bitcoin_enabled(self) -> LocalServerDescriptor {
         let bitcoin = ConfigDefaultsBitcoin {
             enabled: true,

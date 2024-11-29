@@ -41,10 +41,9 @@ struct ReplicaSettings {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq)]
-#[serde(tag = "type", rename_all = "snake_case")]
-enum BackendSettings<'a> {
-    Replica { settings: Cow<'a, ReplicaSettings> },
-    PocketIc,
+struct BackendSettings<'a> {
+    settings: Cow<'a, ReplicaSettings>,
+    pocketic: bool,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq)]
@@ -60,11 +59,7 @@ pub fn get_settings_digest(
     artificial_delay: u32,
     pocketic: bool,
 ) -> String {
-    let backend = if pocketic {
-        BackendSettings::PocketIc
-    } else {
-        get_replica_backend_settings(local_server_descriptor, artificial_delay)
-    };
+    let backend = get_replica_backend_settings(local_server_descriptor, artificial_delay, pocketic);
     let settings = Settings {
         ic_repo_commit: ic_repo_commit.into(),
         backend,
@@ -77,6 +72,7 @@ pub fn get_settings_digest(
 fn get_replica_backend_settings(
     local_server_descriptor: &LocalServerDescriptor,
     artificial_delay: u32,
+    pocketic: bool,
 ) -> BackendSettings {
     let http_handler = HttpHandlerSettings {
         port: if let Some(port) = local_server_descriptor.replica.port {
@@ -105,7 +101,8 @@ fn get_replica_backend_settings(
             .unwrap_or_default(),
         artificial_delay,
     };
-    BackendSettings::Replica {
+    BackendSettings {
         settings: Cow::Owned(replica_settings),
+        pocketic,
     }
 }

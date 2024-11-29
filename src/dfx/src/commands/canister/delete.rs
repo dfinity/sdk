@@ -3,7 +3,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::operations::canister;
 use crate::lib::operations::canister::{
-    deposit_cycles, start_canister, stop_canister, update_settings,
+    deposit_cycles, skip_remote_canister, start_canister, stop_canister, update_settings,
 };
 use crate::lib::operations::cycles_ledger::wallet_deposit_to_cycles_ledger;
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -352,6 +352,9 @@ pub async fn exec(
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
+                if skip_remote_canister(env, canister)? {
+                    continue;
+                }
                 delete_canister(
                     env,
                     canister,

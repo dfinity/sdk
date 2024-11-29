@@ -82,10 +82,14 @@ dfx_new() {
     echo PWD: "$(pwd)" >&2
 }
 
-dfx_new_rust() {
-    local project_name=${1:-e2e_project}
+setup_rust() {
     rustup default stable
     rustup target add wasm32-unknown-unknown
+}
+
+dfx_new_rust() {
+    local project_name=${1:-e2e_project}
+    setup_rust
     dfx new "${project_name}" --type=rust --no-frontend
     test -d "${project_name}"
     test -f "${project_name}/dfx.json"

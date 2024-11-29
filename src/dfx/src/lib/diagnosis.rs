@@ -1,6 +1,8 @@
+use crate::lib::cycles_ledger_types::create_canister::CreateCanisterError;
 use crate::lib::error_code;
 use anyhow::Error as AnyhowError;
 use dfx_core::error::root_key::FetchRootKeyError;
+use dfx_core::network::provider::get_network_context;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
 use ic_asset::error::{GatherAssetDescriptorsError, SyncError, UploadContentError};
@@ -57,6 +59,9 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
         if cycles_ledger_not_found(err) {
             return diagnose_cycles_ledger_not_found();
         }
+        if ledger_not_found(err) {
+            return diagnose_ledger_not_found();
+        }
     }
 
     if local_replica_not_running(err) {
@@ -66,6 +71,12 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
     if let Some(sync_error) = err.downcast_ref::<SyncError>() {
         if duplicate_asset_key_dist_and_src(sync_error) {
             return diagnose_duplicate_asset_key_dist_and_src();
+        }
+    }
+
+    if let Some(create_canister_err) = err.downcast_ref::<CreateCanisterError>() {
+        if insufficient_cycles(create_canister_err) {
+            return diagnose_insufficient_cycles();
         }
     }
 
@@ -245,4 +256,42 @@ fn diagnose_cycles_ledger_not_found() -> Diagnosis {
         "Run the command with '--ic' flag if you want to manage the cycles on the mainnet.";
 
     (Some(explanation.to_string()), Some(suggestion.to_string()))
+}
+
+fn ledger_not_found(err: &AnyhowError) -> bool {
+    err.to_string()
+        .contains("Canister ryjl3-tyaaa-aaaaa-aaaba-cai not found")
+}
+
+fn diagnose_ledger_not_found() -> Diagnosis {
+    let explanation = "ICP Ledger with canister ID 'ryjl3-tyaaa-aaaaa-aaaba-cai' is not installed.";
+    let suggestion =
+        "Run the command with '--ic' flag if you want to manage the ICP on the mainnet.";
+
+    (Some(explanation.to_string()), Some(suggestion.to_string()))
+}
+
+fn insufficient_cycles(err: &CreateCanisterError) -> bool {
+    matches!(err, CreateCanisterError::InsufficientFunds { balance: _ })
+}
+
+fn diagnose_insufficient_cycles() -> Diagnosis {
+    let network = match get_network_context() {
+        Ok(value) => {
+            if value == "local" {
+                "".to_string()
+            } else {
+                format!(" --network {}", value)
+            }
+        }
+        Err(_) => "".to_string(),
+    };
+
+    let explanation = "Insufficient cycles balance to create the canister.";
+    let suggestion = format!(
+        "Please top up your cycles balance by converting ICP to cycles like below:
+'dfx cycles convert --amount=0.123{}'",
+        network
+    );
+    (Some(explanation.to_string()), Some(suggestion))
 }

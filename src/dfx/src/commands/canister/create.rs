@@ -6,7 +6,7 @@ use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_log_visibility, get_memory_allocation,
     get_reserved_cycles_limit, get_wasm_memory_limit, CanisterSettings,
 };
-use crate::lib::operations::canister::create_canister;
+use crate::lib::operations::canister::{create_canister, skip_remote_canister};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, log_visibility_parser,
@@ -245,15 +245,7 @@ pub async fn exec(
                 if pull_canisters_in_config.contains_key(canister_name) {
                     continue;
                 }
-                let canister_is_remote =
-                    config_interface.is_remote_canister(canister_name, &network.name)?;
-                if canister_is_remote {
-                    info!(
-                        env.get_logger(),
-                        "Skipping canister '{canister_name}' because it is remote for network '{}'",
-                        &network.name,
-                    );
-
+                if skip_remote_canister(env, canister_name)? {
                     continue;
                 }
                 let specified_id = config_interface.get_specified_id(canister_name)?;
