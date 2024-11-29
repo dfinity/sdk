@@ -149,11 +149,12 @@ where
                         encode_args((arg,)).unwrap(),
                     )
                     .await
-                    .map_err(|err| anyhow!("Failed to perform management canister query call: {}", err))?;
+                    .map_err(|err| {
+                        anyhow!("Failed to perform management canister query call: {}", err)
+                    })?;
                 match res {
-                    WasmResult::Reply(data) => {
-                        decode_args(&data).context("Failed to decode management canister query call response.")?
-                    }
+                    WasmResult::Reply(data) => decode_args(&data)
+                        .context("Failed to decode management canister query call response.")?,
                     WasmResult::Reject(err) => bail!("Management canister rejected: {}", err),
                 }
             } else {
