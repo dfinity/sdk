@@ -1,3 +1,4 @@
+use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::ledger_types::{AccountIdBlob, BlockHeight, Memo, TransferError};
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::{
@@ -142,6 +143,9 @@ pub async fn transfer(
                         info!(logger, "{}", TransferError::TxDuplicate { duplicate_of });
                         break duplicate_of;
                     }
+                    Err(TransferError::InsufficientFunds { balance }) => {
+                        return compose_insufficient_funds_error(agent, from_subaccount, balance);
+                    }
                     Err(transfer_err) => bail!(transfer_err),
                 }
             }
@@ -162,6 +166,36 @@ pub async fn transfer(
     println!("Transfer sent at block height {block_height}");
 
     Ok(block_height)
+}
+
+fn compose_insufficient_funds_error(
+    agent: &Agent,
+    subaccount: Option<Subaccount>,
+    balance: ICPTs,
+) -> DfxResult<BlockHeight> {
+    let principal = agent.get_principal().unwrap(); // This should always succeed at this point.
+
+    let explanation = "Insufficient ICP balance to finish the transfer transaction.";
+    let suggestion = format!(
+        "Please top up your ICP balance.
+
+Your account address for receiving ICP from centralized exchanges: {}
+(run `dfx ledger account-id` to display)
+
+Your principal for ICP wallets and decentralized exchanges:{}
+(run `dfx identity get-principal` to display)
+",
+        AccountIdentifier::new(principal, subaccount),
+        principal.to_text()
+    );
+
+    Err(DiagnosedError::new(
+        explanation.to_string(),
+        suggestion
+    )).context(format!(
+        "the debit account doesn't have enough funds to complete the transaction, current balance: {}",
+        balance
+    ))
 }
 
 fn retryable(agent_error: &AgentError) -> bool {
