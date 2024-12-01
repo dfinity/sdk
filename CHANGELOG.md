@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# fix: DFX sometimes omits a canister in `.env`
+
 # fix: display error cause of some http-related errors
 
 Some commands that download http resources, for example `dfx extension install`, will
