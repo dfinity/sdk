@@ -1,6 +1,5 @@
 use crate::lib::cycles_ledger_types::create_canister::CreateCanisterError;
 use crate::lib::error_code;
-use crate::lib::ledger_types::TransferError as ICPTransferError;
 use anyhow::Error as AnyhowError;
 use dfx_core::error::root_key::FetchRootKeyError;
 use dfx_core::network::provider::get_network_context;
@@ -78,12 +77,6 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
     if let Some(create_canister_err) = err.downcast_ref::<CreateCanisterError>() {
         if insufficient_cycles(create_canister_err) {
             return diagnose_insufficient_cycles();
-        }
-    }
-
-    if let Some(transfer_error) = err.downcast_ref::<ICPTransferError>() {
-        if insufficient_icp(transfer_error) {
-            return diagnose_insufficient_icp();
         }
     }
 
@@ -301,20 +294,4 @@ fn diagnose_insufficient_cycles() -> Diagnosis {
         network
     );
     (Some(explanation.to_string()), Some(suggestion))
-}
-
-fn insufficient_icp(err: &ICPTransferError) -> bool {
-    matches!(err, ICPTransferError::InsufficientFunds { balance: _ })
-}
-
-fn diagnose_insufficient_icp() -> Diagnosis {
-    let explanation = "Insufficient ICP balance to finish the transfer transaction.";
-    let suggestion = "Please top up your ICP balance.
-
-Please run 'dfx ledger account-id' to get your account address for receiving ICP from centralized exchanges.
-(Example: a9e20b8d042cb7b73144de94e9091e8f2620dfc1e617cbfaa19d624322451b9d)
-
-Please run 'dfx identity get-principal' to get your principal for receiving ICP from ICP wallets and decentralized exchanges.
-(Exmaple: treln-6wg26-lak4v-sh7p6-qm7hn-ohcjl-ut3os-lemuf-ypxvr-zcamm-gae)";
-    (Some(explanation.to_string()), Some(suggestion.to_string()))
 }
