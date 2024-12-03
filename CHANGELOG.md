@@ -60,7 +60,7 @@ Please top up your ICP balance.
 Your account address for receiving ICP from centralized exchanges: 8494c01329531c06254ff45dad87db806ae6ed935ad6a504cdbc00a935db7b49
 (run `dfx ledger account-id` to display)
 
-Your principal for ICP wallets and decentralized exchanges:ueuar-wxbnk-bdcsr-dnrh3-rsyq6-ffned-h64ox-vxywi-gzawf-ot4pv-sqe
+Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dnrh3-rsyq6-ffned-h64ox-vxywi-gzawf-ot4pv-sqe
 (run `dfx identity get-principal` to display)
 ```
 

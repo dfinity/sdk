@@ -9,7 +9,7 @@ use crate::lib::{
     },
     nns_types::{account_identifier::AccountIdentifier, icpts::ICPTs},
 };
-use anyhow::{bail, ensure, Context};
+use anyhow::{anyhow, bail, ensure, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use candid::{Decode, Encode, Principal};
@@ -144,7 +144,10 @@ pub async fn transfer(
                         break duplicate_of;
                     }
                     Err(TransferError::InsufficientFunds { balance }) => {
-                        return compose_insufficient_funds_error(agent, from_subaccount, balance);
+                        return Err(anyhow!(TransferError::InsufficientFunds { balance }))
+                            .with_context(|| {
+                                diagnose_insufficient_funds_error(agent, from_subaccount)
+                            });
                     }
                     Err(transfer_err) => bail!(transfer_err),
                 }
@@ -168,11 +171,10 @@ pub async fn transfer(
     Ok(block_height)
 }
 
-fn compose_insufficient_funds_error(
+fn diagnose_insufficient_funds_error(
     agent: &Agent,
     subaccount: Option<Subaccount>,
-    balance: ICPTs,
-) -> DfxResult<BlockHeight> {
+) -> DiagnosedError {
     let principal = agent.get_principal().unwrap(); // This should always succeed at this point.
 
     let explanation = "Insufficient ICP balance to finish the transfer transaction.";
@@ -182,20 +184,14 @@ fn compose_insufficient_funds_error(
 Your account address for receiving ICP from centralized exchanges: {}
 (run `dfx ledger account-id` to display)
 
-Your principal for ICP wallets and decentralized exchanges:{}
+Your principal for ICP wallets and decentralized exchanges: {}
 (run `dfx identity get-principal` to display)
 ",
         AccountIdentifier::new(principal, subaccount),
         principal.to_text()
     );
 
-    Err(DiagnosedError::new(
-        explanation.to_string(),
-        suggestion
-    )).context(format!(
-        "the debit account doesn't have enough funds to complete the transaction, current balance: {}",
-        balance
-    ))
+    DiagnosedError::new(explanation.to_string(), suggestion)
 }
 
 fn retryable(agent_error: &AgentError) -> bool {

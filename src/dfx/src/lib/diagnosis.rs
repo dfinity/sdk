@@ -17,6 +17,8 @@ pub type Diagnosis = (Option<String>, Option<String>);
 pub const NULL_DIAGNOSIS: Diagnosis = (None, None);
 
 #[derive(ThisError, Debug)]
+/// If you do not need the generic error diagnosis to run, you can add a DiagnosedError with .context(err: DiagnosedError).
+/// In that case, no extra diagnosis is attempted and the last-added explanation and suggestion are printed out.
 pub struct DiagnosedError {
     /// A user-friendly explanation of what went wrong.
     pub error_explanation: Option<String>,
