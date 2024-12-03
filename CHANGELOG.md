@@ -2,6 +2,52 @@
 
 # UNRELEASED
 
+### feat: `dfx start --pocketic` supports `--force` and shared networks.
+
+`dfx start --pocketic` is now compatible with `--force` and shared networks.
+
+### feat: error when using insecure identity on mainnet
+
+This used to be a warning. A hard error can abort the command so that no insecure state will be on the mainnet.
+
+Users can surpress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
+
+The warning won't display when executing commands like `dfx deploy --playground`.
+
+### feat: support `--replica` in `dfx start`
+
+Added a flag `--replica` to `dfx start`. This flag currently has no effect.
+Once PocketIC becomes the default for `dfx start` this flag will start the replica instead.
+You can use the `--replica` flag already to write scripts that anticipate that change.
+
+### feat: extensions can define project templates
+
+An extension can define one or more project templates for `dfx new` to use.
+These can be new templates or replace the built-in project templates.
+
+### fix: all commands with --all parameter skip remote canisters
+
+This affects the following commands:
+- `dfx canister delete`
+- `dfx canister deposit-cycles`
+- `dfx canister start`
+- `dfx canister status`
+- `dfx canister stop`
+- `dfx canister uninstall-code`
+- `dfx canister update-settings`
+- `dfx ledger fabricate-cycles`
+
+### chore: improve `dfx deploy` messages.
+
+If users run `dfx deploy` without enough cycles, show additional messages to indicate what to do next.
+```
+Error explanation:
+Insufficient cycles balance to create the canister.
+How to resolve the error:
+Please top up your cycles balance by converting ICP to cycles like below:
+'dfx cycles convert --amount=0.123'.
+```
+
 # 0.24.3
 
 ### feat: Bitcoin support in PocketIC
@@ -33,9 +79,9 @@ Allow setting permissions lists in init arguments just like in upgrade arguments
 - Module hash: f45db224b40fac516c877e3108dc809d4b22fa42d05ee8dfa5002536a3a3daed
 - Bump agent-js to fix error code
 
-### chore!: improve the messages for the subcommands of `dfx cycles`.
+### chore!: improve the messages for the subcommands of `dfx cycles` and `dfx ledger`.
 
-If users run subcommands of `dfx cycles` without the `--ic` flag, show below messages to indicate what to do next.
+If users run subcommands of `dfx cycles` or `dfx ledger` without the `--ic` flag, show below messages to indicate what to do next.
 ```
 Error explanation:
 Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' is not installed.

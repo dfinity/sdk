@@ -5,7 +5,6 @@ use crate::actors::{
     start_shutdown_controller,
 };
 use crate::config::dfx_version_str;
-use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::info::replica_rev;
@@ -75,7 +74,7 @@ pub struct StartOpts {
     artificial_delay: u32,
 
     /// Start even if the network config was modified.
-    #[arg(long, conflicts_with = "pocketic")]
+    #[arg(long)]
     force: bool,
 
     /// A list of domains that can be served. These are used for canister resolution [default: localhost]
@@ -85,6 +84,12 @@ pub struct StartOpts {
     /// Runs PocketIC instead of the replica
     #[clap(long, alias = "emulator")]
     pocketic: bool,
+
+    /// Runs the replica instead of pocketic.
+    /// Currently this has no effect.
+    #[clap(long, conflicts_with = "pocketic")]
+    #[allow(unused)]
+    replica: bool,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -152,6 +157,7 @@ pub fn exec(
         artificial_delay,
         domain,
         pocketic,
+        replica: _,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -181,7 +187,6 @@ pub fn exec(
         env.get_logger(),
         network_descriptor,
         host,
-        None,
         enable_bitcoin,
         bitcoin_node,
         enable_canister_http,
@@ -338,7 +343,7 @@ pub fn exec(
         &local_server_descriptor.scope,
         LocalNetworkScopeDescriptor::Shared { .. }
     );
-    if is_shared_network && !pocketic {
+    if is_shared_network {
         save_json_file(
             &local_server_descriptor.effective_config_path_by_settings_digest(),
             &effective_config,
@@ -488,7 +493,6 @@ pub fn apply_command_line_parameters(
     logger: &Logger,
     network_descriptor: NetworkDescriptor,
     host: Option<String>,
-    replica_port: Option<String>,
     enable_bitcoin: bool,
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
@@ -512,12 +516,6 @@ pub fn apply_command_line_parameters(
             .parse()
             .map_err(|e| anyhow!("Invalid argument: Invalid host: {}", e))?;
         local_server_descriptor = local_server_descriptor.with_bind_address(host);
-    }
-    if let Some(replica_port) = replica_port {
-        let replica_port: u16 = replica_port
-            .parse()
-            .map_err(|err| error_invalid_argument!("Invalid port number: {}", err))?;
-        local_server_descriptor = local_server_descriptor.with_replica_port(replica_port);
     }
     if enable_bitcoin || !bitcoin_nodes.is_empty() {
         local_server_descriptor = local_server_descriptor.with_bitcoin_enabled();

@@ -14,6 +14,181 @@ teardown() {
   standard_teardown
 }
 
+@test "extension-defined project template" {
+  start_webserver --directory www
+  EXTENSION_URL="http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/extension.json"
+  mkdir -p  www/arbitrary/downloads www/arbitrary/project_templates/a-template
+
+  cat > www/arbitrary/extension.json <<EOF
+{
+  "name": "an-extension",
+  "version": "0.1.0",
+  "homepage": "https://github.com/dfinity/dfx-extensions",
+  "authors": "DFINITY",
+  "summary": "Test extension for e2e purposes.",
+  "categories": [],
+  "keywords": [],
+  "project_templates": {
+    "rust-by-extension": {
+      "category": "backend",
+      "display": "rust by extension",
+      "requirements": [],
+      "post_create": "cargo update",
+      "port_create_failure_warning": "You will need to run it yourself (or a similar command like 'cargo vendor'), because 'dfx build' will use the --locked flag with Cargo."
+    }
+  },
+  "download_url_template": "http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/downloads/{{tag}}.{{archive-format}}"
+}
+EOF
+
+  cat > www/arbitrary/dependencies.json <<EOF
+{
+  "0.1.0": {
+    "dfx": {
+      "version": ">=0.8.0"
+    }
+  }
+}
+EOF
+
+  cp -R "${BATS_TEST_DIRNAME}/../../src/dfx/assets/project_templates/rust" www/arbitrary/project_templates/rust-by-extension
+
+  ARCHIVE_BASENAME="an-extension-v0.1.0"
+
+  mkdir "$ARCHIVE_BASENAME"
+  cp www/arbitrary/extension.json "$ARCHIVE_BASENAME"
+  cp -R www/arbitrary/project_templates "$ARCHIVE_BASENAME"
+  tar -czf "$ARCHIVE_BASENAME".tar.gz "$ARCHIVE_BASENAME"
+  rm -rf "$ARCHIVE_BASENAME"
+
+  mv "$ARCHIVE_BASENAME".tar.gz www/arbitrary/downloads/
+
+  assert_command dfx extension install "$EXTENSION_URL"
+
+  setup_rust
+
+  dfx new rbe --type rust-by-extension --no-frontend
+  cd rbe || exit
+
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call rbe_backend greet '("Rust By Extension")'
+  assert_contains "Hello, Rust By Extension!"
+}
+
+@test "extension-defined project template replaces built-in type" {
+  start_webserver --directory www
+  EXTENSION_URL="http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/extension.json"
+  mkdir -p  www/arbitrary/downloads www/arbitrary/project_templates/a-template
+
+  cat > www/arbitrary/extension.json <<EOF
+{
+  "name": "an-extension",
+  "version": "0.1.0",
+  "homepage": "https://github.com/dfinity/dfx-extensions",
+  "authors": "DFINITY",
+  "summary": "Test extension for e2e purposes.",
+  "categories": [],
+  "keywords": [],
+  "project_templates": {
+    "rust": {
+      "category": "backend",
+      "display": "rust by extension",
+      "requirements": [],
+      "post_create": "cargo update"
+    }
+  },
+  "download_url_template": "http://localhost:$E2E_WEB_SERVER_PORT/arbitrary/downloads/{{tag}}.{{archive-format}}"
+}
+EOF
+
+  cat > www/arbitrary/dependencies.json <<EOF
+{
+  "0.1.0": {
+    "dfx": {
+      "version": ">=0.8.0"
+    }
+  }
+}
+EOF
+
+  cp -R "${BATS_TEST_DIRNAME}/../../src/dfx/assets/project_templates/rust" www/arbitrary/project_templates/rust
+  echo "just-proves-it-used-the-project-template" > www/arbitrary/project_templates/rust/proof.txt
+
+  ARCHIVE_BASENAME="an-extension-v0.1.0"
+
+  mkdir "$ARCHIVE_BASENAME"
+  cp www/arbitrary/extension.json "$ARCHIVE_BASENAME"
+  cp -R www/arbitrary/project_templates "$ARCHIVE_BASENAME"
+  tar -czf "$ARCHIVE_BASENAME".tar.gz "$ARCHIVE_BASENAME"
+  rm -rf "$ARCHIVE_BASENAME"
+
+  mv "$ARCHIVE_BASENAME".tar.gz www/arbitrary/downloads/
+
+  assert_command dfx extension install "$EXTENSION_URL"
+
+  setup_rust
+
+  dfx new rbe --type rust --no-frontend
+  assert_command cat rbe/proof.txt
+  assert_eq "just-proves-it-used-the-project-template"
+
+  cd rbe || exit
+
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call rbe_backend greet '("Rust By Extension")'
+  assert_contains "Hello, Rust By Extension!"
+}
+
+@test "run an extension command with a canister type defined by another extension" {
+  install_shared_asset subnet_type/shared_network_settings/system
+  dfx_start_for_nns_install
+
+  install_asset wasm/identity
+  CACHE_DIR=$(dfx cache show)
+  mkdir -p "$CACHE_DIR"/extensions/embera
+  cat > "$CACHE_DIR"/extensions/embera/extension.json <<EOF
+  {
+      "name": "embera",
+      "version": "0.1.0",
+      "homepage": "https://github.com/dfinity/dfx-extensions",
+      "authors": "DFINITY",
+      "summary": "Test extension for e2e purposes.",
+      "categories": [],
+      "keywords": [],
+      "canister_type": {
+       "evaluation_order": [ "wasm" ],
+       "defaults": {
+         "type": "custom",
+         "build": [
+           "echo the embera build step for canister {{canister_name}} with candid {{canister.candid}} and main file {{canister.main}} and gzip is {{canister.gzip}}",
+           "mkdir -p .embera/{{canister_name}}",
+           "cp main.wasm {{canister.wasm}}"
+         ],
+         "gzip": true,
+         "wasm": ".embera/{{canister_name}}/{{canister_name}}.wasm"
+       }
+      }
+  }
+EOF
+  cat > dfx.json <<EOF
+  {
+    "canisters": {
+      "c1": {
+        "type": "embera",
+        "candid": "main.did",
+        "main": "main-file.embera"
+      }
+    }
+  }
+EOF
+
+  dfx extension install nns --version 0.4.7
+  dfx nns install
+}
+
+
 @test "extension canister type" {
   dfx_start
 
@@ -187,14 +362,14 @@ install_extension_from_dfx_extensions_repo() {
   assert_command dfx extension list
   assert_match 'No extensions installed'
 
-  assert_command dfx extension install "$EXTENSION" --install-as snsx --version 0.2.1
-  assert_contains "Extension 'sns' version 0.2.1 installed successfully, and is available as 'snsx'"
+  assert_command dfx extension install "$EXTENSION" --install-as snsx --version 0.4.7
+  assert_contains "Extension 'sns' version 0.4.7 installed successfully, and is available as 'snsx'"
 
   assert_command dfx extension list
   assert_match 'snsx'
 
   assert_command dfx --help
-  assert_match 'snsx.*Toolkit for'
+  assert_match 'snsx.*Initialize, deploy and interact with an SNS'
 
   assert_command dfx snsx --help
 
