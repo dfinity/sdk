@@ -117,7 +117,7 @@ You must open a new terminal to continue developing. If you'd prefer to stop, qu
 
 ### Motoko
 
-Updated Motoko to [0.13.3](https://github.com/dfinity/motoko/releases/tag/0.13.3)
+Updated Motoko to [0.13.4](https://github.com/dfinity/motoko/releases/tag/0.13.4)
 
 ### Replica
 
