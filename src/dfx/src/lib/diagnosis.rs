@@ -17,8 +17,6 @@ pub type Diagnosis = (Option<String>, Option<String>);
 pub const NULL_DIAGNOSIS: Diagnosis = (None, None);
 
 #[derive(ThisError, Debug)]
-// This message will appear in the context trace of the stack. The diagnosis should not be displayed there yet.
-#[error("Diagnosis was added here.")]
 /// If you do not need the generic error diagnosis to run, you can add a DiagnosedError with .context(err: DiagnosedError).
 /// In that case, no extra diagnosis is attempted and the last-added explanation and suggestion are printed out.
 pub struct DiagnosedError {
@@ -27,6 +25,12 @@ pub struct DiagnosedError {
 
     /// Suggestions for the user on how to move forward to recover from the error.
     pub action_suggestion: Option<String>,
+}
+
+impl std::fmt::Display for DiagnosedError {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Ok(())
+    }
 }
 
 impl DiagnosedError {

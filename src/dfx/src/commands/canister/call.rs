@@ -358,7 +358,8 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                 .with_arg(arg_value)
                 .call()
                 .await
-                .context("Failed update call.")?,
+                .context("Failed update call.")?
+                .map(|(res, _)| res),
             CallSender::Wallet(wallet_id) => {
                 let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 let mut args = Argument::default();

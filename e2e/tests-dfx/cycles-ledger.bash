@@ -898,6 +898,10 @@ current_time_nanoseconds() {
 
   deploy_cycles_ledger
 
+  # Test failed to convert ICP to cycles without enough ICP.
+  assert_command_fail dfx cycles convert --amount 12.5 --identity alice
+  assert_contains "Insufficient ICP balance to finish the transfer transaction."
+
   assert_command dfx --identity cycle-giver ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE")"
   assert_command dfx --identity cycle-giver ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE" --subaccount "$ALICE_SUBACCT1")"
 
