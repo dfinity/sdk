@@ -64,6 +64,12 @@ Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dn
 (run `dfx identity get-principal` to display)
 ```
 
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.13.5](https://github.com/dfinity/motoko/releases/tag/0.13.5)
+
 # 0.24.3
 
 ### feat: Bitcoin support in PocketIC
