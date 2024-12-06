@@ -395,7 +395,8 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                 .with_arg(arg_value)
                 .call()
                 .await
-                .context("Failed update call.")?,
+                .context("Failed update call.")?
+                .map(|(res, _)| res),
             CallSender::Impersonate(sender) => {
                 let pocketic = env.get_pocketic();
                 if let Some(pocketic) = pocketic {

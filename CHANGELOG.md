@@ -54,6 +54,28 @@ Please top up your cycles balance by converting ICP to cycles like below:
 'dfx cycles convert --amount=0.123'.
 ```
 
+### chore: improve `dfx cycles convert` messages.
+
+If users run `dfx cycles convert` without enough ICP tokens, show additional messages to indicate what to do next.
+```
+Error explanation:
+Insufficient ICP balance to finish the transfer transaction.
+How to resolve the error:
+Please top up your ICP balance.
+
+Your account address for receiving ICP from centralized exchanges: 8494c01329531c06254ff45dad87db806ae6ed935ad6a504cdbc00a935db7b49
+(run `dfx ledger account-id` to display)
+
+Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dnrh3-rsyq6-ffned-h64ox-vxywi-gzawf-ot4pv-sqe
+(run `dfx identity get-principal` to display)
+```
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.13.5](https://github.com/dfinity/motoko/releases/tag/0.13.5)
+
 # 0.24.3
 
 ### feat: Bitcoin support in PocketIC
@@ -107,7 +129,7 @@ You must open a new terminal to continue developing. If you'd prefer to stop, qu
 
 ### Motoko
 
-Updated Motoko to [0.13.3](https://github.com/dfinity/motoko/releases/tag/0.13.3)
+Updated Motoko to [0.13.4](https://github.com/dfinity/motoko/releases/tag/0.13.4)
 
 ### Replica
 

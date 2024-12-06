@@ -72,6 +72,10 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
 
     // print error chain stack
     for (level, cause) in err.chain().enumerate() {
+        if cause.to_string().is_empty() {
+            continue;
+        }
+
         let (color, prefix) = if level == 0 {
             (term::color::RED, "Error")
         } else {
