@@ -1915,6 +1915,7 @@ EOF
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
   assert_command curl --head "http://localhost:$PORT/thing.txt?canisterId=$ID"
+  # shellcheck disable=SC1003
   assert_contains 'x-dummy-header: "'"'"'@%({[~$?\' 
 }
 
