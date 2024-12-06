@@ -1897,6 +1897,27 @@ WARN: {
   assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]* \(with cache and 1 header\)'
 }
 
+@test "asset configuration via .ic-assets.json5 - respects weird characters" {
+  install_asset assetscanister
+  touch src/e2e_project_frontend/assets/thing.txt
+  cat <<'EOF' >src/e2e_project_frontend/assets/.ic-assets.json5
+[
+  {
+    "match": "thing.txt",
+    "headers": {
+      "X-Dummy-Header": "\"\'@%({[~$?\\"
+    }
+  }
+]
+EOF
+  dfx_start
+  assert_command dfx deploy
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+  assert_command curl --head "http://localhost:$PORT/thing.txt?canisterId=$ID"
+  assert_contains 'x-dummy-header: "'"'"'@%({[~$?\' 
+}
+
 @test "uses selected canister wasm" {
   dfx_start
   use_asset_wasm 0.12.1
