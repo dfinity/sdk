@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: impersonating sender of requests to a local PocketIC instance
+
+`dfx canister call`, `dfx canister status`, and `dfx canister update-settings` take
+an additional CLI argument `--impersonate` to specify a principal
+on behalf of which requests to a local PocketIC instance are sent.
+
 ### feat: `dfx start --pocketic` supports `--force` and shared networks.
 
 `dfx start --pocketic` is now compatible with `--force` and shared networks.
