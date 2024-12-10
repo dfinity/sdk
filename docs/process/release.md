@@ -114,6 +114,8 @@ Modify `DFX_VERSION` in these two files:
 
 ## Stage 5: Promote the release - day 4
 
+* Precondition: Make sure `dfx deploy --playground` works with a project created by `dfx new`. This makes sure that the asset canister wasm is properly allowlisted in the playground backend.
+
 ### Update the GitHub release
 
 - Unset the "Pre-release" flag
