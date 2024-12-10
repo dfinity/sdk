@@ -10,7 +10,7 @@
 
 This used to be a warning. A hard error can abort the command so that no insecure state will be on the mainnet.
 
-Users can surpress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
+Users can suppress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
 
 The warning won't display when executing commands like `dfx deploy --playground`.
 
@@ -47,6 +47,9 @@ How to resolve the error:
 Please top up your cycles balance by converting ICP to cycles like below:
 'dfx cycles convert --amount=0.123'.
 ```
+
+If users run `dfx deploy --playground` but the backend is not updated with the latest frontend canister wasm
+the error message will explain this properly and recommends asking for help on the forum since this can't be resolved by users.
 
 ### chore: improve `dfx cycles convert` messages.
 
