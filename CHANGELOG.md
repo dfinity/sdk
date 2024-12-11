@@ -69,6 +69,16 @@ Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dn
 
 ## Dependencies
 
+### Frontend canister
+
+### fix: 'unreachable' error when trying to upgrade an asset canister with over 1GB data
+
+The asset canister now estimates the size of the data to be serialized to stable memory,
+and reserves that much space for the ValueSerializer's buffer.
+
+- Module hash: bba3181888f3c59b4a5f608aedef05be6fa37276fb7dc394cbadf9cf6e10359b
+- https://github.com/dfinity/sdk/pull/4036
+
 ### Motoko
 
 Updated Motoko to [0.13.5](https://github.com/dfinity/motoko/releases/tag/0.13.5)
