@@ -94,7 +94,7 @@ impl AssetEncoding {
             .as_ref()
             .map_or(0, |ce| 2 + ce.expression.len() + ce.expression_hash.len());
         size += 1 + self.response_hashes.as_ref().map_or(0, |hashes| {
-            hashes.iter().fold(0, |acc, (_k, v)| acc + 2 + v.len())
+            hashes.iter().fold(2, |acc, (_k, v)| acc + 2 + v.len())
         });
         size
     }
