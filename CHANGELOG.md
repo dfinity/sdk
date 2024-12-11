@@ -76,7 +76,7 @@ Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dn
 The asset canister now estimates the size of the data to be serialized to stable memory,
 and reserves that much space for the ValueSerializer's buffer.
 
-- Module hash: 931b64d30b52868d6dc1a5e7a3262282a6f7d80e18f3c26adb7e687568f68e02
+- Module hash: bba3181888f3c59b4a5f608aedef05be6fa37276fb7dc394cbadf9cf6e10359b
 - https://github.com/dfinity/sdk/pull/4036
 
 ### Motoko
