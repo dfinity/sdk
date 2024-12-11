@@ -305,8 +305,8 @@ impl Asset {
     fn estimate_size(&self) -> usize {
         let mut size = 0;
         size += 1 + self.content_type.len();
-        size += self.encodings.iter().fold(2, |acc, (name, encoding)| {
-            acc + 2 + name.len() + encoding.estimate_size()
+        size += self.encodings.iter().fold(1, |acc, (name, encoding)| {
+            acc + 1 + name.len() + encoding.estimate_size()
         });
         size += 1 + self
             .max_age
