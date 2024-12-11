@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### fix: 'unreachable' error when trying to upgrade an asset canister with over 1GB data
+
+The asset canister now estimates the size of the data to be serialized to stable memory,
+and reserves that much space for the ValueSerializer's buffer.
+
 ### feat: `dfx start --pocketic` supports `--force` and shared networks.
 
 `dfx start --pocketic` is now compatible with `--force` and shared networks.
