@@ -315,7 +315,7 @@ impl AssetConfig {
         }
 
         if other.encodings.is_some() {
-            self.encodings = other.encodings.clone();
+            self.encodings.clone_from(&other.encodings);
         }
 
         if other.security_policy.is_some() {

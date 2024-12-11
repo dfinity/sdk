@@ -61,7 +61,7 @@ pub trait Environment {
     }
 
     // Explicit lifetimes are actually needed for mockall to work properly.
-    #[allow(clippy::needless_lifetimes)]
+    #[allow(clippy::needless_lifetimes, unused)]
     fn log<'a>(&self, record: &Record<'a>) {
         self.get_logger().log(record);
     }
