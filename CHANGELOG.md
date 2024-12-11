@@ -2,11 +2,6 @@
 
 # UNRELEASED
 
-### fix: 'unreachable' error when trying to upgrade an asset canister with over 1GB data
-
-The asset canister now estimates the size of the data to be serialized to stable memory,
-and reserves that much space for the ValueSerializer's buffer.
-
 ### feat: `dfx start --pocketic` supports `--force` and shared networks.
 
 `dfx start --pocketic` is now compatible with `--force` and shared networks.
@@ -73,6 +68,16 @@ Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dn
 ```
 
 ## Dependencies
+
+### Frontend canister
+
+### fix: 'unreachable' error when trying to upgrade an asset canister with over 1GB data
+
+The asset canister now estimates the size of the data to be serialized to stable memory,
+and reserves that much space for the ValueSerializer's buffer.
+
+- Module hash: 931b64d30b52868d6dc1a5e7a3262282a6f7d80e18f3c26adb7e687568f68e02
+- https://github.com/dfinity/sdk/pull/4036
 
 ### Motoko
 
