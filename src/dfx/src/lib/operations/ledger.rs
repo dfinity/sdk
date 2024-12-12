@@ -1,3 +1,4 @@
+use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::ledger_types::{AccountIdBlob, BlockHeight, Memo, TransferError};
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::{
@@ -8,7 +9,7 @@ use crate::lib::{
     },
     nns_types::{account_identifier::AccountIdentifier, icpts::ICPTs},
 };
-use anyhow::{bail, ensure, Context};
+use anyhow::{anyhow, bail, ensure, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use candid::{Decode, Encode, Principal};
@@ -142,6 +143,12 @@ pub async fn transfer(
                         info!(logger, "{}", TransferError::TxDuplicate { duplicate_of });
                         break duplicate_of;
                     }
+                    Err(TransferError::InsufficientFunds { balance }) => {
+                        return Err(anyhow!(TransferError::InsufficientFunds { balance }))
+                            .with_context(|| {
+                                diagnose_insufficient_funds_error(agent, from_subaccount)
+                            });
+                    }
                     Err(transfer_err) => bail!(transfer_err),
                 }
             }
@@ -162,6 +169,29 @@ pub async fn transfer(
     println!("Transfer sent at block height {block_height}");
 
     Ok(block_height)
+}
+
+fn diagnose_insufficient_funds_error(
+    agent: &Agent,
+    subaccount: Option<Subaccount>,
+) -> DiagnosedError {
+    let principal = agent.get_principal().unwrap(); // This should always succeed at this point.
+
+    let explanation = "Insufficient ICP balance to finish the transfer transaction.";
+    let suggestion = format!(
+        "Please top up your ICP balance.
+
+Your account address for receiving ICP from centralized exchanges: {}
+(run `dfx ledger account-id` to display)
+
+Your principal for ICP wallets and decentralized exchanges: {}
+(run `dfx identity get-principal` to display)
+",
+        AccountIdentifier::new(principal, subaccount),
+        principal.to_text()
+    );
+
+    DiagnosedError::new(explanation.to_string(), suggestion)
 }
 
 fn retryable(agent_error: &AgentError) -> bool {

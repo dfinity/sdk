@@ -1056,7 +1056,7 @@ CHERRIES" "$stdout"
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/logo.png";accept_encodings=vec{"identity"}})'
   assert_match 'content_type = "image/png"'
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.js";accept_encodings=vec{"identity"}})'
-  assert_match 'content_type = "application/javascript"'
+  assert_match 'content_type = "text/javascript"'
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
   assert_match 'content_type = "text/plain"'
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/main.css";accept_encodings=vec{"identity"}})'
@@ -1897,6 +1897,28 @@ WARN: {
   assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]* \(with cache and 1 header\)'
 }
 
+@test "asset configuration via .ic-assets.json5 - respects weird characters" {
+  install_asset assetscanister
+  touch src/e2e_project_frontend/assets/thing.txt
+  cat <<'EOF' >src/e2e_project_frontend/assets/.ic-assets.json5
+[
+  {
+    "match": "thing.txt",
+    "headers": {
+      "X-Dummy-Header": "\"\'@%({[~$?\\"
+    }
+  }
+]
+EOF
+  dfx_start
+  assert_command dfx deploy
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+  assert_command curl --head "http://localhost:$PORT/thing.txt?canisterId=$ID"
+  # shellcheck disable=SC1003
+  assert_contains 'x-dummy-header: "'"'"'@%({[~$?\' 
+}
+
 @test "uses selected canister wasm" {
   dfx_start
   use_asset_wasm 0.12.1
@@ -1986,6 +2008,38 @@ WARN: {
 
   assert_command      dfx canister call e2e_project_frontend configure '(record { max_chunks=opt opt 3; max_bytes = opt opt 5500 })'
   assert_command      dfx deploy
+}
+
+@test "set permissions through init argument" {
+  dfx_start
+  dfx deploy
+
+  dfx identity new alice --storage-mode plaintext
+  ALICE="$(dfx --identity alice identity get-principal)"
+
+  dfx canister install e2e_project_frontend --mode reinstall --yes --argument "(opt variant {
+    Init = record {
+      set_permissions = opt record {
+        prepare = vec {
+          principal \"${ALICE}\";
+        };
+        commit = vec {
+          principal \"$(dfx identity get-principal)\";
+          principal \"aaaaa-aa\";
+        };
+        manage_permissions = vec {
+          principal \"$(dfx identity get-principal)\";
+        };
+      }
+    }
+  })"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Prepare }; })'
+  assert_match "${ALICE}"
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { Commit }; })'
+  assert_match "$(dfx identity get-principal)"
+  assert_match '"aaaaa-aa"'
+  assert_command dfx canister call e2e_project_frontend list_permitted '(record { permission = variant { ManagePermissions }; })'
+  assert_match "$(dfx identity get-principal)"
 }
 
 @test "set permissions through upgrade argument" {

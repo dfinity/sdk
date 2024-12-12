@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.24.0"
+version = "0.24.3"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
@@ -55,7 +55,7 @@ ctrlc = { version = "3.2.1", features = ["termination"] }
 dfx-core.workspace = true
 dialoguer = { workspace = true, features = ["fuzzy-select"] }
 directories-next.workspace = true
-flate2 = { workspace = true, default-features = false, features = ["zlib-ng"] }
+flate2 = { workspace = true }
 fn-error-context = "0.2.0"
 futures-util = "0.3.21"
 futures.workspace = true
@@ -104,7 +104,6 @@ shell-words = "1.1.0"
 slog = { workspace = true, features = ["max_level_trace"] }
 slog-async.workspace = true
 slog-term.workspace = true
-socket2 = "0.5.5"
 supports-color = "2.1.0"
 sysinfo = "0.28.4"
 tar.workspace = true
@@ -127,7 +126,7 @@ ci_info = "0.14"
 junction = "1.0.0"
 
 [target.'cfg(unix)'.dependencies]
-pocket-ic = { git = "https://github.com/dfinity/ic", rev = "179973553248415fc85679d853b48b0e0ec231c6" }
+pocket-ic = { git = "https://github.com/dfinity/ic", rev = "a62848817cec7ae50618a87a526c85d020283fd9" }
 
 [dev-dependencies]
 env_logger = "0.10"

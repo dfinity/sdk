@@ -1,10 +1,10 @@
 use crate::actors::pocketic_proxy::{signals::PortReadySubscribe, PocketIcProxyConfig};
 use crate::actors::{
     start_btc_adapter_actor, start_canister_http_adapter_actor, start_pocketic_actor,
-    start_pocketic_proxy_actor, start_replica_actor, start_shutdown_controller,
+    start_pocketic_proxy_actor, start_post_start_actor, start_replica_actor,
+    start_shutdown_controller,
 };
 use crate::config::dfx_version_str;
-use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::info::replica_rev;
@@ -49,16 +49,20 @@ pub struct StartOpts {
     #[arg(long)]
     background: bool,
 
+    /// Indicates if the actual dfx process is running in the background.
+    #[arg(long, env = "DFX_RUNNING_IN_BACKGROUND", hide = true)]
+    running_in_background: bool,
+
     /// Cleans the state of the current project.
     #[arg(long)]
     clean: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[arg(long, action = ArgAction::Append, conflicts_with = "pocketic")]
+    #[arg(long, action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[arg(long, conflicts_with = "pocketic")]
+    #[arg(long)]
     enable_bitcoin: bool,
 
     /// enable canister http requests (on by default for --pocketic)
@@ -70,7 +74,7 @@ pub struct StartOpts {
     artificial_delay: u32,
 
     /// Start even if the network config was modified.
-    #[arg(long, conflicts_with = "pocketic")]
+    #[arg(long)]
     force: bool,
 
     /// A list of domains that can be served. These are used for canister resolution [default: localhost]
@@ -80,6 +84,12 @@ pub struct StartOpts {
     /// Runs PocketIC instead of the replica
     #[clap(long, alias = "emulator")]
     pocketic: bool,
+
+    /// Runs the replica instead of pocketic.
+    /// Currently this has no effect.
+    #[clap(long, conflicts_with = "pocketic")]
+    #[allow(unused)]
+    replica: bool,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -138,6 +148,7 @@ pub fn exec(
     StartOpts {
         host,
         background,
+        running_in_background,
         clean,
         force,
         bitcoin_node,
@@ -146,6 +157,7 @@ pub fn exec(
         artificial_delay,
         domain,
         pocketic,
+        replica: _,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -175,7 +187,6 @@ pub fn exec(
         env.get_logger(),
         network_descriptor,
         host,
-        None,
         enable_bitcoin,
         bitcoin_node,
         enable_canister_http,
@@ -332,7 +343,7 @@ pub fn exec(
         &local_server_descriptor.scope,
         LocalNetworkScopeDescriptor::Shared { .. }
     );
-    if is_shared_network && !pocketic {
+    if is_shared_network {
         save_json_file(
             &local_server_descriptor.effective_config_path_by_settings_digest(),
             &effective_config,
@@ -413,7 +424,10 @@ pub fn exec(
             pocketic_proxy_pid_file_path,
             pocketic_proxy_port_file_path,
         )?;
-        Ok::<_, Error>(proxy)
+
+        let post_start = start_post_start_actor(env, running_in_background, Some(proxy))?;
+
+        Ok::<_, Error>(post_start)
     })?;
     system.run()?;
 
@@ -479,7 +493,6 @@ pub fn apply_command_line_parameters(
     logger: &Logger,
     network_descriptor: NetworkDescriptor,
     host: Option<String>,
-    replica_port: Option<String>,
     enable_bitcoin: bool,
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
@@ -503,12 +516,6 @@ pub fn apply_command_line_parameters(
             .parse()
             .map_err(|e| anyhow!("Invalid argument: Invalid host: {}", e))?;
         local_server_descriptor = local_server_descriptor.with_bind_address(host);
-    }
-    if let Some(replica_port) = replica_port {
-        let replica_port: u16 = replica_port
-            .parse()
-            .map_err(|err| error_invalid_argument!("Invalid port number: {}", err))?;
-        local_server_descriptor = local_server_descriptor.with_replica_port(replica_port);
     }
     if enable_bitcoin || !bitcoin_nodes.is_empty() {
         local_server_descriptor = local_server_descriptor.with_bitcoin_enabled();
@@ -574,7 +581,8 @@ fn send_background() -> DfxResult<()> {
             .skip(1)
             .filter(|a| !a.eq("--background"))
             .filter(|a| !a.eq("--clean")),
-    );
+    )
+    .env("DFX_RUNNING_IN_BACKGROUND", "true"); // Set the `DFX_RUNNING_IN_BACKGROUND` environment variable which will be used by the second start.
 
     cmd.spawn().context("Failed to spawn child process.")?;
     Ok(())

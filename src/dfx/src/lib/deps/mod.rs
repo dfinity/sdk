@@ -15,13 +15,14 @@ use std::{
 };
 
 pub mod deploy;
+pub mod pull;
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct PulledJson {
     pub canisters: BTreeMap<Principal, PulledCanister>,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 pub struct PulledCanister {
     /// Name of `type: pull` in dfx.json. Omitted if indirect dependency.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -299,7 +300,7 @@ pub fn get_pull_canister_or_principal(
             let p = Principal::from_text(canister).with_context(||
                 format!("{canister} is not a valid Principal nor a `type: pull` canister specified in dfx.json")
             )?;
-            if pulled_json.canisters.get(&p).is_none() {
+            if !pulled_json.canisters.contains_key(&p) {
                 bail!("Could not find {} in pulled.json", &p);
             }
             Ok(p)

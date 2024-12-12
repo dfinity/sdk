@@ -2,6 +2,179 @@
 
 # UNRELEASED
 
+### feat: `dfx start --pocketic` supports `--force` and shared networks.
+
+`dfx start --pocketic` is now compatible with `--force` and shared networks.
+
+### feat: error when using insecure identity on mainnet
+
+This used to be a warning. A hard error can abort the command so that no insecure state will be on the mainnet.
+
+Users can suppress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
+
+The warning won't display when executing commands like `dfx deploy --playground`.
+
+### feat: support `--replica` in `dfx start`
+
+Added a flag `--replica` to `dfx start`. This flag currently has no effect.
+Once PocketIC becomes the default for `dfx start` this flag will start the replica instead.
+You can use the `--replica` flag already to write scripts that anticipate that change.
+
+### feat: extensions can define project templates
+
+An extension can define one or more project templates for `dfx new` to use.
+These can be new templates or replace the built-in project templates.
+
+### fix: all commands with --all parameter skip remote canisters
+
+This affects the following commands:
+- `dfx canister delete`
+- `dfx canister deposit-cycles`
+- `dfx canister start`
+- `dfx canister status`
+- `dfx canister stop`
+- `dfx canister uninstall-code`
+- `dfx canister update-settings`
+- `dfx ledger fabricate-cycles`
+
+### chore: improve `dfx deploy` messages.
+
+If users run `dfx deploy` without enough cycles, show additional messages to indicate what to do next.
+```
+Error explanation:
+Insufficient cycles balance to create the canister.
+How to resolve the error:
+Please top up your cycles balance by converting ICP to cycles like below:
+'dfx cycles convert --amount=0.123'.
+```
+
+If users run `dfx deploy --playground` but the backend is not updated with the latest frontend canister wasm
+the error message will explain this properly and recommends asking for help on the forum since this can't be resolved by users.
+
+### chore: improve `dfx cycles convert` messages.
+
+If users run `dfx cycles convert` without enough ICP tokens, show additional messages to indicate what to do next.
+```
+Error explanation:
+Insufficient ICP balance to finish the transfer transaction.
+How to resolve the error:
+Please top up your ICP balance.
+
+Your account address for receiving ICP from centralized exchanges: 8494c01329531c06254ff45dad87db806ae6ed935ad6a504cdbc00a935db7b49
+(run `dfx ledger account-id` to display)
+
+Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dnrh3-rsyq6-ffned-h64ox-vxywi-gzawf-ot4pv-sqe
+(run `dfx identity get-principal` to display)
+```
+
+## Dependencies
+
+### Frontend canister
+
+### fix: 'unreachable' error when trying to upgrade an asset canister with over 1GB data
+
+The asset canister now estimates the size of the data to be serialized to stable memory,
+and reserves that much space for the ValueSerializer's buffer.
+
+- Module hash: bba3181888f3c59b4a5f608aedef05be6fa37276fb7dc394cbadf9cf6e10359b
+- https://github.com/dfinity/sdk/pull/4036
+
+### Motoko
+
+Updated Motoko to [0.13.5](https://github.com/dfinity/motoko/releases/tag/0.13.5)
+
+# 0.24.3
+
+### feat: Bitcoin support in PocketIC
+
+`dfx start --pocketic` is now compatible with `--bitcoin-node` and `--enable-bitcoin`.
+
+### feat: facade pull ICP, ckBTC, ckETH ledger canisters
+
+The ledger canisters can be pulled even though they are not really "pullable".
+The metadata like wasm_url and init_guide are hardcoded inside `dfx deps pull` logic.
+
+- ICP ledger: `ryjl3-tyaaa-aaaaa-aaaba-cai`
+- ckBTC ledger: `mxzaz-hqaaa-aaaar-qaada-cai`
+- ckETH ledger: `ss2fx-dyaaa-aaaar-qacoq-cai`
+
+### chore: update agent version in frontend templates, and include `resolve.dedupe` in Vite config
+
+### chore: improve error message when trying to use the local replica when it is not running
+
+### Frontend canister
+
+Allow setting permissions lists in init arguments just like in upgrade arguments.
+
+- Module hash: 2c24b5e1584890a7965011d5d1d827aca68c489c9a6308475730420fa53372e8
+- https://github.com/dfinity/sdk/pull/3965
+
+### Candid UI
+
+- Module hash: f45db224b40fac516c877e3108dc809d4b22fa42d05ee8dfa5002536a3a3daed
+- Bump agent-js to fix error code
+
+### chore!: improve the messages for the subcommands of `dfx cycles` and `dfx ledger`.
+
+If users run subcommands of `dfx cycles` or `dfx ledger` without the `--ic` flag, show below messages to indicate what to do next.
+```
+Error explanation:
+Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' is not installed.
+How to resolve the error:
+Run the command with '--ic' flag if you want to manage the cycles on the mainnet.
+```
+
+### chore: improve `dfx start` messages.
+
+For `dfx start`, show below messages to users to indicate what to do next.
+```
+Success! The dfx server is running.
+You must open a new terminal to continue developing. If you'd prefer to stop, quit with 'Ctrl-C'.
+```
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.13.4](https://github.com/dfinity/motoko/releases/tag/0.13.4)
+
+### Replica
+
+Updated replica to elected commit a62848817cec7ae50618a87a526c85d020283fd9.
+This incorporates the following executed proposals:
+
+- [134036](https://dashboard.internetcomputer.org/proposal/134036)
+- [134035](https://dashboard.internetcomputer.org/proposal/134035)
+- [134034](https://dashboard.internetcomputer.org/proposal/134034)
+- [134032](https://dashboard.internetcomputer.org/proposal/134032)
+- [133939](https://dashboard.internetcomputer.org/proposal/133939)
+- [133953](https://dashboard.internetcomputer.org/proposal/133953)
+- [133952](https://dashboard.internetcomputer.org/proposal/133952)
+- [133951](https://dashboard.internetcomputer.org/proposal/133951)
+- [133950](https://dashboard.internetcomputer.org/proposal/133950)
+- [133902](https://dashboard.internetcomputer.org/proposal/133902)
+- [133901](https://dashboard.internetcomputer.org/proposal/133901)
+- [133900](https://dashboard.internetcomputer.org/proposal/133900)
+- [133798](https://dashboard.internetcomputer.org/proposal/133798)
+- [133799](https://dashboard.internetcomputer.org/proposal/133799)
+- [133800](https://dashboard.internetcomputer.org/proposal/133800)
+- [133457](https://dashboard.internetcomputer.org/proposal/133457)
+- [133450](https://dashboard.internetcomputer.org/proposal/133450)
+- [133443](https://dashboard.internetcomputer.org/proposal/133443)
+- [133397](https://dashboard.internetcomputer.org/proposal/133397)
+- [133396](https://dashboard.internetcomputer.org/proposal/133396)
+
+# 0.24.2
+
+### feat: all commands will use the DFX_NETWORK from the environment
+
+If `DFX_NETWORK` is set in the environment, all commands will use that network by default.
+The `--network` parameter will take precedence if provided.
+
+### fix: dfx generate now honors the --network parameter
+This fixes an issue where `dfx deploy --playground` would fail if the project
+had not been previously built for the local network.
+
 ### feat: Support canister log allowed viewer list
 
 Added support for the canister log allowed viewer list, enabling specified users to access a canister's logs without needing to be set as the canister's controller.
@@ -13,15 +186,24 @@ Valid settings are:
 ### feat: batch upload assets
 
 The frontend canister sync now tries to batch multiple small content chunks into a single call using the `create_chunks` method added earlier.
+And for small amounts of uploaded data the asset sync can now skip chunk creation entirely.
 This should lead to significantly faster upload times for frontends with many small files.
 
 ## Dependencies
 
+### Motoko
+
+Updated Motoko to [0.13.2](https://github.com/dfinity/motoko/releases/tag/0.13.2)
+
 ### Frontend canister
+
+`SetAssetContentArguments` has a new field `last_chunk: opt blob` which can be used in addition to `chunk_ids` so that small assets can be uploaded as part of `commit_batch`,
+skipping the need to await a separate `create_chunk` call.
 
 Bumped `api_version` to `2` for the previous addition of `create_chunks` since the improved file sync relies on it.
 
-- Module hash: 9e4485d4358dd910aebcc025843547d05604cf28c6dc7c2cc2f8c76d083112e8
+- Module hash: 296d1ad1a7f8b15f90ff8b728658646b649cabd159f360f1b427297f4c76763e
+- https://github.com/dfinity/sdk/pull/3954
 - https://github.com/dfinity/sdk/pull/3947
 
 # 0.24.1

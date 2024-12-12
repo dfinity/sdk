@@ -72,6 +72,10 @@ fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
 
     // print error chain stack
     for (level, cause) in err.chain().enumerate() {
+        if cause.to_string().is_empty() {
+            continue;
+        }
+
         let (color, prefix) = if level == 0 {
             (term::color::RED, "Error")
         } else {
@@ -137,7 +141,9 @@ fn get_args_altered_for_extension_run(
 fn inner_main() -> DfxResult {
     let em = ExtensionManager::new(dfx_version())?;
     let installed_extension_manifests = em.load_installed_extension_manifests()?;
-    project_templates::populate(builtin_templates());
+    let builtin_templates = builtin_templates();
+    let loaded_templates = installed_extension_manifests.loaded_templates(&em, &builtin_templates);
+    project_templates::populate(builtin_templates, loaded_templates);
 
     let args = get_args_altered_for_extension_run(&installed_extension_manifests)?;
 
@@ -201,7 +207,7 @@ mod tests {
 
     #[test]
     fn validate_cli() {
-        project_templates::populate(builtin_templates());
+        project_templates::populate(builtin_templates(), vec![]);
 
         CliOpts::command().debug_assert();
     }

@@ -3,12 +3,12 @@ use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
 use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use candid::Principal;
 use dfx_core::config::cache::Cache;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{Config, NetworksConfig};
-use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::identity::NewIdentityManagerError;
 use dfx_core::error::load_dfx_config::LoadDfxConfigError;
@@ -17,7 +17,7 @@ use dfx_core::identity::identity_manager::{IdentityManager, InitializeIdentity};
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use semver::Version;
-use slog::{warn, Logger, Record};
+use slog::{Logger, Record};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::path::PathBuf;
@@ -61,7 +61,7 @@ pub trait Environment {
     }
 
     // Explicit lifetimes are actually needed for mockall to work properly.
-    #[allow(clippy::needless_lifetimes)]
+    #[allow(clippy::needless_lifetimes, unused)]
     fn log<'a>(&self, record: &Record<'a>) {
         self.get_logger().log(record);
     }
@@ -288,11 +288,23 @@ impl<'a> AgentEnvironment<'a> {
             identity_manager.instantiate_selected_identity(&logger)?
         };
         if network_descriptor.is_ic
+            && !matches!(
+                network_descriptor.r#type,
+                NetworkTypeDescriptor::Playground { .. }
+            )
             && identity.insecure
             && !is_warning_disabled(MainnetPlainTextIdentity)
         {
-            warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity new` \
-                and use it in mainnet-facing commands with the `--identity` flag", identity.name());
+            bail!(
+                "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP.
+- For enhanced security, create a new identity using the command: 
+    dfx identity new
+  Then, specify the new identity in mainnet-facing commands with the `--identity` flag.
+- If you understand the risks and still wish to use the insecure plaintext identity, you can suppress this warning by running:
+    export DFX_WARNING=-mainnet_plaintext_identity
+  After setting this environment variable, re-run the command.",
+                identity.name()
+            );
         }
         let url = network_descriptor.first_provider()?;
         let effective_canister_id = if let Some(d) = &network_descriptor.local_server_descriptor {
@@ -406,7 +418,7 @@ pub fn create_agent(
         .with_url(url)
         .with_boxed_identity(identity)
         .with_verify_query_signatures(!disable_query_verification)
-        .with_ingress_expiry(Some(timeout))
+        .with_ingress_expiry(timeout)
         .build()?;
     Ok(agent)
 }

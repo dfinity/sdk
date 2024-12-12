@@ -1,5 +1,8 @@
+use crate::lib::cycles_ledger_types::create_canister::CreateCanisterError;
 use crate::lib::error_code;
 use anyhow::Error as AnyhowError;
+use dfx_core::error::root_key::FetchRootKeyError;
+use dfx_core::network::provider::get_network_context;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
 use ic_asset::error::{GatherAssetDescriptorsError, SyncError, UploadContentError};
@@ -14,8 +17,6 @@ pub type Diagnosis = (Option<String>, Option<String>);
 pub const NULL_DIAGNOSIS: Diagnosis = (None, None);
 
 #[derive(ThisError, Debug)]
-// This message will appear in the context trace of the stack. The diagnosis should not be displayed there yet.
-#[error("Diagnosis was added here.")]
 /// If you do not need the generic error diagnosis to run, you can add a DiagnosedError with .context(err: DiagnosedError).
 /// In that case, no extra diagnosis is attempted and the last-added explanation and suggestion are printed out.
 pub struct DiagnosedError {
@@ -24,6 +25,12 @@ pub struct DiagnosedError {
 
     /// Suggestions for the user on how to move forward to recover from the error.
     pub action_suggestion: Option<String>,
+}
+
+impl std::fmt::Display for DiagnosedError {
+    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Ok(())
+    }
 }
 
 impl DiagnosedError {
@@ -53,6 +60,16 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
         } else if *agent_err == AgentError::CertificateNotAuthorized() {
             return subnet_not_authorized();
         }
+        if cycles_ledger_not_found(err) {
+            return diagnose_cycles_ledger_not_found();
+        }
+        if ledger_not_found(err) {
+            return diagnose_ledger_not_found();
+        }
+    }
+
+    if local_replica_not_running(err) {
+        return diagnose_local_replica_not_running();
     }
 
     if let Some(sync_error) = err.downcast_ref::<SyncError>() {
@@ -61,7 +78,39 @@ pub fn diagnose(err: &AnyhowError) -> Diagnosis {
         }
     }
 
+    if let Some(create_canister_err) = err.downcast_ref::<CreateCanisterError>() {
+        if insufficient_cycles(create_canister_err) {
+            return diagnose_insufficient_cycles();
+        }
+    }
+
     NULL_DIAGNOSIS
+}
+
+fn local_replica_not_running(err: &AnyhowError) -> bool {
+    let maybe_agent_error = {
+        if let Some(FetchRootKeyError::AgentError(agent_error)) =
+            err.downcast_ref::<FetchRootKeyError>()
+        {
+            Some(agent_error)
+        } else {
+            err.downcast_ref::<AgentError>()
+        }
+    };
+    if let Some(AgentError::TransportError(transport_error)) = maybe_agent_error {
+        transport_error.is_connect()
+            && transport_error
+                .url()
+                .and_then(|url| url.host())
+                .map(|host| match host {
+                    url::Host::Domain(domain) => domain == "localhost",
+                    url::Host::Ipv4(ipv4_addr) => ipv4_addr.is_loopback(),
+                    url::Host::Ipv6(ipv6_addr) => ipv6_addr.is_loopback(),
+                })
+                .unwrap_or(false)
+    } else {
+        false
+    }
 }
 
 fn not_a_controller(err: &AgentError) -> bool {
@@ -113,6 +162,17 @@ To add a principal to the list of controllers, one of the existing controllers h
 If your wallet is a controller, but not your own principal, then you have to make your wallet perform the call by adding '--wallet <your wallet id>' to the command.
 
 The most common way this error is solved is by running 'dfx canister update-settings --network ic --wallet \"$(dfx identity get-wallet)\" --all --add-controller \"$(dfx identity get-principal)\"'.";
+    (
+        Some(error_explanation.to_string()),
+        Some(action_suggestion.to_string()),
+    )
+}
+
+fn diagnose_local_replica_not_running() -> Diagnosis {
+    let error_explanation =
+        "You are trying to connect to the local replica but dfx cannot connect to it.";
+    let action_suggestion =
+        "Target a different network or run 'dfx start' to start the local replica.";
     (
         Some(error_explanation.to_string()),
         Some(action_suggestion.to_string()),
@@ -186,4 +246,56 @@ wrong, you can set a new wallet with
 If you're using a local replica and configuring a wallet was a mistake, you can
 recreate the replica with `dfx stop && dfx start --clean` to start over.";
     (Some(explanation.to_string()), Some(suggestion.to_string()))
+}
+
+fn cycles_ledger_not_found(err: &AnyhowError) -> bool {
+    err.to_string()
+        .contains("Canister um5iw-rqaaa-aaaaq-qaaba-cai not found")
+}
+
+fn diagnose_cycles_ledger_not_found() -> Diagnosis {
+    let explanation =
+        "Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' is not installed.";
+    let suggestion =
+        "Run the command with '--ic' flag if you want to manage the cycles on the mainnet.";
+
+    (Some(explanation.to_string()), Some(suggestion.to_string()))
+}
+
+fn ledger_not_found(err: &AnyhowError) -> bool {
+    err.to_string()
+        .contains("Canister ryjl3-tyaaa-aaaaa-aaaba-cai not found")
+}
+
+fn diagnose_ledger_not_found() -> Diagnosis {
+    let explanation = "ICP Ledger with canister ID 'ryjl3-tyaaa-aaaaa-aaaba-cai' is not installed.";
+    let suggestion =
+        "Run the command with '--ic' flag if you want to manage the ICP on the mainnet.";
+
+    (Some(explanation.to_string()), Some(suggestion.to_string()))
+}
+
+fn insufficient_cycles(err: &CreateCanisterError) -> bool {
+    matches!(err, CreateCanisterError::InsufficientFunds { balance: _ })
+}
+
+fn diagnose_insufficient_cycles() -> Diagnosis {
+    let network = match get_network_context() {
+        Ok(value) => {
+            if value == "local" {
+                "".to_string()
+            } else {
+                format!(" --network {}", value)
+            }
+        }
+        Err(_) => "".to_string(),
+    };
+
+    let explanation = "Insufficient cycles balance to create the canister.";
+    let suggestion = format!(
+        "Please top up your cycles balance by converting ICP to cycles like below:
+'dfx cycles convert --amount=0.123{}'",
+        network
+    );
+    (Some(explanation.to_string()), Some(suggestion))
 }

@@ -84,7 +84,8 @@ pub async fn upload_content_and_assemble_sync_operations(
         &canister_assets,
         logger,
     )
-    .await?;
+    .await
+    .map_err(UploadContentError::CreateProjectAssetError)?;
 
     let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
         &chunk_uploader,
@@ -97,7 +98,8 @@ pub async fn upload_content_and_assemble_sync_operations(
         canister_asset_properties,
         batch_id,
     )
-    .await;
+    .await
+    .map_err(UploadContentError::AssembleCommitBatchArgumentFailed)?;
 
     // -v
     debug!(

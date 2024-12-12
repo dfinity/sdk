@@ -32,51 +32,21 @@ _CANDID_UI_WARNINGS_TO_IGNORE = [
     ("Error", "/index.js"),
     ("Invalid asm.js: Unexpected token", "/index.js"),
     ("Expected to find result for path [object Object], but instead found nothing.", "/index.js"),
+    ("If you want to use Internet Identity, please provide a URL to your local Internet Identity service using the `ii` query parameter", "/index.js"),    
     (
         """
-Error: Server returned an error:
-  Code: 404 (Not Found)
-  Body: Custom section name not found.
-
-    at j.readState (http://localhost:4943/index.js:2:11709)
-    at async http://localhost:4943/index.js:2:97683
-    at async Promise.all (index 0)
-    at async Module.UA (http://localhost:4943/index.js:2:98732)
-    at async Object.getNames (http://localhost:4943/index.js:2:266156)
-    at async http://localhost:4943/index.js:2:275479""".strip(),
+AgentError: Call failed:
+  Canister: aaaaa-aa
+  Method: fetch_canister_logs (query)
+  "Status": "rejected"
+  "Code": "CanisterReject"
+  "Message": "IC0406: Caller 2vxsx-fae is not allowed to query ic00 method fetch_canister_logs"
+        """.strip(),
         "/index.js",
-    ),
-    (
-        """
-Error: Server returned an error:
-  Code: 404 (Not Found)
-  Body: Custom section name not found.""".strip(),
-        "/index.js",
-    ),
+    )
 ]
 _CANDID_UI_ERRORS_TO_IGNORE = [
-    ("Error", "/index.js"),
-    ("Failed to load resource: the server responded with a status of 404 (Not Found)", "/read_state"),
-    (
-        "Error: Please provide a URL to your local Internet Identity service using the `ii` query parameter",
-        "/index.js",
-    ),
-    (
-        """
-Error: Please provide a URL to your local Internet Identity service using the `ii` query parameter
-    at http://localhost:4943/index.js:2:300040
-    at t.renderAuth (http://localhost:4943/index.js:2:301237)
-    at async http://localhost:4943/index.js:2:314291""".strip(),
-        "/index.js",
-    ),
-    (
-        """
-Error: Please provide a URL to your local Internet Identity service using the `ii` query parameter
-    at http://127.0.0.1:4943/index.js:2:300040
-    at t.renderAuth (http://127.0.0.1:4943/index.js:2:301237)
-    at async http://127.0.0.1:4943/index.js:2:314291""".strip(),
-        "/index.js",
-    ),
+    ("Error", "/index.js")
 ]
 # `page.route` does not support additional function parameters
 _FRONTEND_URL = None
@@ -161,7 +131,7 @@ def _check_console_logs(console_logs):
         for actual_text, endpoint in (
             _CANDID_UI_ERRORS_TO_IGNORE if log.type == "error" else _CANDID_UI_WARNINGS_TO_IGNORE
         ):
-            if actual_text == log.text.strip() and endpoint in url:
+            if log.text.strip().startswith(actual_text) and endpoint in url:
                 logging.warning(
                     f'Found {log.type}, but it was expected (log.type="{actual_text}", endpoint="{endpoint}")'
                 )

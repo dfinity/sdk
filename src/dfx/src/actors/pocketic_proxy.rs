@@ -1,4 +1,5 @@
 use crate::actors::pocketic_proxy::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::post_start::signals::{PocketIcProxyReadySignal, PocketIcProxyReadySubscribe};
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
@@ -70,6 +71,9 @@ pub struct PocketIcProxy {
 
     stop_sender: Option<Sender<()>>,
     thread_join: Option<JoinHandle<()>>,
+
+    /// Ready Signal subscribers.
+    ready_subscribers: Vec<Recipient<PocketIcProxyReadySignal>>,
 }
 
 impl PocketIcProxy {
@@ -81,10 +85,11 @@ impl PocketIcProxy {
             stop_sender: None,
             thread_join: None,
             logger,
+            ready_subscribers: Vec::new(),
         }
     }
 
-    fn start_pocketic_proxy(&mut self, replica_url: Url) -> DfxResult {
+    fn start_pocketic_proxy(&mut self, replica_url: Url, addr: Addr<Self>) -> DfxResult {
         let logger = self.logger.clone();
         let config = &self.config.pocketic_proxy_config;
         let pocketic_proxy_path = self.config.pocketic_proxy_path.clone();
@@ -100,6 +105,7 @@ impl PocketIcProxy {
                 pocketic_proxy_path,
                 pocketic_proxy_pid_path,
                 pocketic_proxy_port_path,
+                addr,
                 receiver,
                 config.verbose,
                 config.domains.clone(),
@@ -164,7 +170,7 @@ impl Actor for PocketIcProxy {
             .do_send(ShutdownSubscribe(ctx.address().recipient::<Shutdown>()));
 
         if let Some(replica_url) = &self.config.pocketic_proxy_config.replica_url {
-            self.start_pocketic_proxy(replica_url.clone())
+            self.start_pocketic_proxy(replica_url.clone(), ctx.address())
                 .expect("Could not start PocketIC HTTP gateway");
         }
     }
@@ -179,7 +185,7 @@ impl Actor for PocketIcProxy {
 impl Handler<PortReadySignal> for PocketIcProxy {
     type Result = ();
 
-    fn handle(&mut self, msg: PortReadySignal, _ctx: &mut Self::Context) {
+    fn handle(&mut self, msg: PortReadySignal, ctx: &mut Self::Context) {
         debug!(
             self.logger,
             "replica ready on {}, so re/starting HTTP gateway", msg.url
@@ -189,8 +195,26 @@ impl Handler<PortReadySignal> for PocketIcProxy {
 
         let replica_url = Url::parse(&msg.url).unwrap();
 
-        self.start_pocketic_proxy(replica_url)
+        self.start_pocketic_proxy(replica_url, ctx.address())
             .expect("Could not start PocketIC HTTP gateway");
+    }
+}
+
+impl Handler<PocketIcProxyReadySubscribe> for PocketIcProxy {
+    type Result = ();
+
+    fn handle(&mut self, msg: PocketIcProxyReadySubscribe, _ctx: &mut Self::Context) {
+        self.ready_subscribers.push(msg.0);
+    }
+}
+
+impl Handler<PocketIcProxyReadySignal> for PocketIcProxy {
+    type Result = ();
+
+    fn handle(&mut self, _msg: PocketIcProxyReadySignal, _ctx: &mut Self::Context) {
+        for sub in &self.ready_subscribers {
+            sub.do_send(PocketIcProxyReadySignal);
+        }
     }
 }
 
@@ -217,6 +241,7 @@ fn pocketic_proxy_start_thread(
     pocketic_proxy_path: PathBuf,
     pocketic_proxy_pid_path: PathBuf,
     pocketic_proxy_port_path: PathBuf,
+    addr: Addr<PocketIcProxy>,
     receiver: Receiver<()>,
     verbose: bool,
     domains: Option<Vec<String>>,
@@ -235,6 +260,7 @@ fn pocketic_proxy_start_thread(
             cmd.args(["--port-file".as_ref(), pocketic_proxy_port_path.as_os_str()]);
             cmd.stdout(std::process::Stdio::inherit());
             cmd.stderr(std::process::Stdio::inherit());
+            let _ = std::fs::remove_file(&pocketic_proxy_port_path);
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting pocket-ic gateway...");
             let mut child = cmd.spawn().expect("Could not start pocket-ic gateway.");
@@ -258,24 +284,30 @@ fn pocketic_proxy_start_thread(
                         }
                     }
                 };
-            if let Err(e) = initialize_gateway(
+            let instance = match initialize_gateway(
                 format!("http://localhost:{port}").parse().unwrap(),
                 replica_url.clone(),
                 domains.clone(),
                 address,
                 logger.clone(),
             ) {
-                error!(logger, "Failed to initialize HTTP gateway: {e:#}");
-                let _ = child.kill();
-                let _ = child.wait();
-                if receiver.try_recv().is_ok() {
-                    debug!(logger, "Got signal to stop.");
-                    break;
-                } else {
-                    continue;
+                Err(e) => {
+                    error!(logger, "Failed to initialize HTTP gateway: {e:#}");
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    if receiver.try_recv().is_ok() {
+                        debug!(logger, "Got signal to stop.");
+                        break;
+                    } else {
+                        continue;
+                    }
                 }
-            }
+                Ok(i) => i,
+            };
             info!(logger, "Replica API running on {address}");
+
+            // Send PocketIcProxyReadySignal to PocketIcProxy.
+            addr.do_send(PocketIcProxyReadySignal);
 
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart pocket-ic if done = true.
@@ -285,6 +317,9 @@ fn pocketic_proxy_start_thread(
                         logger,
                         "Got signal to stop. Killing pocket-ic gateway process..."
                     );
+                    if let Err(e) = shutdown_pocketic_proxy(port, instance, logger.clone()) {
+                        error!(logger, "Error shutting down PocketIC gracefully: {e}");
+                    }
                     let _ = child.kill();
                     let _ = child.wait();
                     break;
@@ -320,7 +355,7 @@ async fn initialize_gateway(
     domains: Option<Vec<String>>,
     addr: SocketAddr,
     logger: Logger,
-) -> DfxResult {
+) -> DfxResult<usize> {
     use pocket_ic::common::rest::{
         CreateHttpGatewayResponse, HttpGatewayBackend, HttpGatewayConfig,
     };
@@ -340,11 +375,12 @@ async fn initialize_gateway(
         .await?
         .error_for_status()?;
     let resp = resp.json::<CreateHttpGatewayResponse>().await?;
-    if let CreateHttpGatewayResponse::Error { message } = resp {
-        bail!("Gateway init error: {message}")
-    }
+    let instance = match resp {
+        CreateHttpGatewayResponse::Created(info) => info.instance_id,
+        CreateHttpGatewayResponse::Error { message } => bail!("Gateway init error: {message}"),
+    };
     info!(logger, "Initialized HTTP gateway.");
-    Ok(())
+    Ok(instance)
 }
 
 #[cfg(not(unix))]
@@ -354,6 +390,27 @@ fn initialize_gateway(
     _: Option<Vec<String>>,
     _: SocketAddr,
     _: Logger,
-) -> DfxResult {
+) -> DfxResult<usize> {
     bail!("PocketIC gateway not supported on this platform")
+}
+
+#[cfg(unix)]
+#[tokio::main(flavor = "current_thread")]
+async fn shutdown_pocketic_proxy(port: u16, instance: usize, logger: Logger) -> DfxResult {
+    use reqwest::Client;
+    let shutdown_client = Client::new();
+    debug!(logger, "Sending shutdown request to HTTP gateway");
+    shutdown_client
+        .post(format!(
+            "http://localhost:{port}/http_gateway/{instance}/stop"
+        ))
+        .send()
+        .await?
+        .error_for_status()?;
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn shutdown_pocketic_proxy(_: u16, _: usize, _: Logger) -> DfxResult {
+    bail!("PocketIC not supported on this platform")
 }

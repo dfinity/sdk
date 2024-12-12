@@ -11,9 +11,10 @@ use anyhow::{anyhow, bail, ensure, Context, Error};
 use clap::builder::PossibleValuesParser;
 use clap::Parser;
 use console::{style, Style};
+use dfx_core::config::model::project_template::ProjectTemplateCategory as Category;
 use dfx_core::config::project_templates::{
     find_project_template, get_project_template, get_sorted_templates, project_template_cli_names,
-    Category, ProjectTemplate, ProjectTemplateName, ResourceLocation,
+    ProjectTemplate, ProjectTemplateName, ResourceLocation,
 };
 use dfx_core::json::{load_json_file, save_json_file};
 use dialoguer::theme::ColorfulTheme;
@@ -21,13 +22,14 @@ use dialoguer::{FuzzySelect, MultiSelect};
 use fn_error_context::context;
 use indicatif::HumanBytes;
 use semver::Version;
-use slog::{info, warn, Logger};
+use slog::{info, trace, warn, Logger};
 use std::collections::{BTreeMap, HashMap};
 use std::io::{self, IsTerminal, Read};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::time::Duration;
 use tar::Archive;
+use walkdir::WalkDir;
 
 // const DRY_RUN: &str = "dry_run";
 // const PROJECT_NAME: &str = "project_name";
@@ -130,7 +132,7 @@ pub fn create_file(log: &Logger, path: &Path, content: &[u8], dry_run: bool) -> 
             .with_context(|| format!("Failed to write to {}.", path.to_string_lossy()))?;
     }
 
-    info!(log, "{}", Status::Create(path, content.len()));
+    trace!(log, "{}", Status::Create(path, content.len()));
     Ok(())
 }
 
@@ -184,7 +186,7 @@ pub fn create_dir<P: AsRef<Path>>(log: &Logger, path: P, dry_run: bool) -> DfxRe
             .with_context(|| format!("Failed to create directory {}.", path.to_string_lossy()))?;
     }
 
-    info!(log, "{}", Status::CreateDir(path));
+    trace!(log, "{}", Status::CreateDir(path));
     Ok(())
 }
 
@@ -198,7 +200,7 @@ pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
         .status();
 
     if init_status.is_ok() && init_status.unwrap().success() {
-        info!(log, "Creating git repository...");
+        info!(log, "Initializing git repository...");
         std::process::Command::new("git")
             .arg("add")
             .current_dir(project_name)
@@ -263,6 +265,52 @@ fn write_files_from_entries<R: Sized + Read>(
             patch_file(log, &p, &v, dry_run)?;
         } else {
             create_file(log, p.as_path(), &v, dry_run)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn write_files_from_directory(
+    log: &Logger,
+    dir: &Path,
+    root: &Path,
+    dry_run: bool,
+    variables: &BTreeMap<String, String>,
+) -> DfxResult {
+    for entry in WalkDir::new(dir).into_iter().filter_map(Result::ok) {
+        let path = entry.path();
+
+        if path.is_dir() {
+            continue;
+        }
+
+        // Read file contents into a Vec<u8>
+        let file_content = dfx_core::fs::read(path)?;
+
+        // Process the file content (replace variables)
+        let processed_content = match String::from_utf8(file_content) {
+            Err(err) => err.into_bytes(),
+            Ok(s) => replace_variables(s, variables).into_bytes(),
+        };
+
+        // Perform path replacements
+        let relative_path = path
+            .strip_prefix(dir)?
+            .to_str()
+            .ok_or_else(|| anyhow!("Non-unicode path encountered: {}", path.display()))?;
+        let relative_path = replace_variables(relative_path.to_string(), variables);
+
+        // Build the final target path
+        let final_path = root.join(&relative_path);
+
+        // Process files based on their extension
+        if final_path.extension() == Some("json-patch".as_ref()) {
+            json_patch_file(log, &final_path, &processed_content, dry_run)?;
+        } else if final_path.extension() == Some("patch".as_ref()) {
+            patch_file(log, &final_path, &processed_content, dry_run)?;
+        } else {
+            create_file(log, &final_path, &processed_content, dry_run)?;
         }
     }
 
@@ -558,12 +606,14 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
     // Print welcome message.
     info!(
         log,
-        // This needs to be included here because we cannot use the result of a function for
-        // the format!() rule (and so it cannot be moved in the util::assets module).
-        include_str!("../../assets/welcome.txt"),
-        version_str,
-        assets::dfinity_logo(),
-        project_name_str
+        "===============================================================================
+        Welcome to the internet computer developer community!
+
+To learn more before you start coding, check out the developer docs and samples:
+
+- Documentation: https://internetcomputer.org/docs/current/developer-docs
+- Samples: https://internetcomputer.org/samples
+==============================================================================="
     );
 
     Ok(())
@@ -703,10 +753,15 @@ fn write_project_template_resources(
     dry_run: bool,
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
-    let mut resources = match template.resource_location {
-        ResourceLocation::Bundled { get_archive_fn } => get_archive_fn()?,
-    };
-    write_files_from_entries(logger, &mut resources, project_name, dry_run, variables)
+    match &template.resource_location {
+        ResourceLocation::Bundled { get_archive_fn } => {
+            let mut resources = get_archive_fn()?;
+            write_files_from_entries(logger, &mut resources, project_name, dry_run, variables)
+        }
+        ResourceLocation::Directory { path } => {
+            write_files_from_directory(logger, path, project_name, dry_run, variables)
+        }
+    }
 }
 
 fn get_opts_interactively(opts: NewOpts) -> DfxResult<NewOpts> {

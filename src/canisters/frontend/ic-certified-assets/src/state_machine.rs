@@ -26,6 +26,7 @@ use crate::{
 use candid::{CandidType, Deserialize, Int, Nat, Principal};
 use ic_certification::{AsHashTree, Hash};
 use ic_representation_independent_hash::Value;
+use itertools::fold;
 use num_traits::ToPrimitive;
 use serde::Serialize;
 use serde_bytes::ByteBuf;
@@ -81,6 +82,22 @@ pub struct AssetEncoding {
 }
 
 impl AssetEncoding {
+    fn estimate_size(&self) -> usize {
+        let mut size = 0;
+        size += 8; // modified
+        size += self.total_length + self.content_chunks.len() * 4;
+        size += 5; // total_length
+        size += 1; //  certified
+        size += self.sha256.len();
+        size += 1 + self
+            .certificate_expression
+            .as_ref()
+            .map_or(0, |ce| 2 + ce.expression.len() + ce.expression_hash.len());
+        size += 1 + self.response_hashes.as_ref().map_or(0, |hashes| {
+            hashes.iter().fold(2, |acc, (_k, v)| acc + 2 + v.len())
+        });
+        size
+    }
     fn asset_hash_path_v2(&self, path: &AssetPath, status_code: u16) -> Option<HashTreePath> {
         self.certificate_expression.as_ref().and_then(|ce| {
             self.response_hashes.as_ref().and_then(|hashes| {
@@ -205,6 +222,25 @@ pub struct Configuration {
     pub max_bytes: Option<u64>,
 }
 
+impl Configuration {
+    fn estimate_size(&self) -> usize {
+        1 + self
+            .max_batches
+            .as_ref()
+            .map_or(0, |_| std::mem::size_of::<u64>())
+            + 1
+            + self
+                .max_chunks
+                .as_ref()
+                .map_or(0, |_| std::mem::size_of::<u64>())
+            + 1
+            + self
+                .max_bytes
+                .as_ref()
+                .map_or(0, |_| std::mem::size_of::<u64>())
+    }
+}
+
 #[derive(Default)]
 pub struct State {
     assets: HashMap<AssetKey, Asset>,
@@ -231,6 +267,16 @@ pub struct StableStatePermissions {
     manage_permissions: BTreeSet<Principal>,
 }
 
+impl StableStatePermissions {
+    fn estimate_size(&self) -> usize {
+        8 + self.commit.len() * std::mem::size_of::<Principal>()
+            + 8
+            + self.prepare.len() * std::mem::size_of::<Principal>()
+            + 8
+            + self.manage_permissions.len() * std::mem::size_of::<Principal>()
+    }
+}
+
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct StableState {
     authorized: Vec<Principal>, // ignored if permissions is Some(_)
@@ -241,7 +287,46 @@ pub struct StableState {
     configuration: Option<Configuration>,
 }
 
+impl StableState {
+    pub fn estimate_size(&self) -> usize {
+        let mut size = 0;
+        size += 2 + self.authorized.len() * std::mem::size_of::<Principal>();
+        size += 1 + self.permissions.as_ref().map_or(0, |p| p.estimate_size());
+        size += self.stable_assets.iter().fold(2, |acc, (name, asset)| {
+            acc + 2 + name.len() + asset.estimate_size()
+        });
+        size += 1 + self.next_batch_id.as_ref().map_or(0, |_| 8);
+        size += 1 + self.configuration.as_ref().map_or(0, |c| c.estimate_size());
+        size
+    }
+}
+
 impl Asset {
+    fn estimate_size(&self) -> usize {
+        let mut size = 0;
+        size += 1 + self.content_type.len();
+        size += self.encodings.iter().fold(1, |acc, (name, encoding)| {
+            acc + 1 + name.len() + encoding.estimate_size()
+        });
+        size += 1 + self
+            .max_age
+            .as_ref()
+            .map_or(0, |_| std::mem::size_of::<u64>());
+        size += 1 + self.headers.as_ref().map_or(0, |hm| {
+            hm.iter()
+                .fold(2, |acc, (k, v)| acc + 1 + k.len() + 2 + v.len())
+        });
+        size += 1 + self
+            .is_aliased
+            .as_ref()
+            .map_or(0, |_| std::mem::size_of::<bool>());
+        size += 1 + self
+            .allow_raw_access
+            .as_ref()
+            .map_or(0, |_| std::mem::size_of::<bool>());
+        size
+    }
+
     fn allow_raw_access(&self) -> bool {
         self.allow_raw_access.unwrap_or(true)
     }
@@ -382,8 +467,8 @@ impl State {
         arg: SetAssetContentArguments,
         now: u64,
     ) -> Result<(), String> {
-        if arg.chunk_ids.is_empty() {
-            return Err("encoding must have at least one chunk".to_string());
+        if arg.chunk_ids.is_empty() && arg.last_chunk.is_none() {
+            return Err("encoding must have at least one chunk or contain last_chunk".to_string());
         }
 
         let dependent_keys = self.dependent_keys(&arg.key);
@@ -398,6 +483,9 @@ impl State {
         for chunk_id in arg.chunk_ids.iter() {
             let chunk = self.chunks.remove(chunk_id).expect("chunk not found");
             content_chunks.push(chunk.content);
+        }
+        if let Some(encoding_content) = arg.last_chunk {
+            content_chunks.push(encoding_content.into());
         }
 
         let sha256: [u8; 32] = match arg.sha256 {
@@ -606,20 +694,7 @@ impl State {
         chunks: Vec<ByteBuf>,
         now: u64,
     ) -> Result<Vec<ChunkId>, String> {
-        if let Some(max_chunks) = self.configuration.max_chunks {
-            if self.chunks.len() + chunks.len() > max_chunks as usize {
-                return Err("chunk limit exceeded".to_string());
-            }
-        }
-        if let Some(max_bytes) = self.configuration.max_bytes {
-            let current_total_bytes = &self.batches.iter().fold(0, |acc, (_batch_id, batch)| {
-                acc + batch.chunk_content_total_size
-            });
-            let new_bytes: usize = chunks.iter().map(|chunk| chunk.len()).sum();
-            if current_total_bytes + new_bytes > max_bytes as usize {
-                return Err("byte limit exceeded".to_string());
-            }
-        }
+        self.check_batch_limits(chunks.len(), chunks.iter().map(|chunk| chunk.len()).sum())?;
         let batch = self
             .batches
             .get_mut(&batch_id)
@@ -651,7 +726,54 @@ impl State {
         Ok(chunk_ids)
     }
 
+    fn check_batch_limits(&self, chunks_added: usize, bytes_added: usize) -> Result<(), String> {
+        if let Some(max_chunks) = self.configuration.max_chunks {
+            if self.chunks.len() + chunks_added > max_chunks as usize {
+                return Err("chunk limit exceeded".to_string());
+            }
+        }
+        if let Some(max_bytes) = self.configuration.max_bytes {
+            let current_total_bytes = &self.batches.iter().fold(0, |acc, (_batch_id, batch)| {
+                acc + batch.chunk_content_total_size
+            });
+            if current_total_bytes + bytes_added > max_bytes as usize {
+                return Err("byte limit exceeded".to_string());
+            }
+        }
+        Ok(())
+    }
+
+    /// Computes the data required to perform `self.check_batch_limits` against
+    /// the data carried in `last_chunk` fields.
+    fn compute_last_chunk_data(&self, arg: &CommitBatchArguments) -> (usize, usize) {
+        fold(
+            arg.operations.iter().map(|op| {
+                if let BatchOperation::SetAssetContent(SetAssetContentArguments {
+                    last_chunk: Some(content),
+                    // Chunks defined in `chunk_ids` are already accounted for and can be ignored here
+                    ..
+                }) = op
+                {
+                    Some(content.len())
+                } else {
+                    None
+                }
+            }),
+            (0, 0),
+            |(chunks_added, bytes_added), asset_len| {
+                if let Some(len) = asset_len {
+                    (chunks_added + 1, bytes_added + len)
+                } else {
+                    (chunks_added, bytes_added)
+                }
+            },
+        )
+    }
+
     pub fn commit_batch(&mut self, arg: CommitBatchArguments, now: u64) -> Result<(), String> {
+        let (chunks_added, bytes_added) = self.compute_last_chunk_data(&arg);
+        self.check_batch_limits(chunks_added, bytes_added)?;
+
         let batch_id = arg.batch_id;
         for op in arg.operations {
             match op {
