@@ -1056,7 +1056,7 @@ CHERRIES" "$stdout"
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/logo.png";accept_encodings=vec{"identity"}})'
   assert_match 'content_type = "image/png"'
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.js";accept_encodings=vec{"identity"}})'
-  assert_match 'content_type = "application/javascript"'
+  assert_match 'content_type = "text/javascript"'
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
   assert_match 'content_type = "text/plain"'
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/main.css";accept_encodings=vec{"identity"}})'

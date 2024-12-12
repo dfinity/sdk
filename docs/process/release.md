@@ -68,9 +68,9 @@ Once the beta releases are ready to be promoted:
 
 ## Stage 4: Draft PRs to prepare for promotion - day 3
 
-All following PRs should be created as "draft".
+The following three PRs should be created as "draft". Obtain approval, but do not merge them yet.
 
-Obtain approval, but do not merge them yet.
+The fourth PR (the one that updates the Motoko playground whitelist) needs to be merged and deployed before moving on to the next stage.
 
 ### Promote the release in [sdk](https://github.com/dfinity/sdk)
 
@@ -79,6 +79,7 @@ Obtain approval, but do not merge them yet.
     - Set `.tags.latest` to the new dfx version;
     - Remove the beta releases from the `versions` array;
 1. Open a PR from this branch to `master`;
+1. Obtain approval, but do not merge this PR yet.
 
 [Sample PR](https://github.com/dfinity/sdk/pull/3491)
 
@@ -90,29 +91,33 @@ Obtain approval, but do not merge them yet.
     1. Change to the sdk submodule: `cd submodules/sdk`
     1. Checkout the release branch, e.g. `git checkout release-0.18.0`
     1. Go back to project root and commit the submodule change.
+- Obtain approval, but do not merge this PR yet.
 
 [Sample PR](https://github.com/dfinity/portal/pull/2330)
+
+### Update the [examples](https://github.com/dfinity/examples) default dfx
+
+- Modify `DFX_VERSION` in these two files:
+    - [provision-darwin.sh](https://github.com/dfinity/examples/blob/master/.github/workflows/provision-darwin.sh)
+    - [provision-linux.sh](https://github.com/dfinity/examples/blob/master/.github/workflows/provision-linux.sh)
+- Obtain approval, but do not merge this PR yet.
+
+[Sample PR](https://github.com/dfinity/examples/pull/704)
 
 ### Update the [motoko-playground][motoko-playground] frontend canister hash whitelist
 
 - Click the "Run workflow" button on the [Broadcast Frontend Hash page](https://github.com/dfinity/sdk/actions/workflows/broadcast-frontend-hash.yml).
 - Fill "Release version of dfx" with the version of this release.
 - The workflow will create a PR in the [motoko-playground][motoko-playground] repo.
+- Merge and deploy this PR before the next stage.
 
 [Sample PR](https://github.com/dfinity/motoko-playground/pull/217)
 
 [motoko-playground]: https://github.com/dfinity/motoko-playground
 
-### Update the [examples](https://github.com/dfinity/examples) default dfx
-
-Modify `DFX_VERSION` in these two files:
-
-- [provision-darwin.sh](https://github.com/dfinity/examples/blob/master/.github/workflows/provision-darwin.sh)
-- [provision-linux.sh](https://github.com/dfinity/examples/blob/master/.github/workflows/provision-linux.sh)
-
-[Sample PR](https://github.com/dfinity/examples/pull/704)
-
 ## Stage 5: Promote the release - day 4
+
+* Precondition: Make sure `dfx deploy --playground` works with a project created by `dfx new`. This makes sure that the asset canister wasm is properly allowlisted in the playground backend.
 
 ### Update the GitHub release
 
@@ -121,11 +126,10 @@ Modify `DFX_VERSION` in these two files:
 
 ### Merge PRs
 
-Merge all 4 PRs created in the previous stage:
+Merge all 3 PRs created in the previous stage that have not been merged yet:
 
 - Promote the release
 - Update the portal
-- Update the motoko-playground
 - Update the examples
 
 ### Post to the forum

@@ -100,7 +100,7 @@ pub fn get_latest_version(
         .tags
         .get("latest")
         .ok_or_else(|| error_invalid_data!("expected field 'latest' in 'tags'"))
-        .map(|v| v.clone())
+        .cloned()
 }
 
 #[cfg(test)]

@@ -10,7 +10,7 @@
 
 This used to be a warning. A hard error can abort the command so that no insecure state will be on the mainnet.
 
-Users can surpress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
+Users can suppress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
 
 The warning won't display when executing commands like `dfx deploy --playground`.
 
@@ -48,6 +48,9 @@ Please top up your cycles balance by converting ICP to cycles like below:
 'dfx cycles convert --amount=0.123'.
 ```
 
+If users run `dfx deploy --playground` but the backend is not updated with the latest frontend canister wasm
+the error message will explain this properly and recommends asking for help on the forum since this can't be resolved by users.
+
 ### chore: improve `dfx cycles convert` messages.
 
 If users run `dfx cycles convert` without enough ICP tokens, show additional messages to indicate what to do next.
@@ -65,6 +68,16 @@ Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dn
 ```
 
 ## Dependencies
+
+### Frontend canister
+
+### fix: 'unreachable' error when trying to upgrade an asset canister with over 1GB data
+
+The asset canister now estimates the size of the data to be serialized to stable memory,
+and reserves that much space for the ValueSerializer's buffer.
+
+- Module hash: bba3181888f3c59b4a5f608aedef05be6fa37276fb7dc394cbadf9cf6e10359b
+- https://github.com/dfinity/sdk/pull/4036
 
 ### Motoko
 
