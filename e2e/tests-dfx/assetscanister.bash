@@ -209,7 +209,7 @@ check_permission_failure() {
     # commit batch without content: 1,978,870 bytes
     # commit batch with content: 2,889,392 bytes
     # change finalize_upload to always pass MAX_CHUNK_SIZE/2 to see this fail
-    dd if=/dev/random of=src/e2e_project_frontend/assets/$a bs=650 count=1
+    dd if=/dev/random of=src/e2e_project_frontend/assets/"$a" bs=650 count=1
   done
 
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
