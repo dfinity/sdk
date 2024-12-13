@@ -187,6 +187,31 @@ check_permission_failure() {
   assert_contains "cache-control: max-age=888"
 }
 
+@test "deploy --by-proposal lots of small assets should not overflow message limits" {
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity new prepare --storage-mode plaintext
+  assert_command dfx identity new commit --storage-mode plaintext
+  assert_command dfx identity use anonymous
+
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal --identity controller)
+  PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
+  COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
+
+  dfx_start
+  assert_command dfx deploy --identity controller
+
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity controller
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity controller
+
+  for a in $(seq 1 1000); do
+    dd if=/dev/random of=src/e2e_project_frontend/assets/$a bs=3000 count=1
+  done
+
+  assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
+  assert_contains "Proposed commit of batch 2 with evidence 164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1.  Either commit it by proposal, or delete it."
+
+}
+
 @test "deploy --by-proposal all assets" {
   assert_command dfx identity new controller --storage-mode plaintext
   assert_command dfx identity new prepare --storage-mode plaintext
