@@ -203,13 +203,17 @@ check_permission_failure() {
   assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity controller
   assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity controller
 
-  for a in $(seq 1 1000); do
-    dd if=/dev/random of=src/e2e_project_frontend/assets/$a bs=3000 count=1
+  for a in $(seq 1 1400); do
+    # 1400 files * ~1200 header bytes: 1,680,000 bytes
+    # 1400 files * 650 content bytes = 910,000 bytes: small enough that chunk uploader won't upload before finalize
+    # commit batch without content: 1,978,870 bytes
+    # commit batch with content: 2,889,392 bytes
+    # change finalize_upload to always pass MAX_CHUNK_SIZE/2 to see this fail
+    dd if=/dev/random of=src/e2e_project_frontend/assets/$a bs=650 count=1
   done
 
   assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
-  assert_contains "Proposed commit of batch 2 with evidence 164fcc4d933ff9992ab6ab909a4bf350010fa0f4a3e1e247bfc679d3f45254e1.  Either commit it by proposal, or delete it."
-
+  assert_match "Proposed commit of batch 2 with evidence [0-9a-z]*.  Either commit it by proposal, or delete it."
 }
 
 @test "deploy --by-proposal all assets" {
