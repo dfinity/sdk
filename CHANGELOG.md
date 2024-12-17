@@ -2,6 +2,19 @@
 
 # UNRELEASED
 
+### fix: `dfx deploy --by-proposal` no longer sends chunk data in ProposeCommitBatch
+
+Recently we made `dfx deploy` include some chunk data in CommitBatch, in order to streamline
+deploys for smaller projects. `dfx deploy` splits up larger change lists and submits them in
+smaller batches, in order to remain within message and compute limits.
+
+This change also applied to `dfx deploy --by-proposal`, which submits all changes in a single
+message. This made it more likely that `dfx deploy --by-proposal` will fail due to exceeding
+message limits.
+
+This fix makes it so `dfx deploy --by-proposal` never includes this chunk data in
+ProposeCommitBatch, which will allow for more changes before hitting message limits.
+
 ### feat: `dfx start --pocketic` supports `--force` and shared networks.
 
 `dfx start --pocketic` is now compatible with `--force` and shared networks.
