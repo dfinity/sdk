@@ -56,6 +56,9 @@ h1 {
   color: #333;
   text-align: center;
   margin: 0 0 1rem;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  width: 100%;
 
   &:empty {
     display: none;
