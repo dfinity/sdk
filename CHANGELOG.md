@@ -8,6 +8,19 @@
 an additional CLI argument `--impersonate` to specify a principal
 on behalf of which requests to a local PocketIC instance are sent.
 
+### fix: `dfx deploy --by-proposal` no longer sends chunk data in ProposeCommitBatch
+
+Recently we made `dfx deploy` include some chunk data in CommitBatch, in order to streamline
+deploys for smaller projects. `dfx deploy` splits up larger change lists and submits them in
+smaller batches, in order to remain within message and compute limits.
+
+This change also applied to `dfx deploy --by-proposal`, which submits all changes in a single
+message. This made it more likely that `dfx deploy --by-proposal` will fail due to exceeding
+message limits.
+
+This fix makes it so `dfx deploy --by-proposal` never includes this chunk data in
+ProposeCommitBatch, which will allow for more changes before hitting message limits.
+
 ### feat: `dfx start --pocketic` supports `--force` and shared networks.
 
 `dfx start --pocketic` is now compatible with `--force` and shared networks.
@@ -16,7 +29,7 @@ on behalf of which requests to a local PocketIC instance are sent.
 
 This used to be a warning. A hard error can abort the command so that no insecure state will be on the mainnet.
 
-Users can surpress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
+Users can suppress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
 
 The warning won't display when executing commands like `dfx deploy --playground`.
 
@@ -54,6 +67,9 @@ Please top up your cycles balance by converting ICP to cycles like below:
 'dfx cycles convert --amount=0.123'.
 ```
 
+If users run `dfx deploy --playground` but the backend is not updated with the latest frontend canister wasm
+the error message will explain this properly and recommends asking for help on the forum since this can't be resolved by users.
+
 ### chore: improve `dfx cycles convert` messages.
 
 If users run `dfx cycles convert` without enough ICP tokens, show additional messages to indicate what to do next.
@@ -72,9 +88,36 @@ Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dn
 
 ## Dependencies
 
+### Frontend canister
+
+### fix: 'unreachable' error when trying to upgrade an asset canister with over 1GB data
+
+The asset canister now estimates the size of the data to be serialized to stable memory,
+and reserves that much space for the ValueSerializer's buffer.
+
+- Module hash: bba3181888f3c59b4a5f608aedef05be6fa37276fb7dc394cbadf9cf6e10359b
+- https://github.com/dfinity/sdk/pull/4036
+
 ### Motoko
 
 Updated Motoko to [0.13.5](https://github.com/dfinity/motoko/releases/tag/0.13.5)
+
+### Replica
+
+Updated replica to elected commit 3e24396441e4c7380928d4e8b4ccff7de77d0e7e.
+This incorporates the following executed proposals:
+
+- [134497](https://dashboard.internetcomputer.org/proposal/134497)
+- [134408](https://dashboard.internetcomputer.org/proposal/134408)
+- [134337](https://dashboard.internetcomputer.org/proposal/134337)
+- [134336](https://dashboard.internetcomputer.org/proposal/134336)
+- [134259](https://dashboard.internetcomputer.org/proposal/134259)
+- [134251](https://dashboard.internetcomputer.org/proposal/134251)
+- [134250](https://dashboard.internetcomputer.org/proposal/134250)
+- [134188](https://dashboard.internetcomputer.org/proposal/134188)
+- [134187](https://dashboard.internetcomputer.org/proposal/134187)
+- [134186](https://dashboard.internetcomputer.org/proposal/134186)
+- [134185](https://dashboard.internetcomputer.org/proposal/134185)
 
 # 0.24.3
 

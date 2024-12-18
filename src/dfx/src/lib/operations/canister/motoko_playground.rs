@@ -1,5 +1,6 @@
+use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::{environment::Environment, error::DfxResult};
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::{encode_args, CandidType, Decode, Deserialize, Encode, Principal};
 use dfx_core::config::model::canister_id_store::AcquisitionDateTime;
 use dfx_core::config::model::network_descriptor::{
@@ -210,7 +211,16 @@ pub async fn playground_install_code(
         .update(&playground_canister, "installCode")
         .with_arg(encoded_arg.as_slice())
         .await
-        .context("install failed")?;
+        .map_err(|err| {
+            if is_asset_canister && err.to_string().contains("Wasm is not whitelisted") {
+                anyhow!(DiagnosedError {
+                    error_explanation: Some("The frontend canister wasm needs to be allowlisted in the playground but it isn't. This is a mistake in the release process.".to_string()),
+                    action_suggestion: Some("Please report this on forum.dfinity.org and mention your dfx version. You can get the version with 'dfx --version'.".to_string()),
+                })
+            } else {
+                anyhow!(err)
+            }
+        })?;
     let out = Decode!(&result, CanisterInfo)?;
     out.get_timestamp()
 }

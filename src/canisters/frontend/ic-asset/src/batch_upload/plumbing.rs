@@ -50,6 +50,12 @@ pub(crate) struct ProjectAsset {
     pub(crate) encodings: HashMap<String, ProjectAssetEncoding>,
 }
 
+#[derive(Debug, PartialEq)]
+pub enum Mode {
+    ByProposal,
+    NormalDeploy,
+}
+
 type IdMapping = BTreeMap<usize, Nat>;
 type UploadQueue = Vec<(usize, Vec<u8>)>;
 pub(crate) struct ChunkUploader<'agent> {
@@ -108,9 +114,17 @@ impl<'agent> ChunkUploader<'agent> {
     pub(crate) async fn finalize_upload(
         &self,
         semaphores: &Semaphores,
+        mode: Mode,
     ) -> Result<(), CreateChunkError> {
-        // Crude estimate: If `MAX_CHUNK_SIZE / 2` bytes are added as data to the `commit_batch` args the message won't be above the message size limit.
-        self.upload_chunks(MAX_CHUNK_SIZE / 2, semaphores).await
+        let max_retained_bytes = if mode == Mode::ByProposal {
+            // Never add data to the commit_batch args, because they have to fit in a single call.
+            0
+        } else {
+            // Crude estimate: If `MAX_CHUNK_SIZE / 2` bytes are added as data to the `commit_batch` args the message won't be above the message size limit.
+            MAX_CHUNK_SIZE / 2
+        };
+
+        self.upload_chunks(max_retained_bytes, semaphores).await
     }
 
     pub(crate) fn bytes(&self) -> usize {
@@ -412,6 +426,7 @@ pub(crate) async fn make_project_assets(
     chunk_upload_target: Option<&ChunkUploader<'_>>,
     asset_descriptors: Vec<AssetDescriptor>,
     canister_assets: &HashMap<String, AssetDetails>,
+    mode: Mode,
     logger: &Logger,
 ) -> Result<HashMap<String, ProjectAsset>, CreateProjectAssetError> {
     let semaphores = Semaphores::new();
@@ -430,11 +445,14 @@ pub(crate) async fn make_project_assets(
         .collect();
     let project_assets = try_join_all(project_asset_futures).await?;
     if let Some(uploader) = chunk_upload_target {
-        uploader.finalize_upload(&semaphores).await.map_err(|err| {
-            CreateProjectAssetError::CreateEncodingError(CreateEncodingError::CreateChunkFailed(
-                err,
-            ))
-        })?;
+        uploader
+            .finalize_upload(&semaphores, mode)
+            .await
+            .map_err(|err| {
+                CreateProjectAssetError::CreateEncodingError(
+                    CreateEncodingError::CreateChunkFailed(err),
+                )
+            })?;
     }
 
     let mut hm = HashMap::new();

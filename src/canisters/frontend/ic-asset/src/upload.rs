@@ -1,5 +1,6 @@
 use crate::asset::config::AssetConfig;
 use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
+use crate::batch_upload::plumbing::Mode::NormalDeploy;
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
@@ -49,6 +50,7 @@ pub async fn upload(
         Some(&chunk_upload_target),
         asset_descriptors,
         &canister_assets,
+        NormalDeploy,
         logger,
     )
     .await?;
