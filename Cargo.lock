@@ -4763,9 +4763,10 @@ dependencies = [
 
 [[package]]
 name = "pocket-ic"
-version = "5.0.0"
-source = "git+https://github.com/dfinity/ic?rev=a62848817cec7ae50618a87a526c85d020283fd9#a62848817cec7ae50618a87a526c85d020283fd9"
+version = "6.0.0"
+source = "git+https://github.com/dfinity/ic?rev=3e24396441e4c7380928d4e8b4ccff7de77d0e7e#3e24396441e4c7380928d4e8b4ccff7de77d0e7e"
 dependencies = [
+ "backoff",
  "base64 0.13.1",
  "candid",
  "hex",
@@ -4781,7 +4782,7 @@ dependencies = [
  "slog",
  "strum 0.26.3",
  "strum_macros 0.26.4",
- "thiserror 1.0.69",
+ "thiserror 2.0.6",
  "tokio",
  "tracing",
  "tracing-appender",
@@ -6669,6 +6670,7 @@ dependencies = [
  "sharded-slab",
  "smallvec",
  "thread_local",
+ "time",
  "tracing",
  "tracing-core",
  "tracing-log",
@@ -7116,7 +7118,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

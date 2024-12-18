@@ -96,6 +96,23 @@ and reserves that much space for the ValueSerializer's buffer.
 
 Updated Motoko to [0.13.5](https://github.com/dfinity/motoko/releases/tag/0.13.5)
 
+### Replica
+
+Updated replica to elected commit 3e24396441e4c7380928d4e8b4ccff7de77d0e7e.
+This incorporates the following executed proposals:
+
+- [134497](https://dashboard.internetcomputer.org/proposal/134497)
+- [134408](https://dashboard.internetcomputer.org/proposal/134408)
+- [134337](https://dashboard.internetcomputer.org/proposal/134337)
+- [134336](https://dashboard.internetcomputer.org/proposal/134336)
+- [134259](https://dashboard.internetcomputer.org/proposal/134259)
+- [134251](https://dashboard.internetcomputer.org/proposal/134251)
+- [134250](https://dashboard.internetcomputer.org/proposal/134250)
+- [134188](https://dashboard.internetcomputer.org/proposal/134188)
+- [134187](https://dashboard.internetcomputer.org/proposal/134187)
+- [134186](https://dashboard.internetcomputer.org/proposal/134186)
+- [134185](https://dashboard.internetcomputer.org/proposal/134185)
+
 # 0.24.3
 
 ### feat: Bitcoin support in PocketIC
