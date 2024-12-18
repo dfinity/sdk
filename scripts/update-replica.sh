@@ -35,7 +35,7 @@ niv update sns-x86_64-darwin -a rev="$SHA"
 niv update sns-x86_64-linux -a rev="$SHA"
 
 # pocket-ic client needs to be upgraded to the same SHA as the pocket-ic server
-perl -i.bak -pe "s/(pocket-ic = {[^}]*rev = \")[a-f0-9]+(\")/\1$SHA\2/" src/dfx/Cargo.toml
+perl -i.bak -pe "s/(pocket-ic = {[^}]*rev = \")[a-f0-9]+(\")/\${1}$SHA\${2}/" src/dfx/Cargo.toml
 cargo update -p pocket-ic # refresh the lock file
 
 echo "Writing asset sources"
