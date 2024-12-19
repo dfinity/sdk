@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: impersonating sender of requests to a local PocketIC instance
+
+`dfx canister call`, `dfx canister status`, and `dfx canister update-settings` take
+an additional CLI argument `--impersonate` to specify a principal
+on behalf of which requests to a local PocketIC instance are sent.
+
 ### fix: `dfx deploy --by-proposal` no longer sends chunk data in ProposeCommitBatch
 
 Recently we made `dfx deploy` include some chunk data in CommitBatch, in order to streamline
