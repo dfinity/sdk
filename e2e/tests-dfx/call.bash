@@ -387,7 +387,7 @@ function impersonate_sender() {
 @test "impersonate new random identity as sender" {
     [[ ! "$USE_POCKETIC" ]] && skip "skipped for replica: impersonating sender is only supported for PocketIC"
 
-    dfx identity new impersonated_identity
+    dfx identity new impersonated_identity --storage-mode plaintext
     IDENTITY_PRINCIPAL="$(dfx --identity impersonated_identity identity get-principal)"
     dfx identity remove impersonated_identity
 
