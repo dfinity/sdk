@@ -266,6 +266,7 @@ teardown() {
 }
 
 @test "dfx start honors replica port configuration" {
+  [[ "$USE_POCKETIC" ]] && skip 'skipped for pocketic: real replica port'
   create_networks_json
   replica_port=$(get_ephemeral_port)
   jq ".local.replica.port=$replica_port" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
