@@ -333,7 +333,7 @@ impl<'a> AgentEnvironment<'a> {
                         let url = format!("http://{}", socket_addr);
                         let url = Url::parse(&url)
                             .map_err(|e| UriError::UrlParseError(url.to_string(), e))?;
-                        Some(create_pocketic(&url)?)
+                        Some(create_pocketic(&url))
                     }
                     None => None,
                 }
@@ -455,8 +455,6 @@ pub fn create_agent(
     Ok(agent)
 }
 
-#[context("Failed to create PocketIC handle with url {}.", url)]
-pub fn create_pocketic(url: &Url) -> DfxResult<PocketIc> {
-    let pocketic = PocketIc::new_from_existing_instance(url.clone(), 0, None);
-    Ok(pocketic)
+pub fn create_pocketic(url: &Url) -> PocketIc {
+    PocketIc::new_from_existing_instance(url.clone(), 0, None)
 }
