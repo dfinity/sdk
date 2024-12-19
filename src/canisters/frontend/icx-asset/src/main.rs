@@ -94,6 +94,10 @@ struct SyncOpts {
     /// Do not delete files from the canister that are not present locally.
     #[arg(long)]
     no_delete: bool,
+
+    /// Suppress some security headers to ensure compatibility in all browsers over localhost.
+    #[arg(long)]
+    insecure_dev_mode: bool,
 }
 
 #[derive(Parser)]
@@ -103,6 +107,10 @@ struct UploadOpts {
 
     /// Files or folders to send.
     files: Vec<String>,
+
+    /// Suppress some security headers to ensure compatibility in all browsers over localhost.
+    #[arg(long)]
+    insecure_dev_mode: bool,
 }
 
 fn create_identity(maybe_pem: Option<PathBuf>) -> Box<dyn Identity + Sync + Send> {

@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: added a dev mode to `.ic-assets.json5`
+
+When uploading assets to a local dev replica, the `Strict-Transport-Security` header and the `upgrade-insecure-requests` directive of the `Content-Security-Policy` header will now be stripped out. This permits loading `http://` pages in Safari and other browsers that do not treat localhost specially for this directive.
+
+A new field in `.ic-assets.json5`, `disable_secure_headers_in_dev_mode`, can be set to `false` to disable this behavior.
+
 ### fix: `dfx deploy --by-proposal` no longer sends chunk data in ProposeCommitBatch
 
 Recently we made `dfx deploy` include some chunk data in CommitBatch, in order to streamline

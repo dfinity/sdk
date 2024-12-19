@@ -24,6 +24,7 @@ pub async fn upload(
     canister: &Canister<'_>,
     files: HashMap<String, PathBuf>,
     logger: &Logger,
+    insecure_dev_mode: bool,
 ) -> Result<(), UploadError> {
     let asset_descriptors: Vec<AssetDescriptor> = files
         .iter()
@@ -62,6 +63,7 @@ pub async fn upload(
         AssetDeletionReason::Incompatible,
         HashMap::new(),
         batch_id,
+        insecure_dev_mode,
     )
     .await
     .map_err(UploadError::AssembleCommitBatchArgumentFailed)?;
