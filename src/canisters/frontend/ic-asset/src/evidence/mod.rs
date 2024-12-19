@@ -56,8 +56,14 @@ pub async fn compute_evidence(
         logger,
         "Computing evidence for batch operations for assets in the project.",
     );
-    let project_assets =
-        make_project_assets(None, asset_descriptors, &canister_assets, logger).await?;
+    let project_assets = make_project_assets(
+        None,
+        asset_descriptors,
+        &canister_assets,
+        crate::batch_upload::plumbing::Mode::ByProposal,
+        logger,
+    )
+    .await?;
 
     let mut operations = assemble_batch_operations(
         None,

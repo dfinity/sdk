@@ -359,7 +359,7 @@ impl AssetConfig {
         }
 
         if other.encodings.is_some() {
-            self.encodings = other.encodings.clone();
+            self.encodings.clone_from(&other.encodings);
         }
 
         if other.security_policy.is_some() {
@@ -386,7 +386,7 @@ mod rule_utils {
     use crate::error::LoadRuleError;
     use globset::{Glob, GlobMatcher};
     use itertools::Itertools;
-    use serde::{Deserialize, Serializer};
+    use serde::{de::Error as _, Deserialize, Serializer};
     use serde_json::Value;
     use std::collections::BTreeMap;
     use std::fmt;
@@ -436,12 +436,29 @@ mod rule_utils {
     where
         D: serde::Deserializer<'de>,
     {
-        match serde_json::value::Value::deserialize(deserializer)? {
-            Value::Object(v) => Ok(Maybe::Value(
-                v.into_iter()
-                    .map(|(k, v)| (k, v.to_string().trim_matches('"').to_string()))
-                    .collect::<BTreeMap<String, String>>(),
-            )),
+        match Value::deserialize(deserializer)? {
+            Value::Object(v) => {
+                Ok(Maybe::Value(
+                    v.into_iter()
+                        .map(|(k, v)| {
+                            Ok((
+                                k,
+                                match v {
+                                    Value::Bool(b) => b.to_string(),
+                                    Value::Number(n) => n.to_string(),
+                                    Value::String(s) => s, // v.to_string() would json-escape this
+                                    Value::Null => String::new(),
+                                    v => {
+                                        return Err(D::Error::custom(format!(
+                                            "headers must be strings, numbers, or bools (was {v:?})"
+                                        )))
+                                    }
+                                },
+                            ))
+                        })
+                        .collect::<Result<BTreeMap<String, String>, D::Error>>()?,
+                ))
+            }
             Value::Null => Ok(Maybe::Null),
             _ => Err(serde::de::Error::custom(
                 "wrong data format for field `headers` (only map or null are allowed)",

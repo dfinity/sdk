@@ -8,13 +8,116 @@ When uploading assets to a local dev replica, the `Strict-Transport-Security` he
 
 A new field in `.ic-assets.json5`, `disable_secure_headers_in_dev_mode`, can be set to `false` to disable this behavior.
 
+### fix: `dfx deploy --by-proposal` no longer sends chunk data in ProposeCommitBatch
+
+Recently we made `dfx deploy` include some chunk data in CommitBatch, in order to streamline
+deploys for smaller projects. `dfx deploy` splits up larger change lists and submits them in
+smaller batches, in order to remain within message and compute limits.
+
+This change also applied to `dfx deploy --by-proposal`, which submits all changes in a single
+message. This made it more likely that `dfx deploy --by-proposal` will fail due to exceeding
+message limits.
+
+This fix makes it so `dfx deploy --by-proposal` never includes this chunk data in
+ProposeCommitBatch, which will allow for more changes before hitting message limits.
+
+### feat: `dfx start --pocketic` supports `--force` and shared networks.
+
+`dfx start --pocketic` is now compatible with `--force` and shared networks.
+
 ### feat: error when using insecure identity on mainnet
 
 This used to be a warning. A hard error can abort the command so that no insecure state will be on the mainnet.
 
-Users can surpress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
+Users can suppress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
 
 The warning won't display when executing commands like `dfx deploy --playground`.
+
+### feat: support `--replica` in `dfx start`
+
+Added a flag `--replica` to `dfx start`. This flag currently has no effect.
+Once PocketIC becomes the default for `dfx start` this flag will start the replica instead.
+You can use the `--replica` flag already to write scripts that anticipate that change.
+
+### feat: extensions can define project templates
+
+An extension can define one or more project templates for `dfx new` to use.
+These can be new templates or replace the built-in project templates.
+
+### fix: all commands with --all parameter skip remote canisters
+
+This affects the following commands:
+- `dfx canister delete`
+- `dfx canister deposit-cycles`
+- `dfx canister start`
+- `dfx canister status`
+- `dfx canister stop`
+- `dfx canister uninstall-code`
+- `dfx canister update-settings`
+- `dfx ledger fabricate-cycles`
+
+### chore: improve `dfx deploy` messages.
+
+If users run `dfx deploy` without enough cycles, show additional messages to indicate what to do next.
+```
+Error explanation:
+Insufficient cycles balance to create the canister.
+How to resolve the error:
+Please top up your cycles balance by converting ICP to cycles like below:
+'dfx cycles convert --amount=0.123'.
+```
+
+If users run `dfx deploy --playground` but the backend is not updated with the latest frontend canister wasm
+the error message will explain this properly and recommends asking for help on the forum since this can't be resolved by users.
+
+### chore: improve `dfx cycles convert` messages.
+
+If users run `dfx cycles convert` without enough ICP tokens, show additional messages to indicate what to do next.
+```
+Error explanation:
+Insufficient ICP balance to finish the transfer transaction.
+How to resolve the error:
+Please top up your ICP balance.
+
+Your account address for receiving ICP from centralized exchanges: 8494c01329531c06254ff45dad87db806ae6ed935ad6a504cdbc00a935db7b49
+(run `dfx ledger account-id` to display)
+
+Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dnrh3-rsyq6-ffned-h64ox-vxywi-gzawf-ot4pv-sqe
+(run `dfx identity get-principal` to display)
+```
+
+## Dependencies
+
+### Frontend canister
+
+### fix: 'unreachable' error when trying to upgrade an asset canister with over 1GB data
+
+The asset canister now estimates the size of the data to be serialized to stable memory,
+and reserves that much space for the ValueSerializer's buffer.
+
+- Module hash: bba3181888f3c59b4a5f608aedef05be6fa37276fb7dc394cbadf9cf6e10359b
+- https://github.com/dfinity/sdk/pull/4036
+
+### Motoko
+
+Updated Motoko to [0.13.5](https://github.com/dfinity/motoko/releases/tag/0.13.5)
+
+### Replica
+
+Updated replica to elected commit 3e24396441e4c7380928d4e8b4ccff7de77d0e7e.
+This incorporates the following executed proposals:
+
+- [134497](https://dashboard.internetcomputer.org/proposal/134497)
+- [134408](https://dashboard.internetcomputer.org/proposal/134408)
+- [134337](https://dashboard.internetcomputer.org/proposal/134337)
+- [134336](https://dashboard.internetcomputer.org/proposal/134336)
+- [134259](https://dashboard.internetcomputer.org/proposal/134259)
+- [134251](https://dashboard.internetcomputer.org/proposal/134251)
+- [134250](https://dashboard.internetcomputer.org/proposal/134250)
+- [134188](https://dashboard.internetcomputer.org/proposal/134188)
+- [134187](https://dashboard.internetcomputer.org/proposal/134187)
+- [134186](https://dashboard.internetcomputer.org/proposal/134186)
+- [134185](https://dashboard.internetcomputer.org/proposal/134185)
 
 # 0.24.3
 
@@ -47,9 +150,9 @@ Allow setting permissions lists in init arguments just like in upgrade arguments
 - Module hash: f45db224b40fac516c877e3108dc809d4b22fa42d05ee8dfa5002536a3a3daed
 - Bump agent-js to fix error code
 
-### chore!: improve the messages for the subcommands of `dfx cycles`.
+### chore!: improve the messages for the subcommands of `dfx cycles` and `dfx ledger`.
 
-If users run subcommands of `dfx cycles` without the `--ic` flag, show below messages to indicate what to do next.
+If users run subcommands of `dfx cycles` or `dfx ledger` without the `--ic` flag, show below messages to indicate what to do next.
 ```
 Error explanation:
 Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' is not installed.
@@ -69,7 +172,7 @@ You must open a new terminal to continue developing. If you'd prefer to stop, qu
 
 ### Motoko
 
-Updated Motoko to [0.13.3](https://github.com/dfinity/motoko/releases/tag/0.13.3)
+Updated Motoko to [0.13.4](https://github.com/dfinity/motoko/releases/tag/0.13.4)
 
 ### Replica
 

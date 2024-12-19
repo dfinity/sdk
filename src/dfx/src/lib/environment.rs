@@ -61,7 +61,7 @@ pub trait Environment {
     }
 
     // Explicit lifetimes are actually needed for mockall to work properly.
-    #[allow(clippy::needless_lifetimes)]
+    #[allow(clippy::needless_lifetimes, unused)]
     fn log<'a>(&self, record: &Record<'a>) {
         self.get_logger().log(record);
     }
@@ -418,7 +418,7 @@ pub fn create_agent(
         .with_url(url)
         .with_boxed_identity(identity)
         .with_verify_query_signatures(!disable_query_verification)
-        .with_ingress_expiry(Some(timeout))
+        .with_ingress_expiry(timeout)
         .build()?;
     Ok(agent)
 }

@@ -6,7 +6,9 @@ use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_log_visibility, get_memory_allocation,
     get_reserved_cycles_limit, get_wasm_memory_limit, CanisterSettings,
 };
-use crate::lib::operations::canister::{get_canister_status, update_settings};
+use crate::lib::operations::canister::{
+    get_canister_status, skip_remote_canister, update_settings,
+};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
@@ -220,8 +222,12 @@ pub async fn exec(
         // Update all canister settings.
         let config = env.get_config_or_anyhow()?;
         let config_interface = config.get_config();
+
         if let Some(canisters) = &config_interface.canisters {
             for canister_name in canisters.keys() {
+                if skip_remote_canister(env, canister_name)? {
+                    continue;
+                }
                 let mut controllers = controllers.clone();
                 let canister_id = canister_id_store.get(canister_name)?;
                 let compute_allocation = get_compute_allocation(
