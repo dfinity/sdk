@@ -1,4 +1,4 @@
-name: playwright-svelte
+name: Playwright Svelte Tests
 on:
   push:
     branches:
@@ -20,53 +20,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
-    outputs:
-      sources: ${{ steps.filter.outputs.sources }}
     steps:
       - uses: actions/checkout@v4
         if: github.event_name == 'push'
-      - uses: dorny/paths-filter@v3
-        id: filter
-        with:
-          filters: |
-            sources:
-              - .github/workflows/e2e.yml
-              - e2e/**
-              - scripts/workflows/e2e-matrix.py
-              - scripts/workflows/provision-darwin.sh
-              - scripts/workflows/provision-linux.sh
-              - scripts/test-uis.py
-              - src/canisters/frontend/**
-              - src/dfx/**
-              - src/dfx-core/**
-              - src/distributed/**
-              - src/lib/**
-              - Cargo.lock
-              - Cargo.toml
-              - rust-toolchain.toml
   build_dfx:
-    if: needs.changes.outputs.sources == 'true'
     needs: changes
     runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        # We build a dynamic-linked linux binary because otherwise HSM support fails with:
-        #   Error: IO: Dynamic loading not supported
-        os: [macos-13-large, ubuntu-20.04, ubuntu-22.04, windows-2022]
-        include:
-          - os: macos-13-large
-            target: x86_64-apple-darwin
-            binary_path: target/x86_64-apple-darwin/release/dfx
-          - os: ubuntu-20.04
-            target: x86_64-unknown-linux-gnu
-            binary_path: target/x86_64-unknown-linux-gnu/release/dfx
-          - os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            binary_path: target/x86_64-unknown-linux-gnu/release/dfx
-          - os: windows-2022
-            target: x86_64-pc-windows-msvc
-            binary_path: target\x86_64-pc-windows-msvc\release\dfx.exe
     steps:
       - uses: actions/checkout@v4
         with:
@@ -74,30 +33,13 @@ jobs:
       - name: Setup environment variables
         run: |
           echo "RUSTFLAGS=--remap-path-prefix=${GITHUB_WORKSPACE}=/builds/dfinity" >> $GITHUB_ENV
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ matrix.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}-${{ hashFiles('rust-toolchain.toml') }}-1
-      - name: Build
-        run: |
-          cargo build --target ${{ matrix.target }} --locked --release
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dfx-${{ matrix.os }}-rs-${{ hashFiles('rust-toolchain.toml') }}
-          path: ${{ matrix.binary_path }}
+      
 
   test:
     runs-on: ${{ matrix.os }}
-    if: needs.changes.outputs.sources == 'true'
     needs: [changes, build_dfx]
     strategy:
       fail-fast: false
-      matrix: ${{fromJson(needs.list_tests.outputs.matrix)}}
     env:
       E2E_TEST: tests-${{ matrix.test }}.bash
     steps:
@@ -137,7 +79,6 @@ jobs:
 
   ui_test:
     runs-on: ${{ matrix.os }}
-    if: needs.changes.outputs.sources == 'true'
     needs: [changes, build_dfx]
     strategy:
       fail-fast: false
@@ -165,5 +106,17 @@ jobs:
       - name: Deploy default dfx project
         run: |
           dfx new e2e_project
-          cd e2e_project
+          pushd e2e_project
           dfx start --background --clean
+          dfx deploy
+          popd
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      - name: Run Playwright tests
+        run: npx playwright test

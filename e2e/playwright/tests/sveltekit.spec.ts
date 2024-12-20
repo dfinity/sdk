@@ -11,9 +11,14 @@ test("image has loaded", async ({ page }) => {
   await page.goto("http://br5f7-7uaaa-aaaaa-qaaca-cai.localhost:4943/");
 
   // Set the attribute so we can read it
-  await page.evaluate(() => {
-    document.querySelectorAll("img").forEach((img) => {
-      img.setAttribute("complete", String(img.complete));
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve) => {
+      setTimeout(() => {
+        document.querySelectorAll("img").forEach((img) => {
+          img.setAttribute("complete", String(img.complete));
+        });
+        resolve();
+      }, 1_000);
     });
   });
 
