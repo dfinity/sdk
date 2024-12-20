@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### fix: template frontends now have unsupported browser warnings
+
+DFX's default security headers cause Safari to break when viewing local canisters. Warning messages
+have been added to the frontend project templates when the page is broken that indicate to try switching
+browsers.
+
 ### fix: `dfx deploy --by-proposal` no longer sends chunk data in ProposeCommitBatch
 
 Recently we made `dfx deploy` include some chunk data in CommitBatch, in order to streamline
