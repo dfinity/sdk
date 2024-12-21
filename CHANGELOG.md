@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### test: adds playwright test for svelte `dfx new` project
+
+The first of several tests to automate testing starter projects are compatible with other dfx or asset canister changes.
+
 ### fix: `dfx deploy --by-proposal` no longer sends chunk data in ProposeCommitBatch
 
 Recently we made `dfx deploy` include some chunk data in CommitBatch, in order to streamline
