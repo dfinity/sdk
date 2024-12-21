@@ -39,8 +39,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
-      - name: Setup dfx binary
-        run: chmod +x /usr/local/bin/dfx
       - name: Provision Linux
         run: bash scripts/workflows/provision-linux.sh || bash scripts/workflows/provision-linux.sh
       - name: Prepare environment
@@ -60,9 +58,10 @@ jobs:
           playwright install-deps
       - name: Deploy default dfx project
         run: |
-          dfx new e2e_project
+          dfx new e2e_project --frontend sveltekit
           pushd e2e_project
           dfx start --background --clean
+          dfx canister create e2e_project_frontend --specified-id br5f7-7uaaa-aaaaa-qaaca-cai
           dfx deploy
           popd
       - name: Install dependencies
