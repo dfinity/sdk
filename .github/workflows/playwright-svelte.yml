@@ -47,6 +47,15 @@ jobs:
           echo "assets=$(pwd)/e2e/assets" >> "$GITHUB_ENV"
           echo "utils=$(pwd)/e2e/utils" >> "$GITHUB_ENV"
           export
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all-features
+      - name: Build dfx
+        run: cargo build --bin dfx
       - name: Setting up Python
         uses: actions/setup-python@v5
         with:
@@ -58,11 +67,11 @@ jobs:
           playwright install-deps
       - name: Deploy default dfx project
         run: |
-          dfx new e2e_project --frontend sveltekit
+          ./target/debug/dfx new e2e_project --frontend sveltekit
           pushd e2e_project
-          dfx start --background --clean
-          dfx canister create e2e_project_frontend --specified-id br5f7-7uaaa-aaaaa-qaaca-cai
-          dfx deploy
+          ./target/debug/dfx start --background --clean
+          ./target/debug/dfx canister create e2e_project_frontend --specified-id br5f7-7uaaa-aaaaa-qaaca-cai
+          ./target/debug/dfx deploy
           popd
       - name: Install dependencies
         run: npm ci
