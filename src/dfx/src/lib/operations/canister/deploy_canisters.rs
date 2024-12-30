@@ -277,6 +277,7 @@ async fn register_canisters(
                     freezing_threshold,
                     reserved_cycles_limit,
                     wasm_memory_limit,
+                    wasm_memory_threshold: None,
                     log_visibility,
                 },
                 created_at_time,
