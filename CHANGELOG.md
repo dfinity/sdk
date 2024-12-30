@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: `dfx canister [create|update-settings] --wasm-memory-threshold`
+
+This adds support for the WASM memory threshold, used in conjunction with `--wasm-memory-limit`.
+When the remaining memory until the limit falls below the threshold, the canister's
+`on_low_wasm_memory` handler is run.
+
 ### fix: `dfx deploy --by-proposal` no longer sends chunk data in ProposeCommitBatch
 
 Recently we made `dfx deploy` include some chunk data in CommitBatch, in order to streamline
