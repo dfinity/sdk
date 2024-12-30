@@ -1,8 +1,8 @@
 use crate::error::config::{ConfigError, GetTempPathError};
 use crate::error::fs::ReadToStringError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError;
+use crate::error::structured_file::StructuredFileError;
 use crate::error::uri::UriError;
-
 use candid::types::principal::PrincipalError;
 use std::num::ParseIntError;
 use std::path::PathBuf;
@@ -27,6 +27,9 @@ pub enum NetworkConfigError {
 
     #[error(transparent)]
     GetTempPath(#[from] GetTempPathError),
+
+    #[error(transparent)]
+    LoadNetworkId(StructuredFileError),
 
     #[error("Network '{0}' does not specify any network providers.")]
     NetworkHasNoProviders(String),

@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ens/sdk-1918-wallet-with-backend
   pull_request:
 
 concurrency:
