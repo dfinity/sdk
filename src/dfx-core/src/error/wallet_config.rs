@@ -16,6 +16,9 @@ pub enum WalletConfigError {
 
     #[error("Failed to save wallet configuration")]
     SaveWalletConfig(#[from] SaveWalletConfigError),
+
+    #[error("cannot use a wallet before dfx start")]
+    NoWalletBeforeDfxStart,
 }
 
 #[derive(Error, Debug)]

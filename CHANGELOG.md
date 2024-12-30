@@ -63,6 +63,11 @@ Implement `dfx ledger allowance` subcommand that complies with the [ICRC-2](http
 - Add VetKD types and methods to management canister IDL
 - The VetKD test key id `Bls12_381_G2:dfx_test_key` is now enabled when starting `dfx` with `--replica`.
 
+### fix: dfx will no longer try to use a nonexistent wallet after changing backend settings without --clean
+
+After running `dfx start` with different options, dfx would try to use a wallet that was created
+on a previous run, which would fail. Now, dfx will create a new wallet if the settings have changed.
+
 ## Dependencies
 
 ### Motoko
