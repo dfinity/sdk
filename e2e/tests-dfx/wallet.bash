@@ -225,6 +225,18 @@ teardown() {
   assert_match "There is no wallet defined for identity 'default' on network 'local'.  Nothing to do."
 }
 
+@test "creates new wallet if backend changes" {
+  dfx_new hello
+
+  dfx_start --artificial-delay 101
+  dfx deploy
+
+  dfx_stop
+
+  dfx_start --artificial-delay 99
+  dfx deploy
+}
+
 @test "redeem-faucet-coupon can set a new wallet and top up an existing one" {
   dfx_new hello
   dfx_start
