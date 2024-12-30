@@ -73,7 +73,7 @@ teardown() {
   assert_command dfx canister status e2e_project_backend
   assert_contains "Wasm memory threshold: 1_048_576 Bytes"
   assert_command dfx canister call e2e_project_backend greet_update '("alice")'
-  sleep 10ms
+  sleep 0.01s
   assert_command dfx canister logs e2e_project_backend
   assert_contains "Low memory!"
 }
