@@ -216,6 +216,7 @@ async fn create_with_management_canister(
         .with_optional_freezing_threshold(settings.freezing_threshold)
         .with_optional_reserved_cycles_limit(settings.reserved_cycles_limit)
         .with_optional_wasm_memory_limit(settings.wasm_memory_limit)
+        .with_optional_wasm_memory_threshold(settings.wasm_memory_threshold)
         .with_optional_log_visibility(settings.log_visibility)
         .await;
     const NEEDS_WALLET: &str = "In order to create a canister on this network, you must use a wallet in order to allocate cycles to the new canister. \

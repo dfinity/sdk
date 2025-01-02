@@ -304,6 +304,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dde20b3d026af13f561bdd0f15edf01fc734f0dafcedbaf42bba506a9517f223"
 
 [[package]]
+name = "arc-swap"
+version = "1.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
+
+[[package]]
 name = "argon2"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -350,6 +356,17 @@ name = "assert_matches"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
+
+[[package]]
+name = "async-channel"
+version = "1.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81953c529336010edd6d8e358f886d9581267795c61b19475b71314bffa46d35"
+dependencies = [
+ "concurrent-queue",
+ "event-listener 2.5.3",
+ "futures-core",
+]
 
 [[package]]
 name = "async-io"
@@ -400,6 +417,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.90",
+]
+
+[[package]]
+name = "async-watch"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a078faf4e27c0c6cc0efb20e5da59dcccc04968ebf2801d8e0b2195124cdcdb2"
+dependencies = [
+ "event-listener 2.5.3",
 ]
 
 [[package]]
@@ -1582,7 +1608,7 @@ dependencies = [
  "ic-asset",
  "ic-cdk",
  "ic-identity-hsm",
- "ic-utils 0.39.0",
+ "ic-utils 0.39.2",
  "ic-wasm",
  "icrc-ledger-types",
  "idl2json",
@@ -1657,7 +1683,7 @@ dependencies = [
  "humantime-serde",
  "ic-agent",
  "ic-identity-hsm",
- "ic-utils 0.39.0",
+ "ic-utils 0.39.2",
  "itertools 0.10.5",
  "k256 0.11.6",
  "keyring",
@@ -2732,12 +2758,14 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.39.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "158138fcb769fe6288e63d5db221c904e472cfb7d376aba13a38c060f2984e63"
+version = "0.39.2"
+source = "git+https://github.com/dfinity/agent-rs?rev=0a51f2a65dde7d9e1790c378bd60e1768e3be257#0a51f2a65dde7d9e1790c378bd60e1768e3be257"
 dependencies = [
+ "arc-swap",
+ "async-channel",
  "async-lock 3.4.0",
  "async-trait",
+ "async-watch",
  "backoff",
  "cached 0.52.0",
  "candid",
@@ -2749,8 +2777,8 @@ dependencies = [
  "hex",
  "http 1.2.0",
  "http-body 1.0.1",
- "ic-certification 2.6.0",
- "ic-transport-types 0.39.1",
+ "ic-certification 3.0.2",
+ "ic-transport-types 0.39.2",
  "ic-verify-bls-signature",
  "k256 0.13.4",
  "leb128",
@@ -2767,7 +2795,8 @@ dependencies = [
  "serde_repr",
  "sha2 0.10.8",
  "simple_asn1",
- "thiserror 1.0.69",
+ "stop-token",
+ "thiserror 2.0.6",
  "time",
  "tokio",
  "tower-service",
@@ -2789,7 +2818,7 @@ dependencies = [
  "globset",
  "hex",
  "ic-agent",
- "ic-utils 0.39.0",
+ "ic-utils 0.39.2",
  "itertools 0.10.5",
  "json5",
  "mime",
@@ -2926,6 +2955,18 @@ name = "ic-certification"
 version = "2.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e64ee3d8b6e81b51f245716d3e0badb63c283c00f3c9fb5d5219afc30b5bf821"
+dependencies = [
+ "hex",
+ "serde",
+ "serde_bytes",
+ "sha2 0.10.8",
+]
+
+[[package]]
+name = "ic-certification"
+version = "3.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9eae40f26fcac9c141cad54d9aa5f423efffde78ac371057c53d275ebbcad443"
 dependencies = [
  "hex",
  "serde",
@@ -3176,16 +3217,15 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.39.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8722411845f0a4b2c526b906049d45f87c62c78ddf1c38ecdc03ecbd34ffc1d6"
+version = "0.39.2"
+source = "git+https://github.com/dfinity/agent-rs?rev=0a51f2a65dde7d9e1790c378bd60e1768e3be257#0a51f2a65dde7d9e1790c378bd60e1768e3be257"
 dependencies = [
  "hex",
  "ic-agent",
  "pkcs11",
  "sha2 0.10.8",
  "simple_asn1",
- "thiserror 1.0.69",
+ "thiserror 2.0.6",
 ]
 
 [[package]]
@@ -3294,20 +3334,19 @@ dependencies = [
 
 [[package]]
 name = "ic-transport-types"
-version = "0.39.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d8789a5c176bb1b925fa58ca97c651a3995d504e76101e93d2a17f558bdcf66"
+version = "0.39.2"
+source = "git+https://github.com/dfinity/agent-rs?rev=0a51f2a65dde7d9e1790c378bd60e1768e3be257#0a51f2a65dde7d9e1790c378bd60e1768e3be257"
 dependencies = [
  "candid",
  "hex",
- "ic-certification 2.6.0",
+ "ic-certification 3.0.2",
  "leb128",
  "serde",
  "serde_bytes",
  "serde_cbor",
  "serde_repr",
  "sha2 0.10.8",
- "thiserror 1.0.69",
+ "thiserror 2.0.6",
 ]
 
 [[package]]
@@ -3365,9 +3404,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.39.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb1da4a68c45146018b8496c157ad94126b9c202ab4400c6c0a9030c1ef0f0ba"
+version = "0.39.2"
+source = "git+https://github.com/dfinity/agent-rs?rev=0a51f2a65dde7d9e1790c378bd60e1768e3be257#0a51f2a65dde7d9e1790c378bd60e1768e3be257"
 dependencies = [
  "async-trait",
  "candid",
@@ -3380,7 +3418,7 @@ dependencies = [
  "sha2 0.10.8",
  "strum 0.26.3",
  "strum_macros 0.26.4",
- "thiserror 1.0.69",
+ "thiserror 2.0.6",
  "time",
  "tokio",
 ]
@@ -3617,7 +3655,7 @@ dependencies = [
  "humantime",
  "ic-agent",
  "ic-asset",
- "ic-utils 0.39.0",
+ "ic-utils 0.39.2",
  "libflate 1.4.0",
  "num-traits",
  "pem 1.1.1",
@@ -6080,6 +6118,18 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
+name = "stop-token"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af91f480ee899ab2d9f8435bfdfc14d08a5754bd9d3fef1f1a1c23336aad6c8b"
+dependencies = [
+ "async-channel",
+ "cfg-if",
+ "futures-core",
+ "pin-project-lite",
+]
 
 [[package]]
 name = "string_cache"
