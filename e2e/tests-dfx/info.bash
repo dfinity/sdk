@@ -22,7 +22,7 @@ teardown() {
   assert_command dfx info replica-port
   if [[ "$USE_POCKETIC" ]]
   then
-    assert_eq "$(get_pocketic_port)"
+    assert_eq "$(get_webserver_port)"
   else
     assert_eq "$(get_replica_port)"
   fi
