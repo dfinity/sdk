@@ -321,7 +321,7 @@ async fn delete_canister(
     }
 
     if let Some(canister_name) = canister_name_to_delete {
-        canister_id_store.remove(&canister_name)?;
+        canister_id_store.remove(log, &canister_name)?;
     }
 
     Ok(())

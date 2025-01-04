@@ -213,6 +213,7 @@ The command line value will be used.",
             )
             .await?;
             canister_id_store.add(
+                log,
                 canister_info.get_name(),
                 &canister_id.to_string(),
                 Some(new_timestamp),
