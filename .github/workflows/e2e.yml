@@ -222,6 +222,23 @@ jobs:
             --frontend_url "$FRONTEND_URL_LOCALHOST" \
             --candid_url "$CANDID_URL_LOCALHOST" \
             --browser chromium firefox webkit
+            - name: Deploy default dfx project
+      - name: Deploy sveltekit starter project
+        run: |
+          ./target/debug/dfx new e2e_project --frontend sveltekit
+          pushd e2e_project
+          ./target/debug/dfx start --background --clean
+          ./target/debug/dfx canister create e2e_project_frontend --specified-id br5f7-7uaaa-aaaaa-qaaca-cai
+          ./target/debug/dfx deploy
+          popd
+      # Add any additional deployments here
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps
+      # Runs all playwright tests
+      - name: Run Playwright tests
+        run: npx playwright test
 
   aggregate:
     name: e2e:required
