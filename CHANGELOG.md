@@ -92,6 +92,10 @@ Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dn
 (run `dfx identity get-principal` to display)
 ```
 
+### feat: Add pre-install tasks
+
+Add pre-install tasks, which can be defined by the new `pre-install` key for canister objects in `dfx.json` with a command or list of commands.
+
 ## Dependencies
 
 ### Frontend canister
