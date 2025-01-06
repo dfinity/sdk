@@ -224,10 +224,10 @@ jobs:
             --browser chromium firefox webkit
       - name: Deploy sveltekit starter project
         run: |
-          dfx new e2e_project --frontend sveltekit
-          pushd e2e_project
+          dfx new e2e_project_sveltekit --frontend sveltekit
+          pushd e2e_project_sveltekit
           dfx start --background --clean
-          dfx canister create e2e_project_frontend --specified-id br5f7-7uaaa-aaaaa-qaaca-cai
+          dfx canister create e2e_project_sveltekit_frontend --specified-id br5f7-7uaaa-aaaaa-qaaca-cai
           dfx deploy
           popd
       # Add any additional deployments here
