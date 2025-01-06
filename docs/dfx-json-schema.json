@@ -496,6 +496,16 @@
             }
           ]
         },
+        "pre_install": {
+          "title": "Pre-Install Commands",
+          "description": "One or more commands to run pre canister installation. These commands are executed in the root of the project.",
+          "default": [],
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
+            }
+          ]
+        },
         "pullable": {
           "title": "Pullable",
           "description": "Defines required properties so that this canister is ready for `dfx deps pull` by other projects.",
