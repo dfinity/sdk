@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: impersonating sender of requests to a local PocketIC instance
+
+`dfx canister call`, `dfx canister status`, and `dfx canister update-settings` take
+an additional CLI argument `--impersonate` to specify a principal
+on behalf of which requests to a local PocketIC instance are sent.
+
 ### feat: `dfx canister [create|update-settings] --wasm-memory-threshold`
 
 This adds support for the WASM memory threshold, used in conjunction with `--wasm-memory-limit`.
