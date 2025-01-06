@@ -359,16 +359,6 @@ function impersonate_sender() {
     assert_command dfx canister call aaaaa-aa canister_status "(record { canister_id=principal\"$CANISTER_ID\" })" --async --impersonate "${IDENTITY_PRINCIPAL}"
     assert_contains "Request ID:"
 
-    # test request status failure
-    RID=$(dfx canister call aaaaa-aa delete_canister "(record { canister_id=principal\"$CANISTER_ID\" })" --async --impersonate "${IDENTITY_PRINCIPAL}")
-    assert_command_fail dfx canister request-status "$RID" hello_backend
-    assert_contains "Canister call failed: IC0510: Canister $CANISTER_ID must be stopped before it is deleted."
-
-    # test request status
-    RID=$(dfx canister call aaaaa-aa canister_status "(record { canister_id=principal\"$CANISTER_ID\" })" --async --impersonate "${IDENTITY_PRINCIPAL}")
-    assert_command dfx canister request-status "$RID" hello_backend
-    assert_contains "record {"
-
     # test query call failure
     assert_command_fail dfx canister call aaaaa-aa fetch_canister_logs "(record { canister_id=principal\"$CANISTER_ID\" })" --query --impersonate "$CANISTER_ID"
     assert_contains "Failed to perform query call: IC0406: Caller $CANISTER_ID is not allowed to query ic00 method fetch_canister_logs"
