@@ -61,6 +61,23 @@ teardown() {
   assert_contains "Canister exceeded its current Wasm memory limit of 8 bytes"
 }
 
+@test "set wasm memory threshold" {
+  dfx_new_rust
+  install_asset allocate_memory
+  dfx_start
+  assert_command dfx canister create e2e_project_backend --no-wallet --wasm-memory-threshold 2MiB --wasm-memory-limit 2MiB
+  assert_command dfx deploy e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Wasm memory threshold: 2_097_152 Bytes"
+  assert_command dfx canister update-settings e2e_project_backend --wasm-memory-threshold 1MiB
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Wasm memory threshold: 1_048_576 Bytes"
+  assert_command dfx canister call e2e_project_backend greet_update '("alice")'
+  sleep 1
+  assert_command dfx canister logs e2e_project_backend
+  assert_contains "Low memory!"
+}
+
 @test "set log visibility" {
   dfx_new
   dfx_start

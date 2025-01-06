@@ -120,6 +120,7 @@ async fn migrate_canister(
                             memory_allocation: None,
                             reserved_cycles_limit: None,
                             wasm_memory_limit: None,
+                            wasm_memory_threshold: None,
                             log_visibility: None,
                         },
                     },)),

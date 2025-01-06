@@ -8,6 +8,12 @@ DFX's default security headers cause Safari to break when viewing local canister
 have been added to the frontend project templates when the page is broken that indicate to try switching
 browsers.
 
+### feat: `dfx canister [create|update-settings] --wasm-memory-threshold`
+
+This adds support for the WASM memory threshold, used in conjunction with `--wasm-memory-limit`.
+When the remaining memory until the limit falls below the threshold, the canister's
+`on_low_wasm_memory` handler is run.
+
 ### fix: `dfx deploy --by-proposal` no longer sends chunk data in ProposeCommitBatch
 
 Recently we made `dfx deploy` include some chunk data in CommitBatch, in order to streamline
@@ -85,6 +91,10 @@ Your account address for receiving ICP from centralized exchanges: 8494c01329531
 Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dnrh3-rsyq6-ffned-h64ox-vxywi-gzawf-ot4pv-sqe
 (run `dfx identity get-principal` to display)
 ```
+
+### feat: Add pre-install tasks
+
+Add pre-install tasks, which can be defined by the new `pre-install` key for canister objects in `dfx.json` with a command or list of commands.
 
 ## Dependencies
 
