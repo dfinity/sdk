@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### fix: template frontends now have unsupported browser warnings
+
+DFX's default security headers cause Safari to break when viewing local canisters. Warning messages
+have been added to the frontend project templates when the page is broken that indicate to try switching
+browsers.
+
 ### feat: impersonating sender of requests to a local PocketIC instance
 
 `dfx canister call`, `dfx canister status`, and `dfx canister update-settings` take
