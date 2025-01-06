@@ -57,6 +57,11 @@ async fn canister_status(
     } else {
         "Not Set".to_string()
     };
+    let wasm_memory_threshold = if let Some(threshold) = status.settings.wasm_memory_threshold {
+        format!("{} Bytes", threshold)
+    } else {
+        "Not Set".to_string()
+    };
     let log_visibility = match status.settings.log_visibility {
         LogVisibility::Controllers => "controllers".to_string(),
         LogVisibility::Public => "public".to_string(),
@@ -71,7 +76,27 @@ async fn canister_status(
         }
     };
 
-    println!("Canister status call result for {canister}.\nStatus: {status}\nControllers: {controllers}\nMemory allocation: {memory_allocation}\nCompute allocation: {compute_allocation}\nFreezing threshold: {freezing_threshold}\nIdle cycles burned per day: {idle_cycles_burned_per_day}\nMemory Size: {memory_size:?}\nBalance: {balance} Cycles\nReserved: {reserved} Cycles\nReserved cycles limit: {reserved_cycles_limit}\nWasm memory limit: {wasm_memory_limit}\nModule hash: {module_hash}\nNumber of queries: {queries_total}\nInstructions spent in queries: {query_instructions_total}\nTotal query request payload size (bytes): {query_req_payload_total}\nTotal query response payload size (bytes): {query_resp_payload_total}\nLog visibility: {log_visibility}",
+    println!(
+        "\
+Canister status call result for {canister}.
+Status: {status}
+Controllers: {controllers}
+Memory allocation: {memory_allocation}
+Compute allocation: {compute_allocation}
+Freezing threshold: {freezing_threshold}
+Idle cycles burned per day: {idle_cycles_burned_per_day}
+Memory Size: {memory_size:?}
+Balance: {balance} Cycles
+Reserved: {reserved} Cycles
+Reserved cycles limit: {reserved_cycles_limit}
+Wasm memory limit: {wasm_memory_limit}
+Wasm memory threshold: {wasm_memory_threshold}
+Module hash: {module_hash}
+Number of queries: {queries_total}
+Instructions spent in queries: {query_instructions_total}
+Total query request payload size (bytes): {query_req_payload_total}
+Total query response payload size (bytes): {query_resp_payload_total}
+Log visibility: {log_visibility}",
         status = status.status,
         controllers = controllers.join(" "),
         memory_allocation = status.settings.memory_allocation,
@@ -81,7 +106,9 @@ async fn canister_status(
         memory_size = status.memory_size,
         balance = status.cycles,
         reserved = status.reserved_cycles,
-        module_hash = status.module_hash.map_or_else(|| "None".to_string(), |v| format!("0x{}", hex::encode(v))),
+        module_hash = status
+            .module_hash
+            .map_or_else(|| "None".to_string(), |v| format!("0x{}", hex::encode(v))),
         queries_total = status.query_stats.num_calls_total,
         query_instructions_total = status.query_stats.num_instructions_total,
         query_req_payload_total = status.query_stats.request_payload_bytes_total,

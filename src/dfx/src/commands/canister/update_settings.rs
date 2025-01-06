@@ -4,7 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_log_visibility, get_memory_allocation,
-    get_reserved_cycles_limit, get_wasm_memory_limit, CanisterSettings,
+    get_reserved_cycles_limit, get_wasm_memory_limit, get_wasm_memory_threshold, CanisterSettings,
 };
 use crate::lib::operations::canister::{
     get_canister_status, skip_remote_canister, update_settings,
@@ -92,6 +92,18 @@ pub struct UpdateSettingsOpts {
     #[arg(long, value_parser = wasm_memory_limit_parser)]
     wasm_memory_limit: Option<Byte>,
 
+    /// Specifies a threshold (in bytes) on the Wasm memory usage of the canister,
+    /// as a distance from `wasm_memory_limit`.
+    ///
+    /// When the remaining memory before the limit drops below this threshold, its
+    /// `on_low_wasm_memory` hook will be invoked. This enables it to self-optimize,
+    /// or raise an alert, or otherwise attempt to prevent itself from reaching
+    /// `wasm_memory_limit`.
+    ///
+    /// Must be a number between 0 B and 256 TiB, inclusive. Can include units, e.g. "4KiB".
+    #[arg(long, value_parser = wasm_memory_limit_parser)]
+    wasm_memory_threshold: Option<Byte>,
+
     #[command(flatten)]
     log_visibility_opt: Option<LogVisibilityOpt>,
 
@@ -169,6 +181,8 @@ pub async fn exec(
             get_reserved_cycles_limit(opts.reserved_cycles_limit, config_interface, canister_name)?;
         let wasm_memory_limit =
             get_wasm_memory_limit(opts.wasm_memory_limit, config_interface, canister_name)?;
+        let wasm_memory_threshold =
+            get_wasm_memory_threshold(opts.wasm_memory_threshold, config_interface, canister_name)?;
         let mut current_status: Option<StatusCallResult> = None;
         if let Some(log_visibility) = &opts.log_visibility_opt {
             if log_visibility.require_current_settings() {
@@ -225,6 +239,7 @@ pub async fn exec(
             freezing_threshold,
             reserved_cycles_limit,
             wasm_memory_limit,
+            wasm_memory_threshold,
             log_visibility,
         };
         update_settings(env, canister_id, settings, call_sender).await?;
@@ -277,6 +292,14 @@ pub async fn exec(
                     Some(canister_name),
                 )
                 .with_context(|| format!("Failed to get Wasm memory limit for {canister_name}."))?;
+                let wasm_memory_threshold = get_wasm_memory_threshold(
+                    opts.wasm_memory_threshold,
+                    Some(config_interface),
+                    Some(canister_name),
+                )
+                .with_context(|| {
+                    format!("Failed to get Wasm memory threshold for {canister_name}.")
+                })?;
                 let mut current_status: Option<StatusCallResult> = None;
                 if let Some(log_visibility) = &opts.log_visibility_opt {
                     if log_visibility.require_current_settings() {
@@ -336,6 +359,7 @@ pub async fn exec(
                     freezing_threshold,
                     reserved_cycles_limit,
                     wasm_memory_limit,
+                    wasm_memory_threshold,
                     log_visibility,
                 };
                 update_settings(env, canister_id, settings, call_sender).await?;
