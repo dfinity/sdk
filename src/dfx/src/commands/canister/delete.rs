@@ -127,6 +127,11 @@ async fn delete_canister(
                     CallSender::Wallet(wallet_id) => WithdrawTarget::Canister {
                         canister_id: *wallet_id,
                     },
+                    CallSender::Impersonate(_) => {
+                        unreachable!(
+                            "Impersonating sender when deleting canisters is not supported."
+                        )
+                    }
                     CallSender::SelectedId => {
                         let network = env.get_network_descriptor();
                         let identity_name = env
@@ -189,6 +194,7 @@ async fn delete_canister(
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
                 reserved_cycles_limit: None,
                 wasm_memory_limit: None,
+                wasm_memory_threshold: None,
                 log_visibility: None,
             };
             info!(log, "Setting the controller to identity principal.");

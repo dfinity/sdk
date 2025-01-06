@@ -67,6 +67,9 @@ async fn deposit_cycles(
             )
             .await?;
         }
+        CallSender::Impersonate(_) => {
+            unreachable!("Impersonating sender when depositing cycles is not supported.")
+        }
         CallSender::Wallet(_) => {
             canister::deposit_cycles(env, canister_id, call_sender, cycles).await?
         }

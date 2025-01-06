@@ -12,10 +12,12 @@ use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkType
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::identity::NewIdentityManagerError;
 use dfx_core::error::load_dfx_config::LoadDfxConfigError;
+use dfx_core::error::uri::UriError;
 use dfx_core::extension::manager::ExtensionManager;
 use dfx_core::identity::identity_manager::{IdentityManager, InitializeIdentity};
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
+use pocket_ic::nonblocking::PocketIc;
 use semver::Version;
 use slog::{Logger, Record};
 use std::borrow::Cow;
@@ -23,6 +25,7 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+use url::Url;
 
 pub trait Environment {
     fn get_cache(&self) -> Arc<dyn Cache>;
@@ -43,6 +46,8 @@ pub trait Environment {
     // Explicit lifetimes are actually needed for mockall to work properly.
     #[allow(clippy::needless_lifetimes)]
     fn get_agent<'a>(&'a self) -> &'a Agent;
+
+    fn get_pocketic(&self) -> Option<&PocketIc>;
 
     #[allow(clippy::needless_lifetimes)]
     fn get_network_descriptor<'a>(&'a self) -> &'a NetworkDescriptor;
@@ -213,6 +218,10 @@ impl Environment for EnvironmentImpl {
         unreachable!("Agent only available from an AgentEnvironment");
     }
 
+    fn get_pocketic(&self) -> Option<&PocketIc> {
+        unreachable!("PocketIC handle only available from an AgentEnvironment");
+    }
+
     fn get_network_descriptor(&self) -> &NetworkDescriptor {
         // It's not valid to call get_network_descriptor on an EnvironmentImpl.
         // All of the places that call this have an AgentEnvironment anyway.
@@ -267,6 +276,7 @@ impl Environment for EnvironmentImpl {
 pub struct AgentEnvironment<'a> {
     backend: &'a dyn Environment,
     agent: Agent,
+    pocketic: Option<PocketIc>,
     network_descriptor: NetworkDescriptor,
     identity_manager: IdentityManager,
     effective_canister_id: Option<Principal>,
@@ -314,9 +324,27 @@ impl<'a> AgentEnvironment<'a> {
             None
         };
 
+        let pocketic =
+            if let Some(local_server_descriptor) = &network_descriptor.local_server_descriptor {
+                match local_server_descriptor.get_running_pocketic_port(None)? {
+                    Some(port) => {
+                        let mut socket_addr = local_server_descriptor.bind_address;
+                        socket_addr.set_port(port);
+                        let url = format!("http://{}", socket_addr);
+                        let url = Url::parse(&url)
+                            .map_err(|e| UriError::UrlParseError(url.to_string(), e))?;
+                        Some(create_pocketic(&url))
+                    }
+                    None => None,
+                }
+            } else {
+                None
+            };
+
         Ok(AgentEnvironment {
             backend,
             agent: create_agent(logger, url, identity, timeout)?,
+            pocketic,
             network_descriptor: network_descriptor.clone(),
             identity_manager,
             effective_canister_id,
@@ -357,6 +385,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn get_agent(&self) -> &Agent {
         &self.agent
+    }
+
+    fn get_pocketic(&self) -> Option<&PocketIc> {
+        self.pocketic.as_ref()
     }
 
     fn get_network_descriptor(&self) -> &NetworkDescriptor {
@@ -421,4 +453,8 @@ pub fn create_agent(
         .with_ingress_expiry(timeout)
         .build()?;
     Ok(agent)
+}
+
+pub fn create_pocketic(url: &Url) -> PocketIc {
+    PocketIc::new_from_existing_instance(url.clone(), 0, None)
 }

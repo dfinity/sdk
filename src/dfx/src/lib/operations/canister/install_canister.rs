@@ -55,6 +55,17 @@ pub async fn install_canister(
     let log = env.get_logger();
     let agent = env.get_agent();
     let network = env.get_network_descriptor();
+    if !canister_info.get_pre_install().is_empty() {
+        let config = env.get_config()?;
+        run_customized_install_tasks(
+            env,
+            canister_info,
+            true,
+            network,
+            pool,
+            env_file.or_else(|| config.as_ref()?.get_config().output_env_file.as_deref()),
+        )?;
+    }
     if !network.is_ic && named_canister::get_ui_canister_id(canister_id_store).is_none() {
         named_canister::install_ui_canister(env, canister_id_store, None).await?;
     }
@@ -282,9 +293,10 @@ The command line value will be used.",
     }
     if !canister_info.get_post_install().is_empty() {
         let config = env.get_config()?;
-        run_post_install_tasks(
+        run_customized_install_tasks(
             env,
             canister_info,
+            false,
             network,
             pool,
             env_file.or_else(|| config.as_ref()?.get_config().output_env_file.as_deref()),
@@ -435,14 +447,16 @@ fn check_stable_compatibility(
     })
 }
 
-#[context("Failed to run post-install tasks")]
-fn run_post_install_tasks(
+#[context("Failed to run {}-install tasks", if is_pre_install { "pre" } else { "post" })]
+fn run_customized_install_tasks(
     env: &dyn Environment,
     canister: &CanisterInfo,
+    is_pre_install: bool,
     network: &NetworkDescriptor,
     pool: Option<&CanisterPool>,
     env_file: Option<&Path>,
 ) -> DfxResult {
+    let pre_or_post = if is_pre_install { "pre" } else { "post" };
     let tmp;
     let pool = match pool {
         Some(pool) => pool,
@@ -450,8 +464,9 @@ fn run_post_install_tasks(
             let config = env.get_config_or_anyhow()?;
             let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
-            tmp = CanisterPool::load(env, false, &canisters_to_load)
-                .context("Error collecting canisters for post-install task")?;
+            tmp = CanisterPool::load(env, false, &canisters_to_load).context(format!(
+                "Error collecting canisters for {pre_or_post}-install task"
+            ))?;
             &tmp
         }
     };
@@ -460,27 +475,43 @@ fn run_post_install_tasks(
         .iter()
         .map(|can| can.canister_id())
         .collect_vec();
-    for task in canister.get_post_install() {
-        run_post_install_task(canister, task, network, pool, &dependencies, env_file)?;
+    let tasks = if is_pre_install {
+        canister.get_pre_install()
+    } else {
+        canister.get_post_install()
+    };
+    for task in tasks {
+        run_customized_install_task(
+            canister,
+            task,
+            is_pre_install,
+            network,
+            pool,
+            &dependencies,
+            env_file,
+        )?;
     }
     Ok(())
 }
 
-#[context("Failed to run post-install task {task}")]
-fn run_post_install_task(
+#[context("Failed to run {}-install task {}", if is_pre_install { "pre" } else { "post" }, task)]
+fn run_customized_install_task(
     canister: &CanisterInfo,
     task: &str,
+    is_pre_install: bool,
     network: &NetworkDescriptor,
     pool: &CanisterPool,
     dependencies: &[Principal],
     env_file: Option<&Path>,
 ) -> DfxResult {
+    let pre_or_post = if is_pre_install { "pre" } else { "post" };
     let cwd = canister.get_workspace_root();
     let words = shell_words::split(task)
-        .with_context(|| format!("Error interpreting post-install task `{task}`"))?;
+        .with_context(|| format!("Error interpreting {pre_or_post}-install task `{task}`"))?;
     let canonicalized = dfx_core::fs::canonicalize(&cwd.join(&words[0]))
         .or_else(|_| which::which(&words[0]))
         .map_err(|_| anyhow!("Cannot find command or file {}", &words[0]))?;
+
     let mut command = Command::new(canonicalized);
     command.args(&words[1..]);
     let vars =
@@ -492,13 +523,14 @@ fn run_post_install_task(
         .current_dir(cwd)
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
+
     let status = command.status()?;
     if !status.success() {
         match status.code() {
             Some(code) => {
-                bail!("The post-install task `{task}` failed with exit code {code}")
+                bail!("The {pre_or_post}-install task `{task}` failed with exit code {code}")
             }
-            None => bail!("The post-install task `{task}` was terminated by a signal"),
+            None => bail!("The {pre_or_post}-install task `{task}` was terminated by a signal"),
         }
     }
     Ok(())

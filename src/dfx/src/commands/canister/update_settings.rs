@@ -4,7 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_log_visibility, get_memory_allocation,
-    get_reserved_cycles_limit, get_wasm_memory_limit, CanisterSettings,
+    get_reserved_cycles_limit, get_wasm_memory_limit, get_wasm_memory_threshold, CanisterSettings,
 };
 use crate::lib::operations::canister::{
     get_canister_status, skip_remote_canister, update_settings,
@@ -17,6 +17,7 @@ use crate::util::clap::parsers::{
 use anyhow::{bail, Context};
 use byte_unit::Byte;
 use candid::Principal as CanisterId;
+use candid::Principal;
 use clap::{ArgAction, Parser};
 use dfx_core::cli::ask_for_consent;
 use dfx_core::error::identity::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
@@ -91,6 +92,18 @@ pub struct UpdateSettingsOpts {
     #[arg(long, value_parser = wasm_memory_limit_parser)]
     wasm_memory_limit: Option<Byte>,
 
+    /// Specifies a threshold (in bytes) on the Wasm memory usage of the canister,
+    /// as a distance from `wasm_memory_limit`.
+    ///
+    /// When the remaining memory before the limit drops below this threshold, its
+    /// `on_low_wasm_memory` hook will be invoked. This enables it to self-optimize,
+    /// or raise an alert, or otherwise attempt to prevent itself from reaching
+    /// `wasm_memory_limit`.
+    ///
+    /// Must be a number between 0 B and 256 TiB, inclusive. Can include units, e.g. "4KiB".
+    #[arg(long, value_parser = wasm_memory_limit_parser)]
+    wasm_memory_threshold: Option<Byte>,
+
     #[command(flatten)]
     log_visibility_opt: Option<LogVisibilityOpt>,
 
@@ -102,13 +115,23 @@ pub struct UpdateSettingsOpts {
     /// so this is not recommended outside of CI.
     #[arg(long, short)]
     yes: bool,
+
+    /// Send request on behalf of the specified principal.
+    /// This option only works for a local PocketIC instance.
+    #[arg(long)]
+    impersonate: Option<Principal>,
 }
 
 pub async fn exec(
     env: &dyn Environment,
     opts: UpdateSettingsOpts,
-    call_sender: &CallSender,
+    mut call_sender: &CallSender,
 ) -> DfxResult {
+    let call_sender_override = opts.impersonate.map(CallSender::Impersonate);
+    if let Some(ref call_sender_override) = call_sender_override {
+        call_sender = call_sender_override;
+    };
+
     // sanity checks
     if let Some(threshold_in_seconds) = opts.freezing_threshold {
         if threshold_in_seconds > 50_000_000 /* ~1.5 years */ && !opts.confirm_very_long_freezing_threshold
@@ -158,6 +181,8 @@ pub async fn exec(
             get_reserved_cycles_limit(opts.reserved_cycles_limit, config_interface, canister_name)?;
         let wasm_memory_limit =
             get_wasm_memory_limit(opts.wasm_memory_limit, config_interface, canister_name)?;
+        let wasm_memory_threshold =
+            get_wasm_memory_threshold(opts.wasm_memory_threshold, config_interface, canister_name)?;
         let mut current_status: Option<StatusCallResult> = None;
         if let Some(log_visibility) = &opts.log_visibility_opt {
             if log_visibility.require_current_settings() {
@@ -214,6 +239,7 @@ pub async fn exec(
             freezing_threshold,
             reserved_cycles_limit,
             wasm_memory_limit,
+            wasm_memory_threshold,
             log_visibility,
         };
         update_settings(env, canister_id, settings, call_sender).await?;
@@ -266,6 +292,14 @@ pub async fn exec(
                     Some(canister_name),
                 )
                 .with_context(|| format!("Failed to get Wasm memory limit for {canister_name}."))?;
+                let wasm_memory_threshold = get_wasm_memory_threshold(
+                    opts.wasm_memory_threshold,
+                    Some(config_interface),
+                    Some(canister_name),
+                )
+                .with_context(|| {
+                    format!("Failed to get Wasm memory threshold for {canister_name}.")
+                })?;
                 let mut current_status: Option<StatusCallResult> = None;
                 if let Some(log_visibility) = &opts.log_visibility_opt {
                     if log_visibility.require_current_settings() {
@@ -325,6 +359,7 @@ pub async fn exec(
                     freezing_threshold,
                     reserved_cycles_limit,
                     wasm_memory_limit,
+                    wasm_memory_threshold,
                     log_visibility,
                 };
                 update_settings(env, canister_id, settings, call_sender).await?;
@@ -348,6 +383,7 @@ fn user_is_removing_themselves_as_controller(
             .get_selected_identity_principal()
             .context("Selected identity is not instantiated")?
             .to_string(),
+        CallSender::Impersonate(sender) => sender.to_string(),
         CallSender::Wallet(principal) => principal.to_string(),
     };
     let removes_themselves =
