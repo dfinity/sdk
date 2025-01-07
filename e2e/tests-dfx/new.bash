@@ -85,9 +85,14 @@ teardown() {
   done
 }
 
-@test "backend templates" {
+@test "backend templates create and deploy" {
+  dfx_start
+  setup_rust
   for backend in motoko rust kybra azle; do
     assert_command dfx new e2e_$backend --type $backend --no-frontend
+    pushd e2e_$backend
+    assert_command dfx deploy
+    popd
   done
 }
 

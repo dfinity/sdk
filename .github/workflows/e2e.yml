@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ens/azle-support-tests
   pull_request:
 
 concurrency:
