@@ -1,14 +1,14 @@
 import { test, expect } from "@playwright/test";
 
 test("has title", async ({ page }) => {
-  await page.goto("http://br5f7-7uaaa-aaaaa-qaaca-cai.localhost:4943/");
+  await page.goto("http://erxue-5aaaa-aaaab-qaagq-cai.localhost:4943/");
 
   // Expect a title "to contain" a substring.
   await expect(page).toHaveTitle(/IC Hello Starter/);
 });
 
 test("image has loaded", async ({ page }) => {
-  await page.goto("http://br5f7-7uaaa-aaaaa-qaaca-cai.localhost:4943/");
+  await page.goto("http://erxue-5aaaa-aaaab-qaagq-cai.localhost:4943/");
 
   // Set the attribute so we can read it
   await page.evaluate(async () => {
@@ -27,7 +27,7 @@ test("image has loaded", async ({ page }) => {
 });
 
 test("has hello form", async ({ page }) => {
-  await page.goto("http://br5f7-7uaaa-aaaaa-qaaca-cai.localhost:4943/");
+  await page.goto("http://erxue-5aaaa-aaaab-qaagq-cai.localhost:4943/");
 
   // Fill out the form
   const nameInput = await page.getByLabel("name");
