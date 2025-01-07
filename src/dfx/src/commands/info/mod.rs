@@ -1,3 +1,4 @@
+mod pocketic_config_port;
 mod replica_port;
 mod webserver_port;
 use crate::commands::info::{replica_port::get_replica_port, webserver_port::get_webserver_port};
@@ -10,6 +11,7 @@ use crate::Environment;
 use anyhow::{bail, Context};
 use clap::{Parser, Subcommand};
 use dfx_core::config::model::dfinity::NetworksConfig;
+use pocketic_config_port::get_pocketic_config_port;
 
 #[derive(Subcommand, Clone, Debug)]
 enum InfoType {
@@ -17,14 +19,17 @@ enum InfoType {
     CandidUiUrl,
     /// Show the headers that gets applied to assets in .ic-assets.json5 if "security_policy" is "standard" or "hardened".
     SecurityPolicy,
-    /// Show the port of the local replica
+    /// Show the port of the local IC API/webserver
+    #[command(alias = "webserver-port")]
     ReplicaPort,
     /// Show the revision of the replica shipped with this dfx binary
     ReplicaRev,
-    /// Show the port of the webserver
-    WebserverPort,
     /// Show the path to network configuration file
     NetworksJsonPath,
+    /// Show the port the native replica is using, if it is running
+    NativeReplicaPort,
+    /// Show the port that PocketIC is using, if it is running
+    PocketicConfigPort,
 }
 
 #[derive(Parser)]
@@ -53,9 +58,10 @@ pub fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
         InfoType::SecurityPolicy => {
             ic_asset::security_policy::SecurityPolicy::Standard.to_json5_str()
         }
-        InfoType::ReplicaPort => get_replica_port(env)?,
+        InfoType::NativeReplicaPort => get_replica_port(env)?,
+        InfoType::PocketicConfigPort => get_pocketic_config_port(env)?,
         InfoType::ReplicaRev => info::replica_rev().to_string(),
-        InfoType::WebserverPort => get_webserver_port(env)?,
+        InfoType::ReplicaPort => get_webserver_port(env)?,
         InfoType::NetworksJsonPath => NetworksConfig::new()?
             .get_path()
             .to_str()
