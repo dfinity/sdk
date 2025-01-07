@@ -12,6 +12,9 @@ pub enum KeyringError {
     #[error("Failed to get password for keyring")]
     GetPasswordFailed(#[source] keyring::Error),
 
+    #[error("Failed to create entry for keyring")]
+    NewEntryFailed(#[source] keyring::Error),
+
     #[error("Failed to load mock keyring")]
     LoadMockKeyringFailed(#[source] StructuredFileError),
 

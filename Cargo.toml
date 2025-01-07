@@ -46,7 +46,13 @@ handlebars = "4.3.3"
 hex = "0.4.3"
 humantime = "2.1.0"
 itertools = "0.10.3"
-keyring = "1.2.0"
+keyring = { version = "3", features = [
+    "apple-native",
+    "windows-native",
+    "linux-native",
+    "sync-secret-service",
+    "vendored",
+] }
 lazy_static = "1.4.0"
 mime = "0.3.16"
 mime_guess = "2.0.4"
