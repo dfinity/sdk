@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### test: adds playwright test for svelte `dfx new` project
+
+The first of a suite of baseline tests to automate testing starter projects. Makes sure they are compatible with other dfx or asset canister changes.
+
 ### fix: template frontends now have unsupported browser warnings
 
 DFX's default security headers cause Safari to break when viewing local canisters. Warning messages
