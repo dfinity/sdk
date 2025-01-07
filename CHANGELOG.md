@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: `dfx info pocketic-config-port`
+
+Due to the incompatibility between the APIs on the replica port and the PocketIC port, `dfx info replica-port`
+no longer works with PocketIC, and the PocketIC port is provided by a new command, `dfx info pocketic-config-port`.
+
 ### fix: template frontends now have unsupported browser warnings
 
 DFX's default security headers cause Safari to break when viewing local canisters. Warning messages
