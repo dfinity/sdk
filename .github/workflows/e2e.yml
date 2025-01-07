@@ -228,8 +228,10 @@ jobs:
           pushd e2e_project_sveltekit
           dfx canister create e2e_project_sveltekit_frontend --specified-id erxue-5aaaa-aaaab-qaagq-cai
           dfx deploy
+          rm -rf e2e_project_sveltekit
           popd
       # Add any additional deployments here
+      - run: pushd e2e/playwright/
       - name: Install dependencies
         run: npm ci
       - name: Install Playwright Browsers
@@ -237,6 +239,8 @@ jobs:
       # Runs all playwright tests
       - name: Run Playwright tests
         run: npx playwright test
+      - run: popd
+
 
   aggregate:
     name: e2e:required
