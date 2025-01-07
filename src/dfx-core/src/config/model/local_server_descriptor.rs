@@ -397,10 +397,10 @@ impl LocalServerDescriptor {
         }
     }
 
-    pub fn is_pocketic(&self) -> Result<bool, StructuredFileError> {
+    pub fn is_pocketic(&self) -> Result<Option<bool>, StructuredFileError> {
         Ok(self
             .effective_config()?
-            .is_some_and(|cfg| matches!(cfg.config, CachedReplicaConfig::PocketIc { .. })))
+            .map(|cfg| matches!(cfg.config, CachedReplicaConfig::PocketIc { .. })))
     }
 }
 
