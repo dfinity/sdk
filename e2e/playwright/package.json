@@ -9,8 +9,7 @@
   "description": "",
   "devDependencies": {
     "@playwright/test": "^1.49.1",
-    "@types/node": "^22.10.2",
-    "zx": "^8.2.4"
+    "@types/node": "^22.10.2"
   },
   "dependencies": {
     "child_process": "^1.0.2",
