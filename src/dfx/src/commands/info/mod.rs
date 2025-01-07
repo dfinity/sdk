@@ -19,15 +19,14 @@ enum InfoType {
     CandidUiUrl,
     /// Show the headers that gets applied to assets in .ic-assets.json5 if "security_policy" is "standard" or "hardened".
     SecurityPolicy,
-    /// Show the port of the local IC API/webserver
-    #[command(alias = "webserver-port")]
-    ReplicaPort,
+    /// Show the port of the local IC API/HTTP gateway
+    WebserverPort,
     /// Show the revision of the replica shipped with this dfx binary
     ReplicaRev,
     /// Show the path to network configuration file
     NetworksJsonPath,
-    /// Show the port the native replica is using, if it is running
-    NativeReplicaPort,
+    /// Show the port the replica is using, if it is running
+    ReplicaPort,
     /// Show the port that PocketIC is using, if it is running
     PocketicConfigPort,
 }
@@ -58,10 +57,10 @@ pub fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
         InfoType::SecurityPolicy => {
             ic_asset::security_policy::SecurityPolicy::Standard.to_json5_str()
         }
-        InfoType::NativeReplicaPort => get_replica_port(env)?,
+        InfoType::ReplicaPort => get_replica_port(env)?,
         InfoType::PocketicConfigPort => get_pocketic_config_port(env)?,
         InfoType::ReplicaRev => info::replica_rev().to_string(),
-        InfoType::ReplicaPort => get_webserver_port(env)?,
+        InfoType::WebserverPort => get_webserver_port(env)?,
         InfoType::NetworksJsonPath => NetworksConfig::new()?
             .get_path()
             .to_str()

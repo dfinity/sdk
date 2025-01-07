@@ -274,7 +274,7 @@ teardown() {
   if [[ "$USE_POCKETIC" ]]; then
     assert_command dfx info pocketic-config-port
   else
-    assert_command dfx info native-replica-port
+    assert_command dfx info replica-port
   fi
   assert_eq "$replica_port"
 }

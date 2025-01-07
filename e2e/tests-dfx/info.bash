@@ -20,17 +20,17 @@ teardown() {
     assert_command_fail dfx info pocketic-config-port
     assert_contains "No PocketIC port found"
     dfx_start
-    assert_command_fail dfx info native-replica-port
+    assert_command_fail dfx info replica-port
     assert_contains "The running server is PocketIC"
     assert_command dfx info pocketic-config-port
     assert_eq "$(get_pocketic_port)"
   else
-    assert_command_fail dfx info native-replica-port
+    assert_command_fail dfx info replica-port
     assert_contains "No replica port found"
     dfx_start
     assert_command_fail dfx info pocketic-config-port
     assert_contains "The running server is a native replica"
-    assert_command dfx info native-replica-port
+    assert_command dfx info replica-port
     assert_eq "$(get_replica_port)"
   fi
 }
