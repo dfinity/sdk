@@ -231,17 +231,13 @@ jobs:
           rm -rf e2e_project_sveltekit
           popd
       # Add any additional deployments here
-      - run: pushd e2e/playwright/
-      - name: Install dependencies
+      - name: Install Playwright Browsers and Run Tests
         run: |
-          ls
+          pushd e2e/playwright/
           npm install
-      - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
-      # Runs all playwright tests
-      - name: Run Playwright tests
-        run: npx playwright test
-      - run: popd
+          npx playwright install --with-deps
+          npx playwright test
+          popd
 
 
   aggregate:
