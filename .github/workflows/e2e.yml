@@ -222,6 +222,23 @@ jobs:
             --frontend_url "$FRONTEND_URL_LOCALHOST" \
             --candid_url "$CANDID_URL_LOCALHOST" \
             --browser chromium firefox webkit
+      - name: Deploy sveltekit starter project
+        run: |
+          dfx new e2e_project_sveltekit --frontend sveltekit
+          pushd e2e_project_sveltekit
+          dfx canister create e2e_project_sveltekit_frontend --specified-id erxue-5aaaa-aaaab-qaagq-cai
+          dfx deploy
+          rm -rf e2e_project_sveltekit
+          popd
+      # Add any additional deployments here
+      - name: Install Playwright Browsers and Run Tests
+        run: |
+          pushd e2e/playwright/
+          npm install
+          npx playwright install --with-deps
+          npx playwright test
+          popd
+
 
   aggregate:
     name: e2e:required
