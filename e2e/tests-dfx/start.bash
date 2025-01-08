@@ -29,6 +29,18 @@ teardown() {
   dfx_stop
 }
 
+@test "start and stop with specified canister id" {
+  dfx_start
+
+  dfx_new hello
+  dfx deploy hello_backend --specified-id gt2iw-kiaaa-aaad7-qaaaa-cai
+
+  dfx_stop
+
+  dfx_start
+  dfx_stop
+}
+
 @test "start and stop with different options" {
   [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: clean required"
   dfx_start --artificial-delay 101
