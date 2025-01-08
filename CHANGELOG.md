@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat!: `dfx info pocketic-config-port`
+
+Due to the incompatibility between the APIs on the replica port and the PocketIC port, `dfx info replica-port`
+no longer works with PocketIC, and the PocketIC port is provided by a new command, `dfx info pocketic-config-port`.
+
 ### test: adds playwright test for svelte `dfx new` project
 
 The first of a suite of baseline tests to automate testing starter projects. Makes sure they are compatible with other dfx or asset canister changes.
