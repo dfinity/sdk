@@ -90,26 +90,36 @@ teardown() {
   assert_command_fail dfx canister install --all --wasm "${archive:?}/wallet/0.10.0/wallet.wasm"
 }
 
-@test "install runs post-install tasks" {
-  install_asset post_install
+@test "install runs pre-post-install tasks" {
+  install_asset pre_post_install
   dfx_start
 
   assert_command dfx canister create --all
   assert_command dfx build
 
+  assert_command dfx canister install preinstall
+  assert_match 'hello-pre-file'
+
+  assert_command dfx canister install preinstall_script
+  assert_match 'hello-pre-script'
+
+  echo 'return 1' >> preinstall.sh
+  assert_command_fail dfx canister install preinstall_script --mode upgrade
+  assert_match 'hello-pre-script'
+
   assert_command dfx canister install postinstall
-  assert_match 'hello-file'
+  assert_match 'hello-post-file'
 
   assert_command dfx canister install postinstall_script
-  assert_match 'hello-script'
+  assert_match 'hello-post-script'
 
   echo 'return 1' >> postinstall.sh
   assert_command_fail dfx canister install postinstall_script --mode upgrade
-  assert_match 'hello-script'
+  assert_match 'hello-post-script'
 }
 
-@test "post-install tasks run in project root" {
-  install_asset post_install
+@test "pre-post-install tasks run in project root" {
+  install_asset pre_post_install
   dfx_start
 
   assert_command dfx canister create --all
@@ -117,42 +127,57 @@ teardown() {
 
   cd src/e2e_project_backend
 
+  assert_command dfx canister install preinstall_script
+  assert_match 'hello-pre-script'
+  assert_match "working directory of pre-install script: '.*/working-dir/e2e_project'"
+
   assert_command dfx canister install postinstall_script
-  assert_match 'hello-script'
+  assert_match 'hello-post-script'
   assert_match "working directory of post-install script: '.*/working-dir/e2e_project'"
 }
 
-@test "post-install tasks receive environment variables" {
-  install_asset post_install
+@test "pre-post-install tasks receive environment variables" {
+  install_asset pre_post_install
   dfx_start
+  echo "echo hello \$CANISTER_ID" >> preinstall.sh
   echo "echo hello \$CANISTER_ID" >> postinstall.sh
 
   assert_command dfx canister create --all
   assert_command dfx build
-  id=$(dfx canister id postinstall_script)
+  id_pre=$(dfx canister id preinstall_script)
+  id_post=$(dfx canister id postinstall_script)
 
   assert_command dfx canister install --all
-  assert_match "hello $id"
+  assert_match "hello $id_post"
+  assert_command dfx canister install preinstall_script --mode upgrade
+  assert_match "hello $id_pre"
   assert_command dfx canister install postinstall_script --mode upgrade
-  assert_match "hello $id"
+  assert_match "hello $id_post"
 
   assert_command dfx deploy
-  assert_match "hello $id"
+  assert_match "hello $id_post"
+  assert_command dfx deploy preinstall_script
+  assert_match "hello $id_pre"
   assert_command dfx deploy postinstall_script
-  assert_match "hello $id"
+  assert_match "hello $id_post"
 }
 
-@test "post-install tasks discover dependencies" {
-  install_asset post_install
+@test "pre-post-install tasks discover dependencies" {
+  install_asset pre_post_install
   dfx_start
+  echo "echo hello \$CANISTER_ID_PREINSTALL" >> preinstall.sh
   echo "echo hello \$CANISTER_ID_POSTINSTALL" >> postinstall.sh
 
   assert_command dfx canister create --all
   assert_command dfx build
-  id=$(dfx canister id postinstall)
+  id_pre=$(dfx canister id preinstall)
+  id_post=$(dfx canister id postinstall)
+
+  assert_command dfx canister install preinstall_script
+  assert_match "hello $id_pre"
 
   assert_command dfx canister install postinstall_script
-  assert_match "hello $id"
+  assert_match "hello $id_post"
 }
 
 @test "can install gzip wasm" {

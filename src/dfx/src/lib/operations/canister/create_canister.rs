@@ -173,6 +173,9 @@ The command line value will be used.",
                     .await
             }
         }
+        CallSender::Impersonate(_) => {
+            unreachable!("Impersonating sender when creating canisters is not supported.")
+        }
         CallSender::Wallet(wallet_id) => {
             create_with_wallet(agent, &wallet_id, with_cycles, settings, subnet_selection).await
         }

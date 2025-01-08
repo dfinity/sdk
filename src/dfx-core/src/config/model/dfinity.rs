@@ -271,6 +271,12 @@ pub struct ConfigCanistersCanister {
     #[serde(flatten)]
     pub type_specific: CanisterTypeProperties,
 
+    /// # Pre-Install Commands
+    /// One or more commands to run pre canister installation.
+    /// These commands are executed in the root of the project.
+    #[serde(default)]
+    pub pre_install: SerdeVec<String>,
+
     /// # Post-Install Commands
     /// One or more commands to run post canister installation.
     /// These commands are executed in the root of the project.

@@ -127,6 +127,11 @@ async fn delete_canister(
                     CallSender::Wallet(wallet_id) => WithdrawTarget::Canister {
                         canister_id: *wallet_id,
                     },
+                    CallSender::Impersonate(_) => {
+                        unreachable!(
+                            "Impersonating sender when deleting canisters is not supported."
+                        )
+                    }
                     CallSender::SelectedId => {
                         let network = env.get_network_descriptor();
                         let identity_name = env

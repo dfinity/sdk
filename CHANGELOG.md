@@ -2,6 +2,22 @@
 
 # UNRELEASED
 
+### test: adds playwright test for svelte `dfx new` project
+
+The first of a suite of baseline tests to automate testing starter projects. Makes sure they are compatible with other dfx or asset canister changes.
+
+### fix: template frontends now have unsupported browser warnings
+
+DFX's default security headers cause Safari to break when viewing local canisters. Warning messages
+have been added to the frontend project templates when the page is broken that indicate to try switching
+browsers.
+
+### feat: impersonating sender of requests to a local PocketIC instance
+
+`dfx canister call`, `dfx canister status`, and `dfx canister update-settings` take
+an additional CLI argument `--impersonate` to specify a principal
+on behalf of which requests to a local PocketIC instance are sent.
+
 ### feat: `dfx canister [create|update-settings] --wasm-memory-threshold`
 
 This adds support for the WASM memory threshold, used in conjunction with `--wasm-memory-limit`.
@@ -85,6 +101,10 @@ Your account address for receiving ICP from centralized exchanges: 8494c01329531
 Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dnrh3-rsyq6-ffned-h64ox-vxywi-gzawf-ot4pv-sqe
 (run `dfx identity get-principal` to display)
 ```
+
+### feat: Add pre-install tasks
+
+Add pre-install tasks, which can be defined by the new `pre-install` key for canister objects in `dfx.json` with a command or list of commands.
 
 ## Dependencies
 
