@@ -188,7 +188,7 @@ The command line value will be used.",
         non_default_network,
         canister_id
     );
-    canister_id_store.add(canister_name, &canister_id, None)?;
+    canister_id_store.add(log, canister_name, &canister_id, None)?;
 
     Ok(())
 }

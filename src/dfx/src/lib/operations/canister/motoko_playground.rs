@@ -132,6 +132,7 @@ pub async fn reserve_canister_with_playground(
         .context("Failed to reserve canister at the playground.")?;
     let reserved_canister = Decode!(&result, CanisterInfo)?;
     canister_id_store.add(
+        log,
         canister_name,
         &reserved_canister.id.to_string(),
         Some(reserved_canister.get_timestamp()?),

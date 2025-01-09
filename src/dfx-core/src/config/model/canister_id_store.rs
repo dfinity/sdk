@@ -215,7 +215,24 @@ impl CanisterIdStore {
             .map(|(canister_name, _)| canister_name)
     }
 
-    pub fn save_ids(&self) -> Result<(), SaveIdsError> {
+    fn warn_for_canister_ids_path(&self) -> bool {
+        // Only warn when the 'canister_ids.json' file is first generated under the project root directory for persistent networks.
+        if let NetworkDescriptor {
+            r#type: NetworkTypeDescriptor::Persistent,
+            ..
+        } = self.network_descriptor
+        {
+            if let Some(path) = self.canister_ids_path.as_ref() {
+                if !path.exists() {
+                    return true;
+                }
+            }
+        };
+
+        false
+    }
+
+    pub fn save_ids(&self, log: &Logger) -> Result<(), SaveIdsError> {
         let path = self
             .canister_ids_path
             .as_ref()
@@ -223,8 +240,12 @@ impl CanisterIdStore {
                 // the only callers of this method have already called Environment::get_config_or_anyhow
                 unreachable!("Must be in a project (call Environment::get_config_or_anyhow()) to save canister ids")
             });
+        let to_warn = self.warn_for_canister_ids_path();
         crate::fs::composite::ensure_parent_dir_exists(path)?;
         crate::json::save_json_file(path, &self.ids)?;
+        if to_warn {
+            warn!(log, "The {:?} file has been generated. Please make sure you store it correctly, e.g., submitting it to a GitHub repository.", path);
+        }
         Ok(())
     }
 
@@ -309,6 +330,7 @@ impl CanisterIdStore {
 
     pub fn add(
         &mut self,
+        log: &Logger,
         canister_name: &str,
         canister_id: &str,
         timestamp: Option<AcquisitionDateTime>,
@@ -327,7 +349,7 @@ impl CanisterIdStore {
                     .insert(canister_name.to_string(), network_name_to_canister_id);
             }
         }
-        self.save_ids()
+        self.save_ids(log)
             .map_err(|source| AddCanisterIdError::SaveIds {
                 canister_name: canister_name.to_string(),
                 canister_id: canister_id.to_string(),
@@ -350,11 +372,15 @@ impl CanisterIdStore {
         Ok(())
     }
 
-    pub fn remove(&mut self, canister_name: &str) -> Result<(), RemoveCanisterIdError> {
+    pub fn remove(
+        &mut self,
+        log: &Logger,
+        canister_name: &str,
+    ) -> Result<(), RemoveCanisterIdError> {
         let network_name = &self.network_descriptor.name;
         if let Some(network_name_to_canister_id) = self.ids.get_mut(canister_name) {
             network_name_to_canister_id.remove(network_name);
-            self.save_ids()
+            self.save_ids(log)
                 .map_err(|e| RemoveCanisterIdError::SaveIds {
                     canister_name: canister_name.to_string(),
                     source: e,
@@ -392,7 +418,7 @@ impl CanisterIdStore {
 
         for canister in canisters_to_prune {
             warn!(log, "Canister '{}' has timed out.", &canister);
-            self.remove(&canister)?;
+            self.remove(log, &canister)?;
         }
 
         Ok(())

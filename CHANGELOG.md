@@ -111,6 +111,19 @@ Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dn
 
 Add pre-install tasks, which can be defined by the new `pre-install` key for canister objects in `dfx.json` with a command or list of commands.
 
+### chore: Warn when the 'canister_ids.json' file is first generated for persistent networks.
+
+Warn when the 'canister_ids.json' file is first generated for persistent networks.
+
+```
+dfx deploy --network ic
+...
+test_backend canister created on network ic with canister id: j36qm-pqaaa-aaaan-qzqya-cai
+WARN: The "/home/sdk/repos/test/canister_ids.json" file has been generated. Please make sure you store it correctly, e.g., submitting it to a GitHub repository.
+Building canisters...
+...
+```
+
 ## Dependencies
 
 ### Frontend canister
