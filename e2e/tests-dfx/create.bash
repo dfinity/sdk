@@ -416,7 +416,7 @@ function textual_decode() {
   # base64 encode the actual canister id
   CANISTER_ID_BASE64="$(textual_decode "${CANISTER_ID}" | xxd -r -p | base64)"
   # fetch topology from PocketIC server
-  TOPOLOGY="$(curl "http://127.0.0.1:$(dfx info replica-port)/instances/0/read/topology")"
+  TOPOLOGY="$(curl "http://127.0.0.1:$(dfx info pocketic-config-port)/instances/0/read/topology")"
   echo "${TOPOLOGY}"
   # find application subnet id in the topology
   for subnet_id in $(echo "${TOPOLOGY}" | jq '.subnet_configs | keys[]')

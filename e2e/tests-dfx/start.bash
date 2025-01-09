@@ -29,6 +29,18 @@ teardown() {
   dfx_stop
 }
 
+@test "start and stop with specified canister id" {
+  dfx_start
+
+  dfx_new hello
+  dfx deploy hello_backend --specified-id gt2iw-kiaaa-aaad7-qaaaa-cai
+
+  dfx_stop
+
+  dfx_start
+  dfx_stop
+}
+
 @test "start and stop with different options" {
   [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: clean required"
   dfx_start --artificial-delay 101
@@ -271,8 +283,11 @@ teardown() {
   jq ".local.replica.port=$replica_port" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   dfx_start
-
-  assert_command dfx info replica-port
+  if [[ "$USE_POCKETIC" ]]; then
+    assert_command dfx info pocketic-config-port
+  else
+    assert_command dfx info replica-port
+  fi
   assert_eq "$replica_port"
 }
 
