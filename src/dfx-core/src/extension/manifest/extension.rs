@@ -22,6 +22,15 @@ const DEFAULT_DOWNLOAD_URL_TEMPLATE: &str =
 type SubcmdName = String;
 type ArgName = String;
 
+fn should_skip_serializing_project_templates(
+    project_templates: &Option<HashMap<String, ExtensionProjectTemplate>>,
+) -> bool {
+    project_templates
+        .as_ref()
+        .map(HashMap::is_empty)
+        .unwrap_or(true)
+}
+
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExtensionManifest {
@@ -37,6 +46,10 @@ pub struct ExtensionManifest {
     pub dependencies: Option<HashMap<String, ExtensionDependency>>,
     pub canister_type: Option<ExtensionCanisterType>,
 
+    #[serde(
+        default,
+        skip_serializing_if = "should_skip_serializing_project_templates"
+    )]
     pub project_templates: Option<HashMap<String, ExtensionProjectTemplate>>,
 
     /// Components of the download url template are:
@@ -589,5 +602,53 @@ mod tests {
         assert_eq!(serialized, "\"1..3\"");
         assert_eq!(deserialized, ArgNumberOfValues::Range(1_usize..4_usize));
         assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn tolerant_to_no_project_templates() {
+        let f = r#"
+          {
+            "name": "sns",
+            "version": "0.4.7",
+            "homepage": "https://github.com/dfinity/dfx-extensions",
+            "authors": "DFINITY",
+            "summary": "Initialize, deploy and interact with an SNS",
+            "categories": [
+              "sns",
+              "nns"
+            ],
+            "keywords": [
+              "sns",
+              "nns",
+              "deployment"
+            ],
+            "description": null,
+            "subcommands": {
+              "add-sns-wasm-for-tests": {
+                "about": "Add a wasms for one of the SNS canisters, skipping the NNS proposal, for tests",
+                "args": {
+                  "canister_type": {
+                    "about": "The type of the canister that the wasm is for. Must be one of \"archive\", \"root\", \"governance\", \"ledger\", \"swap\", \"index\"",
+                    "long": null,
+                    "short": null,
+                    "multiple": false,
+                    "values": 1
+                  }
+                },
+                "subcommands": null
+              }
+            },
+            "dependencies": {
+              "dfx": ">=0.17.0"
+            },
+            "canister_type": null,
+            "download_url_template": "https://github.com/dfinity/dfx-extensions/releases/download/{{tag}}/{{basename}}.{{archive-format}}"
+          }"#;
+        let manifest: ExtensionManifest = serde_json::from_str(f).unwrap();
+        assert!(manifest.project_templates.is_none());
+
+        // now let's serialize it and check that "project_templates" is not present in the output
+        let serialized = serde_json::to_string(&manifest).unwrap();
+        assert!(!serialized.contains("project_templates"));
     }
 }
