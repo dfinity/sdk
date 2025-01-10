@@ -2,6 +2,46 @@
 
 # UNRELEASED
 
+### feat!: `dfx info pocketic-config-port`
+
+Due to the incompatibility between the APIs on the replica port and the PocketIC port, `dfx info replica-port`
+no longer works with PocketIC, and the PocketIC port is provided by a new command, `dfx info pocketic-config-port`.
+
+### test: adds playwright test for svelte `dfx new` project
+
+The first of a suite of baseline tests to automate testing starter projects. Makes sure they are compatible with other dfx or asset canister changes.
+
+### fix: template frontends now have unsupported browser warnings
+
+DFX's default security headers cause Safari to break when viewing local canisters. Warning messages
+have been added to the frontend project templates when the page is broken that indicate to try switching
+browsers.
+
+### feat: impersonating sender of requests to a local PocketIC instance
+
+`dfx canister call`, `dfx canister status`, and `dfx canister update-settings` take
+an additional CLI argument `--impersonate` to specify a principal
+on behalf of which requests to a local PocketIC instance are sent.
+
+### feat: `dfx canister [create|update-settings] --wasm-memory-threshold`
+
+This adds support for the WASM memory threshold, used in conjunction with `--wasm-memory-limit`.
+When the remaining memory until the limit falls below the threshold, the canister's
+`on_low_wasm_memory` handler is run.
+
+### fix: `dfx deploy --by-proposal` no longer sends chunk data in ProposeCommitBatch
+
+Recently we made `dfx deploy` include some chunk data in CommitBatch, in order to streamline
+deploys for smaller projects. `dfx deploy` splits up larger change lists and submits them in
+smaller batches, in order to remain within message and compute limits.
+
+This change also applied to `dfx deploy --by-proposal`, which submits all changes in a single
+message. This made it more likely that `dfx deploy --by-proposal` will fail due to exceeding
+message limits.
+
+This fix makes it so `dfx deploy --by-proposal` never includes this chunk data in
+ProposeCommitBatch, which will allow for more changes before hitting message limits.
+
 ### feat: `dfx start --pocketic` supports `--force` and shared networks.
 
 `dfx start --pocketic` is now compatible with `--force` and shared networks.
@@ -67,6 +107,23 @@ Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dn
 (run `dfx identity get-principal` to display)
 ```
 
+### feat: Add pre-install tasks
+
+Add pre-install tasks, which can be defined by the new `pre-install` key for canister objects in `dfx.json` with a command or list of commands.
+
+### chore: Warn when the 'canister_ids.json' file is first generated for persistent networks.
+
+Warn when the 'canister_ids.json' file is first generated for persistent networks.
+
+```
+dfx deploy --network ic
+...
+test_backend canister created on network ic with canister id: j36qm-pqaaa-aaaan-qzqya-cai
+WARN: The "/home/sdk/repos/test/canister_ids.json" file has been generated. Please make sure you store it correctly, e.g., submitting it to a GitHub repository.
+Building canisters...
+...
+```
+
 ## Dependencies
 
 ### Frontend canister
@@ -82,6 +139,23 @@ and reserves that much space for the ValueSerializer's buffer.
 ### Motoko
 
 Updated Motoko to [0.13.5](https://github.com/dfinity/motoko/releases/tag/0.13.5)
+
+### Replica
+
+Updated replica to elected commit 3e24396441e4c7380928d4e8b4ccff7de77d0e7e.
+This incorporates the following executed proposals:
+
+- [134497](https://dashboard.internetcomputer.org/proposal/134497)
+- [134408](https://dashboard.internetcomputer.org/proposal/134408)
+- [134337](https://dashboard.internetcomputer.org/proposal/134337)
+- [134336](https://dashboard.internetcomputer.org/proposal/134336)
+- [134259](https://dashboard.internetcomputer.org/proposal/134259)
+- [134251](https://dashboard.internetcomputer.org/proposal/134251)
+- [134250](https://dashboard.internetcomputer.org/proposal/134250)
+- [134188](https://dashboard.internetcomputer.org/proposal/134188)
+- [134187](https://dashboard.internetcomputer.org/proposal/134187)
+- [134186](https://dashboard.internetcomputer.org/proposal/134186)
+- [134185](https://dashboard.internetcomputer.org/proposal/134185)
 
 # 0.24.3
 

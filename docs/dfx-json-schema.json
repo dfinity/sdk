@@ -447,7 +447,8 @@
             "log_visibility": null,
             "memory_allocation": null,
             "reserved_cycles_limit": null,
-            "wasm_memory_limit": null
+            "wasm_memory_limit": null,
+            "wasm_memory_threshold": null
           },
           "allOf": [
             {
@@ -488,6 +489,16 @@
         "post_install": {
           "title": "Post-Install Commands",
           "description": "One or more commands to run post canister installation. These commands are executed in the root of the project.",
+          "default": [],
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
+            }
+          ]
+        },
+        "pre_install": {
+          "title": "Pre-Install Commands",
+          "description": "One or more commands to run pre canister installation. These commands are executed in the root of the project.",
           "default": [],
           "allOf": [
             {
@@ -1011,6 +1022,19 @@
         "wasm_memory_limit": {
           "title": "Wasm Memory Limit",
           "description": "Specifies a soft limit (in bytes) on the Wasm memory usage of the canister.\n\nUpdate calls, timers, heartbeats, installs, and post-upgrades fail if the Wasm memory usage exceeds this limit. The main purpose of this setting is to protect against the case when the canister reaches the hard 4GiB limit.\n\nMust be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Byte"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wasm_memory_threshold": {
+          "title": "Wasm Memory Threshold",
+          "description": "Specifies a threshold (in bytes) on the Wasm memory usage of the canister, as a distance from `wasm_memory_limit`.\n\nWhen the remaining memory before the limit drops below this threshold, its `on_low_wasm_memory` hook will be invoked. This enables it to self-optimize, or raise an alert, or otherwise attempt to prevent itself from reaching `wasm_memory_limit`.\n\nMust be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
           "default": null,
           "anyOf": [
             {

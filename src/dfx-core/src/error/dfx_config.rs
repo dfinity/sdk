@@ -59,6 +59,12 @@ pub enum GetWasmMemoryLimitError {
 }
 
 #[derive(Error, Debug)]
+pub enum GetWasmMemoryThresholdError {
+    #[error("Failed to get Wasm memory threshold for canister '{0}'")]
+    GetWasmMemoryThresholdFailed(String, #[source] GetCanisterConfigError),
+}
+
+#[derive(Error, Debug)]
 pub enum GetLogVisibilityError {
     #[error("Failed to get log visibility for canister '{0}'")]
     GetLogVisibilityFailed(String, #[source] GetCanisterConfigError),

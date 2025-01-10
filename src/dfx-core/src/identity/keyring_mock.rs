@@ -2,7 +2,7 @@ use super::TEMP_IDENTITY_PREFIX;
 use crate::error::keyring::KeyringError;
 use crate::error::keyring::KeyringError::{
     DecodePemFailed, DeletePasswordFailed, GetPasswordFailed, LoadMockKeyringFailed,
-    MockKeyNotFound, MockUnavailable, SaveMockKeyringFailed, SetPasswordFailed,
+    MockKeyNotFound, MockUnavailable, NewEntryFailed, SaveMockKeyringFailed, SetPasswordFailed,
 };
 use crate::json::{load_json_file, save_json_file};
 use keyring;
@@ -73,7 +73,8 @@ pub fn load_pem_from_keyring(identity_name_suffix: &str) -> Result<Vec<u8>, Keyr
     let keyring_identity_name = keyring_identity_name_from_suffix(identity_name_suffix);
     match KeyringMockMode::current_mode() {
         KeyringMockMode::NoMock => {
-            let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
+            let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name)
+                .map_err(NewEntryFailed)?;
             let encoded_pem = entry.get_password().map_err(GetPasswordFailed)?;
             let pem = hex::decode(encoded_pem).map_err(DecodePemFailed)?;
             Ok(pem)
@@ -99,7 +100,8 @@ pub fn write_pem_to_keyring(
     let encoded_pem = hex::encode(pem_content);
     match KeyringMockMode::current_mode() {
         KeyringMockMode::NoMock => {
-            let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
+            let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name)
+                .map_err(NewEntryFailed)?;
             entry
                 .set_password(&encoded_pem)
                 .map_err(SetPasswordFailed)?;
@@ -125,8 +127,11 @@ pub fn keyring_available(log: &Logger) -> bool {
                 "{}{}{}",
                 KEYRING_IDENTITY_PREFIX, TEMP_IDENTITY_PREFIX, "dummy"
             );
-            let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &dummy_entry_name);
-            entry.set_password("dummy entry").is_ok()
+            if let Ok(entry) = keyring::Entry::new(KEYRING_SERVICE_NAME, &dummy_entry_name) {
+                entry.set_password("dummy entry").is_ok()
+            } else {
+                false
+            }
         }
         KeyringMockMode::MockReject => false,
         KeyringMockMode::MockAvailable => true,
@@ -137,9 +142,10 @@ pub fn delete_pem_from_keyring(identity_name_suffix: &str) -> Result<(), Keyring
     let keyring_identity_name = keyring_identity_name_from_suffix(identity_name_suffix);
     match KeyringMockMode::current_mode() {
         KeyringMockMode::NoMock => {
-            let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name);
+            let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name)
+                .map_err(NewEntryFailed)?;
             if entry.get_password().is_ok() {
-                entry.delete_password().map_err(DeletePasswordFailed)?;
+                entry.delete_credential().map_err(DeletePasswordFailed)?;
             }
         }
         KeyringMockMode::MockAvailable => {

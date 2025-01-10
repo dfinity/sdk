@@ -22,6 +22,7 @@ pub struct CanisterSettings {
     pub freezing_threshold: Option<FreezingThreshold>,
     pub reserved_cycles_limit: Option<ReservedCyclesLimit>,
     pub wasm_memory_limit: Option<WasmMemoryLimit>,
+    pub wasm_memory_threshold: Option<WasmMemoryLimit>,
     pub log_visibility: Option<LogVisibility>,
 }
 
@@ -49,6 +50,10 @@ impl From<CanisterSettings>
                 .map(candid::Nat::from),
             wasm_memory_limit: value
                 .wasm_memory_limit
+                .map(u64::from)
+                .map(candid::Nat::from),
+            wasm_memory_threshold: value
+                .wasm_memory_threshold
                 .map(u64::from)
                 .map(candid::Nat::from),
             log_visibility: value.log_visibility,
@@ -105,6 +110,14 @@ impl TryFrom<ic_utils::interfaces::management_canister::builders::CanisterSettin
                 .map(|limit| {
                     WasmMemoryLimit::try_from(limit)
                         .context("Wasm memory limit must be between 0 and 2^48-1, inclusively.")
+                })
+                .transpose()?,
+            wasm_memory_threshold: value
+                .wasm_memory_threshold
+                .and_then(|limit| limit.0.to_u64())
+                .map(|limit| {
+                    WasmMemoryLimit::try_from(limit)
+                        .context("Wasm memory threshold msut be between 0 and 2^48-1, inclusively.")
                 })
                 .transpose()?,
             log_visibility: value.log_visibility,
@@ -210,6 +223,27 @@ pub fn get_wasm_memory_limit(
         _ => None,
     };
     wasm_memory_limit
+        .map(|arg| {
+            u64::try_from(arg.get_bytes())
+                .map_err(|e| anyhow!(e))
+                .and_then(|n| Ok(WasmMemoryLimit::try_from(n)?))
+                .context("Wasm memory limit must be between 0 and 2^48 (i.e 256TB), inclusively.")
+        })
+        .transpose()
+}
+pub fn get_wasm_memory_threshold(
+    wasm_memory_threshold: Option<Byte>,
+    config_interface: Option<&ConfigInterface>,
+    canister_name: Option<&str>,
+) -> DfxResult<Option<WasmMemoryLimit>> {
+    let wasm_memory_threshold = match (wasm_memory_threshold, config_interface, canister_name) {
+        (Some(memory_threshold), _, _) => Some(memory_threshold),
+        (None, Some(config_interface), Some(canister_name)) => {
+            config_interface.get_wasm_memory_threshold(canister_name)?
+        }
+        _ => None,
+    };
+    wasm_memory_threshold
         .map(|arg| {
             u64::try_from(arg.get_bytes())
                 .map_err(|e| anyhow!(e))

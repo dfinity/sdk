@@ -18,6 +18,8 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use time::OffsetDateTime;
 
+use super::replica_config::CachedReplicaConfig;
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct NetworkMetadata {
     pub created: OffsetDateTime,
@@ -360,7 +362,6 @@ impl LocalServerDescriptor {
         logger: Option<&Logger>,
     ) -> Result<Option<u16>, NetworkConfigError> {
         let replica_port_path = self.replica_port_path();
-        let pocketic_port_path = self.pocketic_port_path();
         match read_port_from(&replica_port_path)? {
             Some(port) => {
                 if let Some(logger) = logger {
@@ -368,16 +369,38 @@ impl LocalServerDescriptor {
                 }
                 Ok(Some(port))
             }
-            None => match read_port_from(&pocketic_port_path)? {
-                Some(port) => {
-                    if let Some(logger) = logger {
-                        info!(logger, "Found local PocketIC running on port {}", port);
-                    }
-                    Ok(Some(port))
-                }
-                None => Ok(self.replica.port),
-            },
+            None => {
+                let port = self
+                    .get_running_pocketic_port(logger)?
+                    .or(self.replica.port);
+                Ok(port)
+            }
         }
+    }
+
+    /// Gets the port of a local PocketIC instance.
+    ///
+    /// # Prerequisites
+    /// - A local PocketIC instance needs to be running, e.g. with `dfx start --pocketic`.
+    pub fn get_running_pocketic_port(
+        &self,
+        logger: Option<&Logger>,
+    ) -> Result<Option<u16>, NetworkConfigError> {
+        match read_port_from(&self.pocketic_port_path())? {
+            Some(port) => {
+                if let Some(logger) = logger {
+                    info!(logger, "Found local PocketIC running on port {}", port);
+                }
+                Ok(Some(port))
+            }
+            None => Ok(None),
+        }
+    }
+
+    pub fn is_pocketic(&self) -> Result<Option<bool>, StructuredFileError> {
+        Ok(self
+            .effective_config()?
+            .map(|cfg| matches!(cfg.config, CachedReplicaConfig::PocketIc { .. })))
     }
 }
 

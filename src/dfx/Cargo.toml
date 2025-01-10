@@ -86,6 +86,7 @@ os_str_bytes = { version = "6.3.0", features = ["conversions"] }
 patch = "0.7.0"
 pem.workspace = true
 petgraph = "0.6.0"
+pocket-ic = { git = "https://github.com/dfinity/ic", rev = "3e24396441e4c7380928d4e8b4ccff7de77d0e7e" }
 rand = "0.8.5"
 regex = "1.5.5"
 reqwest = { workspace = true, features = ["blocking", "json"] }
@@ -124,9 +125,6 @@ ci_info = "0.14"
 
 [target.'cfg(windows)'.dependencies]
 junction = "1.0.0"
-
-[target.'cfg(unix)'.dependencies]
-pocket-ic = { git = "https://github.com/dfinity/ic", rev = "a62848817cec7ae50618a87a526c85d020283fd9" }
 
 [dev-dependencies]
 env_logger = "0.10"
