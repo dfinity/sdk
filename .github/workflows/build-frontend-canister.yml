@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - ens/asset-canister-direct-dependencies
     paths:
       - src/distributed/assetstorage.wasm.gz
       - src/canisters/frontend/ic-certified-assets/**

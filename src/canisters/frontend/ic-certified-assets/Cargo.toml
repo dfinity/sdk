@@ -1,36 +1,41 @@
+[workspace]
+members = [
+    ".",
+]
+
 [package]
 name = "ic-certified-assets"
 version = "0.2.5"
-authors.workspace = true
-edition.workspace = true
-repository.workspace = true
-license.workspace = true
-rust-version.workspace = true
+authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
+edition = "2021"
+repository = "https://github.com/dfinity/sdk"
+rust-version = "1.75.0"
+license = "Apache-2.0"
 description = "Rust support for asset certification."
 documentation = "https://docs.rs/ic-certified-assets"
 categories = ["wasm", "filesystem", "data-structures"]
 keywords = ["internet-computer", "dfinity"]
 
 [dependencies]
-base64.workspace = true
-candid.workspace = true
-hex.workspace = true
-ic-cdk.workspace = true
-ic-certification = "2.3.0"
+base64 = "0.13.1"
+candid = "0.10.11"
+hex = "0.4.3"
+ic-cdk = "0.13.5"
+ic-certification = "2.6.0"
 ic-response-verification = "2.3.0"
 ic-representation-independent-hash = "2.3.0"
-itertools.workspace = true
-num-traits.workspace = true
-serde.workspace = true
-serde_bytes.workspace = true
-serde_cbor.workspace = true
-sha2.workspace = true
+itertools = "0.10.5"
+num-traits = "0.2.19"
+serde = "1.0.215"
+serde_bytes = "0.11.15"
+serde_cbor = "0.11.2"
+sha2 = "0.10.8"
 percent-encoding = "2.3.1"
 
 [dev-dependencies]
 ic-http-certification = "2.3.0"
-candid_parser.workspace = true
-anyhow.workspace = true
+candid_parser = "0.1.4"
+anyhow = "1.0.94"
 ic-response-verification-test-utils = { git = "https://github.com/dfinity/response-verification.git", rev = "a65009624b61736df6d2dc17756bdbd02a84f599" }
 ic-certification-testing = { git = "https://github.com/dfinity/response-verification.git", rev = "a65009624b61736df6d2dc17756bdbd02a84f599" }
 ic-crypto-tree-hash = { git = "https://github.com/dfinity/ic.git", rev = "1290256484f59c3d950c5e9a098e97383b248ad6" }
