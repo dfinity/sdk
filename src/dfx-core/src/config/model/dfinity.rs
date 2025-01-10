@@ -682,6 +682,16 @@ impl ReplicaLogLevel {
             Self::Trace => "trace".to_string(),
         }
     }
+    pub fn to_pocketic_string(&self) -> String {
+        match self {
+            Self::Critical => "CRITICAL".to_string(),
+            Self::Error => "ERROR".to_string(),
+            Self::Warning => "WARN".to_string(),
+            Self::Info => "INFO".to_string(),
+            Self::Debug => "DEBUG".to_string(),
+            Self::Trace => "TRACE".to_string(),
+        }
+    }
 }
 
 /// # Local Replica Configuration
