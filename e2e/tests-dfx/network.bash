@@ -47,6 +47,7 @@ teardown() {
   dfx_start
 
   assert_command dfx canister create --all --network local
+  assert_not_contains "canister_ids.json\" file has been generated. Please make sure you store it correctly"
 
   # canister creates writes to a spinner (stderr), not stdout
   assert_command dfx canister id e2e_project_backend --network local
@@ -64,6 +65,7 @@ teardown() {
   jq '.local.type="persistent"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   assert_command dfx canister create --all --network local
+  assert_contains "canister_ids.json\" file has been generated. Please make sure you store it correctly"
 
   # canister creates writes to a spinner (stderr), not stdout
   assert_command dfx canister id e2e_project_backend --network local

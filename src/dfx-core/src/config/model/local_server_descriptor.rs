@@ -18,6 +18,8 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use time::OffsetDateTime;
 
+use super::replica_config::CachedReplicaConfig;
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct NetworkMetadata {
     pub created: OffsetDateTime,
@@ -393,6 +395,12 @@ impl LocalServerDescriptor {
             }
             None => Ok(None),
         }
+    }
+
+    pub fn is_pocketic(&self) -> Result<Option<bool>, StructuredFileError> {
+        Ok(self
+            .effective_config()?
+            .map(|cfg| matches!(cfg.config, CachedReplicaConfig::PocketIc { .. })))
     }
 }
 

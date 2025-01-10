@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat!: `dfx info pocketic-config-port`
+
+Due to the incompatibility between the APIs on the replica port and the PocketIC port, `dfx info replica-port`
+no longer works with PocketIC, and the PocketIC port is provided by a new command, `dfx info pocketic-config-port`.
+
 ### test: adds playwright test for svelte `dfx new` project
 
 The first of a suite of baseline tests to automate testing starter projects. Makes sure they are compatible with other dfx or asset canister changes.
@@ -105,6 +110,19 @@ Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dn
 ### feat: Add pre-install tasks
 
 Add pre-install tasks, which can be defined by the new `pre-install` key for canister objects in `dfx.json` with a command or list of commands.
+
+### chore: Warn when the 'canister_ids.json' file is first generated for persistent networks.
+
+Warn when the 'canister_ids.json' file is first generated for persistent networks.
+
+```
+dfx deploy --network ic
+...
+test_backend canister created on network ic with canister id: j36qm-pqaaa-aaaan-qzqya-cai
+WARN: The "/home/sdk/repos/test/canister_ids.json" file has been generated. Please make sure you store it correctly, e.g., submitting it to a GitHub repository.
+Building canisters...
+...
+```
 
 ## Dependencies
 

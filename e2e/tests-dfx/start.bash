@@ -283,8 +283,11 @@ teardown() {
   jq ".local.replica.port=$replica_port" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   dfx_start
-
-  assert_command dfx info replica-port
+  if [[ "$USE_POCKETIC" ]]; then
+    assert_command dfx info pocketic-config-port
+  else
+    assert_command dfx info replica-port
+  fi
   assert_eq "$replica_port"
 }
 
