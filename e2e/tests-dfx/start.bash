@@ -484,7 +484,7 @@ teardown() {
   assert_command dfx_start
   dfx stop
   jq -n '.local.replica.log_level="warning"' > "$E2E_NETWORKS_JSON"
-  assert_command dfx_start --verbose
+  assert_command dfx_start
 }
 
 @test "project-local networks require --clean if dfx.json was updated" {
