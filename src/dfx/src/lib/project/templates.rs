@@ -226,7 +226,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
             get_archive_fn: assets::new_project_js_files,
         },
         category: ProjectTemplateCategory::Support,
-        post_create: vec![],
+        post_create: vec![NPM_INSTALL.to_string()],
         post_create_failure_warning: None,
         post_create_spinner_message: None,
         requirements: vec![],
