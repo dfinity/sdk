@@ -776,7 +776,6 @@ current_time_nanoseconds() {
 }
 
 @test "automatically choose subnet" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: subnet range"
   dfx_start
 
   REGISTRY="rwlgt-iiaaa-aaaaa-aaaaa-cai"

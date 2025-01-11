@@ -2,6 +2,8 @@
 
 load ../utils/_
 
+# all skipped for pocketic: outcall adapter is a replica implementation detail
+
 setup() {
   standard_setup
 }

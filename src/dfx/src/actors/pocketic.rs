@@ -350,7 +350,7 @@ async fn initialize_pocketic(
         nns: Some(SubnetSpec::default()),
         sns: Some(SubnetSpec::default()),
         ii: Some(SubnetSpec::default()),
-        fiduciary: None,
+        fiduciary: Some(SubnetSpec::default()),
         bitcoin: Some(SubnetSpec::default()),
         system: vec![],
         verified_application: vec![],
@@ -369,7 +369,7 @@ async fn initialize_pocketic(
             subnet_config_set,
             state_dir: Some(replica_config.state_manager.state_root.clone()),
             nonmainnet_features: true,
-            log_level: Some(replica_config.log_level.to_ic_starter_string()),
+            log_level: Some(replica_config.log_level.to_pocketic_string()),
             bitcoind_addr: bitcoind_addr.clone(),
         })
         .send()

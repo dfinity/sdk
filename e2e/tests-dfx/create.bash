@@ -43,7 +43,7 @@ teardown() {
 }
 
 @test "create succeeds when specify large canister ID" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: subnet range"
+  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: nonexistent subnet ranges are unsupported"
   dfx_start
   # hhn2s-5l777-77777-7777q-cai is the canister ID of (u64::MAX / 2)
   assert_command dfx canister create e2e_project_backend --specified-id hhn2s-5l777-77777-7777q-cai
