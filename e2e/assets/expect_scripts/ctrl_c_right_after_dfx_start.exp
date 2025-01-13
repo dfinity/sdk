@@ -4,7 +4,7 @@ match_max 100000
 set timeout 330
 
 spawn dfx cache install
-expect "installed successfully."
+expect "Installed dfx"
 
 spawn dfx start --clean
 set pid [exp_pid]
