@@ -38,7 +38,7 @@ assert_command_fail() {
     stderrf="$(mktemp)"
     stdoutf="$(mktemp)"
     statusf="$(mktemp)"
-    ( set +e; "$@" 2>"$stderrf" >"$stdoutf"; echo -n "$?" >"$statusf" )
+    ( set +e; "$@" 2>"$stderrf" >"$stdoutf" 3>&-; echo -n "$?" >"$statusf" )
     status=$(< "$statusf"); rm "$statusf"
     stderr=$(< "$stderrf"); rm "$stderrf"
     stdout=$(< "$stdoutf"); rm "$stdoutf"
