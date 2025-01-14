@@ -373,11 +373,6 @@ fn replica_start_thread(
 
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());
-        #[cfg(unix)]
-        {
-            use std::os::unix::process::CommandExt;
-            cmd.process_group(0);
-        }
         loop {
             if let Some(port_path) = write_port_to.as_ref() {
                 let _ = std::fs::remove_file(port_path);
