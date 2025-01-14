@@ -77,6 +77,11 @@ This affects the following commands:
 - `dfx canister update-settings`
 - `dfx ledger fabricate-cycles`
 
+### fix: `dfx` can deploy canisters to playground networks that have Motoko EOP enabled
+
+Canisters with Motoko's Enhanced Orthogonal Persistence feature require `wasm_memory_persistence = Keep` when they get installed.
+Previously, when `dfx` attempted to install canisters with EOP enabled to a playground it didn't set `wasm_memory_persistence` properly.
+
 ### chore: improve `dfx deploy` messages.
 
 If users run `dfx deploy` without enough cycles, show additional messages to indicate what to do next.

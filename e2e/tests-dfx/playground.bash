@@ -117,3 +117,19 @@ setup_playground() {
   assert_command bash -c 'dfx canister info hello_frontend | grep hash'
   assert_match "${PLAYGROUND_HASH}"
 }
+
+@test "playground canister upgrades work with Motoko Enhanced Orthogonal Persistence" {
+  # enable EOP
+  jq '.canisters.hello_backend.args="--enhanced-orthogonal-persistence"' dfx.json | sponge dfx.json
+  
+  # deployment with EOP works
+  assert_command dfx deploy --playground
+  assert_command dfx canister call hello_backend greet '("World")' --playground
+  assert_match "Hello, World!"
+
+  # updating a canister with EOP works
+  perl -pi -e 's/Hello/Greetings/g' src/hello_backend/main.mo # equivalent to using sed, but perl is consistent across MacOS/Linux unlike sed
+  assert_command dfx deploy --playground
+  assert_command dfx canister call hello_backend greet '("World")' --playground
+  assert_match "Greetings, World!"
+}
