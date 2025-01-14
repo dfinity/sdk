@@ -119,6 +119,10 @@ setup_playground() {
 }
 
 @test "playground canister upgrades work with Motoko Enhanced Orthogonal Persistence" {
+  assert_command dfx canister create --all --playground
+  [[ "$USE_POCKETIC" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_backend --playground
+  [[ "$USE_POCKETIC" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_frontend --playground
+  
   # enable EOP
   jq '.canisters.hello_backend.args="--enhanced-orthogonal-persistence"' dfx.json | sponge dfx.json
   
