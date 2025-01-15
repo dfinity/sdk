@@ -112,17 +112,17 @@ impl InstallModeHint {
     pub fn to_install_mode(
         &self,
         upgrade_in_auto: bool,
-        wasm_memory_persistence_embeded: Option<WasmMemoryPersistence>,
+        wasm_memory_persistence_embedded: Option<WasmMemoryPersistence>,
     ) -> InstallMode {
         match self {
             InstallModeHint::Install => InstallMode::Install,
             InstallModeHint::Reinstall => InstallMode::Reinstall,
             InstallModeHint::Upgrade(opt) => InstallMode::Upgrade(*opt),
             InstallModeHint::Auto(opt) => {
-                let opt = if opt.is_none() && wasm_memory_persistence_embeded.is_some() {
+                let opt = if opt.is_none() && wasm_memory_persistence_embedded.is_some() {
                     Some(CanisterUpgradeOptions {
                         skip_pre_upgrade: None,
-                        wasm_memory_persistence: wasm_memory_persistence_embeded,
+                        wasm_memory_persistence: wasm_memory_persistence_embedded,
                     })
                 } else {
                     *opt

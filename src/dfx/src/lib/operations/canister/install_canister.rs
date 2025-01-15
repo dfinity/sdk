@@ -75,7 +75,7 @@ pub async fn install_canister(
         "Previously installed module hash: {:?}",
         installed_module_hash.as_ref().map(hex::encode)
     );
-    let wasm_memory_persistence_embeded =
+    let wasm_memory_persistence_embedded =
         read_module_metadata(agent, canister_id, "enhanced-orthogonal-persistence")
             .await
             .map(|_| WasmMemoryPersistence::Keep);
@@ -93,7 +93,7 @@ pub async fn install_canister(
     // };
     let mode = mode_hint.to_install_mode(
         installed_module_hash.is_some(),
-        wasm_memory_persistence_embeded,
+        wasm_memory_persistence_embedded,
     );
 
     // let mode = mode.unwrap_or_else(|| {

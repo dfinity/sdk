@@ -10,14 +10,29 @@ import List "mo:base/List";
 import Option "mo:base/Option";
 import Int "mo:base/Int";
 import Timer "mo:base/Timer";
+import Debug "mo:base/Debug";
+import Error "mo:base/Error";
+import Cycles "mo:base/ExperimentalCycles";
+import ICType "./IC";
 
 module {
+    type CyclesSettings = {
+        max_cycles_per_call: Nat;
+        max_cycles_total: Nat;
+    };
     public type InitParams = {
         cycles_per_canister: Nat;
         max_num_canisters: Nat;
         canister_time_to_live: Nat;
         nonce_time_to_live: Nat;
         max_family_tree_size: Nat;
+        // Used for installing asset canister. If set, will not use timer to kill expired canisters, and will not uninstall code when fetching an expired canister (unless the module hash changed).
+        stored_module: ?{hash: Blob; arg: Blob};
+        // Disable getCanisterId endpoint
+        admin_only: ?Bool;
+        // Cycle add limit for whitelisted methods
+        cycles_settings: ?CyclesSettings;
+        wasm_utils_principal: ?Text;
     };
     public let defaultParams : InitParams = {
         cycles_per_canister = 550_000_000_000;
@@ -25,12 +40,33 @@ module {
         canister_time_to_live = 1200_000_000_000;
         nonce_time_to_live = 300_000_000_000;
         max_family_tree_size = 5;
+        stored_module = null;
+        admin_only = null;
+        cycles_settings = null;
+        wasm_utils_principal = ?"ozk6r-tyaaa-aaaab-qab4a-cai";
     };
     public type InstallArgs = {
         arg : Blob;
         wasm_module : Blob;
-        mode : { #reinstall; #upgrade; #install };
+        mode : ICType.canister_install_mode;
         canister_id : Principal;
+    };
+    public type DeployArgs = {
+        arg : Blob;
+        wasm_module : Blob;
+        bypass_wasm_transform : ?Bool;
+        mode : ?ICType.canister_install_mode;
+    };
+    public type InstallConfig = {
+        profiling: Bool;
+        is_whitelisted: Bool;
+        origin: { origin: Text; tags: [Text] };
+        start_page: ?Nat32;
+        page_limit: ?Nat32;
+    };
+    public type ProfilingConfig = {
+        start_page: ?Nat32;
+        page_limit: ?Nat32;
     };
     public type CanisterInfo = {
         id: Principal;
@@ -42,6 +78,9 @@ module {
         else if (x.timestamp == y.timestamp and x.id == y.id) { #equal }
         else { #greater }
     };
+    public func getCyclesSettings(params: InitParams) : CyclesSettings {
+        Option.get(params.cycles_settings, { max_cycles_per_call = 250_000_000_000; max_cycles_total = 550_000_000_000 })
+    };
 
     /*
     * Main data structure of the playground. The splay tree is the source of truth for
@@ -49,7 +88,10 @@ module {
     * to allow Map-style lookups on the canister data. Childrens and parents define the
     * controller relationships for dynmically spawned canisters by actor classes.
     */
-    public class CanisterPool(size: Nat, ttl: Nat, max_family_tree_size: Nat) {
+    public class CanisterPool(params: InitParams) {
+        let size = params.max_num_canisters;
+        let ttl = params.canister_time_to_live;
+        let max_family_tree_size = params.max_family_tree_size;
         var len = 0;
         var tree = Splay.Splay<CanisterInfo>(canisterInfoCompare);
         // Metadata is a replicate of splay tree, which allows lookup without timestamp. Internal use only.
@@ -57,39 +99,67 @@ module {
         var childrens = TrieMap.TrieMap<Principal, List.List<Principal>>(Principal.equal, Principal.hash);
         var parents = TrieMap.TrieMap<Principal, Principal>(Principal.equal, Principal.hash);
         let timers = TrieMap.TrieMap<Principal, Timer.TimerId>(Principal.equal, Principal.hash);
+        var snapshots = TrieMap.TrieMap<Principal, Blob>(Principal.equal, Principal.hash);
+        // Cycles spent by each canister, not persisted for upgrades
+        let cycles = TrieMap.TrieMap<Principal, Int>(Principal.equal, Principal.hash);
 
         public type NewId = { #newId; #reuse:CanisterInfo; #outOfCapacity:Nat };
 
+        public func rollbackLen() {
+            len -= 1;
+        };
         public func getExpiredCanisterId() : NewId {
-            if (len < size) {
-                #newId
-            } else {
-                switch (tree.entries().next()) {
-                    case null { assert false; loop(); };
-                    case (?info) {
-                        let now = Time.now();
-                        let elapsed : Nat = Int.abs(now) - Int.abs(info.timestamp);
-                        if (elapsed >= ttl) {
-                            // Lazily cleanup pool state before reusing canister
-                            tree.remove info;
-                            let newInfo = { timestamp = now; id = info.id; };
-                            tree.insert newInfo;
-                            metadata.put(newInfo.id, (newInfo.timestamp, false));
-                            deleteFamilyNode(newInfo.id);
-                            #reuse newInfo
-                        } else {
-                            #outOfCapacity(ttl - elapsed)
-                        }
+            switch (tree.entries().next()) {
+            case null {
+                     if (len < size) {
+                         len += 1;
+                         #newId
+                     } else {
+                         Debug.trap "No canister in the pool"
                      };
+                 };
+            case (?info) {
+                     let now = Time.now();
+                     let elapsed : Nat = Int.abs(now) - Int.abs(info.timestamp);
+                     if (elapsed >= ttl) {
+                         // Lazily cleanup pool state before reusing canister
+                         tree.remove info;
+                         let newInfo = { timestamp = now; id = info.id; };
+                         tree.insert newInfo;
+                         metadata.put(newInfo.id, (newInfo.timestamp, false));
+                         deleteFamilyNode(newInfo.id);
+                         #reuse newInfo
+                     } else {
+                         if (len < size) {
+                             len += 1;
+                             #newId
+                         } else {
+                             #outOfCapacity(ttl - elapsed)
+                         }
+                     }
+                 };
+            };
+        };
+        public func removeCanister(info: CanisterInfo) {
+            tree.remove info;
+            metadata.delete(info.id);
+            deleteFamilyNode(info.id);
+            cycles.delete(info.id);
+            // Note that we didn't remove snapshots, as users can continue to use them after the transfer
+            switch (timers.remove(info.id)) {
+                case null {};
+                case (?tid) {
+                    Timer.cancelTimer(tid);
                 };
             };
+            len -= 1;
         };
 
         public func add(info: CanisterInfo) {
-            if (len >= size) {
+            if (len > size) {
                 assert false;
             };
-            len += 1;
+            // len already incremented in getExpiredCanisterId
             tree.insert info;
             metadata.put(info.id, (info.timestamp, false));
         };
@@ -123,13 +193,15 @@ module {
             tree.insert { timestamp = 0; id };
             metadata.put(id, (0, false));
             deleteFamilyNode id;
+            cycles.delete id;
+            // snapshots already removed with pool_uninstall_code
             return true;
         };
 
-        public func updateTimer(info: CanisterInfo, job : () -> async ()) {
+        public func updateTimer<system>(info: CanisterInfo, job : () -> async ()) {
             let elapsed = Time.now() - info.timestamp;
             let duration = if (elapsed > ttl) { 0 } else { Int.abs(ttl - elapsed) };
-            let tid = Timer.setTimer(#nanoseconds duration, job);
+            let tid = Timer.setTimer<system>(#nanoseconds duration, job);
             switch (timers.replace(info.id, tid)) {
             case null {};
             case (?old_id) {
@@ -143,7 +215,41 @@ module {
         public func removeTimer(cid: Principal) {
             timers.delete cid;
         };
-        
+        public func getSnapshot(cid: Principal) : ?Blob {
+            snapshots.get cid
+        };
+        public func setSnapshot(cid: Principal, snapshot: Blob) {
+            snapshots.put(cid, snapshot);
+        };
+        public func removeSnapshot(cid: Principal) {
+            snapshots.delete cid;
+        };
+        public func addCycles<system>(cid: Principal, config: { #method: Text; #refund }) : async* () {
+            switch (config) {
+            case (#method(method)) {
+                     if (not findId cid) {
+                         throw Error.reject("Canister pool: Only a canister managed by the pool can call " # method);
+                     };
+                     let curr = Option.get(cycles.get(cid), 0);
+                     let settings = getCyclesSettings(params);
+                     let new = curr + settings.max_cycles_per_call;
+                     if (new > settings.max_cycles_total) {
+                         throw Error.reject("Canister pool: Cycles limit exceeded when calling " # method # ". Already used " # Int.toText(curr) # " cycles. Deploy with your own wallet to avoid cycle limit.");
+                     };
+                     cycles.put(cid, new);
+                     Cycles.add<system>(settings.max_cycles_per_call);
+                 };
+            case (#refund) {
+                     let refund = Cycles.refunded();
+                     let curr = Option.get(cycles.get(cid), 0);
+                     let new = curr - refund;
+                     if (new < 0) {
+                         throw Error.reject("Canister pool: Cycles refund exceeds the balance. This should not happen.");
+                     };
+                     cycles.put(cid, new);
+                 };
+            };
+        };
         private func notExpired(info: CanisterInfo, now: Int) : Bool = (info.timestamp > now - ttl);
 
         // Return a list of canister IDs from which to uninstall code
@@ -160,8 +266,11 @@ module {
             };
             result
         };
+        public func getAllCanisters() : Iter.Iter<CanisterInfo> {
+            tree.entries();
+        };
 
-        public func share() : ([CanisterInfo], [(Principal, (Int, Bool))], [(Principal, [Principal])], [CanisterInfo]) {
+        public func share() : ([CanisterInfo], [(Principal, (Int, Bool))], [(Principal, [Principal])], [CanisterInfo], [(Principal, Blob)]) {
             let stableInfos = Iter.toArray(tree.entries());
             let stableMetadata = Iter.toArray(metadata.entries());
             let stableChildren = 
@@ -176,10 +285,11 @@ module {
                 tree.entries(),
                 func (info) = Option.isSome(timers.get(info.id))
               ));
-            (stableInfos, stableMetadata, stableChildren, stableTimers)
+            let stableSnapshots = Iter.toArray(snapshots.entries());
+            (stableInfos, stableMetadata, stableChildren, stableTimers, stableSnapshots)
         };
 
-        public func unshare(stableInfos: [CanisterInfo], stableMetadata: [(Principal, (Int, Bool))], stableChildrens : [(Principal, [Principal])]) {
+        public func unshare(stableInfos: [CanisterInfo], stableMetadata: [(Principal, (Int, Bool))], stableChildrens : [(Principal, [Principal])], stableSnapshots: [(Principal, Blob)]) {
             len := stableInfos.size();
             tree.fromArray stableInfos;
 
@@ -215,6 +325,7 @@ module {
                     )
                 );
             parents := TrieMap.fromEntries(parentsEntries.vals(), Principal.equal, Principal.hash);
+            snapshots := TrieMap.fromEntries(stableSnapshots.vals(), Principal.equal, Principal.hash);
         };
 
         public func getChildren(parent: Principal) : List.List<Principal> {
@@ -222,7 +333,10 @@ module {
                 case null List.nil();
                 case (?children) {
                     let now = Time.now();
-                    List.filter(children, func(p: Principal) : Bool = notExpired(Option.unwrap(info p), now));
+                    List.filter(children, func(p: Principal) : Bool {
+                        let ?cinfo = info p else { Debug.trap "unwrap info(p)" };
+                        notExpired(cinfo, now);
+                    });
                 }
             }
         };
