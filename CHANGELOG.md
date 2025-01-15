@@ -129,6 +129,33 @@ Building canisters...
 ...
 ```
 
+### chore: Provides units for all fields of canister status.
+
+Provides units for all fields of canister status.
+
+```
+$ dfx canister status pxmfj-jaaaa-aaaan-qmmbq-cai --ic
+Canister status call result for pxmfj-jaaaa-aaaan-qmmbq-cai.
+Status: Running
+Controllers: uom2z-lqsqq-qbn4p-nts4l-2xjfl-oeivu-oso42-4t4jh-54ikd-ewnvi-tqe yjac5-2yaaa-aaaan-qaqka-cai
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 20_548_135 Cycles
+Memory Size: 2_010_735 Bytes
+Balance: 2_985_407_678_380 Cycles
+Reserved: 0 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Wasm memory limit: 3_221_225_472 Bytes
+Wasm memory threshold: 0 Bytes
+Module hash: 0x4f13cceb571483ac99a9f89afc05718c0a4ab72e9fac7d49054c0a3e05c4899b
+Number of queries: 0
+Instructions spent in queries: 0
+Total query request payload size: 0 Bytes
+Total query response payload size: 0 Bytes
+Log visibility: controllers
+```
+
 ## Dependencies
 
 ### Frontend canister
