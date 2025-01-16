@@ -230,6 +230,14 @@ jobs:
           dfx deploy
           rm -rf e2e_project_sveltekit
           popd
+      - name: Deploy react starter project
+        run: |
+          dfx new e2e_project_sveltekit --frontend react
+          pushd e2e_project_react
+          dfx canister create e2e_project_react_frontend --specified-id rdbii-uiaaa-aaaab-qadva-cai
+          dfx deploy
+          rm -rf e2e_project_react
+          popd
       # Add any additional deployments here
       - name: Install Playwright Browsers and Run Tests
         run: |
