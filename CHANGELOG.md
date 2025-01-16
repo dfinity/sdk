@@ -7,9 +7,9 @@
 Due to the incompatibility between the APIs on the replica port and the PocketIC port, `dfx info replica-port`
 no longer works with PocketIC, and the PocketIC port is provided by a new command, `dfx info pocketic-config-port`.
 
-### test: adds playwright test for svelte `dfx new` project
+### test: adds playwright tests for `dfx new` project frontends
 
-The first of a suite of baseline tests to automate testing starter projects. Makes sure they are compatible with other dfx or asset canister changes.
+The first of a suite of baseline tests to automate testing starter projects. Makes sure that sveltekit, react, vue, and vanilla frontends are compatible with other dfx or asset canister changes.
 
 ### fix: template frontends now have unsupported browser warnings
 
@@ -285,7 +285,7 @@ had not been previously built for the local network.
 
 Added support for the canister log allowed viewer list, enabling specified users to access a canister's logs without needing to be set as the canister's controller.
 Valid settings are:
-- `--add-log-viewer`, `--remove-log-viewer` and `--set-log-viewer` flags with `dfx canister update-settings` 
+- `--add-log-viewer`, `--remove-log-viewer` and `--set-log-viewer` flags with `dfx canister update-settings`
 - `--log-viewer` flag with `dfx canister create`
 - `canisters[].initialization_values.log_visibility.allowed_viewers` in `dfx.json`
 
@@ -381,7 +381,7 @@ Module hash 15da2adc4426b8037c9e716b81cb6a8cf1a835ac37589be2cef8cb3f4a04adaa
 
 `dfx deploy --mode` now takes the same possible values as `dfx canister install --mode`: "install", "reinstall", "upgrade" and "auto".
 
-In "auto" mode, the upgrade options are hints which only take effects when the actual install mode is "upgrade". 
+In "auto" mode, the upgrade options are hints which only take effects when the actual install mode is "upgrade".
 
 To maintain backward compatibility, a minor difference between the two commands remains.
 If the `--mode` is not set, `dfx deploy` defaults to "auto", while `dfx canister install` defaults to "install".
