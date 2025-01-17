@@ -228,8 +228,32 @@ jobs:
           pushd e2e_project_sveltekit
           dfx canister create e2e_project_sveltekit_frontend --specified-id erxue-5aaaa-aaaab-qaagq-cai
           dfx deploy
-          rm -rf e2e_project_sveltekit
           popd
+          rm -rf e2e_project_sveltekit
+      - name: Deploy react starter project
+        run: |
+          dfx new e2e_project_react --frontend react
+          pushd e2e_project_react
+          dfx canister create e2e_project_react_frontend --specified-id rdbii-uiaaa-aaaab-qadva-cai
+          dfx deploy
+          popd
+          rm -rf e2e_project_react
+      - name: Deploy vanilla starter project
+        run: |
+          dfx new e2e_project_vanilla --frontend vanilla
+          pushd e2e_project_vanilla
+          dfx canister create e2e_project_vanilla_frontend --specified-id qjoks-wyaaa-aaaab-qadsa-cai
+          dfx deploy
+          popd
+          rm -rf e2e_project_vanilla
+      - name: Deploy vue starter project
+        run: |
+          dfx new e2e_project_vue --frontend vue
+          pushd e2e_project_vue
+          dfx canister create e2e_project_vue_frontend --specified-id qopmg-3aaaa-aaaab-qadsq-cai
+          dfx deploy
+          popd
+          rm -rf e2e_project_vue
       # Add any additional deployments here
       - name: Install Playwright Browsers and Run Tests
         run: |
@@ -238,7 +262,6 @@ jobs:
           npx playwright install --with-deps
           npx playwright test
           popd
-
 
   aggregate:
     name: e2e:required
