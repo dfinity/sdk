@@ -288,7 +288,7 @@ impl Canister {
         // If not modified and not set "gzip" explicitly, copy the wasm file directly so that hash match.
         if !modified && !info.get_gzip() {
             dfx_core::fs::copy(build_output_wasm_path, &wasm_path)?;
-            dfx_core::fs::set_permissions_readwrite(&wasm_path)?;
+            //dfx_core::fs::set_permissions_readwrite(&wasm_path)?;
             return Ok(());
         }
 
