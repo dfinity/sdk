@@ -82,6 +82,8 @@ This affects the following commands:
 Canisters with Motoko's Enhanced Orthogonal Persistence feature require `wasm_memory_persistence = Keep` when they get installed.
 Previously, when `dfx` attempted to install canisters with EOP enabled to a playground it didn't set `wasm_memory_persistence` properly.
 
+### fix: custom canisters with a read-only wasm no longer fail to build with a permissions error
+
 ### chore: improve `dfx deploy` messages.
 
 If users run `dfx deploy` without enough cycles, show additional messages to indicate what to do next.
