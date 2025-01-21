@@ -282,6 +282,7 @@ teardown() {
 }
 
 @test "can deploy a hyphenated project" {
+  setup_rust
   install_asset hyphenated-project
   dfx_start
   assert_command dfx deploy
