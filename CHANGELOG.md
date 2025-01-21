@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### fix: correctly detects hyphenated Rust bin crates
+
 ### fix: removes unnecessary tsc step in sveltekit build script
 
 ### feat!: `dfx info pocketic-config-port`
