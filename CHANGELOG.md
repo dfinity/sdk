@@ -156,6 +156,8 @@ Total query response payload size: 0 Bytes
 Log visibility: controllers
 ```
 
+### chore!: Print error traces only in verbose (`-v`) mode or if no proper error message is available
+
 ## Dependencies
 
 ### Frontend canister
