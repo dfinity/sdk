@@ -228,10 +228,10 @@ pub async fn playground_install_code(
         .await
         .map_err(|err| {
             if is_asset_canister && err.to_string().contains("Wasm is not whitelisted") {
-                anyhow!(DiagnosedError {
-                    error_explanation: Some("The frontend canister wasm needs to be allowlisted in the playground but it isn't. This is a mistake in the release process.".to_string()),
-                    action_suggestion: Some("Please report this on forum.dfinity.org and mention your dfx version. You can get the version with 'dfx --version'.".to_string()),
-                })
+                anyhow!(DiagnosedError::new(
+                    "The frontend canister wasm needs to be allowlisted in the playground but it isn't. This is a mistake in the release process.",
+                    "Please report this on forum.dfinity.org and mention your dfx version. You can get the version with 'dfx --version'."
+                ))
             } else {
                 anyhow!(err)
             }

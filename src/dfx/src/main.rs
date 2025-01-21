@@ -1,6 +1,6 @@
 #![allow(special_module_name)]
 use crate::config::{dfx_version, dfx_version_str};
-use crate::lib::diagnosis::{diagnose, Diagnosis};
+use crate::lib::diagnosis::{diagnose, DiagnosedError};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::DfxResult;
 use crate::lib::logger::{create_root_logger, LoggingMode};
@@ -67,44 +67,48 @@ fn setup_logging(opts: &CliOpts) -> (i64, slog::Logger) {
     (verbose_level, create_root_logger(verbose_level, mode))
 }
 
-fn print_error_and_diagnosis(err: Error, error_diagnosis: Diagnosis) {
+fn print_error_and_diagnosis(log_level: Option<i64>, err: Error, error_diagnosis: DiagnosedError) {
     let mut stderr = util::stderr_wrapper::stderr_wrapper();
 
     // print error chain stack
-    for (level, cause) in err.chain().enumerate() {
-        if cause.to_string().is_empty() {
-            continue;
+    if log_level.unwrap_or_default() > 0 // DEBUG or more verbose
+        || !error_diagnosis.contains_diagnosis()
+    {
+        for (level, cause) in err.chain().enumerate() {
+            if cause.to_string().is_empty() {
+                continue;
+            }
+
+            let (color, prefix) = if level == 0 {
+                (term::color::RED, "Error")
+            } else {
+                (term::color::YELLOW, "Caused by")
+            };
+            stderr
+                .fg(color)
+                .expect("Failed to set stderr output color.");
+            write!(stderr, "{prefix}: ").expect("Failed to write to stderr.");
+            stderr
+                .reset()
+                .expect("Failed to reset stderr output color.");
+
+            writeln!(stderr, "{cause}").expect("Failed to write to stderr.");
         }
-
-        let (color, prefix) = if level == 0 {
-            (term::color::RED, "Error")
-        } else {
-            (term::color::YELLOW, "Caused by")
-        };
-        stderr
-            .fg(color)
-            .expect("Failed to set stderr output color.");
-        write!(stderr, "{prefix}: ").expect("Failed to write to stderr.");
-        stderr
-            .reset()
-            .expect("Failed to reset stderr output color.");
-
-        writeln!(stderr, "{cause}").expect("Failed to write to stderr.");
     }
 
     // print diagnosis
-    if let Some(error_explanation) = error_diagnosis.0 {
+    if let Some(explanation) = error_diagnosis.explanation {
         stderr
-            .fg(term::color::YELLOW)
+            .fg(term::color::RED)
             .expect("Failed to set stderr output color.");
-        writeln!(stderr, "Error explanation:").expect("Failed to write to stderr.");
+        writeln!(stderr, "Error:").expect("Failed to write to stderr.");
         stderr
             .reset()
             .expect("Failed to reset stderr output color.");
 
-        writeln!(stderr, "{}", error_explanation).expect("Failed to write to stderr.");
+        writeln!(stderr, "{}", explanation).expect("Failed to write to stderr.");
     }
-    if let Some(action_suggestion) = error_diagnosis.1 {
+    if let Some(action_suggestion) = error_diagnosis.action_suggestion {
         stderr
             .fg(term::color::YELLOW)
             .expect("Failed to set stderr output color.");
@@ -138,7 +142,7 @@ fn get_args_altered_for_extension_run(
     Ok(args)
 }
 
-fn inner_main() -> DfxResult {
+fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
     let em = ExtensionManager::new(dfx_version())?;
     let installed_extension_manifests = em.load_installed_extension_manifests()?;
     let builtin_templates = builtin_templates();
@@ -154,6 +158,7 @@ fn inner_main() -> DfxResult {
     }
 
     let (verbose_level, log) = setup_logging(&cli_opts);
+    *log_level = Some(verbose_level);
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
 
@@ -171,10 +176,11 @@ fn inner_main() -> DfxResult {
 }
 
 fn main() {
-    let result = inner_main();
+    let mut log_level: Option<i64> = None;
+    let result = inner_main(&mut log_level);
     if let Err(err) = result {
         let error_diagnosis = diagnose(&err);
-        print_error_and_diagnosis(err, error_diagnosis);
+        print_error_and_diagnosis(log_level, err, error_diagnosis);
         std::process::exit(255);
     }
 }
