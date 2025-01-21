@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### fix: removes unnecessary tsc step in sveltekit build script
+
 ### feat!: `dfx info pocketic-config-port`
 
 Due to the incompatibility between the APIs on the replica port and the PocketIC port, `dfx info replica-port`
