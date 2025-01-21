@@ -280,3 +280,13 @@ teardown() {
   assert_command_fail dfx deploy --mode reinstall --wasm-memory-persistence keep
   assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
 }
+
+@test "can deploy a hyphenated project" {
+  install_asset hyphenated-project
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call hyphenated-bin name
+  assert_contains bin
+  assert_command dfx canister call hyphenated-lib name
+  assert_contains lib
+}
