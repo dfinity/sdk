@@ -22,11 +22,11 @@ use dialoguer::{FuzzySelect, MultiSelect};
 use fn_error_context::context;
 use indicatif::HumanBytes;
 use semver::Version;
-use slog::{info, trace, warn, Logger};
+use slog::{debug, error, info, trace, warn, Logger};
 use std::collections::{BTreeMap, HashMap};
 use std::io::{self, IsTerminal, Read};
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus, Stdio};
+use std::process::{Command, Output, Stdio};
 use std::time::Duration;
 use tar::Archive;
 use walkdir::WalkDir;
@@ -200,7 +200,7 @@ pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
         .status();
 
     if init_status.is_ok() && init_status.unwrap().success() {
-        info!(log, "Initializing git repository...");
+        debug!(log, "Initializing git repository...");
         std::process::Command::new("git")
             .arg("add")
             .current_dir(project_name)
@@ -675,28 +675,48 @@ fn run_post_create_command(
             .as_ref()
             .map(|msg| env.new_spinner(msg.clone().into()));
 
-        let status = cmd
-            .stderr(Stdio::inherit())
-            .stdout(Stdio::inherit())
-            .status()
+        let child = cmd
+            .stderr(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
             .with_context(|| {
                 format!(
-                    "Failed to run post-create command '{}' for project template '{}.",
+                    "Failed to spawn post-create command '{}' for project template '{}'.",
                     &command, &project_template.name
                 )
-            });
+            })?;
+        let output = child.wait_with_output().with_context(|| {
+            format!(
+                "Failed to run post-create command '{}' for project template '{}'.",
+                &command, &project_template.name
+            )
+        });
 
         if let Some(spinner) = spinner {
-            let message = match status {
-                Ok(status) if status.success() => "Done.",
-                _ => "Failed.",
-            };
-            spinner.finish_with_message(message.into());
+            spinner.finish_and_clear();
         }
+
+        if let Ok(output) = &output {
+            if !output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+
+                let msg = format!(
+                    "Post-create ommand '{}' failed.\n--- stdout ---\n{}\n--- stderr ---\n{}",
+                    &command, stdout, stderr
+                );
+                if project_template.post_create_failure_warning.is_some() {
+                    warn!(log, "{}", msg);
+                } else {
+                    error!(log, "{}", msg);
+                }
+            }
+        }
+
         if let Some(warning) = &project_template.post_create_failure_warning {
-            warn_on_post_create_error(log, status, &command, warning);
+            warn_on_post_create_error(log, output, &command, warning);
         } else {
-            fail_on_post_create_error(command, status)?;
+            fail_on_post_create_error(command, output)?;
         }
     }
     Ok(())
@@ -704,13 +724,13 @@ fn run_post_create_command(
 
 fn warn_on_post_create_error(
     log: &Logger,
-    status: Result<ExitStatus, Error>,
+    output: Result<Output, Error>,
     command: &str,
     warning: &str,
 ) {
-    match status {
-        Ok(status) if status.success() => {}
-        Ok(status) => match status.code() {
+    match output {
+        Ok(output) if output.status.success() => {}
+        Ok(output) => match output.status.code() {
             Some(code) => {
                 warn!(
                     log,
@@ -730,13 +750,10 @@ fn warn_on_post_create_error(
     }
 }
 
-fn fail_on_post_create_error(
-    command: String,
-    status: Result<ExitStatus, Error>,
-) -> Result<(), Error> {
-    let status = status?;
-    if !status.success() {
-        match status.code() {
+fn fail_on_post_create_error(command: String, output: Result<Output, Error>) -> Result<(), Error> {
+    let output = output?;
+    if !output.status.success() {
+        match output.status.code() {
             Some(code) => {
                 bail!("Post-create command '{command}' failed with exit code {code}.")
             }
