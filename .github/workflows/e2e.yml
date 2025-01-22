@@ -173,7 +173,7 @@ jobs:
             e2e/assets/playground_backend/.mops
           key: playground-backend-mops-${{ hashFiles('e2e/assets/playground_backend/mops.toml') }}
       - name: Run e2e test
-        run: timeout 2400 bats "e2e/$E2E_TEST"
+        run: timeout 2400 bats "e2e/$E2E_TEST" --jobs 4
 
   ui_test:
     runs-on: ${{ matrix.os }}

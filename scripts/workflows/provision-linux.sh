@@ -8,7 +8,7 @@ export
 pushd /tmp
 
 # Install Bats + moreutils.
-sudo apt-get install --yes bats moreutils
+sudo apt-get install --yes bats moreutils parallel
 
 # Modifications needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
