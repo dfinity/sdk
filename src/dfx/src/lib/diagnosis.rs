@@ -122,11 +122,12 @@ fn not_a_controller(err: &AgentError) -> bool {
     }
 
     // Older replicas do not include the error code in the reject response.
-    // differing behavior between replica and ic-ref:
-    // replica gives HTTP403, ic-ref gives HTTP400 with message "Wrong sender"
-    matches!(err, AgentError::HttpError(payload) if payload.status == 403)
-        || matches!(err, AgentError::HttpError(payload) if payload.status == 400 &&
-            matches!(std::str::from_utf8(payload.content.as_slice()), Ok("Wrong sender")))
+    // replica gives HTTP403, message looks like "Only controllers of canister bkyz2-fmaaa-aaaaa-qaaaq-cai can call ic00 method canister_status"
+    matches!(err, AgentError::HttpError(payload) if payload.status == 403
+    && matches!(
+        std::str::from_utf8(payload.content.as_slice()),
+        Ok("Only controllers of canister")
+    ))
 }
 
 fn wallet_method_not_found(err: &AgentError) -> bool {
