@@ -154,6 +154,19 @@ teardown() {
   assert_command dfx canister call "${CHILD_ID}" wallet_balance '()'
 }
 
+@test "forward canister_info call through wallet" {
+  dfx_new
+  install_asset identity
+  dfx_start
+  WALLET=$(dfx identity get-wallet)
+  assert_command dfx canister create --all --wallet default
+  assert_command dfx build
+  assert_command dfx canister install --all --wallet default
+
+  assert_command dfx canister call aaaaa-aa canister_info --wallet default \
+    "(record { canister_id= principal \"$(dfx canister id e2e_project_backend)\"; num_requested_changes= opt 20})"
+}
+
 @test "forward user call through wallet" {
   dfx_new
   install_asset identity
