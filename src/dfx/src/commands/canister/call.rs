@@ -176,6 +176,7 @@ pub fn get_effective_canister_id(
         }
         MgmtMethod::StartCanister
         | MgmtMethod::StopCanister
+        | MgmtMethod::CanisterInfo
         | MgmtMethod::CanisterStatus
         | MgmtMethod::DeleteCanister
         | MgmtMethod::DepositCycles

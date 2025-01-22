@@ -1,0 +1,11 @@
+[package]
+name = "hyphenated-lib"
+version = "0.0.0"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+ic-cdk = "0.17"
+candid = "0.10"
