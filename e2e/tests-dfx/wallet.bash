@@ -165,6 +165,9 @@ teardown() {
 
   assert_command dfx canister call aaaaa-aa canister_info --wallet default \
     "(record { canister_id= principal \"$(dfx canister id e2e_project_backend)\"; num_requested_changes= opt 20})"
+  assert_contains "$WALLET"
+  assert_contains "$(dfx identity get-principal)"
+  assert_contains "3_862_312_591 = 2 : nat64;"
 }
 
 @test "forward user call through wallet" {
