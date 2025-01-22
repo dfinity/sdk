@@ -6,7 +6,7 @@ export
 
 # Install Bats + moreutils.
 brew fetch --retry coreutils moreutils
-brew install coreutils moreutils parallel
+brew install coreutils moreutils
 
 # Install Bats.
 if [ "$(uname -r)" = "19.6.0" ]; then
