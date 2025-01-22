@@ -702,7 +702,7 @@ fn run_post_create_command(
                 let stderr = String::from_utf8_lossy(&output.stderr);
 
                 let msg = format!(
-                    "Post-create ommand '{}' failed.\n--- stdout ---\n{}\n--- stderr ---\n{}",
+                    "Post-create command '{}' failed.\n--- stdout ---\n{}\n--- stderr ---\n{}",
                     &command, stdout, stderr
                 );
                 if project_template.post_create_failure_warning.is_some() {
