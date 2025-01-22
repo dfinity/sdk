@@ -174,7 +174,7 @@ and reserves that much space for the ValueSerializer's buffer.
 
 ### Motoko
 
-Updated Motoko to [0.13.5](https://github.com/dfinity/motoko/releases/tag/0.13.5)
+Updated Motoko to [0.13.6](https://github.com/dfinity/motoko/releases/tag/0.13.6)
 
 ### Replica
 
