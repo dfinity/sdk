@@ -101,7 +101,7 @@ fn print_error_and_diagnosis(log_level: Option<i64>, err: Error, error_diagnosis
         stderr
             .fg(term::color::RED)
             .expect("Failed to set stderr output color.");
-        writeln!(stderr, "Error:").expect("Failed to write to stderr.");
+        write!(stderr, "Error:").expect("Failed to write to stderr.");
         stderr
             .reset()
             .expect("Failed to reset stderr output color.");
