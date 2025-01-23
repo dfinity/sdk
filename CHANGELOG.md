@@ -11,6 +11,8 @@
 Due to the incompatibility between the APIs on the replica port and the PocketIC port, `dfx info replica-port`
 no longer works with PocketIC, and the PocketIC port is provided by a new command, `dfx info pocketic-config-port`.
 
+### feat: streamlined `dfx new` output
+
 ### test: adds playwright tests for `dfx new` project frontends
 
 The first of a suite of baseline tests to automate testing starter projects. Makes sure that sveltekit, react, vue, and vanilla frontends are compatible with other dfx or asset canister changes.

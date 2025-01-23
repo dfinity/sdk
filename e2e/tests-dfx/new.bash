@@ -67,6 +67,11 @@ teardown() {
   assert_eq "motoko"
 }
 
+@test "checks for frontend test compatibility before writing base files" {
+  assert_command_fail dfx new broken --type rust --no-frontend --extras frontend-tests
+  assert_directory_not_exists broken
+}
+
 @test "frontend templates apply successfully" {
   for frontend in sveltekit vue react vanilla simple-assets none; do
     assert_command dfx new e2e_${frontend/-/_} --frontend $frontend

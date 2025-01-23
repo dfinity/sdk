@@ -68,7 +68,6 @@ pub fn get_latest_version(
     let manifest_url = url
         .join("manifest.json")
         .map_err(|e| error_invalid_argument!("invalid manifest URL: {}", e))?;
-    println!("Fetching manifest {}", manifest_url);
 
     let b = ProgressBar::new_spinner();
     b.set_draw_target(ProgressDrawTarget::stderr());

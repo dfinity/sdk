@@ -22,11 +22,11 @@ use dialoguer::{FuzzySelect, MultiSelect};
 use fn_error_context::context;
 use indicatif::HumanBytes;
 use semver::Version;
-use slog::{info, trace, warn, Logger};
+use slog::{debug, error, info, trace, warn, Logger};
 use std::collections::{BTreeMap, HashMap};
 use std::io::{self, IsTerminal, Read};
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus, Stdio};
+use std::process::{Command, Output, Stdio};
 use std::time::Duration;
 use tar::Archive;
 use walkdir::WalkDir;
@@ -200,7 +200,7 @@ pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
         .status();
 
     if init_status.is_ok() && init_status.unwrap().success() {
-        info!(log, "Initializing git repository...");
+        debug!(log, "Initializing git repository");
         std::process::Command::new("git")
             .arg("add")
             .current_dir(project_name)
@@ -328,7 +328,9 @@ fn scaffold_frontend_code(
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
     let log = env.get_logger();
+    let spinner = env.new_spinner("Checking for node".into());
     let node_installed = program_installed(program::NODE);
+    spinner.set_message("Checking for npm".into());
     let npm_installed = program_installed(program::NPM);
 
     let project_name_str = project_name
@@ -340,9 +342,11 @@ fn scaffold_frontend_code(
         let js_agent_version = if let Some(v) = agent_version {
             v.clone()
         } else {
+            spinner.set_message("Getting agent-js version from npm".into());
             get_agent_js_version_from_npm(AGENT_JS_DEFAULT_INSTALL_DIST_TAG)
                 .map_err(|err| anyhow!("Cannot execute npm: {}", err))?
         };
+        spinner.finish_and_clear();
 
         let mut variables = variables.clone();
         variables.insert("js_agent_version".to_string(), js_agent_version);
@@ -368,6 +372,7 @@ fn scaffold_frontend_code(
             run_post_create_command(env, project_name, frontend, &variables)?;
         }
     } else {
+        spinner.finish_and_clear();
         if !node_installed {
             warn!(
                 log,
@@ -450,11 +455,6 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
 
     DiskBasedCache::install(&env.get_cache().version_str())?;
 
-    info!(
-        log,
-        r#"Creating new project "{}"..."#,
-        project_name.display()
-    );
     if dry_run {
         warn!(
             log,
@@ -499,14 +499,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         ("ic_commit".to_string(), replica_rev().to_string()),
     ]);
 
-    write_files_from_entries(
-        log,
-        &mut assets::new_project_base_files().context("Failed to get base project archive.")?,
-        project_name,
-        dry_run,
-        &variables,
-    )?;
-
+    debug!(log, "Gathering project templates");
     let frontend: Option<ProjectTemplate> =
         if opts.no_frontend || matches!(opts.frontend.as_ref(), Some(s) if s == "none") {
             None
@@ -542,6 +535,16 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
     };
 
     let requirements = get_requirements(&backend, frontend.as_ref(), &extras)?;
+
+    debug!(log, "Writing base files");
+    write_files_from_entries(
+        log,
+        &mut assets::new_project_base_files().context("Failed to get base project archive.")?,
+        project_name,
+        dry_run,
+        &variables,
+    )?;
+
     for requirement in &requirements {
         write_project_template_resources(log, requirement, project_name, dry_run, &variables)?;
     }
@@ -568,6 +571,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         // If on mac, we should validate that XCode toolchain was installed.
         #[cfg(target_os = "macos")]
         {
+            debug!(log, "Checking if xcode is installed");
             let mut should_git = true;
             if let Ok(code) = Command::new("xcode-select")
                 .arg("-p")
@@ -602,19 +606,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
             run_post_create_command(env, project_name, requirement, &variables)?;
         }
     }
-
-    // Print welcome message.
-    info!(
-        log,
-        "===============================================================================
-        Welcome to the internet computer developer community!
-
-To learn more before you start coding, check out the developer docs and samples:
-
-- Documentation: https://internetcomputer.org/docs/current/developer-docs
-- Samples: https://internetcomputer.org/samples
-==============================================================================="
-    );
+    info!(log, r#"Created new project "{}""#, project_name.display());
 
     Ok(())
 }
@@ -668,6 +660,7 @@ fn run_post_create_command(
 
     for command in &project_template.post_create {
         let command = replace_variables(command.clone(), variables);
+        debug!(env.get_logger(), "Running command: {}", &command);
         let mut cmd = direct_or_shell_command(&command, root)?;
 
         let spinner = project_template
@@ -675,28 +668,42 @@ fn run_post_create_command(
             .as_ref()
             .map(|msg| env.new_spinner(msg.clone().into()));
 
-        let status = cmd
-            .stderr(Stdio::inherit())
-            .stdout(Stdio::inherit())
-            .status()
+        let output = cmd
+            .stderr(Stdio::piped())
+            .stdout(Stdio::piped())
+            .output()
             .with_context(|| {
                 format!(
-                    "Failed to run post-create command '{}' for project template '{}.",
+                    "Failed to run post-create command '{}' for project template '{}'.",
                     &command, &project_template.name
                 )
             });
 
         if let Some(spinner) = spinner {
-            let message = match status {
-                Ok(status) if status.success() => "Done.",
-                _ => "Failed.",
-            };
-            spinner.finish_with_message(message.into());
+            spinner.finish_and_clear();
         }
+
+        if let Ok(output) = &output {
+            if !output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+
+                let msg = format!(
+                    "Post-create command '{}' failed.\n--- stdout ---\n{}\n--- stderr ---\n{}",
+                    &command, stdout, stderr
+                );
+                if project_template.post_create_failure_warning.is_some() {
+                    warn!(log, "{}", msg);
+                } else {
+                    error!(log, "{}", msg);
+                }
+            }
+        }
+
         if let Some(warning) = &project_template.post_create_failure_warning {
-            warn_on_post_create_error(log, status, &command, warning);
+            warn_on_post_create_error(log, output, &command, warning);
         } else {
-            fail_on_post_create_error(command, status)?;
+            fail_on_post_create_error(command, output)?;
         }
     }
     Ok(())
@@ -704,13 +711,13 @@ fn run_post_create_command(
 
 fn warn_on_post_create_error(
     log: &Logger,
-    status: Result<ExitStatus, Error>,
+    output: Result<Output, Error>,
     command: &str,
     warning: &str,
 ) {
-    match status {
-        Ok(status) if status.success() => {}
-        Ok(status) => match status.code() {
+    match output {
+        Ok(output) if output.status.success() => {}
+        Ok(output) => match output.status.code() {
             Some(code) => {
                 warn!(
                     log,
@@ -730,13 +737,10 @@ fn warn_on_post_create_error(
     }
 }
 
-fn fail_on_post_create_error(
-    command: String,
-    status: Result<ExitStatus, Error>,
-) -> Result<(), Error> {
-    let status = status?;
-    if !status.success() {
-        match status.code() {
+fn fail_on_post_create_error(command: String, output: Result<Output, Error>) -> Result<(), Error> {
+    let output = output?;
+    if !output.status.success() {
+        match output.status.code() {
             Some(code) => {
                 bail!("Post-create command '{command}' failed with exit code {code}.")
             }
@@ -753,6 +757,10 @@ fn write_project_template_resources(
     dry_run: bool,
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
+    debug!(
+        logger,
+        "Writing files for project template: {}", template.name
+    );
     match &template.resource_location {
         ResourceLocation::Bundled { get_archive_fn } => {
             let mut resources = get_archive_fn()?;
