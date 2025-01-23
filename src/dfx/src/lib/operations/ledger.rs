@@ -191,7 +191,7 @@ Your principal for ICP wallets and decentralized exchanges: {}
         principal.to_text()
     );
 
-    DiagnosedError::new(explanation.to_string(), suggestion)
+    DiagnosedError::new(explanation, suggestion)
 }
 
 fn retryable(agent_error: &AgentError) -> bool {

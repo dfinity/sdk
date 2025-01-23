@@ -137,8 +137,8 @@ pub async fn exec(
         if threshold_in_seconds > 50_000_000 /* ~1.5 years */ && !opts.confirm_very_long_freezing_threshold
         {
             return Err(DiagnosedError::new(
-                "The freezing threshold is defined in SECONDS before the canister would run out of cycles, not in cycles.".to_string(),
-                "If you truly want to set a freezing threshold that is longer than a year, please run the same command, but with the flag --confirm-very-long-freezing-threshold to confirm you want to do this.".to_string(),
+                "The freezing threshold is defined in SECONDS before the canister would run out of cycles, not in cycles.",
+                "If you truly want to set a freezing threshold that is longer than a year, please run the same command, but with the flag --confirm-very-long-freezing-threshold to confirm you want to do this.",
             )).context("Misunderstanding is very likely.");
         }
     }

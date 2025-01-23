@@ -337,8 +337,11 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
     let cycles = opts.with_cycles.unwrap_or(0);
 
     if call_sender == &CallSender::SelectedId && cycles != 0 {
-        return Err(DiagnosedError::new("It is only possible to send cycles from a canister.".to_string(), "To send the same function call from your wallet (a canister), run the command using 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\
-        To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)'.".to_string())).context("Function caller is not a canister.");
+        let explanation = "It is only possible to send cycles from a canister.";
+        let action_suggestion = "To send the same function call from your wallet (a canister), run the command using 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\
+        To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)'.";
+        return Err(DiagnosedError::new(explanation, action_suggestion))
+            .context("Function caller is not a canister.");
     }
 
     if is_query {
