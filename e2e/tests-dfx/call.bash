@@ -311,7 +311,7 @@ function impersonate_sender() {
 
     # updating settings now fails because the default identity does not control the canister anymore
     assert_command_fail dfx canister update-settings hello_backend --freezing-threshold 0
-    assert_contains "Only controllers of canister $CANISTER_ID can call ic00 method update_settings"
+    assert_contains "The principal you are using to call a management function is not part of the controllers."
 
     # updating settings succeeds when impersonating the management canister as the sender
     assert_command dfx canister update-settings hello_backend --freezing-threshold 0 --impersonate "${IDENTITY_PRINCIPAL}"
@@ -322,7 +322,7 @@ function impersonate_sender() {
 
     # canister status fails because the default identity does not control the canister anymore
     assert_command_fail dfx canister status hello_backend
-    assert_contains "Only controllers of canister $CANISTER_ID can call ic00 method canister_status"
+    assert_contains "The principal you are using to call a management function is not part of the controllers."
 
     # canister status succeeds when impersonating the management canister as the sender
     assert_command dfx canister status hello_backend --impersonate "${IDENTITY_PRINCIPAL}"
