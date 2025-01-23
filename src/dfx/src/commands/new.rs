@@ -668,22 +668,16 @@ fn run_post_create_command(
             .as_ref()
             .map(|msg| env.new_spinner(msg.clone().into()));
 
-        let child = cmd
+        let output = cmd
             .stderr(Stdio::piped())
             .stdout(Stdio::piped())
-            .spawn()
+            .output()
             .with_context(|| {
                 format!(
-                    "Failed to spawn post-create command '{}' for project template '{}'.",
+                    "Failed to run post-create command '{}' for project template '{}'.",
                     &command, &project_template.name
                 )
-            })?;
-        let output = child.wait_with_output().with_context(|| {
-            format!(
-                "Failed to run post-create command '{}' for project template '{}'.",
-                &command, &project_template.name
-            )
-        });
+            });
 
         if let Some(spinner) = spinner {
             spinner.finish_and_clear();
