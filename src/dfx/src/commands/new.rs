@@ -200,7 +200,7 @@ pub fn init_git(log: &Logger, project_name: &Path) -> DfxResult {
         .status();
 
     if init_status.is_ok() && init_status.unwrap().success() {
-        debug!(log, "Initializing git repository...");
+        debug!(log, "Initializing git repository");
         std::process::Command::new("git")
             .arg("add")
             .current_dir(project_name)
@@ -450,11 +450,6 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
 
     DiskBasedCache::install(&env.get_cache().version_str())?;
 
-    info!(
-        log,
-        r#"Creating new project "{}"..."#,
-        project_name.display()
-    );
     if dry_run {
         warn!(
             log,
@@ -499,14 +494,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         ("ic_commit".to_string(), replica_rev().to_string()),
     ]);
 
-    write_files_from_entries(
-        log,
-        &mut assets::new_project_base_files().context("Failed to get base project archive.")?,
-        project_name,
-        dry_run,
-        &variables,
-    )?;
-
+    debug!(log, "Gathering project templates");
     let frontend: Option<ProjectTemplate> =
         if opts.no_frontend || matches!(opts.frontend.as_ref(), Some(s) if s == "none") {
             None
@@ -542,6 +530,16 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
     };
 
     let requirements = get_requirements(&backend, frontend.as_ref(), &extras)?;
+
+    debug!(log, "Writing base files");
+    write_files_from_entries(
+        log,
+        &mut assets::new_project_base_files().context("Failed to get base project archive.")?,
+        project_name,
+        dry_run,
+        &variables,
+    )?;
+
     for requirement in &requirements {
         write_project_template_resources(log, requirement, project_name, dry_run, &variables)?;
     }
@@ -602,19 +600,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
             run_post_create_command(env, project_name, requirement, &variables)?;
         }
     }
-
-    // Print welcome message.
-    info!(
-        log,
-        "===============================================================================
-        Welcome to the internet computer developer community!
-
-To learn more before you start coding, check out the developer docs and samples:
-
-- Documentation: https://internetcomputer.org/docs/current/developer-docs
-- Samples: https://internetcomputer.org/samples
-==============================================================================="
-    );
+    info!(log, r#"Created new project "{}""#, project_name.display());
 
     Ok(())
 }
@@ -668,6 +654,7 @@ fn run_post_create_command(
 
     for command in &project_template.post_create {
         let command = replace_variables(command.clone(), variables);
+        debug!(env.get_logger(), "Running command: {}", &command);
         let mut cmd = direct_or_shell_command(&command, root)?;
 
         let spinner = project_template
@@ -770,6 +757,10 @@ fn write_project_template_resources(
     dry_run: bool,
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
+    debug!(
+        logger,
+        "Writing files for project template: {}", template.name
+    );
     match &template.resource_location {
         ResourceLocation::Bundled { get_archive_fn } => {
             let mut resources = get_archive_fn()?;
