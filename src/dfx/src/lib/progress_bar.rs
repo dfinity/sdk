@@ -6,8 +6,7 @@ pub struct ProgressBar {
 }
 
 macro_rules! forward_fn_impl {
-    ($(#[$meta:meta])* $name: ident) => {
-        $(#[$meta])*
+    ($name: ident) => {
         pub fn $name(&self) {
             if let Some(ref progress_bar) = self.bar {
                 progress_bar.$name();
@@ -15,8 +14,7 @@ macro_rules! forward_fn_impl {
         }
     };
 
-    ($(#[$meta:meta])* $name: ident, $( $tname: ident: $t: ty )+) => {
-        $(#[$meta])*
+    ($name: ident, $( $tname: ident: $t: ty )+) => {
         pub fn $name(&self, $($tname: $t,)+) {
             if let Some(ref progress_bar) = self.bar {
                 progress_bar.$name( $($tname,)+ );
@@ -39,7 +37,6 @@ impl ProgressBar {
     }
 
     forward_fn_impl!(finish_and_clear);
-    forward_fn_impl!(#[allow(dead_code)] finish_with_message, message: Cow<'static, str>);
 
     pub fn discard() -> Self {
         ProgressBar { bar: None }
