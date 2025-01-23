@@ -328,7 +328,9 @@ fn scaffold_frontend_code(
     variables: &BTreeMap<String, String>,
 ) -> DfxResult {
     let log = env.get_logger();
+    let spinner = env.new_spinner("Checking for node".into());
     let node_installed = program_installed(program::NODE);
+    spinner.set_message("Checking for npm".into());
     let npm_installed = program_installed(program::NPM);
 
     let project_name_str = project_name
@@ -340,9 +342,11 @@ fn scaffold_frontend_code(
         let js_agent_version = if let Some(v) = agent_version {
             v.clone()
         } else {
+            spinner.set_message("Getting agent-js version from npm".into());
             get_agent_js_version_from_npm(AGENT_JS_DEFAULT_INSTALL_DIST_TAG)
                 .map_err(|err| anyhow!("Cannot execute npm: {}", err))?
         };
+        spinner.finish_and_clear();
 
         let mut variables = variables.clone();
         variables.insert("js_agent_version".to_string(), js_agent_version);
@@ -368,6 +372,7 @@ fn scaffold_frontend_code(
             run_post_create_command(env, project_name, frontend, &variables)?;
         }
     } else {
+        spinner.finish_and_clear();
         if !node_installed {
             warn!(
                 log,
@@ -566,6 +571,7 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
         // If on mac, we should validate that XCode toolchain was installed.
         #[cfg(target_os = "macos")]
         {
+            debug!(log, "Checking if xcode is installed");
             let mut should_git = true;
             if let Ok(code) = Command::new("xcode-select")
                 .arg("-p")

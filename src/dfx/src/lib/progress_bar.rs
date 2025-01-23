@@ -37,6 +37,7 @@ impl ProgressBar {
     }
 
     forward_fn_impl!(finish_and_clear);
+    forward_fn_impl!(set_message, message: Cow<'static, str>);
 
     pub fn discard() -> Self {
         ProgressBar { bar: None }
