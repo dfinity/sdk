@@ -7,6 +7,7 @@ const NPM_INSTALL_SPINNER_MESSAGE: &str = "Installing node dependencies...";
 const NPM_INSTALL_FAILURE_WARNING: &str =
     "An error occurred. See the messages above for more details.";
 const CARGO_UPDATE_FAILURE_MESSAGE: &str = "You will need to run it yourself (or a similar command like `cargo vendor`), because `dfx build` will use the --locked flag with Cargo.";
+const CARGO_UPDATE_SPINNER_MESSAGE: &str = "Updating cargo lockfile...";
 
 pub fn builtin_templates() -> Vec<ProjectTemplate> {
     let motoko = ProjectTemplate {
@@ -32,7 +33,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         category: ProjectTemplateCategory::Backend,
         post_create: vec!["cargo update".to_string()],
         post_create_failure_warning: Some(CARGO_UPDATE_FAILURE_MESSAGE.to_string()),
-        post_create_spinner_message: None,
+        post_create_spinner_message: Some(CARGO_UPDATE_SPINNER_MESSAGE.to_string()),
         requirements: vec![],
         sort_order: 1,
     };

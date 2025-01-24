@@ -2,10 +2,16 @@
 
 # UNRELEASED
 
+### fix: correctly detects hyphenated Rust bin crates
+
+### fix: removes unnecessary tsc step in sveltekit build script
+
 ### feat!: `dfx info pocketic-config-port`
 
 Due to the incompatibility between the APIs on the replica port and the PocketIC port, `dfx info replica-port`
 no longer works with PocketIC, and the PocketIC port is provided by a new command, `dfx info pocketic-config-port`.
+
+### feat: streamlined `dfx new` output
 
 ### test: adds playwright tests for `dfx new` project frontends
 
@@ -158,6 +164,8 @@ Total query response payload size: 0 Bytes
 Log visibility: controllers
 ```
 
+### feat!: Print error traces only in verbose (`-v`) mode or if no proper error message is available
+
 ## Dependencies
 
 ### Frontend canister
@@ -172,13 +180,19 @@ and reserves that much space for the ValueSerializer's buffer.
 
 ### Motoko
 
-Updated Motoko to [0.13.5](https://github.com/dfinity/motoko/releases/tag/0.13.5)
+Updated Motoko to [0.13.6](https://github.com/dfinity/motoko/releases/tag/0.13.6)
 
 ### Replica
 
-Updated replica to elected commit 3e24396441e4c7380928d4e8b4ccff7de77d0e7e.
+Updated replica to elected commit 233c1ee2ef68c1c8800b8151b2b9f38e17b8440a.
 This incorporates the following executed proposals:
 
+- [134900](https://dashboard.internetcomputer.org/proposal/134900)
+- [134773](https://dashboard.internetcomputer.org/proposal/134773)
+- [134684](https://dashboard.internetcomputer.org/proposal/134684)
+- [134663](https://dashboard.internetcomputer.org/proposal/134663)
+- [134608](https://dashboard.internetcomputer.org/proposal/134608)
+- [134609](https://dashboard.internetcomputer.org/proposal/134609)
 - [134497](https://dashboard.internetcomputer.org/proposal/134497)
 - [134408](https://dashboard.internetcomputer.org/proposal/134408)
 - [134337](https://dashboard.internetcomputer.org/proposal/134337)

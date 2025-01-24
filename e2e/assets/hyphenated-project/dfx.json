@@ -1,0 +1,15 @@
+{
+    "version": 1,
+    "canisters": {
+        "hyphenated-bin": {
+            "type": "rust",
+            "candid": "name.did",
+            "package": "hyphenated-bin"
+        },
+        "hyphenated-lib": {
+            "type": "rust",
+            "candid": "name.did",
+            "package": "hyphenated-lib"
+        }
+    }
+}
