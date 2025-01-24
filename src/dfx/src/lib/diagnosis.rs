@@ -110,24 +110,14 @@ fn local_replica_not_running(err: &AnyhowError) -> bool {
 
 fn not_a_controller(err: &AgentError) -> bool {
     // Newer replicas include the error code in the reject response.
-    if matches!(
+    matches!(
         err,
         AgentError::UncertifiedReject(RejectResponse {
             reject_code: RejectCode::CanisterError,
             error_code: Some(error_code),
             ..
         }) if error_code == error_code::CANISTER_INVALID_CONTROLLER
-    ) {
-        return true;
-    }
-
-    // Older replicas do not include the error code in the reject response.
-    // replica gives HTTP403, message looks like "Only controllers of canister bkyz2-fmaaa-aaaaa-qaaaq-cai can call ic00 method canister_status"
-    matches!(err, AgentError::HttpError(payload) if payload.status == 403
-    && matches!(
-        std::str::from_utf8(payload.content.as_slice()),
-        Ok("Only controllers of canister")
-    ))
+    )
 }
 
 fn wallet_method_not_found(err: &AgentError) -> bool {
