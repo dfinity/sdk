@@ -7,7 +7,7 @@
     "setup": "npm i && dfx canister create __backend_name__ && dfx generate __backend_name__ && dfx deploy",
     "start": "vite --port 3000",
     "prebuild": "dfx generate",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "format": "prettier --write \"src/**/*.{json,js,jsx,ts,tsx,css,scss}\""
   },
   "dependencies": {

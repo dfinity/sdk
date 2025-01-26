@@ -59,8 +59,8 @@ icx_asset_upload() {
   icx_asset_list
 
   assert_match "sample-asset.txt.*text/plain.*identity"
-  assert_match "notreally.js.*application/javascript.*gzip"
-  assert_match "notreally.js.*application/javascript.*identity"
+  assert_match "notreally.js.*text/javascript.*gzip"
+  assert_match "notreally.js.*text/javascript.*identity"
 }
 
 @test "creates new files" {

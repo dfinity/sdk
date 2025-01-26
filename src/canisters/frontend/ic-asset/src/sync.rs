@@ -3,6 +3,7 @@ use crate::asset::config::{
 };
 use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
 use crate::batch_upload::plumbing::ChunkUploader;
+use crate::batch_upload::plumbing::Mode::{ByProposal, NormalDeploy};
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
@@ -48,6 +49,7 @@ pub async fn upload_content_and_assemble_sync_operations(
     canister_api_version: u16,
     dirs: &[&Path],
     no_delete: bool,
+    mode: batch_upload::plumbing::Mode,
     logger: &Logger,
 ) -> Result<CommitBatchArguments, UploadContentError> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
@@ -82,6 +84,7 @@ pub async fn upload_content_and_assemble_sync_operations(
         Some(&chunk_uploader),
         asset_descriptors,
         &canister_assets,
+        mode,
         logger,
     )
     .await
@@ -133,6 +136,7 @@ pub async fn sync(
         canister_api_version,
         dirs,
         no_delete,
+        NormalDeploy,
         logger,
     )
     .await?;
@@ -214,6 +218,7 @@ pub async fn prepare_sync_for_proposal(
         canister_api_version,
         dirs,
         false,
+        ByProposal,
         logger,
     )
     .await?;

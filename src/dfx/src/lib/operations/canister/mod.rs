@@ -13,11 +13,12 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
+use candid::{decode_args, encode_args};
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::config::model::dfinity::Config;
 use dfx_core::identity::CallSender;
@@ -29,6 +30,8 @@ use ic_utils::interfaces::management_canister::{
 };
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
+use pocket_ic::common::rest::RawEffectivePrincipal;
+use pocket_ic::WasmResult;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
@@ -60,6 +63,32 @@ where
                 .build()
                 .await
                 .context("Update call (without wallet) failed.")?
+        }
+        CallSender::Impersonate(sender) => {
+            let pocketic = env.get_pocketic();
+            if let Some(pocketic) = pocketic {
+                let msg_id = pocketic
+                    .submit_call_with_effective_principal(
+                        Principal::management_canister(),
+                        RawEffectivePrincipal::CanisterId(destination_canister.as_slice().to_vec()),
+                        *sender,
+                        method,
+                        encode_args((arg,)).unwrap(),
+                    )
+                    .await
+                    .map_err(|err| anyhow!("Failed to submit management canister call: {}", err))?;
+                let res = pocketic
+                    .await_call_no_ticks(msg_id)
+                    .await
+                    .map_err(|err| anyhow!("Management canister call failed: {}", err))?;
+                match res {
+                    WasmResult::Reply(data) => decode_args(&data)
+                        .context("Could not decode management canister response.")?,
+                    WasmResult::Reject(err) => bail!("Management canister rejected: {}", err),
+                }
+            } else {
+                bail!("Impersonating sender is only supported for a local PocketIC instance.")
+            }
         }
         CallSender::Wallet(wallet_id) => {
             let wallet = build_wallet_canister(*wallet_id, agent).await?;
@@ -107,6 +136,30 @@ where
                 .call()
                 .await
                 .context("Query call (without wallet) failed.")?
+        }
+        CallSender::Impersonate(sender) => {
+            let pocketic = env.get_pocketic();
+            if let Some(pocketic) = pocketic {
+                let res = pocketic
+                    .query_call_with_effective_principal(
+                        Principal::management_canister(),
+                        RawEffectivePrincipal::CanisterId(destination_canister.as_slice().to_vec()),
+                        *sender,
+                        method,
+                        encode_args((arg,)).unwrap(),
+                    )
+                    .await
+                    .map_err(|err| {
+                        anyhow!("Failed to perform management canister query call: {}", err)
+                    })?;
+                match res {
+                    WasmResult::Reply(data) => decode_args(&data)
+                        .context("Failed to decode management canister query call response.")?,
+                    WasmResult::Reject(err) => bail!("Management canister rejected: {}", err),
+                }
+            } else {
+                bail!("Impersonating sender is only supported for a local PocketIC instance.")
+            }
         }
         CallSender::Wallet(wallet_id) => {
             let wallet = build_wallet_canister(*wallet_id, agent).await?;

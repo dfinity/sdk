@@ -85,7 +85,11 @@ impl CanisterInfoFactory for RustCanisterInfo {
             "More than one bin/cdylib {phrasing} found"
         );
 
-        let wasm_name = target.name.replace('-', "_");
+        let wasm_name = if target.kind.iter().any(|t| t == "bin") {
+            target.name.clone()
+        } else {
+            target.name.replace('-', "_")
+        };
         let output_wasm_path = metadata
             .target_directory
             .join(format!("wasm32-unknown-unknown/release/{wasm_name}.wasm"))

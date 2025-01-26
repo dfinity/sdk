@@ -1,9 +1,18 @@
 {
   "version": 1,
   "canisters": {
+    "preinstall": {
+      "main": "main.mo",
+      "pre_install": "echo hello-pre-file"
+    },
+    "preinstall_script": {
+      "main": "main.mo",
+      "pre_install": "preinstall.sh",
+      "dependencies": ["preinstall"]
+    },
     "postinstall": {
       "main": "main.mo",
-      "post_install": "echo hello-file"
+      "post_install": "echo hello-post-file"
     },
     "postinstall_script": {
       "main": "main.mo",

@@ -776,7 +776,6 @@ current_time_nanoseconds() {
 }
 
 @test "automatically choose subnet" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: subnet range"
   dfx_start
 
   REGISTRY="rwlgt-iiaaa-aaaaa-aaaaa-cai"
@@ -897,6 +896,10 @@ current_time_nanoseconds() {
   ALICE_SUBACCT2="6C6B6A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
 
   deploy_cycles_ledger
+
+  # Test failed to convert ICP to cycles without enough ICP.
+  assert_command_fail dfx cycles convert --amount 12.5 --identity alice
+  assert_contains "Insufficient ICP balance to finish the transfer transaction."
 
   assert_command dfx --identity cycle-giver ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE")"
   assert_command dfx --identity cycle-giver ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE" --subaccount "$ALICE_SUBACCT1")"

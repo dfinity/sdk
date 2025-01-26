@@ -16,11 +16,13 @@ use crate::error::dfx_config::GetRemoteCanisterIdError::GetRemoteCanisterIdFaile
 use crate::error::dfx_config::GetReservedCyclesLimitError::GetReservedCyclesLimitFailed;
 use crate::error::dfx_config::GetSpecifiedIdError::GetSpecifiedIdFailed;
 use crate::error::dfx_config::GetWasmMemoryLimitError::GetWasmMemoryLimitFailed;
+use crate::error::dfx_config::GetWasmMemoryThresholdError::GetWasmMemoryThresholdFailed;
 use crate::error::dfx_config::{
     AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError,
     GetComputeAllocationError, GetFreezingThresholdError, GetLogVisibilityError,
     GetMemoryAllocationError, GetPullCanistersError, GetRemoteCanisterIdError,
     GetReservedCyclesLimitError, GetSpecifiedIdError, GetWasmMemoryLimitError,
+    GetWasmMemoryThresholdError,
 };
 use crate::error::fs::CanonicalizePathError;
 use crate::error::load_dfx_config::LoadDfxConfigError;
@@ -269,6 +271,12 @@ pub struct ConfigCanistersCanister {
     #[serde(flatten)]
     pub type_specific: CanisterTypeProperties,
 
+    /// # Pre-Install Commands
+    /// One or more commands to run pre canister installation.
+    /// These commands are executed in the root of the project.
+    #[serde(default)]
+    pub pre_install: SerdeVec<String>,
+
     /// # Post-Install Commands
     /// One or more commands to run post canister installation.
     /// These commands are executed in the root of the project.
@@ -477,6 +485,21 @@ pub struct InitializationValues {
     #[schemars(with = "Option<ByteSchema>")]
     pub wasm_memory_limit: Option<Byte>,
 
+    /// # Wasm Memory Threshold
+    ///
+    /// Specifies a threshold (in bytes) on the Wasm memory usage of the canister,
+    /// as a distance from `wasm_memory_limit`.
+    ///
+    /// When the remaining memory before the limit drops below this threshold, its
+    /// `on_low_wasm_memory` hook will be invoked. This enables it to self-optimize,
+    /// or raise an alert, or otherwise attempt to prevent itself from reaching
+    /// `wasm_memory_limit`.
+    ///
+    /// Must be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive.
+    /// Can be specified as an integer, or as an SI unit string (e.g. "4KB", "2 MiB")
+    #[schemars(with = "Option<ByteSchema>")]
+    pub wasm_memory_threshold: Option<Byte>,
+
     /// # Log Visibility
     /// Specifies who is allowed to read the canister's logs.
     ///
@@ -657,6 +680,16 @@ impl ReplicaLogLevel {
             Self::Info => "info".to_string(),
             Self::Debug => "debug".to_string(),
             Self::Trace => "trace".to_string(),
+        }
+    }
+    pub fn to_pocketic_string(&self) -> String {
+        match self {
+            Self::Critical => "CRITICAL".to_string(),
+            Self::Error => "ERROR".to_string(),
+            Self::Warning => "WARN".to_string(),
+            Self::Info => "INFO".to_string(),
+            Self::Debug => "DEBUG".to_string(),
+            Self::Trace => "TRACE".to_string(),
         }
     }
 }
@@ -1002,6 +1035,17 @@ impl ConfigInterface {
             .map_err(|e| GetWasmMemoryLimitFailed(canister_name.to_string(), e))?
             .initialization_values
             .wasm_memory_limit)
+    }
+
+    pub fn get_wasm_memory_threshold(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<Byte>, GetWasmMemoryThresholdError> {
+        Ok(self
+            .get_canister_config(canister_name)
+            .map_err(|e| GetWasmMemoryThresholdFailed(canister_name.to_string(), e))?
+            .initialization_values
+            .wasm_memory_threshold)
     }
 
     pub fn get_log_visibility(

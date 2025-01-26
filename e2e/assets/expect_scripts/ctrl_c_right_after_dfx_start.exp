@@ -4,9 +4,12 @@ match_max 100000
 set timeout 330
 
 spawn dfx cache install
-expect "installed successfully."
-
-spawn dfx start --clean
+expect "Installed dfx"
+if [info exists env(USE_POCKETIC)] {
+    spawn dfx start --pocketic --clean
+} else {
+    spawn dfx start --clean
+}
 set pid [exp_pid]
 expect "Using" {
     sleep 1

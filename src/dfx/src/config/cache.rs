@@ -153,7 +153,11 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, InstallCacheErro
 
         if dfx_core::fs::rename(temp_p.as_path(), &p).is_ok() {
             if let Some(b) = b {
-                b.finish_with_message(format!("Installed dfx {} to cache.", v));
+                if force {
+                    b.finish_with_message(format!("Installed dfx {} to cache.", v));
+                } else {
+                    b.finish_and_clear();
+                }
             }
         } else {
             dfx_core::fs::remove_dir_all(temp_p.as_path())?;

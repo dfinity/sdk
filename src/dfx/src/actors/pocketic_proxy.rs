@@ -260,6 +260,11 @@ fn pocketic_proxy_start_thread(
             cmd.args(["--port-file".as_ref(), pocketic_proxy_port_path.as_os_str()]);
             cmd.stdout(std::process::Stdio::inherit());
             cmd.stderr(std::process::Stdio::inherit());
+            #[cfg(unix)]
+            {
+                use std::os::unix::process::CommandExt;
+                cmd.process_group(0);
+            }
             let _ = std::fs::remove_file(&pocketic_proxy_port_path);
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting pocket-ic gateway...");

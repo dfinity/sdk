@@ -4,7 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_log_visibility, get_memory_allocation,
-    get_reserved_cycles_limit, get_wasm_memory_limit, CanisterSettings,
+    get_reserved_cycles_limit, get_wasm_memory_limit, get_wasm_memory_threshold, CanisterSettings,
 };
 use crate::lib::operations::canister::{create_canister, skip_remote_canister};
 use crate::lib::root_key::fetch_root_key_if_needed;
@@ -91,6 +91,18 @@ pub struct CanisterCreateOpts {
     /// Must be a number between 0 B and 256 TiB, inclusive. Can include units, e.g. "4KiB".
     #[arg(long, value_parser = wasm_memory_limit_parser, hide = true)]
     wasm_memory_limit: Option<Byte>,
+
+    /// Specifies a threshold (in bytes) on the Wasm memory usage of the canister,
+    /// as a distance from `wasm_memory_limit`.
+    ///
+    /// When the remaining memory before the limit drops below this threshold, its
+    /// `on_low_wasm_memory` hook will be invoked. This enables it to self-optimize,
+    /// or raise an alert, or otherwise attempt to prevent itself from reaching
+    /// `wasm_memory_limit`.
+    ///
+    /// Must be a number between 0 B and 256 TiB, inclusive. Can include units, e.g. "4KiB".
+    #[arg(long, value_parser = wasm_memory_limit_parser)]
+    wasm_memory_threshold: Option<Byte>,
 
     /// Specifies who is allowed to read the canister's logs.
     /// Can be either "controllers" or "public".
@@ -208,6 +220,12 @@ pub async fn exec(
             Some(canister_name),
         )
         .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
+        let wasm_memory_threshold = get_wasm_memory_threshold(
+            opts.wasm_memory_threshold,
+            Some(config_interface),
+            Some(canister_name),
+        )
+        .with_context(|| format!("Failed to read Wasm memory threshold of {canister_name}."))?;
         let log_visibility = get_log_visibility(
             env,
             LogVisibilityOpt::from(&opts.log_visibility, &opts.log_viewer).as_ref(),
@@ -231,6 +249,7 @@ pub async fn exec(
                 freezing_threshold,
                 reserved_cycles_limit,
                 wasm_memory_limit,
+                wasm_memory_threshold,
                 log_visibility,
             },
             opts.created_at_time,
@@ -285,6 +304,14 @@ pub async fn exec(
                     Some(canister_name),
                 )
                 .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
+                let wasm_memory_threshold = get_wasm_memory_threshold(
+                    opts.wasm_memory_threshold,
+                    Some(config_interface),
+                    Some(canister_name),
+                )
+                .with_context(|| {
+                    format!("Failed to read Wasm memory threshold of {canister_name}.")
+                })?;
                 let log_visibility = get_log_visibility(
                     env,
                     LogVisibilityOpt::from(&opts.log_visibility, &opts.log_viewer).as_ref(),
@@ -308,6 +335,7 @@ pub async fn exec(
                         freezing_threshold,
                         reserved_cycles_limit,
                         wasm_memory_limit,
+                        wasm_memory_threshold,
                         log_visibility,
                     },
                     opts.created_at_time,

@@ -2,6 +2,52 @@
 
 # UNRELEASED
 
+### fix: correctly detects hyphenated Rust bin crates
+
+### fix: removes unnecessary tsc step in sveltekit build script
+
+### feat!: `dfx info pocketic-config-port`
+
+Due to the incompatibility between the APIs on the replica port and the PocketIC port, `dfx info replica-port`
+no longer works with PocketIC, and the PocketIC port is provided by a new command, `dfx info pocketic-config-port`.
+
+### feat: streamlined `dfx new` output
+
+### test: adds playwright tests for `dfx new` project frontends
+
+The first of a suite of baseline tests to automate testing starter projects. Makes sure that sveltekit, react, vue, and vanilla frontends are compatible with other dfx or asset canister changes.
+
+### fix: template frontends now have unsupported browser warnings
+
+DFX's default security headers cause Safari to break when viewing local canisters. Warning messages
+have been added to the frontend project templates when the page is broken that indicate to try switching
+browsers.
+
+### feat: impersonating sender of requests to a local PocketIC instance
+
+`dfx canister call`, `dfx canister status`, and `dfx canister update-settings` take
+an additional CLI argument `--impersonate` to specify a principal
+on behalf of which requests to a local PocketIC instance are sent.
+
+### feat: `dfx canister [create|update-settings] --wasm-memory-threshold`
+
+This adds support for the WASM memory threshold, used in conjunction with `--wasm-memory-limit`.
+When the remaining memory until the limit falls below the threshold, the canister's
+`on_low_wasm_memory` handler is run.
+
+### fix: `dfx deploy --by-proposal` no longer sends chunk data in ProposeCommitBatch
+
+Recently we made `dfx deploy` include some chunk data in CommitBatch, in order to streamline
+deploys for smaller projects. `dfx deploy` splits up larger change lists and submits them in
+smaller batches, in order to remain within message and compute limits.
+
+This change also applied to `dfx deploy --by-proposal`, which submits all changes in a single
+message. This made it more likely that `dfx deploy --by-proposal` will fail due to exceeding
+message limits.
+
+This fix makes it so `dfx deploy --by-proposal` never includes this chunk data in
+ProposeCommitBatch, which will allow for more changes before hitting message limits.
+
 ### feat: `dfx start --pocketic` supports `--force` and shared networks.
 
 `dfx start --pocketic` is now compatible with `--force` and shared networks.
@@ -10,7 +56,7 @@
 
 This used to be a warning. A hard error can abort the command so that no insecure state will be on the mainnet.
 
-Users can surpress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
+Users can suppress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
 
 The warning won't display when executing commands like `dfx deploy --playground`.
 
@@ -37,6 +83,13 @@ This affects the following commands:
 - `dfx canister update-settings`
 - `dfx ledger fabricate-cycles`
 
+### fix: `dfx` can deploy canisters to playground networks that have Motoko EOP enabled
+
+Canisters with Motoko's Enhanced Orthogonal Persistence feature require `wasm_memory_persistence = Keep` when they get installed.
+Previously, when `dfx` attempted to install canisters with EOP enabled to a playground it didn't set `wasm_memory_persistence` properly.
+
+### fix: custom canisters with a read-only wasm no longer fail to build with a permissions error
+
 ### chore: improve `dfx deploy` messages.
 
 If users run `dfx deploy` without enough cycles, show additional messages to indicate what to do next.
@@ -47,6 +100,110 @@ How to resolve the error:
 Please top up your cycles balance by converting ICP to cycles like below:
 'dfx cycles convert --amount=0.123'.
 ```
+
+If users run `dfx deploy --playground` but the backend is not updated with the latest frontend canister wasm
+the error message will explain this properly and recommends asking for help on the forum since this can't be resolved by users.
+
+### chore: improve `dfx cycles convert` messages.
+
+If users run `dfx cycles convert` without enough ICP tokens, show additional messages to indicate what to do next.
+```
+Error explanation:
+Insufficient ICP balance to finish the transfer transaction.
+How to resolve the error:
+Please top up your ICP balance.
+
+Your account address for receiving ICP from centralized exchanges: 8494c01329531c06254ff45dad87db806ae6ed935ad6a504cdbc00a935db7b49
+(run `dfx ledger account-id` to display)
+
+Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dnrh3-rsyq6-ffned-h64ox-vxywi-gzawf-ot4pv-sqe
+(run `dfx identity get-principal` to display)
+```
+
+### feat: Add pre-install tasks
+
+Add pre-install tasks, which can be defined by the new `pre-install` key for canister objects in `dfx.json` with a command or list of commands.
+
+### chore: Warn when the 'canister_ids.json' file is first generated for persistent networks.
+
+Warn when the 'canister_ids.json' file is first generated for persistent networks.
+
+```
+dfx deploy --network ic
+...
+test_backend canister created on network ic with canister id: j36qm-pqaaa-aaaan-qzqya-cai
+WARN: The "/home/sdk/repos/test/canister_ids.json" file has been generated. Please make sure you store it correctly, e.g., submitting it to a GitHub repository.
+Building canisters...
+...
+```
+
+### chore: Provides units for all fields of canister status.
+
+Provides units for all fields of canister status.
+
+```
+$ dfx canister status pxmfj-jaaaa-aaaan-qmmbq-cai --ic
+Canister status call result for pxmfj-jaaaa-aaaan-qmmbq-cai.
+Status: Running
+Controllers: uom2z-lqsqq-qbn4p-nts4l-2xjfl-oeivu-oso42-4t4jh-54ikd-ewnvi-tqe yjac5-2yaaa-aaaan-qaqka-cai
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 20_548_135 Cycles
+Memory Size: 2_010_735 Bytes
+Balance: 2_985_407_678_380 Cycles
+Reserved: 0 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Wasm memory limit: 3_221_225_472 Bytes
+Wasm memory threshold: 0 Bytes
+Module hash: 0x4f13cceb571483ac99a9f89afc05718c0a4ab72e9fac7d49054c0a3e05c4899b
+Number of queries: 0
+Instructions spent in queries: 0
+Total query request payload size: 0 Bytes
+Total query response payload size: 0 Bytes
+Log visibility: controllers
+```
+
+### feat!: Print error traces only in verbose (`-v`) mode or if no proper error message is available
+
+## Dependencies
+
+### Frontend canister
+
+### fix: 'unreachable' error when trying to upgrade an asset canister with over 1GB data
+
+The asset canister now estimates the size of the data to be serialized to stable memory,
+and reserves that much space for the ValueSerializer's buffer.
+
+- Module hash: bba3181888f3c59b4a5f608aedef05be6fa37276fb7dc394cbadf9cf6e10359b
+- https://github.com/dfinity/sdk/pull/4036
+
+### Motoko
+
+Updated Motoko to [0.13.6](https://github.com/dfinity/motoko/releases/tag/0.13.6)
+
+### Replica
+
+Updated replica to elected commit 233c1ee2ef68c1c8800b8151b2b9f38e17b8440a.
+This incorporates the following executed proposals:
+
+- [134900](https://dashboard.internetcomputer.org/proposal/134900)
+- [134773](https://dashboard.internetcomputer.org/proposal/134773)
+- [134684](https://dashboard.internetcomputer.org/proposal/134684)
+- [134663](https://dashboard.internetcomputer.org/proposal/134663)
+- [134608](https://dashboard.internetcomputer.org/proposal/134608)
+- [134609](https://dashboard.internetcomputer.org/proposal/134609)
+- [134497](https://dashboard.internetcomputer.org/proposal/134497)
+- [134408](https://dashboard.internetcomputer.org/proposal/134408)
+- [134337](https://dashboard.internetcomputer.org/proposal/134337)
+- [134336](https://dashboard.internetcomputer.org/proposal/134336)
+- [134259](https://dashboard.internetcomputer.org/proposal/134259)
+- [134251](https://dashboard.internetcomputer.org/proposal/134251)
+- [134250](https://dashboard.internetcomputer.org/proposal/134250)
+- [134188](https://dashboard.internetcomputer.org/proposal/134188)
+- [134187](https://dashboard.internetcomputer.org/proposal/134187)
+- [134186](https://dashboard.internetcomputer.org/proposal/134186)
+- [134185](https://dashboard.internetcomputer.org/proposal/134185)
 
 # 0.24.3
 
@@ -101,7 +258,7 @@ You must open a new terminal to continue developing. If you'd prefer to stop, qu
 
 ### Motoko
 
-Updated Motoko to [0.13.3](https://github.com/dfinity/motoko/releases/tag/0.13.3)
+Updated Motoko to [0.13.4](https://github.com/dfinity/motoko/releases/tag/0.13.4)
 
 ### Replica
 
@@ -144,7 +301,7 @@ had not been previously built for the local network.
 
 Added support for the canister log allowed viewer list, enabling specified users to access a canister's logs without needing to be set as the canister's controller.
 Valid settings are:
-- `--add-log-viewer`, `--remove-log-viewer` and `--set-log-viewer` flags with `dfx canister update-settings` 
+- `--add-log-viewer`, `--remove-log-viewer` and `--set-log-viewer` flags with `dfx canister update-settings`
 - `--log-viewer` flag with `dfx canister create`
 - `canisters[].initialization_values.log_visibility.allowed_viewers` in `dfx.json`
 
@@ -240,7 +397,7 @@ Module hash 15da2adc4426b8037c9e716b81cb6a8cf1a835ac37589be2cef8cb3f4a04adaa
 
 `dfx deploy --mode` now takes the same possible values as `dfx canister install --mode`: "install", "reinstall", "upgrade" and "auto".
 
-In "auto" mode, the upgrade options are hints which only take effects when the actual install mode is "upgrade". 
+In "auto" mode, the upgrade options are hints which only take effects when the actual install mode is "upgrade".
 
 To maintain backward compatibility, a minor difference between the two commands remains.
 If the `--mode` is not set, `dfx deploy` defaults to "auto", while `dfx canister install` defaults to "install".

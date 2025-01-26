@@ -33,15 +33,15 @@ teardown() {
 @test "url subcommand prints valid backend canister urls on local" {
   dfx_start
   dfx canister create --all
-  jq '.__Candid_UI.local="br5f7-7uaaa-aaaaa-qaaca-cai"' .dfx/local/canister_ids.json | sponge .dfx/local/canister_ids.json
+  jq '.__Candid_UI.local="erxue-5aaaa-aaaab-qaagq-cai"' .dfx/local/canister_ids.json | sponge .dfx/local/canister_ids.json
 
   backend_id=$(dfx canister id hello_backend)
   assert_command dfx canister url hello_backend
-  assert_match "canisterId=br5f7-7uaaa-aaaaa-qaaca-cai&id=${backend_id}"
+  assert_match "canisterId=erxue-5aaaa-aaaab-qaagq-cai&id=${backend_id}"
 
   backend_id=$(dfx canister id hello_backend)
   assert_command dfx canister url "$backend_id"
-  assert_match "canisterId=br5f7-7uaaa-aaaaa-qaaca-cai&id=${backend_id}"
+  assert_match "canisterId=erxue-5aaaa-aaaab-qaagq-cai&id=${backend_id}"
 }
 
 @test "url subcommand prints valid frontend canister urls from a subdirectory" {

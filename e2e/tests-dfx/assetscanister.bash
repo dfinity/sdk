@@ -187,6 +187,35 @@ check_permission_failure() {
   assert_contains "cache-control: max-age=888"
 }
 
+@test "deploy --by-proposal lots of small assets should not overflow message limits" {
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity new prepare --storage-mode plaintext
+  assert_command dfx identity new commit --storage-mode plaintext
+  assert_command dfx identity use anonymous
+
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal --identity controller)
+  PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
+  COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
+
+  dfx_start
+  assert_command dfx deploy --identity controller
+
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity controller
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity controller
+
+  for a in $(seq 1 1400); do
+    # 1400 files * ~1200 header bytes: 1,680,000 bytes
+    # 1400 files * 650 content bytes = 910,000 bytes: small enough that chunk uploader won't upload before finalize
+    # commit batch without content: 1,978,870 bytes
+    # commit batch with content: 2,889,392 bytes
+    # change finalize_upload to always pass MAX_CHUNK_SIZE/2 to see this fail
+    dd if=/dev/random of=src/e2e_project_frontend/assets/"$a" bs=650 count=1
+  done
+
+  assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
+  assert_match "Proposed commit of batch 2 with evidence [0-9a-z]*.  Either commit it by proposal, or delete it."
+}
+
 @test "deploy --by-proposal all assets" {
   assert_command dfx identity new controller --storage-mode plaintext
   assert_command dfx identity new prepare --storage-mode plaintext
@@ -1056,7 +1085,7 @@ CHERRIES" "$stdout"
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/logo.png";accept_encodings=vec{"identity"}})'
   assert_match 'content_type = "image/png"'
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.js";accept_encodings=vec{"identity"}})'
-  assert_match 'content_type = "application/javascript"'
+  assert_match 'content_type = "text/javascript"'
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
   assert_match 'content_type = "text/plain"'
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/main.css";accept_encodings=vec{"identity"}})'
@@ -1895,6 +1924,28 @@ WARN: {
 
   assert_command dfx deploy
   assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]* \(with cache and 1 header\)'
+}
+
+@test "asset configuration via .ic-assets.json5 - respects weird characters" {
+  install_asset assetscanister
+  touch src/e2e_project_frontend/assets/thing.txt
+  cat <<'EOF' >src/e2e_project_frontend/assets/.ic-assets.json5
+[
+  {
+    "match": "thing.txt",
+    "headers": {
+      "X-Dummy-Header": "\"\'@%({[~$?\\"
+    }
+  }
+]
+EOF
+  dfx_start
+  assert_command dfx deploy
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+  assert_command curl --head "http://localhost:$PORT/thing.txt?canisterId=$ID"
+  # shellcheck disable=SC1003
+  assert_contains 'x-dummy-header: "'"'"'@%({[~$?\' 
 }
 
 @test "uses selected canister wasm" {

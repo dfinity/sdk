@@ -173,9 +173,11 @@ async fn download_and_generate_pulled_canister(
     let dfx_metadata_str = get_metadata_as_string(&module, DFX, &wasm_path)?;
     let dfx_metadata: DfxMetadata = serde_json::from_str(&dfx_metadata_str)?;
     let pullable = dfx_metadata.get_pullable()?;
-    pulled_canister.dependencies = pullable.dependencies.clone();
-    pulled_canister.init_guide = pullable.init_guide.clone();
-    pulled_canister.init_arg = pullable.init_arg.clone();
+    pulled_canister
+        .dependencies
+        .clone_from(&pullable.dependencies);
+    pulled_canister.init_guide.clone_from(&pullable.init_guide);
+    pulled_canister.init_arg.clone_from(&pullable.init_arg);
 
     Ok(pulled_canister)
 }

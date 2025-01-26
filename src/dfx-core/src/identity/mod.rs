@@ -307,6 +307,7 @@ impl AsRef<Identity> for Identity {
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum CallSender {
     SelectedId,
+    Impersonate(Principal),
     Wallet(Principal),
 }
 

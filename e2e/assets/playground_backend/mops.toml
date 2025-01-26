@@ -1,6 +1,7 @@
 [dependencies]
-base = "0.10.4"
+base = "0.12.1"
 splay = "0.1.0"
 
-[toolchain]
-moc = "0.10.4"
+[[canister]]
+candid = "service/wasm-utils/wasm-utils.did"
+output = "service/pool/Wasm-utils.mo"

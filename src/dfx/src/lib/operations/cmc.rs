@@ -75,6 +75,7 @@ pub async fn notify_create(
                     freezing_threshold: None,
                     reserved_cycles_limit: None,
                     wasm_memory_limit: None,
+                    wasm_memory_threshold: None,
                     log_visibility: None,
                 })
             })

@@ -244,6 +244,11 @@ fn pocketic_start_thread(
             }
             cmd.stdout(std::process::Stdio::inherit());
             cmd.stderr(std::process::Stdio::inherit());
+            #[cfg(unix)]
+            {
+                use std::os::unix::process::CommandExt;
+                cmd.process_group(0);
+            }
             let _ = std::fs::remove_file(&config.port_file);
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting PocketIC...");
@@ -350,7 +355,7 @@ async fn initialize_pocketic(
         nns: Some(SubnetSpec::default()),
         sns: Some(SubnetSpec::default()),
         ii: Some(SubnetSpec::default()),
-        fiduciary: None,
+        fiduciary: Some(SubnetSpec::default()),
         bitcoin: Some(SubnetSpec::default()),
         system: vec![],
         verified_application: vec![],
@@ -369,7 +374,7 @@ async fn initialize_pocketic(
             subnet_config_set,
             state_dir: Some(replica_config.state_manager.state_root.clone()),
             nonmainnet_features: true,
-            log_level: Some(replica_config.log_level.to_ic_starter_string()),
+            log_level: Some(replica_config.log_level.to_pocketic_string()),
             bitcoind_addr: bitcoind_addr.clone(),
         })
         .send()
@@ -385,25 +390,12 @@ async fn initialize_pocketic(
             instance_id,
             topology,
         } => {
-            let subnets = match replica_config.subnet_type {
-                ReplicaSubnetType::Application => topology.get_app_subnets(),
-                ReplicaSubnetType::System => topology.get_system_subnets(),
-                ReplicaSubnetType::VerifiedApplication => topology.get_verified_app_subnets(),
-            };
-            if subnets.len() != 1 {
-                return Err(anyhow!("Internal error: PocketIC topology contains multiple subnets of the same subnet kind."));
-            }
-            let subnet_id = subnets[0];
-            let subnet_config = topology.subnet_configs.get(&subnet_id).ok_or(anyhow!(
-                "Internal error: subnet id {} not found in PocketIC topology",
-                subnet_id
-            ))?;
-            let effective_canister_id =
-                Principal::from_slice(&subnet_config.canister_ranges[0].start.canister_id);
+            let default_effective_canister_id: Principal =
+                topology.default_effective_canister_id.into();
             let effective_config = CachedConfig::pocketic(
                 replica_config,
                 replica_rev().into(),
-                Some(effective_canister_id),
+                Some(default_effective_canister_id),
             );
             save_json_file(effective_config_path, &effective_config)?;
             instance_id

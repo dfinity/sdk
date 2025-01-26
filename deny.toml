@@ -16,7 +16,8 @@ allow = [
     "MIT",
     "MPL-2.0",
     "Zlib",
-    "Unicode-DFS-2016"
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
 ]
 
 deny = [

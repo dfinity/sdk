@@ -4,6 +4,7 @@
       "type": "custom",
       "candid": "wasm-utils.did",
       "wasm": "wasm-utils.wasm",
+      "specified_id": "ozk6r-tyaaa-aaaab-qab4a-cai",
       "build": [
         "echo 'the wasm-utils canister is prebuilt'"
       ]
