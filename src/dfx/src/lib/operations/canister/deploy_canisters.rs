@@ -136,16 +136,14 @@ pub async fn deploy_canisters(
     let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
     // TODO: For efficiency, also don't compute canisters order if `no_compile`.
-    if !no_compile {
-        let pool = build_canisters(
-            env,
-            &canisters_to_load,
-            &canisters_to_build,
-            &config,
-            env_file.clone(),
-        )
-        .await?;
-    }
+    let pool = build_canisters(
+        env,
+        &canisters_to_load,
+        &if no_compile { canisters_to_build } else { Vec::new() },
+        &config,
+        env_file.clone(),
+    )
+    .await?;
 
     match deploy_mode {
         NormalDeploy | ForceReinstallSingleCanister(_) => {
