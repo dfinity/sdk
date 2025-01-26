@@ -25,6 +25,10 @@ pub struct CanisterBuildOpts {
     #[arg(long)]
     check: bool,
 
+    /// Don't compile the dependencies, only this canister.
+    #[arg(long)]
+    no_deps: bool,
+
     /// Output environment variables to a file in dotenv format (without overwriting any user-defined variables, if the file already exists).
     #[arg(long)]
     output_env_file: Option<PathBuf>,
@@ -48,10 +52,21 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
 
     let build_mode_check = opts.check;
 
-    // Option can be None in which case --all was specified
-    let required_canisters = config
-        .get_config()
-        .get_canister_names_with_dependencies(opts.canister_name.as_deref())?;
+    let required_canisters = if opts.no_deps {
+        // Option can be None in which case --all was specified
+        let canister = opts.canister_name.as_deref();
+        match canister {
+            Some(canister) => vec![canister.to_string()],
+            // inefficient:
+            None => config
+                .get_config()
+                .get_canister_names_with_dependencies(None)?
+        }
+    } else {
+        config
+            .get_config()
+            .get_canister_names_with_dependencies(opts.canister_name.as_deref())?
+    };
     let canisters_to_load = add_canisters_with_ids(&required_canisters, &env, &config);
 
     let canisters_to_build = required_canisters

@@ -103,6 +103,10 @@ pub struct DeployOpts {
     #[command(flatten)]
     subnet_selection: SubnetSelectionOpt,
 
+    /// Skip compilation before deploying.
+    #[arg(long)]
+    no_compile: bool,
+
     /// Always use Candid assist when the argument types are all optional.
     #[arg(
         long,
@@ -183,6 +187,7 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
         opts.no_asset_upgrade,
         &mut subnet_selection,
         opts.always_assist,
+        opts.no_compile,
     ))?;
 
     if matches!(deploy_mode, NormalDeploy | ForceReinstallSingleCanister(_)) {

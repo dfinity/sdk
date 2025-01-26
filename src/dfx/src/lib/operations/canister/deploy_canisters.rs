@@ -59,6 +59,7 @@ pub async fn deploy_canisters(
     no_asset_upgrade: bool,
     subnet_selection: &mut SubnetSelectionType,
     always_assist: bool,
+    no_compile: bool,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -134,14 +135,17 @@ pub async fn deploy_canisters(
 
     let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
-    let pool = build_canisters(
-        env,
-        &canisters_to_load,
-        &canisters_to_build,
-        &config,
-        env_file.clone(),
-    )
-    .await?;
+    // TODO: For efficiency, also don't compute canisters order if `no_compile`.
+    if !no_compile {
+        let pool = build_canisters(
+            env,
+            &canisters_to_load,
+            &canisters_to_build,
+            &config,
+            env_file.clone(),
+        )
+        .await?;
+    }
 
     match deploy_mode {
         NormalDeploy | ForceReinstallSingleCanister(_) => {
