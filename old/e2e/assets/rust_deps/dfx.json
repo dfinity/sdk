@@ -1,0 +1,22 @@
+{
+  "canisters": {
+    "multiply_deps": {
+      "main": "src/multiply_deps/main.mo",
+      "type": "motoko"
+    },
+    "rust_deps": {
+      "candid": "src/rust_deps/rust_deps.did",
+      "package": "rust_deps",
+      "type": "rust",
+      "dependencies": [
+        "multiply_deps"
+      ]
+    }
+  },
+  "defaults": {
+    "replica": {
+      "subnet_type": "verifiedapplication"
+    }
+  },
+  "version": 1
+}

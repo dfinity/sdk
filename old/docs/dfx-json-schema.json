@@ -1,0 +1,1216 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "dfx.json",
+  "type": "object",
+  "properties": {
+    "canisters": {
+      "description": "Mapping between canisters and their settings.",
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {
+        "$ref": "#/definitions/ConfigCanistersCanister"
+      }
+    },
+    "defaults": {
+      "description": "Defaults for dfx start.",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ConfigDefaults"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "dfx": {
+      "title": "dfx version",
+      "description": "Pins the dfx version for this project.",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "networks": {
+      "description": "Mapping between network names and their configurations. Networks 'ic' and 'local' are implicitly defined.",
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {
+        "$ref": "#/definitions/ConfigNetwork"
+      }
+    },
+    "output_env_file": {
+      "description": "If set, environment variables will be output to this file (without overwriting any user-defined variables, if the file already exists).",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "profile": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Profile"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "version": {
+      "description": "Used to keep track of dfx.json versions.",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint32",
+      "minimum": 0.0
+    }
+  },
+  "definitions": {
+    "BitcoinAdapterLogLevel": {
+      "description": "Represents the log level of the bitcoin adapter.",
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
+      ]
+    },
+    "Byte": {
+      "title": "Byte Count",
+      "description": "A quantity of bytes. Representable either as an integer, or as an SI unit string",
+      "examples": [
+        72,
+        "2KB",
+        "4 MiB"
+      ],
+      "type": [
+        "integer",
+        "string"
+      ],
+      "pattern": "^[0-9]+( *([KkMmGgTtPpEeZzYy]i?)?B)?$"
+    },
+    "CanisterDeclarationsConfig": {
+      "title": "Declarations Configuration",
+      "description": "Configurations about which canister interface declarations to generate, and where to generate them.",
+      "type": "object",
+      "properties": {
+        "bindings": {
+          "title": "Languages to generate",
+          "description": "A list of languages to generate type declarations. Supported options are 'js', 'ts', 'did', 'mo'. Default is ['js', 'ts', 'did'].",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
+        "env_override": {
+          "title": "Canister ID ENV Override",
+          "description": "A string that will replace process.env.CANISTER_ID_{canister_name_uppercase} in the 'src/dfx/assets/language_bindings/canister.js' template.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "node_compatibility": {
+          "title": "Node compatibility flag",
+          "description": "Flag to pre-populate generated declarations with better defaults for various types of projects Default is false",
+          "default": false,
+          "type": "boolean"
+        },
+        "output": {
+          "title": "Declaration Output Directory",
+          "description": "Directory to place declarations for that canister. Default is 'src/declarations/<canister_name>'.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "CanisterMetadataSection": {
+      "title": "Canister Metadata Configuration",
+      "description": "Configures a custom metadata section for the canister wasm. dfx uses the first definition of a given name matching the current network, ignoring any of the same name that follow.",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "content": {
+          "title": "Content",
+          "description": "Content of this metadata section. Conflicts with `path`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "name": {
+          "title": "Name",
+          "description": "The name of the wasm section",
+          "type": "string"
+        },
+        "networks": {
+          "title": "Networks",
+          "description": "Networks this section applies to. If this field is absent, then it applies to all networks. An empty array means this element will not apply to any network.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "path": {
+          "title": "Path",
+          "description": "Path to file containing section contents. Conflicts with `content`. For sections with name=`candid:service`, this field is optional, and if not specified, dfx will use the canister's candid definition. If specified for a Motoko canister, the service defined in the specified path must be a valid subtype of the canister's actual candid service definition.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility": {
+          "title": "Visibility",
+          "default": "public",
+          "allOf": [
+            {
+              "$ref": "#/definitions/MetadataVisibility"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigCanistersCanister": {
+      "title": "Canister Configuration",
+      "description": "Configurations for a single canister.",
+      "type": "object",
+      "oneOf": [
+        {
+          "title": "Rust-Specific Properties",
+          "type": "object",
+          "required": [
+            "candid",
+            "package",
+            "type"
+          ],
+          "properties": {
+            "candid": {
+              "title": "Candid File",
+              "description": "Path of this canister's candid interface declaration.",
+              "type": "string"
+            },
+            "package": {
+              "title": "Package Name",
+              "description": "Name of the rust package that compiles to this canister's Wasm binary.",
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "rust"
+              ]
+            }
+          }
+        },
+        {
+          "title": "Asset-Specific Properties",
+          "type": "object",
+          "required": [
+            "source",
+            "type"
+          ],
+          "properties": {
+            "build": {
+              "title": "Build Commands",
+              "description": "Commands that are executed in order to produce this canister's assets. Expected to produce assets in one of the paths specified by the 'source' field. Optional if there is no build necessary or the assets can be built using the default `npm run build` command.",
+              "default": [],
+              "allOf": [
+                {
+                  "$ref": "#/definitions/SerdeVec_for_String"
+                }
+              ]
+            },
+            "source": {
+              "title": "Asset Source Folder",
+              "description": "Folders from which assets are uploaded.",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "assets"
+              ]
+            },
+            "workspace": {
+              "title": "NPM workspace",
+              "description": "The workspace in package.json that this canister is in, if it is not in the root workspace.",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "title": "Custom-Specific Properties",
+          "type": "object",
+          "required": [
+            "candid",
+            "type",
+            "wasm"
+          ],
+          "properties": {
+            "build": {
+              "title": "Build Commands",
+              "description": "Commands that are executed in order to produce this canister's Wasm module. Expected to produce the Wasm in the path specified by the 'wasm' field. No build commands are allowed if the `wasm` field is a URL.",
+              "default": [],
+              "allOf": [
+                {
+                  "$ref": "#/definitions/SerdeVec_for_String"
+                }
+              ]
+            },
+            "candid": {
+              "title": "Candid File",
+              "description": "Path to this canister's candid interface declaration.  A URL to a candid file is also acceptable.",
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "custom"
+              ]
+            },
+            "wasm": {
+              "title": "Wasm Path",
+              "description": "Path to Wasm to be installed. URLs to a Wasm module are also acceptable. A canister that has a URL to a Wasm module can not also have `build` steps.",
+              "type": "string"
+            }
+          }
+        },
+        {
+          "title": "Motoko-Specific Properties",
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "motoko"
+              ]
+            }
+          }
+        },
+        {
+          "title": "Pull-Specific Properties",
+          "type": "object",
+          "required": [
+            "id",
+            "type"
+          ],
+          "properties": {
+            "id": {
+              "title": "Canister ID",
+              "description": "Principal of the canister on the ic network.",
+              "type": "string"
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "pull"
+              ]
+            }
+          }
+        }
+      ],
+      "properties": {
+        "args": {
+          "title": "Canister-Specific Build Argument",
+          "description": "This field defines an additional argument to pass to the Motoko compiler when building the canister.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "declarations": {
+          "title": "Declarations Configuration",
+          "description": "Defines which canister interface declarations to generate, and where to generate them.",
+          "default": {
+            "bindings": null,
+            "env_override": null,
+            "node_compatibility": false,
+            "output": null
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/CanisterDeclarationsConfig"
+            }
+          ]
+        },
+        "dependencies": {
+          "title": "Dependencies",
+          "description": "Defines on which canisters this canister depends on.",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deploy": {
+          "title": "Deploy",
+          "description": "`false` value means not to deploy this canister unless it's explicitly specified in the command line (supposed use: canister that are created by other canisters).",
+          "default": true,
+          "type": "boolean"
+        },
+        "frontend": {
+          "title": "Force Frontend URL",
+          "description": "Mostly unused. If this value is not null, a frontend URL is displayed after deployment even if the canister type is not 'asset'.",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "gzip": {
+          "title": "Gzip Canister Wasm",
+          "description": "Disabled by default.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "init_arg": {
+          "title": "Init Arg",
+          "description": "The Candid initialization argument for installing the canister. If the `--argument` or `--argument-file` argument is also provided, this `init_arg` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "init_arg_file": {
+          "title": "Init Arg File",
+          "description": "The Candid initialization argument file for installing the canister. If the `--argument` or `--argument-file` argument is also provided, this `init_arg_file` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "initialization_values": {
+          "title": "Resource Allocation Settings",
+          "description": "Defines initial values for resource allocation settings.",
+          "default": {
+            "compute_allocation": null,
+            "freezing_threshold": null,
+            "memory_allocation": null,
+            "reserved_cycles_limit": null,
+            "wasm_memory_limit": null
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/InitializationValues"
+            }
+          ]
+        },
+        "main": {
+          "title": "Path to Canister Entry Point",
+          "description": "Entry point for e.g. Motoko Compiler.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "metadata": {
+          "title": "Metadata",
+          "description": "Defines metadata sections to set in the canister .wasm",
+          "default": [],
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CanisterMetadataSection"
+          }
+        },
+        "optimize": {
+          "title": "Optimize Canister Wasm",
+          "description": "Invoke wasm level optimizations after building the canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default. If this option is specified, the `shrink` option will be ignored.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/WasmOptLevel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "post_install": {
+          "title": "Post-Install Commands",
+          "description": "One or more commands to run post canister installation.",
+          "default": [],
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
+            }
+          ]
+        },
+        "pullable": {
+          "title": "Pullable",
+          "description": "Defines required properties so that this canister is ready for `dfx deps pull` by other projects.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Pullable"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "remote": {
+          "title": "Remote Configuration",
+          "description": "Used to mark the canister as 'remote' on certain networks.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigCanistersCanisterRemote"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "shrink": {
+          "title": "Shrink Canister Wasm",
+          "description": "Whether run `ic-wasm shrink` after building the Canister. Enabled by default for Rust/Motoko canisters. Disabled by default for custom canisters.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "specified_id": {
+          "title": "Specified Canister ID",
+          "description": "Attempts to create the canister with this Canister ID. This option only works with non-mainnet replica. If the `--specified-id` argument is also provided, this `specified_id` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tech_stack": {
+          "title": "Tech Stack",
+          "description": "Defines the tech stack used to build this canister.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/TechStack"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigCanistersCanisterRemote": {
+      "title": "Remote Canister Configuration",
+      "description": "This field allows canisters to be marked 'remote' for certain networks. On networks where this canister contains a remote ID, the canister is not deployed. Instead it is assumed to exist already under control of a different project.",
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "candid": {
+          "title": "Remote Candid File",
+          "description": "On networks where this canister is marked 'remote', this candid file is used instead of the one declared in the canister settings.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "title": "Network to Remote ID Mapping",
+          "description": "This field contains mappings from network names to remote canister IDs (Principals). For all networks listed here, this canister is considered 'remote'.",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ConfigDefaults": {
+      "description": "Defaults to use on dfx start.",
+      "type": "object",
+      "properties": {
+        "bitcoin": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsBitcoin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bootstrap": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsBootstrap"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "build": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsBuild"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "canister_http": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsCanisterHttp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proxy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsProxy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "replica": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsReplica"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigDefaultsBitcoin": {
+      "title": "Bitcoin Adapter Configuration",
+      "type": "object",
+      "properties": {
+        "canister_init_arg": {
+          "title": "Initialization Argument",
+          "description": "The initialization argument for the bitcoin canister.",
+          "default": "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 0 : nat; get_utxos_cycles_per_ten_instructions = 0 : nat; get_utxos_maximum = 0 : nat; get_balance = 0 : nat; get_balance_maximum = 0 : nat; get_current_fee_percentiles = 0 : nat; get_current_fee_percentiles_maximum = 0 : nat;  send_transaction_base = 0 : nat; send_transaction_per_byte = 0 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})",
+          "type": "string"
+        },
+        "enabled": {
+          "title": "Enable Bitcoin Adapter",
+          "default": false,
+          "type": "boolean"
+        },
+        "log_level": {
+          "title": "Logging Level",
+          "description": "The logging level of the adapter.",
+          "default": "info",
+          "allOf": [
+            {
+              "$ref": "#/definitions/BitcoinAdapterLogLevel"
+            }
+          ]
+        },
+        "nodes": {
+          "title": "Available Nodes",
+          "description": "Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient).",
+          "default": null,
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ConfigDefaultsBootstrap": {
+      "title": "Bootstrap Server Configuration",
+      "description": "The bootstrap command has been removed.  All of these fields are ignored.",
+      "type": "object",
+      "properties": {
+        "ip": {
+          "description": "Specifies the IP address that the bootstrap server listens on. Defaults to 127.0.0.1.",
+          "default": "127.0.0.1",
+          "type": "string",
+          "format": "ip"
+        },
+        "port": {
+          "description": "Specifies the port number that the bootstrap server listens on. Defaults to 8081.",
+          "default": 8081,
+          "type": "integer",
+          "format": "uint16",
+          "minimum": 0.0
+        },
+        "timeout": {
+          "description": "Specifies the maximum number of seconds that the bootstrap server will wait for upstream requests to complete. Defaults to 30.",
+          "default": 30,
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "ConfigDefaultsBuild": {
+      "title": "Build Process Configuration",
+      "type": "object",
+      "properties": {
+        "args": {
+          "description": "Arguments for packtool.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "packtool": {
+          "description": "Main command to run the packtool.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ConfigDefaultsCanisterHttp": {
+      "title": "HTTP Adapter Configuration",
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "title": "Enable HTTP Adapter",
+          "default": true,
+          "type": "boolean"
+        },
+        "log_level": {
+          "title": "Logging Level",
+          "description": "The logging level of the adapter.",
+          "default": "error",
+          "allOf": [
+            {
+              "$ref": "#/definitions/HttpAdapterLogLevel"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigDefaultsProxy": {
+      "description": "Configuration for icx-proxy.",
+      "type": "object",
+      "required": [
+        "domain"
+      ],
+      "properties": {
+        "domain": {
+          "description": "A list of domains that can be served. These are used for canister resolution [default: localhost]",
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigDefaultsReplica": {
+      "title": "Local Replica Configuration",
+      "type": "object",
+      "properties": {
+        "log_level": {
+          "description": "Run replica with the provided log level. Default is 'error'. Debug prints still get displayed",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ReplicaLogLevel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "port": {
+          "description": "Port the replica listens on.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint16",
+          "minimum": 0.0
+        },
+        "subnet_type": {
+          "title": "Subnet Type",
+          "description": "Determines the subnet type the replica will run as. Affects things like cycles accounting, message size limits, cycle limits. Defaults to 'application'.",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ReplicaSubnetType"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigLocalProvider": {
+      "title": "Local Replica Configuration",
+      "type": "object",
+      "properties": {
+        "bind": {
+          "description": "Bind address for the webserver. For the shared local network, the default is 127.0.0.1:4943. For project-specific local networks, the default is 127.0.0.1:8000.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bitcoin": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsBitcoin"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bootstrap": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsBootstrap"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "canister_http": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsCanisterHttp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "playground": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PlaygroundConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "proxy": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsProxy"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "replica": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ConfigDefaultsReplica"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "type": {
+          "description": "Persistence type of this network.",
+          "default": "ephemeral",
+          "allOf": [
+            {
+              "$ref": "#/definitions/NetworkType"
+            }
+          ]
+        }
+      }
+    },
+    "ConfigNetwork": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ConfigNetworkProvider"
+        },
+        {
+          "$ref": "#/definitions/ConfigLocalProvider"
+        }
+      ]
+    },
+    "ConfigNetworkProvider": {
+      "title": "Custom Network Configuration",
+      "type": "object",
+      "required": [
+        "providers"
+      ],
+      "properties": {
+        "playground": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PlaygroundConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "providers": {
+          "description": "The URL(s) this network can be reached at.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "description": "Persistence type of this network.",
+          "default": "persistent",
+          "allOf": [
+            {
+              "$ref": "#/definitions/NetworkType"
+            }
+          ]
+        }
+      }
+    },
+    "HttpAdapterLogLevel": {
+      "description": "Represents the log level of the HTTP adapter.",
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
+      ]
+    },
+    "InitializationValues": {
+      "title": "Initial Resource Allocations",
+      "type": "object",
+      "properties": {
+        "compute_allocation": {
+          "title": "Compute Allocation",
+          "description": "Must be a number between 0 and 100, inclusively. It indicates how much compute power should be guaranteed to this canister, expressed as a percentage of the maximum compute power that a single canister can allocate.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PossiblyStr_for_uint64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "freezing_threshold": {
+          "title": "Freezing Threshold",
+          "description": "Freezing threshould of the canister, measured in seconds. Valid inputs are numbers (seconds) or strings parsable by humantime (e.g. \"15days 2min 2s\").",
+          "default": null,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "memory_allocation": {
+          "title": "Memory Allocation",
+          "description": "Maximum memory (in bytes) this canister is allowed to occupy. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Byte"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reserved_cycles_limit": {
+          "title": "Reserved Cycles Limit",
+          "description": "Specifies the upper limit of the canister's reserved cycles balance.\n\nReserved cycles are cycles that the system sets aside for future use by the canister. If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes, the system sets aside some amount of cycles from the main balance of the canister. These reserved cycles will be used to cover future payments for the newly allocated bytes. The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.\n\nA setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.",
+          "default": null,
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint128",
+          "minimum": 0.0
+        },
+        "wasm_memory_limit": {
+          "title": "Wasm Memory Limit",
+          "description": "Specifies a soft limit (in bytes) on the Wasm memory usage of the canister.\n\nUpdate calls, timers, heartbeats, installs, and post-upgrades fail if the Wasm memory usage exceeds this limit. The main purpose of this setting is to protect against the case when the canister reaches the hard 4GiB limit.\n\nMust be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Byte"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "MetadataVisibility": {
+      "oneOf": [
+        {
+          "description": "Anyone can query the metadata",
+          "type": "string",
+          "enum": [
+            "public"
+          ]
+        },
+        {
+          "description": "Only the controllers of the canister can query the metadata.",
+          "type": "string",
+          "enum": [
+            "private"
+          ]
+        }
+      ]
+    },
+    "NetworkType": {
+      "title": "Network Type",
+      "description": "Type 'ephemeral' is used for networks that are regularly reset. Type 'persistent' is used for networks that last for a long time and where it is preferred that canister IDs get stored in source control.",
+      "type": "string",
+      "enum": [
+        "ephemeral",
+        "persistent"
+      ]
+    },
+    "PlaygroundConfig": {
+      "description": "Playground config to borrow canister from instead of creating new canisters.",
+      "type": "object",
+      "required": [
+        "playground_canister"
+      ],
+      "properties": {
+        "playground_canister": {
+          "description": "Canister ID of the playground canister",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "description": "How many seconds a canister can be borrowed for",
+          "default": 1200,
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      }
+    },
+    "PossiblyStr_for_uint64": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "Profile": {
+      "type": "string",
+      "enum": [
+        "Debug",
+        "Release"
+      ]
+    },
+    "Pullable": {
+      "type": "object",
+      "required": [
+        "dependencies",
+        "init_guide",
+        "wasm_url"
+      ],
+      "properties": {
+        "dependencies": {
+          "title": "dependencies",
+          "description": "Canister IDs (Principal) of direct dependencies.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "init_arg": {
+          "title": "init_arg",
+          "description": "A default initialization argument for the canister that consumers can use.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "init_guide": {
+          "title": "init_guide",
+          "description": "A message to guide consumers how to initialize the canister.",
+          "type": "string"
+        },
+        "wasm_hash": {
+          "title": "wasm_hash",
+          "description": "SHA256 hash of the wasm module located at wasm_url. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified via a URL using the `wasm_hash_url` field. If both are defined, the `wasm_hash_url` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wasm_hash_url": {
+          "title": "wasm_hash_url",
+          "description": "Specify the SHA256 hash of the wasm module via this URL. Only define this if the on-chain canister wasm is expected not to match the wasm at wasm_url. The hash can also be specified directly using the `wasm_hash` field. If both are defined, the `wasm_hash_url` field will be ignored.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "wasm_url": {
+          "title": "wasm_url",
+          "description": "The Url to download canister wasm.",
+          "type": "string"
+        }
+      }
+    },
+    "ReplicaLogLevel": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "error",
+        "warning",
+        "info",
+        "debug",
+        "trace"
+      ]
+    },
+    "ReplicaSubnetType": {
+      "type": "string",
+      "enum": [
+        "system",
+        "application",
+        "verifiedapplication"
+      ]
+    },
+    "SerdeVec_for_String": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    },
+    "TechStack": {
+      "title": "Tech Stack",
+      "description": "The tech stack used to build a canister.",
+      "type": "object",
+      "properties": {
+        "cdk": {
+          "title": "cdk",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "language": {
+          "title": "language",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "lib": {
+          "title": "lib",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "other": {
+          "title": "other",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "tool": {
+          "title": "tool",
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "WasmOptLevel": {
+      "title": "Wasm Optimization Levels",
+      "description": "Wasm optimization levels that are passed to `wasm-opt`. \"cycles\" defaults to O3, \"size\" defaults to Oz. O4 through O0 focus on performance (with O0 performing no optimizations), and Oz and Os focus on reducing binary size, where Oz is more aggressive than Os. O3 and Oz empirically give best cycle savings and code size savings respectively.",
+      "type": "string",
+      "enum": [
+        "cycles",
+        "size",
+        "O4",
+        "O3",
+        "O2",
+        "O1",
+        "O0",
+        "Oz",
+        "Os"
+      ]
+    }
+  }
+}

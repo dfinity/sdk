@@ -1,0 +1,7 @@
+--- a/README.md
++++ b/README.md
+@@ -9,2 +9,4 @@
+ - [Quick Start](https://internetcomputer.org/docs/current/developer-docs/setup/deploy-locally)
+ - [SDK Developer Tools](https://internetcomputer.org/docs/current/developer-docs/setup/install)
++- [Motoko Programming Language Guide](https://internetcomputer.org/docs/current/motoko/main/motoko)
++- [Motoko Language Quick Reference](https://internetcomputer.org/docs/current/motoko/main/language-manual)

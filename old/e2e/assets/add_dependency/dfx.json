@@ -1,0 +1,14 @@
+{
+    "canisters": {
+        "a": {
+            "main": "a.mo",
+            "dependencies": ["c"]
+        },
+        "b": {
+            "main": "b.mo"
+        },
+        "c": {
+            "main": "b.mo"
+        }
+    }
+}

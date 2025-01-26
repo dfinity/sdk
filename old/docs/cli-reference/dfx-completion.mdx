@@ -1,0 +1,52 @@
+import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
+
+# dfx completion
+
+<MarkdownChipRow labels={["Reference"]} />
+
+Generate a shell completion script for `dfx`.
+
+## Basic usage
+
+``` bash
+dfx completion [option] SHELL
+```
+
+The command takes installed extensions into account when generating the
+completion script, so you should regenerate it after installing or removing
+extensions.
+
+The values supported for SHELL are `bash`, `elvish`, `fish`, `powershell`,
+and `zsh`. The default value is `bash`.
+
+## Options
+
+You can use the following option with the `dfx completion` command.
+
+| Option                | Description                        -|
+|-----------------------|-------------------------------------|
+| `--bin-name <name>`   | Name of the command. Only needed if referring to dfx by another name, such as with an alias. Default `dfx`. |
+
+## Examples
+
+Generate a bash completion script:
+
+``` bash
+dfx completion
+```
+
+Generate a zsh completion script:
+
+``` bash
+dfx completion zsh
+```
+
+Enable completion in zsh:
+```bash
+source <(dfx completion zsh)
+```
+
+Enable completion in bash:
+```bash
+source <(dfx completion)
+```

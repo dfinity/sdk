@@ -1,0 +1,7 @@
+{
+    "defaults": {
+        "replica": {
+            "subnet_type": "application"
+        }
+    }
+}

@@ -1,0 +1,9 @@
+{
+  "canisters": {
+    "hello_backend": {
+      "type": "custom",
+      "candid": "partial.did",
+      "wasm": "call.wasm"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "canisters": {
+    "cycles-ledger": {
+      "type": "custom",
+      "wasm": "cycles-ledger.wasm.gz",
+      "candid": "cycles-ledger.did"
+    },
+    "depositor": {
+      "type": "custom",
+      "wasm": "depositor.wasm.gz",
+      "candid": "depositor.did"
+    }
+  }
+}

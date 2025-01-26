@@ -1,0 +1,3 @@
+service : {
+  getCanisterId: () -> (principal) query;
+}

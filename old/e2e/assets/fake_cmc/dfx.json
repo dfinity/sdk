@@ -1,0 +1,10 @@
+{
+  "canisters": {
+    "fake-cmc": {
+      "type": "custom",
+      "wasm": "fake-cmc.wasm.gz",
+      "candid": "fake-cmc.did",
+      "specified_id": "rkp4c-7iaaa-aaaaa-aaaca-cai"
+    }
+  }
+}

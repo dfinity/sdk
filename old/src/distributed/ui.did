@@ -1,0 +1,6 @@
+service : {
+    did_to_js : (text) -> (opt text) query;
+    binding : (text, text) -> (opt text) query;
+    subtype : (new: text, old: text) -> (variant { Ok: null; Err: text }) query;
+    merge_init_args : (text, text) -> (opt text) query
+}

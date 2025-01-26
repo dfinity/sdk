@@ -1,0 +1,4 @@
+service : {
+  greet: (text) -> (text) query;
+  inc_b: () -> (nat);
+}
