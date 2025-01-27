@@ -21,6 +21,7 @@ use ic_wasm::metadata::{add_metadata, remove_metadata, Kind};
 use ic_wasm::optimize::OptLevel;
 use itertools::Itertools;
 use petgraph::graph::{DiGraph, NodeIndex};
+use petgraph::visit::EdgeRef;
 use rand::{thread_rng, RngCore};
 use slog::{error, info, trace, warn, Logger};
 use std::cell::RefCell;
@@ -671,7 +672,9 @@ impl CanisterPool {
                     canister_id_to_canister,
                     canister_id_to_index,
                 )?;
-                graph.add_edge(node_ix, dependency_index, ());
+                if node_ix != dependency_index { // TODO: Why is this check needed?
+                    graph.add_edge(node_ix, dependency_index, ());
+                }
             }
 
             Ok(node_ix)
@@ -692,6 +695,13 @@ impl CanisterPool {
                 &canister_id_to_canister,
                 &mut canister_id_to_index,
             )?;
+        }
+
+        // FIXME: Remove.
+        for e in graph.edge_references() {
+            let source = graph.node_weight(e.source()).unwrap().to_text();
+            let dest = graph.node_weight(e.target()).unwrap().to_text();
+            println!("{}->{}", source, dest);
         }
 
         // Verify the graph has no cycles.

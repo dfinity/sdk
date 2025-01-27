@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use petgraph::algo::DfsSpace;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
@@ -53,9 +54,12 @@ impl CanisterBuilder for MotokoBuilder {
 
         let imports = env.get_imports().borrow();
         let graph = imports.graph();
+        // let space = DfsSpace::new(&graph);
+        // match petgraph::algo::toposort(graph, Some(&mut space)) { // FIXME: Should provide the node.
+        // TODO: inefficient:
         match petgraph::algo::toposort(graph, None) {
             Ok(order) => {
-                Ok(order
+                let res: Vec<_> = order
                     .into_iter()
                     .filter_map(|id| match graph.node_weight(id) {
                         Some(Import::Canister(name)) => {
@@ -64,7 +68,15 @@ impl CanisterBuilder for MotokoBuilder {
                         _ => None,
                     })
                     .map(|canister| canister.canister_id())
-                    .collect())
+                    .collect();
+                let main_canister_id = info.get_canister_id()?;
+                if let Some(start_index) = res.iter().position(|&x| x == main_canister_id) {
+                    // Create a slice starting from that index
+                    let slice = &res[start_index..]; // TODO: Include or not the canister itself?
+                    Ok(slice.to_vec())
+                } else {
+                    panic!("Programming error");
+                }
             }
             Err(err) => {
                 let message = match graph.node_weight(err.node_id()) {
