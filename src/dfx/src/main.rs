@@ -10,6 +10,7 @@ use clap::{ArgAction, CommandFactory, Parser};
 use dfx_core::config::project_templates;
 use dfx_core::extension::installed::InstalledExtensionManifests;
 use dfx_core::extension::manager::ExtensionManager;
+use indicatif::MultiProgress;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -54,7 +55,7 @@ pub struct CliOpts {
 
 /// Setup a logger with the proper configuration, based on arguments.
 /// Returns a topple of whether or not to have a progress bar, and a logger.
-fn setup_logging(opts: &CliOpts) -> (i64, slog::Logger) {
+fn setup_logging(opts: &CliOpts) -> (i64, slog::Logger, MultiProgress) {
     // Create a logger with our argument matches.
     let verbose_level = opts.verbose as i64 - opts.quiet as i64;
 
@@ -63,8 +64,8 @@ fn setup_logging(opts: &CliOpts) -> (i64, slog::Logger) {
         "file" => LoggingMode::File(PathBuf::from(opts.logfile.as_deref().unwrap_or("log.txt"))),
         _ => LoggingMode::Stderr,
     };
-
-    (verbose_level, create_root_logger(verbose_level, mode))
+    let (logger, spinners) = create_root_logger(verbose_level, mode);
+    (verbose_level, logger, spinners)
 }
 
 fn print_error_and_diagnosis(log_level: Option<i64>, err: Error, error_diagnosis: DiagnosedError) {
@@ -157,13 +158,14 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
         return commands::exec_without_env(cli_opts.command);
     }
 
-    let (verbose_level, log) = setup_logging(&cli_opts);
+    let (verbose_level, log, spinners) = setup_logging(&cli_opts);
     *log_level = Some(verbose_level);
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
 
     let env = EnvironmentImpl::new(em)?
         .with_logger(log)
+        .with_spinners(spinners)
         .with_identity_override(identity)
         .with_verbose_level(verbose_level)
         .with_effective_canister_id(effective_canister_id);

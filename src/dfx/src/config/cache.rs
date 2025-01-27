@@ -1,17 +1,19 @@
 use crate::config::dfx_version;
+use crate::lib::environment::Environment;
+use crate::lib::progress_bar::ProgressBar;
 use crate::util;
 use dfx_core;
 use dfx_core::config::cache::{
     binary_command_from_version, delete_version, get_bin_cache, get_binary_path_from_version,
-    is_version_installed, Cache,
+    is_version_installed,
 };
 use dfx_core::error::cache::{
     DeleteCacheError, GetBinaryCommandPathError, InstallCacheError, IsCacheInstalledError,
 };
-use indicatif::{ProgressBar, ProgressDrawTarget};
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
 use semver::Version;
+use slog::info;
 use std::io::{stderr, IsTerminal};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -23,58 +25,63 @@ const EXEC_READ_USER_ONLY_PERMISSION: u32 = 0o500;
 #[cfg(unix)]
 const READ_USER_ONLY_PERMISSION: u32 = 0o400;
 
-pub struct DiskBasedCache {
+#[derive(Debug, Clone)]
+pub struct VersionCache {
     version: Version,
 }
 
-impl DiskBasedCache {
-    pub fn with_version(version: &Version) -> DiskBasedCache {
-        DiskBasedCache {
+impl VersionCache {
+    pub fn with_version(version: &Version) -> VersionCache {
+        VersionCache {
             version: version.clone(),
         }
     }
-    pub fn install(version: &str) -> Result<(), InstallCacheError> {
-        install_version(version, false).map(|_| {})
+    pub fn install(env: &dyn Environment, version: &str) -> Result<(), InstallCacheError> {
+        install_version(env, version, false).map(|_| {})
     }
-    pub fn force_install(version: &str) -> Result<(), InstallCacheError> {
-        install_version(version, true).map(|_| {})
+    pub fn force_install(env: &dyn Environment, version: &str) -> Result<(), InstallCacheError> {
+        install_version(env, version, true).map(|_| {})
     }
-}
 
-#[allow(dead_code)]
-impl Cache for DiskBasedCache {
-    fn version_str(&self) -> String {
+    pub fn version_str(&self) -> String {
         format!("{}", self.version)
     }
 
-    fn is_installed(&self) -> Result<bool, IsCacheInstalledError> {
+    #[allow(dead_code)]
+    pub fn is_installed(&self) -> Result<bool, IsCacheInstalledError> {
         is_version_installed(&self.version_str())
     }
 
-    fn delete(&self) -> Result<(), DeleteCacheError> {
+    pub fn delete(&self) -> Result<(), DeleteCacheError> {
         delete_version(&self.version_str()).map(|_| {})
     }
 
-    fn get_binary_command_path(
+    pub fn get_binary_command_path(
         &self,
+        env: &dyn Environment,
         binary_name: &str,
     ) -> Result<PathBuf, GetBinaryCommandPathError> {
-        Self::install(&self.version_str())?;
+        Self::install(env, &self.version_str())?;
         let path = get_binary_path_from_version(&self.version_str(), binary_name)?;
         Ok(path)
     }
 
-    fn get_binary_command(
+    pub fn get_binary_command(
         &self,
+        env: &dyn Environment,
         binary_name: &str,
     ) -> Result<std::process::Command, GetBinaryCommandPathError> {
-        Self::install(&self.version_str())?;
+        Self::install(env, &self.version_str())?;
         let path = binary_command_from_version(&self.version_str(), binary_name)?;
         Ok(path)
     }
 }
 
-pub fn install_version(v: &str, force: bool) -> Result<PathBuf, InstallCacheError> {
+pub fn install_version(
+    env: &dyn Environment,
+    v: &str,
+    force: bool,
+) -> Result<PathBuf, InstallCacheError> {
     let p = get_bin_cache(v)?;
     if !force && is_version_installed(v).unwrap_or(false) {
         return Ok(p);
@@ -88,10 +95,7 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, InstallCacheErro
         let current_exe = dfx_core::foundation::get_current_exe()?;
 
         let b: Option<ProgressBar> = if stderr().is_terminal() {
-            let b = ProgressBar::new_spinner();
-            b.set_draw_target(ProgressDrawTarget::stderr());
-            b.set_message(format!("Installing version {} of dfx...", v));
-            b.enable_steady_tick(80);
+            let b = env.new_spinner(format!("Installing version {v} of dfx...").into());
             Some(b)
         } else {
             None
@@ -153,16 +157,16 @@ pub fn install_version(v: &str, force: bool) -> Result<PathBuf, InstallCacheErro
 
         if dfx_core::fs::rename(temp_p.as_path(), &p).is_ok() {
             if let Some(b) = b {
+                b.finish_and_clear();
                 if force {
-                    b.finish_with_message(format!("Installed dfx {} to cache.", v));
-                } else {
-                    b.finish_and_clear();
+                    info!(env.get_logger(), "Installed dfx {v} to cache.");
                 }
             }
         } else {
             dfx_core::fs::remove_dir_all(temp_p.as_path())?;
             if let Some(b) = b {
-                b.finish_with_message(format!("dfx {} was already installed in cache.", v));
+                b.finish_and_clear();
+                info!(env.get_logger(), "dfx {v} was already installed in cache.");
             }
         }
         Ok(p)

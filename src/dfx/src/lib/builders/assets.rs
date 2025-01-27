@@ -1,3 +1,4 @@
+use crate::config::cache::VersionCache;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
@@ -11,13 +12,11 @@ use crate::util;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use console::style;
-use dfx_core::config::cache::Cache;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use fn_error_context::context;
 use slog::{o, Logger};
 use std::fs;
 use std::path::Path;
-use std::sync::Arc;
 
 /// Set of extras that can be specified in the dfx.json.
 struct AssetsBuilderExtra {
@@ -57,7 +56,7 @@ impl AssetsBuilderExtra {
     }
 }
 pub struct AssetsBuilder {
-    _cache: Arc<dyn Cache>,
+    _cache: VersionCache,
     logger: Logger,
 }
 unsafe impl Send for AssetsBuilder {}
@@ -77,6 +76,7 @@ impl CanisterBuilder for AssetsBuilder {
     #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
+        _: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
@@ -86,6 +86,7 @@ impl CanisterBuilder for AssetsBuilder {
     #[context("Failed to build asset canister '{}'.", info.get_name())]
     fn build(
         &self,
+        _: &dyn Environment,
         _pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,
@@ -106,6 +107,7 @@ impl CanisterBuilder for AssetsBuilder {
 
     fn postbuild(
         &self,
+        _: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,
@@ -141,6 +143,7 @@ impl CanisterBuilder for AssetsBuilder {
 
     fn get_candid_path(
         &self,
+        _: &dyn Environment,
         _pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,
