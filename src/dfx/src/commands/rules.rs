@@ -1,4 +1,4 @@
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::Write;
 
 use crate::lib::agent::create_anonymous_agent_environment;
@@ -47,7 +47,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     )?;
 
     let mut output_file: Box<dyn Write> = match opts.output {
-        Some(filename) => Box::new(OpenOptions::new().write(true).create(true).open(filename)?),
+        Some(filename) => Box::new(OpenOptions::new().write(true).create(true).truncate(true).open(filename)?),
         None => Box::new(std::io::stdout()),
     };
 
