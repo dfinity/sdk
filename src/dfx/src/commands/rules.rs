@@ -70,10 +70,21 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     let graph0 = env.get_imports().borrow();
     let graph = graph0.graph();
     for edge in graph.edge_references() {
-        output_file.write_fmt(format_args!(
-            "{}: {}\n",
-            make_target(graph, edge.source()),
-            make_target(graph, edge.target())))?;
+        let target_value = graph.node_weight(edge.target()).unwrap();
+        if let Import::Lib(_) = target_value { // TODO: Unused, because package manager never update existing files (but create new dirs)
+            output_file.write_fmt(format_args!(
+                "{}\n",
+                make_target(graph, edge.source())))?;
+        } else {
+            output_file.write_fmt(format_args!(
+                "{}: {}\n",
+                make_target(graph, edge.source()),
+                make_target(graph, edge.target())))?;
+        }
+        let command = get_build_command(graph, edge.source());
+        if let Some(command) = command {
+            output_file.write_fmt(format_args!("\t{}\n\n", command))?;
+        }
     }
 
     Ok(())
@@ -90,6 +101,16 @@ fn make_target(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBa
         }
         Import::FullPath(path) => path.to_str().unwrap().to_owned(), // FIXME: `unwrap`
         Import::Ic(principal_str) => format!("ic:{}", principal_str),
-        Import::Lib(path) => path.clone(),
+        Import::Lib(path) => "".to_string(),
+    }
+}
+
+fn get_build_command(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> Option<String> {
+    let node_value = graph.node_weight(node_id).unwrap();
+    match node_value {
+        Import::Canister(canister_name) => Some(format!("dfx build --no-deps {}", canister_name)),
+        Import::FullPath(path) => None,
+        Import::Ic(principal_str) => Some(format!("dfx deploy --no-compile {}", principal_str)), // FIXME
+        Import::Lib(path) => None,
     }
 }
