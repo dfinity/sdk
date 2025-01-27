@@ -26,7 +26,7 @@ use std::process::Stdio;
 use std::sync::Arc;
 
 mod assets;
-mod custom;
+pub mod custom; // TODO: Shouldn't be `pub`.
 mod motoko;
 mod pull;
 mod rust;
@@ -332,6 +332,23 @@ pub trait CanisterBuilder {
             &Import::Canister(info.get_name().to_string()),
         )?;
 
+        Ok(())
+    }
+
+    #[context("Failed to finread canister dependencues.")]
+    fn read_all_dependencies(
+        &self,
+        env: &dyn Environment,
+        pool: &CanisterPool,
+        cache: &dyn Cache,
+    ) -> DfxResult {
+        // TODO: several `unwrap`s in this function
+        // TODO: It should be simpler.
+        let config = env.get_config()?;
+        for canister_name in config.as_ref().unwrap().get_config().canisters.as_ref().unwrap().keys() {
+            let canister = pool.get_first_canister_with_name(&canister_name).unwrap(); // TODO
+            self.read_dependencies(env, pool, canister.get_info(), cache)?;
+        }
         Ok(())
     }
 
