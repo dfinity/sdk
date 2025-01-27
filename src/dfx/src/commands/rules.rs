@@ -28,35 +28,9 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     // Read the config.
     let config = env.get_config_or_anyhow()?;
 
-    let mut output_file: Box<dyn Write> = match opts.output {
-        Some(filename) => Box::new(OpenOptions::new().write(true).create(true).open(filename)?),
-        None => Box::new(std::io::stdout()),
-    };
-
-    match &config.get_config().canisters {
-        Some(canisters) => {
-            output_file.write_fmt(format_args!(".PHONY:"))?;
-            for canister in canisters {
-                output_file.write_fmt(format_args!(" canister:{}", canister.0))?;
-            };
-            output_file.write_fmt(format_args!("\n\n"))?;
-            output_file.write_fmt(format_args!(".PHONY:"))?;
-            for canister in canisters {
-                output_file.write_fmt(format_args!(" deploy:{}", canister.0))?;
-            };
-            output_file.write_fmt(format_args!("\n\n"))?;
-            for canister in canisters {
-                // duplicate code
-                let path1 = format!(".dfx/local/canisters/{}/{}.wasm", canister.0, canister.0);
-                let path2 = format!(".dfx/local/canisters/{}/{}.did", canister.0, canister.0);
-                output_file.write_fmt(format_args!("canister:{}: \\\n  {} {}\n\n", canister.0, path1, path2))?;
-            };
-        }
-        None => {}
-    };
-
     let env = create_anonymous_agent_environment(env1, None)?;
 
+    // We load dependencies before creating the file to minimize the time that the file is half-written.
     // Load dependencies for Make rules:
     let builder = CustomBuilder::new(env1)?; // TODO: hack // TODO: `&env` instead?
     // TODO: hack:
@@ -72,6 +46,33 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         env.get_cache().as_ref(),
     )?;
 
+    let mut output_file: Box<dyn Write> = match opts.output {
+        Some(filename) => Box::new(OpenOptions::new().write(true).create(true).open(filename)?),
+        None => Box::new(std::io::stdout()),
+    };
+
+    match &config.get_config().canisters {
+        Some(canisters) => {
+            output_file.write_fmt(format_args!(".PHONY:"))?;
+            for canister in canisters {
+                output_file.write_fmt(format_args!(" canister@{}", canister.0))?;
+            };
+            output_file.write_fmt(format_args!("\n\n"))?;
+            output_file.write_fmt(format_args!(".PHONY:"))?;
+            for canister in canisters {
+                output_file.write_fmt(format_args!(" deploy@{}", canister.0))?;
+            };
+            output_file.write_fmt(format_args!("\n\n"))?;
+            for canister in canisters {
+                // duplicate code
+                let path1 = format!(".dfx/local/canisters/{}/{}.wasm", canister.0, canister.0);
+                let path2 = format!(".dfx/local/canisters/{}/{}.did", canister.0, canister.0);
+                output_file.write_fmt(format_args!("canister@{}: \\\n  {} {}\n\n", canister.0, path1, path2))?;
+            };
+        }
+        None => {}
+    };
+
     let graph0 = env.get_imports().borrow();
     let graph = graph0.graph();
     for edge in graph.edge_references() {
@@ -85,17 +86,17 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 make_target(graph, edge.target()),
             ))?;
             let source_value = graph.node_weight(edge.source()).unwrap();
-            if let Import::Canister(canister_name) = source_value {
-                output_file.write_fmt(format_args!("\ndeploy:{}: canister:{}\n", canister_name, canister_name))?;
-                output_file.write_fmt(format_args!("\tdfx deploy --no-compile {}\n\n", canister_name))?;
-            }
         }
     }
     for node in graph0.nodes() {
         // TODO: `node.1` is a hack.
         let command = get_build_command(graph, *node.1);
         if let Some(command) = command {
-            output_file.write_fmt(format_args!("{}\n\t{}\n\n", make_target(graph, *node.1), command))?;
+            output_file.write_fmt(format_args!("{}:\n\t{}\n\n", make_target(graph, *node.1), command))?;
+        }
+        if let Import::Canister(canister_name) = node.0 {
+            output_file.write_fmt(format_args!("\ndeploy@{}: canister@{}\n", canister_name, canister_name))?;
+            output_file.write_fmt(format_args!("\tdfx deploy --no-compile {}\n\n", canister_name))?;
         }
     }
 
@@ -121,7 +122,7 @@ fn get_build_command(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as G
     let node_value = graph.node_weight(node_id).unwrap();
     match node_value {
         Import::Canister(canister_name) => Some(format!("dfx build --no-deps {}", canister_name)),
-        Import::FullPath(path) => None,
+        Import::FullPath(_path) => None,
         Import::Ic(principal_str) => Some(format!("dfx deploy --no-compile {}", principal_str)), // FIXME
         Import::Lib(_path) => None,
     }
