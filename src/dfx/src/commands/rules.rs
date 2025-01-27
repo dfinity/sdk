@@ -40,6 +40,11 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 output_file.write_fmt(format_args!(" canister:{}", canister.0))?;
             };
             output_file.write_fmt(format_args!("\n\n"))?;
+            output_file.write_fmt(format_args!(".PHONY:"))?;
+            for canister in canisters {
+                output_file.write_fmt(format_args!(" deploy:{}", canister.0))?;
+            };
+            output_file.write_fmt(format_args!("\n\n"))?;
             for canister in canisters {
                 // duplicate code
                 let path1 = format!(".dfx/local/canisters/{}/{}.wasm", canister.0, canister.0);
@@ -71,19 +76,26 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     let graph = graph0.graph();
     for edge in graph.edge_references() {
         let target_value = graph.node_weight(edge.target()).unwrap();
-        if let Import::Lib(_) = target_value { // TODO: Unused, because package manager never update existing files (but create new dirs)
-            output_file.write_fmt(format_args!(
-                "{}\n",
-                make_target(graph, edge.source())))?;
+        if let Import::Lib(_) = target_value {
+             // TODO: Unused, because package manager never update existing files (but create new dirs)
         } else {
             output_file.write_fmt(format_args!(
                 "{}: {}\n",
                 make_target(graph, edge.source()),
-                make_target(graph, edge.target())))?;
+                make_target(graph, edge.target()),
+            ))?;
+            let source_value = graph.node_weight(edge.source()).unwrap();
+            if let Import::Canister(canister_name) = source_value {
+                output_file.write_fmt(format_args!("\ndeploy:{}: canister:{}\n", canister_name, canister_name))?;
+                output_file.write_fmt(format_args!("\tdfx deploy --no-compile {}\n\n", canister_name))?;
+            }
         }
-        let command = get_build_command(graph, edge.source());
+    }
+    for node in graph0.nodes() {
+        // TODO: `node.1` is a hack.
+        let command = get_build_command(graph, *node.1);
         if let Some(command) = command {
-            output_file.write_fmt(format_args!("\t{}\n\n", command))?;
+            output_file.write_fmt(format_args!("{}\n\t{}\n\n", make_target(graph, *node.1), command))?;
         }
     }
 
@@ -101,7 +113,7 @@ fn make_target(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBa
         }
         Import::FullPath(path) => path.to_str().unwrap().to_owned(), // FIXME: `unwrap`
         Import::Ic(principal_str) => format!("ic:{}", principal_str),
-        Import::Lib(path) => "".to_string(),
+        Import::Lib(_path) => "".to_string(),
     }
 }
 
@@ -111,6 +123,6 @@ fn get_build_command(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as G
         Import::Canister(canister_name) => Some(format!("dfx build --no-deps {}", canister_name)),
         Import::FullPath(path) => None,
         Import::Ic(principal_str) => Some(format!("dfx deploy --no-compile {}", principal_str)), // FIXME
-        Import::Lib(path) => None,
+        Import::Lib(_path) => None,
     }
 }
