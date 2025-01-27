@@ -1,4 +1,0 @@
-service : {
-  greet: (text) -> (text) query;
-  inc_a: () -> (int);
-}

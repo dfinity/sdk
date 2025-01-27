@@ -1,7 +1,0 @@
-{
-    "local": {
-        "replica": {
-            "subnet_type": "application"
-        }
-    }
-}

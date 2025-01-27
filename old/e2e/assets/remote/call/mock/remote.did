@@ -1,7 +1,0 @@
-service : {
-  actual_update_mock_query_remote_candid_update: (text) -> (text);
-  make_struct: (text, text) -> (record { a: text; b: text; }) query;
-  read: () -> (text) query;
-  which_am_i: () -> (text) query;
-  write: (text) -> ();
-}

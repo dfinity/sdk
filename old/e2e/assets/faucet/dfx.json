@@ -1,8 +1,0 @@
-{
-  "canisters": {
-    "faucet": {
-      "type": "motoko",
-      "main": "main.mo"
-    }
-  }
-}

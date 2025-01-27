@@ -1,1 +1,0 @@
-jq '.canisters.cmc.main="main.mo"' dfx.json | sponge dfx.json

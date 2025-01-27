@@ -1,9 +1,0 @@
-{
-    "canisters": {
-        "fake_registry": {
-            "type": "motoko",
-            "main": "fake_registry.mo",
-            "specified_id": "rwlgt-iiaaa-aaaaa-aaaaa-cai"
-        }
-    }
-}

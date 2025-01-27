@@ -1,1 +1,0 @@
-Sources are put into src/ to check how it behaves with subdirectories.

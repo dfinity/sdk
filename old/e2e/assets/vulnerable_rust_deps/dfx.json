@@ -1,9 +1,0 @@
-{
-    "canisters": {
-        "hello": {
-            "candid": "src/hello/hello.did",
-            "package": "hello",
-            "type": "rust"
-        }
-    }
-}

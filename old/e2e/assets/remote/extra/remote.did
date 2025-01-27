@@ -1,4 +1,0 @@
-service : {
-  get_id: () -> (text) query;
-  set_id: (text) -> ();
-}

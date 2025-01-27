@@ -1,4 +1,0 @@
-[workspace]
-members = [
-    "src/rust_deps",
-]

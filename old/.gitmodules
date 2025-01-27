@@ -1,3 +1,0 @@
-[submodule "e2e/utils/bats-support"]
-	path = e2e/utils/bats-support
-	url = https://github.com/bats-core/bats-support.git

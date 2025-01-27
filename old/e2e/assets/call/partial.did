@@ -1,6 +1,0 @@
-service : {
-  make_struct: (text, text) -> (record {
-                                  c: text;
-                                  d: text;
-                                }) query;
-}

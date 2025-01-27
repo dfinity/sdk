@@ -1,9 +1,0 @@
-{
-    "networks": {
-        "local": {
-            "replica": {
-                "subnet_type": "verifiedapplication"
-            }
-        }
-    }
-}

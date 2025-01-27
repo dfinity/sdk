@@ -1,3 +1,0 @@
-service : {
-  fromQuery: () -> (principal) query;
-}

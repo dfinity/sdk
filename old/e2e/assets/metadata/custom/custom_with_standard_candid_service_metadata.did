@@ -1,5 +1,0 @@
-service : {
-  // custom_with_standard_candid_service_metadata
-  getCanisterId: () -> (principal) query;
-  amInitializer: () -> (bool) query;
-}

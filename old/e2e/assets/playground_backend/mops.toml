@@ -1,6 +1,0 @@
-[dependencies]
-base = "0.10.4"
-splay = "0.1.0"
-
-[toolchain]
-moc = "0.10.4"
