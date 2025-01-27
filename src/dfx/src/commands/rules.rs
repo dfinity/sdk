@@ -5,9 +5,13 @@ use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::builders::CanisterBuilder;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::models::canister::CanisterPool;
+use crate::lib::models::canister::{CanisterPool, Import};
 use crate::lib::builders::custom::CustomBuilder;
 use clap::Parser;
+use petgraph::graph::DiGraph;
+use petgraph::visit::EdgeRef;
+use petgraph::Graph;
+use petgraph::visit::GraphBase;
 
 /// Output dependencies in Make format
 #[derive(Parser)]
@@ -36,21 +40,56 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 output_file.write_fmt(format_args!(" canister:{}", canister.0))?;
             };
             output_file.write_fmt(format_args!("\n\n"))?;
+            for canister in canisters {
+                // duplicate code
+                let path1 = format!(".dfx/local/canisters/{}/{}.wasm", canister.0, canister.0);
+                let path2 = format!(".dfx/local/canisters/{}/{}.did", canister.0, canister.0);
+                output_file.write_fmt(format_args!("canister:{}: \\\n  {} {}\n\n", canister.0, path1, path2))?;
+            };
         }
         None => {}
     };
 
-    let builder = CustomBuilder::new(env1)?; // TODO: hack
+    let env = create_anonymous_agent_environment(env1, None)?;
+
+    // Load dependencies for Make rules:
+    let builder = CustomBuilder::new(env1)?; // TODO: hack // TODO: `&env` instead?
+    // TODO: hack:
+    let canister_names = config.get_config().canisters.as_ref().unwrap().keys().map(|k| k.to_string()).collect::<Vec<String>>();
     let pool = CanisterPool::load(
-        env1,
+        &env, // if `env1`,  fails with "NetworkDescriptor only available from an AgentEnvironment"
         false,
-        &config.get_config().canisters.as_ref().unwrap().keys().map(|k| k.to_string()).collect::<Vec<String>>(), // hack // FIXME: `unwrap`
+        &canister_names, // FIXME: `unwrap`
     )?;
     builder.read_all_dependencies(
-        env1,
+        &env,
         &pool,
         env.get_cache().as_ref(),
     )?;
 
+    let graph0 = env.get_imports().borrow();
+    let graph = graph0.graph();
+    for edge in graph.edge_references() {
+        output_file.write_fmt(format_args!(
+            "{}: {}\n",
+            make_target(graph, edge.source()),
+            make_target(graph, edge.target())))?;
+    }
+
     Ok(())
+}
+
+fn make_target(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> String {
+    let node_value = graph.node_weight(node_id).unwrap();
+    match node_value {
+        Import::Canister(canister_name) => {
+            // duplicate code
+            let path1 = format!(".dfx/local/canisters/{}/{}.wasm", canister_name, canister_name);
+            let path2 = format!(".dfx/local/canisters/{}/{}.did", canister_name, canister_name);
+            format!("{} {}", path1, path2)
+        }
+        Import::FullPath(path) => path.to_str().unwrap().to_owned(), // FIXME: `unwrap`
+        Import::Ic(principal_str) => format!("ic:{}", principal_str),
+        Import::Lib(path) => path.clone(),
+    }
 }

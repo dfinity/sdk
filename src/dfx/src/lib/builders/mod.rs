@@ -307,6 +307,7 @@ pub trait CanisterBuilder {
 
                 for line in output.lines() {
                     let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
+                    // println!("XXX: {}", child);
                     match &child {
                         Import::Canister(_) | Import::FullPath(_) => {
                             read_dependencies_recursive(env, cache, pool, &child)?
