@@ -1,14 +1,10 @@
 use std::fs::File;
 use std::io::Write;
 
-use crate::config::cache::DiskBasedCache;
 use crate::lib::agent::create_anonymous_agent_environment;
-use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::lib::models::canister::CanisterPool;
 use clap::Parser;
-use tokio::runtime::Runtime;
 
 /// Output dependencies in Make format
 #[derive(Parser)]

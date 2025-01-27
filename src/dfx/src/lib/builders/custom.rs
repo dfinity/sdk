@@ -84,6 +84,7 @@ impl CanisterBuilder for CustomBuilder {
     #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
+        _env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
@@ -93,6 +94,7 @@ impl CanisterBuilder for CustomBuilder {
     #[context("Failed to build custom canister {}.", info.get_name())]
     fn build(
         &self,
+        _env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,

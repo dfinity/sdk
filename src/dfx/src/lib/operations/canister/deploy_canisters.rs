@@ -308,7 +308,7 @@ async fn build_canisters(
         BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
             .with_canisters_to_build(canisters_to_build.into())
             .with_env_file(env_file);
-    canister_pool.build_or_fail(log, &build_config).await?;
+    canister_pool.build_or_fail(env, log, &build_config).await?;
     Ok(canister_pool)
 }
 

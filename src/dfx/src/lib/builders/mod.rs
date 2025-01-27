@@ -1,12 +1,14 @@
 use crate::config::dfx_version_str;
+use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::models::canister::CanisterPool;
+use crate::lib::models::canister::{CanisterPool, Import};
 use crate::util::command::direct_or_shell_command;
-use anyhow::{bail, Context};
+use anyhow::{bail, Context, anyhow};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
+use dfx_core::config::cache::Cache;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
@@ -59,6 +61,7 @@ pub trait CanisterBuilder {
     /// list.
     fn get_dependencies(
         &self,
+        _env: &dyn Environment,
         _pool: &CanisterPool,
         _info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
@@ -78,6 +81,7 @@ pub trait CanisterBuilder {
     /// while the config contains information related to this particular build.
     fn build(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,

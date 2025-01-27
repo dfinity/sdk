@@ -27,8 +27,9 @@ use std::cell::RefCell;
 use std::collections::{BTreeMap, HashSet};
 use std::convert::TryFrom;
 use std::ffi::OsStr;
+use std::fmt::Display;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 
@@ -62,10 +63,11 @@ impl Canister {
 
     pub fn build(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         build_config: &BuildConfig,
     ) -> DfxResult<&BuildOutput> {
-        let output = self.builder.build(pool, &self.info, build_config)?;
+        let output = self.builder.build(env, pool, &self.info, build_config)?;
 
         // Ignore the old output, and return a reference.
         let _ = self.output.replace(Some(output));
@@ -436,6 +438,90 @@ fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> D
     Ok(())
 }
 
+/// Used mainly for Motoko
+///
+/// TODO: Copying this type uses `String.clone()` what may be inefficient.
+#[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
+pub enum Import {
+    Canister(String),
+    Ic(String),
+    Lib(String), // TODO: Unused, because package manager never update existing files (but create new dirs)
+    FullPath(PathBuf),
+}
+
+impl Display for Import {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Canister(name) => write!(f, "canister {}", name),
+            Self::Ic(principal) => write!(f, "principal {}", principal),
+            Self::Lib(name) => write!(f, "library {}", name),
+            Self::FullPath(file) => write!(f, "file {}", file.to_string_lossy()),
+        }
+    }
+}
+
+impl TryFrom<&str> for Import {
+    type Error = DfxError;
+
+    fn try_from(line: &str) -> Result<Self, DfxError> {
+        let (url, fullpath) = match line.find(' ') {
+            Some(index) => {
+                if index >= line.len() - 1 {
+                    return Err(DfxError::new(BuildError::DependencyError(format!(
+                        "Unknown import {}",
+                        line
+                    ))));
+                }
+                let (url, fullpath) = line.split_at(index + 1);
+                (url.trim_end(), Some(fullpath))
+            }
+            None => (line, None),
+        };
+        let import = match url.find(':') {
+            Some(index) => {
+                if index >= line.len() - 1 {
+                    return Err(DfxError::new(BuildError::DependencyError(format!(
+                        "Unknown import {}",
+                        url
+                    ))));
+                }
+                let (prefix, name) = url.split_at(index + 1);
+                match prefix {
+                    "canister:" => Import::Canister(name.to_owned()),
+                    "ic:" => Import::Ic(name.to_owned()),
+                    "mo:" => Import::Lib(name.to_owned()),
+                    _ => {
+                        return Err(DfxError::new(BuildError::DependencyError(format!(
+                            "Unknown import {}",
+                            url
+                        ))))
+                    }
+                }
+            }
+            None => match fullpath {
+                Some(fullpath) => {
+                    let path = PathBuf::from(fullpath);
+                    if !path.is_file() {
+                        return Err(DfxError::new(BuildError::DependencyError(format!(
+                            "Cannot find import file {}",
+                            path.display()
+                        ))));
+                    };
+                    Import::FullPath(path)
+                }
+                None => {
+                    return Err(DfxError::new(BuildError::DependencyError(format!(
+                        "Cannot resolve relative import {}",
+                        url
+                    ))))
+                }
+            },
+        };
+
+        Ok(import)
+    }
+}
+
 /// A canister pool is a list of canisters.
 pub struct CanisterPool {
     canisters: Vec<Arc<Canister>>,
@@ -534,6 +620,7 @@ impl CanisterPool {
     #[context("Failed to build dependencies graph for canister pool.")]
     fn build_dependencies_graph(
         &self,
+        env: &dyn Environment,
         canisters_to_build: Vec<&Canister>,
     ) -> DfxResult<DiGraph<CanisterId, ()>> {
         let mut graph: DiGraph<CanisterId, ()> = DiGraph::new();
@@ -547,6 +634,7 @@ impl CanisterPool {
         /// Returns the index of the canister's graph node.
         fn add_canister_and_dependencies_to_graph(
             canister_pool: &CanisterPool,
+            env: &dyn Environment,
             canister: &Canister,
             graph: &mut DiGraph<CanisterId, ()>,
             canister_id_to_canister: &BTreeMap<CanisterId, &Canister>,
@@ -565,7 +653,7 @@ impl CanisterPool {
 
             let deps = canister
                 .builder
-                .get_dependencies(canister_pool, &canister.info)?;
+                .get_dependencies(env, canister_pool, &canister.info)?;
 
             for dependency_id in deps {
                 let dependency = canister_id_to_canister.get(&dependency_id).ok_or_else(|| {
@@ -577,6 +665,7 @@ impl CanisterPool {
                 })?;
                 let dependency_index = add_canister_and_dependencies_to_graph(
                     canister_pool,
+                    env,
                     dependency,
                     graph,
                     canister_id_to_canister,
@@ -597,6 +686,7 @@ impl CanisterPool {
         for canister in canisters_to_build {
             add_canister_and_dependencies_to_graph(
                 self,
+                env,
                 canister,
                 &mut graph,
                 &canister_id_to_canister,
@@ -685,10 +775,11 @@ impl CanisterPool {
 
     fn step_build<'a>(
         &self,
+        env: &dyn Environment,
         build_config: &BuildConfig,
         canister: &'a Canister,
     ) -> DfxResult<&'a BuildOutput> {
-        canister.build(self, build_config)
+        canister.build(env, self, build_config)
     }
 
     fn step_postbuild(
@@ -729,6 +820,7 @@ impl CanisterPool {
     #[context("Failed while trying to build all canisters in the canister pool.")]
     pub fn build(
         &self,
+        env: &dyn Environment,
         log: &Logger,
         build_config: &BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
@@ -736,7 +828,7 @@ impl CanisterPool {
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let canisters_to_build = self.canisters_to_build(build_config);
-        let graph = self.build_dependencies_graph(canisters_to_build.clone())?;
+        let graph = self.build_dependencies_graph(env, canisters_to_build.clone())?;
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
@@ -777,7 +869,7 @@ impl CanisterPool {
                             )
                         })
                         .and_then(|_| {
-                            self.step_build(build_config, canister).map_err(|e| {
+                            self.step_build(env, build_config, canister).map_err(|e| {
                                 BuildError::BuildStepFailed(
                                     *canister_id,
                                     canister.get_name().to_string(),
@@ -808,10 +900,12 @@ impl CanisterPool {
 
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
+    /// 
+    /// TODO: `log` argument is superfluous,
     #[context("Failed while trying to build all canisters.")]
-    pub async fn build_or_fail(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+    pub async fn build_or_fail(&self, env: &dyn Environment, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
         self.download(build_config).await?;
-        let outputs = self.build(log, build_config)?;
+        let outputs = self.build(env, log, build_config)?;
 
         for output in outputs {
             output.map_err(DfxError::new)?;

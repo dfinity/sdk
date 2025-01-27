@@ -77,7 +77,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
         let canister_pool_build = CanisterPool::load(&env, true, &build_dependees)?;
         slog::info!(log, "Building canisters before generate for Motoko");
         let runtime = Runtime::new().expect("Unable to create a runtime");
-        runtime.block_on(canister_pool_build.build_or_fail(log, &build_config))?;
+        runtime.block_on(canister_pool_build.build_or_fail(&env, log, &build_config))?;
     }
 
     for canister in canister_pool_load.canisters_to_build(&generate_config) {
