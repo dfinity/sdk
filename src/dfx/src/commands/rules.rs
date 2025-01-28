@@ -24,6 +24,7 @@ pub struct RulesOpts {
     output: Option<String>,
 }
 
+// TODO: When deploying a canister, deploy its dependendencies, even if `--no-compile``.
 pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     let env = create_anonymous_agent_environment(env1, None)?;
     // let log = env.get_logger();
@@ -38,7 +39,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     let builder = CustomBuilder::new(env1)?; // TODO: hack // TODO: `&env` instead?
     // TODO: hack:
     let canister_names = config.get_config().canisters.as_ref().unwrap().keys().map(|k| k.to_string()).collect::<Vec<String>>();
-    let pool = CanisterPool::load(
+    let pool: CanisterPool = CanisterPool::load(
         &env, // if `env1`,  fails with "NetworkDescriptor only available from an AgentEnvironment"
         false,
         &canister_names, // FIXME: `unwrap`

@@ -78,7 +78,13 @@ pub async fn deploy_canisters(
         }
     }
 
-    let canisters_to_deploy = canister_with_dependencies(&config, some_canister)?;
+    // TODO: The following below code is a mess.
+
+    let canisters_to_deploy = if no_compile && some_canister.is_some() {
+        vec![some_canister.unwrap().to_string()]
+    } else {
+        canister_with_dependencies(&config, some_canister)?
+    };
 
     let canisters_to_build = match deploy_mode {
         PrepareForProposal(canister_name) | ComputeEvidence(canister_name) => {
@@ -100,11 +106,15 @@ pub async fn deploy_canisters(
             .collect(),
     };
 
-    let canisters_to_install: Vec<String> = canisters_to_build
-        .clone()
-        .into_iter()
-        .filter(|canister_name| !pull_canisters_in_config.contains_key(canister_name))
-        .collect();
+    let canisters_to_install: Vec<String> = if no_compile && some_canister.is_some() {
+        vec![some_canister.unwrap().to_string()]
+    } else {
+        canisters_to_build
+            .clone()
+            .into_iter()
+            .filter(|canister_name| !pull_canisters_in_config.contains_key(canister_name))
+            .collect()
+    };
 
     if some_canister.is_some() {
         info!(log, "Deploying: {}", canisters_to_install.join(" "));
@@ -136,19 +146,27 @@ pub async fn deploy_canisters(
     let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
     // TODO: For efficiency, also don't compute canisters order if `no_compile`.
-    let pool = build_canisters(
-        env,
-        &canisters_to_load,
-        &if no_compile { canisters_to_build } else { Vec::new() },
-        &config,
-        env_file.clone(),
-    )
-    .await?;
+    let env2 = env; // TODO: create_agent_environment(env, opts.network.to_network_name())?;
+    let pool = if no_compile {
+        CanisterPool::load(
+            env2, // if `env1`,  fails with "NetworkDescriptor only available from an AgentEnvironment"
+            false,
+            &canisters_to_deploy, // FIXME: `unwrap`
+        )?
+    } else {
+        build_canisters(
+            env2,
+            &canisters_to_load,
+            &if no_compile { canisters_to_build } else { Vec::new() }, // FIXME: Remove.
+            &config,
+            env_file.clone(),
+        ).await?
+    };
 
     match deploy_mode {
         NormalDeploy | ForceReinstallSingleCanister(_) => {
             install_canisters(
-                env,
+                env2,
                 &canisters_to_install,
                 &config,
                 argument,
@@ -166,11 +184,11 @@ pub async fn deploy_canisters(
             info!(log, "Deployed canisters.");
         }
         PrepareForProposal(canister_name) => {
-            prepare_assets_for_commit(env, &initial_canister_id_store, &config, canister_name)
+            prepare_assets_for_commit(env2, &initial_canister_id_store, &config, canister_name)
                 .await?
         }
         ComputeEvidence(canister_name) => {
-            compute_evidence(env, &initial_canister_id_store, &config, canister_name).await?
+            compute_evidence(env2, &initial_canister_id_store, &config, canister_name).await?
         }
     }
 
