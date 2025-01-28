@@ -8,7 +8,6 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister::{CanisterPool, Import};
 use crate::lib::builders::custom::CustomBuilder;
 use clap::Parser;
-use petgraph::graph::DiGraph;
 use petgraph::visit::EdgeRef;
 use petgraph::Graph;
 use petgraph::visit::GraphBase;
@@ -85,7 +84,6 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 make_target(graph, edge.source()),
                 make_target(graph, edge.target()),
             ))?;
-            let source_value = graph.node_weight(edge.source()).unwrap();
         }
     }
     for node in graph0.nodes() {

@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use petgraph::algo::DfsSpace;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
@@ -18,7 +17,6 @@ use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
 use fn_error_context::context;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::BTreeMap;
-use std::fmt::Debug;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::sync::Arc;
@@ -257,14 +255,6 @@ fn motoko_compile(logger: &Logger, cache: &dyn Cache, params: &MotokoParams<'_>)
     params.to_args(&mut cmd);
     run_command(logger, &mut cmd, params.suppress_warning).context("Failed to run 'moc'.")?;
     Ok(())
-}
-
-#[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
-pub enum MotokoImport {
-    Canister(String),
-    Ic(String),
-    Lib(String),
-    Relative(PathBuf),
 }
 
 fn run_command(
