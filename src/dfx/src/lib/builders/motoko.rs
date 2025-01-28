@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use crate::config::cache::VersionCache;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
@@ -12,18 +13,16 @@ use crate::lib::package_arguments::{self, PackageArguments};
 use crate::util::assets::management_idl;
 use anyhow::Context;
 use candid::Principal as CanisterId;
-use dfx_core::config::cache::Cache;
 use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
 use fn_error_context::context;
 use slog::{info, o, trace, warn, Logger};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::Output;
-use std::sync::Arc;
 
 pub struct MotokoBuilder {
     logger: slog::Logger,
-    cache: Arc<dyn Cache>,
+    cache: VersionCache,
 }
 unsafe impl Send for MotokoBuilder {}
 unsafe impl Sync for MotokoBuilder {}
@@ -38,6 +37,61 @@ impl MotokoBuilder {
             cache: env.get_cache(),
         })
     }
+}
+
+#[context("Failed to find imports for canister at '{}'.", info.get_main_path().display())]
+fn get_imports(
+    env: &dyn Environment,
+    cache: &VersionCache,
+    info: &MotokoCanisterInfo,
+) -> DfxResult<BTreeSet<MotokoImport>> {
+    #[context("Failed recursive dependency detection at {}.", file.display())]
+    fn get_imports_recursive(
+        env: &dyn Environment,
+        cache: &VersionCache,
+        workspace_root: &Path,
+        file: &Path,
+        result: &mut BTreeSet<MotokoImport>,
+    ) -> DfxResult {
+        if result.contains(&MotokoImport::Relative(file.to_path_buf())) {
+            return Ok(());
+        }
+
+        result.insert(MotokoImport::Relative(file.to_path_buf()));
+
+        let mut command = cache.get_binary_command(env, "moc")?;
+        command.current_dir(workspace_root);
+        let command = command.arg("--print-deps").arg(file);
+        let output = command
+            .output()
+            .with_context(|| format!("Error executing {:#?}", command))?;
+        let output = String::from_utf8_lossy(&output.stdout);
+
+        for line in output.lines() {
+            let import = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
+            match import {
+                MotokoImport::Relative(path) => {
+                    get_imports_recursive(env, cache, workspace_root, path.as_path(), result)?;
+                }
+                _ => {
+                    result.insert(import);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    let mut result = BTreeSet::new();
+    get_imports_recursive(
+        env,
+        cache,
+        info.get_workspace_root(),
+        info.get_main_path(),
+        &mut result,
+    )?;
+
+    Ok(result)
 }
 
 impl CanisterBuilder for MotokoBuilder {
@@ -138,7 +192,8 @@ impl CanisterBuilder for MotokoBuilder {
         )?;
 
         let package_arguments = package_arguments::load(
-            cache.as_ref(),
+            env,
+            cache,
             motoko_info.get_packtool(),
             canister_info.get_workspace_root(),
         )?;
@@ -178,7 +233,7 @@ impl CanisterBuilder for MotokoBuilder {
             idl_map: &id_map,
             workspace_root: canister_info.get_workspace_root(),
         };
-        motoko_compile(&self.logger, cache.as_ref(), &params)?;
+        motoko_compile(env, &self.logger, cache, &params)?;
 
         Ok(BuildOutput {
             canister_id: canister_info
@@ -191,6 +246,7 @@ impl CanisterBuilder for MotokoBuilder {
 
     fn get_candid_path(
         &self,
+        _: &dyn Environment,
         _pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,
@@ -249,8 +305,13 @@ impl MotokoParams<'_> {
 
 /// Compile a motoko file.
 #[context("Failed to compile Motoko.")]
-fn motoko_compile(logger: &Logger, cache: &dyn Cache, params: &MotokoParams<'_>) -> DfxResult {
-    let mut cmd = cache.get_binary_command("moc")?;
+fn motoko_compile(
+    env: &dyn Environment,
+    logger: &Logger,
+    cache: &VersionCache,
+    params: &MotokoParams<'_>,
+) -> DfxResult {
+    let mut cmd = cache.get_binary_command(env, "moc")?;
     cmd.current_dir(params.workspace_root);
     params.to_args(&mut cmd);
     run_command(logger, &mut cmd, params.suppress_warning).context("Failed to run 'moc'.")?;

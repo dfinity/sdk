@@ -1,4 +1,4 @@
-use crate::config::cache::DiskBasedCache;
+use crate::config::cache::VersionCache;
 use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
@@ -32,7 +32,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.
-    DiskBasedCache::install(&env.get_cache().version_str())?;
+    VersionCache::install(&env, &env.get_cache().version_str())?;
 
     // Option can be None which means generate types for all canisters
     let canisters_to_load = config
@@ -81,7 +81,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
     }
 
     for canister in canister_pool_load.canisters_to_build(&generate_config) {
-        canister.generate(log, &canister_pool_load, &generate_config)?;
+        canister.generate(&env, log, &canister_pool_load, &generate_config)?;
     }
 
     Ok(())

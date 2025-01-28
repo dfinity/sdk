@@ -1,4 +1,4 @@
-use crate::config::cache::DiskBasedCache;
+use crate::config::cache::VersionCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::info::replica_rev;
@@ -447,13 +447,13 @@ pub fn exec(env: &dyn Environment, mut opts: NewOpts) -> DfxResult {
 
     // It is fine for the following command to timeout or fail. We
     // drop the error.
-    let latest_version = get_latest_version(RELEASE_ROOT, Some(CHECK_VERSION_TIMEOUT)).ok();
+    let latest_version = get_latest_version(env, RELEASE_ROOT, Some(CHECK_VERSION_TIMEOUT)).ok();
 
     if is_upgrade_necessary(latest_version.as_ref(), current_version) {
         warn_upgrade(log, latest_version.as_ref(), current_version);
     }
 
-    DiskBasedCache::install(&env.get_cache().version_str())?;
+    VersionCache::install(env, &env.get_cache().version_str())?;
 
     if dry_run {
         warn!(

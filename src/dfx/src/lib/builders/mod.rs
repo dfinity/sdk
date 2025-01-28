@@ -70,6 +70,7 @@ pub trait CanisterBuilder {
 
     fn prebuild(
         &self,
+        _env: &dyn Environment,
         _pool: &CanisterPool,
         _info: &CanisterInfo,
         _config: &BuildConfig,
@@ -89,6 +90,7 @@ pub trait CanisterBuilder {
 
     fn postbuild(
         &self,
+        _env: &dyn Environment,
         _pool: &CanisterPool,
         _info: &CanisterInfo,
         _config: &BuildConfig,
@@ -99,6 +101,7 @@ pub trait CanisterBuilder {
     /// Generate type declarations for the canister
     fn generate(
         &self,
+        env: &dyn Environment,
         logger: &Logger,
         pool: &CanisterPool,
         info: &CanisterInfo,
@@ -156,7 +159,7 @@ pub trait CanisterBuilder {
             )
         })?;
 
-        let did_from_build = self.get_candid_path(pool, info, config)?;
+        let did_from_build = self.get_candid_path(env, pool, info, config)?;
         if !did_from_build.exists() {
             bail!(
                 "Candid file: {} doesn't exist.",
@@ -358,6 +361,7 @@ pub trait CanisterBuilder {
     /// No need to guarantee the file exists, as the caller will handle that.
     fn get_candid_path(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,

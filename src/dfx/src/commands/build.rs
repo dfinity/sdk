@@ -1,4 +1,4 @@
-use crate::config::cache::DiskBasedCache;
+use crate::config::cache::VersionCache;
 use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
@@ -48,7 +48,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.
-    DiskBasedCache::install(&env.get_cache().version_str())?;
+    VersionCache::install(&env, &env.get_cache().version_str())?;
 
     let build_mode_check = opts.check;
 

@@ -57,8 +57,13 @@ impl Canister {
         }
     }
 
-    pub fn prebuild(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
-        self.builder.prebuild(pool, &self.info, build_config)
+    pub fn prebuild(
+        &self,
+        env: &dyn Environment,
+        pool: &CanisterPool,
+        build_config: &BuildConfig,
+    ) -> DfxResult {
+        self.builder.prebuild(env, pool, &self.info, build_config)
     }
 
     pub fn build(
@@ -74,8 +79,13 @@ impl Canister {
         Ok(self.get_build_output().unwrap())
     }
 
-    pub fn postbuild(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
-        self.builder.postbuild(pool, &self.info, build_config)
+    pub fn postbuild(
+        &self,
+        env: &dyn Environment,
+        pool: &CanisterPool,
+        build_config: &BuildConfig,
+    ) -> DfxResult {
+        self.builder.postbuild(env, pool, &self.info, build_config)
     }
 
     pub fn get_name(&self) -> &str {
@@ -108,12 +118,13 @@ impl Canister {
     #[context("Failed while trying to generate type declarations for '{}'.", self.info.get_name())]
     pub fn generate(
         &self,
+        env: &dyn Environment,
         logger: &Logger,
         pool: &CanisterPool,
         build_config: &BuildConfig,
     ) -> DfxResult {
         self.builder
-            .generate(logger, pool, &self.info, build_config)
+            .generate(env, logger, pool, &self.info, build_config)
     }
 
     #[context("Failed to post-process wasm of canister '{}'.", self.info.get_name())]
@@ -633,6 +644,7 @@ impl CanisterPool {
         ///
         /// Returns the index of the canister's graph node.
         fn add_canister_and_dependencies_to_graph(
+            env: &dyn Environment,
             canister_pool: &CanisterPool,
             env: &dyn Environment,
             canister: &Canister,
@@ -664,6 +676,7 @@ impl CanisterPool {
                     )))
                 })?;
                 let dependency_index = add_canister_and_dependencies_to_graph(
+                    env,
                     canister_pool,
                     env,
                     dependency,
@@ -687,6 +700,7 @@ impl CanisterPool {
             .collect::<BTreeMap<CanisterId, &Canister>>();
         for canister in canisters_to_build {
             add_canister_and_dependencies_to_graph(
+                env,
                 self,
                 env,
                 canister,
@@ -771,8 +785,13 @@ impl CanisterPool {
         Ok(())
     }
 
-    fn step_prebuild(&self, build_config: &BuildConfig, canister: &Canister) -> DfxResult<()> {
-        canister.prebuild(self, build_config)
+    fn step_prebuild(
+        &self,
+        env: &dyn Environment,
+        build_config: &BuildConfig,
+        canister: &Canister,
+    ) -> DfxResult<()> {
+        canister.prebuild(env, self, build_config)
     }
 
     fn step_build<'a>(
@@ -786,6 +805,7 @@ impl CanisterPool {
 
     fn step_postbuild(
         &self,
+        env: &dyn Environment,
         build_config: &BuildConfig,
         canister: &Canister,
         build_output: &BuildOutput,
@@ -796,7 +816,7 @@ impl CanisterPool {
 
         build_canister_js(&canister.canister_id(), &canister.info)?;
 
-        canister.postbuild(self, build_config)
+        canister.postbuild(env, self, build_config)
     }
 
     fn step_postbuild_all(
@@ -862,7 +882,7 @@ impl CanisterPool {
                     continue;
                 }
                 result.push(
-                    self.step_prebuild(build_config, canister)
+                    self.step_prebuild(env, build_config, canister)
                         .map_err(|e| {
                             BuildError::PreBuildStepFailed(
                                 *canister_id,
@@ -880,7 +900,7 @@ impl CanisterPool {
                             })
                         })
                         .and_then(|o| {
-                            self.step_postbuild(build_config, canister, o)
+                            self.step_postbuild(env, build_config, canister, o)
                                 .map_err(|e| {
                                     BuildError::PostBuildStepFailed(
                                         *canister_id,
@@ -905,7 +925,12 @@ impl CanisterPool {
     /// 
     /// TODO: `log` argument is superfluous,
     #[context("Failed while trying to build all canisters.")]
-    pub async fn build_or_fail(&self, env: &dyn Environment, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+    pub async fn build_or_fail(
+        &self,
+        env: &dyn Environment,
+        log: &Logger,
+        build_config: &BuildConfig,
+    ) -> DfxResult<()> {
         self.download(build_config).await?;
         let outputs = self.build(env, log, build_config)?;
 

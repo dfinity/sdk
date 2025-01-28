@@ -1,5 +1,6 @@
-use indicatif::{ProgressBar as IndicatifProgressBar, ProgressDrawTarget};
-use std::borrow::Cow;
+#![allow(clippy::disallowed_types)]
+use indicatif::{MultiProgress, ProgressBar as IndicatifProgressBar};
+use std::{borrow::Cow, time::Duration};
 
 pub struct ProgressBar {
     bar: Option<IndicatifProgressBar>,
@@ -24,12 +25,11 @@ macro_rules! forward_fn_impl {
 }
 
 impl ProgressBar {
-    pub fn new_spinner(message: Cow<'static, str>) -> Self {
+    pub fn new_spinner(message: Cow<'static, str>, set: &MultiProgress) -> Self {
         let progress_bar = IndicatifProgressBar::new_spinner();
-        progress_bar.set_draw_target(ProgressDrawTarget::stderr());
-
+        set.add(progress_bar.clone());
         progress_bar.set_message(message);
-        progress_bar.enable_steady_tick(80);
+        progress_bar.enable_steady_tick(Duration::from_millis(80));
 
         ProgressBar {
             bar: Some(progress_bar),

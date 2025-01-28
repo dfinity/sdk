@@ -1,5 +1,5 @@
 use crate::commands::DfxCommand;
-use crate::config::cache::DiskBasedCache;
+use crate::config::cache::VersionCache;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use anyhow::bail;
@@ -30,7 +30,7 @@ pub struct InstallOpts {
 pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
     // creating an `extensions` directory in an otherwise empty cache directory would
     // cause the cache to be considered "installed" and later commands would fail
-    DiskBasedCache::install(&env.get_cache().version_str())?;
+    VersionCache::install(env, &env.get_cache().version_str())?;
     let spinner = env.new_spinner(format!("Installing extension: {}", opts.name).into());
     let mgr = env.get_extension_manager();
     let effective_extension_name = opts.install_as.clone().unwrap_or_else(|| opts.name.clone());

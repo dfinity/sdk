@@ -1,5 +1,6 @@
 use crate::config::dfx_version_str;
-use slog::{Drain, Level, Logger};
+use indicatif::{MultiProgress, ProgressDrawTarget};
+use slog::{Drain, Level, Logger, OwnedKVList, Record};
 use std::fs::File;
 use std::path::PathBuf;
 
@@ -87,10 +88,12 @@ fn create_drain(mode: LoggingMode) -> Logger {
     }
 }
 
-/// Create a root logger.
+/// Create a root logger. The logger will freeze any spinners from the accompanying MultiProgress while logging;
+/// accordingly, all spinners should be made from `env.new_spinner()`.
+///
 /// The verbose_level can be negative, in which case it's a quiet mode which removes warnings,
 /// then errors entirely.
-pub fn create_root_logger(verbose_level: i64, mode: LoggingMode) -> Logger {
+pub fn create_root_logger(verbose_level: i64, mode: LoggingMode) -> (Logger, MultiProgress) {
     let log_level = match verbose_level {
         -3 => Level::Critical,
         -2 => Level::Error,
@@ -101,13 +104,41 @@ pub fn create_root_logger(verbose_level: i64, mode: LoggingMode) -> Logger {
             if x > 0 {
                 Level::Trace
             } else {
-                return Logger::root(slog::Discard, slog::o!());
+                return (
+                    Logger::root(slog::Discard, slog::o!()),
+                    MultiProgress::new(),
+                );
             }
         }
     };
 
+    let spinners = MultiProgress::new();
+    spinners.set_draw_target(ProgressDrawTarget::stderr());
     let drain = slog::LevelFilter::new(create_drain(mode), log_level).fuse();
+    let drain = IndicatifCompat {
+        inner: drain,
+        spinners: spinners.clone(),
+    };
     let drain = slog_async::Async::new(drain).build().fuse();
+    (
+        Logger::root(drain, slog::o!("version" => dfx_version_str())),
+        spinners,
+    )
+}
 
-    Logger::root(drain, slog::o!("version" => dfx_version_str()))
+struct IndicatifCompat<D> {
+    inner: D,
+    spinners: MultiProgress,
+}
+
+impl<D: Drain> Drain for IndicatifCompat<D> {
+    type Ok = D::Ok;
+    type Err = D::Err;
+    fn log(&self, record: &Record, values: &OwnedKVList) -> Result<Self::Ok, Self::Err> {
+        self.spinners.suspend(|| self.inner.log(record, values))
+    }
+    #[inline]
+    fn is_enabled(&self, level: Level) -> bool {
+        self.inner.is_enabled(level)
+    }
 }
