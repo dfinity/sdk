@@ -124,6 +124,7 @@ impl CanisterInfo {
 
         // Fill the default config values if None provided
         let declarations_config = CanisterDeclarationsConfig {
+            // duplicate code:
             output: declarations_config_pre
                 .output
                 .or_else(|| Some(workspace_root.join("src/declarations").join(name))),
