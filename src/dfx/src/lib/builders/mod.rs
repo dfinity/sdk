@@ -263,13 +263,14 @@ pub trait CanisterBuilder {
                         Some(
                             motoko_info
                                 .get_main_path()
-                                .canonicalize()
-                                .with_context(|| {
-                                    format!(
-                                        "Canonicalizing Motoko path {}",
-                                        motoko_info.get_main_path().to_string_lossy()
-                                    )
-                                })?,
+                                .to_path_buf()
+                                // .canonicalize()
+                                // .with_context(|| {
+                                //     format!(
+                                //         "Canonicalizing Motoko path {}",
+                                //         motoko_info.get_main_path().to_string_lossy()
+                                //     )
+                                // })?,
                         )
                     } else {
                         for child in parent_canister_info.get_dependencies() {
@@ -299,6 +300,7 @@ pub trait CanisterBuilder {
                 let mut command = cache
                     .get_binary_command("moc")
                     .context("Getting binary command \"moc\"")?;
+                // FIXME: Run moc in the right directory.
                 let command = command.arg("--print-deps").arg(file);
                 let output = command
                     .output()
@@ -307,7 +309,6 @@ pub trait CanisterBuilder {
 
                 for line in output.lines() {
                     let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
-                    // println!("XXX: {}", child);
                     match &child {
                         Import::Canister(_) | Import::FullPath(_) => {
                             read_dependencies_recursive(env, cache, pool, &child)?
