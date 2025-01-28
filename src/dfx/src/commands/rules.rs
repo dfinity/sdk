@@ -50,6 +50,9 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         None => Box::new(std::io::stdout()),
     };
 
+    output_file.write_fmt(format_args!("NETWORK ?= local\n\n"))?;
+    output_file.write_fmt(format_args!("DEPLOY_FLAGS ?= \n\n"))?;
+
     match &config.get_config().canisters {
         Some(canisters) => {
             output_file.write_fmt(format_args!(".PHONY:"))?;
@@ -60,7 +63,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             output_file.write_fmt(format_args!(".PHONY:"))?;
             for canister in canisters {
                 output_file.write_fmt(format_args!(" deploy@{}", canister.0))?;
-            };
+            }
             output_file.write_fmt(format_args!("\n\n"))?;
             for canister in canisters {
                 // duplicate code
@@ -94,7 +97,9 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         }
         if let Import::Canister(canister_name) = node.0 {
             output_file.write_fmt(format_args!("\ndeploy@{}: canister@{}\n", canister_name, canister_name))?;
-            output_file.write_fmt(format_args!("\tdfx deploy --no-compile {}\n\n", canister_name))?;
+            output_file.write_fmt(format_args!(
+                "\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) {}\n\n", canister_name
+            ))?;
         }
     }
 
