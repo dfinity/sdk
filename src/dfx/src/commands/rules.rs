@@ -104,16 +104,15 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                         }
                     }).flatten().map(|path| output.join(path).to_str().unwrap().to_string()).join(" "); // TODO: `unwrap`
                     output_file.write_fmt(format_args!(
-                        "generate@{}: canister@{}\n  {}\n\n",
-                        canister.0,
+                        "generate@{}: \\\n  {}\n\n",
                         canister.0,
                         deps,
                     ))?;
                     output_file.write_fmt(format_args!(
-                        "{}: canister@{}\n\t{} {}\n\n",
+                        "{}: {}\n\t{} {}\n\n",
                         deps,
-                        canister.0,
-                        "dfx generate --network $(NETWORK)",
+                        format!(".dfx/local/canisters/{}/{}.did", canister.0, canister.0),
+                        "dfx generate --no-compile --network $(NETWORK)",
                         canister.0,
                     ))?;
                 }
