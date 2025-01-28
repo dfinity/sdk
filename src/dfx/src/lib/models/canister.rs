@@ -697,13 +697,6 @@ impl CanisterPool {
             )?;
         }
 
-        // FIXME: Remove.
-        for e in graph.edge_references() {
-            let source = graph.node_weight(e.source()).unwrap().to_text();
-            let dest = graph.node_weight(e.target()).unwrap().to_text();
-            println!("{}->{}", source, dest);
-        }
-
         // Verify the graph has no cycles.
         if let Err(err) = petgraph::algo::toposort(&graph, None) {
             let message = match graph.node_weight(err.node_id()) {
