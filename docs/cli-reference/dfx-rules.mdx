@@ -1,0 +1,28 @@
+import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
+
+# dfx rules
+
+<MarkdownChipRow labels={["Reference"]} />
+
+**Warning:** This is an experimental feature.
+
+Use the `dfx rules` command to output GNU Make rules for efficient compilation of canisters.
+
+The rules, that can be used:
+* `canister@NAME` - compile a canister.
+* `deploy@NAME` - deploy a canister.
+* `generate@NAME` - generate bindings for a canister.
+
+TODO
+
+## Basic usage
+
+``` bash
+dfx rules [-o MAKEFILE]
+```
+
+**Warning:** The MAKEFILE is overwritten by the above command.
+
+| Argument                     | Description                     |
+|------------------------------|---------------------------------|
+| `-o FILE` or `--output FILE` | Use this file instead of stdout |
