@@ -39,60 +39,60 @@ impl MotokoBuilder {
     }
 }
 
-#[context("Failed to find imports for canister at '{}'.", info.get_main_path().display())]
-fn get_imports(
-    env: &dyn Environment,
-    cache: &VersionCache,
-    info: &MotokoCanisterInfo,
-) -> DfxResult<BTreeSet<MotokoImport>> {
-    #[context("Failed recursive dependency detection at {}.", file.display())]
-    fn get_imports_recursive(
-        env: &dyn Environment,
-        cache: &VersionCache,
-        workspace_root: &Path,
-        file: &Path,
-        result: &mut BTreeSet<MotokoImport>,
-    ) -> DfxResult {
-        if result.contains(&MotokoImport::Relative(file.to_path_buf())) {
-            return Ok(());
-        }
+// #[context("Failed to find imports for canister at '{}'.", info.get_main_path().display())]
+// fn get_imports(
+//     env: &dyn Environment,
+//     cache: &VersionCache,
+//     info: &MotokoCanisterInfo,
+// ) -> DfxResult<BTreeSet<Import>> {
+//     #[context("Failed recursive dependency detection at {}.", file.display())]
+//     fn get_imports_recursive(
+//         env: &dyn Environment,
+//         cache: &VersionCache,
+//         workspace_root: &Path,
+//         file: &Path,
+//         result: &mut BTreeSet<Import>,
+//     ) -> DfxResult {
+//         if result.contains(&MotokoImport::Relative(file.to_path_buf())) {
+//             return Ok(());
+//         }
 
-        result.insert(MotokoImport::Relative(file.to_path_buf()));
+//         result.insert(MotokoImport::Relative(file.to_path_buf()));
 
-        let mut command = cache.get_binary_command(env, "moc")?;
-        command.current_dir(workspace_root);
-        let command = command.arg("--print-deps").arg(file);
-        let output = command
-            .output()
-            .with_context(|| format!("Error executing {:#?}", command))?;
-        let output = String::from_utf8_lossy(&output.stdout);
+//         let mut command = cache.get_binary_command(env, "moc")?;
+//         command.current_dir(workspace_root);
+//         let command = command.arg("--print-deps").arg(file);
+//         let output = command
+//             .output()
+//             .with_context(|| format!("Error executing {:#?}", command))?;
+//         let output = String::from_utf8_lossy(&output.stdout);
 
-        for line in output.lines() {
-            let import = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
-            match import {
-                MotokoImport::Relative(path) => {
-                    get_imports_recursive(env, cache, workspace_root, path.as_path(), result)?;
-                }
-                _ => {
-                    result.insert(import);
-                }
-            }
-        }
+//         for line in output.lines() {
+//             let import = MotokoImport::try_from(line).context("Failed to create MotokoImport.")?;
+//             match import {
+//                 MotokoImport::Relative(path) => {
+//                     get_imports_recursive(env, cache, workspace_root, path.as_path(), result)?;
+//                 }
+//                 _ => {
+//                     result.insert(import);
+//                 }
+//             }
+//         }
 
-        Ok(())
-    }
+//         Ok(())
+//     }
 
-    let mut result = BTreeSet::new();
-    get_imports_recursive(
-        env,
-        cache,
-        info.get_workspace_root(),
-        info.get_main_path(),
-        &mut result,
-    )?;
+//     let mut result = BTreeSet::new();
+//     get_imports_recursive(
+//         env,
+//         cache,
+//         info.get_workspace_root(),
+//         info.get_main_path(),
+//         &mut result,
+//     )?;
 
-    Ok(result)
-}
+//     Ok(result)
+// }
 
 impl CanisterBuilder for MotokoBuilder {
     #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
@@ -102,7 +102,7 @@ impl CanisterBuilder for MotokoBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
-        self.read_dependencies(env, pool, info, self.cache.as_ref())?;
+        self.read_dependencies(env, pool, info)?;
 
         let imports = env.get_imports().borrow();
         let graph = imports.graph();

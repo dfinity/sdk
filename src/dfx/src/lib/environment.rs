@@ -517,6 +517,9 @@ pub mod test_env {
         fn get_identity_override(&self) -> Option<&str> {
             None
         }
+        fn get_imports(&self) -> &RefCell<GraphWithNodesMap<Import, ()>> {
+            unimplemented!()
+        }
         fn get_logger(&self) -> &slog::Logger {
             unimplemented!()
         }

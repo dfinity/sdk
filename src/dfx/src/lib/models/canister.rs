@@ -644,7 +644,6 @@ impl CanisterPool {
         ///
         /// Returns the index of the canister's graph node.
         fn add_canister_and_dependencies_to_graph(
-            env: &dyn Environment,
             canister_pool: &CanisterPool,
             env: &dyn Environment,
             canister: &Canister,
@@ -676,7 +675,6 @@ impl CanisterPool {
                     )))
                 })?;
                 let dependency_index = add_canister_and_dependencies_to_graph(
-                    env,
                     canister_pool,
                     env,
                     dependency,
@@ -700,7 +698,6 @@ impl CanisterPool {
             .collect::<BTreeMap<CanisterId, &Canister>>();
         for canister in canisters_to_build {
             add_canister_and_dependencies_to_graph(
-                env,
                 self,
                 env,
                 canister,

@@ -47,7 +47,6 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     builder.read_all_dependencies(
         &env,
         &pool,
-        env.get_cache().as_ref(),
     )?;
 
     let mut output_file: Box<dyn Write> = match opts.output {

@@ -8,7 +8,6 @@ use crate::util::command::direct_or_shell_command;
 use anyhow::{bail, Context, anyhow};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
-use dfx_core::config::cache::Cache;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
@@ -238,12 +237,10 @@ pub trait CanisterBuilder {
         env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
-        cache: &dyn Cache,
     ) -> DfxResult {
         #[context("Failed recursive dependency detection at {}.", parent)]
         fn read_dependencies_recursive(
             env: &dyn Environment,
-            cache: &dyn Cache,
             pool: &CanisterPool,
             parent: &Import,
         ) -> DfxResult {
@@ -279,7 +276,6 @@ pub trait CanisterBuilder {
                         for child in parent_canister_info.get_dependencies() {
                             read_dependencies_recursive(
                                 env,
-                                cache,
                                 pool,
                                 &Import::Canister(child.clone()),
                             )?;
@@ -300,8 +296,8 @@ pub trait CanisterBuilder {
                 _ => None,
             };
             if let Some(file) = file {
-                let mut command = cache
-                    .get_binary_command("moc")
+                let mut command = env.get_cache()
+                    .get_binary_command(env, "moc")
                     .context("Getting binary command \"moc\"")?;
                 // FIXME: Run moc in the right directory.
                 let command = command.arg("--print-deps").arg(file);
@@ -314,7 +310,7 @@ pub trait CanisterBuilder {
                     let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
                     match &child {
                         Import::Canister(_) | Import::FullPath(_) => {
-                            read_dependencies_recursive(env, cache, pool, &child)?
+                            read_dependencies_recursive(env, pool, &child)?
                         }
                         _ => {}
                     }
@@ -332,7 +328,6 @@ pub trait CanisterBuilder {
 
         read_dependencies_recursive(
             env,
-            cache,
             pool,
             &Import::Canister(info.get_name().to_string()),
         )?;
@@ -345,14 +340,13 @@ pub trait CanisterBuilder {
         &self,
         env: &dyn Environment,
         pool: &CanisterPool,
-        cache: &dyn Cache,
     ) -> DfxResult {
         // TODO: several `unwrap`s in this function
         // TODO: It should be simpler.
         let config = env.get_config()?;
         for canister_name in config.as_ref().unwrap().get_config().canisters.as_ref().unwrap().keys() {
             let canister = pool.get_first_canister_with_name(&canister_name).unwrap(); // TODO
-            self.read_dependencies(env, pool, canister.get_info(), cache)?;
+            self.read_dependencies(env, pool, canister.get_info())?;
         }
         Ok(())
     }
