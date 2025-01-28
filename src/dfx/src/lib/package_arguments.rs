@@ -1,6 +1,7 @@
+use crate::config::cache::VersionCache;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::Environment;
 use anyhow::{anyhow, bail};
-use dfx_core::config::cache::Cache;
 use fn_error_context::context;
 use std::path::Path;
 use std::process::Command;
@@ -12,13 +13,14 @@ pub type PackageArguments = Vec<String>;
 
 #[context("Failed to load package arguments.")]
 pub fn load(
-    cache: &dyn Cache,
+    env: &dyn Environment,
+    cache: &VersionCache,
     packtool: &Option<String>,
     project_root: &Path,
 ) -> DfxResult<PackageArguments> {
     if packtool.is_none() {
         let stdlib_path = cache
-            .get_binary_command_path("base")?
+            .get_binary_command_path(env, "base")?
             .into_os_string()
             .into_string()
             .map_err(|_| anyhow!("Path contains invalid Unicode data."))?;

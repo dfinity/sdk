@@ -72,9 +72,12 @@ pub async fn create_wallet(
     fetch_root_key_if_needed(env).await?;
     let agent = env.get_agent();
     let mgr = ManagementCanister::create(agent);
-    info!(
-        env.get_logger(),
-        "Creating a wallet canister on the {} network.", network.name
+    let spinner = env.new_spinner(
+        format!(
+            "Creating a wallet canister on the {} network.",
+            network.name
+        )
+        .into(),
     );
 
     let wasm = wallet_wasm(env.get_logger())?;
@@ -117,10 +120,10 @@ pub async fn create_wallet(
         .context("Failed to store wallet wasm.")?;
 
     set_wallet_id(network, name, canister_id)?;
-
+    spinner.finish_and_clear();
     info!(
         env.get_logger(),
-        r#"The wallet canister on the "{}" network for user "{}" is "{}""#,
+        r#"Created a wallet canister on the "{}" network for user "{}" with ID "{}""#,
         network.name,
         name,
         canister_id,

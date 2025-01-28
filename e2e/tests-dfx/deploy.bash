@@ -182,9 +182,9 @@ teardown() {
   dfx_start
   dfx canister create --all --no-wallet
   assert_command dfx deploy
-  assert_not_contains "Creating a wallet canister"
+  assert_not_contains "Created a wallet canister"
   assert_command dfx identity get-wallet
-  assert_contains "Creating a wallet canister"
+  assert_contains "Created a wallet canister"
 }
 
 @test "can deploy gzip wasm" {

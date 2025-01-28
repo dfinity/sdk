@@ -1,11 +1,10 @@
-use crate::config::cache::DiskBasedCache;
+use crate::config::cache::VersionCache;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
 use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
 use anyhow::{anyhow, bail};
 use candid::Principal;
-use dfx_core::config::cache::Cache;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{Config, NetworksConfig};
 use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
@@ -17,6 +16,7 @@ use dfx_core::extension::manager::ExtensionManager;
 use dfx_core::identity::identity_manager::{IdentityManager, InitializeIdentity};
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
+use indicatif::MultiProgress;
 use pocket_ic::nonblocking::PocketIc;
 use semver::Version;
 use slog::{Logger, Record};
@@ -28,7 +28,7 @@ use std::time::Duration;
 use url::Url;
 
 pub trait Environment {
-    fn get_cache(&self) -> Arc<dyn Cache>;
+    fn get_cache(&self) -> VersionCache;
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError>;
     fn get_networks_config(&self) -> Arc<NetworksConfig>;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
@@ -100,12 +100,14 @@ pub struct EnvironmentImpl {
     project_config: RefCell<ProjectConfig>,
     shared_networks_config: Arc<NetworksConfig>,
 
-    cache: Arc<dyn Cache>,
+    cache: VersionCache,
 
     version: Version,
 
     logger: Option<slog::Logger>,
     verbose_level: i64,
+
+    spinners: MultiProgress,
 
     identity_override: Option<String>,
 
@@ -120,7 +122,7 @@ impl EnvironmentImpl {
         let version = dfx_version().clone();
 
         Ok(EnvironmentImpl {
-            cache: Arc::new(DiskBasedCache::with_version(&version)),
+            cache: VersionCache::with_version(&version),
             project_config: RefCell::new(ProjectConfig::NotLoaded),
             shared_networks_config: Arc::new(shared_networks_config),
             version: version.clone(),
@@ -129,6 +131,7 @@ impl EnvironmentImpl {
             identity_override: None,
             effective_canister_id: None,
             extension_manager,
+            spinners: MultiProgress::new(),
         })
     }
 
@@ -163,6 +166,11 @@ impl EnvironmentImpl {
         }
     }
 
+    pub fn with_spinners(mut self, spinners: MultiProgress) -> Self {
+        self.spinners = spinners;
+        self
+    }
+
     fn load_config(&self) -> Result<(), LoadDfxConfigError> {
         let config = Config::from_current_dir(Some(&self.extension_manager))?;
 
@@ -175,8 +183,8 @@ impl EnvironmentImpl {
 }
 
 impl Environment for EnvironmentImpl {
-    fn get_cache(&self) -> Arc<dyn Cache> {
-        Arc::clone(&self.cache)
+    fn get_cache(&self) -> VersionCache {
+        self.cache.clone()
     }
 
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
@@ -241,7 +249,7 @@ impl Environment for EnvironmentImpl {
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar {
         // Only show the progress bar if the level is INFO or more.
         if self.verbose_level >= 0 {
-            ProgressBar::new_spinner(message)
+            ProgressBar::new_spinner(message, &self.spinners)
         } else {
             ProgressBar::discard()
         }
@@ -353,7 +361,7 @@ impl<'a> AgentEnvironment<'a> {
 }
 
 impl<'a> Environment for AgentEnvironment<'a> {
-    fn get_cache(&self) -> Arc<dyn Cache> {
+    fn get_cache(&self) -> VersionCache {
         self.backend.get_cache()
     }
 
@@ -457,4 +465,78 @@ pub fn create_agent(
 
 pub fn create_pocketic(url: &Url) -> PocketIc {
     PocketIc::new_from_existing_instance(url.clone(), 0, None)
+}
+
+#[cfg(test)]
+pub mod test_env {
+    use super::*;
+
+    /// Provides access to log-message-generating functions in test mode.
+    pub struct TestEnv;
+    impl Environment for TestEnv {
+        fn get_agent(&self) -> &Agent {
+            unimplemented!()
+        }
+        fn get_cache(&self) -> VersionCache {
+            unimplemented!()
+        }
+        fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
+            unimplemented!()
+        }
+        fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
+            unimplemented!()
+        }
+        fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
+            bail!("dummy env")
+        }
+        fn get_effective_canister_id(&self) -> Principal {
+            unimplemented!()
+        }
+        fn get_extension_manager(&self) -> &ExtensionManager {
+            unimplemented!()
+        }
+        fn get_identity_override(&self) -> Option<&str> {
+            None
+        }
+        fn get_logger(&self) -> &slog::Logger {
+            unimplemented!()
+        }
+        fn get_network_descriptor(&self) -> &NetworkDescriptor {
+            unimplemented!()
+        }
+        fn get_networks_config(&self) -> Arc<NetworksConfig> {
+            unimplemented!()
+        }
+        fn get_override_effective_canister_id(&self) -> Option<Principal> {
+            None
+        }
+        fn get_pocketic(&self) -> Option<&PocketIc> {
+            None
+        }
+        fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
+            Ok(None)
+        }
+        fn get_selected_identity(&self) -> Option<&String> {
+            unimplemented!()
+        }
+        fn get_selected_identity_principal(&self) -> Option<Principal> {
+            unimplemented!()
+        }
+        fn get_verbose_level(&self) -> i64 {
+            0
+        }
+        fn get_version(&self) -> &Version {
+            unimplemented!()
+        }
+        fn log(&self, _record: &Record) {}
+        fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {
+            unimplemented!()
+        }
+        fn new_progress(&self, _message: &str) -> ProgressBar {
+            ProgressBar::discard()
+        }
+        fn new_spinner(&self, _message: Cow<'static, str>) -> ProgressBar {
+            ProgressBar::discard()
+        }
+    }
 }

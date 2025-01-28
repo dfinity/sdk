@@ -431,7 +431,7 @@ fn check_stable_compatibility(
     })?;
     let cache = env.get_cache();
     let output = cache
-        .get_binary_command("moc")?
+        .get_binary_command(env, "moc")?
         .arg("--stable-compatible")
         .arg(&deployed_stable_path)
         .arg(stable_path)

@@ -44,7 +44,9 @@ pub fn start_btc_adapter_actor(
     shutdown_controller: Addr<ShutdownController>,
     btc_adapter_pid_file_path: PathBuf,
 ) -> DfxResult<Recipient<BtcAdapterReadySubscribe>> {
-    let btc_adapter_path = env.get_cache().get_binary_command_path("ic-btc-adapter")?;
+    let btc_adapter_path = env
+        .get_cache()
+        .get_binary_command_path(env, "ic-btc-adapter")?;
 
     let actor_config = btc_adapter::Config {
         btc_adapter_path,
@@ -69,7 +71,7 @@ pub fn start_canister_http_adapter_actor(
 ) -> DfxResult<Recipient<CanisterHttpAdapterReadySubscribe>> {
     let adapter_path = env
         .get_cache()
-        .get_binary_command_path("ic-https-outcalls-adapter")?;
+        .get_binary_command_path(env, "ic-https-outcalls-adapter")?;
 
     let actor_config = canister_http_adapter::Config {
         adapter_path,
@@ -133,8 +135,8 @@ pub fn start_replica_actor(
     canister_http_adapter_ready_subscribe: Option<Recipient<CanisterHttpAdapterReadySubscribe>>,
 ) -> DfxResult<Addr<Replica>> {
     // get binary path
-    let replica_path = env.get_cache().get_binary_command_path("replica")?;
-    let ic_starter_path = env.get_cache().get_binary_command_path("ic-starter")?;
+    let replica_path = env.get_cache().get_binary_command_path(env, "replica")?;
+    let ic_starter_path = env.get_cache().get_binary_command_path(env, "ic-starter")?;
 
     setup_replica_env(local_server_descriptor, &replica_config)?;
     let replica_pid_path = local_server_descriptor.replica_pid_path();
@@ -169,7 +171,7 @@ pub fn start_pocketic_proxy_actor(
     pocketic_proxy_pid_path: PathBuf,
     pocketic_proxy_port_path: PathBuf,
 ) -> DfxResult<Addr<PocketIcProxy>> {
-    let pocketic_proxy_path = env.get_cache().get_binary_command_path("pocket-ic")?;
+    let pocketic_proxy_path = env.get_cache().get_binary_command_path(env, "pocket-ic")?;
     let actor_config = pocketic_proxy::Config {
         logger: Some(env.get_logger().clone()),
         port_ready_subscribe,
@@ -190,7 +192,7 @@ pub fn start_pocketic_actor(
     shutdown_controller: Addr<ShutdownController>,
     pocketic_port_path: PathBuf,
 ) -> DfxResult<Addr<PocketIc>> {
-    let pocketic_path = env.get_cache().get_binary_command_path("pocket-ic")?;
+    let pocketic_path = env.get_cache().get_binary_command_path(env, "pocket-ic")?;
 
     // Touch the port file. This ensures it is empty prior to
     // handing it over to PocketIC. If we read the file and it has

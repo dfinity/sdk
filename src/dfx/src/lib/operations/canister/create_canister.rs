@@ -46,7 +46,6 @@ pub async fn create_canister(
     subnet_selection: &mut SubnetSelectionType,
 ) -> DfxResult {
     let log = env.get_logger();
-    info!(log, "Creating canister {}...", canister_name);
 
     let config = env.get_config_or_anyhow()?;
     let config_interface = config.get_config();
@@ -151,6 +150,7 @@ The command line value will be used.",
             }
         };
 
+    let spinner = env.new_spinner(format!("Creating canister {canister_name}...").into());
     let agent = env.get_agent();
     let cid = match call_sender {
         CallSender::SelectedId => {
@@ -180,6 +180,7 @@ The command line value will be used.",
             create_with_wallet(agent, &wallet_id, with_cycles, settings, subnet_selection).await
         }
     }?;
+    spinner.finish_and_clear();
     let canister_id = cid.to_text();
     info!(
         log,

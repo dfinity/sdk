@@ -47,11 +47,8 @@ pub fn exec(env: &dyn Environment, opts: LanguageServiceOpts) -> DfxResult {
             .get_build()
             .get_packtool();
 
-        let mut package_arguments = package_arguments::load(
-            env.get_cache().as_ref(),
-            packtool,
-            config.get_project_root(),
-        )?;
+        let mut package_arguments =
+            package_arguments::load(env, &env.get_cache(), packtool, config.get_project_root())?;
 
         // Include actor alias flags
         let canister_names = config
@@ -143,7 +140,7 @@ fn run_ide(
 ) -> DfxResult {
     let output = env
         .get_cache()
-        .get_binary_command("mo-ide")?
+        .get_binary_command(env, "mo-ide")?
         .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         // Point at the right canister
