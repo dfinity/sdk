@@ -146,6 +146,18 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             output_file.write_fmt(format_args!(
                 "\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) {}\n\n", canister_name
             ))?;
+            // If the canister is assets, add `generate@` dependencies.
+            let canister = pool.get_first_canister_with_name(&canister_name).unwrap(); // TODO: `unwrap`
+            if canister.as_ref().get_info().is_assets() {
+                let deps = canister.as_ref().get_info().get_dependencies();
+                if !deps.is_empty() {
+                    output_file.write_fmt(format_args!(
+                        "\ncanister@{}: {}\n",
+                        canister_name,
+                        deps.iter().map(|name| format!("generate@{}", name)).join(" "),
+                    ))?;
+                }
+            }
         }
     }
 
