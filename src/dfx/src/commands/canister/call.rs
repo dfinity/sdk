@@ -22,7 +22,6 @@ use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
 use pocket_ic::common::rest::RawEffectivePrincipal;
-use pocket_ic::WasmResult;
 use slog::warn;
 use std::option::Option;
 use std::path::PathBuf;
@@ -356,7 +355,7 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
             CallSender::Impersonate(sender) => {
                 let pocketic = env.get_pocketic();
                 if let Some(pocketic) = pocketic {
-                    let res = pocketic
+                    pocketic
                         .query_call_with_effective_principal(
                             canister_id,
                             RawEffectivePrincipal::CanisterId(
@@ -367,11 +366,7 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                             arg_value,
                         )
                         .await
-                        .map_err(|err| anyhow!("Failed to perform query call: {}", err))?;
-                    match res {
-                        WasmResult::Reply(data) => data,
-                        WasmResult::Reject(err) => bail!("Canister rejected: {}", err),
-                    }
+                        .map_err(|err| anyhow!("Failed to perform query call: {}", err))?
                 } else {
                     bail!("Impersonating sender is only supported for a local PocketIC instance.")
                 }
@@ -466,14 +461,10 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                         )
                         .await
                         .map_err(|err| anyhow!("Failed to submit canister call: {}", err))?;
-                    let res = pocketic
+                    pocketic
                         .await_call_no_ticks(msg_id)
                         .await
-                        .map_err(|err| anyhow!("Canister call failed: {}", err))?;
-                    match res {
-                        WasmResult::Reply(data) => data,
-                        WasmResult::Reject(err) => bail!("Canister rejected: {}", err),
-                    }
+                        .map_err(|err| anyhow!("Canister call failed: {}", err))?
                 } else {
                     bail!("Impersonating sender is only supported for a local PocketIC instance.")
                 }

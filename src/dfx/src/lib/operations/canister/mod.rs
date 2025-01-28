@@ -31,7 +31,6 @@ use ic_utils::interfaces::management_canister::{
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use pocket_ic::common::rest::RawEffectivePrincipal;
-use pocket_ic::WasmResult;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
@@ -77,15 +76,12 @@ where
                     )
                     .await
                     .map_err(|err| anyhow!("Failed to submit management canister call: {}", err))?;
-                let res = pocketic
+                let data = pocketic
                     .await_call_no_ticks(msg_id)
                     .await
                     .map_err(|err| anyhow!("Management canister call failed: {}", err))?;
-                match res {
-                    WasmResult::Reply(data) => decode_args(&data)
-                        .context("Could not decode management canister response.")?,
-                    WasmResult::Reject(err) => bail!("Management canister rejected: {}", err),
-                }
+
+                decode_args(&data).context("Could not decode management canister response.")?
             } else {
                 bail!("Impersonating sender is only supported for a local PocketIC instance.")
             }
@@ -140,7 +136,7 @@ where
         CallSender::Impersonate(sender) => {
             let pocketic = env.get_pocketic();
             if let Some(pocketic) = pocketic {
-                let res = pocketic
+                let data = pocketic
                     .query_call_with_effective_principal(
                         Principal::management_canister(),
                         RawEffectivePrincipal::CanisterId(destination_canister.as_slice().to_vec()),
@@ -152,11 +148,8 @@ where
                     .map_err(|err| {
                         anyhow!("Failed to perform management canister query call: {}", err)
                     })?;
-                match res {
-                    WasmResult::Reply(data) => decode_args(&data)
-                        .context("Failed to decode management canister query call response.")?,
-                    WasmResult::Reject(err) => bail!("Management canister rejected: {}", err),
-                }
+                decode_args(&data)
+                    .context("Failed to decode management canister query call response.")?
             } else {
                 bail!("Impersonating sender is only supported for a local PocketIC instance.")
             }
