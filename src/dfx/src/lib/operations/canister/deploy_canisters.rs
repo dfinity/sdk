@@ -160,6 +160,7 @@ pub async fn deploy_canisters(
             &if no_compile { canisters_to_build } else { Vec::new() }, // FIXME: Remove.
             &config,
             env_file.clone(),
+            no_compile,
         ).await?
     };
 
@@ -316,6 +317,7 @@ async fn build_canisters(
     canisters_to_build: &[String],
     config: &Config,
     env_file: Option<PathBuf>,
+    no_deps: bool,
 ) -> DfxResult<CanisterPool> {
     let log = env.get_logger();
     info!(log, "Building canisters...");
@@ -326,7 +328,7 @@ async fn build_canisters(
         BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
             .with_canisters_to_build(canisters_to_build.into())
             .with_env_file(env_file);
-    canister_pool.build_or_fail(env, log, &build_config).await?;
+    canister_pool.build_or_fail(env, log, &build_config, no_deps).await?;
     Ok(canister_pool)
 }
 

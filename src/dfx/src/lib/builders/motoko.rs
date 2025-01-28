@@ -101,7 +101,12 @@ impl CanisterBuilder for MotokoBuilder {
         env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
+        no_deps: bool,
     ) -> DfxResult<Vec<CanisterId>> {
+        if no_deps {
+            return Ok(Vec::new())
+        }
+
         self.read_dependencies(env, pool, info)?;
 
         let imports = env.get_imports().borrow();
@@ -150,6 +155,7 @@ impl CanisterBuilder for MotokoBuilder {
         pool: &CanisterPool,
         canister_info: &CanisterInfo,
         config: &BuildConfig,
+        no_deps: bool,
     ) -> DfxResult<BuildOutput> {
         let motoko_info = canister_info.as_info::<MotokoCanisterInfo>()?;
         let profile = config.profile;
@@ -181,7 +187,7 @@ impl CanisterBuilder for MotokoBuilder {
         }
 
         let dependencies = self
-            .get_dependencies(env, pool, canister_info)
+            .maybe_get_dependencies(env, pool, canister_info, no_deps)
             .unwrap_or_default();
         super::get_and_write_environment_variables(
             canister_info,

@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: Make integration
+
+* Flags `--no-compile` and `--no-deps`
+
+* Command `rules` that outputs time-efficient GNU Make rules.
+
 ### fix: correctly detects hyphenated Rust bin crates
 
 ### fix: removes unnecessary tsc step in sveltekit build script

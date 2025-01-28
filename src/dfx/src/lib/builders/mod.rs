@@ -63,8 +63,23 @@ pub trait CanisterBuilder {
         _env: &dyn Environment,
         _pool: &CanisterPool,
         _info: &CanisterInfo,
+        _no_deps: bool,
     ) -> DfxResult<Vec<CanisterId>> {
         Ok(Vec::new())
+    }
+
+    fn maybe_get_dependencies(
+        &self,
+        env: &dyn Environment,
+        pool: &CanisterPool,
+        info: &CanisterInfo,
+        no_deps: bool,
+    ) -> DfxResult<Vec<CanisterId>> {
+        if no_deps {
+            Ok(Vec::new())
+        } else {
+            self.get_dependencies(env, pool, info, no_deps)
+        }
     }
 
     fn prebuild(
@@ -85,6 +100,7 @@ pub trait CanisterBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,
+        no_deps: bool,
     ) -> DfxResult<BuildOutput>;
 
     fn postbuild(
@@ -93,6 +109,7 @@ pub trait CanisterBuilder {
         _pool: &CanisterPool,
         _info: &CanisterInfo,
         _config: &BuildConfig,
+        _no_deps: bool,
     ) -> DfxResult {
         Ok(())
     }

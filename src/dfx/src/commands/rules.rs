@@ -88,7 +88,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 } else {
                     let path1 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.wasm", canister.0, canister.0);
                     let path2 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.did", canister.0, canister.0);
-                        output_file.write_fmt(format_args!("canister@{}: \\\n  {}.gz {}\n\n", canister.0, path1, path2))?;
+                        output_file.write_fmt(format_args!("canister@{}: \\\n  {} {}\n\n", canister.0, path1, path2))?;
                     if let Some(main) = &canister.1.main {
                         output_file.write_fmt(format_args!("{} {}: $(ROOT_DIR)/{}\n\n", path1, path2, main.to_str().unwrap()))?;
                     }

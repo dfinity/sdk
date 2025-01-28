@@ -71,8 +71,9 @@ impl Canister {
         env: &dyn Environment,
         pool: &CanisterPool,
         build_config: &BuildConfig,
+        no_deps: bool,
     ) -> DfxResult<&BuildOutput> {
-        let output = self.builder.build(env, pool, &self.info, build_config)?;
+        let output = self.builder.build(env, pool, &self.info, build_config, no_deps)?;
 
         // Ignore the old output, and return a reference.
         let _ = self.output.replace(Some(output));
@@ -84,8 +85,9 @@ impl Canister {
         env: &dyn Environment,
         pool: &CanisterPool,
         build_config: &BuildConfig,
+        no_deps: bool,
     ) -> DfxResult {
-        self.builder.postbuild(env, pool, &self.info, build_config)
+        self.builder.postbuild(env, pool, &self.info, build_config, no_deps)
     }
 
     pub fn get_name(&self) -> &str {
@@ -633,6 +635,7 @@ impl CanisterPool {
         &self,
         env: &dyn Environment,
         canisters_to_build: Vec<&Canister>,
+        no_deps: bool,
     ) -> DfxResult<DiGraph<CanisterId, ()>> {
         let mut graph: DiGraph<CanisterId, ()> = DiGraph::new();
 
@@ -650,6 +653,7 @@ impl CanisterPool {
             graph: &mut DiGraph<CanisterId, ()>,
             canister_id_to_canister: &BTreeMap<CanisterId, &Canister>,
             canister_id_to_index: &mut BTreeMap<CanisterId, NodeIndex<u32>>,
+            no_deps: bool,
         ) -> DfxResult<NodeIndex> {
             let canister_id = canister.canister_id();
 
@@ -664,7 +668,7 @@ impl CanisterPool {
 
             let deps = canister
                 .builder
-                .get_dependencies(env, canister_pool, &canister.info)?;
+                .maybe_get_dependencies(env, canister_pool, &canister.info, no_deps)?;
 
             for dependency_id in deps {
                 let dependency = canister_id_to_canister.get(&dependency_id).ok_or_else(|| {
@@ -681,6 +685,7 @@ impl CanisterPool {
                     graph,
                     canister_id_to_canister,
                     canister_id_to_index,
+                    no_deps,
                 )?;
                 if node_ix != dependency_index { // TODO: Why is this check needed?
                     graph.add_edge(node_ix, dependency_index, ());
@@ -704,6 +709,7 @@ impl CanisterPool {
                 &mut graph,
                 &canister_id_to_canister,
                 &mut canister_id_to_index,
+                no_deps,
             )?;
         }
 
@@ -796,8 +802,9 @@ impl CanisterPool {
         env: &dyn Environment,
         build_config: &BuildConfig,
         canister: &'a Canister,
+        no_deps: bool,
     ) -> DfxResult<&'a BuildOutput> {
-        canister.build(env, self, build_config)
+        canister.build(env, self, build_config, no_deps)
     }
 
     fn step_postbuild(
@@ -806,6 +813,7 @@ impl CanisterPool {
         build_config: &BuildConfig,
         canister: &Canister,
         build_output: &BuildOutput,
+        no_deps: bool,
     ) -> DfxResult<()> {
         canister.candid_post_process(self.get_logger(), build_config, build_output)?;
 
@@ -813,7 +821,7 @@ impl CanisterPool {
 
         build_canister_js(&canister.canister_id(), &canister.info)?;
 
-        canister.postbuild(env, self, build_config)
+        canister.postbuild(env, self, build_config, no_deps)
     }
 
     fn step_postbuild_all(
@@ -842,12 +850,13 @@ impl CanisterPool {
         env: &dyn Environment,
         log: &Logger,
         build_config: &BuildConfig,
+        no_deps: bool,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
         self.step_prebuild_all(log, build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let canisters_to_build = self.canisters_to_build(build_config);
-        let graph = self.build_dependencies_graph(env, canisters_to_build.clone())?;
+        let graph = self.build_dependencies_graph(env, canisters_to_build.clone(), no_deps)?;
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
@@ -888,7 +897,7 @@ impl CanisterPool {
                             )
                         })
                         .and_then(|_| {
-                            self.step_build(env, build_config, canister).map_err(|e| {
+                            self.step_build(env, build_config, canister, no_deps).map_err(|e| {
                                 BuildError::BuildStepFailed(
                                     *canister_id,
                                     canister.get_name().to_string(),
@@ -897,7 +906,7 @@ impl CanisterPool {
                             })
                         })
                         .and_then(|o| {
-                            self.step_postbuild(env, build_config, canister, o)
+                            self.step_postbuild(env, build_config, canister, o, no_deps)
                                 .map_err(|e| {
                                     BuildError::PostBuildStepFailed(
                                         *canister_id,
@@ -927,9 +936,10 @@ impl CanisterPool {
         env: &dyn Environment,
         log: &Logger,
         build_config: &BuildConfig,
+        no_deps: bool,
     ) -> DfxResult<()> {
         self.download(build_config).await?;
-        let outputs = self.build(env, log, build_config)?;
+        let outputs = self.build(env, log, build_config, no_deps)?;
 
         for output in outputs {
             output.map_err(DfxError::new)?;
