@@ -85,7 +85,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister.0);
                     output_file.write_fmt(format_args!("canister@{}: \\\n  {} {}\n\n", canister.0, path1, path2))?;
                     // output_file.write_fmt(format_args!(
-                    //     "{} {}:\n\tdfx canister create {}\n\tdfx build --no-deps {}\n\n", path1, path2, canister.0, canister.0
+                    //     "{} {}:\n\tdfx canister create {}\n\tdfx build --no-deps --network $(NETWORK) {}\n\n", path1, path2, canister.0, canister.0
                     // ))?;
                 } else {
                     let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm", canister.0, canister.0);
@@ -215,7 +215,7 @@ fn get_build_command(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as G
     let node_value = graph.node_weight(node_id).unwrap();
     match node_value {
         Import::Canister(canister_name) | Import::Ic(canister_name) =>
-            Some(format!("dfx canister create {}\n\tdfx build --no-deps {}", canister_name, canister_name)),
+            Some(format!("dfx canister create {}\n\tdfx build --no-deps --network $(NETWORK) {}", canister_name, canister_name)),
         Import::Path(_path) => None,
         Import::Lib(_path) => None,
     }
