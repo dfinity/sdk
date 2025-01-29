@@ -172,6 +172,8 @@ Log visibility: controllers
 
 ### feat!: Print error traces only in verbose (`-v`) mode or if no proper error message is available
 
+### chore: Add Schnorr types and methods to management canister IDL
+
 ## Dependencies
 
 ### Frontend canister
