@@ -36,7 +36,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
 
     // We load dependencies before creating the file to minimize the time that the file is half-written.
     // Load dependencies for Make rules:
-    let builder = CustomBuilder::new(&env)?; // TODO: hack
+    let builder = CustomBuilder::new(&env)?; // hackish use of CustomBuilder not intended for this use
     let canisters = &config.get_config().canisters.as_ref();
     let canister_names = if let Some(canisters) = canisters {
         canisters.keys().map(|k| k.to_string()).collect::<Vec<String>>()
@@ -161,7 +161,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         if let Import::Canister(canister_name) = node.0 {
             output_file.write_fmt(format_args!("\ndeploy@{}: canister@{}\n", canister_name, canister_name))?;
             output_file.write_fmt(format_args!(
-                "\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS.{}) {}\n\n", canister_name, canister_name
+                "\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n", canister_name, canister_name
             ))?;
             // If the canister is assets, add `generate@` dependencies.
             let canister = pool.get_first_canister_with_name(&canister_name).unwrap(); // TODO: `unwrap`
