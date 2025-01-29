@@ -318,7 +318,7 @@ function impersonate_sender() {
 
     # test management canister call failure (setting memory allocation to a low value)
     assert_command_fail dfx canister update-settings hello_backend --memory-allocation 1 --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "Management canister call failed: IC0402: Canister was given 1 B memory allocation but at least"
+    assert_contains "Canister was given 1 B memory allocation but at least"
 
     # canister status fails because the default identity does not control the canister anymore
     assert_command_fail dfx canister status hello_backend
@@ -334,22 +334,22 @@ function impersonate_sender() {
 
     # test management canister call submission failure
     assert_command_fail dfx canister status hello_backend --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "Failed to submit management canister call: IC0207: Canister $CANISTER_ID is out of cycles"
+    assert_contains "Failed to submit management canister call: Canister $CANISTER_ID is out of cycles"
 
     # test update call submission failure
     assert_command_fail dfx canister call aaaaa-aa canister_status "(record { canister_id=principal\"$CANISTER_ID\" })" --update --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "Failed to submit canister call: IC0207: Canister $CANISTER_ID is out of cycles"
+    assert_contains "Failed to submit canister call: Canister $CANISTER_ID is out of cycles"
 
     # test async call submission failure
     assert_command_fail dfx canister call aaaaa-aa canister_status "(record { canister_id=principal\"$CANISTER_ID\" })" --async --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "Failed to submit canister call: IC0207: Canister $CANISTER_ID is out of cycles"
+    assert_contains "Failed to submit canister call: Canister $CANISTER_ID is out of cycles"
 
     # unfreeze the canister
     assert_command dfx canister update-settings hello_backend --freezing-threshold 0 --impersonate "${IDENTITY_PRINCIPAL}"
 
     # test update call failure
     assert_command_fail dfx canister call aaaaa-aa delete_canister "(record { canister_id=principal\"$CANISTER_ID\" })" --update --impersonate "${IDENTITY_PRINCIPAL}"
-    assert_contains "Canister call failed: IC0510: Canister $CANISTER_ID must be stopped before it is deleted."
+    assert_contains "Canister call failed: Canister $CANISTER_ID must be stopped before it is deleted."
 
     # test update call
     assert_command dfx canister call aaaaa-aa start_canister "(record { canister_id=principal\"$CANISTER_ID\" })" --update --impersonate "${IDENTITY_PRINCIPAL}"
@@ -361,7 +361,7 @@ function impersonate_sender() {
 
     # test query call failure
     assert_command_fail dfx canister call aaaaa-aa fetch_canister_logs "(record { canister_id=principal\"$CANISTER_ID\" })" --query --impersonate "$CANISTER_ID"
-    assert_contains "Failed to perform query call: IC0406: Caller $CANISTER_ID is not allowed to query ic00 method fetch_canister_logs"
+    assert_contains "Failed to perform query call: Caller $CANISTER_ID is not allowed to query ic00 method fetch_canister_logs"
 
     # test query call
     assert_command dfx canister call aaaaa-aa fetch_canister_logs "(record { canister_id=principal\"$CANISTER_ID\" })" --query --impersonate "${IDENTITY_PRINCIPAL}"

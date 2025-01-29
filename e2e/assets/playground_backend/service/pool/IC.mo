@@ -23,8 +23,8 @@ module {
     #reinstall;
     #upgrade : ?{
       wasm_memory_persistence : ?{
-          #Keep;
-          #Replace;
+          #keep;
+          #replace;
       };
     };
     #install;
@@ -85,6 +85,22 @@ module {
     message_hash : Blob;
   };
   public type sign_with_ecdsa_result = { signature : Blob };
+  public type schnorr_algorithm = {
+    #bip340secp256k1;
+    #ed25519;
+  };
+  public type schnorr_aux = {
+    #bip341: {
+      merkle_root_hash: Blob
+   }
+  };
+  public type sign_with_schnorr_args = {
+    message : Blob;
+    derivation_path : [Blob];
+    key_id : { algorithm : schnorr_algorithm; name : Text };
+    aux: ?schnorr_aux;
+  };
+  public type sign_with_schnorr_result = { signature : Blob };
   public type user_id = Principal;
   public type wasm_module = Blob;
   public type Self = actor {
@@ -116,6 +132,7 @@ module {
       } -> async ();
     raw_rand : shared () -> async Blob;
     sign_with_ecdsa : shared sign_with_ecdsa_args -> async sign_with_ecdsa_result;
+    sign_with_schnorr : shared sign_with_schnorr_args -> async sign_with_schnorr_result;
     start_canister : shared { canister_id : canister_id } -> async ();
     stop_canister : shared { canister_id : canister_id } -> async ();
     uninstall_code : shared { canister_id : canister_id } -> async ();
