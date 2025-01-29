@@ -685,9 +685,7 @@ impl CanisterPool {
                     canister_id_to_index,
                     no_deps,
                 )?;
-                if node_ix != dependency_index { // TODO: Why is this check needed?
-                    graph.add_edge(node_ix, dependency_index, ());
-                }
+                graph.add_edge(node_ix, dependency_index, ());
             }
 
             Ok(node_ix)
