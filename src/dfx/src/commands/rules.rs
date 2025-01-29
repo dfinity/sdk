@@ -36,7 +36,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
 
     // We load dependencies before creating the file to minimize the time that the file is half-written.
     // Load dependencies for Make rules:
-    let builder = CustomBuilder::new(env1)?; // TODO: hack // TODO: `&env` instead?
+    let builder = CustomBuilder::new(&env)?; // TODO: hack
     let canisters = &config.get_config().canisters.as_ref();
     let canister_names = if let Some(canisters) = canisters {
         canisters.keys().map(|k| k.to_string()).collect::<Vec<String>>()
