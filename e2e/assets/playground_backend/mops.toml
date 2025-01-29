@@ -5,3 +5,4 @@ splay = "0.1.0"
 [[canister]]
 candid = "service/wasm-utils/wasm-utils.did"
 output = "service/pool/Wasm-utils.mo"
+

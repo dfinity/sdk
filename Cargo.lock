@@ -2652,7 +2652,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=a96022bd185e97f52c5cde1c82c7592abddcff86#a96022bd185e97f52c5cde1c82c7592abddcff86"
+source = "git+https://github.com/dfinity/agent-rs?rev=9ebf6314ce2fcb36772c7d81d6d414b4628d6101#9ebf6314ce2fcb36772c7d81d6d414b4628d6101"
 dependencies = [
  "arc-swap",
  "async-channel",
@@ -2671,7 +2671,7 @@ dependencies = [
  "http 1.2.0",
  "http-body 1.0.1",
  "ic-certification 3.0.2",
- "ic-transport-types 0.39.3 (git+https://github.com/dfinity/agent-rs?rev=a96022bd185e97f52c5cde1c82c7592abddcff86)",
+ "ic-transport-types 0.39.3 (git+https://github.com/dfinity/agent-rs?rev=9ebf6314ce2fcb36772c7d81d6d414b4628d6101)",
  "ic-verify-bls-signature",
  "k256 0.13.4",
  "leb128",
@@ -3111,7 +3111,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=a96022bd185e97f52c5cde1c82c7592abddcff86#a96022bd185e97f52c5cde1c82c7592abddcff86"
+source = "git+https://github.com/dfinity/agent-rs?rev=9ebf6314ce2fcb36772c7d81d6d414b4628d6101#9ebf6314ce2fcb36772c7d81d6d414b4628d6101"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3229,7 +3229,7 @@ dependencies = [
 [[package]]
 name = "ic-transport-types"
 version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=a96022bd185e97f52c5cde1c82c7592abddcff86#a96022bd185e97f52c5cde1c82c7592abddcff86"
+source = "git+https://github.com/dfinity/agent-rs?rev=9ebf6314ce2fcb36772c7d81d6d414b4628d6101#9ebf6314ce2fcb36772c7d81d6d414b4628d6101"
 dependencies = [
  "candid",
  "hex",
@@ -3299,7 +3299,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=a96022bd185e97f52c5cde1c82c7592abddcff86#a96022bd185e97f52c5cde1c82c7592abddcff86"
+source = "git+https://github.com/dfinity/agent-rs?rev=9ebf6314ce2fcb36772c7d81d6d414b4628d6101#9ebf6314ce2fcb36772c7d81d6d414b4628d6101"
 dependencies = [
  "async-trait",
  "candid",
@@ -4735,7 +4735,7 @@ checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
 [[package]]
 name = "pocket-ic"
 version = "6.0.0"
-source = "git+https://github.com/dfinity/ic?rev=233c1ee2ef68c1c8800b8151b2b9f38e17b8440a#233c1ee2ef68c1c8800b8151b2b9f38e17b8440a"
+source = "git+https://github.com/dfinity/ic?rev=4ba583480e05a518aa2bcf36f5a0e48475e8edc2#4ba583480e05a518aa2bcf36f5a0e48475e8edc2"
 dependencies = [
  "backoff",
  "base64 0.13.1",
@@ -7013,7 +7013,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
