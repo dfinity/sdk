@@ -112,7 +112,7 @@ impl CanisterBuilder for MotokoBuilder {
         let imports = env.get_imports().borrow();
         let graph = imports.graph();
         // let space = DfsSpace::new(&graph);
-        // match petgraph::algo::toposort(graph, Some(&mut space)) { // FIXME: Should provide the node.
+        // match petgraph::algo::toposort(graph, Some(&mut space)) {
         // TODO: inefficient:
         match petgraph::algo::toposort(graph, None) {
             Ok(order) => {
