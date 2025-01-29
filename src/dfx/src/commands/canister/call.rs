@@ -366,7 +366,13 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                             arg_value,
                         )
                         .await
-                        .map_err(|err| anyhow!("Failed to perform query call: {}", err))?
+                        .map_err(|err| {
+                            anyhow!(
+                                "Failed to perform query call: {} ({})",
+                                err.reject_message,
+                                err.error_code
+                            )
+                        })?
                 } else {
                     bail!("Impersonating sender is only supported for a local PocketIC instance.")
                 }
@@ -411,7 +417,13 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                             arg_value,
                         )
                         .await
-                        .map_err(|err| anyhow!("Failed to submit canister call: {}", err))?
+                        .map_err(|err| {
+                            anyhow!(
+                                "Failed to submit canister call: {} ({})",
+                                err.reject_message,
+                                err.error_code
+                            )
+                        })?
                         .message_id;
                     CallResponse::Poll(RequestId::new(msg_id.as_slice().try_into().unwrap()))
                 } else {
@@ -460,11 +472,20 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                             arg_value,
                         )
                         .await
-                        .map_err(|err| anyhow!("Failed to submit canister call: {}", err))?;
-                    pocketic
-                        .await_call_no_ticks(msg_id)
-                        .await
-                        .map_err(|err| anyhow!("Canister call failed: {}", err))?
+                        .map_err(|err| {
+                            anyhow!(
+                                "Failed to submit canister call: {} ({})",
+                                err.reject_message,
+                                err.error_code
+                            )
+                        })?;
+                    pocketic.await_call_no_ticks(msg_id).await.map_err(|err| {
+                        anyhow!(
+                            "Canister call failed: {} ({})",
+                            err.reject_message,
+                            err.error_code
+                        )
+                    })?
                 } else {
                     bail!("Impersonating sender is only supported for a local PocketIC instance.")
                 }

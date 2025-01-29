@@ -75,11 +75,20 @@ where
                         encode_args((arg,)).unwrap(),
                     )
                     .await
-                    .map_err(|err| anyhow!("Failed to submit management canister call: {}", err))?;
-                let data = pocketic
-                    .await_call_no_ticks(msg_id)
-                    .await
-                    .map_err(|err| anyhow!("Management canister call failed: {}", err))?;
+                    .map_err(|err| {
+                        anyhow!(
+                            "Failed to submit management canister call: {} ({})",
+                            err.reject_message,
+                            err.error_code
+                        )
+                    })?;
+                let data = pocketic.await_call_no_ticks(msg_id).await.map_err(|err| {
+                    anyhow!(
+                        "Management canister call failed: {} ({})",
+                        err.reject_message,
+                        err.error_code
+                    )
+                })?;
 
                 decode_args(&data).context("Could not decode management canister response.")?
             } else {
@@ -146,7 +155,11 @@ where
                     )
                     .await
                     .map_err(|err| {
-                        anyhow!("Failed to perform management canister query call: {}", err)
+                        anyhow!(
+                            "Failed to perform management canister query call: {} ({})",
+                            err.reject_message,
+                            err.error_code
+                        )
                     })?;
                 decode_args(&data)
                     .context("Failed to decode management canister query call response.")?
