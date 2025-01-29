@@ -129,7 +129,7 @@ impl CanisterBuilder for MotokoBuilder {
                 let main_canister_id = info.get_canister_id()?;
                 if let Some(start_index) = res.iter().position(|&x| x == main_canister_id) {
                     // Create a slice starting from that index
-                    let slice = &res[start_index..]; // TODO: Include or not the canister itself?
+                    let slice = &res[start_index+1..];
                     Ok(slice.to_vec())
                 } else {
                     panic!("Programming error");
