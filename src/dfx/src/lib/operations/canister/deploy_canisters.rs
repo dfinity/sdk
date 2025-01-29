@@ -151,7 +151,7 @@ pub async fn deploy_canisters(
         CanisterPool::load(
             env2, // if `env1`,  fails with "NetworkDescriptor only available from an AgentEnvironment"
             false,
-            &canisters_to_deploy, // FIXME: `unwrap`
+            &canisters_to_deploy,
         )?
     } else {
         build_canisters(
