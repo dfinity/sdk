@@ -361,7 +361,6 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
                 mode = args.mode;
                 canister_id = args.canister_id;
             };
-            Debug.print("install mode: " # debug_show(args.mode));
             await IC.install_code newArgs;
             stats := Logs.updateStats(stats, #install);
 
@@ -710,6 +709,12 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
         await* pool.addCycles(caller, #refund);
         res
     };
+    public shared ({ caller }) func sign_with_schnorr(arg: ICType.sign_with_schnorr_args) : async ICType.sign_with_schnorr_result {
+        await* pool.addCycles(caller, #method "sign_with_schnorr");
+        let res = await IC.sign_with_schnorr(arg);
+        await* pool.addCycles(caller, #refund);
+        res
+    };
     public shared ({ caller }) func _ttp_request(request : ICType.http_request_args) : async ICType.http_request_result {
         await* pool.addCycles(caller, #method "http_request");
         let new_request = switch (request.transform) {
@@ -832,6 +837,7 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
             #_ttp_request : Any;
             #__transform : Any;
             #sign_with_ecdsa: Any;
+            #sign_with_schnorr: Any;
             #eth_call: Any;
             #eth_feeHistory: Any;
             #eth_getBlockByNumber: Any;
@@ -856,6 +862,7 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
             case (#_ttp_request _) false;
             case (#__transform _) false;
             case (#sign_with_ecdsa _) false;
+            case (#sign_with_schnorr _) false;
             case (#eth_call _) false;
             case (#eth_feeHistory _) false;
             case (#eth_getBlockByNumber _) false;

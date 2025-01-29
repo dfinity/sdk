@@ -8,6 +8,8 @@
 
 * Command `rules` that outputs time-efficient GNU Make rules.
 
+# 0.25.0
+
 ### fix: correctly detects hyphenated Rust bin crates
 
 ### fix: removes unnecessary tsc step in sveltekit build script
@@ -192,9 +194,11 @@ Updated Motoko to [0.13.6](https://github.com/dfinity/motoko/releases/tag/0.13.6
 
 ### Replica
 
-Updated replica to elected commit 233c1ee2ef68c1c8800b8151b2b9f38e17b8440a.
+Updated replica to elected commit 4ba583480e05a518aa2bcf36f5a0e48475e8edc2.
 This incorporates the following executed proposals:
 
+- [134967](https://dashboard.internetcomputer.org/proposal/134967)
+- [134966](https://dashboard.internetcomputer.org/proposal/134966)
 - [134900](https://dashboard.internetcomputer.org/proposal/134900)
 - [134773](https://dashboard.internetcomputer.org/proposal/134773)
 - [134684](https://dashboard.internetcomputer.org/proposal/134684)
