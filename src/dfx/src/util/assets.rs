@@ -167,6 +167,11 @@ type ecdsa_curve = variant {
     secp256k1;
 };
 
+type schnorr_algorithm = variant {
+    bip340secp256k1;
+    ed25519;
+};
+
 type satoshi = nat64;
 
 type bitcoin_network = variant {
@@ -384,6 +389,34 @@ type sign_with_ecdsa_result = record {
     signature : blob;
 };
 
+type schnorr_public_key_args = record {
+    canister_id : opt canister_id;
+    derivation_path : vec blob;
+    key_id : record { algorithm : schnorr_algorithm; name : text };
+};
+
+type schnorr_public_key_result = record {
+    public_key : blob;
+    chain_code : blob;
+};
+
+type schnorr_aux = variant {
+    bip341: record {
+      merkle_root_hash: blob;
+   }
+};
+
+type sign_with_schnorr_args = record {
+    message : blob;
+    derivation_path : vec blob;
+    key_id : record { algorithm : schnorr_algorithm; name : text };
+    aux: opt schnorr_aux;
+};
+
+type sign_with_schnorr_result = record {
+    signature : blob;
+};
+
 type node_metrics_history_args = record {
     subnet_id : principal;
     start_at_timestamp_nanos : nat64;
@@ -443,6 +476,10 @@ service ic : {
     // Threshold ECDSA signature
     ecdsa_public_key : (ecdsa_public_key_args) -> (ecdsa_public_key_result);
     sign_with_ecdsa : (sign_with_ecdsa_args) -> (sign_with_ecdsa_result);
+
+    // Threshold Schnorr signature
+    schnorr_public_key : (schnorr_public_key_args) -> (schnorr_public_key_result);
+    sign_with_schnorr : (sign_with_schnorr_args) -> (sign_with_schnorr_result);
 
     // bitcoin interface
     bitcoin_get_balance : (bitcoin_get_balance_args) -> (bitcoin_get_balance_result);
