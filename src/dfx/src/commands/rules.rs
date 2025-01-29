@@ -159,7 +159,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         }
         if let Import::Canister(canister_name) = node.0 {
             output_file.write_fmt(format_args!("\ndeploy@{}: canister@{}\n", canister_name, canister_name))?;
-            output_file.write_fmt(format_args!(
+            output_file.write_fmt(format_args!( // TODO: Use `canister install` instead.
                 "\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n", canister_name, canister_name
             ))?;
             // If the canister is assets, add `generate@` dependencies.
