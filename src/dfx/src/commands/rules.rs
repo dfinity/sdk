@@ -81,15 +81,15 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 // duplicate code
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
                 if canister2.get_info().is_assets() {
-                    let path1 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/assetstorage.wasm.gz", canister.0);
-                    let path2 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/assetstorage.did", canister.0);
+                    let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
+                    let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister.0);
                     output_file.write_fmt(format_args!("canister@{}: \\\n  {} {}\n\n", canister.0, path1, path2))?;
                     // output_file.write_fmt(format_args!(
                     //     "{} {}:\n\tdfx canister create {}\n\tdfx build --no-deps {}\n\n", path1, path2, canister.0, canister.0
                     // ))?;
                 } else {
-                    let path1 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.wasm", canister.0, canister.0);
-                    let path2 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.did", canister.0, canister.0);
+                    let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm", canister.0, canister.0);
+                    let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0);
                         output_file.write_fmt(format_args!("canister@{}: \\\n  {} {}\n\n", canister.0, path1, path2))?;
                     if let Some(main) = &canister.1.main {
                         output_file.write_fmt(format_args!("{} {}: $(ROOT_DIR)/{}\n\n", path1, path2, main.to_str().unwrap()))?;
@@ -127,7 +127,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     output_file.write_fmt(format_args!(
                         "{}: {}\n\t{} {}\n\n",
                         deps,
-                        format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.did", canister.0, canister.0),
+                        format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0),
                         "dfx generate --no-compile --network $(NETWORK)",
                         canister.0,
                     ))?;
@@ -196,12 +196,12 @@ fn make_target(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<I
             // duplicate code
             let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             if canister2.get_info().is_assets() {
-                let path1 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/assetstorage.wasm.gz", canister_name);
-                let path2 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/assetstorage.did", canister_name);
+                let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name);
+                let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister_name);
                 format!("{} {}", path1, path2)
             } else {
-                let path1 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.wasm", canister_name, canister_name);
-                let path2 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.did", canister_name, canister_name);
+                let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm", canister_name, canister_name);
+                let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister_name, canister_name);
                 format!("{} {}", path1, path2)
             }
         }
