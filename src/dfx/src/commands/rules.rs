@@ -37,12 +37,16 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     // We load dependencies before creating the file to minimize the time that the file is half-written.
     // Load dependencies for Make rules:
     let builder = CustomBuilder::new(env1)?; // TODO: hack // TODO: `&env` instead?
-    // TODO: hack:
-    let canister_names = config.get_config().canisters.as_ref().unwrap().keys().map(|k| k.to_string()).collect::<Vec<String>>();
+    let canisters = &config.get_config().canisters.as_ref();
+    let canister_names = if let Some(canisters) = canisters {
+        canisters.keys().map(|k| k.to_string()).collect::<Vec<String>>()
+    } else {
+        Vec::new()
+    };
     let pool: CanisterPool = CanisterPool::load(
         &env, // if `env1`,  fails with "NetworkDescriptor only available from an AgentEnvironment"
         false,
-        &canister_names, // FIXME: `unwrap`
+        &canister_names,
     )?;
     builder.read_all_dependencies(
         &env,
@@ -58,7 +62,6 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     output_file.write_fmt(format_args!("DEPLOY_FLAGS ?= \n\n"))?;
     output_file.write_fmt(format_args!("ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))\n\n"))?;
 
-    let canisters = &config.get_config().canisters; 
     match &canisters {
         Some(canisters) => {
             let canisters: &BTreeMap<String, ConfigCanistersCanister> = canisters;
