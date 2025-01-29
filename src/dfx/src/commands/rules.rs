@@ -196,8 +196,8 @@ fn make_target(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<I
     Ok(match node_value {
         Import::Canister(canister_name) => {
             // duplicate code
-            let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
-            if canister2.get_info().is_assets() {
+            let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
+            if canister.get_info().is_assets() {
                 let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name);
                 // let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister_name);
                 path1
