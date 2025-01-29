@@ -79,14 +79,14 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             output_file.write_fmt(format_args!("\n\n"))?;
             for canister in canisters {
                 // duplicate code
-                let canister2 = pool.get_first_canister_with_name(&canister.0).unwrap();
+                let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
                 if canister2.get_info().is_assets() {
                     let path1 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/assetstorage.wasm.gz", canister.0);
                     let path2 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/assetstorage.did", canister.0);
                     output_file.write_fmt(format_args!("canister@{}: \\\n  {} {}\n\n", canister.0, path1, path2))?;
-                    output_file.write_fmt(format_args!(
-                        "{} {}:\n\tdfx canister create {}\n\tdfx build --no-deps {}\n\n", path1, path2, canister.0, canister.0
-                    ))?;
+                    // output_file.write_fmt(format_args!(
+                    //     "{} {}:\n\tdfx canister create {}\n\tdfx build --no-deps {}\n\n", path1, path2, canister.0, canister.0
+                    // ))?;
                 } else {
                     let path1 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.wasm", canister.0, canister.0);
                     let path2 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.did", canister.0, canister.0);
@@ -146,15 +146,15 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         } else {
             output_file.write_fmt(format_args!(
                 "{}: {}\n",
-                make_target(graph, edge.source())?,
-                make_target(graph, edge.target())?,
+                make_target(&pool, graph, edge.source())?,
+                make_target(&pool, graph, edge.target())?,
             ))?;
         }
     }
     for node in graph0.nodes() {
         let command = get_build_command(graph, *node.1);
         if let Some(command) = command {
-            output_file.write_fmt(format_args!("{}:\n\t{}\n\n", make_target(graph, *node.1)?, command))?;
+            output_file.write_fmt(format_args!("{}:\n\t{}\n\n", make_target(&pool, graph, *node.1)?, command))?;
         }
         if let Import::Canister(canister_name) = node.0 {
             output_file.write_fmt(format_args!("\ndeploy-self@{}: canister@{}", canister_name, canister_name))?;
@@ -189,14 +189,21 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     Ok(())
 }
 
-fn make_target(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> DfxResult<String> {
+fn make_target(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> DfxResult<String> {
     let node_value = graph.node_weight(node_id).unwrap();
     Ok(match node_value {
         Import::Canister(canister_name) => {
             // duplicate code
-            let path1 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.wasm", canister_name, canister_name);
-            let path2 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.did", canister_name, canister_name);
-            format!("{} {}", path1, path2)
+            let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
+            if canister2.get_info().is_assets() {
+                let path1 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/assetstorage.wasm.gz", canister_name);
+                let path2 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/assetstorage.did", canister_name);
+                format!("{} {}", path1, path2)
+            } else {
+                let path1 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.wasm", canister_name, canister_name);
+                let path2 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.did", canister_name, canister_name);
+                format!("{} {}", path1, path2)
+            }
         }
         Import::Path(path) => format!("$(ROOT_DIR)/{}", path.to_str().unwrap_or("<unknown>").to_owned()), // TODO: <unknown> is a hack
         Import::Ic(canister_name) => format!("canister@{}", canister_name),
