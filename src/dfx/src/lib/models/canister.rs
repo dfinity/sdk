@@ -452,8 +452,6 @@ fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> D
 }
 
 /// Used mainly for Motoko
-///
-/// TODO: Copying this type uses `String.clone()` what may be inefficient.
 #[derive(Clone, Debug, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub enum Import {
     Canister(String),
