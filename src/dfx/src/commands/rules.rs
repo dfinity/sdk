@@ -10,7 +10,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister::{CanisterPool, Import};
 use crate::lib::builders::custom::CustomBuilder;
 use itertools::Itertools;
-use dfx_core::config::model::dfinity::ConfigCanistersCanister;
+use dfx_core::config::model::dfinity::{CanisterTypeProperties, ConfigCanistersCanister};
 use clap::Parser;
 use petgraph::visit::EdgeRef;
 use petgraph::Graph;
@@ -201,6 +201,21 @@ fn make_target(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<I
                 let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name);
                 // let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister_name);
                 path1
+            } else if canister.get_info().is_custom() {
+                // let is_gzip = canister.get_info().get_gzip(); // produces `false`, even if `"wasm"` is compressed.
+                let is_gzip = // hack
+                    if let CanisterTypeProperties::Custom { wasm, .. } = &canister.get_info().get_type_specific_properties() {
+                        wasm.ends_with(".gz")
+                    } else {
+                        canister.get_info().get_gzip()
+                    };
+                let path1 = if is_gzip {
+                    format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm.gz", canister_name, canister_name)
+                } else {
+                    format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm", canister_name, canister_name)
+                };
+                let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister_name, canister_name);
+                format!("{} {}", path1, path2)
             } else {
                 let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm", canister_name, canister_name);
                 let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister_name, canister_name);
