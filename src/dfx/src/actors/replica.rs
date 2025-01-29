@@ -18,7 +18,7 @@ use actix::{
 use anyhow::bail;
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use dfx_core::config::model::replica_config::ReplicaConfig;
-use slog::{debug, error, info, Logger};
+use slog::{debug, error, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -220,10 +220,10 @@ impl Actor for Replica {
     }
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
-        info!(self.logger, "Stopping the replica...");
+        debug!(self.logger, "Stopping the replica...");
         self.stop_replica();
 
-        info!(self.logger, "Stopped.");
+        debug!(self.logger, "Stopped.");
         Running::Stop
     }
 }
@@ -466,7 +466,7 @@ async fn initialize_replica(
         initialize_bitcoin_canister(&agent, &logger, bitcoin_integration_config).await?;
     }
 
-    info!(logger, "Initialized replica.");
+    debug!(logger, "Initialized replica.");
 
     Ok(())
 }

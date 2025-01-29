@@ -11,7 +11,7 @@ use actix::{
 };
 use anyhow::{anyhow, bail};
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use slog::{debug, error, info, Logger};
+use slog::{debug, error, Logger};
 use std::net::SocketAddr;
 use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
@@ -120,7 +120,7 @@ impl PocketIcProxy {
 
     fn stop_pocketic_proxy(&mut self) {
         if self.stop_sender.is_some() || self.thread_join.is_some() {
-            info!(self.logger, "Stopping HTTP gateway...");
+            debug!(self.logger, "Stopping HTTP gateway...");
             if let Some(sender) = self.stop_sender.take() {
                 let _ = sender.send(());
             }
@@ -128,7 +128,7 @@ impl PocketIcProxy {
             if let Some(join) = self.thread_join.take() {
                 let _ = join.join();
             }
-            info!(self.logger, "Stopped.");
+            debug!(self.logger, "Stopped.");
         }
     }
 
@@ -211,9 +211,9 @@ impl Handler<PocketIcProxyReadySubscribe> for PocketIcProxy {
 impl Handler<PocketIcProxyReadySignal> for PocketIcProxy {
     type Result = ();
 
-    fn handle(&mut self, _msg: PocketIcProxyReadySignal, _ctx: &mut Self::Context) {
+    fn handle(&mut self, msg: PocketIcProxyReadySignal, _ctx: &mut Self::Context) {
         for sub in &self.ready_subscribers {
-            sub.do_send(PocketIcProxyReadySignal);
+            sub.do_send(msg);
         }
     }
 }
@@ -309,10 +309,9 @@ fn pocketic_proxy_start_thread(
                 }
                 Ok(i) => i,
             };
-            info!(logger, "Replica API running on {address}");
 
             // Send PocketIcProxyReadySignal to PocketIcProxy.
-            addr.do_send(PocketIcProxyReadySignal);
+            addr.do_send(PocketIcProxyReadySignal(address));
 
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart pocket-ic if done = true.
@@ -384,7 +383,7 @@ async fn initialize_gateway(
         CreateHttpGatewayResponse::Created(info) => info.instance_id,
         CreateHttpGatewayResponse::Error { message } => bail!("Gateway init error: {message}"),
     };
-    info!(logger, "Initialized HTTP gateway.");
+    debug!(logger, "Initialized HTTP gateway.");
     Ok(instance)
 }
 

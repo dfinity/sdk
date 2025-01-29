@@ -1,14 +1,17 @@
 use crate::actors::pocketic_proxy::PocketIcProxy;
 use crate::actors::post_start::signals::{PocketIcProxyReadySignal, PocketIcProxyReadySubscribe};
+use crate::lib::progress_bar::ProgressBar;
 use actix::{Actor, Addr, AsyncContext, Context, Handler};
 use slog::{info, Logger};
 
 pub mod signals {
+    use std::net::SocketAddr;
+
     use actix::prelude::*;
 
-    #[derive(Message)]
+    #[derive(Message, Copy, Clone)]
     #[rtype(result = "()")]
-    pub struct PocketIcProxyReadySignal;
+    pub struct PocketIcProxyReadySignal(pub SocketAddr);
 
     #[derive(Message)]
     #[rtype(result = "()")]
@@ -23,11 +26,12 @@ pub struct Config {
 
 pub struct PostStart {
     config: Config,
+    spinner: ProgressBar,
 }
 
 impl PostStart {
-    pub fn new(config: Config) -> Self {
-        Self { config }
+    pub fn new(config: Config, spinner: ProgressBar) -> Self {
+        Self { config, spinner }
     }
 }
 
@@ -45,17 +49,16 @@ impl Actor for PostStart {
 impl Handler<PocketIcProxyReadySignal> for PostStart {
     type Result = ();
 
-    fn handle(&mut self, _msg: PocketIcProxyReadySignal, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: PocketIcProxyReadySignal, _ctx: &mut Self::Context) -> Self::Result {
         let logger = &self.config.logger;
+        let address = msg.0;
+        self.spinner.finish_and_clear();
         if self.config.background {
-            info!(
-                logger,
-                "Success! The dfx server is running in the background."
-            )
+            info!(logger, "Replica API running in the background on {address}");
         } else {
             info!(
                 logger,
-                "Success! The dfx server is running.\nYou must open a new terminal to continue developing. If you'd prefer to stop, quit with 'Ctrl-C'."
+                "Replica API running on {address}. You must open a new terminal to continue developing. If you'd prefer to stop, quit with 'Ctrl-C'."
             )
         }
     }
