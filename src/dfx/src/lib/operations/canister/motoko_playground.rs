@@ -83,9 +83,6 @@ impl TryFrom<InstallMode> for PlaygroundInstallMode {
                     ..
                 })
                 | None,
-                // ) => Ok(Self::Upgrade(Some(PlaygroundCanisterUpgradeOptions {
-                //     wasm_memory_persistence: Some(WasmMemoryPersistence::Replace),
-                // }))),
             ) => Ok(Self::Upgrade(None)),
             InstallMode::Upgrade(Some(CanisterUpgradeOptions {
                 wasm_memory_persistence: Some(WasmMemoryPersistence::Keep),
@@ -244,9 +241,7 @@ pub async fn playground_install_code(
 }
 
 fn convert_mode(mode: InstallMode, wasm_module: &[u8]) -> DfxResult<PlaygroundInstallMode> {
-    let converted_mode: PlaygroundInstallMode = mode
-        // .canonicalize()
-        .try_into()?;
+    let converted_mode: PlaygroundInstallMode = mode.try_into()?;
     // Motoko EOP requires `wasm_memory_persistence: Keep` for canister upgrades.
     // Usually, this option is auto-set if the installed wasm has the private metadata `enhanced-orthogonal-persistence` set.
     // However, in the playground setting, the playground is the controller. So we can't read that metadata section and will set `wasm_memory_persistence: Replace` as a fallback.

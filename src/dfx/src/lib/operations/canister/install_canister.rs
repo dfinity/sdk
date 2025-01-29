@@ -95,7 +95,6 @@ pub async fn install_canister(
         installed_module_hash.is_some(),
         wasm_memory_persistence_embedded,
     );
-    // .canonicalize();
 
     // let mode = mode.unwrap_or_else(|| {
     //     if installed_module_hash.is_some() {
