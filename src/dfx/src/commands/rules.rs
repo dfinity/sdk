@@ -24,6 +24,8 @@ pub struct RulesOpts {
     output: Option<String>,
 }
 
+// FIXME: It wrongly acts with downloaded canisters (like `internet_identity`).
+//        This seems to be the cause of double recompilation.
 pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     let env = create_anonymous_agent_environment(env1, None)?;
     // let log = env.get_logger();
