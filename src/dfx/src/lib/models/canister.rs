@@ -928,8 +928,6 @@ impl CanisterPool {
 
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
-    /// 
-    /// TODO: `log` argument is superfluous,
     #[context("Failed while trying to build all canisters.")]
     pub async fn build_or_fail(
         &self,

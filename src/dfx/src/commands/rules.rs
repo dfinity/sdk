@@ -80,7 +80,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             output_file.write_fmt(format_args!("\n\n"))?;
             for canister in canisters {
                 // duplicate code
-                let canister2 = pool.get_first_canister_with_name(&canister.0).unwrap(); // TODO: `unwrap`
+                let canister2 = pool.get_first_canister_with_name(&canister.0).unwrap();
                 if canister2.get_info().is_assets() {
                     let path1 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/assetstorage.wasm.gz", canister.0);
                     let path2 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/assetstorage.did", canister.0);
@@ -117,7 +117,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                             "rs" => vec![], // TODO
                             "js" => vec![format!("{}.did.js", canister.0), "index.js".to_string()],
                             "ts" => vec![format!("{}.did.d.ts", canister.0), "index.d.ts".to_string()],
-                            _ => panic!("unknown canister type: {}", canister.0.as_str()), // TODO
+                            _ => panic!("unknown canister type: {}", canister.0.as_str()),
                         }
                     }).flatten().map(|path| format!("$(ROOT_DIR)/{}", output.join(path).to_str().unwrap().to_string())).join(" "); // TODO: `unwrap`
                     output_file.write_fmt(format_args!(
@@ -143,7 +143,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     for edge in graph.edge_references() {
         let target_value = graph.node_weight(edge.target()).unwrap();
         if let Import::Lib(_) = target_value {
-             // TODO: Unused, because package manager never update existing files (but create new dirs)
+             // Unused, because package manager never update existing files (but create new dirs)
         } else {
             output_file.write_fmt(format_args!(
                 "{}: {}\n",
@@ -153,7 +153,6 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         }
     }
     for node in graph0.nodes() {
-        // TODO: `node.1` is a hack.
         let command = get_build_command(graph, *node.1);
         if let Some(command) = command {
             output_file.write_fmt(format_args!("{}:\n\t{}\n\n", make_target(graph, *node.1)?, command))?;
@@ -164,7 +163,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 "\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n", canister_name, canister_name
             ))?;
             // If the canister is assets, add `generate@` dependencies.
-            let canister = pool.get_first_canister_with_name(&canister_name).unwrap(); // TODO: `unwrap`
+            let canister = pool.get_first_canister_with_name(&canister_name).unwrap();
             if canister.as_ref().get_info().is_assets() {
                 let deps = canister.as_ref().get_info().get_dependencies();
                 if !deps.is_empty() {
