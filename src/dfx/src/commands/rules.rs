@@ -82,8 +82,8 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
                 if canister2.get_info().is_assets() {
                     let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
-                    let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister.0);
-                    output_file.write_fmt(format_args!("canister@{}: \\\n  {} {}\n\n", canister.0, path1, path2))?;
+                    // let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister.0);
+                    output_file.write_fmt(format_args!("canister@{}: \\\n  {}\n\n", canister.0, path1))?;
                     // output_file.write_fmt(format_args!(
                     //     "{} {}:\n\tdfx canister create {}\n\tdfx build --no-deps --network $(NETWORK) {}\n\n", path1, path2, canister.0, canister.0
                     // ))?;
@@ -197,8 +197,8 @@ fn make_target(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<I
             let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             if canister2.get_info().is_assets() {
                 let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name);
-                let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister_name);
-                format!("{} {}", path1, path2)
+                // let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister_name);
+                path1
             } else {
                 let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm", canister_name, canister_name);
                 let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister_name, canister_name);
