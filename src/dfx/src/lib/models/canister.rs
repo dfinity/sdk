@@ -459,7 +459,7 @@ pub enum Import {
     Canister(String),
     Ic(String),
     Lib(String), // TODO: Unused, because package manager never update existing files (but create new dirs)
-    FullPath(PathBuf),
+    FullPath(PathBuf), // TODo: Rename, because it's now relative.
 }
 
 impl Display for Import {
