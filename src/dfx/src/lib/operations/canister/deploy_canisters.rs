@@ -146,16 +146,15 @@ pub async fn deploy_canisters(
     let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
     // TODO: For efficiency, also don't compute canisters order if `no_compile`.
-    let env2 = env; // TODO: create_agent_environment(env, opts.network.to_network_name())?;
     let pool = if no_compile {
         CanisterPool::load(
-            env2, // if `env1`,  fails with "NetworkDescriptor only available from an AgentEnvironment"
+            env, // if `env1`,  fails with "NetworkDescriptor only available from an AgentEnvironment"
             false,
             &canisters_to_deploy,
         )?
     } else {
         build_canisters(
-            env2,
+            env,
             &canisters_to_load,
             &if no_compile { canisters_to_build } else { Vec::new() },
             &config,
@@ -167,7 +166,7 @@ pub async fn deploy_canisters(
     match deploy_mode {
         NormalDeploy | ForceReinstallSingleCanister(_) => {
             install_canisters(
-                env2,
+                env,
                 &canisters_to_install,
                 &config,
                 argument,
@@ -185,11 +184,11 @@ pub async fn deploy_canisters(
             info!(log, "Deployed canisters.");
         }
         PrepareForProposal(canister_name) => {
-            prepare_assets_for_commit(env2, &initial_canister_id_store, &config, canister_name)
+            prepare_assets_for_commit(env, &initial_canister_id_store, &config, canister_name)
                 .await?
         }
         ComputeEvidence(canister_name) => {
-            compute_evidence(env2, &initial_canister_id_store, &config, canister_name).await?
+            compute_evidence(env, &initial_canister_id_store, &config, canister_name).await?
         }
     }
 
