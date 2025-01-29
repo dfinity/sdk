@@ -1,5 +1,6 @@
 use crate::config::dfx_version;
 use crate::lib::environment::Environment;
+use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
 use crate::util;
 use dfx_core;
@@ -70,9 +71,19 @@ impl VersionCache {
         &self,
         env: &dyn Environment,
         binary_name: &str,
-    ) -> Result<std::process::Command, GetBinaryCommandPathError> {
+    ) -> DfxResult<std::process::Command> {
         Self::install(env, &self.version_str())?;
-        let path = binary_command_from_version(&self.version_str(), binary_name)?;
+        let mut path = binary_command_from_version(&self.version_str(), binary_name)?;
+
+        // We need to ensure that it works well with relative paths:
+        let config = env.get_config()?;
+        if let Some(config) = config {
+            let workspace_root = config.get_path().parent();
+            if let Some(workspace_root) = workspace_root {
+                path.current_dir(workspace_root);
+            }
+        }
+
         Ok(path)
     }
 }
