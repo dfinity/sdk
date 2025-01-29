@@ -316,7 +316,6 @@ pub trait CanisterBuilder {
                 let mut command = env.get_cache()
                     .get_binary_command(env, "moc")
                     .context("Getting binary command \"moc\"")?;
-                // FIXME: Run moc in the right directory.
                 let command = command.arg("--print-deps").arg(file);
                 let output = command
                     .output()
