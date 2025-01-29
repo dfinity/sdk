@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: Make integration
+
+* Flags `--no-compile` and `--no-deps`
+
+* Command `rules` that outputs time-efficient GNU Make rules.
+
 # 0.25.0
 
 ### fix: correctly detects hyphenated Rust bin crates

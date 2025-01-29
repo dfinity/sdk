@@ -15,6 +15,10 @@ pub struct GenerateOpts {
     /// If you do not specify a canister name, generates types for all canisters.
     canister_name: Option<String>,
 
+    /// Don't compile Motoko before generating.
+    #[arg(long)]
+    no_compile: bool,
+    
     #[command(flatten)]
     network: NetworkOpt,
 }
@@ -64,7 +68,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
         BuildConfig::from_config(&config, env.get_network_descriptor().is_playground())?
             .with_canisters_to_build(canisters_to_generate);
 
-    if build_config
+    if !opts.no_compile && build_config
         .canisters_to_build
         .as_ref()
         .map(|v| !v.is_empty())
@@ -73,7 +77,7 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
         let canister_pool_build = CanisterPool::load(&env, true, &build_dependees)?;
         slog::info!(log, "Building canisters before generate for Motoko");
         let runtime = Runtime::new().expect("Unable to create a runtime");
-        runtime.block_on(canister_pool_build.build_or_fail(&env, log, &build_config))?;
+        runtime.block_on(canister_pool_build.build_or_fail(&env, log, &build_config, opts.no_compile))?;
     }
 
     for canister in canister_pool_load.canisters_to_build(&generate_config) {

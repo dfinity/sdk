@@ -33,6 +33,7 @@ impl CanisterBuilder for PullBuilder {
         _: &dyn Environment,
         _pool: &CanisterPool,
         info: &CanisterInfo,
+        _no_deps: bool,
     ) -> DfxResult<Vec<CanisterId>> {
         Ok(vec![])
     }
@@ -44,6 +45,7 @@ impl CanisterBuilder for PullBuilder {
         _pool: &CanisterPool,
         canister_info: &CanisterInfo,
         _config: &BuildConfig,
+        _no_deps: bool,
     ) -> DfxResult<BuildOutput> {
         let pull_info = canister_info.as_info::<PullCanisterInfo>()?;
         Ok(BuildOutput {

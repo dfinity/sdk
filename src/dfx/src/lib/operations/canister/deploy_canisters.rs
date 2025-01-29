@@ -59,6 +59,7 @@ pub async fn deploy_canisters(
     no_asset_upgrade: bool,
     subnet_selection: &mut SubnetSelectionType,
     always_assist: bool,
+    no_compile: bool,
 ) -> DfxResult {
     let log = env.get_logger();
 
@@ -77,7 +78,13 @@ pub async fn deploy_canisters(
         }
     }
 
-    let canisters_to_deploy = canister_with_dependencies(&config, some_canister)?;
+    // TODO: The following below code is a mess.
+
+    let canisters_to_deploy = if no_compile && some_canister.is_some() {
+        vec![some_canister.unwrap().to_string()]
+    } else {
+        canister_with_dependencies(&config, some_canister)?
+    };
 
     let canisters_to_build = match deploy_mode {
         PrepareForProposal(canister_name) | ComputeEvidence(canister_name) => {
@@ -99,11 +106,15 @@ pub async fn deploy_canisters(
             .collect(),
     };
 
-    let canisters_to_install: Vec<String> = canisters_to_build
-        .clone()
-        .into_iter()
-        .filter(|canister_name| !pull_canisters_in_config.contains_key(canister_name))
-        .collect();
+    let canisters_to_install: Vec<String> = if no_compile && some_canister.is_some() {
+        vec![some_canister.unwrap().to_string()]
+    } else {
+        canisters_to_build
+            .clone()
+            .into_iter()
+            .filter(|canister_name| !pull_canisters_in_config.contains_key(canister_name))
+            .collect()
+    };
 
     if some_canister.is_some() {
         info!(log, "Deploying: {}", canisters_to_install.join(" "));
@@ -134,14 +145,23 @@ pub async fn deploy_canisters(
 
     let canisters_to_load = all_project_canisters_with_ids(env, &config);
 
-    let pool = build_canisters(
-        env,
-        &canisters_to_load,
-        &canisters_to_build,
-        &config,
-        env_file.clone(),
-    )
-    .await?;
+    // TODO: For efficiency, also don't compute canisters order if `no_compile`.
+    let pool = if no_compile {
+        CanisterPool::load(
+            env, // if `env1`,  fails with "NetworkDescriptor only available from an AgentEnvironment"
+            false,
+            &canisters_to_deploy,
+        )?
+    } else {
+        build_canisters(
+            env,
+            &canisters_to_load,
+            &if no_compile { canisters_to_build } else { Vec::new() },
+            &config,
+            env_file.clone(),
+            no_compile,
+        ).await?
+    };
 
     match deploy_mode {
         NormalDeploy | ForceReinstallSingleCanister(_) => {
@@ -296,6 +316,7 @@ async fn build_canisters(
     canisters_to_build: &[String],
     config: &Config,
     env_file: Option<PathBuf>,
+    no_deps: bool,
 ) -> DfxResult<CanisterPool> {
     let log = env.get_logger();
     info!(log, "Building canisters...");
@@ -306,7 +327,7 @@ async fn build_canisters(
         BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
             .with_canisters_to_build(canisters_to_build.into())
             .with_env_file(env_file);
-    canister_pool.build_or_fail(env, log, &build_config).await?;
+    canister_pool.build_or_fail(env, log, &build_config, no_deps).await?;
     Ok(canister_pool)
 }
 

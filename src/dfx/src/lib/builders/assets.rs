@@ -32,19 +32,23 @@ struct AssetsBuilderExtra {
 
 impl AssetsBuilderExtra {
     #[context("Failed to create AssetBuilderExtra for canister '{}'.", info.get_name())]
-    fn try_from(info: &CanisterInfo, pool: &CanisterPool) -> DfxResult<Self> {
-        let dependencies = info.get_dependencies()
-            .iter()
-            .map(|name| {
-                pool.get_first_canister_with_name(name)
-                    .map(|c| c.canister_id())
-                    .map_or_else(
-                        || Err(anyhow!("A canister with the name '{}' was not found in the current project.", name.clone())),
-                        DfxResult::Ok,
-                    )
-            })
-            .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?;
-        let info = info.as_info::<AssetsCanisterInfo>()?;
+    fn try_from(info: &CanisterInfo, pool: &CanisterPool, no_deps: bool) -> DfxResult<Self> {
+        let dependencies = if no_deps {
+            Vec::new()
+        } else {
+            info.get_dependencies()
+                .iter()
+                .map(|name| {
+                    pool.get_first_canister_with_name(name)
+                        .map(|c| c.canister_id())
+                        .map_or_else(
+                            || Err(anyhow!("A canister with the name '{}' was not found in the current project.", name.clone())),
+                            DfxResult::Ok,
+                        )
+                })
+                .collect::<DfxResult<Vec<CanisterId>>>().with_context( || format!("Failed to collect dependencies (canister ids) of canister {}.", info.get_name()))?
+            };
+            let info = info.as_info::<AssetsCanisterInfo>()?;
         let build = info.get_build_tasks().to_owned();
         let workspace = info.get_npm_workspace().map(str::to_owned);
 
@@ -79,8 +83,9 @@ impl CanisterBuilder for AssetsBuilder {
         _: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
+        no_deps: bool,
     ) -> DfxResult<Vec<CanisterId>> {
-        Ok(AssetsBuilderExtra::try_from(info, pool)?.dependencies)
+        Ok(AssetsBuilderExtra::try_from(info, pool, no_deps)?.dependencies)
     }
 
     #[context("Failed to build asset canister '{}'.", info.get_name())]
@@ -90,6 +95,7 @@ impl CanisterBuilder for AssetsBuilder {
         _pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,
+        _no_deps: bool,
     ) -> DfxResult<BuildOutput> {
         let wasm_path = info
             .get_output_root()
@@ -111,12 +117,13 @@ impl CanisterBuilder for AssetsBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,
+        no_deps: bool,
     ) -> DfxResult {
         let AssetsBuilderExtra {
             build,
             dependencies,
             workspace,
-        } = AssetsBuilderExtra::try_from(info, pool)?;
+        } = AssetsBuilderExtra::try_from(info, pool, no_deps)?;
 
         let vars = super::get_and_write_environment_variables(
             info,
