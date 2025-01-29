@@ -63,6 +63,9 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     output_file.write_fmt(format_args!("DEPLOY_FLAGS ?= \n\n"))?;
     output_file.write_fmt(format_args!("ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))\n\n"))?;
 
+    let graph0 = env.get_imports().borrow();
+    let graph = graph0.graph();
+
     match &canisters {
         Some(canisters) => {
             let canisters: &BTreeMap<String, ConfigCanistersCanister> = canisters;
@@ -90,11 +93,13 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     //     "{} {}:\n\tdfx canister create {}\n\tdfx build --no-deps --network $(NETWORK) {}\n\n", path1, path2, canister.0, canister.0
                     // ))?;
                 } else {
-                    let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm", canister.0, canister.0);
-                    let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0);
-                        output_file.write_fmt(format_args!("canister@{}: \\\n  {} {}\n\n", canister.0, path1, path2))?;
+                    // let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm", canister.0, canister.0);
+                    // let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0);
+                    // TODO: `graph` here is superfluous:
+                    let path = make_target(&pool, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
+                    output_file.write_fmt(format_args!("canister@{}: \\\n  {}\n\n", canister.0, path))?;
                     if let Some(main) = &canister.1.main {
-                        output_file.write_fmt(format_args!("{} {}: $(ROOT_DIR)/{}\n\n", path1, path2, main.to_str().unwrap()))?;
+                        output_file.write_fmt(format_args!("{}: $(ROOT_DIR)/{}\n\n", path, main.to_str().unwrap()))?;
                     }
                 }
             };
@@ -139,8 +144,6 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         None => {}
     };
 
-    let graph0 = env.get_imports().borrow();
-    let graph = graph0.graph();
     for edge in graph.edge_references() {
         let target_value = graph.node_weight(edge.target()).unwrap();
         if let Import::Lib(_) = target_value {
