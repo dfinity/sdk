@@ -2652,7 +2652,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=a96022bd185e97f52c5cde1c82c7592abddcff86#a96022bd185e97f52c5cde1c82c7592abddcff86"
+source = "git+https://github.com/dfinity/agent-rs?rev=9ebf6314ce2fcb36772c7d81d6d414b4628d6101#9ebf6314ce2fcb36772c7d81d6d414b4628d6101"
 dependencies = [
  "arc-swap",
  "async-channel",
@@ -2671,7 +2671,7 @@ dependencies = [
  "http 1.2.0",
  "http-body 1.0.1",
  "ic-certification 3.0.2",
- "ic-transport-types 0.39.3 (git+https://github.com/dfinity/agent-rs?rev=a96022bd185e97f52c5cde1c82c7592abddcff86)",
+ "ic-transport-types 0.39.3 (git+https://github.com/dfinity/agent-rs?rev=9ebf6314ce2fcb36772c7d81d6d414b4628d6101)",
  "ic-verify-bls-signature",
  "k256 0.13.4",
  "leb128",
@@ -3111,7 +3111,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=a96022bd185e97f52c5cde1c82c7592abddcff86#a96022bd185e97f52c5cde1c82c7592abddcff86"
+source = "git+https://github.com/dfinity/agent-rs?rev=9ebf6314ce2fcb36772c7d81d6d414b4628d6101#9ebf6314ce2fcb36772c7d81d6d414b4628d6101"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3229,7 +3229,7 @@ dependencies = [
 [[package]]
 name = "ic-transport-types"
 version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=a96022bd185e97f52c5cde1c82c7592abddcff86#a96022bd185e97f52c5cde1c82c7592abddcff86"
+source = "git+https://github.com/dfinity/agent-rs?rev=9ebf6314ce2fcb36772c7d81d6d414b4628d6101#9ebf6314ce2fcb36772c7d81d6d414b4628d6101"
 dependencies = [
  "candid",
  "hex",
@@ -3299,7 +3299,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=a96022bd185e97f52c5cde1c82c7592abddcff86#a96022bd185e97f52c5cde1c82c7592abddcff86"
+source = "git+https://github.com/dfinity/agent-rs?rev=9ebf6314ce2fcb36772c7d81d6d414b4628d6101#9ebf6314ce2fcb36772c7d81d6d414b4628d6101"
 dependencies = [
  "async-trait",
  "candid",

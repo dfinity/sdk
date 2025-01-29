@@ -1,7 +1,8 @@
 type Config = record {
-  profiling : bool;
+  profiling : opt record { start_page: opt nat32; page_limit: opt nat32 };
   remove_cycles_add : bool;
   limit_stable_memory_page : opt nat32;
+  limit_heap_memory_page : opt nat32;
   backend_canister_id : opt principal;
 };
 
