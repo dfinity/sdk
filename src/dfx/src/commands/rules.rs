@@ -177,10 +177,10 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 output_file.write_fmt(format_args!("deploy@{}: deploy-self@{}\n\n", canister_name, canister_name))?;
             } else {
                 output_file.write_fmt(format_args!(
-                    "deploy@{}: deploy-self@{} \\\n  {}\n\n",
-                    canister_name,
+                    "deploy@{}: {} \\\n  deploy-self@{}\n\n",
                     canister_name,
                     deps.iter().map(|name| format!("deploy@{}", name)).join(" "),
+                    canister_name,
                 ))?;
             }
         }
