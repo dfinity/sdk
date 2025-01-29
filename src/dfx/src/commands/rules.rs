@@ -157,15 +157,9 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             output_file.write_fmt(format_args!("{}:\n\t{}\n\n", make_target(graph, *node.1)?, command))?;
         }
         if let Import::Canister(canister_name) = node.0 {
-            output_file.write_fmt(format_args!("\ndeploy@{}: canister@{}", canister_name, canister_name))?;
+            output_file.write_fmt(format_args!("\ndeploy-self@{}: canister@{}", canister_name, canister_name))?;
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             let deps = canister.as_ref().get_info().get_dependencies();
-            if !deps.is_empty() && !canister.as_ref().get_info().is_assets() {
-                output_file.write_fmt(format_args!(
-                    " \\\n  {}",
-                    deps.iter().map(|name| format!("deploy@{}", name)).join(" "),
-                ))?;
-            }
             output_file.write_fmt(format_args!( // TODO: Use `canister install` instead.
                 "\n\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n", canister_name, canister_name
             ))?;
@@ -173,12 +167,21 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             if canister.as_ref().get_info().is_assets() {
                 if !deps.is_empty() {
                     output_file.write_fmt(format_args!(
-                        "\ncanister@{}: \\  {} \\  {}\n",
+                        "\ncanister@{}: \\\n  {}\n",
                         canister_name,
                         deps.iter().map(|name| format!("generate@{}", name)).join(" "),
-                        deps.iter().map(|name| format!("deploy@{}", name)).join(" "),
                     ))?;
                 }
+            }
+            if deps.is_empty() {
+                output_file.write_fmt(format_args!("deploy@{}: deploy-self@{}\n\n", canister_name, canister_name))?;
+            } else {
+                output_file.write_fmt(format_args!(
+                    "deploy@{}: deploy-self@{} \\\n  {}\n\n",
+                    canister_name,
+                    canister_name,
+                    deps.iter().map(|name| format!("deploy@{}", name)).join(" "),
+                ))?;
             }
         }
     }
