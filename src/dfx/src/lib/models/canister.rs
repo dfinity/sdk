@@ -457,7 +457,7 @@ pub enum Import {
     Canister(String),
     Ic(String),
     Lib(String), // TODO: Unused, because package manager never update existing files (but create new dirs)
-    FullPath(PathBuf), // TODo: Rename, because it's now relative.
+    Path(PathBuf),
 }
 
 impl Display for Import {
@@ -466,7 +466,7 @@ impl Display for Import {
             Self::Canister(name) => write!(f, "canister {}", name),
             Self::Ic(principal) => write!(f, "principal {}", principal),
             Self::Lib(name) => write!(f, "library {}", name),
-            Self::FullPath(file) => write!(f, "file {}", file.to_string_lossy()),
+            Self::Path(file) => write!(f, "file {}", file.to_string_lossy()),
         }
     }
 }
@@ -518,7 +518,7 @@ impl TryFrom<&str> for Import {
                             path.display()
                         ))));
                     };
-                    Import::FullPath(path)
+                    Import::Path(path)
                 }
                 None => {
                     return Err(DfxError::new(BuildError::DependencyError(format!(

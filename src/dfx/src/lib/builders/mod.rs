@@ -309,7 +309,7 @@ pub trait CanisterBuilder {
                         return Ok(());
                     }
                 }
-                Import::FullPath(path) => Some(path.clone()),
+                Import::Path(path) => Some(path.clone()),
                 _ => None,
             };
             if let Some(file) = file {
@@ -325,7 +325,7 @@ pub trait CanisterBuilder {
                 for line in output.lines() {
                     let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
                     match &child {
-                        Import::Canister(_) | Import::FullPath(_) => {
+                        Import::Canister(_) | Import::Path(_) => {
                             read_dependencies_recursive(env, pool, &child)?
                         }
                         _ => {}

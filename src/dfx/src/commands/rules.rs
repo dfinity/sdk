@@ -189,7 +189,7 @@ fn make_target(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBa
             let path2 = format!("$(ROOT_DIR)/.dfx/local/canisters/{}/{}.did", canister_name, canister_name);
             format!("{} {}", path1, path2)
         }
-        Import::FullPath(path) => format!("$(ROOT_DIR)/{}", path.to_str().unwrap_or("<unknown>").to_owned()), // TODO: <unknown> is a hack
+        Import::Path(path) => format!("$(ROOT_DIR)/{}", path.to_str().unwrap_or("<unknown>").to_owned()), // TODO: <unknown> is a hack
         Import::Ic(canister_name) => format!("canister@{}", canister_name),
         Import::Lib(_path) => "".to_string(),
     })
@@ -200,7 +200,7 @@ fn get_build_command(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as G
     match node_value {
         Import::Canister(canister_name) | Import::Ic(canister_name) =>
             Some(format!("dfx canister create {}\n\tdfx build --no-deps {}", canister_name, canister_name)),
-        Import::FullPath(_path) => None,
+        Import::Path(_path) => None,
         Import::Lib(_path) => None,
     }
 }
