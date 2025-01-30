@@ -265,8 +265,8 @@ The command line value will be used.",
                 .context("Failed to authorize your principal with the canister. You can still control the canister by using your wallet with the --wallet flag.")?;
         };
 
-        info!(log, "Uploading assets to asset canister...");
-        post_install_store_assets(canister_info, agent, log).await?;
+        debug!(log, "Uploading assets to asset canister...");
+        post_install_store_assets(env, canister_info, agent).await?;
     }
     if !canister_info.get_post_install().is_empty() {
         let config = env.get_config()?;

@@ -15,6 +15,7 @@ use crate::error::ComputeEvidenceError;
 use crate::error::HashContentError;
 use crate::error::HashContentError::EncodeContentFailed;
 use crate::sync::gather_asset_descriptors;
+use crate::AssetSyncProgressRenderer;
 use ic_utils::Canister;
 use sha2::{Digest, Sha256};
 use slog::{info, trace, Logger};
@@ -39,6 +40,7 @@ pub async fn compute_evidence(
     canister: &Canister<'_>,
     dirs: &[&Path],
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<String, ComputeEvidenceError> {
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
@@ -49,18 +51,21 @@ pub async fn compute_evidence(
         logger,
         "Fetching properties for all assets in the canister."
     );
-    let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
+    let canister_asset_properties =
+        get_assets_properties(canister, &canister_assets, progress).await?;
 
     info!(
         logger,
         "Computing evidence for batch operations for assets in the project.",
     );
+
     let project_assets = make_project_assets(
         None,
         asset_descriptors,
         &canister_assets,
         crate::batch_upload::plumbing::Mode::ByProposal,
         logger,
+        progress,
     )
     .await?;
 
