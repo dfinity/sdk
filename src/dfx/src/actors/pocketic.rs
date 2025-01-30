@@ -24,7 +24,7 @@ use dfx_core::config::model::replica_config::CachedConfig;
 use dfx_core::config::model::replica_config::ReplicaConfig;
 #[cfg(unix)]
 use dfx_core::json::save_json_file;
-use slog::{debug, error, info, warn, Logger};
+use slog::{debug, error, warn, Logger};
 use std::net::SocketAddr;
 use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
@@ -159,7 +159,7 @@ impl Actor for PocketIc {
     }
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
-        info!(self.logger, "Stopping PocketIC...");
+        warn!(self.logger, "Stopping PocketIC...");
         if let Some(sender) = self.stop_sender.take() {
             let _ = sender.send(());
         }
@@ -168,7 +168,7 @@ impl Actor for PocketIc {
             let _ = join.join();
         }
 
-        info!(self.logger, "Stopped.");
+        warn!(self.logger, "Stopped.");
         Running::Stop
     }
 }
@@ -435,7 +435,7 @@ async fn initialize_pocketic(
         initialize_bitcoin_canister(&agent, &logger, bitcoin_integration_config.clone()).await?;
     }
 
-    info!(logger, "Initialized PocketIC.");
+    debug!(logger, "Initialized PocketIC.");
     Ok(instance)
 }
 
