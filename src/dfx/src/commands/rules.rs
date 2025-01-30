@@ -33,8 +33,6 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     // Read the config.
     let config = env.get_config_or_anyhow()?;
 
-    let env = create_anonymous_agent_environment(env1, None)?;
-
     // We load dependencies before creating the file to minimize the time that the file is half-written.
     // Load dependencies for Make rules:
     let builder = CustomBuilder::new(&env)?; // hackish use of CustomBuilder not intended for this use
