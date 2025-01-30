@@ -1,0 +1,27 @@
+{
+    "name": "sdk",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "mounts": [
+        {
+            "source": "${localEnv:HOME}/.cache",
+            "target": "/root/.cache",
+            "type": "bind"
+        }
+    ],
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "rust-lang.rust-analyzer",
+                "tamasfe.even-better-toml",
+                "vadimcn.vscode-lldb",
+                "EditorConfig.EditorConfig"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "rust-analyzer.checkOnSave.command": "clippy"
+            }
+        }
+    }
+}

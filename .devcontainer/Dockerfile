@@ -1,0 +1,11 @@
+FROM debian:12
+
+RUN \
+    apt update && apt install -y \
+        build-essential \
+        cmake \
+        curl \
+        git
+
+RUN \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
