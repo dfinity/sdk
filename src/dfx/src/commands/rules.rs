@@ -9,6 +9,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::{CanisterPool, Import};
 use crate::lib::builders::custom::CustomBuilder;
+use crate::lib::network::network_opt::NetworkOpt;
 use itertools::Itertools;
 use dfx_core::config::model::dfinity::{CanisterTypeProperties, ConfigCanistersCanister};
 use clap::Parser;
@@ -22,12 +23,15 @@ pub struct RulesOpts {
     /// File to output make rules
     #[arg(long, short, value_name = "FILE")]
     output: Option<String>,
+
+    #[command(flatten)]
+    network: NetworkOpt,
 }
 
 // FIXME: It wrongly acts with downloaded canisters (like `internet_identity`).
 //        This seems to be the cause of double recompilation.
 pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
-    let env = create_anonymous_agent_environment(env1, None)?;
+    let env = create_anonymous_agent_environment(env1, opts.network.to_network_name())?;
     // let log = env.get_logger();
 
     // Read the config.
