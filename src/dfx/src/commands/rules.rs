@@ -158,12 +158,18 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     }
     for node in graph0.nodes() {
         let command = get_build_command(graph, *node.1);
-        if let Some(command) = command {
-            output_file.write_fmt(format_args!("{}:\n\t{}\n\n", make_target(&pool, graph, *node.1)?, command))?;
-        }
         if let Import::Canister(canister_name) = node.0 {
-            output_file.write_fmt(format_args!("\ndeploy-self@{}: canister@{}", canister_name, canister_name))?;
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
+            if let Some(command) = command {
+                let target = make_target(&pool, graph, *node.1)?;
+                if canister.as_ref().get_info().is_assets() {
+                    // We don't support generating dependencies for assets,
+                    // so recompile it every time:
+                    output_file.write_fmt(format_args!(".PHONY: {}\n", target))?;    
+                }
+                output_file.write_fmt(format_args!("{}:\n\t{}\n\n", target, command))?;
+            }
+            output_file.write_fmt(format_args!("\ndeploy-self@{}: canister@{}", canister_name, canister_name))?;
             let deps = canister.as_ref().get_info().get_dependencies();
             output_file.write_fmt(format_args!( // TODO: Use `canister install` instead.
                 "\n\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n", canister_name, canister_name
