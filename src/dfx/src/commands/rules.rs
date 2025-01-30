@@ -238,6 +238,7 @@ fn make_target(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<I
 }
 
 fn get_build_command(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> Option<String> {
+    // FIXME: Canister type may depend on current network. What to do?
     let node_value = graph.node_weight(node_id).unwrap();
     match node_value {
         Import::Canister(canister_name) =>
