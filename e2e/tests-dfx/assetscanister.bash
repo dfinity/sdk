@@ -912,7 +912,7 @@ check_permission_failure() {
 
   dd if=/dev/urandom of=src/e2e_project_frontend/assets/asset2.bin bs=400000 count=1
 
-  assert_command dfx deploy
+  assert_command dfx deploy -v
   assert_match '/asset1.bin.*is already installed'
   assert_match '/asset2.bin 1/1'
 }
