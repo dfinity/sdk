@@ -240,8 +240,9 @@ fn make_target(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<I
 fn get_build_command(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> Option<String> {
     let node_value = graph.node_weight(node_id).unwrap();
     match node_value {
-        Import::Canister(canister_name) | Import::Ic(canister_name) =>
+        Import::Canister(canister_name) =>
             Some(format!("dfx canister create --network $(NETWORK) {}\n\tdfx build --no-deps --network $(NETWORK) {}", canister_name, canister_name)),
+        Import::Ic(_canister_name) => None,
         Import::Path(_path) => None,
         Import::Lib(_path) => None,
     }
