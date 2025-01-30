@@ -12,7 +12,7 @@ use actix::{
 };
 use anyhow::bail;
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use slog::{debug, info, Logger};
+use slog::{debug, Logger};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -126,7 +126,7 @@ impl Actor for CanisterHttpAdapter {
     }
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
-        info!(self.logger, "Stopping canister http adapter...");
+        debug!(self.logger, "Stopping canister http adapter...");
         if let Some(sender) = self.stop_sender.take() {
             let _ = sender.send(());
         }
@@ -135,7 +135,7 @@ impl Actor for CanisterHttpAdapter {
             let _ = join.join();
         }
 
-        info!(self.logger, "Stopped.");
+        debug!(self.logger, "Stopped.");
         Running::Stop
     }
 }
