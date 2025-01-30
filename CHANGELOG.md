@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### fix: `dfx canister install` and `dfx deploy` with `--no-asset-upgrade` no longer hang indefinitely when wasm is not up to date
+
 # 0.25.0
 
 ### fix: correctly detects hyphenated Rust bin crates
