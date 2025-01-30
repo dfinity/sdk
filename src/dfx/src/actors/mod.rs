@@ -6,6 +6,7 @@ use crate::actors::replica::{BitcoinIntegrationConfig, Replica};
 use crate::actors::shutdown_controller::ShutdownController;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::progress_bar::ProgressBar;
 use actix::{Actor, Addr, Recipient};
 use anyhow::Context;
 use dfx_core::config::model::local_server_descriptor::LocalServerDescriptor;
@@ -233,11 +234,12 @@ pub fn start_post_start_actor(
     env: &dyn Environment,
     background: bool,
     pocketic_proxy: Option<Addr<PocketIcProxy>>,
+    spinner: ProgressBar,
 ) -> DfxResult<Addr<PostStart>> {
     let config = post_start::Config {
         logger: env.get_logger().clone(),
         background,
         pocketic_proxy,
     };
-    Ok(PostStart::new(config).start())
+    Ok(PostStart::new(config, spinner).start())
 }

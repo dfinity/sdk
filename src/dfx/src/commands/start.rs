@@ -359,6 +359,7 @@ pub fn exec(
     }
     save_json_file(&previous_config_path, &effective_config)?;
 
+    let spinner = env.new_spinner("Starting local network...".into());
     let system = actix::System::new();
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
@@ -422,7 +423,7 @@ pub fn exec(
             pocketic_proxy_port_file_path,
         )?;
 
-        let post_start = start_post_start_actor(env, running_in_background, Some(proxy))?;
+        let post_start = start_post_start_actor(env, running_in_background, Some(proxy), spinner)?;
 
         Ok::<_, Error>(post_start)
     })?;
