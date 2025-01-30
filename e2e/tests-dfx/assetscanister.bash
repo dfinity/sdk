@@ -905,7 +905,7 @@ check_permission_failure() {
   dd if=/dev/urandom of=src/e2e_project_frontend/assets/asset2.bin bs=400000 count=1
 
   dfx_start
-  assert_command dfx deploy
+  assert_command dfx deploy -v
 
   assert_match '/asset1.bin 1/1'
   assert_match '/asset2.bin 1/1'
@@ -1649,7 +1649,7 @@ EOF
   assert_match "200 OK" "$stderr"
 
   # redirect survives upgrade
-  assert_command dfx deploy --upgrade-unchanged
+  assert_command dfx deploy --upgrade-unchanged -v
   assert_match "is already installed"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
@@ -1922,7 +1922,7 @@ WARN: {
     },
   ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
 
-  assert_command dfx deploy
+  assert_command dfx deploy -v
   assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]* \(with cache and 1 header\)'
 }
 
