@@ -241,7 +241,7 @@ fn get_build_command(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as G
     let node_value = graph.node_weight(node_id).unwrap();
     match node_value {
         Import::Canister(canister_name) | Import::Ic(canister_name) =>
-            Some(format!("dfx canister create {}\n\tdfx build --no-deps --network $(NETWORK) {}", canister_name, canister_name)),
+            Some(format!("dfx canister create --network $(NETWORK) {}\n\tdfx build --no-deps --network $(NETWORK) {}", canister_name, canister_name)),
         Import::Path(_path) => None,
         Import::Lib(_path) => None,
     }
