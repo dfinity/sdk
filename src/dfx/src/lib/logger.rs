@@ -3,6 +3,7 @@ use indicatif::{MultiProgress, ProgressDrawTarget};
 use slog::{Drain, Level, Logger, OwnedKVList, Record};
 use std::fs::File;
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 /// The logging mode to use.
 pub enum LoggingMode {
@@ -67,8 +68,8 @@ fn create_drain(mode: LoggingMode) -> Logger {
         LoggingMode::Stderr => {
             let decorator = slog_term::TermDecorator::new().build();
             let drain = DfxFormat::new(decorator).fuse();
-            let async_drain = slog_async::Async::new(drain).build().fuse();
-            Logger::root(async_drain, slog::o!())
+            let mutex_drain = Mutex::new(drain).fuse();
+            Logger::root(mutex_drain, slog::o!())
         }
         LoggingMode::File(out) => {
             let file = File::create(out).expect("Couldn't open log file");
@@ -119,7 +120,6 @@ pub fn create_root_logger(verbose_level: i64, mode: LoggingMode) -> (Logger, Mul
         inner: drain,
         spinners: spinners.clone(),
     };
-    let drain = slog_async::Async::new(drain).build().fuse();
     (
         Logger::root(drain, slog::o!("version" => dfx_version_str())),
         spinners,
