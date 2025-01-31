@@ -682,13 +682,13 @@ impl CanisterPool {
         if self
             .canisters_to_build(build_config)
             .iter()
-            .any(|can| can.info.is_rust())
+            .any(|can| can.info.should_cargo_audit())
         {
             self.run_cargo_audit()?;
         } else {
             trace!(
                 self.logger,
-                "No canister of type 'rust' found. Not trying to run 'cargo audit'."
+                "No canister of type 'rust' found (or it disabled the audit step). Not trying to run 'cargo audit'."
             )
         }
 
@@ -839,7 +839,7 @@ impl CanisterPool {
         log: &Logger,
         build_config: &BuildConfig,
     ) -> DfxResult<()> {
-        self.download(build_config).await?;
+        self.download().await?;
         let outputs = self.build(env, log, build_config)?;
 
         for output in outputs {
@@ -849,8 +849,8 @@ impl CanisterPool {
         Ok(())
     }
 
-    async fn download(&self, build_config: &BuildConfig) -> DfxResult {
-        for canister in self.canisters_to_build(build_config) {
+    async fn download(&self) -> DfxResult {
+        for canister in self.canisters.iter() {
             let info = canister.get_info();
 
             if info.is_custom() {

@@ -246,6 +246,12 @@
               "description": "Name of the Rust package that compiles this canister's Wasm.",
               "type": "string"
             },
+            "skip_cargo_audit": {
+              "title": "`cargo-audit` check",
+              "description": "If set to true, does not run `cargo audit` before building.",
+              "default": false,
+              "type": "boolean"
+            },
             "type": {
               "type": "string",
               "enum": [
