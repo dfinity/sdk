@@ -23,4 +23,8 @@ RUN \
     $HOME/.cargo/bin/cargo \
         binstall --locked sccache
 
+ENV SCCACHE_DIRECT=true
+ENV SCCACHE_LOG=info
+
 ENV RUSTC_WRAPPER=sccache
+ENV CARGO_INCREMENTAL=false
