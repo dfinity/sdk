@@ -345,3 +345,9 @@ teardown() {
   assert_match "CANISTER_ID_REMOTE: qoctq-giaaa-aaaaa-aaaea-cai"
   assert_contains "CANISTER_CANDID_PATH_REMOTE: $(pwd -P)/remotecandid.did"
 }
+
+@test "build step downloads dependency .did files" {
+  install_asset remote/download_did
+  assert_command dfx build --ic -v
+  assert_not_contains ".did file for canister 'internet_identity' does not exist"
+}
