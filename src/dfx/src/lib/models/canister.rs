@@ -682,13 +682,13 @@ impl CanisterPool {
         if self
             .canisters_to_build(build_config)
             .iter()
-            .any(|can| can.info.is_rust())
+            .any(|can| can.info.should_cargo_audit())
         {
             self.run_cargo_audit()?;
         } else {
             trace!(
                 self.logger,
-                "No canister of type 'rust' found. Not trying to run 'cargo audit'."
+                "No canister of type 'rust' found (or it disabled the audit step). Not trying to run 'cargo audit'."
             )
         }
 
