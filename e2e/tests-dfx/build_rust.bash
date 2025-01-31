@@ -34,4 +34,7 @@ teardown() {
   dfx canister create --all
   assert_command dfx build
   assert_match "Audit found vulnerabilities"
+  jq '.canisters.hello.skip_cargo_audit=true' dfx.json | sponge dfx.json
+  assert_command dfx build
+  assert_not_match "Audit found vulnerabilities"
 }
