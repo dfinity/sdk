@@ -850,7 +850,6 @@ impl CanisterPool {
     }
 
     async fn download(&self) -> DfxResult {
-        // Download canister wasms and .did files
         for canister in self.canisters.iter() {
             let info = canister.get_info();
 
