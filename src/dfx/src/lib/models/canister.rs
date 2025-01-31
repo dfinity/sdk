@@ -839,7 +839,7 @@ impl CanisterPool {
         log: &Logger,
         build_config: &BuildConfig,
     ) -> DfxResult<()> {
-        self.download(build_config).await?;
+        self.download().await?;
         let outputs = self.build(env, log, build_config)?;
 
         for output in outputs {
@@ -849,8 +849,8 @@ impl CanisterPool {
         Ok(())
     }
 
-    async fn download(&self, build_config: &BuildConfig) -> DfxResult {
-        for canister in self.canisters_to_build(build_config) {
+    async fn download(&self) -> DfxResult {
+        for canister in self.canisters.iter() {
             let info = canister.get_info();
 
             if info.is_custom() {
