@@ -355,6 +355,11 @@ pub enum CanisterTypeProperties {
         /// # Candid File
         /// Path of this canister's candid interface declaration.
         candid: PathBuf,
+
+        /// # `cargo-audit` check
+        /// If set to true, does not run `cargo audit` before building.
+        #[serde(default)]
+        skip_cargo_audit: bool,
     },
     /// # Asset-Specific Properties
     Assets {
@@ -1296,6 +1301,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         let mut wasm = None;
         let mut candid = None;
         let mut package = None;
+        let mut skip_cargo_audit = None;
         let mut crate_name = None;
         let mut source = None;
         let mut build = None;
@@ -1313,6 +1319,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
                 "type" => r#type = Some(map.next_value::<String>()?),
                 "id" => id = Some(map.next_value()?),
                 "workspace" => workspace = Some(map.next_value()?),
+                "skip_cargo_audit" => skip_cargo_audit = Some(map.next_value()?),
                 _ => continue,
             }
         }
@@ -1321,6 +1328,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
             Some("rust") => CanisterTypeProperties::Rust {
                 candid: PathBuf::from(candid.ok_or_else(|| missing_field("candid"))?),
                 package: package.ok_or_else(|| missing_field("package"))?,
+                skip_cargo_audit: skip_cargo_audit.unwrap_or(false),
                 crate_name,
             },
             Some("assets") => CanisterTypeProperties::Assets {

@@ -31,6 +31,7 @@ use crate::error::SyncError;
 use crate::error::SyncError::CommitBatchFailed;
 use crate::error::UploadContentError;
 use crate::error::UploadContentError::{CreateBatchFailed, ListAssetsFailed};
+use crate::progress::{AssetSyncProgressRenderer, AssetSyncState};
 use candid::Nat;
 use ic_agent::AgentError;
 use ic_utils::Canister;
@@ -51,28 +52,42 @@ pub async fn upload_content_and_assemble_sync_operations(
     no_delete: bool,
     mode: batch_upload::plumbing::Mode,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<CommitBatchArguments, UploadContentError> {
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::GatherAssetDescriptors);
+    }
+
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::ListAssets);
+    }
     let canister_assets = list_assets(canister).await.map_err(ListAssetsFailed)?;
-    info!(
+    debug!(
         logger,
         "Fetching properties for all assets in the canister."
     );
     let now = std::time::Instant::now();
-    let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::GetAssetProperties);
+    }
+    let canister_asset_properties =
+        get_assets_properties(canister, &canister_assets, progress).await?;
 
-    info!(
+    debug!(
         logger,
-        "Done fetching properties for all assets in the canister. Took {:?}",
+        "Fetched properties for all assets in the canister in {:?}",
         now.elapsed()
     );
 
-    info!(logger, "Starting batch.");
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::CreateBatch);
+    }
 
     let batch_id = create_batch(canister).await.map_err(CreateBatchFailed)?;
 
-    info!(
+    debug!(
         logger,
         "Staging contents of new and changed assets in batch {}:", batch_id
     );
@@ -80,15 +95,24 @@ pub async fn upload_content_and_assemble_sync_operations(
     let chunk_uploader =
         ChunkUploader::new(canister.clone(), canister_api_version, batch_id.clone());
 
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::StageContents);
+    }
+
     let project_assets = make_project_assets(
         Some(&chunk_uploader),
         asset_descriptors,
         &canister_assets,
         mode,
         logger,
+        progress,
     )
     .await
     .map_err(UploadContentError::CreateProjectAssetError)?;
+
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::AssembleBatch);
+    }
 
     let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
         &chunk_uploader,
@@ -129,6 +153,7 @@ pub async fn sync(
     dirs: &[&Path],
     no_delete: bool,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<(), SyncError> {
     let canister_api_version = api_version(canister).await;
     let commit_batch_args = upload_content_and_assemble_sync_operations(
@@ -138,25 +163,37 @@ pub async fn sync(
         no_delete,
         NormalDeploy,
         logger,
+        progress,
     )
     .await?;
     debug!(logger, "Canister API version: {canister_api_version}. ic-asset API version: {BATCH_UPLOAD_API_VERSION}");
-    info!(logger, "Committing batch.");
+    debug!(logger, "Committing batch.");
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::CommitBatch);
+    }
     match canister_api_version {
         0 => {
             let commit_batch_args_v0 = v0::CommitBatchArguments::try_from(commit_batch_args).map_err(DowngradeV1TOV0Failed)?;
             warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
             commit_batch(canister, commit_batch_args_v0).await
         }
-        BATCH_UPLOAD_API_VERSION.. => commit_in_stages(canister, commit_batch_args, logger).await,
-    }.map_err(CommitBatchFailed)
+        BATCH_UPLOAD_API_VERSION.. => commit_in_stages(canister, commit_batch_args, logger, progress).await,
+    }.map_err(CommitBatchFailed)?;
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::Done);
+    }
+    Ok(())
 }
 
 async fn commit_in_stages(
     canister: &Canister<'_>,
     commit_batch_args: CommitBatchArguments,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<(), AgentError> {
+    if let Some(progress) = progress {
+        progress.set_total_batch_operations(commit_batch_args.operations.len());
+    }
     // Note that SetAssetProperties operations are only generated for assets that
     // already exist, since CreateAsset operations set all properties.
     let (set_properties_operations, other_operations): (Vec<_>, Vec<_>) = commit_batch_args
@@ -166,7 +203,7 @@ async fn commit_in_stages(
 
     // This part seems reasonable in general as a separate batch
     for operations in set_properties_operations.chunks(500) {
-        info!(logger, "Setting properties of {} assets.", operations.len());
+        debug!(logger, "Setting properties of {} assets.", operations.len());
         commit_batch(
             canister,
             CommitBatchArguments {
@@ -174,13 +211,16 @@ async fn commit_in_stages(
                 operations: operations.into(),
             },
         )
-        .await?
+        .await?;
+        if let Some(progress) = progress {
+            progress.add_committed_batch_operations(operations.len());
+        }
     }
 
     // Seen to work at 800 ({"SetAssetContent": 932, "Delete": 47, "CreateAsset": 58})
     // so 500 shouldn't exceed per-message instruction limit
     for operations in other_operations.chunks(500) {
-        info!(
+        debug!(
             logger,
             "Committing batch with {} operations.",
             operations.len()
@@ -192,7 +232,10 @@ async fn commit_in_stages(
                 operations: operations.into(),
             },
         )
-        .await?
+        .await?;
+        if let Some(progress) = progress {
+            progress.add_committed_batch_operations(operations.len());
+        }
     }
 
     // this just deletes the batch
@@ -211,6 +254,7 @@ pub async fn prepare_sync_for_proposal(
     canister: &Canister<'_>,
     dirs: &[&Path],
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<(Nat, ByteBuf), PrepareSyncForProposalError> {
     let canister_api_version = api_version(canister).await;
     let arg = upload_content_and_assemble_sync_operations(
@@ -220,6 +264,7 @@ pub async fn prepare_sync_for_proposal(
         false,
         ByProposal,
         logger,
+        progress,
     )
     .await?;
     let arg = sort_batch_operations(arg);

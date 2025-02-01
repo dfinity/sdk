@@ -1,3 +1,4 @@
+use self::pocketic::PocketIc;
 use crate::actors::btc_adapter::signals::BtcAdapterReadySubscribe;
 use crate::actors::btc_adapter::BtcAdapter;
 use crate::actors::canister_http_adapter::signals::CanisterHttpAdapterReadySubscribe;
@@ -17,8 +18,6 @@ use pocketic_proxy::{PocketIcProxy, PocketIcProxyConfig};
 use post_start::PostStart;
 use std::fs;
 use std::path::PathBuf;
-
-use self::pocketic::PocketIc;
 
 pub mod btc_adapter;
 pub mod canister_http_adapter;

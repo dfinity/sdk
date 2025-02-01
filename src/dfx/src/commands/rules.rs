@@ -94,7 +94,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     // output_file.write_fmt(format_args!(
                     //     "{} {}:\n\tdfx canister create {}\n\tdfx build --no-deps --network $(NETWORK) {}\n\n", path1, path2, canister.0, canister.0
                     // ))?;
-                } else {
+                } else if !canister2.get_info().is_custom() { // We don't build custom canisters.
                     // let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm", canister.0, canister.0);
                     // let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0);
                     // TODO: `graph` here is superfluous:
@@ -128,18 +128,22 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                             _ => panic!("unknown canister type: {}", canister.0.as_str()),
                         }
                     }).flatten().map(|path| format!("$(ROOT_DIR)/{}", output.join(path).to_str().unwrap().to_string())).join(" "); // TODO: `unwrap`
-                    output_file.write_fmt(format_args!(
-                        "generate@{}: \\\n  {}\n\n",
-                        canister.0,
-                        deps,
-                    ))?;
-                    output_file.write_fmt(format_args!(
-                        "{}: {}\n\t{} {}\n\n",
-                        deps,
-                        format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0),
-                        "dfx generate --no-compile --network $(NETWORK)",
-                        canister.0,
-                    ))?;
+                    if let CanisterTypeProperties::Custom { .. } = &canister.1.type_specific {
+                        // TODO
+                    } else {
+                        output_file.write_fmt(format_args!(
+                            "generate@{}: \\\n  {}\n\n",
+                            canister.0,
+                            deps,
+                        ))?;
+                        output_file.write_fmt(format_args!(
+                            "{}: {}\n\t{} {}\n\n",
+                            deps,
+                            format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0),
+                            "dfx generate --no-compile --network $(NETWORK)",
+                            canister.0,
+                        ))?;
+                    }
                 }
             };
         }
@@ -159,7 +163,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         }
     }
     for node in graph0.nodes() {
-        let command = get_build_command(graph, *node.1);
+        let command = get_build_command(&pool, graph, *node.1);
         if let Import::Canister(canister_name) = node.0 {
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             if let Some(command) = command {
@@ -171,11 +175,13 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 }
                 output_file.write_fmt(format_args!("{}:\n\t{}\n\n", target, command))?;
             }
-            output_file.write_fmt(format_args!("\ndeploy-self@{}: canister@{}", canister_name, canister_name))?;
+            output_file.write_fmt(format_args!("\ndeploy-self@{}: canister@{}\n", canister_name, canister_name))?;
             let deps = canister.as_ref().get_info().get_dependencies();
-            output_file.write_fmt(format_args!( // TODO: Use `canister install` instead.
-                "\n\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n", canister_name, canister_name
-            ))?;
+            if !canister.as_ref().get_info().is_custom() {
+                output_file.write_fmt(format_args!( // TODO: Use `canister install` instead.
+                    "\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n", canister_name, canister_name
+                ))?;
+            }
             // If the canister is assets, add `generate@` dependencies.
             if canister.as_ref().get_info().is_assets() {
                 if !deps.is_empty() {
@@ -239,12 +245,17 @@ fn make_target(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<I
     })
 }
 
-fn get_build_command(graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> Option<String> {
-    // FIXME: Canister type may depend on current network. What to do?
+fn get_build_command(_pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> Option<String> {
     let node_value = graph.node_weight(node_id).unwrap();
     match node_value {
-        Import::Canister(canister_name) =>
-            Some(format!("dfx canister create --network $(NETWORK) {}\n\tdfx build --no-deps --network $(NETWORK) {}", canister_name, canister_name)),
+        Import::Canister(canister_name) => {
+            // let canister = pool.get_first_canister_with_name(&canister_name).unwrap();
+            // if canister.get_info().is_custom() {
+            //     None // no compilation for custom canisters
+            // } else {
+            Some(format!("dfx canister create --network $(NETWORK) {}\n\tdfx build --no-deps --network $(NETWORK) {}", canister_name, canister_name))
+            // }
+        }
         Import::Ic(_canister_name) => None,
         Import::Path(_path) => None,
         Import::Lib(_path) => None,

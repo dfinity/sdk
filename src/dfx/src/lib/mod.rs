@@ -27,6 +27,7 @@ pub mod nns_types;
 pub mod operations;
 pub mod package_arguments;
 pub mod program;
+pub mod progress;
 pub mod progress_bar;
 pub mod project;
 pub mod replica;

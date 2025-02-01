@@ -14,6 +14,7 @@ use crate::canister_api::methods::{
 use crate::canister_api::types::batch_upload::v0;
 use crate::error::CompatibilityError::DowngradeV1TOV0Failed;
 use crate::error::UploadError::{self, CommitBatchFailed, CreateBatchFailed, ListAssetsFailed};
+use crate::AssetSyncProgressRenderer;
 use ic_utils::Canister;
 use slog::{info, Logger};
 use std::collections::HashMap;
@@ -24,6 +25,7 @@ pub async fn upload(
     canister: &Canister<'_>,
     files: HashMap<String, PathBuf>,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<(), UploadError> {
     let asset_descriptors: Vec<AssetDescriptor> = files
         .iter()
@@ -52,6 +54,7 @@ pub async fn upload(
         &canister_assets,
         NormalDeploy,
         logger,
+        progress,
     )
     .await?;
 

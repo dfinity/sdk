@@ -34,14 +34,13 @@ impl CanisterInfoFactory for RustCanisterInfo {
             bail!("`cargo metadata` was unsuccessful");
         }
 
-        let (package, crate_name) = if let CanisterTypeProperties::Rust {
+        let CanisterTypeProperties::Rust {
             package,
             crate_name,
             candid: _,
+            skip_cargo_audit: _,
         } = info.type_specific.clone()
-        {
-            (package, crate_name)
-        } else {
+        else {
             bail!(
                 "Attempted to construct a custom canister from a type:{} canister config",
                 info.type_specific.name()

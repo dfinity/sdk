@@ -79,33 +79,10 @@ pub async fn install_canister(
         read_module_metadata(agent, canister_id, "enhanced-orthogonal-persistence")
             .await
             .map(|_| WasmMemoryPersistence::Keep);
-    // let mode = if let InstallModeHint::Auto(options) = mode_hint {
-    //     if installed_module_hash.is_some() {
-    //         InstallMode::Upgrade(Some(CanisterUpgradeOptions {
-    //             wasm_memory_persistence,
-    //             skip_pre_upgrade: None,
-    //         }))
-    //     } else {
-    //         InstallMode::Install
-    //     }
-    // } else {
-    //     InstallMode::Install
-    // };
     let mode = mode_hint.to_install_mode(
         installed_module_hash.is_some(),
         wasm_memory_persistence_embedded,
     );
-
-    // let mode = mode.unwrap_or_else(|| {
-    //     if installed_module_hash.is_some() {
-    //         InstallMode::Upgrade(Some(CanisterUpgradeOptions {
-    //             wasm_memory_persistence,
-    //             skip_pre_upgrade: None,
-    //         }))
-    //     } else {
-    //         InstallMode::Install
-    //     }
-    // });
     let mode_str = install_mode_to_prompt(&mode);
     let canister_name = canister_info.get_name();
     info!(
@@ -242,16 +219,15 @@ The command line value will be used.",
             )
             .await?;
         }
+        wait_for_module_hash(
+            env,
+            agent,
+            canister_id,
+            installed_module_hash.as_deref(),
+            &new_hash,
+        )
+        .await?;
     }
-
-    wait_for_module_hash(
-        env,
-        agent,
-        canister_id,
-        installed_module_hash.as_deref(),
-        &new_hash,
-    )
-    .await?;
 
     if canister_info.is_assets() {
         if let Some(canister_timeout) = canister_id_store.get_timestamp(canister_info.get_name()) {
@@ -289,8 +265,8 @@ The command line value will be used.",
                 .context("Failed to authorize your principal with the canister. You can still control the canister by using your wallet with the --wallet flag.")?;
         };
 
-        info!(log, "Uploading assets to asset canister...");
-        post_install_store_assets(canister_info, agent, log).await?;
+        debug!(log, "Uploading assets to asset canister...");
+        post_install_store_assets(env, canister_info, agent).await?;
     }
     if !canister_info.get_post_install().is_empty() {
         let config = env.get_config()?;
