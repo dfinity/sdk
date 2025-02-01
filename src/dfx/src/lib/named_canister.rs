@@ -11,7 +11,7 @@ use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::ManagementCanister;
-use slog::info;
+use slog::debug;
 use std::io::Read;
 use url::{Host::Domain, Url};
 
@@ -33,7 +33,8 @@ pub async fn install_ui_canister(
     }
     fetch_root_key_if_needed(env).await?;
     let mgr = ManagementCanister::create(env.get_agent());
-    info!(
+    let spinner = env.new_spinner("Creating UI canister".into());
+    debug!(
         env.get_logger(),
         "Creating UI canister on the {} network.", network.name
     );
@@ -66,12 +67,14 @@ pub async fn install_ui_canister(
                 .0
         }
     };
+    spinner.set_message("Installing code into UI canister".into());
     mgr.install_code(&canister_id, wasm.as_slice())
         .with_mode(InstallMode::Install)
         .await
         .context("Install wasm call failed.")?;
     id_store.add(env.get_logger(), UI_CANISTER, &canister_id.to_text(), None)?;
-    info!(
+    spinner.finish_and_clear();
+    debug!(
         env.get_logger(),
         "The UI canister on the \"{}\" network is \"{}\"",
         network.name,
