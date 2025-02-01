@@ -249,12 +249,7 @@ fn get_build_command(_pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <
     let node_value = graph.node_weight(node_id).unwrap();
     match node_value {
         Import::Canister(canister_name) => {
-            // let canister = pool.get_first_canister_with_name(&canister_name).unwrap();
-            // if canister.get_info().is_custom() {
-            //     None // no compilation for custom canisters
-            // } else {
             Some(format!("dfx canister create --network $(NETWORK) {}\n\tdfx build --no-deps --network $(NETWORK) {}", canister_name, canister_name))
-            // }
         }
         Import::Ic(_canister_name) => None,
         Import::Path(_path) => None,
