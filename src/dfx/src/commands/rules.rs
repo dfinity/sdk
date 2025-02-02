@@ -88,20 +88,20 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 // duplicate code
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
                 if canister2.get_info().is_assets() {
-                    let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
-                    // let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister.0);
+                    let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
+                    // let path2 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister.0);
                     output_file.write_fmt(format_args!("canister@{}: \\\n  {}\n\n", canister.0, path1))?;
                     // output_file.write_fmt(format_args!(
                     //     "{} {}:\n\tdfx canister create {}\n\tdfx build --no-deps --network $(NETWORK) {}\n\n", path1, path2, canister.0, canister.0
                     // ))?;
                 } else if !canister2.get_info().is_custom() { // We don't build custom canisters.
-                    // let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm", canister.0, canister.0);
-                    // let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0);
+                    // let path1 = format!(".dfx/$(NETWORK)/canisters/{}/{}.wasm", canister.0, canister.0);
+                    // let path2 = format!(".dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0);
                     // TODO: `graph` here is superfluous:
                     let path = make_target(&pool, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
                     output_file.write_fmt(format_args!("canister@{}: \\\n  {}\n\n", canister.0, path))?;
                     if let Some(main) = &canister.1.main {
-                        output_file.write_fmt(format_args!("{}: $(ROOT_DIR)/{}\n\n", path, main.to_str().unwrap()))?;
+                        output_file.write_fmt(format_args!("{}: {}\n\n", path, main.to_str().unwrap()))?;
                     }
                 }
             };
@@ -127,7 +127,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                             "ts" => vec![format!("{}.did.d.ts", canister.0), "index.d.ts".to_string()],
                             _ => panic!("unknown canister type: {}", canister.0.as_str()),
                         }
-                    }).flatten().map(|path| format!("$(ROOT_DIR)/{}", output.join(path).to_str().unwrap().to_string())).join(" "); // TODO: `unwrap`
+                    }).flatten().map(|path| format!("{}", output.join(path).to_str().unwrap().to_string())).join(" "); // TODO: `unwrap`
                     if let CanisterTypeProperties::Custom { .. } = &canister.1.type_specific {
                         // TODO
                     } else {
@@ -139,7 +139,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                         output_file.write_fmt(format_args!(
                             "{}: {}\n\t{} {}\n\n",
                             deps,
-                            format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0),
+                            format!(".dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0),
                             "dfx generate --no-compile --network $(NETWORK)",
                             canister.0,
                         ))?;
@@ -213,8 +213,8 @@ fn make_target(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<I
             // duplicate code
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             if canister.get_info().is_assets() {
-                let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name);
-                // let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister_name);
+                let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name);
+                // let path2 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister_name);
                 path1
             } else if canister.get_info().is_custom() {
                 // let is_gzip = canister.get_info().get_gzip(); // produces `false`, even if `"wasm"` is compressed.
@@ -225,19 +225,19 @@ fn make_target(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<I
                         canister.get_info().get_gzip()
                     };
                 let path1 = if is_gzip {
-                    format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm.gz", canister_name, canister_name)
+                    format!(".dfx/$(NETWORK)/canisters/{}/{}.wasm.gz", canister_name, canister_name)
                 } else {
-                    format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm", canister_name, canister_name)
+                    format!(".dfx/$(NETWORK)/canisters/{}/{}.wasm", canister_name, canister_name)
                 };
-                let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister_name, canister_name);
+                let path2 = format!(".dfx/$(NETWORK)/canisters/{}/{}.did", canister_name, canister_name);
                 format!("{} {}", path1, path2)
             } else {
-                let path1 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.wasm", canister_name, canister_name);
-                let path2 = format!("$(ROOT_DIR)/.dfx/$(NETWORK)/canisters/{}/{}.did", canister_name, canister_name);
+                let path1 = format!(".dfx/$(NETWORK)/canisters/{}/{}.wasm", canister_name, canister_name);
+                let path2 = format!(".dfx/$(NETWORK)/canisters/{}/{}.did", canister_name, canister_name);
                 format!("{} {}", path1, path2)
             }
         }
-        Import::Path(path) => format!("$(ROOT_DIR)/{}", path.to_str().unwrap_or("<unknown>").to_owned()), // TODO: <unknown> is a hack
+        Import::Path(path) => format!("{}", path.to_str().unwrap_or("<unknown>").to_owned()), // TODO: <unknown> is a hack
         Import::Ic(canister_name) => format!("canister@{}", canister_name),
         Import::Lib(_path) => "".to_string(),
     })
