@@ -94,7 +94,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     // output_file.write_fmt(format_args!(
                     //     "{} {}:\n\tdfx canister create {}\n\tdfx build --no-deps --network $(NETWORK) {}\n\n", path1, path2, canister.0, canister.0
                     // ))?;
-                } else if !canister2.get_info().is_custom() { // We don't build custom canisters.
+                } else {
                     // let path1 = format!(".dfx/$(NETWORK)/canisters/{}/{}.wasm", canister.0, canister.0);
                     // let path2 = format!(".dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0);
                     // TODO: `graph` here is superfluous:
