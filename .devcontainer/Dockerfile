@@ -15,7 +15,7 @@ RUN \
 RUN \
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
         -y \
-        --default-toolchain 1.78.0
+        --default-toolchain 1.81.0
 
 ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=clang
 ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
