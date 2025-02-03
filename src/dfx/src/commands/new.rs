@@ -410,7 +410,7 @@ fn get_agent_js_version_from_npm(dist_tag: &str) -> DfxResult<String> {
     let output = Command::new(program::NPM)
         .arg("show")
         .arg("@dfinity/agent")
-        .arg(&format!("dist-tags.{}", dist_tag))
+        .arg(format!("dist-tags.{}", dist_tag))
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .output()
