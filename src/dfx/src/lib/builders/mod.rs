@@ -12,7 +12,7 @@ use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 use fn_error_context::context;
 use handlebars::Handlebars;
-use slog::{trace, Logger};
+use slog::{info, trace, Logger};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
@@ -116,7 +116,7 @@ pub trait CanisterBuilder {
                 .with_context(|| {
                     format!(
                         "Failed to canonicalize output dir {}.",
-                        generate_output_dir.to_string_lossy()
+                        generate_output_dir.display()
                     )
                 })?;
             if !generate_output_dir.starts_with(info.get_workspace_root()) {
@@ -126,10 +126,7 @@ pub trait CanisterBuilder {
                 );
             }
             std::fs::remove_dir_all(&generate_output_dir).with_context(|| {
-                format!(
-                    "Failed to remove dir: {}",
-                    generate_output_dir.to_string_lossy()
-                )
+                format!("Failed to remove dir: {}", generate_output_dir.display())
             })?;
         }
 
@@ -140,29 +137,24 @@ pub trait CanisterBuilder {
             .context("`bindings` must not be None")?;
 
         if bindings.is_empty() {
-            eprintln!("`{}.declarations.bindings` in dfx.json was set to be an empty list, so no type declarations will be generated.", &info.get_name());
+            info!(logger, "`{}.declarations.bindings` in dfx.json was set to be an empty list, so no type declarations will be generated.", &info.get_name());
             return Ok(());
         }
 
-        trace!(
-            logger,
-            "Generating type declarations for canister {}",
-            &info.get_name()
+        let spinner = env.new_spinner(
+            format!(
+                "Generating type declarations for canister {}",
+                &info.get_name()
+            )
+            .into(),
         );
 
-        std::fs::create_dir_all(generate_output_dir).with_context(|| {
-            format!(
-                "Failed to create dir: {}",
-                generate_output_dir.to_string_lossy()
-            )
-        })?;
+        std::fs::create_dir_all(generate_output_dir)
+            .with_context(|| format!("Failed to create dir: {}", generate_output_dir.display()))?;
 
         let did_from_build = self.get_candid_path(env, pool, info, config)?;
         if !did_from_build.exists() {
-            bail!(
-                "Candid file: {} doesn't exist.",
-                did_from_build.to_string_lossy()
-            );
+            bail!("Candid file: {} doesn't exist.", did_from_build.display());
         }
 
         let (env, ty) = CandidSource::File(did_from_build.as_path()).load()?;
@@ -193,12 +185,8 @@ pub trait CanisterBuilder {
                 .with_extension("did.js");
             let content =
                 ensure_trailing_newline(candid_parser::bindings::javascript::compile(&env, &ty));
-            std::fs::write(&output_did_js_path, content).with_context(|| {
-                format!(
-                    "Failed to write to {}.",
-                    output_did_js_path.to_string_lossy()
-                )
-            })?;
+            std::fs::write(&output_did_js_path, content)
+                .with_context(|| format!("Failed to write to {}.", output_did_js_path.display()))?;
             trace!(logger, "  {}", &output_did_js_path.display());
 
             compile_handlebars_files("js", info, generate_output_dir)?;
@@ -211,9 +199,8 @@ pub trait CanisterBuilder {
                 .with_extension("mo");
             let content =
                 ensure_trailing_newline(candid_parser::bindings::motoko::compile(&env, &ty));
-            std::fs::write(&output_mo_path, content).with_context(|| {
-                format!("Failed to write to {}.", output_mo_path.to_string_lossy())
-            })?;
+            std::fs::write(&output_mo_path, content)
+                .with_context(|| format!("Failed to write to {}.", output_mo_path.display()))?;
             trace!(logger, "  {}", &output_mo_path.display());
         }
 
@@ -226,6 +213,14 @@ pub trait CanisterBuilder {
             dfx_core::fs::set_permissions_readwrite(&output_did_path)?;
             trace!(logger, "  {}", &output_did_path.display());
         }
+
+        spinner.finish_and_clear();
+        info!(
+            logger,
+            "Generated type declarations for canister {} to {}",
+            &info.get_name(),
+            generate_output_dir.display()
+        );
 
         Ok(())
     }
