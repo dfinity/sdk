@@ -6,7 +6,6 @@ use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::lib::network::network_opt::NetworkOpt;
 use clap::Parser;
-use slog::info;
 use tokio::runtime::Runtime;
 
 /// Generate type declarations for canisters from the code in your project
