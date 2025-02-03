@@ -3,6 +3,7 @@ FROM debian:12
 RUN \
     apt update && apt install -y \
         build-essential \
+        ccache \
         clang \
         cmake \
         curl \
@@ -16,15 +17,8 @@ RUN \
         -y \
         --default-toolchain 1.78.0
 
-RUN \
-    curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | sh
+ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=clang
+ENV RUSTFLAGS="-C link-arg=-fuse-ld=mold"
 
-RUN \
-    $HOME/.cargo/bin/cargo \
-        binstall --locked sccache
-
-ENV SCCACHE_DIRECT=true
-ENV SCCACHE_LOG=info
-
-ENV RUSTC_WRAPPER=sccache
-ENV CARGO_INCREMENTAL=false
+ENV CC="ccache clang"
+ENV CXX="ccache clang++"

@@ -89,5 +89,9 @@ lto = true
 [profile.dev.package.argon2]
 opt-level = 3
 
+# [profile.dev.package.wasm-opt-sys]
+# opt-level = 0
+# debug = false
+
 [profile.release.package.ic-frontend-canister]
 opt-level = 'z'
