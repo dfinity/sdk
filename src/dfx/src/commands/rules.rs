@@ -136,10 +136,15 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                             canister.0,
                             deps,
                         ))?;
+                        let did = if let CanisterTypeProperties::Assets { .. } = &canister.1.type_specific {
+                            "service.did".to_string()
+                        } else {
+                            format!("{}.did", canister.0)
+                        };
                         output_file.write_fmt(format_args!(
                             "{}: {}\n\t{} {}\n\n",
                             deps,
-                            format!(".dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0),
+                            format!(".dfx/$(NETWORK)/canisters/{}/{}", canister.0, did),
                             "dfx generate --no-compile --network $(NETWORK)",
                             canister.0,
                         ))?;
@@ -232,8 +237,13 @@ fn make_target(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<I
                 let path2 = format!(".dfx/$(NETWORK)/canisters/{}/{}.did", canister_name, canister_name);
                 format!("{} {}", path1, path2)
             } else {
+                let did = if canister.get_info().is_assets() {
+                    "service.did".to_string()
+                } else {
+                    format!("{}.did", canister_name)
+                };
                 let path1 = format!(".dfx/$(NETWORK)/canisters/{}/{}.wasm", canister_name, canister_name);
-                let path2 = format!(".dfx/$(NETWORK)/canisters/{}/{}.did", canister_name, canister_name);
+                let path2 = format!(".dfx/$(NETWORK)/canisters/{}/{}", canister_name, did);
                 format!("{} {}", path1, path2)
             }
         }
