@@ -36,8 +36,9 @@ pub struct PulledCanister {
     ///   - wasm_hash if defined in the dfx metadata
     ///   - wasm_hash_url content if defined in the dfx metadata
     ///   - otherwise read from canister_status
-    /// This field is kept here so that users can compare the hash of the downloaded wasm with it
-    /// If matched, we get extra confidence that the downloaded wasm is correct
+    ///
+    /// This field is kept here so that users can compare the hash of the downloaded wasm with it.
+    /// If matched, we get extra confidence that the downloaded wasm is correct.
     /// If not matched, it is still acceptable
     pub wasm_hash: String,
     /// The downloaded wasm hash when `dfx deps pull`

@@ -40,9 +40,6 @@ pub struct PocketIcProxyConfig {
     /// fixed replica address
     pub replica_url: Option<Url>,
 
-    /// does the proxy need to fetch the root key
-    pub fetch_root_key: bool,
-
     /// run pocket-ic in non-quiet mode
     pub verbose: bool,
 

@@ -116,13 +116,11 @@ impl LogVisibilityOpt {
 
         // Removing.
         if let Some(removed) = self.remove_log_viewer.as_ref() {
-            if let Some(visibility) = &current_visibility {
-                match visibility {
-                    LogVisibility::Public | LogVisibility::Controllers => {
-                        return Err(anyhow!("Removing reviewers is not allowed with 'public' or 'controllers' log visibility."));
-                    }
-                    _ => (),
+            match &current_visibility {
+                Some(LogVisibility::Public) | Some(LogVisibility::Controllers) => {
+                    return Err(anyhow!("Removing reviewers is not allowed with 'public' or 'controllers' log visibility."));
                 }
+                _ => {}
             }
             for principal in removed {
                 if let Some(idx) = viewers.iter().position(|x| x == principal) {
