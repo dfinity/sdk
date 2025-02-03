@@ -255,7 +255,7 @@ The command line value will be used.",
                 .expect("Selected identity not instantiated.");
             // Before storing assets, make sure the DFX principal is in there first.
             wallet
-                .call(
+                .call::<(), _>(
                     canister_id,
                     "authorize",
                     Argument::from_candid((self_id,)),

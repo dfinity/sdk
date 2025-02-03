@@ -190,7 +190,7 @@ fn canister_http_adapter_start_thread(
     let thread_handler = move || {
         let adapter_path = config.adapter_path.as_os_str();
         let mut cmd = std::process::Command::new(adapter_path);
-        cmd.arg(&config.config_path.to_string_lossy().to_string());
+        cmd.arg(config.config_path.to_string_lossy().to_string());
 
         cmd.stdout(std::process::Stdio::inherit());
         cmd.stderr(std::process::Stdio::inherit());

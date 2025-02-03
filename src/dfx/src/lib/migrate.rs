@@ -108,7 +108,7 @@ async fn migrate_canister(
                 settings: CanisterSettings,
             }
             wallet
-                .call(
+                .call::<(), _>(
                     Principal::management_canister(),
                     "update_settings",
                     Argument::from_candid((In {
