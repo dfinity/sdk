@@ -162,11 +162,13 @@ impl CertifiedResponses {
 
     /// If the path has certified responses this function creates a hash tree that proves...
     /// * The path is part of the CertifiedResponses hash tree
+    ///
     /// The hash tree then includes certification for all valid responses for this path.
     ///
     /// If the path has no certified responses this function creates a hash tree that proves...
     /// * The absence of the path in the CertifiedResponses hash tree
     /// * The presence/absence of a 404 response
+    ///
     /// The hash tree then includes certification for all valid responses for a 404 response.
     ///
     /// # Return Value
@@ -217,11 +219,13 @@ impl CertifiedResponses {
 
     /// If the path has certified responses this function creates a hash tree that proves...
     /// * The path is part of the CertifiedResponses hash tree
+    ///
     /// The hash tree then includes certification the valid certification v1 response for this path.
     ///
     /// If the path has no certified response this function creates a hash tree that proves...
     /// * The absence of the path in the CertifiedResponses hash tree
     /// * The presence/absence of a 404 response
+    ///
     /// The hash tree then includes certification for the valid certification v1 response for a 404 response.
     ///
     /// # Arguments

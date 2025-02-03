@@ -107,7 +107,6 @@ impl CanisterBuilder for CustomBuilder {
             dependencies,
         } = CustomBuilderExtra::try_from(info, pool)?;
 
-        let canister_id = info.get_canister_id().unwrap();
         let vars = super::get_and_write_environment_variables(
             info,
             &config.network_name,
@@ -129,7 +128,6 @@ impl CanisterBuilder for CustomBuilder {
         }
 
         Ok(BuildOutput {
-            canister_id,
             wasm: WasmBuildOutput::File(wasm),
             idl: IdlBuildOutput::File(info.get_output_idl_path().to_path_buf()),
         })

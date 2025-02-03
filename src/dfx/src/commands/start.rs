@@ -359,8 +359,12 @@ pub fn exec(
     }
     save_json_file(&previous_config_path, &effective_config)?;
 
+<<<<<<< HEAD
     let network_descriptor = network_descriptor.clone();
 
+=======
+    let spinner = env.new_spinner("Starting local network...".into());
+>>>>>>> fec030f53 (chore: update Motoko version to 0.13.7 (#4095))
     let system = actix::System::new();
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
@@ -412,7 +416,6 @@ pub fn exec(
         let pocketic_proxy_config = PocketIcProxyConfig {
             bind: address_and_port,
             replica_url: None,
-            fetch_root_key: !network_descriptor.is_ic,
             domains: proxy_domains,
             verbose: env.get_verbose_level() > 0,
         };

@@ -19,7 +19,7 @@ pub async fn exec(env: &dyn Environment, opts: RemoveControllerOpts) -> DfxResul
             opts.controller
         )
     })?;
-    wallet_update(env, "remove_controller", controller).await?;
+    wallet_update::<_, ()>(env, "remove_controller", controller).await?;
     println!("Removed {} as a controller.", controller);
     Ok(())
 }

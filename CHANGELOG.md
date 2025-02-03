@@ -190,7 +190,7 @@ and reserves that much space for the ValueSerializer's buffer.
 
 ### Motoko
 
-Updated Motoko to [0.13.6](https://github.com/dfinity/motoko/releases/tag/0.13.6)
+Updated Motoko to [0.13.7](https://github.com/dfinity/motoko/releases/tag/0.13.7)
 
 ### Replica
 
@@ -216,6 +216,11 @@ This incorporates the following executed proposals:
 - [134187](https://dashboard.internetcomputer.org/proposal/134187)
 - [134186](https://dashboard.internetcomputer.org/proposal/134186)
 - [134185](https://dashboard.internetcomputer.org/proposal/134185)
+
+### Frontend canister
+
+- Module hash: 865eb25df5a6d857147e078bb33c727797957247f7af2635846d65c5397b36a6
+- https://github.com/dfinity/sdk/pull/4095
 
 # 0.24.3
 

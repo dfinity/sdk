@@ -394,13 +394,7 @@ async fn make_project_asset(
     logger: &Logger,
 ) -> Result<ProjectAsset, CreateProjectAssetError> {
     let file_size = dfx_core::fs::metadata(&asset_descriptor.source)?.len();
-    let permits = std::cmp::max(
-        1,
-        std::cmp::min(
-            ((file_size + 999999) / 1000000) as usize,
-            MAX_COST_SINGLE_FILE_MB,
-        ),
-    );
+    let permits = (((file_size + 999999) / 1000000) as usize).clamp(1, MAX_COST_SINGLE_FILE_MB);
     let _releaser = semaphores.file.acquire(permits).await;
     let content = Content::load(&asset_descriptor.source)
         .map_err(CreateProjectAssetError::LoadContentFailed)?;
