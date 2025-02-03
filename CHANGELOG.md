@@ -10,6 +10,12 @@
 
 ### feat: streamlined output during asset synchronization
 
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.13.7](https://github.com/dfinity/motoko/releases/tag/0.13.7)
+
 # 0.25.0
 
 ### fix: correctly detects hyphenated Rust bin crates
