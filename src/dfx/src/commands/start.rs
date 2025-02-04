@@ -359,7 +359,6 @@ pub fn exec(
     }
     save_json_file(&previous_config_path, &effective_config)?;
 
-    let network_descriptor = network_descriptor.clone();
     let spinner = env.new_spinner("Starting local network...".into());
     let system = actix::System::new();
     let _proxy = system.block_on(async move {
@@ -412,7 +411,6 @@ pub fn exec(
         let pocketic_proxy_config = PocketIcProxyConfig {
             bind: address_and_port,
             replica_url: None,
-            fetch_root_key: !network_descriptor.is_ic,
             domains: proxy_domains,
             verbose: env.get_verbose_level() > 0,
         };

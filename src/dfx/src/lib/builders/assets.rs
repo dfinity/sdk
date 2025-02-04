@@ -99,7 +99,6 @@ impl CanisterBuilder for AssetsBuilder {
         fs::write(&wasm_path, canister_assets).context("Failed to write asset canister wasm")?;
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
         Ok(BuildOutput {
-            canister_id: info.get_canister_id().expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(wasm_path),
             idl: IdlBuildOutput::File(idl_path),
         })

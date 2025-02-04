@@ -48,7 +48,6 @@ pub enum IdlBuildOutput {
 /// The output of a build.
 #[derive(Debug)]
 pub struct BuildOutput {
-    pub canister_id: CanisterId,
     pub wasm: WasmBuildOutput,
     pub idl: IdlBuildOutput,
 }
@@ -477,16 +476,12 @@ fn write_environment_variables(vars: &[Env<'_>], write_path: &Path) -> DfxResult
 #[derive(Clone, Debug)]
 pub struct BuildConfig {
     profile: Profile,
-    pub build_mode_check: bool,
     pub network_name: String,
-    pub network_is_playground: bool,
 
     /// The root of all IDL files.
     pub idl_root: PathBuf,
     /// The root for all language server files.
     pub lsp_root: PathBuf,
-    /// The root for all build files.
-    pub build_root: PathBuf,
     /// If only a subset of canisters should be built, then canisters_to_build contains these canisters' names.
     /// If all canisters should be built, then this is None.
     pub canisters_to_build: Option<Vec<String>>,
@@ -496,7 +491,7 @@ pub struct BuildConfig {
 
 impl BuildConfig {
     #[context("Failed to create build config.")]
-    pub fn from_config(config: &Config, network_is_playground: bool) -> DfxResult<Self> {
+    pub fn from_config(config: &Config) -> DfxResult<Self> {
         let config_intf = config.get_config();
         let network_name = util::network_to_pathcompat(&get_network_context()?);
         let network_root = config.get_temp_path()?.join(&network_name);
@@ -504,22 +499,12 @@ impl BuildConfig {
 
         Ok(BuildConfig {
             network_name,
-            network_is_playground,
             profile: config_intf.profile.unwrap_or(Profile::Debug),
-            build_mode_check: false,
-            build_root: canister_root.clone(),
             idl_root: canister_root.join("idl/"), // TODO: possibly move to `network_root.join("idl/")`
             lsp_root: network_root.join("lsp/"),
             canisters_to_build: None,
             env_file: config.get_output_env_file(None)?,
         })
-    }
-
-    pub fn with_build_mode_check(self, build_mode_check: bool) -> Self {
-        Self {
-            build_mode_check,
-            ..self
-        }
     }
 
     pub fn with_canisters_to_build(self, canisters: Vec<String>) -> Self {
