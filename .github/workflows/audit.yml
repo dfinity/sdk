@@ -27,4 +27,4 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: lwshang/audit@cargo_install_locked
+      - uses: actions-rust-lang/audit@v1
