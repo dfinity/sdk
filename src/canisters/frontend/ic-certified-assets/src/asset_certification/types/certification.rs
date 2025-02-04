@@ -148,6 +148,7 @@ impl HashTreePath {
     /// Produces all `HashTreePath`s required to prove
     /// - whether or not fallback file exists and
     /// - that there is no fallback file with higher priority
+    ///
     /// in the hash tree.
     pub fn fallback_paths_v2(&self) -> Vec<Self> {
         let mut paths = Vec::new();

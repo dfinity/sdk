@@ -68,8 +68,6 @@ impl CanisterBuilder for RustBuilder {
         let rust_info = canister_info.as_info::<RustCanisterInfo>()?;
         let package = rust_info.get_package();
 
-        let canister_id = canister_info.get_canister_id().unwrap();
-
         let mut cargo = Command::new("cargo");
         cargo
             .stdout(Stdio::inherit())
@@ -109,7 +107,6 @@ impl CanisterBuilder for RustBuilder {
         }
 
         Ok(BuildOutput {
-            canister_id,
             wasm: WasmBuildOutput::File(rust_info.get_output_wasm_path().to_path_buf()),
             idl: IdlBuildOutput::File(canister_info.get_output_idl_path().to_path_buf()),
         })

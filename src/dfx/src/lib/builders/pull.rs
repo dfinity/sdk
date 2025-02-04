@@ -1,7 +1,6 @@
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
-use crate::lib::canister_info::pull::PullCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -47,9 +46,7 @@ impl CanisterBuilder for PullBuilder {
         _config: &BuildConfig,
         _no_deps: bool,
     ) -> DfxResult<BuildOutput> {
-        let pull_info = canister_info.as_info::<PullCanisterInfo>()?;
         Ok(BuildOutput {
-            canister_id: *pull_info.get_canister_id(),
             // It's impossible to know if the downloaded wasm is gzip or not with only the info in `dfx.json`.
             wasm: WasmBuildOutput::None,
             idl: IdlBuildOutput::File(canister_info.get_output_idl_path().to_path_buf()),

@@ -240,7 +240,7 @@ pub async fn start_canister(
         canister_id: Principal,
     }
 
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::StartCanister.as_ref(),
@@ -267,7 +267,7 @@ pub async fn stop_canister(
         canister_id: Principal,
     }
 
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::StopCanister.as_ref(),
@@ -291,7 +291,7 @@ pub async fn update_settings(
         canister_id: Principal,
         settings: CanisterSettings,
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::UpdateSettings.as_ref(),
@@ -316,7 +316,7 @@ pub async fn uninstall_code(
     struct In {
         canister_id: Principal,
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::UninstallCode.as_ref(),
@@ -339,7 +339,7 @@ pub async fn delete_canister(
     struct In {
         canister_id: Principal,
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::DeleteCanister.as_ref(),
@@ -363,7 +363,7 @@ pub async fn deposit_cycles(
     struct In {
         canister_id: Principal,
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::DepositCycles.as_ref(),
@@ -394,7 +394,7 @@ pub async fn provisional_deposit_cycles(
         canister_id: Principal,
         amount: u128,
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::ProvisionalTopUpCanister.as_ref(),
@@ -511,7 +511,7 @@ pub async fn load_canister_snapshot(
         snapshot_id: &'a [u8],
         sender_canister_version: Option<u64>,
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::LoadCanisterSnapshot.as_ref(),
@@ -564,7 +564,7 @@ pub async fn delete_canister_snapshot(
         canister_id: Principal,
         snapshot_id: &'a [u8],
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::DeleteCanisterSnapshot.as_ref(),
