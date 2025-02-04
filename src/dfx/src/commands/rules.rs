@@ -132,7 +132,8 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                         // TODO
                     } else {
                         output_file.write_fmt(format_args!(
-                            "generate@{}: \\\n  {}\n\n",
+                            "generate@{}: canister@{} \\\n  {}\n\n",
+                            canister.0,
                             canister.0,
                             deps,
                         ))?;
