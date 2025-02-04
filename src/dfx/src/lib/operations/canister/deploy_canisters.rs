@@ -156,7 +156,7 @@ pub async fn deploy_canisters(
         build_canisters(
             env,
             &canisters_to_load,
-            &if no_compile { canisters_to_build } else { Vec::new() },
+            &if no_compile { Vec::new() } else { canisters_to_build },
             &config,
             env_file.clone(),
             no_compile,
