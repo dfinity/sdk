@@ -7,6 +7,7 @@ use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::builders::CanisterBuilder;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::graph::graph_nodes_map::GraphWithNodesMap;
 use crate::lib::models::canister::{CanisterPool, Import};
 use crate::lib::builders::custom::CustomBuilder;
 use crate::lib::network::network_opt::NetworkOpt;
@@ -89,16 +90,10 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
                 if canister2.get_info().is_assets() {
                     let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
-                    // let path2 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister.0);
                     output_file.write_fmt(format_args!("canister@{}: \\\n  {}\n\n", canister.0, path1))?;
-                    // output_file.write_fmt(format_args!(
-                    //     "{} {}:\n\tdfx canister create {}\n\tdfx build --no-deps --network $(NETWORK) {}\n\n", path1, path2, canister.0, canister.0
-                    // ))?;
                 } else {
-                    // let path1 = format!(".dfx/$(NETWORK)/canisters/{}/{}.wasm", canister.0, canister.0);
-                    // let path2 = format!(".dfx/$(NETWORK)/canisters/{}/{}.did", canister.0, canister.0);
                     // TODO: `graph` here is superfluous:
-                    let path = make_target(&pool, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
+                    let path = make_target(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
                     output_file.write_fmt(format_args!("canister@{}: \\\n  {}\n\n", canister.0, path))?;
                     if let Some(main) = &canister.1.main {
                         output_file.write_fmt(format_args!("{}: {}\n\n", path, main.to_str().unwrap()))?;
@@ -163,8 +158,8 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         } else {
             output_file.write_fmt(format_args!(
                 "{}: {}\n",
-                make_target(&pool, graph, edge.source())?,
-                make_target(&pool, graph, edge.target())?,
+                make_target(&pool, &graph0, graph, edge.source())?,
+                make_target(&pool, &graph0, graph, edge.target())?,
             ))?;
         }
     }
@@ -173,7 +168,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         if let Import::Canister(canister_name) = node.0 {
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             if let Some(command) = command {
-                let target = make_target(&pool, graph, *node.1)?;
+                let target = make_target(&pool, &graph0, graph, *node.1)?;
                 if canister.as_ref().get_info().is_assets() {
                     // We don't support generating dependencies for assets,
                     // so recompile it every time:
@@ -212,7 +207,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     Ok(())
 }
 
-fn make_target(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> DfxResult<String> {
+fn make_target(pool: &CanisterPool, graph0: &GraphWithNodesMap<Import, ()>, graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> DfxResult<String> {
     let node_value = graph.node_weight(node_id).unwrap();
     Ok(match node_value {
         Import::Canister(canister_name) => {
@@ -249,7 +244,18 @@ fn make_target(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<I
             }
         }
         Import::Path(path) => format!("{}", path.to_str().unwrap_or("<unknown>").to_owned()), // TODO: <unknown> is a hack
-        Import::Ic(canister_name) => format!("canister@{}", canister_name),
+        Import::Ic(canister_name) => {
+            // format!("canister@{}", canister_name)
+            let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
+            if canister2.get_info().is_assets() {
+                let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name);
+                path1
+            } else {
+                // TODO: `graph` here is superfluous:
+                let path = make_target(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister_name.clone())).unwrap())?; // TODO: `unwrap`?
+                path
+            }
+        }
         Import::Lib(_path) => "".to_string(),
     })
 }
