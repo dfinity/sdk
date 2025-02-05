@@ -74,7 +74,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             let canisters: &BTreeMap<String, ConfigCanistersCanister> = canisters;
             output_file.write_fmt(format_args!(".PHONY:"))?;
             for canister in canisters {
-                output_file.write_fmt(format_args!(" canister@{}", canister.0))?;
+                output_file.write_fmt(format_args!(" build@{}", canister.0))?;
             };
             output_file.write_fmt(format_args!("\n\n.PHONY:"))?;
             for canister in canisters {
@@ -90,11 +90,11 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
                 if canister2.get_info().is_assets() {
                     let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
-                    output_file.write_fmt(format_args!("canister@{}: \\\n  {}\n\n", canister.0, path1))?;
+                    output_file.write_fmt(format_args!("build@{}: \\\n  {}\n\n", canister.0, path1))?;
                 } else {
                     // TODO: `graph` here is superfluous:
                     let path = make_target(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
-                    output_file.write_fmt(format_args!("canister@{}: \\\n  {}\n\n", canister.0, path))?;
+                    output_file.write_fmt(format_args!("build@{}: \\\n  {}\n\n", canister.0, path))?;
                     if let Some(main) = &canister.1.main {
                         output_file.write_fmt(format_args!("{}: {}\n\n", path, main.to_str().unwrap()))?;
                     }
@@ -127,7 +127,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                         // TODO
                     } else {
                         output_file.write_fmt(format_args!(
-                            "generate@{}: canister@{} \\\n  {}\n\n",
+                            "generate@{}: build@{} \\\n  {}\n\n",
                             canister.0,
                             canister.0,
                             deps,
@@ -176,7 +176,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 }
                 output_file.write_fmt(format_args!("{}:\n\t{}\n\n", target, command))?;
             }
-            output_file.write_fmt(format_args!("\ndeploy-self@{}: canister@{}\n", canister_name, canister_name))?;
+            output_file.write_fmt(format_args!("\ndeploy-self@{}: build@{}\n", canister_name, canister_name))?;
             let deps = canister.as_ref().get_info().get_dependencies();
             output_file.write_fmt(format_args!( // TODO: Use `canister install` instead.
                 "\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n", canister_name, canister_name
@@ -245,7 +245,7 @@ fn make_target(pool: &CanisterPool, graph0: &GraphWithNodesMap<Import, ()>, grap
         }
         Import::Path(path) => format!("{}", path.to_str().unwrap_or("<unknown>").to_owned()), // TODO: <unknown> is a hack
         Import::Ic(canister_name) => {
-            // format!("canister@{}", canister_name)
+            // format!("build@{}", canister_name)
             let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             if canister2.get_info().is_assets() {
                 let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name);
