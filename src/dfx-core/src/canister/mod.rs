@@ -28,11 +28,19 @@ pub async fn build_wallet_canister(
     .map_err(CanisterBuilderError::WalletCanisterCaller)
 }
 
-pub fn install_mode_to_prompt(mode: &InstallMode) -> &'static str {
+pub fn install_mode_to_present_tense(mode: &InstallMode) -> &'static str {
     match mode {
         InstallMode::Install => "Installing",
         InstallMode::Reinstall => "Reinstalling",
         InstallMode::Upgrade { .. } => "Upgrading",
+    }
+}
+
+pub fn install_mode_to_past_tense(mode: &InstallMode) -> &'static str {
+    match mode {
+        InstallMode::Install => "Installed",
+        InstallMode::Reinstall => "Reinstalled",
+        InstallMode::Upgrade { .. } => "Upgraded",
     }
 }
 

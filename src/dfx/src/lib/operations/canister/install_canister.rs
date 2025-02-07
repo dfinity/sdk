@@ -15,7 +15,10 @@ use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use candid::Principal;
-use dfx_core::canister::{build_wallet_canister, install_canister_wasm, install_mode_to_prompt};
+use dfx_core::canister::{
+    build_wallet_canister, install_canister_wasm, install_mode_to_past_tense,
+    install_mode_to_present_tense,
+};
 use dfx_core::cli::ask_for_consent;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
@@ -83,11 +86,13 @@ pub async fn install_canister(
         installed_module_hash.is_some(),
         wasm_memory_persistence_embedded,
     );
-    let mode_str = install_mode_to_prompt(&mode);
     let canister_name = canister_info.get_name();
-    info!(
-        log,
-        "{mode_str} code for canister {canister_name}, with canister ID {canister_id}",
+    let spinner = env.new_spinner(
+        format!(
+            "{mode_str} code for canister {canister_name}, with canister ID {canister_id}",
+            mode_str = install_mode_to_present_tense(&mode)
+        )
+        .into(),
     );
     if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade { .. }) {
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;
@@ -143,7 +148,8 @@ pub async fn install_canister(
         && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash[..])
         && !upgrade_unchanged
     {
-        println!(
+        info!(
+            log,
             "Module hash {} is already installed.",
             hex::encode(installed_module_hash.as_ref().unwrap())
         );
@@ -279,6 +285,12 @@ The command line value will be used.",
             env_file.or_else(|| config.as_ref()?.get_config().output_env_file.as_deref()),
         )?;
     }
+    spinner.finish_and_clear();
+    info!(
+        log,
+        "{mode_str} code for canister {canister_name}, with canister ID {canister_id}",
+        mode_str = install_mode_to_past_tense(&mode)
+    );
 
     Ok(())
 }
