@@ -726,8 +726,6 @@ check_permission_failure() {
 }
 
 @test "can serve filenames with special characters in filename" {
-  # This is observed, not expected behavior
-  # see https://dfinity.atlassian.net/browse/SDK-1247
   install_asset assetscanister
 
   dfx_start
@@ -735,6 +733,8 @@ check_permission_failure() {
   echo "filename is an ae symbol" >'src/e2e_project_frontend/assets/æ'
 
   dfx deploy
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
 
   dfx canister  call --query e2e_project_frontend list '(record {})'
 
@@ -742,8 +742,11 @@ check_permission_failure() {
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%c3%a6";headers=vec{};method="GET";body=vec{}})'
   assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
 
-  ID=$(dfx canister id e2e_project_frontend)
-  PORT=$(get_webserver_port)
+  assert_command curl --fail -vv http://localhost:"$PORT"/%c3%a6?canisterId="$ID"
+  assert_match "filename is an ae symbol"
+
+  assert_command curl --fail -vv http://localhost:"$PORT"/æ?canisterId="$ID"
+  assert_match "filename is an ae symbol"
 
   # fails with because %e6 is not valid utf-8 percent encoding
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
