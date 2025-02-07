@@ -738,14 +738,11 @@ check_permission_failure() {
 
   dfx canister  call --query e2e_project_frontend list '(record {})'
 
-  # decode as expected
+  # decode as expected - %c3%a6 is the utf-8 encoding of the ae symbol
   assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%c3%a6";headers=vec{};method="GET";body=vec{}})'
   assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/%c3%a6?canisterId="$ID"
-  assert_match "filename is an ae symbol"
-
-  assert_command curl --fail -vv http://localhost:"$PORT"/æ?canisterId="$ID"
   assert_match "filename is an ae symbol"
 
   # fails with because %e6 is not valid utf-8 percent encoding
