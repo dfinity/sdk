@@ -344,10 +344,9 @@ async fn wait_for_module_hash(
             Some(reported_hash) => {
                 if env.get_network_descriptor().is_playground() {
                     // Playground may modify wasm before installing, therefore we cannot predict what the hash is supposed to be.
-                    info!(
+                    debug!(
                         env.get_logger(),
-                        "Something is installed in canister {}. Assuming new code is installed.",
-                        canister_id
+                        "Module hash verification is skipped for playground deployments."
                     );
                     break;
                 }
