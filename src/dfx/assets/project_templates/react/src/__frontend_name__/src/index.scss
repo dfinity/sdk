@@ -93,10 +93,10 @@ button {
   transition: background-color 0.3s;
 }
 
-.browser-warning {
-  display: none;
-}
-
 button:hover {
   background-color: var(--rc-interaction-color-hover);
+}
+
+.browser-warning {
+  display: none;
 }
