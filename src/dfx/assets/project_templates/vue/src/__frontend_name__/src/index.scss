@@ -1,39 +1,100 @@
-body {
-  font-family: sans-serif;
-  font-size: 1.5rem;
+:root {
+  --vc-brand-gradient: radial-gradient(at 100% 100%, hsla(265, 80%, 75%, 1) 0px, transparent 50%), radial-gradient(at 100% 0%, hsla(272, 86%, 55%, 1) 0px, transparent 50%), radial-gradient(at 0% 18%, hsla(223, 79%, 66%, 1) 0px, transparent 50%);
+  --vc-brand-purple: #4b19d6;
+
+  --rc-background-image--highlight: var(--vc-brand-gradient);
+  --rc-background--highlight: var(--vc-brand-purple);
+
+  --rc-interaction-color: #4b19d6;
+  --rc-interaction-color-hover: #3c14aa;
 }
 
-img {
-  max-width: 50vw;
-  max-height: 25vw;
-  display: block;
-  margin: auto;
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  height: 100%;
+}
+
+#app {
+  height: 100%;
+}
+
+.container {
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-image: var(--rc-background-image--highlight);
+  background-color: var(--rc-background--highlight);
+}
+
+.card {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: center;
+}
+
+.logo {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.logo svg {
+  width: 100px;
+  height: auto;
+}
+
+h1 {
+  color: #333;
+  text-align: center;
+  margin: 0 0 1rem;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  width: 100%;
+
+  &:empty {
+    display: none;
+  }
 }
 
 form {
   display: flex;
-  justify-content: center;
-  gap: 0.5em;
-  flex-flow: row wrap;
-  max-width: 40vw;
-  margin: auto;
-  align-items: baseline;
+  flex-direction: column;
+  width: 100%;
 }
 
-button[type="submit"] {
-  padding: 5px 20px;
-  margin: 10px auto;
-  float: right;
+label {
+  margin-bottom: 0.5rem;
+  color: #333;
 }
 
-#greeting {
-  margin: 10px auto;
-  padding: 10px 60px;
-  border: 1px solid #222;
+input {
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
-#greeting:empty {
-  display: none;
+button {
+  padding: 0.5rem;
+  background-color: var(--rc-interaction-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: var(--rc-interaction-color-hover);
 }
 
 .browser-warning {

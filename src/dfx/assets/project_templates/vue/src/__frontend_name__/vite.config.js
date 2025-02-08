@@ -30,11 +30,19 @@ export default defineConfig({
     environment('all', { prefix: 'CANISTER_' }),
     environment('all', { prefix: 'DFX_' }),
   ],
+  css: {
+    preprocessorOptions: {
+      scss: {
+        api: 'modern-compiler',
+        silenceDeprecations: ['legacy-js-api'],
+      },
+    },
+  },
   resolve: {
     alias: [
       { find: 'declarations', replacement: fileURLToPath(new URL('../declarations', import.meta.url)) },
       { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
     ],
     dedupe: ['@dfinity/agent'],
-  }
+  },
 });

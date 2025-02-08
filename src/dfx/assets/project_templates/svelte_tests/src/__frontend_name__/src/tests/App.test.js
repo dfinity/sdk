@@ -14,6 +14,6 @@ test('mount component', async () => {
   const instance = new App({ target: host, props: {} });
   expect(instance).toBeTruthy();
   expect(host.innerHTML).toMatchInlineSnapshot(
-    '"<main><img src="/logo2.svg" alt="DFINITY logo"> <br> <br> <form action="#"><label for="name">Enter your name: &nbsp;</label> <input id="name" alt="Name" type="text"> <button type="submit">Click Me!</button></form> <section id="greeting"></section></main>"'
+    '"<main class="container"><div class="card"><h1></h1> <form action="#"><label for="name">Enter your name:</label> <input type="text" id="name" required=""> <button type="submit">Click Me!</button></form> <img src="/logo.svg" alt="DFINITY logo" width="256"></div></main>"'
   );
 });
