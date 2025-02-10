@@ -8,7 +8,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
-use crate::util::assets;
+use crate::util::{assets, with_suspend_all_spinners};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
@@ -901,16 +901,14 @@ impl CanisterPool {
                 self.logger,
                 "Checking for vulnerabilities in rust canisters."
             );
-            let mut out = Err(anyhow!("uninitialized"));
-            env.with_suspend_all_spinners(Box::new(|| {
-                out = Command::new("cargo")
+            let out = with_suspend_all_spinners(env, || {
+                Command::new("cargo")
                     .stdout(Stdio::inherit())
                     .stderr(Stdio::inherit())
                     .arg("audit")
                     .output()
-                    .context("Failed to run 'cargo audit'.");
-            }));
-            let out = out?;
+                    .context("Failed to run 'cargo audit'.")
+            })?;
             if out.status.success() {
                 info!(self.logger, "Audit found no vulnerabilities.")
             } else {

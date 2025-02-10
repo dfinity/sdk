@@ -240,39 +240,27 @@ pub fn blob_from_arguments(
                             map.insert("principal".to_string(), principals);
                             ctx.set_completion(map);
                         }
-                        let mut args = Err(anyhow!("uninitialized"));
-                        dfx_env.with_suspend_all_spinners(Box::new(|| {
+                        return with_suspend_all_spinners(dfx_env, || {
                             if is_init_arg {
                                 eprintln!("This canister requires an initialization argument.");
                             } else {
                                 eprintln!("This method requires arguments.");
                             }
-                            args = input_args(&ctx, &func.args);
-                            if args.is_err() {
-                                return;
-                            }
-                            eprintln!(
-                                "Sending the following argument:\n{}\n",
-                                args.as_ref().unwrap()
-                            );
+                            let args = input_args(&ctx, &func.args)?;
+                            eprintln!("Sending the following argument:\n{}\n", args);
                             if is_init_arg {
-                                eprintln!(
-                                    "Do you want to initialize the canister with this argument? [y/N]"
-                                );
+                                eprintln!("Do you want to initialize the canister with this argument? [y/N]");
                             } else {
                                 eprintln!("Do you want to send this message? [y/N]");
                             }
                             let mut input = String::new();
-                            if let Err(e) = stdin().read_line(&mut input) {
-                                args = Err(e.into());
-                                return;
-                            }
+                            stdin().read_line(&mut input)?;
                             if !["y", "Y", "yes", "Yes", "YES"].contains(&input.trim()) {
-                                args = Err(error_invalid_data!("User cancelled."));
+                                return Err(error_invalid_data!("User cancelled."));
                             }
-                        }));
-                        let args = args?;
-                        args.to_bytes_with_types(env, &func.args)
+                            let bytes = args.to_bytes_with_types(env, &func.args)?;
+                            Ok(bytes)
+                        })
                     } else {
                         return Err(error_invalid_data!("Expected arguments but found none."));
                     }
@@ -441,23 +429,26 @@ async fn attempt_download(client: &Client, url: &Url) -> DfxResult<Option<Bytes>
 }
 
 pub fn ask_for_consent(env: &dyn Environment, message: &str) -> Result<(), UserConsent> {
-    let mut ans = Ok(());
-    env.with_suspend_all_spinners(Box::new(|| {
+    with_suspend_all_spinners(env, || {
         eprintln!("WARNING!");
         eprintln!("{}", message);
         eprintln!("Do you want to proceed? yes/No");
         let mut input_string = String::new();
-        let res = stdin().read_line(&mut input_string);
-        if let Err(e) = res {
-            ans = Err(UserConsent::ReadError(e));
-            return;
-        }
+        stdin()
+            .read_line(&mut input_string)
+            .map_err(UserConsent::ReadError)?;
         let input_string = input_string.trim_end().to_lowercase();
         if input_string != "yes" && input_string != "y" {
-            ans = Err(UserConsent::Declined);
+            return Err(UserConsent::Declined);
         }
-    }));
-    ans
+        Ok(())
+    })
+}
+
+pub fn with_suspend_all_spinners<R>(env: &dyn Environment, f: impl FnOnce() -> R) -> R {
+    let mut r = None;
+    env.with_suspend_all_spinners(Box::new(|| r = Some(f())));
+    r.unwrap()
 }
 
 #[cfg(test)]

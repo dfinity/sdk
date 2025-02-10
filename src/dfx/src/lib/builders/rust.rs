@@ -6,6 +6,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
+use crate::util::with_suspend_all_spinners;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
@@ -94,11 +95,10 @@ impl CanisterBuilder for RustBuilder {
             "Executing: cargo build --target wasm32-unknown-unknown --release -p {} --locked",
             package
         );
-        let mut output = Err(anyhow!("uninitialized"));
-        env.with_suspend_all_spinners(Box::new(|| {
-            output = cargo.output().context("Failed to run 'cargo build'. You might need to run `cargo update` (or a similar command like `cargo vendor`) if you have updated `Cargo.toml`, because `dfx build` uses the --locked flag with Cargo.");
-        }));
-        let output = output?;
+
+        let output = with_suspend_all_spinners(env, || {
+            cargo.output().context("Failed to run 'cargo build'. You might need to run `cargo update` (or a similar command like `cargo vendor`) if you have updated `Cargo.toml`, because `dfx build` uses the --locked flag with Cargo.")
+        })?;
 
         if !output.status.success() {
             bail!("Failed to compile the rust package: {}", package);
