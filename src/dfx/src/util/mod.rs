@@ -231,33 +231,47 @@ pub fn blob_from_arguments(
                     } else if is_terminal {
                         use candid_parser::assist::{input_args, Context};
                         let mut ctx = Context::new(env.clone());
-                        if let Some(env) = dfx_env {
-                            let principals = gather_principals_from_env(env);
-                            if !principals.is_empty() {
-                                let mut map = BTreeMap::new();
-                                map.insert("principal".to_string(), principals);
-                                ctx.set_completion(map);
+                        let dfx_env = dfx_env.expect(
+                            "internal error: requiring interactive args without Environment",
+                        );
+                        let principals = gather_principals_from_env(dfx_env);
+                        if !principals.is_empty() {
+                            let mut map = BTreeMap::new();
+                            map.insert("principal".to_string(), principals);
+                            ctx.set_completion(map);
+                        }
+                        let mut args = Err(anyhow!("uninitialized"));
+                        dfx_env.with_suspend_all_spinners(Box::new(|| {
+                            if is_init_arg {
+                                eprintln!("This canister requires an initialization argument.");
+                            } else {
+                                eprintln!("This method requires arguments.");
                             }
-                        }
-                        if is_init_arg {
-                            eprintln!("This canister requires an initialization argument.");
-                        } else {
-                            eprintln!("This method requires arguments.");
-                        }
-                        let args = input_args(&ctx, &func.args)?;
-                        eprintln!("Sending the following argument:\n{}\n", args);
-                        if is_init_arg {
+                            args = input_args(&ctx, &func.args);
+                            if args.is_err() {
+                                return;
+                            }
                             eprintln!(
-                                "Do you want to initialize the canister with this argument? [y/N]"
+                                "Sending the following argument:\n{}\n",
+                                args.as_ref().unwrap()
                             );
-                        } else {
-                            eprintln!("Do you want to send this message? [y/N]");
-                        }
-                        let mut input = String::new();
-                        stdin().read_line(&mut input)?;
-                        if !["y", "Y", "yes", "Yes", "YES"].contains(&input.trim()) {
-                            return Err(error_invalid_data!("User cancelled."));
-                        }
+                            if is_init_arg {
+                                eprintln!(
+                                    "Do you want to initialize the canister with this argument? [y/N]"
+                                );
+                            } else {
+                                eprintln!("Do you want to send this message? [y/N]");
+                            }
+                            let mut input = String::new();
+                            if let Err(e) = stdin().read_line(&mut input) {
+                                args = Err(e.into());
+                                return;
+                            }
+                            if !["y", "Y", "yes", "Yes", "YES"].contains(&input.trim()) {
+                                args = Err(error_invalid_data!("User cancelled."));
+                            }
+                        }));
+                        let args = args?;
                         args.to_bytes_with_types(env, &func.args)
                     } else {
                         return Err(error_invalid_data!("Expected arguments but found none."));
