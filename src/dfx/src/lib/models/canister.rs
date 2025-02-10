@@ -129,6 +129,7 @@ impl Canister {
     #[context("Failed to post-process wasm of canister '{}'.", self.info.get_name())]
     pub(crate) fn wasm_post_process(
         &self,
+        env: &dyn Environment,
         logger: &Logger,
         build_output: &BuildOutput,
     ) -> DfxResult {
@@ -187,7 +188,7 @@ impl Canister {
 
         if let Some(tech_stack_config) = info.get_tech_stack() {
             set_dfx_metadata = true;
-            dfx_metadata.set_tech_stack(tech_stack_config, info.get_workspace_root())?;
+            dfx_metadata.set_tech_stack(env, tech_stack_config, info.get_workspace_root())?;
         } else if info.is_rust() {
             // TODO: remove this when we have rust extension
             set_dfx_metadata = true;
@@ -204,7 +205,7 @@ impl Canister {
                 }
             }"#;
             let tech_stack_config: TechStack = serde_json::from_str(s)?;
-            dfx_metadata.set_tech_stack(&tech_stack_config, info.get_workspace_root())?;
+            dfx_metadata.set_tech_stack(env, &tech_stack_config, info.get_workspace_root())?;
         } else if info.is_motoko() {
             // TODO: remove this when we have motoko extension
             set_dfx_metadata = true;
@@ -214,7 +215,7 @@ impl Canister {
                 }
             }"#;
             let tech_stack_config: TechStack = serde_json::from_str(s)?;
-            dfx_metadata.set_tech_stack(&tech_stack_config, info.get_workspace_root())?;
+            dfx_metadata.set_tech_stack(env, &tech_stack_config, info.get_workspace_root())?;
         }
 
         if set_dfx_metadata {
@@ -727,7 +728,7 @@ impl CanisterPool {
     ) -> DfxResult<()> {
         canister.candid_post_process(self.get_logger(), build_config, build_output)?;
 
-        canister.wasm_post_process(self.get_logger(), build_output)?;
+        canister.wasm_post_process(env, self.get_logger(), build_output)?;
 
         build_canister_js(&canister.canister_id(), &canister.info)?;
 

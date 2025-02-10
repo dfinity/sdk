@@ -12,6 +12,7 @@ use crate::util::assets::wallet_wasm;
 use crate::util::clap::install_mode::InstallModeHint;
 use crate::util::{
     ask_for_consent, blob_from_arguments, get_candid_init_type, read_module_metadata,
+    with_suspend_all_spinners,
 };
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
@@ -477,6 +478,7 @@ fn run_customized_install_tasks(
     };
     for task in tasks {
         run_customized_install_task(
+            env,
             canister,
             task,
             is_pre_install,
@@ -491,6 +493,7 @@ fn run_customized_install_tasks(
 
 #[context("Failed to run {}-install task {}", if is_pre_install { "pre" } else { "post" }, task)]
 fn run_customized_install_task(
+    env: &dyn Environment,
     canister: &CanisterInfo,
     task: &str,
     is_pre_install: bool,
@@ -519,7 +522,7 @@ fn run_customized_install_task(
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
 
-    let status = command.status()?;
+    let status = with_suspend_all_spinners(env, || command.status())?;
     if !status.success() {
         match status.code() {
             Some(code) => {
