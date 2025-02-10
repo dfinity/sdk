@@ -13,7 +13,7 @@
 
 <main class="container">
   <div class="card">
-    <h1>{greeting}</h1>
+    <h1 id="greeting">{greeting}</h1>
     <form action="#" on:submit|preventDefault={onSubmit}>
       <label for="name">Enter your name:</label>
       <input type="text" id="name" required />

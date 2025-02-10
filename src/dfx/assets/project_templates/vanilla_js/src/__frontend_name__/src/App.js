@@ -20,7 +20,7 @@ class App {
     let body = html`
         <main class="container">
             <div class="card">
-                <h1>${this.greeting}</h1>
+                <h1 id="greeting">${this.greeting}</h1>
                 <form action="#">
                     <label for="name">Enter your name:</label>
                     <input type="text" id="name" required />

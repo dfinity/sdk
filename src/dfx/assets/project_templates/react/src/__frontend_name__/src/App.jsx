@@ -15,7 +15,7 @@ function App() {
   return (
     <main className="container">
       <div className="card">
-        <h1>{greeting}</h1>
+        <h1 id="greeting">{greeting}</h1>
         <form action="#" onSubmit={handleSubmit}>
           <label htmlFor="name">Enter your name:</label>
           <input type="text" id="name" required />

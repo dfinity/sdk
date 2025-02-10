@@ -15,7 +15,7 @@ async function handleSubmit(e) {
 <template>
   <main class="container">
     <div class="card">
-      <h1>{{ greeting }}</h1>
+      <h1 id="greeting">{{ greeting }}</h1>
 
       <form action="#" @submit="handleSubmit">
         <label for="name">Enter your name:</label>
