@@ -639,7 +639,12 @@ impl CanisterPool {
     }
 
     #[context("Failed step_prebuild_all.")]
-    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+    fn step_prebuild_all(
+        &self,
+        env: &dyn Environment,
+        log: &Logger,
+        build_config: &BuildConfig,
+    ) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Because some canisters don't get built these .did files have to be copied over manually.
         for canister in self.canisters.iter().filter(|c| {
@@ -684,7 +689,7 @@ impl CanisterPool {
             .iter()
             .any(|can| can.info.should_cargo_audit())
         {
-            self.run_cargo_audit()?;
+            self.run_cargo_audit(env)?;
         } else {
             trace!(
                 self.logger,
@@ -756,7 +761,7 @@ impl CanisterPool {
         log: &Logger,
         build_config: &BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
-        self.step_prebuild_all(log, build_config)
+        self.step_prebuild_all(env, log, build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let canisters_to_build = self.canisters_to_build(build_config);
@@ -861,7 +866,7 @@ impl CanisterPool {
     }
 
     /// If `cargo-audit` is installed this runs `cargo audit` and displays any vulnerable dependencies.
-    fn run_cargo_audit(&self) -> DfxResult {
+    fn run_cargo_audit(&self, env: &dyn Environment) -> DfxResult {
         let location = Command::new("cargo")
             .args(["locate-project", "--message-format=plain", "--workspace"])
             .output()
@@ -896,12 +901,16 @@ impl CanisterPool {
                 self.logger,
                 "Checking for vulnerabilities in rust canisters."
             );
-            let out = Command::new("cargo")
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .arg("audit")
-                .output()
-                .context("Failed to run 'cargo audit'.")?;
+            let mut out = Err(anyhow!("uninitialized"));
+            env.with_suspend_all_spinners(Box::new(|| {
+                out = Command::new("cargo")
+                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::inherit())
+                    .arg("audit")
+                    .output()
+                    .context("Failed to run 'cargo audit'.");
+            }));
+            let out = out?;
             if out.status.success() {
                 info!(self.logger, "Audit found no vulnerabilities.")
             } else {

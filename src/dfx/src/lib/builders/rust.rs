@@ -94,7 +94,11 @@ impl CanisterBuilder for RustBuilder {
             "Executing: cargo build --target wasm32-unknown-unknown --release -p {} --locked",
             package
         );
-        let output = cargo.output().context("Failed to run 'cargo build'. You might need to run `cargo update` (or a similar command like `cargo vendor`) if you have updated `Cargo.toml`, because `dfx build` uses the --locked flag with Cargo.")?;
+        let mut output = Err(anyhow!("uninitialized"));
+        env.with_suspend_all_spinners(Box::new(|| {
+            output = cargo.output().context("Failed to run 'cargo build'. You might need to run `cargo update` (or a similar command like `cargo vendor`) if you have updated `Cargo.toml`, because `dfx build` uses the --locked flag with Cargo.");
+        }));
+        let output = output?;
 
         if !output.status.success() {
             bail!("Failed to compile the rust package: {}", package);
