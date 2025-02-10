@@ -10,7 +10,9 @@ use crate::lib::operations::canister::motoko_playground::authorize_asset_uploade
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::util::assets::wallet_wasm;
 use crate::util::clap::install_mode::InstallModeHint;
-use crate::util::{blob_from_arguments, get_candid_init_type, read_module_metadata};
+use crate::util::{
+    ask_for_consent, blob_from_arguments, get_candid_init_type, read_module_metadata,
+};
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
@@ -19,7 +21,6 @@ use dfx_core::canister::{
     build_wallet_canister, install_canister_wasm, install_mode_to_past_tense,
     install_mode_to_present_tense,
 };
-use dfx_core::cli::ask_for_consent;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
@@ -101,11 +102,11 @@ pub async fn install_canister(
                 Ok(None) => (),
                 Ok(Some(err)) => {
                     let msg = format!("Candid interface compatibility check failed for canister '{}'.\nYou are making a BREAKING change. Other canisters or frontend clients relying on your canister may stop working.\n\n", canister_info.get_name()) + &err;
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(env, &msg)?;
                 }
                 Err(e) => {
                     let msg = format!("An error occurred during Candid interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(env, &msg)?;
                 }
             }
         }
@@ -117,15 +118,15 @@ pub async fn install_canister(
                 Ok(StableCompatibility::Okay) => (),
                 Ok(StableCompatibility::Warning(details)) => {
                     let msg = format!("Stable interface compatibility check issued a WARNING for canister '{}'.\n\n", canister_info.get_name()) + &details;
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(env, &msg)?;
                 }
                 Ok(StableCompatibility::Error(details)) => {
                     let msg = format!("Stable interface compatibility check issued an ERROR for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &details;
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(env, &msg)?;
                 }
                 Err(e) => {
                     let msg = format!("An error occurred during stable interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(env, &msg)?;
                 }
             }
         }
@@ -221,7 +222,13 @@ The command line value will be used.",
                 mode,
                 call_sender,
                 wasm_module,
-                skip_consent,
+                |message| {
+                    if skip_consent {
+                        Ok(())
+                    } else {
+                        ask_for_consent(env, message)
+                    }
+                },
             )
             .await?;
         }

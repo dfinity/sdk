@@ -4,9 +4,9 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::install_canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::blob_from_arguments;
 use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
 use crate::util::clap::install_mode::{InstallModeHint, InstallModeOpt};
+use crate::util::{ask_for_consent, blob_from_arguments};
 use dfx_core::canister::{
     install_canister_wasm, install_mode_to_past_tense, install_mode_to_present_tense,
 };
@@ -122,7 +122,13 @@ pub async fn exec(
                     mode,
                     call_sender,
                     wasm_module,
-                    opts.yes,
+                    |message| {
+                        if opts.yes {
+                            Ok(())
+                        } else {
+                            ask_for_consent(env, message)
+                        }
+                    },
                 )
                 .await?;
                 spinner.finish_and_clear();

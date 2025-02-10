@@ -1,6 +1,8 @@
 use crate::{
-    cli::ask_for_consent,
-    error::canister::{CanisterBuilderError, CanisterInstallError},
+    error::{
+        canister::{CanisterBuilderError, CanisterInstallError},
+        cli::UserConsent,
+    },
     identity::CallSender,
 };
 use candid::Principal;
@@ -52,10 +54,10 @@ pub async fn install_canister_wasm(
     mode: InstallMode,
     call_sender: &CallSender,
     wasm_module: Vec<u8>,
-    skip_consent: bool,
+    ask_for_consent: impl FnOnce(&str) -> Result<(), UserConsent>,
 ) -> Result<(), CanisterInstallError> {
     let mgr = ManagementCanister::create(agent);
-    if !skip_consent && mode == InstallMode::Reinstall {
+    if mode == InstallMode::Reinstall {
         let msg = if let Some(name) = canister_name {
             format!("You are about to reinstall the {name} canister")
         } else {

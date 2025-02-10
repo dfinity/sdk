@@ -9,6 +9,7 @@ use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
 use candid::{Decode, Encode, IDLArgs, Principal};
 use candid_parser::error::pretty_wrap;
 use candid_parser::utils::CandidSource;
+use dfx_core::error::cli::UserConsent;
 use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
 use idl2json::{idl2json, Idl2JsonOptions};
@@ -423,6 +424,26 @@ async fn attempt_download(client: &Client, url: &Url) -> DfxResult<Option<Bytes>
         let body = response.error_for_status()?.bytes().await?;
         Ok(Some(body))
     }
+}
+
+pub fn ask_for_consent(env: &dyn Environment, message: &str) -> Result<(), UserConsent> {
+    let mut ans = Ok(());
+    env.with_suspend_all_spinners(Box::new(|| {
+        eprintln!("WARNING!");
+        eprintln!("{}", message);
+        eprintln!("Do you want to proceed? yes/No");
+        let mut input_string = String::new();
+        let res = stdin().read_line(&mut input_string);
+        if let Err(e) = res {
+            ans = Err(UserConsent::ReadError(e));
+            return;
+        }
+        let input_string = input_string.trim_end().to_lowercase();
+        if input_string != "yes" && input_string != "y" {
+            ans = Err(UserConsent::Declined);
+        }
+    }));
+    ans
 }
 
 #[cfg(test)]
