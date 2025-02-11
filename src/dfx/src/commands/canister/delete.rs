@@ -8,13 +8,12 @@ use crate::lib::operations::canister::{
 use crate::lib::operations::cycles_ledger::wallet_deposit_to_cycles_ledger;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
-use crate::util::blob_from_arguments;
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
+use crate::util::{ask_for_consent, blob_from_arguments};
 use anyhow::{bail, Context};
 use candid::Principal;
 use clap::Parser;
 use dfx_core::canister::build_wallet_canister;
-use dfx_core::cli::ask_for_consent;
 use dfx_core::identity::wallet::wallet_canister_id;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
@@ -177,9 +176,10 @@ async fn delete_canister(
             // Determine how many cycles we can withdraw.
             let status = canister::get_canister_status(env, canister_id, call_sender).await?;
             if status.status != CanisterStatus::Stopped && !skip_confirmation {
-                ask_for_consent(&format!(
-                    "Canister {canister} has not been stopped. Delete anyway?"
-                ))?;
+                ask_for_consent(
+                    env,
+                    &format!("Canister {canister} has not been stopped. Delete anyway?"),
+                )?;
             }
             let agent = env.get_agent();
             let mgr = ManagementCanister::create(agent);

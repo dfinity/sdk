@@ -4,6 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util::command::direct_or_shell_command;
+use crate::util::with_suspend_all_spinners;
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
@@ -331,6 +332,7 @@ fn ensure_trailing_newline(s: String) -> String {
 /// Execute a command and return its output bytes.
 /// If the catch_output is false, the return bytes will always be empty.
 pub fn execute_command(
+    env: &dyn Environment,
     command: &str,
     vars: &[Env<'_>],
     cwd: &Path,
@@ -350,9 +352,12 @@ pub fn execute_command(
     for (key, value) in vars {
         cmd.env(key.as_ref(), value);
     }
-    let output = cmd
-        .output()
-        .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
+    let output = if catch_output {
+        cmd.output()
+    } else {
+        with_suspend_all_spinners(env, || cmd.output())
+    }
+    .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
     if output.status.success() {
         Ok(output.stdout)
     } else {
@@ -362,13 +367,23 @@ pub fn execute_command(
     }
 }
 
-pub fn run_command(command: &str, vars: &[Env<'_>], cwd: &Path) -> DfxResult<()> {
-    execute_command(command, vars, cwd, false)?;
+pub fn run_command(
+    env: &dyn Environment,
+    command: &str,
+    vars: &[Env<'_>],
+    cwd: &Path,
+) -> DfxResult<()> {
+    execute_command(env, command, vars, cwd, false)?;
     Ok(())
 }
 
-pub fn command_output(command: &str, vars: &[Env<'_>], cwd: &Path) -> DfxResult<Vec<u8>> {
-    execute_command(command, vars, cwd, true)
+pub fn command_output(
+    env: &dyn Environment,
+    command: &str,
+    vars: &[Env<'_>],
+    cwd: &Path,
+) -> DfxResult<Vec<u8>> {
+    execute_command(env, command, vars, cwd, true)
 }
 
 type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);
