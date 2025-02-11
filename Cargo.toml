@@ -23,7 +23,7 @@ candid = "0.10.11"
 candid_parser = "0.1.4"
 dfx-core = { path = "src/dfx-core", version = "0.1.0" }
 ic-agent = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "9ebf6314ce2fcb36772c7d81d6d414b4628d6101" }
-ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.21.0" }
+ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.22.0" }
 ic-cdk = "0.13.1"
 ic-identity-hsm = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "9ebf6314ce2fcb36772c7d81d6d414b4628d6101" }
 ic-utils = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "9ebf6314ce2fcb36772c7d81d6d414b4628d6101" }
