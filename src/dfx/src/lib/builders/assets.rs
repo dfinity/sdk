@@ -14,9 +14,10 @@ use candid::Principal as CanisterId;
 use console::style;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use fn_error_context::context;
-use slog::{o, Logger};
+use slog::{debug, info, o, Logger};
 use std::fs;
 use std::path::Path;
+use std::process::{Command, Stdio};
 
 /// Set of extras that can be specified in the dfx.json.
 struct AssetsBuilderExtra {
@@ -106,7 +107,7 @@ impl CanisterBuilder for AssetsBuilder {
 
     fn postbuild(
         &self,
-        _: &dyn Environment,
+        env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,
@@ -126,6 +127,7 @@ impl CanisterBuilder for AssetsBuilder {
         )?;
 
         build_frontend(
+            env,
             pool.get_logger(),
             info.get_workspace_root(),
             &config.network_name,
@@ -179,6 +181,7 @@ fn unpack_did(generate_output_dir: &Path) -> DfxResult<()> {
 
 #[context("Failed to build frontend for network '{}'.", network_name)]
 fn build_frontend(
+    env: &dyn Environment,
     logger: &slog::Logger,
     project_root: &Path,
     network_name: &str,
@@ -192,20 +195,20 @@ fn build_frontend(
 
     if custom_build_frontend {
         for command in build {
-            slog::info!(
+            info!(
                 logger,
                 r#"{} '{}'"#,
                 style("Executing").green().bold(),
                 command
             );
 
-            super::run_command(command, &vars, project_root)
-                .with_context(|| format!("Failed to run {}.", command))?;
+            super::run_command(env, command, &vars, project_root)
+                .with_context(|| format!("Failed to run {command}.",))?;
         }
     } else if build_frontend {
         // Frontend build.
-        slog::info!(logger, "Building frontend...");
-        let mut cmd = std::process::Command::new(program::NPM);
+        let spinner = env.new_spinner("Building frontend...".into());
+        let mut cmd = Command::new(program::NPM);
 
         // Provide DFX_NETWORK at build time
         cmd.env("DFX_NETWORK", network_name);
@@ -225,27 +228,28 @@ fn build_frontend(
         }
 
         cmd.current_dir(project_root)
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped());
-        slog::debug!(logger, "Running {:?}...", cmd);
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        debug!(logger, "Running {cmd:?}...");
 
         let output = cmd
             .output()
-            .with_context(|| format!("Error executing {:#?}", cmd))?;
+            .with_context(|| format!("Error executing {cmd:#?}"))?;
         if !output.status.success() {
             return Err(DfxError::new(BuildError::CommandError(
-                format!("{:?}", cmd),
+                format!("{cmd:?}",),
                 output.status,
                 String::from_utf8_lossy(&output.stdout).to_string(),
                 String::from_utf8_lossy(&output.stderr).to_string(),
             )));
         } else if !output.stderr.is_empty() {
             // Cannot use eprintln, because it would interfere with the progress bar.
-            slog::debug!(
+            debug!(
                 logger,
                 "Frontend build succeed:\n{}",
                 String::from_utf8_lossy(&output.stderr)
             );
+            spinner.finish_and_clear();
         }
     }
     Ok(())
