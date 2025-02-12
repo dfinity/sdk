@@ -10,6 +10,8 @@
 
 ### feat: streamlined output during asset synchronization
 
+### feat: add devcontainer
+
 ## Dependencies
 
 ### Motoko
