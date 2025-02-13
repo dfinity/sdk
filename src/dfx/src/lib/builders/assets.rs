@@ -244,7 +244,7 @@ fn build_frontend(
                     e.into()
                 };
                 return Err(root_err).context(format!(
-                    "Error executing \"{}\" {}",
+                    "Error executing {} {}",
                     shell_words::quote(&cmd.get_program().to_string_lossy()),
                     cmd.get_args()
                         .map(|a| shell_words::quote(&a.to_string_lossy()).into_owned())
