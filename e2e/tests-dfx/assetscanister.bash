@@ -1444,7 +1444,7 @@ EOF
 
   assert_command dfx deploy
   assert_contains "This project uses the default security policy for some assets."
-  assert_contains "Unhardened assets: all"
+  assert_not_contains "Unhardened assets:"
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_match "content-security-policy"
   assert_match "permissions-policy"
