@@ -384,9 +384,14 @@ pub(crate) fn gather_asset_descriptors(
             .filter(|asset| asset.config.warn_about_no_security_policy())
             .collect_vec();
         if !no_policy_assets.is_empty() {
+            let qnt = if no_policy_assets.len() == asset_descriptors.len() {
+                "any"
+            } else {
+                "some"
+            };
             warn!(
                 logger,
-                "This project does not define a security policy for some assets."
+                "This project does not define a security policy for {qnt} assets."
             );
             warn!(
                 logger,
@@ -399,9 +404,7 @@ pub(crate) fn gather_asset_descriptors(
             warn!(logger, "  }}");
             warn!(logger, "]");
 
-            if no_policy_assets.len() == asset_descriptors.len() {
-                warn!(logger, "Assets without any security policy: all");
-            } else {
+            if no_policy_assets.len() != asset_descriptors.len() {
                 warn!(logger, "Assets without any security policy:");
                 for asset in &no_policy_assets {
                     warn!(logger, "  - {}", asset.key);

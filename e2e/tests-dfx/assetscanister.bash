@@ -1382,8 +1382,7 @@ EOF
   echo '[]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_contains "This project does not define a security policy for some assets."
-  assert_contains "Assets without any security policy: all"
+  assert_contains "This project does not define a security policy for any assets."
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_not_match "content-security-policy"
   assert_not_match "permissions-policy"
@@ -1414,7 +1413,7 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_not_contains "This project does not define a security policy for some assets."
+  assert_not_contains "This project does not define a security policy for any assets."
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_not_match "content-security-policy"
   assert_not_match "permissions-policy"
@@ -1428,8 +1427,8 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_not_contains "This project does not define a security policy for some assets."
-  assert_not_contains "This project uses the default security policy for some assets."
+  assert_not_contains "This project does not define a security policy for any assets."
+  assert_not_contains "This project uses the default security policy for all assets."
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_not_match "content-security-policy"
   assert_not_match "permissions-policy"
@@ -1443,7 +1442,7 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_contains "This project uses the default security policy for some assets."
+  assert_contains "This project uses the default security policy for all assets."
   assert_not_contains "Unhardened assets:"
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_match "content-security-policy"
@@ -1480,7 +1479,7 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_not_contains "This project uses the default security policy for some assets."
+  assert_not_contains "This project uses the default security policy for all assets."
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_match "content-security-policy"
   assert_match "permissions-policy"
@@ -1508,8 +1507,8 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_not_contains "This project does not define a security policy for some assets."
-  assert_not_contains "This project uses the default security policy for some assets."
+  assert_not_contains "This project does not define a security policy for any assets."
+  assert_not_contains "This project uses the default security policy for all assets."
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_match "content-security-policy: overwritten"
   assert_match "permissions-policy"
