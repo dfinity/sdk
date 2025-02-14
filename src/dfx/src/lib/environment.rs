@@ -57,6 +57,7 @@ pub trait Environment {
     fn get_logger(&self) -> &slog::Logger;
     fn get_verbose_level(&self) -> i64;
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
+    fn with_suspend_all_spinners(&self, f: Box<dyn FnOnce() + '_>); // box needed for dyn Environment
     fn new_progress(&self, message: &str) -> ProgressBar;
 
     fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {
@@ -264,6 +265,10 @@ impl Environment for EnvironmentImpl {
         }
     }
 
+    fn with_suspend_all_spinners(&self, f: Box<dyn FnOnce() + '_>) {
+        self.spinners.suspend(f);
+    }
+
     fn new_progress(&self, _message: &str) -> ProgressBar {
         ProgressBar::discard()
     }
@@ -430,6 +435,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.new_spinner(message)
     }
 
+    fn with_suspend_all_spinners(&self, f: Box<dyn FnOnce() + '_>) {
+        self.backend.with_suspend_all_spinners(f);
+    }
+
     fn new_progress(&self, message: &str) -> ProgressBar {
         self.backend.new_progress(message)
     }
@@ -556,6 +565,9 @@ pub mod test_env {
         }
         fn new_progress(&self, _message: &str) -> ProgressBar {
             ProgressBar::discard()
+        }
+        fn with_suspend_all_spinners(&self, f: Box<dyn FnOnce() + '_>) {
+            f()
         }
         fn new_spinner(&self, _message: Cow<'static, str>) -> ProgressBar {
             ProgressBar::discard()

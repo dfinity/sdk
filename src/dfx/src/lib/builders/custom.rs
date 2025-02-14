@@ -99,7 +99,7 @@ impl CanisterBuilder for CustomBuilder {
     #[context("Failed to build custom canister {}.", info.get_name())]
     fn build(
         &self,
-        _env: &dyn Environment,
+        env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,
@@ -129,7 +129,7 @@ impl CanisterBuilder for CustomBuilder {
                 command
             );
 
-            super::run_command(&command, &vars, info.get_workspace_root())
+            super::run_command(env, &command, &vars, info.get_workspace_root())
                 .with_context(|| format!("Failed to run {}.", command))?;
         }
 

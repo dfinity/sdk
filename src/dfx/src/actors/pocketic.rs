@@ -159,7 +159,7 @@ impl Actor for PocketIc {
     }
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
-        warn!(self.logger, "Stopping PocketIC...");
+        debug!(self.logger, "Stopping PocketIC...");
         if let Some(sender) = self.stop_sender.take() {
             let _ = sender.send(());
         }
@@ -168,7 +168,7 @@ impl Actor for PocketIc {
             let _ = join.join();
         }
 
-        warn!(self.logger, "Stopped.");
+        debug!(self.logger, "Stopped.");
         Running::Stop
     }
 }

@@ -242,7 +242,7 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
         info!(log, "URLs:");
         let green = Style::new().green();
         if !frontend_urls.is_empty() {
-            info!(log, "  Frontend canister via browser");
+            info!(log, "  Frontend canister via browser:");
             for (name, (url1, url2)) in frontend_urls {
                 if let Some(url2) = url2 {
                     info!(log, "    {}:", name);
