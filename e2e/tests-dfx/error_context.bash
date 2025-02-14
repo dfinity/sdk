@@ -138,12 +138,11 @@ teardown() {
   PATH="$helpers_path" assert_command_fail "$dfx_path" deploy npm_missing
 
   # expect to see the npm command line
-  assert_contains 'program: "npm"'
-  assert_match 'args: \[.*"npm".*"run".*"build".*\]'
+  assert_match 'npm run build'
   # expect to see the name of the canister
   assert_match "npm_missing"
   # expect to see the underlying cause
-  assert_match "No such file or directory"
+  assert_match "(Is it installed?)"
 }
 
 @test "missing asset source directory" {

@@ -243,13 +243,14 @@ fn display_urls(env: &dyn Environment) -> DfxResult {
         let green = Style::new().green();
         if !frontend_urls.is_empty() {
             info!(log, "  Frontend canister via browser:");
-            for (name, (url1, url2)) in frontend_urls {
-                if let Some(url2) = url2 {
+            for (name, (query_url, subdomain_url)) in frontend_urls {
+                if let Some(subdomain_url) = subdomain_url {
                     info!(log, "    {}:", name);
-                    info!(log, "      - {}", green.apply_to(url1));
-                    info!(log, "      - {}", green.apply_to(url2));
+                    #[rustfmt::skip]
+                    info!(log, "      - {} (Recommended)", green.apply_to(subdomain_url));
+                    info!(log, "      - {} (Legacy)", green.apply_to(query_url));
                 } else {
-                    info!(log, "    {}: {}", name, green.apply_to(url1));
+                    info!(log, "    {}: {}", name, green.apply_to(query_url));
                 }
             }
         }
