@@ -384,9 +384,14 @@ pub(crate) fn gather_asset_descriptors(
             .filter(|asset| asset.config.warn_about_no_security_policy())
             .collect_vec();
         if !no_policy_assets.is_empty() {
+            let qnt = if no_policy_assets.len() == asset_descriptors.len() {
+                "any"
+            } else {
+                "some"
+            };
             warn!(
                 logger,
-                "This project does not define a security policy for some assets."
+                "This project does not define a security policy for {qnt} assets."
             );
             warn!(
                 logger,
@@ -399,9 +404,7 @@ pub(crate) fn gather_asset_descriptors(
             warn!(logger, "  }}");
             warn!(logger, "]");
 
-            if no_policy_assets.len() == asset_descriptors.len() {
-                warn!(logger, "Assets without any security policy: all");
-            } else {
+            if no_policy_assets.len() != asset_descriptors.len() {
                 warn!(logger, "Assets without any security policy:");
                 for asset in &no_policy_assets {
                     warn!(logger, "  - {}", asset.key);
@@ -413,11 +416,14 @@ pub(crate) fn gather_asset_descriptors(
             .filter(|asset| asset.config.warn_about_standard_security_policy())
             .collect_vec();
         if !standard_policy_assets.is_empty() {
-            warn!(logger, "This project uses the default security policy for some assets. While it is set up to work with many applications, it is recommended to further harden the policy to increase security against attacks like XSS.");
-            warn!(logger, "To get started, have a look at 'dfx info canister-security-policy'. It shows the default security policy along with suggestions on how to improve it.");
-            if standard_policy_assets.len() == asset_descriptors.len() {
-                warn!(logger, "Unhardened assets: all");
+            let qnt = if standard_policy_assets.len() == asset_descriptors.len() {
+                "all"
             } else {
+                "some"
+            };
+            warn!(logger, "This project uses the default security policy for {qnt} assets. While it is set up to work with many applications, it is recommended to further harden the policy to increase security against attacks like XSS.");
+            warn!(logger, "To get started, have a look at 'dfx info canister-security-policy'. It shows the default security policy along with suggestions on how to improve it.");
+            if standard_policy_assets.len() != asset_descriptors.len() {
                 warn!(logger, "Unhardened assets:");
                 for asset in &standard_policy_assets {
                     warn!(logger, "  - {}", asset.key);
