@@ -14,8 +14,10 @@ use candid::Principal as CanisterId;
 use console::style;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use fn_error_context::context;
+use itertools::Itertools;
 use slog::{debug, info, o, Logger};
 use std::fs;
+use std::io::ErrorKind;
 use std::path::Path;
 use std::process::{Command, Stdio};
 
@@ -232,9 +234,24 @@ fn build_frontend(
             .stderr(Stdio::piped());
         debug!(logger, "Running {cmd:?}...");
 
-        let output = cmd
-            .output()
-            .with_context(|| format!("Error executing {cmd:#?}"))?;
+        let res = cmd.output();
+        let output = match res {
+            Ok(o) => o,
+            Err(e) => {
+                let root_err = if e.kind() == ErrorKind::NotFound {
+                    anyhow!("npm was not found. (Is it installed?)")
+                } else {
+                    e.into()
+                };
+                return Err(root_err).context(format!(
+                    "Error executing {} {}",
+                    shell_words::quote(&cmd.get_program().to_string_lossy()),
+                    cmd.get_args()
+                        .map(|a| shell_words::quote(&a.to_string_lossy()).into_owned())
+                        .format(" ")
+                ));
+            }
+        };
         if !output.status.success() {
             return Err(DfxError::new(BuildError::CommandError(
                 format!("{cmd:?}",),
