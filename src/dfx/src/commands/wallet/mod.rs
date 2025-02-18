@@ -48,6 +48,7 @@ enum SubCommand {
     Custodians(custodians::CustodiansOpts),
     Deauthorize(deauthorize::DeauthorizeOpts),
     Name(name::NameOpts),
+    #[command(hide = true)]
     RedeemFaucetCoupon(redeem_faucet_coupon::RedeemFaucetCouponOpts),
     RemoveController(remove_controller::RemoveControllerOpts),
     Send(send::SendOpts),
@@ -68,7 +69,6 @@ pub fn exec(env: &dyn Environment, opts: WalletOpts) -> DfxResult {
             SubCommand::Custodians(v) => custodians::exec(&agent_env, v).await,
             SubCommand::Deauthorize(v) => deauthorize::exec(&agent_env, v).await,
             SubCommand::Name(v) => name::exec(&agent_env, v).await,
-            #[command(hide = true)]
             SubCommand::RedeemFaucetCoupon(v) => redeem_faucet_coupon::exec(&agent_env, v).await,
             SubCommand::RemoveController(v) => remove_controller::exec(&agent_env, v).await,
             SubCommand::Send(v) => send::exec(&agent_env, v).await,
