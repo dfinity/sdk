@@ -10,6 +10,8 @@
 
 ### feat: streamlined output during asset synchronization
 
+### chore: hide `dfx wallet redeem-faucet-coupon`
+
 ## Dependencies
 
 ### Motoko

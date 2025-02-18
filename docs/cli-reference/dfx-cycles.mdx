@@ -14,14 +14,15 @@ dfx cycles [subcommand] [options]
 
 The following subcommands are available:
 
-| Command                               | Description                                                                          |
-|---------------------------------------|--------------------------------------------------------------------------------------|
-| [`approve`](#dfx-cycles-approve)      | Approves a principal to spend cycles on your behalf.                                 |
-| [`balance`](#dfx-cycles-balance)      | Prints the account balance of the user.                                              |
-| [`convert`](#dfx-cycles-convert)      | Convert some of the user's ICP balance into cycles.                                  |
-| [`top-up`](#dfx-cycles-top-up)        | Deposit cycles into a canister.                                                      |
-| [`transfer`](#dfx-cycles-transfer)    | Send cycles to another account.                                                      |
-| `help`                                | Displays usage information message for a specified subcommand.                       |
+| Command                                         | Description                                                                          |
+|-------------------------------------------------|--------------------------------------------------------------------------------------|
+| [`approve`](#dfx-cycles-approve)                | Approves a principal to spend cycles on your behalf.                                 |
+| [`balance`](#dfx-cycles-balance)                | Prints the account balance of the user.                                              |
+| [`convert`](#dfx-cycles-convert)                | Convert some of the user's ICP balance into cycles.                                  |
+| [`redeem-faucet-coupon`](#redeem-faucet-coupon) | Redeem a code at the cycles faucet.                                                  |
+| [`top-up`](#dfx-cycles-top-up)                  | Deposit cycles into a canister.                                                      |
+| [`transfer`](#dfx-cycles-transfer)              | Send cycles to another account.                                                      |
+| `help`                                          | Displays usage information message for a specified subcommand.                       |
 
 To view usage information for a specific subcommand, specify the subcommand and the `--help` flag. For example, to see usage information for `dfx cycles balance`, you can run the following command:
 
@@ -198,6 +199,48 @@ Transfer from a subaccount:
 
 ``` bash
 dfx cycles transfer raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae 1000000000 --from-subaccount 000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f --network ic
+```
+
+## dfx cycles redeem-faucet-coupon
+
+Use the `dfx cycles redeem-faucet-coupon` command to redeem a cycles faucet coupon.
+This will redeem a coupon and deposit the cycles to your cycles ledger account.
+
+### Basic usage
+```
+dfx cycles redeem-faucet-coupon <your faucet coupon>
+```
+
+### Arguments
+
+Use the following necessary argument with the `dfx cycles redeem-faucet-coupon` command.
+
+
+|Argument |Description
+----------|--------------
+|`<your faucet coupon>` | The coupon code to redeem at the faucet.|
+
+
+### Flags
+
+You can use the following optional flags with the `dfx cycles redeem-faucet-coupon` command.
+
+
+|Flag |Description|
+|-----|-----------|
+|`--faucet`|Alternative faucet address. If not set, this uses the DFINITY faucet.|
+|`--yes`|Skips yes/no checks by answering 'yes'. Not recommended outside of CI.|
+
+### Example
+
+If you have a coupon code `ABCDE-ABCDE-ABCDE`, you can redeem it like this:
+``` bash
+dfx cycles redeem-faucet-coupon 'ABCDE-ABCDE-ABCDE'
+```
+
+This will print something similar to this:
+```
+Redeemed coupon ABCDE-ABCDE-ABCDE to the cycles ledger for 10 TC (trillion cycles). New balance: 10 TC.
 ```
 
 ## dfx cycles top-up
