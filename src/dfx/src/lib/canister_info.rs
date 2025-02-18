@@ -145,6 +145,7 @@ impl CanisterInfo {
                         package: _,
                         crate_name: _,
                         candid,
+                        skip_cargo_audit: _,
                     } => workspace_root.join(candid),
                     CanisterTypeProperties::Assets { .. } => output_root.join("assetstorage.did"),
                     CanisterTypeProperties::Custom {
@@ -358,6 +359,10 @@ impl CanisterInfo {
 
     pub fn is_rust(&self) -> bool {
         matches!(self.type_specific, CanisterTypeProperties::Rust { .. })
+    }
+
+    pub fn should_cargo_audit(&self) -> bool {
+        matches!(self.type_specific, CanisterTypeProperties::Rust { skip_cargo_audit, .. } if !skip_cargo_audit)
     }
 
     pub fn is_assets(&self) -> bool {

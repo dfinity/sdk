@@ -2,6 +2,25 @@
 
 # UNRELEASED
 
+### feat: `skip_cargo_audit` flag in dfx.json to skip `cargo audit` build step
+
+### fix: `dfx canister install` and `dfx deploy` with `--no-asset-upgrade` no longer hang indefinitely when wasm is not up to date
+
+### fix: `dfx` downloads `.did` files for remote canisters
+
+### feat: streamlined output during asset synchronization
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.1](https://github.com/dfinity/motoko/releases/tag/0.14.1)
+
+### Frontend canister
+
+- Module hash: 865eb25df5a6d857147e078bb33c727797957247f7af2635846d65c5397b36a6
+- https://github.com/dfinity/sdk/pull/4095
+
 # 0.25.0
 
 ### fix: `dfx canister install` and `dfx deploy` with `--no-asset-upgrade` no longer hang indefinitely when wasm is not up to date
