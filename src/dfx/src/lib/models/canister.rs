@@ -8,7 +8,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
-use crate::util::assets;
+use crate::util::{assets, with_suspend_all_spinners};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
@@ -129,6 +129,7 @@ impl Canister {
     #[context("Failed to post-process wasm of canister '{}'.", self.info.get_name())]
     pub(crate) fn wasm_post_process(
         &self,
+        env: &dyn Environment,
         logger: &Logger,
         build_output: &BuildOutput,
     ) -> DfxResult {
@@ -187,7 +188,7 @@ impl Canister {
 
         if let Some(tech_stack_config) = info.get_tech_stack() {
             set_dfx_metadata = true;
-            dfx_metadata.set_tech_stack(tech_stack_config, info.get_workspace_root())?;
+            dfx_metadata.set_tech_stack(env, tech_stack_config, info.get_workspace_root())?;
         } else if info.is_rust() {
             // TODO: remove this when we have rust extension
             set_dfx_metadata = true;
@@ -204,7 +205,7 @@ impl Canister {
                 }
             }"#;
             let tech_stack_config: TechStack = serde_json::from_str(s)?;
-            dfx_metadata.set_tech_stack(&tech_stack_config, info.get_workspace_root())?;
+            dfx_metadata.set_tech_stack(env, &tech_stack_config, info.get_workspace_root())?;
         } else if info.is_motoko() {
             // TODO: remove this when we have motoko extension
             set_dfx_metadata = true;
@@ -214,7 +215,7 @@ impl Canister {
                 }
             }"#;
             let tech_stack_config: TechStack = serde_json::from_str(s)?;
-            dfx_metadata.set_tech_stack(&tech_stack_config, info.get_workspace_root())?;
+            dfx_metadata.set_tech_stack(env, &tech_stack_config, info.get_workspace_root())?;
         }
 
         if set_dfx_metadata {
@@ -639,7 +640,12 @@ impl CanisterPool {
     }
 
     #[context("Failed step_prebuild_all.")]
-    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+    fn step_prebuild_all(
+        &self,
+        env: &dyn Environment,
+        log: &Logger,
+        build_config: &BuildConfig,
+    ) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Because some canisters don't get built these .did files have to be copied over manually.
         for canister in self.canisters.iter().filter(|c| {
@@ -684,7 +690,7 @@ impl CanisterPool {
             .iter()
             .any(|can| can.info.should_cargo_audit())
         {
-            self.run_cargo_audit()?;
+            self.run_cargo_audit(env)?;
         } else {
             trace!(
                 self.logger,
@@ -722,7 +728,7 @@ impl CanisterPool {
     ) -> DfxResult<()> {
         canister.candid_post_process(self.get_logger(), build_config, build_output)?;
 
-        canister.wasm_post_process(self.get_logger(), build_output)?;
+        canister.wasm_post_process(env, self.get_logger(), build_output)?;
 
         build_canister_js(&canister.canister_id(), &canister.info)?;
 
@@ -756,7 +762,7 @@ impl CanisterPool {
         log: &Logger,
         build_config: &BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
-        self.step_prebuild_all(log, build_config)
+        self.step_prebuild_all(env, log, build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
         let canisters_to_build = self.canisters_to_build(build_config);
@@ -861,7 +867,7 @@ impl CanisterPool {
     }
 
     /// If `cargo-audit` is installed this runs `cargo audit` and displays any vulnerable dependencies.
-    fn run_cargo_audit(&self) -> DfxResult {
+    fn run_cargo_audit(&self, env: &dyn Environment) -> DfxResult {
         let location = Command::new("cargo")
             .args(["locate-project", "--message-format=plain", "--workspace"])
             .output()
@@ -896,12 +902,14 @@ impl CanisterPool {
                 self.logger,
                 "Checking for vulnerabilities in rust canisters."
             );
-            let out = Command::new("cargo")
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .arg("audit")
-                .output()
-                .context("Failed to run 'cargo audit'.")?;
+            let out = with_suspend_all_spinners(env, || {
+                Command::new("cargo")
+                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::inherit())
+                    .arg("audit")
+                    .output()
+                    .context("Failed to run 'cargo audit'.")
+            })?;
             if out.status.success() {
                 info!(self.logger, "Audit found no vulnerabilities.")
             } else {

@@ -16,7 +16,7 @@
 
 ### Motoko
 
-Updated Motoko to [0.13.7](https://github.com/dfinity/motoko/releases/tag/0.13.7)
+Updated Motoko to [0.14.1](https://github.com/dfinity/motoko/releases/tag/0.14.1)
 
 ### Frontend canister
 

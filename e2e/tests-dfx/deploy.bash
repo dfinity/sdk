@@ -66,14 +66,14 @@ teardown() {
   (
     cd src
     assert_command dfx deploy
-    assert_match "Installing code for"
+    assert_match "Installed code for"
   )
 
   assert_command dfx canister call hello_backend greet '("Banzai")'
   assert_eq '("Hello, Banzai!")'
 
   assert_command dfx deploy
-  assert_not_match "Installing code for"
+  assert_not_match "Installed code for"
   assert_match "is already installed"
 }
 

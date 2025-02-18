@@ -855,7 +855,7 @@ fn warn_upgrade(log: &Logger, latest_version: Option<&Version>, current_version:
 
     warn!(
         log,
-        "\nYou are strongly encouraged to upgrade by running 'dfx upgrade'!"
+        "\nYou are strongly encouraged to upgrade by running 'dfxvm update'!"
     );
 }
 

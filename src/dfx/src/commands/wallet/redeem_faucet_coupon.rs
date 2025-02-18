@@ -4,11 +4,10 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::set_wallet_id;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::{format_as_trillions, pretty_thousand_separators};
+use crate::util::{ask_for_consent, format_as_trillions, pretty_thousand_separators};
 use anyhow::{anyhow, bail, Context};
 use candid::{encode_args, Decode, Principal};
 use clap::Parser;
-use dfx_core::cli::ask_for_consent;
 use slog::{info, warn};
 
 pub const DEFAULT_FAUCET_PRINCIPAL: Principal =
@@ -74,7 +73,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         // identity has no wallet yet - faucet will provide one
         _ => {
             if !opts.yes {
-                ask_for_consent("`dfx cycles` is now recommended instead of `dfx wallet`. Are you sure you want to create a new cycles wallet anyway?")?;
+                ask_for_consent(env, "`dfx cycles` is now recommended instead of `dfx wallet`. Are you sure you want to create a new cycles wallet anyway?")?;
             }
             let identity = env
                 .get_selected_identity()
