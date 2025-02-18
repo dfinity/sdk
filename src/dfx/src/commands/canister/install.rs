@@ -4,10 +4,12 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::install_canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::blob_from_arguments;
 use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
 use crate::util::clap::install_mode::{InstallModeHint, InstallModeOpt};
-use dfx_core::canister::{install_canister_wasm, install_mode_to_prompt};
+use crate::util::{ask_for_consent, blob_from_arguments};
+use dfx_core::canister::{
+    install_canister_wasm, install_mode_to_past_tense, install_mode_to_present_tense,
+};
 use dfx_core::identity::CallSender;
 
 use crate::lib::operations::canister::skip_remote_canister;
@@ -103,12 +105,15 @@ pub async fn exec(
                 )?;
                 let wasm_module = dfx_core::fs::read(wasm_path)?;
                 let mode = mode_hint.to_install_mode_with_wasm_path()?;
-                info!(
-                    env.get_logger(),
-                    "{} code for canister {}",
-                    install_mode_to_prompt(&mode),
-                    canister_id,
+                let spinner = env.new_spinner(
+                    format!(
+                        "{} code for canister {}",
+                        install_mode_to_present_tense(&mode),
+                        canister_id,
+                    )
+                    .into(),
                 );
+
                 install_canister_wasm(
                     env.get_agent(),
                     canister_id,
@@ -117,9 +122,22 @@ pub async fn exec(
                     mode,
                     call_sender,
                     wasm_module,
-                    opts.yes,
+                    |message| {
+                        if opts.yes {
+                            Ok(())
+                        } else {
+                            ask_for_consent(env, message)
+                        }
+                    },
                 )
                 .await?;
+                spinner.finish_and_clear();
+                info!(
+                    env.get_logger(),
+                    "{} code for canister {}",
+                    install_mode_to_past_tense(&mode),
+                    canister_id
+                );
                 Ok(())
             } else {
                 bail!("When installing a canister by its ID, you must specify `--wasm` option.")

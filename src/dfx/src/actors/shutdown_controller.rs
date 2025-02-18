@@ -1,7 +1,7 @@
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownTrigger;
 use actix::{Actor, Addr, AsyncContext, Context, Handler, Recipient};
-use slog::Logger;
+use slog::{info, Logger};
 use std::time::Duration;
 
 pub mod signals {
@@ -29,7 +29,7 @@ pub struct Config {
 }
 
 pub struct ShutdownController {
-    _logger: Logger,
+    logger: Logger,
 
     shutdown_subscribers: Vec<Recipient<signals::outbound::Shutdown>>,
 }
@@ -39,7 +39,7 @@ impl ShutdownController {
         let logger =
             (config.logger.clone()).unwrap_or_else(|| Logger::root(slog::Discard, slog::o!()));
         ShutdownController {
-            _logger: logger,
+            logger,
             shutdown_subscribers: Vec::new(),
         }
     }
@@ -56,10 +56,12 @@ impl ShutdownController {
             .map(|recipient| recipient.send(Shutdown {}))
             .map(|response| response.then(|_| future::ok::<(), ()>(())))
             .collect();
+        let subscribers = self.shutdown_subscribers.clone();
+        let logger = self.logger.clone();
 
         futures::future::join_all(futures)
             .into_actor(self)
-            .then(|_, _, ctx| {
+            .then(move |_, _, ctx| {
                 // Once all shutdowns have completed, we can schedule a stop of the actix system. It is
                 // performed with a slight delay to give pending synced futures a chance to perform their
                 // error handlers.
@@ -69,7 +71,10 @@ impl ShutdownController {
                 // be able to print error messages.
                 let when = Duration::from_secs(0) + Duration::from_millis(100);
 
-                ctx.run_later(when, |_, _| {
+                ctx.run_later(when, move |_, _| {
+                    if !subscribers.iter().any(|s| s.connected()) {
+                        info!(logger, "All local network processes stopped");
+                    }
                     System::current().stop();
                 });
 

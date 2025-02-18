@@ -2,7 +2,7 @@
 //!
 //! The cli tool dfx should consolidate its usage of canister metadata into this single section
 //! It's originally for pulling dependencies. But open to extend for other usage.
-use crate::lib::{builders::command_output, error::DfxResult};
+use crate::lib::{builders::command_output, environment::Environment, error::DfxResult};
 use anyhow::{bail, Context};
 use dfx_core::config::model::dfinity::{Pullable, TechStack, TechStackCategoryMap};
 use schemars::JsonSchema;
@@ -39,15 +39,16 @@ impl DfxMetadata {
 
     pub fn set_tech_stack(
         &mut self,
+        env: &dyn Environment,
         tech_stack_config: &TechStack,
         project_root: &Path,
     ) -> DfxResult<()> {
         let mut tech_stack = tech_stack_config.clone();
-        overwrite_field_from_command("cdk", tech_stack.cdk.as_mut(), project_root)?;
-        overwrite_field_from_command("language", tech_stack.language.as_mut(), project_root)?;
-        overwrite_field_from_command("lib", tech_stack.lib.as_mut(), project_root)?;
-        overwrite_field_from_command("tool", tech_stack.tool.as_mut(), project_root)?;
-        overwrite_field_from_command("other", tech_stack.other.as_mut(), project_root)?;
+        overwrite_field_from_command(env, "cdk", tech_stack.cdk.as_mut(), project_root)?;
+        overwrite_field_from_command(env, "language", tech_stack.language.as_mut(), project_root)?;
+        overwrite_field_from_command(env, "lib", tech_stack.lib.as_mut(), project_root)?;
+        overwrite_field_from_command(env, "tool", tech_stack.tool.as_mut(), project_root)?;
+        overwrite_field_from_command(env, "other", tech_stack.other.as_mut(), project_root)?;
         self.tech_stack = Some(tech_stack);
         Ok(())
     }
@@ -56,6 +57,7 @@ impl DfxMetadata {
 // If the value of a field starts with "$(", and ends with ")", then it's a command to calculate the value.
 // The field value will be overwritten by the output of the command.
 fn overwrite_field_from_command(
+    env: &dyn Environment,
     category: &str,
     category_map: Option<&mut TechStackCategoryMap>,
     project_root: &Path,
@@ -66,7 +68,7 @@ fn overwrite_field_from_command(
                 if value.starts_with("$(") && value.ends_with(')') {
                     let triple = format!("{}->{}->{}", category, name, field);
                     let command = &value[2..value.len() - 1];
-                    let bytes = command_output(command, &[], project_root)
+                    let bytes = command_output(env, command, &[], project_root)
                         .with_context(|| format!("Failed to run the value_command: {}.", triple))?;
                     let calculated_value = String::from_utf8(bytes).with_context(|| {
                         format!(

@@ -6,6 +6,7 @@ use crate::{
         methods::method_names::GET_ASSET_PROPERTIES,
         types::asset::{AssetDetails, AssetProperties, GetAssetPropertiesArgument},
     },
+    AssetSyncProgressRenderer,
 };
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
@@ -20,9 +21,13 @@ const MAX_CONCURRENT_REQUESTS: usize = 50;
 pub(crate) async fn get_assets_properties(
     canister: &Canister<'_>,
     canister_assets: &HashMap<String, AssetDetails>,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<HashMap<String, AssetProperties>, GetAssetPropertiesError> {
     let semaphore = SharedSemaphore::new(true, MAX_CONCURRENT_REQUESTS);
 
+    if let Some(progress) = progress {
+        progress.set_asset_properties_to_retrieve(canister_assets.len());
+    }
     let asset_ids = canister_assets.keys().cloned().collect::<Vec<_>>();
     let futs = asset_ids
         .iter()
@@ -40,7 +45,12 @@ pub(crate) async fn get_assets_properties(
                 let response = get_asset_properties(canister, asset_id).await;
 
                 match response {
-                    Ok(asset_properties) => break Ok(asset_properties),
+                    Ok(asset_properties) => {
+                        if let Some(progress) = progress {
+                            progress.inc_asset_properties_retrieved();
+                        }
+                        break Ok(asset_properties);
+                    }
                     Err(agent_err) if !retryable(&agent_err) => {
                         break Err(agent_err);
                     }

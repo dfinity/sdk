@@ -5,6 +5,7 @@ use crate::canister_api::types::batch_upload::common::{
     CreateChunkRequest, CreateChunkResponse, CreateChunksRequest, CreateChunksResponse,
 };
 use crate::error::CreateChunkError;
+use crate::AssetSyncProgressRenderer;
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
 use candid::{Decode, Nat};
@@ -19,6 +20,7 @@ pub(crate) async fn create_chunk(
     batch_id: &Nat,
     content: &[u8],
     semaphores: &Semaphores,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<Nat, CreateChunkError> {
     let _chunk_releaser = semaphores.create_chunk.acquire(1).await;
     let batch_id = batch_id.clone();
@@ -58,6 +60,9 @@ pub(crate) async fn create_chunk(
 
         match wait_result {
             Ok((chunk_id,)) => {
+                if let Some(progress) = progress {
+                    progress.add_uploaded_bytes(content.len());
+                }
                 return Ok(chunk_id);
             }
             Err(agent_err) if !retryable(&agent_err) => {
@@ -76,7 +81,9 @@ pub(crate) async fn create_chunks(
     batch_id: &Nat,
     content: Vec<Vec<u8>>,
     semaphores: &Semaphores,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<Vec<Nat>, CreateChunkError> {
+    let content_byte_len = content.iter().fold(0, |acc, x| acc + x.len());
     let _chunk_releaser = semaphores.create_chunk.acquire(1).await;
     let batch_id = batch_id.clone();
     let args = CreateChunksRequest { batch_id, content };
@@ -115,6 +122,9 @@ pub(crate) async fn create_chunks(
 
         match wait_result {
             Ok((chunk_ids,)) => {
+                if let Some(progress) = progress {
+                    progress.add_uploaded_bytes(content_byte_len);
+                }
                 return Ok(chunk_ids);
             }
             Err(agent_err) if !retryable(&agent_err) => {

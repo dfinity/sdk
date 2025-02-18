@@ -42,7 +42,7 @@ teardown() {
 
   assert_command dfx canister install --all
 
-  assert_match "Installing code for canister e2e_project_backend"
+  assert_match "Installed code for canister e2e_project_backend"
 }
 
 @test "install succeeds with network name" {
@@ -52,7 +52,7 @@ teardown() {
 
   assert_command dfx canister install --all --network local
 
-  assert_match "Installing code for canister e2e_project_backend"
+  assert_match "Installed code for canister e2e_project_backend"
 }
 
 @test "install fails with network name that is not in dfx.json" {

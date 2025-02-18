@@ -69,14 +69,17 @@ pub fn exec(env: &dyn Environment, opts: GenerateOpts) -> DfxResult {
         .unwrap_or(false)
     {
         let canister_pool_build = CanisterPool::load(&env, true, &build_dependees)?;
-        slog::info!(log, "Building canisters before generate for Motoko");
+        let spinner = env.new_spinner("Building Motoko canisters before generation...".into());
         let runtime = Runtime::new().expect("Unable to create a runtime");
         runtime.block_on(canister_pool_build.build_or_fail(&env, log, &build_config))?;
+        spinner.finish_and_clear();
     }
 
+    let spinner = env.new_spinner("Generating type declarations...".into());
     for canister in canister_pool_load.canisters_to_build(&generate_config) {
         canister.generate(&env, log, &canister_pool_load, &generate_config)?;
     }
+    spinner.finish_and_clear();
 
     Ok(())
 }
