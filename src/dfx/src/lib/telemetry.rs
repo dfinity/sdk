@@ -236,6 +236,14 @@ mod tests {
         assert_eq!(inputs.command, "deploy");
         assert_eq!(inputs.arguments.len(), 0);
     }
+    //
+    //
+    // dfx canister update-settings --add-log-viewer="${ALICE_PRINCIPAL}" e2e_project
+    #[test]
+    fn x() {
+        let inputs = cli_to_inputs("dfx canister update-settings --add-log-viewer=evtzg-5hnpy-uoy4t-tn3fa-7c4ca-nweso-exmhj-nt3vs-htbce-pys7c-yqe e2e_project");
+        assert_eq!(inputs.command, "canister update-settings");
+    }
 
     #[test]
     fn network_param() {

@@ -154,7 +154,7 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
 
     let args = get_args_altered_for_extension_run(&installed_extension_manifests)?;
 
-    inspect(&args).unwrap();
+    let _ = inspect(&args);
     let cli_opts = CliOpts::parse_from(args);
 
 
