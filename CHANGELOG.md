@@ -23,6 +23,12 @@ Updated Motoko to [0.14.1](https://github.com/dfinity/motoko/releases/tag/0.14.1
 
 # 0.25.0
 
+### fix: `dfx canister install` and `dfx deploy` with `--no-asset-upgrade` no longer hang indefinitely when wasm is not up to date
+
+### fix: `dfx` downloads `.did` files for remote canisters
+
+### feat: streamlined output during asset synchronization
+
 ### fix: correctly detects hyphenated Rust bin crates
 
 ### fix: removes unnecessary tsc step in sveltekit build script
@@ -198,12 +204,13 @@ Log visibility: controllers
 The asset canister now estimates the size of the data to be serialized to stable memory,
 and reserves that much space for the ValueSerializer's buffer.
 
-- Module hash: bba3181888f3c59b4a5f608aedef05be6fa37276fb7dc394cbadf9cf6e10359b
+- Module hash: 865eb25df5a6d857147e078bb33c727797957247f7af2635846d65c5397b36a6
+- https://github.com/dfinity/sdk/pull/4095
 - https://github.com/dfinity/sdk/pull/4036
 
 ### Motoko
 
-Updated Motoko to [0.13.6](https://github.com/dfinity/motoko/releases/tag/0.13.6)
+Updated Motoko to [0.13.7](https://github.com/dfinity/motoko/releases/tag/0.13.7)
 
 ### Replica
 
