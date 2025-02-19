@@ -35,5 +35,6 @@ pub mod root_key;
 pub mod sign;
 pub mod state_tree;
 pub mod subnet;
+pub mod telemetry;
 pub mod warning;
 pub mod wasm;
