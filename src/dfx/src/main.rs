@@ -5,6 +5,7 @@ use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::DfxResult;
 use crate::lib::logger::{create_root_logger, LoggingMode};
 use crate::lib::project::templates::builtin_templates;
+use crate::lib::telemetry::Telemetry;
 use anyhow::Error;
 use clap::{ArgAction, CommandFactory, Parser};
 use dfx_core::config::project_templates;
@@ -152,6 +153,7 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
 
     let args = get_args_altered_for_extension_run(&installed_extension_manifests)?;
 
+    let _ = Telemetry::set_command_and_arguments(&args);
     let cli_opts = CliOpts::parse_from(args);
 
     if matches!(cli_opts.command, commands::DfxCommand::Schema(_)) {
@@ -178,6 +180,8 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
 }
 
 fn main() {
+    Telemetry::init();
+
     let mut log_level: Option<i64> = None;
     let result = inner_main(&mut log_level);
     if let Err(err) = result {
