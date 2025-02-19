@@ -33,14 +33,14 @@ pub fn inspect(args: &[OsString]) -> DfxResult<CommandInvocationInputs> {
     let inputs = collect_telemetry_data2(&args_match, &CliOpts::command(), &mut telemetry_data);
 
     // Log or process the telemetry data
-    println!();
-    println!("final output:");
-    for entry in telemetry_data {
-        println!("{}", entry);
-    }
-
-    println!();
-    println!("Inputs: {inputs:#?}");
+    // println!();
+    // println!("final output:");
+    // for entry in telemetry_data {
+    //     println!("{}", entry);
+    // }
+    //
+    // println!();
+    // println!("Inputs: {inputs:#?}");
 
     Ok(inputs)
 }
@@ -54,11 +54,11 @@ fn collect_telemetry_data(
     indent_level: usize,
 ) {
     let indent = " ".repeat(indent_level * 2);
-    eprintln!();
-    eprintln!("{indent}collecting telemetry data for {parent_command:?}");
+    // eprintln!();
+    // eprintln!("{indent}collecting telemetry data for {parent_command:?}");
     // Add the current command/subcommand name
     if let Some(cmd_name) = parent_command {
-        eprintln!("{indent}command: {cmd_name}");
+        // eprintln!("{indent}command: {cmd_name}");
         telemetry_data.push(format!("command: {cmd_name}"));
     }
 
@@ -154,11 +154,11 @@ fn collect_telemetry_data2(
         if let Some(a) = a {
             let y = a.get_value_names();
             let b = a.get_id();
-            eprintln!("{id} value names: {y:?}");
+            // eprintln!("{id} value names: {y:?}");
             let p = a.get_value_parser();
             if let Some(pv) = p.possible_values() {
                 for pv in pv {
-                    eprintln!("{id} possible values: {pv:?}");
+                    // eprintln!("{id} possible values: {pv:?}");
                 }
             }
         }
