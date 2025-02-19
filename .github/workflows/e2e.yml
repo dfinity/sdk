@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - ens/sdk-1961-get-cli-info
   pull_request:
 
 concurrency:
