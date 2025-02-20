@@ -48,6 +48,7 @@ enum SubCommand {
     Custodians(custodians::CustodiansOpts),
     Deauthorize(deauthorize::DeauthorizeOpts),
     Name(name::NameOpts),
+    #[command(hide = true)]
     RedeemFaucetCoupon(redeem_faucet_coupon::RedeemFaucetCouponOpts),
     RemoveController(remove_controller::RemoveControllerOpts),
     Send(send::SendOpts),
