@@ -28,6 +28,12 @@ Updated Motoko to [0.14.1](https://github.com/dfinity/motoko/releases/tag/0.14.1
 Updated replica to elected commit 7147f471c7ac27f518e6c0eeb2015952b5e93e1b.
 This incorporates the following executed proposals:
 - [135421](https://dashboard.internetcomputer.org/proposal/135421)
+- [135302](https://dashboard.internetcomputer.org/proposal/135302)
+- [135301](https://dashboard.internetcomputer.org/proposal/135301)
+- [135204](https://dashboard.internetcomputer.org/proposal/135204)
+- [135203](https://dashboard.internetcomputer.org/proposal/135203)
+- [135052](https://dashboard.internetcomputer.org/proposal/135052)
+- [135051](https://dashboard.internetcomputer.org/proposal/135051)
 
 # 0.25.0
 
