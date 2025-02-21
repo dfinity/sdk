@@ -40,7 +40,7 @@ AgentError: Call failed:
   Method: fetch_canister_logs (query)
   "Status": "rejected"
   "Code": "CanisterReject"
-  "Message": "IC0406: Caller 2vxsx-fae is not allowed to query ic00 method fetch_canister_logs"
+  "Message": "Caller 2vxsx-fae is not allowed to query ic00 method fetch_canister_logs"
         """.strip(),
         "/index.js",
     )
