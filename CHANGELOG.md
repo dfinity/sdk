@@ -23,6 +23,18 @@ Updated Motoko to [0.14.1](https://github.com/dfinity/motoko/releases/tag/0.14.1
 - Module hash: 865eb25df5a6d857147e078bb33c727797957247f7af2635846d65c5397b36a6
 - https://github.com/dfinity/sdk/pull/4095
 
+### Replica
+
+Updated replica to elected commit 7147f471c7ac27f518e6c0eeb2015952b5e93e1b.
+This incorporates the following executed proposals:
+- [135421](https://dashboard.internetcomputer.org/proposal/135421)
+- [135302](https://dashboard.internetcomputer.org/proposal/135302)
+- [135301](https://dashboard.internetcomputer.org/proposal/135301)
+- [135204](https://dashboard.internetcomputer.org/proposal/135204)
+- [135203](https://dashboard.internetcomputer.org/proposal/135203)
+- [135052](https://dashboard.internetcomputer.org/proposal/135052)
+- [135051](https://dashboard.internetcomputer.org/proposal/135051)
+
 # 0.25.0
 
 ### fix: `dfx canister install` and `dfx deploy` with `--no-asset-upgrade` no longer hang indefinitely when wasm is not up to date

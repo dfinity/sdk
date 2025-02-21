@@ -23,7 +23,7 @@ teardown() {
   dfx_start
   assert_command dfx ping
 
-  assert_match "\"ic_api_version\""
+  assert_match "\"root_key\""
 }
 
 @test "dfx ping succeeds by specific host:post" {
@@ -31,7 +31,7 @@ teardown() {
   webserver_port=$(get_webserver_port)
   assert_command dfx ping http://127.0.0.1:"$webserver_port"
 
-  assert_match "\"ic_api_version\""
+  assert_match "\"root_key\""
 }
 
 @test "dfx ping does not require dfx.json" {
@@ -43,7 +43,7 @@ teardown() {
     cd "$E2E_TEMP_DIR/not-a-project"
 
     assert_command dfx ping http://127.0.0.1:"$webserver_port"
-    assert_match "\"ic_api_version\""
+    assert_match "\"root_key\""
   )
 }
 
@@ -51,7 +51,7 @@ teardown() {
   dfx_start
   assert_command dfx ping local
 
-  assert_match "\"ic_api_version\""
+  assert_match "\"root_key\""
 }
 
 @test "dfx ping succeeds by network name if network bind address is host:port format" {
@@ -60,7 +60,7 @@ teardown() {
   jq '.networks.nnn.bind="127.0.0.1:'"$webserver_port"'"' dfx.json | sponge dfx.json
   assert_command dfx ping nnn
 
-  assert_match "\"ic_api_version\""
+  assert_match "\"root_key\""
 }
 
 @test "dfx ping succeeds by arbitrary network name to a nonstandard port" {
@@ -72,7 +72,7 @@ teardown() {
   jq '.networks.arbitrary.providers=["http://127.0.0.1:12345"]' dfx.json | sponge dfx.json
 
   assert_command dfx ping arbitrary
-  assert_match "\"ic_api_version\""
+  assert_match "\"root_key\""
 
   assert_command_fail dfx ping
   # this port won't match the ephemeral port that the replica picked
@@ -84,5 +84,5 @@ teardown() {
   dfx_start
   webserver_port=$(get_webserver_port)
   assert_command dfx ping "http://127.0.0.1:$webserver_port"
-  assert_match "\"ic_api_version\""
+  assert_match "\"root_key\""
 }
