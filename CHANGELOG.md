@@ -16,6 +16,8 @@
 
 ### feat: streamlined output during asset synchronization
 
+### chore: hide `dfx wallet redeem-faucet-coupon`
+
 ## Dependencies
 
 ### Motoko
@@ -27,7 +29,25 @@ Updated Motoko to [0.14.1](https://github.com/dfinity/motoko/releases/tag/0.14.1
 - Module hash: 865eb25df5a6d857147e078bb33c727797957247f7af2635846d65c5397b36a6
 - https://github.com/dfinity/sdk/pull/4095
 
+### Replica
+
+Updated replica to elected commit 7147f471c7ac27f518e6c0eeb2015952b5e93e1b.
+This incorporates the following executed proposals:
+- [135421](https://dashboard.internetcomputer.org/proposal/135421)
+- [135302](https://dashboard.internetcomputer.org/proposal/135302)
+- [135301](https://dashboard.internetcomputer.org/proposal/135301)
+- [135204](https://dashboard.internetcomputer.org/proposal/135204)
+- [135203](https://dashboard.internetcomputer.org/proposal/135203)
+- [135052](https://dashboard.internetcomputer.org/proposal/135052)
+- [135051](https://dashboard.internetcomputer.org/proposal/135051)
+
 # 0.25.0
+
+### fix: `dfx canister install` and `dfx deploy` with `--no-asset-upgrade` no longer hang indefinitely when wasm is not up to date
+
+### fix: `dfx` downloads `.did` files for remote canisters
+
+### feat: streamlined output during asset synchronization
 
 ### fix: correctly detects hyphenated Rust bin crates
 
@@ -204,12 +224,13 @@ Log visibility: controllers
 The asset canister now estimates the size of the data to be serialized to stable memory,
 and reserves that much space for the ValueSerializer's buffer.
 
-- Module hash: bba3181888f3c59b4a5f608aedef05be6fa37276fb7dc394cbadf9cf6e10359b
+- Module hash: 865eb25df5a6d857147e078bb33c727797957247f7af2635846d65c5397b36a6
+- https://github.com/dfinity/sdk/pull/4095
 - https://github.com/dfinity/sdk/pull/4036
 
 ### Motoko
 
-Updated Motoko to [0.13.6](https://github.com/dfinity/motoko/releases/tag/0.13.6)
+Updated Motoko to [0.13.7](https://github.com/dfinity/motoko/releases/tag/0.13.7)
 
 ### Replica
 
