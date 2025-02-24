@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.25.1
+
 ### feat: `skip_cargo_audit` flag in dfx.json to skip `cargo audit` build step
 
 ### fix: `dfx canister install` and `dfx deploy` with `--no-asset-upgrade` no longer hang indefinitely when wasm is not up to date
