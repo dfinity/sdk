@@ -186,7 +186,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             if canister.as_ref().get_info().is_assets() {
                 if !deps.is_empty() {
                     output_file.write_fmt(format_args!(
-                        "\ncanister@{}: \\\n  {}\n",
+                        "\nbuild@{}: \\\n  {}\n",
                         canister_name,
                         deps.iter().map(|name| format!("generate@{}", name)).join(" "),
                     ))?;
