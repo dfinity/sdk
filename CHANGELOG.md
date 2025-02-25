@@ -18,6 +18,8 @@
 
 ### chore: hide `dfx wallet redeem-faucet-coupon`
 
+### docs: fixed description of `dfx cycles balance`
+
 ## Dependencies
 
 ### Motoko
