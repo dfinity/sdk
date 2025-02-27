@@ -2,6 +2,18 @@
 
 # UNRELEASED
 
+### chore: improve the `dfx build` output.
+
+Improve the ouput of `dfx build` with the canister names that were built, example as below.
+
+```
+$ dfx build
+Building canisters...
+Building canister 'hello_backend'.
+Building canister 'hello_frontend'.
+Finished building canisters
+```
+
 # 0.25.1
 
 ### feat: `skip_cargo_audit` flag in dfx.json to skip `cargo audit` build step
@@ -15,18 +27,6 @@
 ### chore: hide `dfx wallet redeem-faucet-coupon`
 
 ### docs: fixed description of `dfx cycles balance`
-
-### chore: improve the `dfx build` output.
-
-Improve the ouput of `dfx build` with the canister names that were built, example as below.
-
-```
-$ dfx build
-Building canisters...
-Building canister 'hello_backend'.
-Building canister 'hello_frontend'.
-Finished building canisters
-```
 
 ## Dependencies
 
