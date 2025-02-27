@@ -90,5 +90,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
         .with_env_file(env_file);
     runtime.block_on(canister_pool.build_or_fail(&env, logger, &build_config))?;
 
+    slog::info!(logger, "Fnished building canisters.");
+
     Ok(())
 }
