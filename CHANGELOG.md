@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.25.1
+
 ### feat: `skip_cargo_audit` flag in dfx.json to skip `cargo audit` build step
 
 ### fix: `dfx canister install` and `dfx deploy` with `--no-asset-upgrade` no longer hang indefinitely when wasm is not up to date
@@ -39,8 +41,10 @@ Updated Motoko to [0.14.1](https://github.com/dfinity/motoko/releases/tag/0.14.1
 
 ### Replica
 
-Updated replica to elected commit 7147f471c7ac27f518e6c0eeb2015952b5e93e1b.
+Updated replica to elected commit 2f02a660f6f17b5a78c13d9b372f74c8228f79b8.
 This incorporates the following executed proposals:
+
+- [135422](https://dashboard.internetcomputer.org/proposal/135422)
 - [135421](https://dashboard.internetcomputer.org/proposal/135421)
 - [135302](https://dashboard.internetcomputer.org/proposal/135302)
 - [135301](https://dashboard.internetcomputer.org/proposal/135301)
