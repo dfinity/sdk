@@ -14,6 +14,18 @@
 
 ### docs: fixed description of `dfx cycles balance`
 
+### chore: improve the `dfx build` output.
+
+Improve the ouput of `dfx build` with the canister names that were built, example as below.
+
+```
+$ dfx build
+Building canisters...
+Building canister 'hello_backend'.
+Building canister 'hello_frontend'.
+Finished building canisters
+```
+
 ## Dependencies
 
 ### Motoko
