@@ -27,6 +27,7 @@ jobs:
 #        with:
 #          targets: x86_64-unknown-linux-musl
 #      - run: rustup toolchain install 1.81.0-x86_64-unknown-linux-musl
+      - run: rm rust-toolchain.toml
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           rust-version: "1.71.0"
