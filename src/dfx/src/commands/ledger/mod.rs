@@ -9,6 +9,7 @@ use fn_error_context::context;
 use tokio::runtime::Runtime;
 
 mod account_id;
+mod approve;
 mod balance;
 pub mod create_canister;
 mod fabricate_cycles;
@@ -31,6 +32,7 @@ pub struct LedgerOpts {
 #[derive(Parser)]
 enum SubCommand {
     AccountId(account_id::AccountIdOpts),
+    Approve(approve::ApproveOpts),
     Balance(balance::BalanceOpts),
     CreateCanister(create_canister::CreateCanisterOpts),
     FabricateCycles(fabricate_cycles::FabricateCyclesOpts),
@@ -46,6 +48,7 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
     runtime.block_on(async {
         match opts.subcmd {
             SubCommand::AccountId(v) => account_id::exec(&agent_env, v).await,
+            SubCommand::Approve(v) => approve::exec(&agent_env, v).await,
             SubCommand::Balance(v) => balance::exec(&agent_env, v).await,
             SubCommand::CreateCanister(v) => create_canister::exec(&agent_env, v).await,
             SubCommand::FabricateCycles(v) => fabricate_cycles::exec(&agent_env, v).await,
