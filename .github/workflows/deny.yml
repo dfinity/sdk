@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - run: rm rust-toolchain.toml
       - uses: EmbarkStudios/cargo-deny-action@v1
         with:
           command: check bans licenses sources # skip advisories, which are handled by audit.yml
