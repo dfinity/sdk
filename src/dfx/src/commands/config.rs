@@ -1,0 +1,29 @@
+use clap::{Parser, ValueEnum};
+
+use crate::lib::{environment::Environment, error::DfxResult};
+
+/// Changes settings in dfx's configuration
+#[derive(Parser)]
+#[command(arg_required_else_help = true)]
+pub struct ConfigOpts {
+    /// Enables or disables telemetry/metrics. Enabled by default.
+    #[arg(long)]
+    telemetry: Option<EnableState>,
+}
+
+#[derive(ValueEnum, Clone, Copy, Debug)]
+enum EnableState {
+    Enabled,
+    Disabled,
+}
+
+pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
+    let cfg = env.get_tool_config();
+    let mut cfg = cfg.lock().unwrap();
+    let settings = cfg.interface_mut();
+    if let Some(telemetry) = opts.telemetry {
+        settings.telemetry = matches!(telemetry, EnableState::Enabled);
+    }
+    cfg.save()?;
+    Ok(())
+}
