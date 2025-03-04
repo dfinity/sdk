@@ -217,7 +217,7 @@ pub trait CanisterBuilder {
         spinner.finish_and_clear();
         info!(
             logger,
-            "Generated type declarations for canister {} to {}",
+            "Generated type declarations for canister '{}' to '{}'",
             &info.get_name(),
             generate_output_dir.display()
         );
