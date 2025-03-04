@@ -170,11 +170,11 @@ teardown() {
   assert_command dfx canister call hello_backend greet '("Alpha")'
   assert_eq '("Hello, Alpha!")'
 
-  REPLICA_PID=$([[ "$USE_POCKETIC" ]] && get_pocketic_pid || get_replica_pid)
+  REPLICA_PID=$([[ ! "$USE_REPLICA" ]] && get_pocketic_pid || get_replica_pid)
 
   echo "replica pid is $REPLICA_PID"
 
-  [[ "$USE_POCKETIC" ]] && curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
+  [[ ! "$USE_REPLICA" ]] && curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
   kill -KILL "$REPLICA_PID"
   assert_process_exits "$REPLICA_PID" 15s
 
@@ -234,13 +234,13 @@ teardown() {
   assert_command dfx canister call hello_backend greet '("Alpha")'
   assert_eq '("Hello, Alpha!")'
 
-  REPLICA_PID=$([[ "$USE_POCKETIC" ]] && get_pocketic_pid || get_replica_pid)
+  REPLICA_PID=$([[ ! "$USE_REPLICA" ]] && get_pocketic_pid || get_replica_pid)
   POCKETIC_PROXY_PID=$(get_pocketic_proxy_pid)
 
   echo "replica pid is $REPLICA_PID"
   echo "pocket-ic proxy pid is $POCKETIC_PROXY_PID"
 
-  [[ "$USE_POCKETIC" ]] && curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
+  [[ ! "$USE_REPLICA" ]] && curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
   kill -KILL "$REPLICA_PID"
   assert_process_exits "$REPLICA_PID" 15s
   assert_process_exits "$POCKETIC_PROXY_PID" 15s
@@ -281,7 +281,7 @@ teardown() {
   jq ".local.replica.port=$replica_port" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   dfx_start
-  if [[ "$USE_POCKETIC" ]]; then
+  if [[ ! "$USE_REPLICA" ]]; then
     assert_command dfx info pocketic-config-port
   else
     assert_command dfx info replica-port
