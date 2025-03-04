@@ -53,15 +53,15 @@ jobs:
       matrix:
         # We build a dynamic-linked linux binary because otherwise HSM support fails with:
         #   Error: IO: Dynamic loading not supported
-        os: [macos-13-large, ubuntu-20.04, ubuntu-22.04, windows-2022]
+        os: [macos-13-large, ubuntu-22.04, ubuntu-24.04, windows-2022]
         include:
           - os: macos-13-large
             target: x86_64-apple-darwin
             binary_path: target/x86_64-apple-darwin/release/dfx
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             binary_path: target/x86_64-unknown-linux-gnu/release/dfx
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             binary_path: target/x86_64-unknown-linux-gnu/release/dfx
           - os: windows-2022
@@ -109,7 +109,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13-large, ubuntu-20.04, ubuntu-22.04]
+        os: [macos-13-large, ubuntu-22.04, ubuntu-24.04]
     steps:
       - uses: actions/checkout@v4
       - name: Download dfx binary
@@ -182,7 +182,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13-large, ubuntu-20.04, ubuntu-22.04]
+        os: [macos-13-large, ubuntu-22.04, ubuntu-24.04]
     steps:
       - name: Checking out repo
         uses: actions/checkout@v4
