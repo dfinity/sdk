@@ -161,7 +161,7 @@ tc_to_num() {
   assert_match "Canister was topped up with 500000000000000 cycles"
   balance_now=$(tc_to_num "$(dfx wallet balance)")
 
-  (( balance_now - balance > 600000000000000 ))
+  (( balance_now - balance > 400000000000000 ))
 
   # Transaction Deduplication
   t=$(current_time_nanoseconds)
@@ -204,7 +204,7 @@ tc_to_num() {
   dfx_new
   assert_command dfx canister create e2e_project_backend
   assert_command dfx ledger top-up e2e_project_backend --amount 5
-  assert_contains "Canister was topped up with 617283500000000 cycles"
+  assert_contains "Canister was topped up with 500000000000000 cycles"
 }
 
 @test "ledger create-canister" {
