@@ -45,7 +45,7 @@ AgentError: Call failed:
         "/index.js",
     ),
     ("[JavaScript Warning: \"This page is in Quirks Mode. Page layout may be impacted. For Standards Mode use “<!DOCTYPE html>”", "/"),
-    ("[JavaScript Warning: \"asm.js type error: Asm.js optimizer disabled because no suitable wasm compiler is available\" {file: \"http://127.0.0.1:4943/index.js\" line: 0}]", "/index.js")
+    ("[JavaScript Warning: \"asm.js type error: Asm.js optimizer disabled because no suitable wasm compiler is available", "/index.js")
 ]
 _CANDID_UI_ERRORS_TO_IGNORE = [
     ("Error", "/index.js")
