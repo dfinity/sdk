@@ -14,6 +14,18 @@ teardown() {
   standard_teardown
 }
 
+@test "displays the telemetry log path" {
+  assert_command dfx info telemetry-log-path
+
+  if [ "$(uname)" == "Darwin" ]; then
+    assert_eq "$HOME/Library/Caches/org.dfinity.dfx/telemetry/telemetry.log"
+  elif [ "$(uname)" == "Linux" ]; then
+    assert_eq "$HOME/.cache/dfx/telemetry/telemetry.log"
+  else
+     echo "Unsupported OS" | fail
+  fi
+}
+
 @test "displays the replica port" {
   if [[ ! "$USE_REPLICA" ]]
   then

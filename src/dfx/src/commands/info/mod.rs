@@ -1,12 +1,14 @@
 mod pocketic_config_port;
 mod replica_port;
 mod webserver_port;
+
 use crate::commands::info::{replica_port::get_replica_port, webserver_port::get_webserver_port};
 use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::error::DfxResult;
 use crate::lib::info;
 use crate::lib::named_canister::get_ui_canister_url;
 use crate::lib::network::network_opt::NetworkOpt;
+use crate::lib::telemetry::Telemetry;
 use crate::Environment;
 use anyhow::{bail, Context};
 use clap::{Parser, Subcommand};
@@ -29,6 +31,8 @@ enum InfoType {
     ReplicaPort,
     /// Show the port that PocketIC is using, if it is running
     PocketicConfigPort,
+    /// Show the path to the telemetry log file
+    TelemetryLogPath,
 }
 
 #[derive(Parser)]
@@ -65,6 +69,10 @@ pub fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
             .get_path()
             .to_str()
             .context("Failed to convert networks.json path to a string.")?
+            .to_string(),
+        InfoType::TelemetryLogPath => Telemetry::get_log_path()?
+            .to_str()
+            .context("Failed to convert telemetry path to a string.")?
             .to_string(),
     };
     println!("{}", value);
