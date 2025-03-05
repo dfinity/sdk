@@ -221,8 +221,8 @@ impl Environment for EnvironmentImpl {
             }
         }
         if let Ok(var) = std::env::var("NO_TELEMETRY") {
-            if !var.is_empty() {
-                return var != "0";
+            if !var.is_empty() && var != "0" {
+                return false;
             }
         }
         self.tool_config.lock().unwrap().interface().telemetry

@@ -5,6 +5,14 @@ on:
   schedule:
     - cron: "0 0 * * *" # Runs at UTC midnight every day
 
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+  # Disable DFX telemetry
+  DFX_TELEMETRY_ENABLED: 'false'
+
 jobs:
   check-update:
     runs-on: ubuntu-latest
