@@ -59,19 +59,19 @@ If there is already an entry in the 'Unreleased' section, change it; if not, add
 
 #### Running End-to-End Tests
 
+This runs the end-to-end tests against the
+[PocketIC emulator](https://github.com/dfinity/pocketic).
+
 ``` bash
 sdk $ bats e2e/tests-dfx/*.bash
 sdk $ bats e2e/tests-replica/*.bash
 ```
 
-#### Running End-to-End Tests Against Reference IC
-
-This runs the end-to-end tests against the
-[PocketIC emulator](https://github.com/dfinity/pocketic).
+#### Running End-to-End Tests Against Local Replica
 
 ``` bash
-sdk $ USE_POCKETIC=1 bats e2e/tests-dfx/*.bash
-sdk $ USE_POCKETIC=1 bats e2e/tests-replica/*.bash
+sdk $ USE_REPLICA=1 bats e2e/tests-dfx/*.bash
+sdk $ USE_REPLICA=1 bats e2e/tests-replica/*.bash
 ```
 
 ## Conventional Commits

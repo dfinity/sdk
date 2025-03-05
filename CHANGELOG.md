@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat!: `dfx start` uses `--pocketic` by default
+
+As [announced](https://forum.dfinity.org/t/dfx-replacing-the-local-replica-with-pocketic/40167) `dfx start` now runs PocketIC by default.
+Running a local replica is still possible with `--replica`, but this option will be removed in the near future.
+
 # 0.25.1
 
 ### feat: `skip_cargo_audit` flag in dfx.json to skip `cargo audit` build step

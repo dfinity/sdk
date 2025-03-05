@@ -43,7 +43,7 @@ struct ReplicaSettings {
 #[derive(Serialize, Deserialize, PartialEq, Eq)]
 struct BackendSettings<'a> {
     settings: Cow<'a, ReplicaSettings>,
-    pocketic: bool,
+    replica: bool,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq)]
@@ -57,9 +57,9 @@ pub fn get_settings_digest(
     ic_repo_commit: &str,
     local_server_descriptor: &LocalServerDescriptor,
     artificial_delay: u32,
-    pocketic: bool,
+    replica: bool,
 ) -> String {
-    let backend = get_replica_backend_settings(local_server_descriptor, artificial_delay, pocketic);
+    let backend = get_replica_backend_settings(local_server_descriptor, artificial_delay, replica);
     let settings = Settings {
         ic_repo_commit: ic_repo_commit.into(),
         backend,
@@ -72,7 +72,7 @@ pub fn get_settings_digest(
 fn get_replica_backend_settings(
     local_server_descriptor: &LocalServerDescriptor,
     artificial_delay: u32,
-    pocketic: bool,
+    replica: bool,
 ) -> BackendSettings {
     let http_handler = HttpHandlerSettings {
         port: if let Some(port) = local_server_descriptor.replica.port {
@@ -103,6 +103,6 @@ fn get_replica_backend_settings(
     };
     BackendSettings {
         settings: Cow::Owned(replica_settings),
-        pocketic,
+        replica,
     }
 }
