@@ -1,4 +1,5 @@
-use clap::{Parser, ValueEnum};
+use clap::Parser;
+use dfx_core::config::model::dfinity::TelemetryState;
 
 use crate::lib::{environment::Environment, error::DfxResult};
 
@@ -6,15 +7,9 @@ use crate::lib::{environment::Environment, error::DfxResult};
 #[derive(Parser)]
 #[command(arg_required_else_help = true)]
 pub struct ConfigOpts {
-    /// Enables or disables telemetry/metrics. Enabled by default.
+    /// Enables or disables telemetry/metrics. Enabled by default. `local` means it is collected but not uploaded.
     #[arg(long)]
-    telemetry: Option<EnableState>,
-}
-
-#[derive(ValueEnum, Clone, Copy, Debug)]
-enum EnableState {
-    Enabled,
-    Disabled,
+    telemetry: Option<TelemetryState>,
 }
 
 pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
@@ -22,7 +17,7 @@ pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
     let mut cfg = cfg.lock().unwrap();
     let settings = cfg.interface_mut();
     if let Some(telemetry) = opts.telemetry {
-        settings.telemetry = matches!(telemetry, EnableState::Enabled);
+        settings.telemetry = telemetry;
     }
     cfg.save()?;
     Ok(())

@@ -6,8 +6,6 @@ setup() {
   standard_setup
 
   dfx_new
-  unset DFX_TELEMETRY_ENABLED
-  export __DFX_CI_DISABLE_TELEMETRY_BUT_MISREPORT_SETTING=1
 }
 
 teardown() {
@@ -16,33 +14,35 @@ teardown() {
   standard_teardown
 }
 
+# Be sure to only set telemetry to 'local', not 'enabled'.
+
 @test "telemetry is enabled by default" {
     cfg=$(dfx info config-json-path)
     assert_command jq -r .telemetry "$cfg"
-    assert_eq true
+    assert_eq enabled
     assert_command dfx info is-telemetry-enabled
-    assert_eq true
+    assert_eq enabled
 }
 
 @test "telemetry can be disabled" {
     dfx config --telemetry disabled
     assert_command dfx info is-telemetry-enabled
-    assert_eq false
+    assert_eq disabled
 }
 
 @test "environment variables override the config" {
     # dfx var overrides both ways
-    dfx config --telemetry enabled
-    assert_command env DFX_TELEMETRY_ENABLED=false dfx info is-telemetry-enabled
-    assert_eq false
+    dfx config --telemetry local
+    assert_command env DFX_TELEMETRY_ENABLED=disabled dfx info is-telemetry-enabled
+    assert_eq disabled
     dfx config --telemetry disabled
-    assert_command env DFX_TELEMETRY_ENABLED=true dfx info is-telemetry-enabled
-    assert_eq true
+    assert_command env DFX_TELEMETRY_ENABLED=local dfx info is-telemetry-enabled
+    assert_eq local
     # generic var only overrides to false
-    dfx config --telemetry enabled
+    dfx config --telemetry local
     assert_command env NO_TELEMETRY=1 dfx info is-telemetry-enabled
-    assert_eq false
+    assert_eq disabled
     dfx config --telemetry disabled
     assert_command env NO_TELEMETRY=0 dfx info is-telemetry-enabled
-    assert_eq false
+    assert_eq disabled
 }

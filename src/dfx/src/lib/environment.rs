@@ -6,7 +6,7 @@ use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdent
 use anyhow::{anyhow, bail};
 use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
-use dfx_core::config::model::dfinity::{Config, NetworksConfig, ToolConfig};
+use dfx_core::config::model::dfinity::{Config, NetworksConfig, TelemetryState, ToolConfig};
 use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::identity::NewIdentityManagerError;
@@ -32,7 +32,7 @@ pub trait Environment {
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError>;
     fn get_networks_config(&self) -> Arc<NetworksConfig>;
     fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>>;
-    fn is_telemetry_enabled(&self) -> bool;
+    fn is_telemetry_enabled(&self) -> TelemetryState;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
     /// Return a temporary directory for the current project.
@@ -214,15 +214,20 @@ impl Environment for EnvironmentImpl {
         self.tool_config.clone()
     }
 
-    fn is_telemetry_enabled(&self) -> bool {
+    fn is_telemetry_enabled(&self) -> TelemetryState {
         if let Ok(var) = std::env::var("DFX_TELEMETRY_ENABLED") {
             if !var.is_empty() {
-                return var != "false";
+                return match &*var {
+                    "true" | "1" | "enabled" => TelemetryState::Enabled,
+                    "false" | "0" | "disabled" => TelemetryState::Disabled,
+                    "local" => TelemetryState::Local,
+                    _ => TelemetryState::Enabled,
+                };
             }
         }
         if let Ok(var) = std::env::var("NO_TELEMETRY") {
             if !var.is_empty() && var != "0" {
-                return false;
+                return TelemetryState::Disabled;
             }
         }
         self.tool_config.lock().unwrap().interface().telemetry
@@ -401,7 +406,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_tool_config()
     }
 
-    fn is_telemetry_enabled(&self) -> bool {
+    fn is_telemetry_enabled(&self) -> TelemetryState {
         self.backend.is_telemetry_enabled()
     }
 
@@ -571,8 +576,8 @@ pub mod test_env {
         fn get_version(&self) -> &Version {
             unimplemented!()
         }
-        fn is_telemetry_enabled(&self) -> bool {
-            false
+        fn is_telemetry_enabled(&self) -> TelemetryState {
+            TelemetryState::Disabled
         }
         fn log(&self, _record: &Record) {}
         fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {

@@ -54,6 +54,7 @@ use crate::json::structure::{PossiblyStr, SerdeVec};
 use crate::util::ByteSchema;
 use byte_unit::Byte;
 use candid::Principal;
+use clap::ValueEnum;
 use ic_utils::interfaces::management_canister::LogVisibility;
 use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
@@ -61,7 +62,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::default::Default;
-use std::fmt;
+use std::fmt::{self, Debug, Display, Formatter};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -121,9 +122,9 @@ pub enum WasmOptLevel {
     Oz,
     Os,
 }
-impl std::fmt::Display for WasmOptLevel {
+impl Display for WasmOptLevel {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        std::fmt::Debug::fmt(self, f)
+        Debug::fmt(self, f)
     }
 }
 
@@ -1416,7 +1417,7 @@ pub struct ToolConfig {
 
 #[derive(Serialize, Deserialize, JsonSchema)]
 pub struct ToolConfigInterface {
-    pub telemetry: bool,
+    pub telemetry: TelemetryState,
 }
 
 impl ToolConfig {
@@ -1441,7 +1442,9 @@ impl ToolConfig {
             let default = Self {
                 path,
                 json: Default::default(),
-                tool_config: ToolConfigInterface { telemetry: true },
+                tool_config: ToolConfigInterface {
+                    telemetry: TelemetryState::Enabled,
+                },
             };
             default.save()?;
             Ok(default)
@@ -1477,6 +1480,36 @@ impl ToolConfig {
             .expect("ToolConfigInterface should always serialize");
         crate::fs::write(path, json).map_err(WriteJsonFileFailed)?;
         Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize, Copy, Clone, JsonSchema, PartialEq, Eq, ValueEnum)]
+#[serde(rename_all = "snake_case")]
+pub enum TelemetryState {
+    Enabled,
+    Disabled,
+    Local,
+}
+
+impl TelemetryState {
+    pub fn should_collect(&self) -> bool {
+        *self != TelemetryState::Disabled
+    }
+    pub fn should_publish(&self) -> bool {
+        *self == TelemetryState::Enabled
+    }
+}
+
+impl Display for TelemetryState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(
+            match self {
+                Self::Enabled => "enabled",
+                Self::Disabled => "disabled",
+                Self::Local => "local",
+            },
+            f,
+        )
     }
 }
 
