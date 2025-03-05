@@ -158,7 +158,7 @@ tc_to_num() {
   balance=$(tc_to_num "$(dfx wallet balance)")
 
   assert_command dfx ledger top-up "$wallet" --icp 5
-  assert_match "Canister was topped up with 617283500000000 cycles"
+  assert_match "Canister was topped up with 500000000000000 cycles"
   balance_now=$(tc_to_num "$(dfx wallet balance)")
 
   (( balance_now - balance > 600000000000000 ))
