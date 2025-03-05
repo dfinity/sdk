@@ -192,7 +192,7 @@ jobs:
           python-version: "3.9"
       - name: Installing playwright
         run: |
-          pip install playwright==1.50.1
+          pip install playwright==1.50.0
           playwright install
           playwright install-deps
       - name: Download dfx binary
