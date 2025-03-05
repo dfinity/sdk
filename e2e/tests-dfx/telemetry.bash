@@ -20,13 +20,18 @@ teardown() {
     cfg=$(dfx info config-json-path)
     assert_command jq -r .telemetry "$cfg"
     assert_eq enabled
-    assert_command dfx info is-telemetry-enabled
-    assert_eq enabled
 }
 
 @test "telemetry can be disabled" {
     dfx config --telemetry disabled
-    assert_command dfx info is-telemetry-enabled
+    assert_command env DFX_TELEMETRY_ENABLED= dfx info is-telemetry-enabled
+    assert_eq disabled
+    dfx config --telemetry local
+    assert_command env DFX_TELEMETRY_ENABLED= dfx info is-telemetry-enabled
+    assert_eq local
+    cfg=$(dfx info config-json-path)
+    jq '.telemetry = "disabled"' "$cfg" | sponge "$cfg"
+    assert_command env DFX_TELEMETRY_ENABLED= dfx info is-telemetry-enabled
     assert_eq disabled
 }
 
