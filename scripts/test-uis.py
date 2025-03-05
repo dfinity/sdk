@@ -44,8 +44,8 @@ AgentError: Call failed:
         """.strip(),
         "/index.js",
     ),
-    ("[JavaScript Warning: \"This page is in Quirks Mode. Page layout may be impacted. For Standards Mode use “<!DOCTYPE html>”.\" {file: \"http://127.0.0.1:4943/?canisterId=be2us-64aaa-aaaaa-qaabq-cai&id=bkyz2-fmaaa-aaaaa-qaaaq-cai\" line: 0}]", "/index.js"),
-    ("[JavaScript Warning: \"asm.js type error: Asm.js optimizer disabled because no suitable wasm compiler is available\" {file: \"http://127.0.0.1:4943/index.js\" line: 0}]", "/")
+    ("[JavaScript Warning: \"This page is in Quirks Mode. Page layout may be impacted. For Standards Mode use “<!DOCTYPE html>”", "/"),
+    ("[JavaScript Warning: \"asm.js type error: Asm.js optimizer disabled because no suitable wasm compiler is available\" {file: \"http://127.0.0.1:4943/index.js\" line: 0}]", "/index.js")
 ]
 _CANDID_UI_ERRORS_TO_IGNORE = [
     ("Error", "/index.js")
