@@ -42,7 +42,7 @@ impl Telemetry {
             get_deepest_subcommand(&arg_matches, &command);
         let command_name = command_names.join(" ");
 
-        let arguments = get_sanitized_arguments(&deepest_matches, &deepest_command);
+        let arguments = get_sanitized_arguments(deepest_matches, deepest_command);
 
         let mutex = TELEMETRY.get().context("failed to get telemetry mutex")?;
 
@@ -103,7 +103,7 @@ fn get_sanitized_arguments(matches: &ArgMatches, command: &Command) -> Vec<Argum
 
             let sanitized_value = match (possible_values, matches.try_get_one::<String>(id)) {
                 (Some(possible_values), Ok(Some(s)))
-                    if possible_values.iter().any(|pv| pv.matches(&s, true)) =>
+                    if possible_values.iter().any(|pv| pv.matches(s, true)) =>
                 {
                     Some(s.clone())
                 }
