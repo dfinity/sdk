@@ -32,7 +32,7 @@ pub trait Environment {
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError>;
     fn get_networks_config(&self) -> Arc<NetworksConfig>;
     fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>>;
-    fn is_telemetry_enabled(&self) -> TelemetryState;
+    fn telemetry_mode(&self) -> TelemetryState;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
     /// Return a temporary directory for the current project.
@@ -214,7 +214,7 @@ impl Environment for EnvironmentImpl {
         self.tool_config.clone()
     }
 
-    fn is_telemetry_enabled(&self) -> TelemetryState {
+    fn telemetry_mode(&self) -> TelemetryState {
         if let Ok(var) = std::env::var("DFX_TELEMETRY") {
             if !var.is_empty() {
                 return match &*var {
@@ -406,8 +406,8 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_tool_config()
     }
 
-    fn is_telemetry_enabled(&self) -> TelemetryState {
-        self.backend.is_telemetry_enabled()
+    fn telemetry_mode(&self) -> TelemetryState {
+        self.backend.telemetry_mode()
     }
 
     fn get_networks_config(&self) -> Arc<NetworksConfig> {
@@ -576,7 +576,7 @@ pub mod test_env {
         fn get_version(&self) -> &Version {
             unimplemented!()
         }
-        fn is_telemetry_enabled(&self) -> TelemetryState {
+        fn telemetry_mode(&self) -> TelemetryState {
             TelemetryState::Off
         }
         fn log(&self, _record: &Record) {}

@@ -26,11 +26,11 @@ pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
             if let Some(telemetry) = telemetry {
                 update_config(env, |settings| settings.telemetry = telemetry)?;
                 info!(env.get_logger(), "Telemetry set to {telemetry}");
-                if env.is_telemetry_enabled() != telemetry {
+                if env.telemetry_mode() != telemetry {
                     warn!(env.get_logger(), "Overridden by environment variable")
                 }
             } else {
-                println!("{}", env.is_telemetry_enabled());
+                println!("{}", env.telemetry_mode());
             }
         }
     }
