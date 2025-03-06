@@ -215,19 +215,19 @@ impl Environment for EnvironmentImpl {
     }
 
     fn is_telemetry_enabled(&self) -> TelemetryState {
-        if let Ok(var) = std::env::var("DFX_TELEMETRY_ENABLED") {
+        if let Ok(var) = std::env::var("DFX_TELEMETRY") {
             if !var.is_empty() {
                 return match &*var {
-                    "true" | "1" | "enabled" => TelemetryState::Enabled,
-                    "false" | "0" | "disabled" => TelemetryState::Disabled,
+                    "true" | "1" | "on" => TelemetryState::On,
+                    "false" | "0" | "off" => TelemetryState::Off,
                     "local" => TelemetryState::Local,
-                    _ => TelemetryState::Enabled,
+                    _ => TelemetryState::On,
                 };
             }
         }
         if let Ok(var) = std::env::var("NO_TELEMETRY") {
             if !var.is_empty() && var != "0" {
-                return TelemetryState::Disabled;
+                return TelemetryState::Off;
             }
         }
         self.tool_config.lock().unwrap().interface().telemetry
@@ -577,7 +577,7 @@ pub mod test_env {
             unimplemented!()
         }
         fn is_telemetry_enabled(&self) -> TelemetryState {
-            TelemetryState::Disabled
+            TelemetryState::Off
         }
         fn log(&self, _record: &Record) {}
         fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {

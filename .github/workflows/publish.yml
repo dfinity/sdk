@@ -21,7 +21,7 @@ env:
   # Use the local .curlrc
   CURL_HOME: .
   # Disable DFX telemetry
-  DFX_TELEMETRY_ENABLED: disabled
+  DFX_TELEMETRY: 'off'
 
 jobs:
   build_dfx:

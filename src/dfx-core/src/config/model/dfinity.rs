@@ -1443,7 +1443,7 @@ impl ToolConfig {
                 path,
                 json: Default::default(),
                 tool_config: ToolConfigInterface {
-                    telemetry: TelemetryState::Enabled,
+                    telemetry: TelemetryState::On,
                 },
             };
             default.save()?;
@@ -1486,17 +1486,17 @@ impl ToolConfig {
 #[derive(Serialize, Deserialize, Copy, Clone, JsonSchema, PartialEq, Eq, ValueEnum)]
 #[serde(rename_all = "snake_case")]
 pub enum TelemetryState {
-    Enabled,
-    Disabled,
+    On,
+    Off,
     Local,
 }
 
 impl TelemetryState {
     pub fn should_collect(&self) -> bool {
-        *self != TelemetryState::Disabled
+        *self != TelemetryState::Off
     }
     pub fn should_publish(&self) -> bool {
-        *self == TelemetryState::Enabled
+        *self == TelemetryState::On
     }
 }
 
@@ -1504,8 +1504,8 @@ impl Display for TelemetryState {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(
             match self {
-                Self::Enabled => "enabled",
-                Self::Disabled => "disabled",
+                Self::On => "on",
+                Self::Off => "off",
                 Self::Local => "local",
             },
             f,

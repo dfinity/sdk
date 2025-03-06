@@ -1,24 +1,50 @@
-use clap::Parser;
-use dfx_core::config::model::dfinity::TelemetryState;
+use clap::{Parser, Subcommand};
+use dfx_core::config::model::dfinity::{TelemetryState, ToolConfigInterface};
+use slog::{info, warn};
 
 use crate::lib::{environment::Environment, error::DfxResult};
 
-/// Changes settings in dfx's configuration
+/// Changes settings in dfx's configuration.
 #[derive(Parser)]
 #[command(arg_required_else_help = true)]
 pub struct ConfigOpts {
-    /// Enables or disables telemetry/metrics. Enabled by default. `local` means it is collected but not uploaded.
-    #[arg(long)]
-    telemetry: Option<TelemetryState>,
+    #[command(subcommand)]
+    option: ConfigOption,
+}
+
+#[derive(Subcommand)]
+enum ConfigOption {
+    /// Gets or sets whether telemetry is enabled.
+    ///
+    /// `local` collects telemetry but does not store it.
+    Telemetry { telemetry: Option<TelemetryState> },
 }
 
 pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
+    match opts.option {
+        ConfigOption::Telemetry { telemetry } => {
+            if let Some(telemetry) = telemetry {
+                update_config(env, |settings| settings.telemetry = telemetry)?;
+                info!(env.get_logger(), "Telemetry set to {telemetry}");
+                if env.is_telemetry_enabled() != telemetry {
+                    warn!(env.get_logger(), "Overridden by environment variable")
+                }
+            } else {
+                println!("{}", env.is_telemetry_enabled());
+            }
+        }
+    }
+    Ok(())
+}
+
+fn update_config<T>(
+    env: &dyn Environment,
+    f: impl FnOnce(&mut ToolConfigInterface) -> T,
+) -> DfxResult<T> {
     let cfg = env.get_tool_config();
     let mut cfg = cfg.lock().unwrap();
     let settings = cfg.interface_mut();
-    if let Some(telemetry) = opts.telemetry {
-        settings.telemetry = telemetry;
-    }
+    let res = f(settings);
     cfg.save()?;
-    Ok(())
+    Ok(res)
 }
