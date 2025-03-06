@@ -116,9 +116,12 @@ pub fn get_sorted_templates(category: ProjectTemplateCategory) -> Vec<ProjectTem
 pub fn project_template_cli_names(category: ProjectTemplateCategory) -> Vec<String> {
     PROJECT_TEMPLATES
         .get()
-        .unwrap()
-        .values()
-        .filter(|t| t.category == category)
-        .map(|t| t.name.0.clone())
-        .collect()
+        .map(|templates| {
+            templates
+                .values()
+                .filter(|t| t.category == category)
+                .map(|t| t.name.0.clone())
+                .collect()
+        })
+        .unwrap_or_default()
 }
