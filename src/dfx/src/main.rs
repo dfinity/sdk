@@ -180,15 +180,26 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
 }
 
 fn main() {
-    Telemetry::init();
+    Telemetry::init_timestamped();
 
     let mut log_level: Option<i64> = None;
     let result = inner_main(&mut log_level);
-    if let Err(err) = result {
+
+    let exit_code = if let Err(err) = result {
         let error_diagnosis = diagnose(&err);
         print_error_and_diagnosis(log_level, err, error_diagnosis);
-        std::process::exit(255);
+        255
+    } else {
+        0
+    };
+
+    if let Err(e) = Telemetry::append_current_command_timestamped(exit_code) {
+        if log_level.unwrap_or_default() > 0 {
+            eprintln!("error appending to telemetry log: {e}")
+        }
     }
+
+    std::process::exit(exit_code);
 }
 
 /// sort subcommands alphabetically (despite this clap prints help as the last one)
