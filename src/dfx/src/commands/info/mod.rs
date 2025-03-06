@@ -31,8 +31,6 @@ enum InfoType {
     ReplicaPort,
     /// Show the port that PocketIC is using, if it is running
     PocketicConfigPort,
-    /// Show whether telemetry is collected based on the current environment's configuration
-    IsTelemetryEnabled,
 }
 
 #[derive(Parser)]
@@ -67,7 +65,6 @@ pub fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
         InfoType::WebserverPort => get_webserver_port(env)?,
         InfoType::NetworksJsonPath => NetworksConfig::new()?.get_path().display().to_string(),
         InfoType::ConfigJsonPath => ToolConfig::new()?.config_path().display().to_string(),
-        InfoType::IsTelemetryEnabled => env.is_telemetry_enabled().to_string(),
     };
     println!("{}", value);
     Ok(())
