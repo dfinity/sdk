@@ -3,7 +3,9 @@ use crate::CliOpts;
 use anyhow::Context;
 use clap::parser::ValueSource;
 use clap::{ArgMatches, Command, CommandFactory};
+use dfx_core::config::directories::project_dirs;
 use std::ffi::OsString;
+use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
 static TELEMETRY: OnceLock<Mutex<Telemetry>> = OnceLock::new();
@@ -54,6 +56,14 @@ impl Telemetry {
         telemetry.arguments = arguments;
 
         Ok(())
+    }
+
+    pub fn get_log_path() -> DfxResult<PathBuf> {
+        let path = project_dirs()?
+            .cache_dir()
+            .join("telemetry")
+            .join("telemetry.log");
+        Ok(path)
     }
 }
 
