@@ -23,7 +23,7 @@ teardown() {
     esac
     log=$(dfx info telemetry-log-path)
     assert_command env DFX_TELEMETRY=local dfx identity get-principal
-    assert_command jq -se '.[0] | .command == "identity get-principal" and .platform == "'$expected_platform'"
+    assert_command jq -se '.[0] | .command == "identity get-principal" and .platform == "'"$expected_platform"'"
         and .exit_code == 0 and (.parameters | length == 0)'
     assert_command_fail env DFX_TELEMETRY=local DFX_NETWORK=ic dfx identity get-platypus
     assert_command jq -se 'length == 0' "$log"
