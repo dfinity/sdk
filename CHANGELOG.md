@@ -11,6 +11,8 @@ Running a local replica is still possible with `--replica`, but this option will
 
 Displays the path of the telemetry log file.
 
+### fix: Warning and error messages now correctly suggest `dfx info security-policy` when suboptimal security policies get used
+
 # 0.25.1
 
 ### feat: `skip_cargo_audit` flag in dfx.json to skip `cargo audit` build step
