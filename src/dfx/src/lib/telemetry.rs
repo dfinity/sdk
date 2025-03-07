@@ -1,22 +1,35 @@
+#![allow(unused)] // remove when there are no more todos
+
+use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::CliOpts;
 use anyhow::Context;
 use clap::parser::ValueSource;
 use clap::{ArgMatches, Command, CommandFactory};
 use dfx_core::config::directories::project_dirs;
+use dfx_core::fs;
+use fd_lock::RwLock as FdRwLock;
+use semver::Version;
+use serde::Serialize;
 use std::ffi::OsString;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
+use std::time::Instant;
 
 static TELEMETRY: OnceLock<Mutex<Telemetry>> = OnceLock::new();
+// separate var to preserve Telemetry as Eq
+static START_TIME: OnceLock<Instant> = OnceLock::new();
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
 enum ArgumentSource {
     CommandLine,
     Environment,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 struct Argument {
     name: String,
     value: Option<String>,
@@ -30,10 +43,11 @@ pub struct Telemetry {
 }
 
 impl Telemetry {
-    pub fn init() {
+    pub fn init_timestamped() {
         TELEMETRY
             .set(Mutex::new(Telemetry::default()))
             .expect("Telemetry already initialized");
+        START_TIME.set(Instant::now()).unwrap()
     }
 
     pub fn set_command_and_arguments(args: &[OsString]) -> DfxResult {
@@ -65,6 +79,105 @@ impl Telemetry {
             .join("telemetry.log");
         Ok(path)
     }
+
+    pub fn append_record<T: Serialize>(record: &T) -> DfxResult<()> {
+        let record = serde_json::to_string(record)?;
+        let record = record.trim();
+        let log_path = Self::get_log_path()?;
+        fs::create_dir_all(log_path.parent().unwrap())?;
+        let mut file = FdRwLock::new(
+            OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(Self::get_log_path()?)?,
+        );
+        let mut lock = file.write()?;
+        writeln!(*lock, "{}", record)?;
+        Ok(())
+    }
+
+    pub fn append_current_command_timestamped(exit_code: i32) -> DfxResult<()> {
+        let end_time = Instant::now();
+        let elapsed = end_time.duration_since(*START_TIME.get().unwrap());
+        let telemetry_data = TELEMETRY.get().unwrap().lock().unwrap();
+        let record = CommandRecord {
+            tool: "dfx",
+            version: dfx_version(),
+            command: &telemetry_data.command,
+            platform: std::env::consts::OS, //todo detect wsl
+            parameters: &telemetry_data.arguments,
+            exit_code,
+            execution_time_ms: elapsed.as_millis(),
+            replica_error_call_site: None,
+            replica_error_code: None,
+            replica_reject_code: None,
+            cycles_host: None,
+            identity_type: None,
+            network_type: None,
+            project_canisters: None,
+        };
+        Self::append_record(&record)?;
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Debug)]
+struct CommandRecord<'a> {
+    tool: &'a str,
+    version: &'a Version,
+    command: &'a str,
+    platform: &'a str,
+    parameters: &'a [Argument],
+    exit_code: i32,
+    execution_time_ms: u128,
+    replica_error_call_site: Option<&'a str>,  //todo
+    replica_error_code: Option<&'a str>,       //todo
+    replica_reject_code: Option<u8>,           //todo
+    cycles_host: Option<CyclesHost>,           //todo
+    identity_type: Option<IdentityType>,       //todo
+    network_type: Option<NetworkType>,         //todo
+    project_canisters: Option<&'a [Canister]>, //todo
+}
+
+#[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+enum CyclesHost {
+    CyclesLedger,
+    CyclesWallet,
+}
+
+#[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+enum IdentityType {
+    Keyring,
+    Plaintext,
+    EncryptedLocal,
+    Hsm,
+}
+
+#[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+enum NetworkType {
+    LocalShared,
+    ProjectLocal,
+    Ic,
+    UnknownConfigured,
+    UnknownUrl,
+}
+
+#[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+enum CanisterType {
+    Motoko,
+    Rust,
+    Assets,
+    Custom,
+    Pull,
+}
+
+#[derive(Serialize, Copy, Clone, Debug)]
+struct Canister {
+    r#type: CanisterType,
 }
 
 /// Finds the deepest subcommand in both `ArgMatches` and `Command`.
