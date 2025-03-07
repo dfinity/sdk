@@ -293,12 +293,12 @@ pub fn fuzzy_parse_argument(
     types: &[Type],
 ) -> Result<Vec<u8>, candid::Error> {
     let first_char = arg_str.chars().next();
-    let is_candid_format = first_char.map_or(false, |c| c == '(');
+    let is_candid_format = first_char == Some('(');
     // If parsing fails and method expects a single value, try parsing as IDLValue.
     // If it still fails, and method expects a text type, send arguments as text.
     let args = candid_parser::parse_idl_args(arg_str).or_else(|_| {
         if types.len() == 1 && !is_candid_format {
-            let is_quote = first_char.map_or(false, |c| c == '"');
+            let is_quote = first_char == Some('"');
             if &TypeInner::Text == types[0].as_ref() && !is_quote {
                 Ok(IDLValue::Text(arg_str.to_string()))
             } else {
@@ -337,10 +337,9 @@ pub fn format_as_trillions(amount: u128) -> String {
     }
 }
 
+/// Formats a number provided as string, by dividing digits into groups of 3 using a delimiter
+/// <https://en.wikipedia.org/wiki/Decimal_separator#Digit_grouping>
 pub fn pretty_thousand_separators(num: String) -> String {
-    /// formats a number provided as string, by dividing digits into groups of 3 using a delimiter
-    /// https://en.wikipedia.org/wiki/Decimal_separator#Digit_grouping
-
     // 1. walk backwards (reverse string) and return characters until decimal point is seen
     // 2. once decimal point is seen, start counting chars and:
     //   - every third character but not at the end of the string: return (char + delimiter)
