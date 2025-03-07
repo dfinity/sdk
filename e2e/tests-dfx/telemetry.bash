@@ -35,6 +35,6 @@ teardown() {
 
 @test "telemetry reprocesses extension commands" {
     assert_command dfx extension install nns --version 0.3.1
-    assert_command env DFX_TELEMETRY=local dfx nns install
+    assert_command env DFX_TELEMETRY=local dfx nns import
     assert_command jq -se '.[0] | .command == "extension run" and (.parameters | any(.name == "name"))'
 }
