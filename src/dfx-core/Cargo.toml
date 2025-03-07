@@ -10,6 +10,9 @@ description = "dfx core library"
 documentation = "https://docs.rs/dfx-core"
 keywords = ["internet-computer", "icp", "dfinity"]
 
+[lints]
+workspace = true
+
 [dependencies]
 aes-gcm.workspace = true
 argon2.workspace = true
