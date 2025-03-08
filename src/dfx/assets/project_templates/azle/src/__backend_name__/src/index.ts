@@ -1,15 +1,8 @@
-import { IDL, query, update } from 'azle';
+import { IDL, query } from 'azle';
 
 export default class {
-    message: string = 'Hello world!';
-
-    @query([], IDL.Text)
-    getMessage(): string {
-        return this.message;
-    }
-
-    @update([IDL.Text])
-    setMessage(message: string): void {
-        this.message = message;
+    @query([IDL.Text], IDL.Text)
+    greet(name: string): string {
+        return `Hello, ${name}!`;
     }
 }
