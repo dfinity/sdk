@@ -9,6 +9,7 @@ use fn_error_context::context;
 use tokio::runtime::Runtime;
 
 mod account_id;
+mod approve;
 mod balance;
 pub mod create_canister;
 mod fabricate_cycles;
@@ -16,6 +17,7 @@ mod notify;
 pub mod show_subnet_types;
 mod top_up;
 mod transfer;
+mod transfer_from;
 
 /// Ledger commands.
 #[derive(Parser)]
@@ -31,6 +33,7 @@ pub struct LedgerOpts {
 #[derive(Parser)]
 enum SubCommand {
     AccountId(account_id::AccountIdOpts),
+    Approve(approve::ApproveOpts),
     Balance(balance::BalanceOpts),
     CreateCanister(create_canister::CreateCanisterOpts),
     FabricateCycles(fabricate_cycles::FabricateCyclesOpts),
@@ -38,6 +41,7 @@ enum SubCommand {
     ShowSubnetTypes(show_subnet_types::ShowSubnetTypesOpts),
     TopUp(top_up::TopUpOpts),
     Transfer(transfer::TransferOpts),
+    TransferFrom(transfer_from::TransferFromOpts),
 }
 
 pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
@@ -46,6 +50,7 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
     runtime.block_on(async {
         match opts.subcmd {
             SubCommand::AccountId(v) => account_id::exec(&agent_env, v).await,
+            SubCommand::Approve(v) => approve::exec(&agent_env, v).await,
             SubCommand::Balance(v) => balance::exec(&agent_env, v).await,
             SubCommand::CreateCanister(v) => create_canister::exec(&agent_env, v).await,
             SubCommand::FabricateCycles(v) => fabricate_cycles::exec(&agent_env, v).await,
@@ -53,6 +58,7 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
             SubCommand::ShowSubnetTypes(v) => show_subnet_types::exec(&agent_env, v).await,
             SubCommand::TopUp(v) => top_up::exec(&agent_env, v).await,
             SubCommand::Transfer(v) => transfer::exec(&agent_env, v).await,
+            SubCommand::TransferFrom(v) => transfer_from::exec(&agent_env, v).await,
         }
     })
 }
