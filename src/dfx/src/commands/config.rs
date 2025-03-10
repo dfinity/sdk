@@ -27,7 +27,7 @@ pub fn exec(env: &dyn Environment, opts: ConfigOpts) -> DfxResult {
                 update_config(env, |settings| settings.telemetry = telemetry)?;
                 info!(env.get_logger(), "Telemetry set to {telemetry}");
                 if env.telemetry_mode() != telemetry {
-                    warn!(env.get_logger(), "Overridden by environment variable")
+                    warn!(env.get_logger(), "Overridden by $DFX_TELEMETRY")
                 }
             } else {
                 println!("{}", env.telemetry_mode());

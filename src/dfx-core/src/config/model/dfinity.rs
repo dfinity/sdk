@@ -44,13 +44,11 @@ use crate::error::socket_addr_conversion::SocketAddrConversionError::{
     EmptyIterator, ParseSocketAddrFailed,
 };
 use crate::error::structured_file::StructuredFileError;
-use crate::error::structured_file::StructuredFileError::{
-    DeserializeJsonFileFailed, WriteJsonFileFailed,
-};
+use crate::error::structured_file::StructuredFileError::DeserializeJsonFileFailed;
 use crate::extension::manager::ExtensionManager;
 use crate::fs::create_dir_all;
-use crate::json::save_json_file;
 use crate::json::structure::{PossiblyStr, SerdeVec};
+use crate::json::{load_json_file, save_json_file};
 use crate::util::ByteSchema;
 use byte_unit::Byte;
 use candid::Principal;
@@ -1461,11 +1459,8 @@ impl ToolConfig {
     }
 
     fn from_file(path: &Path) -> Result<Self, StructuredFileError> {
-        let content = crate::fs::read(path)?;
-
-        let tool_config: ToolConfigInterface = serde_json::from_slice(&content)
-            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.to_path_buf()), e))?;
-        let json = serde_json::from_slice(&content)
+        let json: Value = load_json_file(path)?;
+        let tool_config: ToolConfigInterface = serde_json::from_value(json.clone())
             .map_err(|e| DeserializeJsonFileFailed(Box::new(path.to_path_buf()), e))?;
         let path = PathBuf::from(path);
         Ok(Self {
@@ -1476,9 +1471,7 @@ impl ToolConfig {
     }
 
     fn save_to_file(&self, path: &Path) -> Result<(), StructuredFileError> {
-        let json = serde_json::to_string_pretty(&self.tool_config)
-            .expect("ToolConfigInterface should always serialize");
-        crate::fs::write(path, json).map_err(WriteJsonFileFailed)?;
+        save_json_file(path, &self.tool_config)?;
         Ok(())
     }
 }
