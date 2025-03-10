@@ -11,8 +11,9 @@ use crate::lib::{
 };
 use anyhow::{anyhow, bail, ensure, Context};
 use backoff::backoff::Backoff;
+use backoff::future::retry;
 use backoff::ExponentialBackoff;
-use candid::{Decode, Encode, Principal};
+use candid::{Decode, Encode, Nat, Principal};
 use fn_error_context::context;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::agent_error::HttpErrorPayload;
@@ -21,11 +22,16 @@ use ic_agent::{
     lookup_value, Agent, AgentError,
 };
 use ic_utils::{call::SyncCall, Canister};
+use icrc_ledger_types::icrc1;
+use icrc_ledger_types::icrc1::transfer::BlockIndex;
+use icrc_ledger_types::icrc2;
+use icrc_ledger_types::icrc2::approve::ApproveError;
 use slog::{info, Logger};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";
 const TRANSFER_METHOD: &str = "transfer";
+const ICRC2_APPROVE_METHOD: &str = "icrc2_approve";
 
 pub async fn balance(
     agent: &Agent,
@@ -169,6 +175,66 @@ pub async fn transfer(
     println!("Transfer sent at block height {block_height}");
 
     Ok(block_height)
+}
+
+pub async fn approve(
+    agent: &Agent,
+    logger: &Logger,
+    canister_id: &Principal,
+    from_subaccount: Option<icrc1::account::Subaccount>,
+    spender: Principal,
+    spender_subaccount: Option<icrc1::account::Subaccount>,
+    amount: ICPTs,
+    expected_allowance: Option<ICPTs>,
+    fee: Option<ICPTs>,
+    created_at_time: u64,
+    expires_at: Option<u64>,
+    memo: Option<u64>,
+) -> DfxResult<BlockIndex> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(canister_id.clone())
+        .build()?;
+
+    let retry_policy = ExponentialBackoff::default();
+
+    let block_index = retry(retry_policy, || async {
+        let arg = icrc2::approve::ApproveArgs {
+            from_subaccount,
+            fee: fee.map(|value| Nat::from(value.get_e8s())),
+            created_at_time: Some(created_at_time),
+            memo: memo.map(|v| v.into()),
+            amount: Nat::from(amount.get_e8s()),
+            spender: icrc1::account::Account {
+                owner: spender,
+                subaccount: spender_subaccount,
+            },
+            expected_allowance: expected_allowance.map(|value| Nat::from(value.get_e8s())),
+            expires_at,
+        };
+        match canister
+            .update(ICRC2_APPROVE_METHOD)
+            .with_arg(arg)
+            .build()
+            .map(|result: (Result<BlockIndex, ApproveError>,)| (result.0,))
+            .await
+            .map(|(result,)| result)
+        {
+            Ok(Ok(block_index)) => Ok(block_index),
+            Ok(Err(ApproveError::Duplicate { duplicate_of })) => {
+                info!(logger, "Approval is a duplicate of block {}", duplicate_of);
+                Ok(duplicate_of)
+            }
+            Ok(Err(approve_err)) => Err(backoff::Error::permanent(anyhow!(approve_err))),
+            Err(agent_err) if retryable(&agent_err) => {
+                Err(backoff::Error::transient(anyhow!(agent_err)))
+            }
+            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+        }
+    })
+    .await?;
+
+    Ok(block_index)
 }
 
 fn diagnose_insufficient_funds_error(

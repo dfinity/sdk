@@ -1,10 +1,15 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::ledger_types::MAINNET_LEDGER_CANISTER_ID;
 use crate::lib::nns_types::icpts::ICPTs;
+use crate::lib::operations::ledger;
+use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::icrc_subaccount_parser;
 use candid::Principal;
 use clap::Parser;
 use icrc_ledger_types::icrc1::account::Subaccount;
+use slog::{info, warn};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Approve a principal to spend ICP on behalf of the approver.
 #[derive(Parser)]
@@ -47,8 +52,56 @@ pub struct ApproveOpts {
     /// Memo.
     #[arg(long)]
     memo: Option<u64>,
+
+    #[arg(long)]
+    /// Canister ID of the ledger canister.
+    ledger_canister_id: Option<Principal>,
 }
 
-pub async fn exec(_env: &dyn Environment, _opts: ApproveOpts) -> DfxResult {
+pub async fn exec(env: &dyn Environment, opts: ApproveOpts) -> DfxResult {
+    let agent = env.get_agent();
+    
+    fetch_root_key_if_needed(env).await?;
+
+    let canister_id = opts
+        .ledger_canister_id
+        .unwrap_or(MAINNET_LEDGER_CANISTER_ID);
+
+    let created_at_time = opts.created_at_time.unwrap_or(
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as u64,
+    );
+
+    let result = ledger::approve(
+        agent,
+        env.get_logger(),
+        &canister_id,
+        opts.from_subaccount,
+        opts.spender,
+        opts.spender_subaccount,
+        opts.amount,
+        opts.expected_allowance,
+        opts.fee,
+        created_at_time,
+        opts.expires_at,
+        opts.memo,
+    )
+    .await;
+
+    if result.is_err() && opts.created_at_time.is_none() {
+        warn!(
+            env.get_logger(),
+            "If you retry this operation, use --created-at-time {}", created_at_time
+        );
+    }
+    let block_index = result?;
+
+    info!(
+        env.get_logger(),
+        "Approval sent at block index {}", block_index
+    );
+
     Ok(())
 }
