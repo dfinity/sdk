@@ -46,7 +46,7 @@ teardown() {
     local log
     log=$(dfx info telemetry-log-path)
     dfx identity get-principal # initialize it first
-    for i in {0..100}; do
+    for _ in {0..100}; do
         assert_command env DFX_TELEMETRY=local dfx identity get-principal &
     done
     wait
