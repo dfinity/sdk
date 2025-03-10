@@ -17,6 +17,7 @@ mod notify;
 pub mod show_subnet_types;
 mod top_up;
 mod transfer;
+mod transfer_from;
 
 /// Ledger commands.
 #[derive(Parser)]
@@ -40,6 +41,7 @@ enum SubCommand {
     ShowSubnetTypes(show_subnet_types::ShowSubnetTypesOpts),
     TopUp(top_up::TopUpOpts),
     Transfer(transfer::TransferOpts),
+    TransferFrom(transfer_from::TransferFromOpts),
 }
 
 pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
@@ -56,6 +58,7 @@ pub fn exec(env: &dyn Environment, opts: LedgerOpts) -> DfxResult {
             SubCommand::ShowSubnetTypes(v) => show_subnet_types::exec(&agent_env, v).await,
             SubCommand::TopUp(v) => top_up::exec(&agent_env, v).await,
             SubCommand::Transfer(v) => transfer::exec(&agent_env, v).await,
+            SubCommand::TransferFrom(v) => transfer_from::exec(&agent_env, v).await,
         }
     })
 }
