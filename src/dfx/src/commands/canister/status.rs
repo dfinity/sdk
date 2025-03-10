@@ -81,11 +81,11 @@ async fn canister_status(
 Canister status call result for {canister}.
 Status: {status}
 Controllers: {controllers}
-Memory allocation: {memory_allocation}
-Compute allocation: {compute_allocation}
-Freezing threshold: {freezing_threshold}
-Idle cycles burned per day: {idle_cycles_burned_per_day}
-Memory Size: {memory_size:?}
+Memory allocation: {memory_allocation} Bytes
+Compute allocation: {compute_allocation} %
+Freezing threshold: {freezing_threshold} Seconds
+Idle cycles burned per day: {idle_cycles_burned_per_day} Cycles
+Memory Size: {memory_size} Bytes
 Balance: {balance} Cycles
 Reserved: {reserved} Cycles
 Reserved cycles limit: {reserved_cycles_limit}
@@ -94,8 +94,8 @@ Wasm memory threshold: {wasm_memory_threshold}
 Module hash: {module_hash}
 Number of queries: {queries_total}
 Instructions spent in queries: {query_instructions_total}
-Total query request payload size (bytes): {query_req_payload_total}
-Total query response payload size (bytes): {query_resp_payload_total}
+Total query request payload size: {query_req_payload_total} Bytes
+Total query response payload size: {query_resp_payload_total} Bytes
 Log visibility: {log_visibility}",
         status = status.status,
         controllers = controllers.join(" "),

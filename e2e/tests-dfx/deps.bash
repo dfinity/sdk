@@ -723,7 +723,6 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 }
 
 @test "dfx deps can facade pull ckBTC ledger" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic which doesn't have ckBTC subnet"
 
   use_test_specific_cache_root # dfx deps pull will download files to cache
 
@@ -783,7 +782,6 @@ Installing canister: $CANISTER_ID_C (dep_c)"
 
 
 @test "dfx deps can facade pull ckETH ledger" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic which doesn't have ckETH subnet"
 
   use_test_specific_cache_root # dfx deps pull will download files to cache
 

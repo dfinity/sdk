@@ -24,7 +24,7 @@ use dfx_core::config::model::replica_config::CachedConfig;
 use dfx_core::config::model::replica_config::ReplicaConfig;
 #[cfg(unix)]
 use dfx_core::json::save_json_file;
-use slog::{debug, error, info, warn, Logger};
+use slog::{debug, error, warn, Logger};
 use std::net::SocketAddr;
 use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
@@ -159,7 +159,7 @@ impl Actor for PocketIc {
     }
 
     fn stopping(&mut self, _ctx: &mut Self::Context) -> Running {
-        info!(self.logger, "Stopping PocketIC...");
+        debug!(self.logger, "Stopping PocketIC...");
         if let Some(sender) = self.stop_sender.take() {
             let _ = sender.send(());
         }
@@ -168,7 +168,7 @@ impl Actor for PocketIc {
             let _ = join.join();
         }
 
-        info!(self.logger, "Stopped.");
+        debug!(self.logger, "Stopped.");
         Running::Stop
     }
 }
@@ -244,6 +244,11 @@ fn pocketic_start_thread(
             }
             cmd.stdout(std::process::Stdio::inherit());
             cmd.stderr(std::process::Stdio::inherit());
+            #[cfg(unix)]
+            {
+                use std::os::unix::process::CommandExt;
+                cmd.process_group(0);
+            }
             let _ = std::fs::remove_file(&config.port_file);
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting PocketIC...");
@@ -350,7 +355,7 @@ async fn initialize_pocketic(
         nns: Some(SubnetSpec::default()),
         sns: Some(SubnetSpec::default()),
         ii: Some(SubnetSpec::default()),
-        fiduciary: None,
+        fiduciary: Some(SubnetSpec::default()),
         bitcoin: Some(SubnetSpec::default()),
         system: vec![],
         verified_application: vec![],
@@ -369,7 +374,7 @@ async fn initialize_pocketic(
             subnet_config_set,
             state_dir: Some(replica_config.state_manager.state_root.clone()),
             nonmainnet_features: true,
-            log_level: Some(replica_config.log_level.to_ic_starter_string()),
+            log_level: Some(replica_config.log_level.to_pocketic_string()),
             bitcoind_addr: bitcoind_addr.clone(),
         })
         .send()
@@ -430,7 +435,7 @@ async fn initialize_pocketic(
         initialize_bitcoin_canister(&agent, &logger, bitcoin_integration_config.clone()).await?;
     }
 
-    info!(logger, "Initialized PocketIC.");
+    debug!(logger, "Initialized PocketIC.");
     Ok(instance)
 }
 

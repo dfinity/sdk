@@ -5,7 +5,7 @@ load ../utils/_
 install_nns() {
   dfx_start_for_nns_install
 
-  dfx extension install nns --version 0.4.3
+  dfx extension install nns --version 0.5.0
   dfx nns install --ledger-accounts 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc
 }
 
@@ -158,10 +158,10 @@ tc_to_num() {
   balance=$(tc_to_num "$(dfx wallet balance)")
 
   assert_command dfx ledger top-up "$wallet" --icp 5
-  assert_match "Canister was topped up with 617283500000000 cycles"
+  assert_match "Canister was topped up with 500000000000000 cycles"
   balance_now=$(tc_to_num "$(dfx wallet balance)")
 
-  (( balance_now - balance > 600000000000000 ))
+  (( balance_now - balance > 400000000000000 ))
 
   # Transaction Deduplication
   t=$(current_time_nanoseconds)
@@ -204,7 +204,7 @@ tc_to_num() {
   dfx_new
   assert_command dfx canister create e2e_project_backend
   assert_command dfx ledger top-up e2e_project_backend --amount 5
-  assert_contains "Canister was topped up with 617283500000000 cycles"
+  assert_contains "Canister was topped up with 500000000000000 cycles"
 }
 
 @test "ledger create-canister" {

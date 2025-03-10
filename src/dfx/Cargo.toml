@@ -1,12 +1,15 @@
 [package]
 name = "dfx"
-version = "0.24.3"
+version = "0.25.0"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
 license.workspace = true
 rust-version.workspace = true
 build = "assets/build.rs"
+
+[lints]
+workspace = true
 
 [[bin]]
 name = "dfx"
@@ -74,7 +77,7 @@ ic-utils.workspace = true
 ic-wasm = "0.8.0"
 icrc-ledger-types = "0.1.5"
 idl2json = "0.10.1"
-indicatif = "0.16.0"
+indicatif = "0.17.0"
 itertools.workspace = true
 json-patch = "1.0.0"
 keyring.workspace = true
@@ -86,7 +89,7 @@ os_str_bytes = { version = "6.3.0", features = ["conversions"] }
 patch = "0.7.0"
 pem.workspace = true
 petgraph = "0.6.0"
-pocket-ic = { git = "https://github.com/dfinity/ic", rev = "3e24396441e4c7380928d4e8b4ccff7de77d0e7e" }
+pocket-ic = { git = "https://github.com/dfinity/ic", rev = "2f02a660f6f17b5a78c13d9b372f74c8228f79b8" }
 rand = "0.8.5"
 regex = "1.5.5"
 reqwest = { workspace = true, features = ["blocking", "json"] }

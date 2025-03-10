@@ -1,28 +1,14 @@
 #[cfg(windows)]
 use crate::config::directories::project_dirs;
 use crate::error::cache::{
-    DeleteCacheError, EnsureCacheVersionsDirError, GetBinaryCommandPathError, GetCacheRootError,
-    GetVersionFromCachePathError, IsCacheInstalledError, ListCacheVersionsError,
+    DeleteCacheError, EnsureCacheVersionsDirError, GetCacheRootError, GetVersionFromCachePathError,
+    IsCacheInstalledError, ListCacheVersionsError,
 };
 #[cfg(not(windows))]
 use crate::foundation::get_user_home;
 use crate::fs::composite::ensure_dir_exists;
 use semver::Version;
 use std::path::{Path, PathBuf};
-
-pub trait Cache {
-    fn version_str(&self) -> String;
-    fn is_installed(&self) -> Result<bool, IsCacheInstalledError>;
-    fn delete(&self) -> Result<(), DeleteCacheError>;
-    fn get_binary_command_path(
-        &self,
-        binary_name: &str,
-    ) -> Result<PathBuf, GetBinaryCommandPathError>;
-    fn get_binary_command(
-        &self,
-        binary_name: &str,
-    ) -> Result<std::process::Command, GetBinaryCommandPathError>;
-}
 
 pub fn get_cache_root() -> Result<PathBuf, GetCacheRootError> {
     let cache_root = std::env::var_os("DFX_CACHE_ROOT");

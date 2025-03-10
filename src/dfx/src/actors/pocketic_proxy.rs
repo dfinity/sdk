@@ -11,7 +11,7 @@ use actix::{
 };
 use anyhow::{anyhow, bail};
 use crossbeam::channel::{unbounded, Receiver, Sender};
-use slog::{debug, error, info, Logger};
+use slog::{debug, error, Logger};
 use std::net::SocketAddr;
 use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
@@ -39,9 +39,6 @@ pub struct PocketIcProxyConfig {
 
     /// fixed replica address
     pub replica_url: Option<Url>,
-
-    /// does the proxy need to fetch the root key
-    pub fetch_root_key: bool,
 
     /// run pocket-ic in non-quiet mode
     pub verbose: bool,
@@ -120,7 +117,7 @@ impl PocketIcProxy {
 
     fn stop_pocketic_proxy(&mut self) {
         if self.stop_sender.is_some() || self.thread_join.is_some() {
-            info!(self.logger, "Stopping HTTP gateway...");
+            debug!(self.logger, "Stopping HTTP gateway...");
             if let Some(sender) = self.stop_sender.take() {
                 let _ = sender.send(());
             }
@@ -128,7 +125,7 @@ impl PocketIcProxy {
             if let Some(join) = self.thread_join.take() {
                 let _ = join.join();
             }
-            info!(self.logger, "Stopped.");
+            debug!(self.logger, "Stopped.");
         }
     }
 
@@ -211,9 +208,9 @@ impl Handler<PocketIcProxyReadySubscribe> for PocketIcProxy {
 impl Handler<PocketIcProxyReadySignal> for PocketIcProxy {
     type Result = ();
 
-    fn handle(&mut self, _msg: PocketIcProxyReadySignal, _ctx: &mut Self::Context) {
+    fn handle(&mut self, msg: PocketIcProxyReadySignal, _ctx: &mut Self::Context) {
         for sub in &self.ready_subscribers {
-            sub.do_send(PocketIcProxyReadySignal);
+            sub.do_send(msg);
         }
     }
 }
@@ -260,6 +257,11 @@ fn pocketic_proxy_start_thread(
             cmd.args(["--port-file".as_ref(), pocketic_proxy_port_path.as_os_str()]);
             cmd.stdout(std::process::Stdio::inherit());
             cmd.stderr(std::process::Stdio::inherit());
+            #[cfg(unix)]
+            {
+                use std::os::unix::process::CommandExt;
+                cmd.process_group(0);
+            }
             let _ = std::fs::remove_file(&pocketic_proxy_port_path);
             let last_start = std::time::Instant::now();
             debug!(logger, "Starting pocket-ic gateway...");
@@ -304,10 +306,9 @@ fn pocketic_proxy_start_thread(
                 }
                 Ok(i) => i,
             };
-            info!(logger, "Replica API running on {address}");
 
             // Send PocketIcProxyReadySignal to PocketIcProxy.
-            addr.do_send(PocketIcProxyReadySignal);
+            addr.do_send(PocketIcProxyReadySignal(address));
 
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart pocket-ic if done = true.
@@ -379,7 +380,7 @@ async fn initialize_gateway(
         CreateHttpGatewayResponse::Created(info) => info.instance_id,
         CreateHttpGatewayResponse::Error { message } => bail!("Gateway init error: {message}"),
     };
-    info!(logger, "Initialized HTTP gateway.");
+    debug!(logger, "Initialized HTTP gateway.");
     Ok(instance)
 }
 

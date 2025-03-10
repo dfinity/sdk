@@ -84,6 +84,7 @@ impl CanisterBuilder for CustomBuilder {
     #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
+        _: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
@@ -93,6 +94,7 @@ impl CanisterBuilder for CustomBuilder {
     #[context("Failed to build custom canister {}.", info.get_name())]
     fn build(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,
@@ -105,7 +107,6 @@ impl CanisterBuilder for CustomBuilder {
             dependencies,
         } = CustomBuilderExtra::try_from(info, pool)?;
 
-        let canister_id = info.get_canister_id().unwrap();
         let vars = super::get_and_write_environment_variables(
             info,
             &config.network_name,
@@ -122,12 +123,11 @@ impl CanisterBuilder for CustomBuilder {
                 command
             );
 
-            super::run_command(&command, &vars, info.get_workspace_root())
+            super::run_command(env, &command, &vars, info.get_workspace_root())
                 .with_context(|| format!("Failed to run {}.", command))?;
         }
 
         Ok(BuildOutput {
-            canister_id,
             wasm: WasmBuildOutput::File(wasm),
             idl: IdlBuildOutput::File(info.get_output_idl_path().to_path_buf()),
         })
@@ -135,6 +135,7 @@ impl CanisterBuilder for CustomBuilder {
 
     fn get_candid_path(
         &self,
+        _: &dyn Environment,
         _pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,

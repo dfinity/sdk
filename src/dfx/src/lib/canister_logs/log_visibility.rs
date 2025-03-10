@@ -1,10 +1,10 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::util::ask_for_consent;
 use crate::util::clap::parsers::{log_visibility_parser, principal_parser};
 use anyhow::anyhow;
 use candid::Principal;
 use clap::{ArgAction, Args};
-use dfx_core::cli::ask_for_consent;
 use ic_utils::interfaces::management_canister::{LogVisibility, StatusCallResult};
 
 #[derive(Args, Clone, Debug, Default)]
@@ -104,7 +104,7 @@ impl LogVisibilityOpt {
         if let Some(added) = self.add_log_viewer.as_ref() {
             if let Some(LogVisibility::Public) = current_visibility {
                 let msg = "Current log is public to everyone. Adding log reviewers will make the log only visible to the reviewers.";
-                ask_for_consent(msg)?;
+                ask_for_consent(env, msg)?;
             }
 
             for principal in added {
@@ -116,13 +116,11 @@ impl LogVisibilityOpt {
 
         // Removing.
         if let Some(removed) = self.remove_log_viewer.as_ref() {
-            if let Some(visibility) = &current_visibility {
-                match visibility {
-                    LogVisibility::Public | LogVisibility::Controllers => {
-                        return Err(anyhow!("Removing reviewers is not allowed with 'public' or 'controllers' log visibility."));
-                    }
-                    _ => (),
+            match &current_visibility {
+                Some(LogVisibility::Public) | Some(LogVisibility::Controllers) => {
+                    return Err(anyhow!("Removing reviewers is not allowed with 'public' or 'controllers' log visibility."));
                 }
+                _ => {}
             }
             for principal in removed {
                 if let Some(idx) = viewers.iter().position(|x| x == principal) {

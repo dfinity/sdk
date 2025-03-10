@@ -47,8 +47,8 @@ setup_playground() {
 
 @test "canister lifecycle" {
   assert_command dfx canister create --all --playground
-  [[ "$USE_POCKETIC" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_backend --playground
-  [[ "$USE_POCKETIC" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_frontend --playground
+  [[ ! "$USE_REPLICA" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_backend --playground
+  [[ ! "$USE_REPLICA" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_frontend --playground
 
   assert_command dfx deploy --playground
   assert_command dfx canister --playground call hello_backend greet '("player")'
@@ -81,9 +81,9 @@ setup_playground() {
   rm -rf hello
   dfx_new_frontend hello
 
-  [[ "$USE_POCKETIC" ]] && assert_command dfx canister create --all --playground
-  [[ "$USE_POCKETIC" ]] && assert_command dfx ledger fabricate-cycles --t 9999999 --canister hello_backend --playground
-  [[ "$USE_POCKETIC" ]] && assert_command dfx ledger fabricate-cycles --t 9999999 --canister hello_frontend --playground
+  [[ ! "$USE_REPLICA" ]] && assert_command dfx canister create --all --playground
+  [[ ! "$USE_REPLICA" ]] && assert_command dfx ledger fabricate-cycles --t 9999999 --canister hello_backend --playground
+  [[ ! "$USE_REPLICA" ]] && assert_command dfx ledger fabricate-cycles --t 9999999 --canister hello_frontend --playground
 
   assert_command dfx deploy --playground
   assert_command dfx canister --playground call hello_backend greet '("player")'
@@ -107,8 +107,8 @@ setup_playground() {
 # instrument the asset canister during upload which would run into execution limits.
 @test "playground-installed asset canister is same wasm as normal asset canister" {
   assert_command dfx canister create --all --playground
-  [[ "$USE_POCKETIC" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_backend --playground
-  [[ "$USE_POCKETIC" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_frontend --playground
+  [[ ! "$USE_REPLICA" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_backend --playground
+  [[ ! "$USE_REPLICA" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_frontend --playground
 
   assert_command dfx deploy --playground
   PLAYGROUND_HASH=$(dfx canister --playground info hello_frontend | grep hash)
@@ -116,4 +116,24 @@ setup_playground() {
   assert_command dfx deploy
   assert_command bash -c 'dfx canister info hello_frontend | grep hash'
   assert_match "${PLAYGROUND_HASH}"
+}
+
+@test "playground canister upgrades work with Motoko Enhanced Orthogonal Persistence" {
+  assert_command dfx canister create --all --playground
+  [[ ! "$USE_REPLICA" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_backend --playground
+  [[ ! "$USE_REPLICA" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_frontend --playground
+  
+  # enable EOP
+  jq '.canisters.hello_backend.args="--enhanced-orthogonal-persistence"' dfx.json | sponge dfx.json
+  
+  # deployment with EOP works
+  assert_command dfx deploy --playground
+  assert_command dfx canister call hello_backend greet '("World")' --playground
+  assert_match "Hello, World!"
+
+  # updating a canister with EOP works
+  perl -pi -e 's/Hello/Greetings/g' src/hello_backend/main.mo # equivalent to using sed, but perl is consistent across MacOS/Linux unlike sed
+  assert_command dfx deploy --playground
+  assert_command dfx canister call hello_backend greet '("World")' --playground
+  assert_match "Greetings, World!"
 }

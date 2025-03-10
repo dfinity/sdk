@@ -9,6 +9,7 @@ use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
 use candid::{Decode, Encode, IDLArgs, Principal};
 use candid_parser::error::pretty_wrap;
 use candid_parser::utils::CandidSource;
+use dfx_core::error::cli::UserConsent;
 use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
 use idl2json::{idl2json, Idl2JsonOptions};
@@ -230,34 +231,36 @@ pub fn blob_from_arguments(
                     } else if is_terminal {
                         use candid_parser::assist::{input_args, Context};
                         let mut ctx = Context::new(env.clone());
-                        if let Some(env) = dfx_env {
-                            let principals = gather_principals_from_env(env);
-                            if !principals.is_empty() {
-                                let mut map = BTreeMap::new();
-                                map.insert("principal".to_string(), principals);
-                                ctx.set_completion(map);
+                        let dfx_env = dfx_env.expect(
+                            "internal error: requiring interactive args without Environment",
+                        );
+                        let principals = gather_principals_from_env(dfx_env);
+                        if !principals.is_empty() {
+                            let mut map = BTreeMap::new();
+                            map.insert("principal".to_string(), principals);
+                            ctx.set_completion(map);
+                        }
+                        return with_suspend_all_spinners(dfx_env, || {
+                            if is_init_arg {
+                                eprintln!("This canister requires an initialization argument.");
+                            } else {
+                                eprintln!("This method requires arguments.");
                             }
-                        }
-                        if is_init_arg {
-                            eprintln!("This canister requires an initialization argument.");
-                        } else {
-                            eprintln!("This method requires arguments.");
-                        }
-                        let args = input_args(&ctx, &func.args)?;
-                        eprintln!("Sending the following argument:\n{}\n", args);
-                        if is_init_arg {
-                            eprintln!(
-                                "Do you want to initialize the canister with this argument? [y/N]"
-                            );
-                        } else {
-                            eprintln!("Do you want to send this message? [y/N]");
-                        }
-                        let mut input = String::new();
-                        stdin().read_line(&mut input)?;
-                        if !["y", "Y", "yes", "Yes", "YES"].contains(&input.trim()) {
-                            return Err(error_invalid_data!("User cancelled."));
-                        }
-                        args.to_bytes_with_types(env, &func.args)
+                            let args = input_args(&ctx, &func.args)?;
+                            eprintln!("Sending the following argument:\n{}\n", args);
+                            if is_init_arg {
+                                eprintln!("Do you want to initialize the canister with this argument? [y/N]");
+                            } else {
+                                eprintln!("Do you want to send this message? [y/N]");
+                            }
+                            let mut input = String::new();
+                            stdin().read_line(&mut input)?;
+                            if !["y", "Y", "yes", "Yes", "YES"].contains(&input.trim()) {
+                                return Err(error_invalid_data!("User cancelled."));
+                            }
+                            let bytes = args.to_bytes_with_types(env, &func.args)?;
+                            Ok(bytes)
+                        })
                     } else {
                         return Err(error_invalid_data!("Expected arguments but found none."));
                     }
@@ -290,12 +293,12 @@ pub fn fuzzy_parse_argument(
     types: &[Type],
 ) -> Result<Vec<u8>, candid::Error> {
     let first_char = arg_str.chars().next();
-    let is_candid_format = first_char.map_or(false, |c| c == '(');
+    let is_candid_format = first_char == Some('(');
     // If parsing fails and method expects a single value, try parsing as IDLValue.
     // If it still fails, and method expects a text type, send arguments as text.
     let args = candid_parser::parse_idl_args(arg_str).or_else(|_| {
         if types.len() == 1 && !is_candid_format {
-            let is_quote = first_char.map_or(false, |c| c == '"');
+            let is_quote = first_char == Some('"');
             if &TypeInner::Text == types[0].as_ref() && !is_quote {
                 Ok(IDLValue::Text(arg_str.to_string()))
             } else {
@@ -334,10 +337,9 @@ pub fn format_as_trillions(amount: u128) -> String {
     }
 }
 
+/// Formats a number provided as string, by dividing digits into groups of 3 using a delimiter
+/// <https://en.wikipedia.org/wiki/Decimal_separator#Digit_grouping>
 pub fn pretty_thousand_separators(num: String) -> String {
-    /// formats a number provided as string, by dividing digits into groups of 3 using a delimiter
-    /// https://en.wikipedia.org/wiki/Decimal_separator#Digit_grouping
-
     // 1. walk backwards (reverse string) and return characters until decimal point is seen
     // 2. once decimal point is seen, start counting chars and:
     //   - every third character but not at the end of the string: return (char + delimiter)
@@ -423,6 +425,29 @@ async fn attempt_download(client: &Client, url: &Url) -> DfxResult<Option<Bytes>
         let body = response.error_for_status()?.bytes().await?;
         Ok(Some(body))
     }
+}
+
+pub fn ask_for_consent(env: &dyn Environment, message: &str) -> Result<(), UserConsent> {
+    with_suspend_all_spinners(env, || {
+        eprintln!("WARNING!");
+        eprintln!("{}", message);
+        eprintln!("Do you want to proceed? yes/No");
+        let mut input_string = String::new();
+        stdin()
+            .read_line(&mut input_string)
+            .map_err(UserConsent::ReadError)?;
+        let input_string = input_string.trim_end().to_lowercase();
+        if input_string != "yes" && input_string != "y" {
+            return Err(UserConsent::Declined);
+        }
+        Ok(())
+    })
+}
+
+pub fn with_suspend_all_spinners<R>(env: &dyn Environment, f: impl FnOnce() -> R) -> R {
+    let mut r = None;
+    env.with_suspend_all_spinners(Box::new(|| r = Some(f())));
+    r.unwrap()
 }
 
 #[cfg(test)]

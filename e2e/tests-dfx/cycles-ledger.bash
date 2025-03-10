@@ -390,74 +390,74 @@ current_time_nanoseconds() {
   assert_command dfx cycles balance --precise --identity bob
   assert_eq "2400000000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_000_000_000 Cycles"
+  assert_contains "Balance: 3_500_000_000_000 Cycles"
 
   assert_command dfx cycles top-up e2e_project_backend 100000 --identity bob
   assert_command dfx cycles balance --precise --identity bob
   assert_eq "2399899900000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_000_100_000 Cycles"
+  assert_contains "Balance: 3_500_000_100_000 Cycles"
 
   assert_command dfx canister deposit-cycles 100000 e2e_project_backend --identity bob
   assert_command dfx cycles balance --precise --identity bob
   assert_eq "2399799800000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_000_200_000 Cycles"
+  assert_contains "Balance: 3_500_000_200_000 Cycles"
 
   # subaccount to canister
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
   assert_eq "2600000000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_000_200_000 Cycles"
+  assert_contains "Balance: 3_500_000_200_000 Cycles"
 
   assert_command dfx cycles top-up e2e_project_backend 300000 --identity bob --from-subaccount "$BOB_SUBACCT1"
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
   assert_eq "2599899700000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_000_500_000 Cycles"
+  assert_contains "Balance: 3_500_000_500_000 Cycles"
 
   assert_command dfx canister deposit-cycles 300000 e2e_project_backend --identity bob --from-subaccount "$BOB_SUBACCT1"
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
   assert_eq "2599799400000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_000_800_000 Cycles"
+  assert_contains "Balance: 3_500_000_800_000 Cycles"
 
   # subaccount to canister - by canister id
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT2"
   assert_eq "2700000000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_000_800_000 Cycles"
+  assert_contains "Balance: 3_500_000_800_000 Cycles"
 
   assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" 600000 --identity bob --from-subaccount "$BOB_SUBACCT2"
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT2"
   assert_eq "2699899400000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_001_400_000 Cycles"
+  assert_contains "Balance: 3_500_001_400_000 Cycles"
 
   assert_command dfx canister deposit-cycles 600000 "$(dfx canister id e2e_project_backend)" --identity bob --from-subaccount "$BOB_SUBACCT2"
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT2"
   assert_eq "2699798800000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_002_000_000 Cycles"
+  assert_contains "Balance: 3_500_002_000_000 Cycles"
 
   # deduplication
   t=$(current_time_nanoseconds)
   assert_command dfx cycles balance --precise --identity bob
   assert_eq "2399799800000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_002_000_000 Cycles"
+  assert_contains "Balance: 3_500_002_000_000 Cycles"
 
   assert_command dfx canister deposit-cycles 100000 e2e_project_backend --identity bob --created-at-time "$t"
   assert_command dfx cycles balance --precise --identity bob
   assert_eq "2399699700000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_002_100_000 Cycles"
+  assert_contains "Balance: 3_500_002_100_000 Cycles"
 
   assert_command dfx canister deposit-cycles 100000 e2e_project_backend --identity bob --created-at-time "$t"
   assert_command dfx cycles balance --precise --identity bob
   assert_eq "2399699700000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_002_100_000 Cycles"
+  assert_contains "Balance: 3_500_002_100_000 Cycles"
 
   # deposit-cycles --all skips remote canisters
   jq '.canisters.remote.remote.id.local="rdmx6-jaaaa-aaaaa-aaadq-cai"' dfx.json | sponge dfx.json
@@ -492,7 +492,7 @@ current_time_nanoseconds() {
   assert_command dfx cycles balance --precise --identity bob
   assert_eq "2400000000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_000_000_000 Cycles"
+  assert_contains "Balance: 3_500_000_000_000 Cycles"
 
   t=$(current_time_nanoseconds)
   assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 100000 --identity bob
@@ -501,7 +501,7 @@ current_time_nanoseconds() {
   assert_command dfx cycles balance --precise --identity bob
   assert_eq "2399899900000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_100_000_100_000 Cycles"
+  assert_contains "Balance: 3_500_000_100_000 Cycles"
 
   # same created-at-time: dupe
   assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 100000 --identity bob
@@ -776,7 +776,6 @@ current_time_nanoseconds() {
 }
 
 @test "automatically choose subnet" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: subnet range"
   dfx_start
 
   REGISTRY="rwlgt-iiaaa-aaaaa-aaaaa-cai"

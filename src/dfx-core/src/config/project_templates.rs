@@ -59,6 +59,7 @@ pub struct ProjectTemplate {
     ///   - motoko=0
     ///   - rust=1
     ///   - everything else=2 (and then by display name)
+    ///
     /// For frontend:
     ///   - SvelteKit=0
     ///   - React=1
@@ -66,6 +67,7 @@ pub struct ProjectTemplate {
     ///   - Vanilla JS=3
     ///   - No JS Template=4
     ///   - everything else=5 (and then by display name)
+    ///
     /// For extras:
     ///   - Internet Identity=0
     ///   - Bitcoin=1

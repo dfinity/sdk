@@ -25,8 +25,8 @@ use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::{debug, info, warn};
 use std::format;
 
-// The cycle fee for create request is 0.1T cycles.
-pub const CANISTER_CREATE_FEE: u128 = 100_000_000_000_u128;
+// The cycle fee for create request is 0.5T cycles.
+pub const CANISTER_CREATE_FEE: u128 = 500_000_000_000_u128;
 // We do not know the minimum cycle balance a canister should have.
 // For now create the canister with 3T cycle balance.
 pub const CANISTER_INITIAL_CYCLE_BALANCE: u128 = 3_000_000_000_000_u128;
@@ -46,7 +46,6 @@ pub async fn create_canister(
     subnet_selection: &mut SubnetSelectionType,
 ) -> DfxResult {
     let log = env.get_logger();
-    info!(log, "Creating canister {}...", canister_name);
 
     let config = env.get_config_or_anyhow()?;
     let config_interface = config.get_config();
@@ -151,6 +150,7 @@ The command line value will be used.",
             }
         };
 
+    let spinner = env.new_spinner(format!("Creating canister {canister_name}...").into());
     let agent = env.get_agent();
     let cid = match call_sender {
         CallSender::SelectedId => {
@@ -180,6 +180,7 @@ The command line value will be used.",
             create_with_wallet(agent, &wallet_id, with_cycles, settings, subnet_selection).await
         }
     }?;
+    spinner.finish_and_clear();
     let canister_id = cid.to_text();
     info!(
         log,

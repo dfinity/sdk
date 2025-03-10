@@ -42,7 +42,6 @@ teardown() {
 }
 
 @test "start and stop with different options" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: clean required"
   dfx_start --artificial-delay 101
   dfx_stop
 
@@ -62,7 +61,6 @@ teardown() {
 }
 
 @test "stop and start with other options does not disrupt projects" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: clean required"
   dfx_start --artificial-delay 101
 
   dfx_new p1
@@ -81,7 +79,7 @@ teardown() {
 
 @test "start and stop outside project" {
   assert_command dfx_start
-  assert_contains "Success! The dfx server is running in the background."
+  assert_contains "Replica API running in the background"
 
   mkdir subdir
   cd subdir || exit 1
@@ -172,11 +170,11 @@ teardown() {
   assert_command dfx canister call hello_backend greet '("Alpha")'
   assert_eq '("Hello, Alpha!")'
 
-  REPLICA_PID=$([[ "$USE_POCKETIC" ]] && get_pocketic_pid || get_replica_pid)
+  REPLICA_PID=$([[ ! "$USE_REPLICA" ]] && get_pocketic_pid || get_replica_pid)
 
   echo "replica pid is $REPLICA_PID"
 
-  [[ "$USE_POCKETIC" ]] && curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
+  [[ ! "$USE_REPLICA" ]] && curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
   kill -KILL "$REPLICA_PID"
   assert_process_exits "$REPLICA_PID" 15s
 
@@ -236,13 +234,13 @@ teardown() {
   assert_command dfx canister call hello_backend greet '("Alpha")'
   assert_eq '("Hello, Alpha!")'
 
-  REPLICA_PID=$([[ "$USE_POCKETIC" ]] && get_pocketic_pid || get_replica_pid)
+  REPLICA_PID=$([[ ! "$USE_REPLICA" ]] && get_pocketic_pid || get_replica_pid)
   POCKETIC_PROXY_PID=$(get_pocketic_proxy_pid)
 
   echo "replica pid is $REPLICA_PID"
   echo "pocket-ic proxy pid is $POCKETIC_PROXY_PID"
 
-  [[ "$USE_POCKETIC" ]] && curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
+  [[ ! "$USE_REPLICA" ]] && curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
   kill -KILL "$REPLICA_PID"
   assert_process_exits "$REPLICA_PID" 15s
   assert_process_exits "$POCKETIC_PROXY_PID" 15s
@@ -283,7 +281,7 @@ teardown() {
   jq ".local.replica.port=$replica_port" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   dfx_start
-  if [[ "$USE_POCKETIC" ]]; then
+  if [[ ! "$USE_REPLICA" ]]; then
     assert_command dfx info pocketic-config-port
   else
     assert_command dfx info replica-port
@@ -291,83 +289,83 @@ teardown() {
   assert_eq "$replica_port"
 }
 
-@test "dfx starts replica with subnet_type application - project defaults" {
+@test "dfx starts replica with subnet type application - project defaults" {
   install_asset subnet_type/project_defaults/application
   define_project_network
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background
-  assert_match "subnet_type: Application"
+  assert_command dfx start --background -v
+  assert_match "subnet type: Application"
 }
 
-@test "dfx starts replica with subnet_type verifiedapplication - project defaults" {
+@test "dfx starts replica with subnet type verifiedapplication - project defaults" {
   install_asset subnet_type/project_defaults/verified_application
   define_project_network
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background
-  assert_match "subnet_type: VerifiedApplication"
+  assert_command dfx start --background -v
+  assert_match "subnet type: VerifiedApplication"
 }
 
-@test "dfx starts replica with subnet_type system - project defaults" {
+@test "dfx starts replica with subnet type system - project defaults" {
   install_asset subnet_type/project_defaults/system
   define_project_network
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background
-  assert_match "subnet_type: System"
+  assert_command dfx start --background -v
+  assert_match "subnet type: System"
 }
 
-@test "dfx starts replica with subnet_type application - local network" {
+@test "dfx starts replica with subnet type application - local network" {
   install_asset subnet_type/project_network_settings/application
   define_project_network
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background
-  assert_match "subnet_type: Application"
+  assert_command dfx start --background -v
+  assert_match "subnet type: Application"
 }
 
-@test "dfx starts replica with subnet_type verifiedapplication - local network" {
+@test "dfx starts replica with subnet type verifiedapplication - local network" {
   install_asset subnet_type/project_network_settings/verified_application
   define_project_network
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background
-  assert_match "subnet_type: VerifiedApplication"
+  assert_command dfx start --background -v
+  assert_match "subnet type: VerifiedApplication"
 }
 
-@test "dfx starts replica with subnet_type system - local network" {
+@test "dfx starts replica with subnet type system - local network" {
   install_asset subnet_type/project_network_settings/system
   define_project_network
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background
-  assert_match "subnet_type: System"
+  assert_command dfx start --background -v
+  assert_match "subnet type: System"
 }
 
 
-@test "dfx starts replica with subnet_type application - shared network" {
+@test "dfx starts replica with subnet type application - shared network" {
   install_shared_asset subnet_type/shared_network_settings/application
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
-  assert_command dfx start --background
-  assert_match "subnet_type: Application"
+  assert_command dfx start --background -v
+  assert_match "subnet type: Application"
 }
 
-@test "dfx starts replica with subnet_type verifiedapplication - shared network" {
+@test "dfx starts replica with subnet type verifiedapplication - shared network" {
   install_shared_asset subnet_type/shared_network_settings/verified_application
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
-  assert_command dfx start --background
-  assert_match "subnet_type: VerifiedApplication"
+  assert_command dfx start --background -v
+  assert_match "subnet type: VerifiedApplication"
 }
 
-@test "dfx starts replica with subnet_type system - shared network" {
+@test "dfx starts replica with subnet type system - shared network" {
   install_shared_asset subnet_type/shared_network_settings/system
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
-  assert_command dfx start --background
-  assert_match "subnet_type: System"
+  assert_command dfx start --background -v
+  assert_match "subnet type: System"
 }
 
 @test "dfx start detects if dfx is already running - shared network" {
@@ -481,7 +479,6 @@ teardown() {
 }
 
 @test "modifying networks.json does not require --clean on restart" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: --force"
   dfx_start
   dfx stop
   assert_command dfx_start
@@ -491,7 +488,6 @@ teardown() {
 }
 
 @test "project-local networks require --clean if dfx.json was updated" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: --force"
   dfx_new
   define_project_network
   dfx_start

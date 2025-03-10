@@ -2,14 +2,78 @@
 
 # UNRELEASED
 
+### feat!: `dfx start` uses `--pocketic` by default
+
+As [announced](https://forum.dfinity.org/t/dfx-replacing-the-local-replica-with-pocketic/40167) `dfx start` now runs PocketIC by default.
+Running a local replica is still possible with `--replica`, but this option will be removed in the near future.
+
+### fix: Warning and error messages now correctly suggest `dfx info security-policy` when suboptimal security policies get used
+
+### chore: updated the canister creation fee to 500B cycles.
+
+Updated the canister creation fee to `500B` cycles as [documented](https://internetcomputer.org/docs/building-apps/essentials/gas-cost#cycles-price-breakdown).
+
+# 0.25.1
+
+### feat: `skip_cargo_audit` flag in dfx.json to skip `cargo audit` build step
+
+### fix: `dfx canister install` and `dfx deploy` with `--no-asset-upgrade` no longer hang indefinitely when wasm is not up to date
+
+### fix: `dfx` downloads `.did` files for remote canisters
+
+### feat: streamlined output during asset synchronization
+
+### chore: hide `dfx wallet redeem-faucet-coupon`
+
+### docs: fixed description of `dfx cycles balance`
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.2](https://github.com/dfinity/motoko/releases/tag/0.14.2)
+
+### Frontend canister
+
+- Module hash: 865eb25df5a6d857147e078bb33c727797957247f7af2635846d65c5397b36a6
+- https://github.com/dfinity/sdk/pull/4095
+
+### Replica
+
+Updated replica to elected commit 2f02a660f6f17b5a78c13d9b372f74c8228f79b8.
+This incorporates the following executed proposals:
+
+- [135422](https://dashboard.internetcomputer.org/proposal/135422)
+- [135421](https://dashboard.internetcomputer.org/proposal/135421)
+- [135302](https://dashboard.internetcomputer.org/proposal/135302)
+- [135301](https://dashboard.internetcomputer.org/proposal/135301)
+- [135204](https://dashboard.internetcomputer.org/proposal/135204)
+- [135203](https://dashboard.internetcomputer.org/proposal/135203)
+- [135052](https://dashboard.internetcomputer.org/proposal/135052)
+- [135051](https://dashboard.internetcomputer.org/proposal/135051)
+
+# 0.25.0
+
+### fix: `dfx canister install` and `dfx deploy` with `--no-asset-upgrade` no longer hang indefinitely when wasm is not up to date
+
+### fix: `dfx` downloads `.did` files for remote canisters
+
+### feat: streamlined output during asset synchronization
+
+### fix: correctly detects hyphenated Rust bin crates
+
+### fix: removes unnecessary tsc step in sveltekit build script
+
 ### feat!: `dfx info pocketic-config-port`
 
 Due to the incompatibility between the APIs on the replica port and the PocketIC port, `dfx info replica-port`
 no longer works with PocketIC, and the PocketIC port is provided by a new command, `dfx info pocketic-config-port`.
 
-### test: adds playwright test for svelte `dfx new` project
+### feat: streamlined `dfx new` output
 
-The first of a suite of baseline tests to automate testing starter projects. Makes sure they are compatible with other dfx or asset canister changes.
+### test: adds playwright tests for `dfx new` project frontends
+
+The first of a suite of baseline tests to automate testing starter projects. Makes sure that sveltekit, react, vue, and vanilla frontends are compatible with other dfx or asset canister changes.
 
 ### fix: template frontends now have unsupported browser warnings
 
@@ -77,6 +141,13 @@ This affects the following commands:
 - `dfx canister update-settings`
 - `dfx ledger fabricate-cycles`
 
+### fix: `dfx` can deploy canisters to playground networks that have Motoko EOP enabled
+
+Canisters with Motoko's Enhanced Orthogonal Persistence feature require `wasm_memory_persistence = Keep` when they get installed.
+Previously, when `dfx` attempted to install canisters with EOP enabled to a playground it didn't set `wasm_memory_persistence` properly.
+
+### fix: custom canisters with a read-only wasm no longer fail to build with a permissions error
+
 ### chore: improve `dfx deploy` messages.
 
 If users run `dfx deploy` without enough cycles, show additional messages to indicate what to do next.
@@ -124,6 +195,37 @@ Building canisters...
 ...
 ```
 
+### chore: Provides units for all fields of canister status.
+
+Provides units for all fields of canister status.
+
+```
+$ dfx canister status pxmfj-jaaaa-aaaan-qmmbq-cai --ic
+Canister status call result for pxmfj-jaaaa-aaaan-qmmbq-cai.
+Status: Running
+Controllers: uom2z-lqsqq-qbn4p-nts4l-2xjfl-oeivu-oso42-4t4jh-54ikd-ewnvi-tqe yjac5-2yaaa-aaaan-qaqka-cai
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 20_548_135 Cycles
+Memory Size: 2_010_735 Bytes
+Balance: 2_985_407_678_380 Cycles
+Reserved: 0 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Wasm memory limit: 3_221_225_472 Bytes
+Wasm memory threshold: 0 Bytes
+Module hash: 0x4f13cceb571483ac99a9f89afc05718c0a4ab72e9fac7d49054c0a3e05c4899b
+Number of queries: 0
+Instructions spent in queries: 0
+Total query request payload size: 0 Bytes
+Total query response payload size: 0 Bytes
+Log visibility: controllers
+```
+
+### feat!: Print error traces only in verbose (`-v`) mode or if no proper error message is available
+
+### chore: Add Schnorr types and methods to management canister IDL
+
 ## Dependencies
 
 ### Frontend canister
@@ -133,18 +235,27 @@ Building canisters...
 The asset canister now estimates the size of the data to be serialized to stable memory,
 and reserves that much space for the ValueSerializer's buffer.
 
-- Module hash: bba3181888f3c59b4a5f608aedef05be6fa37276fb7dc394cbadf9cf6e10359b
+- Module hash: 865eb25df5a6d857147e078bb33c727797957247f7af2635846d65c5397b36a6
+- https://github.com/dfinity/sdk/pull/4095
 - https://github.com/dfinity/sdk/pull/4036
 
 ### Motoko
 
-Updated Motoko to [0.13.5](https://github.com/dfinity/motoko/releases/tag/0.13.5)
+Updated Motoko to [0.13.7](https://github.com/dfinity/motoko/releases/tag/0.13.7)
 
 ### Replica
 
-Updated replica to elected commit 3e24396441e4c7380928d4e8b4ccff7de77d0e7e.
+Updated replica to elected commit 4ba583480e05a518aa2bcf36f5a0e48475e8edc2.
 This incorporates the following executed proposals:
 
+- [134967](https://dashboard.internetcomputer.org/proposal/134967)
+- [134966](https://dashboard.internetcomputer.org/proposal/134966)
+- [134900](https://dashboard.internetcomputer.org/proposal/134900)
+- [134773](https://dashboard.internetcomputer.org/proposal/134773)
+- [134684](https://dashboard.internetcomputer.org/proposal/134684)
+- [134663](https://dashboard.internetcomputer.org/proposal/134663)
+- [134608](https://dashboard.internetcomputer.org/proposal/134608)
+- [134609](https://dashboard.internetcomputer.org/proposal/134609)
 - [134497](https://dashboard.internetcomputer.org/proposal/134497)
 - [134408](https://dashboard.internetcomputer.org/proposal/134408)
 - [134337](https://dashboard.internetcomputer.org/proposal/134337)
@@ -253,7 +364,7 @@ had not been previously built for the local network.
 
 Added support for the canister log allowed viewer list, enabling specified users to access a canister's logs without needing to be set as the canister's controller.
 Valid settings are:
-- `--add-log-viewer`, `--remove-log-viewer` and `--set-log-viewer` flags with `dfx canister update-settings` 
+- `--add-log-viewer`, `--remove-log-viewer` and `--set-log-viewer` flags with `dfx canister update-settings`
 - `--log-viewer` flag with `dfx canister create`
 - `canisters[].initialization_values.log_visibility.allowed_viewers` in `dfx.json`
 
@@ -349,7 +460,7 @@ Module hash 15da2adc4426b8037c9e716b81cb6a8cf1a835ac37589be2cef8cb3f4a04adaa
 
 `dfx deploy --mode` now takes the same possible values as `dfx canister install --mode`: "install", "reinstall", "upgrade" and "auto".
 
-In "auto" mode, the upgrade options are hints which only take effects when the actual install mode is "upgrade". 
+In "auto" mode, the upgrade options are hints which only take effects when the actual install mode is "upgrade".
 
 To maintain backward compatibility, a minor difference between the two commands remains.
 If the `--mode` is not set, `dfx deploy` defaults to "auto", while `dfx canister install` defaults to "install".

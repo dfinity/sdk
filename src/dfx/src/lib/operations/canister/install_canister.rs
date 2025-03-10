@@ -10,13 +10,18 @@ use crate::lib::operations::canister::motoko_playground::authorize_asset_uploade
 use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use crate::util::assets::wallet_wasm;
 use crate::util::clap::install_mode::InstallModeHint;
-use crate::util::{blob_from_arguments, get_candid_init_type, read_module_metadata};
+use crate::util::{
+    ask_for_consent, blob_from_arguments, get_candid_init_type, read_module_metadata,
+    with_suspend_all_spinners,
+};
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use candid::Principal;
-use dfx_core::canister::{build_wallet_canister, install_canister_wasm, install_mode_to_prompt};
-use dfx_core::cli::ask_for_consent;
+use dfx_core::canister::{
+    build_wallet_canister, install_canister_wasm, install_mode_to_past_tense,
+    install_mode_to_present_tense,
+};
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
@@ -75,42 +80,21 @@ pub async fn install_canister(
         "Previously installed module hash: {:?}",
         installed_module_hash.as_ref().map(hex::encode)
     );
-    let wasm_memory_persistence_embeded =
+    let wasm_memory_persistence_embedded =
         read_module_metadata(agent, canister_id, "enhanced-orthogonal-persistence")
             .await
             .map(|_| WasmMemoryPersistence::Keep);
-    // let mode = if let InstallModeHint::Auto(options) = mode_hint {
-    //     if installed_module_hash.is_some() {
-    //         InstallMode::Upgrade(Some(CanisterUpgradeOptions {
-    //             wasm_memory_persistence,
-    //             skip_pre_upgrade: None,
-    //         }))
-    //     } else {
-    //         InstallMode::Install
-    //     }
-    // } else {
-    //     InstallMode::Install
-    // };
     let mode = mode_hint.to_install_mode(
         installed_module_hash.is_some(),
-        wasm_memory_persistence_embeded,
+        wasm_memory_persistence_embedded,
     );
-
-    // let mode = mode.unwrap_or_else(|| {
-    //     if installed_module_hash.is_some() {
-    //         InstallMode::Upgrade(Some(CanisterUpgradeOptions {
-    //             wasm_memory_persistence,
-    //             skip_pre_upgrade: None,
-    //         }))
-    //     } else {
-    //         InstallMode::Install
-    //     }
-    // });
-    let mode_str = install_mode_to_prompt(&mode);
     let canister_name = canister_info.get_name();
-    info!(
-        log,
-        "{mode_str} code for canister {canister_name}, with canister ID {canister_id}",
+    let spinner = env.new_spinner(
+        format!(
+            "{mode_str} code for canister {canister_name}, with canister ID {canister_id}",
+            mode_str = install_mode_to_present_tense(&mode)
+        )
+        .into(),
     );
     if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade { .. }) {
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;
@@ -119,11 +103,11 @@ pub async fn install_canister(
                 Ok(None) => (),
                 Ok(Some(err)) => {
                     let msg = format!("Candid interface compatibility check failed for canister '{}'.\nYou are making a BREAKING change. Other canisters or frontend clients relying on your canister may stop working.\n\n", canister_info.get_name()) + &err;
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(env, &msg)?;
                 }
                 Err(e) => {
                     let msg = format!("An error occurred during Candid interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(env, &msg)?;
                 }
             }
         }
@@ -135,15 +119,15 @@ pub async fn install_canister(
                 Ok(StableCompatibility::Okay) => (),
                 Ok(StableCompatibility::Warning(details)) => {
                     let msg = format!("Stable interface compatibility check issued a WARNING for canister '{}'.\n\n", canister_info.get_name()) + &details;
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(env, &msg)?;
                 }
                 Ok(StableCompatibility::Error(details)) => {
                     let msg = format!("Stable interface compatibility check issued an ERROR for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &details;
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(env, &msg)?;
                 }
                 Err(e) => {
                     let msg = format!("An error occurred during stable interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
-                    ask_for_consent(&msg)?;
+                    ask_for_consent(env, &msg)?;
                 }
             }
         }
@@ -166,7 +150,8 @@ pub async fn install_canister(
         && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash[..])
         && !upgrade_unchanged
     {
-        println!(
+        info!(
+            log,
             "Module hash {} is already installed.",
             hex::encode(installed_module_hash.as_ref().unwrap())
         );
@@ -238,20 +223,25 @@ The command line value will be used.",
                 mode,
                 call_sender,
                 wasm_module,
-                skip_consent,
+                |message| {
+                    if skip_consent {
+                        Ok(())
+                    } else {
+                        ask_for_consent(env, message)
+                    }
+                },
             )
             .await?;
         }
+        wait_for_module_hash(
+            env,
+            agent,
+            canister_id,
+            installed_module_hash.as_deref(),
+            &new_hash,
+        )
+        .await?;
     }
-
-    wait_for_module_hash(
-        env,
-        agent,
-        canister_id,
-        installed_module_hash.as_deref(),
-        &new_hash,
-    )
-    .await?;
 
     if canister_info.is_assets() {
         if let Some(canister_timeout) = canister_id_store.get_timestamp(canister_info.get_name()) {
@@ -279,7 +269,7 @@ The command line value will be used.",
                 .expect("Selected identity not instantiated.");
             // Before storing assets, make sure the DFX principal is in there first.
             wallet
-                .call(
+                .call::<(), _>(
                     canister_id,
                     "authorize",
                     Argument::from_candid((self_id,)),
@@ -289,8 +279,8 @@ The command line value will be used.",
                 .context("Failed to authorize your principal with the canister. You can still control the canister by using your wallet with the --wallet flag.")?;
         };
 
-        info!(log, "Uploading assets to asset canister...");
-        post_install_store_assets(canister_info, agent, log).await?;
+        debug!(log, "Uploading assets to asset canister...");
+        post_install_store_assets(env, canister_info, agent).await?;
     }
     if !canister_info.get_post_install().is_empty() {
         let config = env.get_config()?;
@@ -303,6 +293,12 @@ The command line value will be used.",
             env_file.or_else(|| config.as_ref()?.get_config().output_env_file.as_deref()),
         )?;
     }
+    spinner.finish_and_clear();
+    info!(
+        log,
+        "{mode_str} code for canister {canister_name}, with canister ID {canister_id}",
+        mode_str = install_mode_to_past_tense(&mode)
+    );
 
     Ok(())
 }
@@ -356,10 +352,9 @@ async fn wait_for_module_hash(
             Some(reported_hash) => {
                 if env.get_network_descriptor().is_playground() {
                     // Playground may modify wasm before installing, therefore we cannot predict what the hash is supposed to be.
-                    info!(
+                    debug!(
                         env.get_logger(),
-                        "Something is installed in canister {}. Assuming new code is installed.",
-                        canister_id
+                        "Module hash verification is skipped for playground deployments."
                     );
                     break;
                 }
@@ -431,7 +426,7 @@ fn check_stable_compatibility(
     })?;
     let cache = env.get_cache();
     let output = cache
-        .get_binary_command("moc")?
+        .get_binary_command(env, "moc")?
         .arg("--stable-compatible")
         .arg(&deployed_stable_path)
         .arg(stable_path)
@@ -483,6 +478,7 @@ fn run_customized_install_tasks(
     };
     for task in tasks {
         run_customized_install_task(
+            env,
             canister,
             task,
             is_pre_install,
@@ -497,6 +493,7 @@ fn run_customized_install_tasks(
 
 #[context("Failed to run {}-install task {}", if is_pre_install { "pre" } else { "post" }, task)]
 fn run_customized_install_task(
+    env: &dyn Environment,
     canister: &CanisterInfo,
     task: &str,
     is_pre_install: bool,
@@ -525,7 +522,7 @@ fn run_customized_install_task(
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
 
-    let status = command.status()?;
+    let status = with_suspend_all_spinners(env, || command.status())?;
     if !status.success() {
         match status.code() {
             Some(code) => {

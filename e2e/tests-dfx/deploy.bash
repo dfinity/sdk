@@ -66,14 +66,14 @@ teardown() {
   (
     cd src
     assert_command dfx deploy
-    assert_match "Installing code for"
+    assert_match "Installed code for"
   )
 
   assert_command dfx canister call hello_backend greet '("Banzai")'
   assert_eq '("Hello, Banzai!")'
 
   assert_command dfx deploy
-  assert_not_match "Installing code for"
+  assert_not_match "Installed code for"
   assert_match "is already installed"
 }
 
@@ -182,9 +182,9 @@ teardown() {
   dfx_start
   dfx canister create --all --no-wallet
   assert_command dfx deploy
-  assert_not_contains "Creating a wallet canister"
+  assert_not_contains "Created a wallet canister"
   assert_command dfx identity get-wallet
-  assert_contains "Creating a wallet canister"
+  assert_contains "Created a wallet canister"
 }
 
 @test "can deploy gzip wasm" {
@@ -279,4 +279,15 @@ teardown() {
   assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
   assert_command_fail dfx deploy --mode reinstall --wasm-memory-persistence keep
   assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
+}
+
+@test "can deploy a hyphenated project" {
+  setup_rust
+  install_asset hyphenated-project
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call hyphenated-bin name
+  assert_contains bin
+  assert_command dfx canister call hyphenated-lib name
+  assert_contains lib
 }

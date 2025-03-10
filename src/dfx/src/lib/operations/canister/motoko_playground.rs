@@ -7,7 +7,9 @@ use dfx_core::config::model::network_descriptor::{
     NetworkTypeDescriptor, MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
 };
 use fn_error_context::context;
-use ic_utils::interfaces::management_canister::builders::{CanisterUpgradeOptions, InstallMode};
+use ic_utils::interfaces::management_canister::builders::{
+    CanisterUpgradeOptions, InstallMode, WasmMemoryPersistence,
+};
 use num_traits::ToPrimitive;
 use rand::Rng;
 use slog::{debug, info};
@@ -51,11 +53,16 @@ pub struct InstallArgs<'a> {
 }
 
 #[derive(CandidType, Deserialize, Debug)]
+pub struct PlaygroundCanisterUpgradeOptions {
+    pub wasm_memory_persistence: Option<WasmMemoryPersistence>,
+}
+
+#[derive(CandidType, Deserialize, Debug)]
 pub enum PlaygroundInstallMode {
     #[serde(rename = "install")]
     Install,
     #[serde(rename = "upgrade")]
-    Upgrade,
+    Upgrade(Option<PlaygroundCanisterUpgradeOptions>),
     #[serde(rename = "reinstall")]
     Reinstall,
 }
@@ -66,17 +73,23 @@ impl TryFrom<InstallMode> for PlaygroundInstallMode {
         match m {
             InstallMode::Install => Ok(Self::Install),
             InstallMode::Reinstall => Ok(Self::Reinstall),
-            InstallMode::Upgrade(
-                Some(CanisterUpgradeOptions {
-                    skip_pre_upgrade: None | Some(false),
-                    ..
-                })
-                | None,
-            ) => Ok(Self::Upgrade),
             InstallMode::Upgrade(Some(CanisterUpgradeOptions {
                 skip_pre_upgrade: Some(true),
                 ..
             })) => bail!("Cannot skip pre-upgrade on the playground"),
+            InstallMode::Upgrade(
+                Some(CanisterUpgradeOptions {
+                    wasm_memory_persistence: None | Some(WasmMemoryPersistence::Replace),
+                    ..
+                })
+                | None,
+            ) => Ok(Self::Upgrade(None)),
+            InstallMode::Upgrade(Some(CanisterUpgradeOptions {
+                wasm_memory_persistence: Some(WasmMemoryPersistence::Keep),
+                ..
+            })) => Ok(Self::Upgrade(Some(PlaygroundCanisterUpgradeOptions {
+                wasm_memory_persistence: Some(WasmMemoryPersistence::Keep),
+            }))),
         }
     }
 }
@@ -196,10 +209,11 @@ pub async fn playground_install_code(
         } => playground_canister,
         _ => bail!("Trying to install wasm through playground on non-playground network."),
     };
+    let mode = convert_mode(mode, wasm_module)?;
     let install_arg = InstallArgs {
         arg,
         wasm_module,
-        mode: mode.try_into()?,
+        mode,
         canister_id: canister_info.id,
     };
     let install_config = InstallConfig {
@@ -214,16 +228,39 @@ pub async fn playground_install_code(
         .await
         .map_err(|err| {
             if is_asset_canister && err.to_string().contains("Wasm is not whitelisted") {
-                anyhow!(DiagnosedError {
-                    error_explanation: Some("The frontend canister wasm needs to be allowlisted in the playground but it isn't. This is a mistake in the release process.".to_string()),
-                    action_suggestion: Some("Please report this on forum.dfinity.org and mention your dfx version. You can get the version with 'dfx --version'.".to_string()),
-                })
+                anyhow!(DiagnosedError::new(
+                    "The frontend canister wasm needs to be allowlisted in the playground but it isn't. This is a mistake in the release process.",
+                    "Please report this on forum.dfinity.org and mention your dfx version. You can get the version with 'dfx --version'."
+                ))
             } else {
                 anyhow!(err)
             }
         })?;
     let out = Decode!(&result, CanisterInfo)?;
     out.get_timestamp()
+}
+
+fn convert_mode(mode: InstallMode, wasm_module: &[u8]) -> DfxResult<PlaygroundInstallMode> {
+    let converted_mode: PlaygroundInstallMode = mode.try_into()?;
+    // Motoko EOP requires `wasm_memory_persistence: Keep` for canister upgrades.
+    // Usually, this option is auto-set if the installed wasm has the private metadata `enhanced-orthogonal-persistence` set.
+    // However, in the playground setting, the playground is the controller. So we can't read that metadata section and will set `wasm_memory_persistence: Replace` as a fallback.
+    // Workaround:
+    // Assumption: If the to-be-installed wasm has metadata `enhanced-orthogonal-persistence` set, then the already-installed wasm will have it too.
+    // It is unlikely that someone turns on EOP while reusing the same canister.
+    if matches!(converted_mode, PlaygroundInstallMode::Upgrade(_)) {
+        if let Ok(module) = walrus::Module::from_buffer(wasm_module) {
+            if ic_wasm::metadata::get_metadata(&module, "enhanced-orthogonal-persistence").is_some()
+            {
+                return Ok(PlaygroundInstallMode::Upgrade(Some(
+                    PlaygroundCanisterUpgradeOptions {
+                        wasm_memory_persistence: Some(WasmMemoryPersistence::Keep),
+                    },
+                )));
+            }
+        }
+    }
+    Ok(converted_mode)
 }
 
 fn create_nonce() -> (candid::Int, candid::Nat) {

@@ -10,6 +10,7 @@ use crate::lib::operations::canister::{
     get_canister_status, skip_remote_canister, update_settings,
 };
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::util::ask_for_consent;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
     reserved_cycles_limit_parser, wasm_memory_limit_parser,
@@ -19,7 +20,6 @@ use byte_unit::Byte;
 use candid::Principal as CanisterId;
 use candid::Principal;
 use clap::{ArgAction, Parser};
-use dfx_core::cli::ask_for_consent;
 use dfx_core::error::identity::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
@@ -137,8 +137,8 @@ pub async fn exec(
         if threshold_in_seconds > 50_000_000 /* ~1.5 years */ && !opts.confirm_very_long_freezing_threshold
         {
             return Err(DiagnosedError::new(
-                "The freezing threshold is defined in SECONDS before the canister would run out of cycles, not in cycles.".to_string(),
-                "If you truly want to set a freezing threshold that is longer than a year, please run the same command, but with the flag --confirm-very-long-freezing-threshold to confirm you want to do this.".to_string(),
+                "The freezing threshold is defined in SECONDS before the canister would run out of cycles, not in cycles.",
+                "If you truly want to set a freezing threshold that is longer than a year, please run the same command, but with the flag --confirm-very-long-freezing-threshold to confirm you want to do this.",
             )).context("Misunderstanding is very likely.");
         }
     }
@@ -146,7 +146,7 @@ pub async fn exec(
     fetch_root_key_if_needed(env).await?;
 
     if !opts.yes && user_is_removing_themselves_as_controller(env, call_sender, &opts)? {
-        ask_for_consent("You are trying to remove yourself as a controller of this canister. This may leave this canister un-upgradeable.")?
+        ask_for_consent(env, "You are trying to remove yourself as a controller of this canister. This may leave this canister un-upgradeable.")?
     }
 
     let controllers: Option<DfxResult<Vec<_>>> = opts.set_controller.as_ref().map(|controllers| {

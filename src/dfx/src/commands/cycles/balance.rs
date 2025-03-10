@@ -8,7 +8,7 @@ use candid::Principal;
 use clap::Parser;
 use icrc_ledger_types::icrc1::account::Subaccount;
 
-/// Get the cycle balance of the selected Identity's cycles wallet.
+/// Get the cycle balance of the selected Identity's cycles ledger account.
 #[derive(Parser)]
 pub struct CyclesBalanceOpts {
     /// Specifies a Principal to get the balance of

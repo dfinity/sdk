@@ -4,6 +4,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util::command::direct_or_shell_command;
+use crate::util::with_suspend_all_spinners;
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
@@ -12,7 +13,7 @@ use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 use fn_error_context::context;
 use handlebars::Handlebars;
-use slog::{trace, Logger};
+use slog::{info, trace, Logger};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
@@ -48,7 +49,6 @@ pub enum IdlBuildOutput {
 /// The output of a build.
 #[derive(Debug)]
 pub struct BuildOutput {
-    pub canister_id: CanisterId,
     pub wasm: WasmBuildOutput,
     pub idl: IdlBuildOutput,
 }
@@ -59,6 +59,7 @@ pub trait CanisterBuilder {
     /// list.
     fn get_dependencies(
         &self,
+        _env: &dyn Environment,
         _pool: &CanisterPool,
         _info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
@@ -67,6 +68,7 @@ pub trait CanisterBuilder {
 
     fn prebuild(
         &self,
+        _env: &dyn Environment,
         _pool: &CanisterPool,
         _info: &CanisterInfo,
         _config: &BuildConfig,
@@ -78,6 +80,7 @@ pub trait CanisterBuilder {
     /// while the config contains information related to this particular build.
     fn build(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,
@@ -85,6 +88,7 @@ pub trait CanisterBuilder {
 
     fn postbuild(
         &self,
+        _env: &dyn Environment,
         _pool: &CanisterPool,
         _info: &CanisterInfo,
         _config: &BuildConfig,
@@ -95,6 +99,7 @@ pub trait CanisterBuilder {
     /// Generate type declarations for the canister
     fn generate(
         &self,
+        env: &dyn Environment,
         logger: &Logger,
         pool: &CanisterPool,
         info: &CanisterInfo,
@@ -111,7 +116,7 @@ pub trait CanisterBuilder {
                 .with_context(|| {
                     format!(
                         "Failed to canonicalize output dir {}.",
-                        generate_output_dir.to_string_lossy()
+                        generate_output_dir.display()
                     )
                 })?;
             if !generate_output_dir.starts_with(info.get_workspace_root()) {
@@ -121,10 +126,7 @@ pub trait CanisterBuilder {
                 );
             }
             std::fs::remove_dir_all(&generate_output_dir).with_context(|| {
-                format!(
-                    "Failed to remove dir: {}",
-                    generate_output_dir.to_string_lossy()
-                )
+                format!("Failed to remove dir: {}", generate_output_dir.display())
             })?;
         }
 
@@ -135,29 +137,24 @@ pub trait CanisterBuilder {
             .context("`bindings` must not be None")?;
 
         if bindings.is_empty() {
-            eprintln!("`{}.declarations.bindings` in dfx.json was set to be an empty list, so no type declarations will be generated.", &info.get_name());
+            info!(logger, "`{}.declarations.bindings` in dfx.json was set to be an empty list, so no type declarations will be generated.", &info.get_name());
             return Ok(());
         }
 
-        trace!(
-            logger,
-            "Generating type declarations for canister {}",
-            &info.get_name()
+        let spinner = env.new_spinner(
+            format!(
+                "Generating type declarations for canister {}",
+                &info.get_name()
+            )
+            .into(),
         );
 
-        std::fs::create_dir_all(generate_output_dir).with_context(|| {
-            format!(
-                "Failed to create dir: {}",
-                generate_output_dir.to_string_lossy()
-            )
-        })?;
+        std::fs::create_dir_all(generate_output_dir)
+            .with_context(|| format!("Failed to create dir: {}", generate_output_dir.display()))?;
 
-        let did_from_build = self.get_candid_path(pool, info, config)?;
+        let did_from_build = self.get_candid_path(env, pool, info, config)?;
         if !did_from_build.exists() {
-            bail!(
-                "Candid file: {} doesn't exist.",
-                did_from_build.to_string_lossy()
-            );
+            bail!("Candid file: {} doesn't exist.", did_from_build.display());
         }
 
         let (env, ty) = CandidSource::File(did_from_build.as_path()).load()?;
@@ -188,12 +185,8 @@ pub trait CanisterBuilder {
                 .with_extension("did.js");
             let content =
                 ensure_trailing_newline(candid_parser::bindings::javascript::compile(&env, &ty));
-            std::fs::write(&output_did_js_path, content).with_context(|| {
-                format!(
-                    "Failed to write to {}.",
-                    output_did_js_path.to_string_lossy()
-                )
-            })?;
+            std::fs::write(&output_did_js_path, content)
+                .with_context(|| format!("Failed to write to {}.", output_did_js_path.display()))?;
             trace!(logger, "  {}", &output_did_js_path.display());
 
             compile_handlebars_files("js", info, generate_output_dir)?;
@@ -206,9 +199,8 @@ pub trait CanisterBuilder {
                 .with_extension("mo");
             let content =
                 ensure_trailing_newline(candid_parser::bindings::motoko::compile(&env, &ty));
-            std::fs::write(&output_mo_path, content).with_context(|| {
-                format!("Failed to write to {}.", output_mo_path.to_string_lossy())
-            })?;
+            std::fs::write(&output_mo_path, content)
+                .with_context(|| format!("Failed to write to {}.", output_mo_path.display()))?;
             trace!(logger, "  {}", &output_mo_path.display());
         }
 
@@ -222,6 +214,14 @@ pub trait CanisterBuilder {
             trace!(logger, "  {}", &output_did_path.display());
         }
 
+        spinner.finish_and_clear();
+        info!(
+            logger,
+            "Generated type declarations for canister {} to {}",
+            &info.get_name(),
+            generate_output_dir.display()
+        );
+
         Ok(())
     }
 
@@ -229,6 +229,7 @@ pub trait CanisterBuilder {
     /// No need to guarantee the file exists, as the caller will handle that.
     fn get_candid_path(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,
@@ -256,7 +257,7 @@ fn compile_handlebars_files(
         let file_extension = format!("{}.hbs", lang);
         let is_template = pathname
             .to_str()
-            .map_or(false, |name| name.ends_with(&file_extension));
+            .is_some_and(|name| name.ends_with(&file_extension));
 
         if is_template {
             let mut file_contents = String::new();
@@ -331,6 +332,7 @@ fn ensure_trailing_newline(s: String) -> String {
 /// Execute a command and return its output bytes.
 /// If the catch_output is false, the return bytes will always be empty.
 pub fn execute_command(
+    env: &dyn Environment,
     command: &str,
     vars: &[Env<'_>],
     cwd: &Path,
@@ -350,9 +352,12 @@ pub fn execute_command(
     for (key, value) in vars {
         cmd.env(key.as_ref(), value);
     }
-    let output = cmd
-        .output()
-        .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
+    let output = if catch_output {
+        cmd.output()
+    } else {
+        with_suspend_all_spinners(env, || cmd.output())
+    }
+    .with_context(|| format!("Error executing custom build step {cmd:#?}"))?;
     if output.status.success() {
         Ok(output.stdout)
     } else {
@@ -362,13 +367,23 @@ pub fn execute_command(
     }
 }
 
-pub fn run_command(command: &str, vars: &[Env<'_>], cwd: &Path) -> DfxResult<()> {
-    execute_command(command, vars, cwd, false)?;
+pub fn run_command(
+    env: &dyn Environment,
+    command: &str,
+    vars: &[Env<'_>],
+    cwd: &Path,
+) -> DfxResult<()> {
+    execute_command(env, command, vars, cwd, false)?;
     Ok(())
 }
 
-pub fn command_output(command: &str, vars: &[Env<'_>], cwd: &Path) -> DfxResult<Vec<u8>> {
-    execute_command(command, vars, cwd, true)
+pub fn command_output(
+    env: &dyn Environment,
+    command: &str,
+    vars: &[Env<'_>],
+    cwd: &Path,
+) -> DfxResult<Vec<u8>> {
+    execute_command(env, command, vars, cwd, true)
 }
 
 type Env<'a> = (Cow<'static, str>, Cow<'a, OsStr>);
@@ -476,16 +491,12 @@ fn write_environment_variables(vars: &[Env<'_>], write_path: &Path) -> DfxResult
 #[derive(Clone, Debug)]
 pub struct BuildConfig {
     profile: Profile,
-    pub build_mode_check: bool,
     pub network_name: String,
-    pub network_is_playground: bool,
 
     /// The root of all IDL files.
     pub idl_root: PathBuf,
     /// The root for all language server files.
     pub lsp_root: PathBuf,
-    /// The root for all build files.
-    pub build_root: PathBuf,
     /// If only a subset of canisters should be built, then canisters_to_build contains these canisters' names.
     /// If all canisters should be built, then this is None.
     pub canisters_to_build: Option<Vec<String>>,
@@ -495,7 +506,7 @@ pub struct BuildConfig {
 
 impl BuildConfig {
     #[context("Failed to create build config.")]
-    pub fn from_config(config: &Config, network_is_playground: bool) -> DfxResult<Self> {
+    pub fn from_config(config: &Config) -> DfxResult<Self> {
         let config_intf = config.get_config();
         let network_name = util::network_to_pathcompat(&get_network_context()?);
         let network_root = config.get_temp_path()?.join(&network_name);
@@ -503,22 +514,12 @@ impl BuildConfig {
 
         Ok(BuildConfig {
             network_name,
-            network_is_playground,
             profile: config_intf.profile.unwrap_or(Profile::Debug),
-            build_mode_check: false,
-            build_root: canister_root.clone(),
             idl_root: canister_root.join("idl/"), // TODO: possibly move to `network_root.join("idl/")`
             lsp_root: network_root.join("lsp/"),
             canisters_to_build: None,
             env_file: config.get_output_env_file(None)?,
         })
-    }
-
-    pub fn with_build_mode_check(self, build_mode_check: bool) -> Self {
-        Self {
-            build_mode_check,
-            ..self
-        }
     }
 
     pub fn with_canisters_to_build(self, canisters: Vec<String>) -> Self {
