@@ -100,11 +100,17 @@ impl Telemetry {
         let end_time = Instant::now();
         let elapsed = end_time.duration_since(*START_TIME.get().unwrap());
         let telemetry_data = TELEMETRY.get().unwrap().lock().unwrap();
+        let platform = if cfg!(target_os = "linux") && std::env::var_os("WSL_DISTRO_NAME").is_some()
+        {
+            "wsl"
+        } else {
+            std::env::consts::OS
+        };
         let record = CommandRecord {
             tool: "dfx",
             version: dfx_version(),
             command: &telemetry_data.command,
-            platform: std::env::consts::OS, //todo detect wsl
+            platform,
             parameters: &telemetry_data.arguments,
             exit_code,
             execution_time_ms: elapsed.as_millis(),
