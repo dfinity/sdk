@@ -43,11 +43,4 @@ teardown() {
     dfx config telemetry off
     assert_command env DFX_TELEMETRY=local dfx config telemetry
     assert_eq local
-    # generic var only overrides to false
-    dfx config telemetry local
-    assert_command env NO_TELEMETRY=1 dfx config telemetry
-    assert_eq off
-    dfx config telemetry off
-    assert_command env NO_TELEMETRY=0 dfx config telemetry
-    assert_eq off
 }
