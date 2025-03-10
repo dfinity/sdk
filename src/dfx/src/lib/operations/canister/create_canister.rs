@@ -25,8 +25,8 @@ use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::{debug, info, warn};
 use std::format;
 
-// The cycle fee for create request is 0.1T cycles.
-pub const CANISTER_CREATE_FEE: u128 = 100_000_000_000_u128;
+// The cycle fee for create request is 0.5T cycles.
+pub const CANISTER_CREATE_FEE: u128 = 500_000_000_000_u128;
 // We do not know the minimum cycle balance a canister should have.
 // For now create the canister with 3T cycle balance.
 pub const CANISTER_INITIAL_CYCLE_BALANCE: u128 = 3_000_000_000_000_u128;
