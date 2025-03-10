@@ -10,6 +10,6 @@ pub enum ToolConfigError {
     #[error("Failed to load tool configuration")]
     LoadConfigFromFileFailed(#[source] StructuredFileError),
 
-    #[error("Failed to save default tool configuration")]
+    #[error("Failed to save tool configuration")]
     SaveDefaultConfigFailed(#[source] StructuredFileError),
 }
