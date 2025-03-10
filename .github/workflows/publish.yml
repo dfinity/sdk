@@ -20,6 +20,8 @@ env:
   CARGO_NET_RETRY: 10
   # Use the local .curlrc
   CURL_HOME: .
+  # Disable DFX telemetry
+  DFX_TELEMETRY: 'off'
 
 jobs:
   build_dfx:
