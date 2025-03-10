@@ -41,3 +41,14 @@ teardown() {
     assert_command env DFX_TELEMETRY=local dfx nns import
     assert_command jq -se 'last | .command == "extension run" and (.parameters | any(.name == "name"))' "$log"
 }
+
+@test "concurrent commands do not corrupt the log file" {
+    local log
+    log=$(dfx info telemetry-log-path)
+    dfx identity get-principal # initialize it first
+    for i in {0..100}; do
+        assert_command env DFX_TELEMETRY=local dfx identity get-principal &
+    done
+    wait
+    assert_command jq -se '.[-101:-1] | all(.command == "identity get-principal") and length == 100' "$log"
+}
