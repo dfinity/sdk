@@ -117,3 +117,9 @@ teardown() {
   # fails if the the above produced invalid json5
   assert_command dfx deploy
 }
+
+@test "prints the path to the config file" {
+  cfg=$(dfx info config-json-path)
+  assert_command test -f "$cfg"
+  assert_command jq . "$cfg"
+}
