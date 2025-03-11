@@ -13,6 +13,17 @@ Running a local replica is still possible with `--replica`, but this option will
 
 Updated the canister creation fee to `500B` cycles as [documented](https://internetcomputer.org/docs/building-apps/essentials/gas-cost#cycles-price-breakdown).
 
+### chore: improve the `dfx build` output.
+
+Improve the ouput of `dfx build` with the canister names that were built, example as below.
+
+```
+$ dfx build
+Building canister 'hello_backend'.
+Building canister 'hello_frontend'.
+Finished building canisters.
+```
+
 # 0.25.1
 
 ### feat: `skip_cargo_audit` flag in dfx.json to skip `cargo audit` build step
