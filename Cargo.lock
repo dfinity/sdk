@@ -1550,6 +1550,7 @@ dependencies = [
  "candid",
  "candid_parser",
  "cargo_metadata",
+ "chrono",
  "ci_info",
  "clap",
  "clap_complete",

@@ -210,6 +210,11 @@ fn main() {
             eprintln!("error appending to telemetry log: {e}")
         }
     }
+    if let Err(e) = Telemetry::maybe_publish() {
+        if log_level.unwrap_or_default() > 0 {
+            eprintln!("error transmitting telemetry: {e}")
+        }
+    }
 
     std::process::exit(exit_code);
 }

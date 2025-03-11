@@ -44,6 +44,7 @@ bytes.workspace = true
 candid = { workspace = true }
 candid_parser = { workspace = true, features = ["random", "assist"] }
 cargo_metadata = "0.18.1"
+chrono = "0.4.39"
 clap = { workspace = true, features = [
     "derive",
     "env",

@@ -4,19 +4,23 @@ use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::CliOpts;
 use anyhow::Context;
+use chrono::{Local, NaiveDateTime};
 use clap::parser::ValueSource;
 use clap::{ArgMatches, Command, CommandFactory};
 use dfx_core::config::directories::project_dirs;
 use dfx_core::config::model::dfinity::TelemetryState;
 use dfx_core::fs;
-use fd_lock::RwLock as FdRwLock;
+use fd_lock::{RwLock as FdRwLock, RwLockWriteGuard};
+use fn_error_context::context;
 use reqwest::StatusCode;
 use semver::Version;
 use serde::Serialize;
 use std::ffi::OsString;
-use std::fs::OpenOptions;
-use std::io::Write;
-use std::path::PathBuf;
+use std::fs::{File, OpenOptions};
+use std::io::Seek;
+use std::io::{Read, SeekFrom, Write};
+use std::path::{Path, PathBuf};
+use std::process::Stdio;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use url::Url;
@@ -46,17 +50,26 @@ pub struct Telemetry {
     arguments: Vec<Argument>,
     elapsed: Option<Duration>,
     platform: String,
+    publish: bool,
 }
 
 impl Telemetry {
     pub fn init(mode: TelemetryState) {
         if mode.should_collect() {
             TELEMETRY
-                .set(Some(Mutex::new(Telemetry::default())))
+                .set(Some(Mutex::new(
+                    Telemetry::default().with_publish(mode.should_publish()),
+                )))
                 .expect("Telemetry already initialized");
         } else {
             TELEMETRY.set(None).expect("Telemetry already initialized");
         }
+    }
+
+    fn with_publish(&self, publish: bool) -> Self {
+        let mut new = self.clone();
+        new.publish = publish;
+        new
     }
 
     pub fn set_command_and_arguments(args: &[OsString]) -> DfxResult {
@@ -83,6 +96,10 @@ impl Telemetry {
 
     pub fn get_log_path() -> DfxResult<PathBuf> {
         Ok(Self::get_telemetry_dir()?.join("telemetry.log"))
+    }
+
+    pub fn get_send_time_path() -> DfxResult<PathBuf> {
+        Ok(Self::get_telemetry_dir()?.join("send-time.txt"))
     }
 
     pub fn get_send_dir() -> DfxResult<PathBuf> {
@@ -145,9 +162,140 @@ impl Telemetry {
         })
     }
 
+    pub fn maybe_publish() -> DfxResult {
+        try_with_telemetry(|telemetry| {
+            if telemetry.publish {
+                // todo: see if telemetry.log exceeds some size, and if so, send it
+                if Self::check_send_trigger()? {
+                    Self::launch_publisher()?;
+                }
+            }
+            Ok(())
+        })
+    }
+
+    #[context("failed to launch publisher")]
+    pub fn launch_publisher() -> DfxResult {
+        let mut exe = std::env::current_exe()?;
+        let mut cmd = std::process::Command::new(exe);
+        cmd.arg("_send-telemetry")
+            .arg("--url") // todo remove
+            .arg("http://localhost:1080") // todo remove
+            .stdin(Stdio::null()) // Prevents inheriting stdin
+            .stdout(Stdio::null()) // Prevents inheriting stdout
+            .stderr(Stdio::null()); // Prevents inheriting stderr
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::process::CommandExt;
+            cmd.process_group(0); // Detach from parent’s process group
+        }
+
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW (prevents it from being killed if parent exits)
+        }
+
+        cmd.spawn()?; // Spawn and immediately detach
+
+        Ok(())
+    }
+
+    /// See if it's time to send telemetry data.
+    #[context("failed to check send trigger")]
+    pub fn check_send_trigger() -> DfxResult<bool> {
+        let send_time_path = Self::get_send_time_path()?;
+
+        let file = match OpenOptions::new().read(true).open(&send_time_path) {
+            Ok(file) => file,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                Self::try_create_send_time(&send_time_path)?;
+                return Ok(false);
+            }
+            Err(e) => return Err(e.into()),
+        };
+
+        let readlock = FdRwLock::new(file);
+        let Ok(readguard) = readlock.try_read() else {
+            return Ok(false);
+        };
+
+        let Ok(send_time) = Self::read_send_time(&send_time_path) else {
+            // If there's some problem reading the send time, trigger sending.
+            // This will overwrite the file with a new send time.
+            return Ok(true);
+        };
+
+        let current_time = Local::now().naive_local();
+        Ok(send_time <= current_time)
+    }
+
+    fn try_create_send_time(path: &Path) -> DfxResult {
+        let file = match OpenOptions::new().write(true).create_new(true).open(path) {
+            Ok(file) => file,
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
+                return Ok(());
+            }
+            Err(e) => return Err(e.into()),
+        };
+        let mut lock = FdRwLock::new(file);
+        if let Ok(mut write_guard) = lock.try_write() {
+            Self::write_send_time(&mut write_guard, None)?;
+        }
+        Ok(())
+    }
+
+    fn read_send_time(path: &Path) -> DfxResult<NaiveDateTime> {
+        let send_time = fs::read_to_string(path)?;
+        let send_time = send_time.trim();
+        let send_time = NaiveDateTime::parse_from_str(&send_time, "%Y-%m-%d %H:%M:%S")
+            .with_context(|| format!("failed to parse send time: {:?}", send_time))?;
+        Ok(send_time)
+    }
+
+    fn write_send_time(
+        guard: &mut RwLockWriteGuard<File>,
+        future_duration: Option<Duration>,
+    ) -> DfxResult {
+        let future_duration = future_duration.unwrap_or_else(|| {
+            // random 5-7 days in the future
+            let future_seconds = 86400.0 * (5.0 + rand::random::<f64>() * 2.0);
+            Duration::from_secs(future_seconds as u64)
+        });
+        let future_time = Local::now().naive_local() + future_duration;
+        let future_time_str = future_time.format("%Y-%m-%d %H:%M:%S").to_string();
+
+        writeln!(*guard, "{}", future_time_str)?;
+        Ok(())
+    }
+
     pub fn send(url: &Url) -> DfxResult {
+        fs::create_dir_all(&Self::get_telemetry_dir()?)?;
+        let send_time_path = Self::get_send_time_path()?;
+
+        let mut file = FdRwLock::new(
+            OpenOptions::new()
+                .create(true)
+                .write(true)
+                .read(true)
+                .truncate(true)
+                .open(send_time_path)?,
+        );
+
+        let Ok(mut lock) = file.try_write() else {
+            // another instance of _send-telemetry is already running
+            return Ok(());
+        };
+
+        let thirty_minutes = 30 * 60;
+        Self::write_send_time(&mut lock, Some(Duration::from_secs(thirty_minutes)))?;
+
         Self::move_active_log_for_send()?;
         Self::transmit_any_batches(url)?;
+
+        lock.seek(SeekFrom::Start(0))?;
+        Self::write_send_time(&mut lock, None)?;
         Ok(())
     }
 
