@@ -15,7 +15,7 @@ teardown() {
 }
 
 @test "displays the replica port" {
-  if [[ "$USE_POCKETIC" ]]
+  if [[ ! "$USE_REPLICA" ]]
   then
     assert_command_fail dfx info pocketic-config-port
     assert_contains "No PocketIC port found"

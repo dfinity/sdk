@@ -2,6 +2,17 @@
 
 # UNRELEASED
 
+### feat!: `dfx start` uses `--pocketic` by default
+
+As [announced](https://forum.dfinity.org/t/dfx-replacing-the-local-replica-with-pocketic/40167) `dfx start` now runs PocketIC by default.
+Running a local replica is still possible with `--replica`, but this option will be removed in the near future.
+
+### fix: Warning and error messages now correctly suggest `dfx info security-policy` when suboptimal security policies get used
+
+### chore: updated the canister creation fee to 500B cycles.
+
+Updated the canister creation fee to `500B` cycles as [documented](https://internetcomputer.org/docs/building-apps/essentials/gas-cost#cycles-price-breakdown).
+
 ### chore: improve the `dfx build` output.
 
 Improve the ouput of `dfx build` with the canister names that were built, example as below.
@@ -32,7 +43,7 @@ Finished building canisters
 
 ### Motoko
 
-Updated Motoko to [0.14.1](https://github.com/dfinity/motoko/releases/tag/0.14.1)
+Updated Motoko to [0.14.2](https://github.com/dfinity/motoko/releases/tag/0.14.2)
 
 ### Frontend canister
 

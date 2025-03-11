@@ -18,7 +18,8 @@ group(ArgGroup::new("subnet-selection").multiple(false)),
 pub struct SubnetSelectionOpt {
     /// Specify the optional subnet type to create canisters on. If no
     /// subnet type is provided, the canister will be created on a random
-    /// default application subnet.
+    /// default application subnet. `dfx ledger show-subnet-types` can be
+    /// used to list available subnet types.
     #[arg(long, group = "subnet-selection")]
     subnet_type: Option<String>,
 
