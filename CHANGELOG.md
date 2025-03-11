@@ -19,10 +19,9 @@ Improve the ouput of `dfx build` with the canister names that were built, exampl
 
 ```
 $ dfx build
-Building canisters...
 Building canister 'hello_backend'.
 Building canister 'hello_frontend'.
-Finished building canisters
+Finished building canisters.
 ```
 
 # 0.25.1

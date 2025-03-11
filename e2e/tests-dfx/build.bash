@@ -150,7 +150,6 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build
-  assert_contains "Building canisters..."
   assert_contains "Building canister 'e2e_project_backend'"
   assert_contains "Finished building canisters."
 }
