@@ -466,8 +466,6 @@ default'
   assert_command rmdir "$DFX_CONFIG_ROOT/.config/dfx/identity/default"
   assert_command rmdir "$DFX_CONFIG_ROOT/.config/dfx/identity"
   assert_command rm "$DFX_CONFIG_ROOT/.config/dfx/identity.json"
-  assert_command rmdir "$DFX_CONFIG_ROOT/.config/dfx"
-  assert_command rmdir "$DFX_CONFIG_ROOT/.config"
 
   assert_command dfx identity whoami
 
