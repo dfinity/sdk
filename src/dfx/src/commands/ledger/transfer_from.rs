@@ -37,7 +37,7 @@ pub struct TransferFromOpts {
     #[arg(long)]
     amount: ICPTs,
 
-    /// Transaction fee, default is 10000 e8s.
+    /// Transaction fee, default is 0.00010000 ICP (10000 e8s).
     #[arg(long)]
     fee: Option<ICPTs>,
 

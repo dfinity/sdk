@@ -9,11 +9,11 @@ Running a local replica is still possible with `--replica`, but this option will
 
 ### fix: Warning and error messages now correctly suggest `dfx info security-policy` when suboptimal security policies get used
 
-### chore: updated the canister creation fee to 500B cycles.
+### chore: updated the canister creation fee to 500B cycles
 
 Updated the canister creation fee to `500B` cycles as [documented](https://internetcomputer.org/docs/building-apps/essentials/gas-cost#cycles-price-breakdown).
 
-### chore: improve the `dfx build` output.
+### chore: improve the `dfx build` output
 
 Improve the ouput of `dfx build` with the canister names that were built, example as below.
 
@@ -23,6 +23,10 @@ Building canister 'hello_backend'.
 Building canister 'hello_frontend'.
 Finished building canisters.
 ```
+
+### feat: Add `dfx ledger approve` and `dfx ledger transfer-from` subcommands
+
+Implement `dfx ledger approve` and `dfx ledger transfer-from` subcommands that comply with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
 
 # 0.25.1
 
