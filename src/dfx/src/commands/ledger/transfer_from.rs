@@ -105,7 +105,7 @@ pub async fn exec(env: &dyn Environment, opts: TransferFromOpts) -> DfxResult {
 
     slog::info!(
         env.get_logger(),
-        "Approval sent at block index {}",
+        "Transfer sent at block index {}",
         block_index
     );
 
