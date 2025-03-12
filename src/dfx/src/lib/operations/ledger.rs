@@ -193,7 +193,7 @@ pub async fn transfer_from(
 ) -> DfxResult<BlockIndex> {
     let canister = Canister::builder()
         .with_agent(agent)
-        .with_canister_id(canister_id.clone())
+        .with_canister_id(*canister_id)
         .build()?;
 
     let retry_policy = ExponentialBackoff::default();
@@ -254,7 +254,7 @@ pub async fn approve(
 ) -> DfxResult<BlockIndex> {
     let canister = Canister::builder()
         .with_agent(agent)
-        .with_canister_id(canister_id.clone())
+        .with_canister_id(*canister_id)
         .build()?;
 
     let retry_policy = ExponentialBackoff::default();
