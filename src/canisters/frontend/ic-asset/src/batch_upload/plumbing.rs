@@ -515,7 +515,7 @@ async fn upload_content_chunks(
     if let Some(progress) = progress {
         progress.add_total_bytes(content.data.len());
     }
-    let count = (content.data.len() + MAX_CHUNK_SIZE - 1) / MAX_CHUNK_SIZE;
+    let count = content.data.len().div_ceil(MAX_CHUNK_SIZE);
     let chunks_futures: Vec<_> = content
         .data
         .chunks(MAX_CHUNK_SIZE)

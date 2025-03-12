@@ -5,8 +5,8 @@ set timeout 330
 
 spawn dfx cache install
 expect "Installed dfx"
-if [info exists env(USE_POCKETIC)] {
-    spawn dfx start --pocketic --clean
+if [info exists env(USE_REPLICA)] {
+    spawn dfx start --replica --clean
 } else {
     spawn dfx start --clean
 }

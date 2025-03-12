@@ -217,7 +217,7 @@ pub trait CanisterBuilder {
         spinner.finish_and_clear();
         info!(
             logger,
-            "Generated type declarations for canister {} to {}",
+            "Generated type declarations for canister '{}' to '{}'",
             &info.get_name(),
             generate_output_dir.display()
         );
@@ -257,7 +257,7 @@ fn compile_handlebars_files(
         let file_extension = format!("{}.hbs", lang);
         let is_template = pathname
             .to_str()
-            .map_or(false, |name| name.ends_with(&file_extension));
+            .is_some_and(|name| name.ends_with(&file_extension));
 
         if is_template {
             let mut file_contents = String::new();
