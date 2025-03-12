@@ -123,7 +123,6 @@ current_time_nanoseconds() {
   assert_command dfx ledger balance
   assert_eq "1000000000.00000000 ICP"
 
-  # 'dfx ledger account-id' is identical to '(dfx identity get-principal) with null subaccount'.
   assert_command dfx ledger approve "$BOB" --amount 100 # to bob
   assert_contains "Approval sent at block index"
 
@@ -150,7 +149,7 @@ current_time_nanoseconds() {
   assert_command dfx ledger balance --identity bob
   assert_match "1000000000.00000000 ICP"
 
-  # The receiver(davide) received 50 ICP.
+  # The receiver(david) received 50 ICP.
   assert_command dfx ledger balance --identity david
   assert_match "50.00000000 ICP"
 }

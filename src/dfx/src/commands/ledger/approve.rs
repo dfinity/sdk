@@ -11,7 +11,7 @@ use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::{info, warn};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// Approve a principal to spend ICP on behalf of the approver.
+/// Approve a principal to spend ICP on your behalf.
 #[derive(Parser)]
 pub struct ApproveOpts {
     /// Approve ICP to be spent from this subaccount.
