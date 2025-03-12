@@ -7,6 +7,7 @@ use anyhow::Context;
 use clap::parser::ValueSource;
 use clap::{ArgMatches, Command, CommandFactory};
 use dfx_core::config::directories::project_dirs;
+use dfx_core::config::model::dfinity::TelemetryState;
 use dfx_core::fs;
 use fd_lock::RwLock as FdRwLock;
 use semver::Version;
@@ -16,11 +17,11 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
-static TELEMETRY: OnceLock<Mutex<Telemetry>> = OnceLock::new();
-// separate var to preserve Telemetry as Eq
-static START_TIME: OnceLock<Instant> = OnceLock::new();
+use super::environment::Environment;
+
+static TELEMETRY: OnceLock<Option<Mutex<Telemetry>>> = OnceLock::new();
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -40,36 +41,37 @@ struct Argument {
 pub struct Telemetry {
     command: String,
     arguments: Vec<Argument>,
+    elapsed: Option<Duration>,
+    platform: String,
 }
 
 impl Telemetry {
-    pub fn init_timestamped() {
-        TELEMETRY
-            .set(Mutex::new(Telemetry::default()))
-            .expect("Telemetry already initialized");
-        START_TIME.set(Instant::now()).unwrap()
+    pub fn init(mode: TelemetryState) {
+        if mode.should_collect() {
+            TELEMETRY
+                .set(Some(Mutex::new(Telemetry::default())))
+                .expect("Telemetry already initialized");
+        } else {
+            TELEMETRY.set(None).expect("Telemetry already initialized");
+        }
     }
 
     pub fn set_command_and_arguments(args: &[OsString]) -> DfxResult {
-        let arg_matches = CliOpts::command().try_get_matches_from(args)?;
+        try_with_telemetry(|telemetry| {
+            let arg_matches = CliOpts::command().try_get_matches_from(args)?;
 
-        let command = CliOpts::command();
-        let (command_names, deepest_matches, deepest_command) =
-            get_deepest_subcommand(&arg_matches, &command);
-        let command_name = command_names.join(" ");
+            let command = CliOpts::command();
+            let (command_names, deepest_matches, deepest_command) =
+                get_deepest_subcommand(&arg_matches, &command);
+            let command_name = command_names.join(" ");
 
-        let arguments = get_sanitized_arguments(deepest_matches, deepest_command);
+            let arguments = get_sanitized_arguments(deepest_matches, deepest_command);
 
-        let mutex = TELEMETRY.get().context("failed to get telemetry mutex")?;
+            telemetry.command = command_name;
+            telemetry.arguments = arguments;
 
-        let mut telemetry = mutex
-            .lock()
-            .map_err(|e| anyhow::anyhow!("failed to lock telemetry mutex: {:?}", e))?;
-
-        telemetry.command = command_name;
-        telemetry.arguments = arguments;
-
-        Ok(())
+            Ok(())
+        })
     }
 
     pub fn get_log_path() -> DfxResult<PathBuf> {
@@ -78,6 +80,23 @@ impl Telemetry {
             .join("telemetry")
             .join("telemetry.log");
         Ok(path)
+    }
+
+    pub fn set_platform() {
+        with_telemetry(|telemetry| {
+            telemetry.platform =
+                if cfg!(target_os = "linux") && std::env::var_os("WSL_DISTRO_NAME").is_some() {
+                    "wsl".to_string()
+                } else {
+                    std::env::consts::OS.to_string()
+                }
+        });
+    }
+
+    pub fn set_elapsed(elapsed: Duration) {
+        with_telemetry(|telemetry| {
+            telemetry.elapsed = Some(elapsed);
+        });
     }
 
     pub fn append_record<T: Serialize>(record: &T) -> DfxResult<()> {
@@ -97,34 +116,41 @@ impl Telemetry {
     }
 
     pub fn append_current_command_timestamped(exit_code: i32) -> DfxResult<()> {
-        let end_time = Instant::now();
-        let elapsed = end_time.duration_since(*START_TIME.get().unwrap());
-        let telemetry_data = TELEMETRY.get().unwrap().lock().unwrap();
-        let platform = if cfg!(target_os = "linux") && std::env::var_os("WSL_DISTRO_NAME").is_some()
-        {
-            "wsl"
-        } else {
-            std::env::consts::OS
-        };
-        let record = CommandRecord {
-            tool: "dfx",
-            version: dfx_version(),
-            command: &telemetry_data.command,
-            platform,
-            parameters: &telemetry_data.arguments,
-            exit_code,
-            execution_time_ms: elapsed.as_millis(),
-            replica_error_call_site: None,
-            replica_error_code: None,
-            replica_reject_code: None,
-            cycles_host: None,
-            identity_type: None,
-            network_type: None,
-            project_canisters: None,
-        };
-        Self::append_record(&record)?;
-        Ok(())
+        try_with_telemetry(|telemetry| {
+            let record = CommandRecord {
+                tool: "dfx",
+                version: dfx_version(),
+                command: &telemetry.command,
+                platform: &telemetry.platform,
+                parameters: &telemetry.arguments,
+                exit_code,
+                execution_time_ms: telemetry.elapsed.map(|e| e.as_millis()),
+                replica_error_call_site: None,
+                replica_error_code: None,
+                replica_reject_code: None,
+                cycles_host: None,
+                identity_type: None,
+                network_type: None,
+                project_canisters: None,
+            };
+            Self::append_record(&record)?;
+            Ok(())
+        })
     }
+}
+
+fn try_with_telemetry(f: impl FnOnce(&mut Telemetry) -> DfxResult) -> DfxResult {
+    if let Some(telemetry) = TELEMETRY.get().unwrap() {
+        f(&mut telemetry.lock().unwrap())?;
+    }
+    Ok(())
+}
+
+fn with_telemetry(f: impl FnOnce(&mut Telemetry)) {
+    let _ = try_with_telemetry(|t| {
+        f(t);
+        Ok(())
+    });
 }
 
 #[derive(Serialize, Debug)]
@@ -135,7 +161,7 @@ struct CommandRecord<'a> {
     platform: &'a str,
     parameters: &'a [Argument],
     exit_code: i32,
-    execution_time_ms: u128,
+    execution_time_ms: Option<u128>,
     replica_error_call_site: Option<&'a str>,  //todo
     replica_error_code: Option<&'a str>,       //todo
     replica_reject_code: Option<u8>,           //todo
@@ -254,24 +280,37 @@ fn get_sanitized_arguments(matches: &ArgMatches, command: &Command) -> Vec<Argum
 impl Telemetry {
     /// Resets telemetry state. This is safe to call multiple times.
     pub fn init_for_test() {
-        let mutex = TELEMETRY.get_or_init(|| Mutex::new(Telemetry::default()));
+        let mutex = TELEMETRY
+            .get_or_init(|| Some(Mutex::new(Telemetry::default())))
+            .as_ref()
+            .unwrap();
         let mut telemetry = mutex.lock().unwrap();
         *telemetry = Telemetry::default(); // Reset the contents of the Mutex
     }
 
     pub fn get_for_test() -> Telemetry {
-        TELEMETRY.get().unwrap().lock().unwrap().clone()
+        TELEMETRY
+            .get()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .lock()
+            .unwrap()
+            .clone()
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
+
     use super::*;
     use std::sync::MutexGuard;
 
     static TEST_LOCK: Mutex<()> = Mutex::new(());
 
     /// Sets up the test environment by locking TEST_LOCK and resetting telemetry state.
+    #[must_use = "must store in a variable"]
     fn setup_test() -> MutexGuard<'static, ()> {
         let guard = TEST_LOCK.lock().unwrap();
         Telemetry::init_for_test();
@@ -298,6 +337,7 @@ mod tests {
         let expected = Telemetry {
             command: "deploy".to_string(),
             arguments: vec![],
+            ..Default::default()
         };
         assert_eq!(expected, actual);
     }
@@ -325,6 +365,7 @@ mod tests {
                     source: ArgumentSource::CommandLine,
                 },
             ],
+            ..Default::default()
         };
         assert_eq!(expected, actual);
     }
@@ -352,6 +393,7 @@ mod tests {
                     source: ArgumentSource::CommandLine,
                 },
             ],
+            ..Default::default()
         };
         assert_eq!(expected, actual);
     }
@@ -385,6 +427,7 @@ mod tests {
                     source: ArgumentSource::CommandLine,
                 },
             ],
+            ..Default::default()
         };
         assert_eq!(expected, actual);
     }
@@ -412,6 +455,7 @@ mod tests {
                     source: ArgumentSource::CommandLine,
                 },
             ],
+            ..Default::default()
         };
         assert_eq!(expected, actual);
     }
@@ -439,6 +483,7 @@ mod tests {
                     source: ArgumentSource::CommandLine,
                 },
             ],
+            ..Default::default()
         };
         assert_eq!(expected, actual)
     }
@@ -461,6 +506,7 @@ mod tests {
                     source: ArgumentSource::CommandLine,
                 },
             ],
+            ..Default::default()
         };
         assert_eq!(expected, actual)
     }
@@ -483,6 +529,7 @@ mod tests {
                     source: ArgumentSource::CommandLine,
                 },
             ],
+            ..Default::default()
         };
         assert_eq!(expected, actual)
     }
