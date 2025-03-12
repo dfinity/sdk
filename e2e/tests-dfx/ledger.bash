@@ -16,6 +16,7 @@ setup() {
 
   dfx identity import --storage-mode plaintext alice alice.pem
   dfx identity import --storage-mode plaintext bob bob.pem
+  dfx identity import --storage-mode plaintext david david.pem
 }
 
 teardown() {
@@ -106,7 +107,51 @@ current_time_nanoseconds() {
   assert_contains "Transfer sent at block height" "$stdout"
   # shellcheck disable=SC2154
   assert_not_contains "Transfer sent at block height $block_height" "$stdout"
+}
 
+@test "ledger approve & transfer-from" {
+  install_nns
+
+  ALICE=$(dfx identity get-principal --identity alice)
+  BOB=$(dfx identity get-principal --identity bob)
+  DAVID=$(dfx identity get-principal --identity david)
+
+  dfx identity use alice
+  assert_command dfx ledger account-id
+  assert_eq 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+
+  assert_command dfx ledger balance
+  assert_eq "1000000000.00000000 ICP"
+
+  assert_command dfx ledger approve "$BOB" --amount 100 # to bob
+  assert_contains "Approval sent at block index"
+
+  # The approver(alice) paid approving fee which is 0.0001 ICP.
+  assert_command dfx ledger balance
+  assert_eq "999999999.99990000 ICP"
+
+  dfx identity use bob
+  assert_command dfx ledger balance
+  assert_match "1000000000.00000000 ICP"
+
+  assert_command dfx ledger balance --identity david
+  assert_match "0.00000000 ICP"
+
+  assert_command dfx ledger transfer-from --from "$ALICE" --amount 50 "$DAVID" # to david
+  assert_contains "Transfer sent at block index"
+
+  # The spender(bob) transferred 50 ICP to david from the approver(alice).
+  # And the approver(alice) paid transaction fee which is 0.0001 ICP
+  assert_command dfx ledger balance --identity alice
+  assert_eq "999999949.99980000 ICP"
+
+  # The spender(bob) balance is unchanged.
+  assert_command dfx ledger balance --identity bob
+  assert_match "1000000000.00000000 ICP"
+
+  # The receiver(david) received 50 ICP.
+  assert_command dfx ledger balance --identity david
+  assert_match "50.00000000 ICP"
 }
 
 @test "ledger subaccounts" {
