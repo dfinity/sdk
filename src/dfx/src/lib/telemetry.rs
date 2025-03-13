@@ -10,6 +10,7 @@ use dfx_core::config::directories::project_dirs;
 use dfx_core::config::model::dfinity::TelemetryState;
 use dfx_core::fs;
 use fd_lock::RwLock as FdRwLock;
+use reqwest::StatusCode;
 use semver::Version;
 use serde::Serialize;
 use std::ffi::OsString;
@@ -18,6 +19,8 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
+use url::Url;
+use uuid::Uuid;
 
 use super::environment::Environment;
 
@@ -74,12 +77,16 @@ impl Telemetry {
         })
     }
 
+    pub fn get_telemetry_dir() -> DfxResult<PathBuf> {
+        Ok(project_dirs()?.cache_dir().join("telemetry"))
+    }
+
     pub fn get_log_path() -> DfxResult<PathBuf> {
-        let path = project_dirs()?
-            .cache_dir()
-            .join("telemetry")
-            .join("telemetry.log");
-        Ok(path)
+        Ok(Self::get_telemetry_dir()?.join("telemetry.log"))
+    }
+
+    pub fn get_send_dir() -> DfxResult<PathBuf> {
+        Ok(Self::get_telemetry_dir()?.join("send"))
     }
 
     pub fn set_platform() {
@@ -136,6 +143,137 @@ impl Telemetry {
             Self::append_record(&record)?;
             Ok(())
         })
+    }
+
+    pub fn send(url: &Url) -> DfxResult {
+        Self::move_active_log_for_send()?;
+        Self::transmit_any_batches(url)?;
+        Ok(())
+    }
+
+    fn move_active_log_for_send() -> DfxResult {
+        let log_path = Self::get_log_path()?;
+        if !log_path.exists() {
+            return Ok(());
+        }
+
+        let send_dir = Self::get_send_dir()?;
+        fs::create_dir_all(&send_dir)?;
+
+        let batch_id = Uuid::new_v4();
+        eprintln!("Assigning telemetry.log contents to batch {:?}", batch_id);
+        let batch_path = send_dir.join(batch_id.to_string());
+
+        let mut file = FdRwLock::new(
+            OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&log_path)?,
+        );
+        let lock = file.write()?;
+
+        fs::rename(&log_path, &batch_path)?;
+        Ok(())
+    }
+
+    fn transmit_any_batches(url: &Url) -> DfxResult {
+        let batches = Self::list_batches()?;
+
+        eprintln!("Batches to send:");
+        for batch in &batches {
+            eprintln!("  {:?}", batch);
+        }
+
+        let results = batches
+            .iter()
+            .map(|batch| Self::transmit_batch(&batch, url))
+            .collect::<Vec<_>>();
+
+        // return the first error, or Ok
+        let x = results.into_iter().find_map(|r| r.err());
+        match x {
+            Some(e) => Err(e),
+            None => Ok(()),
+        }
+    }
+
+    fn transmit_batch(batch: &Uuid, url: &Url) -> DfxResult {
+        eprintln!("Transmitting batch: {:?}", batch);
+        let batch_path = Self::get_send_dir()?.join(batch.to_string());
+
+        let original_content = fs::read_to_string(&batch_path)?;
+        let final_payload = Self::add_batch_and_sequence_to_batch(original_content, batch)?;
+
+        let client = reqwest::blocking::Client::new();
+
+        let op = || {
+            client
+                .post(url.as_str())
+                .body(final_payload.clone())
+                .send()
+                .map_err(|e| backoff::Error::transient(e))
+                .and_then(|response| {
+                    response
+                        .error_for_status()
+                        .map_err(|e| backoff::Error::transient(e))
+                })
+                .map(|_| ())
+        };
+        let notify = |err, dur| {
+            println!("Error happened at {:?}: {}", dur, err);
+        };
+
+        let policy = backoff::ExponentialBackoffBuilder::default()
+            .with_max_elapsed_time(Some(Duration::from_secs(180)))
+            .build();
+
+        backoff::retry_notify(policy, op, notify)?;
+
+        fs::remove_file(&batch_path)?;
+
+        Ok(())
+    }
+
+    fn add_batch_and_sequence_to_batch(content: String, batch: &Uuid) -> DfxResult<String> {
+        // Process each line, adding batch ID and sequence number
+        let modified_json_docs: Vec<String> = content
+            .lines()
+            .enumerate()
+            .map(|(idx, line)| Self::add_batch_and_sequence(line, batch, idx as u64))
+            .collect::<Result<_, _>>()?;
+
+        // Reassemble into a newline-delimited JSON string
+        Ok(modified_json_docs.join("\n"))
+    }
+
+    fn add_batch_and_sequence(content: &str, batch: &Uuid, sequence: u64) -> DfxResult<String> {
+        let mut json: serde_json::Value = serde_json::from_str(content)?;
+
+        json["batch"] = serde_json::Value::String(batch.to_string());
+        json["sequence"] = serde_json::Value::Number(sequence.into());
+
+        serde_json::to_string(&json).map_err(|e| e.into())
+    }
+
+    fn list_batches() -> DfxResult<Vec<Uuid>> {
+        let send_dir = Self::get_send_dir()?;
+        if !send_dir.exists() {
+            return Ok(vec![]);
+        }
+        let send_dir = Self::get_send_dir()?;
+        let dir_content = dfx_core::fs::read_dir(&send_dir)?;
+
+        let batches = dir_content
+            .filter_map(|v| {
+                let dir_entry = v.ok()?;
+                if dir_entry.file_type().is_ok_and(|e| e.is_file()) {
+                    Uuid::parse_str(&dir_entry.file_name().to_string_lossy()).ok()
+                } else {
+                    None
+                }
+            })
+            .collect();
+        Ok(batches)
     }
 }
 

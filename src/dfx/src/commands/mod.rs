@@ -27,6 +27,7 @@ mod ping;
 mod quickstart;
 mod remote;
 mod schema;
+mod send_telemetry;
 mod start;
 mod stop;
 mod toolchain;
@@ -60,6 +61,8 @@ pub enum DfxCommand {
     Quickstart(quickstart::QuickstartOpts),
     Remote(remote::RemoteOpts),
     Schema(schema::SchemaOpts),
+    #[command(name = "_send-telemetry", hide = true)]
+    SendTelemetry(send_telemetry::SendTelemetryOpts),
     Start(start::StartOpts),
     Stop(stop::StopOpts),
     #[command(hide = true)]
@@ -94,6 +97,7 @@ pub fn exec(env: &dyn Environment, cmd: DfxCommand) -> DfxResult {
         DfxCommand::Quickstart(v) => quickstart::exec(env, v),
         DfxCommand::Remote(v) => remote::exec(env, v),
         DfxCommand::Schema(v) => schema::exec(v),
+        DfxCommand::SendTelemetry(v) => send_telemetry::exec(v),
         DfxCommand::Start(v) => start::exec(env, v),
         DfxCommand::Stop(v) => stop::exec(env, v),
         DfxCommand::Toolchain(v) => toolchain::exec(env, v),
@@ -105,6 +109,7 @@ pub fn exec(env: &dyn Environment, cmd: DfxCommand) -> DfxResult {
 pub fn exec_without_env(cmd: DfxCommand) -> DfxResult {
     match cmd {
         DfxCommand::Schema(v) => schema::exec(v),
+        DfxCommand::SendTelemetry(v) => send_telemetry::exec(v),
         _ => bail!("Cannot execute this command without environment."),
     }
 }
