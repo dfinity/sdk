@@ -2,6 +2,7 @@ use crate::config::cache::VersionCache;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
+use crate::lib::telemetry::Telemetry;
 use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
 use anyhow::{anyhow, bail};
 use candid::Principal;
@@ -332,6 +333,7 @@ impl<'a> AgentEnvironment<'a> {
         } else {
             identity_manager.instantiate_selected_identity(&logger)?
         };
+        Telemetry::set_identity_type(identity.identity_type());
         if network_descriptor.is_ic
             && !matches!(
                 network_descriptor.r#type,

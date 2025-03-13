@@ -9,6 +9,7 @@ use clap::{ArgMatches, Command, CommandFactory};
 use dfx_core::config::directories::project_dirs;
 use dfx_core::config::model::dfinity::TelemetryState;
 use dfx_core::fs;
+use dfx_core::identity::IdentityType;
 use fd_lock::RwLock as FdRwLock;
 use ic_agent::agent::RejectResponse;
 use ic_agent::agent_error::Operation;
@@ -48,6 +49,7 @@ pub struct Telemetry {
     platform: String,
     last_reject: Option<RejectResponse>,
     last_operation: Option<Operation>,
+    identity_type: Option<IdentityType>,
 }
 
 impl Telemetry {
@@ -96,6 +98,10 @@ impl Telemetry {
                     std::env::consts::OS.to_string()
                 }
         });
+    }
+
+    pub fn set_identity_type(identity_type: IdentityType) {
+        with_telemetry(|telemetry| telemetry.identity_type = Some(identity_type));
     }
 
     pub fn set_elapsed(elapsed: Duration) {
@@ -157,7 +163,7 @@ impl Telemetry {
                 replica_error_code: reject.and_then(|r| r.error_code.as_deref()),
                 replica_reject_code: reject.map(|r| r.reject_code as u8),
                 cycles_host: None,
-                identity_type: None,
+                identity_type: telemetry.identity_type,
                 network_type: None,
                 project_canisters: None,
             };
@@ -190,11 +196,11 @@ struct CommandRecord<'a> {
     parameters: &'a [Argument],
     exit_code: i32,
     execution_time_ms: Option<u128>,
-    replica_error_call_site: Option<&'a str>,  //todo
-    replica_error_code: Option<&'a str>,       //todo
-    replica_reject_code: Option<u8>,           //todo
-    cycles_host: Option<CyclesHost>,           //todo
-    identity_type: Option<IdentityType>,       //todo
+    replica_error_call_site: Option<&'a str>,
+    replica_error_code: Option<&'a str>,
+    replica_reject_code: Option<u8>,
+    cycles_host: Option<CyclesHost>, //todo
+    identity_type: Option<IdentityType>,
     network_type: Option<NetworkType>,         //todo
     project_canisters: Option<&'a [Canister]>, //todo
 }
@@ -204,15 +210,6 @@ struct CommandRecord<'a> {
 enum CyclesHost {
     CyclesLedger,
     CyclesWallet,
-}
-
-#[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
-#[serde(rename_all = "kebab-case")]
-enum IdentityType {
-    Keyring,
-    Plaintext,
-    EncryptedLocal,
-    Hsm,
 }
 
 #[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
