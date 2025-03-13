@@ -10,6 +10,9 @@ use dfx_core::config::directories::project_dirs;
 use dfx_core::config::model::dfinity::TelemetryState;
 use dfx_core::fs;
 use fd_lock::RwLock as FdRwLock;
+use ic_agent::agent::RejectResponse;
+use ic_agent::agent_error::Operation;
+use ic_agent::AgentError;
 use semver::Version;
 use serde::Serialize;
 use std::ffi::OsString;
@@ -43,6 +46,8 @@ pub struct Telemetry {
     arguments: Vec<Argument>,
     elapsed: Option<Duration>,
     platform: String,
+    last_reject: Option<RejectResponse>,
+    last_operation: Option<Operation>,
 }
 
 impl Telemetry {
@@ -99,6 +104,24 @@ impl Telemetry {
         });
     }
 
+    pub fn set_error(error: &anyhow::Error) {
+        with_telemetry(|telemetry| {
+            for source in error.chain() {
+                if let Some(agent_err) = source.downcast_ref::<AgentError>() {
+                    if let AgentError::CertifiedReject { reject, operation }
+                    | AgentError::UncertifiedReject { reject, operation } = agent_err
+                    {
+                        telemetry.last_reject = Some(reject.clone());
+                        if let Some(operation) = operation {
+                            telemetry.last_operation = Some(operation.clone());
+                        }
+                    }
+                    break;
+                }
+            }
+        });
+    }
+
     pub fn append_record<T: Serialize>(record: &T) -> DfxResult<()> {
         let record = serde_json::to_string(record)?;
         let record = record.trim();
@@ -117,6 +140,11 @@ impl Telemetry {
 
     pub fn append_current_command_timestamped(exit_code: i32) -> DfxResult<()> {
         try_with_telemetry(|telemetry| {
+            let reject = telemetry.last_reject.as_ref();
+            let call_site = telemetry.last_operation.as_ref().map(|o| match o {
+                Operation::Call { method, .. } => method,
+                Operation::ReadState { .. } | Operation::ReadSubnetState { .. } => "/read_state",
+            });
             let record = CommandRecord {
                 tool: "dfx",
                 version: dfx_version(),
@@ -125,9 +153,9 @@ impl Telemetry {
                 parameters: &telemetry.arguments,
                 exit_code,
                 execution_time_ms: telemetry.elapsed.map(|e| e.as_millis()),
-                replica_error_call_site: None,
-                replica_error_code: None,
-                replica_reject_code: None,
+                replica_error_call_site: call_site,
+                replica_error_code: reject.and_then(|r| r.error_code.as_deref()),
+                replica_reject_code: reject.map(|r| r.reject_code as u8),
                 cycles_host: None,
                 identity_type: None,
                 network_type: None,

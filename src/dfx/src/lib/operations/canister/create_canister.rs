@@ -240,11 +240,15 @@ async fn create_with_management_canister(
                 Err(anyhow!(NEEDS_WALLET))
             }
         }
-        Err(AgentError::UncertifiedReject(RejectResponse {
-            reject_code: RejectCode::CanisterReject,
-            reject_message,
+        Err(AgentError::UncertifiedReject {
+            reject:
+                RejectResponse {
+                    reject_code: RejectCode::CanisterReject,
+                    reject_message,
+                    ..
+                },
             ..
-        })) if reject_message.contains("is not allowed to call ic00 method") => {
+        }) if reject_message.contains("is not allowed to call ic00 method") => {
             Err(anyhow!(NEEDS_WALLET))
         }
         Err(e) => Err(e).context("Canister creation call failed."),
