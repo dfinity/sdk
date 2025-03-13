@@ -121,9 +121,8 @@ pub struct EnvironmentImpl {
 }
 
 impl EnvironmentImpl {
-    pub fn new(extension_manager: ExtensionManager) -> DfxResult<Self> {
+    pub fn new(extension_manager: ExtensionManager, tool_config: ToolConfig) -> DfxResult<Self> {
         let shared_networks_config = NetworksConfig::new()?;
-        let tool_config = ToolConfig::new()?;
         let version = dfx_version().clone();
 
         Ok(EnvironmentImpl {
