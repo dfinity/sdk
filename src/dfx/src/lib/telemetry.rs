@@ -50,6 +50,7 @@ pub struct Telemetry {
     last_reject: Option<RejectResponse>,
     last_operation: Option<Operation>,
     identity_type: Option<IdentityType>,
+    cycles_host: Option<CyclesHost>,
 }
 
 impl Telemetry {
@@ -102,6 +103,10 @@ impl Telemetry {
 
     pub fn set_identity_type(identity_type: IdentityType) {
         with_telemetry(|telemetry| telemetry.identity_type = Some(identity_type));
+    }
+
+    pub fn set_cycles_host(host: CyclesHost) {
+        with_telemetry(|telemetry| telemetry.cycles_host = Some(host));
     }
 
     pub fn set_elapsed(elapsed: Duration) {
@@ -162,7 +167,7 @@ impl Telemetry {
                 replica_error_call_site: call_site,
                 replica_error_code: reject.and_then(|r| r.error_code.as_deref()),
                 replica_reject_code: reject.map(|r| r.reject_code as u8),
-                cycles_host: None,
+                cycles_host: telemetry.cycles_host,
                 identity_type: telemetry.identity_type,
                 network_type: None,
                 project_canisters: None,
@@ -199,7 +204,7 @@ struct CommandRecord<'a> {
     replica_error_call_site: Option<&'a str>,
     replica_error_code: Option<&'a str>,
     replica_reject_code: Option<u8>,
-    cycles_host: Option<CyclesHost>, //todo
+    cycles_host: Option<CyclesHost>,
     identity_type: Option<IdentityType>,
     network_type: Option<NetworkType>,         //todo
     project_canisters: Option<&'a [Canister]>, //todo
@@ -207,7 +212,7 @@ struct CommandRecord<'a> {
 
 #[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-enum CyclesHost {
+pub enum CyclesHost {
     CyclesLedger,
     CyclesWallet,
 }
