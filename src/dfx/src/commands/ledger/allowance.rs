@@ -29,8 +29,8 @@ pub struct AllowanceOpts {
     #[arg(long, value_parser = icrc_subaccount_parser)]
     spender_subaccount: Option<Subaccount>,
 
-    #[arg(long)]
     /// Canister ID of the ledger canister.
+    #[arg(long)]
     ledger_canister_id: Option<Principal>,
 }
 
