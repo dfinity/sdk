@@ -3,6 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::get_canister_id_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::telemetry::{CyclesHost, Telemetry};
 use crate::util::clap::argument_from_cli::ArgumentFromCliPositionalOpt;
 use crate::util::clap::parsers::cycle_amount_parser;
 use crate::util::{blob_from_arguments, fetch_remote_did_file, get_candid_type, print_idl_blob};
@@ -335,12 +336,18 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
     // amount has been validated by cycle_amount_validator
     let cycles = opts.with_cycles.unwrap_or(0);
 
-    if call_sender == &CallSender::SelectedId && cycles != 0 {
-        let explanation = "It is only possible to send cycles from a canister.";
-        let action_suggestion = "To send the same function call from your wallet (a canister), run the command using 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\
+    if cycles != 0 {
+        match call_sender {
+            CallSender::SelectedId => {
+                let explanation = "It is only possible to send cycles from a canister.";
+                let action_suggestion = "To send the same function call from your wallet (a canister), run the command using 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\
         To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)'.";
-        return Err(DiagnosedError::new(explanation, action_suggestion))
-            .context("Function caller is not a canister.");
+                return Err(DiagnosedError::new(explanation, action_suggestion))
+                    .context("Function caller is not a canister.");
+            }
+            CallSender::Wallet(_) => Telemetry::set_cycles_host(CyclesHost::CyclesWallet),
+            _ => {}
+        }
     }
 
     if is_query {

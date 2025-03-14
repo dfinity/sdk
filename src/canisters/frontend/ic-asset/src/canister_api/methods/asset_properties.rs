@@ -73,10 +73,12 @@ pub(crate) async fn get_assets_properties(
             }
             // older canisters don't have get_assets_properties method
             // therefore we can break the loop
-            Err(AgentError::UncertifiedReject(RejectResponse { reject_message, .. }))
-                if reject_message
-                    .contains(&format!("has no query method '{GET_ASSET_PROPERTIES}'"))
-                    || reject_message.contains("query method does not exist") =>
+            Err(AgentError::UncertifiedReject {
+                reject: RejectResponse { reject_message, .. },
+                ..
+            }) if reject_message
+                .contains(&format!("has no query method '{GET_ASSET_PROPERTIES}'"))
+                || reject_message.contains("query method does not exist") =>
             {
                 break;
             }

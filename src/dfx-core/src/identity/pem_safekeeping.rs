@@ -1,5 +1,5 @@
 use super::identity_manager::EncryptionConfiguration;
-use super::IdentityConfiguration;
+use super::{IdentityConfiguration, IdentityType};
 use crate::error::identity::WritePemContentError;
 use crate::error::{
     encryption::{
@@ -32,7 +32,7 @@ pub(crate) fn load_pem(
     locations: &IdentityFileLocations,
     identity_name: &str,
     identity_config: &IdentityConfiguration,
-) -> Result<(Vec<u8>, bool), LoadPemError> {
+) -> Result<(Vec<u8>, IdentityType), LoadPemError> {
     if identity_config.hsm.is_some() {
         unreachable!("Cannot load pem content for an HSM identity.")
     } else if identity_config.keyring_identity_suffix.is_some() {
@@ -42,7 +42,7 @@ pub(crate) fn load_pem(
         );
         let pem = keyring_mock::load_pem_from_keyring(identity_name)
             .map_err(|err| LoadFromKeyringFailed(Box::new(identity_name.to_string()), err))?;
-        Ok((pem, true))
+        Ok((pem, IdentityType::Keyring))
     } else {
         let pem_path = locations.get_identity_pem_path(identity_name, identity_config);
         load_pem_from_file(&pem_path, Some(identity_config))
@@ -83,12 +83,19 @@ pub(crate) fn save_pem(
 pub fn load_pem_from_file(
     path: &Path,
     config: Option<&IdentityConfiguration>,
-) -> Result<(Vec<u8>, bool), LoadPemFromFileError> {
+) -> Result<(Vec<u8>, IdentityType), LoadPemFromFileError> {
     let content = crate::fs::read(path)?;
 
     let (content, was_encrypted) = maybe_decrypt_pem(content.as_slice(), config)
         .map_err(|err| DecryptPemFileFailed(path.to_path_buf(), err))?;
-    Ok((content, was_encrypted))
+    Ok((
+        content,
+        if was_encrypted {
+            IdentityType::EncryptedLocal
+        } else {
+            IdentityType::Plaintext
+        },
+    ))
 }
 
 /// Transparently handles all complexities regarding pem file encryption, including prompting the user for the password.

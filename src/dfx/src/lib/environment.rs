@@ -2,6 +2,7 @@ use crate::config::cache::VersionCache;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
+use crate::lib::telemetry::{CanisterRecord, Telemetry};
 use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
 use anyhow::{anyhow, bail};
 use candid::Principal;
@@ -180,6 +181,14 @@ impl EnvironmentImpl {
         let config = Config::from_current_dir(Some(&self.extension_manager))?;
 
         let project_config = config.map_or(ProjectConfig::NoProject, |config| {
+            if let Some(canisters) = &config.config.canisters {
+                Telemetry::set_canisters(
+                    canisters
+                        .values()
+                        .map(CanisterRecord::from_canister)
+                        .collect(),
+                );
+            }
             ProjectConfig::Loaded(Arc::new(config))
         });
         self.project_config.replace(project_config);
@@ -332,6 +341,8 @@ impl<'a> AgentEnvironment<'a> {
         } else {
             identity_manager.instantiate_selected_identity(&logger)?
         };
+        Telemetry::set_identity_type(identity.identity_type());
+        Telemetry::set_network(&network_descriptor);
         if network_descriptor.is_ic
             && !matches!(
                 network_descriptor.r#type,
