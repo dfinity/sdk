@@ -130,6 +130,10 @@ current_time_nanoseconds() {
   assert_command dfx ledger balance
   assert_eq "999999999.99990000 ICP"
 
+  # The spender(bob) have 100 ICP allowance from the approver(alice).
+  assert_command dfx ledger allowance --spender "$BOB"
+  assert_match "Allowance 100.00000000 ICP"
+
   dfx identity use bob
   assert_command dfx ledger balance
   assert_match "1000000000.00000000 ICP"
@@ -144,6 +148,10 @@ current_time_nanoseconds() {
   # And the approver(alice) paid transaction fee which is 0.0001 ICP
   assert_command dfx ledger balance --identity alice
   assert_eq "999999949.99980000 ICP"
+
+  # The spender(bob) remains 49.99990000 ICP allowance from the approver(alice).
+  assert_command dfx ledger allowance --owner "$ALICE" --spender "$BOB"
+  assert_match "Allowance 49.99990000 ICP"
 
   # The spender(bob) balance is unchanged.
   assert_command dfx ledger balance --identity bob

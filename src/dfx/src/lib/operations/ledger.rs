@@ -25,6 +25,7 @@ use ic_utils::{call::SyncCall, Canister};
 use icrc_ledger_types::icrc1;
 use icrc_ledger_types::icrc1::transfer::BlockIndex;
 use icrc_ledger_types::icrc2;
+use icrc_ledger_types::icrc2::allowance::Allowance;
 use icrc_ledger_types::icrc2::approve::ApproveError;
 use icrc_ledger_types::icrc2::transfer_from::TransferFromError;
 use slog::{info, Logger};
@@ -34,6 +35,7 @@ const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";
 const TRANSFER_METHOD: &str = "transfer";
 const ICRC2_APPROVE_METHOD: &str = "icrc2_approve";
 const ICRC2_TRANSFER_FROM_METHOD: &str = "icrc2_transfer_from";
+const ICRC2_ALLOWANCE_METHOD: &str = "icrc2_allowance";
 
 pub async fn balance(
     agent: &Agent,
@@ -296,6 +298,41 @@ pub async fn approve(
     .await?;
 
     Ok(block_index)
+}
+
+pub async fn allowance(
+    agent: &Agent,
+    canister_id: &Principal,
+    owner: icrc1::account::Account,
+    spender: icrc1::account::Account,
+) -> DfxResult<Allowance> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(*canister_id)
+        .build()?;
+
+    let retry_policy = ExponentialBackoff::default();
+
+    retry(retry_policy, || async {
+        let arg = icrc2::allowance::AllowanceArgs {
+            account: owner,
+            spender,
+        };
+        let result = canister
+            .query(ICRC2_ALLOWANCE_METHOD)
+            .with_arg(arg)
+            .build()
+            .call()
+            .await;
+        match result {
+            Ok((allowance,)) => Ok(allowance),
+            Err(agent_err) if retryable(&agent_err) => {
+                Err(backoff::Error::transient(anyhow!(agent_err)))
+            }
+            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+        }
+    })
+    .await
 }
 
 fn diagnose_insufficient_funds_error(
