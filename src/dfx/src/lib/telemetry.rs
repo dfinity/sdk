@@ -7,7 +7,9 @@ use anyhow::Context;
 use clap::parser::ValueSource;
 use clap::{ArgMatches, Command, CommandFactory};
 use dfx_core::config::directories::project_dirs;
-use dfx_core::config::model::dfinity::TelemetryState;
+use dfx_core::config::model::dfinity::{
+    CanisterTypeProperties, ConfigCanistersCanister, TelemetryState,
+};
 use dfx_core::fs;
 use dfx_core::identity::IdentityType;
 use fd_lock::RwLock as FdRwLock;
@@ -51,6 +53,7 @@ pub struct Telemetry {
     last_operation: Option<Operation>,
     identity_type: Option<IdentityType>,
     cycles_host: Option<CyclesHost>,
+    canisters: Option<Vec<CanisterRecord>>,
 }
 
 impl Telemetry {
@@ -133,6 +136,10 @@ impl Telemetry {
         });
     }
 
+    pub fn set_canisters(canisters: Vec<CanisterRecord>) {
+        with_telemetry(|telemetry| telemetry.canisters = Some(canisters));
+    }
+
     pub fn append_record<T: Serialize>(record: &T) -> DfxResult<()> {
         let record = serde_json::to_string(record)?;
         let record = record.trim();
@@ -170,7 +177,7 @@ impl Telemetry {
                 cycles_host: telemetry.cycles_host,
                 identity_type: telemetry.identity_type,
                 network_type: None,
-                project_canisters: None,
+                project_canisters: telemetry.canisters.as_deref(),
             };
             Self::append_record(&record)?;
             Ok(())
@@ -206,8 +213,8 @@ struct CommandRecord<'a> {
     replica_reject_code: Option<u8>,
     cycles_host: Option<CyclesHost>,
     identity_type: Option<IdentityType>,
-    network_type: Option<NetworkType>,         //todo
-    project_canisters: Option<&'a [Canister]>, //todo
+    network_type: Option<NetworkType>, //todo
+    project_canisters: Option<&'a [CanisterRecord]>,
 }
 
 #[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
@@ -237,9 +244,22 @@ enum CanisterType {
     Pull,
 }
 
-#[derive(Serialize, Copy, Clone, Debug)]
-struct Canister {
+#[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
+pub struct CanisterRecord {
     r#type: CanisterType,
+}
+
+impl CanisterRecord {
+    pub fn from_canister(config: &ConfigCanistersCanister) -> Self {
+        let r#type = match &config.type_specific {
+            CanisterTypeProperties::Rust { .. } => CanisterType::Rust,
+            CanisterTypeProperties::Assets { .. } => CanisterType::Assets,
+            CanisterTypeProperties::Motoko { .. } => CanisterType::Motoko,
+            CanisterTypeProperties::Custom { .. } => CanisterType::Custom,
+            CanisterTypeProperties::Pull { .. } => CanisterType::Pull,
+        };
+        Self { r#type }
+    }
 }
 
 /// Finds the deepest subcommand in both `ArgMatches` and `Command`.

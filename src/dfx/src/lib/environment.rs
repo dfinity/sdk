@@ -2,7 +2,7 @@ use crate::config::cache::VersionCache;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
-use crate::lib::telemetry::Telemetry;
+use crate::lib::telemetry::{CanisterRecord, Telemetry};
 use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
 use anyhow::{anyhow, bail};
 use candid::Principal;
@@ -181,6 +181,14 @@ impl EnvironmentImpl {
         let config = Config::from_current_dir(Some(&self.extension_manager))?;
 
         let project_config = config.map_or(ProjectConfig::NoProject, |config| {
+            if let Some(canisters) = &config.config.canisters {
+                Telemetry::set_canisters(
+                    canisters
+                        .values()
+                        .map(CanisterRecord::from_canister)
+                        .collect(),
+                );
+            }
             ProjectConfig::Loaded(Arc::new(config))
         });
         self.project_config.replace(project_config);
