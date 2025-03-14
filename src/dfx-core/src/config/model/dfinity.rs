@@ -31,7 +31,13 @@ use crate::error::load_dfx_config::LoadDfxConfigError::{
 };
 use crate::error::load_networks_config::LoadNetworksConfigError;
 use crate::error::load_networks_config::LoadNetworksConfigError::{
-    GetConfigPathFailed, LoadConfigFromFileFailed,
+    GetConfigPathFailed as GetNetworkConfigPathFailed,
+    LoadConfigFromFileFailed as LoadNetworkConfigFromFileFailed,
+};
+use crate::error::load_tool_config::ToolConfigError;
+use crate::error::load_tool_config::ToolConfigError::{
+    GetConfigPathFailed as GetToolConfigPathFailed,
+    LoadConfigFromFileFailed as LoadToolConfigFromFileFailed, SaveDefaultConfigFailed,
 };
 use crate::error::socket_addr_conversion::SocketAddrConversionError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError::{
@@ -41,11 +47,12 @@ use crate::error::structured_file::StructuredFileError;
 use crate::error::structured_file::StructuredFileError::DeserializeJsonFileFailed;
 use crate::extension::manager::ExtensionManager;
 use crate::fs::create_dir_all;
-use crate::json::save_json_file;
 use crate::json::structure::{PossiblyStr, SerdeVec};
+use crate::json::{load_json_file, save_json_file};
 use crate::util::ByteSchema;
 use byte_unit::Byte;
 use candid::Principal;
+use clap::ValueEnum;
 use ic_utils::interfaces::management_canister::LogVisibility;
 use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
@@ -53,7 +60,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::default::Default;
-use std::fmt;
+use std::fmt::{self, Debug, Display, Formatter};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -113,9 +120,9 @@ pub enum WasmOptLevel {
     Oz,
     Os,
 }
-impl std::fmt::Display for WasmOptLevel {
+impl Display for WasmOptLevel {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        std::fmt::Debug::fmt(self, f)
+        Debug::fmt(self, f)
     }
 }
 
@@ -1354,7 +1361,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
 pub struct NetworksConfig {
     path: PathBuf,
     json: Value,
-    // public interface to the networsk config:
+    // public interface to the networks config:
     networks_config: NetworksConfigInterface,
 }
 
@@ -1367,11 +1374,11 @@ impl NetworksConfig {
     }
 
     pub fn new() -> Result<NetworksConfig, LoadNetworksConfigError> {
-        let dir = get_user_dfx_config_dir().map_err(GetConfigPathFailed)?;
+        let dir = get_user_dfx_config_dir().map_err(GetNetworkConfigPathFailed)?;
 
         let path = dir.join("networks.json");
         if path.exists() {
-            NetworksConfig::from_file(&path).map_err(LoadConfigFromFileFailed)
+            NetworksConfig::from_file(&path).map_err(LoadNetworkConfigFromFileFailed)
         } else {
             Ok(NetworksConfig {
                 path,
@@ -1397,6 +1404,105 @@ impl NetworksConfig {
             json,
             networks_config,
         })
+    }
+}
+
+pub struct ToolConfig {
+    path: PathBuf,
+    json: Value,
+    tool_config: ToolConfigInterface,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+pub struct ToolConfigInterface {
+    pub telemetry: TelemetryState,
+}
+
+impl ToolConfig {
+    pub fn path(&self) -> &PathBuf {
+        &self.path
+    }
+    pub fn interface(&self) -> &ToolConfigInterface {
+        &self.tool_config
+    }
+
+    pub fn interface_mut(&mut self) -> &mut ToolConfigInterface {
+        &mut self.tool_config
+    }
+
+    pub fn new() -> Result<Self, ToolConfigError> {
+        let dir = get_user_dfx_config_dir().map_err(GetToolConfigPathFailed)?;
+
+        let path = dir.join("config.json");
+        if path.exists() {
+            Self::from_file(&path).map_err(LoadToolConfigFromFileFailed)
+        } else {
+            let default = Self {
+                path,
+                json: Default::default(),
+                tool_config: ToolConfigInterface {
+                    telemetry: TelemetryState::On,
+                },
+            };
+            default.save()?;
+            Ok(default)
+        }
+    }
+
+    pub fn save(&self) -> Result<(), ToolConfigError> {
+        self.save_to_file(&self.path)
+            .map_err(SaveDefaultConfigFailed)
+    }
+
+    pub fn config_path(&self) -> &Path {
+        &self.path
+    }
+
+    fn from_file(path: &Path) -> Result<Self, StructuredFileError> {
+        let json: Value = load_json_file(path)?;
+        let tool_config: ToolConfigInterface = serde_json::from_value(json.clone())
+            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.to_path_buf()), e))?;
+        let path = PathBuf::from(path);
+        Ok(Self {
+            path,
+            json,
+            tool_config,
+        })
+    }
+
+    fn save_to_file(&self, path: &Path) -> Result<(), StructuredFileError> {
+        save_json_file(path, &self.tool_config)?;
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize, Copy, Clone, JsonSchema, PartialEq, Eq, ValueEnum)]
+#[serde(rename_all = "snake_case")]
+pub enum TelemetryState {
+    On,
+    Off,
+    Local,
+}
+
+impl TelemetryState {
+    pub fn should_collect(&self) -> bool {
+        *self != TelemetryState::Off
+    }
+    pub fn should_publish(&self) -> bool {
+        *self == TelemetryState::On
+    }
+}
+
+impl Display for TelemetryState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(
+            match self {
+                Self::On => "on",
+                Self::Off => "off",
+                Self::Local => "local",
+            },
+            f,
+        )
     }
 }
 

@@ -390,3 +390,12 @@ Please remove one of them or leave both undefined."
   assert_command_fail dfx canister install e2e_project_backend --mode reinstall --wasm-memory-persistence keep
   assert_contains "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
 }
+
+@test "Candid UI" {
+  dfx_start
+  dfx deploy
+  ID=$(dfx canister id __Candid_UI)
+  PORT=$(get_webserver_port)
+  assert_command curl http://localhost:"$PORT"/?canisterId="$ID"
+  assert_match "Candid UI"
+}

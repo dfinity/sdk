@@ -7,6 +7,10 @@
 As [announced](https://forum.dfinity.org/t/dfx-replacing-the-local-replica-with-pocketic/40167) `dfx start` now runs PocketIC by default.
 Running a local replica is still possible with `--replica`, but this option will be removed in the near future.
 
+### feat: `dfx info telemetry-log-path`
+
+Displays the path of the telemetry log file.
+
 ### fix: Warning and error messages now correctly suggest `dfx info security-policy` when suboptimal security policies get used
 
 ### chore: updated the canister creation fee to 500B cycles
