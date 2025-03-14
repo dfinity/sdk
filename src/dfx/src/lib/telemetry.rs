@@ -10,6 +10,8 @@ use dfx_core::config::directories::project_dirs;
 use dfx_core::config::model::dfinity::{
     CanisterTypeProperties, ConfigCanistersCanister, TelemetryState,
 };
+use dfx_core::config::model::local_server_descriptor::LocalNetworkScopeDescriptor;
+use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::fs;
 use dfx_core::identity::IdentityType;
 use fd_lock::RwLock as FdRwLock;
@@ -54,6 +56,7 @@ pub struct Telemetry {
     identity_type: Option<IdentityType>,
     cycles_host: Option<CyclesHost>,
     canisters: Option<Vec<CanisterRecord>>,
+    network_type: Option<NetworkType>,
 }
 
 impl Telemetry {
@@ -140,6 +143,31 @@ impl Telemetry {
         with_telemetry(|telemetry| telemetry.canisters = Some(canisters));
     }
 
+    pub fn set_network(network: &NetworkDescriptor) {
+        with_telemetry(|telemetry| {
+            telemetry.network_type = Some(if network.is_ic {
+                NetworkType::Ic
+            } else {
+                match network.r#type {
+                    NetworkTypeDescriptor::Ephemeral { .. } => {
+                        if let Some(local) = &network.local_server_descriptor {
+                            match &local.scope {
+                                LocalNetworkScopeDescriptor::Project => NetworkType::ProjectLocal,
+                                LocalNetworkScopeDescriptor::Shared { .. } => {
+                                    NetworkType::LocalShared
+                                }
+                            }
+                        } else {
+                            NetworkType::UnknownUrl
+                        }
+                    }
+                    NetworkTypeDescriptor::Persistent => NetworkType::UnknownConfigured,
+                    NetworkTypeDescriptor::Playground { .. } => NetworkType::Playground,
+                }
+            })
+        });
+    }
+
     pub fn append_record<T: Serialize>(record: &T) -> DfxResult<()> {
         let record = serde_json::to_string(record)?;
         let record = record.trim();
@@ -176,7 +204,7 @@ impl Telemetry {
                 replica_reject_code: reject.map(|r| r.reject_code as u8),
                 cycles_host: telemetry.cycles_host,
                 identity_type: telemetry.identity_type,
-                network_type: None,
+                network_type: telemetry.network_type,
                 project_canisters: telemetry.canisters.as_deref(),
             };
             Self::append_record(&record)?;
@@ -213,7 +241,7 @@ struct CommandRecord<'a> {
     replica_reject_code: Option<u8>,
     cycles_host: Option<CyclesHost>,
     identity_type: Option<IdentityType>,
-    network_type: Option<NetworkType>, //todo
+    network_type: Option<NetworkType>,
     project_canisters: Option<&'a [CanisterRecord]>,
 }
 
@@ -226,10 +254,11 @@ pub enum CyclesHost {
 
 #[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-enum NetworkType {
+pub enum NetworkType {
     LocalShared,
     ProjectLocal,
     Ic,
+    Playground,
     UnknownConfigured,
     UnknownUrl,
 }

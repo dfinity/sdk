@@ -342,6 +342,7 @@ impl<'a> AgentEnvironment<'a> {
             identity_manager.instantiate_selected_identity(&logger)?
         };
         Telemetry::set_identity_type(identity.identity_type());
+        Telemetry::set_network(&network_descriptor);
         if network_descriptor.is_ic
             && !matches!(
                 network_descriptor.r#type,
