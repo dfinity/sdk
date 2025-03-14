@@ -95,12 +95,12 @@ You must specify the following arguments for the `dfx ledger approve` command.
 
 ### Options
 
-You can specify the following options for the `dfx cycles approve` command.
+You can specify the following options for the `dfx ledger approve` command.
 
 | Option                              | Description                                                                            |
 |-------------------------------------|----------------------------------------------------------------------------------------|
 | `--created-at-time <timestamp>`     | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling [transaction-de-duplication](https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-). |
-| `--expected-allowance <cycles>`     | The number of previously approved ICP. See [ICRC-2 standard](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-2/README.md) for details. |
+| `--expected-allowance <expected_allowance>`| The number of previously approved ICP. See [ICRC-2 standard](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-2/README.md) for details. |
 | `--expires-at <timestamp>`          | Timestamp in nanoseconds until which the approval is valid. None means that the approval is valid indefinitely. |
 | `--fee <fee>`                       | Transaction fee, default is 0.00010000 ICP (10000 e8s)                                 |
 | `--from-subaccount <subaccount>`    | Approve ICP to be spent from this subaccount.                                          |
@@ -113,6 +113,42 @@ Below is an example to approve the principal `raxcz-bidhr-evrzj-qyivt-nht5a-eltc
 
 ``` bash
 dfx ledger approve raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae --amount 10 --network ic
+```
+
+## dfx ledger allowance
+
+Use the `dfx ledger allowance` command to get the ICP allowance that the spender account can transfer from the owner account. Please check the [ICRC-2 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) for more information.
+
+### Basic usage
+
+``` bash
+dfx ledger allowance [options] --spender <spender>
+```
+
+### Arguments
+
+You must specify the following arguments for the `dfx ledger allowance` command.
+
+| Argument              | Description                                            |
+|-----------------------|--------------------------------------------------------|
+| `--spender <spender>` | Specifies a spender principal to get the allowance of. |
+
+### Options
+
+You can specify the following options for the `dfx ledger allowance` command.
+
+| Option                                     | Description                                                  |
+|--------------------------------------------|--------------------------------------------------------------|
+| `--owner <owner>`                          | Specifies a owner principal to get the allowance of. If not specified, the principal of the current identity is used.|
+| `--owner-subaccount <owner_subaccount>`    | Subaccount of the owner principal to get the allowance of.   |
+| `--spender-subaccount <spender_subaccount>`| Subaccount of the spender principal to get the allowance of. |
+
+### Examples
+
+Below is an example to get the allowance for the spender principal `raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae`:
+
+``` bash
+dfx ledger allowance --spender raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae --network ic
 ```
 
 ## dfx ledger balance
@@ -451,7 +487,7 @@ You must specify the following arguments for the `dfx ledger transfer-from` comm
 
 ### Options
 
-You can specify the following options for the `dfx cycles approve` command.
+You can specify the following options for the `dfx ledger transfer-from` command.
 
 | Option                              | Description                                                                            |
 |-------------------------------------|----------------------------------------------------------------------------------------|

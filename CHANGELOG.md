@@ -32,6 +32,10 @@ Finished building canisters.
 
 Implement `dfx ledger approve` and `dfx ledger transfer-from` subcommands that comply with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
 
+### feat: Add `dfx ledger allowance` subcommand
+
+Implement `dfx ledger allowance` subcommand that complies with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
+
 # 0.25.1
 
 ### feat: `skip_cargo_audit` flag in dfx.json to skip `cargo audit` build step
