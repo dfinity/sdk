@@ -12,12 +12,12 @@ use icrc_ledger_types::icrc1::{self, account::Subaccount};
 /// Get the ICP allowance that the spender account can transfer from the owner account.
 #[derive(Parser)]
 pub struct AllowanceOpts {
-    /// Specifies a principal to get the allowance of.
+    /// Specifies a owner principal to get the allowance of.
     /// If not specified, the principal of the current identity is used.
     #[arg(long)]
     owner: Option<Principal>,
 
-    /// Subaccount of the specified principal to get the allowance of.
+    /// Subaccount of the owner principal to get the allowance of.
     #[arg(long, value_parser = icrc_subaccount_parser)]
     owner_subaccount: Option<Subaccount>,
 
@@ -49,7 +49,7 @@ pub async fn exec(env: &dyn Environment, opts: AllowanceOpts) -> DfxResult {
     });
 
     let owner = icrc1::account::Account {
-        owner: owner,
+        owner,
         subaccount: opts.owner_subaccount,
     };
     let spender = icrc1::account::Account {
