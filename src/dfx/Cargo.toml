@@ -44,6 +44,7 @@ bytes.workspace = true
 candid = { workspace = true }
 candid_parser = { workspace = true, features = ["random", "assist"] }
 cargo_metadata = "0.18.1"
+chrono = "0.4.39"
 clap = { workspace = true, features = [
     "derive",
     "env",
@@ -122,6 +123,7 @@ time = { workspace = true, features = [
 ] }
 tokio = { workspace = true, features = ["full"] }
 url.workspace = true
+uuid = { version = "1.15.1", features = [ "v4", ] }
 walkdir.workspace = true
 walrus = "0.21.1"
 which = "4.2.5"

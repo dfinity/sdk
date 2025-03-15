@@ -163,7 +163,10 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
 
     let cli_opts = CliOpts::parse_from(args);
 
-    if matches!(cli_opts.command, commands::DfxCommand::Schema(_)) {
+    if matches!(
+        cli_opts.command,
+        commands::DfxCommand::Schema(_) | commands::DfxCommand::SendTelemetry(_)
+    ) {
         return commands::exec_without_env(cli_opts.command);
     }
 
@@ -205,6 +208,11 @@ fn main() {
     if let Err(e) = Telemetry::append_current_command_timestamped(exit_code) {
         if log_level.unwrap_or_default() > 0 {
             eprintln!("error appending to telemetry log: {e}")
+        }
+    }
+    if let Err(e) = Telemetry::maybe_publish() {
+        if log_level.unwrap_or_default() > 0 {
+            eprintln!("error transmitting telemetry: {e}")
         }
     }
 
