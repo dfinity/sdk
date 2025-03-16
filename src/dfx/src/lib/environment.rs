@@ -6,7 +6,7 @@ use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdent
 use anyhow::{anyhow, bail};
 use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
-use dfx_core::config::model::dfinity::{Config, NetworksConfig};
+use dfx_core::config::model::dfinity::{Config, NetworksConfig, TelemetryState, ToolConfig};
 use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::identity::NewIdentityManagerError;
@@ -23,7 +23,7 @@ use slog::{Logger, Record};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use url::Url;
 use super::graph::graph_nodes_map::GraphWithNodesMap;
@@ -33,6 +33,8 @@ pub trait Environment {
     fn get_cache(&self) -> VersionCache;
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError>;
     fn get_networks_config(&self) -> Arc<NetworksConfig>;
+    fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>>;
+    fn telemetry_mode(&self) -> TelemetryState;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
     /// Return a temporary directory for the current project.
@@ -104,6 +106,7 @@ pub enum ProjectConfig {
 pub struct EnvironmentImpl {
     project_config: RefCell<ProjectConfig>,
     shared_networks_config: Arc<NetworksConfig>,
+    tool_config: Arc<Mutex<ToolConfig>>,
 
     cache: VersionCache,
 
@@ -126,7 +129,7 @@ pub struct EnvironmentImpl {
 }
 
 impl EnvironmentImpl {
-    pub fn new(extension_manager: ExtensionManager) -> DfxResult<Self> {
+    pub fn new(extension_manager: ExtensionManager, tool_config: ToolConfig) -> DfxResult<Self> {
         let shared_networks_config = NetworksConfig::new()?;
         let version = dfx_version().clone();
 
@@ -134,6 +137,7 @@ impl EnvironmentImpl {
             cache: VersionCache::with_version(&version),
             project_config: RefCell::new(ProjectConfig::NotLoaded),
             shared_networks_config: Arc::new(shared_networks_config),
+            tool_config: Arc::new(Mutex::new(tool_config)),
             version: version.clone(),
             logger: None,
             verbose_level: 0,
@@ -212,6 +216,24 @@ impl Environment for EnvironmentImpl {
 
     fn get_networks_config(&self) -> Arc<NetworksConfig> {
         self.shared_networks_config.clone()
+    }
+
+    fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>> {
+        self.tool_config.clone()
+    }
+
+    fn telemetry_mode(&self) -> TelemetryState {
+        if let Ok(var) = std::env::var("DFX_TELEMETRY") {
+            if !var.is_empty() {
+                return match &*var {
+                    "true" | "1" | "on" => TelemetryState::On,
+                    "false" | "0" | "off" => TelemetryState::Off,
+                    "local" => TelemetryState::Local,
+                    _ => TelemetryState::On,
+                };
+            }
+        }
+        self.tool_config.lock().unwrap().interface().telemetry
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
@@ -389,6 +411,14 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_config()
     }
 
+    fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>> {
+        self.backend.get_tool_config()
+    }
+
+    fn telemetry_mode(&self) -> TelemetryState {
+        self.backend.telemetry_mode()
+    }
+
     fn get_networks_config(&self) -> Arc<NetworksConfig> {
         self.backend.get_networks_config()
     }
@@ -538,6 +568,9 @@ pub mod test_env {
         fn get_networks_config(&self) -> Arc<NetworksConfig> {
             unimplemented!()
         }
+        fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>> {
+            unimplemented!()
+        }
         fn get_override_effective_canister_id(&self) -> Option<Principal> {
             None
         }
@@ -558,6 +591,9 @@ pub mod test_env {
         }
         fn get_version(&self) -> &Version {
             unimplemented!()
+        }
+        fn telemetry_mode(&self) -> TelemetryState {
+            TelemetryState::Off
         }
         fn log(&self, _record: &Record) {}
         fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {

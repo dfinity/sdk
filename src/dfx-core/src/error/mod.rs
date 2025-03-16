@@ -16,6 +16,7 @@ pub mod interface;
 pub mod keyring;
 pub mod load_dfx_config;
 pub mod load_networks_config;
+pub mod load_tool_config;
 pub mod network_config;
 pub mod process;
 pub mod reqwest;

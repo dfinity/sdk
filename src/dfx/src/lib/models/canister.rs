@@ -884,7 +884,7 @@ impl CanisterPool {
                     .map(|c| c.get_name())
                     .contains(&canister.get_name())
                 {
-                    trace!(log, "Building canister '{}'.", canister.get_name());
+                    info!(log, "Building canister '{}'.", canister.get_name());
                 } else {
                     trace!(log, "Not building canister '{}'.", canister.get_name());
                     continue;

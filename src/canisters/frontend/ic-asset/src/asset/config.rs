@@ -485,7 +485,7 @@ mod rule_utils {
 
             if self.cache.is_some() || self.headers.is_some() {
                 s.push('(');
-                if self.cache.as_ref().map_or(false, |v| v.max_age.is_some()) {
+                if self.cache.as_ref().is_some_and(|v| v.max_age.is_some()) {
                     s.push_str("with cache");
                 }
                 if let Some(ref headers) = self.headers {

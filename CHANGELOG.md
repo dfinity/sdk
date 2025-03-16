@@ -8,6 +8,41 @@
 
 * Command `rules` that outputs time-efficient GNU Make rules.
 
+### feat!: `dfx start` uses `--pocketic` by default
+
+As [announced](https://forum.dfinity.org/t/dfx-replacing-the-local-replica-with-pocketic/40167) `dfx start` now runs PocketIC by default.
+Running a local replica is still possible with `--replica`, but this option will be removed in the near future.
+
+### feat: `dfx info telemetry-log-path`
+
+Displays the path of the telemetry log file.
+
+### fix: Warning and error messages now correctly suggest `dfx info security-policy` when suboptimal security policies get used
+
+### chore: updated the canister creation fee to 500B cycles
+
+Updated the canister creation fee to `500B` cycles as [documented](https://internetcomputer.org/docs/building-apps/essentials/gas-cost#cycles-price-breakdown).
+
+### chore: improve the `dfx build` output
+
+Improve the ouput of `dfx build` with the canister names that were built, example as below.
+
+```
+$ dfx build
+Building canister 'hello_backend'.
+Building canister 'hello_frontend'.
+Finished building canisters.
+```
+
+### feat: Add `dfx ledger approve` and `dfx ledger transfer-from` subcommands
+
+Implement `dfx ledger approve` and `dfx ledger transfer-from` subcommands that comply with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
+
+### feat: Add `dfx ledger allowance` subcommand
+
+Implement `dfx ledger allowance` subcommand that complies with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
+>>>>>>> upstream/master
+
 # 0.25.1
 
 ### feat: `skip_cargo_audit` flag in dfx.json to skip `cargo audit` build step
@@ -26,7 +61,7 @@
 
 ### Motoko
 
-Updated Motoko to [0.14.1](https://github.com/dfinity/motoko/releases/tag/0.14.1)
+Updated Motoko to [0.14.2](https://github.com/dfinity/motoko/releases/tag/0.14.2)
 
 ### Frontend canister
 

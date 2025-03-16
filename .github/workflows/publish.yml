@@ -20,6 +20,8 @@ env:
   CARGO_NET_RETRY: 10
   # Use the local .curlrc
   CURL_HOME: .
+  # Disable DFX telemetry
+  DFX_TELEMETRY: 'off'
 
 jobs:
   build_dfx:
@@ -36,7 +38,7 @@ jobs:
             binary_path: target/x86_64-apple-darwin/release
             name: x86_64-darwin
             tar: gtar
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             binary_path: target/x86_64-unknown-linux-gnu/release
             name: x86_64-linux
@@ -86,7 +88,7 @@ jobs:
       - name: Check dynamically-linked libraries (ubuntu)
         run: |
           ACTUAL="$(ldd ${{ matrix.binary_path }}/dfx | awk '{ print $1 }' | sort | awk -v d=" " '{s=(NR==1?s:s d)$0}END{printf "%s",s}')"
-          EXPECTED="/lib64/ld-linux-x86-64.so.2 libc.so.6 libdl.so.2 libgcc_s.so.1 libm.so.6 libpthread.so.0 libstdc++.so.6 linux-vdso.so.1"
+          EXPECTED="/lib64/ld-linux-x86-64.so.2 libc.so.6 libgcc_s.so.1 libm.so.6 libstdc++.so.6 linux-vdso.so.1"
           echo "Dynamically-linked libraries:"
           echo "  Actual:   $ACTUAL"
           echo "  Expected: $EXPECTED"
