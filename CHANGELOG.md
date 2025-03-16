@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### feat: Make integration
+
+* Flags `--no-compile` and `--no-deps`
+
+* Command `rules` that outputs time-efficient GNU Make rules.
+
 ### feat!: `dfx start` uses `--pocketic` by default
 
 As [announced](https://forum.dfinity.org/t/dfx-replacing-the-local-replica-with-pocketic/40167) `dfx start` now runs PocketIC by default.
@@ -35,6 +41,7 @@ Implement `dfx ledger approve` and `dfx ledger transfer-from` subcommands that c
 ### feat: Add `dfx ledger allowance` subcommand
 
 Implement `dfx ledger allowance` subcommand that complies with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
+>>>>>>> upstream/master
 
 # 0.25.1
 
