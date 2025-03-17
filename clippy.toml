@@ -3,6 +3,3 @@ too-many-arguments-threshold = 16
 [[disallowed-types]]
 path = "indicatif::ProgressBar"
 reason = "use env.new_spinner() for log compatibility"
-
-[[disallowed-methods]]
-path = "dfx_core::config::model::network_descriptor::NetworkDescriptor"
