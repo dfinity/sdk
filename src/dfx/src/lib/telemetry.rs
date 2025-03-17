@@ -176,11 +176,10 @@ impl Telemetry {
 
     pub fn maybe_publish() -> DfxResult {
         try_with_telemetry(|telemetry| {
-            if telemetry.publish {
-                if Self::check_send_time()? || Self::check_file_size()? {
-                    Self::launch_publisher()?;
-                }
+            if telemetry.publish && (Self::check_send_time()? || Self::check_file_size()?) {
+                Self::launch_publisher()?;
             }
+
             Ok(())
         })
     }
@@ -266,7 +265,7 @@ impl Telemetry {
     fn read_send_time(path: &Path) -> DfxResult<NaiveDateTime> {
         let send_time = fs::read_to_string(path)?;
         let send_time = send_time.trim();
-        let send_time = NaiveDateTime::parse_from_str(&send_time, "%Y-%m-%d %H:%M:%S")
+        let send_time = NaiveDateTime::parse_from_str(send_time, "%Y-%m-%d %H:%M:%S")
             .with_context(|| format!("failed to parse send time: {:?}", send_time))?;
         Ok(send_time)
     }
@@ -351,7 +350,7 @@ impl Telemetry {
 
         let results = batches
             .iter()
-            .map(|batch| Self::transmit_batch(&batch, url))
+            .map(|batch| Self::transmit_batch(batch, url))
             .collect::<Vec<_>>();
 
         // return the first error, or Ok
@@ -376,11 +375,11 @@ impl Telemetry {
                 .post(url.as_str())
                 .body(final_payload.clone())
                 .send()
-                .map_err(|e| backoff::Error::transient(e))
+                .map_err(backoff::Error::transient)
                 .and_then(|response| {
                     response
                         .error_for_status()
-                        .map_err(|e| backoff::Error::transient(e))
+                        .map_err(backoff::Error::transient)
                 })
                 .map(|_| ())
         };
