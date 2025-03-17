@@ -145,25 +145,25 @@ impl Telemetry {
 
     pub fn set_network(network: &NetworkDescriptor) {
         with_telemetry(|telemetry| {
-            telemetry.network_type = Some(if network.is_ic {
-                NetworkType::Ic
-            } else {
-                match network.r#type {
-                    NetworkTypeDescriptor::Ephemeral { .. } => {
-                        if let Some(local) = &network.local_server_descriptor {
-                            match &local.scope {
-                                LocalNetworkScopeDescriptor::Project => NetworkType::ProjectLocal,
-                                LocalNetworkScopeDescriptor::Shared { .. } => {
-                                    NetworkType::LocalShared
-                                }
-                            }
-                        } else {
-                            NetworkType::UnknownUrl
+            telemetry.network_type = Some(match network.r#type {
+                NetworkTypeDescriptor::Ephemeral { .. } => {
+                    if let Some(local) = &network.local_server_descriptor {
+                        match &local.scope {
+                            LocalNetworkScopeDescriptor::Project => NetworkType::ProjectLocal,
+                            LocalNetworkScopeDescriptor::Shared { .. } => NetworkType::LocalShared,
                         }
+                    } else {
+                        NetworkType::UnknownUrl
                     }
-                    NetworkTypeDescriptor::Persistent => NetworkType::UnknownConfigured,
-                    NetworkTypeDescriptor::Playground { .. } => NetworkType::Playground,
                 }
+                NetworkTypeDescriptor::Persistent => {
+                    if network.is_ic {
+                        NetworkType::Ic
+                    } else {
+                        NetworkType::UnknownConfigured
+                    }
+                }
+                NetworkTypeDescriptor::Playground { .. } => NetworkType::Playground,
             })
         });
     }

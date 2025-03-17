@@ -47,7 +47,7 @@ teardown() {
     assert_eq local
 }
 
-@test "telemetry is collected" {
+@test "command-line args are collected" {
     local expected_platform log n
     case "$(uname)" in
     Darwin) expected_platform=macos;;
@@ -84,4 +84,70 @@ teardown() {
     done
     wait
     assert_command jq -se '.[-101:-1] | all(.command == "identity get-principal") and length == 100' "$log"
+}
+
+@test "the last replica error is collected" {
+    local log wallet
+    log=$(dfx info telemetry-log-path)
+    # explicit call
+    dfx_start
+    assert_command_fail dfx canister call ryjl3-tyaaa-aaaaa-aaaba-cai name
+    assert_command jq -se 'last | .replica_error_call_site == "name" and .replica_error_code == "IC0301"' "$log"
+    # implicit call
+    wallet=$(dfx identity get-wallet)
+    dfx canister stop "$wallet"
+    dfx canister delete "$wallet" --no-withdrawal -y
+    assert_command_fail dfx canister create e2e_project_backend
+    assert_command jq -se 'last | .replica_error_call_site == "wallet_api_version" and .replica_error_code == "IC0301"' "$log"
+}
+
+@test "network information is collected" {
+    local log
+    log=$(dfx info telemetry-log-path)
+    dfx_start
+    dfx identity get-wallet
+    assert_command jq -se 'last.network_type == "local-shared"' "$log"
+    assert_command_fail dfx identity get-wallet --ic
+    assert_command jq -se 'last.network_type == "ic"' "$log"
+    setup_actuallylocal_project_network
+    dfx identity get-wallet --network actuallylocal
+    assert_command jq -se 'last.network_type == "unknown-configured"' "$log"
+    setup_ephemeral_project_network
+    dfx identity get-wallet --network ephemeral
+    assert_command jq -se 'last.network_type == "project-local"' "$log"
+    assert_command_fail dfx identity get-wallet --playground
+    assert_command jq -se 'last.network_type == "playground"' "$log"
+    assert_command_fail dfx identity get-wallet --network "https://example.com"
+    assert_command jq -se 'last.network_type == "unknown-url"' "$log"
+}
+
+@test "project structure is collected" {
+    local log
+    log=$(dfx info telemetry-log-path)
+    dfx_start
+    dfx deploy
+    assert_command jq -se 'last.project_canisters == [{type: "motoko"}]' "$log" 
+    dfx_new_frontend
+    dfx deploy
+    assert_command jq -se 'last.project_canisters | sort_by(.type) == [{type: "assets"}, {type: "motoko"}]' "$log"
+    install_asset deps/app
+    dfx deploy || true
+    assert_command jq -se 'last.project_canisters | sort_by(.type) == [{type: "motoko"}, {type: "pull"}, {type: "pull"}]' "$log"
+}
+
+@test "sender information is collected" {
+    local log
+    log=$(dfx info telemetry-log-path)
+    dfx_start
+    dfx canister create --all
+    assert_command jq -se 'last | .cycles_host == "cycles-wallet" and .identity_type == "plaintext"' "$log"
+    dfx canister delete --all -y
+    (
+        export DFX_CI_MOCK_KEYRING_LOCATION="$MOCK_KEYRING_LOCATION";
+        dfx identity new alice
+        dfx canister create --all --no-wallet --identity alice
+    )
+    assert_command jq -se 'last | .cycles_host == null and .identity_type == "keyring"' "$log"
+    dfx cycles balance --ic --identity anonymous
+    assert_command jq -se 'last | .cycles_host == "cycles-ledger" and .identity_type == "anonymous"' "$log"
 }
