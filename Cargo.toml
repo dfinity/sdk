@@ -25,11 +25,11 @@ needless_lifetimes = "allow"
 candid = "0.10.11"
 candid_parser = "0.1.4"
 dfx-core = { path = "src/dfx-core", version = "0.1.0" }
-ic-agent = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "008c7025dbed68ad40448d0d02644498a13e16cb" }
+ic-agent = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "7752c33016f708fb84b56ff99d91a7c380a8b550" }
 ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.22.0" }
 ic-cdk = "0.13.1"
-ic-identity-hsm = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "008c7025dbed68ad40448d0d02644498a13e16cb" }
-ic-utils = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "008c7025dbed68ad40448d0d02644498a13e16cb" }
+ic-identity-hsm = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "7752c33016f708fb84b56ff99d91a7c380a8b550" }
+ic-utils = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "7752c33016f708fb84b56ff99d91a7c380a8b550" }
 
 aes-gcm = "0.10.3"
 anyhow = "1.0.56"
