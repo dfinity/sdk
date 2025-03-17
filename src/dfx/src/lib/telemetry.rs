@@ -212,13 +212,14 @@ impl Telemetry {
         Ok(())
     }
 
+    // look at telemetry/telemetry.log file size to see if it's time to send
     fn check_file_size() -> DfxResult<bool> {
         let path = Self::get_log_path()?;
         let filesize = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
         Ok(filesize >= SEND_SIZE_THRESHOLD_BYTES)
     }
 
-    /// Look at telemetry/send-time.txt to see if it's time to send
+    // Look at telemetry/send-time.txt to see if it's time to send
     #[context("failed to check send trigger")]
     fn check_send_time() -> DfxResult<bool> {
         let send_time_path = Self::get_send_time_path()?;
@@ -348,17 +349,11 @@ impl Telemetry {
             eprintln!("  {:?}", batch);
         }
 
-        let results = batches
+        batches
             .iter()
             .map(|batch| Self::transmit_batch(batch, url))
-            .collect::<Vec<_>>();
-
-        // return the first error, or Ok
-        let x = results.into_iter().find_map(|r| r.err());
-        match x {
-            Some(e) => Err(e),
-            None => Ok(()),
-        }
+            .find_map(Result::err)
+            .map_or(Ok(()), Err)
     }
 
     fn transmit_batch(batch: &Uuid, url: &Url) -> DfxResult {
