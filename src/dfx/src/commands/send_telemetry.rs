@@ -3,7 +3,7 @@ use crate::lib::telemetry::Telemetry;
 use clap::Parser;
 use url::Url;
 
-const DEFAULT_URL: &str = "https://telemetry.dfinity.org";
+const DEFAULT_URL: &str = "https://sdk.telemetry.dfinity.network";
 
 #[derive(Parser)]
 #[command(hide = true)]

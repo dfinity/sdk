@@ -160,6 +160,7 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
 
     let _ = Telemetry::set_command_and_arguments(&args);
     Telemetry::set_platform();
+    Telemetry::set_week();
 
     let cli_opts = CliOpts::parse_from(args);
 

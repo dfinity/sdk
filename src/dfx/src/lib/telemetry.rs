@@ -4,7 +4,7 @@ use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::CliOpts;
 use anyhow::Context;
-use chrono::{Local, NaiveDateTime};
+use chrono::{Datelike, Local, NaiveDateTime};
 use clap::parser::ValueSource;
 use clap::{ArgMatches, Command, CommandFactory};
 use dfx_core::config::directories::project_dirs;
@@ -30,6 +30,8 @@ use super::environment::Environment;
 
 static TELEMETRY: OnceLock<Option<Mutex<Telemetry>>> = OnceLock::new();
 
+const SEND_SIZE_THRESHOLD_BYTES: u64 = 256 * 1024;
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "kebab-case")]
 enum ArgumentSource {
@@ -50,6 +52,7 @@ pub struct Telemetry {
     arguments: Vec<Argument>,
     elapsed: Option<Duration>,
     platform: String,
+    week: Option<String>,
     publish: bool,
 }
 
@@ -117,6 +120,14 @@ impl Telemetry {
         });
     }
 
+    pub fn set_week() {
+        with_telemetry(|telemetry| {
+            let iso_week = Local::now().naive_local().iso_week();
+            let week = format!("{:04}-{:02}", iso_week.year(), iso_week.week());
+            telemetry.week = Some(week);
+        });
+    }
+
     pub fn set_elapsed(elapsed: Duration) {
         with_telemetry(|telemetry| {
             telemetry.elapsed = Some(elapsed);
@@ -147,6 +158,7 @@ impl Telemetry {
                 command: &telemetry.command,
                 platform: &telemetry.platform,
                 parameters: &telemetry.arguments,
+                week: telemetry.week.as_deref(),
                 exit_code,
                 execution_time_ms: telemetry.elapsed.map(|e| e.as_millis()),
                 replica_error_call_site: None,
@@ -165,8 +177,7 @@ impl Telemetry {
     pub fn maybe_publish() -> DfxResult {
         try_with_telemetry(|telemetry| {
             if telemetry.publish {
-                // todo: see if telemetry.log exceeds some size, and if so, send it
-                if Self::check_send_trigger()? {
+                if Self::check_send_time()? || Self::check_file_size()? {
                     Self::launch_publisher()?;
                 }
             }
@@ -202,9 +213,15 @@ impl Telemetry {
         Ok(())
     }
 
-    /// See if it's time to send telemetry data.
+    fn check_file_size() -> DfxResult<bool> {
+        let path = Self::get_log_path()?;
+        let filesize = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+        Ok(filesize >= SEND_SIZE_THRESHOLD_BYTES)
+    }
+
+    /// Look at telemetry/send-time.txt to see if it's time to send
     #[context("failed to check send trigger")]
-    pub fn check_send_trigger() -> DfxResult<bool> {
+    fn check_send_time() -> DfxResult<bool> {
         let send_time_path = Self::get_send_time_path()?;
 
         let file = match OpenOptions::new().read(true).open(&send_time_path) {
@@ -445,6 +462,7 @@ struct CommandRecord<'a> {
     version: &'a Version,
     command: &'a str,
     platform: &'a str,
+    week: Option<&'a str>,
     parameters: &'a [Argument],
     exit_code: i32,
     execution_time_ms: Option<u128>,
