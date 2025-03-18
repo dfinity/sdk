@@ -4,6 +4,7 @@ use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::CliOpts;
 use anyhow::Context;
+use candid::Principal;
 use clap::parser::ValueSource;
 use clap::{ArgMatches, Command, CommandFactory};
 use dfx_core::config::directories::project_dirs;
@@ -57,6 +58,7 @@ pub struct Telemetry {
     cycles_host: Option<CyclesHost>,
     canisters: Option<Vec<CanisterRecord>>,
     network_type: Option<NetworkType>,
+    whitelisted_canisters: Vec<Principal>,
 }
 
 impl Telemetry {
@@ -143,28 +145,28 @@ impl Telemetry {
         with_telemetry(|telemetry| telemetry.canisters = Some(canisters));
     }
 
+    pub fn whitelist_canisters(canisters: &[Principal]) {
+        with_telemetry(|telemetry| telemetry.whitelisted_canisters.extend_from_slice(canisters));
+    }
+
     pub fn set_network(network: &NetworkDescriptor) {
         with_telemetry(|telemetry| {
-            telemetry.network_type = Some(match network.r#type {
-                NetworkTypeDescriptor::Ephemeral { .. } => {
-                    if let Some(local) = &network.local_server_descriptor {
-                        match &local.scope {
-                            LocalNetworkScopeDescriptor::Project => NetworkType::ProjectLocal,
-                            LocalNetworkScopeDescriptor::Shared { .. } => NetworkType::LocalShared,
-                        }
-                    } else {
-                        NetworkType::UnknownUrl
+            telemetry.network_type = Some(
+                if let NetworkTypeDescriptor::Playground { .. } = &network.r#type {
+                    NetworkType::Playground
+                } else if network.is_ic {
+                    NetworkType::Ic
+                } else if let Some(local) = &network.local_server_descriptor {
+                    match &local.scope {
+                        LocalNetworkScopeDescriptor::Project => NetworkType::ProjectLocal,
+                        LocalNetworkScopeDescriptor::Shared { .. } => NetworkType::LocalShared,
                     }
-                }
-                NetworkTypeDescriptor::Persistent => {
-                    if network.is_ic {
-                        NetworkType::Ic
-                    } else {
-                        NetworkType::UnknownConfigured
-                    }
-                }
-                NetworkTypeDescriptor::Playground { .. } => NetworkType::Playground,
-            })
+                } else if network.is_ad_hoc {
+                    NetworkType::UnknownUrl
+                } else {
+                    NetworkType::UnknownConfigured
+                },
+            )
         });
     }
 
@@ -188,7 +190,13 @@ impl Telemetry {
         try_with_telemetry(|telemetry| {
             let reject = telemetry.last_reject.as_ref();
             let call_site = telemetry.last_operation.as_ref().map(|o| match o {
-                Operation::Call { method, .. } => method,
+                Operation::Call { method, canister } => {
+                    if telemetry.whitelisted_canisters.contains(canister) {
+                        method
+                    } else {
+                        "<user-specified canister method>"
+                    }
+                }
                 Operation::ReadState { .. } | Operation::ReadSubnetState { .. } => "/read_state",
             });
             let record = CommandRecord {

@@ -126,6 +126,7 @@ walkdir.workspace = true
 walrus = "0.21.1"
 which = "4.2.5"
 ci_info = "0.14"
+once_cell = "1.21.1"
 
 [target.'cfg(windows)'.dependencies]
 junction = "1.0.0"
