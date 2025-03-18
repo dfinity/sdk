@@ -32,5 +32,5 @@ pub enum ComputeEvidenceError {
 
     /// Failed to list assets in the asset canister.
     #[error("Failed to list assets: {0}")]
-    ListAssets(AgentError),
+    ListAssets(#[source] AgentError),
 }

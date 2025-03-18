@@ -7,11 +7,11 @@ use thiserror::Error;
 pub enum PrepareSyncForProposalError {
     /// Failed while requesting that the asset canister compute evidence.
     #[error("Failed to compute evidence: {0}")]
-    ComputeEvidence(AgentError),
+    ComputeEvidence(#[source] AgentError),
 
     /// Failed while calling propose_commit_batch.
     #[error("Failed to propose batch to commit: {0}")]
-    ProposeCommitBatch(AgentError),
+    ProposeCommitBatch(#[source] AgentError),
 
     /// Failed while uploading content for synchronization.
     #[error(transparent)]

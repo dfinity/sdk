@@ -6,5 +6,5 @@ use thiserror::Error;
 pub enum GetAssetPropertiesError {
     /// The call to get_asset_properties failed.
     #[error("Failed to get asset properties for {0}: {1}")]
-    GetAssetPropertiesFailed(String, AgentError),
+    GetAssetPropertiesFailed(String, #[source] AgentError),
 }
