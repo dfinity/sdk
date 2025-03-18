@@ -101,6 +101,16 @@ module {
     aux: ?schnorr_aux;
   };
   public type sign_with_schnorr_result = { signature : Blob };
+  public type vetkd_curve = {
+    #bls12_381_g2;
+  };
+  public type vetkd_derive_key_args = {
+    input : Blob;
+    context : Blob;
+    transport_public_key : Blob;
+    key_id : { curve : vetkd_curve; name : Text };
+  };
+  public type vetkd_derive_key_result = { encrypted_key : Blob };
   public type user_id = Principal;
   public type wasm_module = Blob;
   public type Self = actor {
@@ -133,6 +143,7 @@ module {
     raw_rand : shared () -> async Blob;
     sign_with_ecdsa : shared sign_with_ecdsa_args -> async sign_with_ecdsa_result;
     sign_with_schnorr : shared sign_with_schnorr_args -> async sign_with_schnorr_result;
+    vetkd_derive_key : shared vetkd_derive_key_args -> async vetkd_derive_key_result;
     start_canister : shared { canister_id : canister_id } -> async ();
     stop_canister : shared { canister_id : canister_id } -> async ();
     uninstall_code : shared { canister_id : canister_id } -> async ();
