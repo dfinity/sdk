@@ -10,5 +10,5 @@ pub enum LoadRuleError {
 
     /// The glob pattern was not valid.
     #[error("{0} is not a valid glob pattern: {1}")]
-    InvalidGlobPattern(String, globset::Error),
+    InvalidGlobPattern(String, #[source] globset::Error),
 }

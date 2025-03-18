@@ -12,11 +12,11 @@ pub enum AssetLoadConfigError {
 
     /// Failed to load a rule from the asset configuration file.
     #[error("Failed to load rule in {0}: {1}")]
-    LoadRuleFailed(PathBuf, LoadRuleError),
+    LoadRuleFailed(PathBuf, #[source] LoadRuleError),
 
     /// An asset configuration file was not valid JSON5.
     #[error("Malformed JSON asset config file '{0}': {1}")]
-    MalformedAssetConfigFile(PathBuf, json5::Error),
+    MalformedAssetConfigFile(PathBuf, #[source] json5::Error),
 
     /// both `assets.json` and `assets.json5` files exist in the same directory.
     #[error("both {} and {} files exist in the same directory (dir = {:?})",

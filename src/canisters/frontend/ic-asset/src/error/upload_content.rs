@@ -11,11 +11,11 @@ use super::AssembleCommitBatchArgumentError;
 pub enum UploadContentError {
     /// Failed when assembling commit_batch argument.
     #[error("Failed to assemble commit_batch argument: {0}")]
-    AssembleCommitBatchArgumentFailed(AssembleCommitBatchArgumentError),
+    AssembleCommitBatchArgumentFailed(#[source] AssembleCommitBatchArgumentError),
 
     /// Failed when calling create_batch.
     #[error("Failed to create batch: {0}")]
-    CreateBatchFailed(AgentError),
+    CreateBatchFailed(#[source] AgentError),
 
     /// Failed when creating project assets.
     #[error("Failed to create project asset: {0}")]
@@ -31,5 +31,5 @@ pub enum UploadContentError {
 
     /// Failed when calling the list method.
     #[error("Failed to list assets: {0}")]
-    ListAssetsFailed(AgentError),
+    ListAssetsFailed(#[source] AgentError),
 }

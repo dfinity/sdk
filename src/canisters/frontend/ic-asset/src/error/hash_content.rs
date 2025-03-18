@@ -7,7 +7,7 @@ use thiserror::Error;
 pub enum HashContentError {
     /// Failed to encode the content in order to compute the hash.
     #[error("Failed to encode content of '{0}' with {1} encoding: {2}")]
-    EncodeContentFailed(String, ContentEncoder, std::io::Error),
+    EncodeContentFailed(String, ContentEncoder, #[source] std::io::Error),
 
     /// Failed to load asset content from the filesystem.
     #[error("failed to load content")]

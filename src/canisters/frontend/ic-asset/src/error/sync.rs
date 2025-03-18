@@ -8,7 +8,7 @@ use thiserror::Error;
 pub enum SyncError {
     /// Failed when calling commit_batch
     #[error("Failed to commit batch: {0}")]
-    CommitBatchFailed(AgentError),
+    CommitBatchFailed(#[source] AgentError),
 
     /// Failed when trying to work with an older asset canister.
     #[error(transparent)]

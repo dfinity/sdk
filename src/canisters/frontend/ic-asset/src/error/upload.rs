@@ -9,7 +9,7 @@ use thiserror::Error;
 pub enum UploadError {
     /// Failed when calling commit_batch.
     #[error("Commit batch failed: {0}")]
-    CommitBatchFailed(AgentError),
+    CommitBatchFailed(#[source] AgentError),
 
     /// Failure when trying to work with an older asset canister.
     #[error(transparent)]
@@ -17,7 +17,7 @@ pub enum UploadError {
 
     /// Failed when calling create_batch.
     #[error("Create batch failed: {0}")]
-    CreateBatchFailed(AgentError),
+    CreateBatchFailed(#[source] AgentError),
 
     /// Failed when assembling commit_batch argument.
     #[error("Failed to assemble commit_batch argument: {0}")]
@@ -29,5 +29,5 @@ pub enum UploadError {
 
     /// Failed when calling the list method.
     #[error("List assets failed: {0}")]
-    ListAssetsFailed(AgentError),
+    ListAssetsFailed(#[source] AgentError),
 }
