@@ -189,11 +189,9 @@ impl Telemetry {
         let mut exe = std::env::current_exe()?;
         let mut cmd = std::process::Command::new(exe);
         cmd.arg("_send-telemetry")
-            .arg("--url") // todo remove
-            .arg("http://localhost:1080") // todo remove
-            .stdin(Stdio::null()) // Prevents inheriting stdin
-            .stdout(Stdio::null()) // Prevents inheriting stdout
-            .stderr(Stdio::null()); // Prevents inheriting stderr
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
 
         #[cfg(unix)]
         {
