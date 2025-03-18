@@ -12,7 +12,7 @@ pub enum EncryptionError {
     HashPasswordFailed(#[source] argon2::password_hash::Error),
 
     #[error("Failed to generate nonce: {0}")]
-    NonceGenerationFailed(ring::error::Unspecified),
+    NonceGenerationFailed(#[source] ring::error::Unspecified),
 
     #[error("Failed to read user input")]
     ReadUserPasswordFailed(#[source] dialoguer::Error),
