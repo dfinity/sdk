@@ -197,6 +197,7 @@ fn main() {
     let result = inner_main(&mut log_level);
 
     let exit_code = if let Err(err) = result {
+        Telemetry::set_error(&err);
         let error_diagnosis = diagnose(&err);
         print_error_and_diagnosis(log_level, err, error_diagnosis);
         255

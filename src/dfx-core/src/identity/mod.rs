@@ -77,6 +77,8 @@ pub struct Identity {
 
     /// Inner implementation of this identity.
     inner: Box<dyn ic_agent::Identity + Sync + Send>,
+
+    identity_type: IdentityType,
 }
 
 impl Identity {
@@ -85,13 +87,14 @@ impl Identity {
             name: ANONYMOUS_IDENTITY_NAME.to_string(),
             inner: Box::new(AnonymousIdentity {}),
             insecure: false,
+            identity_type: IdentityType::Anonymous,
         }
     }
 
     fn basic(
         name: &str,
         pem_content: &[u8],
-        was_encrypted: bool,
+        identity_type: IdentityType,
     ) -> Result<Self, LoadPemIdentityError> {
         let inner = Box::new(
             BasicIdentity::from_pem(pem_content)
@@ -101,14 +104,15 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
-            insecure: !was_encrypted,
+            insecure: identity_type == IdentityType::Plaintext,
+            identity_type,
         })
     }
 
     fn secp256k1(
         name: &str,
         pem_content: &[u8],
-        was_encrypted: bool,
+        identity_type: IdentityType,
     ) -> Result<Self, LoadPemIdentityError> {
         let inner = Box::new(
             Secp256k1Identity::from_pem(pem_content)
@@ -118,7 +122,8 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
-            insecure: !was_encrypted,
+            insecure: identity_type == IdentityType::Plaintext,
+            identity_type,
         })
     }
 
@@ -139,6 +144,7 @@ impl Identity {
             name: name.to_string(),
             inner,
             insecure: false,
+            identity_type: IdentityType::Hsm,
         })
     }
 
@@ -151,11 +157,11 @@ impl Identity {
         if let Some(hsm) = config.hsm {
             Identity::hardware(name, hsm).map_err(NewIdentityError::NewHardwareIdentityFailed)
         } else {
-            let (pem_content, was_encrypted) =
+            let (pem_content, identity_type) =
                 pem_safekeeping::load_pem(log, locations, name, &config)
                     .map_err(NewIdentityError::LoadPemFailed)?;
-            Identity::secp256k1(name, &pem_content, was_encrypted)
-                .or_else(|e| Identity::basic(name, &pem_content, was_encrypted).map_err(|_| e))
+            Identity::secp256k1(name, &pem_content, identity_type)
+                .or_else(|e| Identity::basic(name, &pem_content, identity_type).map_err(|_| e))
                 .map_err(NewIdentityError::LoadPemIdentityFailed)
         }
     }
@@ -164,6 +170,10 @@ impl Identity {
     #[allow(dead_code)]
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn identity_type(&self) -> IdentityType {
+        self.identity_type
     }
 
     /// Logs all wallets that are configured in a WalletGlobalConfig.
@@ -302,6 +312,16 @@ impl AsRef<Identity> for Identity {
     fn as_ref(&self) -> &Identity {
         self
     }
+}
+
+#[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum IdentityType {
+    Keyring,
+    Plaintext,
+    EncryptedLocal,
+    Hsm,
+    Anonymous,
 }
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]

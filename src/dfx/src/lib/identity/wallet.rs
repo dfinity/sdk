@@ -99,11 +99,15 @@ pub async fn create_wallet(
         .with_mode(InstallMode::Install)
         .await
     {
-        Err(AgentError::CertifiedReject(RejectResponse {
-            reject_code: RejectCode::CanisterError,
-            reject_message,
+        Err(AgentError::CertifiedReject {
+            reject:
+                RejectResponse {
+                    reject_code: RejectCode::CanisterError,
+                    reject_message,
+                    ..
+                },
             ..
-        })) if reject_message.contains("not empty") => {
+        }) if reject_message.contains("not empty") => {
             bail!(
                 r#"The wallet canister "{canister_id}" already exists for user "{name}" on "{}" network."#,
                 network.name

@@ -13,6 +13,7 @@ use crate::lib::operations::canister::create_canister::{
     CANISTER_CREATE_FEE, CANISTER_INITIAL_CYCLE_BALANCE,
 };
 use crate::lib::retryable::retryable;
+use crate::lib::telemetry::{CyclesHost, Telemetry};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use backoff::future::retry;
@@ -316,6 +317,7 @@ pub async fn create_with_cycles_ledger(
     created_at_time: Option<u64>,
     subnet_selection: &mut SubnetSelectionType,
 ) -> DfxResult<Principal> {
+    Telemetry::set_cycles_host(CyclesHost::CyclesLedger);
     let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
     let resolved_subnet_selection = subnet_selection.resolve(env).await?;
     let created_at_time = created_at_time.or_else(|| {
