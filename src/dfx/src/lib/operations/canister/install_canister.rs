@@ -42,7 +42,7 @@ use super::motoko_playground::playground_install_code;
 #[context("Failed to install wasm module to canister '{}'.", canister_info.get_name())]
 pub async fn install_canister(
     env: &dyn Environment,
-    canister_id_store: &mut CanisterIdStore,
+    canister_id_store: &CanisterIdStore,
     canister_id: Principal,
     canister_info: &CanisterInfo,
     wasm_path_override: Option<&Path>,

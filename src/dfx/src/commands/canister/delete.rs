@@ -95,12 +95,9 @@ async fn delete_canister(
     initial_margin: Option<u128>,
 ) -> DfxResult {
     let log = env.get_logger();
-    let mut canister_id_store = env.get_canister_id_store()?;
+    let canister_id_store = env.get_canister_id_store()?;
     let (canister_id, canister_name_to_delete) = match Principal::from_text(canister) {
-        Ok(canister_id) => (
-            canister_id,
-            canister_id_store.get_name_in_project(canister).cloned(),
-        ),
+        Ok(canister_id) => (canister_id, canister_id_store.get_name_in_project(canister)),
         Err(_) => (canister_id_store.get(canister)?, Some(canister.to_string())),
     };
 
