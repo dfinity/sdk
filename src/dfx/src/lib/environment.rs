@@ -18,6 +18,7 @@ use dfx_core::identity::identity_manager::{IdentityManager, InitializeIdentity};
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use indicatif::MultiProgress;
+use once_cell::sync::OnceCell;
 use pocket_ic::nonblocking::PocketIc;
 use semver::Version;
 use slog::{Logger, Record};
@@ -85,13 +86,7 @@ pub trait Environment {
 
     fn get_extension_manager(&self) -> &ExtensionManager;
 
-    fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
-        CanisterIdStore::new(
-            self.get_logger(),
-            self.get_network_descriptor(),
-            self.get_config()?,
-        )
-    }
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError>;
 }
 
 pub enum ProjectConfig {
@@ -104,6 +99,7 @@ pub struct EnvironmentImpl {
     project_config: RefCell<ProjectConfig>,
     shared_networks_config: Arc<NetworksConfig>,
     tool_config: Arc<Mutex<ToolConfig>>,
+    canister_id_store: OnceCell<CanisterIdStore>,
 
     cache: VersionCache,
 
@@ -130,6 +126,7 @@ impl EnvironmentImpl {
             cache: VersionCache::with_version(&version),
             project_config: RefCell::new(ProjectConfig::NotLoaded),
             shared_networks_config: Arc::new(shared_networks_config),
+            canister_id_store: OnceCell::new(),
             tool_config: Arc::new(Mutex::new(tool_config)),
             version: version.clone(),
             logger: None,
@@ -240,6 +237,16 @@ impl Environment for EnvironmentImpl {
         self.get_config()?.ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
+    }
+
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
+        self.canister_id_store.get_or_try_init(|| {
+            CanisterIdStore::new(
+                self.get_logger(),
+                self.get_network_descriptor(),
+                self.get_config()?,
+            )
+        })
     }
 
     fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
@@ -425,6 +432,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
         ))
     }
 
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
+        self.backend.get_canister_id_store()
+    }
+
     fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
         self.backend.get_project_temp_dir()
     }
@@ -530,7 +541,7 @@ pub mod test_env {
         fn get_cache(&self) -> VersionCache {
             unimplemented!()
         }
-        fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
+        fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
             unimplemented!()
         }
         fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {

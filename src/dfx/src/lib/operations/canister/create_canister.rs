@@ -51,7 +51,7 @@ pub async fn create_canister(
     let config = env.get_config_or_anyhow()?;
     let config_interface = config.get_config();
 
-    let mut canister_id_store = env.get_canister_id_store()?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let network_name = get_network_context()?;
 
