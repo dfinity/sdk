@@ -1,5 +1,6 @@
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::telemetry::Telemetry;
 use crate::util::assets::wallet_wasm;
 use crate::Environment;
 use anyhow::{bail, Context};
@@ -59,7 +60,10 @@ pub async fn get_or_create_wallet(
                 })
             }
         }
-        Some(principal) => Ok(principal),
+        Some(principal) => {
+            Telemetry::whitelist_canisters(&[principal]);
+            Ok(principal)
+        }
     }
 }
 
@@ -93,6 +97,8 @@ pub async fn create_wallet(
                 .0
         }
     };
+
+    Telemetry::whitelist_canisters(&[canister_id]);
 
     match mgr
         .install_code(&canister_id, wasm.as_slice())

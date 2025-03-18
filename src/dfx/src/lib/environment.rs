@@ -99,7 +99,6 @@ pub struct EnvironmentImpl {
     project_config: RefCell<ProjectConfig>,
     shared_networks_config: Arc<NetworksConfig>,
     tool_config: Arc<Mutex<ToolConfig>>,
-    canister_id_store: OnceCell<CanisterIdStore>,
 
     cache: VersionCache,
 
@@ -126,7 +125,6 @@ impl EnvironmentImpl {
             cache: VersionCache::with_version(&version),
             project_config: RefCell::new(ProjectConfig::NotLoaded),
             shared_networks_config: Arc::new(shared_networks_config),
-            canister_id_store: OnceCell::new(),
             tool_config: Arc::new(Mutex::new(tool_config)),
             version: version.clone(),
             logger: None,
@@ -240,13 +238,7 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
-        self.canister_id_store.get_or_try_init(|| {
-            CanisterIdStore::new(
-                self.get_logger(),
-                self.get_network_descriptor(),
-                self.get_config()?,
-            )
-        })
+        unreachable!("Canister ID store only available from an AgentEnvironment");
     }
 
     fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
@@ -331,6 +323,7 @@ pub struct AgentEnvironment<'a> {
     network_descriptor: NetworkDescriptor,
     identity_manager: IdentityManager,
     effective_canister_id: Option<Principal>,
+    canister_id_store: OnceCell<CanisterIdStore>,
 }
 
 impl<'a> AgentEnvironment<'a> {
@@ -401,6 +394,7 @@ impl<'a> AgentEnvironment<'a> {
             network_descriptor: network_descriptor.clone(),
             identity_manager,
             effective_canister_id,
+            canister_id_store: OnceCell::new(),
         })
     }
 }
@@ -433,7 +427,14 @@ impl<'a> Environment for AgentEnvironment<'a> {
     }
 
     fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
-        self.backend.get_canister_id_store()
+        self.canister_id_store.get_or_try_init(|| {
+            let config = self.get_config()?;
+            let network_descriptor = self.get_network_descriptor();
+            let store =
+                CanisterIdStore::new(self.get_logger(), network_descriptor, config.clone())?;
+            Telemetry::whitelist_all_asset_canisters(config.as_deref(), &store);
+            Ok(store)
+        })
     }
 
     fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {

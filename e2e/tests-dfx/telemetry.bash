@@ -87,18 +87,29 @@ teardown() {
 }
 
 @test "the last replica error is collected" {
+    dfx_new_assets
     local log wallet
     log=$(dfx info telemetry-log-path)
-    # explicit call
+    # explicit call, known canister
     dfx_start
     assert_command_fail dfx canister call ryjl3-tyaaa-aaaaa-aaaba-cai name
     assert_command jq -se 'last | .replica_error_call_site == "name" and .replica_error_code == "IC0301"' "$log"
-    # implicit call
+    # implicit call, wallet canister
     wallet=$(dfx identity get-wallet)
     dfx canister stop "$wallet"
     dfx canister delete "$wallet" --no-withdrawal -y
     assert_command_fail dfx canister create e2e_project_backend
     assert_command jq -se 'last | .replica_error_call_site == "wallet_api_version" and .replica_error_code == "IC0301"' "$log"
+    # call to unknown canister
+    dfx canister create --all --no-wallet
+    assert_command_fail dfx canister call e2e_project_backend greet
+    assert_command jq -se 'last | .replica_error_call_site == "<user-specified canister method>" and .replica_error_code == "IC0537"' "$log"
+    # call to assets canister
+    install_asset wasm
+    dfx build e2e_project_frontend
+    dfx canister install "$(dfx canister id e2e_project_frontend)" --wasm identity/main.wasm
+    assert_command_fail dfx canister install e2e_project_frontend --mode upgrade --no-asset-upgrade -y
+    assert_command jq -se 'last | .replica_error_call_site == "list" and .replica_error_code == "IC0536"' "$log"
 }
 
 @test "network information is collected" {

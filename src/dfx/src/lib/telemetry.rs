@@ -8,8 +8,9 @@ use candid::Principal;
 use clap::parser::ValueSource;
 use clap::{ArgMatches, Command, CommandFactory};
 use dfx_core::config::directories::project_dirs;
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
 use dfx_core::config::model::dfinity::{
-    CanisterTypeProperties, ConfigCanistersCanister, TelemetryState,
+    CanisterTypeProperties, Config, ConfigCanistersCanister, TelemetryState,
 };
 use dfx_core::config::model::local_server_descriptor::LocalNetworkScopeDescriptor;
 use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
@@ -21,6 +22,7 @@ use ic_agent::agent_error::Operation;
 use ic_agent::AgentError;
 use semver::Version;
 use serde::Serialize;
+use std::collections::BTreeSet;
 use std::ffi::OsString;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -58,7 +60,7 @@ pub struct Telemetry {
     cycles_host: Option<CyclesHost>,
     canisters: Option<Vec<CanisterRecord>>,
     network_type: Option<NetworkType>,
-    whitelisted_canisters: Vec<Principal>,
+    whitelisted_canisters: BTreeSet<Principal>,
 }
 
 impl Telemetry {
@@ -146,7 +148,21 @@ impl Telemetry {
     }
 
     pub fn whitelist_canisters(canisters: &[Principal]) {
-        with_telemetry(|telemetry| telemetry.whitelisted_canisters.extend_from_slice(canisters));
+        with_telemetry(|telemetry| telemetry.whitelisted_canisters.extend(canisters));
+    }
+
+    pub fn whitelist_all_asset_canisters(config: Option<&Config>, ids: &CanisterIdStore) {
+        with_telemetry(|telemetry| {
+            if let Some(config) = config {
+                for (name, canister) in config.config.canisters.iter().flatten() {
+                    if let CanisterTypeProperties::Assets { .. } = &canister.type_specific {
+                        if let Ok(canister_id) = ids.get(name) {
+                            telemetry.whitelisted_canisters.insert(canister_id);
+                        }
+                    }
+                }
+            }
+        })
     }
 
     pub fn set_network(network: &NetworkDescriptor) {
