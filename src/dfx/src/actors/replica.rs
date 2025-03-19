@@ -324,6 +324,8 @@ fn replica_start_thread(
             "schnorr:Bip340Secp256k1:dfx_test_key",
             "--chain-key-ids",
             "schnorr:Ed25519:dfx_test_key",
+            "--chain-key-ids",
+            "vetkd:Bls12_381_G2:dfx_test_key",
             "--log-level",
             &config.log_level.to_ic_starter_string(),
             "--use-specified-ids-allocation-range",
