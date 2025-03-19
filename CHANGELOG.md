@@ -36,6 +36,11 @@ Implement `dfx ledger approve` and `dfx ledger transfer-from` subcommands that c
 
 Implement `dfx ledger allowance` subcommand that complies with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
 
+### feat: Enable VetKD for use with `--replica`
+
+- Add VetKD types and methods to management canister IDL
+- The VetKD test key id `Bls12_381_G2:dfx_test_key` is now enabled when starting `dfx` with `--replica`.
+
 ## Dependencies
 
 ### Replica
