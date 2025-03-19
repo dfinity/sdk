@@ -6,6 +6,8 @@
 
 Click the "Run workflow" button on the [Update Replica page](https://github.com/dfinity/sdk/actions/workflows/update-replica-version.yml) workflow.
 
+This will make a create a PR with a comment containing a suggested changelog change. Update the changelog according to the suggestion. See [a sample PR](https://github.com/dfinity/sdk/pull/4155).
+
 Obtain approval and merge the PR.
 
 ### Update the changelog
