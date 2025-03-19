@@ -715,12 +715,6 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
         await* pool.addCycles(caller, #refund);
         res
     };
-    public shared ({ caller }) func vetkd_derive_key(arg: ICType.vetkd_derive_key_args) : async ICType.vetkd_derive_key_result {
-        await* pool.addCycles(caller, #method "vetkd_derive_key");
-        let res = await IC.vetkd_derive_key(arg);
-        await* pool.addCycles(caller, #refund);
-        res
-    };
     public shared ({ caller }) func _ttp_request(request : ICType.http_request_args) : async ICType.http_request_result {
         await* pool.addCycles(caller, #method "http_request");
         let new_request = switch (request.transform) {
@@ -844,7 +838,6 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
             #__transform : Any;
             #sign_with_ecdsa: Any;
             #sign_with_schnorr: Any;
-            #vetkd_derive_key: Any;
             #eth_call: Any;
             #eth_feeHistory: Any;
             #eth_getBlockByNumber: Any;
@@ -870,7 +863,6 @@ shared (creator) actor class Self(opt_params : ?Types.InitParams) = this {
             case (#__transform _) false;
             case (#sign_with_ecdsa _) false;
             case (#sign_with_schnorr _) false;
-            case (#vetkd_derive_key _) false;
             case (#eth_call _) false;
             case (#eth_feeHistory _) false;
             case (#eth_getBlockByNumber _) false;
