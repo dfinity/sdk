@@ -41,6 +41,8 @@ Implement `dfx ledger allowance` subcommand that complies with the [ICRC-2](http
 - Add VetKD types and methods to management canister IDL
 - The VetKD test key id `Bls12_381_G2:dfx_test_key` is now enabled when starting `dfx` with `--replica`.
 
+## Dependencies
+
 ### Replica
 
 Updated replica to elected commit f6f5e0927d14886e4bd67f776ee889f31cec2364.
@@ -49,8 +51,52 @@ This incorporates the following executed proposals:
 - [135836](https://dashboard.internetcomputer.org/proposal/135836)
 - [135697](https://dashboard.internetcomputer.org/proposal/135697)
 - [135696](https://dashboard.internetcomputer.org/proposal/135696)
-- [135601](https://dashboard.internetcomputer.org/proposal/135601)
 - [135600](https://dashboard.internetcomputer.org/proposal/135600)
+- [135601](https://dashboard.internetcomputer.org/proposal/135601)
+- [135422](https://dashboard.internetcomputer.org/proposal/135422)
+- [135421](https://dashboard.internetcomputer.org/proposal/135421)
+- [135302](https://dashboard.internetcomputer.org/proposal/135302)
+- [135301](https://dashboard.internetcomputer.org/proposal/135301)
+- [135204](https://dashboard.internetcomputer.org/proposal/135204)
+- [135203](https://dashboard.internetcomputer.org/proposal/135203)
+- [135052](https://dashboard.internetcomputer.org/proposal/135052)
+- [135051](https://dashboard.internetcomputer.org/proposal/135051)
+- [134967](https://dashboard.internetcomputer.org/proposal/134967)
+- [134966](https://dashboard.internetcomputer.org/proposal/134966)
+- [134900](https://dashboard.internetcomputer.org/proposal/134900)
+- [134773](https://dashboard.internetcomputer.org/proposal/134773)
+- [134684](https://dashboard.internetcomputer.org/proposal/134684)
+- [134663](https://dashboard.internetcomputer.org/proposal/134663)
+- [134608](https://dashboard.internetcomputer.org/proposal/134608)
+- [134609](https://dashboard.internetcomputer.org/proposal/134609)
+- [134497](https://dashboard.internetcomputer.org/proposal/134497)
+- [134408](https://dashboard.internetcomputer.org/proposal/134408)
+- [134337](https://dashboard.internetcomputer.org/proposal/134337)
+- [134336](https://dashboard.internetcomputer.org/proposal/134336)
+- [134259](https://dashboard.internetcomputer.org/proposal/134259)
+- [134251](https://dashboard.internetcomputer.org/proposal/134251)
+- [134250](https://dashboard.internetcomputer.org/proposal/134250)
+- [134187](https://dashboard.internetcomputer.org/proposal/134187)
+- [134188](https://dashboard.internetcomputer.org/proposal/134188)
+- [134186](https://dashboard.internetcomputer.org/proposal/134186)
+- [134185](https://dashboard.internetcomputer.org/proposal/134185)
+- [134036](https://dashboard.internetcomputer.org/proposal/134036)
+- [134035](https://dashboard.internetcomputer.org/proposal/134035)
+- [134034](https://dashboard.internetcomputer.org/proposal/134034)
+- [134032](https://dashboard.internetcomputer.org/proposal/134032)
+- [133939](https://dashboard.internetcomputer.org/proposal/133939)
+- [133953](https://dashboard.internetcomputer.org/proposal/133953)
+- [133952](https://dashboard.internetcomputer.org/proposal/133952)
+- [133951](https://dashboard.internetcomputer.org/proposal/133951)
+- [133950](https://dashboard.internetcomputer.org/proposal/133950)
+- [133902](https://dashboard.internetcomputer.org/proposal/133902)
+- [133901](https://dashboard.internetcomputer.org/proposal/133901)
+- [133900](https://dashboard.internetcomputer.org/proposal/133900)
+- [133798](https://dashboard.internetcomputer.org/proposal/133798)
+- [133799](https://dashboard.internetcomputer.org/proposal/133799)
+- [133800](https://dashboard.internetcomputer.org/proposal/133800)
+- [133457](https://dashboard.internetcomputer.org/proposal/133457)
+- [133450](https://dashboard.internetcomputer.org/proposal/133450)
 
 # 0.25.1
 
