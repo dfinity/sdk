@@ -172,6 +172,10 @@ type schnorr_algorithm = variant {
     ed25519;
 };
 
+type vetkd_curve = variant {
+    bls12_381_g2;
+};
+
 type satoshi = nat64;
 
 type bitcoin_network = variant {
@@ -417,6 +421,27 @@ type sign_with_schnorr_result = record {
     signature : blob;
 };
 
+type vetkd_public_key_args = record {
+    canister_id : opt canister_id;
+    context : blob;
+    key_id : record { curve : vetkd_curve; name : text };
+};
+
+type vetkd_public_key_result = record {
+    public_key : blob;
+};
+
+type vetkd_derive_key_args = record {
+    input : blob;
+    context : blob;
+    transport_public_key : blob;
+    key_id : record { curve : vetkd_curve; name : text };
+};
+
+type vetkd_derive_key_result = record {
+    encrypted_key : blob;
+};
+
 type node_metrics_history_args = record {
     subnet_id : principal;
     start_at_timestamp_nanos : nat64;
@@ -480,6 +505,10 @@ service ic : {
     // Threshold Schnorr signature
     schnorr_public_key : (schnorr_public_key_args) -> (schnorr_public_key_result);
     sign_with_schnorr : (sign_with_schnorr_args) -> (sign_with_schnorr_result);
+
+    // VetKD
+    vetkd_public_key : (vetkd_public_key_args) -> (vetkd_public_key_result);
+    vetkd_derive_key : (vetkd_derive_key_args) -> (vetkd_derive_key_result);
 
     // bitcoin interface
     bitcoin_get_balance : (bitcoin_get_balance_args) -> (bitcoin_get_balance_result);
