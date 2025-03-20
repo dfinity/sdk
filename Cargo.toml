@@ -62,7 +62,7 @@ proptest = "1.0.0"
 reqwest = { version = "0.12.4", default-features = false, features = [
     "rustls-tls",
 ] }
-ring = "0.16.11"
+ring = "0.17.14"
 schemars = "0.8"
 sec1 = "0.3.0"
 serde = "1.0"
