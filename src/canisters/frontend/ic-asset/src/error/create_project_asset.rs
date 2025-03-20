@@ -6,7 +6,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum CreateProjectAssetError {
     /// Failed to create an asset encoding in the asset canister.
-    #[error("Failed to create encoding: {0}")]
+    #[error("Failed to create encoding")]
     CreateEncodingError(#[from] CreateEncodingError),
 
     /// Failed to find out the file size of an asset.
