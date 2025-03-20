@@ -21,7 +21,7 @@ pub const MAINNET_UI_CANISTER_INTERFACE_PRINCIPAL: &str = "a4gq6-oaaaa-aaaab-qaa
 #[context("Failed to install candid UI canister.")]
 pub async fn install_ui_canister(
     env: &dyn Environment,
-    id_store: &mut CanisterIdStore,
+    id_store: &CanisterIdStore,
     some_canister_id: Option<Principal>,
 ) -> DfxResult<Principal> {
     let network = env.get_network_descriptor();
@@ -97,7 +97,7 @@ pub fn get_ui_canister_url(env: &dyn Environment) -> DfxResult<Option<Url>> {
         let url =
             Url::parse(&url).with_context(|| format!("Failed to parse Candid UI url {}.", &url))?;
         Ok(Some(url))
-    } else if let Some(candid_ui_id) = get_ui_canister_id(&env.get_canister_id_store()?) {
+    } else if let Some(candid_ui_id) = get_ui_canister_id(env.get_canister_id_store()?) {
         let mut url = Url::parse(&network_descriptor.providers[0]).with_context(|| {
             format!(
                 "Failed to parse network provider {}.",

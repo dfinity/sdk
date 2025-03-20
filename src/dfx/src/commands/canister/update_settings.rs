@@ -169,7 +169,8 @@ pub async fn exec(
         let canister_id = CanisterId::from_text(canister_name_or_id)
             .or_else(|_| canister_id_store.get(canister_name_or_id))?;
         let textual_cid = canister_id.to_text();
-        let canister_name = canister_id_store.get_name(&textual_cid).map(|x| &**x);
+        let canister_name = canister_id_store.get_name(&textual_cid);
+        let canister_name = canister_name.as_deref();
 
         let compute_allocation =
             get_compute_allocation(opts.compute_allocation, config_interface, canister_name)?;

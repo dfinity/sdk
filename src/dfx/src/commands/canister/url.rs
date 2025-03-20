@@ -41,8 +41,8 @@ pub async fn exec(env: &dyn Environment, opts: CanisterUrlOpts) -> DfxResult {
     let canister_id_text = Principal::to_text(&canister_id);
     if let Some(canister_name) = canister_id_store.get_name(&canister_id_text) {
         if let Some(canisters) = &config.get_config().canisters {
-            if let Some(canister_config) = canisters.get(canister_name) {
-                let canister_info = CanisterInfo::load(&config, canister_name, Some(canister_id))?;
+            if let Some(canister_config) = canisters.get(&canister_name) {
+                let canister_info = CanisterInfo::load(&config, &canister_name, Some(canister_id))?;
                 let green = Style::new().green();
 
                 // Display as frontend if it's an asset canister, or custome type with a frontend.
