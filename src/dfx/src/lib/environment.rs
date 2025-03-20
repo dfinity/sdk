@@ -237,10 +237,6 @@ impl Environment for EnvironmentImpl {
         ))
     }
 
-    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
-        unreachable!("Canister ID store only available from an AgentEnvironment");
-    }
-
     fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
         Ok(self.get_config()?.map(|c| c.get_temp_path()).transpose()?)
     }
@@ -265,6 +261,10 @@ impl Environment for EnvironmentImpl {
         // It's not valid to call get_network_descriptor on an EnvironmentImpl.
         // All of the places that call this have an AgentEnvironment anyway.
         unreachable!("NetworkDescriptor only available from an AgentEnvironment");
+    }
+
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
+        unreachable!("CanisterIdStore only available from an AgentEnvironment")
     }
 
     fn get_logger(&self) -> &slog::Logger {
