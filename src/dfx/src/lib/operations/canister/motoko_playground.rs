@@ -30,7 +30,7 @@ pub struct CanisterInfo {
 }
 
 impl CanisterInfo {
-    pub fn from(id: Principal, timestamp: &AcquisitionDateTime) -> Self {
+    pub fn from(id: Principal, timestamp: AcquisitionDateTime) -> Self {
         let timestamp = candid::Int::from(timestamp.unix_timestamp_nanos());
         Self { id, timestamp }
     }
@@ -135,7 +135,7 @@ pub async fn reserve_canister_with_playground(
         bail!("Cannot reserve playground canister in CI, please run `dfx start` to use the local replica.")
     }
 
-    let mut canister_id_store = env.get_canister_id_store()?;
+    let canister_id_store = env.get_canister_id_store()?;
     let (timestamp, nonce) = create_nonce();
     let get_can_arg = Encode!(&GetCanisterIdArgs { timestamp, nonce }, &Origin::new())?;
     let result = agent
@@ -165,7 +165,7 @@ pub async fn reserve_canister_with_playground(
 pub async fn authorize_asset_uploader(
     env: &dyn Environment,
     canister_id: Principal,
-    canister_timestamp: &AcquisitionDateTime,
+    canister_timestamp: AcquisitionDateTime,
     principal_to_authorize: &Principal,
 ) -> DfxResult {
     let agent = env.get_agent();
@@ -194,7 +194,7 @@ pub async fn authorize_asset_uploader(
 pub async fn playground_install_code(
     env: &dyn Environment,
     canister_id: Principal,
-    canister_timestamp: &AcquisitionDateTime,
+    canister_timestamp: AcquisitionDateTime,
     arg: &[u8],
     wasm_module: &[u8],
     mode: InstallMode,

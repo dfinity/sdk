@@ -17,6 +17,7 @@ use dfx_core::identity::identity_manager::{IdentityManager, InitializeIdentity};
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use indicatif::MultiProgress;
+use once_cell::sync::OnceCell;
 use pocket_ic::nonblocking::PocketIc;
 use semver::Version;
 use slog::{Logger, Record};
@@ -84,13 +85,7 @@ pub trait Environment {
 
     fn get_extension_manager(&self) -> &ExtensionManager;
 
-    fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
-        CanisterIdStore::new(
-            self.get_logger(),
-            self.get_network_descriptor(),
-            self.get_config()?,
-        )
-    }
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError>;
 }
 
 pub enum ProjectConfig {
@@ -259,6 +254,10 @@ impl Environment for EnvironmentImpl {
         unreachable!("NetworkDescriptor only available from an AgentEnvironment");
     }
 
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
+        unreachable!("CanisterIdStore only available from an AgentEnvironment")
+    }
+
     fn get_logger(&self) -> &slog::Logger {
         self.logger
             .as_ref()
@@ -315,6 +314,7 @@ pub struct AgentEnvironment<'a> {
     network_descriptor: NetworkDescriptor,
     identity_manager: IdentityManager,
     effective_canister_id: Option<Principal>,
+    canister_id_store: OnceCell<CanisterIdStore>,
 }
 
 impl<'a> AgentEnvironment<'a> {
@@ -383,6 +383,7 @@ impl<'a> AgentEnvironment<'a> {
             network_descriptor: network_descriptor.clone(),
             identity_manager,
             effective_canister_id,
+            canister_id_store: OnceCell::new(),
         })
     }
 }
@@ -412,6 +413,16 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.get_config()?.ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
+    }
+
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
+        self.canister_id_store.get_or_try_init(|| {
+            CanisterIdStore::new(
+                self.get_logger(),
+                self.get_network_descriptor(),
+                self.get_config()?,
+            )
+        })
     }
 
     fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
@@ -519,7 +530,7 @@ pub mod test_env {
         fn get_cache(&self) -> VersionCache {
             unimplemented!()
         }
-        fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
+        fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
             unimplemented!()
         }
         fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
