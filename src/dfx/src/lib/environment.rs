@@ -98,7 +98,6 @@ pub struct EnvironmentImpl {
     project_config: RefCell<ProjectConfig>,
     shared_networks_config: Arc<NetworksConfig>,
     tool_config: Arc<Mutex<ToolConfig>>,
-    canister_id_store: OnceCell<CanisterIdStore>,
 
     cache: VersionCache,
 
@@ -125,7 +124,6 @@ impl EnvironmentImpl {
             cache: VersionCache::with_version(&version),
             project_config: RefCell::new(ProjectConfig::NotLoaded),
             shared_networks_config: Arc::new(shared_networks_config),
-            canister_id_store: OnceCell::new(),
             tool_config: Arc::new(Mutex::new(tool_config)),
             version: version.clone(),
             logger: None,
@@ -230,16 +228,6 @@ impl Environment for EnvironmentImpl {
         ))
     }
 
-    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
-        self.canister_id_store.get_or_try_init(|| {
-            CanisterIdStore::new(
-                self.get_logger(),
-                self.get_network_descriptor(),
-                self.get_config()?,
-            )
-        })
-    }
-
     fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
         Ok(self.get_config()?.map(|c| c.get_temp_path()).transpose()?)
     }
@@ -264,6 +252,10 @@ impl Environment for EnvironmentImpl {
         // It's not valid to call get_network_descriptor on an EnvironmentImpl.
         // All of the places that call this have an AgentEnvironment anyway.
         unreachable!("NetworkDescriptor only available from an AgentEnvironment");
+    }
+
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
+        unreachable!("CanisterIdStore only available from an AgentEnvironment")
     }
 
     fn get_logger(&self) -> &slog::Logger {
@@ -322,6 +314,7 @@ pub struct AgentEnvironment<'a> {
     network_descriptor: NetworkDescriptor,
     identity_manager: IdentityManager,
     effective_canister_id: Option<Principal>,
+    canister_id_store: OnceCell<CanisterIdStore>,
 }
 
 impl<'a> AgentEnvironment<'a> {
@@ -390,6 +383,7 @@ impl<'a> AgentEnvironment<'a> {
             network_descriptor: network_descriptor.clone(),
             identity_manager,
             effective_canister_id,
+            canister_id_store: OnceCell::new(),
         })
     }
 }
@@ -422,7 +416,13 @@ impl<'a> Environment for AgentEnvironment<'a> {
     }
 
     fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
-        self.backend.get_canister_id_store()
+        self.canister_id_store.get_or_try_init(|| {
+            CanisterIdStore::new(
+                self.get_logger(),
+                self.get_network_descriptor(),
+                self.get_config()?,
+            )
+        })
     }
 
     fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
