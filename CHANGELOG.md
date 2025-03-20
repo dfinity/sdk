@@ -55,6 +55,10 @@ Implement `dfx ledger allowance` subcommand that complies with the [ICRC-2](http
 
 ## Dependencies
 
+### Motoko
+
+Updated Motoko to [0.14.4](https://github.com/dfinity/motoko/releases/tag/0.14.4)
+
 ### Replica
 
 Updated replica to elected commit f6f5e0927d14886e4bd67f776ee889f31cec2364.
