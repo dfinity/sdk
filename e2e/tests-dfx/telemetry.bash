@@ -90,7 +90,7 @@ teardown() {
     dfx_new_assets
     local log wallet
     log=$(dfx info telemetry-log-path)
-    # explicit call, known canister
+    # explicit call, known canister (ICP ledger)
     dfx_start
     assert_command_fail dfx canister call ryjl3-tyaaa-aaaaa-aaaba-cai name
     assert_command jq -se 'last | .replica_error_call_site == "name" and .replica_error_code == "IC0301"' "$log"
