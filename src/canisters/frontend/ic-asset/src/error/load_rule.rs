@@ -9,6 +9,6 @@ pub enum LoadRuleError {
     FormGlobPatternFailed(PathBuf, String),
 
     /// The glob pattern was not valid.
-    #[error("{0} is not a valid glob pattern: {1}")]
+    #[error("{0} is not a valid glob pattern")]
     InvalidGlobPattern(String, #[source] globset::Error),
 }

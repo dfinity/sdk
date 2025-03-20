@@ -12,7 +12,7 @@ pub enum GatherAssetDescriptorsError {
     DuplicateAssetKey(String, Box<PathBuf>, Box<PathBuf>),
 
     /// Failed to get asset configuration.
-    #[error("Failed to get asset configuration: {0}")]
+    #[error("Failed to get asset configuration")]
     GetAssetConfigFailed(#[from] GetAssetConfigError),
 
     /// Failed to canonicalize a directory entry.
@@ -24,7 +24,7 @@ pub enum GatherAssetDescriptorsError {
     InvalidSourceDirectory(#[source] CanonicalizePathError),
 
     /// Failed to load the asset configuration for a directory.
-    #[error("Failed to load asset configuration: {0}")]
+    #[error("Failed to load asset configuration")]
     LoadConfigFailed(#[source] AssetLoadConfigError),
 
     /// One or more assets use the hardened security policy but don't actually specify any hardenings compared to the standard security policy.
