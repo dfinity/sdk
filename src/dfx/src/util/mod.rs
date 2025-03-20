@@ -448,7 +448,7 @@ pub fn ask_for_consent(env: &dyn Environment, message: &str) -> Result<(), UserC
     })
 }
 
-pub fn default_whitelisted_canisters() -> &'static [Principal] {
+pub fn default_allowlisted_canisters() -> &'static [Principal] {
     const MAINNET_GOVERNANCE_CANISTER_ID: Principal =
         Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01]);
     const MAINNET_II_CANISTER_ID: Principal =

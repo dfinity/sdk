@@ -432,7 +432,7 @@ impl<'a> Environment for AgentEnvironment<'a> {
             let network_descriptor = self.get_network_descriptor();
             let store =
                 CanisterIdStore::new(self.get_logger(), network_descriptor, config.clone())?;
-            Telemetry::whitelist_all_asset_canisters(config.as_deref(), &store);
+            Telemetry::allowlist_all_asset_canisters(config.as_deref(), &store);
             Ok(store)
         })
     }

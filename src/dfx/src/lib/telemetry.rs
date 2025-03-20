@@ -60,7 +60,7 @@ pub struct Telemetry {
     cycles_host: Option<CyclesHost>,
     canisters: Option<Vec<CanisterRecord>>,
     network_type: Option<NetworkType>,
-    whitelisted_canisters: BTreeSet<Principal>,
+    allowlisted_canisters: BTreeSet<Principal>,
 }
 
 impl Telemetry {
@@ -147,17 +147,17 @@ impl Telemetry {
         with_telemetry(|telemetry| telemetry.canisters = Some(canisters));
     }
 
-    pub fn whitelist_canisters(canisters: &[Principal]) {
-        with_telemetry(|telemetry| telemetry.whitelisted_canisters.extend(canisters));
+    pub fn allowlist_canisters(canisters: &[Principal]) {
+        with_telemetry(|telemetry| telemetry.allowlisted_canisters.extend(canisters));
     }
 
-    pub fn whitelist_all_asset_canisters(config: Option<&Config>, ids: &CanisterIdStore) {
+    pub fn allowlist_all_asset_canisters(config: Option<&Config>, ids: &CanisterIdStore) {
         with_telemetry(|telemetry| {
             if let Some(config) = config {
                 for (name, canister) in config.config.canisters.iter().flatten() {
                     if let CanisterTypeProperties::Assets { .. } = &canister.type_specific {
                         if let Ok(canister_id) = ids.get(name) {
-                            telemetry.whitelisted_canisters.insert(canister_id);
+                            telemetry.allowlisted_canisters.insert(canister_id);
                         }
                     }
                 }
@@ -207,7 +207,7 @@ impl Telemetry {
             let reject = telemetry.last_reject.as_ref();
             let call_site = telemetry.last_operation.as_ref().map(|o| match o {
                 Operation::Call { method, canister } => {
-                    if telemetry.whitelisted_canisters.contains(canister) {
+                    if telemetry.allowlisted_canisters.contains(canister) {
                         method
                     } else {
                         "<user-specified canister method>"

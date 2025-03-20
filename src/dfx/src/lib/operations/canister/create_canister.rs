@@ -191,7 +191,7 @@ The command line value will be used.",
         canister_id
     );
     canister_id_store.add(log, canister_name, &canister_id, None)?;
-    Telemetry::whitelist_all_asset_canisters(env.get_config()?.as_deref(), canister_id_store);
+    Telemetry::allowlist_all_asset_canisters(env.get_config()?.as_deref(), canister_id_store);
     Ok(())
 }
 

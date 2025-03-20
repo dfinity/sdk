@@ -61,7 +61,7 @@ pub async fn get_or_create_wallet(
             }
         }
         Some(principal) => {
-            Telemetry::whitelist_canisters(&[principal]);
+            Telemetry::allowlist_canisters(&[principal]);
             Ok(principal)
         }
     }
@@ -98,7 +98,7 @@ pub async fn create_wallet(
         }
     };
 
-    Telemetry::whitelist_canisters(&[canister_id]);
+    Telemetry::allowlist_canisters(&[canister_id]);
 
     match mgr
         .install_code(&canister_id, wasm.as_slice())

@@ -73,7 +73,7 @@ pub async fn install_ui_canister(
         .await
         .context("Install wasm call failed.")?;
     id_store.add(env.get_logger(), UI_CANISTER, &canister_id.to_text(), None)?;
-    Telemetry::whitelist_canisters(&[canister_id]);
+    Telemetry::allowlist_canisters(&[canister_id]);
     spinner.finish_and_clear();
     debug!(
         env.get_logger(),
