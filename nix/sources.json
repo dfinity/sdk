@@ -130,27 +130,27 @@
         "builtin": false,
         "description": "The Motoko base library",
         "owner": "dfinity",
-        "sha256": "19i7znfiy5yf9fw9asgpxi49m3azpx89h4ddb7lp3xsj1nq4vqrw",
+        "sha256": "1ac8ln6kaap76m5zdhicvky04m722fwgcdwmp72jh19vdbfrpmf0",
         "type": "tarball",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.14.2/motoko-base-library.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.14.4/motoko-base-library.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-base-library.tar.gz",
-        "version": "0.14.2"
+        "version": "0.14.4"
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
-        "sha256": "1n89wcb879jx33a1wj3vzh9hrsqadmv6bgi69xhc44ylnqdkwb21",
+        "sha256": "1w0lzdr41yb6fynzv41rs6a4y3mzvw57rnw5g84krcspydfdg2l5",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.14.2/motoko-Darwin-x86_64-0.14.2.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.14.4/motoko-Darwin-x86_64-0.14.4.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Darwin-x86_64-<version>.tar.gz",
-        "version": "0.14.2"
+        "version": "0.14.4"
     },
     "motoko-x86_64-linux": {
         "builtin": false,
-        "sha256": "1fw1nc9qgqwgy78jnp5r3pnpf0q2jgbqhp68k7aw2zsvqmh2f53v",
+        "sha256": "00vfx9q71vqd5qnw4mp11rs4w6inz2k897cip87cslkszn0imi31",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.14.2/motoko-Linux-x86_64-0.14.2.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.14.4/motoko-Linux-x86_64-0.14.4.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Linux-x86_64-<version>.tar.gz",
-        "version": "0.14.2"
+        "version": "0.14.4"
     },
     "pocket-ic-x86_64-darwin": {
         "rev": "f6f5e0927d14886e4bd67f776ee889f31cec2364",
