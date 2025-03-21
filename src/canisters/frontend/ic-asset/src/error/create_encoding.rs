@@ -6,10 +6,10 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum CreateEncodingError {
     /// Failed when creating a chunk.
-    #[error("Failed to create chunk: {0}")]
-    CreateChunkFailed(CreateChunkError),
+    #[error("Failed to create chunk")]
+    CreateChunkFailed(#[source] CreateChunkError),
 
     /// Failed when encoding asset content.
-    #[error("Failed to encode content of '{0}' with {1} encoding: {2}")]
-    EncodeContentFailed(String, ContentEncoder, std::io::Error),
+    #[error("Failed to encode content of '{0}' with {1} encoding")]
+    EncodeContentFailed(String, ContentEncoder, #[source] std::io::Error),
 }

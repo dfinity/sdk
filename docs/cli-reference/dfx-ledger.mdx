@@ -19,6 +19,7 @@ Depending on the `dfx ledger` subcommand you specify, additional arguments, opti
 | Command                               | Description                                                                          |
 |---------------------------------------|--------------------------------------------------------------------------------------|
 | [`account-id`](#dfx-ledger-account-id)           | Prints the selected identity’s Account Identifier.                                   |
+| [`approve`](#dfx-ledger-approve)                 | Approve a principal to spend ICP on your behalf.                                     |
 | [`balance`](#dfx-ledger-balance)                 | Prints the account balance of the user.                                              |
 | [`create-canister`](#dfx-ledger-create-canister) | Creates a canister from ICP.                                                         |
 | [`fabricate-cycles`](#dfx-ledger-fabricate-cycles) | Local development only: Fabricate cycles out of thin air and deposit them into the specified canister(s) |
@@ -26,6 +27,7 @@ Depending on the `dfx ledger` subcommand you specify, additional arguments, opti
 | [`notify`](#dfx-ledger-notify)                   | Notifies the ledger when there is a send transaction to the cycles minting canister. |
 | [`top-up`](#dfx-ledger-top-up)                   | Tops up a canister with cycles minted from ICP.                                      |
 | [`transfer`](#dfx-ledger-transfer)               | Transfers ICP from the user to the destination Account Identifier.                   |
+| [`transfer-from`](#dfx-ledger-transfer-from)     | Transfer ICP from the approver princiapl to another principal.                       |
 
 To view usage information for a specific subcommand, specify the subcommand and the `--help` flag. For example, to see usage information for `dfx ledger transfer`, you can run the following command:
 
@@ -71,6 +73,83 @@ dfx ledger account-id --of-canister qvhpv-4qaaa-aaaaa-aaagq-cai --subaccount-fro
 The commands display output similar to the following:
 
     03e3d86f29a069c6f2c5c48e01bc084e4ea18ad02b0eec8fccadf4487183c223
+
+## dfx ledger approve
+
+Use the `dfx ledger approve` command to approve a principal to spend ICP on your behalf. Please check the [ICRC-2 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) for more information about token `approve` and `transfer-from`.
+
+### Basic usage
+
+``` bash
+dfx ledger approve [options] --amount <amount> <spender>
+```
+
+### Arguments
+
+You must specify the following arguments for the `dfx ledger approve` command.
+
+| Argument            | Description                           |
+|---------------------|---------------------------------------|
+| `<spender>`         | Allow this principal to spend ICP.    |
+| `--amount <amount>` | The number of ICPs to approve. Can be specified as a Decimal with the fractional portion up to 8 decimal places i.e. 100.012. |
+
+### Options
+
+You can specify the following options for the `dfx ledger approve` command.
+
+| Option                              | Description                                                                            |
+|-------------------------------------|----------------------------------------------------------------------------------------|
+| `--created-at-time <timestamp>`     | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling [transaction-de-duplication](https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-). |
+| `--expected-allowance <expected_allowance>`| The number of previously approved ICP. See [ICRC-2 standard](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-2/README.md) for details. |
+| `--expires-at <timestamp>`          | Timestamp in nanoseconds until which the approval is valid. None means that the approval is valid indefinitely. |
+| `--fee <fee>`                       | Transaction fee, default is 0.00010000 ICP (10000 e8s)                                 |
+| `--from-subaccount <subaccount>`    | Approve ICP to be spent from this subaccount.                                          |
+| `--memo <memo>`                     | Specifies a numeric memo for this transaction.                                         |
+| `--spender-subaccount <subaccount>` | Allow this subaccount to spend ICP.                                                    |
+
+### Examples
+
+Below is an example to approve the principal `raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae` to spend 10 ICP on your behalf:
+
+``` bash
+dfx ledger approve raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae --amount 10 --network ic
+```
+
+## dfx ledger allowance
+
+Use the `dfx ledger allowance` command to get the ICP allowance that the spender account can transfer from the owner account. Please check the [ICRC-2 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) for more information.
+
+### Basic usage
+
+``` bash
+dfx ledger allowance [options] --spender <spender>
+```
+
+### Arguments
+
+You must specify the following arguments for the `dfx ledger allowance` command.
+
+| Argument              | Description                                            |
+|-----------------------|--------------------------------------------------------|
+| `--spender <spender>` | Specifies a spender principal to get the allowance of. |
+
+### Options
+
+You can specify the following options for the `dfx ledger allowance` command.
+
+| Option                                     | Description                                                  |
+|--------------------------------------------|--------------------------------------------------------------|
+| `--owner <owner>`                          | Specifies a owner principal to get the allowance of. If not specified, the principal of the current identity is used.|
+| `--owner-subaccount <owner_subaccount>`    | Subaccount of the owner principal to get the allowance of.   |
+| `--spender-subaccount <spender_subaccount>`| Subaccount of the spender principal to get the allowance of. |
+
+### Examples
+
+Below is an example to get the allowance for the spender principal `raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae`:
+
+``` bash
+dfx ledger allowance --spender raxcz-bidhr-evrzj-qyivt-nht5a-eltcc-24qfc-o6cvi-hfw7j-dcecz-kae --network ic
+```
 
 ## dfx ledger balance
 
@@ -131,7 +210,7 @@ You can specify the following argument for the `dfx ledger create-canister` comm
 | `--fee <fee>`                 | Specify a transaction fee. The default is 10000 e8s.                                                                                                                                                                                                 |
 | `--icp <icp>`                 | Specify ICP tokens as a whole number. You can use this option on its own or in conjunction with `--e8s`.                                                                                                                                             |
 | `--max-fee <max-fee>`         | Specify a maximum transaction fee. The default is 10000 e8s.                                                                                                                                                                                         |
-| `--subnet-type <subnet-type>` | Specify the optional subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet.                                                                                      |
+| `--subnet-type <subnet-type>` | Specify the optional subnet type to create the canister on. If no subnet type is provided, the canister will be created on a random default application subnet. `dfx ledger show-subnet-types` can be used to list available subnet types.           |
 | `--subnet <subnet-principal>` | Specify the optional subnet to create the canister on. If no subnet is provided, the canister will be created on a random default application subnet.                                                                                                |
 | `--next-to <canister-principal>` | Create canisters on the same subnet as this canister. |
 | `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
@@ -385,3 +464,44 @@ This command displays output similar to the following:
     Transfer sent at BlockHeight: 59513
 
 You can then use the `dfx ledger balance --network ic` command to check that your account balance reflects the transaction you just made.
+
+## dfx ledger transfer-from
+
+Use the `dfx ledger transfer-from` command to transfer ICP from the approver princiapl to another principal. Please check the [ICRC-2 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) for more information about token `approve` and `transfer-from`.
+
+### Basic usage
+
+``` bash
+dfx ledger transfer-from [options] --from <from> --amount <amount> <to>
+```
+
+### Arguments
+
+You must specify the following arguments for the `dfx ledger transfer-from` command.
+
+| Argument            | Description                                |
+|---------------------|--------------------------------------------|
+| `--amount <amount>` | The number of ICPs to transfer. Can be specified as a Decimal with the fractional portion up to 8 decimal places i.e. 100.012. |
+| `--from <from>`     | Transfer ICP from this approver principal. |
+| `<to>`              | Transfer ICP to this principal.            |
+
+### Options
+
+You can specify the following options for the `dfx ledger transfer-from` command.
+
+| Option                              | Description                                                                            |
+|-------------------------------------|----------------------------------------------------------------------------------------|
+| `--created-at-time <timestamp>`     | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling [transaction-de-duplication](https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-). |
+| `--fee <fee>`                       | Transaction fee, default is 0.00010000 ICP (10000 e8s).                                |
+| `--from-subaccount <subaccount>`    | Transfer ICP from this subaccount.                                                     |
+| `--memo <memo>`                     | Specifies a numeric memo for this transaction.                                         |
+| `--spender-subaccount <subaccount>` | Deduct allowance from this subaccount.                                                 |
+| `--to-subaccount <subaccount>`      | Transfer ICP to this subaccount.                                                       |
+
+### Examples
+
+Below is an example to transfer 5 ICP from the principal `s7qqt-62ymi-76r2d-ouxak-nw22t-juc6u-ij5dx-jfdhn-kiouz-6raaj-pqe` to `tdrdy-ztedg-ftfrj-mwmqh-wjl3j-pty4c-j63lp-xfvtt-7jxvp-4ialz-3ae` as a spender:
+
+``` bash
+dfx ledger transfer-from --from s7qqt-62ymi-76r2d-ouxak-nw22t-juc6u-ij5dx-jfdhn-kiouz-6raaj-pqe --amount 5 tdrdy-ztedg-ftfrj-mwmqh-wjl3j-pty4c-j63lp-xfvtt-7jxvp-4ialz-3ae --network ic
+```

@@ -5,8 +5,10 @@ use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::DfxResult;
 use crate::lib::logger::{create_root_logger, LoggingMode};
 use crate::lib::project::templates::builtin_templates;
+use crate::lib::telemetry::Telemetry;
 use anyhow::Error;
 use clap::{ArgAction, CommandFactory, Parser};
+use dfx_core::config::model::dfinity::ToolConfig;
 use dfx_core::config::project_templates;
 use dfx_core::extension::installed::InstalledExtensionManifests;
 use dfx_core::extension::manager::ExtensionManager;
@@ -14,6 +16,8 @@ use indicatif::MultiProgress;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
+use std::time::Instant;
+use util::default_allowlisted_canisters;
 
 mod actors;
 mod commands;
@@ -144,6 +148,10 @@ fn get_args_altered_for_extension_run(
 }
 
 fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
+    let tool_config = ToolConfig::new()?;
+    Telemetry::init(tool_config.interface().telemetry);
+    Telemetry::allowlist_canisters(default_allowlisted_canisters());
+
     let em = ExtensionManager::new(dfx_version())?;
     let installed_extension_manifests = em.load_installed_extension_manifests()?;
     let builtin_templates = builtin_templates();
@@ -152,9 +160,16 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
 
     let args = get_args_altered_for_extension_run(&installed_extension_manifests)?;
 
+    let _ = Telemetry::set_command_and_arguments(&args);
+    Telemetry::set_platform();
+    Telemetry::set_week();
+
     let cli_opts = CliOpts::parse_from(args);
 
-    if matches!(cli_opts.command, commands::DfxCommand::Schema(_)) {
+    if matches!(
+        cli_opts.command,
+        commands::DfxCommand::Schema(_) | commands::DfxCommand::SendTelemetry(_)
+    ) {
         return commands::exec_without_env(cli_opts.command);
     }
 
@@ -163,7 +178,7 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
     let identity = cli_opts.identity;
     let effective_canister_id = cli_opts.provisional_create_canister_effective_canister_id;
 
-    let env = EnvironmentImpl::new(em)?
+    let env = EnvironmentImpl::new(em, tool_config)?
         .with_logger(log)
         .with_spinners(spinners)
         .with_identity_override(identity)
@@ -178,13 +193,34 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
 }
 
 fn main() {
+    let start = Instant::now();
+
     let mut log_level: Option<i64> = None;
     let result = inner_main(&mut log_level);
-    if let Err(err) = result {
+
+    let exit_code = if let Err(err) = result {
+        Telemetry::set_error(&err);
         let error_diagnosis = diagnose(&err);
         print_error_and_diagnosis(log_level, err, error_diagnosis);
-        std::process::exit(255);
+        255
+    } else {
+        0
+    };
+
+    let end = Instant::now();
+    Telemetry::set_elapsed(end - start);
+    if let Err(e) = Telemetry::append_current_command_timestamped(exit_code) {
+        if log_level.unwrap_or_default() > 0 {
+            eprintln!("error appending to telemetry log: {e}")
+        }
     }
+    if let Err(e) = Telemetry::maybe_publish() {
+        if log_level.unwrap_or_default() > 0 {
+            eprintln!("error transmitting telemetry: {e}")
+        }
+    }
+
+    std::process::exit(exit_code);
 }
 
 /// sort subcommands alphabetically (despite this clap prints help as the last one)

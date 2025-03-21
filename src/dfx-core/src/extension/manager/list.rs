@@ -20,7 +20,7 @@ impl ExtensionManager {
         let extensions = dir_content
             .filter_map(|v| {
                 let dir_entry = v.ok()?;
-                if dir_entry.file_type().map_or(false, |e| e.is_dir())
+                if dir_entry.file_type().is_ok_and(|e| e.is_dir())
                     && !dir_entry.file_name().to_str()?.starts_with(".tmp")
                 {
                     let name = dir_entry.file_name().to_string_lossy().to_string();

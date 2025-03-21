@@ -82,13 +82,13 @@ pub struct StartOpts {
     domain: Vec<String>,
 
     /// Runs PocketIC instead of the replica
+    /// Currently this has no effect.
     #[clap(long, alias = "emulator")]
+    #[allow(unused)]
     pocketic: bool,
 
     /// Runs the replica instead of pocketic.
-    /// Currently this has no effect.
     #[clap(long, conflicts_with = "pocketic")]
-    #[allow(unused)]
     replica: bool,
 }
 
@@ -156,8 +156,8 @@ pub fn exec(
         enable_canister_http,
         artificial_delay,
         domain,
-        pocketic,
-        replica: _,
+        pocketic: _,
+        replica,
     }: StartOpts,
 ) -> DfxResult {
     if !background {
@@ -192,7 +192,7 @@ pub fn exec(
         enable_canister_http,
         domain,
         artificial_delay,
-        pocketic,
+        replica,
     )?;
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
@@ -333,10 +333,10 @@ pub fn exec(
         replica_config
     };
 
-    let effective_config = if pocketic {
-        CachedConfig::pocketic(&replica_config, replica_rev().into(), None)
-    } else {
+    let effective_config = if replica {
         CachedConfig::replica(&replica_config, replica_rev().into())
+    } else {
+        CachedConfig::pocketic(&replica_config, replica_rev().into(), None)
     };
 
     let is_shared_network = matches!(
@@ -364,16 +364,7 @@ pub fn exec(
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
 
-        let port_ready_subscribe: Recipient<PortReadySubscribe> = if pocketic {
-            let server = start_pocketic_actor(
-                env,
-                replica_config,
-                local_server_descriptor,
-                shutdown_controller.clone(),
-                pocketic_port_path,
-            )?;
-            server.recipient()
-        } else {
+        let port_ready_subscribe: Recipient<PortReadySubscribe> = if replica {
             let btc_adapter_ready_subscribe = btc_adapter_config
                 .map(|btc_adapter_config| {
                     start_btc_adapter_actor(
@@ -406,6 +397,15 @@ pub fn exec(
                 canister_http_adapter_ready_subscribe,
             )?;
             replica.recipient()
+        } else {
+            let server = start_pocketic_actor(
+                env,
+                replica_config,
+                local_server_descriptor,
+                shutdown_controller.clone(),
+                pocketic_port_path,
+            )?;
+            server.recipient()
         };
 
         let pocketic_proxy_config = PocketIcProxyConfig {
@@ -496,7 +496,7 @@ pub fn apply_command_line_parameters(
     enable_canister_http: bool,
     domain: Vec<String>,
     artificial_delay: u32,
-    pocketic: bool,
+    replica: bool,
 ) -> DfxResult<NetworkDescriptor> {
     if enable_canister_http {
         warn!(
@@ -531,7 +531,7 @@ pub fn apply_command_line_parameters(
         replica_rev(),
         &local_server_descriptor,
         artificial_delay,
-        pocketic,
+        replica,
     );
 
     local_server_descriptor = local_server_descriptor.with_settings_digest(settings_digest);

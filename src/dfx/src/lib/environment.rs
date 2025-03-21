@@ -2,11 +2,12 @@ use crate::config::cache::VersionCache;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
+use crate::lib::telemetry::{CanisterRecord, Telemetry};
 use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
 use anyhow::{anyhow, bail};
 use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
-use dfx_core::config::model::dfinity::{Config, NetworksConfig};
+use dfx_core::config::model::dfinity::{Config, NetworksConfig, TelemetryState, ToolConfig};
 use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::identity::NewIdentityManagerError;
@@ -17,13 +18,14 @@ use dfx_core::identity::identity_manager::{IdentityManager, InitializeIdentity};
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use indicatif::MultiProgress;
+use once_cell::sync::OnceCell;
 use pocket_ic::nonblocking::PocketIc;
 use semver::Version;
 use slog::{Logger, Record};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use url::Url;
 
@@ -31,6 +33,8 @@ pub trait Environment {
     fn get_cache(&self) -> VersionCache;
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError>;
     fn get_networks_config(&self) -> Arc<NetworksConfig>;
+    fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>>;
+    fn telemetry_mode(&self) -> TelemetryState;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
     /// Return a temporary directory for the current project.
@@ -82,13 +86,7 @@ pub trait Environment {
 
     fn get_extension_manager(&self) -> &ExtensionManager;
 
-    fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
-        CanisterIdStore::new(
-            self.get_logger(),
-            self.get_network_descriptor(),
-            self.get_config()?,
-        )
-    }
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError>;
 }
 
 pub enum ProjectConfig {
@@ -100,6 +98,7 @@ pub enum ProjectConfig {
 pub struct EnvironmentImpl {
     project_config: RefCell<ProjectConfig>,
     shared_networks_config: Arc<NetworksConfig>,
+    tool_config: Arc<Mutex<ToolConfig>>,
 
     cache: VersionCache,
 
@@ -118,7 +117,7 @@ pub struct EnvironmentImpl {
 }
 
 impl EnvironmentImpl {
-    pub fn new(extension_manager: ExtensionManager) -> DfxResult<Self> {
+    pub fn new(extension_manager: ExtensionManager, tool_config: ToolConfig) -> DfxResult<Self> {
         let shared_networks_config = NetworksConfig::new()?;
         let version = dfx_version().clone();
 
@@ -126,6 +125,7 @@ impl EnvironmentImpl {
             cache: VersionCache::with_version(&version),
             project_config: RefCell::new(ProjectConfig::NotLoaded),
             shared_networks_config: Arc::new(shared_networks_config),
+            tool_config: Arc::new(Mutex::new(tool_config)),
             version: version.clone(),
             logger: None,
             verbose_level: 0,
@@ -176,6 +176,14 @@ impl EnvironmentImpl {
         let config = Config::from_current_dir(Some(&self.extension_manager))?;
 
         let project_config = config.map_or(ProjectConfig::NoProject, |config| {
+            if let Some(canisters) = &config.config.canisters {
+                Telemetry::set_canisters(
+                    canisters
+                        .values()
+                        .map(CanisterRecord::from_canister)
+                        .collect(),
+                );
+            }
             ProjectConfig::Loaded(Arc::new(config))
         });
         self.project_config.replace(project_config);
@@ -203,6 +211,24 @@ impl Environment for EnvironmentImpl {
 
     fn get_networks_config(&self) -> Arc<NetworksConfig> {
         self.shared_networks_config.clone()
+    }
+
+    fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>> {
+        self.tool_config.clone()
+    }
+
+    fn telemetry_mode(&self) -> TelemetryState {
+        if let Ok(var) = std::env::var("DFX_TELEMETRY") {
+            if !var.is_empty() {
+                return match &*var {
+                    "true" | "1" | "on" => TelemetryState::On,
+                    "false" | "0" | "off" => TelemetryState::Off,
+                    "local" => TelemetryState::Local,
+                    _ => TelemetryState::On,
+                };
+            }
+        }
+        self.tool_config.lock().unwrap().interface().telemetry
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
@@ -235,6 +261,10 @@ impl Environment for EnvironmentImpl {
         // It's not valid to call get_network_descriptor on an EnvironmentImpl.
         // All of the places that call this have an AgentEnvironment anyway.
         unreachable!("NetworkDescriptor only available from an AgentEnvironment");
+    }
+
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
+        unreachable!("CanisterIdStore only available from an AgentEnvironment")
     }
 
     fn get_logger(&self) -> &slog::Logger {
@@ -293,6 +323,7 @@ pub struct AgentEnvironment<'a> {
     network_descriptor: NetworkDescriptor,
     identity_manager: IdentityManager,
     effective_canister_id: Option<Principal>,
+    canister_id_store: OnceCell<CanisterIdStore>,
 }
 
 impl<'a> AgentEnvironment<'a> {
@@ -310,6 +341,8 @@ impl<'a> AgentEnvironment<'a> {
         } else {
             identity_manager.instantiate_selected_identity(&logger)?
         };
+        Telemetry::set_identity_type(identity.identity_type());
+        Telemetry::set_network(&network_descriptor);
         if network_descriptor.is_ic
             && !matches!(
                 network_descriptor.r#type,
@@ -361,6 +394,7 @@ impl<'a> AgentEnvironment<'a> {
             network_descriptor: network_descriptor.clone(),
             identity_manager,
             effective_canister_id,
+            canister_id_store: OnceCell::new(),
         })
     }
 }
@@ -374,6 +408,14 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.backend.get_config()
     }
 
+    fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>> {
+        self.backend.get_tool_config()
+    }
+
+    fn telemetry_mode(&self) -> TelemetryState {
+        self.backend.telemetry_mode()
+    }
+
     fn get_networks_config(&self) -> Arc<NetworksConfig> {
         self.backend.get_networks_config()
     }
@@ -382,6 +424,17 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.get_config()?.ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
+    }
+
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
+        self.canister_id_store.get_or_try_init(|| {
+            let config = self.get_config()?;
+            let network_descriptor = self.get_network_descriptor();
+            let store =
+                CanisterIdStore::new(self.get_logger(), network_descriptor, config.clone())?;
+            Telemetry::allowlist_all_asset_canisters(config.as_deref(), &store);
+            Ok(store)
+        })
     }
 
     fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
@@ -489,7 +542,7 @@ pub mod test_env {
         fn get_cache(&self) -> VersionCache {
             unimplemented!()
         }
-        fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
+        fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
             unimplemented!()
         }
         fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
@@ -516,6 +569,9 @@ pub mod test_env {
         fn get_networks_config(&self) -> Arc<NetworksConfig> {
             unimplemented!()
         }
+        fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>> {
+            unimplemented!()
+        }
         fn get_override_effective_canister_id(&self) -> Option<Principal> {
             None
         }
@@ -536,6 +592,9 @@ pub mod test_env {
         }
         fn get_version(&self) -> &Version {
             unimplemented!()
+        }
+        fn telemetry_mode(&self) -> TelemetryState {
+            TelemetryState::Off
         }
         fn log(&self, _record: &Record) {}
         fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {

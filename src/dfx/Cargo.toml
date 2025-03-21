@@ -8,6 +8,9 @@ license.workspace = true
 rust-version.workspace = true
 build = "assets/build.rs"
 
+[lints]
+workspace = true
+
 [[bin]]
 name = "dfx"
 path = "src/main.rs"
@@ -41,6 +44,8 @@ bytes.workspace = true
 candid = { workspace = true }
 candid_parser = { workspace = true, features = ["random", "assist"] }
 cargo_metadata = "0.18.1"
+chrono = "0.4.39"
+ci_info = "0.14"
 clap = { workspace = true, features = [
     "derive",
     "env",
@@ -55,6 +60,7 @@ ctrlc = { version = "3.2.1", features = ["termination"] }
 dfx-core.workspace = true
 dialoguer = { workspace = true, features = ["fuzzy-select"] }
 directories-next.workspace = true
+fd-lock = "4.0.2"
 flate2 = { workspace = true }
 fn-error-context = "0.2.0"
 futures-util = "0.3.21"
@@ -72,7 +78,7 @@ ic-cdk.workspace = true
 ic-identity-hsm.workspace = true
 ic-utils.workspace = true
 ic-wasm = "0.8.0"
-icrc-ledger-types = "0.1.5"
+icrc-ledger-types = "0.1.8"
 idl2json = "0.10.1"
 indicatif = "0.17.0"
 itertools.workspace = true
@@ -82,11 +88,12 @@ lazy_static.workspace = true
 mime.workspace = true
 mime_guess.workspace = true
 num-traits.workspace = true
+once_cell = "1.21.1"
 os_str_bytes = { version = "6.3.0", features = ["conversions"] }
 patch = "0.7.0"
 pem.workspace = true
 petgraph = "0.6.0"
-pocket-ic = { git = "https://github.com/dfinity/ic", rev = "ebb190bf1da0dba3e486b78c95cf5a3c5542e2f3" }
+pocket-ic = { git = "https://github.com/dfinity/ic", rev = "f6f5e0927d14886e4bd67f776ee889f31cec2364" }
 rand = "0.8.5"
 regex = "1.5.5"
 reqwest = { workspace = true, features = ["blocking", "json"] }
@@ -112,16 +119,16 @@ tempfile.workspace = true
 term = "0.7.0"
 thiserror.workspace = true
 time = { workspace = true, features = [
-    "serde",
     "macros",
+    "serde",
     "serde-human-readable",
 ] }
 tokio = { workspace = true, features = ["full"] }
 url.workspace = true
+uuid = { version = "1.15.1", features = ["v4"] }
 walkdir.workspace = true
 walrus = "0.21.1"
 which = "4.2.5"
-ci_info = "0.14"
 
 [target.'cfg(windows)'.dependencies]
 junction = "1.0.0"

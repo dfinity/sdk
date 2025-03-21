@@ -145,8 +145,8 @@ dfx_start() {
 
     # By default, start on random port for parallel test execution
     add_default_parameter "--host" "127.0.0.1:0"
-    if [[ "$USE_POCKETIC" ]]; then
-        add_default_parameter "--pocketic"
+    if [[ "$USE_REPLICA" ]]; then
+        add_default_parameter "--replica"
     fi
     add_default_parameter "--artificial-delay" "100"
 
@@ -158,10 +158,7 @@ dfx_start() {
 
     dfx start --background "${args[@]}" 3>&-
 
-    if [[ "$USE_POCKETIC" ]]; then
-        test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
-        port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port")
-    else
+    if [[ "$USE_REPLICA" ]]; then
         dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
         printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
         test -f "${dfx_config_root}/replica-1.port"
@@ -169,6 +166,9 @@ dfx_start() {
         if [ "$port" == "" ]; then
           port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
         fi
+    else
+        test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
+        port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port")
     fi
     webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
 
@@ -232,6 +232,10 @@ setup_actuallylocal_project_network() {
     jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json | sponge dfx.json
 }
 
+setup_ephemeral_project_network() {
+    jq ".networks.ephemeral.bind=\"127.0.0.1:$(get_webserver_port)\"" dfx.json | sponge dfx.json
+}
+
 setup_actuallylocal_shared_network() {
     webserver_port=$(get_webserver_port)
     [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
@@ -240,10 +244,10 @@ setup_actuallylocal_shared_network() {
 
 setup_local_shared_network() {
     local replica_port
-    if [[ "$USE_POCKETIC" ]]; then
-        replica_port=$(get_pocketic_port)
-    else
+    if [[ "$USE_REPLICA" ]]; then
         replica_port=$(get_replica_port)
+    else
+        replica_port=$(get_pocketic_port)
     fi
 
     [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"

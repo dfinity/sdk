@@ -15,6 +15,8 @@ env:
   CARGO_NET_RETRY: 10
   # Use the local .curlrc
   CURL_HOME: .
+  # Disable DFX telemetry
+  DFX_TELEMETRY: 'off'
 
 jobs:
   cargo-deny:
@@ -23,6 +25,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: rm rust-toolchain.toml
-      - uses: EmbarkStudios/cargo-deny-action@v1
+      - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check bans licenses sources # skip advisories, which are handled by audit.yml

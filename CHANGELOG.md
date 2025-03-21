@@ -2,6 +2,76 @@
 
 # UNRELEASED
 
+# 0.26.0
+
+### feat!: `dfx start` uses `--pocketic` by default
+
+As [announced](https://forum.dfinity.org/t/dfx-replacing-the-local-replica-with-pocketic/40167) `dfx start` now runs PocketIC by default.
+Running a local replica is still possible with `--replica`, but this option will be removed in the near future.
+
+### feat: dfx will now report telemetry by default
+
+dfx will now record information about each dfx command executed, and periodically send
+this information to a DFINITY server, by default.
+
+For more information or to comment, please see https://forum.dfinity.org/t/dfx-telemetry-proposal-2025/41569.
+
+You can see what data dfx collects by inspecting the file at `dfx info telemetry-log-path`.
+
+You can disable this entirely with `dfx config telemetry off` or configure it to only collect
+locally with `dfx config telemetry local`.
+
+### feat: `dfx info telemetry-log-path`
+
+Displays the path of the telemetry log file.
+
+### fix: Warning and error messages now correctly suggest `dfx info security-policy` when suboptimal security policies get used
+
+### chore: updated the canister creation fee to 500B cycles
+
+Updated the canister creation fee to `500B` cycles as [documented](https://internetcomputer.org/docs/building-apps/essentials/gas-cost#cycles-price-breakdown).
+
+### chore: improve the `dfx build` output
+
+Improve the ouput of `dfx build` with the canister names that were built, example as below.
+
+```
+$ dfx build
+Building canister 'hello_backend'.
+Building canister 'hello_frontend'.
+Finished building canisters.
+```
+
+### feat: Add `dfx ledger approve` and `dfx ledger transfer-from` subcommands
+
+Implement `dfx ledger approve` and `dfx ledger transfer-from` subcommands that comply with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
+
+### feat: Add `dfx ledger allowance` subcommand
+
+Implement `dfx ledger allowance` subcommand that complies with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
+
+### feat: Enable VetKD for use with `--replica`
+
+- Add VetKD types and methods to management canister IDL
+- The VetKD test key id `Bls12_381_G2:dfx_test_key` is now enabled when starting `dfx` with `--replica`.
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.4](https://github.com/dfinity/motoko/releases/tag/0.14.4)
+
+### Replica
+
+Updated replica to elected commit f6f5e0927d14886e4bd67f776ee889f31cec2364.
+This incorporates the following executed proposals:
+
+- [135836](https://dashboard.internetcomputer.org/proposal/135836)
+- [135697](https://dashboard.internetcomputer.org/proposal/135697)
+- [135696](https://dashboard.internetcomputer.org/proposal/135696)
+- [135600](https://dashboard.internetcomputer.org/proposal/135600)
+- [135601](https://dashboard.internetcomputer.org/proposal/135601)
+
 # 0.25.1
 
 ### feat: `skip_cargo_audit` flag in dfx.json to skip `cargo audit` build step

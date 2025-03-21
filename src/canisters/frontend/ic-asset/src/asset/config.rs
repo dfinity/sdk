@@ -485,7 +485,7 @@ mod rule_utils {
 
             if self.cache.is_some() || self.headers.is_some() {
                 s.push('(');
-                if self.cache.as_ref().map_or(false, |v| v.max_age.is_some()) {
+                if self.cache.as_ref().is_some_and(|v| v.max_age.is_some()) {
                     s.push_str("with cache");
                 }
                 if let Some(ref headers) = self.headers {
@@ -951,12 +951,11 @@ mod with_tempdir {
         assert_eq!(
             assets_config.err().unwrap().to_string(),
             format!(
-                "Malformed JSON asset config file '{}':  {}",
+                "Malformed JSON asset config file '{}'",
                 assets_dir
                     .join(ASSETS_CONFIG_FILENAME_JSON)
                     .to_str()
                     .unwrap(),
-                "--> 1:1\n  |\n1 | \n  | ^---\n  |\n  = expected array, boolean, null, number, object, or string"
             )
         );
     }
@@ -970,12 +969,11 @@ mod with_tempdir {
         assert_eq!(
             assets_config.err().unwrap().to_string(),
             format!(
-                "Malformed JSON asset config file '{}':  {}",
+                "Malformed JSON asset config file '{}'",
                 assets_dir
                     .join(ASSETS_CONFIG_FILENAME_JSON)
                     .to_str()
                     .unwrap(),
-                "--> 1:5\n  |\n1 | [[[{{{\n  |     ^---\n  |\n  = expected identifier or string"
             )
         );
     }
@@ -995,12 +993,11 @@ mod with_tempdir {
         assert_eq!(
             assets_config.err().unwrap().to_string(),
             format!(
-                "Malformed JSON asset config file '{}':  {}",
+                "Malformed JSON asset config file '{}'",
                 assets_dir
                     .join(ASSETS_CONFIG_FILENAME_JSON)
                     .to_str()
                     .unwrap(),
-                "--> 2:19\n  |\n2 |         {\"match\": \"{{{\\\\\\\", \"cache\": {\"max_age\": 900}},\n  |                   ^---\n  |\n  = expected boolean or null"
             )
         );
     }

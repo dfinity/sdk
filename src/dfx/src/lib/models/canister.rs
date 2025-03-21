@@ -458,7 +458,7 @@ pub struct CanisterPool {
 struct PoolConstructHelper<'a> {
     config: &'a Config,
     builder_pool: BuilderPool,
-    canister_id_store: CanisterIdStore,
+    canister_id_store: &'a CanisterIdStore,
     generate_cid: bool,
     canisters_map: &'a mut Vec<Arc<Canister>>,
 }
@@ -792,7 +792,7 @@ impl CanisterPool {
                     .map(|c| c.get_name())
                     .contains(&canister.get_name())
                 {
-                    trace!(log, "Building canister '{}'.", canister.get_name());
+                    info!(log, "Building canister '{}'.", canister.get_name());
                 } else {
                     trace!(log, "Not building canister '{}'.", canister.get_name());
                     continue;

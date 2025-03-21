@@ -11,6 +11,9 @@ documentation = "https://docs.rs/ic-asset"
 categories = ["api-bindings", "data-structures"]
 keywords = ["internet-computer", "assets", "icp", "dfinity"]
 
+[lints]
+workspace = true
+
 [dependencies]
 backoff.workspace = true
 brotli = "6.0.0"
