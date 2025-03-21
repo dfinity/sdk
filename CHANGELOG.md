@@ -2,10 +2,24 @@
 
 # UNRELEASED
 
+# 0.26.0
+
 ### feat!: `dfx start` uses `--pocketic` by default
 
 As [announced](https://forum.dfinity.org/t/dfx-replacing-the-local-replica-with-pocketic/40167) `dfx start` now runs PocketIC by default.
 Running a local replica is still possible with `--replica`, but this option will be removed in the near future.
+
+### feat: dfx will now report telemetry by default
+
+dfx will now record information about each dfx command executed, and periodically send
+this information to a DFINITY server, by default.
+
+For more information or to comment, please see https://forum.dfinity.org/t/dfx-telemetry-proposal-2025/41569.
+
+You can see what data dfx collects by inspecting the file at `dfx info telemetry-log-path`.
+
+You can disable this entirely with `dfx config telemetry off` or configure it to only collect
+locally with `dfx config telemetry local`.
 
 ### feat: `dfx info telemetry-log-path`
 
@@ -42,6 +56,10 @@ Implement `dfx ledger allowance` subcommand that complies with the [ICRC-2](http
 - The VetKD test key id `Bls12_381_G2:dfx_test_key` is now enabled when starting `dfx` with `--replica`.
 
 ## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.4](https://github.com/dfinity/motoko/releases/tag/0.14.4)
 
 ### Replica
 
