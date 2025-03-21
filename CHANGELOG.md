@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.26.0
+
 ### feat!: `dfx start` uses `--pocketic` by default
 
 As [announced](https://forum.dfinity.org/t/dfx-replacing-the-local-replica-with-pocketic/40167) `dfx start` now runs PocketIC by default.
