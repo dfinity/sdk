@@ -4,6 +4,7 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::network::network_opt::NetworkOpt;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::telemetry::{CyclesHost, Telemetry};
 use anyhow::Context;
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
@@ -57,6 +58,7 @@ enum SubCommand {
 }
 
 pub fn exec(env: &dyn Environment, opts: WalletOpts) -> DfxResult {
+    Telemetry::set_cycles_host(CyclesHost::CyclesWallet);
     let agent_env = create_agent_environment(env, opts.network.to_network_name())?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {

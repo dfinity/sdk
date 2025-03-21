@@ -17,6 +17,7 @@ use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::time::Instant;
+use util::default_allowlisted_canisters;
 
 mod actors;
 mod commands;
@@ -149,6 +150,7 @@ fn get_args_altered_for_extension_run(
 fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
     let tool_config = ToolConfig::new()?;
     Telemetry::init(tool_config.interface().telemetry);
+    Telemetry::allowlist_canisters(default_allowlisted_canisters());
 
     let em = ExtensionManager::new(dfx_version())?;
     let installed_extension_manifests = em.load_installed_extension_manifests()?;
@@ -197,6 +199,7 @@ fn main() {
     let result = inner_main(&mut log_level);
 
     let exit_code = if let Err(err) = result {
+        Telemetry::set_error(&err);
         let error_diagnosis = diagnose(&err);
         print_error_and_diagnosis(log_level, err, error_diagnosis);
         255

@@ -33,6 +33,7 @@ pub struct NetworkDescriptor {
     pub providers: Vec<String>,
     pub r#type: NetworkTypeDescriptor,
     pub is_ic: bool,
+    pub is_ad_hoc: bool,
     pub local_server_descriptor: Option<LocalServerDescriptor>,
 }
 
@@ -71,6 +72,7 @@ impl NetworkDescriptor {
             providers: vec![DEFAULT_IC_GATEWAY.to_string()],
             r#type: NetworkTypeDescriptor::Persistent,
             is_ic: true,
+            is_ad_hoc: false,
             local_server_descriptor: None,
         }
     }
@@ -121,6 +123,7 @@ impl NetworkDescriptor {
                 canister_timeout_seconds: MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS,
             },
             is_ic: true,
+            is_ad_hoc: false,
             local_server_descriptor: None,
         }
     }

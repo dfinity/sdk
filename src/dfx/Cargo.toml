@@ -125,7 +125,7 @@ time = { workspace = true, features = [
 ] }
 tokio = { workspace = true, features = ["full"] }
 url.workspace = true
-uuid = { version = "1.15.1", features = [ "v4", ] }
+uuid = { version = "1.15.1", features = ["v4"] }
 walkdir.workspace = true
 walrus = "0.21.1"
 which = "4.2.5"

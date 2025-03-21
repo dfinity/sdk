@@ -1,9 +1,9 @@
 //! Named canister module.
 //!
 //! Contains the Candid UI canister for now
-use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::{environment::Environment, telemetry::Telemetry};
 use crate::util;
 use anyhow::{anyhow, Context};
 use candid::Principal;
@@ -73,6 +73,7 @@ pub async fn install_ui_canister(
         .await
         .context("Install wasm call failed.")?;
     id_store.add(env.get_logger(), UI_CANISTER, &canister_id.to_text(), None)?;
+    Telemetry::allowlist_canisters(&[canister_id]);
     spinner.finish_and_clear();
     debug!(
         env.get_logger(),

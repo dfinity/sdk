@@ -57,7 +57,10 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
             match response {
                 RequestStatusResponse::Replied(reply) => return Ok(reply.arg),
                 RequestStatusResponse::Rejected(response) => {
-                    return Err(DfxError::new(AgentError::CertifiedReject(response)))
+                    return Err(DfxError::new(AgentError::CertifiedReject {
+                        reject: response,
+                        operation: None,
+                    }))
                 }
                 RequestStatusResponse::Unknown => (),
                 RequestStatusResponse::Received | RequestStatusResponse::Processing => {

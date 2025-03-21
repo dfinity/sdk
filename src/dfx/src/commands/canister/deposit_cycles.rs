@@ -5,6 +5,7 @@ use crate::lib::identity::wallet::get_or_create_wallet_canister;
 use crate::lib::operations::canister;
 use crate::lib::operations::canister::skip_remote_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::telemetry::{CyclesHost, Telemetry};
 use crate::lib::{environment::Environment, operations::cycles_ledger};
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use anyhow::{bail, Context};
@@ -57,6 +58,7 @@ async fn deposit_cycles(
 
     match call_sender {
         CallSender::SelectedId => {
+            Telemetry::set_cycles_host(CyclesHost::CyclesLedger);
             cycles_ledger::withdraw(
                 env.get_agent(),
                 env.get_logger(),
@@ -71,6 +73,7 @@ async fn deposit_cycles(
             unreachable!("Impersonating sender when depositing cycles is not supported.")
         }
         CallSender::Wallet(_) => {
+            Telemetry::set_cycles_host(CyclesHost::CyclesWallet);
             canister::deposit_cycles(env, canister_id, call_sender, cycles).await?
         }
     };

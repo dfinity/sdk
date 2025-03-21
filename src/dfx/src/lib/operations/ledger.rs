@@ -360,11 +360,15 @@ Your principal for ICP wallets and decentralized exchanges: {}
 
 fn retryable(agent_error: &AgentError) -> bool {
     match agent_error {
-        AgentError::CertifiedReject(RejectResponse {
-            reject_code: RejectCode::CanisterError,
-            reject_message,
+        AgentError::CertifiedReject {
+            reject:
+                RejectResponse {
+                    reject_code: RejectCode::CanisterError,
+                    reject_message,
+                    ..
+                },
             ..
-        }) if reject_message.contains("is out of cycles") => false,
+        } if reject_message.contains("is out of cycles") => false,
         AgentError::HttpError(HttpErrorPayload {
             status,
             content_type: _,
