@@ -4,17 +4,28 @@ use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::CliOpts;
 use anyhow::Context;
+use candid::Principal;
 use chrono::{Datelike, Local, NaiveDateTime};
 use clap::parser::ValueSource;
 use clap::{ArgMatches, Command, CommandFactory};
 use dfx_core::config::directories::project_dirs;
-use dfx_core::config::model::dfinity::TelemetryState;
+use dfx_core::config::model::canister_id_store::CanisterIdStore;
+use dfx_core::config::model::dfinity::{
+    CanisterTypeProperties, Config, ConfigCanistersCanister, TelemetryState,
+};
+use dfx_core::config::model::local_server_descriptor::LocalNetworkScopeDescriptor;
+use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::fs;
+use dfx_core::identity::IdentityType;
 use fd_lock::{RwLock as FdRwLock, RwLockWriteGuard};
 use fn_error_context::context;
+use ic_agent::agent::RejectResponse;
+use ic_agent::agent_error::Operation;
+use ic_agent::AgentError;
 use reqwest::StatusCode;
 use semver::Version;
 use serde::Serialize;
+use std::collections::BTreeSet;
 use std::ffi::OsString;
 use std::fs::{File, OpenOptions};
 use std::io::Seek;
@@ -52,6 +63,13 @@ pub struct Telemetry {
     arguments: Vec<Argument>,
     elapsed: Option<Duration>,
     platform: String,
+    last_reject: Option<RejectResponse>,
+    last_operation: Option<Operation>,
+    identity_type: Option<IdentityType>,
+    cycles_host: Option<CyclesHost>,
+    canisters: Option<Vec<CanisterRecord>>,
+    network_type: Option<NetworkType>,
+    allowlisted_canisters: BTreeSet<Principal>,
     week: Option<String>,
     publish: bool,
 }
@@ -120,6 +138,14 @@ impl Telemetry {
         });
     }
 
+    pub fn set_identity_type(identity_type: IdentityType) {
+        with_telemetry(|telemetry| telemetry.identity_type = Some(identity_type));
+    }
+
+    pub fn set_cycles_host(host: CyclesHost) {
+        with_telemetry(|telemetry| telemetry.cycles_host = Some(host));
+    }
+
     pub fn set_week() {
         with_telemetry(|telemetry| {
             let iso_week = Local::now().naive_local().iso_week();
@@ -131,6 +157,67 @@ impl Telemetry {
     pub fn set_elapsed(elapsed: Duration) {
         with_telemetry(|telemetry| {
             telemetry.elapsed = Some(elapsed);
+        });
+    }
+
+    pub fn set_error(error: &anyhow::Error) {
+        with_telemetry(|telemetry| {
+            for source in error.chain() {
+                if let Some(agent_err) = source.downcast_ref::<AgentError>() {
+                    if let AgentError::CertifiedReject { reject, operation }
+                    | AgentError::UncertifiedReject { reject, operation } = agent_err
+                    {
+                        telemetry.last_reject = Some(reject.clone());
+                        if let Some(operation) = operation {
+                            telemetry.last_operation = Some(operation.clone());
+                        }
+                    }
+                    break;
+                }
+            }
+        });
+    }
+
+    pub fn set_canisters(canisters: Vec<CanisterRecord>) {
+        with_telemetry(|telemetry| telemetry.canisters = Some(canisters));
+    }
+
+    pub fn allowlist_canisters(canisters: &[Principal]) {
+        with_telemetry(|telemetry| telemetry.allowlisted_canisters.extend(canisters));
+    }
+
+    pub fn allowlist_all_asset_canisters(config: Option<&Config>, ids: &CanisterIdStore) {
+        with_telemetry(|telemetry| {
+            if let Some(config) = config {
+                for (name, canister) in config.config.canisters.iter().flatten() {
+                    if let CanisterTypeProperties::Assets { .. } = &canister.type_specific {
+                        if let Ok(canister_id) = ids.get(name) {
+                            telemetry.allowlisted_canisters.insert(canister_id);
+                        }
+                    }
+                }
+            }
+        })
+    }
+
+    pub fn set_network(network: &NetworkDescriptor) {
+        with_telemetry(|telemetry| {
+            telemetry.network_type = Some(
+                if let NetworkTypeDescriptor::Playground { .. } = &network.r#type {
+                    NetworkType::Playground
+                } else if network.is_ic {
+                    NetworkType::Ic
+                } else if let Some(local) = &network.local_server_descriptor {
+                    match &local.scope {
+                        LocalNetworkScopeDescriptor::Project => NetworkType::ProjectLocal,
+                        LocalNetworkScopeDescriptor::Shared { .. } => NetworkType::LocalShared,
+                    }
+                } else if network.is_ad_hoc {
+                    NetworkType::UnknownUrl
+                } else {
+                    NetworkType::UnknownConfigured
+                },
+            )
         });
     }
 
@@ -152,6 +239,17 @@ impl Telemetry {
 
     pub fn append_current_command_timestamped(exit_code: i32) -> DfxResult<()> {
         try_with_telemetry(|telemetry| {
+            let reject = telemetry.last_reject.as_ref();
+            let call_site = telemetry.last_operation.as_ref().map(|o| match o {
+                Operation::Call { method, canister } => {
+                    if telemetry.allowlisted_canisters.contains(canister) {
+                        method
+                    } else {
+                        "<user-specified canister method>"
+                    }
+                }
+                Operation::ReadState { .. } | Operation::ReadSubnetState { .. } => "/read_state",
+            });
             let record = CommandRecord {
                 tool: "dfx",
                 version: dfx_version(),
@@ -161,13 +259,13 @@ impl Telemetry {
                 week: telemetry.week.as_deref(),
                 exit_code,
                 execution_time_ms: telemetry.elapsed.map(|e| e.as_millis()),
-                replica_error_call_site: None,
-                replica_error_code: None,
-                replica_reject_code: None,
-                cycles_host: None,
-                identity_type: None,
-                network_type: None,
-                project_canisters: None,
+                replica_error_call_site: call_site,
+                replica_error_code: reject.and_then(|r| r.error_code.as_deref()),
+                replica_reject_code: reject.map(|r| r.reject_code as u8),
+                cycles_host: telemetry.cycles_host,
+                identity_type: telemetry.identity_type,
+                network_type: telemetry.network_type,
+                project_canisters: telemetry.canisters.as_deref(),
             };
             Self::append_record(&record)?;
             Ok(())
@@ -464,37 +562,29 @@ struct CommandRecord<'a> {
     parameters: &'a [Argument],
     exit_code: i32,
     execution_time_ms: Option<u128>,
-    replica_error_call_site: Option<&'a str>,  //todo
-    replica_error_code: Option<&'a str>,       //todo
-    replica_reject_code: Option<u8>,           //todo
-    cycles_host: Option<CyclesHost>,           //todo
-    identity_type: Option<IdentityType>,       //todo
-    network_type: Option<NetworkType>,         //todo
-    project_canisters: Option<&'a [Canister]>, //todo
+    replica_error_call_site: Option<&'a str>,
+    replica_error_code: Option<&'a str>,
+    replica_reject_code: Option<u8>,
+    cycles_host: Option<CyclesHost>,
+    identity_type: Option<IdentityType>,
+    network_type: Option<NetworkType>,
+    project_canisters: Option<&'a [CanisterRecord]>,
 }
 
 #[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-enum CyclesHost {
+pub enum CyclesHost {
     CyclesLedger,
     CyclesWallet,
 }
 
 #[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
-enum IdentityType {
-    Keyring,
-    Plaintext,
-    EncryptedLocal,
-    Hsm,
-}
-
-#[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
-#[serde(rename_all = "kebab-case")]
-enum NetworkType {
+pub enum NetworkType {
     LocalShared,
     ProjectLocal,
     Ic,
+    Playground,
     UnknownConfigured,
     UnknownUrl,
 }
@@ -509,9 +599,22 @@ enum CanisterType {
     Pull,
 }
 
-#[derive(Serialize, Copy, Clone, Debug)]
-struct Canister {
+#[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
+pub struct CanisterRecord {
     r#type: CanisterType,
+}
+
+impl CanisterRecord {
+    pub fn from_canister(config: &ConfigCanistersCanister) -> Self {
+        let r#type = match &config.type_specific {
+            CanisterTypeProperties::Rust { .. } => CanisterType::Rust,
+            CanisterTypeProperties::Assets { .. } => CanisterType::Assets,
+            CanisterTypeProperties::Motoko { .. } => CanisterType::Motoko,
+            CanisterTypeProperties::Custom { .. } => CanisterType::Custom,
+            CanisterTypeProperties::Pull { .. } => CanisterType::Pull,
+        };
+        Self { r#type }
+    }
 }
 
 /// Finds the deepest subcommand in both `ArgMatches` and `Command`.

@@ -1,5 +1,6 @@
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::telemetry::Telemetry;
 use crate::util::assets::wallet_wasm;
 use crate::Environment;
 use anyhow::{bail, Context};
@@ -59,7 +60,10 @@ pub async fn get_or_create_wallet(
                 })
             }
         }
-        Some(principal) => Ok(principal),
+        Some(principal) => {
+            Telemetry::allowlist_canisters(&[principal]);
+            Ok(principal)
+        }
     }
 }
 
@@ -94,16 +98,22 @@ pub async fn create_wallet(
         }
     };
 
+    Telemetry::allowlist_canisters(&[canister_id]);
+
     match mgr
         .install_code(&canister_id, wasm.as_slice())
         .with_mode(InstallMode::Install)
         .await
     {
-        Err(AgentError::CertifiedReject(RejectResponse {
-            reject_code: RejectCode::CanisterError,
-            reject_message,
+        Err(AgentError::CertifiedReject {
+            reject:
+                RejectResponse {
+                    reject_code: RejectCode::CanisterError,
+                    reject_message,
+                    ..
+                },
             ..
-        })) if reject_message.contains("not empty") => {
+        }) if reject_message.contains("not empty") => {
             bail!(
                 r#"The wallet canister "{canister_id}" already exists for user "{name}" on "{}" network."#,
                 network.name
