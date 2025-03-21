@@ -274,8 +274,14 @@ impl Telemetry {
         future_duration: Option<Duration>,
     ) -> DfxResult {
         let future_duration = future_duration.unwrap_or_else(|| {
-            // random 5-7 days in the future
-            let future_seconds = 86400.0 * (5.0 + rand::random::<f64>() * 2.0);
+            let has_prerelease = !dfx_version().pre.is_empty();
+            let future_seconds = if has_prerelease {
+                // random 0.75 - 1.25 days in the future
+                86400.0 * (0.75 + rand::random::<f64>() * 0.5)
+            } else {
+                // random 2-4 days in the future
+                86400.0 * (2.0 + rand::random::<f64>() * 2.0)
+            };
             Duration::from_secs(future_seconds as u64)
         });
         let future_time = Local::now().naive_local() + future_duration;
