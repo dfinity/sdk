@@ -74,7 +74,7 @@ pub async fn exec(env: &dyn Environment, opts: ApproveOpts) -> DfxResult {
             .as_nanos() as u64,
     );
 
-    let result = ledger::approve(
+    let result = ledger::icrc2_approve(
         agent,
         env.get_logger(),
         &canister_id,

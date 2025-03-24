@@ -80,7 +80,7 @@ pub async fn exec(env: &dyn Environment, opts: TransferFromOpts) -> DfxResult {
         subaccount: opts.to_subaccount,
     };
 
-    let result = ledger::transfer_from(
+    let result = ledger::icrc2_transfer_from(
         agent,
         env.get_logger(),
         &canister_id,

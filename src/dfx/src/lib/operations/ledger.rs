@@ -261,7 +261,7 @@ pub async fn icrc1_transfer(
     Ok(block_index)
 }
 
-pub async fn transfer_from(
+pub async fn icrc2_transfer_from(
     agent: &Agent,
     logger: &Logger,
     canister_id: &Principal,
@@ -320,7 +320,7 @@ pub async fn transfer_from(
     Ok(block_index)
 }
 
-pub async fn approve(
+pub async fn icrc2_approve(
     agent: &Agent,
     logger: &Logger,
     canister_id: &Principal,
@@ -380,7 +380,7 @@ pub async fn approve(
     Ok(block_index)
 }
 
-pub async fn allowance(
+pub async fn icrc2_allowance(
     agent: &Agent,
     canister_id: &Principal,
     owner: icrc1::account::Account,

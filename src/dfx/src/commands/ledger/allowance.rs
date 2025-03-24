@@ -57,7 +57,7 @@ pub async fn exec(env: &dyn Environment, opts: AllowanceOpts) -> DfxResult {
         subaccount: opts.spender_subaccount,
     };
 
-    let allowance = ledger::allowance(agent, &canister_id, owner, spender).await?;
+    let allowance = ledger::icrc2_allowance(agent, &canister_id, owner, spender).await?;
 
     let icp = ICPTs::from_e8s(allowance.allowance.0.try_into()?);
 
