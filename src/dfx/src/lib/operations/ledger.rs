@@ -1,6 +1,10 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::ledger_types::{AccountIdBlob, BlockHeight, Memo, TransferError};
 use crate::lib::nns_types::account_identifier::Subaccount;
+use crate::lib::operations::{
+    ICRC1_BALANCE_OF_METHOD, ICRC1_TRANSFER_METHOD, ICRC2_ALLOWANCE_METHOD, ICRC2_APPROVE_METHOD,
+    ICRC2_TRANSFER_FROM_METHOD,
+};
 use crate::lib::{
     error::DfxResult,
     ledger_types::{
@@ -24,6 +28,7 @@ use ic_agent::{
 use ic_utils::{call::SyncCall, Canister};
 use icrc_ledger_types::icrc1;
 use icrc_ledger_types::icrc1::transfer::BlockIndex;
+use icrc_ledger_types::icrc1::transfer::TransferError as ICRC1TransferError;
 use icrc_ledger_types::icrc2;
 use icrc_ledger_types::icrc2::allowance::Allowance;
 use icrc_ledger_types::icrc2::approve::ApproveError;
@@ -33,9 +38,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";
 const TRANSFER_METHOD: &str = "transfer";
-const ICRC2_APPROVE_METHOD: &str = "icrc2_approve";
-const ICRC2_TRANSFER_FROM_METHOD: &str = "icrc2_transfer_from";
-const ICRC2_ALLOWANCE_METHOD: &str = "icrc2_allowance";
 
 pub async fn balance(
     agent: &Agent,
@@ -55,6 +57,26 @@ pub async fn balance(
         .build()
         .call()
         .await?;
+    Ok(result)
+}
+
+pub async fn icrc1_balance(
+    agent: &Agent,
+    canister_id: &Principal,
+    owner: icrc1::account::Account,
+) -> DfxResult<u128> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(*canister_id)
+        .build()?;
+
+    let (result,) = canister
+        .query(ICRC1_BALANCE_OF_METHOD)
+        .with_arg(owner)
+        .build()
+        .call()
+        .await?;
+
     Ok(result)
 }
 
@@ -181,7 +203,65 @@ pub async fn transfer(
     Ok(block_height)
 }
 
-pub async fn transfer_from(
+pub async fn icrc1_transfer(
+    agent: &Agent,
+    logger: &Logger,
+    canister_id: &Principal,
+    from_subaccount: Option<icrc1::account::Subaccount>,
+    to: icrc1::account::Account,
+    amount: ICPTs,
+    fee: Option<ICPTs>,
+    memo: Option<u64>,
+    created_at_time: u64,
+) -> DfxResult<BlockIndex> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(*canister_id)
+        .build()?;
+
+    let retry_policy = ExponentialBackoff::default();
+
+    let block_index = retry(retry_policy, || async {
+        let arg = icrc1::transfer::TransferArg {
+            from_subaccount,
+            to,
+            fee: fee.map(|value| Nat::from(value.get_e8s())),
+            created_at_time: Some(created_at_time),
+            memo: memo.map(|v| v.into()),
+            amount: Nat::from(amount.get_e8s()),
+        };
+        match canister
+            .update(ICRC1_TRANSFER_METHOD)
+            .with_arg(arg)
+            .build()
+            .map(|result: (Result<BlockIndex, ICRC1TransferError>,)| (result.0,))
+            .await
+            .map(|(result,)| result)
+        {
+            Ok(Ok(block_index)) => Ok(block_index),
+            Ok(Err(ICRC1TransferError::Duplicate { duplicate_of })) => {
+                info!(
+                    logger,
+                    "{}",
+                    ICRC1TransferError::Duplicate {
+                        duplicate_of: duplicate_of.clone()
+                    }
+                );
+                Ok(duplicate_of)
+            }
+            Ok(Err(transfer_err)) => Err(backoff::Error::permanent(anyhow!(transfer_err))),
+            Err(agent_err) if retryable(&agent_err) => {
+                Err(backoff::Error::transient(anyhow!(agent_err)))
+            }
+            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+        }
+    })
+    .await?;
+
+    Ok(block_index)
+}
+
+pub async fn icrc2_transfer_from(
     agent: &Agent,
     logger: &Logger,
     canister_id: &Principal,
@@ -240,7 +320,7 @@ pub async fn transfer_from(
     Ok(block_index)
 }
 
-pub async fn approve(
+pub async fn icrc2_approve(
     agent: &Agent,
     logger: &Logger,
     canister_id: &Principal,
@@ -300,7 +380,7 @@ pub async fn approve(
     Ok(block_index)
 }
 
-pub async fn allowance(
+pub async fn icrc2_allowance(
     agent: &Agent,
     canister_id: &Principal,
     owner: icrc1::account::Account,

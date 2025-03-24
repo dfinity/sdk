@@ -26,7 +26,7 @@ Depending on the `dfx ledger` subcommand you specify, additional arguments, opti
 | `help`                                | Displays usage information message for a specified subcommand.                       |
 | [`notify`](#dfx-ledger-notify)                   | Notifies the ledger when there is a send transaction to the cycles minting canister. |
 | [`top-up`](#dfx-ledger-top-up)                   | Tops up a canister with cycles minted from ICP.                                      |
-| [`transfer`](#dfx-ledger-transfer)               | Transfers ICP from the user to the destination Account Identifier.                   |
+| [`transfer`](#dfx-ledger-transfer)               | Transfers ICP from the user to the destination Account Identifier or principal.      |
 | [`transfer-from`](#dfx-ledger-transfer-from)     | Transfer ICP from the approver princiapl to another principal.                       |
 
 To view usage information for a specific subcommand, specify the subcommand and the `--help` flag. For example, to see usage information for `dfx ledger transfer`, you can run the following command:
@@ -165,9 +165,18 @@ dfx ledger balance [of] [flag] --network ic
 
 You can specify the following argument for the `dfx ledger balance` command.
 
-| Argument | Description                                                                                                                                                                 |
-|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `<of>`   | Specify an Account Identifier to get the balance. If this command is not specified, the command returns the balance of ICP tokens for the currently-selected user identity. |
+| Argument | Description                                                                                    |
+|----------|------------------------------------------------------------------------------------------------|
+| `<of>`   | Specify an Account Identifier to get the balance of. If both this argument and `--of-principal` option are not specified, the currently-selected user identity will be used. |
+
+### Options
+
+You can specify the following argument for the `dfx ledger balance` command.
+
+| Option                          | Description                                                             |
+|---------------------------------|-------------------------------------------------------------------------|
+| `--of-principal <of_principal>` | Specifies the principal to get the balance of.                          |
+| `--subaccount <subaccount>`     | Specifies the subaccount to get the balance of.                         |
 
 ### Examples
 
@@ -179,7 +188,17 @@ dfx ledger balance 03e3d86f29a069c6f2c5c48e01bc084e4ea18ad02b0eec8fccadf4487183c
 
 This command displays an ICP amount similar to the following:
 
-    2.49798000 ICP
+```bash
+2.49798000 ICP
+```
+
+You can also use the `dfx ledger balance` command to get the balance of a principal, please check the [ICRC-1 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1) for more information.
+
+For example, you can run the following command to get the balance of a principal:
+
+```bash
+dfx ledger balance --of-principal tdrdy-ztedg-ftfrj-mwmqh-wjl3j-pty4c-j63lp-xfvtt-7jxvp-4ialz-3ae --network ic
+```
 
 ## dfx ledger create-canister
 
@@ -421,13 +440,16 @@ You can specify the following argument for the `dfx ledger transfer` command.
 
 You can specify the following argument for the `dfx ledger transfer` command.
 
-| Option              | Description                                                                                                                                                                                                     |
-|---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--amount <amount>` | Specifies the number of ICP tokens to transfer. Can be specified as a number with up to eight (8) decimal places.                                                                                               |
+| Option              | Description                                                                         |
+|---------------------|-------------------------------------------------------------------------------------|
+| `--amount <amount>` | Specifies the number of ICP tokens to transfer. Can be specified as a number with up to eight (8) decimal places. |
+| `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
 | `--e8s <e8s>`       | Specifies e8s as a whole number, where one e8 is smallest partition of an ICP token. For example, 1.05000000 is 1 ICP and 5000000 e8s. You can use this option alone or in conjunction with the `--icp` option. |
-| `--fee <fee>`       | Specifies a transaction fee. The default is 10000 e8s.                                                                                                                                                          |
-| `--icp <icp>`       | Specifies ICP as a whole number. You can use this option alone or in conjunction with `--e8s`.                                                                                                                  |
-| `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
+| `--fee <fee>`       | Specifies a transaction fee. The default is 0.00010000 ICP (10000 e8s).             |
+| `--from-subaccount <from_subaccount>` | Specifies the subaccount from which you want to transfer ICP tokens. |
+| `--icp <icp>`       | Specifies ICP as a whole number. You can use this option alone or in conjunction with `--e8s`. |
+| `--to-principal <to_principal>` | Specifies the principal to which you want to transfer ICP tokens.       |
+| `--to-subaccount <to_subaccount>` | Specifies the subaccount to which you want to transfer ICP tokens.    |
 
 ### Examples
 
@@ -461,9 +483,19 @@ dfx ledger transfer dd81336dbfef5c5870e84b48405c7b229c07ad999fdcacb85b9b9850bd60
 
 This command displays output similar to the following:
 
-    Transfer sent at BlockHeight: 59513
+```bash
+Transfer sent at BlockHeight: 59513
+```
 
 You can then use the `dfx ledger balance --network ic` command to check that your account balance reflects the transaction you just made.
+
+You can also use the `dfx ledger transfer` command to send ICP to the principal of the destination, please check the [ICRC-1 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1) for more information.
+
+For example, you can run the following command to send some of your ICP tokens to a principal of the destination:
+
+```bash
+dfx ledger transfer --to-principal tdrdy-ztedg-ftfrj-mwmqh-wjl3j-pty4c-j63lp-xfvtt-7jxvp-4ialz-3ae --amount 1 --memo 1 --network ic
+```
 
 ## dfx ledger transfer-from
 
