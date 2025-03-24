@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: Extend `dfx ledger transfer` and `dfx ledger balance` to support ICRC-1 standard
+
+Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1).
+
 # 0.26.0
 
 ### feat!: `dfx start` uses `--pocketic` by default
