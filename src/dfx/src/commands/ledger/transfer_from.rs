@@ -50,8 +50,8 @@ pub struct TransferFromOpts {
     #[arg(long)]
     memo: Option<u64>,
 
-    #[arg(long)]
     /// Canister ID of the ledger canister.
+    #[arg(long)]
     ledger_canister_id: Option<Principal>,
 }
 

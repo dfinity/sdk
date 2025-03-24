@@ -1,6 +1,9 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::ledger_types::{AccountIdBlob, BlockHeight, Memo, TransferError};
 use crate::lib::nns_types::account_identifier::Subaccount;
+use crate::lib::operations::{
+    ICRC1_TRANSFER_METHOD, ICRC2_ALLOWANCE_METHOD, ICRC2_APPROVE_METHOD, ICRC2_TRANSFER_FROM_METHOD,
+};
 use crate::lib::{
     error::DfxResult,
     ledger_types::{
@@ -34,10 +37,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";
 const TRANSFER_METHOD: &str = "transfer";
-const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
-const ICRC2_APPROVE_METHOD: &str = "icrc2_approve";
-const ICRC2_TRANSFER_FROM_METHOD: &str = "icrc2_transfer_from";
-const ICRC2_ALLOWANCE_METHOD: &str = "icrc2_allowance";
 
 pub async fn balance(
     agent: &Agent,
