@@ -127,11 +127,11 @@ current_time_nanoseconds() {
   assert_contains "Transfer sent at block index"
 
   # The owner(alice) transferred 50 ICP to david and paid transaction fee which is 0.0001 ICP.
-  assert_command dfx ledger balance --identity alice
+  assert_command dfx ledger balance
   assert_eq "999999949.99990000 ICP"
 
   # The receiver(david) received 50 ICP.
-  assert_command dfx ledger balance --identity david
+  assert_command dfx ledger balance --of-principal "$DAVID"
   assert_match "50.00000000 ICP"
 
   # Test approve, transfer-from and allowance.
@@ -148,6 +148,7 @@ current_time_nanoseconds() {
   assert_match "Allowance 100.00000000 ICP"
 
   dfx identity use bob
+
   assert_command dfx ledger balance
   assert_match "1000000000.00000000 ICP"
 
@@ -156,7 +157,7 @@ current_time_nanoseconds() {
 
   # The spender(bob) transferred 50 ICP to david from the approver(alice).
   # And the approver(alice) paid transaction fee which is 0.0001 ICP
-  assert_command dfx ledger balance --identity alice
+  assert_command dfx ledger balance --of-principal "$ALICE"
   assert_eq "999999899.99970000 ICP"
 
   # The spender(bob) remains 49.99990000 ICP allowance from the approver(alice).
@@ -164,11 +165,11 @@ current_time_nanoseconds() {
   assert_match "Allowance 49.99990000 ICP"
 
   # The spender(bob) balance is unchanged.
-  assert_command dfx ledger balance --identity bob
+  assert_command dfx ledger balance --of-principal "$BOB"
   assert_match "1000000000.00000000 ICP"
 
   # The receiver(david) received 50 ICP.
-  assert_command dfx ledger balance --identity david
+  assert_command dfx ledger balance --of-principal "$DAVID"
   assert_match "100.00000000 ICP"
 }
 
@@ -202,6 +203,7 @@ current_time_nanoseconds() {
   assert_command dfx ledger balance --identity alice
   assert_match "999999999.99990000 ICP"
 }
+
 tc_to_num() {
   if [[ $1 =~ T ]]; then
     echo "${1%%[^0-9]*}000000000000"

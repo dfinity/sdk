@@ -24,7 +24,7 @@ pub struct TransferOpts {
     #[arg(long, conflicts_with("to"))]
     to_principal: Option<Principal>,
 
-    /// Transfer cycles to this subaccount.
+    /// Transfer ICP to this subaccount.
     #[arg(long, value_parser = icrc_subaccount_parser, requires("to_principal"))]
     to_subaccount: Option<icrc1::account::Subaccount>,
 

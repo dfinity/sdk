@@ -2,7 +2,8 @@ use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::ledger_types::{AccountIdBlob, BlockHeight, Memo, TransferError};
 use crate::lib::nns_types::account_identifier::Subaccount;
 use crate::lib::operations::{
-    ICRC1_TRANSFER_METHOD, ICRC2_ALLOWANCE_METHOD, ICRC2_APPROVE_METHOD, ICRC2_TRANSFER_FROM_METHOD,
+    ICRC1_BALANCE_OF_METHOD, ICRC1_TRANSFER_METHOD, ICRC2_ALLOWANCE_METHOD, ICRC2_APPROVE_METHOD,
+    ICRC2_TRANSFER_FROM_METHOD,
 };
 use crate::lib::{
     error::DfxResult,
@@ -56,6 +57,26 @@ pub async fn balance(
         .build()
         .call()
         .await?;
+    Ok(result)
+}
+
+pub async fn icrc1_balance(
+    agent: &Agent,
+    canister_id: &Principal,
+    owner: icrc1::account::Account,
+) -> DfxResult<u128> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(*canister_id)
+        .build()?;
+
+    let (result,) = canister
+        .query(ICRC1_BALANCE_OF_METHOD)
+        .with_arg(owner)
+        .build()
+        .call()
+        .await?;
+
     Ok(result)
 }
 
