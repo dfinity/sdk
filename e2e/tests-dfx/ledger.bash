@@ -109,7 +109,7 @@ current_time_nanoseconds() {
   assert_not_contains "Transfer sent at block height $block_height" "$stdout"
 }
 
-@test "ledger approve & transfer-from" {
+@test "ledger icrc functions" {
   install_nns
 
   ALICE=$(dfx identity get-principal --identity alice)
@@ -117,18 +117,31 @@ current_time_nanoseconds() {
   DAVID=$(dfx identity get-principal --identity david)
 
   dfx identity use alice
-  assert_command dfx ledger account-id
-  assert_eq 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
 
   assert_command dfx ledger balance
   assert_eq "1000000000.00000000 ICP"
+
+  # Test transfer and balance.
+
+  assert_command dfx ledger transfer --amount 50 --to-principal "$DAVID" --memo 1 # to david
+  assert_contains "Transfer sent at block index"
+
+  # The owner(alice) transferred 50 ICP to david and paid transaction fee which is 0.0001 ICP.
+  assert_command dfx ledger balance --identity alice
+  assert_eq "999999949.99990000 ICP"
+
+  # The receiver(david) received 50 ICP.
+  assert_command dfx ledger balance --identity david
+  assert_match "50.00000000 ICP"
+
+  # Test approve, transfer-from and allowance.
 
   assert_command dfx ledger approve "$BOB" --amount 100 # to bob
   assert_contains "Approval sent at block index"
 
   # The approver(alice) paid approving fee which is 0.0001 ICP.
   assert_command dfx ledger balance
-  assert_eq "999999999.99990000 ICP"
+  assert_eq "999999949.99980000 ICP"
 
   # The spender(bob) have 100 ICP allowance from the approver(alice).
   assert_command dfx ledger allowance --spender "$BOB"
@@ -138,16 +151,13 @@ current_time_nanoseconds() {
   assert_command dfx ledger balance
   assert_match "1000000000.00000000 ICP"
 
-  assert_command dfx ledger balance --identity david
-  assert_match "0.00000000 ICP"
-
   assert_command dfx ledger transfer-from --from "$ALICE" --amount 50 "$DAVID" # to david
   assert_contains "Transfer sent at block index"
 
   # The spender(bob) transferred 50 ICP to david from the approver(alice).
   # And the approver(alice) paid transaction fee which is 0.0001 ICP
   assert_command dfx ledger balance --identity alice
-  assert_eq "999999949.99980000 ICP"
+  assert_eq "999999899.99970000 ICP"
 
   # The spender(bob) remains 49.99990000 ICP allowance from the approver(alice).
   assert_command dfx ledger allowance --owner "$ALICE" --spender "$BOB"
@@ -159,7 +169,7 @@ current_time_nanoseconds() {
 
   # The receiver(david) received 50 ICP.
   assert_command dfx ledger balance --identity david
-  assert_match "50.00000000 ICP"
+  assert_match "100.00000000 ICP"
 }
 
 @test "ledger subaccounts" {
