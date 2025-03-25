@@ -130,7 +130,7 @@ teardown() {
     assert_command dfx info default-effective-canister-id
     assert_eq rwlgt-iiaaa-aaaaa-aaaaa-cai
   else
-    local topology expected_id
+    local topology expected_id64 expected_id
     topology=$(curl "http://localhost:$(get_webserver_port)/_/topology")
     expected_id64=$(jq -r .default_effective_canister_id.canister_id <<<"$topology")
     expected_id=$(cat <(crc32 <(base64 -d <<<"$expected_id64") | xxd -r -p) <(base64 -d <<<"$expected_id64") | base32 \
