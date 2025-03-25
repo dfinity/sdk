@@ -128,7 +128,7 @@ teardown() {
   dfx_start
   if [[ $USE_REPLICA ]]; then
     assert_command dfx info default-effective-canister-id
-    assert_eq rwlgt-iiaaa-aaaaa-aaaaa-cai
+    assert_eq "$stdout" rwlgt-iiaaa-aaaaa-aaaaa-cai
   else
     local topology expected_id64 expected_id
     topology=$(curl "http://localhost:$(get_webserver_port)/_/topology")
