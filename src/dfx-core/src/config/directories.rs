@@ -1,7 +1,6 @@
 use crate::error::config::ConfigError;
 use crate::error::config::ConfigError::{
-    DetermineConfigDirectoryFailed, DetermineSharedNetworkDirectoryFailed,
-    EnsureConfigDirectoryExistsFailed,
+    DetermineConfigDirectoryFailed, EnsureConfigDirectoryExistsFailed,
 };
 use crate::error::get_user_home::GetUserHomeError;
 use crate::error::get_user_home::GetUserHomeError::NoHomeInEnvironment;
@@ -18,9 +17,11 @@ pub fn project_dirs() -> Result<&'static ProjectDirs, GetUserHomeError> {
     DIRS.as_ref().ok_or(NoHomeInEnvironment())
 }
 
-pub fn get_shared_network_data_directory(network: &str) -> Result<PathBuf, ConfigError> {
-    let project_dirs = project_dirs().map_err(DetermineSharedNetworkDirectoryFailed)?;
-    Ok(project_dirs.data_local_dir().join("network").join(network))
+pub fn get_shared_network_data_directory(network: &str) -> Result<PathBuf, GetUserHomeError> {
+    Ok(project_dirs()?
+        .data_local_dir()
+        .join("network")
+        .join(network))
 }
 
 pub fn get_user_dfx_config_dir() -> Result<PathBuf, ConfigError> {

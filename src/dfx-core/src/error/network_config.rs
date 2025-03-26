@@ -1,8 +1,8 @@
 use crate::error::config::{ConfigError, GetTempPathError};
 use crate::error::fs::ReadToStringError;
+use crate::error::get_user_home::GetUserHomeError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError;
 use crate::error::uri::UriError;
-
 use candid::types::principal::PrincipalError;
 use std::num::ParseIntError;
 use std::path::PathBuf;
@@ -15,6 +15,9 @@ pub enum NetworkConfigError {
 
     #[error(transparent)]
     Config(#[from] ConfigError),
+
+    #[error(transparent)]
+    DetermineSharedNetworkDirectoryFailed(#[from] GetUserHomeError),
 
     #[error(transparent)]
     UriError(#[from] UriError),
