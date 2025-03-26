@@ -14,9 +14,6 @@ pub enum ConfigError {
 
     #[error("Failed to determine config directory path")]
     DetermineConfigDirectoryFailed(#[source] GetUserHomeError),
-
-    #[error("Failed to determine shared network data directory")]
-    DetermineSharedNetworkDirectoryFailed(#[source] GetUserHomeError),
 }
 
 #[derive(Error, Debug)]

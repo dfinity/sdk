@@ -10,8 +10,8 @@ use crate::config::model::network_descriptor::{
     NetworkDescriptor, NetworkTypeDescriptor, PLAYGROUND_NETWORK_NAME,
 };
 use crate::error::network_config::NetworkConfigError::{
-    self, NetworkNotFound, NoNetworkContext, NoProvidersForNetwork, ParsePortValueFailed,
-    ParseProviderUrlFailed, ReadWebserverPortFailed,
+    self, DetermineSharedNetworkDirectoryFailed, NetworkNotFound, NoNetworkContext,
+    NoProvidersForNetwork, ParsePortValueFailed, ParseProviderUrlFailed, ReadWebserverPortFailed,
 };
 use crate::identity::WALLET_CONFIG_FILENAME;
 use crate::util;
@@ -203,7 +203,8 @@ fn create_url_based_network_descriptor(
         // OS-friendly directory name for it.
         let name = util::network_to_pathcompat(network_name);
         let is_ic = NetworkDescriptor::is_ic(&name, &vec![url.to_string()]);
-        let data_directory = get_shared_network_data_directory(network_name)?;
+        let data_directory = get_shared_network_data_directory(network_name)
+            .map_err(DetermineSharedNetworkDirectoryFailed)?;
         let network_type = NetworkTypeDescriptor::new(
             NetworkType::Ephemeral,
             &data_directory.join(WALLET_CONFIG_FILENAME),
@@ -285,7 +286,8 @@ fn create_shared_network_descriptor(
             logger,
         );
 
-        let data_directory = get_shared_network_data_directory(network_name)?;
+        let data_directory = get_shared_network_data_directory(network_name)
+            .map_err(DetermineSharedNetworkDirectoryFailed)?;
 
         let ephemeral_wallet_config_path = data_directory.join(WALLET_CONFIG_FILENAME);
 
