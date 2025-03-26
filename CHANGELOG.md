@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### chore: use `account_balance` instead of the legacy `account_balance_dfx`
+
+Use the `account_balance` rather than the legacy `account_balance_dfx` on the ICP ledger.
+
 ### feat: Extend `dfx ledger transfer` and `dfx ledger balance` to support ICRC-1 standard
 
 Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1).

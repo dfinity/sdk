@@ -36,7 +36,7 @@ use icrc_ledger_types::icrc2::transfer_from::TransferFromError;
 use slog::{info, Logger};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";
+const ACCOUNT_BALANCE_METHOD: &str = "account_balance";
 const TRANSFER_METHOD: &str = "transfer";
 
 pub async fn balance(
@@ -52,7 +52,7 @@ pub async fn balance(
     let (result,) = canister
         .query(ACCOUNT_BALANCE_METHOD)
         .with_arg(AccountBalanceArgs {
-            account: acct.to_string(),
+            account: acct.to_address(),
         })
         .build()
         .call()
