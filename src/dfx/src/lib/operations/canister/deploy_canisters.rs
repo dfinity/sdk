@@ -128,7 +128,7 @@ pub async fn deploy_canisters(
         register_canisters(
             env,
             &canisters_to_deploy,
-            &initial_canister_id_store,
+            initial_canister_id_store,
             with_cycles,
             specified_id_from_cli,
             call_sender,
@@ -184,11 +184,11 @@ pub async fn deploy_canisters(
             info!(log, "Deployed canisters.");
         }
         PrepareForProposal(canister_name) => {
-            prepare_assets_for_commit(env, &initial_canister_id_store, &config, canister_name)
+            prepare_assets_for_commit(env, initial_canister_id_store, &config, canister_name)
                 .await?
         }
         ComputeEvidence(canister_name) => {
-            compute_evidence(env, &initial_canister_id_store, &config, canister_name).await?
+            compute_evidence(env, initial_canister_id_store, &config, canister_name).await?
         }
     }
 
@@ -352,7 +352,7 @@ async fn install_canisters(
 ) -> DfxResult {
     let spinner = env.new_spinner("Installing canisters...".into());
 
-    let mut canister_id_store = env.get_canister_id_store()?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     for canister_name in canister_names {
         let canister_id = canister_id_store.get(canister_name)?;
@@ -360,7 +360,7 @@ async fn install_canisters(
 
         install_canister(
             env,
-            &mut canister_id_store,
+            canister_id_store,
             canister_id,
             &canister_info,
             None,

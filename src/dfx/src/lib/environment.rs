@@ -2,6 +2,7 @@ use crate::config::cache::VersionCache;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
+use crate::lib::telemetry::{CanisterRecord, Telemetry};
 use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
 use anyhow::{anyhow, bail};
 use candid::Principal;
@@ -17,6 +18,7 @@ use dfx_core::identity::identity_manager::{IdentityManager, InitializeIdentity};
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
 use indicatif::MultiProgress;
+use once_cell::sync::OnceCell;
 use pocket_ic::nonblocking::PocketIc;
 use semver::Version;
 use slog::{Logger, Record};
@@ -86,15 +88,9 @@ pub trait Environment {
 
     fn get_extension_manager(&self) -> &ExtensionManager;
 
-    fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
-        CanisterIdStore::new(
-            self.get_logger(),
-            self.get_network_descriptor(),
-            self.get_config()?,
-        )
-    }
-
     fn get_imports(&self) -> &RefCell<GraphWithNodesMap<Import, ()>>;
+
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError>;
 }
 
 pub enum ProjectConfig {
@@ -189,6 +185,14 @@ impl EnvironmentImpl {
         let config = Config::from_current_dir(Some(&self.extension_manager))?;
 
         let project_config = config.map_or(ProjectConfig::NoProject, |config| {
+            if let Some(canisters) = &config.config.canisters {
+                Telemetry::set_canisters(
+                    canisters
+                        .values()
+                        .map(CanisterRecord::from_canister)
+                        .collect(),
+                );
+            }
             ProjectConfig::Loaded(Arc::new(config))
         });
         self.project_config.replace(project_config);
@@ -268,6 +272,10 @@ impl Environment for EnvironmentImpl {
         unreachable!("NetworkDescriptor only available from an AgentEnvironment");
     }
 
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
+        unreachable!("CanisterIdStore only available from an AgentEnvironment")
+    }
+
     fn get_logger(&self) -> &slog::Logger {
         self.logger
             .as_ref()
@@ -329,6 +337,7 @@ pub struct AgentEnvironment<'a> {
     identity_manager: IdentityManager,
     imports: RefCell<GraphWithNodesMap<Import, ()>>,
     effective_canister_id: Option<Principal>,
+    canister_id_store: OnceCell<CanisterIdStore>,
 }
 
 impl<'a> AgentEnvironment<'a> {
@@ -346,6 +355,8 @@ impl<'a> AgentEnvironment<'a> {
         } else {
             identity_manager.instantiate_selected_identity(&logger)?
         };
+        Telemetry::set_identity_type(identity.identity_type());
+        Telemetry::set_network(&network_descriptor);
         if network_descriptor.is_ic
             && !matches!(
                 network_descriptor.r#type,
@@ -398,6 +409,7 @@ impl<'a> AgentEnvironment<'a> {
             identity_manager,
             imports: RefCell::new(GraphWithNodesMap::new()),
             effective_canister_id,
+            canister_id_store: OnceCell::new(),
         })
     }
 }
@@ -427,6 +439,17 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.get_config()?.ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
+    }
+
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
+        self.canister_id_store.get_or_try_init(|| {
+            let config = self.get_config()?;
+            let network_descriptor = self.get_network_descriptor();
+            let store =
+                CanisterIdStore::new(self.get_logger(), network_descriptor, config.clone())?;
+            Telemetry::allowlist_all_asset_canisters(config.as_deref(), &store);
+            Ok(store)
+        })
     }
 
     fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
@@ -538,7 +561,7 @@ pub mod test_env {
         fn get_cache(&self) -> VersionCache {
             unimplemented!()
         }
-        fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
+        fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
             unimplemented!()
         }
         fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {

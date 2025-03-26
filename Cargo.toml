@@ -25,16 +25,16 @@ needless_lifetimes = "allow"
 candid = "0.10.11"
 candid_parser = "0.1.4"
 dfx-core = { path = "src/dfx-core", version = "0.1.0" }
-ic-agent = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "9ebf6314ce2fcb36772c7d81d6d414b4628d6101" }
+ic-agent = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "7752c33016f708fb84b56ff99d91a7c380a8b550" }
 ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.22.0" }
 ic-cdk = "0.13.1"
-ic-identity-hsm = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "9ebf6314ce2fcb36772c7d81d6d414b4628d6101" }
-ic-utils = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "9ebf6314ce2fcb36772c7d81d6d414b4628d6101" }
+ic-identity-hsm = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "7752c33016f708fb84b56ff99d91a7c380a8b550" }
+ic-utils = { version = "0.39", git = "https://github.com/dfinity/agent-rs", rev = "7752c33016f708fb84b56ff99d91a7c380a8b550" }
 
-aes-gcm = "0.10.3"
+aes-gcm = { version = "0.10.3", features = ["std"] }
 anyhow = "1.0.56"
 anstyle = "1.0.0"
-argon2 = "0.4.0"
+argon2 = { version = "0.4.0", features = ["std"] }
 backoff = { version = "0.4.0", features = ["futures", "tokio"] }
 base64 = "0.13.0"
 byte-unit = "4.0.14"
@@ -65,7 +65,7 @@ proptest = "1.0.0"
 reqwest = { version = "0.12.4", default-features = false, features = [
     "rustls-tls",
 ] }
-ring = "0.17.12"
+ring = { version = "0.17.12", features = ["std"] }
 schemars = "0.8"
 sec1 = "0.3.0"
 serde = "1.0"

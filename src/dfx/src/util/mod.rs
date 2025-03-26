@@ -1,5 +1,8 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
+use crate::lib::integrations::bitcoin::MAINNET_BITCOIN_CANISTER_ID;
+use crate::lib::ledger_types::{MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID};
+use crate::lib::subnet::MAINNET_REGISTRY_CANISTER_ID;
 use crate::{error_invalid_argument, error_invalid_data, error_unknown};
 use anyhow::{anyhow, bail, Context};
 use backoff::backoff::Backoff;
@@ -9,6 +12,7 @@ use candid::types::{value::IDLValue, Function, Type, TypeEnv, TypeInner};
 use candid::{Decode, Encode, IDLArgs, Principal};
 use candid_parser::error::pretty_wrap;
 use candid_parser::utils::CandidSource;
+use dfx_core::config::model::network_descriptor::MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID;
 use dfx_core::error::cli::UserConsent;
 use dfx_core::fs::create_dir_all;
 use fn_error_context::context;
@@ -442,6 +446,24 @@ pub fn ask_for_consent(env: &dyn Environment, message: &str) -> Result<(), UserC
         }
         Ok(())
     })
+}
+
+pub fn default_allowlisted_canisters() -> &'static [Principal] {
+    const MAINNET_GOVERNANCE_CANISTER_ID: Principal =
+        Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01]);
+    const MAINNET_II_CANISTER_ID: Principal =
+        Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x01, 0x01]);
+    &[
+        MAINNET_LEDGER_CANISTER_ID,
+        MAINNET_REGISTRY_CANISTER_ID,
+        MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
+        MAINNET_REGISTRY_CANISTER_ID,
+        MAINNET_CYCLE_MINTER_CANISTER_ID,
+        MAINNET_BITCOIN_CANISTER_ID,
+        MAINNET_GOVERNANCE_CANISTER_ID,
+        MAINNET_II_CANISTER_ID,
+        const { Principal::management_canister() },
+    ]
 }
 
 pub fn with_suspend_all_spinners<R>(env: &dyn Environment, f: impl FnOnce() -> R) -> R {

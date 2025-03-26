@@ -31,6 +31,6 @@ pub enum ComputeEvidenceError {
     HashContent(#[from] HashContentError),
 
     /// Failed to list assets in the asset canister.
-    #[error("Failed to list assets: {0}")]
-    ListAssets(AgentError),
+    #[error("Failed to list assets")]
+    ListAssets(#[source] AgentError),
 }

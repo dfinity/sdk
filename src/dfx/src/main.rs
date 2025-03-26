@@ -17,6 +17,7 @@ use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::time::Instant;
+use util::default_allowlisted_canisters;
 
 mod actors;
 mod commands;
@@ -149,6 +150,7 @@ fn get_args_altered_for_extension_run(
 fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
     let tool_config = ToolConfig::new()?;
     Telemetry::init(tool_config.interface().telemetry);
+    Telemetry::allowlist_canisters(default_allowlisted_canisters());
 
     let em = ExtensionManager::new(dfx_version())?;
     let installed_extension_manifests = em.load_installed_extension_manifests()?;
@@ -160,10 +162,14 @@ fn inner_main(log_level: &mut Option<i64>) -> DfxResult {
 
     let _ = Telemetry::set_command_and_arguments(&args);
     Telemetry::set_platform();
+    Telemetry::set_week();
 
     let cli_opts = CliOpts::parse_from(args);
 
-    if matches!(cli_opts.command, commands::DfxCommand::Schema(_)) {
+    if matches!(
+        cli_opts.command,
+        commands::DfxCommand::Schema(_) | commands::DfxCommand::SendTelemetry(_)
+    ) {
         return commands::exec_without_env(cli_opts.command);
     }
 
@@ -193,6 +199,7 @@ fn main() {
     let result = inner_main(&mut log_level);
 
     let exit_code = if let Err(err) = result {
+        Telemetry::set_error(&err);
         let error_diagnosis = diagnose(&err);
         print_error_and_diagnosis(log_level, err, error_diagnosis);
         255
@@ -205,6 +212,11 @@ fn main() {
     if let Err(e) = Telemetry::append_current_command_timestamped(exit_code) {
         if log_level.unwrap_or_default() > 0 {
             eprintln!("error appending to telemetry log: {e}")
+        }
+    }
+    if let Err(e) = Telemetry::maybe_publish() {
+        if log_level.unwrap_or_default() > 0 {
+            eprintln!("error transmitting telemetry: {e}")
         }
     }
 

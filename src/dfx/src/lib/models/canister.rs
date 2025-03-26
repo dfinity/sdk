@@ -543,7 +543,7 @@ pub struct CanisterPool {
 struct PoolConstructHelper<'a> {
     config: &'a Config,
     builder_pool: BuilderPool,
-    canister_id_store: CanisterIdStore,
+    canister_id_store: &'a CanisterIdStore,
     generate_cid: bool,
     canisters_map: &'a mut Vec<Arc<Canister>>,
 }

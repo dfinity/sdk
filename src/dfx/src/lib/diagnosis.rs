@@ -112,26 +112,37 @@ fn not_a_controller(err: &AgentError) -> bool {
     // Newer replicas include the error code in the reject response.
     matches!(
         err,
-        AgentError::UncertifiedReject(RejectResponse {
-            reject_code: RejectCode::CanisterError,
-            error_code: Some(error_code),
+        AgentError::UncertifiedReject {
+            reject: RejectResponse {
+                reject_code: RejectCode::CanisterError,
+                error_code: Some(error_code),
+                ..
+            },
             ..
-        }) if error_code == error_code::CANISTER_INVALID_CONTROLLER
+        } if error_code == error_code::CANISTER_INVALID_CONTROLLER
     )
 }
 
 fn wallet_method_not_found(err: &AgentError) -> bool {
     match err {
-        AgentError::CertifiedReject(RejectResponse {
-            reject_code: RejectCode::CanisterError,
-            reject_message,
+        AgentError::CertifiedReject {
+            reject:
+                RejectResponse {
+                    reject_code: RejectCode::CanisterError,
+                    reject_message,
+                    ..
+                },
             ..
-        }) if reject_message.contains("Canister has no update method 'wallet_") => true,
-        AgentError::UncertifiedReject(RejectResponse {
-            reject_code: RejectCode::CanisterError,
-            reject_message,
+        } if reject_message.contains("Canister has no update method 'wallet_") => true,
+        AgentError::UncertifiedReject {
+            reject:
+                RejectResponse {
+                    reject_code: RejectCode::CanisterError,
+                    reject_message,
+                    ..
+                },
             ..
-        }) if reject_message.contains("Canister has no query method 'wallet_") => true,
+        } if reject_message.contains("Canister has no query method 'wallet_") => true,
         _ => false,
     }
 }

@@ -82,6 +82,7 @@ fn config_network_to_network_descriptor(
                     playground,
                 )?,
                 is_ic,
+                is_ad_hoc: false,
                 local_server_descriptor: None,
             })
         }
@@ -136,6 +137,7 @@ fn config_network_to_network_descriptor(
                 providers,
                 r#type: network_type,
                 is_ic: false,
+                is_ad_hoc: false,
                 local_server_descriptor: Some(local_server_descriptor),
             })
         }
@@ -212,6 +214,7 @@ fn create_url_based_network_descriptor(
             providers: vec![url],
             r#type: network_type,
             is_ic,
+            is_ad_hoc: true,
             local_server_descriptor: None,
         })
     })

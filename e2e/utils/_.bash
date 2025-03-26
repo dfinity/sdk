@@ -232,6 +232,10 @@ setup_actuallylocal_project_network() {
     jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json | sponge dfx.json
 }
 
+setup_ephemeral_project_network() {
+    jq ".networks.ephemeral.bind=\"127.0.0.1:$(get_webserver_port)\"" dfx.json | sponge dfx.json
+}
+
 setup_actuallylocal_shared_network() {
     webserver_port=$(get_webserver_port)
     [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
