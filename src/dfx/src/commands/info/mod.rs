@@ -35,6 +35,8 @@ enum InfoType {
     PocketicConfigPort,
     /// Show the path to the telemetry log file
     TelemetryLogPath,
+    /// Show the effective canister ID that dfx will use for management canister calls that don't imply one
+    DefaultEffectiveCanisterId,
 }
 
 #[derive(Parser)]
@@ -59,6 +61,10 @@ pub fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
                     env.get_network_descriptor().name
                 ),
             }
+        }
+        InfoType::DefaultEffectiveCanisterId => {
+            let env = create_anonymous_agent_environment(env, opts.network.to_network_name())?;
+            env.get_effective_canister_id().to_text()
         }
         InfoType::SecurityPolicy => {
             ic_asset::security_policy::SecurityPolicy::Standard.to_json5_str()
