@@ -121,7 +121,7 @@ pub struct Memo(pub u64);
 
 #[derive(CandidType)]
 pub struct AccountBalanceArgs {
-    pub account: String,
+    pub account: AccountIdBlob,
 }
 
 #[derive(CandidType)]
