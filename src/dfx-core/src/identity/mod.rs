@@ -2,7 +2,7 @@
 //!
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
-use crate::config::directories::{get_shared_network_data_directory, get_user_dfx_config_dir};
+use crate::config::directories::{get_shared_wallet_config_path, get_user_dfx_config_dir};
 use crate::config::model::network_descriptor::NetworkDescriptor;
 use crate::error::wallet_config::SaveWalletConfigError;
 use crate::error::{
@@ -256,16 +256,15 @@ impl Identity {
             )
             .map_err(RenameWalletGlobalConfigKeyFailed)?;
         }
-        let shared_local_network_wallet_path = get_shared_network_data_directory("local")
-            .map_err(MapWalletsToRenamedIdentityError::GetSharedNetworkDataDirectoryFailed)?
-            .join(WALLET_CONFIG_FILENAME);
-        if shared_local_network_wallet_path.exists() {
-            Identity::rename_wallet_global_config_key(
-                original_identity,
-                renamed_identity,
-                shared_local_network_wallet_path,
-            )
-            .map_err(RenameWalletGlobalConfigKeyFailed)?;
+        if let Some(shared_local_wallet_path) = get_shared_wallet_config_path("local")? {
+            if shared_local_wallet_path.exists() {
+                Identity::rename_wallet_global_config_key(
+                    original_identity,
+                    renamed_identity,
+                    shared_local_wallet_path,
+                )
+                .map_err(RenameWalletGlobalConfigKeyFailed)?;
+            }
         }
         if let Some(temp_dir) = project_temp_dir {
             let local_wallet_path = temp_dir.join("local").join(WALLET_CONFIG_FILENAME);

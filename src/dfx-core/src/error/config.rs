@@ -3,6 +3,7 @@ use crate::error::fs::{
     CanonicalizePathError, CreateDirAllError, EnsureDirExistsError, NoParentPathError,
 };
 use crate::error::get_user_home::GetUserHomeError;
+use crate::error::structured_file::StructuredFileError;
 use handlebars::RenderError;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -112,4 +113,13 @@ pub enum MergeTechStackError {
 
     #[error("expected extension canister type tech_stack to be an object")]
     ExpectedExtensionCanisterTypeTechStackObject,
+}
+
+#[derive(Error, Debug)]
+pub enum GetSharedWalletConfigPathError {
+    #[error(transparent)]
+    GetUserHome(#[from] GetUserHomeError),
+
+    #[error(transparent)]
+    StructuredFileError(#[from] StructuredFileError),
 }

@@ -7,7 +7,7 @@ use crate::error::network_config::NetworkConfigError::{NetworkHasNoProviders, Ne
 use crate::error::uri::UriError;
 use candid::Principal;
 use slog::Logger;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use url::Url;
 
 pub const MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID: Principal =
@@ -18,7 +18,7 @@ pub const MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS: u64 = 1200;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NetworkTypeDescriptor {
     Ephemeral {
-        wallet_config_path: PathBuf,
+        wallet_config_path: Option<PathBuf>,
     },
     Playground {
         playground_canister: Principal,
@@ -40,7 +40,7 @@ pub struct NetworkDescriptor {
 impl NetworkTypeDescriptor {
     pub fn new(
         r#type: NetworkType,
-        ephemeral_wallet_config_path: &Path,
+        ephemeral_wallet_config_path: Option<PathBuf>,
         playground: Option<PlaygroundConfig>,
     ) -> Result<Self, NetworkConfigError> {
         if let Some(playground_config) = playground {
@@ -57,7 +57,7 @@ impl NetworkTypeDescriptor {
         } else {
             match r#type {
                 NetworkType::Ephemeral => Ok(NetworkTypeDescriptor::Ephemeral {
-                    wallet_config_path: ephemeral_wallet_config_path.to_path_buf(),
+                    wallet_config_path: ephemeral_wallet_config_path,
                 }),
                 NetworkType::Persistent => Ok(NetworkTypeDescriptor::Persistent),
             }
