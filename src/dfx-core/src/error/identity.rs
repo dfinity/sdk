@@ -208,8 +208,8 @@ pub enum MapWalletsToRenamedIdentityError {
     #[error("Failed to get config directory for identity manager")]
     GetConfigDirectoryFailed(#[source] ConfigError),
 
-    #[error("Failed to get shared network data directory")]
-    GetSharedNetworkDataDirectoryFailed(#[source] ConfigError),
+    #[error(transparent)]
+    GetSharedNetworkDataDirectoryFailed(#[from] GetUserHomeError),
 
     #[error("Failed to rename wallet global config key")]
     RenameWalletGlobalConfigKeyFailed(#[source] RenameWalletGlobalConfigKeyError),
