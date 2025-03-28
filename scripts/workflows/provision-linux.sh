@@ -39,6 +39,9 @@ if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ] \
 then
     sudo apt-get install --yes expect
 fi
+if [ "$E2E_TEST" = "tests-dfx/info.bash" ]; then
+    sudo apt-get install --yes libarchive-zip-perl
+fi
 
 # Set environment variables.
 echo "$HOME/bin" >> "$GITHUB_PATH"
