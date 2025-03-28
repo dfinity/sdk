@@ -108,11 +108,13 @@ teardown() {
 @test "with a shared network, wallet id is stored in the shared location" {
   dfx_start
 
-  assert_file_not_exists "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
+  WALLETS_JSON="$(shared_wallets_json)"
+
+  assert_file_not_exists "$WALLETS_JSON"
 
   WALLET_ID="$(dfx identity get-wallet)"
 
-  assert_command jq -r .identities.default.local "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
+  assert_command jq -r .identities.default.local "$WALLETS_JSON"
   assert_eq "$WALLET_ID"
   assert_file_not_exists .dfx/local/wallets.json
 }

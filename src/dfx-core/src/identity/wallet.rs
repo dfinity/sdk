@@ -25,7 +25,9 @@ pub fn get_wallet_config_path(
                 .join(name)
                 .join(WALLET_CONFIG_FILENAME)
         }
-        NetworkTypeDescriptor::Ephemeral { wallet_config_path } => wallet_config_path.clone(),
+        NetworkTypeDescriptor::Ephemeral { wallet_config_path } => wallet_config_path
+            .clone()
+            .ok_or(WalletConfigError::NoWalletBeforeDfxStart)?,
     })
 }
 
