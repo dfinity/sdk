@@ -1,3 +1,4 @@
+use crate::error::config::GetSharedWalletConfigPathError;
 use crate::error::fs::{
     ReadFileError, ReadPermissionsError, RemoveDirectoryAndContentsError, RemoveDirectoryError,
     RemoveFileError, RenameError, SetPermissionsError, WriteFileError,
@@ -209,7 +210,10 @@ pub enum MapWalletsToRenamedIdentityError {
     GetConfigDirectoryFailed(#[source] ConfigError),
 
     #[error(transparent)]
-    GetSharedNetworkDataDirectoryFailed(#[from] GetUserHomeError),
+    GetSharedNetworkDataDirectoryFailed(#[from] GetSharedWalletConfigPathError),
+
+    #[error(transparent)]
+    LoadNetworkMetadata(#[from] StructuredFileError),
 
     #[error("Failed to rename wallet global config key")]
     RenameWalletGlobalConfigKeyFailed(#[source] RenameWalletGlobalConfigKeyError),
