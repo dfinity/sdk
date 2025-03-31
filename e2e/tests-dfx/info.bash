@@ -123,3 +123,19 @@ teardown() {
   assert_command test -f "$cfg"
   assert_command jq . "$cfg"
 }
+
+@test "prints the pocket-ic default effective canister id" {
+  dfx_start
+  if [[ $USE_REPLICA ]]; then
+    assert_command dfx info default-effective-canister-id
+    assert_eq "$stdout" rwlgt-iiaaa-aaaaa-aaaaa-cai
+  else
+    local topology expected_id64 expected_id
+    topology=$(curl "http://localhost:$(get_webserver_port)/_/topology")
+    expected_id64=$(jq -r .default_effective_canister_id.canister_id <<<"$topology")
+    expected_id=$(cat <(crc32 <(base64 -d <<<"$expected_id64") | xxd -r -p) <(base64 -d <<<"$expected_id64") | base32 \
+      | tr -d = | tr '[:upper:]' '[:lower:]' | fold -w5 | paste -sd- -)
+    assert_command dfx info default-effective-canister-id
+    assert_eq "$stdout" "$expected_id"
+  fi
+}
