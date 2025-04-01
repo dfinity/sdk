@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: Set canister ids using `dfx canister set-id <canister name> <principal>`
+
+Added the counterpart to `dfx canister id <canister name>`. Networks can be targeted as usual using `--network <network name>` or the `--ic` shorthand for mainnet.
+
 ### chore: use `account_balance` instead of the legacy `account_balance_dfx`
 
 Use the `account_balance` rather than the legacy `account_balance_dfx` on the ICP ledger.
