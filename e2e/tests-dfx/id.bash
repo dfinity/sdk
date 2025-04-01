@@ -96,3 +96,14 @@ teardown() {
   assert_command dfx canister --network somethingelse id external_canister
   assert_match "rkp4c-7iaaa-aaaaa-aaaca-cai"
 }
+
+@test "set-id writes canister id for specified network" {
+  CANISTER_ID="qhbym-qaaaa-aaaaa-aaafq-cai"
+  assert_command dfx canister --network ic set-id hello_backend $CANISTER_ID
+
+  assert_command dfx canister id hello_backend --network ic
+  assert_contains $CANISTER_ID
+
+  assert_command_fail dfx canister id hello_backend --network local
+  assert_contains "Cannot find canister id"
+}

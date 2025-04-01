@@ -38,6 +38,7 @@ For reference information and examples that illustrate using `dfx canister` comm
 | [`metadata`](#dfx-canister-metadata)               | Displays metadata in a canister.                                                                                                                       |
 | [`request-status`](#dfx-canister-request-status)   | Requests the status of a call to a canister.                                                                                                           |
 | [`send`](#dfx-canister-send)                       | Send a previously-signed message.                                                                                                                      |
+| [`set-id`](#dfx-canister-id)                       | Sets the identifier of a canister.                                                                                                                     |
 | [`sign`](#dfx-canister-send)                       | Sign a canister call and generate message file.                                                                                                        |
 | [`start`](#dfx-canister-start)                     | Starts a stopped canister.                                                                                                                             |
 | [`status`](#dfx-canister-status)                   | Returns the current status of a canister as defined [here](https://internetcomputer.org/docs/current/references/ic-interface-spec#ic-canister_status). |
@@ -752,6 +753,50 @@ Use the `dfx canister send` command to send a signed message created using the `
 genesis token canister (GTC) to create a neuron on your behalf by running the following command:
 
 `dfx canister send message.json`
+
+## dfx canister set-id
+
+Use the `dfx canister set-id` command to set the canister identifier/principal for a specific canister name.
+
+Note that you can only run this command from within the project directory structure. For example, if your project name
+is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its
+subdirectories.
+
+### Basic usage
+
+``` bash
+dfx canister set-id <canister_name> <principal>
+```
+
+### Arguments
+
+You can use the following argument with the `dfx canister set-id` command.
+
+| Argument        | Description                                                                      |
+|-----------------|----------------------------------------------------------------------------------|
+| `canister_name` | Specifies the name of the canister for which you want to set an identifier.      |
+| `principal`     | Specifies the principal of the canister for which you want to set an identifier. |
+
+### Options
+
+You can use the following options with the `dfx canister set-id` command.
+
+| Option      | Description                                   |
+|-------------|-----------------------------------------------|
+| `--network` | The network for which you want to set the id. |
+
+### Examples
+
+You can use the `dfx canister set-id` command to set the canister identifier for a specific canister name.
+
+``` bash
+dfx canister set-id hello_backend qhbym-qaaaa-aaaaa-aaafq-cai
+```
+
+The command displays output similar to the following:
+
+``` bash
+Set canister id for hello_backend to qhbym-qaaaa-aaaaa-aaafq-cai
 
 ## dfx canister sign
 
