@@ -916,7 +916,7 @@ current_time_nanoseconds() {
 
   # base case
   assert_command dfx cycles convert --amount 12.5
-  assert_contains "Account was topped up with 1_543_208_750_000_000 cycles!"
+  assert_contains "Account was topped up with 1_250_000_000_000 cycles!"
   assert_command dfx ledger balance
   assert_eq "87.49990000 ICP"
   assert_command dfx cycles balance --precise
