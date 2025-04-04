@@ -56,7 +56,7 @@ jobs:
       matrix:
         # We build a dynamic-linked linux binary because otherwise HSM support fails with:
         #   Error: IO: Dynamic loading not supported
-        os: [macos-13-large, ubuntu-22.04, ubuntu-24.04, windows-2022]
+        os: [macos-13-large, ubuntu-22.04, ubuntu-24.04]
         include:
           - os: macos-13-large
             target: x86_64-apple-darwin
