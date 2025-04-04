@@ -920,7 +920,7 @@ current_time_nanoseconds() {
   assert_command dfx ledger balance
   assert_eq "87.49990000 ICP"
   assert_command dfx cycles balance --precise
-  assert_eq "1543208750000000 cycles."
+  assert_eq "1250000000000000 cycles."
 
   # to-subaccount and from-subaccount
   assert_command dfx cycles convert --amount 10 --from-subaccount "$ALICE_SUBACCT1" --to-subaccount "$ALICE_SUBACCT2"
