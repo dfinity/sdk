@@ -935,7 +935,7 @@ current_time_nanoseconds() {
   assert_command dfx cycles convert --amount 10 --created-at-time "$t"
   assert_contains "Transfer sent at block height 12"
   assert_command dfx cycles balance --precise
-  assert_eq "2777775750000000 cycles."
+  assert_eq "2250000000000000 cycles."
   # same created-at-time: dupe
   assert_command dfx cycles convert --amount 10 --created-at-time "$t"
   # shellcheck disable=SC2154
