@@ -14,6 +14,12 @@ Use the `account_balance` rather than the legacy `account_balance_dfx` on the IC
 
 Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1).
 
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.6](https://github.com/dfinity/motoko/releases/tag/0.14.6)
+
 # 0.26.0
 
 ### feat!: `dfx start` uses `--pocketic` by default
