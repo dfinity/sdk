@@ -34,11 +34,10 @@ pub fn ensure_cohesive_network_directory(
             }
         }
     } else if let Some(LocalNetworkScopeDescriptor::Project { .. }) = &scope {
-        // see if there is a network-id file in the directory
-        // this indicates the previous configuration was for the shared local network
-        // so we need to reset the .dfx directory
-        let project_network_id_path = directory.join("network-id");
-        if project_network_id_path.exists() {
+        // a network-id file indicates the previous configuration was for the shared local network.
+        // canister ids, at minimum, will no longer be valid
+        let network_id_path = directory.join("network-id");
+        if network_id_path.exists() {
             crate::fs::remove_dir_all(directory)?;
         }
     }
