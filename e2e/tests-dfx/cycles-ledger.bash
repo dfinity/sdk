@@ -25,7 +25,7 @@ teardown() {
 start_and_install_nns() {
   dfx_start_for_nns_install
 
-  dfx extension install nns --version 0.4.7
+  dfx extension install nns --version 0.5.1
   dfx nns install --ledger-accounts "$(dfx ledger account-id --identity cycle-giver)"
 }
 
@@ -916,26 +916,26 @@ current_time_nanoseconds() {
 
   # base case
   assert_command dfx cycles convert --amount 12.5
-  assert_contains "Account was topped up with 1_543_208_750_000_000 cycles!"
+  assert_contains "Account was topped up with 1_250_000_000_000_000 cycles!"
   assert_command dfx ledger balance
   assert_eq "87.49990000 ICP"
   assert_command dfx cycles balance --precise
-  assert_eq "1543208750000000 cycles."
+  assert_eq "1250000000000000 cycles."
 
   # to-subaccount and from-subaccount
   assert_command dfx cycles convert --amount 10 --from-subaccount "$ALICE_SUBACCT1" --to-subaccount "$ALICE_SUBACCT2"
-  assert_contains "Account was topped up with 1_234_567_000_000_000 cycles!"
+  assert_contains "Account was topped up with 1_000_000_000_000_000 cycles!"
   assert_command dfx ledger balance --subaccount "$ALICE_SUBACCT1"
   assert_eq "89.99990000 ICP"
   assert_command dfx cycles balance --precise --subaccount "$ALICE_SUBACCT2"
-  assert_eq "1234567000000000 cycles."
+  assert_eq "1000000000000000 cycles."
 
   # deduplication
   t=$(current_time_nanoseconds)
   assert_command dfx cycles convert --amount 10 --created-at-time "$t"
   assert_contains "Transfer sent at block height 12"
   assert_command dfx cycles balance --precise
-  assert_eq "2777775750000000 cycles."
+  assert_eq "2250000000000000 cycles."
   # same created-at-time: dupe
   assert_command dfx cycles convert --amount 10 --created-at-time "$t"
   # shellcheck disable=SC2154

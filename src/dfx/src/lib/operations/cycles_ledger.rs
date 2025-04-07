@@ -12,6 +12,10 @@ use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
 use crate::lib::operations::canister::create_canister::{
     CANISTER_CREATE_FEE, CANISTER_INITIAL_CYCLE_BALANCE,
 };
+use crate::lib::operations::{
+    ICRC1_BALANCE_OF_METHOD, ICRC1_TRANSFER_METHOD, ICRC2_APPROVE_METHOD,
+    ICRC2_TRANSFER_FROM_METHOD,
+};
 use crate::lib::retryable::retryable;
 use crate::lib::telemetry::{CyclesHost, Telemetry};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
@@ -32,10 +36,6 @@ use icrc_ledger_types::icrc2::approve::ApproveError;
 use icrc_ledger_types::icrc2::transfer_from::TransferFromError;
 use slog::{info, Logger};
 
-const ICRC1_BALANCE_OF_METHOD: &str = "icrc1_balance_of";
-const ICRC1_TRANSFER_METHOD: &str = "icrc1_transfer";
-const ICRC2_APPROVE_METHOD: &str = "icrc2_approve";
-const ICRC2_TRANSFER_FROM_METHOD: &str = "icrc2_transfer_from";
 const WITHDRAW_METHOD: &str = "withdraw";
 const CREATE_CANISTER_METHOD: &str = "create_canister";
 const CYCLES_LEDGER_DEPOSIT_METHOD: &str = "deposit";

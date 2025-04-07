@@ -1,4 +1,6 @@
-use crate::config::directories::get_shared_network_data_directory;
+use crate::config::directories::{
+    get_shared_network_data_directory, get_shared_wallet_config_path,
+};
 use crate::config::model::dfinity::{
     Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
     DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
@@ -10,8 +12,8 @@ use crate::config::model::network_descriptor::{
     NetworkDescriptor, NetworkTypeDescriptor, PLAYGROUND_NETWORK_NAME,
 };
 use crate::error::network_config::NetworkConfigError::{
-    self, NetworkNotFound, NoNetworkContext, NoProvidersForNetwork, ParsePortValueFailed,
-    ParseProviderUrlFailed, ReadWebserverPortFailed,
+    self, DetermineSharedNetworkDirectoryFailed, NetworkNotFound, NoNetworkContext,
+    NoProvidersForNetwork, ParsePortValueFailed, ParseProviderUrlFailed, ReadWebserverPortFailed,
 };
 use crate::identity::WALLET_CONFIG_FILENAME;
 use crate::util;
@@ -55,7 +57,7 @@ fn config_network_to_network_descriptor(
     project_defaults: Option<&ConfigDefaults>,
     data_directory: PathBuf,
     local_scope: LocalNetworkScopeDescriptor,
-    ephemeral_wallet_config_path: &Path,
+    ephemeral_wallet_config_path: Option<PathBuf>,
     local_bind_determination: &LocalBindDetermination,
     default_local_bind: &str,
     legacy_pid_path: Option<PathBuf>,
@@ -203,10 +205,11 @@ fn create_url_based_network_descriptor(
         // OS-friendly directory name for it.
         let name = util::network_to_pathcompat(network_name);
         let is_ic = NetworkDescriptor::is_ic(&name, &vec![url.to_string()]);
-        let data_directory = get_shared_network_data_directory(network_name)?;
+        let data_directory = get_shared_network_data_directory(network_name)
+            .map_err(DetermineSharedNetworkDirectoryFailed)?;
         let network_type = NetworkTypeDescriptor::new(
             NetworkType::Ephemeral,
-            &data_directory.join(WALLET_CONFIG_FILENAME),
+            Some(data_directory.join(WALLET_CONFIG_FILENAME)),
             None,
         )?;
         Ok(NetworkDescriptor {
@@ -287,7 +290,7 @@ fn create_shared_network_descriptor(
 
         let data_directory = get_shared_network_data_directory(network_name)?;
 
-        let ephemeral_wallet_config_path = data_directory.join(WALLET_CONFIG_FILENAME);
+        let ephemeral_wallet_config_path = get_shared_wallet_config_path(network_name)?;
 
         let local_scope = LocalNetworkScopeDescriptor::shared(&data_directory);
         config_network_to_network_descriptor(
@@ -296,7 +299,7 @@ fn create_shared_network_descriptor(
             None,
             data_directory,
             local_scope,
-            &ephemeral_wallet_config_path,
+            ephemeral_wallet_config_path,
             local_bind_determination,
             DEFAULT_SHARED_LOCAL_BIND,
             None,
@@ -372,7 +375,7 @@ fn create_project_network_descriptor(
                 Some(config.get_config().get_defaults()),
                 data_directory,
                 LocalNetworkScopeDescriptor::Project,
-                &ephemeral_wallet_config_path,
+                Some(ephemeral_wallet_config_path),
                 local_bind_determination,
                 DEFAULT_PROJECT_LOCAL_BIND,
                 legacy_pid_path,

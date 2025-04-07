@@ -2,11 +2,27 @@
 
 # UNRELEASED
 
-<<<<<<< HEAD
-
 * Flags `--no-compile` and `--no-deps`
 
 * Command `rules` that outputs time-efficient GNU Make rules.
+
+### feat: Set canister ids using `dfx canister set-id <canister name> <principal>`
+
+Added the counterpart to `dfx canister id <canister name>`. Networks can be targeted as usual using `--network <network name>` or the `--ic` shorthand for mainnet.
+
+### chore: use `account_balance` instead of the legacy `account_balance_dfx`
+
+Use the `account_balance` rather than the legacy `account_balance_dfx` on the ICP ledger.
+
+### feat: Extend `dfx ledger transfer` and `dfx ledger balance` to support ICRC-1 standard
+
+Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1).
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.6](https://github.com/dfinity/motoko/releases/tag/0.14.6)
 
 # 0.26.0
 
@@ -55,12 +71,16 @@ Implement `dfx ledger approve` and `dfx ledger transfer-from` subcommands that c
 ### feat: Add `dfx ledger allowance` subcommand
 
 Implement `dfx ledger allowance` subcommand that complies with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
->>>>>>> upstream/master
 
 ### feat: Enable VetKD for use with `--replica`
 
 - Add VetKD types and methods to management canister IDL
 - The VetKD test key id `Bls12_381_G2:dfx_test_key` is now enabled when starting `dfx` with `--replica`.
+
+### fix: dfx will no longer try to use a nonexistent wallet after changing backend settings without --clean
+
+After running `dfx start` with different options, dfx would try to use a wallet that was created
+on a previous run, which would fail. Now, dfx will create a new wallet if the settings have changed.
 
 ## Dependencies
 
@@ -106,8 +126,11 @@ Updated Motoko to [0.14.2](https://github.com/dfinity/motoko/releases/tag/0.14.2
 
 ### Replica
 
-Updated replica to elected commit 2f02a660f6f17b5a78c13d9b372f74c8228f79b8.
-This incorporates the following executed proposals:
+Updated replica to non-elected commit ebb190bf1da0dba3e486b78c95cf5a3c5542e2f3.
+
+This includes X_OC_JWT and X_OC_API_KEY cors headers in PocketIC HTTP gateway (see https://github.com/dfinity/ic/pull/4154).
+
+This also incorporates the following executed proposals up to commit 2f02a660f6f17b5a78c13d9b372f74c8228f79b8:
 
 - [135422](https://dashboard.internetcomputer.org/proposal/135422)
 - [135421](https://dashboard.internetcomputer.org/proposal/135421)

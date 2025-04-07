@@ -220,10 +220,18 @@ dfx_stop() {
 }
 
 dfx_set_wallet() {
+  local network="${1:-actuallylocal}"
+
   export WALLET_CANISTER_ID
   WALLET_CANISTER_ID=$(dfx identity get-wallet)
-  assert_command dfx identity set-wallet "${WALLET_CANISTER_ID}" --force --network actuallylocal
+  assert_command dfx identity set-wallet "${WALLET_CANISTER_ID}" --force --network "${network}"
   assert_match 'Wallet set successfully.'
+}
+
+shared_wallets_json() {
+  SETTINGS_DIGEST="$(jq -r .settings_digest "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/network-id")"
+  WALLETS_JSON="$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/$SETTINGS_DIGEST/wallets.json"
+  echo "$WALLETS_JSON"
 }
 
 setup_actuallylocal_project_network() {
