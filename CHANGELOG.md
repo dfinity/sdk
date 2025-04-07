@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+* Flags `--no-compile` and `--no-deps`
+
+* Command `rules` that outputs time-efficient GNU Make rules.
+
 ### feat: Set canister ids using `dfx canister set-id <canister name> <principal>`
 
 Added the counterpart to `dfx canister id <canister name>`. Networks can be targeted as usual using `--network <network name>` or the `--ic` shorthand for mainnet.
