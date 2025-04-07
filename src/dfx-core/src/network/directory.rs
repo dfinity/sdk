@@ -33,6 +33,14 @@ pub fn ensure_cohesive_network_directory(
                 crate::fs::write(&project_network_id_path, &network_id)?;
             }
         }
+    } else if let Some(LocalNetworkScopeDescriptor::Project { .. }) = &scope {
+        // see if there is a network-id file in the directory
+        // this indicates the previous configuration was for the shared local network
+        // so we need to reset the .dfx directory
+        let project_network_id_path = directory.join("network-id");
+        if project_network_id_path.exists() {
+            crate::fs::remove_dir_all(directory)?;
+        }
     }
 
     Ok(())
