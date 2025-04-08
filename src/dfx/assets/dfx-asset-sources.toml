@@ -22,8 +22,8 @@ url = 'https://download.dfinity.systems/ic/f6f5e0927d14886e4bd67f776ee889f31cec2
 sha256 = '9c0ae4a3a050747248e7116aa677a6a9b769ce6e6d56839ce54b4e644f298468'
 
 [x86_64-darwin.motoko]
-url = 'https://github.com/dfinity/motoko/releases/download/0.14.4/motoko-Darwin-x86_64-0.14.4.tar.gz'
-sha256 = '858ad75cf357b33c097a85db7c0adfbf0e4f94d13990fdad7766f94072fb14f0'
+url = 'https://github.com/dfinity/motoko/releases/download/0.14.6/motoko-Darwin-x86_64-0.14.6.tar.gz'
+sha256 = 'a7cd2d5911c8d46d5572b8c9f93686f07cfdc6df92711dab2c5875fa5d3d3796'
 # The replica, canister_sandbox and compiler_sandbox binaries must have the same revision.
 
 [x86_64-darwin.replica]
@@ -53,8 +53,8 @@ url = 'https://download.dfinity.systems/ic/f6f5e0927d14886e4bd67f776ee889f31cec2
 sha256 = '997727e275740325e491429c1941a381f6e1f0321c24dc8d06a5f3c055d4af9a'
 
 [x86_64-darwin.motoko-base]
-url = 'https://github.com/dfinity/motoko/releases/download/0.14.4/motoko-base-library.tar.gz'
-sha256 = '85fabdeb5f0eb1cecbdbc88d673ec825dc03b5ec03d687bb1905f157811dd22b'
+url = 'https://github.com/dfinity/motoko/releases/download/0.14.6/motoko-base-library.tar.gz'
+sha256 = '99c142288fe209bba70ad52684817dc8680779e2923f80faecf16a3eb1c82a4d'
 
 [x86_64-darwin.ic-btc-canister]
 url = 'https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-10-13/ic-btc-canister.wasm.gz'
@@ -81,8 +81,8 @@ url = 'https://download.dfinity.systems/ic/f6f5e0927d14886e4bd67f776ee889f31cec2
 sha256 = 'e7d8abcb07e91e05843cd7c0de3fa2307292e07f58f9eaf70e4ee568bd01a078'
 
 [x86_64-linux.motoko]
-url = 'https://github.com/dfinity/motoko/releases/download/0.14.4/motoko-Linux-x86_64-0.14.4.tar.gz'
-sha256 = '61c41a81fd7a52cd0eba919d84a6f8361a4e740ee156c22d2e0def7070ea6e03'
+url = 'https://github.com/dfinity/motoko/releases/download/0.14.6/motoko-Linux-x86_64-0.14.6.tar.gz'
+sha256 = '844f8ee008cdf2ba8e8e592f941aea16fec13b836c371fdb6c266d9ff0e96ef4'
 # The replica, canister_sandbox and compiler_sandbox binaries must have the same revision.
 
 [x86_64-linux.replica]
@@ -112,8 +112,8 @@ url = 'https://download.dfinity.systems/ic/f6f5e0927d14886e4bd67f776ee889f31cec2
 sha256 = 'bb4b0040fdc91ef3a0f38a81a2731093350395ad0b470f8262768c718d366f51'
 
 [x86_64-linux.motoko-base]
-url = 'https://github.com/dfinity/motoko/releases/download/0.14.4/motoko-base-library.tar.gz'
-sha256 = '85fabdeb5f0eb1cecbdbc88d673ec825dc03b5ec03d687bb1905f157811dd22b'
+url = 'https://github.com/dfinity/motoko/releases/download/0.14.6/motoko-base-library.tar.gz'
+sha256 = '99c142288fe209bba70ad52684817dc8680779e2923f80faecf16a3eb1c82a4d'
 
 [x86_64-linux.ic-btc-canister]
 url = 'https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-10-13/ic-btc-canister.wasm.gz'

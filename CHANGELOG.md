@@ -2,6 +2,16 @@
 
 # UNRELEASED
 
+### fix: clear state when switching from shared to project network
+
+dfx would try to reuse canister ids when switching from a shared network to a project network,
+which would cause errors since those canister ids wouldn't exist. dfx now deletes the .dfx
+directory if it was previously used with the shared local network.
+
+### feat: Set canister ids using `dfx canister set-id <canister name> <principal>`
+
+Added the counterpart to `dfx canister id <canister name>`. Networks can be targeted as usual using `--network <network name>` or the `--ic` shorthand for mainnet.
+
 ### chore: use `account_balance` instead of the legacy `account_balance_dfx`
 
 Use the `account_balance` rather than the legacy `account_balance_dfx` on the ICP ledger.
@@ -9,6 +19,12 @@ Use the `account_balance` rather than the legacy `account_balance_dfx` on the IC
 ### feat: Extend `dfx ledger transfer` and `dfx ledger balance` to support ICRC-1 standard
 
 Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1).
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.6](https://github.com/dfinity/motoko/releases/tag/0.14.6)
 
 # 0.26.0
 

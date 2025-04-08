@@ -17,6 +17,7 @@ mod logs;
 mod metadata;
 mod request_status;
 mod send;
+mod set_id;
 mod sign;
 mod snapshot;
 mod start;
@@ -54,6 +55,7 @@ pub enum SubCommand {
     Metadata(metadata::CanisterMetadataOpts),
     RequestStatus(request_status::RequestStatusOpts),
     Send(send::CanisterSendOpts),
+    SetId(set_id::CanisterSetIdOpts),
     Sign(sign::CanisterSignOpts),
     Snapshot(snapshot::SnapshotOpts),
     Start(start::CanisterStartOpts),
@@ -67,7 +69,7 @@ pub enum SubCommand {
 
 pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
     let agent_env;
-    let env = if matches!(&opts.subcmd, SubCommand::Id(_)) {
+    let env = if matches!(&opts.subcmd, SubCommand::Id(_) | SubCommand::SetId(_)) {
         env
     } else {
         agent_env = create_agent_environment(env, opts.network.to_network_name())?;
@@ -88,6 +90,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterOpts) -> DfxResult {
             SubCommand::Metadata(v) => metadata::exec(env, v).await,
             SubCommand::RequestStatus(v) => request_status::exec(env, v).await,
             SubCommand::Send(v) => send::exec(env, v, &call_sender()?).await,
+            SubCommand::SetId(v) => set_id::exec(env, v).await,
             SubCommand::Sign(v) => sign::exec(env, v, &call_sender()?).await,
             SubCommand::Snapshot(v) => snapshot::exec(env, v, &call_sender()?).await,
             SubCommand::Start(v) => start::exec(env, v, &call_sender()?).await,
