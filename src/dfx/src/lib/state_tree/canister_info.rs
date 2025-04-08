@@ -12,7 +12,7 @@ pub async fn read_state_tree_canister_controllers(
             return Ok(None);
         }
         Err(AgentError::InvalidCborData(_)) => {
-            return Err(anyhow!("Invalid cbor data in controllers canister info.").into());
+            return Err(anyhow!("Invalid cbor data in controllers canister info."));
         }
         r => r.with_context(|| format!("Failed to read controllers of canister {canister_id}."))?,
     };
