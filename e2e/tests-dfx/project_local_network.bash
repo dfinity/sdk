@@ -12,6 +12,20 @@ teardown() {
   standard_teardown
 }
 
+@test "switch from shared to project network" {
+  dfx_new hello
+  dfx_start
+  dfx deploy
+  dfx stop
+
+  # the above will have created .dfx/local/canister_ids.json,
+  # which won't be valid for the new network.
+
+  define_project_network
+  dfx_start
+  dfx deploy
+}
+
 @test "dfx start starts a local network if dfx.json defines one" {
   dfx_new hello
   cat dfx.json
