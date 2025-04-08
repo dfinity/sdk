@@ -96,8 +96,6 @@ pub fn bitcoin_wasm(logger: &slog::Logger) -> DfxResult<Vec<u8>> {
 
 pub fn management_idl() -> DfxResult<String> {
     // FIXME get idl from replica when it's available
-    // The ic.did file is downloaded in assets/build.rs.
-    // The git rev is specified in portal_rev.txt.
-    let did = include_str!(concat!(env!("OUT_DIR"), "/ic.did"));
-    Ok(did.to_string())
+    // Pulled from https://github.com/dfinity/interface-spec/blob/master/spec/_attachments/ic.did
+    Ok(include_str!("ic.did").to_string())
 }

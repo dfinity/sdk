@@ -3,7 +3,7 @@ use flate2::Compression;
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
-use std::fs::{read_to_string, write, File};
+use std::fs::{read_to_string, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
@@ -344,20 +344,6 @@ fn define_replica_rev(replica_rev: &str) {
     println!("cargo:rustc-env=DFX_ASSET_REPLICA_REV={}", replica_rev);
 }
 
-fn download_management_canister_interface() {
-    println!("cargo:rerun-if-changed=assets/porta_rev.txt");
-    let portal_rev =
-        read_to_string("assets/portal_rev.txt").expect("failed to read portal_rev.txt");
-    let url = format!(
-        "https://raw.githubusercontent.com/dfinity/portal/{}/docs/references/_attachments/ic.did",
-        portal_rev
-    );
-    let content = reqwest::blocking::get(&url).unwrap().text().unwrap();
-    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let path = out_dir.join("ic.did");
-    write(path, content).unwrap();
-}
-
 fn main() {
     let sources: Sources = toml::from_str(
         &fs::read_to_string("assets/dfx-asset-sources.toml")
@@ -366,6 +352,5 @@ fn main() {
     .expect("unable to parse dfx-asset-sources.toml");
     define_replica_rev(&sources.replica_rev);
     add_assets(sources);
-    download_management_canister_interface();
     define_dfx_version();
 }
