@@ -1575,7 +1575,7 @@ dependencies = [
  "ic-asset",
  "ic-cdk",
  "ic-identity-hsm",
- "ic-utils 0.39.3",
+ "ic-utils 0.40.0",
  "ic-wasm",
  "icrc-ledger-types",
  "idl2json",
@@ -1652,7 +1652,7 @@ dependencies = [
  "humantime-serde",
  "ic-agent",
  "ic-identity-hsm",
- "ic-utils 0.39.3",
+ "ic-utils 0.40.0",
  "itertools 0.10.5",
  "k256 0.11.6",
  "keyring",
@@ -2694,8 +2694,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=7752c33016f708fb84b56ff99d91a7c380a8b550#7752c33016f708fb84b56ff99d91a7c380a8b550"
+version = "0.40.0"
+source = "git+https://github.com/dfinity/agent-rs?rev=4f517a53b276721842287511aece2fd79f7d5c08#4f517a53b276721842287511aece2fd79f7d5c08"
 dependencies = [
  "arc-swap",
  "async-channel",
@@ -2714,7 +2714,7 @@ dependencies = [
  "http 1.2.0",
  "http-body 1.0.1",
  "ic-certification 3.0.2",
- "ic-transport-types 0.39.3 (git+https://github.com/dfinity/agent-rs?rev=7752c33016f708fb84b56ff99d91a7c380a8b550)",
+ "ic-transport-types 0.40.0",
  "ic-verify-bls-signature",
  "k256 0.13.4",
  "leb128",
@@ -2754,7 +2754,7 @@ dependencies = [
  "globset",
  "hex",
  "ic-agent",
- "ic-utils 0.39.3",
+ "ic-utils 0.40.0",
  "itertools 0.10.5",
  "json5",
  "mime",
@@ -3153,8 +3153,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=7752c33016f708fb84b56ff99d91a7c380a8b550#7752c33016f708fb84b56ff99d91a7c380a8b550"
+version = "0.40.0"
+source = "git+https://github.com/dfinity/agent-rs?rev=4f517a53b276721842287511aece2fd79f7d5c08#4f517a53b276721842287511aece2fd79f7d5c08"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3292,8 +3292,8 @@ dependencies = [
 
 [[package]]
 name = "ic-transport-types"
-version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=7752c33016f708fb84b56ff99d91a7c380a8b550#7752c33016f708fb84b56ff99d91a7c380a8b550"
+version = "0.40.0"
+source = "git+https://github.com/dfinity/agent-rs?rev=4f517a53b276721842287511aece2fd79f7d5c08#4f517a53b276721842287511aece2fd79f7d5c08"
 dependencies = [
  "candid",
  "hex",
@@ -3362,8 +3362,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=7752c33016f708fb84b56ff99d91a7c380a8b550#7752c33016f708fb84b56ff99d91a7c380a8b550"
+version = "0.40.0"
+source = "git+https://github.com/dfinity/agent-rs?rev=4f517a53b276721842287511aece2fd79f7d5c08#4f517a53b276721842287511aece2fd79f7d5c08"
 dependencies = [
  "async-trait",
  "candid",
@@ -3629,7 +3629,7 @@ dependencies = [
  "humantime",
  "ic-agent",
  "ic-asset",
- "ic-utils 0.39.3",
+ "ic-utils 0.40.0",
  "libflate 1.4.0",
  "num-traits",
  "pem 1.1.1",
@@ -4844,7 +4844,7 @@ dependencies = [
  "hex",
  "ic-certification 3.0.2",
  "ic-management-canister-types",
- "ic-transport-types 0.39.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-transport-types 0.39.3",
  "reqwest",
  "schemars",
  "serde",
