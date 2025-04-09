@@ -30,13 +30,11 @@ jobs:
         run: |
           # Download latest version from portal repo
           EXTERNAL_URL="https://raw.githubusercontent.com/dfinity/portal/refs/heads/master/docs/references/_attachments/ic.did"
-          NEW_CONTENT=$(curl -s $EXTERNAL_URL)
-          # Read the current content of the local file
-          CURRENT_CONTENT=$(cat $FILE_PATH)
-          # Compare contents
-          if [ "$NEW_CONTENT" != "$CURRENT_CONTENT" ]; then
+          curl -s -o $FILE_PATH $EXTERNAL_URL
+
+          # Check if the file has changed
+          if [ -n "$(git status --porcelain)" ]; then
             echo "has_update=true" >> "$GITHUB_OUTPUT"
-            echo "$NEW_CONTENT" > "$FILE_PATH"
           else
             echo "has_update=false" >> "$GITHUB_OUTPUT"
           fi
