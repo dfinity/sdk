@@ -50,6 +50,6 @@ impl Prettify {
 
     /// Prettify.
     pub fn prettify(&mut self, name: &str) -> Result<String, anyhow::Error> {
-        self.prettify.acme_plugins_prettify_plugin().call_prettify(&mut self.store, name)
+        self.prettify.icp_host_prettify_plugin().call_prettify(&mut self.store, name)
     }
 }

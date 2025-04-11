@@ -3,7 +3,7 @@
 
 #[allow(clippy::crate_in_macro_def)]
 wit_bindgen::generate!({
-    path: "../../assets/wit/acme-plugins.wit",
+    path: "../../assets/wit/icp-host.wit",
     default_bindings_module: "crate::bindings",
     pub_export_macro: true,
 });

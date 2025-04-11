@@ -5,7 +5,7 @@
 // A package can include more than one "world"
 // (=component, or plugin type for us),
 
-package acme:plugins@1.0.0;
+package icp:host@1.0.0;
 
 // This is what the host will expose to our plugins
 interface host {

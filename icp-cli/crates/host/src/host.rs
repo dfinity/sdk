@@ -1,4 +1,4 @@
-use super::bindings::acme::plugins::host;
+use super::bindings::icp::host::host;
 
 use wasmtime_wasi::{IoView, ResourceTable, WasiCtx, WasiCtxBuilder, WasiView};
 

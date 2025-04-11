@@ -1,4 +1,4 @@
-use super::bindings::{acme::plugins::host, export, exports::acme::plugins::prettify_plugin};
+use super::bindings::{icp::host::host, export, exports::icp::host::prettify_plugin};
 
 // This is our implementation of the "prettify" plugin type
 // (=WIT world)
