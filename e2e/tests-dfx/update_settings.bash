@@ -40,6 +40,16 @@ teardown() {
   assert_command dfx ledger fabricate-cycles --canister hello_backend --t 100
   assert_command dfx canister status hello_backend
   assert_match "Freezing threshold: 100_000_000_000"
+
+  # trying to set threshold to 1 day, which should not work without confirmation
+  assert_command_fail dfx canister update-settings hello_backend --freezing-threshold 86400
+  assert_match "The freezing threshold is very short at less than 1 week" # error message pointing to the error
+
+  # with manual override it's ok
+  assert_command dfx canister update-settings hello_backend --freezing-threshold 86400 --confirm-very-short-freezing-threshold
+  
+  assert_command dfx canister status hello_backend
+  assert_match "Freezing threshold: 86_400"
 }
 
 @test "set wasm memory limit" {
