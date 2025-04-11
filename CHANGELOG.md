@@ -4,7 +4,7 @@
 
 ### feat!: Add safeguard to very short freezing threshold
 
-Similar to very long freezing thresholds, setting a freezing threshold below 1 week now requires confirmation with `--confirm-very-short-freezing-threshold` so that unexpected canister deletion is less likely.
+Similar to very long freezing thresholds, setting a freezing threshold below 1 week now requires confirmation with `--confirm-very-short-freezing-threshold` so that unexpected canister uninstallation is less likely.
 
 ### fix: clear state when switching from shared to project network
 

@@ -148,7 +148,7 @@ pub async fn exec(
         if threshold_in_seconds < 604_800 /* 1 week */ && !opts.confirm_very_short_freezing_threshold
         {
             return Err(DiagnosedError::new(
-                "The freezing threshold is very short at less than 1 week. This may lead to canisters getting deleted with no or too little warning when cycles run out.",
+                "The freezing threshold is very short at less than 1 week. This may lead to canisters getting uninstalled with no or too little warning when cycles run out.",
                 "If you truly want to set a freezing threshold that is shorter than a week, please run the same command, but with the flag --confirm-very-short-freezing-threshold to confirm you want to do this.",
             )).context("Dangerous operation requires confirmation.");
         }
