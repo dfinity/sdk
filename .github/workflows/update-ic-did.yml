@@ -2,8 +2,8 @@ name: Update ic.did
 
 on:
   workflow_dispatch:
-  # schedule:
-    # - cron: "0 0 * * *" # Runs at UTC midnight every day
+  schedule:
+    - cron: "0 0 * * *" # Runs at UTC midnight every day
 
 env:
   # When getting Rust dependencies, retry on network error:
@@ -55,7 +55,7 @@ jobs:
           # Push and create PR
           git push origin $BRANCH_NAME
           gh pr create \
-            --title "Update ic.did from portal repo" \
+            --title "chore: update ic.did from portal repo" \
             --body "Automated update of ic.did. Triggered by periodic check." \
             --base master \
             --head $BRANCH_NAME
