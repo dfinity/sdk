@@ -14,15 +14,37 @@ use time::OffsetDateTime;
 pub struct LogsOpts {
     /// Specifies the name or id of the canister to get its canister information.
     canister: String,
+
+    /// Specifies to fetch the last N lines of the logs, use '-N' to specify the number of lines.
+    #[arg(long)]
+    tail: bool,
+
+    /// Specifies the number of logs to fetch for the '--tail' option. Defaults to 10.
+    #[arg(short = 'N', requires("tail"), default_value("10"))]
+    lines: Option<u64>,
 }
 
 fn format_bytes(bytes: &[u8]) -> String {
     format!("(bytes) 0x{}", hex::encode(bytes))
 }
 
-fn format_canister_logs(logs: FetchCanisterLogsResponse) -> Vec<String> {
-    logs.canister_log_records
-        .into_iter()
+fn format_canister_logs(logs: FetchCanisterLogsResponse, opts: &LogsOpts) -> Vec<String> {
+    let filtered_logs = if opts.tail {
+        let number = opts.lines.unwrap_or(10);
+        &logs.canister_log_records[logs
+            .canister_log_records
+            .len()
+            .saturating_sub(number as usize)..]
+    } else {
+        &logs.canister_log_records
+    };
+
+    if filtered_logs.is_empty() {
+        return vec!["No logs".to_string()];
+    }
+
+    filtered_logs
+        .iter()
         .map(|r| {
             let time = OffsetDateTime::from_unix_timestamp_nanos(r.timestamp_nanos as i128)
                 .expect("Invalid canister log record timestamp");
@@ -66,7 +88,14 @@ fn test_format_canister_logs() {
         ],
     };
     assert_eq!(
-        format_canister_logs(logs),
+        format_canister_logs(
+            logs,
+            &LogsOpts {
+                canister: "2vxsx-fae".to_string(),
+                tail: false,
+                lines: None
+            }
+        ),
         vec![
             "[42. 2021-05-06T19:17:10.000000001Z]: Some text message".to_string(),
             "[43. 2021-05-06T19:17:10.000000002Z]: (bytes) 0xc0ffee".to_string(),
@@ -84,8 +113,7 @@ pub async fn exec(env: &dyn Environment, opts: LogsOpts, call_sender: &CallSende
     fetch_root_key_if_needed(env).await?;
 
     let logs = canister::get_canister_logs(env, canister_id, call_sender).await?;
-
-    println!("{}", format_canister_logs(logs).join("\n"));
+    println!("{}", format_canister_logs(logs, &opts).join("\n"));
 
     Ok(())
 }
