@@ -294,7 +294,7 @@ teardown() {
   define_project_network
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background -v
+  assert_command dfx_start +q -v
   assert_match "subnet type: Application"
 }
 
@@ -303,7 +303,7 @@ teardown() {
   define_project_network
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background -v
+  assert_command dfx_start +q -v
   assert_match "subnet type: VerifiedApplication"
 }
 
@@ -312,7 +312,7 @@ teardown() {
   define_project_network
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background -v
+  assert_command dfx_start +q -v
   assert_match "subnet type: System"
 }
 
@@ -321,7 +321,7 @@ teardown() {
   define_project_network
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background -v
+  assert_command dfx_start +q -v
   assert_match "subnet type: Application"
 }
 
@@ -330,7 +330,7 @@ teardown() {
   define_project_network
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background -v
+  assert_command dfx_start +q -v
   assert_match "subnet type: VerifiedApplication"
 }
 
@@ -339,7 +339,7 @@ teardown() {
   define_project_network
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background -v
+  assert_command dfx_start +q -v
   assert_match "subnet type: System"
 }
 
@@ -348,7 +348,7 @@ teardown() {
   install_shared_asset subnet_type/shared_network_settings/application
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
-  assert_command dfx start --background -v
+  assert_command dfx_start +q -v
   assert_match "subnet type: Application"
 }
 
@@ -356,7 +356,7 @@ teardown() {
   install_shared_asset subnet_type/shared_network_settings/verified_application
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
-  assert_command dfx start --background -v
+  assert_command dfx_start +q -v
   assert_match "subnet type: VerifiedApplication"
 }
 
@@ -364,7 +364,7 @@ teardown() {
   install_shared_asset subnet_type/shared_network_settings/system
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
-  assert_command dfx start --background -v
+  assert_command dfx_start +q -v
   assert_match "subnet type: System"
 }
 
@@ -384,7 +384,7 @@ teardown() {
 
   jq 'del(.defaults)' dfx.json | sponge dfx.json
   jq '.defaults.bitcoin.enabled=true' dfx.json | sponge dfx.json
-  assert_command dfx start --background
+  assert_command dfx_start +q
   assert_contains "$IGNORED_MESSAGE"
   assert_match "$APPLY_SETTINGS_MESSAGE"
   assert_contains '"bitcoin": {'
@@ -394,7 +394,7 @@ teardown() {
 
   jq 'del(.defaults)' dfx.json | sponge dfx.json
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
-  assert_command dfx start --background
+  assert_command dfx_start +q
   assert_contains "$IGNORED_MESSAGE"
   assert_match "$APPLY_SETTINGS_MESSAGE"
   assert_not_contains '"bitcoin"'
@@ -404,7 +404,7 @@ teardown() {
 
   jq 'del(.defaults)' dfx.json | sponge dfx.json
   jq '.defaults.canister_http.enabled=false' dfx.json | sponge dfx.json
-  assert_command dfx start --background
+  assert_command dfx_start +q
   assert_contains "$IGNORED_MESSAGE"
   assert_match "$APPLY_SETTINGS_MESSAGE"
   assert_not_contains '"bitcoin"'
@@ -416,7 +416,7 @@ teardown() {
   jq '.defaults.bitcoin.enabled=true' dfx.json | sponge dfx.json
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
   jq '.defaults.canister_http.enabled=false' dfx.json | sponge dfx.json
-  assert_command dfx start --background
+  assert_command dfx_start +q
   assert_contains "$IGNORED_MESSAGE"
   assert_match "$APPLY_SETTINGS_MESSAGE"
   assert_contains '"bitcoin": {'
@@ -430,12 +430,12 @@ teardown() {
   jq '.defaults.replica.log_level="warning"' dfx.json | sponge dfx.json
   define_project_network
 
-  assert_command dfx start --background --verbose
+  assert_command dfx_start +q --verbose
   assert_match "log level: Warning"
   assert_command dfx stop
 
   jq '.defaults.replica.log_level="critical"' dfx.json | sponge dfx.json
-  assert_command dfx start --background --verbose --clean
+  assert_command dfx_start +q --verbose --clean
   assert_match "log level: Critical"
 }
 
@@ -444,12 +444,12 @@ teardown() {
   jq '.networks.local.replica.log_level="warning"' dfx.json | sponge dfx.json
   define_project_network
 
-  assert_command dfx start --background --verbose
+  assert_command dfx_start +q --verbose
   assert_match "log level: Warning"
   assert_command dfx stop
 
   jq '.networks.local.replica.log_level="critical"' dfx.json | sponge dfx.json
-  assert_command dfx start --background --verbose --clean
+  assert_command dfx_start +q --verbose --clean
   assert_match "log level: Critical"
 }
 
@@ -458,12 +458,12 @@ teardown() {
   create_networks_json
   jq '.local.replica.log_level="warning"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
-  assert_command dfx start --background --verbose
+  assert_command dfx_start +q --verbose
   assert_match "log level: Warning"
   assert_command dfx stop
 
   jq '.local.replica.log_level="critical"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
-  assert_command dfx start --background --verbose --clean
+  assert_command dfx_start +q --verbose --clean
   assert_match "log level: Critical"
 }
 
@@ -509,25 +509,21 @@ teardown() {
   dfx_new
   define_project_network
 
-  dfx start --background
+  dfx_start --artificial-delay 0
   dfx stop
-  assert_command_fail dfx start --artificial-delay 100 --background
+  assert_command_fail dfx_start +q --artificial-delay 100
   assert_contains "The network state can't be reused with this configuration. Rerun with \`--clean\`."
-  assert_command dfx start --artificial-delay 100 --clean --background
+  assert_command dfx_start +q --artificial-delay 100 --clean
   dfx stop
-  assert_command dfx start --artificial-delay 100 --background
+  assert_command dfx_start +q --artificial-delay 100
   dfx stop
-  assert_command_fail dfx start --background
+  assert_command_fail dfx_start +q --artificial-delay 0
   assert_contains "The network state can't be reused with this configuration. Rerun with \`--clean\`."
-  assert_command dfx start --force --background
+  assert_command dfx_start +q --force
 }
 
 @test "dfx start then ctrl-c won't hang and panic but stop actors quickly" {
   assert_command "${BATS_TEST_DIRNAME}/../assets/expect_scripts/ctrl_c_right_after_dfx_start.exp"
 }
 
-@test "dfx-started processes can be killed with dfx killall" {
-    dfx_start
-    dfx killall
-    assert_command_fail pgrep dfx replica pocket-ic
-}
+# test "dfx-started processes can be killed with dfx killall" moved to serial_misc.bash
