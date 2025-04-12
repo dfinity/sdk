@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true # bitcoind doesn't support dynamic ports and so can't be duplicated in parallel
 
 load ../utils/_
 

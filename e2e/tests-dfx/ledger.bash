@@ -1,4 +1,5 @@
 #!/usr/bin/env bats
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true # nns setup requires a specific port
 
 load ../utils/_
 
