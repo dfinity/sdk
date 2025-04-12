@@ -2,8 +2,8 @@ name: Update ic.did
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 0 * * *" # Runs at UTC midnight every day
+  # schedule:
+    # - cron: "0 0 * * *" # Runs at UTC midnight every day
 
 env:
   # When getting Rust dependencies, retry on network error:
