@@ -2,10 +2,12 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::util::clap::parsers::duration_parser;
 use candid::Principal;
 use clap::Parser;
 use dfx_core::identity::CallSender;
 use ic_utils::interfaces::management_canister::FetchCanisterLogsResponse;
+use std::time::{SystemTime, UNIX_EPOCH};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
 
@@ -22,6 +24,10 @@ pub struct LogsOpts {
     /// Specifies the number of logs to fetch for the '--tail' option. Defaults to 10.
     #[arg(short = 'N', requires("tail"), default_value("10"))]
     lines: Option<u64>,
+
+    /// Specifies to fetch the logs newer than a relative duration.
+    #[arg(long, conflicts_with("tail"), value_parser = duration_parser)]
+    since: Option<u64>,
 }
 
 fn format_bytes(bytes: &[u8]) -> String {
@@ -35,6 +41,17 @@ fn format_canister_logs(logs: FetchCanisterLogsResponse, opts: &LogsOpts) -> Vec
             .canister_log_records
             .len()
             .saturating_sub(number as usize)..]
+    } else if let Some(since) = opts.since {
+        let timestamp_nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos() as u64
+            - since * 1_000_000_000;
+
+        let index = logs
+            .canister_log_records
+            .partition_point(|r| r.timestamp_nanos <= timestamp_nanos);
+        &logs.canister_log_records[index..]
     } else {
         &logs.canister_log_records
     };
@@ -93,7 +110,8 @@ fn test_format_canister_logs() {
             &LogsOpts {
                 canister: "2vxsx-fae".to_string(),
                 tail: false,
-                lines: None
+                lines: None,
+                since: None,
             }
         ),
         vec![

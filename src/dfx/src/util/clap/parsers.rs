@@ -206,6 +206,46 @@ pub fn hsm_key_id_parser(key_id: &str) -> Result<String, String> {
     }
 }
 
+/// Parse a duration string into a number of seconds.
+/// The duration string is a number followed by a unit (s, m, h, d).
+/// The unit is optional, and defaults to seconds.
+pub fn duration_parser(duration: &str) -> Result<u64, String> {
+    if duration.is_empty() {
+        return Err("Duration cannot be empty".to_string());
+    }
+    let duration = duration.trim().to_lowercase();
+
+    let (number_str, unit) = if duration
+        .chars()
+        .last()
+        .map(|c| c.is_alphabetic())
+        .unwrap_or(false)
+    {
+        duration.split_at(duration.len() - 1)
+    } else {
+        (duration.as_str(), "s")
+    };
+
+    let number = number_str
+        .parse::<u64>()
+        .map_err(|_| "Invalid number format in duration".to_string())?;
+
+    let seconds = match unit {
+        "s" => number,
+        "m" => number * 60,
+        "h" => number * 3600,
+        "d" => number * 86400,
+        _ => {
+            return Err(format!(
+                "Unknown duration unit: '{}'. Valid units are s, m, h, d",
+                unit
+            ))
+        }
+    };
+
+    Ok(seconds)
+}
+
 #[test]
 fn test_cycle_amount_parser() {
     assert_eq!(cycle_amount_parser("900c"), Ok(900));
@@ -243,4 +283,18 @@ fn test_e8s_parser() {
     assert_eq!(e8s_parser("1_000"), Ok(1_000));
     assert_eq!(e8s_parser("1k"), Ok(1_000));
     assert_eq!(e8s_parser("1M"), Ok(1_000_000));
+}
+
+#[test]
+fn test_duration_parser() {
+    assert_eq!(duration_parser("5s"), Ok(5));
+    assert_eq!(duration_parser("5"), Ok(5));
+    assert_eq!(duration_parser("2m"), Ok(120));
+    assert_eq!(duration_parser("1h"), Ok(3600));
+    assert_eq!(duration_parser("1d"), Ok(86400));
+
+    assert!(duration_parser("").is_err());
+    assert!(duration_parser("-1s").is_err());
+    assert!(duration_parser("abc").is_err());
+    assert!(duration_parser("1y").is_err());
 }
