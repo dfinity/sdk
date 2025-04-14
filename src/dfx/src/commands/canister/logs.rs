@@ -26,12 +26,12 @@ pub struct LogsOpts {
     lines: Option<u64>,
 
     /// Specifies to show the logs newer than a relative duration, with the valid units 's', 'm', 'h', 'd'.
-    #[arg(long, conflicts_with("tail"), value_parser = duration_parser)]
+    #[arg(long, conflicts_with("tail"), conflicts_with("since_time"), value_parser = duration_parser)]
     since: Option<u64>,
 
     /// Specifies to show the logs newer than a specific timestamp.
     /// Required either nanoseconds since epoch or RFC3339 format (e.g. '2021-05-06T19:17:10.000000002Z').
-    #[arg(long, conflicts_with("tail"), value_parser = timestamp_parser)]
+    #[arg(long, conflicts_with("tail"), conflicts_with("since"), value_parser = timestamp_parser)]
     since_time: Option<u64>,
 }
 
