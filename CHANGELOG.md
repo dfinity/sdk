@@ -20,6 +20,13 @@ Use the `account_balance` rather than the legacy `account_balance_dfx` on the IC
 
 Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1).
 
+### feat: Improve 'dfx canister logs' with several options
+
+Improve 'dfx canister logs' with several options
+- `--tail` and `-N` to show the last N lines of the logs
+- `--since` to show the logs newer than a relative duration
+- `--since-time` to show the logs newer than a specific timestamp
+
 ## Dependencies
 
 ### Motoko
