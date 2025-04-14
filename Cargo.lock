@@ -4835,7 +4835,7 @@ checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
 [[package]]
 name = "pocket-ic"
 version = "7.0.0"
-source = "git+https://github.com/dfinity/ic?rev=f6f5e0927d14886e4bd67f776ee889f31cec2364#f6f5e0927d14886e4bd67f776ee889f31cec2364"
+source = "git+https://github.com/dfinity/ic?rev=579b8ba3a31341f354f4ddb3d60ac44548a91bc2#579b8ba3a31341f354f4ddb3d60ac44548a91bc2"
 dependencies = [
  "backoff",
  "base64 0.13.1",
@@ -4855,6 +4855,7 @@ dependencies = [
  "slog",
  "strum 0.26.3",
  "strum_macros 0.26.4",
+ "tempfile",
  "thiserror 2.0.11",
  "tokio",
  "tracing",
