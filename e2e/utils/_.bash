@@ -101,13 +101,9 @@ dfx_new_rust() {
 }
 
 determine_network_directory() {
-    local quiet
-    if [[ $# == 1 && $1 == +q ]]; then
-        quiet=1
-    fi
     # not perfect: dfx.json can actually exist in a parent
     if [ -f dfx.json ] && [ "$(jq .networks.local dfx.json)" != "null" ]; then
-        [[ $quiet ]] || echo "found dfx.json with local network in $(pwd)"
+        echo "found dfx.json with local network in $(pwd)"
         data_dir="$(pwd)/.dfx/network/local"
         wallets_json="$(pwd)/.dfx/local/wallets.json"
         dfx_json="$(pwd)/dfx.json"
@@ -115,7 +111,7 @@ determine_network_directory() {
         export E2E_NETWORK_WALLETS_JSON="$wallets_json"
         export E2E_ROUTE_NETWORKS_JSON="$dfx_json"
     else
-        [[ $quiet ]] || echo "no dfx.json"
+        echo "no dfx.json"
         export E2E_NETWORK_DATA_DIRECTORY="$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY"
         export E2E_NETWORK_WALLETS_JSON="$E2E_NETWORK_DATA_DIRECTORY/wallets.json"
         export E2E_ROUTE_NETWORKS_JSON="$E2E_NETWORKS_JSON"
@@ -124,11 +120,7 @@ determine_network_directory() {
 
 # Start the replica in the background.
 dfx_start() {
-    local port dfx_config_root webserver_port quiet
-    if [[ $# -gt 0 && $1 == +q ]]; then
-        quiet=1
-        shift
-    fi
+    local port dfx_config_root webserver_port
 
     local args=( "$@" )
 
@@ -158,7 +150,7 @@ dfx_start() {
     fi
     add_default_parameter "--artificial-delay" "100"
 
-    determine_network_directory ${quiet:+"+q"}
+    determine_network_directory
 
     # Bats creates a FD 3 for test output, but child processes inherit it and Bats will
     # wait for it to close. Because `dfx start` leaves child processes running, we need
@@ -168,9 +160,9 @@ dfx_start() {
 
     if [[ "$USE_REPLICA" ]]; then
         dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
-        [[ $quiet ]] || printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
+        printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
         test -f "${dfx_config_root}/replica-1.port"
-        port=$(< "${dfx_config_root}/replica-1.port")
+        port=$(cat "${dfx_config_root}/replica-1.port")
         if [ "$port" == "" ]; then
           port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
         fi
@@ -178,10 +170,10 @@ dfx_start() {
         test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
         port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port")
     fi
-    webserver_port=$(< "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
+    webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
 
-    [[ $quiet ]] || printf "Replica Configured Port: %s\n" "${port}"
-    [[ $quiet ]] || printf "Webserver Configured Port: %s\n" "${webserver_port}"
+    printf "Replica Configured Port: %s\n" "${port}"
+    printf "Webserver Configured Port: %s\n" "${webserver_port}"
 
     timeout 5 sh -c \
         "until nc -z localhost ${port}; do echo waiting for replica; sleep 1; done" \
