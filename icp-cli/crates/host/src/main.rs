@@ -2,6 +2,7 @@ mod bindings;
 mod command_config;
 mod const_node;
 mod host;
+mod node;
 mod output_promise;
 mod prettify;
 mod print_node;

@@ -1,4 +1,5 @@
-use crate::output_promise::{Node, OutputPromise};
+use crate::node::Node;
+use crate::output_promise::OutputPromise;
 use std::sync::Arc;
 
 pub struct ConstNode {
@@ -21,6 +22,10 @@ impl ConstNode {
 
 #[async_trait::async_trait]
 impl Node for ConstNode {
+    fn produces_side_effect(&self) -> bool {
+        false
+    }
+
     async fn evaluate(&self) {
         self.output.set(self.value.clone()).await;
     }

@@ -1,4 +1,4 @@
-use crate::output_promise::Node;
+use crate::node::Node;
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};

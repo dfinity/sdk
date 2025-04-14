@@ -4,12 +4,6 @@ use tokio::sync::Mutex;
 use tokio::sync::Notify;
 use tokio::task::JoinHandle;
 
-#[async_trait::async_trait]
-pub trait Node: Send + Sync {
-    //    fn produces_side_effect(&self) -> bool;
-    async fn evaluate(&self);
-}
-
 pub struct OutputPromise<T: Clone + Send + Sync + 'static> {
     value: Mutex<Option<T>>,
     notify: Notify,
