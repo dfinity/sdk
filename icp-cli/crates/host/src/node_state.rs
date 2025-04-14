@@ -17,17 +17,7 @@ impl NodeState {
 
     pub async fn ensure_evaluation(self: Arc<Self>, node: Arc<dyn Node>) {
         self.eval_future
-            .get_or_init(|| {
-                let fut = async move {
-                    node.evaluate().await;
-                }
-                .boxed()
-                .shared();
-
-                async move { fut }
-            })
-            .await
-            .clone()
+            .get_or_init(|| async move { node.evaluate().boxed().shared() })
             .await;
     }
 }
