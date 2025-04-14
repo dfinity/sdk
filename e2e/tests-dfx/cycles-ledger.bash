@@ -1,8 +1,11 @@
 #!/usr/bin/env bats
-export BATS_NO_PARALLELIZE_WITHIN_FILE=true # nns setup requires a specific port
 
 load ../utils/_
 load ../utils/cycles-ledger
+
+setup_file() {
+  export BATS_NO_PARALLELIZE_WITHIN_FILE=true # nns setup requires a specific port
+}
 
 setup() {
   standard_setup
