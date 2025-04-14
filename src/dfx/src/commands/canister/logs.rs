@@ -112,11 +112,33 @@ fn test_format_canister_logs() {
                 timestamp_nanos: 1_620_328_630_000_000_002,
                 content: vec![192, 255, 238],
             },
+            CanisterLogRecord {
+                idx: 44,
+                timestamp_nanos: 1_620_328_630_000_000_003,
+                content: vec![192, 255, 238],
+            },
+            // 5 seconds later
+            CanisterLogRecord {
+                idx: 45,
+                timestamp_nanos: 1_620_328_635_000_000_001,
+                content: vec![192, 255, 238],
+            },
+            CanisterLogRecord {
+                idx: 46,
+                timestamp_nanos: 1_620_328_635_000_000_002,
+                content: vec![192, 255, 238],
+            },
+            CanisterLogRecord {
+                idx: 47,
+                timestamp_nanos: 1_620_328_635_000_000_003,
+                content: vec![192, 255, 238],
+            },
         ],
     };
+
     assert_eq!(
         format_canister_logs(
-            logs,
+            logs.clone(),
             &LogsOpts {
                 canister: "2vxsx-fae".to_string(),
                 tail: false,
@@ -128,7 +150,74 @@ fn test_format_canister_logs() {
         vec![
             "[42. 2021-05-06T19:17:10.000000001Z]: Some text message".to_string(),
             "[43. 2021-05-06T19:17:10.000000002Z]: (bytes) 0xc0ffee".to_string(),
-        ],
+            "[44. 2021-05-06T19:17:10.000000003Z]: (bytes) 0xc0ffee".to_string(),
+            "[45. 2021-05-06T19:17:15.000000001Z]: (bytes) 0xc0ffee".to_string(),
+            "[46. 2021-05-06T19:17:15.000000002Z]: (bytes) 0xc0ffee".to_string(),
+            "[47. 2021-05-06T19:17:15.000000003Z]: (bytes) 0xc0ffee".to_string(),
+        ]
+    );
+
+    // Test tail
+    assert_eq!(
+        format_canister_logs(
+            logs.clone(),
+            &LogsOpts {
+                canister: "2vxsx-fae".to_string(),
+                tail: true,
+                lines: Some(4),
+                since: None,
+                since_time: None,
+            }
+        ),
+        vec![
+            "[44. 2021-05-06T19:17:10.000000003Z]: (bytes) 0xc0ffee".to_string(),
+            "[45. 2021-05-06T19:17:15.000000001Z]: (bytes) 0xc0ffee".to_string(),
+            "[46. 2021-05-06T19:17:15.000000002Z]: (bytes) 0xc0ffee".to_string(),
+            "[47. 2021-05-06T19:17:15.000000003Z]: (bytes) 0xc0ffee".to_string(),
+        ]
+    );
+
+    // Test since
+    let duration_seconds = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        - 1620328631; // 1 second after the first log with idx 42.
+    assert_eq!(
+        format_canister_logs(
+            logs.clone(),
+            &LogsOpts {
+                canister: "2vxsx-fae".to_string(),
+                tail: false,
+                lines: None,
+                since: Some(duration_seconds),
+                since_time: None,
+            }
+        ),
+        vec![
+            "[45. 2021-05-06T19:17:15.000000001Z]: (bytes) 0xc0ffee".to_string(),
+            "[46. 2021-05-06T19:17:15.000000002Z]: (bytes) 0xc0ffee".to_string(),
+            "[47. 2021-05-06T19:17:15.000000003Z]: (bytes) 0xc0ffee".to_string(),
+        ]
+    );
+
+    // Test since_time
+    assert_eq!(
+        format_canister_logs(
+            logs,
+            &LogsOpts {
+                canister: "2vxsx-fae".to_string(),
+                tail: false,
+                lines: None,
+                since: None,
+                since_time: Some(1_620_328_635_000_000_000),
+            }
+        ),
+        vec![
+            "[45. 2021-05-06T19:17:15.000000001Z]: (bytes) 0xc0ffee".to_string(),
+            "[46. 2021-05-06T19:17:15.000000002Z]: (bytes) 0xc0ffee".to_string(),
+            "[47. 2021-05-06T19:17:15.000000003Z]: (bytes) 0xc0ffee".to_string(),
+        ]
     );
 }
 
