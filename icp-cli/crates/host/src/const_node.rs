@@ -1,7 +1,6 @@
 use crate::node::Node;
 use crate::node_state::NodeState;
 use crate::output_promise::OutputPromise;
-use crate::print_node::PrintNode;
 use crate::value::Value;
 use async_trait::async_trait;
 use std::sync::Arc;

@@ -1,9 +1,5 @@
 use crate::node::Node;
-use async_trait::async_trait;
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
-use tokio::sync::{Notify, RwLock};
-use tokio::task::JoinHandle;
+use std::sync::Arc;
 
 // Represents the result of evaluating a node
 #[derive(Debug, Clone)]
@@ -28,10 +24,9 @@ impl Runtime {
     pub async fn run_graph(&self) {
         let futures = self
             .nodes
-            .clone()
-            .into_iter()
+            .iter()
             .filter(|n| n.produces_side_effect())
-            .map(|n| n.ensure_evaluation())
+            .map(|n| n.clone().ensure_evaluation())
             .collect::<Vec<_>>();
 
         futures::future::join_all(futures).await;

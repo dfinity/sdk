@@ -1,9 +1,8 @@
 use crate::node::Node;
 use crate::value::Value;
-use async_trait::async_trait;
 use futures::future::FutureExt;
 use futures::future::{BoxFuture, Shared};
-use std::sync::{Arc, Weak};
+use std::sync::Weak;
 use tokio::sync::OnceCell;
 
 pub struct OutputPromise {
