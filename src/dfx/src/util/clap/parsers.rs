@@ -4,6 +4,7 @@ use ic_utils::interfaces::management_canister::LogVisibility;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use rust_decimal::Decimal;
 use std::{path::PathBuf, str::FromStr};
+use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
 /// Removes `_`, interprets `k`, `m`, `b`, `t` suffix (case-insensitive)
 fn decimal_with_suffix_parser(input: &str) -> Result<Decimal, String> {
@@ -246,6 +247,24 @@ pub fn duration_parser(duration: &str) -> Result<u64, String> {
     Ok(seconds)
 }
 
+/// Parse a timestamp string that can be either RFC3339 format or nanoseconds since epoch.
+/// Returns the timestamp in nanoseconds since epoch.
+pub fn timestamp_parser(timestamp: &str) -> Result<u64, String> {
+    if let Ok(nanos) = timestamp.parse::<u64>() {
+        return Ok(nanos);
+    }
+
+    if let Ok(time) = OffsetDateTime::parse(timestamp, &Rfc3339) {
+        let nanos = time.unix_timestamp_nanos();
+        let nanos = nanos
+            .try_into()
+            .map_err(|_| format!("Timestamp {} out of range for u64", nanos))?;
+        return Ok(nanos);
+    }
+
+    Err(format!("Invalid timestamp format: {}. Required either nanoseconds since epoch or RFC3339 format (e.g. '2021-05-06T19:17:10.000000002Z')", timestamp))
+}
+
 #[test]
 fn test_cycle_amount_parser() {
     assert_eq!(cycle_amount_parser("900c"), Ok(900));
@@ -297,4 +316,21 @@ fn test_duration_parser() {
     assert!(duration_parser("-1s").is_err());
     assert!(duration_parser("abc").is_err());
     assert!(duration_parser("1y").is_err());
+}
+
+#[test]
+fn test_timestamp_parser() {
+    assert_eq!(
+        timestamp_parser("1620328630000000002"),
+        Ok(1620328630000000002)
+    );
+
+    assert_eq!(
+        timestamp_parser("2021-05-06T19:17:10.000000002Z"),
+        Ok(1620328630000000002)
+    );
+
+    assert!(timestamp_parser("invalid format").is_err());
+    assert!(timestamp_parser("2021-05-06T19:17:10.000000002").is_err()); // Missing timezone
+    assert!(timestamp_parser("2021-13-01T00:00:00Z").is_err()); // Invalid month
 }

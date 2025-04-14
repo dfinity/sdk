@@ -2,7 +2,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::clap::parsers::duration_parser;
+use crate::util::clap::parsers::{duration_parser, timestamp_parser};
 use candid::Principal;
 use clap::Parser;
 use dfx_core::identity::CallSender;
@@ -25,9 +25,14 @@ pub struct LogsOpts {
     #[arg(short = 'N', requires("tail"), default_value("10"))]
     lines: Option<u64>,
 
-    /// Specifies to fetch the logs newer than a relative duration.
+    /// Specifies to fetch the logs newer than a relative duration, with the valid units 's', 'm', 'h', 'd'.
     #[arg(long, conflicts_with("tail"), value_parser = duration_parser)]
     since: Option<u64>,
+
+    /// Specifies to fetch the logs newer than a specific timestamp.
+    /// Required either nanoseconds since epoch or RFC3339 format (e.g. '2021-05-06T19:17:10.000000002Z').
+    #[arg(long, conflicts_with("tail"), value_parser = timestamp_parser)]
+    since_time: Option<u64>,
 }
 
 fn format_bytes(bytes: &[u8]) -> String {
@@ -51,6 +56,11 @@ fn format_canister_logs(logs: FetchCanisterLogsResponse, opts: &LogsOpts) -> Vec
         let index = logs
             .canister_log_records
             .partition_point(|r| r.timestamp_nanos <= timestamp_nanos);
+        &logs.canister_log_records[index..]
+    } else if let Some(since_time) = opts.since_time {
+        let index = logs
+            .canister_log_records
+            .partition_point(|r| r.timestamp_nanos <= since_time);
         &logs.canister_log_records[index..]
     } else {
         &logs.canister_log_records
@@ -112,6 +122,7 @@ fn test_format_canister_logs() {
                 tail: false,
                 lines: None,
                 since: None,
+                since_time: None,
             }
         ),
         vec![
