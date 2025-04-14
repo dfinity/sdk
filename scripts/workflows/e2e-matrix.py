@@ -38,7 +38,7 @@ for test in all_tests:
         if {"backend": backend, "test": test} in EXCLUDE:
             continue
 
-        serial = True if backend in SERIAL_TESTS else None
+        serial = backend in SERIAL_TESTS
 
         # Ubuntu: run everything
         include.append({
