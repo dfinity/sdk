@@ -55,7 +55,7 @@ jobs:
           # Push and create PR
           git push origin $BRANCH_NAME
           gh pr create \
-            --title "chore: update ic.did from portal repo" \
+            --title "chore: update `ic.did` from portal repo" \
             --body "Automated update of ic.did. Triggered by periodic check." \
             --base master \
             --head $BRANCH_NAME
