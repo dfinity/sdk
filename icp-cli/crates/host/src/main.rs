@@ -3,14 +3,17 @@ mod command_config;
 mod const_node;
 mod host;
 mod node;
+mod node_state;
 mod output_promise;
 mod prettify;
 mod print_node;
 mod runtime;
+mod value;
 
 use crate::const_node::ConstNode;
 use crate::print_node::PrintNode;
 use crate::runtime::{OutputValue, Runtime};
+use crate::value::Value;
 use prettify::*;
 use std::sync::Arc;
 // #[tokio::main]
@@ -38,12 +41,12 @@ use std::sync::Arc;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let const_node = ConstNode::new("Hello, World!".to_string());
+    let const_node = ConstNode::new(Value::String("Hello, World!".to_string()));
     let print_node = PrintNode::new(const_node.output_promise());
 
     let mut runtime = Runtime::new();
     runtime.add_node(const_node);
     runtime.add_node(print_node);
 
-    runtime.evaluate_all().await;
+    runtime.run_graph().await;
 }

@@ -818,6 +818,8 @@ dependencies = [
  "anyhow",
  "async-trait",
  "crossterm",
+ "futures",
+ "futures-util",
  "ratatui",
  "serde",
  "serde_yaml",

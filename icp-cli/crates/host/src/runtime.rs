@@ -25,18 +25,15 @@ impl Runtime {
         self.nodes.push(node);
     }
 
-    pub async fn evaluate_all(&self) {
-        let mut handles: Vec<JoinHandle<()>> = vec![];
+    pub async fn run_graph(&self) {
+        let futures = self
+            .nodes
+            .clone()
+            .into_iter()
+            .filter(|n| n.produces_side_effect())
+            .map(|n| n.ensure_evaluation())
+            .collect::<Vec<_>>();
 
-        for node in &self.nodes {
-            let node_clone = Arc::clone(node);
-            handles.push(tokio::spawn(async move {
-                node_clone.evaluate().await;
-            }));
-        }
-
-        for handle in handles {
-            handle.await.unwrap();
-        }
+        futures::future::join_all(futures).await;
     }
 }

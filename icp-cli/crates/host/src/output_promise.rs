@@ -1,34 +1,43 @@
-use std::future::Future;
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use tokio::sync::Notify;
-use tokio::task::JoinHandle;
+use crate::node::Node;
+use crate::value::Value;
+use async_trait::async_trait;
+use futures::future::FutureExt;
+use futures::future::{BoxFuture, Shared};
+use std::sync::{Arc, Weak};
+use tokio::sync::OnceCell;
 
-pub struct OutputPromise<T: Clone + Send + Sync + 'static> {
-    value: Mutex<Option<T>>,
-    notify: Notify,
+pub struct OutputPromise {
+    future: OnceCell<Shared<BoxFuture<'static, Value>>>,
+    owner: OnceCell<Weak<dyn Node>>,
 }
 
-impl<T: Clone + Send + Sync + 'static> OutputPromise<T> {
+impl OutputPromise {
     pub fn new() -> Self {
         Self {
-            value: Mutex::new(None),
-            notify: Notify::new(),
+            future: OnceCell::new(),
+            owner: OnceCell::new(),
         }
     }
 
-    pub async fn get(&self) -> T {
-        loop {
-            if let Some(val) = self.value.lock().await.clone() {
-                return val;
+    pub fn set_owner(&self, owner: Weak<dyn Node>) {
+        self.owner.set(owner).expect("Owner already set");
+    }
+
+    pub async fn get(&self) -> Value {
+        if self.future.get().is_none() {
+            if let Some(node) = self.owner.get().expect("no owner").upgrade() {
+                node.ensure_evaluation().await;
+            } else {
+                panic!("Owning node dropped");
             }
-            self.notify.notified().await;
         }
+
+        self.future.get().unwrap().clone().await
     }
 
-    pub async fn set(&self, val: T) {
-        let mut lock = self.value.lock().await;
-        *lock = Some(val);
-        self.notify.notify_waiters();
+    pub fn set(&self, value: Value) {
+        // Build a ready future wrapping the value, store it as shared future
+        let fut = async move { value }.boxed().shared();
+        self.future.set(fut).unwrap();
     }
 }
