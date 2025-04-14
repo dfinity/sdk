@@ -12,8 +12,8 @@ mod value;
 
 use crate::const_node::ConstNode;
 use crate::print_node::PrintNode;
-use crate::runtime::{OutputValue, Runtime};
-use crate::value::Value;
+use crate::runtime::Runtime;
+use crate::value::OutputValue;
 use prettify::*;
 use std::sync::Arc;
 // #[tokio::main]
@@ -41,7 +41,7 @@ use std::sync::Arc;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let const_node = ConstNode::new(Value::String("Hello, World!".to_string()));
+    let const_node = ConstNode::new(OutputValue::String("Hello, World!".to_string()));
     let print_node = PrintNode::new(const_node.output_promise());
 
     let mut runtime = Runtime::new();

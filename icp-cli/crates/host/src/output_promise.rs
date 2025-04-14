@@ -1,12 +1,12 @@
 use crate::node::Node;
-use crate::value::Value;
+use crate::value::OutputValue;
 use futures::future::FutureExt;
 use futures::future::{BoxFuture, Shared};
 use std::sync::Weak;
 use tokio::sync::OnceCell;
 
 pub struct OutputPromise {
-    future: OnceCell<Shared<BoxFuture<'static, Value>>>,
+    future: OnceCell<Shared<BoxFuture<'static, OutputValue>>>,
     owner: OnceCell<Weak<dyn Node>>,
 }
 
@@ -22,7 +22,7 @@ impl OutputPromise {
         self.owner.set(owner).expect("Owner already set");
     }
 
-    pub async fn get(&self) -> Value {
+    pub async fn get(&self) -> OutputValue {
         if self.future.get().is_none() {
             if let Some(node) = self.owner.get().expect("no owner").upgrade() {
                 node.ensure_evaluation().await;
@@ -34,7 +34,7 @@ impl OutputPromise {
         self.future.get().unwrap().clone().await
     }
 
-    pub fn set(&self, value: Value) {
+    pub fn set(&self, value: OutputValue) {
         // Build a ready future wrapping the value, store it as shared future
         let fut = async move { value }.boxed().shared();
         self.future.set(fut).unwrap();

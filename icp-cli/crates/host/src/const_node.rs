@@ -1,18 +1,18 @@
 use crate::node::Node;
 use crate::node_state::NodeState;
 use crate::output_promise::OutputPromise;
-use crate::value::Value;
+use crate::value::OutputValue;
 use async_trait::async_trait;
 use std::sync::Arc;
 
 pub struct ConstNode {
     state: Arc<NodeState>,
-    value: Value,
+    value: OutputValue,
     output: Arc<OutputPromise>,
 }
 
 impl ConstNode {
-    pub fn new(value: Value) -> Arc<Self> {
+    pub fn new(value: OutputValue) -> Arc<Self> {
         let output = Arc::new(OutputPromise::new());
 
         let node = Arc::new(Self {

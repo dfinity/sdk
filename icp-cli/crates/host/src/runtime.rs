@@ -1,13 +1,6 @@
 use crate::node::Node;
 use std::sync::Arc;
 
-// Represents the result of evaluating a node
-#[derive(Debug, Clone)]
-pub enum OutputValue {
-    String(String),
-    // Add other types as needed
-}
-
 pub struct Runtime {
     nodes: Vec<Arc<dyn Node>>,
 }

@@ -1,7 +1,7 @@
 use crate::node::Node;
 use crate::node_state::NodeState;
 use crate::output_promise::OutputPromise;
-use crate::value::Value;
+use crate::value::OutputValue;
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -27,7 +27,7 @@ impl Node for PrintNode {
 
     async fn evaluate(self: Arc<Self>) {
         let value = self.input.get().await;
-        if let Value::String(s) = value {
+        if let OutputValue::String(s) = value {
             println!("PrintNode received: {}", s);
         }
     }
