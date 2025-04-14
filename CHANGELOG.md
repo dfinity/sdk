@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.26.1
+
 ### fix: clear state when switching from shared to project network
 
 dfx would try to reuse canister ids when switching from a shared network to a project network,
