@@ -34,14 +34,15 @@ impl Prettify {
         // Linker
         let mut linker = Linker::new(&engine);
         wasmtime_wasi::add_to_linker_sync(&mut linker).context("link WASI")?;
-        bindings::Prettify::add_to_linker(&mut linker, |state: &mut Host| state).context("link plugin host")?;
+        bindings::Prettify::add_to_linker(&mut linker, |state: &mut Host| state)
+            .context("link plugin host")?;
 
         // Store
         let mut store = Store::new(&engine, Host::new());
 
         // Bindings
-        let prettify =
-            bindings::Prettify::instantiate(&mut store, &component, &linker).context("instantiate bindings")?;
+        let prettify = bindings::Prettify::instantiate(&mut store, &component, &linker)
+            .context("instantiate bindings")?;
 
         Ok(Self { store, prettify })
     }
@@ -50,6 +51,8 @@ impl Prettify {
 
     /// Prettify.
     pub fn prettify(&mut self, name: &str) -> Result<String, anyhow::Error> {
-        self.prettify.icp_host_prettify_plugin().call_prettify(&mut self.store, name)
+        self.prettify
+            .icp_host_prettify_plugin()
+            .call_prettify(&mut self.store, name)
     }
 }

@@ -20,3 +20,9 @@ keywords = ["wasm", "wasi", "wit", "wasmtime", "examples"]
 anyhow = "1.0.97"
 wasmtime = "31.0.0"
 wasmtime-wasi = "31.0.0"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_yaml = "0.9.34+deprecated"
+ratatui = "0.26"
+crossterm = "0.27"
+tokio = { version = "1.44.2", features = ["macros"] }
+async-trait = "0.1.85"

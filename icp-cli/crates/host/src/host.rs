@@ -16,7 +16,10 @@ impl Host {
     /// Constructor.
     pub fn new() -> Self {
         let wasi = WasiCtxBuilder::new().inherit_stdout().build();
-        Self { wasi, resources: ResourceTable::new() }
+        Self {
+            wasi,
+            resources: ResourceTable::new(),
+        }
     }
 }
 
