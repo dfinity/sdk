@@ -14,7 +14,7 @@ use time::OffsetDateTime;
 /// Get the canister logs.
 #[derive(Parser)]
 pub struct LogsOpts {
-    /// Specifies the name or id of the canister to get its canister information.
+    /// Specifies the name or id of the canister to get the logs of.
     canister: String,
 
     /// Specifies to show the last N lines of the logs, use '-N' to specify the number of lines.
@@ -30,7 +30,7 @@ pub struct LogsOpts {
     since: Option<u64>,
 
     /// Specifies to show the logs newer than a specific timestamp.
-    /// Required either nanoseconds since epoch or RFC3339 format (e.g. '2021-05-06T19:17:10.000000002Z').
+    /// Required either nanoseconds since Unix epoch or RFC3339 format (e.g. '2021-05-06T19:17:10.000000002Z').
     #[arg(long, conflicts_with("tail"), conflicts_with("since"), value_parser = timestamp_parser)]
     since_time: Option<u64>,
 }
