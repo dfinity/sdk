@@ -17,19 +17,19 @@ pub struct LogsOpts {
     /// Specifies the name or id of the canister to get its canister information.
     canister: String,
 
-    /// Specifies to fetch the last N lines of the logs, use '-N' to specify the number of lines.
+    /// Specifies to show the last N lines of the logs, use '-N' to specify the number of lines.
     #[arg(long)]
     tail: bool,
 
-    /// Specifies the number of logs to fetch for the '--tail' option. Defaults to 10.
+    /// Specifies the number of logs to show for the '--tail' option. Defaults to 10.
     #[arg(short = 'N', requires("tail"), default_value("10"))]
     lines: Option<u64>,
 
-    /// Specifies to fetch the logs newer than a relative duration, with the valid units 's', 'm', 'h', 'd'.
+    /// Specifies to show the logs newer than a relative duration, with the valid units 's', 'm', 'h', 'd'.
     #[arg(long, conflicts_with("tail"), value_parser = duration_parser)]
     since: Option<u64>,
 
-    /// Specifies to fetch the logs newer than a specific timestamp.
+    /// Specifies to show the logs newer than a specific timestamp.
     /// Required either nanoseconds since epoch or RFC3339 format (e.g. '2021-05-06T19:17:10.000000002Z').
     #[arg(long, conflicts_with("tail"), value_parser = timestamp_parser)]
     since_time: Option<u64>,
