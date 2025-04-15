@@ -30,20 +30,20 @@ For reference information and examples that illustrate using `dfx wallet` comman
 |[`addresses`](#dfx-wallet-addresses)|Displays the address book of the cycles wallet.|
 |[`authorize`](#dfx-wallet-authorize)|Authorize a custodian by principal for the selected identity's cycles wallet|
 |[`balance`](#dfx-wallet-balance)|Displays the cycles wallet balance of the selected identity.
-|[`controllers`](#dfx-wallet-controllers) |Displays a list of the selected identity's cycles wallet controllers. 
+|[`controllers`](#dfx-wallet-controllers) |Displays a list of the selected identity's cycles wallet controllers.
 |[`custodians`](#dfx-wallet-custodians) |Displays a list of the selected identity's cycles wallet custodians.
 |[`deauthorize`](#dfx-wallet-deauthorize) | Deauthorize a cycles wallet custodian using the custodian's principal.
 |`help`|Displays a usage message and the help of the given subcommand(s).
 |[`name`](#dfx-wallet-name) |Returns the name of the cycles wallet if you've used the `dfx wallet set-name` command.
-|[`remove-controller`](#dfx-wallet-remove-controller) |Removes a specified controller from the selected identity's cycles wallet. 
+|[`remove-controller`](#dfx-wallet-remove-controller) |Removes a specified controller from the selected identity's cycles wallet.
 |[`send`](#dfx-wallet-send) |Sends a specified amount of cycles from the selected identity's cycles wallet to another canister.
-|[`set-name`](#dfx-wallet-set-name) |Specify a name for your cycles wallet. 
+|[`set-name`](#dfx-wallet-set-name) |Specify a name for your cycles wallet.
 |[`upgrade`](#dfx-wallet-upgrade) |Upgrade the cycles wallet's Wasm module to the current Wasm bundled with DFX.
 
 
 ## Using your wallet
 
-After you have used the `dfx identity deploy-wallet` command to create a cycles wallet canister tied to an identity, you can use `dfx wallet` commands to modify your cycles wallet settings, send cycles to other cycles wallets, and add or remove controllers and custodians. 
+After you have used the `dfx identity deploy-wallet` command to create a cycles wallet canister tied to an identity, you can use `dfx wallet` commands to modify your cycles wallet settings, send cycles to other cycles wallets, and add or remove controllers and custodians.
 
 ## dfx wallet add-controller
 
@@ -65,7 +65,7 @@ A controller is also a custodian and can perform the following actions associate
 
 * Forward calls.
 
-* Create canisters. 
+* Create canisters.
 
 
 ### Basic usage
@@ -91,7 +91,7 @@ You can specify the following arguments for the `dfx wallet add-controller` comm
 
 |Argument |Description
 ----------|-------------
-|`controller` |Specifies the principal of the controller to add to the wallet. 
+|`controller` |Specifies the principal of the controller to add to the wallet.
 
 ### Examples
 
@@ -144,7 +144,7 @@ Use the `dfx wallet authorize` command to authorize a custodian for the wallet. 
 
 * Forward calls.
 
-* Create canisters. 
+* Create canisters.
 
 ### Basic usage
 
@@ -177,7 +177,7 @@ Authorized dheus-mqf6t-xafkj-d3tuo-gh4ng-7t2kn-7ikxy-vvwad-dfpgu-em25m-2ae as a 
 
 ## dfx wallet balance
 
-Use the `dfx wallet balance` command to display the balance of the cycles wallet of the selected identity. 
+Use the `dfx wallet balance` command to display the balance of the cycles wallet of the selected identity.
 
 ### Basic usage
 
@@ -202,7 +202,7 @@ Check the balance of the selected identity's cycles wallet.
 dfx wallet balance
 ```
 
-This command displays the number of cycles in your cycles wallet. For example: 
+This command displays the number of cycles in your cycles wallet. For example:
 
 ```
 89.000 TC (trillion cycles).
@@ -210,7 +210,7 @@ This command displays the number of cycles in your cycles wallet. For example:
 
 ## dfx wallet controllers
 
-Use the `dfx wallet controllers` command to list the principals of the identities that are controllers of the selected identity's cycles wallet. 
+Use the `dfx wallet controllers` command to list the principals of the identities that are controllers of the selected identity's cycles wallet.
 
 ### Basic usage
 
@@ -221,7 +221,7 @@ dfx wallet controllers
 
 ### Examples
 
-List the controllers of your selected identity's cycles wallet. 
+List the controllers of your selected identity's cycles wallet.
 
 
 ```
@@ -248,7 +248,7 @@ dfx wallet custodians
 
 ### Examples
 
-List the custodians of your selected identity's cycles wallet. 
+List the custodians of your selected identity's cycles wallet.
 
 
 ```
@@ -265,7 +265,7 @@ hpnmi-qgxsv-tgecj-hmjyn-gmfft-vbego-lpcax-ou4ld-oh7kr-l3nu2-yae
 
 ## dfx wallet deauthorize
 
-Use the `dfx wallet deauthorize` command to remove a custodian from the cycles wallet. 
+Use the `dfx wallet deauthorize` command to remove a custodian from the cycles wallet.
 
 NOTE:  that this will also remove the role of controller if the custodian is also a controller.
 
@@ -302,13 +302,13 @@ Deauthorized dheus-mqf6t-xafkj-d3tuo-gh4ng-7t2kn-7ikxy-vvwad-dfpgu-em25m-2ae as 
 
 ## dfx wallet name
 
-Use the `dfx wallet name` command to display the name of the selected identity's cycles wallet if it has been set using the `dfx wallet set-name` command. 
+Use the `dfx wallet name` command to display the name of the selected identity's cycles wallet if it has been set using the `dfx wallet set-name` command.
 
 ### Basic usage
 
 
 ```
-dfx wallet name [flag] 
+dfx wallet name [flag]
 ```
 
 ### Example
@@ -360,7 +360,7 @@ Use the `dfx wallet send` command to send cycles from the selected identity's cy
 
 
 ```
-dfx wallet [network] send [flag] <destination> <amount> 
+dfx wallet [network] send [flag] <destination> <amount>
 ```
 
 ### Options
@@ -369,7 +369,7 @@ You can use the following option with the `dfx wallet send` command.
 
 |Option |Description
 -----------|----------
-|`--network` |Override the environment to connect to. By default, the local canister execution environment is used. A valid URL (starting with `http:` or `https:`) can be specified here. E.g. "http://localhost:12345/" is a valid network name.
+|`--network` |Override the environment to connect to. By default, the local development environment is used. A valid URL (starting with `http:` or `https:`) can be specified here. E.g. "http://localhost:12345/" is a valid network name.
 
 ### Arguments
 
@@ -400,7 +400,7 @@ Use the `dfx wallet set-name` command to assign a name to the selected identity'
 ### Basic usage
 
 ```
-    dfx wallet set-name [flag] <name> 
+    dfx wallet set-name [flag] <name>
 ```
 
 ### Arguments
@@ -429,7 +429,7 @@ Use the `dfx wallet upgrade` command to upgrade the cycle wallet's Wasm module t
 
 
 ```
-    dfx wallet upgrade [flag] 
+    dfx wallet upgrade [flag]
 ```
 
 ### Example
