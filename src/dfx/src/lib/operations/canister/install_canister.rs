@@ -112,22 +112,24 @@ pub async fn install_canister(
             }
         }
     }
-    if !skip_consent && canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade { .. }) {
+    if canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade { .. }) {
         let stable_types = read_module_metadata(agent, canister_id, "motoko:stable-types").await;
         if let Some(stable_types) = &stable_types {
             match check_stable_compatibility(canister_info, env, stable_types) {
                 Ok(StableCompatibility::Okay) => (),
                 Ok(StableCompatibility::Warning(details)) => {
                     let msg = format!("Stable interface compatibility check issued a WARNING for canister '{}'.\n\n", canister_info.get_name()) + &details;
-                    ask_for_consent(env, &msg)?;
+                    if !skip_consent {
+                        ask_for_consent(env, &msg)?;
+                    }
                 }
                 Ok(StableCompatibility::Error(details)) => {
                     let msg = format!("Stable interface compatibility check issued an ERROR for canister '{}'.\nUpgrade will either FAIL or LOSE some stable variable data.\n\n", canister_info.get_name()) + &details;
-                    ask_for_consent(env, &msg)?;
+                    bail!(msg);
                 }
                 Err(e) => {
                     let msg = format!("An error occurred during stable interface compatibility check for canister '{}'.\n\n", canister_info.get_name()) + &e.to_string();
-                    ask_for_consent(env, &msg)?;
+                    bail!(msg);
                 }
             }
         }
