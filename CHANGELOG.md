@@ -25,7 +25,7 @@ Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standar
 ### feat: Improve 'dfx canister logs' with several options
 
 Improve `dfx canister logs` with several options
-- `--tail` to show the last number of the logs
+- `--tail <n>` to show the last `n` log entries
 - `--since` to show the logs newer than a relative duration
 - `--since-time` to show the logs newer than a specific timestamp
 
