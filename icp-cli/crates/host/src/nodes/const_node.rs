@@ -1,12 +1,12 @@
 use crate::node::Node;
-use crate::node_state::NodeState;
+use crate::node_state::NodeEvaluator;
 use crate::output_promise::OutputPromise;
 use crate::value::OutputValue;
 use async_trait::async_trait;
 use std::sync::Arc;
 
 pub struct ConstNode {
-    state: NodeState,
+    evaluator: NodeEvaluator,
     value: OutputValue,
     output: Arc<OutputPromise>,
 }
@@ -16,7 +16,7 @@ impl ConstNode {
         let output = Arc::new(OutputPromise::new());
 
         let node = Arc::new(Self {
-            state: NodeState::new(),
+            evaluator: NodeEvaluator::new(),
             value,
             output,
         });
@@ -45,6 +45,6 @@ impl Node for ConstNode {
     }
 
     async fn ensure_evaluation(self: Arc<Self>) {
-        self.state.ensure_evaluation(self.clone()).await;
+        self.evaluator.ensure_evaluation(self.clone()).await;
     }
 }

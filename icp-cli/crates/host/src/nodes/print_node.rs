@@ -1,19 +1,19 @@
 use crate::node::Node;
-use crate::node_state::NodeState;
+use crate::node_state::NodeEvaluator;
 use crate::output_promise::OutputPromise;
 use crate::value::OutputValue;
 use async_trait::async_trait;
 use std::sync::Arc;
 
 pub struct PrintNode {
-    state: NodeState,
+    evaluator: NodeEvaluator,
     input: Arc<OutputPromise>,
 }
 
 impl PrintNode {
     pub fn new(input: Arc<OutputPromise>) -> Arc<Self> {
         Arc::new(Self {
-            state: NodeState::new(),
+            evaluator: NodeEvaluator::new(),
             input,
         })
     }
@@ -33,10 +33,6 @@ impl Node for PrintNode {
     }
 
     async fn ensure_evaluation(self: Arc<Self>) {
-        self.state.ensure_evaluation(self.clone()).await;
+        self.evaluator.ensure_evaluation(self.clone()).await;
     }
-
-    // fn evaluation_cell(&self) -> &OnceCell<Shared<BoxFuture<'static, ()>>> {
-    //     &self.eval_cell
-    // }
 }

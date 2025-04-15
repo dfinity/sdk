@@ -4,11 +4,11 @@ use futures_util::future::{BoxFuture, Shared};
 use std::sync::Arc;
 use tokio::sync::OnceCell;
 
-pub struct NodeState {
+pub struct NodeEvaluator {
     eval_future: OnceCell<Shared<BoxFuture<'static, ()>>>,
 }
 
-impl NodeState {
+impl NodeEvaluator {
     pub fn new() -> Self {
         Self {
             eval_future: OnceCell::new(),
