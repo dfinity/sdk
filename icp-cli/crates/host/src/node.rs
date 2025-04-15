@@ -7,7 +7,6 @@ pub trait Node: Send + Sync
 where
     Self: 'static,
 {
-    fn produces_side_effect(&self) -> bool;
     fn evaluator(&self) -> &NodeEvaluator;
     // fn output_promise(&self) -> Arc<OutputPromise<T>>;
 

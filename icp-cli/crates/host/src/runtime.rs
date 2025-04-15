@@ -14,14 +14,14 @@ impl Runtime {
         self.nodes.push(node);
     }
 
-    pub async fn run_graph(&self) {
-        let futures = self
-            .nodes
-            .iter()
-            .filter(|n| n.produces_side_effect())
-            .map(|n| n.clone().ensure_evaluation())
-            .collect::<Vec<_>>();
-
-        futures::future::join_all(futures).await;
-    }
+    // pub async fn run_graph(&self) {
+    //     let futures = self
+    //         .nodes
+    //         .iter()
+    //         .filter(|n| n.produces_side_effect())
+    //         .map(|n| n.clone().ensure_evaluation())
+    //         .collect::<Vec<_>>();
+    //
+    //     futures::future::join_all(futures).await;
+    // }
 }

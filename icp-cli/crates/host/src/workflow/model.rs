@@ -232,7 +232,7 @@ mod tests {
     use super::*;
 
     #[test]
-    #[should_panic(expected = "Cycle detected")]
+    #[should_panic(expected = "cycle detected")]
     fn detects_cycle() {
         let yaml = r#"
 nodes:

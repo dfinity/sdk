@@ -3,9 +3,16 @@ use crate::output_promise::{AnyOutputPromise, OutputPromise};
 use crate::registry::node_config::NodeConfig;
 use crate::registry::node_type_registry::NodeTypeRegistry;
 use crate::workflow::Workflow;
+use futures_util::future::BoxFuture;
+use futures_util::future::FutureExt;
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
+
+pub struct WorkflowGraph {
+    pub nodes: Vec<Arc<dyn Node>>,
+    pub run_future: BoxFuture<'static, ()>,
+}
 
 #[derive(Debug, Error)]
 pub enum BuildGraphError {
@@ -19,9 +26,10 @@ pub enum BuildGraphError {
     TypeMismatch(String),
 }
 
-pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> Vec<Arc<dyn Node>> {
+pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> WorkflowGraph {
     let mut promises: HashMap<String, AnyOutputPromise> = HashMap::new();
     let mut graph_nodes = HashMap::new();
+    let mut side_effect_futures = vec![];
 
     for node in wf.nodes {
         let node_type_name = node.r#type.clone();
@@ -69,8 +77,20 @@ pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> Vec<Arc<dyn Nod
             promise.set_owner(Arc::downgrade(&graph_node));
         }
 
+        // if descriptor has side effect, add to futures
+        if node_type.produces_side_effect {
+            side_effect_futures.push(graph_node.clone().ensure_evaluation());
+        }
         graph_nodes.insert(node.name.clone(), graph_node.clone());
     }
 
-    graph_nodes.values().cloned().collect()
+    let run_future = async move {
+        futures::future::join_all(side_effect_futures).await;
+    }
+    .boxed();
+
+    WorkflowGraph {
+        nodes: graph_nodes.values().cloned().collect(),
+        run_future,
+    }
 }

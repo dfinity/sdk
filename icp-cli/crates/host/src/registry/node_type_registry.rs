@@ -1,8 +1,8 @@
-use crate::registry::node_type::NodeType;
+use crate::registry::node_type::NodeDescriptor;
 use std::collections::HashMap;
 
 pub struct NodeTypeRegistry {
-    types: HashMap<String, NodeType>,
+    types: HashMap<String, NodeDescriptor>,
 }
 
 impl NodeTypeRegistry {
@@ -12,19 +12,19 @@ impl NodeTypeRegistry {
         }
     }
 
-    pub fn register0(&mut self, node_types: Vec<NodeType>) {
+    pub fn register0(&mut self, node_types: Vec<NodeDescriptor>) {
         for node_type in node_types {
             self.types.insert(node_type.name.clone(), node_type);
         }
     }
 
-    pub fn register<I: IntoIterator<Item = NodeType>>(&mut self, node_types: I) {
+    pub fn register<I: IntoIterator<Item = NodeDescriptor>>(&mut self, node_types: I) {
         for node_type in node_types {
             self.types.insert(node_type.name.clone(), node_type);
         }
     }
 
-    pub fn get(&self, name: &str) -> Option<&NodeType> {
+    pub fn get(&self, name: &str) -> Option<&NodeDescriptor> {
         self.types.get(name)
     }
 }

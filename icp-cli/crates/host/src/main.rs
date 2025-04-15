@@ -62,10 +62,6 @@ nodes:
 
     let mut registry = NodeTypeRegistry::new();
     registry.register(node_types());
-    let nodes = graph::build_graph(workflow, &registry);
-    let mut runtime = Runtime::new();
-    for node in nodes {
-        runtime.add_node(node);
-    }
-    runtime.run_graph().await;
+    let graph = graph::build_graph(workflow, &registry);
+    graph.run_future.await
 }

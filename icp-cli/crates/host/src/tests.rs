@@ -27,13 +27,9 @@ nodes:
 
         let workflow: Workflow = Workflow::from_string(SIMPLE_WORKFLOW_YAML);
 
-        let nodes = build_graph(workflow, &registry);
+        let graph = build_graph(workflow, &registry);
 
-        let mut runtime = Runtime::new();
-        for node in nodes {
-            runtime.add_node(node);
-        }
-        runtime.run_graph().await;
+        graph.run_future.await
 
         // no asserts needed yet — just validating no panics, visible logs
     }
