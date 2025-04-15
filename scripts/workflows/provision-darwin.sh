@@ -4,9 +4,15 @@ set -ex
 
 export
 
-# Install Bats + moreutils.
-brew fetch --retry coreutils moreutils
+# Install Bats + moreutils + parallel
+brew fetch --retry coreutils moreutils parallel
 brew install coreutils moreutils
+# moreutils also has a command named parallel, so on homebrew you have to force it
+brew unlink moreutils
+brew install parallel
+brew unlink parallel
+brew link moreutils
+brew link parallel --overwrite
 
 # Install Bats.
 if [ "$(uname -r)" = "19.6.0" ]; then
