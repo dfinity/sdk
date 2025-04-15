@@ -2,6 +2,12 @@
 
 load ../utils/_
 
+setup_file() {
+  if ! command -v ic-mops &> /dev/null; then
+    npm i -g ic-mops
+  fi
+}
+
 setup() {
   standard_setup
   setup_playground
@@ -14,10 +20,6 @@ teardown() {
 }
 
 setup_playground() {
-  if ! command -v ic-mops &> /dev/null
-  then
-    npm i -g ic-mops
-  fi
   dfx_new hello
   create_networks_json
   install_asset playground_backend
