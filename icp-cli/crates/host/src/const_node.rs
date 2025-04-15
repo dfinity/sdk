@@ -39,6 +39,7 @@ impl Node for ConstNode {
     }
 
     async fn evaluate(self: Arc<Self>) {
+        println!("ConstNode evaluated with value: {:?}", self.value);
         // just set the value directly, promise will wrap it in a future
         self.output.set(self.value.clone());
     }

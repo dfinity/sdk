@@ -42,11 +42,13 @@ use std::sync::Arc;
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let const_node = ConstNode::new(OutputValue::String("Hello, World!".to_string()));
-    let print_node = PrintNode::new(const_node.output_promise());
+    let print_node1 = PrintNode::new(const_node.output_promise());
+    let print_node2 = PrintNode::new(const_node.output_promise());
 
     let mut runtime = Runtime::new();
     runtime.add_node(const_node);
-    runtime.add_node(print_node);
+    runtime.add_node(print_node1);
+    runtime.add_node(print_node2);
 
     runtime.run_graph().await;
 }
