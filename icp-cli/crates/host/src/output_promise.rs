@@ -34,12 +34,12 @@ impl OutputPromise {
             node.ensure_evaluation().await;
         }
 
-        self.future.get().unwrap().clone().await
+        self.future.get().expect("not fulfilled").clone().await
     }
 
     pub fn set(&self, value: OutputValue) {
         // Build a ready future wrapping the value, store it as shared future
         let fut = async move { value }.boxed().shared();
-        self.future.set(fut).unwrap();
+        self.future.set(fut).expect("value already set");
     }
 }

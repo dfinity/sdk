@@ -1,12 +1,19 @@
+use crate::node_state::NodeEvaluator;
 use std::sync::Arc;
 
 #[async_trait::async_trait]
-pub trait Node: Send + Sync {
+pub trait Node: Send + Sync
+where
+    Self: 'static,
+{
     fn produces_side_effect(&self) -> bool;
+    fn evaluator(&self) -> &NodeEvaluator;
 
     async fn evaluate(self: Arc<Self>);
 
-    // fn evaluation_cell(&self) -> &OnceCell<Shared<BoxFuture<'static, ()>>>;
-
-    async fn ensure_evaluation(self: Arc<Self>);
+    async fn ensure_evaluation(self: Arc<Self>) {
+        self.evaluator()
+            .ensure_evaluation(|| self.clone().evaluate())
+            .await;
+    }
 }

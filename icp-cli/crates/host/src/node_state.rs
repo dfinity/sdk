@@ -1,7 +1,5 @@
-use crate::node::Node;
 use futures_util::future::FutureExt;
 use futures_util::future::{BoxFuture, Shared};
-use std::sync::Arc;
 use tokio::sync::OnceCell;
 
 pub struct NodeEvaluator {
@@ -15,12 +13,14 @@ impl NodeEvaluator {
         }
     }
 
-    pub async fn ensure_evaluation(&self, node: Arc<dyn Node>) {
+    pub async fn ensure_evaluation<Fut>(&self, eval_fn: impl FnOnce() -> Fut)
+    where
+        Fut: std::future::Future<Output = ()> + Send + 'static,
+    {
         let eval_future = self
             .eval_future
-            .get_or_init(|| async move { node.evaluate().boxed().shared() })
-            .await
-            .clone();
-        eval_future.await;
+            .get_or_init(|| async move { eval_fn().boxed().shared() })
+            .await;
+        eval_future.clone().await;
     }
 }

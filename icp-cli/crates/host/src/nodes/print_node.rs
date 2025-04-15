@@ -24,15 +24,14 @@ impl Node for PrintNode {
     fn produces_side_effect(&self) -> bool {
         true
     }
+    fn evaluator(&self) -> &NodeEvaluator {
+        &self.evaluator
+    }
 
     async fn evaluate(self: Arc<Self>) {
         let value = self.input.get().await;
         if let OutputValue::String(s) = value {
             println!("PrintNode received: {}", s);
         }
-    }
-
-    async fn ensure_evaluation(self: Arc<Self>) {
-        self.evaluator.ensure_evaluation(self.clone()).await;
     }
 }

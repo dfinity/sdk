@@ -37,14 +37,13 @@ impl Node for ConstNode {
     fn produces_side_effect(&self) -> bool {
         false
     }
+    fn evaluator(&self) -> &NodeEvaluator {
+        &self.evaluator
+    }
 
     async fn evaluate(self: Arc<Self>) {
         println!("ConstNode evaluated with value: {:?}", self.value);
         // just set the value directly, promise will wrap it in a future
         self.output.set(self.value.clone());
-    }
-
-    async fn ensure_evaluation(self: Arc<Self>) {
-        self.evaluator.ensure_evaluation(self.clone()).await;
     }
 }
