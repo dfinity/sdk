@@ -2,7 +2,6 @@ use crate::node::Node;
 use crate::node_state::NodeEvaluator;
 use crate::output_promise::OutputPromise;
 use crate::registry::node_type::NodeType;
-use crate::value::OutputValue;
 use async_trait::async_trait;
 use std::sync::Arc;
 
@@ -12,12 +11,6 @@ pub struct PrintNode {
 }
 
 impl PrintNode {
-    pub fn new(input: Arc<OutputPromise<String>>) -> Arc<Self> {
-        Arc::new(Self {
-            evaluator: NodeEvaluator::new(),
-            input,
-        })
-    }
     pub fn node_type() -> NodeType {
         NodeType {
             name: "print".to_string(),
@@ -31,7 +24,10 @@ impl PrintNode {
                     .string()
                     .expect("type mismatch for 'input' output")
                     .clone();
-                PrintNode::new(input)
+                Arc::new(Self {
+                    evaluator: NodeEvaluator::new(),
+                    input,
+                })
             },
         }
     }

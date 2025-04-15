@@ -1,5 +1,12 @@
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashMap, HashSet};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum TopoSortError {
+    #[error("Cycle detected: {0}")]
+    CycleDetected(String),
+}
 
 #[derive(Deserialize)]
 struct WorkflowYaml {
@@ -45,7 +52,8 @@ impl Workflow {
             .into_iter()
             .map(|(name, node)| WorkflowNode::new(name, node))
             .collect();
-        let nodes = Self::topological_sort(nodes);
+        let nodes =
+            Self::topological_sort(nodes).expect("Failed to sort workflow nodes: cycle detected");
         Self { nodes }
     }
 
@@ -54,7 +62,7 @@ impl Workflow {
         Self::new(wf)
     }
 
-    fn topological_sort(nodes: Vec<WorkflowNode>) -> Vec<WorkflowNode> {
+    fn topological_sort(nodes: Vec<WorkflowNode>) -> Result<Vec<WorkflowNode>, TopoSortError> {
         let mut sorted = vec![];
         let mut deps: HashMap<String, HashSet<String>> = HashMap::new();
         let mut node_map: HashMap<String, WorkflowNode> = HashMap::new();
@@ -100,22 +108,11 @@ impl Workflow {
         // If any remain, there's a cycle
         if !node_map.is_empty() {
             let remaining: Vec<_> = node_map.keys().cloned().collect();
-            panic!(
-                "Cycle detected in workflow involving: {}",
-                remaining.join(", ")
-            );
+            return Err(TopoSortError::CycleDetected(remaining.join(", ")));
         }
 
-        sorted
+        Ok(sorted)
     }
-}
-
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum TopoSortError {
-    #[error("Cycle detected: {0}")]
-    CycleDetected(String),
 }
 
 impl Workflow {
