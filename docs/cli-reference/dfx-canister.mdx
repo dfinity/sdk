@@ -5,7 +5,7 @@ import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
 <MarkdownChipRow labels={["Reference"]} />
 
 Use the `dfx canister` command with options and subcommands to manage canister operations and interaction with the
-Internet Computer or the local canister execution environment. In most cases, you use `dfx canister` subcommands after
+Internet Computer or the local development network. In most cases, you use `dfx canister` subcommands after
 you compile a program to manage the canister lifecycle and to perform key tasks such as calling program functions.
 
 The basic syntax for running `dfx canister` commands is:
@@ -49,11 +49,11 @@ For reference information and examples that illustrate using `dfx canister` comm
 
 ## Overriding the default deployment environment
 
-By default, `dfx canister` commands run on the local canister execution environment specified in the `dfx.json` file. If
+By default, `dfx canister` commands run on the local development network specified in the `dfx.json` file. If
 you want to send a `dfx canister` subcommand to the Internet Computer or a testnet without changing the settings in
 your `dfx.json` configuration file, you can explicitly specify the URL to connect to using the `--network` option.
 
-For example, to register unique canister identifiers for a project on the local canister execution environment, you can
+For example, to register unique canister identifiers for a project on the local development network, you can
 run the following command:
 
 ``` bash
@@ -144,7 +144,7 @@ You can use the following options with the `dfx canister call` command.
 | Option                            | Description                                                                                                                                                                                                                    |
 |-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `--argument-file <argument-file>` | Specifies the file from which to read the argument to pass to the method.  Stdin may be referred to as `-`.                                                                                                                    |
-| `--async`                         | Specifies not to wait for the result of the call to be returned by polling the replica. Instead return a response ID.                                                                                                          |
+| `--async`                         | Specifies not to wait for the result of the call to be returned by polling the local development network. Instead return a response ID.                                                                                                          |
 | `--candid <file.did>`             | Provide the .did file with which to decode the response. Overrides value from dfx.json for project canisters.                                                                                                                  |
 | `--impersonate <principal>`       | Specifies a principal on behalf of which requests to a local PocketIC instance are sent.                                                                                                                                       |
 | `--output <output>`               | Specifies the output format to use when displaying a method’s return result. The valid values are `idl`, 'json', `pp` and `raw`. The `pp` option is equivalent to `idl`, but is pretty-printed.                                |
@@ -179,7 +179,7 @@ dfx canister call counter get --async
 ```
 
 In this example, the command includes the `--async` option to indicate that you want to make a separate `request-status`
-call rather than waiting to poll the local canister execution environment or the Internet Computer for the result.
+call rather than waiting to poll the local development network or the Internet Computer for the result.
 The `--async` option is useful when processing an operation might take some time to complete. The option enables you to
 continue performing other operations then check for the result using a separate `dfx canister request-status` command.
 The returned result will be displayed as the IDL textual format.
@@ -339,7 +339,7 @@ canisters use the default setting, processing occurs in a round-robin fashion.
 
 ## dfx canister delete
 
-Use the `dfx canister delete` command to delete a stopped canister from the local canister execution environment or the
+Use the `dfx canister delete` command to delete a stopped canister from the local development network or the
 Internet Computer. By default, this withdraws remaining cycles to your wallet before deleting the canister.
 
 Note that you can only run this command from within the project directory structure. For example, if your project name
@@ -543,7 +543,7 @@ You can use the following options with the `dfx canister install` command.
 | `--argument <argument>`            | Specifies an argument to pass to the canister during installation.                                                                                                                                                                                                    |
 | `--argument-type <argument-type>`  | Specifies the data type for the argument when making the call using an argument [possible values: idl, raw]                                                                                                                                                           |
 | `--argument-file <argument-file>`  | Specifies the file from which to read the argument to pass to the init method.  Stdin may be referred to as `-`.                                                                                                                                                      |
-| `--async-call`                     | Enables you to continue without waiting for the result of the installation to be returned by polling the Internet Computer or the local canister execution environment.                                                                                               |
+| `--async-call`                     | Enables you to continue without waiting for the result of the installation to be returned by polling the Internet Computer or the local development network.                                                                                               |
 | `-m`, `--mode <mode>`              | Specifies whether you want to `install`, `reinstall`, or `upgrade` canisters. Defaults to `install`. For more information about installation modes and canister management, see [managing canisters](/docs/current/developer-docs/smart-contracts/maintain/settings). |
 | `--no-wallet`                      | Performs the call with the user Identity as the Sender of messages. Bypasses the Wallet canister. Enabled by default.                                                                                                                                                 |
 | `--no-asset-upgrade`               | Skips upgrading the asset canister, to only install the assets themselves.                                                                                                                                                                                            |
@@ -568,7 +568,7 @@ You can use the following arguments with the `dfx canister install` command.
 ### Examples
 
 You can use the `dfx canister install` command to deploy WebAssembly you have compiled using the `dfx build` command as
-a canister on the Internet Computer or on the local canister execution environment. The most common use case is to
+a canister on the Internet Computer or on the local development network. The most common use case is to
 install all of the canisters by running the following command:
 
 ``` bash
@@ -1093,7 +1093,7 @@ dfx canister start --all --network=ic
 ## dfx canister status
 
 Use the `dfx canister status` command to check whether a canister is currently running, in the process of stopping, or
-currently stopped on the Internet Computer or on the local canister execution environment.
+currently stopped on the Internet Computer or on the local development network.
 
 Note that you can only run this command from within the project directory structure. For example, if your project name
 is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its
@@ -1135,7 +1135,7 @@ dfx canister status --all --network=ic
 ## dfx canister stop
 
 Use the `dfx canister stop` command to stop a canister that is currently running on the Internet Computer or on the
-local canister execution environment.
+local development network.
 
 In most cases, you run this command to properly terminate any pending requests as a prerequisite to upgrading the
 canister.
@@ -1178,7 +1178,7 @@ dfx canister stop --all --network=ic
 ## dfx canister uninstall-code
 
 Use the `dfx canister uninstall-code` command to uninstall the code that a canister that is currently running on the
-Internet Computer or on the local canister execution environment.
+Internet Computer or on the local development network.
 
 This method removes a canister’s code and state, making the canister empty again. Only the controller of the canister
 can uninstall code. Uninstalling a canister’s code will reject all calls that the canister has not yet responded to, and
