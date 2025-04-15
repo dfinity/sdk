@@ -31,10 +31,7 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
     let wallet = if let Ok(wallet) = WalletCanister::create(agent, wallet).await {
         wallet
     } else {
-        let cbor = agent
-            .read_state_canister_info(wallet, "controllers")
-            .await?;
-        let controllers: Vec<Principal> = serde_cbor::from_slice(&cbor)?;
+        let controllers = agent.read_state_canister_controllers(wallet).await?;
         bail!("This identity isn't a controller of the wallet. You need to be one of these principals to upgrade the wallet: {}", controllers.into_iter().join(", "))
     };
     did_migrate |= migrate_wallet(env, agent, &wallet, fix).await?;
@@ -89,10 +86,7 @@ async fn migrate_canister(
     ident: &Identity,
     fix: bool,
 ) -> DfxResult<bool> {
-    let cbor = agent
-        .read_state_canister_info(canister_id, "controllers")
-        .await?;
-    let mut controllers: Vec<Principal> = serde_cbor::from_slice(&cbor)?;
+    let mut controllers = agent.read_state_canister_controllers(canister_id).await?;
     if controllers.contains(wallet.canister_id_())
         && !controllers.contains(&ident.sender().unwrap())
     {

@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.26.1
+
 ### fix: clear state when switching from shared to project network
 
 dfx would try to reuse canister ids when switching from a shared network to a project network,
@@ -20,11 +22,28 @@ Use the `account_balance` rather than the legacy `account_balance_dfx` on the IC
 
 Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1).
 
+### feat: Improve 'dfx canister logs' with several options
+
+Improve `dfx canister logs` with several options
+- `--tail <n>` to show the last `n` log entries
+- `--since` to show the logs newer than a relative duration
+- `--since-time` to show the logs newer than a specific timestamp
+
 ## Dependencies
 
 ### Motoko
 
 Updated Motoko to [0.14.7](https://github.com/dfinity/motoko/releases/tag/0.14.7)
+
+### Replica
+
+Updated replica to elected commit 579b8ba3a31341f354f4ddb3d60ac44548a91bc2.
+This incorporates the following executed proposals:
+
+- [136223](https://dashboard.internetcomputer.org/proposal/136223)
+- [136066](https://dashboard.internetcomputer.org/proposal/136066)
+- [136004](https://dashboard.internetcomputer.org/proposal/136004)
+- [135931](https://dashboard.internetcomputer.org/proposal/135931)
 
 # 0.26.0
 
