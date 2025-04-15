@@ -6,14 +6,14 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 pub struct PrintNode {
-    state: Arc<NodeState>,
+    state: NodeState,
     input: Arc<OutputPromise>,
 }
 
 impl PrintNode {
     pub fn new(input: Arc<OutputPromise>) -> Arc<Self> {
         Arc::new(Self {
-            state: Arc::new(NodeState::new()),
+            state: NodeState::new(),
             input,
         })
     }
@@ -33,7 +33,7 @@ impl Node for PrintNode {
     }
 
     async fn ensure_evaluation(self: Arc<Self>) {
-        self.state.clone().ensure_evaluation(self.clone()).await;
+        self.state.ensure_evaluation(self.clone()).await;
     }
 
     // fn evaluation_cell(&self) -> &OnceCell<Shared<BoxFuture<'static, ()>>> {

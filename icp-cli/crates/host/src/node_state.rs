@@ -15,7 +15,7 @@ impl NodeState {
         }
     }
 
-    pub async fn ensure_evaluation(self: Arc<Self>, node: Arc<dyn Node>) {
+    pub async fn ensure_evaluation(&self, node: Arc<dyn Node>) {
         let eval_future = self
             .eval_future
             .get_or_init(|| async move { node.evaluate().boxed().shared() })

@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use std::sync::Arc;
 
 pub struct ConstNode {
-    state: Arc<NodeState>,
+    state: NodeState,
     value: OutputValue,
     output: Arc<OutputPromise>,
 }
@@ -16,7 +16,7 @@ impl ConstNode {
         let output = Arc::new(OutputPromise::new());
 
         let node = Arc::new(Self {
-            state: Arc::new(NodeState::new()),
+            state: NodeState::new(),
             value,
             output,
         });
@@ -45,6 +45,6 @@ impl Node for ConstNode {
     }
 
     async fn ensure_evaluation(self: Arc<Self>) {
-        self.state.clone().ensure_evaluation(self.clone()).await;
+        self.state.ensure_evaluation(self.clone()).await;
     }
 }
