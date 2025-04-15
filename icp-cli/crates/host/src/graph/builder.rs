@@ -11,7 +11,7 @@ pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> Vec<Arc<dyn Nod
     let mut graph_nodes = HashMap::new();
 
     for node in wf.nodes {
-        eprintln!("node name is '{}'", node.name);
+        // eprintln!("node name is '{}'", node.name);
         let node_type_name = node.r#type.clone(); // .unwrap_or_else(|| name.clone());
         let node_type = registry.get(&node_type_name).expect("unknown node type");
 
@@ -27,7 +27,7 @@ pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> Vec<Arc<dyn Nod
 
         // fill inputs
         for (input_name, source_node_name) in node.inputs {
-            eprintln!("source_node_name is '{source_node_name}'");
+            //eprintln!("source_node_name is '{source_node_name}'");
             let output = promises
                 .get(&source_node_name)
                 .expect("unknown input node")

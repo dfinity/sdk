@@ -45,18 +45,40 @@ use nodes::print_node::PrintNode;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    let workflow = r#"
+nodes:
+    const:
+        value: Hello, test!
+    print1:
+        type: print
+        inputs:
+            input: const
+    print2:
+        type: print
+        inputs:
+            input: const
+"#;
+    let workflow: workflow::Workflow = workflow::Workflow::from_string(workflow);
+
     let mut registry = NodeTypeRegistry::new();
     registry.register(node_types());
-    // registry.register(PrintNode::node_type());
-
-    let const_node = ConstNode::new(OutputValue::String("Hello, World!".to_string()));
-    let print_node1 = PrintNode::new(const_node.output_promise());
-    let print_node2 = PrintNode::new(const_node.output_promise());
-
+    let nodes = graph::build_graph(workflow, &registry);
     let mut runtime = Runtime::new();
-    runtime.add_node(const_node);
-    runtime.add_node(print_node1);
-    runtime.add_node(print_node2);
-
+    for node in nodes {
+        runtime.add_node(node);
+    }
     runtime.run_graph().await;
+    //
+    // // registry.register(PrintNode::node_type());
+    //
+    // let const_node = ConstNode::new(OutputValue::String("Hello, World!".to_string()));
+    // let print_node1 = PrintNode::new(const_node.output_promise());
+    // let print_node2 = PrintNode::new(const_node.output_promise());
+    //
+    // let mut runtime = Runtime::new();
+    // runtime.add_node(const_node);
+    // runtime.add_node(print_node1);
+    // runtime.add_node(print_node2);
+    //
+    // runtime.run_graph().await;
 }
