@@ -75,7 +75,7 @@ dfx_canister_logs_tail_n_1() {
   dfx canister call e2e_project hello Alice
   dfx canister call e2e_project hello Bob
   sleep 2
-  assert_command dfx canister logs e2e_project --tail -N 1
+  assert_command dfx canister logs e2e_project --tail 1
   assert_not_contains "Alice"
   assert_contains "Bob"
 }

@@ -639,8 +639,7 @@ You can specify the following options for the `dfx canister logs` command.
 
 | Option                      | Description                                                                                         |
 |-----------------------------|-----------------------------------------------------------------------------------------------------|
-| `--tail`                    | Specifies to show the last N lines of the logs, use `-N` to specify the number of lines.            |
-| `- N <lines>`               | Specifies the number of logs to show for the `--tail` option. Defaults to `10`.                     |
+| `--tail <tail>`             | Specifies to show the last number of the logs.                                                      |
 | `--since <since>`           | Specifies to show the logs newer than a relative duration, with the valid units `s`, `m`, `h`, `d`. |
 | `--since-time <since-time>` | Specifies to show the logs newer than a specific timestamp. Required either `nanoseconds` since Unix epoch or `RFC3339` format (e.g. `2021-05-06T19:17:10.000000002Z`). |
 
@@ -664,7 +663,7 @@ The command displays output similar to the following:
 To display the latest one log, you can run the following command:
 
 ``` bash
-dfx canister logs hello_world --tail -N 1
+dfx canister logs hello_world --tail 1
 ```
 
 The command displays output similar to the following:

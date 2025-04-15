@@ -17,13 +17,9 @@ pub struct LogsOpts {
     /// Specifies the name or id of the canister to get the logs of.
     canister: String,
 
-    /// Specifies to show the last N lines of the logs, use '-N' to specify the number of lines.
+    /// Specifies to show the last number of the logs.
     #[arg(long)]
-    tail: bool,
-
-    /// Specifies the number of logs to show for the '--tail' option. Defaults to 10.
-    #[arg(short = 'N', requires("tail"), default_value("10"))]
-    lines: Option<u64>,
+    tail: Option<u64>,
 
     /// Specifies to show the logs newer than a relative duration, with the valid units 's', 'm', 'h', 'd'.
     #[arg(long, conflicts_with("tail"), conflicts_with("since_time"), value_parser = duration_parser)]
@@ -40,8 +36,7 @@ fn format_bytes(bytes: &[u8]) -> String {
 }
 
 fn format_canister_logs(logs: FetchCanisterLogsResponse, opts: &LogsOpts) -> Vec<String> {
-    let filtered_logs = if opts.tail {
-        let number = opts.lines.unwrap_or(10);
+    let filtered_logs = if let Some(number) = opts.tail {
         &logs.canister_log_records[logs
             .canister_log_records
             .len()
@@ -117,11 +112,10 @@ fn test_format_canister_logs() {
                 timestamp_nanos: 1_620_328_630_000_000_003,
                 content: vec![192, 255, 238],
             },
-            // 5 seconds later
             CanisterLogRecord {
                 idx: 45,
                 timestamp_nanos: 1_620_328_635_000_000_001,
-                content: vec![192, 255, 238],
+                content: b"Five seconds later".to_vec(),
             },
             CanisterLogRecord {
                 idx: 46,
@@ -141,8 +135,7 @@ fn test_format_canister_logs() {
             logs.clone(),
             &LogsOpts {
                 canister: "2vxsx-fae".to_string(),
-                tail: false,
-                lines: None,
+                tail: None,
                 since: None,
                 since_time: None,
             }
@@ -151,7 +144,7 @@ fn test_format_canister_logs() {
             "[42. 2021-05-06T19:17:10.000000001Z]: Some text message".to_string(),
             "[43. 2021-05-06T19:17:10.000000002Z]: (bytes) 0xc0ffee".to_string(),
             "[44. 2021-05-06T19:17:10.000000003Z]: (bytes) 0xc0ffee".to_string(),
-            "[45. 2021-05-06T19:17:15.000000001Z]: (bytes) 0xc0ffee".to_string(),
+            "[45. 2021-05-06T19:17:15.000000001Z]: Five seconds later".to_string(),
             "[46. 2021-05-06T19:17:15.000000002Z]: (bytes) 0xc0ffee".to_string(),
             "[47. 2021-05-06T19:17:15.000000003Z]: (bytes) 0xc0ffee".to_string(),
         ]
@@ -163,15 +156,14 @@ fn test_format_canister_logs() {
             logs.clone(),
             &LogsOpts {
                 canister: "2vxsx-fae".to_string(),
-                tail: true,
-                lines: Some(4),
+                tail: Some(4),
                 since: None,
                 since_time: None,
             }
         ),
         vec![
             "[44. 2021-05-06T19:17:10.000000003Z]: (bytes) 0xc0ffee".to_string(),
-            "[45. 2021-05-06T19:17:15.000000001Z]: (bytes) 0xc0ffee".to_string(),
+            "[45. 2021-05-06T19:17:15.000000001Z]: Five seconds later".to_string(),
             "[46. 2021-05-06T19:17:15.000000002Z]: (bytes) 0xc0ffee".to_string(),
             "[47. 2021-05-06T19:17:15.000000003Z]: (bytes) 0xc0ffee".to_string(),
         ]
@@ -188,14 +180,13 @@ fn test_format_canister_logs() {
             logs.clone(),
             &LogsOpts {
                 canister: "2vxsx-fae".to_string(),
-                tail: false,
-                lines: None,
+                tail: None,
                 since: Some(duration_seconds),
                 since_time: None,
             }
         ),
         vec![
-            "[45. 2021-05-06T19:17:15.000000001Z]: (bytes) 0xc0ffee".to_string(),
+            "[45. 2021-05-06T19:17:15.000000001Z]: Five seconds later".to_string(),
             "[46. 2021-05-06T19:17:15.000000002Z]: (bytes) 0xc0ffee".to_string(),
             "[47. 2021-05-06T19:17:15.000000003Z]: (bytes) 0xc0ffee".to_string(),
         ]
@@ -207,14 +198,13 @@ fn test_format_canister_logs() {
             logs,
             &LogsOpts {
                 canister: "2vxsx-fae".to_string(),
-                tail: false,
-                lines: None,
+                tail: None,
                 since: None,
                 since_time: Some(1_620_328_635_000_000_000),
             }
         ),
         vec![
-            "[45. 2021-05-06T19:17:15.000000001Z]: (bytes) 0xc0ffee".to_string(),
+            "[45. 2021-05-06T19:17:15.000000001Z]: Five seconds later".to_string(),
             "[46. 2021-05-06T19:17:15.000000002Z]: (bytes) 0xc0ffee".to_string(),
             "[47. 2021-05-06T19:17:15.000000003Z]: (bytes) 0xc0ffee".to_string(),
         ]
