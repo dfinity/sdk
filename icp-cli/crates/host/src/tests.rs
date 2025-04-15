@@ -14,7 +14,7 @@ nodes:
     value: Hello, test!
   print:
     inputs:
-      input: const
+      input: const.output
 "#;
 
     #[tokio::test]

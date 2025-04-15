@@ -9,7 +9,7 @@ where
 {
     fn produces_side_effect(&self) -> bool;
     fn evaluator(&self) -> &NodeEvaluator;
-    fn output_promise(&self) -> Arc<OutputPromise>;
+    // fn output_promise(&self) -> Arc<OutputPromise<T>>;
 
     async fn evaluate(self: Arc<Self>);
 

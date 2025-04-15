@@ -61,7 +61,11 @@ impl Workflow {
 
         // Build dependency map and lookup map
         for node in nodes {
-            let input_names = node.inputs.values().cloned().collect();
+            let input_names = node
+                .inputs
+                .values()
+                .map(|fqn| fqn.split('.').next().unwrap().to_string())
+                .collect();
             deps.insert(node.name.clone(), input_names);
             node_map.insert(node.name.clone(), node);
         }

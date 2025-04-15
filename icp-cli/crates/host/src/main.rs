@@ -52,11 +52,11 @@ nodes:
     print1:
         type: print
         inputs:
-            input: const
+            input: const.output
     print2:
         type: print
         inputs:
-            input: const
+            input: const.output
 "#;
     let workflow: workflow::Workflow = workflow::Workflow::from_string(workflow);
 
@@ -68,17 +68,4 @@ nodes:
         runtime.add_node(node);
     }
     runtime.run_graph().await;
-    //
-    // // registry.register(PrintNode::node_type());
-    //
-    // let const_node = ConstNode::new(OutputValue::String("Hello, World!".to_string()));
-    // let print_node1 = PrintNode::new(const_node.output_promise());
-    // let print_node2 = PrintNode::new(const_node.output_promise());
-    //
-    // let mut runtime = Runtime::new();
-    // runtime.add_node(const_node);
-    // runtime.add_node(print_node1);
-    // runtime.add_node(print_node2);
-    //
-    // runtime.run_graph().await;
 }

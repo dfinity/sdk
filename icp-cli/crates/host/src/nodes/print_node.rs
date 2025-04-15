@@ -8,11 +8,11 @@ use std::sync::Arc;
 
 pub struct PrintNode {
     evaluator: NodeEvaluator,
-    input: Arc<OutputPromise>,
+    input: Arc<OutputPromise<String>>,
 }
 
 impl PrintNode {
-    pub fn new(input: Arc<OutputPromise>) -> Arc<Self> {
+    pub fn new(input: Arc<OutputPromise<String>>) -> Arc<Self> {
         Arc::new(Self {
             evaluator: NodeEvaluator::new(),
             input,
@@ -28,6 +28,8 @@ impl PrintNode {
                     .inputs
                     .get("input")
                     .expect("missing 'input' param")
+                    .string()
+                    .expect("type mismatch for 'input' output")
                     .clone();
                 PrintNode::new(input)
             },
@@ -46,12 +48,6 @@ impl Node for PrintNode {
 
     async fn evaluate(self: Arc<Self>) {
         let value = self.input.get().await;
-        if let OutputValue::String(s) = value {
-            println!("PrintNode received: {}", s);
-        }
-    }
-
-    fn output_promise(&self) -> Arc<OutputPromise> {
-        unreachable!("PrintNode has no outputs");
+        println!("PrintNode received: {value}");
     }
 }

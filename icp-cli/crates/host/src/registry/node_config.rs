@@ -1,8 +1,8 @@
-use crate::output_promise::OutputPromise;
+use crate::output_promise::AnyOutputPromise;
 use std::collections::HashMap;
-use std::sync::Arc;
 
 pub struct NodeConfig {
     pub params: HashMap<String, String>,
-    pub inputs: HashMap<String, Arc<OutputPromise>>,
+    pub inputs: HashMap<String, AnyOutputPromise>,
+    pub outputs: HashMap<String, AnyOutputPromise>,
 }

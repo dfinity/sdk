@@ -9,25 +9,17 @@ use std::sync::Arc;
 
 pub struct ConstNode {
     evaluator: NodeEvaluator,
-    value: OutputValue,
-    output: Arc<OutputPromise>,
+    value: String,
+    output: Arc<OutputPromise<String>>,
 }
 
 impl ConstNode {
-    pub fn new(value: OutputValue) -> Arc<Self> {
-        let output = Arc::new(OutputPromise::new());
-
-        let node = Arc::new(Self {
+    pub fn new(value: String, output: Arc<OutputPromise<String>>) -> Arc<Self> {
+        Arc::new(Self {
             evaluator: NodeEvaluator::new(),
             value,
             output,
-        });
-
-        // Now set up the owner safely
-        let weak_self = Arc::downgrade(&(node.clone() as Arc<dyn Node>));
-        node.output.set_owner(weak_self);
-
-        node
+        })
     }
 
     pub fn node_type() -> NodeType {
@@ -41,7 +33,13 @@ impl ConstNode {
                     .get("value")
                     .expect("missing 'value' param")
                     .clone();
-                ConstNode::new(OutputValue::String(value))
+                let output_promise = config
+                    .outputs
+                    .get("output")
+                    .expect("missing 'value' output")
+                    .string()
+                    .expect("type mismatch for 'value' output");
+                ConstNode::new(value, output_promise)
             },
         }
     }
@@ -60,9 +58,5 @@ impl Node for ConstNode {
         println!("ConstNode evaluated with value: {:?}", self.value);
         // just set the value directly, promise will wrap it in a future
         self.output.set(self.value.clone());
-    }
-
-    fn output_promise(&self) -> Arc<OutputPromise> {
-        self.output.clone()
     }
 }
