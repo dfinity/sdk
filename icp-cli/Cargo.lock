@@ -823,6 +823,7 @@ dependencies = [
  "ratatui",
  "serde",
  "serde_yaml",
+ "thiserror",
  "tokio",
  "wasmtime",
  "wasmtime-wasi",

@@ -25,8 +25,7 @@ nodes:
             r
         };
 
-        let workflow: Workflow =
-            serde_yaml::from_str(SIMPLE_WORKFLOW_YAML).expect("failed to parse YAML");
+        let workflow: Workflow = Workflow::from_string(SIMPLE_WORKFLOW_YAML);
 
         let nodes = build_graph(workflow, &registry);
 
