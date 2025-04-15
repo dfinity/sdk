@@ -24,11 +24,14 @@ impl OutputPromise {
 
     pub async fn get(&self) -> OutputValue {
         if self.future.get().is_none() {
-            if let Some(node) = self.owner.get().expect("no owner").upgrade() {
-                node.ensure_evaluation().await;
-            } else {
-                panic!("Owning node dropped");
-            }
+            let node = self
+                .owner
+                .get()
+                .expect("no owner")
+                .upgrade()
+                .expect("owner dropped");
+
+            node.ensure_evaluation().await;
         }
 
         self.future.get().unwrap().clone().await
