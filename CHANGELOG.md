@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.26.1
+
 ### fix: clear state when switching from shared to project network
 
 dfx would try to reuse canister ids when switching from a shared network to a project network,
@@ -32,6 +34,16 @@ Improve `dfx canister logs` with several options
 ### Motoko
 
 Updated Motoko to [0.14.7](https://github.com/dfinity/motoko/releases/tag/0.14.7)
+
+### Replica
+
+Updated replica to elected commit 579b8ba3a31341f354f4ddb3d60ac44548a91bc2.
+This incorporates the following executed proposals:
+
+- [136223](https://dashboard.internetcomputer.org/proposal/136223)
+- [136066](https://dashboard.internetcomputer.org/proposal/136066)
+- [136004](https://dashboard.internetcomputer.org/proposal/136004)
+- [135931](https://dashboard.internetcomputer.org/proposal/135931)
 
 # 0.26.0
 
