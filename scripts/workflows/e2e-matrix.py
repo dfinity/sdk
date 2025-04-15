@@ -17,6 +17,9 @@ EXCLUDE = [
     }
 ]
 
+# Run these tests in serial
+SERIAL_TESTS = ["dfx/start", "dfx/bitcoin", "dfx/cycles-ledger", "dfx/ledger", "dfx/serial_misc"]
+
 def test_scripts(prefix):
     all_files = os.listdir(f"e2e/tests-{prefix}")
     bash_files = filter(lambda f: f.endswith(".bash"), all_files)
@@ -35,11 +38,14 @@ for test in all_tests:
         if {"backend": backend, "test": test} in EXCLUDE:
             continue
 
+        serial = test in SERIAL_TESTS
+
         # Ubuntu: run everything
         include.append({
             "test": test,
             "backend": backend,
-            "os": "ubuntu-22.04"
+            "os": "ubuntu-22.04",
+            "serial": serial,
         })
 
         # macOS: only run selected tests
@@ -47,7 +53,8 @@ for test in all_tests:
             include.append({
                 "test": test,
                 "backend": backend,
-                "os": "macos-13"
+                "os": "macos-13",
+                "serial": serial,
             })
 
 matrix = {
