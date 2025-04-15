@@ -1,6 +1,8 @@
 use crate::node::Node;
 use crate::node_state::NodeEvaluator;
 use crate::output_promise::OutputPromise;
+use crate::registry::node_type::NodeType;
+use crate::registry::node_type_registry::NodeTypeRegistry;
 use crate::value::OutputValue;
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -27,8 +29,21 @@ impl ConstNode {
 
         node
     }
-    pub fn output_promise(self: &Arc<Self>) -> Arc<OutputPromise> {
-        self.output.clone()
+
+    pub fn node_type() -> NodeType {
+        NodeType {
+            name: "const".to_string(),
+            inputs: vec![], // no inputs
+            outputs: vec!["output".to_string()],
+            constructor: |config| {
+                let value = config
+                    .params
+                    .get("value")
+                    .expect("missing 'value' param")
+                    .clone();
+                ConstNode::new(OutputValue::String(value))
+            },
+        }
     }
 }
 
@@ -45,5 +60,9 @@ impl Node for ConstNode {
         println!("ConstNode evaluated with value: {:?}", self.value);
         // just set the value directly, promise will wrap it in a future
         self.output.set(self.value.clone());
+    }
+
+    fn output_promise(&self) -> Arc<OutputPromise> {
+        self.output.clone()
     }
 }
