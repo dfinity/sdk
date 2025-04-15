@@ -4,9 +4,9 @@ import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
 
 <MarkdownChipRow labels={["Reference"]} />
 
-Use the `dfx start` command to start a local development network and web server processes. This command must be run before you can deploy canisters to the local development network and test your dapps during development.
+Use the `dfx start` command to start a local development environment and web server processes. This command must be run before you can deploy canisters to the local development environment and test your dapps during development.
 
-By default, all local dfx projects will use PocketIC to create this local development network. You can run `dfx start` and `dfx stop` from any directory.  See [local server configuration](#local-server-configuration) and [project-specific local networks](#project-specific-local-networks) below for exceptions.
+By default, all local dfx projects will use PocketIC to create this local development environment. You can run `dfx start` and `dfx stop` from any directory.  See [local server configuration](#local-server-configuration) and [project-specific local networks](#project-specific-local-networks) below for exceptions.
 
 ## Basic usage
 
@@ -20,8 +20,8 @@ You can use the following optional flags with the `dfx start` command.
 
 | Flag                     | Description                                                                                                                                                                                                                                             |
 |--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--background`           | Starts the local development network and web server processes in the background and waits for a reply before returning to the shell.                                                                                                         |
-| `--clean`                | Starts the local development network and web server processes in a clean state by removing checkpoints from your project cache. You can use this flag to set your project cache to a new state when troubleshooting or debugging.            |
+| `--background`           | Starts the local development environment and web server processes in the background and waits for a reply before returning to the shell.                                                                                                         |
+| `--clean`                | Starts the local development environment and web server processes in a clean state by removing checkpoints from your project cache. You can use this flag to set your project cache to a new state when troubleshooting or debugging.            |
 | `--enable-bitcoin`       | Enables bitcoin integration.                                                                                                                                                                                                                            |
 | `--enable-canister-http` | Enables canister HTTP requests. (deprecated: now enabled by default)                                                                                                                                                                                    |
 | `--pocketic`             | Runs [PocketIC](https://github.com/dfinity/pocketic) instead of the replica. PocketIC is the default if no flag is used.                                                                                                                                                                           |
@@ -40,25 +40,25 @@ You can use the following option with the `dfx start` command.
 
 ## Examples
 
-You can start the local development network and web server processes in the current shell by running the following command:
+You can start the local development environment and web server processes in the current shell by running the following command:
 
 ``` bash
 dfx start
 ```
 
-If you start the local development network in the current shell, you need to open a new terminal shell to run additional commands. Alternatively, you can start the local development network in the background by running the following command:
+If you start the local development environment in the current shell, you need to open a new terminal shell to run additional commands. Alternatively, you can start the local development environment in the background by running the following command:
 
 ``` bash
 dfx start --background
 ```
 
-If you run the local development network in the background, however, be sure to stop the local development network before uninstalling or reinstalling the `dfx` execution network by running the following command:
+If you run the local development environment in the background, however, be sure to stop the local development environment before uninstalling or reinstalling the `dfx` execution network by running the following command:
 
 ``` bash
 dfx stop
 ```
 
-You can view the current process identifier (`pid`) for the local development network process started by `dfx` by running the following command:
+You can view the current process identifier (`pid`) for the local development environment process started by `dfx` by running the following command:
 
 ``` bash
 more .dfx/pid
@@ -68,7 +68,7 @@ more .dfx/pid
 
 ### The shared local network
 
-`dfx start` manages a PocketIC server that provides a local development network. Running `dfx deploy` and other commands will manage canisters on this local network in the same way that `dfx deploy --network ic` deploys projects to the mainnet.
+`dfx start` manages a PocketIC server that provides a local development environment. Running `dfx deploy` and other commands will manage canisters on this local network in the same way that `dfx deploy --network ic` deploys projects to the mainnet.
 
 If run from outside a dfx project directory, or if `dfx.json` does not define the `local` network, then `dfx start` looks for the `local` network definition in `$HOME/.config/dfx/networks.json`. If this file does not exist or does not contain a definition for the `local` network, then dfx uses the following default definition:
 

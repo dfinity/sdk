@@ -548,7 +548,7 @@
         },
         "specified_id": {
           "title": "Specified Canister ID",
-          "description": "Attempts to create the canister with this Canister ID. This option only works with on a local development network. If the `--specified-id` argument is also provided, this `specified_id` field will be ignored.",
+          "description": "Attempts to create the canister with this Canister ID. This option only works with on a local development environment. If the `--specified-id` argument is also provided, this `specified_id` field will be ignored.",
           "type": [
             "string",
             "null"
