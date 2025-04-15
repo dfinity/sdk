@@ -622,8 +622,26 @@ Use the `dfx canister logs` command to display the logs from a canister.
 ### Basic usage
 
 ``` bash
-dfx canister logs <canister-name>
+dfx canister logs [options] <canister-name>
 ```
+
+### Arguments
+
+You must specify the following arguments for the `dfx canister logs` command.
+
+| Argument              | Description                                                      |
+|-----------------------|------------------------------------------------------------------|
+| `<canister>`          | Specifies the name or id of the canister to get the logs of.     |
+
+### Options
+
+You can specify the following options for the `dfx canister logs` command.
+
+| Option                      | Description                                                                                         |
+|-----------------------------|-----------------------------------------------------------------------------------------------------|
+| `--tail <tail>`             | Specifies to show the last number of the logs.                                                      |
+| `--since <since>`           | Specifies to show the logs newer than a relative duration, with the valid units `s`, `m`, `h`, `d`. |
+| `--since-time <since-time>` | Specifies to show the logs newer than a specific timestamp. Required either `nanoseconds` since Unix epoch or `RFC3339` format (e.g. `2021-05-06T19:17:10.000000002Z`). |
 
 ### Examples
 
@@ -638,6 +656,46 @@ The command displays output similar to the following:
 ``` log
 [42. 2021-05-06T19:17:10.000000001Z]: Some text message
 [43. 2021-05-06T19:17:10.000000002Z]: (bytes) 0xc0ffee
+[44. 2021-05-06T19:17:15.000000001Z]: Five seconds later
+[45. 2021-05-06T19:17:15.000000002Z]: (bytes) 0xc0ffee
+```
+
+To display the latest one log, you can run the following command:
+
+``` bash
+dfx canister logs hello_world --tail 1
+```
+
+The command displays output similar to the following:
+
+``` log
+[45. 2021-05-06T19:17:15.000000002Z]: (bytes) 0xc0ffee
+```
+
+To display the logs for the past 3 seconds, you can run the following command:
+
+``` bash
+dfx canister logs hello_world --since=3s
+```
+
+The command displays output similar to the following:
+
+``` log
+[44. 2021-05-06T19:17:15.000000001Z]: Five seconds later
+[45. 2021-05-06T19:17:15.000000002Z]: (bytes) 0xc0ffee
+```
+
+To display the logs since a given time, you can run the following command:
+
+``` bash
+dfx canister logs hello_world --since-time=2021-05-06T19:17:13.000000001Z
+```
+
+The command displays output similar to the following:
+
+``` log
+[44. 2021-05-06T19:17:15.000000001Z]: Five seconds later
+[45. 2021-05-06T19:17:15.000000002Z]: (bytes) 0xc0ffee
 ```
 
 ## dfx canister metadata
