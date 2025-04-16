@@ -1,5 +1,5 @@
 use futures::future::{BoxFuture, Shared};
-use std::sync::{Arc, Weak};
+use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::OnceCell;
 
@@ -77,8 +77,6 @@ impl AnyOutputPromise {
 pub enum PromiseTypeError {
     #[error("Type mismatch: expected String")]
     ExpectedString,
-    #[error("Type mismatch: expected JsonValue")]
-    ExpectedJsonValue,
 }
 impl AnyOutputPromise {
     pub fn string(&self) -> Result<Arc<OutputPromise<String>>, PromiseTypeError> {

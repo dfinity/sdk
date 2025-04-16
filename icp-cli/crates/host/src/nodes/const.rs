@@ -1,4 +1,4 @@
-use crate::node::Node;
+use crate::graph::execute::Execute;
 use crate::output_promise::OutputPromise;
 use crate::registry::node_type::NodeDescriptor;
 use async_trait::async_trait;
@@ -10,8 +10,8 @@ pub struct ConstNode {
 }
 
 #[async_trait]
-impl Node for ConstNode {
-    async fn evaluate(self: Arc<Self>) {
+impl Execute for ConstNode {
+    async fn execute(self: Arc<Self>) {
         println!("ConstNode evaluated with value: {:?}", self.value);
         // just set the value directly, promise will wrap it in a future
         self.output.set(self.value.clone());
@@ -19,7 +19,7 @@ impl Node for ConstNode {
 }
 
 impl ConstNode {
-    pub fn node_type() -> NodeDescriptor {
+    pub fn descriptor() -> NodeDescriptor {
         NodeDescriptor {
             name: "const".to_string(),
             inputs: vec![], // no inputs
@@ -31,16 +31,13 @@ impl ConstNode {
                     .get("value")
                     .expect("missing 'value' param")
                     .clone();
-                let output_promise = config
+                let output = config
                     .outputs
                     .get("output")
                     .expect("missing 'value' output")
                     .string()
                     .expect("type mismatch for 'value' output");
-                Arc::new(Self {
-                    value,
-                    output: output_promise,
-                })
+                Arc::new(Self { value, output })
             },
         }
     }

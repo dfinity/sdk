@@ -1,4 +1,4 @@
-use crate::node::Node;
+use crate::graph::execute::Execute;
 use crate::registry::node_config::NodeConfig;
 use std::sync::Arc;
 
@@ -7,5 +7,5 @@ pub struct NodeDescriptor {
     pub inputs: Vec<String>,
     pub outputs: Vec<String>,
     pub produces_side_effect: bool,
-    pub constructor: fn(NodeConfig) -> Arc<dyn Node>,
+    pub constructor: fn(NodeConfig) -> Arc<dyn Execute>,
 }

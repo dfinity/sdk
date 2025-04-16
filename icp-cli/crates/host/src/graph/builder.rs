@@ -1,4 +1,4 @@
-use crate::node::Node;
+use crate::graph::execute::Execute;
 use crate::output_promise::{AnyOutputPromise, EvalHandle, OutputPromise};
 use crate::registry::node_config::NodeConfig;
 use crate::registry::node_type_registry::NodeTypeRegistry;
@@ -10,7 +10,7 @@ use std::sync::Arc;
 use thiserror::Error;
 
 pub struct WorkflowGraph {
-    pub nodes: Vec<Arc<dyn Node>>,
+    pub nodes: Vec<Arc<dyn Execute>>,
     pub run_future: BoxFuture<'static, ()>,
 }
 
@@ -75,7 +75,7 @@ pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> WorkflowGraph {
         let graph_node = (node_type.constructor)(config);
 
         // 4. Build eval future
-        let eval_future = graph_node.clone().evaluate().boxed().shared();
+        let eval_future = graph_node.clone().execute().boxed().shared();
         eval_handle.set_eval_future(eval_future.clone());
 
         // if descriptor has side effect, add to futures

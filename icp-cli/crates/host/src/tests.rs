@@ -2,9 +2,8 @@
 mod tests {
     use super::*;
     use crate::graph::build_graph;
-    use crate::nodes::node_types;
+    use crate::nodes::node_descriptors;
     use crate::registry::node_type_registry::NodeTypeRegistry;
-    use crate::runtime::Runtime;
     use crate::workflow::Workflow;
     use serde_yaml;
 
@@ -21,7 +20,7 @@ nodes:
     async fn test_simple_workflow_builds_and_runs() {
         let registry = {
             let mut r = NodeTypeRegistry::new();
-            r.register(node_types());
+            r.register(node_descriptors());
             r
         };
 
