@@ -1,5 +1,5 @@
 use crate::node::Node;
-use crate::output_promise::{AnyOutputPromise, OutputPromise};
+use crate::output_promise::{AnyOutputPromise, EvalHandle, OutputPromise};
 use crate::registry::node_config::NodeConfig;
 use crate::registry::node_type_registry::NodeTypeRegistry;
 use crate::workflow::Workflow;
@@ -55,11 +55,15 @@ pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> WorkflowGraph {
             config.inputs.insert(input_name, input);
         }
 
+        let eval_handle = EvalHandle::new();
+
         // create and register this node's output promises
         for output_name in &node_type.outputs {
             let fq_name = format!("{}.{}", node.name, output_name);
             let promise = match output_name.as_str() {
-                "output" => AnyOutputPromise::String(Arc::new(OutputPromise::new())),
+                "output" => {
+                    AnyOutputPromise::String(Arc::new(OutputPromise::new(eval_handle.clone())))
+                }
                 // match other expected types here as needed
                 _ => panic!("unknown output type"),
             };
@@ -67,19 +71,16 @@ pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> WorkflowGraph {
             promises.insert(fq_name, promise);
         }
 
-        let output_promises = config.outputs.clone();
-
         // construct node with config
         let graph_node = (node_type.constructor)(config);
 
-        // set the owner of the output promises to this node
-        for (_output_name, promise) in output_promises {
-            promise.set_owner(Arc::downgrade(&graph_node));
-        }
+        // 4. Build eval future
+        let eval_future = graph_node.clone().evaluate().boxed().shared();
+        eval_handle.set_eval_future(eval_future.clone());
 
         // if descriptor has side effect, add to futures
         if node_type.produces_side_effect {
-            side_effect_futures.push(graph_node.clone().ensure_evaluation());
+            side_effect_futures.push(eval_future);
         }
         graph_nodes.insert(node.name.clone(), graph_node.clone());
     }

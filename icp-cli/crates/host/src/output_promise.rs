@@ -1,47 +1,60 @@
-use crate::node::Node;
-use crate::value::OutputValue;
-use futures::future::FutureExt;
 use futures::future::{BoxFuture, Shared};
 use std::sync::{Arc, Weak};
 use thiserror::Error;
 use tokio::sync::OnceCell;
 
-pub struct OutputPromise<T: Clone + Send + 'static> {
-    future: OnceCell<Shared<BoxFuture<'static, T>>>,
-    owner: OnceCell<Weak<dyn Node>>,
+pub struct EvalHandle {
+    eval_future: OnceCell<Shared<BoxFuture<'static, ()>>>,
 }
 
-impl<T: Clone + Send + 'static> OutputPromise<T> {
-    pub fn new() -> Self {
+impl EvalHandle {
+    pub fn new() -> Arc<Self> {
+        Arc::new(Self {
+            eval_future: OnceCell::new(),
+        })
+    }
+
+    pub fn set_eval_future(&self, future: Shared<BoxFuture<'static, ()>>) {
+        self.eval_future
+            .set(future)
+            .expect("eval_future already set");
+    }
+
+    pub async fn wait(&self) {
+        self.eval_future
+            .get()
+            .expect("eval_future not set")
+            .clone()
+            .await;
+    }
+}
+
+pub struct OutputPromise<T: Clone + Send + 'static + std::fmt::Debug> {
+    eval_handle: Arc<EvalHandle>,
+    value: OnceCell<T>,
+}
+
+impl<T: Clone + Send + 'static + std::fmt::Debug> OutputPromise<T> {
+    pub fn new(eval_handle: Arc<EvalHandle>) -> Self {
         Self {
-            future: OnceCell::new(),
-            owner: OnceCell::new(),
+            eval_handle,
+            value: OnceCell::new(),
         }
-    }
-
-    pub fn set_owner(&self, owner: Weak<dyn Node>) {
-        self.owner.set(owner).expect("Owner already set");
-    }
-
-    pub async fn get(&self) -> T {
-        if self.future.get().is_none() {
-            let node = self
-                .owner
-                .get()
-                .expect("no owner")
-                .upgrade()
-                .expect("owner dropped");
-
-            node.ensure_evaluation().await;
-        }
-
-        self.future.get().expect("not fulfilled").clone().await
     }
 
     pub fn set(&self, value: T) {
-        // Build a ready future wrapping the value, store it as shared future
-        let fut = async move { value }.boxed().shared();
-        self.future.set(fut).expect("value already set");
+        self.value.set(value).expect("output already set");
+    }
+
+    pub async fn get(&self) -> T {
+        // wait for evaluation to complete (if not already)
+        self.eval_handle.wait().await;
+
+        // Return the filled value
+        self.value
+            .get()
+            .expect("output should have been set in evaluate()")
+            .clone()
     }
 }
 
@@ -53,11 +66,11 @@ pub enum AnyOutputPromise {
 }
 
 impl AnyOutputPromise {
-    pub(crate) fn set_owner(&self, p0: Weak<dyn Node>) {
-        match self {
-            AnyOutputPromise::String(op) => op.set_owner(p0),
-        }
-    }
+    // pub(crate) fn set_owner(&self, p0: Weak<dyn Node>) {
+    //     match self {
+    //         AnyOutputPromise::String(op) => op.set_owner(p0),
+    //     }
+    // }
 }
 
 #[derive(Debug, Error)]

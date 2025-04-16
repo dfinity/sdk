@@ -1,22 +1,16 @@
 use crate::node::Node;
-use crate::node_state::NodeEvaluator;
 use crate::output_promise::OutputPromise;
 use crate::registry::node_type::NodeDescriptor;
 use async_trait::async_trait;
 use std::sync::Arc;
 
 pub struct ConstNode {
-    evaluator: NodeEvaluator,
     value: String,
     output: Arc<OutputPromise<String>>,
 }
 
 #[async_trait]
 impl Node for ConstNode {
-    fn evaluator(&self) -> &NodeEvaluator {
-        &self.evaluator
-    }
-
     async fn evaluate(self: Arc<Self>) {
         println!("ConstNode evaluated with value: {:?}", self.value);
         // just set the value directly, promise will wrap it in a future
@@ -44,7 +38,6 @@ impl ConstNode {
                     .string()
                     .expect("type mismatch for 'value' output");
                 Arc::new(Self {
-                    evaluator: NodeEvaluator::new(),
                     value,
                     output: output_promise,
                 })
