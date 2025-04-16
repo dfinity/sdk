@@ -1,4 +1,4 @@
-use crate::graph::execute::Execute;
+use crate::graph::execute::{Execute, SharedExecuteResult};
 use crate::output_promise::OutputPromise;
 use crate::registry::node_type::NodeDescriptor;
 use async_trait::async_trait;
@@ -11,10 +11,11 @@ pub struct ConstNode {
 
 #[async_trait]
 impl Execute for ConstNode {
-    async fn execute(self: Arc<Self>) {
-        println!("ConstNode evaluated with value: {:?}", self.value);
+    async fn execute(self: Arc<Self>) -> SharedExecuteResult {
+        println!("ConstNode executed with value: {:?}", self.value);
         // just set the value directly, promise will wrap it in a future
         self.output.set(self.value.clone());
+        Ok(())
     }
 }
 

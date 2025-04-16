@@ -16,13 +16,20 @@ pub struct Prettify {
     prettify: bindings::Prettify,
 }
 
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum PrettifyError {
+    #[error("Prettify failed: {0}")]
+    Anyhow(#[from] anyhow::Error),
+}
 // Wasmtime uses Anyhow for most of its errors
 // But you could potentially wrap it in your own "PluginError" or similar using .map_err
 // For this example we used .context
 
 impl Prettify {
     /// Constructor.
-    pub fn new<PathT>(module: PathT) -> Result<Self, anyhow::Error>
+    pub fn new<PathT>(module: PathT) -> Result<Self, PrettifyError>
     where
         PathT: AsRef<path::Path>,
     {
@@ -50,9 +57,11 @@ impl Prettify {
     // We'll create convenience wrappers to make calling functions ergonomic:
 
     /// Prettify.
-    pub fn prettify(&mut self, name: &str) -> Result<String, anyhow::Error> {
-        self.prettify
+    pub fn prettify(&mut self, name: &str) -> Result<String, PrettifyError> {
+        let prettified = self
+            .prettify
             .icp_host_prettify_plugin()
-            .call_prettify(&mut self.store, name)
+            .call_prettify(&mut self.store, name)?;
+        Ok(prettified)
     }
 }

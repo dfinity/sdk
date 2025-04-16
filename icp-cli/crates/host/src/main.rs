@@ -36,5 +36,15 @@ nodes:
     let mut registry = NodeTypeRegistry::new();
     registry.register(node_descriptors());
     let graph = graph::build_graph(workflow, &registry);
-    graph.run_future.await
+    let result = graph.run_future.await;
+    match result {
+        Ok(()) => {
+            // All nodes executed successfully
+            println!("Workflow completed successfully.");
+        }
+        Err(e) => {
+            // Handle error propagation from any node
+            println!("Error executing workflow: {}", e);
+        }
+    }
 }

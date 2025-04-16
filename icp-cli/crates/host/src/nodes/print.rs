@@ -1,4 +1,4 @@
-use crate::graph::execute::Execute;
+use crate::graph::execute::{Execute, SharedExecuteResult};
 use crate::output_promise::OutputPromise;
 use crate::registry::node_type::NodeDescriptor;
 use async_trait::async_trait;
@@ -10,9 +10,10 @@ pub struct PrintNode {
 
 #[async_trait]
 impl Execute for PrintNode {
-    async fn execute(self: Arc<Self>) {
-        let value = self.input.get().await;
+    async fn execute(self: Arc<Self>) -> SharedExecuteResult {
+        let value = self.input.get().await?;
         println!("PrintNode received: {value}");
+        Ok(())
     }
 }
 

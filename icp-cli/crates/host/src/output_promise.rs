@@ -1,43 +1,45 @@
+use crate::graph::execute::SharedExecuteResult;
+use crate::graph::GraphExecutionError;
 use futures::future::{BoxFuture, Shared};
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::OnceCell;
 
-pub struct EvalHandle {
-    eval_future: OnceCell<Shared<BoxFuture<'static, ()>>>,
+pub struct ExecuteHandle {
+    execute_future: OnceCell<Shared<BoxFuture<'static, SharedExecuteResult>>>,
 }
 
-impl EvalHandle {
+impl ExecuteHandle {
     pub fn new() -> Arc<Self> {
         Arc::new(Self {
-            eval_future: OnceCell::new(),
+            execute_future: OnceCell::new(),
         })
     }
 
-    pub fn set_eval_future(&self, future: Shared<BoxFuture<'static, ()>>) {
-        self.eval_future
+    pub fn set_execute_future(&self, future: Shared<BoxFuture<'static, SharedExecuteResult>>) {
+        self.execute_future
             .set(future)
             .expect("eval_future already set");
     }
 
-    pub async fn wait(&self) {
-        self.eval_future
+    pub async fn wait(&self) -> SharedExecuteResult {
+        self.execute_future
             .get()
             .expect("eval_future not set")
             .clone()
-            .await;
+            .await
     }
 }
 
 pub struct OutputPromise<T: Clone + Send + 'static + std::fmt::Debug> {
-    eval_handle: Arc<EvalHandle>,
+    execute_handle: Arc<ExecuteHandle>,
     value: OnceCell<T>,
 }
 
 impl<T: Clone + Send + 'static + std::fmt::Debug> OutputPromise<T> {
-    pub fn new(eval_handle: Arc<EvalHandle>) -> Self {
+    pub fn new(execute_handle: Arc<ExecuteHandle>) -> Self {
         Self {
-            eval_handle,
+            execute_handle,
             value: OnceCell::new(),
         }
     }
@@ -46,15 +48,16 @@ impl<T: Clone + Send + 'static + std::fmt::Debug> OutputPromise<T> {
         self.value.set(value).expect("output already set");
     }
 
-    pub async fn get(&self) -> T {
-        // wait for evaluation to complete (if not already)
-        self.eval_handle.wait().await;
+    pub async fn get(&self) -> Result<T, Arc<GraphExecutionError>> {
+        // wait for execution to complete (if not already)
+        self.execute_handle.wait().await?;
 
         // Return the filled value
-        self.value
+        Ok(self
+            .value
             .get()
-            .expect("output should have been set in evaluate()")
-            .clone()
+            .expect("output should have been set in execute()")
+            .clone())
     }
 }
 
@@ -63,14 +66,6 @@ pub enum AnyOutputPromise {
     String(Arc<OutputPromise<String>>),
     //    JsonValue(Arc<OutputPromise<serde_json::Value>>),
     // Add more as needed
-}
-
-impl AnyOutputPromise {
-    // pub(crate) fn set_owner(&self, p0: Weak<dyn Node>) {
-    //     match self {
-    //         AnyOutputPromise::String(op) => op.set_owner(p0),
-    //     }
-    // }
 }
 
 #[derive(Debug, Error)]
@@ -82,7 +77,7 @@ impl AnyOutputPromise {
     pub fn string(&self) -> Result<Arc<OutputPromise<String>>, PromiseTypeError> {
         match self {
             AnyOutputPromise::String(p) => Ok(p.clone()),
-            _ => Err(PromiseTypeError::ExpectedString),
+            // _ => Err(PromiseTypeError::ExpectedString),
         }
     }
 

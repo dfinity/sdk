@@ -1,17 +1,17 @@
-use crate::graph::execute::Execute;
-use crate::output_promise::{AnyOutputPromise, EvalHandle, OutputPromise};
+use crate::graph::execute::{Execute, SharedExecuteResult};
+use crate::output_promise::{AnyOutputPromise, ExecuteHandle, OutputPromise};
 use crate::registry::node_config::NodeConfig;
 use crate::registry::node_type_registry::NodeTypeRegistry;
 use crate::workflow::Workflow;
-use futures_util::future::BoxFuture;
 use futures_util::future::FutureExt;
+use futures_util::future::{BoxFuture, Shared};
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
 
 pub struct WorkflowGraph {
     pub nodes: Vec<Arc<dyn Execute>>,
-    pub run_future: BoxFuture<'static, ()>,
+    pub run_future: BoxFuture<'static, SharedExecuteResult>,
 }
 
 #[derive(Debug, Error)]
@@ -55,14 +55,14 @@ pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> WorkflowGraph {
             config.inputs.insert(input_name, input);
         }
 
-        let eval_handle = EvalHandle::new();
+        let execute_handle = ExecuteHandle::new();
 
         // create and register this node's output promises
         for output_name in &node_type.outputs {
             let fq_name = format!("{}.{}", node.name, output_name);
             let promise = match output_name.as_str() {
                 "output" => {
-                    AnyOutputPromise::String(Arc::new(OutputPromise::new(eval_handle.clone())))
+                    AnyOutputPromise::String(Arc::new(OutputPromise::new(execute_handle.clone())))
                 }
                 // match other expected types here as needed
                 _ => panic!("unknown output type"),
@@ -75,20 +75,24 @@ pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> WorkflowGraph {
         let graph_node = (node_type.constructor)(config);
 
         // 4. Build eval future
-        let eval_future = graph_node.clone().execute().boxed().shared();
-        eval_handle.set_eval_future(eval_future.clone());
+        let execute_future = graph_node.clone().execute().boxed().shared();
+        execute_handle.set_execute_future(execute_future.clone());
 
         // if descriptor has side effect, add to futures
         if node_type.produces_side_effect {
-            side_effect_futures.push(eval_future);
+            side_effect_futures.push(execute_future);
         }
         graph_nodes.insert(node.name.clone(), graph_node.clone());
     }
 
-    let run_future = async move {
-        futures::future::join_all(side_effect_futures).await;
-    }
-    .boxed();
+    let run_future = futures::future::join_all(side_effect_futures)
+        .map(|results| {
+            results
+                .into_iter()
+                .find_map(|result| result.err())
+                .map_or(Ok(()), Err)
+        })
+        .boxed();
 
     WorkflowGraph {
         nodes: graph_nodes.values().cloned().collect(),
