@@ -1,11 +1,11 @@
-use crate::graph::execute::{Execute, SharedExecuteResult};
-use crate::output_promise::OutputPromise;
+use crate::execution::execute::{Execute, SharedExecuteResult};
+use crate::execution::promise::Promise;
 use crate::registry::node_type::NodeDescriptor;
 use async_trait::async_trait;
 use std::sync::Arc;
 
 pub struct PrintNode {
-    input: Arc<OutputPromise<String>>,
+    input: Arc<Promise<String>>,
 }
 
 #[async_trait]
@@ -25,13 +25,7 @@ impl PrintNode {
             outputs: vec![],
             produces_side_effect: true,
             constructor: |config| {
-                let input = config
-                    .inputs
-                    .get("input")
-                    .expect("missing 'input' param")
-                    .string()
-                    .expect("type mismatch for 'input' output")
-                    .clone();
+                let input = config.string_input("input");
                 Arc::new(Self { input })
             },
         }

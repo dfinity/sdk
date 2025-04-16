@@ -1,5 +1,5 @@
-use crate::graph::execute::{Execute, SharedExecuteResult};
-use crate::output_promise::{AnyOutputPromise, ExecuteHandle, OutputPromise};
+use crate::execution::execute::{Execute, SharedExecuteResult};
+use crate::execution::promise::{AnyPromise, ExecuteHandle, Promise};
 use crate::registry::node_config::NodeConfig;
 use crate::registry::node_type_registry::NodeTypeRegistry;
 use crate::workflow::Workflow;
@@ -27,7 +27,7 @@ pub enum BuildGraphError {
 }
 
 pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> WorkflowGraph {
-    let mut promises: HashMap<String, AnyOutputPromise> = HashMap::new();
+    let mut promises: HashMap<String, AnyPromise> = HashMap::new();
     let mut graph_nodes = HashMap::new();
     let mut side_effect_futures = vec![];
 
@@ -62,7 +62,7 @@ pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> WorkflowGraph {
             let fq_name = format!("{}.{}", node.name, output_name);
             let promise = match output_name.as_str() {
                 "output" => {
-                    AnyOutputPromise::String(Arc::new(OutputPromise::new(execute_handle.clone())))
+                    AnyPromise::String(Arc::new(Promise::new(execute_handle.clone())))
                 }
                 // match other expected types here as needed
                 _ => panic!("unknown output type"),
@@ -85,6 +85,7 @@ pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> WorkflowGraph {
         graph_nodes.insert(node.name.clone(), graph_node.clone());
     }
 
+    let nodes = graph_nodes.values().cloned().collect();
     let run_future = futures::future::join_all(side_effect_futures)
         .map(|results| {
             results
@@ -94,8 +95,5 @@ pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> WorkflowGraph {
         })
         .boxed();
 
-    WorkflowGraph {
-        nodes: graph_nodes.values().cloned().collect(),
-        run_future,
-    }
+    WorkflowGraph { nodes, run_future }
 }

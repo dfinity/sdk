@@ -5,7 +5,4 @@ use thiserror::Error;
 pub enum GraphExecutionError {
     #[error(transparent)]
     PrettifyError(#[from] PrettifyError),
-    // You can add more as needed, like:
-    // #[error(transparent)]
-    // SomeOtherError(#[from] SomeOtherType),
 }

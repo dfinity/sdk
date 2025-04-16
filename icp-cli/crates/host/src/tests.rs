@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::graph::build_graph;
+    use crate::execution::build_graph;
     use crate::nodes::node_descriptors;
     use crate::registry::node_type_registry::NodeTypeRegistry;
     use crate::workflow::Workflow;
@@ -28,8 +28,7 @@ nodes:
 
         let graph = build_graph(workflow, &registry);
 
-        graph.run_future.await
-
-        // no asserts needed yet — just validating no panics, visible logs
+        let r = graph.run_future.await;
+        assert!(r.is_ok(), "Workflow execution failed: {:?}", r);
     }
 }

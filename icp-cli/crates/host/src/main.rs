@@ -1,9 +1,8 @@
 mod bindings;
 mod command_config;
-mod graph;
+mod execution;
 mod host;
 mod nodes;
-mod output_promise;
 mod prettify;
 mod registry;
 mod tests;
@@ -18,33 +17,26 @@ async fn main() {
 nodes:
     const:
         value: Hello, test!
-    print1:
-        type: print
-        inputs:
-            input: prettify.output
     prettify:
         type: prettify
         inputs:
-            input: const.output
+            input: const
+    print:
+        inputs:
+            input: prettify
     print2:
         type: print
         inputs:
-            input: const.output
+            input: const
 "#;
     let workflow: workflow::Workflow = workflow::Workflow::from_string(workflow);
 
     let mut registry = NodeTypeRegistry::new();
     registry.register(node_descriptors());
-    let graph = graph::build_graph(workflow, &registry);
+    let graph = execution::build_graph(workflow, &registry);
     let result = graph.run_future.await;
-    match result {
-        Ok(()) => {
-            // All nodes executed successfully
-            println!("Workflow completed successfully.");
-        }
-        Err(e) => {
-            // Handle error propagation from any node
-            println!("Error executing workflow: {}", e);
-        }
+    if let Err(e) = result {
+        println!("Error executing workflow: {}", e);
+        std::process::exit(1);
     }
 }

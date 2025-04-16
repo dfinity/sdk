@@ -1,5 +1,5 @@
-use crate::graph::execute::SharedExecuteResult;
-use crate::graph::GraphExecutionError;
+use crate::execution::execute::SharedExecuteResult;
+use crate::execution::GraphExecutionError;
 use futures::future::{BoxFuture, Shared};
 use std::sync::Arc;
 use thiserror::Error;
@@ -31,12 +31,12 @@ impl ExecuteHandle {
     }
 }
 
-pub struct OutputPromise<T: Clone + Send + 'static + std::fmt::Debug> {
+pub struct Promise<T: Clone + Send + 'static + std::fmt::Debug> {
     execute_handle: Arc<ExecuteHandle>,
     value: OnceCell<T>,
 }
 
-impl<T: Clone + Send + 'static + std::fmt::Debug> OutputPromise<T> {
+impl<T: Clone + Send + 'static + std::fmt::Debug> Promise<T> {
     pub fn new(execute_handle: Arc<ExecuteHandle>) -> Self {
         Self {
             execute_handle,
@@ -62,8 +62,8 @@ impl<T: Clone + Send + 'static + std::fmt::Debug> OutputPromise<T> {
 }
 
 #[derive(Clone)]
-pub enum AnyOutputPromise {
-    String(Arc<OutputPromise<String>>),
+pub enum AnyPromise {
+    String(Arc<Promise<String>>),
     //    JsonValue(Arc<OutputPromise<serde_json::Value>>),
     // Add more as needed
 }
@@ -73,10 +73,10 @@ pub enum PromiseTypeError {
     #[error("Type mismatch: expected String")]
     ExpectedString,
 }
-impl AnyOutputPromise {
-    pub fn string(&self) -> Result<Arc<OutputPromise<String>>, PromiseTypeError> {
+impl AnyPromise {
+    pub fn string(&self) -> Result<Arc<Promise<String>>, PromiseTypeError> {
         match self {
-            AnyOutputPromise::String(p) => Ok(p.clone()),
+            AnyPromise::String(p) => Ok(p.clone()),
             // _ => Err(PromiseTypeError::ExpectedString),
         }
     }

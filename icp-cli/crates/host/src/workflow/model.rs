@@ -36,11 +36,21 @@ pub struct WorkflowNode {
 
 impl WorkflowNode {
     fn new(name: String, yaml: NodeYaml) -> Self {
+        let inputs = yaml.inputs.iter()
+            .map(|(k, v)| {
+                let v = if v.contains(".") {
+                    v.clone()
+                } else {
+                    format!("{}.output", v).clone()
+                };
+                (k.clone(), v)
+            })
+            .collect();
         Self {
             name: name.clone(),
             r#type: yaml.r#type.unwrap_or(name),
             value: yaml.value,
-            inputs: yaml.inputs,
+            inputs,
         }
     }
 }
