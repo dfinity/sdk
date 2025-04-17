@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+* Flags `--no-compile` and `--no-deps`
+
+* Command `rules` that outputs time-efficient GNU Make rules.
+
 ### feat: Improve 'dfx canister logs' with several options
 
 Improve `dfx canister logs` with several options
@@ -22,6 +26,7 @@ Updated Motoko to [0.14.8](https://github.com/dfinity/motoko/releases/tag/0.14.8
 dfx would try to reuse canister ids when switching from a shared network to a project network,
 which would cause errors since those canister ids wouldn't exist. dfx now deletes the .dfx
 directory if it was previously used with the shared local network.
+>>>>>>> upstream/master
 
 ### feat: Set canister ids using `dfx canister set-id <canister name> <principal>`
 
