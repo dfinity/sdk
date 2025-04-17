@@ -1,1 +1,1 @@
-pub mod workflow_yaml;
+pub mod workflow;

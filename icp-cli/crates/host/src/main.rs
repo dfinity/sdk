@@ -10,7 +10,7 @@ mod registry;
 mod tests;
 
 use crate::nodes::node_descriptors;
-use crate::plan::workflow_graph::Workflow;
+use crate::parse::workflow::WorkflowModel;
 use crate::registry::node_type_registry::NodeTypeRegistry;
 
 #[tokio::main(flavor = "current_thread")]
@@ -31,11 +31,17 @@ workflow:
         inputs:
             input: const
 "#;
-    let workflow = Workflow::from_string(workflow);
-
     let mut registry = NodeTypeRegistry::new();
     registry.register(node_descriptors());
-    let graph = execute::build_graph(workflow, &registry);
+
+    // let model = WorkflowModel::from_string(workflow);
+    // let plan = WorkflowPlan::from_model(model);
+    // let graph = ExecutionGraph::from_plan(plan, &registry);
+
+    let graph = WorkflowModel::from_string(workflow)
+        .into_plan()
+        .into_graph(&registry);
+
     let result = graph.run().await;
     if let Err(e) = result {
         println!("Error executing workflow: {}", e);

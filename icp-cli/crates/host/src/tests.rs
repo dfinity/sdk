@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::execute::build_graph;
     use crate::execute::execute::Execute;
+    use crate::execute::ExecutionGraph;
     use crate::nodes::node_descriptors;
-    use crate::plan::workflow_graph::Workflow;
+    use crate::plan::workflow::WorkflowPlan;
     use crate::registry::node_type_registry::NodeTypeRegistry;
     use serde_yaml;
 
@@ -25,9 +25,9 @@ workflow:
             r
         };
 
-        let workflow: Workflow = Workflow::from_string(SIMPLE_WORKFLOW_YAML);
+        let workflow: WorkflowPlan = WorkflowPlan::from_string(SIMPLE_WORKFLOW_YAML);
 
-        let graph = build_graph(workflow, &registry);
+        let graph = ExecutionGraph::from_plan(workflow, &registry);
 
         let r = graph.run_future.await;
         assert!(r.is_ok(), "Workflow execution failed: {:?}", r);
@@ -36,10 +36,10 @@ workflow:
 
 #[cfg(test)]
 mod lazy_evaluation_test {
-    use crate::execute::build_graph;
     use crate::execute::execute::{Execute, SharedExecuteResult};
     use crate::execute::promise::{Input, InputRef, Output, OutputRef};
-    use crate::plan::workflow_graph::Workflow;
+    use crate::execute::ExecutionGraph;
+    use crate::plan::workflow::WorkflowPlan;
     use crate::registry::node_config::NodeConfig;
     use crate::registry::node_type::NodeDescriptor;
     use crate::registry::node_type_registry::NodeTypeRegistry;
@@ -188,9 +188,9 @@ workflow:
       input: lazy
 "#;
 
-        let workflow: Workflow = Workflow::from_string(SIMPLE_WORKFLOW_YAML);
+        let workflow: WorkflowPlan = WorkflowPlan::from_string(SIMPLE_WORKFLOW_YAML);
 
-        let graph = build_graph(workflow, &registry);
+        let graph = ExecutionGraph::from_plan(workflow, &registry);
         let r = graph.run_future.await;
 
         assert!(r.is_ok(), "Workflow execution failed: {:?}", r);

@@ -1,1 +1,1 @@
-pub mod workflow_graph;
+pub mod workflow;
