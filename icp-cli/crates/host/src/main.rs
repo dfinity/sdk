@@ -1,6 +1,6 @@
 mod bindings;
 mod command_config;
-mod execution;
+mod execute;
 mod host;
 mod nodes;
 mod parse;
@@ -35,7 +35,7 @@ workflow:
 
     let mut registry = NodeTypeRegistry::new();
     registry.register(node_descriptors());
-    let graph = execution::build_graph(workflow, &registry);
+    let graph = execute::build_graph(workflow, &registry);
     let result = graph.run().await;
     if let Err(e) = result {
         println!("Error executing workflow: {}", e);

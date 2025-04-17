@@ -1,4 +1,4 @@
-use crate::execution::error::GraphExecutionError;
+use crate::execute::error::GraphExecutionError;
 use std::sync::Arc;
 
 pub type SharedExecuteResult = Result<(), Arc<GraphExecutionError>>;

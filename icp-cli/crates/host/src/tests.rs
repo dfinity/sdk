@@ -1,8 +1,8 @@
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::execution::build_graph;
-    use crate::execution::execute::Execute;
+    use crate::execute::build_graph;
+    use crate::execute::execute::Execute;
     use crate::nodes::node_descriptors;
     use crate::plan::workflow_graph::Workflow;
     use crate::registry::node_type_registry::NodeTypeRegistry;
@@ -36,9 +36,9 @@ workflow:
 
 #[cfg(test)]
 mod lazy_evaluation_test {
-    use crate::execution::build_graph;
-    use crate::execution::execute::{Execute, SharedExecuteResult};
-    use crate::execution::promise::{Input, InputRef, Output, OutputRef};
+    use crate::execute::build_graph;
+    use crate::execute::execute::{Execute, SharedExecuteResult};
+    use crate::execute::promise::{Input, InputRef, Output, OutputRef};
     use crate::plan::workflow_graph::Workflow;
     use crate::registry::node_config::NodeConfig;
     use crate::registry::node_type::NodeDescriptor;
@@ -85,9 +85,9 @@ mod lazy_evaluation_test {
             // Should be true before executing, then set to false
             self.ab
                 .compare_exchange(true, false, Ordering::SeqCst, Ordering::SeqCst)
-                .expect("AtomicBool should have been true before LazyNode execution");
+                .expect("AtomicBool should have been true before LazyNode execute");
 
-            // Log execution order
+            // Log execute order
             self.log
                 .lock()
                 .unwrap()
@@ -130,9 +130,9 @@ mod lazy_evaluation_test {
             // Should be false before executing, then set to true
             self.ab
                 .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
-                .expect("AtomicBool should have been false before EagerNode execution");
+                .expect("AtomicBool should have been false before EagerNode execute");
 
-            // Log execution order
+            // Log execute order
             self.log
                 .lock()
                 .unwrap()
@@ -167,7 +167,7 @@ mod lazy_evaluation_test {
     async fn lazy_evaluation() {
         let ab = Arc::new(AtomicBool::new(false));
 
-        // Shared log to track execution order
+        // Shared log to track execute order
         let log = Arc::new(Mutex::new(Vec::new()));
 
         let registry = {
@@ -195,7 +195,7 @@ workflow:
 
         assert!(r.is_ok(), "Workflow execution failed: {:?}", r);
 
-        // Verify execution order by checking log
+        // Verify execute order by checking log
         let log = log.lock().unwrap();
         assert_eq!(
             *log,
