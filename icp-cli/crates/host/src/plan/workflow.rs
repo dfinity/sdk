@@ -4,12 +4,6 @@ use crate::registry::node_type_registry::NodeTypeRegistry;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use thiserror::Error;
 
-#[derive(Error, Debug)]
-pub enum TopoSortError {
-    #[error("Cycle detected: {0}")]
-    CycleDetected(String),
-}
-
 pub struct WorkflowPlan {
     pub nodes: Vec<WorkflowPlanNode>,
 }
@@ -64,6 +58,12 @@ impl WorkflowPlan {
         let plan = WorkflowModel::from_string(s);
         Self::from_model(plan)
     }
+}
+
+#[derive(Error, Debug)]
+pub enum TopoSortError {
+    #[error("Cycle detected: {0}")]
+    CycleDetected(String),
 }
 
 fn topological_sort_kahn(

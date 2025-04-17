@@ -26,10 +26,10 @@ workflow:
     print:
         inputs:
             input: prettify
-    print2:
-        type: print
-        inputs:
-            input: const
+    #print2:
+    #    type: print
+    #    inputs:
+    #        input: const
 "#;
     let mut registry = NodeTypeRegistry::new();
     registry.register(node_descriptors());
