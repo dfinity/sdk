@@ -16,7 +16,7 @@ impl CommandTree {
             children: HashMap::new(),
         }
     }
-    pub fn build(descriptors: Vec<CommandDescriptor>) -> Self {
+    pub fn from_descriptors(descriptors: Vec<CommandDescriptor>) -> Self {
         let mut root = CommandTree::new();
 
         for desc in descriptors {

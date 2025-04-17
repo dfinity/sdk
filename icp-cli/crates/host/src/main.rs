@@ -12,13 +12,15 @@ mod registry;
 mod tests;
 
 use crate::cli::tree::CommandTree;
+use crate::commands::identity;
 use crate::nodes::node_descriptors;
 use crate::parse::workflow::WorkflowModel;
 use crate::registry::node_type_registry::NodeTypeRegistry;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
-    let command_tree = CommandTree::build(commands::commands());
+    let commands = vec![identity::new::descriptor()];
+    let command_tree = CommandTree::from_descriptors(commands);
     let command = command_tree.build_clap_command("icp");
     let matches = command.get_matches();
     command_tree.dispatch(&matches).unwrap_or_else(|e| {
