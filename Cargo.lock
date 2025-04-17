@@ -1179,9 +1179,9 @@ dependencies = [
 
 [[package]]
 name = "crossbeam-channel"
-version = "0.5.14"
+version = "0.5.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06ba6d68e24814cb8de6bb986db8222d3a027d15872cabc0d18817bc3c0e4471"
+checksum = "82b8f8f868b36967f9606790d1903570de9ceaf870a7bf9fbbd3016d636a2cb2"
 dependencies = [
  "crossbeam-utils",
 ]
@@ -1535,7 +1535,7 @@ checksum = "339544cc9e2c4dc3fc7149fd630c5f22263a4fdf18a98afd0075784968b5cf00"
 
 [[package]]
 name = "dfx"
-version = "0.25.1"
+version = "0.26.0"
 dependencies = [
  "actix",
  "aes-gcm",
@@ -1575,7 +1575,7 @@ dependencies = [
  "ic-asset",
  "ic-cdk",
  "ic-identity-hsm",
- "ic-utils 0.39.3",
+ "ic-utils 0.40.0",
  "ic-wasm",
  "icrc-ledger-types",
  "idl2json",
@@ -1652,7 +1652,7 @@ dependencies = [
  "humantime-serde",
  "ic-agent",
  "ic-identity-hsm",
- "ic-utils 0.39.3",
+ "ic-utils 0.40.0",
  "itertools 0.10.5",
  "k256 0.11.6",
  "keyring",
@@ -2694,8 +2694,8 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=7752c33016f708fb84b56ff99d91a7c380a8b550#7752c33016f708fb84b56ff99d91a7c380a8b550"
+version = "0.40.0"
+source = "git+https://github.com/dfinity/agent-rs?rev=b53d770cfd07df07b1024cfd9cc25f7ff80d1b76#b53d770cfd07df07b1024cfd9cc25f7ff80d1b76"
 dependencies = [
  "arc-swap",
  "async-channel",
@@ -2714,7 +2714,7 @@ dependencies = [
  "http 1.2.0",
  "http-body 1.0.1",
  "ic-certification 3.0.2",
- "ic-transport-types 0.39.3 (git+https://github.com/dfinity/agent-rs?rev=7752c33016f708fb84b56ff99d91a7c380a8b550)",
+ "ic-transport-types 0.40.0",
  "ic-verify-bls-signature",
  "k256 0.13.4",
  "leb128",
@@ -2754,7 +2754,7 @@ dependencies = [
  "globset",
  "hex",
  "ic-agent",
- "ic-utils 0.39.3",
+ "ic-utils 0.40.0",
  "itertools 0.10.5",
  "json5",
  "mime",
@@ -3153,8 +3153,8 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=7752c33016f708fb84b56ff99d91a7c380a8b550#7752c33016f708fb84b56ff99d91a7c380a8b550"
+version = "0.40.0"
+source = "git+https://github.com/dfinity/agent-rs?rev=b53d770cfd07df07b1024cfd9cc25f7ff80d1b76#b53d770cfd07df07b1024cfd9cc25f7ff80d1b76"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3292,8 +3292,8 @@ dependencies = [
 
 [[package]]
 name = "ic-transport-types"
-version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=7752c33016f708fb84b56ff99d91a7c380a8b550#7752c33016f708fb84b56ff99d91a7c380a8b550"
+version = "0.40.0"
+source = "git+https://github.com/dfinity/agent-rs?rev=b53d770cfd07df07b1024cfd9cc25f7ff80d1b76#b53d770cfd07df07b1024cfd9cc25f7ff80d1b76"
 dependencies = [
  "candid",
  "hex",
@@ -3362,8 +3362,8 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.39.3"
-source = "git+https://github.com/dfinity/agent-rs?rev=7752c33016f708fb84b56ff99d91a7c380a8b550#7752c33016f708fb84b56ff99d91a7c380a8b550"
+version = "0.40.0"
+source = "git+https://github.com/dfinity/agent-rs?rev=b53d770cfd07df07b1024cfd9cc25f7ff80d1b76#b53d770cfd07df07b1024cfd9cc25f7ff80d1b76"
 dependencies = [
  "async-trait",
  "candid",
@@ -3629,7 +3629,7 @@ dependencies = [
  "humantime",
  "ic-agent",
  "ic-asset",
- "ic-utils 0.39.3",
+ "ic-utils 0.40.0",
  "libflate 1.4.0",
  "num-traits",
  "pem 1.1.1",
@@ -4835,7 +4835,7 @@ checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
 [[package]]
 name = "pocket-ic"
 version = "7.0.0"
-source = "git+https://github.com/dfinity/ic?rev=f6f5e0927d14886e4bd67f776ee889f31cec2364#f6f5e0927d14886e4bd67f776ee889f31cec2364"
+source = "git+https://github.com/dfinity/ic?rev=579b8ba3a31341f354f4ddb3d60ac44548a91bc2#579b8ba3a31341f354f4ddb3d60ac44548a91bc2"
 dependencies = [
  "backoff",
  "base64 0.13.1",
@@ -4844,7 +4844,7 @@ dependencies = [
  "hex",
  "ic-certification 3.0.2",
  "ic-management-canister-types",
- "ic-transport-types 0.39.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ic-transport-types 0.39.3",
  "reqwest",
  "schemars",
  "serde",
@@ -4855,6 +4855,7 @@ dependencies = [
  "slog",
  "strum 0.26.3",
  "strum_macros 0.26.4",
+ "tempfile",
  "thiserror 2.0.11",
  "tokio",
  "tracing",
@@ -6431,9 +6432,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.43.0"
+version = "1.43.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d61fa4ffa3de412bfea335c6ecff681de2b609ba3c77ef3e00e521813a9ed9e"
+checksum = "492a604e2fd7f814268a378409e6c92b5525d747d10db9a229723f55a417958c"
 dependencies = [
  "backtrace",
  "bytes",

@@ -4,6 +4,8 @@ load ../utils/_
 
 setup() {
   standard_setup
+  
+  use_test_specific_cache_root
 }
 
 teardown() {
@@ -13,7 +15,6 @@ teardown() {
 }
 
 @test "dfx cache show does not install the dfx version into the cache" {
-  use_test_specific_cache_root
   test -z "$(ls -A "$DFX_CACHE_ROOT")"
 
   assert_command dfx cache show
@@ -27,7 +28,6 @@ teardown() {
 }
 
 @test "non-forced install populates an empty cache" {
-  use_test_specific_cache_root
   test ! -e "$(dfx cache show)"/dfx
 
   dfx_new
@@ -36,8 +36,6 @@ teardown() {
 }
 
 @test "forced install populates an empty cache" {
-  use_test_specific_cache_root
-
   test ! -e "$(dfx cache show)"/dfx
 
   assert_command dfx cache install

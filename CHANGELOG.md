@@ -6,6 +6,28 @@
 
 * Command `rules` that outputs time-efficient GNU Make rules.
 
+### feat: Improve 'dfx canister logs' with several options
+
+Improve `dfx canister logs` with several options
+- `--tail <n>` to show the last `n` log entries
+- `--since` to show the logs newer than a relative duration
+- `--since-time` to show the logs newer than a specific timestamp
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.8](https://github.com/dfinity/motoko/releases/tag/0.14.8)
+
+# 0.26.1
+
+### fix: clear state when switching from shared to project network
+
+dfx would try to reuse canister ids when switching from a shared network to a project network,
+which would cause errors since those canister ids wouldn't exist. dfx now deletes the .dfx
+directory if it was previously used with the shared local network.
+>>>>>>> upstream/master
+
 ### feat: Set canister ids using `dfx canister set-id <canister name> <principal>`
 
 Added the counterpart to `dfx canister id <canister name>`. Networks can be targeted as usual using `--network <network name>` or the `--ic` shorthand for mainnet.
@@ -22,7 +44,17 @@ Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standar
 
 ### Motoko
 
-Updated Motoko to [0.14.6](https://github.com/dfinity/motoko/releases/tag/0.14.6)
+Updated Motoko to [0.14.7](https://github.com/dfinity/motoko/releases/tag/0.14.7)
+
+### Replica
+
+Updated replica to elected commit 579b8ba3a31341f354f4ddb3d60ac44548a91bc2.
+This incorporates the following executed proposals:
+
+- [136223](https://dashboard.internetcomputer.org/proposal/136223)
+- [136066](https://dashboard.internetcomputer.org/proposal/136066)
+- [136004](https://dashboard.internetcomputer.org/proposal/136004)
+- [135931](https://dashboard.internetcomputer.org/proposal/135931)
 
 # 0.26.0
 

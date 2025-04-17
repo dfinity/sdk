@@ -25,7 +25,7 @@ pub struct RulesOpts {
     #[arg(long, short, value_name = "FILE")]
     output: Option<String>,
 
-    #[command(flatten)]
+    #[clap(flatten)]
     network: NetworkOpt,
 }
 
