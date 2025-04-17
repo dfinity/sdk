@@ -1,4 +1,5 @@
-use crate::commands::identity::new::{CliError, CliResult, CommandDescriptor, Dispatch};
+use crate::cli::descriptor::{CommandDescriptor, Dispatch};
+use crate::cli::error::{CliError, CliResult};
 use clap::ArgMatches;
 use std::collections::HashMap;
 
