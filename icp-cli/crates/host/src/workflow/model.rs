@@ -64,8 +64,8 @@ impl Workflow {
             .into_iter()
             .map(|(name, node)| WorkflowNode::new(name, node))
             .collect();
-        let nodes =
-            Self::topological_sort(nodes).expect("Failed to sort workflow nodes: cycle detected");
+        let nodes = Self::topological_sort_kahn(nodes)
+            .expect("Failed to sort workflow nodes: cycle detected");
         Self { nodes }
     }
 
@@ -74,7 +74,7 @@ impl Workflow {
         Self::new(wf)
     }
 
-    fn topological_sort(nodes: Vec<WorkflowNode>) -> Result<Vec<WorkflowNode>, TopoSortError> {
+    fn topological_sort_kahn(nodes: Vec<WorkflowNode>) -> Result<Vec<WorkflowNode>, TopoSortError> {
         let mut sorted = vec![];
         let mut deps: HashMap<String, HashSet<String>> = HashMap::new();
         let mut node_map: HashMap<String, WorkflowNode> = HashMap::new();
@@ -128,7 +128,9 @@ impl Workflow {
 }
 
 impl Workflow {
-    pub fn topological_sort2(nodes: Vec<WorkflowNode>) -> Result<Vec<WorkflowNode>, TopoSortError> {
+    pub fn topological_sort_dfs(
+        nodes: Vec<WorkflowNode>,
+    ) -> Result<Vec<WorkflowNode>, TopoSortError> {
         let mut sorted = Vec::new();
         let mut deps: BTreeMap<String, HashSet<String>> = BTreeMap::new();
         let mut node_map: HashMap<String, WorkflowNode> = HashMap::new();
@@ -230,7 +232,7 @@ fn detects_named_cycle() {
         },
     ];
 
-    let result = Workflow::topological_sort2(nodes);
+    let result = Workflow::topological_sort_dfs(nodes);
     assert!(matches!(result, Err(TopoSortError::CycleDetected(_))));
 
     if let Err(TopoSortError::CycleDetected(msg)) = result {

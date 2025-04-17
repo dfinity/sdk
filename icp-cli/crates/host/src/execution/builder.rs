@@ -1,4 +1,5 @@
 use crate::execution::execute::{Execute, SharedExecuteResult};
+use crate::execution::graph::ExecutionGraph;
 use crate::execution::promise::{AnyPromise, ExecuteHandle, Promise};
 use crate::registry::node_config::NodeConfig;
 use crate::registry::node_type_registry::NodeTypeRegistry;
@@ -8,11 +9,6 @@ use futures_util::future::FutureExt;
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
-
-pub struct WorkflowGraph {
-    pub nodes: Vec<Arc<dyn Execute>>,
-    pub run_future: BoxFuture<'static, SharedExecuteResult>,
-}
 
 #[derive(Debug, Error)]
 pub enum BuildGraphError {
@@ -26,7 +22,7 @@ pub enum BuildGraphError {
     TypeMismatch(String),
 }
 
-pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> WorkflowGraph {
+pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> ExecutionGraph {
     let mut promises: HashMap<String, AnyPromise> = HashMap::new();
     let mut graph_nodes = HashMap::new();
     let mut side_effect_futures = vec![];
@@ -93,5 +89,5 @@ pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> WorkflowGraph {
         })
         .boxed();
 
-    WorkflowGraph { nodes, run_future }
+    ExecutionGraph { nodes, run_future }
 }
