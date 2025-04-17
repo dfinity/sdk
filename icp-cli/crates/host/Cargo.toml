@@ -29,3 +29,10 @@ async-trait = "0.1.85"
 futures-util = {  version = "0.3.31", features = ["alloc", "std"] }
 futures = "0.3.31"
 thiserror = "1.0.31"
+clap = { version ="4.5", features = [
+    "derive",
+    "env",
+    "unstable-styles",
+    "wrap_help",
+] }
+clap_complete = "4.5"

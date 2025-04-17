@@ -1,5 +1,7 @@
 mod bindings;
+mod cli;
 mod command_config;
+mod commands;
 mod execute;
 mod host;
 mod nodes;
@@ -9,12 +11,21 @@ mod prettify;
 mod registry;
 mod tests;
 
+use crate::cli::tree::CommandTree;
 use crate::nodes::node_descriptors;
 use crate::parse::workflow::WorkflowModel;
 use crate::registry::node_type_registry::NodeTypeRegistry;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    let command_tree = CommandTree::build(commands::commands());
+    let command = command_tree.build_clap_command("icp");
+    let matches = command.get_matches();
+    command_tree.dispatch(&matches).unwrap_or_else(|e| {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    });
+
     let workflow = r#"
 workflow:
     const:
@@ -26,10 +37,10 @@ workflow:
     print:
         inputs:
             input: prettify
-    #print2:
-    #    type: print
-    #    inputs:
-    #        input: const
+    print2:
+        type: print
+        inputs:
+            input: prettify
 "#;
     let mut registry = NodeTypeRegistry::new();
     registry.register(node_descriptors());
