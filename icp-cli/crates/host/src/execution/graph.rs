@@ -6,3 +6,10 @@ pub struct ExecutionGraph {
     pub nodes: Vec<Arc<dyn Execute>>,
     pub run_future: BoxFuture<'static, SharedExecuteResult>,
 }
+
+impl ExecutionGraph {
+    pub async fn run(self) -> SharedExecuteResult {
+        self.run_future.await?;
+        Ok(())
+    }
+}

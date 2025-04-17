@@ -4,8 +4,8 @@ mod tests {
     use crate::execution::build_graph;
     use crate::execution::execute::Execute;
     use crate::nodes::node_descriptors;
+    use crate::plan::workflow_graph::Workflow;
     use crate::registry::node_type_registry::NodeTypeRegistry;
-    use crate::workflow::Workflow;
     use serde_yaml;
 
     const SIMPLE_WORKFLOW_YAML: &str = r#"
@@ -39,10 +39,10 @@ mod lazy_evaluation_test {
     use crate::execution::build_graph;
     use crate::execution::execute::{Execute, SharedExecuteResult};
     use crate::execution::promise::{Input, InputRef, Output, OutputRef};
+    use crate::plan::workflow_graph::Workflow;
     use crate::registry::node_config::NodeConfig;
     use crate::registry::node_type::NodeDescriptor;
     use crate::registry::node_type_registry::NodeTypeRegistry;
-    use crate::workflow::Workflow;
     use async_trait::async_trait;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::{Arc, Mutex};
@@ -126,8 +126,7 @@ mod lazy_evaluation_test {
     #[async_trait]
     impl Execute for EagerNode {
         async fn execute(self: Arc<Self>) -> SharedExecuteResult {
-            // sleep
-            tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
+            tokio::task::yield_now().await;
             // Should be false before executing, then set to true
             self.ab
                 .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
@@ -163,7 +162,8 @@ mod lazy_evaluation_test {
         }
     }
 
-    #[tokio::test(flavor = "current_thread")]
+    //#[tokio::test(flavor = "current_thread")]
+    #[tokio::test(flavor = "multi_thread")]
     async fn lazy_evaluation() {
         let ab = Arc::new(AtomicBool::new(false));
 

@@ -1,9 +1,9 @@
 use crate::execution::execute::{Execute, SharedExecuteResult};
 use crate::execution::graph::ExecutionGraph;
 use crate::execution::promise::{AnyPromise, ExecuteHandle, Promise};
+use crate::plan::workflow_graph::Workflow;
 use crate::registry::node_config::NodeConfig;
 use crate::registry::node_type_registry::NodeTypeRegistry;
-use crate::workflow::Workflow;
 use futures_util::future::BoxFuture;
 use futures_util::future::FutureExt;
 use std::collections::HashMap;
