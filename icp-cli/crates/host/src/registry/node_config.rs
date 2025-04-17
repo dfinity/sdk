@@ -1,4 +1,4 @@
-use crate::execution::promise::{AnyPromise, Promise};
+use crate::execution::promise::{AnyPromise, Input, InputRef, Output};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -10,12 +10,9 @@ pub struct NodeConfig {
 
 impl NodeConfig {
     pub fn string_param(&self, name: &str) -> String {
-        self.params
-            .get(name)
-            .expect("missing parameter")
-            .clone()
+        self.params.get(name).expect("missing parameter").clone()
     }
-    pub fn string_input(&self, name: &str) -> Arc<Promise<String>> {
+    pub fn string_source(&self, name: &str) -> InputRef<String> {
         self.inputs
             .get(name)
             .expect("missing input")
@@ -23,7 +20,7 @@ impl NodeConfig {
             .expect("type mismatch for input")
     }
 
-    pub fn string_output(&self, name: &str) -> Arc<Promise<String>> {
+    pub fn string_output(&self, name: &str) -> Arc<dyn Output<String>> {
         self.outputs
             .get("output")
             .expect("missing 'output' output")

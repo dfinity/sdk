@@ -7,5 +7,5 @@ pub struct NodeDescriptor {
     pub inputs: Vec<String>,
     pub outputs: Vec<String>,
     pub produces_side_effect: bool,
-    pub constructor: fn(NodeConfig) -> Arc<dyn Execute>,
+    pub constructor: Box<dyn Fn(NodeConfig) -> Arc<dyn Execute> + Send + Sync>,
 }

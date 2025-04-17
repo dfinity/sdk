@@ -14,7 +14,7 @@ use crate::registry::node_type_registry::NodeTypeRegistry;
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let workflow = r#"
-nodes:
+workflow:
     const:
         value: Hello, test!
     prettify:

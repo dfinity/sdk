@@ -1,13 +1,13 @@
 use crate::execution::execute::{Execute, SharedExecuteResult};
-use crate::execution::promise::Promise;
+use crate::execution::promise::{Input, InputRef, Output, OutputRef};
 use crate::execution::GraphExecutionError;
 use crate::prettify::Prettify;
 use crate::registry::node_type::NodeDescriptor;
 use std::sync::Arc;
 
 pub struct PrettifyNode {
-    input: Arc<Promise<String>>,
-    output: Arc<Promise<String>>,
+    input: InputRef<String>,
+    output: OutputRef<String>,
 }
 
 #[async_trait::async_trait]
@@ -33,11 +33,11 @@ impl PrettifyNode {
             inputs: vec!["input".to_string()],
             outputs: vec!["output".to_string()],
             produces_side_effect: true,
-            constructor: |config| {
-                let input = config.string_input("input");
+            constructor: Box::new(|config| {
+                let input = config.string_source("input");
                 let output = config.string_output("output");
                 Arc::new(Self { input, output })
-            },
+            }),
         }
     }
 }

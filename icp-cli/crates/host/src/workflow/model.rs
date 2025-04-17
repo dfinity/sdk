@@ -10,7 +10,7 @@ pub enum TopoSortError {
 
 #[derive(Deserialize)]
 struct WorkflowYaml {
-    nodes: HashMap<String, NodeYaml>,
+    workflow: HashMap<String, NodeYaml>,
 }
 
 #[derive(Deserialize)]
@@ -36,7 +36,9 @@ pub struct WorkflowNode {
 
 impl WorkflowNode {
     fn new(name: String, yaml: NodeYaml) -> Self {
-        let inputs = yaml.inputs.iter()
+        let inputs = yaml
+            .inputs
+            .iter()
             .map(|(k, v)| {
                 let v = if v.contains(".") {
                     v.clone()
@@ -58,7 +60,7 @@ impl WorkflowNode {
 impl Workflow {
     pub fn new(yaml: WorkflowYaml) -> Self {
         let nodes = yaml
-            .nodes
+            .workflow
             .into_iter()
             .map(|(name, node)| WorkflowNode::new(name, node))
             .collect();
@@ -245,7 +247,7 @@ mod tests {
     #[should_panic(expected = "cycle detected")]
     fn detects_cycle() {
         let yaml = r#"
-nodes:
+workflow:
   a:
     type: const
     inputs:
@@ -262,7 +264,7 @@ nodes:
     #[test]
     fn sorts_simple_workflow() {
         let yaml = r#"
-nodes:
+workflow:
   const:
     value: Hello
   print:

@@ -1,5 +1,6 @@
 use crate::execution::execute::SharedExecuteResult;
 use crate::execution::GraphExecutionError;
+use async_trait::async_trait;
 use futures::future::{BoxFuture, Shared};
 use std::sync::Arc;
 use thiserror::Error;
@@ -31,9 +32,41 @@ impl ExecuteHandle {
     }
 }
 
+#[async_trait]
+pub trait Input<T: Clone + Send + Sync + 'static + std::fmt::Debug> {
+    async fn get(&self) -> Result<T, Arc<GraphExecutionError>>;
+}
+
+pub trait Output<T: Clone + Send + Sync + 'static + std::fmt::Debug>:
+    Send + Sync + 'static
+{
+    fn set(&self, value: T);
+}
+
+pub type InputRef<T> = Arc<dyn Input<T> + Send + Sync>;
+pub type OutputRef<T> = Arc<dyn Output<T> + Send + Sync>;
+
 pub struct Promise<T: Clone + Send + 'static + std::fmt::Debug> {
     execute_handle: Arc<ExecuteHandle>,
     value: OnceCell<T>,
+}
+
+#[async_trait]
+impl<T: Clone + Send + Sync + 'static + std::fmt::Debug> Input<T> for Promise<T> {
+    async fn get(&self) -> Result<T, Arc<GraphExecutionError>> {
+        self.execute_handle.wait().await?;
+        Ok(self
+            .value
+            .get()
+            .expect("output should have been set in execute()")
+            .clone())
+    }
+}
+
+impl<T: Clone + Send + Sync + 'static + std::fmt::Debug> Output<T> for Promise<T> {
+    fn set(&self, value: T) {
+        self.value.set(value).expect("output already set");
+    }
 }
 
 impl<T: Clone + Send + 'static + std::fmt::Debug> Promise<T> {
@@ -42,22 +75,6 @@ impl<T: Clone + Send + 'static + std::fmt::Debug> Promise<T> {
             execute_handle,
             value: OnceCell::new(),
         }
-    }
-
-    pub fn set(&self, value: T) {
-        self.value.set(value).expect("output already set");
-    }
-
-    pub async fn get(&self) -> Result<T, Arc<GraphExecutionError>> {
-        // wait for execution to complete (if not already)
-        self.execute_handle.wait().await?;
-
-        // Return the filled value
-        Ok(self
-            .value
-            .get()
-            .expect("output should have been set in execute()")
-            .clone())
     }
 }
 

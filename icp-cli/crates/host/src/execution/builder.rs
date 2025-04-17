@@ -3,8 +3,8 @@ use crate::execution::promise::{AnyPromise, ExecuteHandle, Promise};
 use crate::registry::node_config::NodeConfig;
 use crate::registry::node_type_registry::NodeTypeRegistry;
 use crate::workflow::Workflow;
+use futures_util::future::BoxFuture;
 use futures_util::future::FutureExt;
-use futures_util::future::{BoxFuture, Shared};
 use std::collections::HashMap;
 use std::sync::Arc;
 use thiserror::Error;
@@ -61,9 +61,7 @@ pub fn build_graph(wf: Workflow, registry: &NodeTypeRegistry) -> WorkflowGraph {
         for output_name in &node_type.outputs {
             let fq_name = format!("{}.{}", node.name, output_name);
             let promise = match output_name.as_str() {
-                "output" => {
-                    AnyPromise::String(Arc::new(Promise::new(execute_handle.clone())))
-                }
+                "output" => AnyPromise::String(Arc::new(Promise::new(execute_handle.clone()))),
                 // match other expected types here as needed
                 _ => panic!("unknown output type"),
             };
