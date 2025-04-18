@@ -5,8 +5,8 @@ use clap::{ArgMatches, Command};
 pub enum Dispatch {
     /// Dispatch to a function
     Function(fn(&ArgMatches) -> CliResult),
-    // /// Run a workflow
-    // Workflow(WorkflowName),
+    /// Run a workflow
+    Workflow(String),
 }
 
 #[derive(Debug)]

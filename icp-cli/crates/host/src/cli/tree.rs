@@ -53,6 +53,20 @@ impl CommandTree {
         cmd
     }
 
+    pub fn get_descriptor<'a, 'b>(
+        &'a self,
+        matches: &'b ArgMatches,
+    ) -> Result<(&'a CommandDescriptor, &'b ArgMatches), CliError> {
+        match (matches.subcommand(), self.descriptor.as_ref()) {
+            (None, Some(desc)) => Ok((desc, matches)),
+            (Some((subcommand, sub_matches)), _) => match self.children.get(subcommand) {
+                Some(child) => child.get_descriptor(sub_matches),
+                None => Err(CliError(format!("Unknown subcommand: {}", subcommand))),
+            },
+            (None, None) => Err(CliError("No command descriptor at this node".into())),
+        }
+    }
+
     pub(crate) fn dispatch(&self, matches: &ArgMatches) -> CliResult {
         match matches.subcommand() {
             Some((subcommand, sub_matches)) => match self.children.get(subcommand) {
@@ -62,7 +76,9 @@ impl CommandTree {
             None => match &self.descriptor {
                 Some(desc) => match &desc.dispatch {
                     Dispatch::Function(f) => f(matches),
-                    // more dispatch variants
+                    Dispatch::Workflow(workflow) => {
+                        todo!()
+                    } // more dispatch variants
                 },
                 None => Err(CliError("No command to dispatch at this node".into())),
             },
