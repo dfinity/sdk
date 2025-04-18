@@ -17,6 +17,9 @@ use crate::nodes::node_descriptors;
 use crate::parse::workflow::WorkflowModel;
 use crate::registry::node_type_registry::NodeTypeRegistry;
 
+extern crate command_descriptor_derive;
+use command_descriptor_derive::command_descriptor;
+
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     let commands = vec![identity::new::descriptor()];
