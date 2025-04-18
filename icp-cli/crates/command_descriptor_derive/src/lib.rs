@@ -6,7 +6,7 @@ use syn::{parse_macro_input, Attribute, Ident, ItemStruct, LitStr, Meta, MetaNam
 // CommandDescriptorArgs: parses #[command_descriptor(path = "foo", dispatch_fn = "bar")]
 struct CommandDescriptorArgs {
     path: LitStr,
-    dispatch_fn: LitStr,
+    dispatch_fn: Option<LitStr>,
 }
 
 impl Parse for CommandDescriptorArgs {
@@ -18,14 +18,19 @@ impl Parse for CommandDescriptorArgs {
         input.parse::<Token![=]>()?;
         let path: LitStr = input.parse()?;
 
-        input.parse::<Token![,]>()?;
+        // Check for optional comma and dispatch_fn
+        let dispatch_fn = if input.peek(Token![,]) {
+            input.parse::<Token![,]>()?;
 
-        let dispatch_fn_ident: Ident = input.parse()?;
-        if dispatch_fn_ident != "dispatch_fn" {
-            return Err(input.error("expected `dispatch_fn`"));
-        }
-        input.parse::<Token![=]>()?;
-        let dispatch_fn: LitStr = input.parse()?;
+            let dispatch_fn_ident: Ident = input.parse()?;
+            if dispatch_fn_ident != "dispatch_fn" {
+                return Err(input.error("expected `dispatch_fn`"));
+            }
+            input.parse::<Token![=]>()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
 
         Ok(CommandDescriptorArgs { path, dispatch_fn })
     }
@@ -37,7 +42,10 @@ pub fn command_descriptor(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr as CommandDescriptorArgs);
 
     let path_value = args.path.value();
-    let dispatch_fn_value = args.dispatch_fn.value();
+    let dispatch_fn_value = args
+        .dispatch_fn
+        .map(|s| s.value())
+        .unwrap_or_else(|| "exec".to_string());
 
     // Parse the struct itself
     let input = parse_macro_input!(item as ItemStruct);

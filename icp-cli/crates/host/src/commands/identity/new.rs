@@ -3,7 +3,7 @@ use crate::command_descriptor;
 use clap::Parser;
 
 #[derive(Parser, Debug)]
-#[command_descriptor(path = "identity new", dispatch_fn = "exec")]
+#[command_descriptor(path = "identity new")]
 pub struct NewIdentityCommand {
     /// The name of the identity to create.
     pub name: String,
