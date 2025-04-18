@@ -1,7 +1,7 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, ItemStruct, LitStr, Ident, Meta, MetaNameValue, Attribute, Token};
 use syn::parse::{Parse, ParseStream, Result};
+use syn::{parse_macro_input, Attribute, Ident, ItemStruct, LitStr, Meta, MetaNameValue, Token};
 
 // CommandDescriptorArgs: parses #[command_descriptor(path = "foo", dispatch_fn = "bar")]
 struct CommandDescriptorArgs {
@@ -54,23 +54,22 @@ pub fn command_descriptor(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Turn the dispatch_fn string into an identifier
     let dispatch_fn_ident = syn::Ident::new(&dispatch_fn_value, struct_name.span());
 
-    // Generate the impl block
+    // Generate the descriptor method
     let expanded = quote! {
         #input
 
-        impl #struct_name {
-            pub(crate) fn descriptor() -> CommandDescriptor {
-                let path = vec![#(#path_vec),*];
-                let subcommand = Self::command();
-                let dispatch = Dispatch::Function(|matches| {
-                    let opts = Self::from_arg_matches(matches).map_err(|e| CliError(e.to_string()))?;
-                    #dispatch_fn_ident(&opts)
-                });
-                CommandDescriptor {
-                    path,
-                    subcommand,
-                    dispatch,
-                }
+        pub(crate) fn descriptor() -> crate::cli::descriptor::CommandDescriptor {
+            use clap::{FromArgMatches, CommandFactory};
+            let path = vec![#(#path_vec),*];
+            let subcommand = #struct_name::command();
+            let dispatch = crate::cli::descriptor::Dispatch::Function(|matches| {
+                let opts = #struct_name::from_arg_matches(matches).map_err(|e| crate::cli::error::CliError(e.to_string()))?;
+                #dispatch_fn_ident(&opts)
+            });
+            crate::cli::descriptor::CommandDescriptor {
+                path,
+                subcommand,
+                dispatch,
             }
         }
     };
