@@ -56,14 +56,15 @@ impl CommandTree {
     pub fn get_descriptor<'a, 'b>(
         &'a self,
         matches: &'b ArgMatches,
-    ) -> Result<(&'a CommandDescriptor, &'b ArgMatches), CliError> {
+    ) -> (&'a CommandDescriptor, &'b ArgMatches) {
         match (matches.subcommand(), self.descriptor.as_ref()) {
-            (None, Some(desc)) => Ok((desc, matches)),
-            (Some((subcommand, sub_matches)), _) => match self.children.get(subcommand) {
-                Some(child) => child.get_descriptor(sub_matches),
-                None => Err(CliError(format!("Unknown subcommand: {}", subcommand))),
-            },
-            (None, None) => Err(CliError("No command descriptor at this node".into())),
+            (None, Some(desc)) => (desc, matches),
+            (Some((subcommand, sub_matches)), _) => self
+                .children
+                .get(subcommand)
+                .expect("subcommand should exist in CommandTree")
+                .get_descriptor(sub_matches),
+            (None, None) => unreachable!("should always have a descriptor at leaf nodes"),
         }
     }
 

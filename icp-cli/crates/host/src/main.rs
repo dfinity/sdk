@@ -19,6 +19,7 @@ use crate::registry::node_type_registry::NodeTypeRegistry;
 
 extern crate command_descriptor_derive;
 use crate::cli::descriptor::{CommandDescriptor, Dispatch};
+use crate::cli::error::{CliError, CliResult};
 use command_descriptor_derive::command_descriptor;
 
 fn builtin_command_descriptors() -> Vec<CommandDescriptor> {
@@ -82,50 +83,28 @@ async fn main() {
     let command = command_tree.build_clap_command("icp");
     let matches = command.get_matches();
 
-    // command_tree.dispatch(&matches).unwrap_or_else(|e| {
-    //     eprintln!("Error: {}", e);
-    //     std::process::exit(1);
-    // });
+    let (descriptor, matches) = command_tree.get_descriptor(&matches);
 
-    let (descriptor, matches) = match command_tree.get_descriptor(&matches) {
-        Ok(d) => d,
-        Err(e) => {
-            eprintln!("Error: {}", e);
-            std::process::exit(1);
-        }
+    let r = match &descriptor.dispatch {
+        Dispatch::Function(f) => f(&matches),
+        Dispatch::Workflow(workflow) => execute_workflow(workflow).await,
     };
-
-    match &descriptor.dispatch {
-        Dispatch::Function(f) => {
-            if let Err(e) = f(&matches) {
-                eprintln!("Error: {}", e);
-                std::process::exit(1);
-            }
-        }
-        Dispatch::Workflow(workflow) => {
-            if let Err(e) = execute_workflow(workflow).await {
-                eprintln!("Workflow error: {}", e);
-                std::process::exit(1);
-            }
-        }
+    if let Err(e) = r {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
     }
 }
-async fn execute_workflow(workflow: &str) -> Result<(), String> {
+
+async fn execute_workflow(workflow: &str) -> CliResult {
     let mut registry = NodeTypeRegistry::new();
     registry.register(node_descriptors());
-
-    // let model = WorkflowModel::from_string(workflow);
-    // let plan = WorkflowPlan::from_model(model);
-    // let graph = ExecutionGraph::from_plan(plan, &registry);
 
     let graph = WorkflowModel::from_string(workflow)
         .into_plan()
         .into_graph(&registry);
 
-    let result = graph.run().await;
-    if let Err(e) = result {
-        println!("Error executing workflow: {}", e);
-        std::process::exit(1);
-    }
-    Ok(())
+    graph
+        .run()
+        .await
+        .map_err(|e| CliError(format!("Error executing workflow: {}", e)))
 }
