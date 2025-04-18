@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+
+
 # 0.26.1
 
 ### fix: clear state when switching from shared to project network
@@ -26,7 +28,7 @@ Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standar
 
 ### Motoko
 
-Updated Motoko to [0.14.7](https://github.com/dfinity/motoko/releases/tag/0.14.7)
+Updated Motoko to [0.14.8](https://github.com/dfinity/motoko/releases/tag/0.14.8)
 
 ### Replica
 
