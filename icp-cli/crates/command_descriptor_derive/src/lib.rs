@@ -1,38 +1,62 @@
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
+use syn::punctuated::Punctuated;
+use syn::spanned::Spanned;
+use syn::token::Comma;
+use syn::Lit;
 use syn::{parse_macro_input, Attribute, Ident, ItemStruct, LitStr, Meta, MetaNameValue, Token};
 
-// CommandDescriptorArgs: parses #[command_descriptor(path = "foo", dispatch_fn = "bar")]
 struct CommandDescriptorArgs {
-    path: LitStr,
-    dispatch_fn: Option<LitStr>,
+    path: String,
+    dispatch_fn: Option<String>,
 }
 
 impl Parse for CommandDescriptorArgs {
     fn parse(input: ParseStream) -> Result<Self> {
-        let path_ident: Ident = input.parse()?;
-        if path_ident != "path" {
-            return Err(input.error("expected `path`"));
-        }
-        input.parse::<Token![=]>()?;
-        let path: LitStr = input.parse()?;
+        let metas: Punctuated<Meta, Comma> = input.parse_terminated(Meta::parse, Token![,])?;
 
-        // Check for optional comma and dispatch_fn
-        let dispatch_fn = if input.peek(Token![,]) {
-            input.parse::<Token![,]>()?;
+        let mut path = None;
+        let mut dispatch_fn = None;
 
-            let dispatch_fn_ident: Ident = input.parse()?;
-            if dispatch_fn_ident != "dispatch_fn" {
-                return Err(input.error("expected `dispatch_fn`"));
+        for meta in metas {
+            match meta {
+                Meta::NameValue(MetaNameValue { path: p, value, .. }) => {
+                    let ident = p
+                        .get_ident()
+                        .ok_or_else(|| syn::Error::new(p.span(), "expected identifier"))?;
+
+                    let lit_str = match value {
+                        syn::Expr::Lit(syn::ExprLit {
+                            lit: syn::Lit::Str(lit),
+                            ..
+                        }) => lit,
+                        _ => return Err(input.error("expected string literal")),
+                    };
+
+                    match ident.to_string().as_str() {
+                        "path" => path = Some(lit_str.value()),
+                        "dispatch_fn" => dispatch_fn = Some(lit_str.value()),
+                        _ => {
+                            return Err(syn::Error::new(
+                                ident.span(),
+                                format!("unrecognized attribute `{}`", ident),
+                            ))
+                        }
+                    }
+                }
+                other => {
+                    return Err(input.error(format!("unsupported attribute syntax: {:?}", other)));
+                }
             }
-            input.parse::<Token![=]>()?;
-            Some(input.parse()?)
-        } else {
-            None
-        };
+        }
 
-        Ok(CommandDescriptorArgs { path, dispatch_fn })
+        let path = path.ok_or_else(|| input.error("missing required `path` argument"))?;
+
+        Ok(CommandDescriptorArgs {
+            path: path,
+            dispatch_fn,
+        })
     }
 }
 
@@ -41,11 +65,8 @@ pub fn command_descriptor(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Parse attribute args with our custom struct
     let args = parse_macro_input!(attr as CommandDescriptorArgs);
 
-    let path_value = args.path.value();
-    let dispatch_fn_value = args
-        .dispatch_fn
-        .map(|s| s.value())
-        .unwrap_or_else(|| "exec".to_string());
+    let path_value = args.path;
+    let dispatch_fn_value = args.dispatch_fn.unwrap_or_else(|| "exec".to_string());
 
     // Parse the struct itself
     let input = parse_macro_input!(item as ItemStruct);
