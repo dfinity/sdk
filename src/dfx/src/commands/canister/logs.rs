@@ -160,11 +160,7 @@ pub async fn exec(env: &dyn Environment, opts: LogsOpts, call_sender: &CallSende
         };
         let filtered_logs = filter_canister_logs(&logs, filter_opts);
 
-        if filtered_logs.is_empty() {
-            println!("No logs");
-        } else {
-            println!("{}", format_canister_logs(filtered_logs).join("\n"));
-        }
+        println!("{}", format_canister_logs(filtered_logs).join("\n"));
     }
 
     Ok(())
