@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: Support 'follow' mode for 'dfx canister logs'
+Support `follow` mode for `dfx canister logs`
+- `--follow` to fetch logs continuously until interrupted with `Ctrl+C`
+- `--interval` to specify the interval in seconds between log fetches
+
 ### feat: Improve 'dfx canister logs' with several options
 
 Improve `dfx canister logs` with several options
