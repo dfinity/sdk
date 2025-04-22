@@ -39,11 +39,13 @@ mod lazy_evaluation_test {
     use crate::execute::execute::{Execute, SharedExecuteResult};
     use crate::execute::promise::{Input, InputRef, Output, OutputRef};
     use crate::execute::ExecutionGraph;
+    use crate::nodes::edge::EdgeType;
     use crate::plan::workflow::WorkflowPlan;
     use crate::registry::node_config::NodeConfig;
     use crate::registry::node_type::NodeDescriptor;
     use crate::registry::node_type_registry::NodeTypeRegistry;
     use async_trait::async_trait;
+    use std::collections::HashMap;
     use std::sync::atomic::{AtomicBool, Ordering};
     use std::sync::{Arc, Mutex};
 
@@ -106,8 +108,8 @@ mod lazy_evaluation_test {
             let log_clone = log.clone();
             NodeDescriptor {
                 name: "lazy".to_string(),
-                inputs: vec![],
-                outputs: vec!["output".to_string()],
+                inputs: HashMap::new(),
+                outputs: HashMap::from([("output".to_string(), EdgeType::String)]),
                 produces_side_effect: false,
                 // Use the helper function here
                 constructor: Box::new(move |config| {
@@ -152,8 +154,8 @@ mod lazy_evaluation_test {
 
             NodeDescriptor {
                 name: "eager".to_string(),
-                inputs: vec!["input".to_string()],
-                outputs: vec![],
+                inputs: HashMap::from([("output".to_string(), EdgeType::String)]),
+                outputs: HashMap::new(),
                 produces_side_effect: true,
                 constructor: Box::new(move |config| {
                     create_print_node(&config, ab_clone.clone(), log_clone.clone())
