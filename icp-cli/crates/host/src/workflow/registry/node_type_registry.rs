@@ -1,4 +1,4 @@
-use crate::registry::node_type::NodeDescriptor;
+use crate::workflow::registry::node_type::NodeDescriptor;
 use std::collections::HashMap;
 
 pub struct NodeTypeRegistry {

@@ -1,8 +1,8 @@
-use crate::execute::execute::{Execute, SharedExecuteResult};
-use crate::execute::promise::OutputRef;
-use crate::payload::wasm::Wasm;
-use crate::registry::edge::EdgeType;
-use crate::registry::node_type::NodeDescriptor;
+use crate::workflow::execute::execute::{Execute, SharedExecuteResult};
+use crate::workflow::execute::promise::OutputRef;
+use crate::workflow::payload::wasm::Wasm;
+use crate::workflow::registry::edge::EdgeType;
+use crate::workflow::registry::node_type::NodeDescriptor;
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;

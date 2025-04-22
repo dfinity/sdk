@@ -1,6 +1,6 @@
 use crate::prettify::PrettifyError;
-use crate::registry::edge::EdgeType;
-use crate::registry::error::NodeConstructorError;
+use crate::workflow::registry::edge::EdgeType;
+use crate::workflow::registry::error::NodeConstructorError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

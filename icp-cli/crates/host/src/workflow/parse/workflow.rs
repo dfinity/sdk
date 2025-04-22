@@ -1,4 +1,4 @@
-use crate::plan::workflow::WorkflowPlan;
+use crate::workflow::plan::workflow::WorkflowPlan;
 use serde::Deserialize;
 use std::collections::HashMap;
 

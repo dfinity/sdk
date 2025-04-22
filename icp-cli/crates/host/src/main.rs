@@ -1,22 +1,16 @@
 mod bindings;
 mod cli;
-mod command_config;
 mod commands;
-mod execute;
 mod host;
-mod nodes;
-mod parse;
-mod payload;
-mod plan;
 mod prettify;
-mod registry;
 mod tests;
+mod workflow;
 
 use crate::cli::tree::CommandTree;
 use crate::commands::identity;
-use crate::nodes::node_descriptors;
-use crate::parse::workflow::WorkflowModel;
-use crate::registry::node_type_registry::NodeTypeRegistry;
+use workflow::nodes::node_descriptors;
+use workflow::parse::workflow::WorkflowModel;
+use workflow::registry::node_type_registry::NodeTypeRegistry;
 
 extern crate command_descriptor_derive;
 use crate::cli::descriptor::{CommandDescriptor, Dispatch};

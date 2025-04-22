@@ -1,6 +1,6 @@
-use crate::execute::promise::{AnyPromise, Input, InputRef, Output, OutputRef};
-use crate::payload::wasm::Wasm;
-use crate::registry::error::StringSourceError;
+use crate::workflow::execute::promise::{AnyPromise, Input, InputRef, Output, OutputRef};
+use crate::workflow::payload::wasm::Wasm;
+use crate::workflow::registry::error::StringSourceError;
 use std::collections::HashMap;
 use std::sync::Arc;
 

@@ -1,10 +1,10 @@
-use crate::execute::error::ExecutionGraphFromPlanError;
-use crate::execute::execute::{Execute, SharedExecuteResult};
-use crate::execute::promise::{AnyPromise, ExecuteHandle, Promise};
-use crate::plan::workflow::WorkflowPlan;
-use crate::registry::edge::EdgeType;
-use crate::registry::node_config::NodeConfig;
-use crate::registry::node_type_registry::NodeTypeRegistry;
+use crate::workflow::execute::error::ExecutionGraphFromPlanError;
+use crate::workflow::execute::execute::{Execute, SharedExecuteResult};
+use crate::workflow::execute::promise::{AnyPromise, ExecuteHandle, Promise};
+use crate::workflow::plan::workflow::WorkflowPlan;
+use crate::workflow::registry::edge::EdgeType;
+use crate::workflow::registry::node_config::NodeConfig;
+use crate::workflow::registry::node_type_registry::NodeTypeRegistry;
 use futures_util::future::BoxFuture;
 use futures_util::future::FutureExt;
 use std::collections::HashMap;

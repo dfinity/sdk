@@ -1,8 +1,8 @@
-use crate::execute::error::{StringPromiseError, WasmPromiseError};
-use crate::execute::execute::SharedExecuteResult;
-use crate::execute::GraphExecutionError;
-use crate::payload::wasm::Wasm;
-use crate::registry::edge::EdgeType;
+use crate::workflow::execute::error::{StringPromiseError, WasmPromiseError};
+use crate::workflow::execute::execute::SharedExecuteResult;
+use crate::workflow::execute::GraphExecutionError;
+use crate::workflow::payload::wasm::Wasm;
+use crate::workflow::registry::edge::EdgeType;
 use async_trait::async_trait;
 use futures::future::{BoxFuture, Shared};
 use std::sync::Arc;
@@ -40,9 +40,7 @@ pub trait Input<T: Clone + Send + Sync + 'static> {
     async fn get(&self) -> Result<T, Arc<GraphExecutionError>>;
 }
 
-pub trait Output<T: Clone + Send + Sync + 'static>:
-    Send + Sync + 'static
-{
+pub trait Output<T: Clone + Send + Sync + 'static>: Send + Sync + 'static {
     fn set(&self, value: T);
 }
 
@@ -92,18 +90,18 @@ pub enum AnyPromise {
 impl AnyPromise {
     pub fn string(&self) -> Result<Arc<Promise<String>>, StringPromiseError> {
         match self {
-            AnyPromise::String(p) => Ok(p.clone()),
-            other => Err(StringPromiseError::TypeMismatch {
-                got: other.edge_type(),
+            AnyPromise::String(expected) => Ok(expected.clone()),
+            actual => Err(StringPromiseError::TypeMismatch {
+                got: actual.edge_type(),
             }),
         }
     }
 
     pub fn wasm(&self) -> Result<Arc<Promise<Wasm>>, WasmPromiseError> {
         match self {
-            AnyPromise::Wasm(p) => Ok(p.clone()),
-            other => Err(WasmPromiseError::TypeMismatch {
-                got: other.edge_type(),
+            AnyPromise::Wasm(expected) => Ok(expected.clone()),
+            actual => Err(WasmPromiseError::TypeMismatch {
+                got: actual.edge_type(),
             }),
         }
     }

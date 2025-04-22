@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::execute::execute::Execute;
-    use crate::execute::ExecutionGraph;
-    use crate::nodes::node_descriptors;
-    use crate::plan::workflow::WorkflowPlan;
-    use crate::registry::node_type_registry::NodeTypeRegistry;
+    use crate::workflow::execute::execute::Execute;
+    use crate::workflow::execute::ExecutionGraph;
+    use crate::workflow::nodes::node_descriptors;
+    use crate::workflow::plan::workflow::WorkflowPlan;
+    use crate::workflow::registry::node_type_registry::NodeTypeRegistry;
     use serde_yaml;
 
     const SIMPLE_WORKFLOW_YAML: &str = r#"
@@ -36,12 +36,12 @@ workflow:
 
 #[cfg(test)]
 mod type_checking_test {
-    use crate::execute::error::{ExecutionGraphFromPlanError, StringPromiseError};
-    use crate::nodes::node_descriptors;
-    use crate::plan::workflow::WorkflowPlan;
-    use crate::registry::edge::EdgeType;
-    use crate::registry::error::{NodeConstructorError, StringSourceError};
-    use crate::registry::node_type_registry::NodeTypeRegistry;
+    use crate::workflow::execute::error::{ExecutionGraphFromPlanError, StringPromiseError};
+    use crate::workflow::nodes::node_descriptors;
+    use crate::workflow::plan::workflow::WorkflowPlan;
+    use crate::workflow::registry::edge::EdgeType;
+    use crate::workflow::registry::error::{NodeConstructorError, StringSourceError};
+    use crate::workflow::registry::node_type_registry::NodeTypeRegistry;
 
     const WORKFLOW_YAML: &str = r#"
 workflow:
@@ -81,14 +81,14 @@ workflow:
 
 #[cfg(test)]
 mod lazy_evaluation_test {
-    use crate::execute::execute::{Execute, SharedExecuteResult};
-    use crate::execute::promise::{Input, InputRef, Output, OutputRef};
-    use crate::execute::ExecutionGraph;
-    use crate::plan::workflow::WorkflowPlan;
-    use crate::registry::edge::EdgeType;
-    use crate::registry::node_config::NodeConfig;
-    use crate::registry::node_type::NodeDescriptor;
-    use crate::registry::node_type_registry::NodeTypeRegistry;
+    use crate::workflow::execute::execute::{Execute, SharedExecuteResult};
+    use crate::workflow::execute::promise::{Input, InputRef, Output, OutputRef};
+    use crate::workflow::execute::ExecutionGraph;
+    use crate::workflow::plan::workflow::WorkflowPlan;
+    use crate::workflow::registry::edge::EdgeType;
+    use crate::workflow::registry::node_config::NodeConfig;
+    use crate::workflow::registry::node_type::NodeDescriptor;
+    use crate::workflow::registry::node_type_registry::NodeTypeRegistry;
     use async_trait::async_trait;
     use std::collections::HashMap;
     use std::sync::atomic::{AtomicBool, Ordering};

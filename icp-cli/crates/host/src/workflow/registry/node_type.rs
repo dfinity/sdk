@@ -1,7 +1,7 @@
-use crate::execute::execute::Execute;
-use crate::registry::edge::EdgeType;
-use crate::registry::error::NodeConstructorError;
-use crate::registry::node_config::NodeConfig;
+use crate::workflow::execute::execute::Execute;
+use crate::workflow::registry::edge::EdgeType;
+use crate::workflow::registry::error::NodeConstructorError;
+use crate::workflow::registry::node_config::NodeConfig;
 use std::collections::HashMap;
 use std::sync::Arc;
 

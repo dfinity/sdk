@@ -1,7 +1,7 @@
-use crate::execute::error::ExecutionGraphFromPlanError;
-use crate::execute::ExecutionGraph;
-use crate::parse::workflow::{NodeModel, WorkflowModel};
-use crate::registry::node_type_registry::NodeTypeRegistry;
+use crate::workflow::execute::error::ExecutionGraphFromPlanError;
+use crate::workflow::execute::ExecutionGraph;
+use crate::workflow::parse::workflow::{NodeModel, WorkflowModel};
+use crate::workflow::registry::node_type_registry::NodeTypeRegistry;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use thiserror::Error;
 
@@ -204,7 +204,7 @@ pub fn topological_sort_dfs(
 
 #[cfg(test)]
 mod topological_sort_dfs_tests {
-    use crate::plan::workflow::{topological_sort_dfs, TopoSortError, WorkflowPlanNode};
+    use crate::workflow::plan::workflow::{topological_sort_dfs, TopoSortError, WorkflowPlanNode};
     use std::collections::HashMap;
 
     #[test]
