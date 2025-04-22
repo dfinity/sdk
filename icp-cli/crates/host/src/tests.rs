@@ -10,11 +10,11 @@ mod tests {
 
     const SIMPLE_WORKFLOW_YAML: &str = r#"
 workflow:
-  const:
+  const-string:
     value: Hello, test!
   print:
     inputs:
-      input: const.output
+      input: const-string.output
 "#;
 
     #[tokio::test]
@@ -39,8 +39,8 @@ mod lazy_evaluation_test {
     use crate::execute::execute::{Execute, SharedExecuteResult};
     use crate::execute::promise::{Input, InputRef, Output, OutputRef};
     use crate::execute::ExecutionGraph;
-    use crate::nodes::edge::EdgeType;
     use crate::plan::workflow::WorkflowPlan;
+    use crate::registry::edge::EdgeType;
     use crate::registry::node_config::NodeConfig;
     use crate::registry::node_type::NodeDescriptor;
     use crate::registry::node_type_registry::NodeTypeRegistry;

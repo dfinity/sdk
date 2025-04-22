@@ -1,8 +1,8 @@
 use crate::execute::execute::{Execute, SharedExecuteResult};
 use crate::execute::promise::{Input, InputRef, Output, OutputRef};
 use crate::execute::GraphExecutionError;
-use crate::nodes::edge::EdgeType;
 use crate::prettify::Prettify;
+use crate::registry::edge::EdgeType;
 use crate::registry::node_type::NodeDescriptor;
 use std::collections::HashMap;
 use std::sync::Arc;

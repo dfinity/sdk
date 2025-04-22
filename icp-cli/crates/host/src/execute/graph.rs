@@ -1,7 +1,7 @@
 use crate::execute::execute::{Execute, SharedExecuteResult};
 use crate::execute::promise::{AnyPromise, ExecuteHandle, Promise};
-use crate::nodes::edge::EdgeType;
 use crate::plan::workflow::WorkflowPlan;
+use crate::registry::edge::EdgeType;
 use crate::registry::node_config::NodeConfig;
 use crate::registry::node_type_registry::NodeTypeRegistry;
 use futures_util::future::BoxFuture;
