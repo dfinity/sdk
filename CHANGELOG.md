@@ -6,6 +6,24 @@
 
 Similar to very long freezing thresholds, setting a freezing threshold below 1 week now requires confirmation with `--confirm-very-short-freezing-threshold` so that unexpected canister uninstallation is less likely.
 
+### feat: Support 'follow' mode for 'dfx canister logs'
+Support `follow` mode for `dfx canister logs`
+- `--follow` to fetch logs continuously until interrupted with `Ctrl+C`
+- `--interval` to specify the interval in seconds between log fetches
+
+### feat: Improve 'dfx canister logs' with several options
+
+Improve `dfx canister logs` with several options
+- `--tail <n>` to show the last `n` log entries
+- `--since` to show the logs newer than a relative duration
+- `--since-time` to show the logs newer than a specific timestamp
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.8](https://github.com/dfinity/motoko/releases/tag/0.14.8)
+
 # 0.26.1
 
 ### fix: clear state when switching from shared to project network
