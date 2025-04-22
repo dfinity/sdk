@@ -1,8 +1,10 @@
 use crate::execute::execute::{Execute, SharedExecuteResult};
 use crate::execute::promise::{Input, InputRef, Output, OutputRef};
 use crate::execute::GraphExecutionError;
+use crate::nodes::edge::EdgeType;
 use crate::prettify::Prettify;
 use crate::registry::node_type::NodeDescriptor;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 pub struct PrettifyNode {
@@ -30,8 +32,8 @@ impl PrettifyNode {
     pub fn descriptor() -> NodeDescriptor {
         NodeDescriptor {
             name: "prettify".to_string(),
-            inputs: vec!["input".to_string()],
-            outputs: vec!["output".to_string()],
+            inputs: HashMap::from([("input".to_string(), EdgeType::String)]),
+            outputs: HashMap::from([("output".to_string(), EdgeType::String)]),
             produces_side_effect: true,
             constructor: Box::new(|config| {
                 let input = config.string_source("input");

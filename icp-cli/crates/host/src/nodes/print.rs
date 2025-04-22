@@ -1,7 +1,9 @@
 use crate::execute::execute::{Execute, SharedExecuteResult};
 use crate::execute::promise::{Input, InputRef};
+use crate::nodes::edge::EdgeType;
 use crate::registry::node_type::NodeDescriptor;
 use async_trait::async_trait;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 pub struct PrintNode {
@@ -22,8 +24,8 @@ impl PrintNode {
     pub fn descriptor() -> NodeDescriptor {
         NodeDescriptor {
             name: "print".to_string(),
-            inputs: vec!["input".to_string()],
-            outputs: vec![],
+            inputs: HashMap::from([("input".to_string(), EdgeType::String)]),
+            outputs: HashMap::new(),
             produces_side_effect: true,
             constructor: Box::new(|config| {
                 let input = config.string_source("input");

@@ -1,5 +1,6 @@
 use crate::execute::execute::{Execute, SharedExecuteResult};
 use crate::execute::promise::{AnyPromise, ExecuteHandle, Promise};
+use crate::nodes::edge::EdgeType;
 use crate::plan::workflow::WorkflowPlan;
 use crate::registry::node_config::NodeConfig;
 use crate::registry::node_type_registry::NodeTypeRegistry;
@@ -51,12 +52,12 @@ impl ExecutionGraph {
             let execute_handle = ExecuteHandle::new();
 
             // create and register this node's output promises
-            for output_name in &node_type.outputs {
+            for (output_name, edge_type) in &node_type.outputs {
                 let fq_name = format!("{}.{}", node.name, output_name);
-                let promise = match output_name.as_str() {
-                    "output" => AnyPromise::String(Arc::new(Promise::new(execute_handle.clone()))),
-                    // match other expected types here as needed
-                    _ => panic!("unknown output type"),
+                let promise = match edge_type {
+                    EdgeType::String => {
+                        AnyPromise::String(Arc::new(Promise::new(execute_handle.clone())))
+                    }
                 };
                 config.outputs.insert(output_name.clone(), promise.clone());
                 promises.insert(fq_name, promise);

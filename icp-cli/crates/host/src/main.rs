@@ -22,6 +22,12 @@ use crate::cli::descriptor::{CommandDescriptor, Dispatch};
 use crate::cli::error::{CliError, CliResult};
 use command_descriptor_derive::command_descriptor;
 
+// fn x() {
+//     let y : Vec<_> = vec![
+//         crate::commands::identity::new,
+//
+//     ];
+// }
 fn builtin_command_descriptors() -> Vec<CommandDescriptor> {
     vec![
         identity::new::descriptor(),

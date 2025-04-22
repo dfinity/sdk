@@ -1,12 +1,14 @@
 use crate::execute::execute::{Execute, SharedExecuteResult};
-use crate::execute::promise::Output;
+use crate::execute::promise::{Output, OutputRef};
+use crate::nodes::edge::EdgeType;
 use crate::registry::node_type::NodeDescriptor;
 use async_trait::async_trait;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 pub struct ConstNode {
     value: String,
-    output: Arc<dyn Output<String>>,
+    output: OutputRef<String>,
 }
 
 #[async_trait]
@@ -23,8 +25,8 @@ impl ConstNode {
     pub fn descriptor() -> NodeDescriptor {
         NodeDescriptor {
             name: "const".to_string(),
-            inputs: vec![], // no inputs
-            outputs: vec!["output".to_string()],
+            inputs: HashMap::new(), // no inputs
+            outputs: HashMap::from([("output".to_string(), EdgeType::String)]),
             produces_side_effect: false,
             constructor: Box::new(|config| {
                 let value = config.string_param("value");
