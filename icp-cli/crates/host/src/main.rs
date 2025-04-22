@@ -6,6 +6,7 @@ mod execute;
 mod host;
 mod nodes;
 mod parse;
+mod payload;
 mod plan;
 mod prettify;
 mod registry;
@@ -37,12 +38,12 @@ fn builtin_command_descriptors() -> Vec<CommandDescriptor> {
 
 const SIMPLE_WORKFLOW: &str = r#"
 workflow:
-    const:
+    const-string:
         value: Hello, test!
     prettify:
         type: prettify
         inputs:
-            input: const
+            input: const-string
     print:
         inputs:
             input: prettify
@@ -107,7 +108,13 @@ async fn execute_workflow(workflow: &str) -> CliResult {
 
     let graph = WorkflowModel::from_string(workflow)
         .into_plan()
-        .into_graph(&registry);
+        .into_graph(&registry)
+        .map_err(|e| {
+            CliError(format!(
+                "Error creating execution graph from workflow: {}",
+                e
+            ))
+        })?;
 
     graph
         .run()

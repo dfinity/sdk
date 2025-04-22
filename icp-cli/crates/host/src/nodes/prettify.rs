@@ -36,9 +36,9 @@ impl PrettifyNode {
             outputs: HashMap::from([("output".to_string(), EdgeType::String)]),
             produces_side_effect: true,
             constructor: Box::new(|config| {
-                let input = config.string_source("input");
+                let input = config.string_source("input")?;
                 let output = config.string_output("output");
-                Arc::new(Self { input, output })
+                Ok(Arc::new(Self { input, output }))
             }),
         }
     }

@@ -27,10 +27,55 @@ workflow:
 
         let workflow: WorkflowPlan = WorkflowPlan::from_string(SIMPLE_WORKFLOW_YAML);
 
-        let graph = ExecutionGraph::from_plan(workflow, &registry);
+        let graph = ExecutionGraph::from_plan(workflow, &registry).unwrap();
 
-        let r = graph.run_future.await;
+        let r = graph.run().await;
         assert!(r.is_ok(), "Workflow execution failed: {:?}", r);
+    }
+}
+
+#[cfg(test)]
+mod type_checking_test {
+    use crate::execute::error::{ExecutionGraphFromPlanError, StringPromiseError};
+    use crate::nodes::node_descriptors;
+    use crate::plan::workflow::WorkflowPlan;
+    use crate::registry::edge::EdgeType;
+    use crate::registry::error::{NodeConstructorError, StringSourceError};
+    use crate::registry::node_type_registry::NodeTypeRegistry;
+
+    const WORKFLOW_YAML: &str = r#"
+workflow:
+  const-string:
+    value: Hello, world!
+  const-wasm:
+    value: "0061736d01000000"
+  print:
+    inputs:
+      input: const-wasm
+"#;
+    #[tokio::test]
+    async fn detects_type_mismatch() {
+        let registry = {
+            let mut r = NodeTypeRegistry::new();
+            r.register(node_descriptors());
+            r
+        };
+
+        let result = WorkflowPlan::from_string(WORKFLOW_YAML).into_graph(&registry);
+
+        assert!(
+            matches!(
+                result.err().unwrap(),
+                ExecutionGraphFromPlanError::NodeConstructorError(
+                    NodeConstructorError::StringSource(StringSourceError::StringPromiseError(
+                        StringPromiseError::TypeMismatch {
+                            got: EdgeType::Wasm
+                        }
+                    ))
+                )
+            ),
+            "expected a type mismatch error"
+        );
     }
 }
 
@@ -71,7 +116,7 @@ mod lazy_evaluation_test {
         ab: Arc<AtomicBool>,
         log: Arc<Mutex<Vec<String>>>,
     ) -> Arc<dyn Execute> {
-        let input = config.string_source("input");
+        let input = config.string_source("input").unwrap();
         Arc::new(EagerNode { ab, input, log })
     }
 
@@ -113,7 +158,7 @@ mod lazy_evaluation_test {
                 produces_side_effect: false,
                 // Use the helper function here
                 constructor: Box::new(move |config| {
-                    create_const_node(&config, ab.clone(), log.clone())
+                    Ok(create_const_node(&config, ab.clone(), log.clone()))
                 }),
             }
         }
@@ -158,7 +203,11 @@ mod lazy_evaluation_test {
                 outputs: HashMap::new(),
                 produces_side_effect: true,
                 constructor: Box::new(move |config| {
-                    create_print_node(&config, ab_clone.clone(), log_clone.clone())
+                    Ok(create_print_node(
+                        &config,
+                        ab_clone.clone(),
+                        log_clone.clone(),
+                    ))
                 }),
             }
         }
@@ -192,7 +241,7 @@ workflow:
 
         let workflow: WorkflowPlan = WorkflowPlan::from_string(SIMPLE_WORKFLOW_YAML);
 
-        let graph = ExecutionGraph::from_plan(workflow, &registry);
+        let graph = ExecutionGraph::from_plan(workflow, &registry).unwrap();
         let r = graph.run_future.await;
 
         assert!(r.is_ok(), "Workflow execution failed: {:?}", r);

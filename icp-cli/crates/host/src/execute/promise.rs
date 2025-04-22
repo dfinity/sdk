@@ -1,5 +1,8 @@
+use crate::execute::error::{StringPromiseError, WasmPromiseError};
 use crate::execute::execute::SharedExecuteResult;
 use crate::execute::GraphExecutionError;
+use crate::payload::wasm::Wasm;
+use crate::registry::edge::EdgeType;
 use async_trait::async_trait;
 use futures::future::{BoxFuture, Shared};
 use std::sync::Arc;
@@ -33,11 +36,11 @@ impl ExecuteHandle {
 }
 
 #[async_trait]
-pub trait Input<T: Clone + Send + Sync + 'static + std::fmt::Debug> {
+pub trait Input<T: Clone + Send + Sync + 'static> {
     async fn get(&self) -> Result<T, Arc<GraphExecutionError>>;
 }
 
-pub trait Output<T: Clone + Send + Sync + 'static + std::fmt::Debug>:
+pub trait Output<T: Clone + Send + Sync + 'static>:
     Send + Sync + 'static
 {
     fn set(&self, value: T);
@@ -81,27 +84,34 @@ impl<T: Clone + Send + 'static + std::fmt::Debug> Promise<T> {
 #[derive(Clone)]
 pub enum AnyPromise {
     String(Arc<Promise<String>>),
+    Wasm(Arc<Promise<Wasm>>),
     //    JsonValue(Arc<OutputPromise<serde_json::Value>>),
     // Add more as needed
 }
 
-#[derive(Debug, Error)]
-pub enum PromiseTypeError {
-    #[error("Type mismatch: expected String")]
-    ExpectedString,
-}
 impl AnyPromise {
-    pub fn string(&self) -> Result<Arc<Promise<String>>, PromiseTypeError> {
+    pub fn string(&self) -> Result<Arc<Promise<String>>, StringPromiseError> {
         match self {
             AnyPromise::String(p) => Ok(p.clone()),
-            // _ => Err(PromiseTypeError::ExpectedString),
+            other => Err(StringPromiseError::TypeMismatch {
+                got: other.edge_type(),
+            }),
         }
     }
 
-    // pub fn json_value(&self) -> Result<Arc<OutputPromise<serde_json::Value>>, PromiseTypeError> {
-    //     match self {
-    //         AnyOutputPromise::JsonValue(p) => Ok(p.clone()),
-    //         _ => Err(PromiseTypeError::ExpectedJsonValue),
-    //     }
-    // }
+    pub fn wasm(&self) -> Result<Arc<Promise<Wasm>>, WasmPromiseError> {
+        match self {
+            AnyPromise::Wasm(p) => Ok(p.clone()),
+            other => Err(WasmPromiseError::TypeMismatch {
+                got: other.edge_type(),
+            }),
+        }
+    }
+
+    fn edge_type(&self) -> EdgeType {
+        match self {
+            AnyPromise::String(_) => EdgeType::String,
+            AnyPromise::Wasm(_) => EdgeType::Wasm,
+        }
+    }
 }

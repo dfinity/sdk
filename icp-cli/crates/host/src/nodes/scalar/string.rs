@@ -31,7 +31,7 @@ impl ConstStringNode {
             constructor: Box::new(|config| {
                 let value = config.string_param("value");
                 let output = config.string_output("output");
-                Arc::new(Self { value, output })
+                Ok(Arc::new(Self { value, output }))
             }),
         }
     }

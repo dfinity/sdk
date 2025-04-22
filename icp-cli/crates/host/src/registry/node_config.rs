@@ -1,4 +1,6 @@
-use crate::execute::promise::{AnyPromise, Input, InputRef, Output};
+use crate::execute::promise::{AnyPromise, Input, InputRef, Output, OutputRef};
+use crate::payload::wasm::Wasm;
+use crate::registry::error::StringSourceError;
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -12,19 +14,30 @@ impl NodeConfig {
     pub fn string_param(&self, name: &str) -> String {
         self.params.get(name).expect("missing parameter").clone()
     }
-    pub fn string_source(&self, name: &str) -> InputRef<String> {
+    pub fn get_input(&self, name: &str) -> Result<&AnyPromise, StringSourceError> {
         self.inputs
             .get(name)
-            .expect("missing input")
-            .string()
-            .expect("type mismatch for input")
+            .ok_or_else(|| StringSourceError::MissingInput(name.to_string()))
     }
 
-    pub fn string_output(&self, name: &str) -> Arc<dyn Output<String>> {
+    pub fn string_source(&self, name: &str) -> Result<InputRef<String>, StringSourceError> {
+        let input = self.get_input(name)?.string()?;
+        Ok(input)
+    }
+
+    pub fn string_output(&self, name: &str) -> OutputRef<String> {
         self.outputs
             .get("output")
             .expect("missing 'output' output")
             .string()
+            .expect("type mismatch for 'output' output")
+    }
+
+    pub fn wasm_output(&self, name: &str) -> OutputRef<Wasm> {
+        self.outputs
+            .get("output")
+            .expect("missing 'output' output")
+            .wasm()
             .expect("type mismatch for 'output' output")
     }
 }

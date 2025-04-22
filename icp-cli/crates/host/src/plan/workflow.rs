@@ -1,3 +1,4 @@
+use crate::execute::error::ExecutionGraphFromPlanError;
 use crate::execute::ExecutionGraph;
 use crate::parse::workflow::{NodeModel, WorkflowModel};
 use crate::registry::node_type_registry::NodeTypeRegistry;
@@ -50,7 +51,10 @@ impl WorkflowPlan {
         Self { nodes }
     }
 
-    pub fn into_graph(self, registry: &NodeTypeRegistry) -> ExecutionGraph {
+    pub fn into_graph(
+        self,
+        registry: &NodeTypeRegistry,
+    ) -> Result<ExecutionGraph, ExecutionGraphFromPlanError> {
         ExecutionGraph::from_plan(self, registry)
     }
 

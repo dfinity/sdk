@@ -1,4 +1,4 @@
-mod error;
+pub mod error;
 pub mod execute;
 mod graph;
 pub mod promise;

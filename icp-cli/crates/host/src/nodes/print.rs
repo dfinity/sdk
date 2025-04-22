@@ -28,8 +28,8 @@ impl PrintNode {
             outputs: HashMap::new(),
             produces_side_effect: true,
             constructor: Box::new(|config| {
-                let input = config.string_source("input");
-                Arc::new(Self { input })
+                let input = config.string_source("input")?;
+                Ok(Arc::new(Self { input }))
             }),
         }
     }

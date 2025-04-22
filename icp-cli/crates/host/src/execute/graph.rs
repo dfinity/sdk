@@ -1,3 +1,4 @@
+use crate::execute::error::ExecutionGraphFromPlanError;
 use crate::execute::execute::{Execute, SharedExecuteResult};
 use crate::execute::promise::{AnyPromise, ExecuteHandle, Promise};
 use crate::plan::workflow::WorkflowPlan;
@@ -20,7 +21,10 @@ impl ExecutionGraph {
         Ok(())
     }
 
-    pub fn from_plan(wf: WorkflowPlan, registry: &NodeTypeRegistry) -> ExecutionGraph {
+    pub fn from_plan(
+        wf: WorkflowPlan,
+        registry: &NodeTypeRegistry,
+    ) -> Result<ExecutionGraph, ExecutionGraphFromPlanError> {
         let mut promises: HashMap<String, AnyPromise> = HashMap::new();
         let mut graph_nodes = HashMap::new();
         let mut side_effect_futures = vec![];
@@ -58,13 +62,16 @@ impl ExecutionGraph {
                     EdgeType::String => {
                         AnyPromise::String(Arc::new(Promise::new(execute_handle.clone())))
                     }
+                    EdgeType::Wasm => {
+                        AnyPromise::Wasm(Arc::new(Promise::new(execute_handle.clone())))
+                    }
                 };
                 config.outputs.insert(output_name.clone(), promise.clone());
                 promises.insert(fq_name, promise);
             }
 
             // construct node with config
-            let graph_node = (node_type.constructor)(config);
+            let graph_node = (node_type.constructor)(config)?;
 
             // 4. Build eval future
             let execute_future = graph_node.clone().execute().boxed().shared();
@@ -87,6 +94,6 @@ impl ExecutionGraph {
             })
             .boxed();
 
-        ExecutionGraph { nodes, run_future }
+        Ok(ExecutionGraph { nodes, run_future })
     }
 }
