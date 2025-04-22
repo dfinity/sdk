@@ -1,4 +1,4 @@
-use super::{bindings, host::*};
+use crate::host::host::Host;
 
 use {
     anyhow::Context,
@@ -16,6 +16,7 @@ pub struct Prettify {
     prettify: bindings::Prettify,
 }
 
+use crate::host::bindings;
 use thiserror::Error;
 
 #[derive(Debug, Error)]

@@ -1,8 +1,6 @@
-mod bindings;
 mod cli;
 mod commands;
 mod host;
-mod prettify;
 mod tests;
 mod workflow;
 

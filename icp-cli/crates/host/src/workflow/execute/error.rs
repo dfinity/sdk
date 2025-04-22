@@ -1,4 +1,4 @@
-use crate::prettify::PrettifyError;
+use crate::host::prettify::PrettifyError;
 use crate::workflow::registry::edge::EdgeType;
 use crate::workflow::registry::error::NodeConstructorError;
 use thiserror::Error;
