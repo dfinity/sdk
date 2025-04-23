@@ -1,6 +1,7 @@
 mod cli;
 mod commands;
 mod host;
+mod project;
 mod tests;
 mod workflow;
 

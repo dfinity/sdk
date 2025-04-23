@@ -946,6 +946,7 @@ dependencies = [
  "futures-util",
  "hex",
  "ratatui",
+ "semver",
  "serde",
  "serde_yaml",
  "thiserror",
