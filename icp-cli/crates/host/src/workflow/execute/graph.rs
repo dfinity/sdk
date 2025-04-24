@@ -1,6 +1,8 @@
 use crate::workflow::execute::error::ExecutionGraphFromPlanError;
 use crate::workflow::execute::execute::{Execute, SharedExecuteResult};
 use crate::workflow::execute::promise::{AnyPromise, ExecuteHandle, Promise};
+use crate::workflow::execute::r#const::ConstPromise;
+use crate::workflow::payload::wasm::Wasm;
 use crate::workflow::plan::workflow::WorkflowPlan;
 use crate::workflow::registry::edge::EdgeType;
 use crate::workflow::registry::node_config::NodeConfig;
@@ -34,14 +36,29 @@ impl ExecutionGraph {
             let node_type = registry.get(&node_type_name).expect("unknown node type");
 
             let mut config = NodeConfig {
-                params: HashMap::new(),
                 inputs: HashMap::new(),
                 outputs: HashMap::new(),
             };
 
-            // fill params
-            if let Some(value) = node.value {
-                config.params.insert("value".into(), value);
+            // fill properties
+            for (param_name, param_value) in node.properties {
+                let input = node_type.inputs.get(&param_name);
+                let Some(edge_type) = input else {
+                    return Err(ExecutionGraphFromPlanError::PropertyWithoutInput {
+                        node_name: node.name.clone(),
+                        param_name: param_name.clone(),
+                    });
+                };
+                let const_promise = match edge_type {
+                    EdgeType::String => {
+                        let arc = Arc::new(ConstPromise::new(param_value));
+                        AnyPromise::String(arc.clone(), None)
+                    }
+                    EdgeType::Wasm => {
+                        unreachable!()
+                    }
+                };
+                config.inputs.insert(param_name, const_promise.clone());
             }
 
             // fill inputs
@@ -60,10 +77,13 @@ impl ExecutionGraph {
                 let fq_name = format!("{}.{}", node.name, output_name);
                 let promise = match edge_type {
                     EdgeType::String => {
-                        AnyPromise::String(Arc::new(Promise::new(execute_handle.clone())))
+                        let arc = Arc::new(Promise::new(execute_handle.clone()));
+                        AnyPromise::String(arc.clone(), Some(arc.clone()))
                     }
                     EdgeType::Wasm => {
-                        AnyPromise::Wasm(Arc::new(Promise::new(execute_handle.clone())))
+                        let arc: Arc<Promise<Wasm>> =
+                            Arc::new(Promise::new(execute_handle.clone()));
+                        AnyPromise::Wasm(arc.clone(), Some(arc.clone()))
                     }
                 };
                 config.outputs.insert(output_name.clone(), promise.clone());

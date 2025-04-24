@@ -11,7 +11,8 @@ mod tests {
     const SIMPLE_WORKFLOW_YAML: &str = r#"
 workflow:
   const-string:
-    value: Hello, test!
+    properties:
+      value: Hello, test!
   print:
     inputs:
       input: const-string.output
@@ -46,9 +47,11 @@ mod type_checking_test {
     const WORKFLOW_YAML: &str = r#"
 workflow:
   const-string:
-    value: Hello, world!
+    properties:
+      value: Hello, world!
   const-wasm:
-    value: "0061736d01000000"
+    properties:
+      hex: "0061736d01000000"
   print:
     inputs:
       input: const-wasm
@@ -100,11 +103,11 @@ mod lazy_evaluation_test {
         ab: Arc<AtomicBool>,
         log: Arc<Mutex<Vec<String>>>,
     ) -> Arc<dyn Execute> {
-        let value = config.string_param("value");
+        let input = config.string_input("value").unwrap();
         let output = config.string_output("output");
         Arc::new(LazyNode {
             ab,
-            value,
+            input,
             output,
             log,
         })
@@ -116,13 +119,13 @@ mod lazy_evaluation_test {
         ab: Arc<AtomicBool>,
         log: Arc<Mutex<Vec<String>>>,
     ) -> Arc<dyn Execute> {
-        let input = config.string_source("input").unwrap();
+        let input = config.string_input("input").unwrap();
         Arc::new(EagerNode { ab, input, log })
     }
 
     pub struct LazyNode {
         ab: Arc<AtomicBool>,
-        value: String,
+        input: InputRef<String>,
         output: OutputRef<String>,
         log: Arc<Mutex<Vec<String>>>,
     }
@@ -140,9 +143,11 @@ mod lazy_evaluation_test {
                 .unwrap()
                 .push("LazyNode executing".to_string());
 
-            eprintln!("LazyNode executed with value: {:?}", self.value);
+            let value = self.input.get().await?;
 
-            self.output.set(self.value.clone());
+            eprintln!("LazyNode executed with value: {:?}", value);
+
+            self.output.set(value.clone());
             Ok(())
         }
     }
@@ -153,7 +158,7 @@ mod lazy_evaluation_test {
             let log_clone = log.clone();
             NodeDescriptor {
                 name: "lazy".to_string(),
-                inputs: HashMap::new(),
+                inputs: HashMap::from([("value".to_string(), EdgeType::String)]),
                 outputs: HashMap::from([("output".to_string(), EdgeType::String)]),
                 produces_side_effect: false,
                 // Use the helper function here
@@ -233,7 +238,8 @@ mod lazy_evaluation_test {
         const SIMPLE_WORKFLOW_YAML: &str = r#"
 workflow:
   lazy:
-    value: lazily executed
+    properties:
+      value: lazily executed
   eager:
     inputs:
       input: lazy

@@ -1,3 +1,4 @@
+mod builder;
 mod descriptors;
 mod prettify;
 pub mod print;

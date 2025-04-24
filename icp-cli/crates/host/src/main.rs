@@ -46,6 +46,13 @@ workflow:
             input: prettify
 "#;
 
+const BUILD_WORKFLOW: &str = r#"
+workflow:
+    rust-builder:
+        properties:
+            package: svelte-rust-backend
+"#;
+
 fn workflow_command_descriptor(path: String, workflow: &str) -> CommandDescriptor {
     let path = path
         .split(" ")
@@ -66,6 +73,7 @@ fn workflow_command_descriptor(path: String, workflow: &str) -> CommandDescripto
 fn workflow_descriptors() -> Vec<CommandDescriptor> {
     vec![
         workflow_command_descriptor("workflow".to_string(), SIMPLE_WORKFLOW),
+        workflow_command_descriptor("build".to_string(), BUILD_WORKFLOW),
         // Add workflow descriptors here
     ]
 }

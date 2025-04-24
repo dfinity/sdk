@@ -81,25 +81,42 @@ impl<T: Clone + Send + 'static + std::fmt::Debug> Promise<T> {
 
 #[derive(Clone)]
 pub enum AnyPromise {
-    String(Arc<Promise<String>>),
-    Wasm(Arc<Promise<Wasm>>),
+    String(InputRef<String>, Option<OutputRef<String>>),
+    Wasm(InputRef<Wasm>, Option<OutputRef<Wasm>>),
     //    JsonValue(Arc<OutputPromise<serde_json::Value>>),
     // Add more as needed
 }
 
 impl AnyPromise {
-    pub fn string(&self) -> Result<Arc<Promise<String>>, StringPromiseError> {
+    pub fn string_input(&self) -> Result<InputRef<String>, StringPromiseError> {
         match self {
-            AnyPromise::String(expected) => Ok(expected.clone()),
+            AnyPromise::String(expected, _) => Ok(expected.clone()),
+            actual => Err(StringPromiseError::TypeMismatch {
+                got: actual.edge_type(),
+            }),
+        }
+    }
+    pub fn string_output(&self) -> Result<OutputRef<String>, StringPromiseError> {
+        match self {
+            AnyPromise::String(_, Some(expected)) => Ok(expected.clone()),
             actual => Err(StringPromiseError::TypeMismatch {
                 got: actual.edge_type(),
             }),
         }
     }
 
-    pub fn wasm(&self) -> Result<Arc<Promise<Wasm>>, WasmPromiseError> {
+    pub fn wasm_input(&self) -> Result<InputRef<Wasm>, WasmPromiseError> {
         match self {
-            AnyPromise::Wasm(expected) => Ok(expected.clone()),
+            AnyPromise::Wasm(expected, _) => Ok(expected.clone()),
+            actual => Err(WasmPromiseError::TypeMismatch {
+                got: actual.edge_type(),
+            }),
+        }
+    }
+
+    pub fn wasm_output(&self) -> Result<OutputRef<Wasm>, WasmPromiseError> {
+        match self {
+            AnyPromise::Wasm(_, Some(expected)) => Ok(expected.clone()),
             actual => Err(WasmPromiseError::TypeMismatch {
                 got: actual.edge_type(),
             }),
@@ -108,8 +125,8 @@ impl AnyPromise {
 
     fn edge_type(&self) -> EdgeType {
         match self {
-            AnyPromise::String(_) => EdgeType::String,
-            AnyPromise::Wasm(_) => EdgeType::Wasm,
+            AnyPromise::String(_, _) => EdgeType::String,
+            AnyPromise::Wasm(_, _) => EdgeType::Wasm,
         }
     }
 }

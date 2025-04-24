@@ -12,7 +12,9 @@ pub struct NodeModel {
     #[serde(default)]
     pub r#type: Option<String>,
     #[serde(default)]
-    pub value: Option<String>, // for ConstNode
+    pub properties: HashMap<String, String>, // node properties
+    // #[serde(default)]
+    // pub value: Option<String>, // for ConstNode
     #[serde(default)]
     pub inputs: HashMap<String, String>, // input name → source node name
 }

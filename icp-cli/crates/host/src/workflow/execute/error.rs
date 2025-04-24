@@ -25,4 +25,10 @@ pub enum WasmPromiseError {
 pub enum ExecutionGraphFromPlanError {
     #[error(transparent)]
     NodeConstructorError(#[from] NodeConstructorError),
+
+    #[error("Node {node_name} has no input parameter {param_name}")]
+    PropertyWithoutInput {
+        node_name: String,
+        param_name: String,
+    },
 }

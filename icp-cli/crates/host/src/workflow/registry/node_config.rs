@@ -5,23 +5,19 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 pub struct NodeConfig {
-    pub params: HashMap<String, String>,
     pub inputs: HashMap<String, AnyPromise>,
     pub outputs: HashMap<String, AnyPromise>,
 }
 
 impl NodeConfig {
-    pub fn string_param(&self, name: &str) -> String {
-        self.params.get(name).expect("missing parameter").clone()
-    }
     pub fn get_input(&self, name: &str) -> Result<&AnyPromise, StringSourceError> {
         self.inputs
             .get(name)
             .ok_or_else(|| StringSourceError::MissingInput(name.to_string()))
     }
 
-    pub fn string_source(&self, name: &str) -> Result<InputRef<String>, StringSourceError> {
-        let input = self.get_input(name)?.string()?;
+    pub fn string_input(&self, name: &str) -> Result<InputRef<String>, StringSourceError> {
+        let input = self.get_input(name)?.string_input()?;
         Ok(input)
     }
 
@@ -29,7 +25,7 @@ impl NodeConfig {
         self.outputs
             .get("output")
             .expect("missing 'output' output")
-            .string()
+            .string_output()
             .expect("type mismatch for 'output' output")
     }
 
@@ -37,7 +33,7 @@ impl NodeConfig {
         self.outputs
             .get("output")
             .expect("missing 'output' output")
-            .wasm()
+            .wasm_output()
             .expect("type mismatch for 'output' output")
     }
 }

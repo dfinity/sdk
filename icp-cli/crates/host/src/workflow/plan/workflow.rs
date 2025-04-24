@@ -12,8 +12,8 @@ pub struct WorkflowPlan {
 pub struct WorkflowPlanNode {
     pub name: String,
     pub r#type: String,
-    pub value: Option<String>,           // for ConstNode
-    pub inputs: HashMap<String, String>, // input name → source node name
+    pub properties: HashMap<String, String>, // input name -> value
+    pub inputs: HashMap<String, String>,     // input name → source node name
 }
 
 impl WorkflowPlanNode {
@@ -33,7 +33,7 @@ impl WorkflowPlanNode {
         Self {
             name: name.clone(),
             r#type: yaml.r#type.unwrap_or(name),
-            value: yaml.value,
+            properties: yaml.properties,
             inputs,
         }
     }
@@ -213,19 +213,19 @@ mod topological_sort_dfs_tests {
             WorkflowPlanNode {
                 name: "a".to_string(),
                 r#type: "const".to_string(),
-                value: None,
+                properties: HashMap::new(),
                 inputs: HashMap::from([("x".into(), "c".into())]),
             },
             WorkflowPlanNode {
                 name: "b".to_string(),
                 r#type: "print".to_string(),
-                value: None,
+                properties: HashMap::new(),
                 inputs: HashMap::from([("value".into(), "a".into())]),
             },
             WorkflowPlanNode {
                 name: "c".to_string(),
                 r#type: "print".to_string(),
-                value: None,
+                properties: HashMap::new(),
                 inputs: HashMap::from([("value".into(), "b".into())]),
             },
         ];

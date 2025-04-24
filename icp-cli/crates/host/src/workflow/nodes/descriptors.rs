@@ -1,3 +1,4 @@
+use crate::workflow::nodes::builder::rust::RustBuilderNode;
 use crate::workflow::nodes::prettify::PrettifyNode;
 use crate::workflow::nodes::print::PrintNode;
 use crate::workflow::nodes::scalar::string::ConstStringNode;
@@ -10,5 +11,6 @@ pub fn node_descriptors() -> Vec<NodeDescriptor> {
         ConstWasmNode::descriptor(),
         PrettifyNode::descriptor(),
         PrintNode::descriptor(),
+        RustBuilderNode::descriptor(),
     ]
 }

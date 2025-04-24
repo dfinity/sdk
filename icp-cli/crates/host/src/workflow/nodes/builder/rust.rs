@@ -7,34 +7,32 @@ use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub struct ConstWasmNode {
-    input: InputRef<String>,
+pub struct RustBuilderNode {
+    package: InputRef<String>,
     output: OutputRef<Wasm>,
 }
 
 #[async_trait]
-impl Execute for ConstWasmNode {
+impl Execute for RustBuilderNode {
     async fn execute(self: Arc<Self>) -> SharedExecuteResult {
-        let hex = self.input.get().await?;
-        let wasm_bytes = hex::decode(&hex).expect("invalid hex string for wasm module");
-        println!("ConstWasmNode producing {} bytes", wasm_bytes.len());
-
-        self.output.set(Wasm(wasm_bytes.clone()));
+        let package = self.package.get().await?;
+        eprintln!("Building Rust package: {}", package);
+        // self.output.set(self.value.clone());
         Ok(())
     }
 }
 
-impl ConstWasmNode {
+impl RustBuilderNode {
     pub fn descriptor() -> NodeDescriptor {
         NodeDescriptor {
-            name: "const-wasm".to_string(),
-            inputs: HashMap::from([("hex".to_string(), EdgeType::String)]),
+            name: "rust-builder".to_string(),
+            inputs: HashMap::from([("package".to_string(), EdgeType::String)]),
             outputs: HashMap::from([("output".to_string(), EdgeType::Wasm)]),
-            produces_side_effect: false,
+            produces_side_effect: true,
             constructor: Box::new(|config| {
-                let input = config.string_input("hex")?;
+                let package = config.string_input("package")?;
                 let output = config.wasm_output("output");
-                Ok(Arc::new(ConstWasmNode { input, output }))
+                Ok(Arc::new(RustBuilderNode { package, output }))
             }),
         }
     }
