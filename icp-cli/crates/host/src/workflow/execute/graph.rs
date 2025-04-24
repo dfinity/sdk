@@ -1,7 +1,7 @@
 use crate::workflow::execute::error::ExecutionGraphFromPlanError;
 use crate::workflow::execute::execute::{Execute, SharedExecuteResult};
 use crate::workflow::execute::promise::{AnyPromise, ExecuteHandle, Promise};
-use crate::workflow::execute::r#const::ConstPromise;
+use crate::workflow::execute::r#const::ConstInput;
 use crate::workflow::payload::wasm::Wasm;
 use crate::workflow::plan::workflow::WorkflowPlan;
 use crate::workflow::registry::edge::EdgeType;
@@ -51,7 +51,7 @@ impl ExecutionGraph {
                 };
                 let const_promise = match edge_type {
                     EdgeType::String => {
-                        let arc = Arc::new(ConstPromise::new(param_value));
+                        let arc = Arc::new(ConstInput::new(param_value));
                         AnyPromise::String(arc.clone(), None)
                     }
                     EdgeType::Wasm => {
