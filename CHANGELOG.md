@@ -2,7 +2,7 @@
 
 # UNRELEASED
 
-### chore: removes the outdated _language-service command
+### chore: removes the outdated `_language-service` command
 
 ### feat: Support 'follow' mode for 'dfx canister logs'
 Support `follow` mode for `dfx canister logs`
