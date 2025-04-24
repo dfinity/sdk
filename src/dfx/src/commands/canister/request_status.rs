@@ -3,13 +3,13 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers;
 use crate::util::print_idl_blob;
-use anyhow::Context;
+use anyhow::{bail, Context};
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoff;
 use candid::Principal;
 use clap::Parser;
 use ic_agent::agent::RequestStatusResponse;
-use ic_agent::{AgentError, RequestId};
+use ic_agent::RequestId;
 use std::str::FromStr;
 
 /// Requests the status of a call from a canister.
@@ -57,10 +57,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
             match response {
                 RequestStatusResponse::Replied(reply) => return Ok(reply.arg),
                 RequestStatusResponse::Rejected(response) => {
-                    return Err(DfxError::new(AgentError::CertifiedReject {
-                        reject: response,
-                        operation: None,
-                    }))
+                    bail!("The replica returned a rejection error: reject code {:?}, reject message {}, error code {:?}", response.reject_code, response.reject_message, response.error_code);
                 }
                 RequestStatusResponse::Unknown => (),
                 RequestStatusResponse::Received | RequestStatusResponse::Processing => {
@@ -75,15 +72,13 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
                     }
                 }
                 RequestStatusResponse::Done => {
-                    return Err(DfxError::new(AgentError::RequestStatusDoneNoReply(
-                        String::from(request_id),
-                    )))
+                    bail!("Call was marked as done but dfx never saw the reply.");
                 }
             };
 
             let interval = retry_policy
                 .next_backoff()
-                .ok_or_else(|| DfxError::new(AgentError::TimeoutWaitingForResponse()))?;
+                .context("Timed out waiting for a response")?;
             tokio::time::sleep(interval).await;
         }
     }

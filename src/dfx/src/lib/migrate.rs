@@ -31,7 +31,10 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
     let wallet = if let Ok(wallet) = WalletCanister::create(agent, wallet).await {
         wallet
     } else {
-        let controllers = agent.read_state_canister_controllers(wallet).await?;
+        let controllers = agent
+            .read_state_canister_controllers(wallet)
+            .await?
+            .context("Canister does not exist")?;
         bail!("This identity isn't a controller of the wallet. You need to be one of these principals to upgrade the wallet: {}", controllers.into_iter().join(", "))
     };
     did_migrate |= migrate_wallet(env, agent, &wallet, fix).await?;
@@ -65,7 +68,7 @@ async fn migrate_wallet(
             install_wallet(
                 env,
                 agent,
-                *wallet.canister_id_(),
+                *wallet.canister_id(),
                 InstallMode::Upgrade(None),
             )
             .await?
@@ -86,9 +89,11 @@ async fn migrate_canister(
     ident: &Identity,
     fix: bool,
 ) -> DfxResult<bool> {
-    let mut controllers = agent.read_state_canister_controllers(canister_id).await?;
-    if controllers.contains(wallet.canister_id_())
-        && !controllers.contains(&ident.sender().unwrap())
+    let mut controllers = agent
+        .read_state_canister_controllers(canister_id)
+        .await?
+        .context("Canister does not exist")?;
+    if controllers.contains(wallet.canister_id()) && !controllers.contains(&ident.sender().unwrap())
     {
         if fix {
             println!(

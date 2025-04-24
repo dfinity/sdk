@@ -34,6 +34,12 @@ pub async fn exec(env: &dyn Environment, opts: CanisterMetadataOpts) -> DfxResul
                 "Failed to read `{}` metadata of canister {}.",
                 opts.metadata_name, canister_id
             )
+        })?
+        .with_context(|| {
+            format!(
+                "Metadata `{}` of canister {} does not exist.",
+                opts.metadata_name, canister_id
+            )
         })?;
 
     stdout().write_all(&metadata)?;

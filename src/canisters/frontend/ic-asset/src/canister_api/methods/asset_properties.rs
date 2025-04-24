@@ -11,8 +11,8 @@ use crate::{
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
 use futures_intrusive::sync::SharedSemaphore;
-use ic_agent::{agent::RejectResponse, AgentError};
 use ic_utils::call::SyncCall;
+use ic_utils::error::{BaseError, CanisterError};
 use ic_utils::Canister;
 use std::{collections::HashMap, time::Duration};
 
@@ -51,12 +51,12 @@ pub(crate) async fn get_assets_properties(
                         }
                         break Ok(asset_properties);
                     }
-                    Err(agent_err) if !retryable(&agent_err) => {
-                        break Err(agent_err);
+                    Err(canister_err) if !retryable(&canister_err) => {
+                        break Err(canister_err);
                     }
-                    Err(agent_err) => match retry_policy.next_backoff() {
+                    Err(canister_err) => match retry_policy.next_backoff() {
                         Some(duration) => tokio::time::sleep(duration).await,
-                        None => break Err(agent_err),
+                        None => break Err(canister_err),
                     },
                 };
             }
@@ -73,12 +73,14 @@ pub(crate) async fn get_assets_properties(
             }
             // older canisters don't have get_assets_properties method
             // therefore we can break the loop
-            Err(AgentError::UncertifiedReject {
-                reject: RejectResponse { reject_message, .. },
-                ..
-            }) if reject_message
-                .contains(&format!("has no query method '{GET_ASSET_PROPERTIES}'"))
-                || reject_message.contains("query method does not exist") =>
+            Err(err)
+                if err.as_agent().is_some_and(|err| {
+                    err.as_reject().is_some_and(|err| {
+                        err.reject_message
+                            .contains(&format!("has no query method '{GET_ASSET_PROPERTIES}'"))
+                            || err.reject_message.contains("query method does not exist")
+                    })
+                }) =>
             {
                 break;
             }
@@ -94,7 +96,7 @@ pub(crate) async fn get_assets_properties(
 pub(crate) async fn get_asset_properties(
     canister: &Canister<'_>,
     asset_id: &str,
-) -> Result<AssetProperties, AgentError> {
+) -> Result<AssetProperties, BaseError> {
     let (asset_properties,): (AssetProperties,) = canister
         .query(GET_ASSET_PROPERTIES)
         .with_arg(GetAssetPropertiesArgument(asset_id.to_string()))

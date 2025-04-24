@@ -225,7 +225,7 @@ mod tests {
     use crate::DfxInterface;
     use candid::Principal;
     use futures::Future;
-    use ic_agent::{AgentError::TransportError, Identity};
+    use ic_agent::{agent_error::ErrorKind, Identity};
     use serde_json::json;
     use std::path::Path;
     use std::sync::Arc;
@@ -433,7 +433,7 @@ mod tests {
                     assert!(!d.network_descriptor.is_ic);
                     assert!(d.network_descriptor.local_server_descriptor.is_some());
                 }
-                Err(FetchRootKey(AgentError(TransportError(_)))) => {
+                Err(FetchRootKey(AgentError(err))) if err.kind() == ErrorKind::Transport => {
                     // local replica isn't running, so this is expected,
                     // but we can't check anything else
                 }
@@ -516,7 +516,7 @@ mod tests {
                     .with_force_fetch_root_key_insecure_non_mainnet_only()
                     .build()
                     .await,
-                Err(FetchRootKey(AgentError(TransportError(_))))
+                Err(FetchRootKey(AgentError(err))) if err.kind() == ErrorKind::Transport
             ));
         })
         .await;

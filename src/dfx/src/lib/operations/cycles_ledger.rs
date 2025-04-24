@@ -16,7 +16,7 @@ use crate::lib::operations::{
     ICRC1_BALANCE_OF_METHOD, ICRC1_TRANSFER_METHOD, ICRC2_APPROVE_METHOD,
     ICRC2_TRANSFER_FROM_METHOD,
 };
-use crate::lib::retryable::retryable;
+use crate::lib::retryable::{canister_retryable, retryable};
 use crate::lib::telemetry::{CyclesHost, Telemetry};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
@@ -64,10 +64,10 @@ pub async fn balance(
             .await;
         match result {
             Ok((balance,)) => Ok(balance),
-            Err(agent_err) if retryable(&agent_err) => {
-                Err(backoff::Error::transient(anyhow!(agent_err)))
+            Err(canister_err) if canister_retryable(&canister_err) => {
+                Err(backoff::Error::transient(anyhow!(canister_err)))
             }
-            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+            Err(canister_err) => Err(backoff::Error::permanent(anyhow!(canister_err))),
         }
     })
     .await
@@ -122,10 +122,10 @@ pub async fn transfer(
                 Ok(duplicate_of)
             }
             Ok(Err(transfer_err)) => Err(backoff::Error::permanent(anyhow!(transfer_err))),
-            Err(agent_err) if retryable(&agent_err) => {
-                Err(backoff::Error::transient(anyhow!(agent_err)))
+            Err(canister_err) if canister_retryable(&canister_err) => {
+                Err(backoff::Error::transient(anyhow!(canister_err)))
             }
-            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+            Err(canister_err) => Err(backoff::Error::permanent(anyhow!(canister_err))),
         }
     })
     .await?;
@@ -179,10 +179,10 @@ pub async fn transfer_from(
             Ok(Err(transfer_from_err)) => {
                 Err(backoff::Error::permanent(anyhow!(transfer_from_err)))
             }
-            Err(agent_err) if retryable(&agent_err) => {
-                Err(backoff::Error::transient(anyhow!(agent_err)))
+            Err(canister_err) if canister_retryable(&canister_err) => {
+                Err(backoff::Error::transient(anyhow!(canister_err)))
             }
-            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+            Err(canister_err) => Err(backoff::Error::permanent(anyhow!(canister_err))),
         }
     })
     .await?;
@@ -237,10 +237,10 @@ pub async fn approve(
                 Ok(duplicate_of)
             }
             Ok(Err(approve_err)) => Err(backoff::Error::permanent(anyhow!(approve_err))),
-            Err(agent_err) if retryable(&agent_err) => {
-                Err(backoff::Error::transient(anyhow!(agent_err)))
+            Err(canister_err) if canister_retryable(&canister_err) => {
+                Err(backoff::Error::transient(anyhow!(canister_err)))
             }
-            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+            Err(canister_err) => Err(backoff::Error::permanent(anyhow!(canister_err))),
         }
     })
     .await?;
@@ -295,10 +295,10 @@ pub async fn withdraw(
                 "send error: {:?}",
                 send_err
             ))),
-            Err(agent_err) if retryable(&agent_err) => {
-                Err(backoff::Error::transient(anyhow!(agent_err)))
+            Err(canister_err) if canister_retryable(&canister_err) => {
+                Err(backoff::Error::transient(anyhow!(canister_err)))
             }
-            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+            Err(canister_err) => Err(backoff::Error::permanent(anyhow!(canister_err))),
         }
     })
     .await?;

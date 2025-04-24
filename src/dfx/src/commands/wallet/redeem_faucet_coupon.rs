@@ -50,7 +50,7 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
     match wallet {
         // identity has a wallet already - faucet should top up the wallet
         Ok(wallet_canister) => {
-            let wallet_principal = wallet_canister.canister_id_();
+            let wallet_principal = wallet_canister.canister_id();
             let response = agent
                 .update(&faucet_principal, "redeem_to_wallet")
                 .with_arg(

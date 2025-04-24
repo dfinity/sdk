@@ -3,10 +3,11 @@ use crate::lib::error_code;
 use anyhow::Error as AnyhowError;
 use dfx_core::error::root_key::FetchRootKeyError;
 use dfx_core::network::provider::get_network_context;
-use ic_agent::agent::{RejectCode, RejectResponse};
+use ic_agent::agent::RejectCode;
 use ic_agent::AgentError;
 use ic_asset::error::{GatherAssetDescriptorsError, SyncError, UploadContentError};
 use regex::Regex;
+use std::error::Error;
 use std::path::Path;
 use thiserror::Error as ThisError;
 
@@ -52,7 +53,7 @@ pub fn diagnose(err: &AnyhowError) -> DiagnosedError {
         }
         if not_a_controller(agent_err) {
             return diagnose_http_403();
-        } else if *agent_err == AgentError::CertificateNotAuthorized() {
+        } else if certificate_not_authorized(agent_err) {
             return subnet_not_authorized();
         }
         if cycles_ledger_not_found(err) {
@@ -92,7 +93,10 @@ fn local_replica_not_running(err: &AnyhowError) -> bool {
             err.downcast_ref::<AgentError>()
         }
     };
-    if let Some(AgentError::TransportError(transport_error)) = maybe_agent_error {
+    if let Some(transport_error) = maybe_agent_error.and_then(|err| {
+        err.source()
+            .and_then(|source| source.downcast_ref::<reqwest::Error>())
+    }) {
         transport_error.is_connect()
             && transport_error
                 .url()
@@ -110,41 +114,25 @@ fn local_replica_not_running(err: &AnyhowError) -> bool {
 
 fn not_a_controller(err: &AgentError) -> bool {
     // Newer replicas include the error code in the reject response.
-    matches!(
-        err,
-        AgentError::UncertifiedReject {
-            reject: RejectResponse {
-                reject_code: RejectCode::CanisterError,
-                error_code: Some(error_code),
-                ..
-            },
-            ..
-        } if error_code == error_code::CANISTER_INVALID_CONTROLLER
-    )
+    err.as_reject().is_some_and(|reject| {
+        reject.reject_code == RejectCode::CanisterError
+            && reject
+                .error_code
+                .as_ref()
+                .is_some_and(|code| code == error_code::CANISTER_INVALID_CONTROLLER)
+    })
 }
 
 fn wallet_method_not_found(err: &AgentError) -> bool {
-    match err {
-        AgentError::CertifiedReject {
-            reject:
-                RejectResponse {
-                    reject_code: RejectCode::CanisterError,
-                    reject_message,
-                    ..
-                },
-            ..
-        } if reject_message.contains("Canister has no update method 'wallet_") => true,
-        AgentError::UncertifiedReject {
-            reject:
-                RejectResponse {
-                    reject_code: RejectCode::CanisterError,
-                    reject_message,
-                    ..
-                },
-            ..
-        } if reject_message.contains("Canister has no query method 'wallet_") => true,
-        _ => false,
-    }
+    err.as_reject().is_some_and(|reject| {
+        (reject
+            .reject_message
+            .contains("Canister has no update method 'wallet_")
+            || reject
+                .reject_message
+                .contains("Canister has no query method 'wallet_"))
+            && reject.reject_code == RejectCode::CanisterError
+    })
 }
 
 fn diagnose_http_403() -> DiagnosedError {
@@ -168,6 +156,10 @@ fn diagnose_local_replica_not_running() -> DiagnosedError {
     let action_suggestion =
         "Target a different network or run 'dfx start' to start the local replica.";
     DiagnosedError::new(explanation, action_suggestion)
+}
+
+fn certificate_not_authorized(error: &AgentError) -> bool {
+    format!("{error}").contains("Certificate is not authorized")
 }
 
 fn subnet_not_authorized() -> DiagnosedError {

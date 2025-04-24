@@ -33,7 +33,7 @@ use crate::error::UploadContentError;
 use crate::error::UploadContentError::{CreateBatchFailed, ListAssetsFailed};
 use crate::progress::{AssetSyncProgressRenderer, AssetSyncState};
 use candid::Nat;
-use ic_agent::AgentError;
+use ic_utils::error::BaseError;
 use ic_utils::Canister;
 use itertools::Itertools;
 use serde_bytes::ByteBuf;
@@ -190,7 +190,7 @@ async fn commit_in_stages(
     commit_batch_args: CommitBatchArguments,
     logger: &Logger,
     progress: Option<&dyn AssetSyncProgressRenderer>,
-) -> Result<(), AgentError> {
+) -> Result<(), BaseError> {
     if let Some(progress) = progress {
         progress.set_total_batch_operations(commit_batch_args.operations.len());
     }

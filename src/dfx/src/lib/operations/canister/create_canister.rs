@@ -16,10 +16,11 @@ use dfx_core::canister::build_wallet_canister;
 use dfx_core::identity::CallSender;
 use dfx_core::network::provider::get_network_context;
 use fn_error_context::context;
-use ic_agent::agent::{RejectCode, RejectResponse};
-use ic_agent::agent_error::HttpErrorPayload;
-use ic_agent::{Agent, AgentError};
+
+use ic_agent::Agent;
+use ic_utils::error::CanisterError;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
+use ic_utils::interfaces::wallet::WalletError;
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use icrc_ledger_types::icrc1::account::Subaccount;
@@ -136,7 +137,7 @@ The command line value will be used.",
             )
             .await
             {
-                Ok(wallet) => CallSender::Wallet(*wallet.canister_id_()),
+                Ok(wallet) => CallSender::Wallet(*wallet.canister_id()),
                 Err(err) => {
                     if matches!(
                         err,
@@ -229,30 +230,28 @@ async fn create_with_management_canister(
                         using `dfx ledger create-canister`, but doing so will not associate the created canister with any of the canisters in your project.";
     match res {
         Ok((o,)) => Ok(o),
-        Err(AgentError::HttpError(HttpErrorPayload {
-            status, content, ..
-        })) if (400..500).contains(&status) => {
-            let message = String::from_utf8_lossy(&content);
-            if message.contains(
-                "does not belong to an existing subnet and it is not a mainnet canister ID.",
-            ) {
-                Err(anyhow!("{message}"))
-            } else {
-                Err(anyhow!(NEEDS_WALLET))
+        Err(e) => {
+            if let Some(agent_err) = e.as_agent() {
+                if let Some(http) = agent_err.as_http_error() {
+                    if (400..500).contains(&http.status) {
+                        let message = String::from_utf8_lossy(&http.content);
+                        if message.contains("does not belong to an existing subnet and it is not a mainnet canister ID.") {
+                            bail!("{message}");
+                        } else {
+                            bail!(NEEDS_WALLET);
+                        }
+                    }
+                } else if let Some(reject) = agent_err.as_reject() {
+                    if reject
+                        .reject_message
+                        .contains("is not allowed to call ic00 method")
+                    {
+                        bail!(NEEDS_WALLET);
+                    }
+                }
             }
+            Err(e).context("Canister creation call failed.")
         }
-        Err(AgentError::UncertifiedReject {
-            reject:
-                RejectResponse {
-                    reject_code: RejectCode::CanisterReject,
-                    reject_message,
-                    ..
-                },
-            ..
-        }) if reject_message.contains("is not allowed to call ic00 method") => {
-            Err(anyhow!(NEEDS_WALLET))
-        }
-        Err(e) => Err(e).context("Canister creation call failed."),
     }
 }
 
@@ -283,10 +282,7 @@ async fn create_with_wallet(
             }
         };
 
-        let call_result: Result<
-            (Result<Principal, CmcCreateCanisterError>,),
-            ic_agent::AgentError,
-        > = wallet
+        let call_result: Result<(Result<Principal, CmcCreateCanisterError>,), _> = wallet
             .call128(
                 MAINNET_CYCLE_MINTER_CANISTER_ID,
                 CMC_CREATE_CANISTER_METHOD,
@@ -300,22 +296,27 @@ async fn create_with_wallet(
         match call_result {
             Ok((Ok(canister_id),)) => Ok(canister_id),
             Ok((Err(err),)) => Err(anyhow!(err)),
-            Err(AgentError::WalletUpgradeRequired(s)) => Err(anyhow!(
+            Err(WalletError::WalletUpgradeRequired(s)) => Err(anyhow!(
                 "{}\nTo upgrade, run dfx wallet upgrade.",
-                AgentError::WalletUpgradeRequired(s)
+                WalletError::WalletUpgradeRequired(s)
             )),
             Err(other) => Err(anyhow!(other)),
         }
     } else {
         if settings.reserved_cycles_limit.is_some() {
             bail!(
-                "Cannot create a canister using a wallet if the reserved_cycles_limit is set. Please create with --no-wallet or use dfx canister update-settings instead.")
+                "Cannot create a canister using a wallet if the reserved_cycles_limit is set. Please create with --no-wallet or use dfx canister update-settings instead."
+            )
         }
         if settings.wasm_memory_limit.is_some() {
-            bail!("Cannot create a canister using a wallet if the wasm_memory_limit is set. Please create with --no-wallet or use dfx canister update-settings instead.")
+            bail!(
+                "Cannot create a canister using a wallet if the wasm_memory_limit is set. Please create with --no-wallet or use dfx canister update-settings instead."
+            )
         }
         if settings.log_visibility.is_some() {
-            bail!("Cannot create a canister using a wallet if log_visibility is set. Please create with --no-wallet or use dfx canister update-settings instead.")
+            bail!(
+                "Cannot create a canister using a wallet if log_visibility is set. Please create with --no-wallet or use dfx canister update-settings instead."
+            )
         }
         match wallet
             .wallet_create_canister(
@@ -328,9 +329,9 @@ async fn create_with_wallet(
             .await
         {
             Ok(result) => Ok(result.canister_id),
-            Err(AgentError::WalletUpgradeRequired(s)) => Err(anyhow!(
+            Err(WalletError::WalletUpgradeRequired(s)) => Err(anyhow!(
                 "{}\nTo upgrade, run dfx wallet upgrade.",
-                AgentError::WalletUpgradeRequired(s)
+                WalletError::WalletUpgradeRequired(s)
             )),
             Err(other) => Err(anyhow!(other)),
         }

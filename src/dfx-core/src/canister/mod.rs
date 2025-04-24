@@ -94,13 +94,13 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.
             };
             wallet
                 .call(
-                    *mgr.canister_id_(),
+                    *mgr.canister_id(),
                     "install_code",
                     Argument::from_candid((install_args,)),
                     0,
                 )
                 .await
-                .map_err(CanisterInstallError::InstallWasmError)
+                .map_err(CanisterInstallError::InstallWasmThroughWalletError)
         }
     }
 }

@@ -41,7 +41,7 @@ pub async fn post_install_store_assets(
     .with_context(|| {
         format!(
             "Failed asset sync with canister {}.",
-            canister.canister_id_()
+            canister.canister_id()
         )
     })
 }
@@ -73,7 +73,7 @@ pub async fn prepare_assets_for_proposal(
         .with_context(|| {
             format!(
                 "Failed asset sync with canister {}.",
-                canister.canister_id_()
+                canister.canister_id()
             )
         })?;
 

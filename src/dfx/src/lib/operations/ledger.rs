@@ -17,14 +17,14 @@ use anyhow::{anyhow, bail, ensure, Context};
 use backoff::backoff::Backoff;
 use backoff::future::retry;
 use backoff::ExponentialBackoff;
-use candid::{Decode, Encode, Nat, Principal};
+use candid::{Encode, Nat, Principal};
 use fn_error_context::context;
-use ic_agent::agent::{RejectCode, RejectResponse};
-use ic_agent::agent_error::HttpErrorPayload;
+use ic_agent::agent::RejectCode;
 use ic_agent::{
     hash_tree::{HashTree, LookupResult},
-    lookup_value, Agent, AgentError,
+    lookup_value, Agent,
 };
+use ic_utils::error::{BaseError, CanisterError};
 use ic_utils::{call::SyncCall, Canister};
 use icrc_ledger_types::icrc1;
 use icrc_ledger_types::icrc1::transfer::BlockIndex;
@@ -149,51 +149,49 @@ pub async fn transfer(
     );
 
     let mut retry_policy = ExponentialBackoff::default();
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(*canister_id)
+        .build()?;
 
     let block_height: BlockHeight = loop {
-        match agent
-            .update(canister_id, TRANSFER_METHOD)
-            .with_arg(
-                Encode!(&TransferArgs {
-                    memo,
-                    amount,
-                    fee,
-                    from_subaccount,
-                    to,
-                    created_at_time: Some(TimeStamp { timestamp_nanos }),
-                })
-                .context("Failed to encode arguments.")?,
-            )
+        match canister
+            .update(TRANSFER_METHOD)
+            .with_arg(&TransferArgs {
+                memo,
+                amount,
+                fee,
+                from_subaccount,
+                to,
+                created_at_time: Some(TimeStamp { timestamp_nanos }),
+            })
+            .build::<(TransferResult,)>()
             .await
         {
-            Ok(data) => {
-                let result = Decode!(&data, TransferResult)
-                    .context("Failed to decode transfer response.")?;
-                match result {
-                    Ok(block_height) => break block_height,
-                    Err(TransferError::TxDuplicate { duplicate_of }) => {
-                        info!(logger, "{}", TransferError::TxDuplicate { duplicate_of });
-                        break duplicate_of;
-                    }
-                    Err(TransferError::InsufficientFunds { balance }) => {
-                        return Err(anyhow!(TransferError::InsufficientFunds { balance }))
-                            .with_context(|| {
-                                diagnose_insufficient_funds_error(agent, from_subaccount)
-                            });
-                    }
-                    Err(transfer_err) => bail!(transfer_err),
+            Ok((result,)) => match result {
+                Ok(block_height) => break block_height,
+                Err(TransferError::TxDuplicate { duplicate_of }) => {
+                    info!(logger, "{}", TransferError::TxDuplicate { duplicate_of });
+                    break duplicate_of;
                 }
+                Err(TransferError::InsufficientFunds { balance }) => {
+                    return Err(anyhow!(TransferError::InsufficientFunds { balance }))
+                        .with_context(|| {
+                            diagnose_insufficient_funds_error(agent, from_subaccount)
+                        });
+                }
+                Err(transfer_err) => bail!(transfer_err),
+            },
+            Err(canister_err) if !retryable(&canister_err) => {
+                bail!(canister_err);
             }
-            Err(agent_err) if !retryable(&agent_err) => {
-                bail!(agent_err);
-            }
-            Err(agent_err) => match retry_policy.next_backoff() {
+            Err(canister_err) => match retry_policy.next_backoff() {
                 Some(duration) => {
-                    eprintln!("Waiting to retry after error: {:?}", &agent_err);
+                    eprintln!("Waiting to retry after error: {:?}", &canister_err);
                     tokio::time::sleep(duration).await;
                     println!("Sending duplicate transaction");
                 }
-                None => bail!(agent_err),
+                None => bail!(canister_err),
             },
         }
     };
@@ -250,10 +248,10 @@ pub async fn icrc1_transfer(
                 Ok(duplicate_of)
             }
             Ok(Err(transfer_err)) => Err(backoff::Error::permanent(anyhow!(transfer_err))),
-            Err(agent_err) if retryable(&agent_err) => {
-                Err(backoff::Error::transient(anyhow!(agent_err)))
+            Err(canister_err) if retryable(&canister_err) => {
+                Err(backoff::Error::transient(anyhow!(canister_err)))
             }
-            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+            Err(canister_err) => Err(backoff::Error::permanent(anyhow!(canister_err))),
         }
     })
     .await?;
@@ -438,26 +436,13 @@ Your principal for ICP wallets and decentralized exchanges: {}
     DiagnosedError::new(explanation, suggestion)
 }
 
-fn retryable(agent_error: &AgentError) -> bool {
-    match agent_error {
-        AgentError::CertifiedReject {
-            reject:
-                RejectResponse {
-                    reject_code: RejectCode::CanisterError,
-                    reject_message,
-                    ..
-                },
-            ..
-        } if reject_message.contains("is out of cycles") => false,
-        AgentError::HttpError(HttpErrorPayload {
-            status,
-            content_type: _,
-            content: _,
-        }) if *status == 403 => {
-            // sometimes out of cycles looks like this
-            // assume any 403(unauthorized) is not retryable
-            false
-        }
-        _ => true,
-    }
+fn retryable(canister_error: &BaseError) -> bool {
+    !canister_error.as_agent().is_some_and(|agent_error| {
+        agent_error.as_reject().is_some_and(|reject| {
+            reject.reject_code == RejectCode::CanisterError
+                && reject.reject_message.contains("out of cycles")
+        }) || agent_error
+            .as_http_error()
+            .is_some_and(|http| http.status == 403)
+    })
 }
