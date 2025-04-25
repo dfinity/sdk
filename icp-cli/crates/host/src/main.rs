@@ -7,6 +7,7 @@ mod workflow;
 
 use crate::cli::tree::CommandTree;
 use crate::commands::identity;
+use std::collections::HashMap;
 use workflow::nodes::node_descriptors;
 use workflow::parse::workflow::WorkflowModel;
 use workflow::registry::node_type_registry::NodeTypeRegistry;
@@ -14,6 +15,7 @@ use workflow::registry::node_type_registry::NodeTypeRegistry;
 extern crate command_descriptor_derive;
 use crate::cli::descriptor::{CommandDescriptor, Dispatch};
 use crate::cli::error::{CliError, CliResult};
+use crate::workflow::registry::edge::EdgeType;
 use command_descriptor_derive::command_descriptor;
 
 // fn x() {
@@ -32,7 +34,8 @@ fn builtin_command_descriptors() -> Vec<CommandDescriptor> {
 const SIMPLE_WORKFLOW: &str = r#"
 workflow:
     const-string:
-        value: Hello, test!
+        properties:
+            value: Hello, test!
     prettify:
         type: prettify
         inputs:
@@ -47,6 +50,9 @@ workflow:
 "#;
 
 const BUILD_WORKFLOW: &str = r#"
+parameters:
+    rust-package: rust-builder.package
+
 workflow:
     rust-builder:
         properties:
@@ -107,8 +113,13 @@ async fn execute_workflow(workflow: &str) -> CliResult {
     let mut registry = NodeTypeRegistry::new();
     registry.register(node_descriptors());
 
+    let parameters = HashMap::from([(
+        "rust-package".to_string(),
+        "svelte-rust-backend".to_string(),
+    )]);
+
     let graph = WorkflowModel::from_string(workflow)
-        .into_plan()
+        .into_plan(parameters, &registry)
         .into_graph(&registry)
         .map_err(|e| {
             CliError(format!(

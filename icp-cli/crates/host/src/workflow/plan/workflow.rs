@@ -1,6 +1,7 @@
 use crate::workflow::execute::error::ExecutionGraphFromPlanError;
 use crate::workflow::execute::ExecutionGraph;
 use crate::workflow::parse::workflow::{NodeModel, WorkflowModel};
+use crate::workflow::plan::parameters::{NodeParameterBindings, WorkflowParameterBindings};
 use crate::workflow::registry::node_type_registry::NodeTypeRegistry;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use thiserror::Error;
@@ -17,7 +18,7 @@ pub struct WorkflowPlanNode {
 }
 
 impl WorkflowPlanNode {
-    fn new(name: String, yaml: NodeModel) -> Self {
+    fn new(name: String, yaml: NodeModel, parameters: Option<&NodeParameterBindings>) -> Self {
         let inputs = yaml
             .inputs
             .iter()
@@ -30,21 +31,37 @@ impl WorkflowPlanNode {
                 (k.clone(), v)
             })
             .collect();
+
+        // Build the final `properties` with parameters injected
+        let mut properties = yaml.properties.clone();
+        if let Some(parameters) = parameters {
+            for (input, value) in &parameters.properties {
+                properties.insert(input.clone(), value.clone());
+            }
+        }
         Self {
             name: name.clone(),
             r#type: yaml.r#type.unwrap_or(name),
-            properties: yaml.properties,
+            properties,
             inputs,
         }
     }
 }
 
 impl WorkflowPlan {
-    pub fn from_model(model: WorkflowModel) -> Self {
+    pub fn from_model(
+        model: WorkflowModel,
+        parameter_values: HashMap<String, String>,
+        registry: &NodeTypeRegistry,
+    ) -> Self {
+        let parameter_bindings =
+            WorkflowParameterBindings::from_model(&model, parameter_values, registry);
         let nodes = model
             .workflow
             .into_iter()
-            .map(|(name, node)| WorkflowPlanNode::new(name, node))
+            .map(|(name, node)| {
+                WorkflowPlanNode::new(name.clone(), node, parameter_bindings.get_node(&name))
+            })
             .collect();
         let nodes =
             topological_sort_kahn(nodes).expect("Failed to sort workflow nodes: cycle detected");
@@ -60,7 +77,7 @@ impl WorkflowPlan {
 
     pub fn from_string(s: &str) -> Self {
         let plan = WorkflowModel::from_string(s);
-        Self::from_model(plan)
+        Self::from_model(plan, HashMap::new(), &NodeTypeRegistry::new())
     }
 }
 
