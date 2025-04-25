@@ -18,7 +18,7 @@ pub struct WorkflowPlanNode {
 }
 
 impl WorkflowPlanNode {
-    fn new(name: String, yaml: NodeModel, parameters: Option<&NodeParameterBindings>) -> Self {
+    fn new(name: String, yaml: NodeModel, node_bindings: Option<&NodeParameterBindings>) -> Self {
         let inputs = yaml
             .inputs
             .iter()
@@ -32,16 +32,21 @@ impl WorkflowPlanNode {
             })
             .collect();
 
+        let node_type = node_bindings
+            .and_then(|p| p.node_type.clone())
+            .or(yaml.r#type.clone())
+            .unwrap_or(name.clone());
+
         // Build the final `properties` with parameters injected
         let mut properties = yaml.properties.clone();
-        if let Some(parameters) = parameters {
+        if let Some(parameters) = node_bindings {
             for (input, value) in &parameters.properties {
                 properties.insert(input.clone(), value.clone());
             }
         }
         Self {
             name: name.clone(),
-            r#type: yaml.r#type.unwrap_or(name),
+            r#type: node_type,
             properties,
             inputs,
         }
@@ -294,5 +299,84 @@ workflow:
 
         // const must come before print
         assert_eq!(order, vec!["const", "print"]);
+    }
+
+    #[test]
+    fn short_form_parameter() {
+        let yaml = r#"
+parameters:
+  rust-package: const-string.value
+workflow:
+  const-string:
+  print:
+    inputs:
+      input: const-string
+"#;
+
+        let model = WorkflowModel::from_string(yaml);
+        let parameter_values: HashMap<String, String> =
+            HashMap::from([("rust-package".to_string(), "my-package".to_string())]);
+        let registry = NodeTypeRegistry::default(); // Assuming this exists
+
+        let plan = model.into_plan(parameter_values, &registry);
+
+        assert_eq!(plan.nodes.len(), 2);
+
+        // Test the const-node
+        let const_node = &plan.nodes[0];
+        assert_eq!(const_node.name, "const-string");
+        assert_eq!(const_node.r#type, "const-string");
+        assert_eq!(const_node.properties["value"], "my-package");
+
+        // Test the print-node
+        let print_node = &plan.nodes[1];
+        assert_eq!(print_node.name, "print");
+        assert_eq!(print_node.r#type, "print");
+        assert_eq!(print_node.inputs["input"], "const-string.output");
+    }
+
+    #[test]
+    fn node_type_parameter() {
+        let yaml = r#"
+parameters:
+  transformer-type:
+    kind: node-type
+    target: transformer
+workflow:
+  const-string:
+    properties:
+      value: "some-value"
+  transformer:
+    inputs:
+      input: const-string
+  print:
+    inputs:
+      input: transformer
+"#;
+
+        let model = WorkflowModel::from_string(yaml);
+        let parameter_values: HashMap<String, String> =
+            HashMap::from([("transformer-type".to_string(), "prettify".to_string())]);
+        let registry = NodeTypeRegistry::default(); // Assuming this exists
+
+        let plan = model.into_plan(parameter_values, &registry);
+
+        assert_eq!(plan.nodes.len(), 3);
+
+        // Test the const-node
+        let const_node = &plan.nodes[0];
+        assert_eq!(const_node.name, "const-string");
+        assert_eq!(const_node.r#type, "const-string");
+
+        // Test the transformer node
+        let transformer_node = &plan.nodes[1];
+        assert_eq!(transformer_node.name, "transformer");
+        assert_eq!(transformer_node.r#type, "prettify");
+
+        // Test the print-node
+        let print_node = &plan.nodes[2];
+        assert_eq!(print_node.name, "print");
+        assert_eq!(print_node.r#type, "print");
+        assert_eq!(print_node.inputs["input"], "transformer.output");
     }
 }

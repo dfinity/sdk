@@ -1,3 +1,4 @@
+use crate::workflow::nodes::node_descriptors;
 use crate::workflow::registry::node_type::NodeDescriptor;
 use std::collections::HashMap;
 
@@ -20,5 +21,13 @@ impl NodeTypeRegistry {
 
     pub fn get(&self, name: &str) -> Option<&NodeDescriptor> {
         self.types.get(name)
+    }
+}
+
+impl Default for NodeTypeRegistry {
+    fn default() -> Self {
+        let mut registry = NodeTypeRegistry::new();
+        registry.register(node_descriptors());
+        registry
     }
 }

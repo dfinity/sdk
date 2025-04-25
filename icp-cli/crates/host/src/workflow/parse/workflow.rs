@@ -2,22 +2,8 @@ use crate::workflow::plan::workflow::WorkflowPlan;
 use crate::workflow::registry::node_type_registry::NodeTypeRegistry;
 use serde::Deserialize;
 use std::collections::HashMap;
-/*
-parameters:
-  rust-package: builder.package  # short form
-  builder-type:                  # long form to for a node-type parameter
-    kind: node-type
-    target: builder
-  custom-name:                   # long-form to set a string property parameter
-    kind: string
-    target: my-node
-    property: name
-    default: "MyNode"
 
-
- */
-
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "kind")]
 pub enum ParameterDefinition {
     #[serde(rename = "node-type")]
@@ -27,12 +13,12 @@ pub enum ParameterDefinition {
     String(StringParam),
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct NodeTypeParam {
     pub target: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct StringParam {
     pub target: String,
     pub property: String,
@@ -77,5 +63,64 @@ impl WorkflowModel {
         registry: &NodeTypeRegistry,
     ) -> WorkflowPlan {
         WorkflowPlan::from_model(self, parameter_values, registry)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_short_form_parameter() {
+        let yaml = r#"
+parameters:
+  rust-package: builder.package
+workflow: {}
+"#;
+        let model = WorkflowModel::from_string(yaml);
+        assert!(matches!(
+            model.parameters.get("rust-package"),
+            Some(ParameterModel::ShortForm(s)) if s == "builder.package"
+        ));
+    }
+
+    #[test]
+    fn parses_node_type_parameter() {
+        let yaml = r#"
+parameters:
+  builder-type:
+    kind: node-type
+    target: builder
+workflow: {}
+"#;
+        let model = WorkflowModel::from_string(yaml);
+        match model.parameters.get("builder-type") {
+            Some(ParameterModel::LongForm(ParameterDefinition::NodeType(param))) => {
+                assert_eq!(param.target, "builder");
+            }
+            _ => panic!("unexpected parameter format"),
+        }
+    }
+
+    #[test]
+    fn parses_string_parameter_with_default() {
+        let yaml = r#"
+parameters:
+  custom-name:
+    kind: string
+    target: my-node
+    property: name
+    default: "MyNode"
+workflow: {}
+"#;
+        let model = WorkflowModel::from_string(yaml);
+        match model.parameters.get("custom-name") {
+            Some(ParameterModel::LongForm(ParameterDefinition::String(param))) => {
+                assert_eq!(param.target, "my-node");
+                assert_eq!(param.property, "name");
+                assert_eq!(param.default.as_deref(), Some("MyNode"));
+            }
+            _ => panic!("unexpected parameter format"),
+        }
     }
 }
