@@ -34,7 +34,7 @@ fn builtin_command_descriptors() -> Vec<CommandDescriptor> {
 const SIMPLE_WORKFLOW: &str = r#"
 workflow:
     const-string:
-        properties:
+        inputs:
             value: Hello, test!
     prettify:
         type: prettify
