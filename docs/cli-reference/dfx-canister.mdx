@@ -639,9 +639,11 @@ You can specify the following options for the `dfx canister logs` command.
 
 | Option                      | Description                                                                                         |
 |-----------------------------|-----------------------------------------------------------------------------------------------------|
-| `--tail <tail>`             | Specifies to show the last number of the logs.                                                      |
+| `--follow`                  | Specifies to fetch logs continuously until interrupted with `Ctrl+C`.                               |
+| `--interval <interval>`     | Specifies the interval in seconds between log fetches when following logs. Defaults to 2 seconds.   |
 | `--since <since>`           | Specifies to show the logs newer than a relative duration, with the valid units `s`, `m`, `h`, `d`. |
 | `--since-time <since-time>` | Specifies to show the logs newer than a specific timestamp. Required either `nanoseconds` since Unix epoch or `RFC3339` format (e.g. `2021-05-06T19:17:10.000000002Z`). |
+| `--tail <tail>`             | Specifies to show the last number of the logs.                                                      |
 
 ### Examples
 
@@ -696,6 +698,12 @@ The command displays output similar to the following:
 ``` log
 [44. 2021-05-06T19:17:15.000000001Z]: Five seconds later
 [45. 2021-05-06T19:17:15.000000002Z]: (bytes) 0xc0ffee
+```
+
+To fetch logs continuously, you can run the following command:
+
+``` bash
+dfx canister logs hello_world --follow
 ```
 
 ## dfx canister metadata

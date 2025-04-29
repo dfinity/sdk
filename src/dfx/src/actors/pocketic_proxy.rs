@@ -250,7 +250,7 @@ fn pocketic_proxy_start_thread(
             // form the pocket-ic command here similar to replica command
             let mut cmd = std::process::Command::new(&pocketic_proxy_path);
             if !verbose {
-                cmd.env("RUST_LOG", "error");
+                cmd.args(["--log-levels", "error"]);
             }
 
             cmd.args(["--ttl", "2592000"]);

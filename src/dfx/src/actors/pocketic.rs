@@ -56,7 +56,6 @@ pub struct Config {
     pub pid_file: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
-    pub verbose: bool,
 }
 
 /// A PocketIC actor. Starts the server, can subscribe to a Ready signal and a
@@ -239,9 +238,10 @@ fn pocketic_start_thread(
                 "--ttl",
                 "2592000",
             ]);
-            if !config.verbose {
-                cmd.env("RUST_LOG", "error");
-            }
+            cmd.args([
+                "--log-levels",
+                &config.replica_config.log_level.to_pocketic_string(),
+            ]);
             cmd.stdout(std::process::Stdio::inherit());
             cmd.stderr(std::process::Stdio::inherit());
             #[cfg(unix)]
