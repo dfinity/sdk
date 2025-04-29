@@ -52,7 +52,7 @@ parameters:
     kind: node-type
 
 workflow:
-  rust-builder:
+  any-builder:
     type:
       parameter: builder
     inputs:
