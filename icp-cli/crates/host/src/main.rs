@@ -56,8 +56,8 @@ workflow:
     type:
       parameter: builder
     inputs:
-     package:
-       parameter: canister-name
+      package:
+        parameter: canister-name
 "#;
 
 fn workflow_command_descriptor(path: String, workflow: &str) -> CommandDescriptor {
