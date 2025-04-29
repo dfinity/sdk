@@ -1,6 +1,6 @@
 use crate::workflow::execute::error::ExecutionGraphFromPlanError;
 use crate::workflow::execute::ExecutionGraph;
-use crate::workflow::parse::workflow::{InputBinding, NodeModel, WorkflowModel};
+use crate::workflow::parse::workflow::{InputBinding, NodeModel, NodeTypeBinding, WorkflowModel};
 use crate::workflow::registry::node_type_registry::NodeTypeRegistry;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use thiserror::Error;
@@ -52,7 +52,16 @@ impl WorkflowPlanNode {
             })
             .collect();
 
-        let node_type = yaml.r#type.clone().unwrap_or(name.clone());
+        let node_type = match yaml.r#type {
+            None => name.clone(),
+            Some(NodeTypeBinding::Type(t)) => t,
+            Some(NodeTypeBinding::Parameter { parameter }) => {
+                let v = parameter_values
+                    .get(&parameter)
+                    .unwrap_or_else(|| panic!("Parameter {} not found", parameter));
+                v.clone()
+            }
+        };
 
         Self {
             name: name.clone(),
@@ -232,48 +241,58 @@ workflow:
     //         assert_eq!(print_node.inputs["input"], "const-string.output");
     //     }
 
-    //     #[test]
-    //     fn node_type_parameter() {
-    //         let yaml = r#"
-    // parameters:
-    //   transformer-type:
-    //     kind: node-type
-    //     target: transformer
-    // workflow:
-    //   const-string:
-    //     properties:
-    //       value: "some-value"
-    //   transformer:
-    //     inputs:
-    //       input: const-string
-    //   print:
-    //     inputs:
-    //       input: transformer
-    // "#;
-    //
-    //         let model = WorkflowModel::from_string(yaml);
-    //         let parameter_values: HashMap<String, String> =
-    //             HashMap::from([("transformer-type".to_string(), "prettify".to_string())]);
-    //         let registry = NodeTypeRegistry::default(); // Assuming this exists
-    //
-    //         let plan = model.into_plan(parameter_values, &registry);
-    //
-    //         assert_eq!(plan.nodes.len(), 3);
-    //
-    //         // Test the const-node
-    //         let const_node = &plan.nodes[0];
-    //         assert_eq!(const_node.name, "const-string");
-    //         assert_eq!(const_node.r#type, "const-string");
-    //
-    //         // Test the transformer node
-    //         let transformer_node = &plan.nodes[1];
-    //         assert_eq!(transformer_node.name, "transformer");
-    //         assert_eq!(transformer_node.r#type, "prettify");
-    //
-    //         // Test the print-node
-    //         let print_node = &plan.nodes[2];
-    //         assert_eq!(print_node.name, "print");
-    //         assert_eq!(print_node.r#type, "print");
-    //         assert_eq!(print_node.inputs["input"], "transformer.output");
-    //     }
+    #[test]
+    fn node_type_parameter() {
+        let yaml = r#"
+    parameters:
+      transformer-type:
+        kind: node-type
+    workflow:
+      const-string:
+        inputs:
+          value: "some-value"
+      transformer:
+        type:
+          parameter: transformer-type
+        inputs:
+          input:
+            node: const-string
+      print:
+        inputs:
+          input:
+            node: transformer
+    "#;
+
+        let model = WorkflowModel::from_string(yaml);
+        let parameter_values: HashMap<String, String> =
+            HashMap::from([("transformer-type".to_string(), "prettify".to_string())]);
+        let registry = NodeTypeRegistry::default(); // Assuming this exists
+
+        let plan = model.into_plan(parameter_values, &registry);
+
+        assert_eq!(plan.nodes.len(), 3);
+
+        // Test the const-node
+        let const_node = &plan.nodes[0];
+        assert_eq!(const_node.name, "const-string");
+        assert_eq!(const_node.r#type, "const-string");
+
+        // Test the transformer node
+        let transformer_node = &plan.nodes[1];
+        assert_eq!(transformer_node.name, "transformer");
+        assert_eq!(transformer_node.r#type, "prettify");
+
+        // Test the print-node
+        let print_node = &plan.nodes[2];
+        assert_eq!(print_node.name, "print");
+        assert_eq!(print_node.r#type, "print");
+        let input_binding = print_node.inputs.get("input").unwrap();
+        match input_binding {
+            WorkflowInputBinding::NodeOutput { node, output } => {
+                assert_eq!(node, "transformer");
+                assert_eq!(output, "output");
+            }
+            _ => panic!("Expected NodeOutput binding"),
+        }
+    }
 }

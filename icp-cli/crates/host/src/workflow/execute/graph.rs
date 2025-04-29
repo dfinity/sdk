@@ -27,7 +27,7 @@ impl ExecutionGraph {
         wf: WorkflowPlan,
         registry: &NodeTypeRegistry,
     ) -> Result<ExecutionGraph, ExecutionGraphFromPlanError> {
-        let mut promises: HashMap<String, AnyPromise> = HashMap::new();
+        let mut all_outputs: HashMap<String, AnyPromise> = HashMap::new();
         let mut graph_nodes = HashMap::new();
         let mut side_effect_futures = vec![];
 
@@ -49,11 +49,10 @@ impl ExecutionGraph {
                     }
                     WorkflowInputBinding::NodeOutput { node, output } => {
                         let source_name = format!("{}.{}", node, output);
-                        let promise = promises
+                        all_outputs
                             .get(&source_name)
                             .expect("unknown input node")
-                            .clone();
-                        promise
+                            .clone()
                     }
                 };
                 config.inputs.insert(input_name, input);
@@ -76,7 +75,7 @@ impl ExecutionGraph {
                     }
                 };
                 config.outputs.insert(output_name.clone(), promise.clone());
-                promises.insert(fq_name, promise);
+                all_outputs.insert(fq_name, promise);
             }
 
             // construct node with config

@@ -15,15 +15,8 @@ use workflow::registry::node_type_registry::NodeTypeRegistry;
 extern crate command_descriptor_derive;
 use crate::cli::descriptor::{CommandDescriptor, Dispatch};
 use crate::cli::error::{CliError, CliResult};
-use crate::workflow::registry::edge::EdgeType;
 use command_descriptor_derive::command_descriptor;
 
-// fn x() {
-//     let y : Vec<_> = vec![
-//         crate::commands::identity::new,
-//
-//     ];
-// }
 fn builtin_command_descriptors() -> Vec<CommandDescriptor> {
     vec![
         identity::new::descriptor(),
@@ -33,29 +26,35 @@ fn builtin_command_descriptors() -> Vec<CommandDescriptor> {
 
 const SIMPLE_WORKFLOW: &str = r#"
 workflow:
-    const-string:
-        inputs:
-            value: Hello, test!
-    prettify:
-        type: prettify
-        inputs:
-            input: const-string
-    print:
-        inputs:
-            input: prettify
-    print2:
-        type: print
-        inputs:
-            input: prettify
+  const-string:
+    inputs:
+      value: Hello, test!
+  prettify:
+    inputs:
+      input:
+        node: const-string
+  print:
+    inputs:
+      input:
+        node: prettify
+  print2:
+    type: print
+    inputs:
+      input:
+        node: prettify
 "#;
 
 const BUILD_WORKFLOW: &str = r#"
 parameters:
   rust-package:
-     kind: string
+    kind: string
+  builder:
+    kind: node-type
 
 workflow:
   rust-builder:
+    type:
+      parameter: builder
     inputs:
      package:
        parameter: rust-package
@@ -80,7 +79,7 @@ fn workflow_command_descriptor(path: String, workflow: &str) -> CommandDescripto
 
 fn workflow_descriptors() -> Vec<CommandDescriptor> {
     vec![
-        workflow_command_descriptor("workflow".to_string(), SIMPLE_WORKFLOW),
+        workflow_command_descriptor("simple".to_string(), SIMPLE_WORKFLOW),
         workflow_command_descriptor("build".to_string(), BUILD_WORKFLOW),
         // Add workflow descriptors here
     ]
@@ -115,10 +114,13 @@ async fn execute_workflow(workflow: &str) -> CliResult {
     let mut registry = NodeTypeRegistry::new();
     registry.register(node_descriptors());
 
-    let parameters = HashMap::from([(
-        "rust-package".to_string(),
-        "svelte-rust-backend".to_string(),
-    )]);
+    let parameters = HashMap::from([
+        (
+            "rust-package".to_string(),
+            "svelte-rust-backend".to_string(),
+        ),
+        ("builder".to_string(), "rust-builder".to_string()),
+    ]);
 
     let graph = WorkflowModel::from_string(workflow)
         .into_plan(parameters, &registry)

@@ -8,6 +8,9 @@ use std::collections::HashMap;
 pub enum ParameterDefinition {
     #[serde(rename = "string")]
     String(StringParam),
+
+    #[serde(rename = "node-type")]
+    NodeType,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -32,10 +35,17 @@ pub enum InputBinding {
     Node { node: String },
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum NodeTypeBinding {
+    Type(String),
+    Parameter { parameter: String },
+}
+
 #[derive(Deserialize)]
 pub struct NodeModel {
     #[serde(default)]
-    pub r#type: Option<String>,
+    pub r#type: Option<NodeTypeBinding>,
 
     #[serde(default)]
     pub inputs: HashMap<String, InputBinding>,
