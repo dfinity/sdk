@@ -66,10 +66,8 @@ impl WorkflowPlan {
     pub fn from_model(
         model: WorkflowModel,
         parameter_values: HashMap<String, String>,
-        registry: &NodeTypeRegistry,
+        _registry: &NodeTypeRegistry, // todo: check parameter types
     ) -> Self {
-        // let parameter_bindings =
-        //     WorkflowParameterBindings::from_model(&model, parameter_values, registry);
         let nodes = model
             .workflow
             .into_iter()
