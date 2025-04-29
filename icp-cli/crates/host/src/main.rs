@@ -46,7 +46,7 @@ workflow:
 
 const BUILD_WORKFLOW: &str = r#"
 parameters:
-  rust-package:
+  canister-name:
     kind: string
   builder:
     kind: node-type
@@ -57,7 +57,7 @@ workflow:
       parameter: builder
     inputs:
      package:
-       parameter: rust-package
+       parameter: canister-name
 "#;
 
 fn workflow_command_descriptor(path: String, workflow: &str) -> CommandDescriptor {
@@ -116,7 +116,7 @@ async fn execute_workflow(workflow: &str) -> CliResult {
 
     let parameters = HashMap::from([
         (
-            "rust-package".to_string(),
+            "canister-name".to_string(),
             "svelte-rust-backend".to_string(),
         ),
         ("builder".to_string(), "rust-builder".to_string()),
