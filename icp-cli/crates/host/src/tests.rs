@@ -11,11 +11,12 @@ mod tests {
     const SIMPLE_WORKFLOW_YAML: &str = r#"
 workflow:
   const-string:
-    properties:
+    inputs:
       value: Hello, test!
   print:
     inputs:
-      input: const-string.output
+      input:
+        node: const-string
 "#;
 
     #[tokio::test]
@@ -47,14 +48,15 @@ mod type_checking_test {
     const WORKFLOW_YAML: &str = r#"
 workflow:
   const-string:
-    properties:
+    inputs:
       value: Hello, world!
   const-wasm:
-    properties:
+    inputs:
       hex: "0061736d01000000"
   print:
     inputs:
-      input: const-wasm
+      input:
+        node: const-wasm
 "#;
     #[tokio::test]
     async fn detects_type_mismatch() {
@@ -238,11 +240,12 @@ mod lazy_evaluation_test {
         const SIMPLE_WORKFLOW_YAML: &str = r#"
 workflow:
   lazy:
-    properties:
+    inputs:
       value: lazily executed
   eager:
     inputs:
-      input: lazy
+      input:
+        node: lazy
 "#;
 
         let workflow: WorkflowPlan = WorkflowPlan::from_string(SIMPLE_WORKFLOW_YAML);

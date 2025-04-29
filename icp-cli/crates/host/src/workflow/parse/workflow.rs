@@ -6,22 +6,17 @@ use std::collections::HashMap;
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "kind")]
 pub enum ParameterDefinition {
-    #[serde(rename = "node-type")]
-    NodeType(NodeTypeParam),
-
     #[serde(rename = "string")]
     String(StringParam),
 }
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct NodeTypeParam {
-    pub target: String,
-}
+// #[derive(Clone, Debug, Deserialize)]
+// pub struct NodeTypeParam {
+//     pub target: String,
+// }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct StringParam {
-    pub target: String,
-    pub property: String,
     #[serde(default)]
     pub default: Option<String>,
 }
@@ -41,16 +36,23 @@ pub struct WorkflowModel {
     pub workflow: HashMap<String, NodeModel>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum InputBinding {
+    Literal(String),
+    Parameter { parameter: String },
+    Node { node: String },
+}
+
 #[derive(Deserialize)]
 pub struct NodeModel {
     #[serde(default)]
     pub r#type: Option<String>,
 
+    // #[serde(default)]
+    // pub properties: HashMap<String, String>, // node properties
     #[serde(default)]
-    pub properties: HashMap<String, String>, // node properties
-
-    #[serde(default)]
-    pub inputs: HashMap<String, String>, // input name → source node name
+    pub inputs: HashMap<String, InputBinding>,
 }
 
 impl WorkflowModel {
@@ -85,39 +87,19 @@ workflow: {}
     }
 
     #[test]
-    fn parses_node_type_parameter() {
-        let yaml = r#"
-parameters:
-  builder-type:
-    kind: node-type
-    target: builder
-workflow: {}
-"#;
-        let model = WorkflowModel::from_string(yaml);
-        match model.parameters.get("builder-type") {
-            Some(ParameterModel::LongForm(ParameterDefinition::NodeType(param))) => {
-                assert_eq!(param.target, "builder");
-            }
-            _ => panic!("unexpected parameter format"),
-        }
-    }
-
-    #[test]
     fn parses_string_parameter_with_default() {
         let yaml = r#"
 parameters:
   custom-name:
     kind: string
-    target: my-node
-    property: name
     default: "MyNode"
 workflow: {}
 "#;
         let model = WorkflowModel::from_string(yaml);
         match model.parameters.get("custom-name") {
             Some(ParameterModel::LongForm(ParameterDefinition::String(param))) => {
-                assert_eq!(param.target, "my-node");
-                assert_eq!(param.property, "name");
+                // assert_eq!(param.target, "my-node");
+                // assert_eq!(param.property, "name");
                 assert_eq!(param.default.as_deref(), Some("MyNode"));
             }
             _ => panic!("unexpected parameter format"),

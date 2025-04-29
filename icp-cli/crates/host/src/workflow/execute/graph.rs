@@ -3,7 +3,7 @@ use crate::workflow::execute::execute::{Execute, SharedExecuteResult};
 use crate::workflow::execute::promise::{AnyPromise, ExecuteHandle, Promise};
 use crate::workflow::execute::r#const::ConstInput;
 use crate::workflow::payload::wasm::Wasm;
-use crate::workflow::plan::workflow::WorkflowPlan;
+use crate::workflow::plan::workflow::{WorkflowInputBinding, WorkflowPlan};
 use crate::workflow::registry::edge::EdgeType;
 use crate::workflow::registry::node_config::NodeConfig;
 use crate::workflow::registry::node_type_registry::NodeTypeRegistry;
@@ -40,33 +40,22 @@ impl ExecutionGraph {
                 outputs: HashMap::new(),
             };
 
-            // fill properties
-            for (param_name, param_value) in node.properties {
-                let input = node_type.inputs.get(&param_name);
-                let Some(edge_type) = input else {
-                    return Err(ExecutionGraphFromPlanError::PropertyWithoutInput {
-                        node_name: node.name.clone(),
-                        param_name: param_name.clone(),
-                    });
-                };
-                let const_promise = match edge_type {
-                    EdgeType::String => {
-                        let arc = Arc::new(ConstInput::new(param_value));
+            // fill inputs
+            for (input_name, input_binding) in node.inputs {
+                let input: AnyPromise = match input_binding {
+                    WorkflowInputBinding::String(s) => {
+                        let arc = Arc::new(ConstInput::new(s));
                         AnyPromise::String(arc.clone(), None)
                     }
-                    EdgeType::Wasm => {
-                        unreachable!()
+                    WorkflowInputBinding::NodeOutput { node, output } => {
+                        let source_name = format!("{}.{}", node, output);
+                        let promise = promises
+                            .get(&source_name)
+                            .expect("unknown input node")
+                            .clone();
+                        promise
                     }
                 };
-                config.inputs.insert(param_name, const_promise.clone());
-            }
-
-            // fill inputs
-            for (input_name, source_name) in node.inputs {
-                let input = promises
-                    .get(&source_name)
-                    .expect("unknown input node")
-                    .clone();
                 config.inputs.insert(input_name, input);
             }
 

@@ -51,12 +51,14 @@ workflow:
 
 const BUILD_WORKFLOW: &str = r#"
 parameters:
-    rust-package: rust-builder.package
+  rust-package:
+     kind: string
 
 workflow:
-    rust-builder:
-        properties:
-            package: svelte-rust-backend
+  rust-builder:
+    inputs:
+     package:
+       parameter: rust-package
 "#;
 
 fn workflow_command_descriptor(path: String, workflow: &str) -> CommandDescriptor {
