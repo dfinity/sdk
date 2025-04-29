@@ -1,7 +1,6 @@
 use crate::workflow::execute::error::ExecutionGraphFromPlanError;
 use crate::workflow::execute::ExecutionGraph;
 use crate::workflow::parse::workflow::{InputBinding, NodeModel, WorkflowModel};
-use crate::workflow::plan::parameters::{NodeParameterBindings, WorkflowParameterBindings};
 use crate::workflow::registry::node_type_registry::NodeTypeRegistry;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use thiserror::Error;
