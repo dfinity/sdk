@@ -10,28 +10,16 @@ pub enum ParameterDefinition {
     String(StringParam),
 }
 
-// #[derive(Clone, Debug, Deserialize)]
-// pub struct NodeTypeParam {
-//     pub target: String,
-// }
-
 #[derive(Clone, Debug, Deserialize)]
 pub struct StringParam {
     #[serde(default)]
     pub default: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(untagged)]
-pub enum ParameterModel {
-    ShortForm(String), // e.g. "builder.package"
-    LongForm(ParameterDefinition),
-}
-
 #[derive(Deserialize)]
 pub struct WorkflowModel {
     #[serde(default)]
-    pub parameters: HashMap<String, ParameterModel>,
+    pub parameters: HashMap<String, ParameterDefinition>,
 
     pub workflow: HashMap<String, NodeModel>,
 }
@@ -49,8 +37,6 @@ pub struct NodeModel {
     #[serde(default)]
     pub r#type: Option<String>,
 
-    // #[serde(default)]
-    // pub properties: HashMap<String, String>, // node properties
     #[serde(default)]
     pub inputs: HashMap<String, InputBinding>,
 }
@@ -76,13 +62,14 @@ mod tests {
     fn parses_short_form_parameter() {
         let yaml = r#"
 parameters:
-  rust-package: builder.package
+  rust-package:
+    kind: string
 workflow: {}
 "#;
         let model = WorkflowModel::from_string(yaml);
         assert!(matches!(
             model.parameters.get("rust-package"),
-            Some(ParameterModel::ShortForm(s)) if s == "builder.package"
+            Some(ParameterDefinition::String(_))
         ));
     }
 
@@ -97,9 +84,7 @@ workflow: {}
 "#;
         let model = WorkflowModel::from_string(yaml);
         match model.parameters.get("custom-name") {
-            Some(ParameterModel::LongForm(ParameterDefinition::String(param))) => {
-                // assert_eq!(param.target, "my-node");
-                // assert_eq!(param.property, "name");
+            Some(ParameterDefinition::String(param)) => {
                 assert_eq!(param.default.as_deref(), Some("MyNode"));
             }
             _ => panic!("unexpected parameter format"),
