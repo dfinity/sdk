@@ -238,10 +238,7 @@ fn pocketic_start_thread(
                 "--ttl",
                 "2592000",
             ]);
-            cmd.args([
-                "--log-levels",
-                &config.replica_config.log_level.to_pocketic_string(),
-            ]);
+            cmd.args(["--log-levels", "error"]);
             cmd.stdout(std::process::Stdio::inherit());
             cmd.stderr(std::process::Stdio::inherit());
             #[cfg(unix)]
