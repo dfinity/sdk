@@ -2,8 +2,6 @@
 
 # UNRELEASED
 
-
-
 # 0.26.1
 
 ### fix: clear state when switching from shared to project network
