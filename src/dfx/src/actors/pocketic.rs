@@ -1,3 +1,5 @@
+#![cfg_attr(windows, allow(unused))]
+
 use crate::actors::pocketic_proxy::signals::{PortReadySignal, PortReadySubscribe};
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;

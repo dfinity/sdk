@@ -54,7 +54,7 @@ teardown() {
 
 @test "displays the replica revision included in dfx" {
   nix_sources_path="${BATS_TEST_DIRNAME}/../../nix/sources.json"
-  expected_rev="$(jq -r '."replica-x86_64-linux".rev' "$nix_sources_path")"
+  expected_rev="$(jq -r '."pocket-ic-x86_64-linux".rev' "$nix_sources_path")"
 
   assert_command dfx info replica-rev
   assert_eq "$expected_rev"
