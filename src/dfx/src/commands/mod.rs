@@ -20,7 +20,6 @@ mod generate;
 mod identity;
 mod info;
 mod killall;
-mod language_service;
 mod ledger;
 mod new;
 mod ping;
@@ -54,8 +53,6 @@ pub enum DfxCommand {
     Identity(identity::IdentityOpts),
     Info(info::InfoOpts),
     Killall(killall::KillallOpts),
-    #[command(name = "_language-service")]
-    LanguageServices(language_service::LanguageServiceOpts),
     Ledger(ledger::LedgerOpts),
     New(new::NewOpts),
     Ping(ping::PingOpts),
@@ -92,7 +89,6 @@ pub fn exec(env: &dyn Environment, cmd: DfxCommand) -> DfxResult {
         DfxCommand::Identity(v) => identity::exec(env, v),
         DfxCommand::Info(v) => info::exec(env, v),
         DfxCommand::Killall(v) => killall::exec(env, v),
-        DfxCommand::LanguageServices(v) => language_service::exec(env, v),
         DfxCommand::Ledger(v) => ledger::exec(env, v),
         DfxCommand::New(v) => new::exec(env, v),
         DfxCommand::Ping(v) => ping::exec(env, v),

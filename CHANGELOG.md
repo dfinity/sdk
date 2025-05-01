@@ -6,6 +6,9 @@
 
 * Command `rules` that outputs time-efficient GNU Make rules.
 
+### chore: removes the outdated `_language-service` command
+>>>>>>> upstream/master
+
 ### feat: Support 'follow' mode for 'dfx canister logs'
 Support `follow` mode for `dfx canister logs`
 - `--follow` to fetch logs continuously until interrupted with `Ctrl+C`
