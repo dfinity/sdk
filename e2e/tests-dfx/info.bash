@@ -27,24 +27,13 @@ teardown() {
 }
 
 @test "displays the replica port" {
-  if [[ ! "$USE_REPLICA" ]]
-  then
-    assert_command_fail dfx info pocketic-config-port
-    assert_contains "No PocketIC port found"
-    dfx_start
-    assert_command_fail dfx info replica-port
-    assert_contains "The running server is PocketIC"
-    assert_command dfx info pocketic-config-port
-    assert_eq "$(get_pocketic_port)"
-  else
-    assert_command_fail dfx info replica-port
-    assert_contains "No replica port found"
-    dfx_start
-    assert_command_fail dfx info pocketic-config-port
-    assert_contains "The running server is a native replica"
-    assert_command dfx info replica-port
-    assert_eq "$(get_replica_port)"
-  fi
+  assert_command_fail dfx info pocketic-config-port
+  assert_contains "No PocketIC port found"
+  dfx_start
+  assert_command_fail dfx info replica-port
+  assert_contains "The running server is PocketIC"
+  assert_command dfx info pocketic-config-port
+  assert_eq "$(get_pocketic_port)"
 }
 
 @test "displays the default webserver port for the local shared network" {
@@ -126,16 +115,11 @@ teardown() {
 
 @test "prints the pocket-ic default effective canister id" {
   dfx_start
-  if [[ $USE_REPLICA ]]; then
-    assert_command dfx info default-effective-canister-id
-    assert_eq "$stdout" rwlgt-iiaaa-aaaaa-aaaaa-cai
-  else
-    local topology expected_id64 expected_id
-    topology=$(curl "http://localhost:$(get_webserver_port)/_/topology")
-    expected_id64=$(jq -r .default_effective_canister_id.canister_id <<<"$topology")
-    expected_id=$(cat <(crc32 <(base64 -d <<<"$expected_id64") | xxd -r -p) <(base64 -d <<<"$expected_id64") | base32 \
-      | tr -d = | tr '[:upper:]' '[:lower:]' | fold -w5 | paste -sd- -)
-    assert_command dfx info default-effective-canister-id
-    assert_eq "$stdout" "$expected_id"
-  fi
+  local topology expected_id64 expected_id
+  topology=$(curl "http://localhost:$(get_webserver_port)/_/topology")
+  expected_id64=$(jq -r .default_effective_canister_id.canister_id <<<"$topology")
+  expected_id=$(cat <(crc32 <(base64 -d <<<"$expected_id64") | xxd -r -p) <(base64 -d <<<"$expected_id64") | base32 \
+    | tr -d = | tr '[:upper:]' '[:lower:]' | fold -w5 | paste -sd- -)
+  assert_command dfx info default-effective-canister-id
+  assert_eq "$stdout" "$expected_id"
 }

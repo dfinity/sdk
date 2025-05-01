@@ -76,7 +76,7 @@ calculate_sha256() {
 }
 
 write_replica_rev() {
-    REV=$(read_rev_from_nix_sources "replica-x86_64-darwin")
+    REV=$(read_rev_from_nix_sources "pocket-ic-x86_64-darwin")
 
     echo "replica-rev = '$REV'" >>"$DFX_ASSET_SOURCES"
 }
@@ -87,11 +87,8 @@ write_replica_rev
 motoko_base_sha="$(calculate_sha256 "motoko-base")"
 for platform in "darwin" "linux";
 do
-    for name in "ic-admin" "ic-btc-adapter" "ic-https-outcalls-adapter" "ic-nns-init" "ic-starter" "motoko" "replica" "canister_sandbox" "compiler_sandbox" "sandbox_launcher" "sns" "pocket-ic";
+    for name in "motoko" "pocket-ic";
     do
-        if [[ "$name" == "replica" || "$name" == "canister_sandbox" || "$name" == "compiler_sandbox" ]]; then
-            echo "# The replica, canister_sandbox and compiler_sandbox binaries must have the same revision." >>"$DFX_ASSET_SOURCES"
-        fi
         write_entry "$name" "x86_64-${platform}"
     done
     write_entry "motoko-base" "x86_64-${platform}" "motoko-base" "$motoko_base_sha"

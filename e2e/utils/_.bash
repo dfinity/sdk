@@ -145,9 +145,6 @@ dfx_start() {
 
     # By default, start on random port for parallel test execution
     add_default_parameter "--host" "127.0.0.1:0"
-    if [[ "$USE_REPLICA" ]]; then
-        add_default_parameter "--replica"
-    fi
     add_default_parameter "--artificial-delay" "100"
 
     determine_network_directory
@@ -158,18 +155,8 @@ dfx_start() {
 
     dfx start --background "${args[@]}" 3>&-
 
-    if [[ "$USE_REPLICA" ]]; then
-        dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
-        printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
-        test -f "${dfx_config_root}/replica-1.port"
-        port=$(cat "${dfx_config_root}/replica-1.port")
-        if [ "$port" == "" ]; then
-          port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
-        fi
-    else
-        test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
-        port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port")
-    fi
+    test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
+    port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port")
     webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
 
     printf "Replica Configured Port: %s\n" "${port}"
@@ -251,16 +238,12 @@ setup_actuallylocal_shared_network() {
 }
 
 setup_local_shared_network() {
-    local replica_port
-    if [[ "$USE_REPLICA" ]]; then
-        replica_port=$(get_replica_port)
-    else
-        replica_port=$(get_pocketic_port)
-    fi
+    local pocketic_port
+    pocketic_port=$(get_pocketic_port)
 
     [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
 
-    jq ".local.bind=\"127.0.0.1:${replica_port}\"" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+    jq ".local.bind=\"127.0.0.1:${pocketic_port}\"" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 }
 
 use_wallet_wasm() {
