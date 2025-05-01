@@ -28,6 +28,8 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use url::Url;
+use super::graph::graph_nodes_map::GraphWithNodesMap;
+use super::models::canister::Import;
 
 pub trait Environment {
     fn get_cache(&self) -> VersionCache;
@@ -86,6 +88,8 @@ pub trait Environment {
 
     fn get_extension_manager(&self) -> &ExtensionManager;
 
+    fn get_imports(&self) -> &RefCell<GraphWithNodesMap<Import, ()>>;
+
     fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError>;
 }
 
@@ -114,6 +118,10 @@ pub struct EnvironmentImpl {
     effective_canister_id: Option<Principal>,
 
     extension_manager: ExtensionManager,
+
+    /// Graph currently read imports and their children, not necessarily the entire graph of all imports.
+    /// Invariant: with each node contains all its descendants.
+    imports: RefCell<GraphWithNodesMap<Import, ()>>,
 }
 
 impl EnvironmentImpl {
@@ -132,6 +140,7 @@ impl EnvironmentImpl {
             identity_override: None,
             effective_canister_id: None,
             extension_manager,
+            imports: RefCell::new(GraphWithNodesMap::new()),
             spinners: MultiProgress::new(),
         })
     }
@@ -314,6 +323,10 @@ impl Environment for EnvironmentImpl {
     fn get_extension_manager(&self) -> &ExtensionManager {
         &self.extension_manager
     }
+
+    fn get_imports(&self) -> &RefCell<GraphWithNodesMap<Import, ()>> {
+        &self.imports
+    }
 }
 
 pub struct AgentEnvironment<'a> {
@@ -322,6 +335,7 @@ pub struct AgentEnvironment<'a> {
     pocketic: Option<PocketIc>,
     network_descriptor: NetworkDescriptor,
     identity_manager: IdentityManager,
+    imports: RefCell<GraphWithNodesMap<Import, ()>>,
     effective_canister_id: Option<Principal>,
     canister_id_store: OnceCell<CanisterIdStore>,
 }
@@ -393,6 +407,7 @@ impl<'a> AgentEnvironment<'a> {
             pocketic,
             network_descriptor: network_descriptor.clone(),
             identity_manager,
+            imports: RefCell::new(GraphWithNodesMap::new()),
             effective_canister_id,
             canister_id_store: OnceCell::new(),
         })
@@ -505,6 +520,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
     fn get_extension_manager(&self) -> &ExtensionManager {
         self.backend.get_extension_manager()
     }
+
+    fn get_imports(&self) -> &RefCell<GraphWithNodesMap<Import, ()>> {
+        &self.imports
+    }
 }
 
 #[context("Failed to create agent with url {}.", url)]
@@ -559,6 +578,9 @@ pub mod test_env {
         }
         fn get_identity_override(&self) -> Option<&str> {
             None
+        }
+        fn get_imports(&self) -> &RefCell<GraphWithNodesMap<Import, ()>> {
+            unimplemented!()
         }
         fn get_logger(&self) -> &slog::Logger {
             unimplemented!()
