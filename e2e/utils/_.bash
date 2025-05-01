@@ -120,7 +120,7 @@ determine_network_directory() {
 
 # Start the replica in the background.
 dfx_start() {
-    local port dfx_config_root webserver_port
+    local port webserver_port
 
     local args=( "$@" )
 
