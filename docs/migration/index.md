@@ -1,5 +1,6 @@
 # DFX Migration Guide
 
+- [dfx 0.27.0](./dfx-0.27.0-migration-guide.md)
 - [dfx 0.23.0](./dfx-0.23.0-migration-guide.md)
 - [dfx 0.18.0](./dfx-0.18.0-migration-guide.md)
 - [dfx 0.17.0](./dfx-0.17.0-migration-guide.md)

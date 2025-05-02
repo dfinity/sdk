@@ -5,11 +5,7 @@ set timeout 330
 
 spawn dfx cache install
 expect "Installed dfx"
-if [info exists env(USE_REPLICA)] {
-    spawn dfx start --replica --clean
-} else {
-    spawn dfx start --clean
-}
+spawn dfx start --clean
 set pid [exp_pid]
 expect "Using" {
     sleep 1

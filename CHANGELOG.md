@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat!: remove the 'native' replica
+
+The native replica is no longer bundled with dfx; dfx only uses PocketIC for local networks. Accordingly `dfx start --replica` and `dfx info replica-port` now report an error. See the [migration guide](./docs/migration/dfx-0.27.0-migration-guide.md) for more information.
+
 ### chore: removes the outdated `_language-service` command
 
 ### feat: Support 'follow' mode for 'dfx canister logs'
