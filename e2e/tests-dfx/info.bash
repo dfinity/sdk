@@ -31,7 +31,7 @@ teardown() {
   assert_contains "No PocketIC port found"
   dfx_start
   assert_command_fail dfx info replica-port
-  assert_contains 'Error: The 'native' replica (--replica) is no longer supported. If you intended to get the API port, use `--webserver-port`.'
+  assert_contains "Error: The 'native' replica (--replica) is no longer supported. If you intended to get the API port, use \`--webserver-port\`."
   assert_command dfx info pocketic-config-port
   assert_eq "$(get_pocketic_port)"
 }
