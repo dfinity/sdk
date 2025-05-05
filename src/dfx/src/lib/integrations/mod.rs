@@ -1,3 +1,4 @@
+#![cfg_attr(windows, allow(unused))]
 use crate::lib::deps::deploy::try_create_canister;
 use crate::lib::deps::PulledCanister;
 use crate::lib::environment::create_agent;

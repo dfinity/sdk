@@ -2,9 +2,16 @@
 
 # UNRELEASED
 
+### feat!: remove the 'native' replica
+
+The native replica is no longer bundled with dfx; dfx only uses PocketIC for local networks. Accordingly `dfx start --replica` and `dfx info replica-port` now report an error. See the [migration guide](./docs/migration/dfx-0.27.0-migration-guide.md) for more information.
+
 ### feat!: Add safeguard to very short freezing threshold
 
 Similar to very long freezing thresholds, setting a freezing threshold below 1 week now requires confirmation with `--confirm-very-short-freezing-threshold` so that unexpected canister uninstallation is less likely.
+
+### chore: removes the outdated `_language-service` command
+
 
 ### feat: Support 'follow' mode for 'dfx canister logs'
 Support `follow` mode for `dfx canister logs`
@@ -17,12 +24,6 @@ Improve `dfx canister logs` with several options
 - `--tail <n>` to show the last `n` log entries
 - `--since` to show the logs newer than a relative duration
 - `--since-time` to show the logs newer than a specific timestamp
-
-## Dependencies
-
-### Motoko
-
-Updated Motoko to [0.14.8](https://github.com/dfinity/motoko/releases/tag/0.14.8)
 
 # 0.26.1
 
@@ -48,7 +49,7 @@ Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standar
 
 ### Motoko
 
-Updated Motoko to [0.14.7](https://github.com/dfinity/motoko/releases/tag/0.14.7)
+Updated Motoko to [0.14.8](https://github.com/dfinity/motoko/releases/tag/0.14.8)
 
 ### Replica
 

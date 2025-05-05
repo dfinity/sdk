@@ -109,54 +109,6 @@ impl LocalServerDescriptor {
         pid_paths
     }
 
-    /// This file contains the pid of the ic-btc-adapter process
-    pub fn btc_adapter_pid_path(&self) -> PathBuf {
-        self.data_directory.join("ic-btc-adapter-pid")
-    }
-
-    /// This file contains the configuration for the ic-btc-adapter
-    pub fn btc_adapter_config_path(&self) -> PathBuf {
-        self.data_directory.join("ic-btc-adapter-config.json")
-    }
-
-    /// This file contains the PATH of the unix domain socket for the ic-btc-adapter
-    pub fn btc_adapter_socket_holder_path(&self) -> PathBuf {
-        self.data_directory.join("ic-btc-adapter-socket-path")
-    }
-
-    /// This file contains the configuration for the ic-https-outcalls-adapter
-    pub fn canister_http_adapter_config_path(&self) -> PathBuf {
-        self.data_directory.join("ic-canister-http-config.json")
-    }
-
-    /// This file contains the pid of the ic-https-outcalls-adapter process
-    pub fn canister_http_adapter_pid_path(&self) -> PathBuf {
-        self.data_directory.join("ic-https-outcalls-adapter-pid")
-    }
-
-    /// This file contains the PATH of the unix domain socket for the ic-https-outcalls-adapter
-    pub fn canister_http_adapter_socket_holder_path(&self) -> PathBuf {
-        self.data_directory.join("ic-canister-http-socket-path")
-    }
-
-    /// The replica configuration directory doesn't actually contain replica configuration.
-    /// It contains two files:
-    ///   - replica-1.port  contains the listening port of the running replica process
-    ///   - replica.pid     contains the pid of the running replica process
-    pub fn replica_configuration_dir(&self) -> PathBuf {
-        self.data_directory.join("replica-configuration")
-    }
-
-    /// This file contains the listening port of the replica
-    pub fn replica_port_path(&self) -> PathBuf {
-        self.replica_configuration_dir().join("replica-1.port")
-    }
-
-    /// This file contains the pid of the replica process
-    pub fn replica_pid_path(&self) -> PathBuf {
-        self.replica_configuration_dir().join("replica-pid")
-    }
-
     /// This file contains the configuration/API port of the pocket-ic replica process
     pub fn pocketic_port_path(&self) -> PathBuf {
         self.data_directory.join("pocket-ic-port")
@@ -353,35 +305,10 @@ impl LocalServerDescriptor {
         debug!(log, "");
     }
 
-    /// Gets the port of a local replica.
-    ///
-    /// # Prerequisites
-    /// - A local replica or emulator needs to be running, e.g. with `dfx start`.
-    pub fn get_running_replica_port(
-        &self,
-        logger: Option<&Logger>,
-    ) -> Result<Option<u16>, NetworkConfigError> {
-        let replica_port_path = self.replica_port_path();
-        match read_port_from(&replica_port_path)? {
-            Some(port) => {
-                if let Some(logger) = logger {
-                    info!(logger, "Found local replica running on port {}", port);
-                }
-                Ok(Some(port))
-            }
-            None => {
-                let port = self
-                    .get_running_pocketic_port(logger)?
-                    .or(self.replica.port);
-                Ok(port)
-            }
-        }
-    }
-
     /// Gets the port of a local PocketIC instance.
     ///
     /// # Prerequisites
-    /// - A local PocketIC instance needs to be running, e.g. with `dfx start --pocketic`.
+    /// - A local PocketIC instance needs to be running, e.g. with `dfx start`.
     pub fn get_running_pocketic_port(
         &self,
         logger: Option<&Logger>,

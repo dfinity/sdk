@@ -67,13 +67,6 @@ sdk $ bats e2e/tests-dfx/*.bash
 sdk $ bats e2e/tests-replica/*.bash
 ```
 
-#### Running End-to-End Tests Against Local Replica
-
-``` bash
-sdk $ USE_REPLICA=1 bats e2e/tests-dfx/*.bash
-sdk $ USE_REPLICA=1 bats e2e/tests-replica/*.bash
-```
-
 ## Conventional Commits
 
 We use a squash & merge PR strategy, which means that each PR will result in exactly
