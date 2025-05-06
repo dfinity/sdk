@@ -20,6 +20,12 @@ Improve `dfx canister logs` with several options
 - `--since` to show the logs newer than a relative duration
 - `--since-time` to show the logs newer than a specific timestamp
 
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.9](https://github.com/dfinity/motoko/releases/tag/0.14.9)
+
 # 0.26.1
 
 ### fix: clear state when switching from shared to project network
