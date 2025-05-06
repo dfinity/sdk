@@ -4,7 +4,7 @@ import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
 
 <MarkdownChipRow labels={["Reference"]} />
 
-Use the `dfx identity` command with subcommands and flags to manage the identities used to execute commands and communicate with the IC or the local development environment. Creating multiple user identities enables you to test user-based access controls.
+Use the `dfx identity` command with subcommands and flags to manage the identities used to execute commands and communicate with the mainnet or the local development environment. Creating multiple user identities enables you to test user-based access controls.
 
 The basic syntax for running `dfx identity` commands is:
 
@@ -22,7 +22,7 @@ For reference information and examples that illustrate using `dfx identity` comm
 
 | Command                                         | Description                                                                                                               |
 |-------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| [`deploy-wallet`](#dfx-identity-deploy-wallet) | Installs the wallet Wasm to the provided canister id.                                                                     |
+| [`deploy-wallet`](#dfx-identity-deploy-wallet) | Installs the cycles wallet Wasm to the provided canister id.                                                                     |
 | [`get-principal`](#dfx-identity-get-principal) | Shows the textual representation of the principal associated with the current identity.                                   |
 | [`get-wallet`](#dfx-identity-get-wallet)       | Shows the canister identifier for the wallet associated with your current identity principal.                             |
 | `help`                                          | Displays this usage message or the help of the given subcommand(s).                                                       |
@@ -42,15 +42,17 @@ The first time you run the `dfx canister create` command to register an identifi
 
 You can then use `dfx identity new` to create new user identities and store credentials for those identities in `$HOME/.config/dfx/identity/<identity_name>/identity.pem` files. For example, you can create an identity named `ic_admin` by running the following command:
 
-    dfx identity new ic_admin
+```
+dfx identity new ic_admin
+```
 
 This command adds a private key for the `ic_admin` user identity in the `~/.config/dfx/identity/ic_admin/identity.pem` file.
 
 ## dfx identity deploy-wallet
 
-Use the `dfx identity deploy-wallet` command to turn a canister into a wallet canister by installing the wallet Wasm to it.
+Use the `dfx identity deploy-wallet` command to turn a canister into a cycles wallet canister by installing the cycles wallet Wasm to it.
 
-Note that you must be connected to the IC or the local development environment to run this command. In addition, you must be a controller of the canister you want to deploy the wallet to.
+Note that you must be connected to the mainnet or the local development environment to run this command. In addition, you must be a controller of the canister you want to deploy the wallet to.
 
 ### Basic usage
 
@@ -64,7 +66,7 @@ You must specify the following argument for the `dfx identity deploy-wallet` com
 
 | Argument        | Description                                                    |
 |-----------------|----------------------------------------------------------------|
-| `<canister id>` | The ID of the canister where the wallet Wasm will be deployed. |
+| `<canister id>` | The ID of the canister where the cycles wallet Wasm will be deployed. |
 
 ## dfx identity get-principal
 
@@ -93,7 +95,7 @@ In this example, the first command sets the user context to use the `ic_admin` i
 
 Use the `dfx identity get-wallet` command to display the canister identifier for the wallet associated with your current identity principal.
 
-Note that you must be connected to the IC or the local development environment to run this command. In addition, you must be in a project directory to run the command. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories to run the `dfx identity get-wallet` command.
+Note that you must be connected to the mainnet or the local development environment to run this command. In addition, you must be in a project directory to run the command. For example, if your project name is `hello_world`, your current working directory must be the `hello_world` top-level project directory or one of its subdirectories to run the `dfx identity get-wallet` command.
 
 ### Basic usage
 
@@ -109,7 +111,7 @@ If you want to display the canister identifier for the wallet canister associate
 dfx identity get-wallet
 ```
 
-To display the canister identifier for the wallet canister associated with your identity on a specific testnet, you might run a command similar to the following:
+To display the canister identifier for the wallet canister associated with your identity on a specific local network, you might run a command similar to the following:
 
 ``` bash
 dfx identity get-wallet --network=https://192.168.74.4
@@ -138,8 +140,7 @@ dfx identity export alice >generated-id.pem
 
 Use the `dfx identity import` command to create a user identity by importing the user’s key information or security certificate from a PEM file or seed phrase file.
 
-*Password policy*: If an identity is imported using `--storage-mode password-protected`, the following requirements apply to the password:
-- The password needs to be longer than 8 characters.
+If an identity is imported using `--storage-mode password-protected`, the password needs to be longer than 8 characters.
 
 ### Basic usage
 
@@ -201,8 +202,7 @@ In this example, the `bob_standard` identity is the currently-active user contex
 Use the `dfx identity new` command to add new user identities. You should note that the identities you add are global. They are not confined to a specific project context. Therefore, you can use any identity you add using the `dfx identity new` command in any project.
 Only the characters `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.-_@0123456789` are valid in identity names.
 
-*Password policy*: If an identity is created using `--storage-mode password-protected`, the following requirements apply to the password:
-- The password needs to be longer than 8 characters.
+If an identity is created using `--storage-mode password-protected`, the password needs to be longer than 8 characters.
 
 ### Basic usage
 
@@ -220,7 +220,7 @@ You must specify the following argument for the `dfx identity new` command.
 
 ### Options
 
-You can specify the following options for the `+dfx identity new+` command.
+You can specify the following options for the `dfx identity new` command.
 
 |Argument|Description|
 |--------|-----------|
@@ -233,14 +233,18 @@ You can specify the following options for the `+dfx identity new+` command.
 
 You can then use `dfx identity new` to create new user identities and store credentials for those identities in `$HOME/.config/dfx/identity/<identity_name>/identity.pem` files. For example, you can create an identity named `ic_admin` by running the following command:
 
-    dfx identity new ic_admin
+```
+dfx identity new ic_admin
+```
 
 This command adds a private key for the `ic_admin` user identity in the `~/.config/dfx/identity/ic_admin/identity.pem` file.
 
 After adding the private key for the new identity, the command displays confirmation that the identity has been created:
 
-    Creating identity: "ic_admin".
-    Created identity: "ic_admin".
+```
+Creating identity: "ic_admin".
+Created identity: "ic_admin".
+```
 
 ## dfx identity remove
 
@@ -272,22 +276,30 @@ You must specify the following argument for the `dfx identity remove` command.
 
 You can use the `dfx identity remove` command to remove any previously-created identity, including the `default` user identity. For example, if you have added named user identities and want to remove the `default` user identity, you can run the following command:
 
-    dfx identity remove default
+```
+dfx identity remove default
+```
 
 The command displays confirmation that the identity has been removed:
 
-    Removing identity "default".
-    Removed identity "default".
+```
+Removing identity "default".
+Removed identity "default".
+```
 
 Although you can delete the `default` identity if you have created other identities to replace it, you must always have at least one identity available. If you attempt to remove the last remaining user context, the `dfx identity remove` command displays an error similar to the following:
 
-    Identity error:
-      Cannot delete the default identity
+```
+Identity error:
+    Cannot delete the default identity
+```
 
 If you have an identity with one or more wallets configured, it will only be deleted if you call it with `--drop-wallets`. This is made so that users don't accidentally lose access to their cycles wallets. If you try to delete an identity with at least one wallet configured, it will display the attached wallets like this:
 
-    This identity is connected to the following wallets:
-        identity 'mainnet' on network 'ic' has wallet rwlgt-iiaaa-aaaaa-aaaaa-cai
+```
+This identity is connected to the following wallets:
+    identity 'mainnet' on network 'ic' has wallet rwlgt-iiaaa-aaaaa-aaaaa-cai
+```
 
 ## dfx identity rename
 
@@ -312,7 +324,9 @@ You must specify the following arguments for the `dfx identity rename` command.
 
 You can rename the `default` user or any identity you have previously created using the `dfx identity rename` command. For example, if you want to rename a `test_admin` identity that you previously created, you would specify the current identity name you want to change **from** and the new name you want to change **to** by running a command similar to the following:
 
-    dfx identity rename test_admin devops
+```
+dfx identity rename test_admin devops
+```
 
 ## dfx identity set-wallet
 
@@ -330,7 +344,7 @@ You can use the following optional flags with the `dfx identity set-wallet` comm
 
 | Flag              | Description                                                                                                                                                |
 |-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `--force`           | Skips verification that the canister you specify is a valid wallet canister. This option is only useful if you are connecting to the IC running locally. |
+| `--force`           | Skips verification that the canister has a valid wallet canister. This option is only useful if you are connecting to the local development environment. |
 
 ### Example
 
@@ -348,9 +362,9 @@ dfx identity set-wallet --canister-name ${WALLET_CANISTER_ID} --network=https://
 Use the `dfx identity use` command to specify the user identity you want to active. You should note that the identities you have available to use are global. They are not confined to a specific project context. Therefore, you can use any identity you have previously created in any project.
 
 The identity used by a command is:
-- the identity specified in the command with `--identity <NAME>`, if defined
-- else the identity specified by the environment variable `export DFX_IDENTITY=<NAME>`, if defined
-- the identity specified by `dfx identity use <NAME>`.
+- The identity specified in the command with `--identity <NAME>`, if defined.
+- The identity specified by the environment variable `export DFX_IDENTITY=<NAME>`, if defined.
+- The identity specified by `dfx identity use <NAME>`.
 
 ### Basic usage
 
@@ -370,7 +384,9 @@ You must specify the following argument for the `dfx identity use` command.
 
 If you want to run multiple commands with the same user identity context, you can run a command similar to the following:
 
-    dfx identity use ops
+```
+dfx identity use ops
+```
 
 After running this command, subsequent commands use the credentials and access controls associated with the `ops` user.
 
@@ -392,6 +408,4 @@ If you want to display the name of the currently-active user identity, you can r
 dfx identity whoami
 ```
 
-The command displays the name of the user identity. For example, you had previously run the command `dfx identity use bob_standard`, the command would display:
-
-    bob_standard
+The command displays the name of the user identity.
