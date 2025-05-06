@@ -6,7 +6,7 @@ import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
 
 Use the `dfx start` command to start a local development environment and web server processes. This command must be run before you can deploy canisters to the local development environment and test your dapps during development.
 
-By default, all local dfx projects will use PocketIC to create this local development environment. You can run `dfx start` and `dfx stop` from any directory.  See [local server configuration](#local-server-configuration) and [project-specific local networks](#project-specific-local-networks) below for exceptions.
+By default, all local `dfx` projects will use PocketIC to create this local development environment. You can run `dfx start` and `dfx stop` from any directory.  See [local server configuration](#local-server-configuration) and [project-specific local networks](#project-specific-local-networks) below for exceptions.
 
 ## Basic usage
 
@@ -22,8 +22,8 @@ You can use the following optional flags with the `dfx start` command.
 |--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `--background`           | Starts the local development environment and web server processes in the background and waits for a reply before returning to the shell.                                                                                              |
 | `--clean`                | Starts the local development environment and web server processes in a clean state by removing checkpoints from your project cache. You can use this flag to set your project cache to a new state when troubleshooting or debugging. |
-| `--enable-bitcoin`       | Enables bitcoin integration.                                                                                                                                                                                                          |
-| `--enable-canister-http` | Enables canister HTTP requests. (deprecated: now enabled by default)                                                                                                                                                                  |
+| `--enable-bitcoin`       | Enables Bitcoin integration.                                                                                                                                                                                                          |
+| `--enable-canister-http` | Deprecated and now enabled by default.                                                                                                                                                                 |
 | `--pocketic`             | Runs [PocketIC](https://github.com/dfinity/pocketic) instead of the replica. PocketIC is the default if no flag is used.                                                                                                              |
 
 ## Options
@@ -33,9 +33,9 @@ You can use the following option with the `dfx start` command.
 | Option                            | Description                                                                                                                                                                                                          |
 |-----------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `--host host`                     | Specifies the host interface IP address and port number to bind the frontend to. The default for the local shared network is `127.0.0.1:4943`, while the default for a project-specific network is '127.0.0.1:8000'. |
-| `--bitcoin-node host:port`        | Specifies the address of a bitcoind node. Implies `--enable-bitcoin`.                                                                                                                                                |
+| `--bitcoin-node host:port`        | Specifies the address of a `bitcoind` node. Implies `--enable-bitcoin`.                                                                                                                                                |
 | `--artificial-delay milliseconds` | Specifies the delay that an update call should incur. Default: 600ms                                                                                                                                                 |
-| `--domain domain`                 | A domain that can be served. Can be specified more than once.  These are used for canister resolution [default: localhost]                                                                                           |
+| `--domain domain`                 | A domain that can be served. Can be specified more than once. These are used for canister resolution [default: localhost]                                                                                           |
 
 ## Examples
 
@@ -69,7 +69,7 @@ more .dfx/pid
 
 `dfx start` manages a PocketIC server that provides a local development environment. Running `dfx deploy` and other commands will manage canisters on this local network in the same way that `dfx deploy --network ic` deploys projects to the mainnet.
 
-If run from outside a dfx project directory, or if `dfx.json` does not define the `local` network, then `dfx start` looks for the `local` network definition in `$HOME/.config/dfx/networks.json`. If this file does not exist or does not contain a definition for the `local` network, then dfx uses the following default definition:
+If run from outside a `dfx` project directory, or if `dfx.json` does not define the `local` network, then `dfx start` looks for the `local` network definition in `$HOME/.config/dfx/networks.json`. If this file does not exist or does not contain a definition for the `local` network, then `dfx` uses the following default definition:
 
 ```
 {
@@ -80,7 +80,7 @@ If run from outside a dfx project directory, or if `dfx.json` does not define th
 }
 ```
 
-dfx stores data for the shared local network in one of the following locations, depending on your operating system:
+`dfx` stores data for the shared local network in one of the following locations, depending on your operating system:
 - `$HOME/.local/share/dfx/network/local` (Linux)
 - `$HOME/Library/Application Support/org.dfinity.dfx/network/local` (macOS)
 
