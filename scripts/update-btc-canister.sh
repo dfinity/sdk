@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 #   $1 not set   ||   not running in repo root
 if [ -z ${1+x} ] || [ ! "$0" -ef ./scripts/update-btc-canister.sh ]; then
