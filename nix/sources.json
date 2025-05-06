@@ -10,27 +10,27 @@
         "builtin": false,
         "description": "The Motoko base library",
         "owner": "dfinity",
-        "sha256": "1pbqzw55yvh1s3g4i1i7bnjsjyri0f63gd8y31bkgpx78alvbj3y",
+        "sha256": "0w03fh54jwkzic9a92f6kfmv8r0w9f1jk1r0g4r91p79h6ylwfba",
         "type": "tarball",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.14.8/motoko-base-library.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.14.9/motoko-base-library.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-base-library.tar.gz",
-        "version": "0.14.8"
+        "version": "0.14.9"
     },
     "motoko-x86_64-darwin": {
         "builtin": false,
-        "sha256": "1z8zxf9bq0im87ima58ynizsw5xzv9bbqj7q34klmhy0cfr6p33v",
+        "sha256": "12i7s8mim65537h8xl8z1qh4012jr7bsnsglqspdficncfyc4vk1",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.14.8/motoko-Darwin-x86_64-0.14.8.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.14.9/motoko-Darwin-x86_64-0.14.9.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Darwin-x86_64-<version>.tar.gz",
-        "version": "0.14.8"
+        "version": "0.14.9"
     },
     "motoko-x86_64-linux": {
         "builtin": false,
-        "sha256": "1sf2adxqacsrxsb0kfsk6gnciylcfxkv6i8bddid65z7mpgafdl2",
+        "sha256": "0pxllp9v6mfpzfnvpnazzv1rjz8q3h6cid0hf57cvgm1c1v9iql9",
         "type": "file",
-        "url": "https://github.com/dfinity/motoko/releases/download/0.14.8/motoko-Linux-x86_64-0.14.8.tar.gz",
+        "url": "https://github.com/dfinity/motoko/releases/download/0.14.9/motoko-Linux-x86_64-0.14.9.tar.gz",
         "url_template": "https://github.com/dfinity/motoko/releases/download/<version>/motoko-Linux-x86_64-<version>.tar.gz",
-        "version": "0.14.8"
+        "version": "0.14.9"
     },
     "pocket-ic-x86_64-darwin": {
         "rev": "579b8ba3a31341f354f4ddb3d60ac44548a91bc2",
