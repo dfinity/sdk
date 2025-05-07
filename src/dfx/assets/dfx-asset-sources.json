@@ -31,9 +31,9 @@
       "version": "0.14.8"
     },
     "ic-btc-canister": {
-      "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2023-10-13/ic-btc-canister.wasm.gz",
-      "sha256": "09f5647a45ff6d5d05b2b0ed48613fb2365b5fe6573ba0e901509c39fb9564ac",
-      "version": "release/2023-10-13"
+      "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2024-08-30/ic-btc-canister.wasm.gz",
+      "sha256": "d0ada614be09055f37d45d8ad92560432c86b426d9e66f42609ce64007a13c3e",
+      "version": "release/2024-08-30"
     }
   }
 }
