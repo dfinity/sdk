@@ -55,7 +55,7 @@ pub(crate) async fn create_chunk(
                         .and_then(|bytes| Ok((Decode!(&bytes, CreateChunkResponse)?.chunk_id,)))
                 }
             },
-            Err(agent_err) => Err(agent_err),
+            Err(canister_err) => Err(canister_err),
         };
 
         match wait_result {
@@ -65,12 +65,12 @@ pub(crate) async fn create_chunk(
                 }
                 return Ok(chunk_id);
             }
-            Err(agent_err) if !retryable(&agent_err) => {
-                return Err(CreateChunkError::CreateChunk(agent_err));
+            Err(canister_err) if !retryable(&canister_err) => {
+                return Err(CreateChunkError::CreateChunk(canister_err));
             }
-            Err(agent_err) => match retry_policy.next_backoff() {
+            Err(canister_err) => match retry_policy.next_backoff() {
                 Some(duration) => tokio::time::sleep(duration).await,
-                None => return Err(CreateChunkError::CreateChunk(agent_err)),
+                None => return Err(CreateChunkError::CreateChunk(canister_err)),
             },
         }
     }
@@ -117,7 +117,7 @@ pub(crate) async fn create_chunks(
                         .and_then(|bytes| Ok((Decode!(&bytes, CreateChunksResponse)?.chunk_ids,)))
                 }
             },
-            Err(agent_err) => Err(agent_err),
+            Err(canister_err) => Err(canister_err),
         };
 
         match wait_result {
@@ -127,12 +127,12 @@ pub(crate) async fn create_chunks(
                 }
                 return Ok(chunk_ids);
             }
-            Err(agent_err) if !retryable(&agent_err) => {
-                return Err(CreateChunkError::CreateChunks(agent_err));
+            Err(canister_err) if !retryable(&canister_err) => {
+                return Err(CreateChunkError::CreateChunks(canister_err));
             }
-            Err(agent_err) => match retry_policy.next_backoff() {
+            Err(canister_err) => match retry_policy.next_backoff() {
                 Some(duration) => tokio::time::sleep(duration).await,
-                None => return Err(CreateChunkError::CreateChunks(agent_err)),
+                None => return Err(CreateChunkError::CreateChunks(canister_err)),
             },
         }
     }

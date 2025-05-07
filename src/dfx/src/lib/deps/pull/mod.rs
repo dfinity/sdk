@@ -13,7 +13,7 @@ use candid::Principal;
 use dfx_core::config::model::dfinity::Pullable;
 use dfx_core::fs::composite::{ensure_dir_exists, ensure_parent_dir_exists};
 use fn_error_context::context;
-use ic_agent::{Agent, AgentError};
+use ic_agent::Agent;
 use ic_wasm::metadata::get_metadata;
 use sha2::{Digest, Sha256};
 use slog::{error, info, trace, warn, Logger};
@@ -205,10 +205,9 @@ async fn fetch_metadata(
         .read_state_canister_metadata(*canister_id, metadata)
         .await
     {
-        Ok(data) => Ok(Some(data)),
-        Err(agent_error) => match agent_error {
-            // replica returns such error
-            AgentError::HttpError(ref e) => {
+        Ok(data) => Ok(data),
+        Err(agent_error) => {
+            if let Some(e) = agent_error.as_http_error() {
                 let status = e.status;
                 let content = String::from_utf8(e.content.clone())?;
                 if status == 404
@@ -218,13 +217,10 @@ async fn fetch_metadata(
                 } else {
                     bail!(agent_error);
                 }
-            }
-            // ic-ref returns such error when the canister doesn't define the metadata
-            AgentError::LookupPathAbsent(_) => Ok(None),
-            _ => {
+            } else {
                 bail!(agent_error)
             }
-        },
+        }
     }
 }
 

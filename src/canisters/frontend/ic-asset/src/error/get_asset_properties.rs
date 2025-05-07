@@ -1,4 +1,4 @@
-use ic_agent::AgentError;
+use ic_utils::error::BaseError;
 use thiserror::Error;
 
 /// Errors related to getting asset properties.
@@ -6,5 +6,5 @@ use thiserror::Error;
 pub enum GetAssetPropertiesError {
     /// The call to get_asset_properties failed.
     #[error("Failed to get asset properties for {0}")]
-    GetAssetPropertiesFailed(String, #[source] AgentError),
+    GetAssetPropertiesFailed(String, #[source] BaseError),
 }

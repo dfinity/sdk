@@ -2695,7 +2695,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.40.0"
-source = "git+https://github.com/dfinity/agent-rs?rev=b53d770cfd07df07b1024cfd9cc25f7ff80d1b76#b53d770cfd07df07b1024cfd9cc25f7ff80d1b76"
+source = "git+https://github.com/dfinity/agent-rs?rev=686c249adb80aac58b466e654827d8b9dcfe00f4#686c249adb80aac58b466e654827d8b9dcfe00f4"
 dependencies = [
  "arc-swap",
  "async-channel",
@@ -2704,7 +2704,6 @@ dependencies = [
  "async-watch",
  "backoff",
  "cached 0.52.0",
- "candid",
  "der 0.7.9",
  "ecdsa 0.16.9",
  "ed25519-consensus",
@@ -2716,10 +2715,13 @@ dependencies = [
  "ic-certification 3.0.2",
  "ic-transport-types 0.40.0",
  "ic-verify-bls-signature",
+ "ic_principal",
+ "itertools 0.14.0",
  "k256 0.13.4",
  "leb128",
  "p256",
  "pem 3.0.4",
+ "pin-project",
  "pkcs8 0.10.2",
  "rand",
  "rangemap",
@@ -3154,7 +3156,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.40.0"
-source = "git+https://github.com/dfinity/agent-rs?rev=b53d770cfd07df07b1024cfd9cc25f7ff80d1b76#b53d770cfd07df07b1024cfd9cc25f7ff80d1b76"
+source = "git+https://github.com/dfinity/agent-rs?rev=686c249adb80aac58b466e654827d8b9dcfe00f4#686c249adb80aac58b466e654827d8b9dcfe00f4"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3293,7 +3295,7 @@ dependencies = [
 [[package]]
 name = "ic-transport-types"
 version = "0.40.0"
-source = "git+https://github.com/dfinity/agent-rs?rev=b53d770cfd07df07b1024cfd9cc25f7ff80d1b76#b53d770cfd07df07b1024cfd9cc25f7ff80d1b76"
+source = "git+https://github.com/dfinity/agent-rs?rev=686c249adb80aac58b466e654827d8b9dcfe00f4#686c249adb80aac58b466e654827d8b9dcfe00f4"
 dependencies = [
  "candid",
  "hex",
@@ -3363,7 +3365,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.40.0"
-source = "git+https://github.com/dfinity/agent-rs?rev=b53d770cfd07df07b1024cfd9cc25f7ff80d1b76#b53d770cfd07df07b1024cfd9cc25f7ff80d1b76"
+source = "git+https://github.com/dfinity/agent-rs?rev=686c249adb80aac58b466e654827d8b9dcfe00f4#686c249adb80aac58b466e654827d8b9dcfe00f4"
 dependencies = [
  "async-trait",
  "candid",
@@ -3803,6 +3805,15 @@ name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]
@@ -4783,6 +4794,26 @@ name = "pico-args"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5be167a7af36ee22fe3115051bc51f6e6c7054c9348e28deb4f49bd6f705a315"
+
+[[package]]
+name = "pin-project"
+version = "1.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "677f1add503faace112b9f1373e43e9e054bfdd22ff1a63c1bc485eaec6a6a8a"
+dependencies = [
+ "pin-project-internal",
+]
+
+[[package]]
+name = "pin-project-internal"
+version = "1.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e918e4ff8c4549eb882f14b3a4bc8c8bc93de829416eacf579f1207a8fbf861"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.98",
+]
 
 [[package]]
 name = "pin-project-lite"

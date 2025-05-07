@@ -107,7 +107,7 @@ pub async fn read_module_metadata(
             &agent
                 .read_state_canister_metadata(canister_id, metadata)
                 .await
-                .ok()?,
+                .ok()??,
         )
         .into(),
     )

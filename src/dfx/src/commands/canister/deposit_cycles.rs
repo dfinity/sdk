@@ -109,7 +109,7 @@ pub async fn exec(
         .await
         {
             Ok(wallet) => {
-                proxy_sender = CallSender::Wallet(*wallet.canister_id_());
+                proxy_sender = CallSender::Wallet(*wallet.canister_id());
                 call_sender = &proxy_sender;
             }
             Err(err) => {
