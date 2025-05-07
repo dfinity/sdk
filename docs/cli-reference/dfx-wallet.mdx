@@ -82,7 +82,7 @@ You can use the following options with the `dfx canister call` command.
 
 |Option |Description|
 --------|------------|
-|`--network <network>` |Specifies the environment (e.g., mainnet or a local custom network) of the controller you want to add.
+|`--network` |Override the environment to connect to. By default, the local development environment is used. A valid URL (starting with `http:` or `https:`) can be specified here, e.g. "http://localhost:12345/" is a valid network name.
 
 ### Arguments
 
@@ -427,7 +427,7 @@ Use the `dfx wallet upgrade` command to upgrade the cycle wallet's Wasm module t
 ### Basic usage
 
 ```
-    dfx wallet upgrade [flag]
+dfx wallet upgrade [flag]
 ```
 
 ### Example
