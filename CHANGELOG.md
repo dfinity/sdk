@@ -26,6 +26,10 @@ Improve `dfx canister logs` with several options
 
 Updated Motoko to [0.14.9](https://github.com/dfinity/motoko/releases/tag/0.14.9)
 
+### Bitcoin canister
+
+Upgraded Bitcoin canister to [release/2024-08-30](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2024-08-30)
+
 # 0.26.1
 
 ### fix: clear state when switching from shared to project network
