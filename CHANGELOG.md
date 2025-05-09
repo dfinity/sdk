@@ -30,6 +30,15 @@ Updated Motoko to [0.14.9](https://github.com/dfinity/motoko/releases/tag/0.14.9
 
 Upgraded Bitcoin canister to [release/2024-08-30](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2024-08-30)
 
+### Replica
+
+Updated replica to elected commit f195ba756bc3bf170a2888699e5e74101fdac6ba.
+This incorporates the following executed proposals:
+
+- [136436](https://dashboard.internetcomputer.org/proposal/136436)
+- [136366](https://dashboard.internetcomputer.org/proposal/136366)
+- [136310](https://dashboard.internetcomputer.org/proposal/136310)
+
 # 0.26.1
 
 ### fix: clear state when switching from shared to project network
