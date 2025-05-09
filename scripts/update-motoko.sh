@@ -7,10 +7,14 @@ if [ -z ${1+x} ] || [ ! "$0" -ef ./scripts/update-motoko.sh ]; then
     echo "Usage: run ./scripts/update-motoko.sh <version-to-update-to> in repo root"
     exit 1
 fi
-if ! command -v curl jq sponge &>/dev/null; then
-    echo "This script requires curl, jq, and moreutils to be installed"
-    exit 1
-fi
+
+for cmd in curl jq sponge; do
+    if ! command -v "$cmd" &>/dev/null; then
+        echo "'$cmd' was not found."
+        echo "This script requires curl, jq, and moreutils to be installed"
+        exit 1
+    fi
+done
 
 urlencode() {
     printf '%s' "$1" | jq -sRr @uri
