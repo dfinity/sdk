@@ -179,9 +179,11 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             }
             output_file.write_fmt(format_args!("\ndeploy-self@{}: build@{}\n", canister_name, canister_name))?;
             let deps = canister.as_ref().get_info().get_dependencies();
-            output_file.write_fmt(format_args!( // TODO: Use `canister install` instead.
-                "\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n", canister_name, canister_name
-            ))?;
+            if !canister.as_ref().get_info().is_remote() {
+                output_file.write_fmt(format_args!( // TODO: Use `canister install` instead.
+                    "\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n", canister_name, canister_name
+                ))?;
+            }
             // If the canister is assets, add `generate@` dependencies.
             if canister.as_ref().get_info().is_assets() {
                 if !deps.is_empty() {
