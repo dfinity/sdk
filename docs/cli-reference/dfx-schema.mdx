@@ -18,7 +18,7 @@ You can use the following option with the `dfx schema` command.
 
 | Option                 | Description                                                                |
 |------------------------|----------------------------------------------------------------------------|
-| `--for <which>`        | Display schema for which JSON file. (default: dfx)                         |
+| `--for <which>`        | Display schema for which JSON file. (default: `dfx`)                         |
 | `--outfile <outfile>`  | Specifies a file to output the schema to instead of printing it to stdout. |
 
 The parameter passed to `--for` can be one of the following:
@@ -28,8 +28,8 @@ The parameter passed to `--for` can be one of the following:
 | dfx                    | dfx.json                                               |
 | networks               | networks.json                                          |
 | dfx-metadata           | dfx-related metadata stored in canister and accessible with `dfx canister metadata <canister> dfx` |
-| extension-manifest     | extension.json [example][example-extension-json]       |
-| extension-dependencies | dependencies.json [example][example-dependencies-json] |
+| extension-manifest     | extension.json [View an example][example-extension-json]       |
+| extension-dependencies | dependencies.json [View an example][example-dependencies-json] |
 
 ## Examples
 
@@ -51,7 +51,7 @@ You can print the schema for the "dfx" metadata JSON (which contains fields such
 dfx schema --for dfx-metadata
 ```
 
-If you want to write the schema for dfx.json to `path/to/file/schema.json`, you can do so by running the following command:
+If you want to write the schema for `dfx.json` to `path/to/file/schema.json`, you can do so by running the following command:
 
 ``` bash
 dfx schema --outfile path/to/file/schema.json

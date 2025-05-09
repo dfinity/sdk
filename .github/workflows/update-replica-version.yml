@@ -45,17 +45,6 @@ jobs:
           echo "REPLICA_VERSION=${{ github.event.inputs.customReplicaVersion }}" >> $GITHUB_ENV
         fi
         grep -s "REPLICA_VERSION" $GITHUB_ENV
-   
-    - name: install Nix
-      uses: cachix/install-nix-action@v21
-      with:
-        nix_path: nixpkgs=channel:nixos-unstable
-
-    - name: install niv (dependency manager for Nix projects)
-      run: nix-env -i niv -f '<nixpkgs>'
-
-    - name: install packages from nix/sources.json
-      run: niv update
 
     - name: update replica
       run: |
