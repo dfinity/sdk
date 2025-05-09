@@ -261,11 +261,17 @@ fn make_target(pool: &CanisterPool, graph0: &GraphWithNodesMap<Import, ()>, grap
     })
 }
 
-fn get_build_command(_pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> Option<String> {
+fn get_build_command(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> Option<String> {
     let node_value = graph.node_weight(node_id).unwrap();
     match node_value {
         Import::Canister(canister_name) => {
-            Some(format!("dfx canister create --network $(NETWORK) {}\n\tdfx build --no-deps --network $(NETWORK) {}", canister_name, canister_name))
+            // TODO: Duplicate code in next line:
+            let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
+            if canister.get_info().is_custom() {
+                Some(format!("dfx build --no-deps --network $(NETWORK) {}", canister_name))
+            } else {
+                Some(format!("dfx canister create --network $(NETWORK) {}\n\tdfx build --no-deps --network $(NETWORK) {}", canister_name, canister_name))
+            }
         }
         Import::Ic(_canister_name) => None,
         Import::Path(_path) => None,
