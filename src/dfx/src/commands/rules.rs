@@ -29,6 +29,7 @@ pub struct RulesOpts {
     network: NetworkOpt,
 }
 
+// FIXME: "remote" canisters build two times.
 // FIXME: It wrongly acts with downloaded canisters (like `internet_identity`).
 //        This seems to be the cause of double recompilation. (Seems to have been fixed.)
 // TODO: Describe explicity rules and files. Correct outputting \n between rules.
