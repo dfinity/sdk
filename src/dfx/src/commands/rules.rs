@@ -236,6 +236,8 @@ fn make_target(pool: &CanisterPool, graph0: &GraphWithNodesMap<Import, ()>, grap
                 };
                 let path2 = format!(".dfx/$(NETWORK)/canisters/{}/{}.did", canister_name, canister_name);
                 format!("{} {}", path1, path2)
+            } else if canister.get_info().is_remote() {
+                format!("candid/{}.did", canister_name)
             } else {
                 let did = if canister.get_info().is_assets() {
                     "service.did".to_string()
