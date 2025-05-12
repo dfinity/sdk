@@ -1,7 +1,7 @@
 use crate::error::create_project_asset::CreateProjectAssetError;
 use crate::error::gather_asset_descriptors::GatherAssetDescriptorsError;
 use crate::error::get_asset_properties::GetAssetPropertiesError;
-use ic_agent::AgentError;
+use ic_utils::error::BaseError;
 use thiserror::Error;
 
 use super::AssembleCommitBatchArgumentError;
@@ -15,7 +15,7 @@ pub enum UploadContentError {
 
     /// Failed when calling create_batch.
     #[error("Failed to create batch")]
-    CreateBatchFailed(#[source] AgentError),
+    CreateBatchFailed(#[source] BaseError),
 
     /// Failed when creating project assets.
     #[error("Failed to create project asset")]
@@ -31,5 +31,5 @@ pub enum UploadContentError {
 
     /// Failed when calling the list method.
     #[error("Failed to list assets")]
-    ListAssetsFailed(#[source] AgentError),
+    ListAssetsFailed(#[source] BaseError),
 }

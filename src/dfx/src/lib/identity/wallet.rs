@@ -12,7 +12,8 @@ use dfx_core::error::wallet_config::WalletConfigError;
 use dfx_core::identity::wallet::{get_wallet_config_path, wallet_canister_id};
 use dfx_core::identity::{Identity, WalletGlobalConfig, WalletNetworkMap};
 use ic_agent::agent::{RejectCode, RejectResponse};
-use ic_agent::AgentError;
+use ic_agent::agent_error::ErrorKind;
+use ic_utils::error::CanisterError;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
 use ic_utils::interfaces::{ManagementCanister, WalletCanister};
 use slog::info;
@@ -105,15 +106,19 @@ pub async fn create_wallet(
         .with_mode(InstallMode::Install)
         .await
     {
-        Err(AgentError::CertifiedReject {
-            reject:
+        Err(err)
+            if err.as_agent().is_some_and(|err| {
+                err.kind() == ErrorKind::Reject
+                    && err.operation_info().is_some_and(|op| {
+                        matches!(op.response().unwrap().unwrap_err(),
                 RejectResponse {
                     reject_code: RejectCode::CanisterError,
                     reject_message,
                     ..
-                },
-            ..
-        }) if reject_message.contains("not empty") => {
+                } if reject_message.contains("not empty"))
+                    })
+            }) =>
+        {
             bail!(
                 r#"The wallet canister "{canister_id}" already exists for user "{name}" on "{}" network."#,
                 network.name

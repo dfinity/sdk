@@ -8,12 +8,12 @@ use crate::canister_api::types::batch_upload::common::{
 use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
 use candid::{CandidType, Nat};
-use ic_agent::AgentError;
+use ic_utils::error::BaseError;
 use ic_utils::Canister;
 use serde_bytes::ByteBuf;
 use std::time::Duration;
 
-pub(crate) async fn create_batch(canister: &Canister<'_>) -> Result<Nat, AgentError> {
+pub(crate) async fn create_batch(canister: &Canister<'_>) -> Result<Nat, BaseError> {
     let mut retry_policy = ExponentialBackoffBuilder::new()
         .with_initial_interval(Duration::from_secs(1))
         .with_max_interval(Duration::from_secs(16))
@@ -31,12 +31,12 @@ pub(crate) async fn create_batch(canister: &Canister<'_>) -> Result<Nat, AgentEr
             .await;
         match response {
             Ok((batch_id,)) => break Ok(batch_id),
-            Err(agent_err) if !retryable(&agent_err) => {
-                break Err(agent_err);
+            Err(canister_err) if !retryable(&canister_err) => {
+                break Err(canister_err);
             }
-            Err(agent_err) => match retry_policy.next_backoff() {
+            Err(canister_err) => match retry_policy.next_backoff() {
                 Some(duration) => tokio::time::sleep(duration).await,
-                None => break Err(agent_err),
+                None => break Err(canister_err),
             },
         };
     }?;
@@ -47,7 +47,7 @@ pub(crate) async fn submit_commit_batch<T: CandidType + Sync>(
     canister: &Canister<'_>,
     method_name: &str,
     arg: T, // CommitBatchArguments_{v0,v1,etc}
-) -> Result<(), AgentError> {
+) -> Result<(), BaseError> {
     let mut retry_policy = ExponentialBackoffBuilder::new()
         .with_initial_interval(Duration::from_secs(1))
         .with_max_interval(Duration::from_secs(16))
@@ -58,12 +58,12 @@ pub(crate) async fn submit_commit_batch<T: CandidType + Sync>(
     loop {
         match canister.update(method_name).with_arg(&arg).build().await {
             Ok(()) => return Ok(()),
-            Err(agent_err) if !retryable(&agent_err) => {
-                return Err(agent_err);
+            Err(canister_err) if !retryable(&canister_err) => {
+                return Err(canister_err);
             }
-            Err(agent_err) => match retry_policy.next_backoff() {
+            Err(canister_err) => match retry_policy.next_backoff() {
                 Some(duration) => tokio::time::sleep(duration).await,
-                None => return Err(agent_err),
+                None => return Err(canister_err),
             },
         }
     }
@@ -72,21 +72,21 @@ pub(crate) async fn submit_commit_batch<T: CandidType + Sync>(
 pub(crate) async fn commit_batch<T: CandidType + Sync>(
     canister: &Canister<'_>,
     arg: T, // CommitBatchArguments_{v0,v1,etc}
-) -> Result<(), AgentError> {
+) -> Result<(), BaseError> {
     submit_commit_batch(canister, COMMIT_BATCH, arg).await
 }
 
 pub(crate) async fn propose_commit_batch<T: CandidType + Sync>(
     canister: &Canister<'_>,
     arg: T, // CommitBatchArguments_{v0,v1,etc}
-) -> Result<(), AgentError> {
+) -> Result<(), BaseError> {
     submit_commit_batch(canister, PROPOSE_COMMIT_BATCH, arg).await
 }
 
 pub(crate) async fn compute_evidence(
     canister: &Canister<'_>,
     arg: &ComputeEvidenceArguments,
-) -> Result<Option<ByteBuf>, AgentError> {
+) -> Result<Option<ByteBuf>, BaseError> {
     let mut retry_policy = ExponentialBackoffBuilder::new()
         .with_initial_interval(Duration::from_secs(1))
         .with_max_interval(Duration::from_secs(16))
@@ -103,12 +103,12 @@ pub(crate) async fn compute_evidence(
             .await
         {
             Ok(x) => return Ok(x.0),
-            Err(agent_err) if !retryable(&agent_err) => {
-                return Err(agent_err);
+            Err(canister_err) if !retryable(&canister_err) => {
+                return Err(canister_err);
             }
-            Err(agent_err) => match retry_policy.next_backoff() {
+            Err(canister_err) => match retry_policy.next_backoff() {
                 Some(duration) => tokio::time::sleep(duration).await,
-                None => return Err(agent_err),
+                None => return Err(canister_err),
             },
         }
     }

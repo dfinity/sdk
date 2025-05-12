@@ -1,23 +1,16 @@
 use crate::lib::error::DfxResult;
-use anyhow::{anyhow, bail, Context};
+use anyhow::Context;
 use candid::Principal;
-use ic_agent::{Agent, AgentError};
+use ic_agent::Agent;
 
 pub async fn read_state_tree_canister_controllers(
     agent: &Agent,
     canister_id: Principal,
 ) -> DfxResult<Option<Vec<Principal>>> {
-    let controllers = match agent.read_state_canister_controllers(canister_id).await {
-        Err(AgentError::LookupPathAbsent(_)) => {
-            return Ok(None);
-        }
-        Err(AgentError::InvalidCborData(_)) => {
-            return Err(anyhow!("Invalid cbor data in controllers canister info."));
-        }
-        r => r.with_context(|| format!("Failed to read controllers of canister {canister_id}."))?,
-    };
-
-    Ok(Some(controllers))
+    agent
+        .read_state_canister_controllers(canister_id)
+        .await
+        .with_context(|| format!("Failed to read controllers of canister {canister_id}."))
 }
 
 /// None can indicate either of these, but we can't tell from here:
@@ -27,11 +20,5 @@ pub async fn read_state_tree_canister_module_hash(
     agent: &Agent,
     canister_id: Principal,
 ) -> DfxResult<Option<Vec<u8>>> {
-    let module_hash = match agent.read_state_canister_module_hash(canister_id).await {
-        Ok(blob) => Some(blob),
-        Err(AgentError::LookupPathAbsent(_)) => None,
-        Err(x) => bail!(x),
-    };
-
-    Ok(module_hash)
+    Ok(agent.read_state_canister_module_hash(canister_id).await?)
 }

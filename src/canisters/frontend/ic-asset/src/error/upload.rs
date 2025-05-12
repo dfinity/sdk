@@ -1,7 +1,7 @@
 use super::AssembleCommitBatchArgumentError;
 use crate::error::compatibility::CompatibilityError;
 use crate::error::create_project_asset::CreateProjectAssetError;
-use ic_agent::AgentError;
+use ic_utils::error::BaseError;
 use thiserror::Error;
 
 /// Errors encountered during the upload process.
@@ -9,7 +9,7 @@ use thiserror::Error;
 pub enum UploadError {
     /// Failed when calling commit_batch.
     #[error("Commit batch failed")]
-    CommitBatchFailed(#[source] AgentError),
+    CommitBatchFailed(#[source] BaseError),
 
     /// Failure when trying to work with an older asset canister.
     #[error(transparent)]
@@ -17,7 +17,7 @@ pub enum UploadError {
 
     /// Failed when calling create_batch.
     #[error("Create batch failed")]
-    CreateBatchFailed(#[source] AgentError),
+    CreateBatchFailed(#[source] BaseError),
 
     /// Failed when assembling commit_batch argument.
     #[error("Failed to assemble commit_batch argument")]
@@ -29,5 +29,5 @@ pub enum UploadError {
 
     /// Failed when calling the list method.
     #[error("List assets failed")]
-    ListAssetsFailed(#[source] AgentError),
+    ListAssetsFailed(#[source] BaseError),
 }

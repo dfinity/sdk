@@ -19,8 +19,7 @@ use dfx_core::fs;
 use dfx_core::identity::IdentityType;
 use fd_lock::{RwLock as FdRwLock, RwLockWriteGuard};
 use fn_error_context::context;
-use ic_agent::agent::RejectResponse;
-use ic_agent::agent_error::Operation;
+use ic_agent::agent::{Operation, RejectResponse};
 use ic_agent::AgentError;
 use reqwest::StatusCode;
 use semver::Version;
@@ -164,12 +163,10 @@ impl Telemetry {
         with_telemetry(|telemetry| {
             for source in error.chain() {
                 if let Some(agent_err) = source.downcast_ref::<AgentError>() {
-                    if let AgentError::CertifiedReject { reject, operation }
-                    | AgentError::UncertifiedReject { reject, operation } = agent_err
-                    {
+                    if let Some(reject) = agent_err.as_reject() {
                         telemetry.last_reject = Some(reject.clone());
-                        if let Some(operation) = operation {
-                            telemetry.last_operation = Some(operation.clone());
+                        if let Some(operation) = agent_err.operation_info() {
+                            telemetry.last_operation = Some(operation.operation.clone());
                         }
                     }
                     break;
@@ -241,7 +238,7 @@ impl Telemetry {
         try_with_telemetry(|telemetry| {
             let reject = telemetry.last_reject.as_ref();
             let call_site = telemetry.last_operation.as_ref().map(|o| match o {
-                Operation::Call { method, canister } => {
+                Operation::Update { method, canister } | Operation::Query { method, canister } => {
                     if telemetry.allowlisted_canisters.contains(canister) {
                         method
                     } else {
