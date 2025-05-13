@@ -93,6 +93,8 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 if canister2.get_info().is_assets() {
                     let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
                     output_file.write_fmt(format_args!("build@{}: \\\n  {}\n\n", canister.0, path1))?;
+                } else if canister2.get_info().is_remote() {
+                    output_file.write_fmt(format_args!("build@{}: candid/{}.did", canister.0, canister.0))?;
                 } else {
                     // TODO: `graph` here is superfluous:
                     let path = make_target(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?

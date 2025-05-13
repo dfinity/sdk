@@ -177,19 +177,8 @@ async fn download_binaries(
     sources: Arc<HashMap<String, Source>>,
 ) -> HashMap<PathBuf, Bytes> {
     let mut joinset = JoinSet::new();
-    for bin in [
-        "canister_sandbox",
-        "compiler_sandbox",
-        "ic-admin",
-        "ic-btc-adapter",
-        "ic-https-outcalls-adapter",
-        "ic-nns-init",
-        "ic-starter",
-        "pocket-ic",
-        "replica",
-        "sandbox_launcher",
-        "sns",
-    ] {
+    #[allow(clippy::single_element_loop)]
+    for bin in ["pocket-ic"] {
         let source = sources
             .get(bin)
             .unwrap_or_else(|| panic!("Cannot find source for {bin}"))

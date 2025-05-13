@@ -199,7 +199,7 @@ teardown() {
   dfx canister create --all
   dfx build
   dfx canister install hello_backend
-  [[ ! "$USE_REPLICA" ]] && dfx ledger fabricate-cycles --t 9999999 --canister hello_backend
+  dfx ledger fabricate-cycles --t 9999999 --canister hello_backend
   assert_command dfx canister call hello_backend recurse 100
 }
 
@@ -369,14 +369,10 @@ function impersonate_sender() {
 }
 
 @test "impersonate management canister as sender" {
-    [[ "$USE_REPLICA" ]] && skip "skipped for replica: impersonating sender is only supported for PocketIC"
-
     impersonate_sender "aaaaa-aa"
 }
 
 @test "impersonate new random identity as sender" {
-    [[ "$USE_REPLICA" ]] && skip "skipped for replica: impersonating sender is only supported for PocketIC"
-
     dfx identity new impersonated_identity --storage-mode plaintext
     IDENTITY_PRINCIPAL="$(dfx --identity impersonated_identity identity get-principal)"
     dfx identity remove impersonated_identity

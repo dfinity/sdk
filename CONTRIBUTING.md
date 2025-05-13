@@ -67,13 +67,6 @@ sdk $ bats e2e/tests-dfx/*.bash
 sdk $ bats e2e/tests-replica/*.bash
 ```
 
-#### Running End-to-End Tests Against Local Replica
-
-``` bash
-sdk $ USE_REPLICA=1 bats e2e/tests-dfx/*.bash
-sdk $ USE_REPLICA=1 bats e2e/tests-replica/*.bash
-```
-
 ## Conventional Commits
 
 We use a squash & merge PR strategy, which means that each PR will result in exactly
@@ -110,7 +103,6 @@ What that means is your PR title should start with one of the following prefix:
 #### Locally
 To update the replica to a given $SHA from the dfinity repo, execute the following:
 ``` bash
-# Requires niv to run. To install niv, run nix-env -iA nixpkgs.niv
 ./scripts/update-replica.sh $SHA
 ```
 
@@ -121,7 +113,6 @@ To update Motoko to a given $VERSION from the motoko and motoko-base repos, run 
 
 You can also execute the following locally:
 ``` bash
-# Requires niv to run. To install niv, run nix-env -iA nixpkgs.niv
 ./scripts/update-motoko.sh $VERSION
 ```
 

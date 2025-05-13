@@ -1,8 +1,7 @@
 mod pocketic_config_port;
-mod replica_port;
 mod webserver_port;
 
-use crate::commands::info::{replica_port::get_replica_port, webserver_port::get_webserver_port};
+use crate::commands::info::webserver_port::get_webserver_port;
 use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::error::DfxResult;
 use crate::lib::info;
@@ -29,7 +28,7 @@ enum InfoType {
     NetworksJsonPath,
     /// Show the path to the dfx configuration file
     ConfigJsonPath,
-    /// Show the port the replica is using, if it is running
+    #[command(hide = true)]
     ReplicaPort,
     /// Show the port that PocketIC is using, if it is running
     PocketicConfigPort,
@@ -69,7 +68,7 @@ pub fn exec(env: &dyn Environment, opts: InfoOpts) -> DfxResult {
         InfoType::SecurityPolicy => {
             ic_asset::security_policy::SecurityPolicy::Standard.to_json5_str()
         }
-        InfoType::ReplicaPort => get_replica_port(env)?,
+        InfoType::ReplicaPort => bail!("The 'native' replica (--replica) is no longer supported. If you intended to get the API port, use `--webserver-port`."),
         InfoType::PocketicConfigPort => get_pocketic_config_port(env)?,
         InfoType::ReplicaRev => info::replica_rev().to_string(),
         InfoType::WebserverPort => get_webserver_port(env)?,

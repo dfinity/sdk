@@ -161,7 +161,7 @@ teardown() {
   assert_eq '["def.somewhere","xyz.domain"]' "$domains"
 }
 
-@test "dfx restarts the replica" {
+@test "dfx restarts pocketic" {
   dfx_new hello
   dfx_start
 
@@ -170,17 +170,17 @@ teardown() {
   assert_command dfx canister call hello_backend greet '("Alpha")'
   assert_eq '("Hello, Alpha!")'
 
-  REPLICA_PID=$([[ ! "$USE_REPLICA" ]] && get_pocketic_pid || get_replica_pid)
+  POCKETIC_PID=$(get_pocketic_pid)
 
-  echo "replica pid is $REPLICA_PID"
+  echo "pocketic pid is $POCKETIC_PID"
 
-  [[ ! "$USE_REPLICA" ]] && curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
-  kill -KILL "$REPLICA_PID"
-  assert_process_exits "$REPLICA_PID" 15s
+  curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
+  kill -KILL "$POCKETIC_PID"
+  assert_process_exits "$POCKETIC_PID" 15s
 
   timeout 15s sh -c \
-    'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
-    || (echo "replica did not restart" && ps aux && exit 1)
+    'until dfx ping; do echo waiting for pocketic to restart; sleep 1; done' \
+    || (echo "pocketic did not restart" && ps aux && exit 1)
   wait_until_replica_healthy
 
   # Sometimes initially get an error like:
@@ -225,7 +225,7 @@ teardown() {
   assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
 
-@test "dfx restarts pocketic proxy when the replica restarts" {
+@test "dfx restarts pocketic proxy when pocketic restarts" {
   dfx_new_assets hello
   dfx_start
 
@@ -234,20 +234,20 @@ teardown() {
   assert_command dfx canister call hello_backend greet '("Alpha")'
   assert_eq '("Hello, Alpha!")'
 
-  REPLICA_PID=$([[ ! "$USE_REPLICA" ]] && get_pocketic_pid || get_replica_pid)
+  POCKETIC_PID=$(get_pocketic_pid)
   POCKETIC_PROXY_PID=$(get_pocketic_proxy_pid)
 
-  echo "replica pid is $REPLICA_PID"
+  echo "pocket-ic pid is $POCKETIC_PID"
   echo "pocket-ic proxy pid is $POCKETIC_PROXY_PID"
 
-  [[ ! "$USE_REPLICA" ]] && curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
-  kill -KILL "$REPLICA_PID"
-  assert_process_exits "$REPLICA_PID" 15s
+  curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
+  kill -KILL "$POCKETIC_PID"
+  assert_process_exits "$POCKETIC_PID" 15s
   assert_process_exits "$POCKETIC_PROXY_PID" 15s
 
   timeout 15s sh -c \
-    'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
-    || (echo "replica did not restart" && ps aux && exit 1)
+    'until dfx ping; do echo waiting for pocketic to restart; sleep 1; done' \
+    || (echo "pocketic did not restart" && ps aux && exit 1)
   wait_until_replica_healthy
 
   # Sometimes initially get an error like:
@@ -275,21 +275,17 @@ teardown() {
   assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
 
-@test "dfx start honors replica port configuration" {
+@test "dfx start honors pocketic port configuration" {
   create_networks_json
-  replica_port=$(get_ephemeral_port)
-  jq ".local.replica.port=$replica_port" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+  pocketic_port=$(get_ephemeral_port)
+  jq ".local.replica.port=$pocketic_port" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   dfx_start
-  if [[ ! "$USE_REPLICA" ]]; then
-    assert_command dfx info pocketic-config-port
-  else
-    assert_command dfx info replica-port
-  fi
-  assert_eq "$replica_port"
+  assert_command dfx info pocketic-config-port
+  assert_eq "$pocketic_port"
 }
 
-@test "dfx starts replica with subnet type application - project defaults" {
+@test "dfx starts pocketic with subnet type application - project defaults" {
   install_asset subnet_type/project_defaults/application
   define_project_network
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
@@ -298,7 +294,7 @@ teardown() {
   assert_match "subnet type: Application"
 }
 
-@test "dfx starts replica with subnet type verifiedapplication - project defaults" {
+@test "dfx starts pocketic with subnet type verifiedapplication - project defaults" {
   install_asset subnet_type/project_defaults/verified_application
   define_project_network
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
@@ -307,7 +303,7 @@ teardown() {
   assert_match "subnet type: VerifiedApplication"
 }
 
-@test "dfx starts replica with subnet type system - project defaults" {
+@test "dfx starts pocketic with subnet type system - project defaults" {
   install_asset subnet_type/project_defaults/system
   define_project_network
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
@@ -316,7 +312,7 @@ teardown() {
   assert_match "subnet type: System"
 }
 
-@test "dfx starts replica with subnet type application - local network" {
+@test "dfx starts pocketic with subnet type application - local network" {
   install_asset subnet_type/project_network_settings/application
   define_project_network
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
@@ -325,7 +321,7 @@ teardown() {
   assert_match "subnet type: Application"
 }
 
-@test "dfx starts replica with subnet type verifiedapplication - local network" {
+@test "dfx starts pocketic with subnet type verifiedapplication - local network" {
   install_asset subnet_type/project_network_settings/verified_application
   define_project_network
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
@@ -334,7 +330,7 @@ teardown() {
   assert_match "subnet type: VerifiedApplication"
 }
 
-@test "dfx starts replica with subnet type system - local network" {
+@test "dfx starts pocketic with subnet type system - local network" {
   install_asset subnet_type/project_network_settings/system
   define_project_network
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
@@ -344,7 +340,7 @@ teardown() {
 }
 
 
-@test "dfx starts replica with subnet type application - shared network" {
+@test "dfx starts pocketic with subnet type application - shared network" {
   install_shared_asset subnet_type/shared_network_settings/application
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
@@ -352,7 +348,7 @@ teardown() {
   assert_match "subnet type: Application"
 }
 
-@test "dfx starts replica with subnet type verifiedapplication - shared network" {
+@test "dfx starts pocketic with subnet type verifiedapplication - shared network" {
   install_shared_asset subnet_type/shared_network_settings/verified_application
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
@@ -360,7 +356,7 @@ teardown() {
   assert_match "subnet type: VerifiedApplication"
 }
 
-@test "dfx starts replica with subnet type system - shared network" {
+@test "dfx starts pocketic with subnet type system - shared network" {
   install_shared_asset subnet_type/shared_network_settings/system
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
@@ -425,7 +421,7 @@ teardown() {
   assert_command dfx stop
 }
 
-@test "dfx starts replica with correct log level - project defaults" {
+@test "dfx starts pocketic with correct log level - project defaults" {
   dfx_new
   jq '.defaults.replica.log_level="warning"' dfx.json | sponge dfx.json
   define_project_network
@@ -439,7 +435,7 @@ teardown() {
   assert_match "log level: Critical"
 }
 
-@test "dfx starts replica with correct log level - local network" {
+@test "dfx starts pocketic with correct log level - local network" {
   dfx_new
   jq '.networks.local.replica.log_level="warning"' dfx.json | sponge dfx.json
   define_project_network
@@ -453,7 +449,7 @@ teardown() {
   assert_match "log level: Critical"
 }
 
-@test "dfx starts replica with correct log level - shared network" {
+@test "dfx starts pocketic with correct log level - shared network" {
   dfx_new
   create_networks_json
   jq '.local.replica.log_level="warning"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
@@ -529,5 +525,5 @@ teardown() {
 @test "dfx-started processes can be killed with dfx killall" {
     dfx_start
     dfx killall
-    assert_command_fail pgrep dfx replica pocket-ic
+    assert_command_fail pgrep dfx pocket-ic
 }
