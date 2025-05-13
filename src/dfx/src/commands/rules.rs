@@ -216,7 +216,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     for edge in graph.edge_references() {
         let target_value = graph.node_weight(edge.target()).unwrap();
         if let Import::Lib(_) = target_value {
-             // Unused, because package manager never update existing files (but create new dirs)
+            // Unused, because package manager never update existing files (but create new dirs)
         } else {
             output_file.write_fmt(format_args!(
                 "{}: {}\n",
