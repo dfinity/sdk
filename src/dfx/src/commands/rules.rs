@@ -333,11 +333,11 @@ fn get_build_command(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <G
             // TODO: Duplicate code in next line:
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             let last_line = format!("dfx build --no-deps --network $(NETWORK) {}", canister_name);
-            if canister.get_info().is_remote() {
-                Some(last_line)
+            Some(if canister.get_info().is_remote() {
+                last_line
             } else {
-                Some(format!("dfx canister create --network $(NETWORK) {}\n\t{}", canister_name, last_line))
-            }
+                format!("dfx canister create --network $(NETWORK) {}\n\t{}", canister_name, last_line)
+            })
         }
         Import::Ic(_canister_name) => None,
         Import::Path(_path) => None,
