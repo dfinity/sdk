@@ -37,6 +37,9 @@ jobs:
       with:
         ref: ${{ github.event.inputs.sdkBranch }}
 
+    - name: Install script dependencies
+      run: sudo apt-get install -y moreutils
+
     - name: determine replica commit sha
       run: |
         if [ '${{ github.event.inputs.replicaVersionLatestOrCustom }}' = 'latest' ]; then

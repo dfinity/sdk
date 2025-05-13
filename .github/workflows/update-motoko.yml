@@ -30,6 +30,9 @@ jobs:
       with:
         ref: ${{ github.event.inputs.sdkBranch }}
 
+    - name: Install script dependencies
+      run: sudo apt-get install -y moreutils
+
     - name: determine Motoko version
       run: |
         if [ '${{ github.event.inputs.motokoVersion }}' = 'latest' ]; then

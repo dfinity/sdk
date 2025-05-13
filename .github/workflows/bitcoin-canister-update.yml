@@ -24,7 +24,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install script dependencies
-        run: sudo apt-get install -y jq moreutils
+        run: sudo apt-get install -y moreutils
 
       - name: Fetch Bitcoin Canister latest release tag
         env:
