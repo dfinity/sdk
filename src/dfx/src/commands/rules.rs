@@ -29,6 +29,64 @@ pub struct RulesOpts {
     network: NetworkOpt,
 }
 
+mod rules {
+    use std::fmt::{Display, Formatter};
+    use use itertools::Itertools;
+
+    trait Target: Display {}
+
+    impl<T: Target> Display for Box<T> {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            self.as_ref().fmt(f)
+        }
+    }
+
+    impl<T: Target> Target for Box<T> {}
+
+    struct File(String);
+
+    impl Display for File {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            write!(f, "{}", self.0)
+        }        
+    }
+
+    impl Target for File {}
+
+    struct PhonyTarget(String);
+
+    impl Display for PhonyTarget {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            write!(f, "{}", self.0)
+        }
+    }
+
+    impl Target for PhonyTarget {}
+
+    /// ```
+    /// phony: target1 target2
+    /// target1 target2: source1 source2
+    /// ```
+    struct DoubleRule {
+        phony: PhonyTarget,
+        targets: Vec<File>,
+        sources: Vec<Box<dyn Target>>,
+    }
+
+    impl Display for DoubleRule {
+        fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+            let targets_str = self.targets.into_iter().map(|t| t.to_string()).join(" ");
+            let sources_str = self.sources.into_iter().map(|t| t.to_string()).join(" ");
+            write!(f, ".PHONY: {}\n", self.phony)?;
+            write!(f, "{}: ", self.phony)?;
+            write!(f, "{}\n\n", targets_str)?;
+            write!(f, "{}: ", targets_str)?;
+            write!(f, "{}", sources_str)?;
+            write!(f, "\n")
+        }
+    }
+}
+
 // FIXME: "remote" (and npt only) canisters build two times.
 // FIXME: It wrongly acts with downloaded canisters (like `internet_identity`).
 //        This seems to be the cause of double recompilation. (Seems to have been fixed.)
