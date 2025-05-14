@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
+use std::any::Any;
 
 use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::builders::CanisterBuilder;
@@ -29,21 +30,21 @@ pub struct RulesOpts {
     network: NetworkOpt,
 }
 
-mod rules {
+mod elements {
     use std::fmt::{Display, Formatter};
-    use use itertools::Itertools;
+    use itertools::Itertools;
 
-    trait Target: Display {}
+    pub trait Target: Display {
+        fn is_phony(&self) -> bool;
+    }
 
-    impl<T: Target> Display for Box<T> {
-        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            self.as_ref().fmt(f)
+    impl<T: Target> Target for Box<T> {
+        fn is_phony(&self) -> bool {
+            self.as_ref().is_phony()
         }
     }
 
-    impl<T: Target> Target for Box<T> {}
-
-    struct File(String);
+    pub struct File(String);
 
     impl Display for File {
         fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -51,9 +52,13 @@ mod rules {
         }        
     }
 
-    impl Target for File {}
+    impl Target for File {
+        fn is_phony(&self) -> bool {
+            false
+        }
+    }
 
-    struct PhonyTarget(String);
+    pub struct PhonyTarget(String);
 
     impl Display for PhonyTarget {
         fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -61,16 +66,44 @@ mod rules {
         }
     }
 
-    impl Target for PhonyTarget {}
+    impl Target for PhonyTarget {
+        fn is_phony(&self) -> bool {
+            true
+        }
+    }
+
+    pub struct Rule {
+        // FIXME
+        targets: Vec<Box<PhonyTarget>>, // If targets contain files, use `DoubleRule` instead.
+        sources: Vec<Box<dyn Target>>,
+        commands: Vec<String>,
+    }
+
+    impl Display for Rule {
+        fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+            let targets_str = self.targets.into_iter().map(|t| t.to_string()).join(" ");
+            let sources_str = self.sources.into_iter().map(|t| t.to_string()).join(" ");
+            let phony_targets = self.targets.iter().filter(|target| target.is_phony()).to_vec();
+            if !phony_targets.is_empty() {
+                write!(f, ".PHONY: {}\n", phony_targets.iter().join(" "))?;
+            }
+            write!(f, "{}: {}", self.targets.into_iter().join(" "), self.sources.into_iter().join(" "))?;
+            for command in &self.commands {
+                write!(f, "\n\t{}", command)?;
+            }
+            Ok(())
+        }
+    }
 
     /// ```
     /// phony: target1 target2
     /// target1 target2: source1 source2
     /// ```
-    struct DoubleRule {
+    pub struct DoubleRule {
         phony: PhonyTarget,
         targets: Vec<File>,
         sources: Vec<Box<dyn Target>>,
+        commands: Vec<String>,
     }
 
     impl Display for DoubleRule {
@@ -82,7 +115,10 @@ mod rules {
             write!(f, "{}\n\n", targets_str)?;
             write!(f, "{}: ", targets_str)?;
             write!(f, "{}", sources_str)?;
-            write!(f, "\n")
+            for command in &self.commands {
+                write!(f, "\n\t{}", command)?;
+            }
+                Ok(())
         }
     }
 }
@@ -117,14 +153,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         &pool,
     )?;
 
-    let mut output_file: Box<dyn Write> = match opts.output {
-        Some(filename) => Box::new(OpenOptions::new().write(true).create(true).truncate(true).open(filename)?),
-        None => Box::new(std::io::stdout()),
-    };
-
-    output_file.write_fmt(format_args!("NETWORK ?= local\n\n"))?;
-    output_file.write_fmt(format_args!("DEPLOY_FLAGS ?= \n\n"))?;
-    output_file.write_fmt(format_args!("ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))\n\n"))?;
+    let rules = Vec::new::<Box<elements::Rule>>();
 
     let graph0 = env.get_imports().borrow();
     let graph = graph0.graph();
@@ -132,35 +161,27 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     match &canisters {
         Some(canisters) => {
             let canisters: &BTreeMap<String, ConfigCanistersCanister> = canisters;
-            output_file.write_fmt(format_args!(".PHONY:"))?;
-            for canister in canisters {
-                output_file.write_fmt(format_args!(" build@{}", canister.0))?;
-            };
-            output_file.write_fmt(format_args!("\n\n.PHONY:"))?;
-            for canister in canisters {
-                output_file.write_fmt(format_args!(" deploy@{}", canister.0))?;
-            }
-            output_file.write_fmt(format_args!("\n\n.PHONY:"))?;
-            for canister in canisters {
-                output_file.write_fmt(format_args!(" generate@{}", canister.0))?;
-            }
-            output_file.write_fmt(format_args!("\n\n"))?;
             for canister in canisters {
                 // duplicate code
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
-                if canister2.get_info().is_assets() {
+                let (target, source) = if canister2.get_info().is_assets() {
                     let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
-                    output_file.write_fmt(format_args!("build@{}: \\\n  {}\n\n", canister.0, path1))?;
+                    (path1, FIXME)?;
                 } else if canister2.get_info().is_remote() {
-                    output_file.write_fmt(format_args!("build@{}: candid/{}.did", canister.0, canister.0))?;
+                    (format!("candid/{}.did", canister.0)?, FIXME);
                 } else {
                     // TODO: `graph` here is superfluous:
                     let path = make_target(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
                     output_file.write_fmt(format_args!("build@{}: \\\n  {}\n\n", canister.0, path))?;
                     if let Some(main) = &canister.1.main {
-                        output_file.write_fmt(format_args!("{}: {}\n\n", path, main.to_str().unwrap()))?;
+                        (path, main.to_str().unwrap())
                     }
-                }
+                };
+                rules.push(Box::new(elements::DoubleRule { // FIXME
+                    phony: elements::PhonyTarget(format!("build@{}", canister.0)),
+                    targets,
+                    sources,
+                }));
             };
             for canister in canisters {
                 let declarations_config_pre = &canister.1.declarations;
@@ -188,24 +209,24 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     if let CanisterTypeProperties::Custom { .. } = &canister.1.type_specific {
                         // TODO
                     } else {
-                        output_file.write_fmt(format_args!(
-                            "generate@{}: build@{} \\\n  {}\n\n",
-                            canister.0,
-                            canister.0,
-                            deps,
-                        ))?;
+                        rules.push(Box::new(elements::DoubleRule {
+                            elements::PhonyTarget(format!("generate@{}", canister.0)),
+                            targets: "build@{}", deps, // FIXME
+                            sources: FIXME
+                        }));
                         let did = if let CanisterTypeProperties::Assets { .. } = &canister.1.type_specific {
                             "service.did".to_string()
                         } else {
                             format!("{}.did", canister.0)
                         };
-                        output_file.write_fmt(format_args!(
-                            "{}: {}\n\t{} {}\n\n",
-                            deps,
-                            format!(".dfx/$(NETWORK)/canisters/{}/{}", canister.0, did),
-                            "dfx generate --no-compile --network $(NETWORK)",
-                            canister.0,
-                        ))?;
+                        rules.push(Box::new(elements::DoubleRule {
+                            elements::PhonyTarget(format!(".dfx/$(NETWORK)/canisters/{}/{}", canister.0, did)),
+                            targets: deps, // FIXME
+                            sources: FIXME,
+                            commands: vec![
+                                format!("dfx generate --no-compile --network $(NETWORK) {}", canister.0),
+                            ],
+                        }));
                     }
                 }
             };
@@ -218,11 +239,12 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         if let Import::Lib(_) = target_value {
             // Unused, because package manager never update existing files (but create new dirs)
         } else {
-            output_file.write_fmt(format_args!(
-                "{}: {}\n",
-                make_target(&pool, &graph0, graph, edge.source())?,
-                make_target(&pool, &graph0, graph, edge.target())?,
-            ))?;
+            rules.push(Box::new(elements::Rule {
+                // Yes, source and target are reversed:
+                targets: make_target(&pool, &graph0, graph, edge.source())?,
+                sources: make_target(&pool, &graph0, graph, edge.target())?,
+                commands: Vec::new(),
+            }));
         }
     }
     for node in graph0.nodes() {
@@ -240,33 +262,45 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             }
             output_file.write_fmt(format_args!("\ndeploy-self@{}: build@{}\n", canister_name, canister_name))?;
             let deps = canister.as_ref().get_info().get_dependencies();
-            if !canister.as_ref().get_info().is_remote() {
-                output_file.write_fmt(format_args!( // TODO: Use `canister install` instead.
-                    "\tdfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n", canister_name, canister_name
-                ))?;
-            }
+            let commands = if !canister.as_ref().get_info().is_remote() {
+                vec![
+                    format!( // TODO: Use `canister install` instead.
+                        "dfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n",
+                        canister_name, canister_name
+                    ),
+                ]   
+            } else {
+                Vec::new()
+            };
             // If the canister is assets, add `generate@` dependencies.
             if canister.as_ref().get_info().is_assets() {
                 if !deps.is_empty() {
-                    output_file.write_fmt(format_args!(
-                        "\nbuild@{}: \\\n  {}\n",
-                        canister_name,
-                        deps.iter().map(|name| format!("generate@{}", name)).join(" "),
-                    ))?;
+                    rules.push(values::DoubleRule {
+                        phony: elements::PhonyTarget(format!("generate@{}", canister_name)),
+                        targets: vec![format!("build@{}", canister_name)],
+                        sources: deps.iter().map(|name| format!("generate@{}", name)).join(" ").collect(),
+                        commands,
+                    });
                 }
             }
-            if deps.is_empty() {
-                output_file.write_fmt(format_args!("deploy@{}: deploy-self@{}\n\n", canister_name, canister_name))?;
-            } else {
-                output_file.write_fmt(format_args!(
-                    "deploy@{}: {} \\\n  deploy-self@{}\n\n",
-                    canister_name,
-                    deps.iter().map(|name| format!("deploy@{}", name)).join(" "),
-                    canister_name,
-                ))?;
-            }
+            rules.push(elements::Rule {
+                targets: vec![format!("deploy@{}", canister_name)],
+                sources: deps.iter().map(|name| format!("deploy@{}", name)).join(" ").collect(),
+                    format!("deploy-self@{}", canister_name),
+                commands: None,
+            });
         }
     }
+
+    let mut output_file: Box<dyn Write> = match opts.output {
+        Some(filename) => Box::new(OpenOptions::new().write(true).create(true).truncate(true).open(filename)?),
+        None => Box::new(std::io::stdout()),
+    };
+
+    output_file.write_fmt(format_args!("NETWORK ?= local\n\n"))?;
+    output_file.write_fmt(format_args!("DEPLOY_FLAGS ?= \n\n"))?;
+    output_file.write_fmt(format_args!("ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))\n\n"))?;
+    output_file.write_fmt(format_args!(elements.join("\n\n")))?;
 
     Ok(())
 }
