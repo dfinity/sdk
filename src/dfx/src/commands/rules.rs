@@ -4,6 +4,7 @@ use std::io::Write;
 use std::iter::once;
 use std::path::Path;
 use std::any::Any;
+use std::vec;
 
 use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::builders::CanisterBuilder;
@@ -323,7 +324,7 @@ fn make_target(
     graph0: &GraphWithNodesMap<Import, ()>,
     graph: &Graph<Import, ()>,
     node_id: <Graph<Import, ()> as GraphBase>::NodeId
-) -> DfxResult<String> {
+) -> DfxResult<Vec<elements::File>> {
     let node_value = graph.node_weight(node_id).unwrap();
     Ok(match node_value {
         Import::Canister(canister_name) => {
@@ -332,7 +333,7 @@ fn make_target(
             if canister.get_info().is_assets() {
                 let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name);
                 // let path2 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister_name);
-                path1
+                vec![elements::File(path1)]
             } else if canister.get_info().is_custom() {
                 // let is_gzip = canister.get_info().get_gzip(); // produces `false`, even if `"wasm"` is compressed.
                 let is_gzip = // hack
@@ -347,9 +348,9 @@ fn make_target(
                     format!(".dfx/$(NETWORK)/canisters/{}/{}.wasm", canister_name, canister_name)
                 };
                 let path2 = format!(".dfx/$(NETWORK)/canisters/{}/{}.did", canister_name, canister_name);
-                format!("{} {}", path1, path2)
+                vec![elements::File(path1), elements::File(path2)]
             } else if canister.get_info().is_remote() {
-                format!("candid/{}.did", canister_name)
+                vec![elements::File(format!("candid/{}.did", canister_name))]
             } else {
                 let did = if canister.get_info().is_assets() {
                     "service.did".to_string()
@@ -358,15 +359,15 @@ fn make_target(
                 };
                 let path1 = format!(".dfx/$(NETWORK)/canisters/{}/{}.wasm", canister_name, canister_name);
                 let path2 = format!(".dfx/$(NETWORK)/canisters/{}/{}", canister_name, did);
-                format!("{} {}", path1, path2)
+                vec![elements::File(path1), elements::File(path2)]
             }
         }
-        Import::Path(path) => format!("{}", path.to_str().unwrap_or("<unknown>").to_owned()), // TODO: <unknown> is a hack
+        Import::Path(path) => vec![elements::File(format!("{}", path.to_str().unwrap_or("<unknown>").to_owned()))], // TODO: <unknown> is a hack
         Import::Ic(canister_name) => {
             // format!("build@{}", canister_name)
             let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             if canister2.get_info().is_assets() {
-                let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name);
+                let path1 = vec![elements::File(format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name))];
                 path1
             } else {
                 // TODO: `graph` here is superfluous:
@@ -374,7 +375,7 @@ fn make_target(
                 path
             }
         }
-        Import::Lib(_path) => "".to_string(),
+        Import::Lib(_path) => elements::File("".to_string()), // FIXME
     })
 }
 
