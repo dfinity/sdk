@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::fs::OpenOptions;
 use std::io::Write;
+use std::iter::once;
 use std::path::Path;
 use std::any::Any;
 
@@ -115,8 +116,8 @@ mod elements {
 
     impl Display for DoubleRule {
         fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-            let targets_str = self.targets.into_iter().map(|t| t.to_string()).join(" ");
-            let sources_str = self.sources.into_iter().map(|t| t.to_string()).join(" ");
+            let targets_str = self.targets.iter().map(|t| t.to_string()).join(" ");
+            let sources_str = self.sources.iter().map(|t| t.to_string()).join(" ");
             write!(f, ".PHONY: {}\n", self.phony)?;
             write!(f, "{}: ", self.phony)?;
             write!(f, "{}\n\n", targets_str)?;
@@ -160,7 +161,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         &pool,
     )?;
 
-    let rules = Vec::<Box<elements::Element>>::new();
+    let rules = Vec::<Box<dyn elements::Element>>::new();
 
     let graph0 = env.get_imports().borrow();
     let graph = graph0.graph();
@@ -175,7 +176,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
                     (path1, FIXME)?;
                 } else if canister2.get_info().is_remote() {
-                    (format!("candid/{}.did", canister.0)?, FIXME);
+                    (format!("candid/{}.did", canister.0), FIXME);
                 } else {
                     // TODO: `graph` here is superfluous:
                     let path = make_target(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
@@ -224,10 +225,10 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                         rules.push(Box::new(elements::DoubleRule {
                             phony: elements::PhonyTarget(format!("generate@{}", canister.0)),
                             targets: vec![
-                                format!(".dfx/$(NETWORK)/canisters/{}/{}", canister.0, did),
+                                elements::File(format!(".dfx/$(NETWORK)/canisters/{}/{}", canister.0, did)),
                             ],
-                            sources: "build@{}", deps
-                            commandsvec![
+                            sources: once("build@{}").chain(deps),
+                            commands: vec![
                                 format!("dfx generate --no-compile --network $(NETWORK) {}", canister.0),
                             ],
                         }));
@@ -260,11 +261,9 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 if canister.as_ref().get_info().is_assets() {
                     // We don't support generating dependencies for assets,
                     // so recompile it every time:
-                    output_file.write_fmt(format_args!(".PHONY: {}\n", target))?;    
                 }
                 output_file.write_fmt(format_args!("{}:\n\t{}\n\n", target, command))?;
             }
-            output_file.write_fmt(format_args!("\ndeploy-self@{}: build@{}\n", canister_name, canister_name))?;
             let deps = canister.as_ref().get_info().get_dependencies();
             let commands = if !canister.as_ref().get_info().is_remote() {
                 vec![
@@ -276,15 +275,20 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             } else {
                 Vec::new()
             };
+                    rules.push(Box::new(elements::Rule {
+                        targets: vec![Box::new(elements::PhonyTarget(format!("deploy-self@{}", canister_name)))],
+                        sources: vec![format!("build@{}", canister_name)],
+                        commands,
+                    }));
             // If the canister is assets, add `generate@` dependencies.
             if canister.as_ref().get_info().is_assets() {
                 if !deps.is_empty() {
-                    rules.push(values::DoubleRule {
+                    rules.push(Box::new(elements::DoubleRule {
                         phony: elements::PhonyTarget(format!("generate@{}", canister_name)),
                         targets: vec![format!("build@{}", canister_name)],
                         sources: deps.iter().map(|name| format!("generate@{}", name)).join(" ").collect(),
                         commands,
-                    });
+                    }));
                 }
             }
             rules.push(elements::Rule {
