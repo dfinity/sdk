@@ -227,7 +227,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                             targets: vec![
                                 elements::File(format!(".dfx/$(NETWORK)/canisters/{}/{}", canister.0, did)),
                             ],
-                            sources: once("build@{}").chain(deps),
+                            sources: once("build@{}").chain(deps).collect(),
                             commands: vec![
                                 format!("dfx generate --no-compile --network $(NETWORK) {}", canister.0),
                             ],
@@ -295,12 +295,12 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     }));
                 }
             }
-            rules.push(elements::Rule {
+            rules.push(Box::new(elements::Rule {
                 targets: vec![format!("deploy@{}", canister_name)],
                 sources: deps.iter().map(|name| format!("deploy@{}", name)).join(" ").collect(),
                     format!("deploy-self@{}", canister_name),
                 commands: None,
-            });
+            }));
         }
     }
 
@@ -312,7 +312,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     output_file.write_fmt(format_args!("NETWORK ?= local\n\n"))?;
     output_file.write_fmt(format_args!("DEPLOY_FLAGS ?= \n\n"))?;
     output_file.write_fmt(format_args!("ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))\n\n"))?;
-    output_file.write_fmt(format_args!("{}", elements.join("\n\n")))?;
+    output_file.write_fmt(format_args!("{}", rules.join("\n\n")))?;
 
     Ok(())
 }
