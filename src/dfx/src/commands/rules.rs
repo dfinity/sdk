@@ -72,22 +72,27 @@ mod elements {
         }
     }
 
+    /// "Elements" of rules file separated by empty lines.
+    pub trait Element: Display {}
+
     pub struct Rule {
         // FIXME
-        targets: Vec<Box<PhonyTarget>>, // If targets contain files, use `DoubleRule` instead.
-        sources: Vec<Box<dyn Target>>,
-        commands: Vec<String>,
+        pub targets: Vec<Box<PhonyTarget>>, // If targets contain files, use `DoubleRule` instead.
+        pub sources: Vec<Box<dyn Target>>,
+        pub commands: Vec<String>,
     }
+
+    impl Element for Rule {}
 
     impl Display for Rule {
         fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-            let targets_str = self.targets.into_iter().map(|t| t.to_string()).join(" ");
-            let sources_str = self.sources.into_iter().map(|t| t.to_string()).join(" ");
-            let phony_targets = self.targets.iter().filter(|target| target.is_phony()).to_vec();
+            let targets_str = self.targets.iter().map(|t| t.to_string()).join(" ");
+            let sources_str = self.sources.iter().map(|t| t.to_string()).join(" ");
+            let phony_targets: Vec<Box<PhonyTarget>> = self.targets.into_iter().filter(|target| target.is_phony()).collect();
             if !phony_targets.is_empty() {
                 write!(f, ".PHONY: {}\n", phony_targets.iter().join(" "))?;
             }
-            write!(f, "{}: {}", self.targets.into_iter().join(" "), self.sources.into_iter().join(" "))?;
+            write!(f, "{}: {}", targets_str, sources_str)?;
             for command in &self.commands {
                 write!(f, "\n\t{}", command)?;
             }
@@ -100,11 +105,13 @@ mod elements {
     /// target1 target2: source1 source2
     /// ```
     pub struct DoubleRule {
-        phony: PhonyTarget,
-        targets: Vec<File>,
-        sources: Vec<Box<dyn Target>>,
-        commands: Vec<String>,
+        pub phony: PhonyTarget,
+        pub targets: Vec<File>,
+        pub sources: Vec<Box<dyn Target>>,
+        pub commands: Vec<String>,
     }
+
+    impl Element for DoubleRule {}
 
     impl Display for DoubleRule {
         fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
@@ -153,7 +160,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         &pool,
     )?;
 
-    let rules = Vec::new::<Box<elements::Rule>>();
+    let rules = Vec::<Box<elements::Element>>::new();
 
     let graph0 = env.get_imports().borrow();
     let graph = graph0.graph();
@@ -172,7 +179,6 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 } else {
                     // TODO: `graph` here is superfluous:
                     let path = make_target(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
-                    output_file.write_fmt(format_args!("build@{}: \\\n  {}\n\n", canister.0, path))?;
                     if let Some(main) = &canister.1.main {
                         (path, main.to_str().unwrap())
                     }
@@ -181,6 +187,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     phony: elements::PhonyTarget(format!("build@{}", canister.0)),
                     targets,
                     sources,
+                    commands: FIXME,
                 }));
             };
             for canister in canisters {
@@ -209,21 +216,18 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     if let CanisterTypeProperties::Custom { .. } = &canister.1.type_specific {
                         // TODO
                     } else {
-                        rules.push(Box::new(elements::DoubleRule {
-                            elements::PhonyTarget(format!("generate@{}", canister.0)),
-                            targets: "build@{}", deps, // FIXME
-                            sources: FIXME
-                        }));
-                        let did = if let CanisterTypeProperties::Assets { .. } = &canister.1.type_specific {
+                        let did: String = if let CanisterTypeProperties::Assets { .. } = &canister.1.type_specific {
                             "service.did".to_string()
                         } else {
                             format!("{}.did", canister.0)
                         };
                         rules.push(Box::new(elements::DoubleRule {
-                            elements::PhonyTarget(format!(".dfx/$(NETWORK)/canisters/{}/{}", canister.0, did)),
-                            targets: deps, // FIXME
-                            sources: FIXME,
-                            commands: vec![
+                            phony: elements::PhonyTarget(format!("generate@{}", canister.0)),
+                            targets: vec![
+                                format!(".dfx/$(NETWORK)/canisters/{}/{}", canister.0, did),
+                            ],
+                            sources: "build@{}", deps
+                            commandsvec![
                                 format!("dfx generate --no-compile --network $(NETWORK) {}", canister.0),
                             ],
                         }));
