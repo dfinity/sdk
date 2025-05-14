@@ -145,7 +145,7 @@ impl PocketIc {
     fn send_ready_signal(&self, port: u16) {
         for sub in &self.ready_subscribers {
             sub.do_send(PortReadySignal {
-                url: format!("http://localhost:{port}/instances/0/"),
+                url: format!("http://0.0.0.0:{port}/instances/0/"),
             });
         }
     }
@@ -185,7 +185,7 @@ impl Handler<PortReadySubscribe> for PocketIc {
         // If we have a port, send that we're already ready! Yeah!
         if let Some(port) = self.port {
             msg.0.do_send(PortReadySignal {
-                url: format!("http://localhost:{port}/instances/0/"),
+                url: format!("http://0.0.0.0:{port}/instances/0/"),
             });
         }
 
@@ -267,7 +267,7 @@ fn pocketic_start_thread(
                 );
             }
 
-            let port = match PocketIc::wait_for_ready(&config.port_file, receiver.clone()) {
+            let _port = match PocketIc::wait_for_ready(&config.port_file, receiver.clone()) {
                 Ok(p) => p,
                 Err(e) => {
                     let _ = child.kill();
@@ -281,6 +281,8 @@ fn pocketic_start_thread(
                     }
                 }
             };
+
+            let port : u16 = 8081;
             let instance = match initialize_pocketic(
                 port,
                 &config.effective_config_path,
@@ -375,7 +377,7 @@ async fn initialize_pocketic(
         }
     }
     let resp = init_client
-        .post(format!("http://localhost:{port}/instances"))
+        .post(format!("http://0.0.0.0:{port}/instances"))
         .json(&InstanceConfig {
             subnet_config_set,
             state_dir: Some(replica_config.state_manager.state_root.clone()),
@@ -409,7 +411,7 @@ async fn initialize_pocketic(
     };
     init_client
         .post(format!(
-            "http://localhost:{port}/instances/{instance}/update/set_time"
+            "http://0.0.0.0:{port}/instances/{instance}/update/set_time"
         ))
         .json(&RawTime {
             nanos_since_epoch: OffsetDateTime::now_utc()
@@ -422,7 +424,7 @@ async fn initialize_pocketic(
         .error_for_status()?;
     init_client
         .post(format!(
-            "http://localhost:{port}/instances/{instance}/auto_progress"
+            "http://0.0.0.0:{port}/instances/{instance}/auto_progress"
         ))
         .json(&AutoProgressConfig {
             artificial_delay_ms: Some(replica_config.artificial_delay as u64),
@@ -431,7 +433,7 @@ async fn initialize_pocketic(
         .await?
         .error_for_status()?;
 
-    let agent_url = format!("http://localhost:{port}/instances/{instance}/");
+    let agent_url = format!("http://0.0.0.0:{port}/instances/{instance}/");
 
     debug!(logger, "Waiting for replica to report healthy status");
     crate::lib::replica::status::ping_and_wait(&agent_url).await?;
@@ -464,7 +466,7 @@ async fn shutdown_pocketic(port: u16, instance: usize, logger: Logger) -> DfxRes
     let shutdown_client = Client::new();
     debug!(logger, "Sending shutdown request to PocketIC server");
     shutdown_client
-        .delete(format!("http://localhost:{port}/instances/{instance}"))
+        .delete(format!("http://0.0.0.0:{port}/instances/{instance}"))
         .send()
         .await?
         .error_for_status()?;
