@@ -175,16 +175,16 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
                 let (target, source) = if canister2.get_info().is_assets() {
                     let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
-                    (path1, FIXME)?
+                    (vec![path1], FIXME)?
                 } else if canister2.get_info().is_remote() {
-                    (format!("candid/{}.did", canister.0), FIXME)
+                    (vec![format!("candid/{}.did", canister.0)], FIXME)
                 } else {
                     // TODO: `graph` here is superfluous:
                     let path = make_target(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
                     let Some(main) = &canister.1.main else {
                         continue;
                     };
-                    (path, main.to_str().unwrap())
+                    (vec![path], main.to_str().unwrap())
                 };
                 rules.push(Box::new(elements::DoubleRule { // FIXME
                     phony: elements::PhonyTarget(format!("build@{}", canister.0)),
@@ -319,7 +319,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     Ok(())
 }
 
-fn make_target(
+fn make_target( // TODO: Rename to `make_targets`.
     pool: &CanisterPool,
     graph0: &GraphWithNodesMap<Import, ()>,
     graph: &Graph<Import, ()>,
