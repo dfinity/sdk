@@ -261,8 +261,12 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 if canister.as_ref().get_info().is_assets() {
                     // We don't support generating dependencies for assets,
                     // so recompile it every time:
+                    rules.push(Box::new(elements::Rule {
+                        targets: vec![Box::new(elements::PhonyTarget(target))],
+                        sources: Vec::new(),
+                        commands: vec![command],
+                    }));
                 }
-                output_file.write_fmt(format_args!("{}:\n\t{}\n\n", target, command))?;
             }
             let deps = canister.as_ref().get_info().get_dependencies();
             let commands = if !canister.as_ref().get_info().is_remote() {
@@ -275,11 +279,11 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             } else {
                 Vec::new()
             };
-                    rules.push(Box::new(elements::Rule {
-                        targets: vec![Box::new(elements::PhonyTarget(format!("deploy-self@{}", canister_name)))],
-                        sources: vec![format!("build@{}", canister_name)],
-                        commands,
-                    }));
+            rules.push(Box::new(elements::Rule {
+                targets: vec![Box::new(elements::PhonyTarget(format!("deploy-self@{}", canister_name)))],
+                sources: vec![Box::new(elements::PhonyTarget(format!("build@{}", canister_name)))],
+                commands,
+            }));
             // If the canister is assets, add `generate@` dependencies.
             if canister.as_ref().get_info().is_assets() {
                 if !deps.is_empty() {
@@ -308,7 +312,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     output_file.write_fmt(format_args!("NETWORK ?= local\n\n"))?;
     output_file.write_fmt(format_args!("DEPLOY_FLAGS ?= \n\n"))?;
     output_file.write_fmt(format_args!("ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))\n\n"))?;
-    output_file.write_fmt(format_args!(elements.join("\n\n")))?;
+    output_file.write_fmt(format_args!("{}", elements.join("\n\n")))?;
 
     Ok(())
 }
