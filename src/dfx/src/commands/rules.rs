@@ -318,7 +318,12 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     Ok(())
 }
 
-fn make_target(pool: &CanisterPool, graph0: &GraphWithNodesMap<Import, ()>, graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> DfxResult<String> {
+fn make_target(
+    pool: &CanisterPool,
+    graph0: &GraphWithNodesMap<Import, ()>,
+    graph: &Graph<Import, ()>,
+    node_id: <Graph<Import, ()> as GraphBase>::NodeId
+) -> DfxResult<String> {
     let node_value = graph.node_weight(node_id).unwrap();
     Ok(match node_value {
         Import::Canister(canister_name) => {
