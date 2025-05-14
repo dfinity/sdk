@@ -375,7 +375,7 @@ fn make_target(
                 path
             }
         }
-        Import::Lib(_path) => vec![elements::File("".to_string())], // FIXME
+        Import::Lib(_path) => vec![], // TODO: Does it work correctly?
     })
 }
 
