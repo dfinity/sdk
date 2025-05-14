@@ -44,7 +44,7 @@ mod elements {
         }
     }
 
-    pub struct File(String);
+    pub struct File(pub String);
 
     impl Display for File {
         fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -58,7 +58,7 @@ mod elements {
         }
     }
 
-    pub struct PhonyTarget(String);
+    pub struct PhonyTarget(pub String);
 
     impl Display for PhonyTarget {
         fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -88,7 +88,7 @@ mod elements {
         fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
             let targets_str = self.targets.iter().map(|t| t.to_string()).join(" ");
             let sources_str = self.sources.iter().map(|t| t.to_string()).join(" ");
-            let phony_targets: Vec<Box<PhonyTarget>> = self.targets.into_iter().filter(|target| target.is_phony()).collect();
+            let phony_targets: Vec<&Box<PhonyTarget>> = self.targets.iter().filter(|target| target.is_phony()).collect();
             if !phony_targets.is_empty() {
                 write!(f, ".PHONY: {}\n", phony_targets.iter().join(" "))?;
             }
