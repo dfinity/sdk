@@ -213,7 +213,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                             "ts" => vec![format!("{}.did.d.ts", canister.0), "index.d.ts".to_string()],
                             _ => panic!("unknown canister type: {}", canister.0.as_str()),
                         }
-                    }).flatten().map(|path| format!("{}", output.join(path).to_str().unwrap().to_string())).join(" "); // TODO: `unwrap`
+                    }).flatten().map(|path| format!("{}", output.join(path).to_str().unwrap().to_string())); // TODO: `unwrap`
                     if let CanisterTypeProperties::Custom { .. } = &canister.1.type_specific {
                         // TODO
                     } else {
