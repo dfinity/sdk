@@ -182,6 +182,9 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     let path = make_target(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
                     if let Some(main) = &canister.1.main {
                         (path, main.to_str().unwrap())
+                    } else {
+                        continue;
+                        unreachable!()
                     }
                 };
                 rules.push(Box::new(elements::DoubleRule { // FIXME
@@ -213,7 +216,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                             "ts" => vec![format!("{}.did.d.ts", canister.0), "index.d.ts".to_string()],
                             _ => panic!("unknown canister type: {}", canister.0.as_str()),
                         }
-                    }).flatten().map(|path| format!("{}", output.join(path).to_str().unwrap().to_string())); // TODO: `unwrap`
+                    }).flatten().map(|path| format!("{}", output.join(path).to_str().unwrap().to_string())) ; // TODO: `unwrap`
                     if let CanisterTypeProperties::Custom { .. } = &canister.1.type_specific {
                         // TODO
                     } else {
