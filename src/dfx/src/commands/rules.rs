@@ -174,23 +174,21 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
                 let (target, source) = if canister2.get_info().is_assets() {
                     let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
-                    (path1, FIXME)?;
+                    (path1, FIXME)?
                 } else if canister2.get_info().is_remote() {
-                    (format!("candid/{}.did", canister.0), FIXME);
+                    (format!("candid/{}.did", canister.0), FIXME)
                 } else {
                     // TODO: `graph` here is superfluous:
                     let path = make_target(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
-                    if let Some(main) = &canister.1.main {
-                        (path, main.to_str().unwrap())
-                    } else {
+                    let Some(main) = &canister.1.main else {
                         continue;
-                        unreachable!()
-                    }
+                    };
+                    (path, main.to_str().unwrap())
                 };
                 rules.push(Box::new(elements::DoubleRule { // FIXME
                     phony: elements::PhonyTarget(format!("build@{}", canister.0)),
-                    targets,
-                    sources,
+                    targets: vec![elements::File(target)],
+                    sources: vec![Box::new(elements::File(source))],
                     commands: FIXME,
                 }));
             };
