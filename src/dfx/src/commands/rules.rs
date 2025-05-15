@@ -180,7 +180,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     (vec![format!("candid/{}.did", canister.0)], FIXME)
                 } else {
                     // TODO: `graph` here is superfluous:
-                    let path = make_target(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
+                    let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
                     let Some(main) = &canister.1.main else {
                         continue;
                     };
@@ -208,11 +208,11 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 if !bindings.is_empty() {
                     let deps = bindings.iter().map(|lang| {
                         match lang.as_str() {
-                            "did" => vec![format!("{}.did", canister.0)],
-                            "mo" => vec![format!("{}.mo", canister.0)],
+                            "did" => vec![elements::File(format!("{}.did", canister.0))],
+                            "mo" => vec![elements::File(format!("{}.mo", canister.0))],
                             "rs" => vec![], // TODO
-                            "js" => vec![format!("{}.did.js", canister.0), "index.js".to_string()],
-                            "ts" => vec![format!("{}.did.d.ts", canister.0), "index.d.ts".to_string()],
+                            "js" => vec![elements::File(format!("{}.did.js", canister.0)), elements::File("index.js".to_string())],
+                            "ts" => vec![elements::File(format!("{}.did.d.ts", canister.0)), elements::File("index.d.ts".to_string())],
                             _ => panic!("unknown canister type: {}", canister.0.as_str()),
                         }
                     }).flatten().map(|path| format!("{}", output.join(path).to_str().unwrap().to_string())) ; // TODO: `unwrap`
@@ -229,7 +229,9 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                             targets: vec![
                                 elements::File(format!(".dfx/$(NETWORK)/canisters/{}/{}", canister.0, did)),
                             ],
-                            sources: once("build@{}").chain(deps).collect(),
+                            sources: once(
+                                Box::new(elements::PhonyTarget(format!("build@{}", canister.0))) as Box<dyn elements::Target>
+                            ).chain(deps).collect(),
                             commands: vec![
                                 format!("dfx generate --no-compile --network $(NETWORK) {}", canister.0),
                             ],
@@ -248,8 +250,8 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         } else {
             rules.push(Box::new(elements::Rule {
                 // Yes, source and target are reversed:
-                targets: make_target(&pool, &graph0, graph, edge.source())?,
-                sources: make_target(&pool, &graph0, graph, edge.target())?,
+                targets: make_targets(&pool, &graph0, graph, edge.source())?,
+                sources: make_targets(&pool, &graph0, graph, edge.target())?,
                 commands: Vec::new(),
             }));
         }
@@ -259,7 +261,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         if let Import::Canister(canister_name) = node.0 {
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             if let Some(command) = command {
-                let target = make_target(&pool, &graph0, graph, *node.1)?;
+                let target = make_targets(&pool, &graph0, graph, *node.1)?;
                 if canister.as_ref().get_info().is_assets() {
                     // We don't support generating dependencies for assets,
                     // so recompile it every time:
@@ -291,17 +293,19 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 if !deps.is_empty() {
                     rules.push(Box::new(elements::DoubleRule {
                         phony: elements::PhonyTarget(format!("generate@{}", canister_name)),
-                        targets: vec![format!("build@{}", canister_name)],
-                        sources: deps.iter().map(|name| format!("generate@{}", name)).join(" ").collect(),
+                        targets: vec![elements::File(format!("build@{}", canister_name))],
+                        sources: deps.iter().map(|name| Box::new(elements::PhonyTarget(format!("generate@{}", name))) as Box<dyn elements::Target>)
+                            .collect(),
                         commands,
                     }));
                 }
             }
             rules.push(Box::new(elements::Rule {
-                targets: vec![format!("deploy@{}", canister_name)],
-                sources: deps.iter().map(|name| format!("deploy@{}", name)).join(" ").collect(),
-                    format!("deploy-self@{}", canister_name),
-                commands: None,
+                targets: vec![Box::new(elements::PhonyTarget(format!("deploy@{}", canister_name)))],
+                sources: deps.iter().map(|name| elements::PhonyTarget(format!("deploy@{}", name)))
+                    .chain(once(elements::PhonyTarget(format!("deploy-self@{}", canister_name)).collect()))
+                    .map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
+                commands: Vec::new(),
             }));
         }
     }
@@ -314,12 +318,13 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     output_file.write_fmt(format_args!("NETWORK ?= local\n\n"))?;
     output_file.write_fmt(format_args!("DEPLOY_FLAGS ?= \n\n"))?;
     output_file.write_fmt(format_args!("ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))\n\n"))?;
-    output_file.write_fmt(format_args!("{}", rules.join("\n\n")))?;
+    output_file.write_fmt(format_args!("{}", rules.iter().join("\n\n")))?;
 
     Ok(())
 }
 
-fn make_target( // TODO: Rename to `make_targets`.
+/// Return Make targets (files) for the given node.
+fn make_targets(
     pool: &CanisterPool,
     graph0: &GraphWithNodesMap<Import, ()>,
     graph: &Graph<Import, ()>,
@@ -371,7 +376,7 @@ fn make_target( // TODO: Rename to `make_targets`.
                 path1
             } else {
                 // TODO: `graph` here is superfluous:
-                let path = make_target(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister_name.clone())).unwrap())?; // TODO: `unwrap`?
+                let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister_name.clone())).unwrap())?; // TODO: `unwrap`?
                 path
             }
         }
