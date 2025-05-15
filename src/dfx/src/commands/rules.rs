@@ -208,14 +208,14 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 if !bindings.is_empty() {
                     let deps = bindings.iter().map(|lang| {
                         match lang.as_str() {
-                            "did" => vec![elements::File(format!("{}.did", canister.0))],
-                            "mo" => vec![elements::File(format!("{}.mo", canister.0))],
+                            "did" => vec![format!("{}.did", canister.0)],
+                            "mo" => vec![format!("{}.mo", canister.0)],
                             "rs" => vec![], // TODO
-                            "js" => vec![elements::File(format!("{}.did.js", canister.0)), elements::File("index.js".to_string())],
-                            "ts" => vec![elements::File(format!("{}.did.d.ts", canister.0)), elements::File("index.d.ts".to_string())],
+                            "js" => vec![format!("{}.did.js", canister.0), "index.js".to_string()],
+                            "ts" => vec![format!("{}.did.d.ts", canister.0), "index.d.ts".to_string()],
                             _ => panic!("unknown canister type: {}", canister.0.as_str()),
                         }
-                    }).flatten().map(|path| format!("{}", output.join(path).to_str().unwrap().to_string())) ; // TODO: `unwrap`
+                    }).flatten().map(|path| elements::File(output.join(path).to_str())); // TODO: `unwrap`
                     if let CanisterTypeProperties::Custom { .. } = &canister.1.type_specific {
                         // TODO
                     } else {
