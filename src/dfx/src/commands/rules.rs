@@ -173,7 +173,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             for canister in canisters {
                 // duplicate code
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
-                let (target, source) = if canister2.get_info().is_assets() {
+                let (targets, source) = if canister2.get_info().is_assets() {
                     let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
                     (vec![Box::new(elements::File(path1))], Vec::new())
                 } else if canister2.get_info().is_remote() {
@@ -184,12 +184,15 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     let Some(main) = &canister.1.main else {
                         continue;
                     };
-                    (vec![path], vec![Box::new(elements::File(main.to_str().unwrap()))])
+                    (
+                        path.into_iter().map(|t| Box::new(t)).collect(),
+                        vec![Box::new(elements::File(main.to_str().unwrap().to_string()))]
+                    )
                 };
                 rules.push(Box::new(elements::DoubleRule { // FIXME
                     phony: elements::PhonyTarget(format!("build@{}", canister.0)),
-                    targets: vec![elements::File(target)],
-                    sources: source,
+                    targets: targets,
+                    sources: source as Vec<Box<dyn elements::Target>>,
                     commands: Vec::new(), // TODO
                 }));
             };
