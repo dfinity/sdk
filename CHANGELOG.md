@@ -14,7 +14,6 @@ Similar to very long freezing thresholds, setting a freezing threshold below 1 w
 
 ### chore: removes the outdated `_language-service` command
 
-
 ### feat: Support 'follow' mode for 'dfx canister logs'
 Support `follow` mode for `dfx canister logs`
 - `--follow` to fetch logs continuously until interrupted with `Ctrl+C`
