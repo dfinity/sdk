@@ -89,8 +89,9 @@ mod elements {
         fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
             let targets_str = self.targets.iter().map(|t| t.to_string()).join(" ");
             let sources_str = self.sources.iter().map(|t| t.to_string()).join(" ");
-            let phony_targets: Vec<&Box<PhonyTarget>> = self.targets
-                .into_iter().filter(|target| target.is_phony()).collect();
+            let phony_targets: Vec<&Box<dyn Target>> = self.targets
+                .iter().filter(|target| target.is_phony())
+                .collect();
             if !phony_targets.is_empty() {
                 write!(f, ".PHONY: {}\n", phony_targets.iter().join(" "))?;
             }
@@ -162,7 +163,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         &pool,
     )?;
 
-    let rules = Vec::<Box<dyn elements::Element>>::new();
+    let mut rules = Vec::<Box<dyn elements::Element>>::new();
 
     let graph0 = env.get_imports().borrow();
     let graph = graph0.graph();
@@ -175,9 +176,9 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
                 let (targets, source) = if canister2.get_info().is_assets() {
                     let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
-                    (vec![Box::new(elements::File(path1))], Vec::new())
+                    (vec![elements::File(path1)], Vec::new())
                 } else if canister2.get_info().is_remote() {
-                    (vec![Box::new(elements::File(format!("candid/{}.did", canister.0)))], Vec::new())
+                    (vec![elements::File(format!("candid/{}.did", canister.0))], Vec::new())
                 } else {
                     // TODO: `graph` here is superfluous:
                     let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
@@ -185,14 +186,14 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                         continue;
                     };
                     (
-                        path.into_iter().map(|t| Box::new(t)).collect(),
-                        vec![Box::new(elements::File(main.to_str().unwrap().to_string()))]
+                        path.into_iter().collect(),
+                        vec![elements::File(main.to_str().unwrap().to_string())]
                     )
                 };
                 rules.push(Box::new(elements::DoubleRule { // FIXME
                     phony: elements::PhonyTarget(format!("build@{}", canister.0)),
-                    targets: targets,
-                    sources: source as Vec<Box<dyn elements::Target>>,
+                    targets,
+                    sources: source.into_iter().map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
                     commands: Vec::new(), // TODO
                 }));
             };
@@ -297,19 +298,18 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             // If the canister is assets, add `generate@` dependencies.
             if canister.as_ref().get_info().is_assets() {
                 if !deps.is_empty() {
-                    rules.push(Box::new(elements::DoubleRule {
-                        phony: elements::PhonyTarget(format!("generate@{}", canister_name)),
-                        targets: vec![elements::File(format!("build@{}", canister_name))],
+                    rules.push(Box::new(elements::Rule {
+                        targets: vec![Box::new(elements::File(format!("build@{}", canister_name))) as Box<dyn elements::Target>],
                         sources: deps.iter().map(|name| Box::new(elements::PhonyTarget(format!("generate@{}", name))) as Box<dyn elements::Target>)
                             .collect(),
-                        commands,
+                        commands: Vec::new(), // TODO
                     }));
                 }
             }
             rules.push(Box::new(elements::Rule {
                 targets: vec![Box::new(elements::PhonyTarget(format!("deploy@{}", canister_name)))],
                 sources: deps.iter().map(|name| elements::PhonyTarget(format!("deploy@{}", name)))
-                    .chain(once(elements::PhonyTarget(format!("deploy-self@{}", canister_name)).collect()))
+                    .chain(once(elements::PhonyTarget(format!("deploy-self@{}", canister_name))))
                     .map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
                 commands: Vec::new(),
             }));
