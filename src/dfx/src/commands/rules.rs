@@ -89,7 +89,8 @@ mod elements {
         fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
             let targets_str = self.targets.iter().map(|t| t.to_string()).join(" ");
             let sources_str = self.sources.iter().map(|t| t.to_string()).join(" ");
-            let phony_targets: Vec<&Box<PhonyTarget>> = self.targets.iter().filter(|target| target.is_phony()).collect();
+            let phony_targets: Vec<&Box<PhonyTarget>> = self.targets
+                .into_iter().filter(|target| target.is_phony()).collect();
             if !phony_targets.is_empty() {
                 write!(f, ".PHONY: {}\n", phony_targets.iter().join(" "))?;
             }
@@ -174,22 +175,22 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
                 let (target, source) = if canister2.get_info().is_assets() {
                     let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
-                    (vec![path1], FIXME)?
+                    (vec![Box::new(elements::File(path1))], Vec::new())
                 } else if canister2.get_info().is_remote() {
-                    (vec![format!("candid/{}.did", canister.0)], FIXME)
+                    (vec![Box::new(elements::File(format!("candid/{}.did", canister.0)))], Vec::new())
                 } else {
                     // TODO: `graph` here is superfluous:
                     let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
                     let Some(main) = &canister.1.main else {
                         continue;
                     };
-                    (vec![path], main.to_str().unwrap())
+                    (vec![path], vec![Box::new(elements::File(main.to_str().unwrap()))])
                 };
                 rules.push(Box::new(elements::DoubleRule { // FIXME
                     phony: elements::PhonyTarget(format!("build@{}", canister.0)),
                     targets: vec![elements::File(target)],
-                    sources: vec![Box::new(elements::File(source))],
-                    commands: FIXME,
+                    sources: source,
+                    commands: Vec::new(), // TODO
                 }));
             };
             for canister in canisters {
@@ -268,7 +269,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     // We don't support generating dependencies for assets,
                     // so recompile it every time:
                     rules.push(Box::new(elements::Rule {
-                        targets: targets.map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
+                        targets: targets.into_iter().map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
                         sources: Vec::new(),
                         commands: vec![command],
                     }));
