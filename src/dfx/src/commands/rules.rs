@@ -3,7 +3,6 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::iter::once;
 use std::path::Path;
-use std::any::Any;
 use std::vec;
 
 use crate::lib::agent::create_anonymous_agent_environment;
@@ -79,7 +78,7 @@ mod elements {
 
     pub struct Rule {
         // FIXME
-        pub targets: Vec<Box<PhonyTarget>>, // If targets contain files, use `DoubleRule` instead.
+        pub targets: Vec<Box<dyn Target>>, // If targets contain files, use `DoubleRule` instead.
         pub sources: Vec<Box<dyn Target>>,
         pub commands: Vec<String>,
     }
@@ -251,8 +250,10 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         } else {
             rules.push(Box::new(elements::Rule {
                 // Yes, source and target are reversed:
-                targets: make_targets(&pool, &graph0, graph, edge.source())?,
-                sources: make_targets(&pool, &graph0, graph, edge.target())?,
+                targets: make_targets(&pool, &graph0, graph, edge.source())?
+                    .into_iter().map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
+                sources: make_targets(&pool, &graph0, graph, edge.target())?
+                    .into_iter().map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
                 commands: Vec::new(),
             }));
         }
@@ -262,12 +263,12 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         if let Import::Canister(canister_name) = node.0 {
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             if let Some(command) = command {
-                let target = make_targets(&pool, &graph0, graph, *node.1)?;
+                let targets = make_targets(&pool, &graph0, graph, *node.1)?;
                 if canister.as_ref().get_info().is_assets() {
                     // We don't support generating dependencies for assets,
                     // so recompile it every time:
                     rules.push(Box::new(elements::Rule {
-                        targets: vec![Box::new(elements::PhonyTarget(target))],
+                        targets: targets.map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
                         sources: Vec::new(),
                         commands: vec![command],
                     }));
