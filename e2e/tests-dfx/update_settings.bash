@@ -600,7 +600,7 @@ teardown() {
   # See https://dfinity.atlassian.net/browse/RUN-314
   # dfx canister update-settings --compute-allocation 1 "$CANISTER_ID"
 
-  dfx canister update-settings --freezing-threshold 172 "$CANISTER_ID"
+  dfx canister update-settings --freezing-threshold 172 --confirm-very-short-freezing-threshold "$CANISTER_ID"
   assert_command dfx canister status "$CANISTER_ID"
   assert_match 'Memory allocation: 2_000_000_000'
   # assert_match 'Compute allocation: 4'
