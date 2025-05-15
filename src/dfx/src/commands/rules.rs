@@ -216,6 +216,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                             _ => panic!("unknown canister type: {}", canister.0.as_str()),
                         }
                     }).flatten().map(|path| elements::File(output.join(path).to_str().unwrap().to_string())); // TODO: `unwrap`
+                    let deps = deps.map(|t| Box::new(t) as Box<dyn elements::Target>);
                     if let CanisterTypeProperties::Custom { .. } = &canister.1.type_specific {
                         // TODO
                     } else {
