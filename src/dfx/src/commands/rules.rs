@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::iter::once;
@@ -44,6 +45,7 @@ mod elements {
         }
     }
 
+    #[derive(Clone)]
     pub struct File(pub String);
 
     impl Display for File {
@@ -69,6 +71,20 @@ mod elements {
     impl Target for PhonyTarget {
         fn is_phony(&self) -> bool {
             true
+        }
+    }
+
+    pub struct ExplandedPhonyTarget(pub Vec<File>);
+
+    impl Display for ExplandedPhonyTarget {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            write!(f, "{}", self.0.iter().join(" "))
+        }
+    }
+
+    impl Target for ExplandedPhonyTarget {
+        fn is_phony(&self) -> bool {
+            false
         }
     }
 
@@ -163,6 +179,20 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     let graph0 = env.get_imports().borrow();
     let graph = graph0.graph();
 
+    let mut expansions = HashMap::new();
+
+    match &canisters {
+        Some(canisters) => {
+            for canister in canisters.iter() {
+                expansions.insert(
+                    format!("build@{}", canister.0.clone()),
+                    make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?, // TODO: `unwrap`?
+                );
+            }
+        }
+        None => {}
+    }
+
     let mut rules = Vec::<Box<dyn elements::Element>>::new();
 
     match &canisters {
@@ -171,7 +201,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 // duplicate code
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
                 let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
-                let targets = path.into_iter().collect();
+                let targets = path;
                 let source =
                     if let Some(main) = &canister.1.main {
                         vec![elements::File(main.to_str().unwrap().to_string())]
@@ -224,9 +254,8 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     rules.push(Box::new(elements::DoubleRule {
                         phony: elements::PhonyTarget(format!("generate@{}", canister.0)),
                         targets: deps.collect(),
-                        sources: vec![
-                            Box::new(elements::PhonyTarget(format!("build@{}", canister.0)))
-                        ],
+                        sources: expansions[&format!("build@{}", canister.0)]
+                            .iter().map(|t| Box::new(t.clone()) as Box<dyn elements::Target>).collect(),
                         commands: vec![
                             format!("dfx generate --no-compile --network $(NETWORK) {}", canister.0),
                         ],
