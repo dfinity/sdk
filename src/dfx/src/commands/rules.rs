@@ -77,7 +77,6 @@ mod elements {
     pub trait Element: Display {}
 
     pub struct Rule {
-        // FIXME
         pub targets: Vec<Box<dyn Target>>, // If targets contain files, use `DoubleRule` instead.
         pub sources: Vec<Box<dyn Target>>,
         pub commands: Vec<String>,
