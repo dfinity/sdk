@@ -169,7 +169,6 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
 
     match &canisters {
         Some(canisters) => {
-            let canisters: &BTreeMap<String, ConfigCanistersCanister> = canisters;
             for canister in canisters {
                 // duplicate code
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
