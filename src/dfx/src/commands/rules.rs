@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::iter::once;
@@ -14,7 +13,7 @@ use crate::lib::models::canister::{CanisterPool, Import};
 use crate::lib::builders::custom::CustomBuilder;
 use crate::lib::network::network_opt::NetworkOpt;
 use itertools::Itertools;
-use dfx_core::config::model::dfinity::{CanisterTypeProperties, ConfigCanistersCanister};
+use dfx_core::config::model::dfinity::CanisterTypeProperties;
 use clap::Parser;
 use petgraph::visit::EdgeRef;
 use petgraph::Graph;
@@ -169,7 +168,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
 
     match &canisters {
         Some(canisters) => {
-            for canister in canisters {
+            for canister in canisters.iter() {
                 // duplicate code
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
                 let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
@@ -198,7 +197,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                         }
                 }));
             };
-            for canister in canisters {
+            for canister in canisters.iter() {
                 let declarations_config_pre = &canister.1.declarations;
                 // let workspace_root = config.get_path().parent().unwrap();
                 // duplicate code:
