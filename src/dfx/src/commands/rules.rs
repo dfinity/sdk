@@ -363,13 +363,13 @@ fn make_targets(
         }
         Import::Path(path) => vec![elements::File(format!("{}", path.to_str().unwrap_or("<unknown>").to_owned()))], // TODO: <unknown> is a hack
         Import::Ic(canister_name) => {
-            let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
-            if canister2.get_info().is_assets() {
-                vec![elements::File(format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name))]
-            } else {
+            // let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
+            // if canister2.get_info().is_assets() {
+            //     vec![elements::File(format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name))]
+            // } else {
                 // TODO: `graph` here is superfluous:
                 make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister_name.clone())).unwrap())? // TODO: `unwrap`?
-            }
+            // }
         }
         Import::Lib(_path) => vec![], // TODO: Does it work correctly?
     })
