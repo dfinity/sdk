@@ -176,8 +176,6 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 let (targets, source) = if canister2.get_info().is_assets() {
                     let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
                     (vec![elements::File(path1)], Vec::new())
-                /*} else if canister2.get_info().is_remote() {
-                    (vec![elements::File(format!("candid/{}.did", canister.0))], Vec::new()) // FIXME: It is created by `dfx nns import`.*/
                 } else {
                     // TODO: `graph` here is superfluous:
                     let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
