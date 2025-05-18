@@ -177,24 +177,36 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 let (targets, source) = if canister2.get_info().is_assets() {
                     let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
                     (vec![elements::File(path1)], Vec::new())
-                } else if canister2.get_info().is_remote() {
-                    (vec![elements::File(format!("candid/{}.did", canister.0))], Vec::new())
+                /*} else if canister2.get_info().is_remote() {
+                    (vec![elements::File(format!("candid/{}.did", canister.0))], Vec::new()) // FIXME: It is created by `dfx nns import`.*/
                 } else {
                     // TODO: `graph` here is superfluous:
                     let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
-                    let Some(main) = &canister.1.main else {
-                        continue;
-                    };
                     (
                         path.into_iter().collect(),
-                        vec![elements::File(main.to_str().unwrap().to_string())]
+                        if let Some(main) = &canister.1.main {
+                            vec![elements::File(main.to_str().unwrap().to_string())]
+                        } else {
+                            Vec::new()
+                        }
                     )
                 };
+                let build_command = format!("dfx build --no-deps --network $(NETWORK) {}", canister.0);
                 rules.push(Box::new(elements::DoubleRule { // FIXME
                     phony: elements::PhonyTarget(format!("build@{}", canister.0)),
                     targets,
                     sources: source.into_iter().map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
-                    commands: Vec::new(), // TODO
+                    commands: 
+                        if canister2.get_info().is_remote() { // FIXME: correct?
+                            vec![
+                                build_command,
+                            ]
+                        } else {
+                            vec![
+                                format!("dfx canister create --network $(NETWORK) {}", canister.0),
+                                build_command,
+                            ]
+                        }
                 }));
             };
             for canister in canisters {
@@ -264,10 +276,10 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         }
     }
     for node in graph0.nodes() {
-        let command = get_build_command(&pool, graph, *node.1);
+        let commands = get_build_commands(&pool, graph, *node.1);
         if let Import::Canister(canister_name) = node.0 {
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
-            if let Some(command) = command {
+            if !commands.is_empty() {
                 let targets = make_targets(&pool, &graph0, graph, *node.1)?;
                 if canister.as_ref().get_info().is_assets() {
                     // We don't support generating dependencies for assets,
@@ -275,7 +287,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     rules.push(Box::new(elements::Rule {
                         targets: targets.into_iter().map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
                         sources: Vec::new(),
-                        commands: vec![command],
+                        commands: commands,
                     }));
                 }
             }
@@ -345,7 +357,7 @@ fn make_targets(
                 let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name);
                 // let path2 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister_name);
                 vec![elements::File(path1)]
-            } else if canister.get_info().is_custom() {
+            } else if canister.get_info().is_remote() || canister.get_info().is_custom() {
                 // let is_gzip = canister.get_info().get_gzip(); // produces `false`, even if `"wasm"` is compressed.
                 let is_gzip = // hack
                     if let CanisterTypeProperties::Custom { wasm, .. } = &canister.get_info().get_type_specific_properties() {
@@ -360,8 +372,6 @@ fn make_targets(
                 };
                 let path2 = format!(".dfx/$(NETWORK)/canisters/{}/{}.did", canister_name, canister_name);
                 vec![elements::File(path1), elements::File(path2)]
-            } else if canister.get_info().is_remote() {
-                vec![elements::File(format!("candid/{}.did", canister_name))]
             } else {
                 let did = if canister.get_info().is_assets() {
                     "service.did".to_string()
@@ -390,21 +400,24 @@ fn make_targets(
     })
 }
 
-fn get_build_command(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> Option<String> {
+fn get_build_commands(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> Vec<String> {
     let node_value = graph.node_weight(node_id).unwrap();
     match node_value {
         Import::Canister(canister_name) => {
             // TODO: Duplicate code in next line:
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             let last_line = format!("dfx build --no-deps --network $(NETWORK) {}", canister_name);
-            Some(if canister.get_info().is_remote() {
-                last_line
+            if canister.get_info().is_remote() {
+                vec![last_line]
             } else {
-                format!("dfx canister create --network $(NETWORK) {}\n\t{}", canister_name, last_line)
-            })
+                vec![
+                    format!("dfx canister create --network $(NETWORK) {}", canister_name),
+                    last_line,
+                ]
+            }
         }
-        Import::Ic(_canister_name) => None,
-        Import::Path(_path) => None,
-        Import::Lib(_path) => None,
+        Import::Ic(_canister_name) => Vec::new(),
+        Import::Path(_path) => Vec::new(),
+        Import::Lib(_path) => Vec::new(),
     }
 }
