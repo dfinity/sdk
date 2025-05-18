@@ -173,18 +173,14 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             for canister in canisters {
                 // duplicate code
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
-                let (targets, source) = {
-                    // TODO: `graph` here is superfluous:
-                    let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
-                    (
-                        path.into_iter().collect(),
-                        if let Some(main) = &canister.1.main {
-                            vec![elements::File(main.to_str().unwrap().to_string())]
-                        } else {
-                            Vec::new()
-                        }
-                    )
-                };
+                let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
+                let targets = path.into_iter().collect();
+                let source =
+                    if let Some(main) = &canister.1.main {
+                        vec![elements::File(main.to_str().unwrap().to_string())]
+                    } else {
+                        Vec::new()
+                    };
                 let build_command = format!("dfx build --no-deps --network $(NETWORK) {}", canister.0);
                 rules.push(Box::new(elements::DoubleRule { // FIXME
                     phony: elements::PhonyTarget(format!("build@{}", canister.0)),
