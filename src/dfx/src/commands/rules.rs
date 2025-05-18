@@ -173,10 +173,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             for canister in canisters {
                 // duplicate code
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
-                let (targets, source) = if canister2.get_info().is_assets() {
-                    let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister.0);
-                    (vec![elements::File(path1)], Vec::new())
-                } else {
+                let (targets, source) = {
                     // TODO: `graph` here is superfluous:
                     let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
                     (
