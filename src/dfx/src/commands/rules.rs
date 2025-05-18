@@ -160,10 +160,10 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         &pool,
     )?;
 
-    let mut rules = Vec::<Box<dyn elements::Element>>::new();
-
     let graph0 = env.get_imports().borrow();
     let graph = graph0.graph();
+
+    let mut rules = Vec::<Box<dyn elements::Element>>::new();
 
     match &canisters {
         Some(canisters) => {
