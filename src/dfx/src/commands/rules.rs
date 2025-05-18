@@ -218,28 +218,20 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                             _ => panic!("unknown canister type: {}", canister.0.as_str()),
                         }
                     }).flatten().map(|path| elements::File(output.join(path).to_str().unwrap().to_string())); // TODO: `unwrap`
-                    let deps = deps.map(|t| Box::new(t) as Box<dyn elements::Target>);
-                    if let CanisterTypeProperties::Custom { .. } = &canister.1.type_specific {
-                        // TODO
-                    } else {
-                        let did: String = if let CanisterTypeProperties::Assets { .. } = &canister.1.type_specific {
-                            "service.did".to_string()
-                        } else {
-                            format!("{}.did", canister.0)
-                        };
-                        rules.push(Box::new(elements::DoubleRule {
-                            phony: elements::PhonyTarget(format!("generate@{}", canister.0)),
-                            targets: vec![
-                                elements::File(format!(".dfx/$(NETWORK)/canisters/{}/{}", canister.0, did)),
-                            ],
-                            sources: once(
-                                Box::new(elements::PhonyTarget(format!("build@{}", canister.0))) as Box<dyn elements::Target>
-                            ).chain(deps).collect(),
-                            commands: vec![
-                                format!("dfx generate --no-compile --network $(NETWORK) {}", canister.0),
-                            ],
-                        }));
-                    }
+                    // if let CanisterTypeProperties::Custom { .. } = &canister.1.type_specific {
+                    //     // TODO
+                    // } else {
+                    rules.push(Box::new(elements::DoubleRule {
+                        phony: elements::PhonyTarget(format!("generate@{}", canister.0)),
+                        targets: deps.collect(),
+                        sources: vec![
+                            Box::new(elements::PhonyTarget(format!("build@{}", canister.0)))
+                        ],
+                        commands: vec![
+                            format!("dfx generate --no-compile --network $(NETWORK) {}", canister.0),
+                        ],
+                    }));
+                    // }
                 }
             };
         }
@@ -278,15 +270,15 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 }
             }
             let deps = canister.as_ref().get_info().get_dependencies();
-            let commands = if !canister.as_ref().get_info().is_remote() {
+            let commands = if canister.as_ref().get_info().is_remote() {
+                Vec::new()
+            } else {
                 vec![
                     format!( // TODO: Use `canister install` instead.
                         "dfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n",
                         canister_name, canister_name
                     ),
                 ]   
-            } else {
-                Vec::new()
             };
             rules.push(Box::new(elements::Rule {
                 targets: vec![Box::new(elements::PhonyTarget(format!("deploy-self@{}", canister_name)))],
@@ -343,7 +335,7 @@ fn make_targets(
                 let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name);
                 // let path2 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister_name);
                 vec![elements::File(path1)]
-            } else if canister.get_info().is_remote() || canister.get_info().is_custom() {
+            } else if canister.get_info().is_custom() {
                 // let is_gzip = canister.get_info().get_gzip(); // produces `false`, even if `"wasm"` is compressed.
                 let is_gzip = // hack
                     if let CanisterTypeProperties::Custom { wasm, .. } = &canister.get_info().get_type_specific_properties() {
@@ -371,15 +363,12 @@ fn make_targets(
         }
         Import::Path(path) => vec![elements::File(format!("{}", path.to_str().unwrap_or("<unknown>").to_owned()))], // TODO: <unknown> is a hack
         Import::Ic(canister_name) => {
-            // format!("build@{}", canister_name)
             let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             if canister2.get_info().is_assets() {
-                let path1 = vec![elements::File(format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name))];
-                path1
+                vec![elements::File(format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name))]
             } else {
                 // TODO: `graph` here is superfluous:
-                let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister_name.clone())).unwrap())?; // TODO: `unwrap`?
-                path
+                make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister_name.clone())).unwrap())? // TODO: `unwrap`?
             }
         }
         Import::Lib(_path) => vec![], // TODO: Does it work correctly?
