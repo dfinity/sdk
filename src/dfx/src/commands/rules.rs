@@ -137,7 +137,6 @@ mod elements {
 // TODO: Describe explicity rules and files. Correct outputting \n between rules.
 pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     let env = create_anonymous_agent_environment(env1, opts.network.to_network_name())?;
-    // let log = env.get_logger();
 
     // Read the config.
     let config = env.get_config_or_anyhow()?;
