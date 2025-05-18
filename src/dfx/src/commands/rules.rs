@@ -198,7 +198,6 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             };
             for canister in canisters.iter() {
                 let declarations_config_pre = &canister.1.declarations;
-                // let workspace_root = config.get_path().parent().unwrap();
                 // duplicate code:
                 let output = declarations_config_pre
                     .output
