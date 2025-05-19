@@ -30,7 +30,7 @@ Improve `dfx canister logs` with several options
 
 ### Motoko
 
-Updated Motoko to [0.14.9](https://github.com/dfinity/motoko/releases/tag/0.14.9)
+Updated Motoko to [0.14.11](https://github.com/dfinity/motoko/releases/tag/0.14.11)
 
 ### Bitcoin canister
 
