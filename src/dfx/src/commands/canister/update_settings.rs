@@ -111,6 +111,10 @@ pub struct UpdateSettingsOpts {
     #[arg(long)]
     confirm_very_long_freezing_threshold: bool,
 
+    /// Freezing thresholds below 1 week require this flag as confirmation.
+    #[arg(long)]
+    confirm_very_short_freezing_threshold: bool,
+
     /// Skips yes/no checks by answering 'yes'. Such checks can result in loss of control,
     /// so this is not recommended outside of CI.
     #[arg(long, short)]
@@ -140,6 +144,13 @@ pub async fn exec(
                 "The freezing threshold is defined in SECONDS before the canister would run out of cycles, not in cycles.",
                 "If you truly want to set a freezing threshold that is longer than a year, please run the same command, but with the flag --confirm-very-long-freezing-threshold to confirm you want to do this.",
             )).context("Misunderstanding is very likely.");
+        }
+        if threshold_in_seconds < 604_800 /* 1 week */ && !opts.confirm_very_short_freezing_threshold
+        {
+            return Err(DiagnosedError::new(
+                "The freezing threshold is very short at less than 1 week. This may lead to canisters getting uninstalled with no or too little warning when cycles run out.",
+                "If you truly want to set a freezing threshold that is shorter than a week, please run the same command, but with the flag --confirm-very-short-freezing-threshold to confirm you want to do this.",
+            )).context("Dangerous operation requires confirmation.");
         }
     }
 
