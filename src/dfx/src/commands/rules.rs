@@ -282,21 +282,8 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         }
     }
     for node in graph0.nodes() {
-        let commands = get_build_commands(&pool, graph, *node.1);
         if let Import::Canister(canister_name) = node.0 {
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
-            if !commands.is_empty() {
-                let targets = make_targets(&pool, &graph0, graph, *node.1)?;
-                if canister.as_ref().get_info().is_assets() {
-                    // We don't support generating dependencies for assets,
-                    // so recompile it every time:
-                    rules.push(Box::new(elements::Rule {
-                        targets: targets.into_iter().map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
-                        sources: Vec::new(),
-                        commands: commands,
-                    }));
-                }
-            }
             let deps = canister.as_ref().get_info().get_dependencies();
             let commands = if canister.as_ref().get_info().is_remote() {
                 Vec::new()
@@ -398,26 +385,4 @@ fn make_targets(
         }
         Import::Lib(_path) => vec![], // TODO: Does it work correctly?
     })
-}
-
-fn get_build_commands(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <Graph<Import, ()> as GraphBase>::NodeId) -> Vec<String> {
-    let node_value = graph.node_weight(node_id).unwrap();
-    match node_value {
-        Import::Canister(canister_name) => {
-            // TODO: Duplicate code in next line:
-            let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
-            let last_line = format!("dfx build --no-deps --network $(NETWORK) {}", canister_name);
-            if canister.get_info().is_remote() {
-                Vec::new()
-            } else {
-                vec![
-                    format!("dfx canister create --network $(NETWORK) {}", canister_name),
-                    last_line,
-                ]
-            }
-        }
-        Import::Ic(_canister_name) => Vec::new(),
-        Import::Path(_path) => Vec::new(),
-        Import::Lib(_path) => Vec::new(),
-    }
 }
