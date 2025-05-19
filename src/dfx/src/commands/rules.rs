@@ -135,6 +135,7 @@ mod elements {
             let targets_str = self.targets.iter().map(|t| t.to_string()).join(" ");
             let sources_str = self.sources.iter().map(|t| t.to_string()).join(" ");
             write!(f, ".PHONY: {}\n", self.phony)?;
+            write!(f, ".PRECIOUS: {}\n", targets_str)?;
             write!(f, "{}: ", self.phony)?;
             write!(f, "{}\n\n", targets_str)?;
             write!(f, "{}: ", targets_str)?;
@@ -215,9 +216,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     sources: source.into_iter().map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
                     commands: 
                         if canister2.get_info().is_remote() { // FIXME: correct?
-                            vec![
-                                build_command,
-                            ]
+                            Vec::new()
                         } else {
                             vec![
                                 format!("dfx canister create --network $(NETWORK) {}", canister.0),
@@ -409,7 +408,7 @@ fn get_build_commands(pool: &CanisterPool, graph: &Graph<Import, ()>, node_id: <
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             let last_line = format!("dfx build --no-deps --network $(NETWORK) {}", canister_name);
             if canister.get_info().is_remote() {
-                vec![last_line]
+                Vec::new()
             } else {
                 vec![
                     format!("dfx canister create --network $(NETWORK) {}", canister_name),
