@@ -311,7 +311,9 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             };
             rules.push(Box::new(elements::Rule {
                 targets: vec![Box::new(elements::PhonyTarget(format!("deploy-self@{}", canister_name)))],
-                sources: vec![Box::new(elements::PhonyTarget(format!("build@{}", canister_name)))],
+                sources: expansions[&format!("build@{}", canister_name)].iter()
+                        .map(|t| Box::new(t.clone()) as Box<dyn elements::Target>)
+                        .collect::<Vec<Box<dyn elements::Target>>>(),
                 commands,
             }));
             // If the canister is assets, add `generate@` dependencies.
