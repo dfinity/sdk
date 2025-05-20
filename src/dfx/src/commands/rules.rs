@@ -188,7 +188,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             for canister in canisters.iter() {
                 expansions.insert(
                     format!("build@{}", canister.0.clone()),
-                    make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?, // TODO: `unwrap`?
+                    make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap(), false)?, // TODO: `unwrap`?
                 );
             }
         }
@@ -202,7 +202,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             for canister in canisters.iter() {
                 // duplicate code
                 let canister2: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister.0).unwrap();
-                let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap())?; // TODO: `unwrap`?
+                let path = make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister.0.clone())).unwrap(), false)?; // TODO: `unwrap`?
                 let targets = path;
                 let source =
                     if let Some(main) = &canister.1.main {
@@ -274,9 +274,9 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         } else {
             rules.push(Box::new(elements::Rule {
                 // Yes, source and target are reversed:
-                targets: make_targets(&pool, &graph0, graph, edge.source())?
+                targets: make_targets(&pool, &graph0, graph, edge.source(), false)?
                     .into_iter().map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
-                sources: make_targets(&pool, &graph0, graph, edge.target())?
+                sources: make_targets(&pool, &graph0, graph, edge.target(), false)?
                     .into_iter().map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
                 commands: Vec::new(),
             }));
@@ -342,14 +342,17 @@ fn make_targets(
     pool: &CanisterPool,
     graph0: &GraphWithNodesMap<Import, ()>,
     graph: &Graph<Import, ()>,
-    node_id: <Graph<Import, ()> as GraphBase>::NodeId
+    node_id: <Graph<Import, ()> as GraphBase>::NodeId,
+    skip_if_remote: bool, // avoid generating non-existent file names // TODO: hack?
 ) -> DfxResult<Vec<elements::File>> {
     let node_value = graph.node_weight(node_id).unwrap();
     Ok(match node_value {
         Import::Canister(canister_name) => {
             // duplicate code
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
-            if canister.get_info().is_assets() {
+            if skip_if_remote && canister.get_info().is_remote() {
+                Vec::new()
+            } else if canister.get_info().is_assets() {
                 let path1 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.wasm.gz", canister_name);
                 // let path2 = format!(".dfx/$(NETWORK)/canisters/{}/assetstorage.did", canister_name);
                 vec![elements::File(path1)]
@@ -382,7 +385,7 @@ fn make_targets(
         Import::Path(path) => vec![elements::File(format!("{}", path.to_str().unwrap_or("<unknown>").to_owned()))], // TODO: <unknown> is a hack
         Import::Ic(canister_name) => {
             // TODO: `graph` here is superfluous:
-            make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister_name.clone())).unwrap())? // TODO: `unwrap`?
+            make_targets(&pool, &graph0, graph, *graph0.nodes().get(&Import::Canister(canister_name.clone())).unwrap(), false)? // TODO: `unwrap`?
         }
         Import::Lib(_path) => vec![], // TODO: Does it work correctly?
     })
