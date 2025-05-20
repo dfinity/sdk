@@ -148,6 +148,7 @@ mod elements {
     }
 }
 
+// FIXME: Dependencies on unexistent files like `/canisters/nns-ledger/nns-ledger.wasm` cause double recompilation.
 // FIXME: "remote" (and not only) canisters build two times.
 // FIXME: It wrongly acts with downloaded canisters (like `internet_identity`).
 //        This seems to be the cause of double recompilation. (Seems to have been fixed.)
