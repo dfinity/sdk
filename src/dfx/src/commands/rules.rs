@@ -281,8 +281,8 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
             }));
         }
     }
-    for node in graph0.nodes() {
-        if let Import::Canister(canister_name) = node.0 {
+    for node in graph0.nodes().iter().sorted() {
+        if let Import::Canister(canister_name) = &node.0 {
             let canister: std::sync::Arc<crate::lib::models::canister::Canister> = pool.get_first_canister_with_name(&canister_name).unwrap();
             let deps = canister.as_ref().get_info().get_dependencies();
             let commands = if canister.as_ref().get_info().is_remote() {
