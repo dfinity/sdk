@@ -148,11 +148,6 @@ mod elements {
     }
 }
 
-// FIXME: Dependencies on unexistent files like `/canisters/nns-ledger/nns-ledger.wasm` cause double recompilation.
-// FIXME: "remote" (and not only) canisters build two times.
-// FIXME: It wrongly acts with downloaded canisters (like `internet_identity`).
-//        This seems to be the cause of double recompilation. (Seems to have been fixed.)
-// TODO: Describe explicity rules and files. Correct outputting \n between rules.
 pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
     let env = create_anonymous_agent_environment(env1, opts.network.to_network_name())?;
 
