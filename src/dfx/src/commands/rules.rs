@@ -205,7 +205,6 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     } else {
                         Vec::new()
                     };
-                let build_command = format!("dfx build --no-deps --network $(NETWORK) {}", canister.0);
                 rules.push(Box::new(elements::DoubleRule { // FIXME
                     phony: elements::PhonyTarget(format!("build@{}", canister.0)),
                     targets,
@@ -216,7 +215,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                         } else {
                             vec![
                                 format!("dfx canister create --network $(NETWORK) {}", canister.0),
-                                build_command,
+                                format!("dfx build --no-deps --network $(NETWORK) {}", canister.0),
                             ]
                         }
                 }));
