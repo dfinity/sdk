@@ -210,7 +210,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                     targets,
                     sources: source.into_iter().map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
                     commands: 
-                        if canister2.get_info().is_remote() { // FIXME: correct?
+                        if canister2.get_info().is_remote() {
                             Vec::new()
                         } else {
                             vec![
