@@ -330,7 +330,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
 
     output_file.write_fmt(format_args!("NETWORK ?= local\n\n"))?;
     output_file.write_fmt(format_args!("DEPLOY_FLAGS ?= \n\n"))?;
-    output_file.write_fmt(format_args!("ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))\n\n"))?;
+    // output_file.write_fmt(format_args!("ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))\n\n"))?;
     output_file.write_fmt(format_args!("{}", rules.iter().join("\n\n")))?;
 
     Ok(())
