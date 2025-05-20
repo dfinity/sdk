@@ -293,7 +293,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                         "dfx deploy --no-compile --network $(NETWORK) $(DEPLOY_FLAGS) $(DEPLOY_FLAGS.{}) {}\n\n",
                         canister_name, canister_name
                     ),
-                ]   
+                ]
             };
             rules.push(Box::new(elements::Rule {
                 targets: vec![Box::new(elements::PhonyTarget(format!("deploy-self@{}", canister_name)))],
