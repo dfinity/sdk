@@ -576,7 +576,7 @@ pub fn default_bitcoin_log_level() -> BitcoinAdapterLogLevel {
 }
 
 pub fn default_bitcoin_canister_init_arg() -> String {
-    "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 0 : nat; get_utxos_cycles_per_ten_instructions = 0 : nat; get_utxos_maximum = 0 : nat; get_balance = 0 : nat; get_balance_maximum = 0 : nat; get_current_fee_percentiles = 0 : nat; get_current_fee_percentiles_maximum = 0 : nat;  send_transaction_base = 0 : nat; send_transaction_per_byte = 0 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})".to_string()
+    "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 50000000 : nat; get_utxos_cycles_per_ten_instructions = 10 : nat; get_utxos_maximum = 10000000000 : nat; get_balance = 10000000 : nat; get_balance_maximum = 100000000 : nat; get_block_headers_base = 50000000 : nat; get_block_headers_cycles_per_ten_instructions = 10 : nat; get_block_headers_maximum = 10000000000 : nat; get_current_fee_percentiles = 10000000 : nat; get_current_fee_percentiles_maximum = 100000000 : nat; send_transaction_base = 5000000000 : nat; send_transaction_per_byte = 20000000 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})".to_string()
 }
 
 impl Default for ConfigDefaultsBitcoin {
