@@ -297,11 +297,13 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                         .collect::<Vec<Box<dyn elements::Target>>>(),
                 commands,
             }));
-            // If the canister is assets, add `generate@` dependencies.
+            // If the canister is assets, add `generate@` dependencies. // FIXME: Make them expanded.
             if canister.as_ref().get_info().is_assets() {
                 if !deps.is_empty() {
                     rules.push(Box::new(elements::Rule {
-                        targets: vec![Box::new(elements::File(format!("build@{}", canister_name))) as Box<dyn elements::Target>],
+                        targets: expansions[&format!("build@{}", canister_name)]
+                            .iter().map(|t| Box::new(t.clone()) as Box<dyn elements::Target>)
+                            .collect(),
                         sources: deps.iter().map(|name| Box::new(elements::PhonyTarget(format!("generate@{}", name))) as Box<dyn elements::Target>)
                             .collect(),
                         commands: Vec::new(), // TODO
