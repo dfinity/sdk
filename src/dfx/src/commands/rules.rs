@@ -270,7 +270,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
                 // Yes, source and target are reversed:
                 targets: make_targets(&pool, &graph0, graph, edge.source(), false)?
                     .into_iter().map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
-                sources: make_targets(&pool, &graph0, graph, edge.target(), false)?
+                sources: make_targets(&pool, &graph0, graph, edge.target(), true)?
                     .into_iter().map(|t| Box::new(t) as Box<dyn elements::Target>).collect(),
                 commands: Vec::new(),
             }));
