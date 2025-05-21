@@ -1,9 +1,10 @@
+#![cfg_attr(windows, allow(unused))]
+
 use crate::actors::pocketic_proxy::signals::{PortReadySignal, PortReadySubscribe};
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
 use crate::actors::shutdown_controller::ShutdownController;
-use crate::actors::BitcoinIntegrationConfig;
 use crate::lib::error::{DfxError, DfxResult};
 #[cfg(unix)]
 use crate::lib::info::replica_rev;
@@ -56,6 +57,11 @@ pub struct Config {
     pub pid_file: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
+}
+
+#[derive(Clone)]
+pub struct BitcoinIntegrationConfig {
+    pub canister_init_arg: String,
 }
 
 /// A PocketIC actor. Starts the server, can subscribe to a Ready signal and a

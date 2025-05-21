@@ -146,7 +146,7 @@ impl NetworkDescriptor {
         if self.name == "local" {
             let local_server_descriptor = self.local_server_descriptor()?;
 
-            if let Some(port) = local_server_descriptor.get_running_replica_port(logger)? {
+            if let Some(port) = local_server_descriptor.get_running_pocketic_port(logger)? {
                 let mut socket_addr = local_server_descriptor.bind_address;
                 socket_addr.set_port(port);
                 let url = format!("http://{}", socket_addr);

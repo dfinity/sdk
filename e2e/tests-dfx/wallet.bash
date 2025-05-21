@@ -242,18 +242,6 @@ teardown() {
   assert_match "There is no wallet defined for identity 'default' on network 'local'.  Nothing to do."
 }
 
-@test "creates a new wallet when switching between pocketic and replica" {
-  dfx_new hello
-
-  USE_REPLICA=1 dfx_start --artificial-delay 101
-  dfx deploy
-
-  dfx_stop
-
-  USE_REPLICA="" dfx_start --artificial-delay 99
-  dfx deploy
-}
-
 @test "creates new wallet if backend changes" {
   dfx_new hello
 

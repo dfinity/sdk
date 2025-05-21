@@ -6,17 +6,6 @@ import os
 # Only run these tests on macOS
 MACOS_TESTS = ["dfx/bitcoin", "dfx/canister_http_adapter", "dfx/start"]
 
-# All supported backends
-ALL_BACKENDS = ["pocketic", "replica"]
-
-# Skip specific test-backend combinations
-EXCLUDE = [
-    {
-        "backend": "pocketic",
-        "test": "dfx/canister_http_adapter"
-    }
-]
-
 # Run these tests in serial
 SERIAL_TESTS = ["dfx/start", "dfx/bitcoin", "dfx/cycles-ledger", "dfx/ledger", "dfx/serial_misc"]
 
@@ -34,28 +23,21 @@ all_tests = sorted(
 include = []
 
 for test in all_tests:
-    for backend in ALL_BACKENDS:
-        if {"backend": backend, "test": test} in EXCLUDE:
-            continue
+    serial = test in SERIAL_TESTS
+    # Ubuntu: run everything
+    include.append({
+        "test": test,
+        "os": "ubuntu-22.04",
+        "serial": serial,
+    })
 
-        serial = test in SERIAL_TESTS
-
-        # Ubuntu: run everything
+    # macOS: only run selected tests
+    if test in MACOS_TESTS:
         include.append({
             "test": test,
-            "backend": backend,
-            "os": "ubuntu-22.04",
+            "os": "macos-13",
             "serial": serial,
         })
-
-        # macOS: only run selected tests
-        if test in MACOS_TESTS:
-            include.append({
-                "test": test,
-                "backend": backend,
-                "os": "macos-13",
-                "serial": serial,
-            })
 
 matrix = {
     "include": include,

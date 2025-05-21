@@ -2,6 +2,39 @@
 
 # UNRELEASED
 
+### chore: update bitcoin regtest configuration to be same as the bitcoin mainnet
+
+Update bitcoin `regtest` configuration to be same as the bitcoin `mainnet`.
+
+```
+fees = record {
+      get_current_fee_percentiles = 10_000_000 : nat;
+      get_utxos_maximum = 10_000_000_000 : nat;
+      get_block_headers_cycles_per_ten_instructions = 10 : nat;
+      get_current_fee_percentiles_maximum = 100_000_000 : nat;
+      send_transaction_per_byte = 20_000_000 : nat;
+      get_balance = 10_000_000 : nat;
+      get_utxos_cycles_per_ten_instructions = 10 : nat;
+      get_block_headers_base = 50_000_000 : nat;
+      get_utxos_base = 50_000_000 : nat;
+      get_balance_maximum = 100_000_000 : nat;
+      send_transaction_base = 5_000_000_000 : nat;
+      get_block_headers_maximum = 10_000_000_000 : nat;
+    };
+```
+
+You can get the fees by `get_config` API on the [BTC Mainnet Canister](https://dashboard.internetcomputer.org/canister/ghsi2-tqaaa-aaaan-aaaca-cai).
+
+# 0.27.0
+
+### feat!: remove the 'native' replica
+
+The native replica is no longer bundled with dfx; dfx only uses PocketIC for local networks. Accordingly `dfx start --replica` and `dfx info replica-port` now report an error. See the [migration guide](./docs/migration/dfx-0.27.0-migration-guide.md) for more information.
+
+### feat!: Add safeguard to very short freezing threshold
+
+Similar to very long freezing thresholds, setting a freezing threshold below 1 week now requires confirmation with `--confirm-very-short-freezing-threshold` so that unexpected canister uninstallation is less likely.
+
 ### chore: removes the outdated `_language-service` command
 
 ### feat: Support 'follow' mode for 'dfx canister logs'
@@ -20,7 +53,20 @@ Improve `dfx canister logs` with several options
 
 ### Motoko
 
-Updated Motoko to [0.14.8](https://github.com/dfinity/motoko/releases/tag/0.14.8)
+Updated Motoko to [0.14.11](https://github.com/dfinity/motoko/releases/tag/0.14.11)
+
+### Bitcoin canister
+
+Upgraded Bitcoin canister to [release/2024-08-30](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2024-08-30)
+
+### Replica
+
+Updated replica to elected commit f195ba756bc3bf170a2888699e5e74101fdac6ba.
+This incorporates the following executed proposals:
+
+- [136436](https://dashboard.internetcomputer.org/proposal/136436)
+- [136366](https://dashboard.internetcomputer.org/proposal/136366)
+- [136310](https://dashboard.internetcomputer.org/proposal/136310)
 
 # 0.26.1
 
@@ -46,7 +92,7 @@ Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standar
 
 ### Motoko
 
-Updated Motoko to [0.14.7](https://github.com/dfinity/motoko/releases/tag/0.14.7)
+Updated Motoko to [0.14.8](https://github.com/dfinity/motoko/releases/tag/0.14.8)
 
 ### Replica
 
