@@ -25,6 +25,8 @@ fees = record {
 
 You can get the fees by `get_config` API on the [BTC Mainnet Canister](https://dashboard.internetcomputer.org/canister/ghsi2-tqaaa-aaaan-aaaca-cai).
 
+### chore: Clarify help text for `--always-assist`
+
 # 0.27.0
 
 ### feat!: remove the 'native' replica

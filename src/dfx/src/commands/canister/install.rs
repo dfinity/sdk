@@ -64,7 +64,7 @@ pub struct CanisterInstallOpts {
     #[arg(long)]
     no_asset_upgrade: bool,
 
-    /// Always use Candid assist when the argument types are all optional.
+    /// Use Candid assist when the arguments are not provided through the command line or dfx.json.
     #[arg(
         long,
         conflicts_with("argument"),
