@@ -56,7 +56,7 @@ pub struct CanisterSignOpts {
     #[arg(long, default_value = "message.json")]
     file: PathBuf,
 
-    /// Always use Candid assist when the argument types are all optional.
+    /// Use Candid assist when the arguments are not provided through the command line.
     #[arg(
         long,
         conflicts_with("argument"),

@@ -138,6 +138,7 @@ You can use the following options with the `dfx canister call` command.
 
 | Option                            | Description                                                                                                                                                                                                                    |
 |-----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--always-assist`                 | Use Candid assist when the arguments are not provided through the command line.                                                                                                                                                |
 | `--argument-file <argument-file>` | Specifies the file from which to read the argument to pass to the method.  Stdin may be referred to as `-`.                                                                                                                    |
 | `--async`                         | Specifies not to wait for the result of the call to be returned by polling the local development environment. Instead return a response ID.                                                                                                          |
 | `--candid <file.did>`             | Provide the .did file with which to decode the response. Overrides value from `dfx.json` for project canisters.                                                                                                                  |
@@ -517,6 +518,7 @@ You can use the following options with the `dfx canister install` command.
 
 | Option                             | Description                                                                                                                                                                                                                                                           |
 |------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--always-assist`                  | Use Candid assist when the arguments are not provided through the command line or dfx.json.                                                                                                                                                                           |
 | `--argument <argument>`            | Specifies an argument to pass to the canister during installation.                                                                                                                                                                                                    |
 | `--argument-type <argument-type>`  | Specifies the data type for the argument when making the call using an argument [possible values: idl, raw]                                                                                                                                                           |
 | `--argument-file <argument-file>`  | Specifies the file from which to read the argument to pass to the init method.  Stdin may be referred to as `-`.                                                                                                                                                      |
@@ -848,6 +850,7 @@ You can specify the following options for the `dfx canister sign` command.
 
 | Option                     | Description                                                                                                                                      |
 |----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `--always-assist`          | Use Candid assist when the arguments are not provided through the command line.                                                                  |
 | `--argument-file <file>`   | Specifies the file from which to read the argument to pass to the method.  Stdin may be referred to as `-`.                                      |
 | `--expire-after <seconds>` | Specifies how long the message will be valid before it expires and cannot be sent. Specify in seconds. If not defined, the default is 300s (5m). |
 | `--file <output>`          | Specifies the output file name. The default is `message.json`.                                                                                   |
