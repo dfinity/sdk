@@ -6,6 +6,29 @@
 
 * Command `rules` that outputs time-efficient GNU Make rules.
 
+### chore: update bitcoin regtest configuration to be same as the bitcoin mainnet
+
+Update bitcoin `regtest` configuration to be same as the bitcoin `mainnet`.
+
+```
+fees = record {
+      get_current_fee_percentiles = 10_000_000 : nat;
+      get_utxos_maximum = 10_000_000_000 : nat;
+      get_block_headers_cycles_per_ten_instructions = 10 : nat;
+      get_current_fee_percentiles_maximum = 100_000_000 : nat;
+      send_transaction_per_byte = 20_000_000 : nat;
+      get_balance = 10_000_000 : nat;
+      get_utxos_cycles_per_ten_instructions = 10 : nat;
+      get_block_headers_base = 50_000_000 : nat;
+      get_utxos_base = 50_000_000 : nat;
+      get_balance_maximum = 100_000_000 : nat;
+      send_transaction_base = 5_000_000_000 : nat;
+      get_block_headers_maximum = 10_000_000_000 : nat;
+    };
+```
+
+You can get the fees by `get_config` API on the [BTC Mainnet Canister](https://dashboard.internetcomputer.org/canister/ghsi2-tqaaa-aaaan-aaaca-cai).
+
 # 0.27.0
 
 ### feat!: remove the 'native' replica
