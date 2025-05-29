@@ -7,9 +7,9 @@
       "version": "0.14.11"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/f195ba756bc3bf170a2888699e5e74101fdac6ba/binaries/x86_64-darwin/pocket-ic.gz",
+      "url": "https://github.com/dfinity/pocketic/releases/download/9.0.1/pocket-ic-x86_64-darwin.gz",
       "sha256": "c39ed40ee4145aa706af1802628c59c5c3e2a0eeb2bbb684e92a0fa1fb5930e7",
-      "rev": "f195ba756bc3bf170a2888699e5e74101fdac6ba"
+      "version": "9.0.1"
     }
   },
   "x86_64-linux": {
@@ -19,9 +19,9 @@
       "version": "0.14.11"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/f195ba756bc3bf170a2888699e5e74101fdac6ba/binaries/x86_64-linux/pocket-ic.gz",
+      "url": "https://github.com/dfinity/pocketic/releases/download/9.0.1/pocket-ic-x86_64-linux.gz",
       "sha256": "237272216498074e5250a0685813b96632963ff9abbc51a7030d9b625985028d",
-      "rev": "f195ba756bc3bf170a2888699e5e74101fdac6ba"
+      "version": "9.0.1"
     }
   },
   "common": {
