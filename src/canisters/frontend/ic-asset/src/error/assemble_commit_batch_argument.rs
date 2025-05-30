@@ -6,6 +6,6 @@ use super::SetEncodingError;
 #[derive(Error, Debug)]
 pub enum AssembleCommitBatchArgumentError {
     /// Failed to set encoding.
-    #[error("Failed to set encoding: {0}")]
+    #[error("Failed to set encoding")]
     SetEncodingFailed(#[from] SetEncodingError),
 }

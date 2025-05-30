@@ -120,7 +120,7 @@ determine_network_directory() {
 
 # Start the replica in the background.
 dfx_start() {
-    local port dfx_config_root webserver_port
+    local port webserver_port
 
     local args=( "$@" )
 
@@ -145,9 +145,6 @@ dfx_start() {
 
     # By default, start on random port for parallel test execution
     add_default_parameter "--host" "127.0.0.1:0"
-    if [[ "$USE_REPLICA" ]]; then
-        add_default_parameter "--replica"
-    fi
     add_default_parameter "--artificial-delay" "100"
 
     determine_network_directory
@@ -158,18 +155,8 @@ dfx_start() {
 
     dfx start --background "${args[@]}" 3>&-
 
-    if [[ "$USE_REPLICA" ]]; then
-        dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
-        printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
-        test -f "${dfx_config_root}/replica-1.port"
-        port=$(cat "${dfx_config_root}/replica-1.port")
-        if [ "$port" == "" ]; then
-          port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
-        fi
-    else
-        test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
-        port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port")
-    fi
+    test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
+    port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port")
     webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
 
     printf "Replica Configured Port: %s\n" "${port}"
@@ -220,16 +207,28 @@ dfx_stop() {
 }
 
 dfx_set_wallet() {
+  local network="${1:-actuallylocal}"
+
   export WALLET_CANISTER_ID
   WALLET_CANISTER_ID=$(dfx identity get-wallet)
-  assert_command dfx identity set-wallet "${WALLET_CANISTER_ID}" --force --network actuallylocal
+  assert_command dfx identity set-wallet "${WALLET_CANISTER_ID}" --force --network "${network}"
   assert_match 'Wallet set successfully.'
+}
+
+shared_wallets_json() {
+  SETTINGS_DIGEST="$(jq -r .settings_digest "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/network-id")"
+  WALLETS_JSON="$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/$SETTINGS_DIGEST/wallets.json"
+  echo "$WALLETS_JSON"
 }
 
 setup_actuallylocal_project_network() {
     webserver_port=$(get_webserver_port)
     # [ ! -f "$E2E_ROUTE_NETWORKS_JSON" ] && echo "{}" >"$E2E_ROUTE_NETWORKS_JSON"
     jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json | sponge dfx.json
+}
+
+setup_ephemeral_project_network() {
+    jq ".networks.ephemeral.bind=\"127.0.0.1:$(get_webserver_port)\"" dfx.json | sponge dfx.json
 }
 
 setup_actuallylocal_shared_network() {
@@ -239,16 +238,12 @@ setup_actuallylocal_shared_network() {
 }
 
 setup_local_shared_network() {
-    local replica_port
-    if [[ "$USE_REPLICA" ]]; then
-        replica_port=$(get_replica_port)
-    else
-        replica_port=$(get_pocketic_port)
-    fi
+    local pocketic_port
+    pocketic_port=$(get_pocketic_port)
 
     [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
 
-    jq ".local.bind=\"127.0.0.1:${replica_port}\"" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+    jq ".local.bind=\"127.0.0.1:${pocketic_port}\"" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 }
 
 use_wallet_wasm() {

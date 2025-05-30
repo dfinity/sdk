@@ -30,17 +30,17 @@ teardown() {
 }
 
 @test "create with wallet stores canister ids for configured-ephemeral networks in canister_ids.json" {
+  echo "{}" | jq '.local.type="ephemeral"' >"$E2E_NETWORKS_JSON"
+
   dfx_start
 
-  setup_actuallylocal_shared_network
-  jq '.actuallylocal.type="ephemeral"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
-  dfx_set_wallet
+  dfx_set_wallet local
 
-  dfx canister create --all --network actuallylocal
+  dfx canister create --all
 
   # canister creates writes to a spinner (stderr), not stdout
-  assert_command dfx canister id e2e_project_backend --network actuallylocal
-  assert_match "$(jq -r .e2e_project_backend.actuallylocal .dfx/actuallylocal/canister_ids.json)"
+  assert_command dfx canister id e2e_project_backend
+  assert_match "$(jq -r .e2e_project_backend.local .dfx/local/canister_ids.json)"
 }
 
 @test "create stores canister ids for default-ephemeral local networks in .dfx/{network}canister_ids.json" {

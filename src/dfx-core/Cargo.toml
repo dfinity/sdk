@@ -1,6 +1,6 @@
 [package]
 name = "dfx-core"
-version = "0.1.3"
+version = "0.1.4"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
@@ -21,7 +21,7 @@ bip32 = "0.4.0"
 byte-unit = { workspace = true, features = ["serde"] }
 bytes.workspace = true
 candid = { workspace = true }
-clap = { workspace = true, features = ["string"] }
+clap = { workspace = true, features = ["string", "derive"] }
 dialoguer = { workspace = true }
 directories-next.workspace = true
 dunce = "1.0"

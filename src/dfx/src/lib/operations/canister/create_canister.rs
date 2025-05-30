@@ -8,6 +8,7 @@ use crate::lib::identity::wallet::{get_or_create_wallet_canister, GetOrCreateWal
 use crate::lib::ledger_types::MAINNET_CYCLE_MINTER_CANISTER_ID;
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::operations::cycles_ledger::create_with_cycles_ledger;
+use crate::lib::telemetry::{CyclesHost, Telemetry};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -50,7 +51,7 @@ pub async fn create_canister(
     let config = env.get_config_or_anyhow()?;
     let config_interface = config.get_config();
 
-    let mut canister_id_store = env.get_canister_id_store()?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     let network_name = get_network_context()?;
 
@@ -190,7 +191,7 @@ The command line value will be used.",
         canister_id
     );
     canister_id_store.add(log, canister_name, &canister_id, None)?;
-
+    Telemetry::allowlist_all_asset_canisters(env.get_config()?.as_deref(), canister_id_store);
     Ok(())
 }
 
@@ -240,11 +241,15 @@ async fn create_with_management_canister(
                 Err(anyhow!(NEEDS_WALLET))
             }
         }
-        Err(AgentError::UncertifiedReject(RejectResponse {
-            reject_code: RejectCode::CanisterReject,
-            reject_message,
+        Err(AgentError::UncertifiedReject {
+            reject:
+                RejectResponse {
+                    reject_code: RejectCode::CanisterReject,
+                    reject_message,
+                    ..
+                },
             ..
-        })) if reject_message.contains("is not allowed to call ic00 method") => {
+        }) if reject_message.contains("is not allowed to call ic00 method") => {
             Err(anyhow!(NEEDS_WALLET))
         }
         Err(e) => Err(e).context("Canister creation call failed."),
@@ -258,6 +263,7 @@ async fn create_with_wallet(
     settings: DfxCanisterSettings,
     subnet_selection: &SubnetSelectionType,
 ) -> DfxResult<Principal> {
+    Telemetry::set_cycles_host(CyclesHost::CyclesWallet);
     let wallet = build_wallet_canister(*wallet_id, agent).await?;
     let cycles = with_cycles.unwrap_or(CANISTER_CREATE_FEE + CANISTER_INITIAL_CYCLE_BALANCE);
 

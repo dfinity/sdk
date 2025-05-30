@@ -19,6 +19,8 @@ env:
   CARGO_NET_RETRY: 10
   # Use the local .curlrc
   CURL_HOME: .
+  # Disable DFX telemetry
+  DFX_TELEMETRY: 'off'
 
 jobs:
   update-motoko:
@@ -28,6 +30,9 @@ jobs:
       with:
         ref: ${{ github.event.inputs.sdkBranch }}
 
+    - name: Install script dependencies
+      run: sudo apt-get install -y moreutils
+
     - name: determine Motoko version
       run: |
         if [ '${{ github.event.inputs.motokoVersion }}' = 'latest' ]; then
@@ -36,17 +41,6 @@ jobs:
           echo "MOTOKO_VERSION=${{ github.event.inputs.motokoVersion }}" >> $GITHUB_ENV
         fi
         grep -s "MOTOKO_VERSION" $GITHUB_ENV
-   
-    - name: install Nix
-      uses: cachix/install-nix-action@v21
-      with:
-        nix_path: nixpkgs=channel:nixos-unstable
-
-    - name: install niv (dependency manager for Nix projects)
-      run: nix-env -i niv -f '<nixpkgs>'
-
-    - name: install packages from nix/sources.json
-      run: niv update
 
     - name: update Motoko
       run: |

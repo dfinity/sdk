@@ -2,18 +2,187 @@
 
 # UNRELEASED
 
-### chore: update Azle templates to `0.29.0`
+### chore: update Azle templates to `0.31.0`
+
+### chore: update bitcoin regtest configuration to be same as the bitcoin mainnet
+
+Update bitcoin `regtest` configuration to be same as the bitcoin `mainnet`.
+
+```
+fees = record {
+      get_current_fee_percentiles = 10_000_000 : nat;
+      get_utxos_maximum = 10_000_000_000 : nat;
+      get_block_headers_cycles_per_ten_instructions = 10 : nat;
+      get_current_fee_percentiles_maximum = 100_000_000 : nat;
+      send_transaction_per_byte = 20_000_000 : nat;
+      get_balance = 10_000_000 : nat;
+      get_utxos_cycles_per_ten_instructions = 10 : nat;
+      get_block_headers_base = 50_000_000 : nat;
+      get_utxos_base = 50_000_000 : nat;
+      get_balance_maximum = 100_000_000 : nat;
+      send_transaction_base = 5_000_000_000 : nat;
+      get_block_headers_maximum = 10_000_000_000 : nat;
+    };
+```
+
+You can get the fees by `get_config` API on the [BTC Mainnet Canister](https://dashboard.internetcomputer.org/canister/ghsi2-tqaaa-aaaan-aaaca-cai).
+
+# 0.27.0
+
+### feat!: remove the 'native' replica
+
+The native replica is no longer bundled with dfx; dfx only uses PocketIC for local networks. Accordingly `dfx start --replica` and `dfx info replica-port` now report an error. See the [migration guide](./docs/migration/dfx-0.27.0-migration-guide.md) for more information.
+
+### feat!: Add safeguard to very short freezing threshold
+
+Similar to very long freezing thresholds, setting a freezing threshold below 1 week now requires confirmation with `--confirm-very-short-freezing-threshold` so that unexpected canister uninstallation is less likely.
+
+### chore: removes the outdated `_language-service` command
+
+### feat: Support 'follow' mode for 'dfx canister logs'
+
+Support `follow` mode for `dfx canister logs`
+
+- `--follow` to fetch logs continuously until interrupted with `Ctrl+C`
+- `--interval` to specify the interval in seconds between log fetches
+
+### feat: Improve 'dfx canister logs' with several options
+
+Improve `dfx canister logs` with several options
+
+- `--tail <n>` to show the last `n` log entries
+- `--since` to show the logs newer than a relative duration
+- `--since-time` to show the logs newer than a specific timestamp
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.11](https://github.com/dfinity/motoko/releases/tag/0.14.11)
+
+### Bitcoin canister
+
+Upgraded Bitcoin canister to [release/2024-08-30](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2024-08-30)
+
+### Replica
+
+Updated replica to elected commit f195ba756bc3bf170a2888699e5e74101fdac6ba.
+This incorporates the following executed proposals:
+
+- [136436](https://dashboard.internetcomputer.org/proposal/136436)
+- [136366](https://dashboard.internetcomputer.org/proposal/136366)
+- [136310](https://dashboard.internetcomputer.org/proposal/136310)
+
+# 0.26.1
+
+### fix: clear state when switching from shared to project network
+
+dfx would try to reuse canister ids when switching from a shared network to a project network,
+which would cause errors since those canister ids wouldn't exist. dfx now deletes the .dfx
+directory if it was previously used with the shared local network.
+
+### feat: Set canister ids using `dfx canister set-id <canister name> <principal>`
+
+Added the counterpart to `dfx canister id <canister name>`. Networks can be targeted as usual using `--network <network name>` or the `--ic` shorthand for mainnet.
+
+### chore: use `account_balance` instead of the legacy `account_balance_dfx`
+
+Use the `account_balance` rather than the legacy `account_balance_dfx` on the ICP ledger.
+
+### feat: Extend `dfx ledger transfer` and `dfx ledger balance` to support ICRC-1 standard
+
+Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1).
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.8](https://github.com/dfinity/motoko/releases/tag/0.14.8)
+
+### Replica
+
+Updated replica to elected commit 579b8ba3a31341f354f4ddb3d60ac44548a91bc2.
+This incorporates the following executed proposals:
+
+- [136223](https://dashboard.internetcomputer.org/proposal/136223)
+- [136066](https://dashboard.internetcomputer.org/proposal/136066)
+- [136004](https://dashboard.internetcomputer.org/proposal/136004)
+- [135931](https://dashboard.internetcomputer.org/proposal/135931)
+
+# 0.26.0
 
 ### feat!: `dfx start` uses `--pocketic` by default
 
 As [announced](https://forum.dfinity.org/t/dfx-replacing-the-local-replica-with-pocketic/40167) `dfx start` now runs PocketIC by default.
 Running a local replica is still possible with `--replica`, but this option will be removed in the near future.
 
+### feat: dfx will now report telemetry by default
+
+dfx will now record information about each dfx command executed, and periodically send
+this information to a DFINITY server, by default.
+
+For more information or to comment, please see https://forum.dfinity.org/t/dfx-telemetry-proposal-2025/41569.
+
+You can see what data dfx collects by inspecting the file at `dfx info telemetry-log-path`.
+
+You can disable this entirely with `dfx config telemetry off` or configure it to only collect
+locally with `dfx config telemetry local`.
+
+### feat: `dfx info telemetry-log-path`
+
+Displays the path of the telemetry log file.
+
 ### fix: Warning and error messages now correctly suggest `dfx info security-policy` when suboptimal security policies get used
 
-### chore: updated the canister creation fee to 500B cycles.
+### chore: updated the canister creation fee to 500B cycles
 
 Updated the canister creation fee to `500B` cycles as [documented](https://internetcomputer.org/docs/building-apps/essentials/gas-cost#cycles-price-breakdown).
+
+### chore: improve the `dfx build` output
+
+Improve the ouput of `dfx build` with the canister names that were built, example as below.
+
+```
+$ dfx build
+Building canister 'hello_backend'.
+Building canister 'hello_frontend'.
+Finished building canisters.
+```
+
+### feat: Add `dfx ledger approve` and `dfx ledger transfer-from` subcommands
+
+Implement `dfx ledger approve` and `dfx ledger transfer-from` subcommands that comply with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
+
+### feat: Add `dfx ledger allowance` subcommand
+
+Implement `dfx ledger allowance` subcommand that complies with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
+
+### feat: Enable VetKD for use with `--replica`
+
+- Add VetKD types and methods to management canister IDL
+- The VetKD test key id `Bls12_381_G2:dfx_test_key` is now enabled when starting `dfx` with `--replica`.
+
+### fix: dfx will no longer try to use a nonexistent wallet after changing backend settings without --clean
+
+After running `dfx start` with different options, dfx would try to use a wallet that was created
+on a previous run, which would fail. Now, dfx will create a new wallet if the settings have changed.
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.4](https://github.com/dfinity/motoko/releases/tag/0.14.4)
+
+### Replica
+
+Updated replica to elected commit f6f5e0927d14886e4bd67f776ee889f31cec2364.
+This incorporates the following executed proposals:
+
+- [135836](https://dashboard.internetcomputer.org/proposal/135836)
+- [135697](https://dashboard.internetcomputer.org/proposal/135697)
+- [135696](https://dashboard.internetcomputer.org/proposal/135696)
+- [135600](https://dashboard.internetcomputer.org/proposal/135600)
+- [135601](https://dashboard.internetcomputer.org/proposal/135601)
 
 # 0.25.1
 
@@ -42,8 +211,11 @@ Updated Motoko to [0.14.2](https://github.com/dfinity/motoko/releases/tag/0.14.2
 
 ### Replica
 
-Updated replica to elected commit 2f02a660f6f17b5a78c13d9b372f74c8228f79b8.
-This incorporates the following executed proposals:
+Updated replica to non-elected commit ebb190bf1da0dba3e486b78c95cf5a3c5542e2f3.
+
+This includes X_OC_JWT and X_OC_API_KEY cors headers in PocketIC HTTP gateway (see https://github.com/dfinity/ic/pull/4154).
+
+This also incorporates the following executed proposals up to commit 2f02a660f6f17b5a78c13d9b372f74c8228f79b8:
 
 - [135422](https://dashboard.internetcomputer.org/proposal/135422)
 - [135421](https://dashboard.internetcomputer.org/proposal/135421)

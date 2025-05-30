@@ -7,7 +7,7 @@ use crate::error::network_config::NetworkConfigError::{NetworkHasNoProviders, Ne
 use crate::error::uri::UriError;
 use candid::Principal;
 use slog::Logger;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use url::Url;
 
 pub const MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID: Principal =
@@ -18,7 +18,7 @@ pub const MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS: u64 = 1200;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum NetworkTypeDescriptor {
     Ephemeral {
-        wallet_config_path: PathBuf,
+        wallet_config_path: Option<PathBuf>,
     },
     Playground {
         playground_canister: Principal,
@@ -33,13 +33,14 @@ pub struct NetworkDescriptor {
     pub providers: Vec<String>,
     pub r#type: NetworkTypeDescriptor,
     pub is_ic: bool,
+    pub is_ad_hoc: bool,
     pub local_server_descriptor: Option<LocalServerDescriptor>,
 }
 
 impl NetworkTypeDescriptor {
     pub fn new(
         r#type: NetworkType,
-        ephemeral_wallet_config_path: &Path,
+        ephemeral_wallet_config_path: Option<PathBuf>,
         playground: Option<PlaygroundConfig>,
     ) -> Result<Self, NetworkConfigError> {
         if let Some(playground_config) = playground {
@@ -56,7 +57,7 @@ impl NetworkTypeDescriptor {
         } else {
             match r#type {
                 NetworkType::Ephemeral => Ok(NetworkTypeDescriptor::Ephemeral {
-                    wallet_config_path: ephemeral_wallet_config_path.to_path_buf(),
+                    wallet_config_path: ephemeral_wallet_config_path,
                 }),
                 NetworkType::Persistent => Ok(NetworkTypeDescriptor::Persistent),
             }
@@ -71,6 +72,7 @@ impl NetworkDescriptor {
             providers: vec![DEFAULT_IC_GATEWAY.to_string()],
             r#type: NetworkTypeDescriptor::Persistent,
             is_ic: true,
+            is_ad_hoc: false,
             local_server_descriptor: None,
         }
     }
@@ -121,6 +123,7 @@ impl NetworkDescriptor {
                 canister_timeout_seconds: MOTOKO_PLAYGROUND_CANISTER_TIMEOUT_SECONDS,
             },
             is_ic: true,
+            is_ad_hoc: false,
             local_server_descriptor: None,
         }
     }
@@ -143,7 +146,7 @@ impl NetworkDescriptor {
         if self.name == "local" {
             let local_server_descriptor = self.local_server_descriptor()?;
 
-            if let Some(port) = local_server_descriptor.get_running_replica_port(logger)? {
+            if let Some(port) = local_server_descriptor.get_running_pocketic_port(logger)? {
                 let mut socket_addr = local_server_descriptor.bind_address;
                 socket_addr.set_port(port);
                 let url = format!("http://{}", socket_addr);

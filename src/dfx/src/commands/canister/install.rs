@@ -82,7 +82,7 @@ pub async fn exec(
     fetch_root_key_if_needed(env).await?;
 
     let mode_hint = opts.install_mode.mode_for_canister_install()?;
-    let mut canister_id_store = env.get_canister_id_store()?;
+    let canister_id_store = env.get_canister_id_store()?;
     let network = env.get_network_descriptor();
 
     if mode_hint == InstallModeHint::Reinstall && (opts.canister.is_none() || opts.all) {
@@ -164,7 +164,7 @@ pub async fn exec(
                 // streamlined version, we can ignore most of the environment
                 install_canister(
                     env,
-                    &mut canister_id_store,
+                    canister_id_store,
                     canister_id,
                     &canister_info,
                     Some(&wasm_path),
@@ -184,7 +184,7 @@ pub async fn exec(
             } else {
                 install_canister(
                     env,
-                    &mut canister_id_store,
+                    canister_id_store,
                     canister_id,
                     &canister_info,
                     None,
@@ -221,7 +221,7 @@ pub async fn exec(
                 let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
                 install_canister(
                     env,
-                    &mut canister_id_store,
+                    canister_id_store,
                     canister_id,
                     &canister_info,
                     None,

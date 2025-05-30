@@ -4,7 +4,7 @@ import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
 
 <MarkdownChipRow labels={["Reference"]} />
 
-Use the `dfx cycles` command to manage cycles associated with an identity's principal.
+Use the `dfx cycles` command to manage cycles associated with an identity's principal. `dfx cycles` uses the cycles ledger for cycles management.
 
 The basic syntax for running `dfx cycles` commands is:
 
@@ -17,7 +17,7 @@ The following subcommands are available:
 | Command                                         | Description                                                                          |
 |-------------------------------------------------|--------------------------------------------------------------------------------------|
 | [`approve`](#dfx-cycles-approve)                | Approves a principal to spend cycles on your behalf.                                 |
-| [`balance`](#dfx-cycles-balance)                | Prints the account balance of the user.                                              |
+| [`balance`](#dfx-cycles-balance)                | Prints the account balance of the current principal.                                              |
 | [`convert`](#dfx-cycles-convert)                | Convert some of the user's ICP balance into cycles.                                  |
 | [`redeem-faucet-coupon`](#redeem-faucet-coupon) | Redeem a code at the cycles faucet.                                                  |
 | [`top-up`](#dfx-cycles-top-up)                  | Deposit cycles into a canister.                                                      |
@@ -53,12 +53,12 @@ You can specify the following options for the `dfx cycles approve` command.
 
 | Option                              | Description                                                                            |
 |-------------------------------------|----------------------------------------------------------------------------------------|
-| `--created-at-time <timestamp>`     | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling [transaction-de-duplication.](https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication) |
+| `--created-at-time <timestamp>`     | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction-de-duplication. |
 | `--expected-allowance <cycles>`     | The number of previously approved cycles. See [ICRC-2 specification](https://github.com/dfinity/ICRC-1/blob/main/standards/ICRC-2/README.md) for details. |
 | `--expires-at <timestamp>`        | Timestamp-nanoseconds until which the approval is valid. None means that the approval is valid indefinitely. |
-| `--from-subaccount <subaccount>`    | Approve cycles to be spent from this subaccount.                                       |
+| `--from-subaccount <subaccount>`    | Approve cycles to be spent from the specified subaccount.                                       |
 | `--memo <memo>`                     | Specifies a numeric memo for this transaction. |
-| `--spender-subaccount <subaccount>` | Allow this subaccount to spend cycles.                                                 |
+| `--spender-subaccount <subaccount>` | Allow the specified subaccount to spend cycles.                                                 |
 
 ### Examples
 
@@ -90,8 +90,8 @@ You can specify the following arguments for the `dfx cycles balance` command.
 
 | Option                                      | Description                                                         |
 |---------------------------------------------|---------------------------------------------------------------------|
-| `--owner <principal>`                       | Display the balance of this principal                               |
-| `--subaccount <subaccount>`                 | Display the balance of this subaccount                              |
+| `--owner <principal>`                       | Display the balance of the specified principal.                               |
+| `--subaccount <subaccount>`                 | Display the balance of the specified subaccount.                          |
 | `--precise`                                 | Displays the exact balance, without scaling to trillions of cycles. |
 
 ### Examples
@@ -104,6 +104,7 @@ $ dfx cycles balance --network ic
 ```
 
 To see the exact amount of cycles, you can use the `--precise` option:
+
 ```
 $ dfx cycles balance --network ic --precise
 89000000000000 cycles.
@@ -132,8 +133,8 @@ You can specify the following arguments for the `dfx cycles convert` command.
 | Option                                      | Description |
 |---------------------------------------------|-------------|
 | `--amount <amount>`            | Specify the number of ICP tokens to convert to cycles and deposit into your cycles ledger account. You can specify an amount as a number with up to eight (8) decimal places. |
-| `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for transaction deduplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication-  |
-| `--e8s <e8s>`                  | Specify ICP token fractional units—called e8s—as a whole number, where one e8 is the smallest fraction of an ICP token. For example, 1.05000000 is 1 ICP and 5000000 e8s. You can use this option on its own or in conjunction with the `--icp` option. |
+| `--created-at-time <timestamp>`| Specify the timestamp-nanoseconds for the `created_at_time` field on the ledger transfer request. Useful for transaction deduplication.  |
+| `--e8s <e8s>`                  | Specify ICP token fractional units (called e8s) as a whole number, where one e8 is the smallest fraction of an ICP token. For example, 1.05000000 is 1 ICP and 5000000 e8s. You can use this option on its own or in conjunction with the `--icp` option. |
 | `--fee <fee>`                  | Specify a transaction fee. The default is 10000 e8s. |
 | `--icp <icp>`                  | Specify ICP tokens as a whole number. You can use this option on its own or in conjunction with `--e8s`. |
 | `--deposit-memo <memo>`        | Memo used when depositing the minted cycles. |
@@ -141,7 +142,7 @@ You can specify the following arguments for the `dfx cycles convert` command.
 
 ### Examples
 
-Convert 10 ICP into cycles.
+Convert 10 ICP into cycles:
 
 ```
 $ dfx cycles convert --network ic --amount 10
@@ -180,12 +181,12 @@ You can specify the following options for the `dfx cycles transfer` command.
 
 | Option                              | Description                                                                            |
 |-------------------------------------|----------------------------------------------------------------------------------------|
-| `--from <principal>`                |  Transfer cycles from this principal. Requires that principal's approval.              |
+| `--from <principal>`                |  Transfer cycles from the specified principal. Requires that principal's approval.              |
 | `--to-subaccount <subaccount>`      | The subaccount to which you want to transfer cycles.                                   |
 | `--from-subaccount <subaccount>`    | The subaccount from which you want to transfer cycles.                                 |
 | `--spender-subaccount <subaccount>` | Deduct allowance from this subaccount. Requires `--from` to be specified.              |
 | `--memo <memo>`                     | Specifies a numeric memo for this transaction. |
-| `--created-at-time <timestamp>`     | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction-de-duplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
+| `--created-at-time <timestamp>`     | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction-de-duplication. |
 
 ### Examples
 
@@ -238,7 +239,7 @@ If you have a coupon code `ABCDE-ABCDE-ABCDE`, you can redeem it like this:
 dfx cycles redeem-faucet-coupon 'ABCDE-ABCDE-ABCDE'
 ```
 
-This will print something similar to this:
+This will print something like:
 ```
 Redeemed coupon ABCDE-ABCDE-ABCDE to the cycles ledger for 10 TC (trillion cycles). New balance: 10 TC.
 ```
@@ -259,7 +260,7 @@ You must specify the following arguments for the `dfx cycles transfer` command.
 
 | Argument   | Description                                                             |
 |------------|-------------------------------------------------------------------------|
-| `<to>`     | The name of a canister in the current project, or a canister principal. |
+| `<to>`     | The name of a canister in the current project or a canister principal. |
 | `<amount>` | The number of cycles to transfer.                                       |
 
 ### Options
@@ -269,7 +270,7 @@ You can specify the following options for the `dfx cycles top-up` command.
 | Option                           | Description                                                                            |
 |----------------------------------|----------------------------------------------------------------------------------------|
 | `--from-subaccount <subaccount>` | The subaccount from which you want to transfer cycles.                                 |
-| `--created-at-time <timestamp>`  | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction deduplication. https://internetcomputer.org/docs/current/developer-docs/integrations/icrc-1/#transaction-deduplication- |
+| `--created-at-time <timestamp>`  | Specify the timestamp-nanoseconds for the `created_at_time` field on the transfer request. Useful for controlling transaction deduplication.|
 
 ### Examples
 

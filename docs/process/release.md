@@ -6,6 +6,8 @@
 
 Click the "Run workflow" button on the [Update Replica page](https://github.com/dfinity/sdk/actions/workflows/update-replica-version.yml) workflow.
 
+This will make a create a PR with a comment containing a suggested changelog change. Update the changelog according to the suggestion, make sure to remove proposals that were part of the previous release. See [a sample PR](https://github.com/dfinity/sdk/pull/4155).
+
 Obtain approval and merge the PR.
 
 ### Update the changelog
@@ -86,11 +88,12 @@ The fourth PR (the one that updates the Motoko playground whitelist) needs to be
 ### Update the [portal](https://github.com/dfinity/portal) release notes and sdk submodule
 
 - Add a link to the [release-notes-table](https://github.com/dfinity/portal/blob/master/docs/other/updates/release-notes/release-notes.md);
-    - Also include the link of the migration guide if it is available;
+    - Also include the link of the migration guide if it is available.
 - Update the sdk submodule:
     1. Change to the sdk submodule: `cd submodules/sdk`
     1. Checkout the release branch, e.g. `git checkout release-0.18.0`
     1. Go back to project root and commit the submodule change.
+- Update the [submodule check CI job](https://github.com/dfinity/portal/blob/master/.github/workflows/check_submodule.yml#L22) to refer to the latest release commit;
 - Obtain approval, but do not merge this PR yet.
 
 [Sample PR](https://github.com/dfinity/portal/pull/2330)

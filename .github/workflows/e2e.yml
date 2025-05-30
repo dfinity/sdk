@@ -14,6 +14,8 @@ env:
   CARGO_NET_RETRY: 10
   # Use the local .curlrc
   CURL_HOME: .
+  # Disable DFX telemetry
+  DFX_TELEMETRY: 'off'
 
 jobs:
   changes:
@@ -53,9 +55,9 @@ jobs:
       matrix:
         # We build a dynamic-linked linux binary because otherwise HSM support fails with:
         #   Error: IO: Dynamic loading not supported
-        os: [macos-13-large, ubuntu-22.04, ubuntu-24.04, windows-2022]
+        os: [macos-13, ubuntu-22.04, ubuntu-24.04, windows-2022]
         include:
-          - os: macos-13-large
+          - os: macos-13
             target: x86_64-apple-darwin
             binary_path: target/x86_64-apple-darwin/release/dfx
           - os: ubuntu-22.04
@@ -109,7 +111,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13-large, ubuntu-22.04, ubuntu-24.04]
+        os: [macos-13, ubuntu-22.04, ubuntu-24.04]
     steps:
       - uses: actions/checkout@v4
       - name: Download dfx binary
@@ -160,9 +162,6 @@ jobs:
           echo "archive=$(pwd)/e2e/archive" >> "$GITHUB_ENV"
           echo "assets=$(pwd)/e2e/assets" >> "$GITHUB_ENV"
           echo "utils=$(pwd)/e2e/utils" >> "$GITHUB_ENV"
-          if [ "${{ matrix.backend == 'replica' || '' }}" ]; then
-            echo "USE_REPLICA=1" >> "$GITHUB_ENV"
-          fi
           export
       - name: Download bats-support as a git submodule
         run: git submodule update --init --recursive
@@ -173,7 +172,7 @@ jobs:
             e2e/assets/playground_backend/.mops
           key: playground-backend-mops-${{ hashFiles('e2e/assets/playground_backend/mops.toml') }}
       - name: Run e2e test
-        run: timeout 2400 bats "e2e/$E2E_TEST"
+        run: timeout 2400 bats ${{ !matrix.serial && '-j "$(nproc)"' || '' }} "e2e/$E2E_TEST"
 
   ui_test:
     runs-on: ${{ matrix.os }}
@@ -182,7 +181,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13-large, ubuntu-22.04, ubuntu-24.04]
+        os: [macos-13, ubuntu-22.04, ubuntu-24.04]
     steps:
       - name: Checking out repo
         uses: actions/checkout@v4

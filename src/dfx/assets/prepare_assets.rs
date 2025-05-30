@@ -112,10 +112,10 @@ fn write_binary_cache(
         BufWriter::new(File::create(out_dir.join("binary_cache.tgz")).unwrap()),
         Compression::new(6),
     ));
-    for (path, bin) in bins.into_iter().chain(
-        ["moc", "mo-doc", "mo-ide"]
-            .map(|bin| (bin.into(), bin_tars.remove(Path::new(bin)).unwrap())),
-    ) {
+    for (path, bin) in bins
+        .into_iter()
+        .chain(["moc", "mo-doc"].map(|bin| (bin.into(), bin_tars.remove(Path::new(bin)).unwrap())))
+    {
         let mut header = Header::new_gnu();
         header.set_size(bin.len() as u64);
         header.set_mode(0o500);
@@ -177,19 +177,8 @@ async fn download_binaries(
     sources: Arc<HashMap<String, Source>>,
 ) -> HashMap<PathBuf, Bytes> {
     let mut joinset = JoinSet::new();
-    for bin in [
-        "canister_sandbox",
-        "compiler_sandbox",
-        "ic-admin",
-        "ic-btc-adapter",
-        "ic-https-outcalls-adapter",
-        "ic-nns-init",
-        "ic-starter",
-        "pocket-ic",
-        "replica",
-        "sandbox_launcher",
-        "sns",
-    ] {
+    #[allow(clippy::single_element_loop)]
+    for bin in ["pocket-ic"] {
         let source = sources
             .get(bin)
             .unwrap_or_else(|| panic!("Cannot find source for {bin}"))

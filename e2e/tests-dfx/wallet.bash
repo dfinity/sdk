@@ -13,6 +13,7 @@ teardown() {
 }
 
 @test "error reporting for --wallet parameter" {
+  dfx_start
   assert_command_fail dfx canister call hello_backend greet '' --with-cycles 100 --wallet "abc-def"
   assert_contains "Failed to read principal from id 'abc-def', and did not find a wallet for that identity"
   assert_contains "Text must be in valid Base32 encoding"
@@ -20,8 +21,7 @@ teardown() {
   assert_command_fail dfx canister call hello_backend greet '' --with-cycles 100 --wallet "alice"
   assert_contains "Failed to read principal from id 'alice', and did not find a wallet for that identity"
 
-  mkdir -p "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY"
-  echo "{}" > "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json"
+  echo "{}" > "$(shared_wallets_json)"
   assert_command_fail dfx canister call hello_backend greet '' --with-cycles 100 --wallet broken
   assert_contains "Failed to read principal from id 'broken' (Text must be in valid Base32 encoding.), and failed to load the wallet for that identity"
   assert_contains "missing field \`identities\`"
@@ -236,9 +236,27 @@ teardown() {
 }
 
 @test "detects if there is no wallet to upgrade" {
+  dfx_start
   dfx_new hello
   assert_command_fail dfx wallet upgrade
   assert_match "There is no wallet defined for identity 'default' on network 'local'.  Nothing to do."
+}
+
+@test "creates new wallet if backend changes" {
+  dfx_new hello
+
+  dfx_start --artificial-delay 101
+  dfx deploy
+
+  dfx_stop
+
+  dfx_start --artificial-delay 99
+  dfx deploy
+}
+
+@test "must run dfx start before accessing wallet on shared local network" {
+    assert_command_fail dfx wallet upgrade
+    assert_contains "cannot use a wallet before dfx start"
 }
 
 @test "redeem-faucet-coupon can set a new wallet and top up an existing one" {
@@ -254,7 +272,7 @@ teardown() {
   # prepare wallet to hand out
   dfx wallet balance # this creates a new wallet with user faucet_testing as controller
   dfx canister call faucet set_wallet_to_hand_out "(principal \"$(dfx identity get-wallet)\")" # register the wallet as the wallet that the faucet will return
-  rm "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/wallets.json" # forget about the currently configured wallet
+  find "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY" -name wallets.json -exec rm {} \; # forget about the currently configured wallet
 
   # assert: no wallet configured
   export DFX_DISABLE_AUTO_WALLET=1
