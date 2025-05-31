@@ -65,7 +65,7 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let main_path = info
             .get_main_file()
             .context("`main` attribute is required on Motoko canisters in dfx.json (and Motoko is the default canister type if not otherwise specified)")?;
-        let input_path = workspace_root.join(main_path);
+        let input_path = main_path.to_path_buf();
         let output_root = info.get_output_root().to_path_buf();
         let output_wasm_path = output_root.join(name).with_extension("wasm");
         let output_stable_path = output_wasm_path.with_extension("most");
