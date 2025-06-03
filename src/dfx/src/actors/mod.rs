@@ -57,6 +57,7 @@ pub fn start_pocketic_actor(
     local_server_descriptor: &LocalServerDescriptor,
     shutdown_controller: Addr<ShutdownController>,
     pocketic_port_path: PathBuf,
+    docker: bool,
 ) -> DfxResult<Addr<PocketIc>> {
     let pocketic_path = env.get_cache().get_binary_command_path(env, "pocket-ic")?;
 
@@ -80,6 +81,7 @@ pub fn start_pocketic_actor(
     };
     let actor_config = pocketic::Config {
         pocketic_path,
+        docker,
         effective_config_path: local_server_descriptor.effective_config_path(),
         replica_config,
         bitcoind_addr: local_server_descriptor.bitcoin.nodes.clone(),

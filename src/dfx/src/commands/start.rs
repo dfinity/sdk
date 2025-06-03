@@ -86,6 +86,10 @@ pub struct StartOpts {
 
     #[clap(long, hide = true)]
     replica: bool,
+
+    /// Runs PocketIC in docker container.
+    #[arg(long)]
+    docker: bool,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -154,6 +158,7 @@ pub fn exec(
         domain,
         pocketic: _,
         replica,
+        docker,
     }: StartOpts,
 ) -> DfxResult {
     ensure!(!replica, "The 'native' replica (--replica) is no longer supported. See the 0.27.0 migration guide for more information.
@@ -321,6 +326,7 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
                 local_server_descriptor,
                 shutdown_controller.clone(),
                 pocketic_port_path,
+                docker,
             )?;
             server.recipient()
         };

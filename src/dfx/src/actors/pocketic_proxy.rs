@@ -271,7 +271,7 @@ fn pocketic_proxy_start_thread(
                 .expect("Could not write to pocketic-proxy-pid file.");
             std::fs::write(&pocketic_proxy_pid_path, child.id().to_string())
                 .expect("Could not write to pocketic-proxy-pid file.");
-            let port =
+            let _port =
                 match PocketIcProxy::wait_for_ready(&pocketic_proxy_port_path, receiver.clone()) {
                     Ok(p) => p,
                     Err(e) => {
@@ -286,6 +286,8 @@ fn pocketic_proxy_start_thread(
                         }
                     }
                 };
+
+            let port: u16 = 8082;
             let instance = match initialize_gateway(
                 format!("http://localhost:{port}").parse().unwrap(),
                 replica_url.clone(),
