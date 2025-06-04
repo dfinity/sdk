@@ -250,11 +250,14 @@ fn pocketic_start_thread(
         loop {
             let last_start: Instant;
             let mut child = if config.docker {
+                // Start the container.
+                // TODO: Should we always run a clean new container from the image as the container will keep the status for previous runs?
                 let mut cmd = std::process::Command::new("docker");
                 cmd.args(["start", "pocket-ic"]);
                 last_start = std::time::Instant::now();
                 cmd.spawn().expect("Could not start PocketIC.");
 
+                // Stream the logs to the console.
                 let mut cmd = std::process::Command::new("docker");
                 cmd.args(["logs", "-f", "pocket-ic"]);
                 cmd.stdout(std::process::Stdio::inherit());
