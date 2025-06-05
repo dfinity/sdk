@@ -10,7 +10,7 @@ use crate::lib::info::replica_rev;
 use crate::lib::integrations::status::wait_for_integrations_initialized;
 use crate::lib::network::id::write_network_id;
 use crate::lib::replica::status::ping_and_wait;
-use crate::util::get_reusable_socket_addr;
+//use crate::util::get_reusable_socket_addr;
 use actix::Recipient;
 use anyhow::{anyhow, bail, ensure, Context, Error};
 use clap::{ArgAction, Parser};
@@ -499,17 +499,18 @@ fn send_background() -> DfxResult<()> {
 #[context("Failed to get frontend address.")]
 fn frontend_address(
     local_server_descriptor: &LocalServerDescriptor,
-    background: bool,
+    _background: bool,
 ) -> DfxResult<(String, SocketAddr)> {
-    let mut address_and_port = local_server_descriptor.bind_address;
+    let address_and_port = local_server_descriptor.bind_address;
 
-    if !background {
-        // Since the user may have provided port "0", we need to grab a dynamically
-        // allocated port and construct a resuable SocketAddr which the actix
-        // HttpServer will bind to
-        address_and_port =
-            get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())?;
-    }
+    // TODO: Temporarily disabled to allow for port 8080 to be used.
+    // if !background {
+    //     // Since the user may have provided port "0", we need to grab a dynamically
+    //     // allocated port and construct a resuable SocketAddr which the actix
+    //     // HttpServer will bind to
+    //     address_and_port =
+    //         get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())?;
+    // }
     let ip = if address_and_port.is_ipv6() {
         format!("[{}]", address_and_port.ip())
     } else {
