@@ -32,6 +32,7 @@ impl CanisterBuilder for PullBuilder {
         _: &dyn Environment,
         _pool: &CanisterPool,
         info: &CanisterInfo,
+        _no_deps: bool,
     ) -> DfxResult<Vec<CanisterId>> {
         Ok(vec![])
     }
@@ -43,6 +44,7 @@ impl CanisterBuilder for PullBuilder {
         _pool: &CanisterPool,
         canister_info: &CanisterInfo,
         _config: &BuildConfig,
+        _no_deps: bool,
     ) -> DfxResult<BuildOutput> {
         Ok(BuildOutput {
             // It's impossible to know if the downloaded wasm is gzip or not with only the info in `dfx.json`.
