@@ -1,7 +1,8 @@
-import { Canister, query, text } from 'azle';
+import { IDL, query } from 'azle';
 
-export default Canister({
-    greet: query([text], text, (name) => {
+export default class {
+    @query([IDL.Text], IDL.Text)
+    greet(name: string): string {
         return `Hello, ${name}!`;
-    })
-})
+    }
+}
