@@ -1,6 +1,7 @@
 #![cfg_attr(windows, allow(unused))]
 
 use crate::actors::pocketic_proxy::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::pocketic_proxy::PocketIcProxyConfig;
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
@@ -31,6 +32,7 @@ use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
+use url::Url;
 
 pub mod signals {
     use actix::prelude::*;
@@ -57,6 +59,7 @@ pub struct Config {
     pub pid_file: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
+    pub pocketic_proxy_config: PocketIcProxyConfig,
 }
 
 #[derive(Clone)]
@@ -300,6 +303,28 @@ fn pocketic_start_thread(
                 }
                 Ok(i) => i,
             };
+
+            let instance_0 = match initialize_gateway(
+                format!("http://localhost:{port}/instances/0/").parse().unwrap(),
+                config.pocketic_proxy_config.domains.clone(),
+                config.pocketic_proxy_config.bind,
+                logger.clone(),
+            ) {
+                Err(e) => {
+                    error!(logger, "Failed to initialize HTTP gateway: {e:#}");
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    if receiver.try_recv().is_ok() {
+                        debug!(logger, "Got signal to stop.");
+                        break;
+                    } else {
+                        continue;
+                    }
+                }
+                Ok(i) => i,
+            };
+            assert_eq!(instance, instance_0);
+
             addr.do_send(signals::PocketIcRestarted { port });
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the server if done = true.
@@ -452,6 +477,51 @@ fn initialize_pocketic(
     _: Logger,
 ) -> DfxResult<usize> {
     bail!("PocketIC not supported on this platform")
+}
+
+#[cfg(unix)]
+#[tokio::main(flavor = "current_thread")]
+async fn initialize_gateway(
+    server_url: Url,
+    domains: Option<Vec<String>>,
+    addr: SocketAddr,
+    logger: Logger,
+) -> DfxResult<usize> {
+    use pocket_ic::common::rest::{
+        CreateHttpGatewayResponse, HttpGatewayBackend, HttpGatewayConfig,
+    };
+    use reqwest::Client;
+    let init_client = Client::new();
+    debug!(logger, "Configuring PocketIC gateway");
+    let resp = init_client
+        .post(server_url.join("http_gateway").unwrap())
+        .json(&HttpGatewayConfig {
+            forward_to: HttpGatewayBackend::Replica(server_url.join("instances/0/").unwrap().to_string()),
+            ip_addr: Some(addr.ip().to_string()),
+            port: Some(addr.port()),
+            domains,
+            https_config: None,
+        })
+        .send()
+        .await?
+        .error_for_status()?;
+    let resp = resp.json::<CreateHttpGatewayResponse>().await?;
+    let instance = match resp {
+        CreateHttpGatewayResponse::Created(info) => info.instance_id,
+        CreateHttpGatewayResponse::Error { message } => bail!("Gateway init error: {message}"),
+    };
+    debug!(logger, "Initialized HTTP gateway.");
+    Ok(instance)
+}
+
+#[cfg(not(unix))]
+fn initialize_gateway(
+    _: Url,
+    _: Option<Vec<String>>,
+    _: SocketAddr,
+    _: Logger,
+) -> DfxResult<usize> {
+    bail!("PocketIC gateway not supported on this platform")
 }
 
 #[cfg(unix)]

@@ -314,6 +314,13 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
     let _proxy = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
 
+        let pocketic_proxy_config = PocketIcProxyConfig {
+            bind: address_and_port,
+            replica_url: None,
+            domains: proxy_domains,
+            verbose: env.get_verbose_level() > 0,
+        };
+
         let port_ready_subscribe: Recipient<PortReadySubscribe> = {
             let server = start_pocketic_actor(
                 env,
@@ -321,16 +328,11 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
                 local_server_descriptor,
                 shutdown_controller.clone(),
                 pocketic_port_path,
+                pocketic_proxy_config.clone(),
             )?;
             server.recipient()
         };
 
-        let pocketic_proxy_config = PocketIcProxyConfig {
-            bind: address_and_port,
-            replica_url: None,
-            domains: proxy_domains,
-            verbose: env.get_verbose_level() > 0,
-        };
         let proxy = start_pocketic_proxy_actor(
             env,
             pocketic_proxy_config,

@@ -33,6 +33,7 @@ pub mod signals {
     pub struct PortReadySubscribe(pub Recipient<PortReadySignal>);
 }
 
+#[derive(Clone)]
 pub struct PocketIcProxyConfig {
     /// where to listen.  Becomes argument like --address 127.0.0.1:3000
     pub bind: SocketAddr,
