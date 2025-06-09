@@ -504,7 +504,9 @@ async fn initialize_gateway(
     let resp = init_client
         .post(server_url.join("http_gateway").unwrap())
         .json(&HttpGatewayConfig {
-            forward_to: HttpGatewayBackend::Replica(server_url.join("instances/0/").unwrap().to_string()),
+            forward_to: HttpGatewayBackend::Replica(
+                server_url.join("instances/0/").unwrap().to_string(),
+            ),
             ip_addr: Some(addr.ip().to_string()),
             port: Some(addr.port()),
             domains,

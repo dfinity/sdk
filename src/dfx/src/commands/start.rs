@@ -1,8 +1,5 @@
 use crate::actors::pocketic::PocketIcProxyConfig;
-use crate::actors::{
-    start_pocketic_actor, start_post_start_actor,
-    start_shutdown_controller,
-};
+use crate::actors::{start_pocketic_actor, start_post_start_actor, start_shutdown_controller};
 use crate::config::dfx_version_str;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
