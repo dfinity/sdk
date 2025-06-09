@@ -1,7 +1,6 @@
 #![cfg_attr(windows, allow(unused))]
 
-use crate::actors::pocketic_proxy::signals::{PortReadySignal, PortReadySubscribe};
-use crate::actors::pocketic_proxy::PocketIcProxyConfig;
+use crate::actors::post_start::signals::{PortReadySignal, PortReadySubscribe};
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
@@ -44,6 +43,15 @@ pub mod signals {
     pub(super) struct PocketIcRestarted {
         pub port: u16,
     }
+}
+
+#[derive(Clone)]
+pub struct PocketIcProxyConfig {
+    /// where to listen.  Becomes argument like --address 127.0.0.1:3000
+    pub bind: SocketAddr,
+
+    /// list of domains that can be served (localhost if none specified)
+    pub domains: Option<Vec<String>>,
 }
 
 /// The configuration for the PocketIC actor.
@@ -305,7 +313,7 @@ fn pocketic_start_thread(
             };
 
             let instance_0 = match initialize_gateway(
-                format!("http://localhost:{port}/instances/0/").parse().unwrap(),
+                format!("http://localhost:{port}").parse().unwrap(),
                 config.pocketic_proxy_config.domains.clone(),
                 config.pocketic_proxy_config.bind,
                 logger.clone(),

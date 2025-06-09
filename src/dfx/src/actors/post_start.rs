@@ -1,27 +1,27 @@
-use crate::actors::pocketic_proxy::PocketIcProxy;
-use crate::actors::post_start::signals::{PocketIcProxyReadySignal, PocketIcProxyReadySubscribe};
+use crate::actors::pocketic::PocketIc;
+use crate::actors::post_start::signals::{PortReadySignal, PortReadySubscribe};
 use crate::lib::progress_bar::ProgressBar;
 use actix::{Actor, Addr, AsyncContext, Context, Handler};
 use slog::{info, Logger};
 
 pub mod signals {
-    use std::net::SocketAddr;
-
     use actix::prelude::*;
-
-    #[derive(Message, Copy, Clone)]
-    #[rtype(result = "()")]
-    pub struct PocketIcProxyReadySignal(pub SocketAddr);
 
     #[derive(Message)]
     #[rtype(result = "()")]
-    pub struct PocketIcProxyReadySubscribe(pub Recipient<PocketIcProxyReadySignal>);
+    pub struct PortReadySignal {
+        pub url: String,
+    }
+
+    #[derive(Message)]
+    #[rtype(result = "()")]
+    pub struct PortReadySubscribe(pub Recipient<PortReadySignal>);
 }
 
 pub struct Config {
     pub logger: Logger,
     pub background: bool,
-    pub pocketic_proxy: Option<Addr<PocketIcProxy>>,
+    pub pocketic: Option<Addr<PocketIc>>,
 }
 
 pub struct PostStart {
@@ -40,18 +40,18 @@ impl Actor for PostStart {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         // Register the PostStart recipent to PocketIcProxy.
-        if let Some(pocketic_proxy) = &self.config.pocketic_proxy {
-            pocketic_proxy.do_send(PocketIcProxyReadySubscribe(ctx.address().recipient()));
+        if let Some(pocketic) = &self.config.pocketic {
+            pocketic.do_send(PortReadySubscribe(ctx.address().recipient()));
         }
     }
 }
 
-impl Handler<PocketIcProxyReadySignal> for PostStart {
+impl Handler<PortReadySignal> for PostStart {
     type Result = ();
 
-    fn handle(&mut self, msg: PocketIcProxyReadySignal, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: PortReadySignal, _ctx: &mut Self::Context) -> Self::Result {
         let logger = &self.config.logger;
-        let address = msg.0;
+        let address = msg.url;
         self.spinner.finish_and_clear();
         if self.config.background {
             info!(logger, "Replica API running in the background on {address}");
