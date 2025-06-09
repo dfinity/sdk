@@ -10,7 +10,7 @@ use crate::lib::info::replica_rev;
 use crate::lib::integrations::status::wait_for_integrations_initialized;
 use crate::lib::network::id::write_network_id;
 use crate::lib::replica::status::ping_and_wait;
-//use crate::util::get_reusable_socket_addr;
+use crate::util::get_reusable_socket_addr;
 use actix::Recipient;
 use anyhow::{anyhow, bail, ensure, Context, Error};
 use clap::{ArgAction, Parser};
@@ -209,7 +209,8 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
         clean_state(local_server_descriptor, env.get_project_temp_dir()?)?;
     }
 
-    let (frontend_url, address_and_port) = frontend_address(local_server_descriptor, background)?;
+    let (frontend_url, address_and_port) =
+        frontend_address(local_server_descriptor, background, docker)?;
 
     fs::create_dir_all(&local_server_descriptor.data_dir_by_settings_digest())?;
 
@@ -327,6 +328,7 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
                 shutdown_controller.clone(),
                 pocketic_port_path,
                 docker,
+                address_and_port,
             )?;
             server.recipient()
         };
@@ -499,18 +501,28 @@ fn send_background() -> DfxResult<()> {
 #[context("Failed to get frontend address.")]
 fn frontend_address(
     local_server_descriptor: &LocalServerDescriptor,
-    _background: bool,
+    background: bool,
+    docker: bool,
 ) -> DfxResult<(String, SocketAddr)> {
-    let address_and_port = local_server_descriptor.bind_address;
+    let mut address_and_port = local_server_descriptor.bind_address;
 
-    // TODO: Temporarily disabled to allow for port 8080 to be used.
-    // if !background {
-    //     // Since the user may have provided port "0", we need to grab a dynamically
-    //     // allocated port and construct a resuable SocketAddr which the actix
-    //     // HttpServer will bind to
-    //     address_and_port =
-    //         get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())?;
-    // }
+    if docker {
+        // Update address_and_port to use 0.0.0.0 for IPv4 and :: for IPv6
+        if address_and_port.is_ipv6() {
+            address_and_port.set_ip(std::net::IpAddr::V6(std::net::Ipv6Addr::UNSPECIFIED));
+        } else {
+            address_and_port.set_ip(std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED));
+        };
+    }
+
+    if !background {
+        // Since the user may have provided port "0", we need to grab a dynamically
+        // allocated port and construct a resuable SocketAddr which the actix
+        // HttpServer will bind to
+        address_and_port =
+            get_reusable_socket_addr(address_and_port.ip(), address_and_port.port())?;
+    }
+
     let ip = if address_and_port.is_ipv6() {
         format!("[{}]", address_and_port.ip())
     } else {

@@ -56,6 +56,7 @@ pub struct Config {
     pub port: Option<u16>,
     pub port_file: PathBuf,
     pub pid_file: PathBuf,
+    pub address: SocketAddr,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
 }
@@ -116,8 +117,7 @@ impl PocketIc {
                     .args(["exec", "pocket-ic", "cat", "pocket-ic-port"])
                     .output();
                 if let Ok(output) = output {
-                    if let Ok(port) = String::from_utf8(output.stdout)
-                        .unwrap()
+                    if let Ok(port) = String::from_utf8_lossy(&output.stdout)
                         .trim()
                         .parse::<u16>()
                     {
@@ -250,14 +250,28 @@ fn pocketic_start_thread(
         loop {
             let last_start: Instant;
             let mut child = if config.docker {
-                // Start the container.
-                // TODO: Should we always run a clean new container from the image as the container will keep the status for previous runs?
+                // Run the container.
                 let mut cmd = std::process::Command::new("docker");
-                cmd.args(["start", "pocket-ic"]);
-                last_start = std::time::Instant::now();
-                cmd.spawn().expect("Could not start PocketIC.");
+                cmd.args(["run"]);
+                cmd.args([
+                    "-p",
+                    format!("{}:{}", config.address.port(), config.address.port()).as_str(),
+                ]);
+                cmd.args(["-p", "8081:8081", "-p", "8082:8082"]);
+                cmd.args(["-d", "--name", "pocket-ic", "pocket-ic"]);
+                cmd.stdout(std::process::Stdio::piped());
+                println!("cmd: {:?}", cmd.get_args());
 
-                // Stream the logs to the console.
+                last_start = std::time::Instant::now();
+                let child = cmd.spawn().expect("Could not start PocketIC.");
+
+                // Retrieve the container id.
+                // TODO: The container id will be used to remove the container when the process stops.
+                let output = child.wait_with_output().unwrap();
+                let container_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                println!("Container id: {}", container_id);
+
+                // Stream the logs.
                 let mut cmd = std::process::Command::new("docker");
                 cmd.args(["logs", "-f", "pocket-ic"]);
                 cmd.stdout(std::process::Stdio::inherit());

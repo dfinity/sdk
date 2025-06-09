@@ -12,6 +12,7 @@ use pocketic::BitcoinIntegrationConfig;
 use pocketic_proxy::signals::PortReadySubscribe;
 use pocketic_proxy::{PocketIcProxy, PocketIcProxyConfig};
 use post_start::PostStart;
+use std::net::SocketAddr;
 use std::path::PathBuf;
 
 pub mod pocketic;
@@ -58,6 +59,7 @@ pub fn start_pocketic_actor(
     shutdown_controller: Addr<ShutdownController>,
     pocketic_port_path: PathBuf,
     docker: bool,
+    address: SocketAddr,
 ) -> DfxResult<Addr<PocketIc>> {
     let pocketic_path = env.get_cache().get_binary_command_path(env, "pocket-ic")?;
 
@@ -89,6 +91,7 @@ pub fn start_pocketic_actor(
         port: local_server_descriptor.replica.port,
         port_file: pocketic_port_path,
         pid_file: local_server_descriptor.pocketic_pid_path(),
+        address,
         shutdown_controller,
         logger: Some(env.get_logger().clone()),
     };
