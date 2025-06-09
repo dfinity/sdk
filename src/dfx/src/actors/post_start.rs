@@ -5,12 +5,14 @@ use actix::{Actor, Addr, AsyncContext, Context, Handler};
 use slog::{info, Logger};
 
 pub mod signals {
+    use std::net::SocketAddr;
+
     use actix::prelude::*;
 
     #[derive(Message)]
     #[rtype(result = "()")]
     pub struct PortReadySignal {
-        pub url: String,
+        pub address: SocketAddr,
     }
 
     #[derive(Message)]
@@ -51,7 +53,7 @@ impl Handler<PortReadySignal> for PostStart {
 
     fn handle(&mut self, msg: PortReadySignal, _ctx: &mut Self::Context) -> Self::Result {
         let logger = &self.config.logger;
-        let address = msg.url;
+        let address = msg.address;
         self.spinner.finish_and_clear();
         if self.config.background {
             info!(logger, "Replica API running in the background on {address}");

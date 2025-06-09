@@ -40,9 +40,7 @@ pub mod signals {
     /// restarting inside our own actor, this message should not be exposed.
     #[derive(Message)]
     #[rtype(result = "()")]
-    pub(super) struct PocketIcRestarted {
-        pub port: u16,
-    }
+    pub(super) struct PocketIcRestarted;
 }
 
 #[derive(Clone)]
@@ -153,10 +151,10 @@ impl PocketIc {
         Ok(())
     }
 
-    fn send_ready_signal(&self, port: u16) {
+    fn send_ready_signal(&self) {
         for sub in &self.ready_subscribers {
             sub.do_send(PortReadySignal {
-                url: format!("http://localhost:{port}/instances/0/"),
+                address: self.config.pocketic_proxy_config.bind,
             });
         }
     }
@@ -194,9 +192,9 @@ impl Handler<PortReadySubscribe> for PocketIc {
 
     fn handle(&mut self, msg: PortReadySubscribe, _: &mut Self::Context) {
         // If we have a port, send that we're already ready! Yeah!
-        if let Some(port) = self.port {
+        if self.port.is_some() {
             msg.0.do_send(PortReadySignal {
-                url: format!("http://localhost:{port}/instances/0/"),
+                address: self.config.pocketic_proxy_config.bind,
             });
         }
 
@@ -209,11 +207,10 @@ impl Handler<signals::PocketIcRestarted> for PocketIc {
 
     fn handle(
         &mut self,
-        msg: signals::PocketIcRestarted,
+        _msg: signals::PocketIcRestarted,
         _ctx: &mut Self::Context,
     ) -> Self::Result {
-        self.port = Some(msg.port);
-        self.send_ready_signal(msg.port);
+        self.send_ready_signal();
     }
 }
 
@@ -333,7 +330,7 @@ fn pocketic_start_thread(
             };
             assert_eq!(instance, instance_0);
 
-            addr.do_send(signals::PocketIcRestarted { port });
+            addr.do_send(signals::PocketIcRestarted);
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the server if done = true.
             match wait_for_child_or_receiver(&mut child, &receiver) {
@@ -540,6 +537,13 @@ async fn shutdown_pocketic(port: u16, instance: usize, logger: Logger) -> DfxRes
     use reqwest::Client;
     let shutdown_client = Client::new();
     debug!(logger, "Sending shutdown request to PocketIC server");
+    shutdown_client
+        .post(format!(
+            "http://localhost:{port}/http_gateway/{instance}/stop"
+        ))
+        .send()
+        .await?
+        .error_for_status()?;
     shutdown_client
         .delete(format!("http://localhost:{port}/instances/{instance}"))
         .send()
