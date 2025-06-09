@@ -300,11 +300,11 @@ get_canister_http_adapter_pid() {
 }
 
 get_pocketic_proxy_pid() {
-  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-proxy-pid"
+  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-pid"
 }
 
 get_pocketic_proxy_config_port() {
-  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-proxy-port"
+  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
 }
 
 create_networks_json() {
