@@ -545,14 +545,14 @@ async fn shutdown_pocketic(
     debug!(logger, "Sending shutdown request to PocketIC server");
     shutdown_client
         .post(format!(
-            "http://localhost:{port}/http_gateway/{server_instance}/stop"
+            "http://localhost:{port}/http_gateway/{gateway_instance}/stop"
         ))
         .send()
         .await?
         .error_for_status()?;
     shutdown_client
         .delete(format!(
-            "http://localhost:{port}/instances/{gateway_instance}"
+            "http://localhost:{port}/instances/{server_instance}"
         ))
         .send()
         .await?
