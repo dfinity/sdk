@@ -303,7 +303,7 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
 
     let spinner = env.new_spinner("Starting local network...".into());
     let system = actix::System::new();
-    let _proxy = system.block_on(async move {
+    let _post_start = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
 
         let pocketic_proxy_config = PocketIcProxyConfig {

@@ -286,7 +286,7 @@ fn pocketic_start_thread(
                     }
                 }
             };
-            let instance = match initialize_pocketic(
+            let server_instance = match initialize_pocketic(
                 port,
                 &config.effective_config_path,
                 &config.bitcoind_addr,
@@ -309,7 +309,7 @@ fn pocketic_start_thread(
                 Ok(i) => i,
             };
 
-            let instance_0 = match initialize_gateway(
+            let gateway_instance = match initialize_gateway(
                 format!("http://localhost:{port}").parse().unwrap(),
                 config.pocketic_proxy_config.domains.clone(),
                 config.pocketic_proxy_config.bind,
@@ -328,7 +328,6 @@ fn pocketic_start_thread(
                 }
                 Ok(i) => i,
             };
-            assert_eq!(instance, instance_0);
 
             addr.do_send(signals::PocketIcRestarted);
             // This waits for the child to stop, or the receiver to receive a message.
@@ -336,7 +335,9 @@ fn pocketic_start_thread(
             match wait_for_child_or_receiver(&mut child, &receiver) {
                 ChildOrReceiver::Receiver => {
                     debug!(logger, "Got signal to stop. Killing PocketIC process...");
-                    if let Err(e) = shutdown_pocketic(port, instance, logger.clone()) {
+                    if let Err(e) =
+                        shutdown_pocketic(port, server_instance, gateway_instance, logger.clone())
+                    {
                         error!(logger, "Error shutting down PocketIC gracefully: {e}");
                     }
                     let _ = child.kill();
@@ -533,19 +534,26 @@ fn initialize_gateway(
 
 #[cfg(unix)]
 #[tokio::main(flavor = "current_thread")]
-async fn shutdown_pocketic(port: u16, instance: usize, logger: Logger) -> DfxResult {
+async fn shutdown_pocketic(
+    port: u16,
+    server_instance: usize,
+    gateway_instance: usize,
+    logger: Logger,
+) -> DfxResult {
     use reqwest::Client;
     let shutdown_client = Client::new();
     debug!(logger, "Sending shutdown request to PocketIC server");
     shutdown_client
         .post(format!(
-            "http://localhost:{port}/http_gateway/{instance}/stop"
+            "http://localhost:{port}/http_gateway/{server_instance}/stop"
         ))
         .send()
         .await?
         .error_for_status()?;
     shutdown_client
-        .delete(format!("http://localhost:{port}/instances/{instance}"))
+        .delete(format!(
+            "http://localhost:{port}/instances/{gateway_instance}"
+        ))
         .send()
         .await?
         .error_for_status()?;
@@ -553,6 +561,6 @@ async fn shutdown_pocketic(port: u16, instance: usize, logger: Logger) -> DfxRes
 }
 
 #[cfg(not(unix))]
-fn shutdown_pocketic(_: u16, _: usize, _: Logger) -> DfxResult {
+fn shutdown_pocketic(_: u16, _: usize, _: usize, _: Logger) -> DfxResult {
     bail!("PocketIC not supported on this platform")
 }
