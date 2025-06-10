@@ -506,7 +506,7 @@ async fn initialize_gateway(
         .json(&HttpGatewayConfig {
             forward_to: HttpGatewayBackend::Replica(
                 server_url
-                    .join(&format!("instances/{server_instance}"))
+                    .join(&format!("instances/{server_instance}/"))
                     .unwrap()
                     .to_string(),
             ),
