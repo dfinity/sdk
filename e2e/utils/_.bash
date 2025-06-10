@@ -299,14 +299,6 @@ get_canister_http_adapter_pid() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
 }
 
-get_pocketic_proxy_pid() {
-  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-pid"
-}
-
-get_pocketic_proxy_config_port() {
-  cat "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
-}
-
 create_networks_json() {
   mkdir -p "$(dirname "$E2E_NETWORKS_JSON")"
   [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
