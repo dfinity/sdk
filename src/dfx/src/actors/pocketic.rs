@@ -311,6 +311,7 @@ fn pocketic_start_thread(
 
             let gateway_instance = match initialize_gateway(
                 format!("http://localhost:{port}").parse().unwrap(),
+                server_instance,
                 config.pocketic_proxy_config.domains.clone(),
                 config.pocketic_proxy_config.bind,
                 logger.clone(),
@@ -489,6 +490,7 @@ fn initialize_pocketic(
 #[tokio::main(flavor = "current_thread")]
 async fn initialize_gateway(
     server_url: Url,
+    server_instance: usize,
     domains: Option<Vec<String>>,
     addr: SocketAddr,
     logger: Logger,
@@ -503,7 +505,10 @@ async fn initialize_gateway(
         .post(server_url.join("http_gateway").unwrap())
         .json(&HttpGatewayConfig {
             forward_to: HttpGatewayBackend::Replica(
-                server_url.join("instances/0/").unwrap().to_string(),
+                server_url
+                    .join(&format!("instances/{server_instance}"))
+                    .unwrap()
+                    .to_string(),
             ),
             ip_addr: Some(addr.ip().to_string()),
             port: Some(addr.port()),
@@ -525,6 +530,7 @@ async fn initialize_gateway(
 #[cfg(not(unix))]
 fn initialize_gateway(
     _: Url,
+    _: usize,
     _: Option<Vec<String>>,
     _: SocketAddr,
     _: Logger,
