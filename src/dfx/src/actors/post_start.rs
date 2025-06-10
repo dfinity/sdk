@@ -1,5 +1,5 @@
 use crate::actors::pocketic::PocketIc;
-use crate::actors::post_start::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::post_start::signals::{PocketIcReadySignal, PocketIcReadySubscribe};
 use crate::lib::progress_bar::ProgressBar;
 use actix::{Actor, Addr, AsyncContext, Context, Handler};
 use slog::{info, Logger};
@@ -11,13 +11,13 @@ pub mod signals {
 
     #[derive(Message)]
     #[rtype(result = "()")]
-    pub struct PortReadySignal {
+    pub struct PocketIcReadySignal {
         pub address: SocketAddr,
     }
 
     #[derive(Message)]
     #[rtype(result = "()")]
-    pub struct PortReadySubscribe(pub Recipient<PortReadySignal>);
+    pub struct PocketIcReadySubscribe(pub Recipient<PocketIcReadySignal>);
 }
 
 pub struct Config {
@@ -43,15 +43,15 @@ impl Actor for PostStart {
     fn started(&mut self, ctx: &mut Self::Context) {
         // Register the PostStart recipent to PocketIcProxy.
         if let Some(pocketic) = &self.config.pocketic {
-            pocketic.do_send(PortReadySubscribe(ctx.address().recipient()));
+            pocketic.do_send(PocketIcReadySubscribe(ctx.address().recipient()));
         }
     }
 }
 
-impl Handler<PortReadySignal> for PostStart {
+impl Handler<PocketIcReadySignal> for PostStart {
     type Result = ();
 
-    fn handle(&mut self, msg: PortReadySignal, _ctx: &mut Self::Context) -> Self::Result {
+    fn handle(&mut self, msg: PocketIcReadySignal, _ctx: &mut Self::Context) -> Self::Result {
         let logger = &self.config.logger;
         let address = msg.address;
         self.spinner.finish_and_clear();

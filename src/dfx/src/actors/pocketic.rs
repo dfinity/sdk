@@ -1,6 +1,6 @@
 #![cfg_attr(windows, allow(unused))]
 
-use crate::actors::post_start::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::post_start::signals::{PocketIcReadySignal, PocketIcReadySubscribe};
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
@@ -79,7 +79,7 @@ pub struct BitcoinIntegrationConfig {
 /// listening for restarts. The message contains the port the server is listening to.
 ///
 /// Signals
-///   - PortReadySubscribe
+///   - PocketIcReadySubscribe
 ///     Subscribe a recipient (address) to receive a PocketIcReadySignal message when
 ///     the server is ready to listen to a port. The message can be sent multiple
 ///     times (e.g. if the server crashes).
@@ -95,7 +95,7 @@ pub struct PocketIc {
     thread_join: Option<JoinHandle<()>>,
 
     /// Ready Signal subscribers.
-    ready_subscribers: Vec<Recipient<PortReadySignal>>,
+    ready_subscribers: Vec<Recipient<PocketIcReadySignal>>,
 }
 
 impl PocketIc {
@@ -153,7 +153,7 @@ impl PocketIc {
 
     fn send_ready_signal(&self) {
         for sub in &self.ready_subscribers {
-            sub.do_send(PortReadySignal {
+            sub.do_send(PocketIcReadySignal {
                 address: self.config.pocketic_proxy_config.bind,
             });
         }
@@ -187,13 +187,13 @@ impl Actor for PocketIc {
     }
 }
 
-impl Handler<PortReadySubscribe> for PocketIc {
+impl Handler<PocketIcReadySubscribe> for PocketIc {
     type Result = ();
 
-    fn handle(&mut self, msg: PortReadySubscribe, _: &mut Self::Context) {
+    fn handle(&mut self, msg: PocketIcReadySubscribe, _: &mut Self::Context) {
         // If we have a port, send that we're already ready! Yeah!
         if self.port.is_some() {
-            msg.0.do_send(PortReadySignal {
+            msg.0.do_send(PocketIcReadySignal {
                 address: self.config.pocketic_proxy_config.bind,
             });
         }
