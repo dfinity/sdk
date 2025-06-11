@@ -64,7 +64,7 @@ struct Sources {
     x86_64_linux: HashMap<String, Source>,
     #[serde(rename = "x86_64-darwin")]
     x86_64_darwin: HashMap<String, Source>,
-    #[serde(rename = "aarch64_darwin")]
+    #[serde(rename = "arm64-darwin")]
     aarch64_darwin: HashMap<String, Source>,
     common: HashMap<String, Source>,
     #[serde(rename = "replica-rev")]
