@@ -1,6 +1,6 @@
 #![cfg_attr(windows, allow(unused))]
 
-use crate::actors::pocketic_proxy::signals::{PortReadySignal, PortReadySubscribe};
+use crate::actors::post_start::signals::{PocketIcReadySignal, PocketIcReadySubscribe};
 use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
 use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
@@ -31,6 +31,7 @@ use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
+use url::Url;
 
 pub mod signals {
     use actix::prelude::*;
@@ -39,9 +40,16 @@ pub mod signals {
     /// restarting inside our own actor, this message should not be exposed.
     #[derive(Message)]
     #[rtype(result = "()")]
-    pub(super) struct PocketIcRestarted {
-        pub port: u16,
-    }
+    pub(super) struct PocketIcRestarted;
+}
+
+#[derive(Clone)]
+pub struct PocketIcProxyConfig {
+    /// where to listen.  Becomes argument like --address 127.0.0.1:3000
+    pub bind: SocketAddr,
+
+    /// list of domains that can be served (localhost if none specified)
+    pub domains: Option<Vec<String>>,
 }
 
 /// The configuration for the PocketIC actor.
@@ -57,6 +65,7 @@ pub struct Config {
     pub pid_file: PathBuf,
     pub shutdown_controller: Addr<ShutdownController>,
     pub logger: Option<Logger>,
+    pub pocketic_proxy_config: PocketIcProxyConfig,
 }
 
 #[derive(Clone)]
@@ -70,7 +79,7 @@ pub struct BitcoinIntegrationConfig {
 /// listening for restarts. The message contains the port the server is listening to.
 ///
 /// Signals
-///   - PortReadySubscribe
+///   - PocketIcReadySubscribe
 ///     Subscribe a recipient (address) to receive a PocketIcReadySignal message when
 ///     the server is ready to listen to a port. The message can be sent multiple
 ///     times (e.g. if the server crashes).
@@ -86,7 +95,7 @@ pub struct PocketIc {
     thread_join: Option<JoinHandle<()>>,
 
     /// Ready Signal subscribers.
-    ready_subscribers: Vec<Recipient<PortReadySignal>>,
+    ready_subscribers: Vec<Recipient<PocketIcReadySignal>>,
 }
 
 impl PocketIc {
@@ -142,10 +151,10 @@ impl PocketIc {
         Ok(())
     }
 
-    fn send_ready_signal(&self, port: u16) {
+    fn send_ready_signal(&self) {
         for sub in &self.ready_subscribers {
-            sub.do_send(PortReadySignal {
-                url: format!("http://localhost:{port}/instances/0/"),
+            sub.do_send(PocketIcReadySignal {
+                address: self.config.pocketic_proxy_config.bind,
             });
         }
     }
@@ -178,14 +187,14 @@ impl Actor for PocketIc {
     }
 }
 
-impl Handler<PortReadySubscribe> for PocketIc {
+impl Handler<PocketIcReadySubscribe> for PocketIc {
     type Result = ();
 
-    fn handle(&mut self, msg: PortReadySubscribe, _: &mut Self::Context) {
+    fn handle(&mut self, msg: PocketIcReadySubscribe, _: &mut Self::Context) {
         // If we have a port, send that we're already ready! Yeah!
-        if let Some(port) = self.port {
-            msg.0.do_send(PortReadySignal {
-                url: format!("http://localhost:{port}/instances/0/"),
+        if self.port.is_some() {
+            msg.0.do_send(PocketIcReadySignal {
+                address: self.config.pocketic_proxy_config.bind,
             });
         }
 
@@ -198,11 +207,10 @@ impl Handler<signals::PocketIcRestarted> for PocketIc {
 
     fn handle(
         &mut self,
-        msg: signals::PocketIcRestarted,
+        _msg: signals::PocketIcRestarted,
         _ctx: &mut Self::Context,
     ) -> Self::Result {
-        self.port = Some(msg.port);
-        self.send_ready_signal(msg.port);
+        self.send_ready_signal();
     }
 }
 
@@ -278,7 +286,7 @@ fn pocketic_start_thread(
                     }
                 }
             };
-            let instance = match initialize_pocketic(
+            let server_instance = match initialize_pocketic(
                 port,
                 &config.effective_config_path,
                 &config.bitcoind_addr,
@@ -300,13 +308,37 @@ fn pocketic_start_thread(
                 }
                 Ok(i) => i,
             };
-            addr.do_send(signals::PocketIcRestarted { port });
+
+            let gateway_instance = match initialize_gateway(
+                format!("http://localhost:{port}").parse().unwrap(),
+                server_instance,
+                config.pocketic_proxy_config.domains.clone(),
+                config.pocketic_proxy_config.bind,
+                logger.clone(),
+            ) {
+                Err(e) => {
+                    error!(logger, "Failed to initialize HTTP gateway: {e:#}");
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    if receiver.try_recv().is_ok() {
+                        debug!(logger, "Got signal to stop.");
+                        break;
+                    } else {
+                        continue;
+                    }
+                }
+                Ok(i) => i,
+            };
+
+            addr.do_send(signals::PocketIcRestarted);
             // This waits for the child to stop, or the receiver to receive a message.
             // We don't restart the server if done = true.
             match wait_for_child_or_receiver(&mut child, &receiver) {
                 ChildOrReceiver::Receiver => {
                     debug!(logger, "Got signal to stop. Killing PocketIC process...");
-                    if let Err(e) = shutdown_pocketic(port, instance, logger.clone()) {
+                    if let Err(e) =
+                        shutdown_pocketic(port, server_instance, gateway_instance, logger.clone())
+                    {
                         error!(logger, "Error shutting down PocketIC gracefully: {e}");
                     }
                     let _ = child.kill();
@@ -456,12 +488,78 @@ fn initialize_pocketic(
 
 #[cfg(unix)]
 #[tokio::main(flavor = "current_thread")]
-async fn shutdown_pocketic(port: u16, instance: usize, logger: Logger) -> DfxResult {
+async fn initialize_gateway(
+    server_url: Url,
+    server_instance: usize,
+    domains: Option<Vec<String>>,
+    addr: SocketAddr,
+    logger: Logger,
+) -> DfxResult<usize> {
+    use pocket_ic::common::rest::{
+        CreateHttpGatewayResponse, HttpGatewayBackend, HttpGatewayConfig,
+    };
+    use reqwest::Client;
+    let init_client = Client::new();
+    debug!(logger, "Configuring PocketIC gateway");
+    let resp = init_client
+        .post(server_url.join("http_gateway").unwrap())
+        .json(&HttpGatewayConfig {
+            forward_to: HttpGatewayBackend::Replica(
+                server_url
+                    .join(&format!("instances/{server_instance}/"))
+                    .unwrap()
+                    .to_string(),
+            ),
+            ip_addr: Some(addr.ip().to_string()),
+            port: Some(addr.port()),
+            domains,
+            https_config: None,
+        })
+        .send()
+        .await?
+        .error_for_status()?;
+    let resp = resp.json::<CreateHttpGatewayResponse>().await?;
+    let instance = match resp {
+        CreateHttpGatewayResponse::Created(info) => info.instance_id,
+        CreateHttpGatewayResponse::Error { message } => bail!("Gateway init error: {message}"),
+    };
+    debug!(logger, "Initialized HTTP gateway.");
+    Ok(instance)
+}
+
+#[cfg(not(unix))]
+fn initialize_gateway(
+    _: Url,
+    _: usize,
+    _: Option<Vec<String>>,
+    _: SocketAddr,
+    _: Logger,
+) -> DfxResult<usize> {
+    bail!("PocketIC gateway not supported on this platform")
+}
+
+#[cfg(unix)]
+#[tokio::main(flavor = "current_thread")]
+async fn shutdown_pocketic(
+    port: u16,
+    server_instance: usize,
+    gateway_instance: usize,
+    logger: Logger,
+) -> DfxResult {
     use reqwest::Client;
     let shutdown_client = Client::new();
     debug!(logger, "Sending shutdown request to PocketIC server");
     shutdown_client
-        .delete(format!("http://localhost:{port}/instances/{instance}"))
+        .post(format!(
+            "http://localhost:{port}/http_gateway/{gateway_instance}/stop"
+        ))
+        .send()
+        .await?
+        .error_for_status()?;
+    shutdown_client
+        .delete(format!(
+            "http://localhost:{port}/instances/{server_instance}"
+        ))
         .send()
         .await?
         .error_for_status()?;
@@ -469,6 +567,6 @@ async fn shutdown_pocketic(port: u16, instance: usize, logger: Logger) -> DfxRes
 }
 
 #[cfg(not(unix))]
-fn shutdown_pocketic(_: u16, _: usize, _: Logger) -> DfxResult {
+fn shutdown_pocketic(_: u16, _: usize, _: usize, _: Logger) -> DfxResult {
     bail!("PocketIC not supported on this platform")
 }
