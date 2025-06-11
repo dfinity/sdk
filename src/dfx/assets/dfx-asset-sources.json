@@ -15,7 +15,7 @@
   "arm64-darwin": {
     "motoko": {
       "url": "https://github.com/dfinity/motoko/releases/download/0.14.11/motoko-Darwin-arm64-0.14.11.tar.gz",
-      "sha256": "0c6a18904eebd19a510a16f7e213b4d1a5e7e312db328b02859c80f3bec42f15",
+      "sha256": "0851bd75025006dec997fcee89b9ddfd1bcb0f1fa106a29419b38534e75b9908",
       "version": "0.14.11"
     },
     "pocket-ic": {
