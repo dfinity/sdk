@@ -120,7 +120,7 @@ teardown() {
 
   dfx_start
 
-  domains="$(curl "http://localhost:$(get_pocketic_proxy_config_port)/http_gateway" \
+  domains="$(curl "http://localhost:$(get_pocketic_port)/http_gateway" \
     | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
 
   assert_eq '["xyz.domain"]' "$domains"
@@ -132,7 +132,7 @@ teardown() {
 
   dfx_start
 
-  domains="$(curl "http://localhost:$(get_pocketic_proxy_config_port)/http_gateway" \
+  domains="$(curl "http://localhost:$(get_pocketic_port)/http_gateway" \
     | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
 
   assert_eq '["abc.something","xyz.domain"]' "$domains"
@@ -146,7 +146,7 @@ teardown() {
 
   dfx_start
 
-  domains="$(curl "http://localhost:$(get_pocketic_proxy_config_port)/http_gateway" \
+  domains="$(curl "http://localhost:$(get_pocketic_port)/http_gateway" \
     | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
 
   assert_eq '["abc.something","xyz.domain"]' "$domains"
@@ -155,7 +155,7 @@ teardown() {
 @test "pocket-ic proxy domain configuration from command-line" {
   dfx_start --domain xyz.domain --domain def.somewhere
 
-  domains="$(curl "http://localhost:$(get_pocketic_proxy_config_port)/http_gateway" \
+  domains="$(curl "http://localhost:$(get_pocketic_port)/http_gateway" \
     | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
 
   assert_eq '["def.somewhere","xyz.domain"]' "$domains"
@@ -198,81 +198,6 @@ teardown() {
 
   assert_command dfx canister call hello_backend greet '("Omega")'
   assert_eq '("Hello, Omega!")'
-}
-
-@test "dfx restarts pocketic proxy" {
-  dfx_new_assets hello
-  dfx_start
-
-  install_asset greet
-  assert_command dfx deploy
-  assert_command dfx canister call hello_backend greet '("Alpha")'
-  assert_eq '("Hello, Alpha!")'
-
-  POCKETIC_PROXY_PID=$(get_pocketic_proxy_pid)
-
-  echo "pocket-ic proxy pid is $POCKETIC_PROXY_PID"
-
-  kill -KILL "$POCKETIC_PROXY_PID"
-  assert_process_exits "$POCKETIC_PROXY_PID" 15s
-
-  ID=$(dfx canister id hello_frontend)
-
-  timeout 15s sh -c \
-    "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY\"/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for pocket-ic proxy to restart; sleep 1; done" \
-    || (echo "pocket-ic proxy did not restart" && ps aux && exit 1)
-
-  assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
-}
-
-@test "dfx restarts pocketic proxy when pocketic restarts" {
-  dfx_new_assets hello
-  dfx_start
-
-  install_asset greet
-  assert_command dfx deploy
-  assert_command dfx canister call hello_backend greet '("Alpha")'
-  assert_eq '("Hello, Alpha!")'
-
-  POCKETIC_PID=$(get_pocketic_pid)
-  POCKETIC_PROXY_PID=$(get_pocketic_proxy_pid)
-
-  echo "pocket-ic pid is $POCKETIC_PID"
-  echo "pocket-ic proxy pid is $POCKETIC_PROXY_PID"
-
-  curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
-  kill -KILL "$POCKETIC_PID"
-  assert_process_exits "$POCKETIC_PID" 15s
-  assert_process_exits "$POCKETIC_PROXY_PID" 15s
-
-  timeout 15s sh -c \
-    'until dfx ping; do echo waiting for pocketic to restart; sleep 1; done' \
-    || (echo "pocketic did not restart" && ps aux && exit 1)
-  wait_until_replica_healthy
-
-  # Sometimes initially get an error like:
-  #     IC0537: Attempt to execute a message on canister <>> which contains no Wasm module
-  # but the condition clears.
-  timeout 30s sh -c \
-    "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
-    || (echo "canister call did not succeed") # but continue, for better error reporting
-  # even after the above, still sometimes fails with
-  #     IC0208: Certified state is not available yet. Please try again...
-  sleep 10
-  timeout 30s sh -c \
-    "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
-    || (echo "canister call did not succeed") # but continue, for better error reporting
-
-  assert_command dfx canister call hello_backend greet '("Omega")'
-  assert_eq '("Hello, Omega!")'
-
-  ID=$(dfx canister id hello_frontend)
-
-  timeout 15s sh -c \
-    "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for pocket-ic proxy to restart; sleep 1; done" \
-    || (echo "pocket-ic proxy did not restart" && ps aux && exit 1)
-
-  assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
 
 @test "dfx start honors pocketic port configuration" {
