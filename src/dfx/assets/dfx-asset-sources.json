@@ -2,9 +2,9 @@
   "replica-rev": "f195ba756bc3bf170a2888699e5e74101fdac6ba",
   "x86_64-darwin": {
     "motoko": {
-      "url": "https://github.com/dfinity/motoko/releases/download/0.14.11/motoko-Darwin-x86_64-0.14.11.tar.gz",
-      "sha256": "0c6a18904eebd19a510a16f7e213b4d1a5e7e312db328b02859c80f3bec42f15",
-      "version": "0.14.11"
+      "url": "https://github.com/dfinity/motoko/releases/download/0.14.12/motoko-Darwin-x86_64-0.14.12.tar.gz",
+      "sha256": "70eb6244b75145e7499e2fb0d7ac59519283ca16c5444a9bc9302c4710efb560",
+      "version": "0.14.12"
     },
     "pocket-ic": {
       "url": "https://download.dfinity.systems/ic/f195ba756bc3bf170a2888699e5e74101fdac6ba/binaries/x86_64-darwin/pocket-ic.gz",
@@ -14,9 +14,9 @@
   },
   "x86_64-linux": {
     "motoko": {
-      "url": "https://github.com/dfinity/motoko/releases/download/0.14.11/motoko-Linux-x86_64-0.14.11.tar.gz",
-      "sha256": "a8af718107a33a1872b041696147f30bf242ad3fc1b0bd20b7085dfa44f02607",
-      "version": "0.14.11"
+      "url": "https://github.com/dfinity/motoko/releases/download/0.14.12/motoko-Linux-x86_64-0.14.12.tar.gz",
+      "sha256": "0dff579ef54e9a07f1686cc91045be76cc1c4d685fe20d0c1ec1585386cbea45",
+      "version": "0.14.12"
     },
     "pocket-ic": {
       "url": "https://download.dfinity.systems/ic/f195ba756bc3bf170a2888699e5e74101fdac6ba/binaries/x86_64-linux/pocket-ic.gz",
@@ -26,9 +26,9 @@
   },
   "common": {
     "motoko-base": {
-      "url": "https://github.com/dfinity/motoko/releases/download/0.14.11/motoko-base-library.tar.gz",
-      "sha256": "c4551b6ca7c6806c0234de64c0d1b2d20207df2db5f4f26f92a601093d7c2f88",
-      "version": "0.14.11"
+      "url": "https://github.com/dfinity/motoko/releases/download/0.14.12/motoko-base-library.tar.gz",
+      "sha256": "1c0ea4fb887668c60212d21765c237f7b21aeff706f1f4187c67d86e87a37112",
+      "version": "0.14.12"
     },
     "ic-btc-canister": {
       "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2024-08-30/ic-btc-canister.wasm.gz",
