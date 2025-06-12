@@ -132,12 +132,10 @@ impl PocketIc {
                         return Ok(port);
                     }
                 }
-            } else {
-                if let Ok(content) = std::fs::read_to_string(port_file_path) {
-                    if content.ends_with('\n') {
-                        if let Ok(port) = content.trim().parse::<u16>() {
-                            return Ok(port);
-                        }
+            } else if let Ok(content) = std::fs::read_to_string(port_file_path) {
+                if content.ends_with('\n') {
+                    if let Ok(port) = content.trim().parse::<u16>() {
+                        return Ok(port);
                     }
                 }
             }
@@ -256,73 +254,74 @@ fn pocketic_start_thread(
     let thread_handler = move || {
         loop {
             let mut bind_address = config.pocketic_proxy_config.bind;
-            let (mut child, docker_container_id, last_start) = if let Some(docker_image) = config.docker.as_ref() {
-                // Run the container.
-                let mut cmd = std::process::Command::new("docker");
-                cmd.args(["run"]);
-                bind_address = convert_to_docker_bind_address(&bind_address);
-                cmd.args([
-                    "-p",
-                    format!("{}:{}", bind_address.port(), bind_address.port()).as_str(),
-                ]);
-                cmd.args(["-p", "8081:8081", "-p", "8082:8082"]);
-                cmd.args(["-d", docker_image.as_str()]);
-                cmd.stdout(std::process::Stdio::piped());
-                println!("cmd: {:?}", cmd.get_args());
+            let (mut child, docker_container_id, last_start) =
+                if let Some(docker_image) = config.docker.as_ref() {
+                    // Run the container.
+                    let mut cmd = std::process::Command::new("docker");
+                    cmd.args(["run"]);
+                    bind_address = convert_to_docker_bind_address(bind_address);
+                    cmd.args([
+                        "-p",
+                        format!("{}:{}", bind_address.port(), bind_address.port()).as_str(),
+                    ]);
+                    cmd.args(["-p", "8081:8081", "-p", "8082:8082"]);
+                    cmd.args(["-d", docker_image.as_str()]);
+                    cmd.stdout(std::process::Stdio::piped());
+                    println!("cmd: {:?}", cmd.get_args());
 
-                let last_start = std::time::Instant::now();
-                let child = cmd.spawn().expect("Could not start PocketIC.");
+                    let last_start = std::time::Instant::now();
+                    let child = cmd.spawn().expect("Could not start PocketIC.");
 
-                // Retrieve the container id.
-                // TODO: The container id will be used to remove the container when the process stops.
-                let output = child.wait_with_output().unwrap();
-                let container_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                    // Retrieve the container id.
+                    // TODO: The container id will be used to remove the container when the process stops.
+                    let output = child.wait_with_output().unwrap();
+                    let container_id = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
-                // Stream the logs.
-                let mut cmd = std::process::Command::new("docker");
-                cmd.args(["logs", "-f", container_id.as_ref()]);
-                cmd.stdout(std::process::Stdio::inherit());
-                let child = cmd.spawn().expect("Could not stream logs.");
+                    // Stream the logs.
+                    let mut cmd = std::process::Command::new("docker");
+                    cmd.args(["logs", "-f", container_id.as_ref()]);
+                    cmd.stdout(std::process::Stdio::inherit());
+                    let child = cmd.spawn().expect("Could not stream logs.");
 
-                (child, Some(container_id), last_start)
-            } else {
-                // Start the process, then wait for the file.
-                let pocketic_path = config.pocketic_path.as_os_str();
+                    (child, Some(container_id), last_start)
+                } else {
+                    // Start the process, then wait for the file.
+                    let pocketic_path = config.pocketic_path.as_os_str();
 
-                // form the pocket-ic command here similar to the ic-starter command
-                let mut cmd = std::process::Command::new(pocketic_path);
-                if let Some(port) = config.port {
-                    cmd.args(["--port", &port.to_string()]);
+                    // form the pocket-ic command here similar to the ic-starter command
+                    let mut cmd = std::process::Command::new(pocketic_path);
+                    if let Some(port) = config.port {
+                        cmd.args(["--port", &port.to_string()]);
+                    };
+                    cmd.args([
+                        "--port-file",
+                        &config.port_file.to_string_lossy(),
+                        "--ttl",
+                        "2592000",
+                    ]);
+                    cmd.args(["--log-levels", "error"]);
+                    cmd.stdout(std::process::Stdio::inherit());
+                    cmd.stderr(std::process::Stdio::inherit());
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::process::CommandExt;
+                        cmd.process_group(0);
+                    }
+                    let _ = std::fs::remove_file(&config.port_file);
+                    let last_start = std::time::Instant::now();
+                    debug!(logger, "Starting PocketIC...");
+                    let child = cmd.spawn().expect("Could not start PocketIC.");
+
+                    if let Err(e) = std::fs::write(&config.pid_file, child.id().to_string()) {
+                        warn!(
+                            logger,
+                            "Failed to write PocketIC PID to {}: {e}",
+                            config.pid_file.display()
+                        );
+                    }
+
+                    (child, None, last_start)
                 };
-                cmd.args([
-                    "--port-file",
-                    &config.port_file.to_string_lossy(),
-                    "--ttl",
-                    "2592000",
-                ]);
-                cmd.args(["--log-levels", "error"]);
-                cmd.stdout(std::process::Stdio::inherit());
-                cmd.stderr(std::process::Stdio::inherit());
-                #[cfg(unix)]
-                {
-                    use std::os::unix::process::CommandExt;
-                    cmd.process_group(0);
-                }
-                let _ = std::fs::remove_file(&config.port_file);
-                let last_start = std::time::Instant::now();
-                debug!(logger, "Starting PocketIC...");
-                let child = cmd.spawn().expect("Could not start PocketIC.");
-
-                if let Err(e) = std::fs::write(&config.pid_file, child.id().to_string()) {
-                    warn!(
-                        logger,
-                        "Failed to write PocketIC PID to {}: {e}",
-                        config.pid_file.display()
-                    );
-                }
-
-                (child, None, last_start)
-            };
 
             let port = match PocketIc::wait_for_ready(
                 &config.port_file,
@@ -425,8 +424,8 @@ fn pocketic_start_thread(
         .map_err(DfxError::from)
 }
 
-fn convert_to_docker_bind_address(address: &SocketAddr) -> SocketAddr {
-    let mut bind_address = address.clone();
+fn convert_to_docker_bind_address(address: SocketAddr) -> SocketAddr {
+    let mut bind_address = address;
     if bind_address.is_ipv6() {
         bind_address.set_ip(std::net::IpAddr::V6(std::net::Ipv6Addr::UNSPECIFIED));
     } else {
