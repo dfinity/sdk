@@ -25,7 +25,7 @@ fees = record {
 
 You can get the fees by `get_config` API on the [BTC Mainnet Canister](https://dashboard.internetcomputer.org/canister/ghsi2-tqaaa-aaaan-aaaca-cai).
 
-### feat: `dfx start` now starts a single pocket-ic process to server as the server and gateway
+### feat: `dfx start` now starts a single pocket-ic process to serve as the server and gateway
 
 If you were using the contents of the `pocket-ic-proxy-port` file to determine the port for
 the `/http_gateway` endpoint, you should instead use `dfx info pocketic-config-port`
