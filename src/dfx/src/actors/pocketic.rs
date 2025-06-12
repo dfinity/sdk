@@ -257,17 +257,18 @@ fn pocketic_start_thread(
             let (mut child, docker_container_id, last_start) =
                 if let Some(docker_image) = config.docker.as_ref() {
                     // Run the container.
+                    // TODO: Check if docker command is available.
                     let mut cmd = std::process::Command::new("docker");
                     cmd.args(["run"]);
                     bind_address = convert_to_docker_bind_address(bind_address);
                     cmd.args([
                         "-p",
                         format!("{}:{}", bind_address.port(), bind_address.port()).as_str(),
+                        "-p",
+                        "8081:8081",
                     ]);
-                    cmd.args(["-p", "8081:8081", "-p", "8082:8082"]);
                     cmd.args(["-d", docker_image.as_str()]);
                     cmd.stdout(std::process::Stdio::piped());
-                    println!("cmd: {:?}", cmd.get_args());
 
                     let last_start = std::time::Instant::now();
                     let child = cmd.spawn().expect("Could not start PocketIC.");
