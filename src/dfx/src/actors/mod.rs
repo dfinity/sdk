@@ -10,7 +10,6 @@ use dfx_core::config::model::replica_config::ReplicaConfig;
 use fn_error_context::context;
 use pocketic::BitcoinIntegrationConfig;
 use post_start::PostStart;
-use std::net::SocketAddr;
 use std::path::PathBuf;
 
 pub mod pocketic;
@@ -34,8 +33,7 @@ pub fn start_pocketic_actor(
     shutdown_controller: Addr<ShutdownController>,
     pocketic_port_path: PathBuf,
     pocketic_proxy_config: pocketic::PocketIcProxyConfig,
-    docker: bool,
-    address: SocketAddr,
+    docker: Option<String>,
 ) -> DfxResult<Addr<PocketIc>> {
     let pocketic_path = env.get_cache().get_binary_command_path(env, "pocket-ic")?;
 
@@ -59,7 +57,6 @@ pub fn start_pocketic_actor(
     };
     let actor_config = pocketic::Config {
         pocketic_path,
-        docker,
         effective_config_path: local_server_descriptor.effective_config_path(),
         replica_config,
         bitcoind_addr: local_server_descriptor.bitcoin.nodes.clone(),
@@ -67,10 +64,10 @@ pub fn start_pocketic_actor(
         port: local_server_descriptor.replica.port,
         port_file: pocketic_port_path,
         pid_file: local_server_descriptor.pocketic_pid_path(),
-        address,
         shutdown_controller,
         logger: Some(env.get_logger().clone()),
         pocketic_proxy_config,
+        docker,
     };
     Ok(pocketic::PocketIc::new(actor_config).start())
 }

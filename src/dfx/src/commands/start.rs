@@ -83,9 +83,9 @@ pub struct StartOpts {
     #[clap(long, hide = true)]
     replica: bool,
 
-    /// Runs PocketIC in docker container.
+    /// Runs the given docker image which runs PocketIC process.
     #[arg(long)]
-    docker: bool,
+    docker: Option<String>,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -205,8 +205,7 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
         clean_state(local_server_descriptor, env.get_project_temp_dir()?)?;
     }
 
-    let (frontend_url, address_and_port) =
-        frontend_address(local_server_descriptor, background, docker)?;
+    let (frontend_url, address_and_port) = frontend_address(local_server_descriptor, background)?;
 
     fs::create_dir_all(&local_server_descriptor.data_dir_by_settings_digest())?;
 
@@ -325,7 +324,6 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
             pocketic_port_path,
             pocketic_proxy_config,
             docker,
-            address_and_port,
         )?;
 
         let post_start = start_post_start_actor(env, running_in_background, Some(server), spinner)?;
@@ -482,18 +480,8 @@ fn send_background() -> DfxResult<()> {
 fn frontend_address(
     local_server_descriptor: &LocalServerDescriptor,
     background: bool,
-    docker: bool,
 ) -> DfxResult<(String, SocketAddr)> {
     let mut address_and_port = local_server_descriptor.bind_address;
-
-    if docker {
-        // Update address_and_port to use 0.0.0.0 for IPv4 and :: for IPv6
-        if address_and_port.is_ipv6() {
-            address_and_port.set_ip(std::net::IpAddr::V6(std::net::Ipv6Addr::UNSPECIFIED));
-        } else {
-            address_and_port.set_ip(std::net::IpAddr::V4(std::net::Ipv4Addr::UNSPECIFIED));
-        };
-    }
 
     if !background {
         // Since the user may have provided port "0", we need to grab a dynamically
