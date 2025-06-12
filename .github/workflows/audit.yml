@@ -20,6 +20,8 @@ env:
   CURL_HOME: .
   # Disable DFX telemetry
   DFX_TELEMETRY: 'off'
+  # Use the stable toolchain for the audit
+  RUSTUP_TOOLCHAIN: stable
 
 jobs:
   test:

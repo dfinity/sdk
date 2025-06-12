@@ -1,5 +1,5 @@
 name: "chore: Update replica"
-on: 
+on:
   workflow_dispatch:
     inputs:
       replicaVersionLatestOrCustom:
@@ -10,7 +10,7 @@ on:
         - latest
         - custom
       customReplicaVersion:
-        description: 'dfinity/ic commit SHA - get the latest Elect Replica Version from https://dashboard.internetcomputer.org/releases'     
+        description: 'dfinity/ic commit SHA - get the latest Elect Replica Version from https://dashboard.internetcomputer.org/releases'
         default: "required if custom"
       sdkBranch:
         description: 'Open PR against this sdk branch'
@@ -37,30 +37,22 @@ jobs:
       with:
         ref: ${{ github.event.inputs.sdkBranch }}
 
+    - name: Install script dependencies
+      run: sudo apt-get install -y moreutils
+
     - name: determine replica commit sha
       run: |
         if [ '${{ github.event.inputs.replicaVersionLatestOrCustom }}' = 'latest' ]; then
           echo "REPLICA_VERSION=$(curl -s "${{ env.IC_RELEASES_API }}" | jq  -r '.data[0].replica_version_id')" >> $GITHUB_ENV
-        else 
+        else
           echo "REPLICA_VERSION=${{ github.event.inputs.customReplicaVersion }}" >> $GITHUB_ENV
         fi
         grep -s "REPLICA_VERSION" $GITHUB_ENV
-   
-    - name: install Nix
-      uses: cachix/install-nix-action@v21
-      with:
-        nix_path: nixpkgs=channel:nixos-unstable
-
-    - name: install niv (dependency manager for Nix projects)
-      run: nix-env -i niv -f '<nixpkgs>'
-
-    - name: install packages from nix/sources.json
-      run: niv update
 
     - name: update replica
       run: |
         echo "updating the replica"
-        scripts/update-replica.sh ${{ env.REPLICA_VERSION }} 
+        scripts/update-replica.sh ${{ env.REPLICA_VERSION }}
 
     - name: setup git config, then create new branch and push new commit to it
       run: |
@@ -74,11 +66,18 @@ jobs:
         git add .
         git commit -m "chore: update replica version to ${{ env.REPLICA_VERSION }}"
         git push origin chore-update-replica-${{ env.REPLICA_VERSION }}-${{ github.event.inputs.sdkBranch }}
-      
-    - name: create Pull Request, with CHANGELOG.md entry suggestion 
+
+    - name: Create GitHub App Token
+      uses: actions/create-github-app-token@v2
+      id: app-token
+      with:
+        app-id: ${{ vars.PR_AUTOMATION_BOT_PUBLIC_APP_ID }}
+        private-key: ${{ secrets.PR_AUTOMATION_BOT_PUBLIC_PRIVATE_KEY }}
+
+    - name: create Pull Request, with CHANGELOG.md entry suggestion
       uses: actions/github-script@v6
       with:
-        github-token: ${{ secrets.NIV_UPDATER_TOKEN }} # act on behalf of https://github.com/dfinity-bot 
+        github-token: ${{ steps.app-token.outputs.token }}
         script: |
           const { repo, owner } = context.repo;
 

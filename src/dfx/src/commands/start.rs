@@ -1,8 +1,5 @@
-use crate::actors::pocketic_proxy::{signals::PortReadySubscribe, PocketIcProxyConfig};
-use crate::actors::{
-    start_pocketic_actor, start_pocketic_proxy_actor, start_post_start_actor,
-    start_shutdown_controller,
-};
+use crate::actors::pocketic::PocketIcProxyConfig;
+use crate::actors::{start_pocketic_actor, start_post_start_actor, start_shutdown_controller};
 use crate::config::dfx_version_str;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
@@ -11,7 +8,6 @@ use crate::lib::integrations::status::wait_for_integrations_initialized;
 use crate::lib::network::id::write_network_id;
 use crate::lib::replica::status::ping_and_wait;
 use crate::util::get_reusable_socket_addr;
-use actix::Recipient;
 use anyhow::{anyhow, bail, ensure, Context, Error};
 use clap::{ArgAction, Parser};
 use dfx_core::{
@@ -233,10 +229,6 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
     clean_older_state_dirs(local_server_descriptor)?;
     let state_root = local_server_descriptor.state_dir();
     let pid_file_path = empty_writable_path(pid_file_path)?;
-    let pocketic_proxy_pid_file_path =
-        empty_writable_path(local_server_descriptor.pocketic_proxy_pid_path())?;
-    let pocketic_proxy_port_file_path =
-        empty_writable_path(local_server_descriptor.pocketic_proxy_port_path())?;
     let webserver_port_path = empty_writable_path(local_server_descriptor.webserver_port_path())?;
 
     let previous_config_path = local_server_descriptor.effective_config_path();
@@ -317,38 +309,26 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
 
     let spinner = env.new_spinner("Starting local network...".into());
     let system = actix::System::new();
-    let _proxy = system.block_on(async move {
+    let _post_start = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
-
-        let port_ready_subscribe: Recipient<PortReadySubscribe> = {
-            let server = start_pocketic_actor(
-                env,
-                replica_config,
-                local_server_descriptor,
-                shutdown_controller.clone(),
-                pocketic_port_path,
-                docker,
-                address_and_port,
-            )?;
-            server.recipient()
-        };
 
         let pocketic_proxy_config = PocketIcProxyConfig {
             bind: address_and_port,
-            replica_url: None,
             domains: proxy_domains,
-            verbose: env.get_verbose_level() > 0,
         };
-        let proxy = start_pocketic_proxy_actor(
+
+        let server = start_pocketic_actor(
             env,
+            replica_config,
+            local_server_descriptor,
+            shutdown_controller.clone(),
+            pocketic_port_path,
             pocketic_proxy_config,
-            Some(port_ready_subscribe),
-            shutdown_controller,
-            pocketic_proxy_pid_file_path,
-            pocketic_proxy_port_file_path,
+            docker,
+            address_and_port,
         )?;
 
-        let post_start = start_post_start_actor(env, running_in_background, Some(proxy), spinner)?;
+        let post_start = start_post_start_actor(env, running_in_background, Some(server), spinner)?;
 
         Ok::<_, Error>(post_start)
     })?;

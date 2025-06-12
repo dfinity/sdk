@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.26.1"
+version = "0.27.0"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
@@ -27,7 +27,7 @@ serde = { version = "1.0", features = ["derive"] }
 sha2 = "0.10.6"
 tar = "0.4.26"
 tokio = { version = "1.43.1", features = ["full"] }
-toml = "0.7.3"
+serde_json = "1.0"
 walkdir = "2.3.2"
 
 [dependencies]
@@ -93,7 +93,7 @@ os_str_bytes = { version = "6.3.0", features = ["conversions"] }
 patch = "0.7.0"
 pem.workspace = true
 petgraph = "0.6.0"
-pocket-ic = { git = "https://github.com/dfinity/ic", rev = "579b8ba3a31341f354f4ddb3d60ac44548a91bc2" }
+pocket-ic = { git = "https://github.com/dfinity/ic", rev = "f195ba756bc3bf170a2888699e5e74101fdac6ba" }
 rand = "0.8.5"
 regex = "1.5.5"
 reqwest = { workspace = true, features = ["blocking", "json"] }

@@ -46,10 +46,17 @@ jobs:
           git checkout ${{ inputs.dfx_version }}
           echo "NEW_HASH=$(shasum -a 256 src/distributed/assetstorage.wasm.gz | cut -f1 -d" ")" >> $GITHUB_ENV
 
+      - name: Create GitHub App Token
+        uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.PR_AUTOMATION_BOT_PUBLIC_APP_ID }}
+          private-key: ${{ secrets.PR_AUTOMATION_BOT_PUBLIC_PRIVATE_KEY }}
+
       - name: Checkout dfinity/motoko-playground repo
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.NIV_UPDATER_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           repository: ${{ env.PLAYGROUND_REPO }}
           path: motoko-playground
 
@@ -63,9 +70,16 @@ jobs:
           echo '    "${{ env.NEW_HASH }}", // dfx ${{ inputs.dfx_version }} frontend canister' >> ${{ env.FILE }}
           echo ']' >> ${{ env.FILE }}
 
+      - name: Create GitHub App Token
+        uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.PR_AUTOMATION_BOT_PUBLIC_APP_ID }}
+          private-key: ${{ secrets.PR_AUTOMATION_BOT_PUBLIC_PRIVATE_KEY }}
+
       - name: Commit files, push changes, and create PR
         env:
-          GH_TOKEN: ${{ secrets.NIV_UPDATER_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         working-directory: ./motoko-playground
         run: |
           git config author.email "${{ github.event.sender.id }}+${{ github.event.sender.login }}@users.noreply.github.com"
