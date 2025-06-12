@@ -1,5 +1,5 @@
 {
-  "replica-rev": "f195ba756bc3bf170a2888699e5e74101fdac6ba",
+  "replica-rev": "8f1ef8ce78361adbc09aea4c2f0bce701c9ddb4d",
   "x86_64-darwin": {
     "motoko": {
       "url": "https://github.com/dfinity/motoko/releases/download/0.14.11/motoko-Darwin-x86_64-0.14.11.tar.gz",
@@ -7,9 +7,9 @@
       "version": "0.14.11"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/f195ba756bc3bf170a2888699e5e74101fdac6ba/binaries/x86_64-darwin/pocket-ic.gz",
-      "sha256": "c39ed40ee4145aa706af1802628c59c5c3e2a0eeb2bbb684e92a0fa1fb5930e7",
-      "rev": "f195ba756bc3bf170a2888699e5e74101fdac6ba"
+      "url": "https://download.dfinity.systems/ic/8f1ef8ce78361adbc09aea4c2f0bce701c9ddb4d/binaries/x86_64-darwin/pocket-ic.gz",
+      "sha256": "b7aa67745a25da982181ee7e4976f635c314dc9748971d2f70a1e23bf0d85dc7",
+      "rev": "8f1ef8ce78361adbc09aea4c2f0bce701c9ddb4d"
     }
   },
   "x86_64-linux": {
@@ -19,9 +19,9 @@
       "version": "0.14.11"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/f195ba756bc3bf170a2888699e5e74101fdac6ba/binaries/x86_64-linux/pocket-ic.gz",
-      "sha256": "237272216498074e5250a0685813b96632963ff9abbc51a7030d9b625985028d",
-      "rev": "f195ba756bc3bf170a2888699e5e74101fdac6ba"
+      "url": "https://download.dfinity.systems/ic/8f1ef8ce78361adbc09aea4c2f0bce701c9ddb4d/binaries/x86_64-linux/pocket-ic.gz",
+      "sha256": "cbf40823baa872cecaa43e3d9990ed22d26e06942e46d09f59057e8e12b52f8e",
+      "rev": "8f1ef8ce78361adbc09aea4c2f0bce701c9ddb4d"
     }
   },
   "common": {
