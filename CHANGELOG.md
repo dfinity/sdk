@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### chore: Update Azle templates to `0.31.0`
+
 ### chore: update bitcoin regtest configuration to be same as the bitcoin mainnet
 
 Update bitcoin `regtest` configuration to be same as the bitcoin `mainnet`.
