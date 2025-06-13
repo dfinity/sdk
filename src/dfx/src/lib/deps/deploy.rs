@@ -17,18 +17,21 @@ pub async fn try_create_canister(
     pulled_canister: &PulledCanister,
 ) -> DfxResult {
     let canister_prompt = get_canister_prompt(canister_id, pulled_canister);
-    match read_state_tree_canister_controllers(agent, *canister_id).await? {
-        Some(cs) if cs.len() == 1 && cs[0] == Principal::anonymous() => Ok(()),
-        Some(_) => {
+    // Check if the canister has been created before.
+    // If read_state_tree_canister_controllers returns Err, then the pocket-ic doesn't have a subnet covering the canister_id yet.
+    // We can safely create the canister in this case because the pocket-ic will automatically create the subnet when the canister is created.
+    if let Ok(Some(cs)) = read_state_tree_canister_controllers(agent, *canister_id).await {
+        if cs.len() == 1 && cs[0] == Principal::anonymous() {
+            return Ok(());
+        } else {
             bail!("Canister {canister_id} has been created before and its controller is not the anonymous identity. Please stop and delete it and then deploy again.");
         }
-        None => {
-            let mgr = ManagementCanister::create(agent);
-            info!(logger, "Creating canister: {canister_prompt}");
-            mgr.create_canister()
-                .as_provisional_create_with_specified_id(*canister_id)
-                .await?;
-            Ok(())
-        }
     }
+
+    let mgr = ManagementCanister::create(agent);
+    info!(logger, "Creating canister: {canister_prompt}");
+    mgr.create_canister()
+        .as_provisional_create_with_specified_id(*canister_id)
+        .await?;
+    Ok(())
 }

@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### fix: deps deploy works with Canister ID out of the ranges of the pocket-ic subnets
+
+The `dfx deps deploy` command didn't work when the pulled dependency's Canister ID is out of the ranges of the `pocket-ic` subnets.
+
+The removed `replica` had one subnet to cover all subnets. While the `pocket-ic` can dynamically create new subnet when trying to create a canister with specified ID.
+
 ### chore: update bitcoin regtest configuration to be same as the bitcoin mainnet
 
 Update bitcoin `regtest` configuration to be same as the bitcoin `mainnet`.
