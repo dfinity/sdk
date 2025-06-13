@@ -12,7 +12,7 @@ teardown() {
   standard_teardown
 }
 
-CANISTER_ID_A="yofga-2qaaa-aaaaa-aabsq-cai"
+CANISTER_ID_A="w36hm-eqaaa-aaaal-qr76a-cai"
 CANISTER_ID_B="yhgn4-myaaa-aaaaa-aabta-cai"
 CANISTER_ID_C="yahli-baaaa-aaaaa-aabtq-cai"
 
@@ -44,18 +44,6 @@ setup_onchain() {
   cp .dfx/local/canisters/b/b.wasm.gz ../www/b.wasm.gz
   cp .dfx/local/canisters/c/c.wasm ../www/c.wasm
 
-  cd .. || exit
-}
-
-# only execute in project root (deps)
-cleanup_onchain() {
-  cd onchain || exit
-  dfx canister stop a
-  dfx canister delete a --no-withdrawal
-  dfx canister stop b
-  dfx canister delete b --no-withdrawal
-  dfx canister stop c
-  dfx canister delete c --no-withdrawal
   cd .. || exit
 }
 
@@ -432,11 +420,10 @@ candid:args => (nat)"
   cd app
   assert_command dfx deps pull --network local
 
-  # delete onchain canisters so that the replica has no canisters as a clean local replica
-  cd ../
-  cleanup_onchain
+  # start a clean local network which no longer has onchain canisters
+  dfx stop
+  dfx_start --clean
 
-  cd app
   assert_command dfx deps init # b is set here
   assert_command dfx deps init "$CANISTER_ID_A" --argument 11
   assert_command dfx deps init "$CANISTER_ID_C" --argument "(opt 33)"
@@ -501,11 +488,10 @@ Installing canister: $CANISTER_ID_C (dep_c)"
   cd ../app
   assert_command dfx deps pull --network local
 
-  # delete onchain canisters so that the replica has no canisters as a clean local replica
-  cd ../
-  cleanup_onchain
+  # start a clean local network which no longer has onchain canisters
+  dfx stop
+  dfx_start --clean
 
-  cd app
   assert_command dfx deps init # b is set here
   assert_command dfx deps init "$CANISTER_ID_A" --argument "(opt 11)" # the downloaded wasm need argument type as canister_c
   assert_command dfx deps init "$CANISTER_ID_C" --argument "(opt 33)"  
@@ -598,11 +584,10 @@ Installing canister: $CANISTER_ID_C (dep_c)"
   cd app
   assert_command dfx deps pull --network local
 
-  # delete onchain canisters so that the replica has no canisters as a clean local replica
-  cd ../
-  cleanup_onchain
+  # start a clean local network which no longer has onchain canisters
+  dfx stop
+  dfx_start --clean
 
-  cd app
   assert_command_fail dfx canister create dep_b
   assert_contains "dep_b is a pull dependency. Please deploy it using \`dfx deps deploy dep_b\`"
   assert_command dfx canister create app
