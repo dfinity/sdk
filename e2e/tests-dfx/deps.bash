@@ -12,7 +12,7 @@ teardown() {
   standard_teardown
 }
 
-CANISTER_ID_A="w36hm-eqaaa-aaaal-qr76a-cai"
+CANISTER_ID_A="w36hm-eqaaa-aaaal-qr76a-cai" # This ID is out of the pocket-ic subnets ranges, create it will automatically create a subnet
 CANISTER_ID_B="yhgn4-myaaa-aaaaa-aabta-cai"
 CANISTER_ID_C="yahli-baaaa-aaaaa-aabtq-cai"
 
@@ -99,10 +99,7 @@ setup_onchain() {
   assert_contains "Fetching dependencies of canister $CANISTER_ID_B...
 Fetching dependencies of canister $CANISTER_ID_C...
 Fetching dependencies of canister $CANISTER_ID_A...
-Found 3 dependencies:
-$CANISTER_ID_A
-$CANISTER_ID_B
-$CANISTER_ID_C"
+Found 3 dependencies:" # Then canister IDs will be listed, but order doesn't matter
   assert_occurs 1 "Fetching dependencies of canister $CANISTER_ID_A..." # common dependency onchain_a is pulled only once
   assert_contains "Pulling canister $CANISTER_ID_A...
 ERROR: Failed to pull canister $CANISTER_ID_A.

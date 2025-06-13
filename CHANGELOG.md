@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+### fix: deps deploy works with Canister ID out of subnet ranges
+
 ### chore: update bitcoin regtest configuration to be same as the bitcoin mainnet
 
 Update bitcoin `regtest` configuration to be same as the bitcoin `mainnet`.
