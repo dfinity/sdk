@@ -40,7 +40,7 @@ for test in all_tests:
         })
         include.append({
             "test": test,
-            "os": "macos-14",
+            "os": "macos-13-xlarge",
             "serial": serial,
         })
 
