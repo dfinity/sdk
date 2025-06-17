@@ -159,6 +159,9 @@ pub fn exec(
 ) -> DfxResult {
     ensure!(!replica, "The 'native' replica (--replica) is no longer supported. See the 0.27.0 migration guide for more information.
 https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-guide.md");
+    if let Some(_) = docker {
+        check_docker_command_available()?;
+    }
     if !background {
         info!(
             env.get_logger(),
@@ -531,4 +534,17 @@ pub fn empty_writable_path(path: PathBuf) -> DfxResult<PathBuf> {
     std::fs::write(&path, "")
         .with_context(|| format!("Unable to write to {}", path.to_string_lossy()))?;
     Ok(path)
+}
+
+fn check_docker_command_available() -> DfxResult<()> {
+    if std::process::Command::new("docker")
+        .args(["--version"])
+        .output()
+        .is_err()
+    {
+        bail!(
+            "The 'docker' command is not available. Please install Docker or remove the --docker option."
+        );
+    }
+    Ok(())
 }
