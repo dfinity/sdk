@@ -159,15 +159,15 @@ pub fn exec(
 ) -> DfxResult {
     ensure!(!replica, "The 'native' replica (--replica) is no longer supported. See the 0.27.0 migration guide for more information.
 https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-guide.md");
-    if let Some(_) = docker {
-        check_docker_command_available()?;
-    }
     if !background {
         info!(
             env.get_logger(),
             "Running dfx start for version {}",
             dfx_version_str()
         );
+    }
+    if docker.is_some() {
+        check_docker_command_available()?;
     }
     let project_config = env.get_config()?;
 
