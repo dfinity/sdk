@@ -327,7 +327,7 @@ fn pocketic_start_thread(
             let port = match PocketIc::wait_for_ready(
                 &config.port_file,
                 receiver.clone(),
-                docker_container_id,
+                docker_container_id.clone(),
             ) {
                 Ok(p) => p,
                 Err(e) => {
@@ -394,9 +394,13 @@ fn pocketic_start_thread(
             match wait_for_child_or_receiver(&mut child, &receiver) {
                 ChildOrReceiver::Receiver => {
                     debug!(logger, "Got signal to stop. Killing PocketIC process...");
-                    if let Err(e) =
-                        shutdown_pocketic(port, server_instance, gateway_instance, logger.clone())
-                    {
+                    if let Err(e) = shutdown_pocketic(
+                        port,
+                        server_instance,
+                        gateway_instance,
+                        docker_container_id,
+                        logger.clone(),
+                    ) {
                         error!(logger, "Error shutting down PocketIC gracefully: {e}");
                     }
                     let _ = child.kill();
@@ -612,6 +616,7 @@ async fn shutdown_pocketic(
     port: u16,
     server_instance: usize,
     gateway_instance: usize,
+    docker_container_id: Option<String>,
     logger: Logger,
 ) -> DfxResult {
     use reqwest::Client;
@@ -631,6 +636,14 @@ async fn shutdown_pocketic(
         .send()
         .await?
         .error_for_status()?;
+    if let Some(docker_container_id) = docker_container_id {
+        let output = std::process::Command::new("docker")
+            .args(["rm", "-f", docker_container_id.as_str()])
+            .output();
+        if let Err(e) = output {
+            error!(logger, "Failed to remove docker container: {e}");
+        }
+    }
     Ok(())
 }
 
