@@ -75,6 +75,7 @@ teardown() {
     assert_command jq -se 'last | .command == "extension run" and (.parameters | any(.name == "@extension_name" and .value == "nns"))' "$log"
     n=$(jq -sr 'map(select(has("command"))) | length' "$log")
     assert_command dfx nns help
+    # shellcheck disable=SC2016
     assert_command jq -se '(map(select(has("command"))) | length) == $n' --argjson n "$n" "$log"
 }
 
