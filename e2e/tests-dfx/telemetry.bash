@@ -68,11 +68,13 @@ teardown() {
 }
 
 @test "telemetry reprocesses extension commands" {
-    local log
+    local log n
     log=$(dfx info telemetry-log-path)
     assert_command dfx extension install nns --version 0.3.1
-    assert_command dfx nns import
-    assert_command jq -se 'last | .command == "extension run" and (.parameters | any(.name == "name"))' "$log"
+    assert_command jq -se 'last | .command == "extension run" and (.parameters | any(.name == "@extension_name" and .value == "nns"))' "$log"
+    n=$(jq -sr 'map(select(has("command"))) | length' "$log")
+    assert_command dfx nns help
+    assert_command jq -se '(map(select(has("command"))) | length) == $n' --argjson n "$n" "$log"
 }
 
 @test "concurrent commands do not corrupt the log file" {

@@ -71,6 +71,7 @@ pub struct Telemetry {
     network_type: Option<NetworkType>,
     allowlisted_canisters: BTreeSet<Principal>,
     week: Option<String>,
+    skip: bool,
     publish: bool,
 }
 
@@ -239,6 +240,9 @@ impl Telemetry {
 
     pub fn append_current_command_timestamped(exit_code: i32) -> DfxResult<()> {
         try_with_telemetry(|telemetry| {
+            if telemetry.skip {
+                return Ok(());
+            }
             let reject = telemetry.last_reject.as_ref();
             let call_site = telemetry.last_operation.as_ref().map(|o| match o {
                 Operation::Call { method, canister } => {
@@ -270,6 +274,10 @@ impl Telemetry {
             Self::append_record(&record)?;
             Ok(())
         })
+    }
+
+    pub fn mark_current_command_likely_noise() {
+        with_telemetry(|t| t.skip = true);
     }
 
     pub fn maybe_publish() -> DfxResult {
@@ -656,18 +664,26 @@ fn get_sanitized_arguments(matches: &ArgMatches, command: &Command) -> Vec<Argum
                 _ => continue, // ValueSource isn't exhaustive
             };
 
-            let possible_values = command
-                .get_arguments()
-                .find(|arg| arg.get_id() == *id)
-                .map(|arg| arg.get_possible_values());
-
-            let sanitized_value = match (possible_values, matches.try_get_one::<String>(id)) {
-                (Some(possible_values), Ok(Some(s)))
-                    if possible_values.iter().any(|pv| pv.matches(s, true)) =>
-                {
-                    Some(s.clone())
+            let sanitized_value = if *id == "@extension_name" {
+                match matches.try_get_one::<OsString>(id) {
+                    Ok(Some(s)) if s == "sns" || s == "nns" => {
+                        Some(s.to_str().unwrap().to_string())
+                    }
+                    _ => None,
                 }
-                _ => None,
+            } else {
+                let possible_values = command
+                    .get_arguments()
+                    .find(|arg| arg.get_id() == *id)
+                    .map(|arg| arg.get_possible_values());
+                match (possible_values, matches.try_get_one::<String>(id)) {
+                    (Some(possible_values), Ok(Some(s)))
+                        if possible_values.iter().any(|pv| pv.matches(s, true)) =>
+                    {
+                        Some(s.clone())
+                    }
+                    _ => None,
+                }
             };
 
             let argument = Argument {
