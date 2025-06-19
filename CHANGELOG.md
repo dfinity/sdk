@@ -49,6 +49,10 @@ This incorporates the following executed proposals:
 - [136731](https://dashboard.internetcomputer.org/proposal/136731)
 - [136567](https://dashboard.internetcomputer.org/proposal/136567)
 
+### Motoko
+
+Updated Motoko to [0.14.12](https://github.com/dfinity/motoko/releases/tag/0.14.12)
+
 # 0.27.0
 
 ### feat!: remove the 'native' replica
