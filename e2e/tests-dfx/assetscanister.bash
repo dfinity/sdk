@@ -747,7 +747,7 @@ check_permission_failure() {
 
   # fails with because %e6 is not valid utf-8 percent encoding
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
-  assert_contains "500 Internal Server Error"
+  assert_contains "503 Service Unavailable"
 }
 
 @test "http_request percent-decodes urls" {
@@ -817,7 +817,7 @@ check_permission_failure() {
 
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
   # fails because %e6 is not valid utf-8 percent encoding
-  assert_contains "500 Internal Server Error"
+  assert_contains "503 Service Unavailable"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/%25?canisterId="$ID"
   assert_match "200 OK" "$stderr"
@@ -1640,7 +1640,7 @@ EOF
 
   # However, due to returning the wrong certificate, it fails with Err(InvalidResponseHashes)
   # see https://dfinity.atlassian.net/browse/SDK-1246
-  assert_contains "500 Internal Server Error"
+  assert_contains "503 Service Unavailable"
 
 
   assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(true))  })'
@@ -1687,7 +1687,7 @@ EOF
 
   # again see # see https://dfinity.atlassian.net/browse/SDK-1246, this should be 404
   # assert_match "404 Not Found" "$stderr"
-  assert_contains "500 Internal Server Error"
+  assert_contains "503 Service Unavailable"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
   assert_match "200 OK" "$stderr"
