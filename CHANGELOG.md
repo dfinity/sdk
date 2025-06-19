@@ -40,7 +40,7 @@ the `/http_gateway` endpoint, you should instead use `dfx info pocketic-config-p
 
 ### Replica
 
-Updated replica to elected commit ac7ff452684f84ea0cfc3fd0a27228220a368b33.
+Updated replica to commit ac7ff452684f84ea0cfc3fd0a27228220a368b33.
 This incorporates the following executed proposals:
 
 - [136982](https://dashboard.internetcomputer.org/proposal/136982)
