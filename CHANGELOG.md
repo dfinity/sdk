@@ -36,6 +36,19 @@ You can get the fees by `get_config` API on the [BTC Mainnet Canister](https://d
 If you were using the contents of the `pocket-ic-proxy-port` file to determine the port for
 the `/http_gateway` endpoint, you should instead use `dfx info pocketic-config-port`
 
+## Dependencies
+
+### Replica
+
+Updated replica to elected commit ac7ff452684f84ea0cfc3fd0a27228220a368b33.
+This incorporates the following executed proposals:
+
+- [136982](https://dashboard.internetcomputer.org/proposal/136982)
+- [136887](https://dashboard.internetcomputer.org/proposal/136887)
+- [136789](https://dashboard.internetcomputer.org/proposal/136789)
+- [136731](https://dashboard.internetcomputer.org/proposal/136731)
+- [136567](https://dashboard.internetcomputer.org/proposal/136567)
+
 # 0.27.0
 
 ### feat!: remove the 'native' replica
