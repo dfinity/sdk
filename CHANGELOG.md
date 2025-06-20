@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+* Flags `--no-compile` and `--no-deps`
+
+* Command `rules` that outputs time-efficient GNU Make rules.
+
 ### fix: deps deploy works with Canister ID out of the ranges of the pocket-ic subnets
 
 The `dfx deps deploy` command didn't work when the pulled dependency's Canister ID is out of the ranges of the `pocket-ic` subnets.
@@ -103,6 +107,7 @@ This incorporates the following executed proposals:
 dfx would try to reuse canister ids when switching from a shared network to a project network,
 which would cause errors since those canister ids wouldn't exist. dfx now deletes the .dfx
 directory if it was previously used with the shared local network.
+>>>>>>> upstream/master
 
 ### feat: Set canister ids using `dfx canister set-id <canister name> <principal>`
 
