@@ -33,6 +33,7 @@ pub fn start_pocketic_actor(
     shutdown_controller: Addr<ShutdownController>,
     pocketic_port_path: PathBuf,
     pocketic_proxy_config: pocketic::PocketIcProxyConfig,
+    docker: Option<String>,
 ) -> DfxResult<Addr<PocketIc>> {
     let pocketic_path = env.get_cache().get_binary_command_path(env, "pocket-ic")?;
 
@@ -66,6 +67,7 @@ pub fn start_pocketic_actor(
         shutdown_controller,
         logger: Some(env.get_logger().clone()),
         pocketic_proxy_config,
+        docker,
     };
     Ok(pocketic::PocketIc::new(actor_config).start())
 }
