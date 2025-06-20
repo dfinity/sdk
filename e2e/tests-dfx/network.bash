@@ -30,23 +30,24 @@ teardown() {
 }
 
 @test "create with wallet stores canister ids for configured-ephemeral networks in canister_ids.json" {
+  echo "{}" | jq '.local.type="ephemeral"' >"$E2E_NETWORKS_JSON"
+
   dfx_start
 
-  setup_actuallylocal_shared_network
-  jq '.actuallylocal.type="ephemeral"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
-  dfx_set_wallet
+  dfx_set_wallet local
 
-  dfx canister create --all --network actuallylocal
+  dfx canister create --all
 
   # canister creates writes to a spinner (stderr), not stdout
-  assert_command dfx canister id e2e_project_backend --network actuallylocal
-  assert_match "$(jq -r .e2e_project_backend.actuallylocal .dfx/actuallylocal/canister_ids.json)"
+  assert_command dfx canister id e2e_project_backend
+  assert_match "$(jq -r .e2e_project_backend.local .dfx/local/canister_ids.json)"
 }
 
 @test "create stores canister ids for default-ephemeral local networks in .dfx/{network}canister_ids.json" {
   dfx_start
 
   assert_command dfx canister create --all --network local
+  assert_not_contains "canister_ids.json\" file has been generated. Please make sure you store it correctly"
 
   # canister creates writes to a spinner (stderr), not stdout
   assert_command dfx canister id e2e_project_backend --network local
@@ -64,6 +65,7 @@ teardown() {
   jq '.local.type="persistent"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   assert_command dfx canister create --all --network local
+  assert_contains "canister_ids.json\" file has been generated. Please make sure you store it correctly"
 
   # canister creates writes to a spinner (stderr), not stdout
   assert_command dfx canister id e2e_project_backend --network local
@@ -99,13 +101,13 @@ teardown() {
 
   assert_command_fail dfx diagnose --network ic
   assert_contains "The test_id identity is not stored securely."
-  assert_contains "use it in mainnet-facing commands"
-  assert_contains "No wallet found; nothing to do"
+  assert_contains "in mainnet-facing commands"
+  assert_contains "you can suppress this warning"
 
   assert_command_fail dfx diagnose --ic
   assert_contains "The test_id identity is not stored securely."
-  assert_contains "use it in mainnet-facing commands"
-  assert_contains "No wallet found; nothing to do"
+  assert_contains "in mainnet-facing commands"
+  assert_contains "you can suppress this warning"
 
   assert_command dfx diagnose
   assert_not_contains "identity is not stored securely"

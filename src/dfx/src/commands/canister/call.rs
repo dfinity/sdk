@@ -3,9 +3,11 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::get_canister_id_and_candid_path;
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::telemetry::{CyclesHost, Telemetry};
 use crate::util::clap::argument_from_cli::ArgumentFromCliPositionalOpt;
 use crate::util::clap::parsers::cycle_amount_parser;
 use crate::util::{blob_from_arguments, fetch_remote_did_file, get_candid_type, print_idl_blob};
+use anyhow::bail;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use candid::{CandidType, Decode, Deserialize, Principal};
@@ -13,11 +15,14 @@ use candid_parser::utils::CandidSource;
 use clap::Parser;
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::identity::CallSender;
+use ic_agent::agent::CallResponse;
+use ic_agent::RequestId;
 use ic_utils::canister::Argument;
 use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
 use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
+use pocket_ic::common::rest::RawEffectivePrincipal;
 use slog::warn;
 use std::option::Option;
 use std::path::PathBuf;
@@ -66,7 +71,7 @@ pub struct CanisterCallOpts {
     /// Specifies the amount of cycles to send on the call.
     /// Deducted from the wallet.
     /// Requires --wallet as a flag to `dfx canister`.
-    #[arg(long, value_parser = cycle_amount_parser)]
+    #[arg(long, value_parser = cycle_amount_parser, requires("wallet"))]
     with_cycles: Option<u128>,
 
     /// Provide the .did file with which to decode the response.  Overrides value from dfx.json
@@ -82,6 +87,11 @@ pub struct CanisterCallOpts {
         conflicts_with("random")
     )]
     always_assist: bool,
+
+    /// Send request on behalf of the specified principal.
+    /// This option only works for a local PocketIC instance.
+    #[arg(long)]
+    impersonate: Option<Principal>,
 }
 
 #[derive(Clone, CandidType, Deserialize, Debug)]
@@ -123,7 +133,7 @@ async fn request_id_via_wallet_call(
     method_name: &str,
     args: Argument,
     cycles: u128,
-) -> DfxResult<ic_agent::RequestId> {
+) -> DfxResult<CallResponse<(CallResult,)>> {
     let call_forwarder: CallForwarder<'_, '_, (CallResult,)> =
         wallet.call(canister, method_name, args, cycles);
     call_forwarder
@@ -144,6 +154,7 @@ pub fn get_effective_canister_id(
         | MgmtMethod::BitcoinGetUtxos
         | MgmtMethod::BitcoinSendTransaction
         | MgmtMethod::BitcoinGetCurrentFeePercentiles
+        | MgmtMethod::BitcoinGetBlockHeaders
         | MgmtMethod::EcdsaPublicKey
         | MgmtMethod::SignWithEcdsa
         | MgmtMethod::NodeMetricsHistory => Ok(CanisterId::management_canister()),
@@ -165,6 +176,7 @@ pub fn get_effective_canister_id(
         }
         MgmtMethod::StartCanister
         | MgmtMethod::StopCanister
+        | MgmtMethod::CanisterInfo
         | MgmtMethod::CanisterStatus
         | MgmtMethod::DeleteCanister
         | MgmtMethod::DepositCycles
@@ -173,7 +185,11 @@ pub fn get_effective_canister_id(
         | MgmtMethod::UploadChunk
         | MgmtMethod::ClearChunkStore
         | MgmtMethod::StoredChunks
-        | MgmtMethod::FetchCanisterLogs => {
+        | MgmtMethod::FetchCanisterLogs
+        | MgmtMethod::TakeCanisterSnapshot
+        | MgmtMethod::LoadCanisterSnapshot
+        | MgmtMethod::ListCanisterSnapshots
+        | MgmtMethod::DeleteCanisterSnapshot => {
             #[derive(CandidType, Deserialize)]
             struct In {
                 canister_id: CanisterId,
@@ -200,8 +216,13 @@ pub fn get_effective_canister_id(
 pub async fn exec(
     env: &dyn Environment,
     opts: CanisterCallOpts,
-    call_sender: &CallSender,
+    mut call_sender: &CallSender,
 ) -> DfxResult {
+    let call_sender_override = opts.impersonate.map(CallSender::Impersonate);
+    if let Some(ref call_sender_override) = call_sender_override {
+        call_sender = call_sender_override;
+    };
+
     let agent = env.get_agent();
     fetch_root_key_if_needed(env).await?;
 
@@ -315,9 +336,18 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
     // amount has been validated by cycle_amount_validator
     let cycles = opts.with_cycles.unwrap_or(0);
 
-    if call_sender == &CallSender::SelectedId && cycles != 0 {
-        return Err(DiagnosedError::new("It is only possible to send cycles from a canister.".to_string(), "To send the same function call from your wallet (a canister), run the command using 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\
-        To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)'.".to_string())).context("Function caller is not a canister.");
+    if cycles != 0 {
+        match call_sender {
+            CallSender::SelectedId => {
+                let explanation = "It is only possible to send cycles from a canister.";
+                let action_suggestion = "To send the same function call from your wallet (a canister), run the command using 'dfx canister call <other arguments> (--network ic) --wallet <wallet id>'.\n\
+        To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)'.";
+                return Err(DiagnosedError::new(explanation, action_suggestion))
+                    .context("Function caller is not a canister.");
+            }
+            CallSender::Wallet(_) => Telemetry::set_cycles_host(CyclesHost::CyclesWallet),
+            _ => {}
+        }
     }
 
     if is_query {
@@ -328,6 +358,31 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                     .with_effective_canister_id(effective_canister_id)
                     .with_arg(arg_value);
                 query_builder.call().await.context("Failed query call.")?
+            }
+            CallSender::Impersonate(sender) => {
+                let pocketic = env.get_pocketic();
+                if let Some(pocketic) = pocketic {
+                    pocketic
+                        .query_call_with_effective_principal(
+                            canister_id,
+                            RawEffectivePrincipal::CanisterId(
+                                effective_canister_id.as_slice().to_vec(),
+                            ),
+                            *sender,
+                            method_name,
+                            arg_value,
+                        )
+                        .await
+                        .map_err(|err| {
+                            anyhow!(
+                                "Failed to perform query call: {} ({})",
+                                err.reject_message,
+                                err.error_code
+                            )
+                        })?
+                } else {
+                    bail!("Impersonating sender is only supported for a local PocketIC instance.")
+                }
             }
             CallSender::Wallet(wallet_id) => {
                 let wallet = build_wallet_canister(*wallet_id, agent).await?;
@@ -346,14 +401,42 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
         };
         print_idl_blob(&blob, output_type, &method_type)?;
     } else if opts.r#async {
-        let request_id = match call_sender {
+        let call_response = match call_sender {
             CallSender::SelectedId => agent
                 .update(&canister_id, method_name)
                 .with_effective_canister_id(effective_canister_id)
                 .with_arg(arg_value)
                 .call()
                 .await
-                .context("Failed update call.")?,
+                .context("Failed update call.")?
+                .map(|(res, _)| res),
+            CallSender::Impersonate(sender) => {
+                let pocketic = env.get_pocketic();
+                if let Some(pocketic) = pocketic {
+                    let msg_id = pocketic
+                        .submit_call_with_effective_principal(
+                            canister_id,
+                            RawEffectivePrincipal::CanisterId(
+                                effective_canister_id.as_slice().to_vec(),
+                            ),
+                            *sender,
+                            method_name,
+                            arg_value,
+                        )
+                        .await
+                        .map_err(|err| {
+                            anyhow!(
+                                "Failed to submit canister call: {} ({})",
+                                err.reject_message,
+                                err.error_code
+                            )
+                        })?
+                        .message_id;
+                    CallResponse::Poll(RequestId::new(msg_id.as_slice().try_into().unwrap()))
+                } else {
+                    bail!("Impersonating sender is only supported for a local PocketIC instance.")
+                }
+            }
             CallSender::Wallet(wallet_id) => {
                 let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 let mut args = Argument::default();
@@ -362,10 +445,18 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                 request_id_via_wallet_call(&wallet, canister_id, method_name, args, cycles)
                     .await
                     .context("Failed request via wallet.")?
+                    .map(|(res,)| res.r#return)
             }
         };
-        eprint!("Request ID: ");
-        println!("0x{}", String::from(request_id));
+        match call_response {
+            CallResponse::Poll(request_id) => {
+                eprint!("Request ID: ");
+                println!("0x{}", String::from(request_id));
+            }
+            CallResponse::Response(response) => {
+                print_idl_blob(&response, output_type, &method_type)?;
+            }
+        }
     } else {
         let blob = match call_sender {
             CallSender::SelectedId => agent
@@ -374,6 +465,38 @@ To figure out the id of your wallet, run 'dfx identity get-wallet (--network ic)
                 .with_arg(arg_value)
                 .await
                 .context("Failed update call.")?,
+            CallSender::Impersonate(sender) => {
+                let pocketic = env.get_pocketic();
+                if let Some(pocketic) = pocketic {
+                    let msg_id = pocketic
+                        .submit_call_with_effective_principal(
+                            canister_id,
+                            RawEffectivePrincipal::CanisterId(
+                                effective_canister_id.as_slice().to_vec(),
+                            ),
+                            *sender,
+                            method_name,
+                            arg_value,
+                        )
+                        .await
+                        .map_err(|err| {
+                            anyhow!(
+                                "Failed to submit canister call: {} ({})",
+                                err.reject_message,
+                                err.error_code
+                            )
+                        })?;
+                    pocketic.await_call_no_ticks(msg_id).await.map_err(|err| {
+                        anyhow!(
+                            "Canister call failed: {} ({})",
+                            err.reject_message,
+                            err.error_code
+                        )
+                    })?
+                } else {
+                    bail!("Impersonating sender is only supported for a local PocketIC instance.")
+                }
+            }
             CallSender::Wallet(wallet_id) => {
                 let wallet = build_wallet_canister(*wallet_id, agent).await?;
                 do_wallet_call(

@@ -1,4 +1,4 @@
-use dfx_core::error::fs::FsError;
+use dfx_core::error::fs::NoParentPathError;
 use std::path::PathBuf;
 use thiserror::Error;
 
@@ -10,6 +10,6 @@ pub enum GetAssetConfigError {
     AssetConfigNotFound(PathBuf),
 
     /// The path to an asset was invalid.
-    #[error("Invalid asset path: {0}")]
-    InvalidPath(FsError),
+    #[error("invalid asset path")]
+    InvalidPath(#[from] NoParentPathError),
 }

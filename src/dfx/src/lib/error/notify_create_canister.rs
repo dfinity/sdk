@@ -15,4 +15,7 @@ pub enum NotifyCreateCanisterError {
 
     #[error("Failure reported by notify_create_canister: {0:?}")]
     Notify(NotifyError),
+
+    #[error("Failed to determine caller principal: {0}")]
+    GetCallerPrincipal(String),
 }

@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "canisters": {
+        "m64": {
+            "type": "custom",
+            "candid": "empty.did",
+            "wasm": "m64.wasm",
+            "build": "echo \"generated from (module (memory i64 0 0))\"",
+            "shrink": true,
+            "optimize": "Oz",
+            "gzip": true
+        }
+    }
+}

@@ -62,3 +62,16 @@ teardown() {
   cargo update
   assert_command dfx deploy
 }
+
+@test "rust canisters support complex package layout" {
+  dfx_new_rust rust_complex
+  install_asset rust_complex
+  dfx_start
+  assert_command dfx deploy
+  assert_command dfx canister call can1 id
+  assert_contains '(1 : nat32)'
+  assert_command dfx canister call can2 id
+  assert_contains '(2 : nat32)'
+  assert_command dfx canister call can3 id
+  assert_contains '(3 : nat32)'
+}

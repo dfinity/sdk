@@ -1,6 +1,6 @@
-use crate::error::identity::validate_pem_file::ValidatePemFileError;
-use crate::error::identity::validate_pem_file::ValidatePemFileError::{
-    UnsupportedKeyVersion, ValidatePemContentFailed,
+use crate::error::identity::{
+    ValidatePemFileError,
+    ValidatePemFileError::{UnsupportedKeyVersion, ValidatePemContentFailed},
 };
 use ic_agent::identity::BasicIdentity;
 use ic_agent::identity::PemError;

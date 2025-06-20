@@ -1,19 +1,26 @@
+use crate::config::cache::VersionCache;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
+use crate::Environment;
 use anyhow::{anyhow, bail};
-use dfx_core::config::cache::Cache;
 use fn_error_context::context;
+use std::path::Path;
 use std::process::Command;
 
-/// Package arguments for moc or mo-ide as returned by
-/// a package tool like https://github.com/kritzcreek/vessel
-/// or, if there is no package tool, the base library.
+/// Package arguments for moc as returned by a package tool like
+/// https://github.com/kritzcreek/vessel or, if there is no package
+/// tool, the base library.
 pub type PackageArguments = Vec<String>;
 
 #[context("Failed to load package arguments.")]
-pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageArguments> {
+pub fn load(
+    env: &dyn Environment,
+    cache: &VersionCache,
+    packtool: &Option<String>,
+    project_root: &Path,
+) -> DfxResult<PackageArguments> {
     if packtool.is_none() {
         let stdlib_path = cache
-            .get_binary_command_path("base")?
+            .get_binary_command_path(env, "base")?
             .into_os_string()
             .into_string()
             .map_err(|_| anyhow!("Path contains invalid Unicode data."))?;
@@ -29,6 +36,8 @@ pub fn load(cache: &dyn Cache, packtool: &Option<String>) -> DfxResult<PackageAr
         .collect();
 
     let mut cmd = Command::new(commandline[0].clone());
+    cmd.current_dir(project_root);
+
     for arg in commandline.iter().skip(1) {
         cmd.arg(arg);
     }

@@ -20,11 +20,15 @@ pub struct CompletionOpts {
 
 pub fn exec(env: &dyn Environment, opts: CompletionOpts) -> DfxResult {
     let em = env.get_extension_manager();
-    let installed_extensions = em.installed_extensions_as_clap_commands()?;
-    let mut command = if installed_extensions.is_empty() {
+
+    let commands = em
+        .load_installed_extension_manifests()?
+        .as_clap_commands()?;
+
+    let mut command = if commands.is_empty() {
         CliOpts::command()
     } else {
-        CliOpts::command_for_update().subcommands(&installed_extensions)
+        CliOpts::command_for_update().subcommands(&commands)
     };
 
     generate(

@@ -7,6 +7,10 @@ die () {
     exit 1
 }
 
+for cmd in cargo sponge jq; do
+    command -v "$cmd" >/dev/null || die "Required command $cmd not installed"
+done
+
 announce() {
     term_green
     echo
@@ -47,7 +51,7 @@ get_parameters() {
 
 pre_release_check() {
     announce "Ensuring dfx and replica are not running."
-    if pgrep dfx replica ; then
+    if pgrep -x dfx replica ; then
         echo "dfx and replica cannot still be running.  kill them and try again."
         exit 1
     fi

@@ -27,11 +27,14 @@ teardown() {
 @test "build with vulnerabilities in rust dependencies emits a warning" {
   assert_command rustup default stable
   assert_command rustup target add wasm32-unknown-unknown
-  assert_command cargo install cargo-audit
+  assert_command cargo install cargo-audit --locked
   assert_command cargo audit --version
   install_asset vulnerable_rust_deps
   dfx_start
   dfx canister create --all
   assert_command dfx build
   assert_match "Audit found vulnerabilities"
+  jq '.canisters.hello.skip_cargo_audit=true' dfx.json | sponge dfx.json
+  assert_command dfx build
+  assert_not_match "Audit found vulnerabilities"
 }

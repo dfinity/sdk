@@ -1,9 +1,9 @@
-use crate::lib::identity::wallet::wallet_canister_id;
 use crate::lib::operations::canister::install_wallet;
 use crate::lib::{environment::Environment, error::DfxResult, root_key::fetch_root_key_if_needed};
 use anyhow::{bail, Context, Error};
 use candid::{CandidType, Deserialize, Principal};
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::identity::wallet::wallet_canister_id;
 use dfx_core::identity::Identity;
 use ic_agent::{Agent, Identity as _};
 use ic_utils::{
@@ -31,10 +31,7 @@ pub async fn migrate(env: &dyn Environment, network: &NetworkDescriptor, fix: bo
     let wallet = if let Ok(wallet) = WalletCanister::create(agent, wallet).await {
         wallet
     } else {
-        let cbor = agent
-            .read_state_canister_info(wallet, "controllers")
-            .await?;
-        let controllers: Vec<Principal> = serde_cbor::from_slice(&cbor)?;
+        let controllers = agent.read_state_canister_controllers(wallet).await?;
         bail!("This identity isn't a controller of the wallet. You need to be one of these principals to upgrade the wallet: {}", controllers.into_iter().join(", "))
     };
     did_migrate |= migrate_wallet(env, agent, &wallet, fix).await?;
@@ -69,9 +66,7 @@ async fn migrate_wallet(
                 env,
                 agent,
                 *wallet.canister_id_(),
-                InstallMode::Upgrade {
-                    skip_pre_upgrade: Some(false),
-                },
+                InstallMode::Upgrade(None),
             )
             .await?
         } else {
@@ -91,10 +86,7 @@ async fn migrate_canister(
     ident: &Identity,
     fix: bool,
 ) -> DfxResult<bool> {
-    let cbor = agent
-        .read_state_canister_info(canister_id, "controllers")
-        .await?;
-    let mut controllers: Vec<Principal> = serde_cbor::from_slice(&cbor)?;
+    let mut controllers = agent.read_state_canister_controllers(canister_id).await?;
     if controllers.contains(wallet.canister_id_())
         && !controllers.contains(&ident.sender().unwrap())
     {
@@ -110,7 +102,7 @@ async fn migrate_canister(
                 settings: CanisterSettings,
             }
             wallet
-                .call(
+                .call::<(), _>(
                     Principal::management_canister(),
                     "update_settings",
                     Argument::from_candid((In {
@@ -122,6 +114,7 @@ async fn migrate_canister(
                             memory_allocation: None,
                             reserved_cycles_limit: None,
                             wasm_memory_limit: None,
+                            wasm_memory_threshold: None,
                             log_visibility: None,
                         },
                     },)),

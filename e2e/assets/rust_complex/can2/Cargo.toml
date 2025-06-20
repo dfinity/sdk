@@ -1,0 +1,10 @@
+[package]
+name = "can2"
+version = "0.0.0"
+
+[dependencies]
+ic-cdk.workspace = true
+candid.workspace = true
+
+[lib]
+crate-type = ["cdylib"]

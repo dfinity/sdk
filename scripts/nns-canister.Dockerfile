@@ -6,7 +6,7 @@ RUN apt -yq update && \
     apt autoremove --purge -y && \
     rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/*
 
-RUN cargo install --version 0.3.2 ic-cdk-optimizer
+RUN cargo install --version 0.3.2 ic-cdk-optimizer --locked
 
 ARG IC_COMMIT
 

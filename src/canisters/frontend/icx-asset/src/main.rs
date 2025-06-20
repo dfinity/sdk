@@ -8,7 +8,7 @@ use candid::Principal;
 use clap::builder::Styles;
 use clap::{crate_authors, crate_version, Parser, ValueEnum};
 use ic_agent::identity::{AnonymousIdentity, BasicIdentity, Secp256k1Identity};
-use ic_agent::{agent, Agent, Identity};
+use ic_agent::{Agent, Identity};
 use slog::Level;
 use std::path::PathBuf;
 
@@ -139,9 +139,7 @@ async fn main() -> anyhow::Result<()> {
     let logger = support::new_logger(opts.log_level.into());
 
     let agent = Agent::builder()
-        .with_transport(agent::http_transport::ReqwestTransport::create(
-            opts.replica.clone(),
-        )?)
+        .with_url(&opts.replica)
         .with_boxed_identity(create_identity(opts.pem))
         .build()?;
 

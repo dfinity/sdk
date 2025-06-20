@@ -1,26 +1,26 @@
 use crate::error::extension::LoadExtensionManifestError;
-use crate::error::fs::FsError;
+use crate::error::fs::{
+    CanonicalizePathError, CreateDirAllError, EnsureDirExistsError, NoParentPathError,
+};
 use crate::error::get_user_home::GetUserHomeError;
+use crate::error::structured_file::StructuredFileError;
 use handlebars::RenderError;
 use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
-    #[error("Failed to ensure config directory exists")]
-    EnsureConfigDirectoryExistsFailed(#[source] FsError),
+    #[error("failed to ensure config directory exists")]
+    EnsureConfigDirectoryExistsFailed(#[source] EnsureDirExistsError),
 
     #[error("Failed to determine config directory path")]
     DetermineConfigDirectoryFailed(#[source] GetUserHomeError),
-
-    #[error("Failed to determine shared network data directory")]
-    DetermineSharedNetworkDirectoryFailed(#[source] GetUserHomeError),
 }
 
 #[derive(Error, Debug)]
 pub enum GetOutputEnvFileError {
     #[error("failed to canonicalize output_env_file")]
-    Canonicalize(#[source] FsError),
+    CanonicalizePath(#[from] CanonicalizePathError),
 
     #[error("The output_env_file must be within the project root, but is {}", .0.display())]
     OutputEnvFileMustBeInProjectRoot(PathBuf),
@@ -29,13 +29,13 @@ pub enum GetOutputEnvFileError {
     OutputEnvFileMustBeRelative(PathBuf),
 
     #[error(transparent)]
-    Parent(FsError),
+    NoParentPath(#[from] NoParentPathError),
 }
 
 #[derive(Error, Debug)]
 pub enum GetTempPathError {
     #[error(transparent)]
-    CreateDirAll(#[from] FsError),
+    CreateDirAll(#[from] CreateDirAllError),
 }
 
 #[derive(Error, Debug)]
@@ -113,4 +113,13 @@ pub enum MergeTechStackError {
 
     #[error("expected extension canister type tech_stack to be an object")]
     ExpectedExtensionCanisterTypeTechStackObject,
+}
+
+#[derive(Error, Debug)]
+pub enum GetSharedWalletConfigPathError {
+    #[error(transparent)]
+    GetUserHome(#[from] GetUserHomeError),
+
+    #[error(transparent)]
+    StructuredFileError(#[from] StructuredFileError),
 }

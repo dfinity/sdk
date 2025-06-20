@@ -1,0 +1,63 @@
+name: Update ic.did
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *" # Runs at UTC midnight every day
+
+env:
+  # When getting Rust dependencies, retry on network error:
+  CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+  # Disable DFX telemetry
+  DFX_TELEMETRY: 'off'
+  # Path to the ic.did file in this repository
+  FILE_PATH: "src/dfx/src/util/ic.did"
+
+jobs:
+  check-update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout dfx repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download latest ic.did
+        id: get-file
+        run: |
+          # Download latest version from portal repo
+          EXTERNAL_URL="https://raw.githubusercontent.com/dfinity/portal/refs/heads/master/docs/references/_attachments/ic.did"
+          curl -s -o $FILE_PATH $EXTERNAL_URL
+
+          # Check if the file has changed
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "has_update=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_update=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create PR if updates exist
+        if: steps.get-file.outputs.has_update == 'true'
+        run: |
+          # Configure git
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          
+          # Create branch and commit
+          BRANCH_NAME="update/ic-did-$(date +%Y%m%d)"
+          git checkout -b $BRANCH_NAME
+          git add "$FILE_PATH"
+          git commit -m "Update ic.did from portal repo"
+          
+          # Push and create PR
+          git push origin $BRANCH_NAME
+          gh pr create \
+            --title "chore: update `ic.did` from portal repo" \
+            --body "Automated update of ic.did. Triggered by periodic check." \
+            --base master \
+            --head $BRANCH_NAME
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

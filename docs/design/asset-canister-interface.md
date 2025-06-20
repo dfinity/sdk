@@ -163,7 +163,13 @@ The size of any chunk cannot exceed the message ingress limit.
 
 ```candid
 service: (asset_canister_args: variant {
-  Init: record {};
+  Init: record {
+    set_permissions: opt record {
+      prepare: vec principal;
+      commit: vec principal;
+      manage_permissions: vec principal;
+    };
+  };
   Upgrade: record {
     set_permissions: opt record {
       prepare: vec principal;
@@ -179,7 +185,7 @@ The methods `init` and `post_upgrade` are called automatically by the system aft
 Both methods take the same argument type by definition. Therefore, to be able to have different arguments for the two cases, an enum is used to make the distinction.
 If `init` is called with the `Upgrade` variant or if `post_upgrade` is called with the `Init` variant the asset canister traps and thereby reverts the code changes.
 
-In `Upgrade`, the field `set_permissions` can be used to (re)set the list of principals with the listed permissions.
+In both variants, the field `set_permissions` can be used to (re)set the list of principals with the listed permissions.
 If `set_permissions` that is not `null`, then all permissions are set to the newly provided list of principals and the previous lists of principals are discarded.
 
 ### Method: `get`
@@ -267,7 +273,7 @@ Required Permission: [Prepare](#permission-prepare)
   create_chunk: (
     record { 
       batch_id: BatchId;
-      content: blob 
+      content: blob
     }
   ) -> (record { 
     chunk_id: ChunkId
@@ -275,6 +281,31 @@ Required Permission: [Prepare](#permission-prepare)
 ```
 
 This method stores a content chunk and extends the batch expiry time.
+
+When creating chunks for a given content encoding, the size of each chunk except the last must be the same.
+
+The asset canister must retain all data related to a batch for at least the [Minimum Batch Retention Duration](#constant-minimum-batch-retention-duration) after creating a chunk in a batch.
+
+Preconditions:
+- The batch exists.
+- Creation of the chunk would not exceed chunk creation limits.
+
+Required Permission: [Prepare](#permission-prepare)
+
+### Method: `create_chunks`
+
+```candid
+  create_chunks: (
+    record {
+      batch_id: BatchId;
+      content: vec blob;
+    }
+  ) -> (
+    chunk_ids: vec ChunkId;
+  );
+```
+
+This method stores a number of chunks and extends the batch expiry time.
 
 When creating chunks for a given content encoding, the size of each chunk except the last must be the same.
 
@@ -458,11 +489,14 @@ type SetAssetContentArguments = record {
   key: Key;
   content_encoding: text;
   chunk_ids: vec ChunkId;
+  last_chunk: opt blob;
   sha256: opt blob;
 };
 ```
 
 This operation adds or changes a single content encoding for an asset.  It also updates the modification time of the content encoding.
+The content of the encoding can be specified with `chunk_ids` and `last_chunk`.
+If `last_chunk` is not `null`, then its content is used as the last chunk of the encoding.
 
 If `sha256` is not passed, the asset canister will compute the hash of the content.
 

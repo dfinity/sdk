@@ -41,7 +41,7 @@ teardown() {
     assert_command dfx canister install --mode=reinstall hello_backend
 
     assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-    assert_match "Reinstalling code for canister hello_backend"
+    assert_match "Reinstalled code for canister hello_backend"
   )
 }
 
@@ -54,7 +54,7 @@ teardown() {
 
     assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
 
-    assert_not_match "Installing code for canister"
+    assert_not_match "Installed code for canister"
     assert_contains "Refusing to install canister without approval"
     assert_contains "User declined consent"
   )
@@ -77,7 +77,7 @@ teardown() {
     assert_command dfx deploy --mode=reinstall hello_backend
 
     assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-    assert_match "Reinstalling code for canister hello_backend"
+    assert_match "Reinstalled code for canister hello_backend"
   )
 }
 
@@ -90,7 +90,7 @@ teardown() {
 
     assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
 
-    assert_not_match "Installing code for canister"
+    assert_not_match "Installed code for canister"
     assert_contains "Refusing to install canister without approval"
     assert_contains "User declined consent"
   )
@@ -123,7 +123,7 @@ teardown() {
     assert_match "You are about to reinstall the hello_frontend canister."
     assert_not_match "You are about to reinstall the hello_backend canister."
     assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-    assert_match "Reinstalling code for canister hello_frontend,"
+    assert_match "Reinstalled code for canister hello_frontend,"
   )
 
   # the hello_backend canister should not have been upgraded (which would reset the non-stable var)
@@ -141,24 +141,24 @@ teardown() {
     assert_command dfx deploy --mode=reinstall hello_backend
 
     assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-    assert_match "Reinstalling code for canister hello_backend"
+    assert_match "Reinstalled code for canister hello_backend"
   )
   echo y | (
     assert_command dfx deploy --mode=reinstall hello_backend
 
     assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-    assert_match "Reinstalling code for canister hello_backend"
+    assert_match "Reinstalled code for canister hello_backend"
   )
   echo YES | (
     assert_command dfx deploy --mode=reinstall hello_backend
 
     assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-    assert_match "Reinstalling code for canister hello_backend"
+    assert_match "Reinstalled code for canister hello_backend"
   )
   echo YeS | (
     assert_command dfx deploy --mode=reinstall hello_backend
 
     assert_match "YOU WILL LOSE ALL DATA IN THE CANISTER"
-    assert_match "Reinstalling code for canister hello_backend"
+    assert_match "Reinstalled code for canister hello_backend"
   )
 }

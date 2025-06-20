@@ -27,11 +27,29 @@ pub struct CreateChunkRequest<'a> {
     pub content: &'a [u8],
 }
 
-/// The responst to a CreateChunkRequest.
+/// The response to a CreateChunkRequest.
 #[derive(CandidType, Debug, Deserialize)]
 pub struct CreateChunkResponse {
     /// The ID of the created chunk.
     pub chunk_id: Nat,
+}
+
+/// Upload multiple chunks of data that are part of asset content.
+#[derive(CandidType, Debug, Deserialize)]
+pub struct CreateChunksRequest {
+    /// The batch with which to associate the created chunks.
+    /// The chunk will be deleted if the batch expires before being committed.
+    pub batch_id: Nat,
+
+    /// The data in this chunk.
+    pub content: Vec<Vec<u8>>,
+}
+
+/// The response to a CreateChunksRequest.
+#[derive(CandidType, Debug, Deserialize)]
+pub struct CreateChunksResponse {
+    /// The IDs of the created chunks.
+    pub chunk_ids: Vec<Nat>,
 }
 
 /// Create a new asset.  Has no effect if the asset already exists and the content type matches.
@@ -59,8 +77,10 @@ pub struct SetAssetContentArguments {
     pub key: String,
     /// The content encoding for which this content applies
     pub content_encoding: String,
-    /// The chunks to assign to this content
+    /// The chunks to assign to this content encoding
     pub chunk_ids: Vec<Nat>,
+    /// Appends this chunk to the data supplied in `chunk_ids`
+    pub last_chunk: Option<Vec<u8>>,
     /// The sha256 of the entire content
     pub sha256: Option<Vec<u8>>,
 }

@@ -2,6 +2,7 @@ use anstyle::{AnsiColor, Style};
 use clap::builder::Styles;
 
 pub mod argument_from_cli;
+pub mod install_mode;
 pub mod parsers;
 pub mod subnet_selection_opt;
 

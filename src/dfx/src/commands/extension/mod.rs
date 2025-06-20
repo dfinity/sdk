@@ -24,8 +24,8 @@ pub enum SubCommand {
     Uninstall(uninstall::UninstallOpts),
     /// Execute an extension.
     Run(run::RunOpts),
-    /// List installed extensions.
-    List,
+    /// List installed or available extensions.
+    List(list::ListOpts),
 }
 
 pub fn exec(env: &dyn Environment, opts: ExtensionOpts) -> DfxResult {
@@ -33,6 +33,6 @@ pub fn exec(env: &dyn Environment, opts: ExtensionOpts) -> DfxResult {
         SubCommand::Install(v) => install::exec(env, v),
         SubCommand::Uninstall(v) => uninstall::exec(env, v),
         SubCommand::Run(v) => run::exec(env, v),
-        SubCommand::List => list::exec(env),
+        SubCommand::List(v) => list::exec(env, v),
     }
 }

@@ -1,8 +1,9 @@
-use crate::error::config::{ConfigError, GetTempPathError};
-use crate::error::fs::FsError;
+use crate::error::config::{ConfigError, GetSharedWalletConfigPathError, GetTempPathError};
+use crate::error::fs::ReadToStringError;
+use crate::error::get_user_home::GetUserHomeError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError;
+use crate::error::structured_file::StructuredFileError;
 use crate::error::uri::UriError;
-
 use candid::types::principal::PrincipalError;
 use std::num::ParseIntError;
 use std::path::PathBuf;
@@ -11,10 +12,13 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum NetworkConfigError {
     #[error(transparent)]
-    FsError(#[from] crate::error::fs::FsError),
+    ReadToString(#[from] ReadToStringError),
 
     #[error(transparent)]
     Config(#[from] ConfigError),
+
+    #[error(transparent)]
+    DetermineSharedNetworkDirectoryFailed(#[from] GetUserHomeError),
 
     #[error(transparent)]
     UriError(#[from] UriError),
@@ -26,7 +30,13 @@ pub enum NetworkConfigError {
     },
 
     #[error(transparent)]
+    GetSharedWalletConfigPathError(#[from] GetSharedWalletConfigPathError),
+
+    #[error(transparent)]
     GetTempPath(#[from] GetTempPathError),
+
+    #[error(transparent)]
+    LoadNetworkId(StructuredFileError),
 
     #[error("Network '{0}' does not specify any network providers.")]
     NetworkHasNoProviders(String),
@@ -53,7 +63,7 @@ pub enum NetworkConfigError {
     ParseProviderUrlFailed(Box<String>, #[source] url::ParseError),
 
     #[error("Failed to read webserver port")]
-    ReadWebserverPortFailed(#[source] FsError),
+    ReadWebserverPortFailed(#[source] ReadToStringError),
 
     #[error("Failed to parse principal '{0}'")]
     ParsePrincipalFailed(String, #[source] PrincipalError),

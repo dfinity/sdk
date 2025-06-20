@@ -82,10 +82,14 @@ dfx_new() {
     echo PWD: "$(pwd)" >&2
 }
 
-dfx_new_rust() {
-    local project_name=${1:-e2e_project}
+setup_rust() {
     rustup default stable
     rustup target add wasm32-unknown-unknown
+}
+
+dfx_new_rust() {
+    local project_name=${1:-e2e_project}
+    setup_rust
     dfx new "${project_name}" --type=rust --no-frontend
     test -d "${project_name}"
     test -f "${project_name}/dfx.json"
@@ -116,7 +120,7 @@ determine_network_directory() {
 
 # Start the replica in the background.
 dfx_start() {
-    local port dfx_config_root webserver_port
+    local port webserver_port
 
     local args=( "$@" )
 
@@ -141,11 +145,7 @@ dfx_start() {
 
     # By default, start on random port for parallel test execution
     add_default_parameter "--host" "127.0.0.1:0"
-    if [[ "$USE_POCKETIC" ]]; then
-        add_default_parameter "--pocketic"
-    else
-        add_default_parameter "--artificial-delay" "100"
-    fi
+    add_default_parameter "--artificial-delay" "100"
 
     determine_network_directory
 
@@ -155,18 +155,8 @@ dfx_start() {
 
     dfx start --background "${args[@]}" 3>&-
 
-    if [[ "$USE_POCKETIC" ]]; then
-        test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
-        port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port")
-    else
-        dfx_config_root="$E2E_NETWORK_DATA_DIRECTORY/replica-configuration"
-        printf "Configuration Root for DFX: %s\n" "${dfx_config_root}"
-        test -f "${dfx_config_root}/replica-1.port"
-        port=$(cat "${dfx_config_root}/replica-1.port")
-        if [ "$port" == "" ]; then
-          port=$(jq -r .local.replica.port "$E2E_NETWORKS_JSON")
-        fi
-    fi
+    test -f "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port"
+    port=$(< "$E2E_NETWORK_DATA_DIRECTORY/pocket-ic-port")
     webserver_port=$(cat "$E2E_NETWORK_DATA_DIRECTORY/webserver-port")
 
     printf "Replica Configured Port: %s\n" "${port}"
@@ -202,11 +192,11 @@ wait_until_replica_healthy() {
 
 # Stop the replica and verify it is very very stopped.
 dfx_stop() {
-    # to help tell if other icx-proxy processes are from this test:
+    # to help tell if other pocket-ic proxy processes are from this test:
     echo "pwd: $(pwd)"
-    # A suspicion: "address already is use" errors are due to an extra icx-proxy process.
-    echo "icx-proxy processes:"
-    pgrep -l icx-proxy || echo "no ps/grep/icx-proxy output"
+    # A suspicion: "address already is use" errors are due to an extra pocket-ic proxy process.
+    echo "pocket-ic processes:"
+    pgrep -l pocket-ic || echo "no ps/grep/pocket-ic output"
 
     dfx stop
     local dfx_root=.dfx/
@@ -217,16 +207,28 @@ dfx_stop() {
 }
 
 dfx_set_wallet() {
+  local network="${1:-actuallylocal}"
+
   export WALLET_CANISTER_ID
   WALLET_CANISTER_ID=$(dfx identity get-wallet)
-  assert_command dfx identity set-wallet "${WALLET_CANISTER_ID}" --force --network actuallylocal
+  assert_command dfx identity set-wallet "${WALLET_CANISTER_ID}" --force --network "${network}"
   assert_match 'Wallet set successfully.'
+}
+
+shared_wallets_json() {
+  SETTINGS_DIGEST="$(jq -r .settings_digest "$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/network-id")"
+  WALLETS_JSON="$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/$SETTINGS_DIGEST/wallets.json"
+  echo "$WALLETS_JSON"
 }
 
 setup_actuallylocal_project_network() {
     webserver_port=$(get_webserver_port)
     # [ ! -f "$E2E_ROUTE_NETWORKS_JSON" ] && echo "{}" >"$E2E_ROUTE_NETWORKS_JSON"
     jq '.networks.actuallylocal.providers=["http://127.0.0.1:'"$webserver_port"'"]' dfx.json | sponge dfx.json
+}
+
+setup_ephemeral_project_network() {
+    jq ".networks.ephemeral.bind=\"127.0.0.1:$(get_webserver_port)\"" dfx.json | sponge dfx.json
 }
 
 setup_actuallylocal_shared_network() {
@@ -236,16 +238,12 @@ setup_actuallylocal_shared_network() {
 }
 
 setup_local_shared_network() {
-    local replica_port
-    if [[ "$USE_POCKETIC" ]]; then
-        replica_port=$(get_pocketic_port)
-    else
-        replica_port=$(get_replica_port)
-    fi
+    local pocketic_port
+    pocketic_port=$(get_pocketic_port)
 
     [ ! -f "$E2E_NETWORKS_JSON" ] && echo "{}" >"$E2E_NETWORKS_JSON"
 
-    jq ".local.bind=\"127.0.0.1:${replica_port}\"" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+    jq ".local.bind=\"127.0.0.1:${pocketic_port}\"" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 }
 
 use_wallet_wasm() {
@@ -299,10 +297,6 @@ get_btc_adapter_pid() {
 
 get_canister_http_adapter_pid() {
   cat "$E2E_NETWORK_DATA_DIRECTORY/ic-https-outcalls-adapter-pid"
-}
-
-get_icx_proxy_pid() {
-  cat "$E2E_NETWORK_DATA_DIRECTORY/icx-proxy-pid"
 }
 
 create_networks_json() {

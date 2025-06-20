@@ -2,23 +2,30 @@
 //!
 //! Wallets are a map of network-identity, but don't have their own types or manager
 //! type.
-use crate::config::directories::{get_shared_network_data_directory, get_user_dfx_config_dir};
-use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError;
-use crate::error::identity::call_sender_from_wallet::CallSenderFromWalletError::ParsePrincipalFromIdFailed;
-use crate::error::identity::load_pem_identity::LoadPemIdentityError;
-use crate::error::identity::load_pem_identity::LoadPemIdentityError::ReadIdentityFileFailed;
-use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError;
-use crate::error::identity::map_wallets_to_renamed_identity::MapWalletsToRenamedIdentityError::RenameWalletGlobalConfigKeyFailed;
-use crate::error::identity::new_hardware_identity::NewHardwareIdentityError;
-use crate::error::identity::new_hardware_identity::NewHardwareIdentityError::InstantiateHardwareIdentityFailed;
-use crate::error::identity::new_identity::NewIdentityError;
-use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError;
-use crate::error::identity::rename_wallet_global_config_key::RenameWalletGlobalConfigKeyError::RenameWalletFailed;
-use crate::error::wallet_config::WalletConfigError;
-use crate::error::wallet_config::WalletConfigError::{
-    EnsureWalletConfigDirFailed, LoadWalletConfigFailed, SaveWalletConfigFailed,
+use crate::config::directories::{get_shared_wallet_config_path, get_user_dfx_config_dir};
+use crate::config::model::network_descriptor::NetworkDescriptor;
+use crate::error::wallet_config::SaveWalletConfigError;
+use crate::error::{
+    identity::{
+        CallSenderFromWalletError,
+        CallSenderFromWalletError::{
+            ParsePrincipalFromIdFailedAndGetWalletCanisterIdFailed,
+            ParsePrincipalFromIdFailedAndNoWallet,
+        },
+        LoadPemIdentityError,
+        LoadPemIdentityError::ReadIdentityFileFailed,
+        MapWalletsToRenamedIdentityError,
+        MapWalletsToRenamedIdentityError::RenameWalletGlobalConfigKeyFailed,
+        NewHardwareIdentityError,
+        NewHardwareIdentityError::InstantiateHardwareIdentityFailed,
+        NewIdentityError, RenameWalletGlobalConfigKeyError,
+        RenameWalletGlobalConfigKeyError::RenameWalletFailed,
+    },
+    wallet_config::{WalletConfigError, WalletConfigError::LoadWalletConfigFailed},
 };
+use crate::fs::composite::ensure_parent_dir_exists;
 use crate::identity::identity_file_locations::IdentityFileLocations;
+use crate::identity::wallet::wallet_canister_id;
 use crate::json::{load_json_file, save_json_file};
 use candid::Principal;
 use ic_agent::agent::EnvelopeContent;
@@ -41,6 +48,7 @@ pub mod identity_manager;
 pub mod keyring_mock;
 pub mod pem_safekeeping;
 pub mod pem_utils;
+pub mod wallet;
 
 pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 pub const IDENTITY_JSON: &str = "identity.json";
@@ -69,6 +77,8 @@ pub struct Identity {
 
     /// Inner implementation of this identity.
     inner: Box<dyn ic_agent::Identity + Sync + Send>,
+
+    identity_type: IdentityType,
 }
 
 impl Identity {
@@ -77,13 +87,14 @@ impl Identity {
             name: ANONYMOUS_IDENTITY_NAME.to_string(),
             inner: Box::new(AnonymousIdentity {}),
             insecure: false,
+            identity_type: IdentityType::Anonymous,
         }
     }
 
     fn basic(
         name: &str,
         pem_content: &[u8],
-        was_encrypted: bool,
+        identity_type: IdentityType,
     ) -> Result<Self, LoadPemIdentityError> {
         let inner = Box::new(
             BasicIdentity::from_pem(pem_content)
@@ -93,14 +104,15 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
-            insecure: !was_encrypted,
+            insecure: identity_type == IdentityType::Plaintext,
+            identity_type,
         })
     }
 
     fn secp256k1(
         name: &str,
         pem_content: &[u8],
-        was_encrypted: bool,
+        identity_type: IdentityType,
     ) -> Result<Self, LoadPemIdentityError> {
         let inner = Box::new(
             Secp256k1Identity::from_pem(pem_content)
@@ -110,7 +122,8 @@ impl Identity {
         Ok(Self {
             name: name.to_string(),
             inner,
-            insecure: !was_encrypted,
+            insecure: identity_type == IdentityType::Plaintext,
+            identity_type,
         })
     }
 
@@ -131,6 +144,7 @@ impl Identity {
             name: name.to_string(),
             inner,
             insecure: false,
+            identity_type: IdentityType::Hsm,
         })
     }
 
@@ -143,11 +157,11 @@ impl Identity {
         if let Some(hsm) = config.hsm {
             Identity::hardware(name, hsm).map_err(NewIdentityError::NewHardwareIdentityFailed)
         } else {
-            let (pem_content, was_encrypted) =
+            let (pem_content, identity_type) =
                 pem_safekeeping::load_pem(log, locations, name, &config)
                     .map_err(NewIdentityError::LoadPemFailed)?;
-            Identity::secp256k1(name, &pem_content, was_encrypted)
-                .or_else(|e| Identity::basic(name, &pem_content, was_encrypted).map_err(|_| e))
+            Identity::secp256k1(name, &pem_content, identity_type)
+                .or_else(|e| Identity::basic(name, &pem_content, identity_type).map_err(|_| e))
                 .map_err(NewIdentityError::LoadPemIdentityFailed)
         }
     }
@@ -156,6 +170,10 @@ impl Identity {
     #[allow(dead_code)]
     pub fn name(&self) -> &str {
         &self.name
+    }
+
+    pub fn identity_type(&self) -> IdentityType {
+        self.identity_type
     }
 
     /// Logs all wallets that are configured in a WalletGlobalConfig.
@@ -186,12 +204,11 @@ impl Identity {
     pub fn save_wallet_config(
         path: &Path,
         config: &WalletGlobalConfig,
-    ) -> Result<(), WalletConfigError> {
-        crate::fs::parent(path)
-            .and_then(|path| crate::fs::create_dir_all(&path))
-            .map_err(EnsureWalletConfigDirFailed)?;
+    ) -> Result<(), SaveWalletConfigError> {
+        ensure_parent_dir_exists(path)?;
 
-        save_json_file(path, &config).map_err(SaveWalletConfigFailed)
+        save_json_file(path, &config)?;
+        Ok(())
     }
 
     fn rename_wallet_global_config_key(
@@ -209,6 +226,7 @@ impl Identity {
                     });
                 identities.insert(renamed_identity.to_string(), v);
                 Identity::save_wallet_config(&wallet_path, &config)
+                    .map_err(WalletConfigError::SaveWalletConfig)
             })
             .map_err(|err| {
                 RenameWalletFailed(
@@ -238,16 +256,15 @@ impl Identity {
             )
             .map_err(RenameWalletGlobalConfigKeyFailed)?;
         }
-        let shared_local_network_wallet_path = get_shared_network_data_directory("local")
-            .map_err(MapWalletsToRenamedIdentityError::GetSharedNetworkDataDirectoryFailed)?
-            .join(WALLET_CONFIG_FILENAME);
-        if shared_local_network_wallet_path.exists() {
-            Identity::rename_wallet_global_config_key(
-                original_identity,
-                renamed_identity,
-                shared_local_network_wallet_path,
-            )
-            .map_err(RenameWalletGlobalConfigKeyFailed)?;
+        if let Some(shared_local_wallet_path) = get_shared_wallet_config_path("local")? {
+            if shared_local_wallet_path.exists() {
+                Identity::rename_wallet_global_config_key(
+                    original_identity,
+                    renamed_identity,
+                    shared_local_wallet_path,
+                )
+                .map_err(RenameWalletGlobalConfigKeyFailed)?;
+            }
         }
         if let Some(temp_dir) = project_temp_dir {
             let local_wallet_path = temp_dir.join("local").join(WALLET_CONFIG_FILENAME);
@@ -296,20 +313,50 @@ impl AsRef<Identity> for Identity {
     }
 }
 
+#[derive(Serialize, Copy, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum IdentityType {
+    Keyring,
+    Plaintext,
+    EncryptedLocal,
+    Hsm,
+    Anonymous,
+}
+
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum CallSender {
     SelectedId,
+    Impersonate(Principal),
     Wallet(Principal),
 }
 
-// Determine whether the selected Identity
-// or the provided wallet canister ID should be the Sender of the call.
+// Determine whether the selected Identity or a wallet should be the sender of the call.
+// If a wallet, the principal can be selected directly, or looked up from an identity name.
 impl CallSender {
-    pub fn from(wallet: &Option<String>) -> Result<Self, CallSenderFromWalletError> {
-        let sender = if let Some(id) = wallet {
-            CallSender::Wallet(
-                Principal::from_text(id).map_err(|e| ParsePrincipalFromIdFailed(id.clone(), e))?,
-            )
+    pub fn from(
+        wallet_principal_or_identity_name: &Option<String>,
+        network: &NetworkDescriptor,
+    ) -> Result<Self, CallSenderFromWalletError> {
+        let sender = if let Some(s) = wallet_principal_or_identity_name {
+            match Principal::from_text(s) {
+                Ok(principal) => CallSender::Wallet(principal),
+                Err(principal_err) => match wallet_canister_id(network, s) {
+                    Ok(Some(principal)) => CallSender::Wallet(principal),
+                    Ok(None) => {
+                        return Err(ParsePrincipalFromIdFailedAndNoWallet(
+                            s.clone(),
+                            principal_err,
+                        ));
+                    }
+                    Err(wallet_err) => {
+                        return Err(ParsePrincipalFromIdFailedAndGetWalletCanisterIdFailed(
+                            s.clone(),
+                            principal_err,
+                            wallet_err,
+                        ));
+                    }
+                },
+            }
         } else {
             CallSender::SelectedId
         };

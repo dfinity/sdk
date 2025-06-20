@@ -16,6 +16,12 @@ concurrency:
 env:
   # When getting Rust dependencies, retry on network error:
   CARGO_NET_RETRY: 10
+  # Use the local .curlrc
+  CURL_HOME: .
+  # Disable DFX telemetry
+  DFX_TELEMETRY: 'off'
+  # Use the stable toolchain for the audit
+  RUSTUP_TOOLCHAIN: stable
 
 jobs:
   test:
@@ -27,4 +33,4 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: lwshang/audit@cargo_install_locked
+      - uses: actions-rust-lang/audit@v1

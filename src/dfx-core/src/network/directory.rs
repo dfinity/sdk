@@ -1,6 +1,6 @@
 use crate::config::model::local_server_descriptor::LocalNetworkScopeDescriptor;
 use crate::config::model::network_descriptor::NetworkDescriptor;
-use crate::error::fs::FsError;
+use crate::error::canister_id_store::EnsureCohesiveNetworkDirectoryError;
 use std::path::Path;
 
 /// A cohesive network directory is one in which the directory in question contains
@@ -10,7 +10,7 @@ use std::path::Path;
 pub fn ensure_cohesive_network_directory(
     network_descriptor: &NetworkDescriptor,
     directory: &Path,
-) -> Result<(), FsError> {
+) -> Result<(), EnsureCohesiveNetworkDirectoryError> {
     let scope = network_descriptor
         .local_server_descriptor
         .as_ref()
@@ -32,6 +32,13 @@ pub fn ensure_cohesive_network_directory(
                 crate::fs::create_dir_all(directory)?;
                 crate::fs::write(&project_network_id_path, &network_id)?;
             }
+        }
+    } else if let Some(LocalNetworkScopeDescriptor::Project { .. }) = &scope {
+        // a network-id file indicates the previous configuration was for the shared local network.
+        // canister ids, at minimum, will no longer be valid
+        let network_id_path = directory.join("network-id");
+        if network_id_path.exists() {
+            crate::fs::remove_dir_all(directory)?;
         }
     }
 

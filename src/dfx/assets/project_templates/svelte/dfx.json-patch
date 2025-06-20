@@ -1,21 +1,21 @@
 [
     {
         "op": "add",
-        "path": "/canisters/{frontend_name}",
+        "path": "/canisters/__frontend_name__",
         "value": {
             "type": "assets",
             "source": [
-                "src/{frontend_name}/dist"
+                "src/__frontend_name__/dist"
             ],
             "dependencies": [
-                "{backend_name}"
+                "__backend_name__"
             ],
-            "workspace": "{frontend_name}"
+            "workspace": "__frontend_name__"
         }
     },
     {
         "op": "add",
-        "path": "/canisters/{backend_name}/declarations",
+        "path": "/canisters/__backend_name__/declarations",
         "value": {
             "node_compatibility": true
         }

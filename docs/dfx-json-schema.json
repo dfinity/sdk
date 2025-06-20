@@ -137,10 +137,29 @@
       }
     },
     "CanisterLogVisibility": {
-      "type": "string",
-      "enum": [
-        "controllers",
-        "public"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "controllers",
+            "public"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "allowed_viewers"
+          ],
+          "properties": {
+            "allowed_viewers": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false
+        }
       ]
     },
     "CanisterMetadataSection": {
@@ -214,10 +233,24 @@
               "description": "Path of this canister's candid interface declaration.",
               "type": "string"
             },
+            "crate": {
+              "title": "Crate name",
+              "description": "Name of the Rust crate that compiles to this canister's Wasm. If left unspecified, defaults to the crate with the same name as the package.",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "package": {
               "title": "Package Name",
-              "description": "Name of the rust package that compiles to this canister's Wasm.",
+              "description": "Name of the Rust package that compiles this canister's Wasm.",
               "type": "string"
+            },
+            "skip_cargo_audit": {
+              "title": "`cargo-audit` check",
+              "description": "If set to true, does not run `cargo audit` before building.",
+              "default": false,
+              "type": "boolean"
             },
             "type": {
               "type": "string",
@@ -280,7 +313,7 @@
           "properties": {
             "build": {
               "title": "Build Commands",
-              "description": "Commands that are executed in order to produce this canister's Wasm module. Expected to produce the Wasm in the path specified by the 'wasm' field. No build commands are allowed if the `wasm` field is a URL.",
+              "description": "Commands that are executed in order to produce this canister's Wasm module. Expected to produce the Wasm in the path specified by the 'wasm' field. No build commands are allowed if the `wasm` field is a URL. These commands are executed in the root of the project.",
               "default": [],
               "allOf": [
                 {
@@ -420,7 +453,8 @@
             "log_visibility": null,
             "memory_allocation": null,
             "reserved_cycles_limit": null,
-            "wasm_memory_limit": null
+            "wasm_memory_limit": null,
+            "wasm_memory_threshold": null
           },
           "allOf": [
             {
@@ -448,6 +482,7 @@
         "optimize": {
           "title": "Optimize Canister Wasm",
           "description": "Invoke wasm level optimizations after building the canister. Optimization level can be set to \"cycles\" to optimize for cycle usage, \"size\" to optimize for binary size, or any of \"O4, O3, O2, O1, O0, Oz, Os\". Disabled by default. If this option is specified, the `shrink` option will be ignored.",
+          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/WasmOptLevel"
@@ -459,7 +494,17 @@
         },
         "post_install": {
           "title": "Post-Install Commands",
-          "description": "One or more commands to run post canister installation.",
+          "description": "One or more commands to run post canister installation. These commands are executed in the root of the project.",
+          "default": [],
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
+            }
+          ]
+        },
+        "pre_install": {
+          "title": "Pre-Install Commands",
+          "description": "One or more commands to run pre canister installation. These commands are executed in the root of the project.",
           "default": [],
           "allOf": [
             {
@@ -470,6 +515,7 @@
         "pullable": {
           "title": "Pullable",
           "description": "Defines required properties so that this canister is ready for `dfx deps pull` by other projects.",
+          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/Pullable"
@@ -482,6 +528,7 @@
         "remote": {
           "title": "Remote Configuration",
           "description": "Used to mark the canister as 'remote' on certain networks.",
+          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/ConfigCanistersCanisterRemote"
@@ -510,6 +557,7 @@
         "tech_stack": {
           "title": "Tech Stack",
           "description": "Defines the tech stack used to build this canister.",
+          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/TechStack"
@@ -620,7 +668,7 @@
         "canister_init_arg": {
           "title": "Initialization Argument",
           "description": "The initialization argument for the bitcoin canister.",
-          "default": "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 0 : nat; get_utxos_cycles_per_ten_instructions = 0 : nat; get_utxos_maximum = 0 : nat; get_balance = 0 : nat; get_balance_maximum = 0 : nat; get_current_fee_percentiles = 0 : nat; get_current_fee_percentiles_maximum = 0 : nat;  send_transaction_base = 0 : nat; send_transaction_per_byte = 0 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})",
+          "default": "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 50000000 : nat; get_utxos_cycles_per_ten_instructions = 10 : nat; get_utxos_maximum = 10000000000 : nat; get_balance = 10000000 : nat; get_balance_maximum = 100000000 : nat; get_block_headers_base = 50000000 : nat; get_block_headers_cycles_per_ten_instructions = 10 : nat; get_block_headers_maximum = 10000000000 : nat; get_current_fee_percentiles = 10000000 : nat; get_current_fee_percentiles_maximum = 100000000 : nat; send_transaction_base = 5000000000 : nat; send_transaction_per_byte = 20000000 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})",
           "type": "string"
         },
         "enabled": {
@@ -641,6 +689,7 @@
         "nodes": {
           "title": "Available Nodes",
           "description": "Addresses of nodes to connect to (in case discovery from seeds is not possible/sufficient).",
+          "default": null,
           "type": [
             "array",
             "null"
@@ -690,7 +739,7 @@
           ]
         },
         "packtool": {
-          "description": "Main command to run the packtool.",
+          "description": "Main command to run the packtool. This command is executed in the root of the project.",
           "type": [
             "string",
             "null"
@@ -720,17 +769,17 @@
       }
     },
     "ConfigDefaultsProxy": {
-      "description": "Configuration for icx-proxy.",
+      "description": "Configuration for the HTTP gateway.",
       "type": "object",
-      "required": [
-        "domain"
-      ],
       "properties": {
         "domain": {
           "description": "A list of domains that can be served. These are used for canister resolution [default: localhost]",
-          "allOf": [
+          "anyOf": [
             {
               "$ref": "#/definitions/SerdeVec_for_String"
+            },
+            {
+              "type": "null"
             }
           ]
         }
@@ -920,6 +969,7 @@
         "compute_allocation": {
           "title": "Compute Allocation",
           "description": "Must be a number between 0 and 100, inclusively. It indicates how much compute power should be guaranteed to this canister, expressed as a percentage of the maximum compute power that a single canister can allocate.",
+          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/PossiblyStr_for_uint64"
@@ -932,6 +982,7 @@
         "freezing_threshold": {
           "title": "Freezing Threshold",
           "description": "Freezing threshould of the canister, measured in seconds. Valid inputs are numbers (seconds) or strings parsable by humantime (e.g. \"15days 2min 2s\").",
+          "default": null,
           "type": [
             "string",
             "null"
@@ -939,7 +990,8 @@
         },
         "log_visibility": {
           "title": "Log Visibility",
-          "description": "Specifies who is allowed to read the canister's logs.\n\nCan be \"public\" or \"controllers\".",
+          "description": "Specifies who is allowed to read the canister's logs.\n\nCan be \"public\", \"controllers\" or \"allowed_viewers\" with a list of principals.",
+          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/CanisterLogVisibility"
@@ -952,6 +1004,7 @@
         "memory_allocation": {
           "title": "Memory Allocation",
           "description": "Maximum memory (in bytes) this canister is allowed to occupy. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
+          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/Byte"
@@ -964,6 +1017,7 @@
         "reserved_cycles_limit": {
           "title": "Reserved Cycles Limit",
           "description": "Specifies the upper limit of the canister's reserved cycles balance.\n\nReserved cycles are cycles that the system sets aside for future use by the canister. If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes, the system sets aside some amount of cycles from the main balance of the canister. These reserved cycles will be used to cover future payments for the newly allocated bytes. The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.\n\nA setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.",
+          "default": null,
           "type": [
             "integer",
             "null"
@@ -974,6 +1028,20 @@
         "wasm_memory_limit": {
           "title": "Wasm Memory Limit",
           "description": "Specifies a soft limit (in bytes) on the Wasm memory usage of the canister.\n\nUpdate calls, timers, heartbeats, installs, and post-upgrades fail if the Wasm memory usage exceeds this limit. The main purpose of this setting is to protect against the case when the canister reaches the hard 4GiB limit.\n\nMust be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Byte"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "wasm_memory_threshold": {
+          "title": "Wasm Memory Threshold",
+          "description": "Specifies a threshold (in bytes) on the Wasm memory usage of the canister, as a distance from `wasm_memory_limit`.\n\nWhen the remaining memory before the limit drops below this threshold, its `on_low_wasm_memory` hook will be invoked. This enables it to self-optimize, or raise an alert, or otherwise attempt to prevent itself from reaching `wasm_memory_limit`.\n\nMust be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive. Can be specified as an integer, or as an SI unit string (e.g. \"4KB\", \"2 MiB\")",
+          "default": null,
           "anyOf": [
             {
               "$ref": "#/definitions/Byte"

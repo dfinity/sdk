@@ -3,7 +3,7 @@
 load ../utils/_
 
 setup() {
-  # when running e2e tests not in GitHub CI (so e.g. locally), build icx-proxy and set environment variable
+  # when running e2e tests not in GitHub CI (so e.g. locally), build icx-asset and set environment variable
   if [ -z "$ICX_ASSET" ]; then
     cargo build -p icx-asset
     ICX_ASSET="$(pwd)/target/debug/icx-asset"
@@ -59,8 +59,8 @@ icx_asset_upload() {
   icx_asset_list
 
   assert_match "sample-asset.txt.*text/plain.*identity"
-  assert_match "notreally.js.*application/javascript.*gzip"
-  assert_match "notreally.js.*application/javascript.*identity"
+  assert_match "notreally.js.*text/javascript.*gzip"
+  assert_match "notreally.js.*text/javascript.*identity"
 }
 
 @test "creates new files" {

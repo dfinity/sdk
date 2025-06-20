@@ -12,8 +12,36 @@ teardown() {
   standard_teardown
 }
 
+@test "network-id contains settings digest" {
+  dfx_start
+
+  NETWORK_ID_PATH="$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/network-id"
+  SETTINGS_DIGEST=$(jq -r '.settings_digest' "$NETWORK_ID_PATH")
+  NETWORK_ID_BY_SETTINGS_DIGEST_PATH="$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/$SETTINGS_DIGEST/network-id"
+  assert_command diff "$NETWORK_ID_PATH" "$NETWORK_ID_BY_SETTINGS_DIGEST_PATH"
+}
+
+@test "start and stop" {
+  dfx_start
+  dfx_stop
+
+  dfx_start
+  dfx_stop
+}
+
+@test "start and stop with specified canister id" {
+  dfx_start
+
+  dfx_new hello
+  dfx deploy hello_backend --specified-id gt2iw-kiaaa-aaad7-qaaaa-cai
+
+  dfx_stop
+
+  dfx_start
+  dfx_stop
+}
+
 @test "start and stop with different options" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: artificial delay, and clean required"
   dfx_start --artificial-delay 101
   dfx_stop
 
@@ -23,7 +51,6 @@ teardown() {
 }
 
 @test "project networks still need --clean" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: artificial delay"
   dfx_new hello
   define_project_network
 
@@ -34,7 +61,6 @@ teardown() {
 }
 
 @test "stop and start with other options does not disrupt projects" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: artificial delay"
   dfx_start --artificial-delay 101
 
   dfx_new p1
@@ -52,7 +78,8 @@ teardown() {
 }
 
 @test "start and stop outside project" {
-  dfx_start
+  assert_command dfx_start
+  assert_contains "Replica API running in the background"
 
   mkdir subdir
   cd subdir || exit 1
@@ -87,29 +114,31 @@ teardown() {
   assert_contains "Module hash: None"
 }
 
-
-@test "icx-proxy domain configuration in string form" {
+@test "pocket-ic proxy domain configuration in string form" {
   create_networks_json
   jq '.local.proxy.domain="xyz.domain"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   dfx_start
 
-  assert_command ps aux
-  assert_match "icx-proxy.*--domain xyz.domain"
+  domains="$(curl "http://localhost:$(get_pocketic_port)/http_gateway" \
+    | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
+
+  assert_eq '["xyz.domain"]' "$domains"
 }
 
-@test "icx-proxy domain configuration in vector form" {
+@test "pocket-ic proxy domain configuration in vector form" {
   create_networks_json
   jq '.local.proxy.domain=["xyz.domain", "abc.something"]' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   dfx_start
 
-  assert_command ps aux
-  assert_match "icx-proxy.*--domain xyz.domain"
-  assert_match "icx-proxy.*--domain abc.something"
+  domains="$(curl "http://localhost:$(get_pocketic_port)/http_gateway" \
+    | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
+
+  assert_eq '["abc.something","xyz.domain"]' "$domains"
 }
 
-@test "icx-proxy domain configuration from project defaults" {
+@test "pocket-ic proxy domain configuration from project defaults" {
   dfx_new
   define_project_network
 
@@ -117,21 +146,22 @@ teardown() {
 
   dfx_start
 
-  assert_command ps aux
-  assert_match "icx-proxy.*--domain xyz.domain"
-  assert_match "icx-proxy.*--domain abc.something"
+  domains="$(curl "http://localhost:$(get_pocketic_port)/http_gateway" \
+    | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
+
+  assert_eq '["abc.something","xyz.domain"]' "$domains"
 }
 
-@test "icx-proxy domain configuration from command-line" {
+@test "pocket-ic proxy domain configuration from command-line" {
   dfx_start --domain xyz.domain --domain def.somewhere
 
-  assert_command ps aux
-  assert_match "icx-proxy.*--domain xyz.domain"
-  assert_match "icx-proxy.*--domain def.somewhere"
+  domains="$(curl "http://localhost:$(get_pocketic_port)/http_gateway" \
+    | jq -c ".[] | select(.port == $(get_webserver_port)) | .domains | sort")"
+
+  assert_eq '["def.somewhere","xyz.domain"]' "$domains"
 }
 
-@test "dfx restarts the replica" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: state persistence"
+@test "dfx restarts pocketic" {
   dfx_new hello
   dfx_start
 
@@ -140,107 +170,27 @@ teardown() {
   assert_command dfx canister call hello_backend greet '("Alpha")'
   assert_eq '("Hello, Alpha!")'
 
-  REPLICA_PID=$(get_replica_pid)
-
-  echo "replica pid is $REPLICA_PID"
-
-  kill -KILL "$REPLICA_PID"
-  assert_process_exits "$REPLICA_PID" 15s
-
-  timeout 15s sh -c \
-    'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
-    || (echo "replica did not restart" && ps aux && exit 1)
-  wait_until_replica_healthy
-
-  # Sometimes initially get an error like:
-  #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
-  # but the condition clears.
-  timeout 30s sh -c \
-    "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
-    || (echo "canister call did not succeed") # but continue, for better error reporting
-  # even after the above, still sometimes fails with
-  #     IC0515: Certified state is not available yet. Please try again...
-  sleep 10
-  timeout 30s sh -c \
-    "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
-    || (echo "canister call did not succeed") # but continue, for better error reporting
-
-  assert_command dfx canister call hello_backend greet '("Omega")'
-  assert_eq '("Hello, Omega!")'
-}
-
-@test "dfx restarts pocketic" {
-  [[ "$USE_POCKETIC" ]] || skip "skipped for replica"
-  dfx_start
-
   POCKETIC_PID=$(get_pocketic_pid)
+
   echo "pocketic pid is $POCKETIC_PID"
+
+  curl -X DELETE "http://localhost:$(get_pocketic_port)/instances/0"
   kill -KILL "$POCKETIC_PID"
   assert_process_exits "$POCKETIC_PID" 15s
+
   timeout 15s sh -c \
     'until dfx ping; do echo waiting for pocketic to restart; sleep 1; done' \
     || (echo "pocketic did not restart" && ps aux && exit 1)
-  assert_command wait_until_replica_healthy
-}
-
-@test "dfx restarts icx-proxy" {
-  dfx_new_assets hello
-  dfx_start
-
-  install_asset greet
-  assert_command dfx deploy
-  assert_command dfx canister call hello_backend greet '("Alpha")'
-  assert_eq '("Hello, Alpha!")'
-
-  ICX_PROXY_PID=$(get_icx_proxy_pid)
-
-  echo "icx-proxy pid is $ICX_PROXY_PID"
-
-  kill -KILL "$ICX_PROXY_PID"
-  assert_process_exits "$ICX_PROXY_PID" 15s
-
-  ID=$(dfx canister id hello_frontend)
-
-  timeout 15s sh -c \
-    "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY\"/webserver-port)/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
-    || (echo "icx-proxy did not restart" && ps aux && exit 1)
-
-  assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
-}
-
-@test "dfx restarts icx-proxy when the replica restarts" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: state persistence"
-  dfx_new_assets hello
-  dfx_start
-
-  install_asset greet
-  assert_command dfx deploy
-  assert_command dfx canister call hello_backend greet '("Alpha")'
-  assert_eq '("Hello, Alpha!")'
-
-  REPLICA_PID=$(get_replica_pid)
-  ICX_PROXY_PID=$(get_icx_proxy_pid)
-
-  echo "replica pid is $REPLICA_PID"
-  echo "icx-proxy pid is $ICX_PROXY_PID"
-
-  kill -KILL "$REPLICA_PID"
-  assert_process_exits "$REPLICA_PID" 15s
-  assert_process_exits "$ICX_PROXY_PID" 15s
-
-  timeout 15s sh -c \
-    'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
-    || (echo "replica did not restart" && ps aux && exit 1)
   wait_until_replica_healthy
 
   # Sometimes initially get an error like:
-  #     IC0304: Attempt to execute a message on canister <>> which contains no Wasm module
+  #     IC0537: Attempt to execute a message on canister <>> which contains no Wasm module
   # but the condition clears.
   timeout 30s sh -c \
     "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
     || (echo "canister call did not succeed") # but continue, for better error reporting
   # even after the above, still sometimes fails with
-  #     IC0515: Certified state is not available yet. Please try again...
+  #     IC0208: Certified state is not available yet. Please try again...
   sleep 10
   timeout 30s sh -c \
     "until dfx canister call hello_backend greet '(\"wait\")'; do echo waiting for any canister call to succeed; sleep 1; done" \
@@ -248,132 +198,95 @@ teardown() {
 
   assert_command dfx canister call hello_backend greet '("Omega")'
   assert_eq '("Hello, Omega!")'
-
-  ID=$(dfx canister id hello_frontend)
-
-  timeout 15s sh -c \
-    "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
-    || (echo "icx-proxy did not restart" && ps aux && exit 1)
-
-  assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
 }
 
-@test "dfx restarts icx-proxy when pocketic restarts" {
-  [[ "$USE_POCKETIC" ]] || skip "skipped for replica"
-  dfx_start
-  POCKETIC_PID=$(get_pocketic_pid)
-  ICX_PROXY_PID=$(get_icx_proxy_pid)
-  echo "pocketic pid is $POCKETIC_PID"
-  echo "icx-proxy pid is $ICX_PROXY_PID"
-
-  kill -KILL "$POCKETIC_PID"
-  assert_process_exits "$POCKETIC_PID" 15s
-  assert_process_exits "$ICX_PROXY_PID" 15s
-  
-  timeout 15s sh -c \
-    'until dfx ping; do echo waiting for replica to restart; sleep 1; done' \
-    || (echo "replica did not restart" && ps aux && exit 1)
-  assert_command wait_until_replica_healthy
-  POCKETIC_NETWORK="http://localhost:$(get_pocketic_port)/instances/0/"
-  dfx_new_assets hello
-  assert_command dfx deploy --network "$POCKETIC_NETWORK"
-  ID=$(dfx canister id hello_frontend --network "$POCKETIC_NETWORK")
-
-  timeout 15s sh -c \
-    "until curl --fail http://localhost:\$(cat \"$E2E_SHARED_LOCAL_NETWORK_DATA_DIRECTORY/webserver-port\")/sample-asset.txt?canisterId=$ID; do echo waiting for icx-proxy to restart; sleep 1; done" \
-    || (echo "icx-proxy did not restart" && ps aux && exit 1)
-
-  assert_command curl --fail http://localhost:"$(get_webserver_port)"/sample-asset.txt?canisterId="$ID"
-}
-
-@test "dfx start honors replica port configuration" {
+@test "dfx start honors pocketic port configuration" {
   create_networks_json
-  replica_port=$(get_ephemeral_port)
-  jq ".local.replica.port=$replica_port" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
+  pocketic_port=$(get_ephemeral_port)
+  jq ".local.replica.port=$pocketic_port" "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
   dfx_start
-
-  assert_command dfx info replica-port
-  assert_eq "$replica_port"
+  assert_command dfx info pocketic-config-port
+  assert_eq "$pocketic_port"
 }
 
-@test "dfx starts replica with subnet_type application - project defaults" {
+@test "dfx starts pocketic with subnet type application - project defaults" {
   install_asset subnet_type/project_defaults/application
   define_project_network
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background
-  assert_match "subnet_type: Application"
+  assert_command dfx start --background -v
+  assert_match "subnet type: Application"
 }
 
-@test "dfx starts replica with subnet_type verifiedapplication - project defaults" {
+@test "dfx starts pocketic with subnet type verifiedapplication - project defaults" {
   install_asset subnet_type/project_defaults/verified_application
   define_project_network
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background
-  assert_match "subnet_type: VerifiedApplication"
+  assert_command dfx start --background -v
+  assert_match "subnet type: VerifiedApplication"
 }
 
-@test "dfx starts replica with subnet_type system - project defaults" {
+@test "dfx starts pocketic with subnet type system - project defaults" {
   install_asset subnet_type/project_defaults/system
   define_project_network
   jq '.defaults.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background
-  assert_match "subnet_type: System"
+  assert_command dfx start --background -v
+  assert_match "subnet type: System"
 }
 
-@test "dfx starts replica with subnet_type application - local network" {
+@test "dfx starts pocketic with subnet type application - local network" {
   install_asset subnet_type/project_network_settings/application
   define_project_network
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background
-  assert_match "subnet_type: Application"
+  assert_command dfx start --background -v
+  assert_match "subnet type: Application"
 }
 
-@test "dfx starts replica with subnet_type verifiedapplication - local network" {
+@test "dfx starts pocketic with subnet type verifiedapplication - local network" {
   install_asset subnet_type/project_network_settings/verified_application
   define_project_network
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background
-  assert_match "subnet_type: VerifiedApplication"
+  assert_command dfx start --background -v
+  assert_match "subnet type: VerifiedApplication"
 }
 
-@test "dfx starts replica with subnet_type system - local network" {
+@test "dfx starts pocketic with subnet type system - local network" {
   install_asset subnet_type/project_network_settings/system
   define_project_network
   jq '.networks.local.replica.log_level="info"' dfx.json | sponge dfx.json
 
-  assert_command dfx start --background
-  assert_match "subnet_type: System"
+  assert_command dfx start --background -v
+  assert_match "subnet type: System"
 }
 
 
-@test "dfx starts replica with subnet_type application - shared network" {
+@test "dfx starts pocketic with subnet type application - shared network" {
   install_shared_asset subnet_type/shared_network_settings/application
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
-  assert_command dfx start --background
-  assert_match "subnet_type: Application"
+  assert_command dfx start --background -v
+  assert_match "subnet type: Application"
 }
 
-@test "dfx starts replica with subnet_type verifiedapplication - shared network" {
+@test "dfx starts pocketic with subnet type verifiedapplication - shared network" {
   install_shared_asset subnet_type/shared_network_settings/verified_application
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
-  assert_command dfx start --background
-  assert_match "subnet_type: VerifiedApplication"
+  assert_command dfx start --background -v
+  assert_match "subnet type: VerifiedApplication"
 }
 
-@test "dfx starts replica with subnet_type system - shared network" {
+@test "dfx starts pocketic with subnet type system - shared network" {
   install_shared_asset subnet_type/shared_network_settings/system
   jq '.local.replica.log_level="info"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
 
-  assert_command dfx start --background
-  assert_match "subnet_type: System"
+  assert_command dfx start --background -v
+  assert_match "subnet type: System"
 }
 
 @test "dfx start detects if dfx is already running - shared network" {
@@ -433,7 +346,7 @@ teardown() {
   assert_command dfx stop
 }
 
-@test "dfx starts replica with correct log level - project defaults" {
+@test "dfx starts pocketic with correct log level - project defaults" {
   dfx_new
   jq '.defaults.replica.log_level="warning"' dfx.json | sponge dfx.json
   define_project_network
@@ -447,7 +360,7 @@ teardown() {
   assert_match "log level: Critical"
 }
 
-@test "dfx starts replica with correct log level - local network" {
+@test "dfx starts pocketic with correct log level - local network" {
   dfx_new
   jq '.networks.local.replica.log_level="warning"' dfx.json | sponge dfx.json
   define_project_network
@@ -461,7 +374,7 @@ teardown() {
   assert_match "log level: Critical"
 }
 
-@test "dfx starts replica with correct log level - shared network" {
+@test "dfx starts pocketic with correct log level - shared network" {
   dfx_new
   create_networks_json
   jq '.local.replica.log_level="warning"' "$E2E_NETWORKS_JSON" | sponge "$E2E_NETWORKS_JSON"
@@ -487,7 +400,6 @@ teardown() {
 }
 
 @test "modifying networks.json does not require --clean on restart" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: --force"
   dfx_start
   dfx stop
   assert_command dfx_start
@@ -497,7 +409,6 @@ teardown() {
 }
 
 @test "project-local networks require --clean if dfx.json was updated" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: --force"
   dfx_new
   define_project_network
   dfx_start
@@ -516,7 +427,6 @@ teardown() {
 }
 
 @test "flags count as configuration modification and require --clean for a project network" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: --artificial-delay"
   dfx_new
   define_project_network
 
@@ -540,5 +450,5 @@ teardown() {
 @test "dfx-started processes can be killed with dfx killall" {
     dfx_start
     dfx killall
-    assert_command_fail pgrep dfx replica icx-proxy
+    assert_command_fail pgrep dfx pocket-ic
 }

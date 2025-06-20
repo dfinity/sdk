@@ -1,0 +1,3 @@
+service : {
+  getVersion: () -> (nat) query;
+}

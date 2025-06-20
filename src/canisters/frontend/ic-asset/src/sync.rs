@@ -3,6 +3,7 @@ use crate::asset::config::{
 };
 use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
 use crate::batch_upload::plumbing::ChunkUploader;
+use crate::batch_upload::plumbing::Mode::{ByProposal, NormalDeploy};
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
@@ -30,9 +31,12 @@ use crate::error::SyncError;
 use crate::error::SyncError::CommitBatchFailed;
 use crate::error::UploadContentError;
 use crate::error::UploadContentError::{CreateBatchFailed, ListAssetsFailed};
+use crate::progress::{AssetSyncProgressRenderer, AssetSyncState};
 use candid::Nat;
 use ic_agent::AgentError;
 use ic_utils::Canister;
+use itertools::Itertools;
+use serde_bytes::ByteBuf;
 use slog::{debug, info, trace, warn, Logger};
 use std::collections::HashMap;
 use std::path::Path;
@@ -43,46 +47,75 @@ const KNOWN_DIRECTORIES: [&str; 1] = [".well-known"];
 /// Sets the contents of the asset canister to the contents of a directory, including deleting old assets.
 pub async fn upload_content_and_assemble_sync_operations(
     canister: &Canister<'_>,
+    canister_api_version: u16,
     dirs: &[&Path],
     no_delete: bool,
+    mode: batch_upload::plumbing::Mode,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<CommitBatchArguments, UploadContentError> {
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::GatherAssetDescriptors);
+    }
+
     let asset_descriptors = gather_asset_descriptors(dirs, logger)?;
 
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::ListAssets);
+    }
     let canister_assets = list_assets(canister).await.map_err(ListAssetsFailed)?;
-    info!(
+    debug!(
         logger,
         "Fetching properties for all assets in the canister."
     );
     let now = std::time::Instant::now();
-    let canister_asset_properties = get_assets_properties(canister, &canister_assets).await?;
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::GetAssetProperties);
+    }
+    let canister_asset_properties =
+        get_assets_properties(canister, &canister_assets, progress).await?;
 
-    info!(
+    debug!(
         logger,
-        "Done fetching properties for all assets in the canister. Took {:?}",
+        "Fetched properties for all assets in the canister in {:?}",
         now.elapsed()
     );
 
-    info!(logger, "Starting batch.");
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::CreateBatch);
+    }
 
     let batch_id = create_batch(canister).await.map_err(CreateBatchFailed)?;
 
-    info!(
+    debug!(
         logger,
         "Staging contents of new and changed assets in batch {}:", batch_id
     );
 
-    let chunk_uploader = ChunkUploader::new(canister.clone(), batch_id.clone());
+    let chunk_uploader =
+        ChunkUploader::new(canister.clone(), canister_api_version, batch_id.clone());
+
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::StageContents);
+    }
 
     let project_assets = make_project_assets(
         Some(&chunk_uploader),
         asset_descriptors,
         &canister_assets,
+        mode,
         logger,
+        progress,
     )
-    .await?;
+    .await
+    .map_err(UploadContentError::CreateProjectAssetError)?;
+
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::AssembleBatch);
+    }
 
     let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
+        &chunk_uploader,
         project_assets,
         canister_assets,
         match no_delete {
@@ -91,7 +124,9 @@ pub async fn upload_content_and_assemble_sync_operations(
         },
         canister_asset_properties,
         batch_id,
-    );
+    )
+    .await
+    .map_err(UploadContentError::AssembleCommitBatchArgumentFailed)?;
 
     // -v
     debug!(
@@ -118,27 +153,47 @@ pub async fn sync(
     dirs: &[&Path],
     no_delete: bool,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<(), SyncError> {
-    let commit_batch_args =
-        upload_content_and_assemble_sync_operations(canister, dirs, no_delete, logger).await?;
     let canister_api_version = api_version(canister).await;
+    let commit_batch_args = upload_content_and_assemble_sync_operations(
+        canister,
+        canister_api_version,
+        dirs,
+        no_delete,
+        NormalDeploy,
+        logger,
+        progress,
+    )
+    .await?;
     debug!(logger, "Canister API version: {canister_api_version}. ic-asset API version: {BATCH_UPLOAD_API_VERSION}");
-    info!(logger, "Committing batch.");
+    debug!(logger, "Committing batch.");
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::CommitBatch);
+    }
     match canister_api_version {
         0 => {
             let commit_batch_args_v0 = v0::CommitBatchArguments::try_from(commit_batch_args).map_err(DowngradeV1TOV0Failed)?;
             warn!(logger, "The asset canister is running an old version of the API. It will not be able to set assets properties.");
             commit_batch(canister, commit_batch_args_v0).await
         }
-        BATCH_UPLOAD_API_VERSION.. => commit_in_stages(canister, commit_batch_args, logger).await,
-    }.map_err(CommitBatchFailed)
+        BATCH_UPLOAD_API_VERSION.. => commit_in_stages(canister, commit_batch_args, logger, progress).await,
+    }.map_err(CommitBatchFailed)?;
+    if let Some(progress) = progress {
+        progress.set_state(AssetSyncState::Done);
+    }
+    Ok(())
 }
 
 async fn commit_in_stages(
     canister: &Canister<'_>,
     commit_batch_args: CommitBatchArguments,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<(), AgentError> {
+    if let Some(progress) = progress {
+        progress.set_total_batch_operations(commit_batch_args.operations.len());
+    }
     // Note that SetAssetProperties operations are only generated for assets that
     // already exist, since CreateAsset operations set all properties.
     let (set_properties_operations, other_operations): (Vec<_>, Vec<_>) = commit_batch_args
@@ -148,7 +203,7 @@ async fn commit_in_stages(
 
     // This part seems reasonable in general as a separate batch
     for operations in set_properties_operations.chunks(500) {
-        info!(logger, "Setting properties of {} assets.", operations.len());
+        debug!(logger, "Setting properties of {} assets.", operations.len());
         commit_batch(
             canister,
             CommitBatchArguments {
@@ -156,13 +211,16 @@ async fn commit_in_stages(
                 operations: operations.into(),
             },
         )
-        .await?
+        .await?;
+        if let Some(progress) = progress {
+            progress.add_committed_batch_operations(operations.len());
+        }
     }
 
     // Seen to work at 800 ({"SetAssetContent": 932, "Delete": 47, "CreateAsset": 58})
     // so 500 shouldn't exceed per-message instruction limit
     for operations in other_operations.chunks(500) {
-        info!(
+        debug!(
             logger,
             "Committing batch with {} operations.",
             operations.len()
@@ -174,7 +232,10 @@ async fn commit_in_stages(
                 operations: operations.into(),
             },
         )
-        .await?
+        .await?;
+        if let Some(progress) = progress {
+            progress.add_committed_batch_operations(operations.len());
+        }
     }
 
     // this just deletes the batch
@@ -193,8 +254,19 @@ pub async fn prepare_sync_for_proposal(
     canister: &Canister<'_>,
     dirs: &[&Path],
     logger: &Logger,
-) -> Result<(), PrepareSyncForProposalError> {
-    let arg = upload_content_and_assemble_sync_operations(canister, dirs, false, logger).await?;
+    progress: Option<&dyn AssetSyncProgressRenderer>,
+) -> Result<(Nat, ByteBuf), PrepareSyncForProposalError> {
+    let canister_api_version = api_version(canister).await;
+    let arg = upload_content_and_assemble_sync_operations(
+        canister,
+        canister_api_version,
+        dirs,
+        false,
+        ByProposal,
+        logger,
+        progress,
+    )
+    .await?;
     let arg = sort_batch_operations(arg);
     let batch_id = arg.batch_id.clone();
 
@@ -217,9 +289,9 @@ pub async fn prepare_sync_for_proposal(
         }
     };
 
-    info!(logger, "Proposed commit of batch {} with evidence {}.  Either commit it by proposal, or delete it.", batch_id, hex::encode(evidence));
+    info!(logger, "Proposed commit of batch {} with evidence {}.  Either commit it by proposal, or delete it.", batch_id, hex::encode(&evidence));
 
-    Ok(())
+    Ok((batch_id, evidence))
 }
 
 fn sort_batch_operations(mut args: CommitBatchArguments) -> CommitBatchArguments {
@@ -305,6 +377,77 @@ pub(crate) fn gather_asset_descriptors(
             for rule in rules {
                 warn!(logger, "{}", serde_json::to_string_pretty(&rule).unwrap());
             }
+        }
+
+        let no_policy_assets = asset_descriptors
+            .values()
+            .filter(|asset| asset.config.warn_about_no_security_policy())
+            .collect_vec();
+        if !no_policy_assets.is_empty() {
+            let qnt = if no_policy_assets.len() == asset_descriptors.len() {
+                "any"
+            } else {
+                "some"
+            };
+            warn!(
+                logger,
+                "This project does not define a security policy for {qnt} assets."
+            );
+            warn!(
+                logger,
+                "You should define a security policy in .ic-assets.json5. For example:"
+            );
+            warn!(logger, "[");
+            warn!(logger, "  {{");
+            warn!(logger, r#"    "match": "**/*","#);
+            warn!(logger, r#"    "security_policy": "standard""#);
+            warn!(logger, "  }}");
+            warn!(logger, "]");
+
+            if no_policy_assets.len() != asset_descriptors.len() {
+                warn!(logger, "Assets without any security policy:");
+                for asset in &no_policy_assets {
+                    warn!(logger, "  - {}", asset.key);
+                }
+            }
+        }
+        let standard_policy_assets = asset_descriptors
+            .values()
+            .filter(|asset| asset.config.warn_about_standard_security_policy())
+            .collect_vec();
+        if !standard_policy_assets.is_empty() {
+            let qnt = if standard_policy_assets.len() == asset_descriptors.len() {
+                "all"
+            } else {
+                "some"
+            };
+            warn!(logger, "This project uses the default security policy for {qnt} assets. While it is set up to work with many applications, it is recommended to further harden the policy to increase security against attacks like XSS.");
+            warn!(logger, "To get started, have a look at 'dfx info security-policy'. It shows the default security policy along with suggestions on how to improve it.");
+            if standard_policy_assets.len() != asset_descriptors.len() {
+                warn!(logger, "Unhardened assets:");
+                for asset in &standard_policy_assets {
+                    warn!(logger, "  - {}", asset.key);
+                }
+            }
+        }
+        if !standard_policy_assets.is_empty() || !no_policy_assets.is_empty() {
+            warn!(logger, "To disable the policy warning, define \"disable_security_policy_warning\": true in .ic-assets.json5.");
+        }
+        let missing_hardening_assets = asset_descriptors
+            .values()
+            .filter(|asset| asset.config.warn_about_missing_hardening_headers())
+            .collect_vec();
+        if !missing_hardening_assets.is_empty() {
+            let mut error = String::new();
+            if missing_hardening_assets.len() == asset_descriptors.len() {
+                error.push_str("Unhardened assets: all");
+            } else {
+                error.push_str("Unhardened assets:");
+                for asset in &missing_hardening_assets {
+                    error.push_str(&format!("\n  - {}", asset.key));
+                }
+            }
+            return Err(GatherAssetDescriptorsError::HardenedSecurityPolicyIsNotHardened(error));
         }
     }
     Ok(asset_descriptors.into_values().collect())

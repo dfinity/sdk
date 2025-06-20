@@ -3,6 +3,7 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::nns_types::icpts::ICPTs;
 use crate::lib::operations::canister;
+use crate::lib::operations::canister::skip_remote_canister;
 use crate::lib::root_key::fetch_root_key_or_anyhow;
 use crate::util::clap::parsers::{cycle_amount_parser, e8s_parser, trillion_cycle_amount_parser};
 use crate::util::currency_conversion::as_cycles_with_current_exchange_rate;
@@ -120,8 +121,13 @@ pub async fn exec(env: &dyn Environment, opts: FabricateCyclesOpts) -> DfxResult
         deposit_minted_cycles(env, canister, &CallSender::SelectedId, cycles).await
     } else if opts.all {
         let config = env.get_config_or_anyhow()?;
+
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
+                if skip_remote_canister(env, canister)? {
+                    continue;
+                }
+
                 deposit_minted_cycles(env, canister, &CallSender::SelectedId, cycles).await?;
             }
         }

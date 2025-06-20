@@ -3,55 +3,52 @@ use super::{keyring_mock, WALLET_CONFIG_FILENAME};
 use crate::config::directories::get_user_dfx_config_dir;
 use crate::error::encryption::EncryptionError;
 use crate::error::encryption::EncryptionError::{NonceGenerationFailed, SaltGenerationFailed};
-use crate::error::fs::FsError;
-use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError;
-use crate::error::identity::convert_mnemonic_to_key::ConvertMnemonicToKeyError::DeriveExtendedKeyFromPathFailed;
-use crate::error::identity::create_identity_config::CreateIdentityConfigError;
-use crate::error::identity::create_identity_config::CreateIdentityConfigError::GenerateFreshEncryptionConfigurationFailed;
-use crate::error::identity::create_new_identity::CreateNewIdentityError;
-use crate::error::identity::create_new_identity::CreateNewIdentityError::{
-    CleanupPreviousCreationAttemptsFailed, ConvertSecretKeyToSec1PemFailed,
-    CreateMnemonicFromPhraseFailed, CreateTemporaryIdentityDirectoryFailed,
-    RenameTemporaryIdentityDirectoryFailed, SwitchBackToIdentityFailed,
-    SwitchToAnonymousIdentityFailed,
+use crate::error::fs::ReadDirError;
+use crate::error::identity::{
+    ConvertMnemonicToKeyError,
+    ConvertMnemonicToKeyError::DeriveExtendedKeyFromPathFailed,
+    CreateIdentityConfigError,
+    CreateIdentityConfigError::GenerateFreshEncryptionConfigurationFailed,
+    CreateNewIdentityError,
+    CreateNewIdentityError::{
+        ConvertSecretKeyToSec1PemFailed, CreateMnemonicFromPhraseFailed,
+        CreateTemporaryIdentityDirectoryFailed, SwitchBackToIdentityFailed,
+        SwitchToAnonymousIdentityFailed,
+    },
+    ExportIdentityError,
+    ExportIdentityError::TranslatePemContentToTextFailed,
+    GenerateKeyError,
+    GenerateKeyError::GenerateFreshSecp256k1KeyFailed,
+    GetIdentityConfigOrDefaultError,
+    GetIdentityConfigOrDefaultError::LoadIdentityConfigurationFailed,
+    GetLegacyCredentialsPemPathError,
+    GetLegacyCredentialsPemPathError::GetLegacyPemPathFailed,
+    InitializeIdentityManagerError,
+    InitializeIdentityManagerError::{
+        CreateIdentityDirectoryFailed, GenerateKeyFailed, MigrateLegacyIdentityFailed,
+        WritePemToFileFailed,
+    },
+    InstantiateIdentityFromNameError,
+    InstantiateIdentityFromNameError::{GetIdentityPrincipalFailed, LoadIdentityFailed},
+    LoadIdentityError, NewIdentityManagerError,
+    NewIdentityManagerError::LoadIdentityManagerConfigurationFailed,
+    RemoveIdentityError,
+    RemoveIdentityError::{
+        DisplayLinkedWalletsFailed, DropWalletsFlagRequiredToRemoveIdentityWithWallets,
+        RemoveIdentityDirectoryFailed,
+    },
+    RenameIdentityError,
+    RenameIdentityError::{
+        GetIdentityConfigFailed, LoadPemFailed, MapWalletsToRenamedIdentityFailed, SavePemFailed,
+        SwitchDefaultIdentitySettingsFailed,
+    },
+    RequireIdentityExistsError, SaveIdentityConfigurationError,
+    SaveIdentityConfigurationError::EnsureIdentityConfigurationDirExistsFailed,
+    UseIdentityByNameError,
+    UseIdentityByNameError::WriteDefaultIdentityFailed,
+    WriteDefaultIdentityError,
+    WriteDefaultIdentityError::SaveIdentityManagerConfigurationFailed,
 };
-use crate::error::identity::export_identity::ExportIdentityError;
-use crate::error::identity::export_identity::ExportIdentityError::TranslatePemContentToTextFailed;
-use crate::error::identity::generate_key::GenerateKeyError;
-use crate::error::identity::generate_key::GenerateKeyError::GenerateFreshSecp256k1KeyFailed;
-use crate::error::identity::get_identity_config_or_default::GetIdentityConfigOrDefaultError;
-use crate::error::identity::get_identity_config_or_default::GetIdentityConfigOrDefaultError::LoadIdentityConfigurationFailed;
-use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError;
-use crate::error::identity::get_legacy_credentials_pem_path::GetLegacyCredentialsPemPathError::GetLegacyPemPathFailed;
-use crate::error::identity::initialize_identity_manager::InitializeIdentityManagerError;
-use crate::error::identity::initialize_identity_manager::InitializeIdentityManagerError::{
-    CreateIdentityDirectoryFailed, GenerateKeyFailed, MigrateLegacyIdentityFailed,
-    WritePemToFileFailed,
-};
-use crate::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError;
-use crate::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError::{
-    GetIdentityPrincipalFailed, LoadIdentityFailed,
-};
-use crate::error::identity::load_identity::LoadIdentityError;
-use crate::error::identity::new_identity_manager::NewIdentityManagerError;
-use crate::error::identity::new_identity_manager::NewIdentityManagerError::LoadIdentityManagerConfigurationFailed;
-use crate::error::identity::remove_identity::RemoveIdentityError;
-use crate::error::identity::remove_identity::RemoveIdentityError::{
-    DisplayLinkedWalletsFailed, DropWalletsFlagRequiredToRemoveIdentityWithWallets,
-    RemoveIdentityDirectoryFailed, RemoveIdentityFileFailed,
-};
-use crate::error::identity::rename_identity::RenameIdentityError;
-use crate::error::identity::rename_identity::RenameIdentityError::{
-    GetIdentityConfigFailed, LoadPemFailed, MapWalletsToRenamedIdentityFailed,
-    RenameIdentityDirectoryFailed, SavePemFailed, SwitchDefaultIdentitySettingsFailed,
-};
-use crate::error::identity::require_identity_exists::RequireIdentityExistsError;
-use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError;
-use crate::error::identity::save_identity_configuration::SaveIdentityConfigurationError::EnsureIdentityConfigurationDirExistsFailed;
-use crate::error::identity::use_identity_by_name::UseIdentityByNameError;
-use crate::error::identity::use_identity_by_name::UseIdentityByNameError::WriteDefaultIdentityFailed;
-use crate::error::identity::write_default_identity::WriteDefaultIdentityError;
-use crate::error::identity::write_default_identity::WriteDefaultIdentityError::SaveIdentityManagerConfigurationFailed;
 use crate::error::structured_file::StructuredFileError;
 use crate::foundation::get_user_home;
 use crate::fs::composite::ensure_parent_dir_exists;
@@ -376,8 +373,7 @@ impl IdentityManager {
         let temp_identity_dir = self.get_identity_dir_path(&temp_identity_name);
         if temp_identity_dir.exists() {
             // clean traces from previous identity creation attempts
-            crate::fs::remove_dir_all(&temp_identity_dir)
-                .map_err(CleanupPreviousCreationAttemptsFailed)?;
+            crate::fs::remove_dir_all(&temp_identity_dir)?;
         }
 
         let identity_config;
@@ -447,8 +443,7 @@ impl IdentityManager {
 
         // Everything is created. Now move from the temporary directory to the actual identity location.
         let identity_dir = self.get_identity_dir_path(name);
-        crate::fs::rename(&temp_identity_dir, &identity_dir)
-            .map_err(RenameTemporaryIdentityDirectoryFailed)?;
+        crate::fs::rename(&temp_identity_dir, &identity_dir)?;
 
         if temporarily_use_anonymous_identity {
             self.use_identity_named(log, &identity_in_use)
@@ -458,7 +453,7 @@ impl IdentityManager {
     }
 
     /// Return a sorted list of all available identity names
-    pub fn get_identity_names(&self, log: &Logger) -> Result<Vec<String>, FsError> {
+    pub fn get_identity_names(&self, log: &Logger) -> Result<Vec<String>, ReadDirError> {
         let mut names = crate::fs::read_dir(self.file_locations.root())?
             .filter_map(|entry_result| match entry_result {
                 Ok(dir_entry) => match dir_entry.file_type() {
@@ -581,7 +576,7 @@ impl IdentityManager {
 
         DfxIdentity::map_wallets_to_renamed_identity(project_temp_dir, from, to)
             .map_err(MapWalletsToRenamedIdentityFailed)?;
-        crate::fs::rename(&from_dir, &to_dir).map_err(RenameIdentityDirectoryFailed)?;
+        crate::fs::rename(&from_dir, &to_dir)?;
         if let Some(keyring_identity_suffix) = &identity_config.keyring_identity_suffix {
             debug!(log, "Migrating keyring content.");
             let (pem, _) =
@@ -838,7 +833,7 @@ pub(super) fn save_identity_configuration(
 /// Removes the file if it exists.
 fn remove_identity_file(file: &Path) -> Result<(), RemoveIdentityError> {
     if file.exists() {
-        crate::fs::remove_file(file).map_err(RemoveIdentityFileFailed)?;
+        crate::fs::remove_file(file)?;
     }
     Ok(())
 }

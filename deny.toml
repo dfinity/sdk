@@ -3,12 +3,10 @@
 # we allow more licenses in the build-time check. all rust dependencies are statically linked,
 # so copyleft licenses like MPL which allow static linking are A-OK
 [licenses]
-default = "deny"
-unlicensed = "allow"
-
 allow = [
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
+    "BlueOak-1.0.0",
     "BSD-2-Clause",
     "BSD-3-Clause",
     "CC0-1.0",
@@ -16,14 +14,11 @@ allow = [
     "MIT",
     "MPL-2.0",
     "Zlib",
-    "Unicode-DFS-2016"
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
 ]
 
-deny = [
-    "GPL-1.0",
-    "GPL-2.0",
-    "GPL-3.0",
-]
+unused-allowed-license = "allow"
 
 [sources]
-allow-git = [ "https://github.com/dfinity/agent-rs.git" ]
+allow-git = ["https://github.com/dfinity/agent-rs.git"]

@@ -1,0 +1,338 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExtensionManifest",
+  "type": "object",
+  "required": [
+    "categories",
+    "homepage",
+    "name",
+    "summary",
+    "version"
+  ],
+  "properties": {
+    "authors": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "canister_type": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ExtensionCanisterType"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "dependencies": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {
+        "$ref": "#/definitions/ExtensionDependency"
+      }
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "download_url_template": {
+      "description": "Components of the download url template are: - `{{tag}}`: the tag of the extension release, which will follow the form \"<extension name>-v<extension version>\" - `{{basename}}`: The basename of the release filename, which will follow the form \"<extension name>-<arch>-<platform>\", for example \"nns-x86_64-unknown-linux-gnu\" - `{{archive-format}}`: the format of the archive, for example \"tar.gz\"",
+      "default": "https://github.com/dfinity/dfx-extensions/releases/download/{{tag}}/{{basename}}.{{archive-format}}",
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "homepage": {
+      "type": "string"
+    },
+    "keywords": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "name": {
+      "type": "string"
+    },
+    "project_templates": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": {
+        "$ref": "#/definitions/ExtensionProjectTemplate"
+      }
+    },
+    "subcommands": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/ExtensionSubcommandsOpts"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "summary": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "ArgNumberOfValues": {
+      "oneOf": [
+        {
+          "description": "zero or more values",
+          "type": "object",
+          "required": [
+            "Number"
+          ],
+          "properties": {
+            "Number": {
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "non-inclusive range",
+          "type": "object",
+          "required": [
+            "Range"
+          ],
+          "properties": {
+            "Range": {
+              "$ref": "#/definitions/Range_of_uint"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "description": "unlimited values",
+          "type": "string",
+          "enum": [
+            "Unlimited"
+          ]
+        }
+      ]
+    },
+    "ExtensionCanisterType": {
+      "type": "object",
+      "properties": {
+        "defaults": {
+          "description": "Default values for the canister type. These values are used when the user does not provide values in dfx.json. The \"metadata\" field, if present, is appended to the metadata field from dfx.json, which has the effect of providing defaults. The \"tech_stack field, if present, it merged with the tech_stack field from dfx.json, which also has the effect of providing defaults.",
+          "default": {},
+          "type": "object",
+          "additionalProperties": true
+        },
+        "evaluation_order": {
+          "description": "If one field depends on another and both specify a handlebars expression, list the fields in the order that they should be evaluated.",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ExtensionDependency": {
+      "anyOf": [
+        {
+          "description": "A SemVer version requirement, for example \">=0.17.0\".",
+          "type": "string"
+        }
+      ]
+    },
+    "ExtensionProjectTemplate": {
+      "type": "object",
+      "required": [
+        "category",
+        "display",
+        "post_create",
+        "requirements"
+      ],
+      "properties": {
+        "category": {
+          "description": "Used to determine which CLI group (`--type`, `--backend`, `--frontend`) as well as for interactive selection",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ProjectTemplateCategory"
+            }
+          ]
+        },
+        "display": {
+          "description": "The name used for display and sorting",
+          "type": "string"
+        },
+        "post_create": {
+          "description": "Run a command after adding the canister to dfx.json",
+          "allOf": [
+            {
+              "$ref": "#/definitions/SerdeVec_for_String"
+            }
+          ]
+        },
+        "post_create_failure_warning": {
+          "description": "If the post-create command fails, display this warning but don't fail",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "post_create_spinner_message": {
+          "description": "If set, display a spinner while this command runs",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "requirements": {
+          "description": "Other project templates to patch in alongside this one",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ExtensionSubcommandArgOpts": {
+      "type": "object",
+      "properties": {
+        "about": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "long": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "multiple": {
+          "default": false,
+          "deprecated": true,
+          "type": "boolean"
+        },
+        "short": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1,
+          "minLength": 1
+        },
+        "values": {
+          "default": 1,
+          "allOf": [
+            {
+              "$ref": "#/definitions/ArgNumberOfValues"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ExtensionSubcommandOpts": {
+      "type": "object",
+      "properties": {
+        "about": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "args": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "$ref": "#/definitions/ExtensionSubcommandArgOpts"
+          }
+        },
+        "subcommands": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ExtensionSubcommandsOpts"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ExtensionSubcommandsOpts": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/ExtensionSubcommandOpts"
+      }
+    },
+    "ProjectTemplateCategory": {
+      "type": "string",
+      "enum": [
+        "backend",
+        "frontend",
+        "frontend-test",
+        "extra",
+        "support"
+      ]
+    },
+    "Range_of_uint": {
+      "type": "object",
+      "required": [
+        "end",
+        "start"
+      ],
+      "properties": {
+        "end": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        },
+        "start": {
+          "type": "integer",
+          "format": "uint",
+          "minimum": 0.0
+        }
+      }
+    },
+    "SerdeVec_for_String": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    }
+  }
+}

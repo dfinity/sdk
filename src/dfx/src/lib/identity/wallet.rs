@@ -1,19 +1,16 @@
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::telemetry::Telemetry;
 use crate::util::assets::wallet_wasm;
 use crate::Environment;
 use anyhow::{bail, Context};
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
-use dfx_core::config::directories::get_user_dfx_config_dir;
-use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
+use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::error::canister::CanisterBuilderError;
 use dfx_core::error::wallet_config::WalletConfigError;
-use dfx_core::error::wallet_config::WalletConfigError::{
-    EnsureWalletConfigDirFailed, GetWalletConfigPathFailed, SaveWalletConfigFailed,
-};
-use dfx_core::identity::{Identity, WalletGlobalConfig, WalletNetworkMap, WALLET_CONFIG_FILENAME};
-use dfx_core::json::save_json_file;
+use dfx_core::identity::wallet::{get_wallet_config_path, wallet_canister_id};
+use dfx_core::identity::{Identity, WalletGlobalConfig, WalletNetworkMap};
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
 use ic_utils::interfaces::management_canister::builders::InstallMode;
@@ -63,31 +60,11 @@ pub async fn get_or_create_wallet(
                 })
             }
         }
-        Some(principal) => Ok(principal),
-    }
-}
-
-pub fn get_wallet_config_path(
-    network: &NetworkDescriptor,
-    name: &str,
-) -> Result<PathBuf, WalletConfigError> {
-    Ok(match &network.r#type {
-        NetworkTypeDescriptor::Persistent | NetworkTypeDescriptor::Playground { .. } => {
-            // Using the global
-            get_user_dfx_config_dir()
-                .map_err(|e| {
-                    GetWalletConfigPathFailed(
-                        Box::new(name.to_string()),
-                        Box::new(network.name.clone()),
-                        e,
-                    )
-                })?
-                .join("identity")
-                .join(name)
-                .join(WALLET_CONFIG_FILENAME)
+        Some(principal) => {
+            Telemetry::allowlist_canisters(&[principal]);
+            Ok(principal)
         }
-        NetworkTypeDescriptor::Ephemeral { wallet_config_path } => wallet_config_path.clone(),
-    })
+    }
 }
 
 pub async fn create_wallet(
@@ -99,9 +76,12 @@ pub async fn create_wallet(
     fetch_root_key_if_needed(env).await?;
     let agent = env.get_agent();
     let mgr = ManagementCanister::create(agent);
-    info!(
-        env.get_logger(),
-        "Creating a wallet canister on the {} network.", network.name
+    let spinner = env.new_spinner(
+        format!(
+            "Creating a wallet canister on the {} network.",
+            network.name
+        )
+        .into(),
     );
 
     let wasm = wallet_wasm(env.get_logger())?;
@@ -118,16 +98,22 @@ pub async fn create_wallet(
         }
     };
 
+    Telemetry::allowlist_canisters(&[canister_id]);
+
     match mgr
         .install_code(&canister_id, wasm.as_slice())
         .with_mode(InstallMode::Install)
         .await
     {
-        Err(AgentError::CertifiedReject(RejectResponse {
-            reject_code: RejectCode::CanisterError,
-            reject_message,
+        Err(AgentError::CertifiedReject {
+            reject:
+                RejectResponse {
+                    reject_code: RejectCode::CanisterError,
+                    reject_message,
+                    ..
+                },
             ..
-        })) if reject_message.contains("not empty") => {
+        }) if reject_message.contains("not empty") => {
             bail!(
                 r#"The wallet canister "{canister_id}" already exists for user "{name}" on "{}" network."#,
                 network.name
@@ -144,10 +130,10 @@ pub async fn create_wallet(
         .context("Failed to store wallet wasm.")?;
 
     set_wallet_id(network, name, canister_id)?;
-
+    spinner.finish_and_clear();
     info!(
         env.get_logger(),
-        r#"The wallet canister on the "{}" network for user "{}" is "{}""#,
+        r#"Created a wallet canister on the "{}" network for user "{}" with ID "{}""#,
         network.name,
         name,
         canister_id,
@@ -193,44 +179,8 @@ pub fn set_wallet_id(
 
     network_map.networks.insert(network.name.clone(), id);
 
-    Identity::save_wallet_config(&wallet_path, &config)
-}
-
-#[allow(dead_code)]
-pub fn remove_wallet_id(network: &NetworkDescriptor, name: &str) -> Result<(), WalletConfigError> {
-    let (wallet_path, mut config) = wallet_config(network, name)?;
-    // Update the wallet map in it.
-    let identities = &mut config.identities;
-    let network_map = identities
-        .entry(name.to_string())
-        .or_insert(WalletNetworkMap {
-            networks: BTreeMap::new(),
-        });
-
-    network_map.networks.remove(&network.name);
-
-    dfx_core::fs::composite::ensure_parent_dir_exists(&wallet_path)
-        .map_err(EnsureWalletConfigDirFailed)?;
-
-    save_json_file(&wallet_path, &config).map_err(SaveWalletConfigFailed)
-}
-
-pub fn wallet_canister_id(
-    network: &NetworkDescriptor,
-    name: &str,
-) -> Result<Option<Principal>, WalletConfigError> {
-    let wallet_path = get_wallet_config_path(network, name)?;
-    if !wallet_path.exists() {
-        return Ok(None);
-    }
-
-    let config = Identity::load_wallet_config(&wallet_path)?;
-
-    let maybe_wallet_principal = config
-        .identities
-        .get(name)
-        .and_then(|wallet_network| wallet_network.networks.get(&network.name).cloned());
-    Ok(maybe_wallet_principal)
+    Identity::save_wallet_config(&wallet_path, &config)?;
+    Ok(())
 }
 
 fn wallet_config(

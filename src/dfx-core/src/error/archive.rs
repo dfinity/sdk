@@ -1,7 +1,5 @@
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum ArchiveError {
-    #[error("Failed to read archive path")]
-    ArchiveFileInvalidPath(#[source] std::io::Error),
-}
+#[error("Failed to read archive path")]
+pub struct GetArchivePathError(#[source] pub std::io::Error);

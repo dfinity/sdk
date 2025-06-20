@@ -50,14 +50,17 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
     let blob = async {
         let mut request_accepted = false;
         loop {
-            match agent
+            let (response, _cert) = agent
                 .request_status_raw(&request_id, canister_id)
                 .await
-                .context("Failed to fetch request status.")?
-            {
+                .context("Failed to fetch request status.")?;
+            match response {
                 RequestStatusResponse::Replied(reply) => return Ok(reply.arg),
                 RequestStatusResponse::Rejected(response) => {
-                    return Err(DfxError::new(AgentError::CertifiedReject(response)))
+                    return Err(DfxError::new(AgentError::CertifiedReject {
+                        reject: response,
+                        operation: None,
+                    }))
                 }
                 RequestStatusResponse::Unknown => (),
                 RequestStatusResponse::Received | RequestStatusResponse::Processing => {

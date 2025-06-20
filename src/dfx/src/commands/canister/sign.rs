@@ -2,22 +2,18 @@ use crate::commands::canister::call::get_effective_canister_id;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::get_canister_id_and_candid_path;
-use crate::lib::sign::sign_transport::SignTransport;
 use crate::lib::sign::signed_message::SignedMessageV1;
 use crate::util::clap::argument_from_cli::ArgumentFromCliPositionalOpt;
 use crate::util::{blob_from_arguments, get_candid_type};
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail};
 use candid::Principal;
 use candid_parser::utils::CandidSource;
 use clap::Parser;
 use dfx_core::identity::CallSender;
-use ic_agent::AgentError;
-use ic_agent::RequestId;
+use dfx_core::json::save_json_file;
 use ic_utils::interfaces::management_canister::MgmtMethod;
 use slog::info;
 use std::convert::TryInto;
-use std::fs::File;
-use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::SystemTime;
@@ -118,8 +114,8 @@ pub async fn exec(
     )?;
     let agent = env.get_agent();
 
-    let network = env
-        .get_network_descriptor()
+    let network_descriptor = env.get_network_descriptor();
+    let network = network_descriptor
         .providers
         .first()
         .expect("Cannot get network provider (url).")
@@ -144,6 +140,7 @@ pub async fn exec(
         creation,
         expiration,
         network,
+        network_descriptor.is_ic,
         sender,
         canister_id,
         method_name.to_string(),
@@ -158,9 +155,6 @@ pub async fn exec(
         );
     }
 
-    let mut sign_agent = agent.clone();
-    sign_agent.set_transport(SignTransport::new(file_name.clone(), message_template));
-
     let effective_canister_id = if canister_id == Principal::management_canister() {
         let management_method = MgmtMethod::from_str(method_name).map_err(|_| {
             anyhow!(
@@ -174,57 +168,41 @@ pub async fn exec(
     };
 
     if is_query {
-        let res = sign_agent
+        let signed_query = agent
             .query(&canister_id, method_name)
             .with_effective_canister_id(effective_canister_id)
             .with_arg(arg_value)
             .expire_at(expiration_system_time)
-            .call()
-            .await;
-        match res {
-            Err(AgentError::TransportError(b)) => {
-                info!(log, "{}", b);
-                Ok(())
-            }
-            Err(e) => bail!(e),
-            Ok(_) => unreachable!(),
-        }
+            .sign()?;
+        let message = message_template
+            .clone()
+            .with_call_type("query".to_string())
+            .with_content(hex::encode(signed_query.signed_query));
+        save_json_file(&file_name, &message)?;
+        info!(log, "Query message generated at [{}]", file_name.display());
+        Ok(())
     } else {
-        let res = sign_agent
+        let signed_update = agent
             .update(&canister_id, method_name)
             .with_effective_canister_id(effective_canister_id)
             .with_arg(arg_value)
             .expire_at(expiration_system_time)
-            .call()
-            .await;
-        match res {
-            Err(AgentError::TransportError(b)) => {
-                info!(log, "{}", b);
-                //Ok(())
-            }
-            Err(e) => bail!(e),
-            Ok(_) => unreachable!(),
-        }
-        let path = Path::new(&file_name);
-        let mut file = File::open(path).map_err(|_| anyhow!("Message file doesn't exist."))?;
-        let mut json = String::new();
-        file.read_to_string(&mut json)
-            .map_err(|_| anyhow!("Cannot read the message file."))?;
-        let message: SignedMessageV1 =
-            serde_json::from_str(&json).map_err(|_| anyhow!("Invalid json message."))?;
-        // message from file guaranteed to have request_id becase it is a update message just generated
-        let request_id = RequestId::from_str(&message.request_id.unwrap())
-            .context("Failed to parse request id.")?;
-        let res = sign_agent
-            .request_status_raw(&request_id, canister_id)
-            .await;
-        match res {
-            Err(AgentError::TransportError(b)) => {
-                info!(log, "{}", b);
-                Ok(())
-            }
-            Err(e) => bail!(e),
-            Ok(_) => unreachable!(),
-        }
+            .sign()?;
+        let request_id = signed_update.request_id;
+        let message = message_template
+            .clone()
+            .with_call_type("update".to_string())
+            .with_request_id(request_id)
+            .with_content(hex::encode(&signed_update.signed_update));
+        let signed_request_status = agent.sign_request_status(canister_id, request_id)?;
+        let message = message
+            .with_signed_request_status(hex::encode(signed_request_status.signed_request_status));
+        save_json_file(&file_name, &message)?;
+        info!(
+            log,
+            "Update and request_status message generated at [{}]",
+            file_name.display()
+        );
+        Ok(())
     }
 }

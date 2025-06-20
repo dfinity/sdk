@@ -1,8 +1,7 @@
+use crate::error::identity::{InstantiateIdentityFromNameError, NewIdentityManagerError};
 use crate::error::{
-    identity::instantiate_identity_from_name::InstantiateIdentityFromNameError,
-    identity::new_identity_manager::NewIdentityManagerError, load_dfx_config::LoadDfxConfigError,
-    load_networks_config::LoadNetworksConfigError, network_config::NetworkConfigError,
-    root_key::FetchRootKeyError,
+    load_dfx_config::LoadDfxConfigError, load_networks_config::LoadNetworksConfigError,
+    network_config::NetworkConfigError, root_key::FetchRootKeyError,
 };
 use ic_agent::AgentError;
 use thiserror::Error;

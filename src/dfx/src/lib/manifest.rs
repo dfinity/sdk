@@ -2,10 +2,11 @@ use crate::lib::error::{DfxError, DfxResult};
 use crate::{error_invalid_argument, error_invalid_data};
 use anyhow::Context;
 use fn_error_context::context;
-use indicatif::{ProgressBar, ProgressDrawTarget};
 use semver::Version;
 use serde::{Deserialize, Deserializer};
 use std::collections::BTreeMap;
+
+use super::environment::Environment;
 
 fn parse_semver<'de, D>(version: &str) -> Result<Version, D::Error>
 where
@@ -60,6 +61,7 @@ pub fn is_upgrade_necessary(latest_version: Option<&Version>, current: &Version)
 
 #[context("Failed to fetch latest version.")]
 pub fn get_latest_version(
+    env: &dyn Environment,
     release_root: &str,
     timeout: Option<std::time::Duration>,
 ) -> DfxResult<Version> {
@@ -68,13 +70,8 @@ pub fn get_latest_version(
     let manifest_url = url
         .join("manifest.json")
         .map_err(|e| error_invalid_argument!("invalid manifest URL: {}", e))?;
-    println!("Fetching manifest {}", manifest_url);
 
-    let b = ProgressBar::new_spinner();
-    b.set_draw_target(ProgressDrawTarget::stderr());
-
-    b.set_message("Checking for latest dfx version...");
-    b.enable_steady_tick(80);
+    let b = env.new_spinner("Checking for latest dfx version...".into());
 
     let client = match timeout {
         Some(timeout) => reqwest::blocking::Client::builder().timeout(timeout),
@@ -100,11 +97,13 @@ pub fn get_latest_version(
         .tags
         .get("latest")
         .ok_or_else(|| error_invalid_data!("expected field 'latest' in 'tags'"))
-        .map(|v| v.clone())
+        .cloned()
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::lib::environment::test_env::TestEnv;
+
     use super::*;
 
     const MANIFEST: &str = r#"{
@@ -136,19 +135,20 @@ mod tests {
     #[test]
     fn test_get_latest_version() {
         let _ = env_logger::try_init();
+        let env = TestEnv;
         let _m = mockito::mock("GET", "/manifest.json")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(MANIFEST)
             .create();
-        let latest_version = get_latest_version(&mockito::server_url(), None);
+        let latest_version = get_latest_version(&env, &mockito::server_url(), None);
         assert_eq!(latest_version.unwrap(), Version::parse("0.4.1").unwrap());
         let _m = mockito::mock("GET", "/manifest.json")
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body("Not a valid JSON object")
             .create();
-        let latest_version = get_latest_version(&mockito::server_url(), None);
+        let latest_version = get_latest_version(&env, &mockito::server_url(), None);
         assert!(latest_version.is_err());
     }
 }

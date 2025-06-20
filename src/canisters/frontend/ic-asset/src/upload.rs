@@ -1,5 +1,6 @@
 use crate::asset::config::AssetConfig;
 use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
+use crate::batch_upload::plumbing::Mode::NormalDeploy;
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
@@ -12,8 +13,8 @@ use crate::canister_api::methods::{
 };
 use crate::canister_api::types::batch_upload::v0;
 use crate::error::CompatibilityError::DowngradeV1TOV0Failed;
-use crate::error::UploadError;
-use crate::error::UploadError::{CommitBatchFailed, CreateBatchFailed, ListAssetsFailed};
+use crate::error::UploadError::{self, CommitBatchFailed, CreateBatchFailed, ListAssetsFailed};
+use crate::AssetSyncProgressRenderer;
 use ic_utils::Canister;
 use slog::{info, Logger};
 use std::collections::HashMap;
@@ -24,6 +25,7 @@ pub async fn upload(
     canister: &Canister<'_>,
     files: HashMap<String, PathBuf>,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<(), UploadError> {
     let asset_descriptors: Vec<AssetDescriptor> = files
         .iter()
@@ -39,26 +41,33 @@ pub async fn upload(
     info!(logger, "Starting batch.");
 
     let batch_id = create_batch(canister).await.map_err(CreateBatchFailed)?;
+    let canister_api_version = api_version(canister).await;
 
     info!(logger, "Staging contents of new and changed assets:");
 
-    let chunk_upload_target = ChunkUploader::new(canister.clone(), batch_id.clone());
+    let chunk_upload_target =
+        ChunkUploader::new(canister.clone(), canister_api_version, batch_id.clone());
 
     let project_assets = make_project_assets(
         Some(&chunk_upload_target),
         asset_descriptors,
         &canister_assets,
+        NormalDeploy,
         logger,
+        progress,
     )
     .await?;
 
     let commit_batch_args = batch_upload::operations::assemble_commit_batch_arguments(
+        &chunk_upload_target,
         project_assets,
         canister_assets,
         AssetDeletionReason::Incompatible,
         HashMap::new(),
         batch_id,
-    );
+    )
+    .await
+    .map_err(UploadError::AssembleCommitBatchArgumentFailed)?;
 
     let canister_api_version = api_version(canister).await;
     info!(logger, "Committing batch.");

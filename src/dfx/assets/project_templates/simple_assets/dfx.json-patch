@@ -1,14 +1,14 @@
 [
     {
         "op": "add",
-        "path": "/canisters/{frontend_name}",
+        "path": "/canisters/__frontend_name__",
         "value": {
             "type": "assets",
             "source": [
-                "src/{frontend_name}/assets"
+                "src/__frontend_name__/assets"
             ],
             "dependencies": [
-                "{backend_name}"
+                "__backend_name__"
             ]
         }
     }

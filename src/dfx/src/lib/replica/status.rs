@@ -1,15 +1,11 @@
 use crate::lib::error::DfxResult;
 use anyhow::{bail, Context};
-use ic_agent::agent::http_transport::ReqwestTransport;
 use ic_agent::Agent;
 use std::time::Duration;
 
 pub async fn ping_and_wait(url: &str) -> DfxResult {
     let agent = Agent::builder()
-        .with_transport(
-            ReqwestTransport::create(url)
-                .with_context(|| format!("Failed to create replica transport from url {url}.",))?,
-        )
+        .with_url(url)
         .build()
         .with_context(|| format!("Failed to build agent with url {url}."))?;
     let mut retries = 0;

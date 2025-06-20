@@ -16,35 +16,43 @@ use crate::error::dfx_config::GetRemoteCanisterIdError::GetRemoteCanisterIdFaile
 use crate::error::dfx_config::GetReservedCyclesLimitError::GetReservedCyclesLimitFailed;
 use crate::error::dfx_config::GetSpecifiedIdError::GetSpecifiedIdFailed;
 use crate::error::dfx_config::GetWasmMemoryLimitError::GetWasmMemoryLimitFailed;
+use crate::error::dfx_config::GetWasmMemoryThresholdError::GetWasmMemoryThresholdFailed;
 use crate::error::dfx_config::{
     AddDependenciesError, GetCanisterConfigError, GetCanisterNamesWithDependenciesError,
     GetComputeAllocationError, GetFreezingThresholdError, GetLogVisibilityError,
     GetMemoryAllocationError, GetPullCanistersError, GetRemoteCanisterIdError,
     GetReservedCyclesLimitError, GetSpecifiedIdError, GetWasmMemoryLimitError,
+    GetWasmMemoryThresholdError,
 };
+use crate::error::fs::CanonicalizePathError;
 use crate::error::load_dfx_config::LoadDfxConfigError;
 use crate::error::load_dfx_config::LoadDfxConfigError::{
-    DetermineCurrentWorkingDirFailed, ResolveConfigPathFailed,
+    DetermineCurrentWorkingDirFailed, ResolveConfigPath,
 };
 use crate::error::load_networks_config::LoadNetworksConfigError;
 use crate::error::load_networks_config::LoadNetworksConfigError::{
-    GetConfigPathFailed, LoadConfigFromFileFailed,
+    GetConfigPathFailed as GetNetworkConfigPathFailed,
+    LoadConfigFromFileFailed as LoadNetworkConfigFromFileFailed,
+};
+use crate::error::load_tool_config::ToolConfigError;
+use crate::error::load_tool_config::ToolConfigError::{
+    GetConfigPathFailed as GetToolConfigPathFailed,
+    LoadConfigFromFileFailed as LoadToolConfigFromFileFailed, SaveDefaultConfigFailed,
 };
 use crate::error::socket_addr_conversion::SocketAddrConversionError;
 use crate::error::socket_addr_conversion::SocketAddrConversionError::{
     EmptyIterator, ParseSocketAddrFailed,
 };
 use crate::error::structured_file::StructuredFileError;
-use crate::error::structured_file::StructuredFileError::{
-    DeserializeJsonFileFailed, ReadJsonFileFailed,
-};
+use crate::error::structured_file::StructuredFileError::DeserializeJsonFileFailed;
 use crate::extension::manager::ExtensionManager;
 use crate::fs::create_dir_all;
-use crate::json::save_json_file;
 use crate::json::structure::{PossiblyStr, SerdeVec};
+use crate::json::{load_json_file, save_json_file};
 use crate::util::ByteSchema;
 use byte_unit::Byte;
 use candid::Principal;
+use clap::ValueEnum;
 use ic_utils::interfaces::management_canister::LogVisibility;
 use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
@@ -52,7 +60,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::default::Default;
-use std::fmt;
+use std::fmt::{self, Debug, Display, Formatter};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -112,9 +120,9 @@ pub enum WasmOptLevel {
     Oz,
     Os,
 }
-impl std::fmt::Display for WasmOptLevel {
+impl Display for WasmOptLevel {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        std::fmt::Debug::fmt(self, f)
+        Debug::fmt(self, f)
     }
 }
 
@@ -270,8 +278,15 @@ pub struct ConfigCanistersCanister {
     #[serde(flatten)]
     pub type_specific: CanisterTypeProperties,
 
+    /// # Pre-Install Commands
+    /// One or more commands to run pre canister installation.
+    /// These commands are executed in the root of the project.
+    #[serde(default)]
+    pub pre_install: SerdeVec<String>,
+
     /// # Post-Install Commands
     /// One or more commands to run post canister installation.
+    /// These commands are executed in the root of the project.
     #[serde(default)]
     pub post_install: SerdeVec<String>,
 
@@ -335,12 +350,23 @@ pub enum CanisterTypeProperties {
     /// # Rust-Specific Properties
     Rust {
         /// # Package Name
-        /// Name of the rust package that compiles to this canister's Wasm.
+        /// Name of the Rust package that compiles this canister's Wasm.
         package: String,
+
+        /// # Crate name
+        /// Name of the Rust crate that compiles to this canister's Wasm.
+        /// If left unspecified, defaults to the crate with the same name as the package.
+        #[serde(rename = "crate")]
+        crate_name: Option<String>,
 
         /// # Candid File
         /// Path of this canister's candid interface declaration.
         candid: PathBuf,
+
+        /// # `cargo-audit` check
+        /// If set to true, does not run `cargo audit` before building.
+        #[serde(default)]
+        skip_cargo_audit: bool,
     },
     /// # Asset-Specific Properties
     Assets {
@@ -374,6 +400,7 @@ pub enum CanisterTypeProperties {
         /// Commands that are executed in order to produce this canister's Wasm module.
         /// Expected to produce the Wasm in the path specified by the 'wasm' field.
         /// No build commands are allowed if the `wasm` field is a URL.
+        /// These commands are executed in the root of the project.
         #[schemars(default)]
         build: SerdeVec<String>,
     },
@@ -400,12 +427,14 @@ impl CanisterTypeProperties {
     }
 }
 
-#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "lowercase")]
+#[derive(Clone, Default, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
 pub enum CanisterLogVisibility {
     #[default]
     Controllers,
     Public,
+    #[schemars(with = "Vec::<String>")]
+    AllowedViewers(Vec<Principal>),
 }
 
 impl From<CanisterLogVisibility> for LogVisibility {
@@ -413,6 +442,9 @@ impl From<CanisterLogVisibility> for LogVisibility {
         match value {
             CanisterLogVisibility::Controllers => LogVisibility::Controllers,
             CanisterLogVisibility::Public => LogVisibility::Public,
+            CanisterLogVisibility::AllowedViewers(viewers) => {
+                LogVisibility::AllowedViewers(viewers)
+            }
         }
     }
 }
@@ -465,10 +497,25 @@ pub struct InitializationValues {
     #[schemars(with = "Option<ByteSchema>")]
     pub wasm_memory_limit: Option<Byte>,
 
+    /// # Wasm Memory Threshold
+    ///
+    /// Specifies a threshold (in bytes) on the Wasm memory usage of the canister,
+    /// as a distance from `wasm_memory_limit`.
+    ///
+    /// When the remaining memory before the limit drops below this threshold, its
+    /// `on_low_wasm_memory` hook will be invoked. This enables it to self-optimize,
+    /// or raise an alert, or otherwise attempt to prevent itself from reaching
+    /// `wasm_memory_limit`.
+    ///
+    /// Must be a number of bytes between 0 and 2^48 (i.e. 256 TiB), inclusive.
+    /// Can be specified as an integer, or as an SI unit string (e.g. "4KB", "2 MiB")
+    #[schemars(with = "Option<ByteSchema>")]
+    pub wasm_memory_threshold: Option<Byte>,
+
     /// # Log Visibility
     /// Specifies who is allowed to read the canister's logs.
     ///
-    /// Can be "public" or "controllers".
+    /// Can be "public", "controllers" or "allowed_viewers" with a list of principals.
     #[schemars(with = "Option<CanisterLogVisibility>")]
     pub log_visibility: Option<CanisterLogVisibility>,
 }
@@ -529,7 +576,7 @@ pub fn default_bitcoin_log_level() -> BitcoinAdapterLogLevel {
 }
 
 pub fn default_bitcoin_canister_init_arg() -> String {
-    "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 0 : nat; get_utxos_cycles_per_ten_instructions = 0 : nat; get_utxos_maximum = 0 : nat; get_balance = 0 : nat; get_balance_maximum = 0 : nat; get_current_fee_percentiles = 0 : nat; get_current_fee_percentiles_maximum = 0 : nat;  send_transaction_base = 0 : nat; send_transaction_per_byte = 0 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})".to_string()
+    "(record { stability_threshold = 0 : nat; network = variant { regtest }; blocks_source = principal \"aaaaa-aa\"; fees = record { get_utxos_base = 50000000 : nat; get_utxos_cycles_per_ten_instructions = 10 : nat; get_utxos_maximum = 10000000000 : nat; get_balance = 10000000 : nat; get_balance_maximum = 100000000 : nat; get_block_headers_base = 50000000 : nat; get_block_headers_cycles_per_ten_instructions = 10 : nat; get_block_headers_maximum = 10000000000 : nat; get_current_fee_percentiles = 10000000 : nat; get_current_fee_percentiles_maximum = 100000000 : nat; send_transaction_base = 5000000000 : nat; send_transaction_per_byte = 20000000 : nat; }; syncing = variant { enabled }; api_access = variant { enabled }; disable_api_if_not_fully_synced = variant { enabled }})".to_string()
 }
 
 impl Default for ConfigDefaultsBitcoin {
@@ -612,6 +659,7 @@ impl Default for ConfigDefaultsBootstrap {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsBuild {
     /// Main command to run the packtool.
+    /// This command is executed in the root of the project.
     pub packtool: Option<String>,
 
     /// Arguments for packtool.
@@ -636,7 +684,7 @@ impl Default for ReplicaLogLevel {
 }
 
 impl ReplicaLogLevel {
-    pub fn as_ic_starter_string(&self) -> String {
+    pub fn to_ic_starter_string(&self) -> String {
         match self {
             Self::Critical => "critical".to_string(),
             Self::Error => "error".to_string(),
@@ -644,6 +692,16 @@ impl ReplicaLogLevel {
             Self::Info => "info".to_string(),
             Self::Debug => "debug".to_string(),
             Self::Trace => "trace".to_string(),
+        }
+    }
+    pub fn to_pocketic_string(&self) -> String {
+        match self {
+            Self::Critical => "CRITICAL".to_string(),
+            Self::Error => "ERROR".to_string(),
+            Self::Warning => "WARN".to_string(),
+            Self::Info => "INFO".to_string(),
+            Self::Debug => "DEBUG".to_string(),
+            Self::Trace => "TRACE".to_string(),
         }
     }
 }
@@ -664,11 +722,11 @@ pub struct ConfigDefaultsReplica {
     pub log_level: Option<ReplicaLogLevel>,
 }
 
-/// Configuration for icx-proxy.
+/// Configuration for the HTTP gateway.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct ConfigDefaultsProxy {
     /// A list of domains that can be served. These are used for canister resolution [default: localhost]
-    pub domain: SerdeVec<String>,
+    pub domain: Option<SerdeVec<String>>,
 }
 
 // Schemars doesn't add the enum value's docstrings. Therefore the explanations have to be up here.
@@ -991,6 +1049,17 @@ impl ConfigInterface {
             .wasm_memory_limit)
     }
 
+    pub fn get_wasm_memory_threshold(
+        &self,
+        canister_name: &str,
+    ) -> Result<Option<Byte>, GetWasmMemoryThresholdError> {
+        Ok(self
+            .get_canister_config(canister_name)
+            .map_err(|e| GetWasmMemoryThresholdFailed(canister_name.to_string(), e))?
+            .initialization_values
+            .wasm_memory_threshold)
+    }
+
     pub fn get_log_visibility(
         &self,
         canister_name: &str,
@@ -1000,6 +1069,7 @@ impl ConfigInterface {
             .map_err(|e| GetLogVisibilityFailed(canister_name.to_string(), e))?
             .initialization_values
             .log_visibility
+            .clone()
             .map(|visibility| visibility.into()))
     }
 
@@ -1084,8 +1154,8 @@ pub struct Config {
 
 #[allow(dead_code)]
 impl Config {
-    fn resolve_config_path(working_dir: &Path) -> Result<Option<PathBuf>, LoadDfxConfigError> {
-        let mut curr = crate::fs::canonicalize(working_dir).map_err(ResolveConfigPathFailed)?;
+    fn resolve_config_path(working_dir: &Path) -> Result<Option<PathBuf>, CanonicalizePathError> {
+        let mut curr = crate::fs::canonicalize(working_dir)?;
         while curr.parent().is_some() {
             if curr.join(CONFIG_FILE_NAME).is_file() {
                 return Ok(Some(curr.join(CONFIG_FILE_NAME)));
@@ -1106,7 +1176,7 @@ impl Config {
         path: &Path,
         extension_manager: Option<&ExtensionManager>,
     ) -> Result<Config, LoadDfxConfigError> {
-        let content = crate::fs::read(path).map_err(LoadDfxConfigError::ReadFile)?;
+        let content = crate::fs::read(path)?;
         Config::from_slice(path.to_path_buf(), &content, extension_manager)
     }
 
@@ -1114,7 +1184,7 @@ impl Config {
         working_dir: &Path,
         extension_manager: Option<&ExtensionManager>,
     ) -> Result<Option<Config>, LoadDfxConfigError> {
-        let path = Config::resolve_config_path(working_dir)?;
+        let path = Config::resolve_config_path(working_dir).map_err(ResolveConfigPath)?;
         path.map(|path| Config::from_file(&path, extension_manager))
             .transpose()
     }
@@ -1194,10 +1264,8 @@ impl Config {
                     let p = self.get_project_root().join(p);
 
                     // cannot canonicalize a path that doesn't exist, but the parent should exist
-                    let env_parent =
-                        crate::fs::parent(&p).map_err(GetOutputEnvFileError::Parent)?;
-                    let env_parent = crate::fs::canonicalize(&env_parent)
-                        .map_err(GetOutputEnvFileError::Canonicalize)?;
+                    let env_parent = crate::fs::parent(&p)?;
+                    let env_parent = crate::fs::canonicalize(&env_parent)?;
                     if !env_parent.starts_with(self.get_project_root()) {
                         Err(GetOutputEnvFileError::OutputEnvFileMustBeInProjectRoot(p))
                     } else {
@@ -1240,6 +1308,8 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         let mut wasm = None;
         let mut candid = None;
         let mut package = None;
+        let mut skip_cargo_audit = None;
+        let mut crate_name = None;
         let mut source = None;
         let mut build = None;
         let mut r#type = None;
@@ -1248,6 +1318,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
         while let Some(key) = map.next_key::<String>()? {
             match &*key {
                 "package" => package = Some(map.next_value()?),
+                "crate" => crate_name = Some(map.next_value()?),
                 "source" => source = Some(map.next_value()?),
                 "candid" => candid = Some(map.next_value()?),
                 "build" => build = Some(map.next_value()?),
@@ -1255,6 +1326,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
                 "type" => r#type = Some(map.next_value::<String>()?),
                 "id" => id = Some(map.next_value()?),
                 "workspace" => workspace = Some(map.next_value()?),
+                "skip_cargo_audit" => skip_cargo_audit = Some(map.next_value()?),
                 _ => continue,
             }
         }
@@ -1263,6 +1335,8 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
             Some("rust") => CanisterTypeProperties::Rust {
                 candid: PathBuf::from(candid.ok_or_else(|| missing_field("candid"))?),
                 package: package.ok_or_else(|| missing_field("package"))?,
+                skip_cargo_audit: skip_cargo_audit.unwrap_or(false),
+                crate_name,
             },
             Some("assets") => CanisterTypeProperties::Assets {
                 source: source.ok_or_else(|| missing_field("source"))?,
@@ -1287,7 +1361,7 @@ impl<'de> Visitor<'de> for PropertiesVisitor {
 pub struct NetworksConfig {
     path: PathBuf,
     json: Value,
-    // public interface to the networsk config:
+    // public interface to the networks config:
     networks_config: NetworksConfigInterface,
 }
 
@@ -1300,11 +1374,11 @@ impl NetworksConfig {
     }
 
     pub fn new() -> Result<NetworksConfig, LoadNetworksConfigError> {
-        let dir = get_user_dfx_config_dir().map_err(GetConfigPathFailed)?;
+        let dir = get_user_dfx_config_dir().map_err(GetNetworkConfigPathFailed)?;
 
         let path = dir.join("networks.json");
         if path.exists() {
-            NetworksConfig::from_file(&path).map_err(LoadConfigFromFileFailed)
+            NetworksConfig::from_file(&path).map_err(LoadNetworkConfigFromFileFailed)
         } else {
             Ok(NetworksConfig {
                 path,
@@ -1317,7 +1391,7 @@ impl NetworksConfig {
     }
 
     fn from_file(path: &Path) -> Result<NetworksConfig, StructuredFileError> {
-        let content = crate::fs::read(path).map_err(ReadJsonFileFailed)?;
+        let content = crate::fs::read(path)?;
 
         let networks: BTreeMap<String, ConfigNetwork> = serde_json::from_slice(&content)
             .map_err(|e| DeserializeJsonFileFailed(Box::new(path.to_path_buf()), e))?;
@@ -1330,6 +1404,105 @@ impl NetworksConfig {
             json,
             networks_config,
         })
+    }
+}
+
+pub struct ToolConfig {
+    path: PathBuf,
+    json: Value,
+    tool_config: ToolConfigInterface,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+pub struct ToolConfigInterface {
+    pub telemetry: TelemetryState,
+}
+
+impl ToolConfig {
+    pub fn path(&self) -> &PathBuf {
+        &self.path
+    }
+    pub fn interface(&self) -> &ToolConfigInterface {
+        &self.tool_config
+    }
+
+    pub fn interface_mut(&mut self) -> &mut ToolConfigInterface {
+        &mut self.tool_config
+    }
+
+    pub fn new() -> Result<Self, ToolConfigError> {
+        let dir = get_user_dfx_config_dir().map_err(GetToolConfigPathFailed)?;
+
+        let path = dir.join("config.json");
+        if path.exists() {
+            Self::from_file(&path).map_err(LoadToolConfigFromFileFailed)
+        } else {
+            let default = Self {
+                path,
+                json: Default::default(),
+                tool_config: ToolConfigInterface {
+                    telemetry: TelemetryState::On,
+                },
+            };
+            default.save()?;
+            Ok(default)
+        }
+    }
+
+    pub fn save(&self) -> Result<(), ToolConfigError> {
+        self.save_to_file(&self.path)
+            .map_err(SaveDefaultConfigFailed)
+    }
+
+    pub fn config_path(&self) -> &Path {
+        &self.path
+    }
+
+    fn from_file(path: &Path) -> Result<Self, StructuredFileError> {
+        let json: Value = load_json_file(path)?;
+        let tool_config: ToolConfigInterface = serde_json::from_value(json.clone())
+            .map_err(|e| DeserializeJsonFileFailed(Box::new(path.to_path_buf()), e))?;
+        let path = PathBuf::from(path);
+        Ok(Self {
+            path,
+            json,
+            tool_config,
+        })
+    }
+
+    fn save_to_file(&self, path: &Path) -> Result<(), StructuredFileError> {
+        save_json_file(path, &self.tool_config)?;
+        Ok(())
+    }
+}
+
+#[derive(Serialize, Deserialize, Copy, Clone, JsonSchema, PartialEq, Eq, ValueEnum)]
+#[serde(rename_all = "snake_case")]
+pub enum TelemetryState {
+    On,
+    Off,
+    Local,
+}
+
+impl TelemetryState {
+    pub fn should_collect(&self) -> bool {
+        *self != TelemetryState::Off
+    }
+    pub fn should_publish(&self) -> bool {
+        *self == TelemetryState::On
+    }
+}
+
+impl Display for TelemetryState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(
+            match self {
+                Self::On => "on",
+                Self::Off => "off",
+                Self::Local => "local",
+            },
+            f,
+        )
     }
 }
 

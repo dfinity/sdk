@@ -1,0 +1,21 @@
+{
+    "version": 1,
+    "canisters": {
+        "can1": {
+            "type": "rust",
+            "package": "can1",
+            "candid": "interface.did"
+        },
+        "can2": {
+            "type": "rust",
+            "package": "can2",
+            "candid": "interface.did"
+        },
+        "can3": {
+            "type": "rust",
+            "package": "can2",
+            "crate": "can3",
+            "candid": "interface.did"
+        }
+    }
+}

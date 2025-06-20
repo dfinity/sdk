@@ -1,15 +1,17 @@
+use crate::lib::canister_logs::log_visibility::LogVisibilityOpt;
 use crate::lib::deps::get_pull_canisters_in_config;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
     get_compute_allocation, get_freezing_threshold, get_log_visibility, get_memory_allocation,
-    get_reserved_cycles_limit, get_wasm_memory_limit, CanisterSettings,
+    get_reserved_cycles_limit, get_wasm_memory_limit, get_wasm_memory_threshold, CanisterSettings,
 };
-use crate::lib::operations::canister::create_canister;
+use crate::lib::operations::canister::{create_canister, skip_remote_canister};
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, log_visibility_parser,
-    memory_allocation_parser, reserved_cycles_limit_parser, wasm_memory_limit_parser,
+    memory_allocation_parser, principal_parser, reserved_cycles_limit_parser,
+    wasm_memory_limit_parser,
 };
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionOpt;
@@ -17,7 +19,7 @@ use anyhow::{bail, Context};
 use byte_unit::Byte;
 use candid::Principal as CanisterId;
 use clap::{ArgAction, Parser};
-use dfx_core::error::identity::instantiate_identity_from_name::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
+use dfx_core::error::identity::InstantiateIdentityFromNameError::GetIdentityPrincipalFailed;
 use dfx_core::identity::CallSender;
 use ic_agent::Identity as _;
 use ic_utils::interfaces::management_canister::LogVisibility;
@@ -90,10 +92,27 @@ pub struct CanisterCreateOpts {
     #[arg(long, value_parser = wasm_memory_limit_parser, hide = true)]
     wasm_memory_limit: Option<Byte>,
 
+    /// Specifies a threshold (in bytes) on the Wasm memory usage of the canister,
+    /// as a distance from `wasm_memory_limit`.
+    ///
+    /// When the remaining memory before the limit drops below this threshold, its
+    /// `on_low_wasm_memory` hook will be invoked. This enables it to self-optimize,
+    /// or raise an alert, or otherwise attempt to prevent itself from reaching
+    /// `wasm_memory_limit`.
+    ///
+    /// Must be a number between 0 B and 256 TiB, inclusive. Can include units, e.g. "4KiB".
+    #[arg(long, value_parser = wasm_memory_limit_parser)]
+    wasm_memory_threshold: Option<Byte>,
+
     /// Specifies who is allowed to read the canister's logs.
     /// Can be either "controllers" or "public".
-    #[arg(long, value_parser = log_visibility_parser)]
+    #[arg(long, value_parser = log_visibility_parser, conflicts_with("log_viewer"))]
     log_visibility: Option<LogVisibility>,
+
+    /// Specifies the the principal of the log viewer of the canister.
+    /// Can be specified more than once.
+    #[arg(long, action = ArgAction::Append, value_parser = principal_parser, conflicts_with("log_visibility"))]
+    log_viewer: Option<Vec<candid::Principal>>,
 
     /// Performs the call with the user Identity as the Sender of messages.
     /// Bypasses the Wallet canister.
@@ -201,8 +220,16 @@ pub async fn exec(
             Some(canister_name),
         )
         .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
+        let wasm_memory_threshold = get_wasm_memory_threshold(
+            opts.wasm_memory_threshold,
+            Some(config_interface),
+            Some(canister_name),
+        )
+        .with_context(|| format!("Failed to read Wasm memory threshold of {canister_name}."))?;
         let log_visibility = get_log_visibility(
-            opts.log_visibility,
+            env,
+            LogVisibilityOpt::from(&opts.log_visibility, &opts.log_viewer).as_ref(),
+            None,
             Some(config_interface),
             Some(canister_name),
         )
@@ -222,6 +249,7 @@ pub async fn exec(
                 freezing_threshold,
                 reserved_cycles_limit,
                 wasm_memory_limit,
+                wasm_memory_threshold,
                 log_visibility,
             },
             opts.created_at_time,
@@ -236,15 +264,7 @@ pub async fn exec(
                 if pull_canisters_in_config.contains_key(canister_name) {
                     continue;
                 }
-                let canister_is_remote =
-                    config_interface.is_remote_canister(canister_name, &network.name)?;
-                if canister_is_remote {
-                    info!(
-                        env.get_logger(),
-                        "Skipping canister '{canister_name}' because it is remote for network '{}'",
-                        &network.name,
-                    );
-
+                if skip_remote_canister(env, canister_name)? {
                     continue;
                 }
                 let specified_id = config_interface.get_specified_id(canister_name)?;
@@ -284,8 +304,18 @@ pub async fn exec(
                     Some(canister_name),
                 )
                 .with_context(|| format!("Failed to read Wasm memory limit of {canister_name}."))?;
+                let wasm_memory_threshold = get_wasm_memory_threshold(
+                    opts.wasm_memory_threshold,
+                    Some(config_interface),
+                    Some(canister_name),
+                )
+                .with_context(|| {
+                    format!("Failed to read Wasm memory threshold of {canister_name}.")
+                })?;
                 let log_visibility = get_log_visibility(
-                    opts.log_visibility,
+                    env,
+                    LogVisibilityOpt::from(&opts.log_visibility, &opts.log_viewer).as_ref(),
+                    None,
                     Some(config_interface),
                     Some(canister_name),
                 )
@@ -305,6 +335,7 @@ pub async fn exec(
                         freezing_threshold,
                         reserved_cycles_limit,
                         wasm_memory_limit,
+                        wasm_memory_threshold,
                         log_visibility,
                     },
                     opts.created_at_time,

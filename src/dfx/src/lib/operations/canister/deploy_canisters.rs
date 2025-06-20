@@ -13,6 +13,7 @@ use crate::lib::operations::canister::motoko_playground::reserve_canister_with_p
 use crate::lib::operations::canister::{
     all_project_canisters_with_ids, create_canister, install_canister::install_canister,
 };
+use crate::util::clap::install_mode::InstallModeHint;
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
@@ -23,7 +24,7 @@ use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::{
     ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit,
 };
-use ic_utils::interfaces::management_canister::builders::{InstallMode, WasmMemoryLimit};
+use ic_utils::interfaces::management_canister::builders::WasmMemoryLimit;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::info;
 use std::convert::TryFrom;
@@ -45,6 +46,7 @@ pub async fn deploy_canisters(
     argument: Option<&str>,
     argument_type: Option<&str>,
     deploy_mode: &DeployMode,
+    mode_hint: &InstallModeHint,
     upgrade_unchanged: bool,
     with_cycles: Option<u128>,
     created_at_time: Option<u64>,
@@ -115,7 +117,7 @@ pub async fn deploy_canisters(
         register_canisters(
             env,
             &canisters_to_deploy,
-            &initial_canister_id_store,
+            initial_canister_id_store,
             with_cycles,
             specified_id_from_cli,
             call_sender,
@@ -143,15 +145,13 @@ pub async fn deploy_canisters(
 
     match deploy_mode {
         NormalDeploy | ForceReinstallSingleCanister(_) => {
-            let force_reinstall = matches!(deploy_mode, ForceReinstallSingleCanister(_));
             install_canisters(
                 env,
                 &canisters_to_install,
-                &initial_canister_id_store,
                 &config,
                 argument,
                 argument_type,
-                force_reinstall,
+                mode_hint,
                 upgrade_unchanged,
                 call_sender,
                 pool,
@@ -164,11 +164,11 @@ pub async fn deploy_canisters(
             info!(log, "Deployed canisters.");
         }
         PrepareForProposal(canister_name) => {
-            prepare_assets_for_commit(env, &initial_canister_id_store, &config, canister_name)
+            prepare_assets_for_commit(env, initial_canister_id_store, &config, canister_name)
                 .await?
         }
         ComputeEvidence(canister_name) => {
-            compute_evidence(env, &initial_canister_id_store, &config, canister_name).await?
+            compute_evidence(env, initial_canister_id_store, &config, canister_name).await?
         }
     }
 
@@ -210,12 +210,13 @@ async fn register_canisters(
     if canisters_to_create.is_empty() {
         info!(env.get_logger(), "All canisters have already been created.");
     } else if env.get_network_descriptor().is_playground() {
-        info!(env.get_logger(), "Reserving canisters in playground...");
+        let spinner = env.new_spinner("Reserving canisters in playground...".into());
         for canister_name in &canisters_to_create {
             reserve_canister_with_playground(env, canister_name).await?;
         }
+        spinner.finish_and_clear();
     } else {
-        info!(env.get_logger(), "Creating canisters...");
+        let spinner = env.new_spinner("Creating canisters...".into());
         for canister_name in &canisters_to_create {
             let config_interface = config.get_config();
             let compute_allocation = config_interface
@@ -277,6 +278,7 @@ async fn register_canisters(
                     freezing_threshold,
                     reserved_cycles_limit,
                     wasm_memory_limit,
+                    wasm_memory_threshold: None,
                     log_visibility,
                 },
                 created_at_time,
@@ -284,6 +286,7 @@ async fn register_canisters(
             )
             .await?;
         }
+        spinner.finish_and_clear();
     }
     Ok(())
 }
@@ -296,16 +299,17 @@ async fn build_canisters(
     config: &Config,
     env_file: Option<PathBuf>,
 ) -> DfxResult<CanisterPool> {
-    let log = env.get_logger();
-    info!(log, "Building canisters...");
+    let spinner = env.new_spinner("Building canisters...".into());
     let build_mode_check = false;
     let canister_pool = CanisterPool::load(env, build_mode_check, canisters_to_load)?;
 
-    let build_config =
-        BuildConfig::from_config(config, env.get_network_descriptor().is_playground())?
-            .with_canisters_to_build(canisters_to_build.into())
-            .with_env_file(env_file);
-    canister_pool.build_or_fail(log, &build_config).await?;
+    let build_config = BuildConfig::from_config(config)?
+        .with_canisters_to_build(canisters_to_build.into())
+        .with_env_file(env_file);
+    canister_pool
+        .build_or_fail(env, env.get_logger(), &build_config)
+        .await?;
+    spinner.finish_and_clear();
     Ok(canister_pool)
 }
 
@@ -313,11 +317,10 @@ async fn build_canisters(
 async fn install_canisters(
     env: &dyn Environment,
     canister_names: &[String],
-    initial_canister_id_store: &CanisterIdStore,
     config: &Config,
     argument: Option<&str>,
     argument_type: Option<&str>,
-    force_reinstall: bool,
+    mode_hint: &InstallModeHint,
     upgrade_unchanged: bool,
     call_sender: &CallSender,
     pool: CanisterPool,
@@ -326,32 +329,23 @@ async fn install_canisters(
     no_asset_upgrade: bool,
     always_assist: bool,
 ) -> DfxResult {
-    info!(env.get_logger(), "Installing canisters...");
+    let spinner = env.new_spinner("Installing canisters...".into());
 
-    let mut canister_id_store = env.get_canister_id_store()?;
+    let canister_id_store = env.get_canister_id_store()?;
 
     for canister_name in canister_names {
-        let install_mode = if force_reinstall {
-            Some(InstallMode::Reinstall)
-        } else {
-            match initial_canister_id_store.find(canister_name) {
-                Some(_) => None,
-                None => Some(InstallMode::Install),
-            }
-        };
-
         let canister_id = canister_id_store.get(canister_name)?;
         let canister_info = CanisterInfo::load(config, canister_name, Some(canister_id))?;
 
         install_canister(
             env,
-            &mut canister_id_store,
+            canister_id_store,
             canister_id,
             &canister_info,
             None,
             argument,
             argument_type,
-            install_mode,
+            mode_hint,
             call_sender,
             upgrade_unchanged,
             Some(&pool),
@@ -362,7 +356,7 @@ async fn install_canisters(
         )
         .await?;
     }
-
+    spinner.finish_and_clear();
     Ok(())
 }
 
@@ -385,7 +379,7 @@ async fn prepare_assets_for_commit(
 
     let agent = env.get_agent();
 
-    prepare_assets_for_proposal(&canister_info, agent, env.get_logger()).await?;
+    prepare_assets_for_proposal(&canister_info, agent, env).await?;
 
     Ok(())
 }
@@ -423,7 +417,8 @@ async fn compute_evidence(
         .build()
         .context("Failed to build asset canister caller.")?;
 
-    let evidence = ic_asset::compute_evidence(&canister, &source_paths, env.get_logger()).await?;
+    let evidence =
+        ic_asset::compute_evidence(&canister, &source_paths, env.get_logger(), None).await?;
     println!("{}", evidence);
 
     Ok(())

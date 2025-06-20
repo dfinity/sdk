@@ -300,3 +300,21 @@ ic-stable-structures"
   assert_command jq -r '.tech_stack.cdk."ic-cdk" | keys[]' e2e_project_backend.json
   assert_eq "version"
 }
+
+# shellcheck disable=SC2154
+@test "tech stack value generation uses project root as working directory" {
+  dfx_new
+  install_asset metadata/tech_stack
+
+  dfx_start
+
+
+  # m exposes other->command->working-directory
+
+  cd src/e2e_project_backend || exit
+  assert_command dfx deploy m
+  assert_command dfx canister metadata m dfx
+  echo "$stdout" > m.json
+  assert_command jq -r '.tech_stack.other.command.cwd' m.json
+  assert_match ".*/working-dir/e2e_project$"
+}

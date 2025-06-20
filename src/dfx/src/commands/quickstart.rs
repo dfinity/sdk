@@ -7,7 +7,7 @@ use crate::{
         agent::create_agent_environment,
         environment::Environment,
         error::DfxResult,
-        identity::wallet::{set_wallet_id, wallet_canister_id},
+        identity::wallet::set_wallet_id,
         ledger_types::Memo,
         nns_types::{
             account_identifier::AccountIdentifier,
@@ -24,12 +24,12 @@ use crate::{
 use anyhow::{bail, Context};
 use candid::Principal;
 use clap::Parser;
+use dfx_core::identity::wallet::wallet_canister_id;
 use dialoguer::{Confirm, Input};
 use ic_agent::Agent;
 use ic_utils::interfaces::{
     management_canister::builders::InstallMode, ManagementCanister, WalletCanister,
 };
-use indicatif::ProgressBar;
 use num_traits::Inv;
 use rust_decimal::Decimal;
 use slog::Logger;
@@ -152,22 +152,21 @@ async fn step_deploy_wallet(
         eprintln!("Run this command again at any time to continue from here.");
         return Ok(());
     }
-    let wallet = step_interact_ledger(agent, env.get_logger(), ident_principal, rounded).await?;
+    let wallet =
+        step_interact_ledger(env, agent, env.get_logger(), ident_principal, rounded).await?;
     step_finish_wallet(env, agent, wallet, ident).await?;
     Ok(())
 }
 
 async fn step_interact_ledger(
+    env: &dyn Environment,
     agent: &Agent,
     logger: &Logger,
     ident_principal: Principal,
     to_spend: Decimal,
 ) -> DfxResult<Principal> {
-    let send_spinner = ProgressBar::new_spinner();
-    send_spinner.set_message(format!(
-        "Sending {to_spend:.8} ICP to the cycles minting canister..."
-    ));
-    send_spinner.enable_steady_tick(100);
+    let send_spinner = env
+        .new_spinner(format!("Sending {to_spend:.8} ICP to the cycles minting canister...").into());
     let icpts = ICPTs::from_decimal(to_spend)?;
     let height = transfer_cmc(
         agent,
@@ -181,12 +180,9 @@ async fn step_interact_ledger(
     )
     .await
     .context("Failed to transfer to the cycles minting canister")?;
-    send_spinner.finish_with_message(format!(
-        "Sent {icpts} to the cycles minting canister at height {height}"
-    ));
-    let notify_spinner = ProgressBar::new_spinner();
-    notify_spinner.set_message("Notifying the cycles minting canister...");
-    notify_spinner.enable_steady_tick(100);
+    send_spinner.finish_and_clear();
+    eprintln!("Sent {icpts} to the cycles minting canister at height {height}");
+    let notify_spinner = env.new_spinner("Notifying the cycles minting canister...".into());
     let res = notify_create(
         agent,
         ident_principal,
@@ -210,9 +206,8 @@ async fn step_interact_ledger(
         Err(err) => Err(err),
     }.with_context(|| format!("Failed to notify the CMC of the transfer. Write down that height ({height}), and once the error is fixed, use `dfx ledger notify create-canister`."))?;
 
-    notify_spinner.finish_with_message(format!(
-        "Created wallet canister with principal ID {wallet}"
-    ));
+    notify_spinner.finish_and_clear();
+    eprintln!("Created wallet canister with principal ID {wallet}");
     Ok(wallet)
 }
 
@@ -222,15 +217,14 @@ async fn step_finish_wallet(
     wallet: Principal,
     ident: &str,
 ) -> DfxResult {
-    let install_spinner = ProgressBar::new_spinner();
-    install_spinner.set_message("Installing the wallet code to the canister...");
-    install_spinner.enable_steady_tick(100);
+    let install_spinner = env.new_spinner("Installing the wallet code to the canister...".into());
     install_wallet(env, agent, wallet, InstallMode::Install)
         .await
         .context("Failed to install the wallet code to the canister")?;
     set_wallet_id(env.get_network_descriptor(), ident, wallet)
         .context("Failed to record the wallet's principal as your associated wallet")?;
-    install_spinner.finish_with_message("Installed the wallet code to the canister");
+    install_spinner.finish_and_clear();
+    eprintln!("Installed the wallet code to the canister",);
     eprintln!("Success! Run this command again at any time to print all this information again.");
     Ok(())
 }

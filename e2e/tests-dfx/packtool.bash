@@ -50,6 +50,25 @@ teardown() {
   assert_eq '("php: No comment.")'
 }
 
+@test "project calls packtool in project root" {
+  install_asset packtool
+  # shellcheck disable=SC1091
+  source configure_packtool.bash
+
+  dfx_start
+
+  cd vessel || exit
+  dfx canister create --all
+  dfx build
+  dfx canister install e2e_project_backend
+
+  assert_command dfx canister call e2e_project_backend rate '("rust")'
+  assert_eq '("rust: So hot right now.")'
+
+  assert_command dfx canister call e2e_project_backend rate '("php")'
+  assert_eq '("php: No comment.")'
+}
+
 @test "failure to invoke the package tool reports the command line and reason" {
   install_asset packtool
   jq '.defaults.build.packtool="./no-such-command that command cannot be invoked"' dfx.json | sponge dfx.json

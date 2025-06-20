@@ -94,3 +94,11 @@ teardown() {
   assert_contains "dfx;nns;install"
   assert_contains "dfx;help;sns;deploy"
 }
+
+@test "completion scripts include built-in project template names" {
+  assert_command dfx completion bash
+  assert_contains "motoko"
+  assert_contains "sveltekit"
+  assert_contains "bitcoin"
+  assert_contains "frontend-tests"
+}

@@ -35,6 +35,22 @@ teardown() {
   assert_command_fail dfx new 'a:b'
 }
 
+@test "dfx new --help shows possible backend template names" {
+  assert_command dfx new --help
+  assert_match "\[possible values.*motoko.*\]"
+  assert_match "\[possible values.*rust.*\]"
+  assert_match "\[possible values.*kybra.*\]"
+  assert_match "\[possible values.*azle.*\]"
+}
+
+@test "dfx new --type <bad type> shows possible values" {
+  assert_command_fail dfx new --type bad_type
+  assert_match "\[possible values.*motoko.*\]"
+  assert_match "\[possible values.*rust.*\]"
+  assert_match "\[possible values.*kybra.*\]"
+  assert_match "\[possible values.*azle.*\]"
+}
+
 @test "dfx new readmes contain appropriate links" {
   assert_command dfx new --type rust e2e_rust --no-frontend
   assert_command grep "https://docs.rs/ic-cdk" e2e_rust/README.md
@@ -49,6 +65,11 @@ teardown() {
   assert_command dfx new --type motoko e2e_motoko --no-frontend
   assert_command jq -r '.canisters.e2e_motoko_backend.type' e2e_motoko/dfx.json
   assert_eq "motoko"
+}
+
+@test "checks for frontend test compatibility before writing base files" {
+  assert_command_fail dfx new broken --type rust --no-frontend --extras frontend-tests
+  assert_directory_not_exists broken
 }
 
 @test "frontend templates apply successfully" {

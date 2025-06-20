@@ -8,7 +8,7 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::dfx::DfxMetadata;
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE, DFX};
 use crate::lib::wasm::file::{compress_bytes, read_wasm_module};
-use crate::util::assets;
+use crate::util::{assets, with_suspend_all_spinners};
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use candid_parser::utils::CandidSource;
@@ -56,24 +56,35 @@ impl Canister {
         }
     }
 
-    pub fn prebuild(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
-        self.builder.prebuild(pool, &self.info, build_config)
+    pub fn prebuild(
+        &self,
+        env: &dyn Environment,
+        pool: &CanisterPool,
+        build_config: &BuildConfig,
+    ) -> DfxResult {
+        self.builder.prebuild(env, pool, &self.info, build_config)
     }
 
     pub fn build(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         build_config: &BuildConfig,
     ) -> DfxResult<&BuildOutput> {
-        let output = self.builder.build(pool, &self.info, build_config)?;
+        let output = self.builder.build(env, pool, &self.info, build_config)?;
 
         // Ignore the old output, and return a reference.
         let _ = self.output.replace(Some(output));
         Ok(self.get_build_output().unwrap())
     }
 
-    pub fn postbuild(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
-        self.builder.postbuild(pool, &self.info, build_config)
+    pub fn postbuild(
+        &self,
+        env: &dyn Environment,
+        pool: &CanisterPool,
+        build_config: &BuildConfig,
+    ) -> DfxResult {
+        self.builder.postbuild(env, pool, &self.info, build_config)
     }
 
     pub fn get_name(&self) -> &str {
@@ -104,13 +115,21 @@ impl Canister {
     }
 
     #[context("Failed while trying to generate type declarations for '{}'.", self.info.get_name())]
-    pub fn generate(&self, pool: &CanisterPool, build_config: &BuildConfig) -> DfxResult {
-        self.builder.generate(pool, &self.info, build_config)
+    pub fn generate(
+        &self,
+        env: &dyn Environment,
+        logger: &Logger,
+        pool: &CanisterPool,
+        build_config: &BuildConfig,
+    ) -> DfxResult {
+        self.builder
+            .generate(env, logger, pool, &self.info, build_config)
     }
 
     #[context("Failed to post-process wasm of canister '{}'.", self.info.get_name())]
     pub(crate) fn wasm_post_process(
         &self,
+        env: &dyn Environment,
         logger: &Logger,
         build_output: &BuildOutput,
     ) -> DfxResult {
@@ -134,14 +153,8 @@ impl Canister {
         // optimize or shrink
         if let Some(level) = info.get_optimize() {
             trace!(logger, "Optimizing Wasm at level {}", level);
-            ic_wasm::optimize::optimize(
-                &mut m,
-                &wasm_opt_level_convert(level),
-                false,
-                &None,
-                false,
-            )
-            .context("Failed to optimize the Wasm module.")?;
+            ic_wasm::optimize::optimize(&mut m, &wasm_opt_level_convert(level), false, &None, true)
+                .context("Failed to optimize the Wasm module.")?;
             modified = true;
         } else if info.get_shrink() == Some(true)
             || (info.get_shrink().is_none() && (info.is_rust() || info.is_motoko()))
@@ -175,7 +188,7 @@ impl Canister {
 
         if let Some(tech_stack_config) = info.get_tech_stack() {
             set_dfx_metadata = true;
-            dfx_metadata.set_tech_stack(tech_stack_config, info.get_workspace_root())?;
+            dfx_metadata.set_tech_stack(env, tech_stack_config, info.get_workspace_root())?;
         } else if info.is_rust() {
             // TODO: remove this when we have rust extension
             set_dfx_metadata = true;
@@ -192,7 +205,7 @@ impl Canister {
                 }
             }"#;
             let tech_stack_config: TechStack = serde_json::from_str(s)?;
-            dfx_metadata.set_tech_stack(&tech_stack_config, info.get_workspace_root())?;
+            dfx_metadata.set_tech_stack(env, &tech_stack_config, info.get_workspace_root())?;
         } else if info.is_motoko() {
             // TODO: remove this when we have motoko extension
             set_dfx_metadata = true;
@@ -202,7 +215,7 @@ impl Canister {
                 }
             }"#;
             let tech_stack_config: TechStack = serde_json::from_str(s)?;
-            dfx_metadata.set_tech_stack(&tech_stack_config, info.get_workspace_root())?;
+            dfx_metadata.set_tech_stack(env, &tech_stack_config, info.get_workspace_root())?;
         }
 
         if set_dfx_metadata {
@@ -288,6 +301,7 @@ impl Canister {
         // If not modified and not set "gzip" explicitly, copy the wasm file directly so that hash match.
         if !modified && !info.get_gzip() {
             dfx_core::fs::copy(build_output_wasm_path, &wasm_path)?;
+            dfx_core::fs::set_permissions_readwrite(&wasm_path)?;
             return Ok(());
         }
 
@@ -444,7 +458,7 @@ pub struct CanisterPool {
 struct PoolConstructHelper<'a> {
     config: &'a Config,
     builder_pool: BuilderPool,
-    canister_id_store: CanisterIdStore,
+    canister_id_store: &'a CanisterIdStore,
     generate_cid: bool,
     canisters_map: &'a mut Vec<Arc<Canister>>,
 }
@@ -527,29 +541,84 @@ impl CanisterPool {
         &self.logger
     }
 
+    /// Builds a dependency graph for the given canisters.
+    /// Only canisters in `canisters_to_build` and their dependencies will be
+    /// included in the graph.
     #[context("Failed to build dependencies graph for canister pool.")]
-    fn build_dependencies_graph(&self) -> DfxResult<DiGraph<CanisterId, ()>> {
+    fn build_dependencies_graph(
+        &self,
+        env: &dyn Environment,
+        canisters_to_build: Vec<&Canister>,
+    ) -> DfxResult<DiGraph<CanisterId, ()>> {
         let mut graph: DiGraph<CanisterId, ()> = DiGraph::new();
-        let mut id_set: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
 
-        // Add all the canisters as nodes.
-        for canister in &self.canisters {
-            let canister_id = canister.info.get_canister_id()?;
-            id_set.insert(canister_id, graph.add_node(canister_id));
+        /// Recursive function that does the actual work of adding the canister
+        /// and its dependencies to the graph.
+        /// This is separate from the top-level function so that the top-level
+        /// function can be called without worrying about the implementation
+        /// details.
+        ///
+        /// Returns the index of the canister's graph node.
+        fn add_canister_and_dependencies_to_graph(
+            env: &dyn Environment,
+            canister_pool: &CanisterPool,
+            canister: &Canister,
+            graph: &mut DiGraph<CanisterId, ()>,
+            canister_id_to_canister: &BTreeMap<CanisterId, &Canister>,
+            canister_id_to_index: &mut BTreeMap<CanisterId, NodeIndex<u32>>,
+        ) -> DfxResult<NodeIndex> {
+            let canister_id = canister.canister_id();
+
+            // If this canister has already been visited, return its index. Its
+            // dependencies were already added on a previous visit.
+            if let Some(node_ix) = canister_id_to_index.get(&canister_id) {
+                return Ok(*node_ix);
+            }
+            // Otherwise, add it to the graph.
+            let node_ix = graph.add_node(canister_id);
+            canister_id_to_index.insert(canister_id, node_ix);
+
+            let deps = canister
+                .builder
+                .get_dependencies(env, canister_pool, &canister.info)?;
+
+            for dependency_id in deps {
+                let dependency = canister_id_to_canister.get(&dependency_id).ok_or_else(|| {
+                    DfxError::new(BuildError::DependencyError(format!(
+                        "Canister '{}' depends on canister '{}' which does not exist.",
+                        canister.info.get_name(),
+                        dependency_id.to_text()
+                    )))
+                })?;
+                let dependency_index = add_canister_and_dependencies_to_graph(
+                    env,
+                    canister_pool,
+                    dependency,
+                    graph,
+                    canister_id_to_canister,
+                    canister_id_to_index,
+                )?;
+                graph.add_edge(node_ix, dependency_index, ());
+            }
+
+            Ok(node_ix)
         }
 
-        // Add all the edges.
-        for canister in &self.canisters {
-            let canister_id = canister.canister_id();
-            let canister_info = &canister.info;
-            let deps = canister.builder.get_dependencies(self, canister_info)?;
-            if let Some(node_ix) = id_set.get(&canister_id) {
-                for d in deps {
-                    if let Some(dep_ix) = id_set.get(&d) {
-                        graph.add_edge(*node_ix, *dep_ix, ());
-                    }
-                }
-            }
+        let mut canister_id_to_index: BTreeMap<CanisterId, NodeIndex<u32>> = BTreeMap::new();
+        let canister_id_to_canister = self
+            .canisters
+            .iter()
+            .map(|c| (c.canister_id(), c.as_ref()))
+            .collect::<BTreeMap<CanisterId, &Canister>>();
+        for canister in canisters_to_build {
+            add_canister_and_dependencies_to_graph(
+                env,
+                self,
+                canister,
+                &mut graph,
+                &canister_id_to_canister,
+                &mut canister_id_to_index,
+            )?;
         }
 
         // Verify the graph has no cycles.
@@ -571,7 +640,12 @@ impl CanisterPool {
     }
 
     #[context("Failed step_prebuild_all.")]
-    fn step_prebuild_all(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
+    fn step_prebuild_all(
+        &self,
+        env: &dyn Environment,
+        log: &Logger,
+        build_config: &BuildConfig,
+    ) -> DfxResult<()> {
         // moc expects all .did files of dependencies to be in <output_idl_path> with name <canister id>.did.
         // Because some canisters don't get built these .did files have to be copied over manually.
         for canister in self.canisters.iter().filter(|c| {
@@ -581,39 +655,31 @@ impl CanisterPool {
                 .map(|cans| !cans.iter().contains(&c.get_name().to_string()))
                 .unwrap_or(false)
         }) {
-            let maybe_from = if let Some(remote_candid) = canister.info.get_remote_candid() {
-                Some(remote_candid)
-            } else {
-                canister.info.get_output_idl_path()
-            };
-            if let Some(from) = maybe_from.as_ref() {
-                if from.exists() {
-                    let to = build_config.idl_root.join(format!(
-                        "{}.did",
-                        canister.info.get_canister_id()?.to_text()
-                    ));
-                    trace!(
-                        log,
-                        "Copying .did for canister {} from {} to {}.",
-                        canister.info.get_name(),
-                        from.to_string_lossy(),
-                        to.to_string_lossy()
-                    );
-                    dfx_core::fs::composite::ensure_parent_dir_exists(&to)?;
-                    dfx_core::fs::copy(from, &to)?;
-                    dfx_core::fs::set_permissions_readwrite(&to)?;
-                } else {
-                    warn!(
-                        log,
-                        ".did file for canister '{}' does not exist.",
-                        canister.get_name(),
-                    );
-                }
+            let from = canister
+                .info
+                .get_remote_candid()
+                .unwrap_or_else(|| canister.info.get_output_idl_path().to_path_buf());
+
+            if from.exists() {
+                let to = build_config.idl_root.join(format!(
+                    "{}.did",
+                    canister.info.get_canister_id()?.to_text()
+                ));
+                trace!(
+                    log,
+                    "Copying .did for canister {} from {} to {}.",
+                    canister.info.get_name(),
+                    from.to_string_lossy(),
+                    to.to_string_lossy()
+                );
+                dfx_core::fs::composite::ensure_parent_dir_exists(&to)?;
+                dfx_core::fs::copy(&from, &to)?;
+                dfx_core::fs::set_permissions_readwrite(&to)?;
             } else {
                 warn!(
                     log,
-                    "Canister '{}' has no .did file configured.",
-                    canister.get_name()
+                    ".did file for canister '{}' does not exist.",
+                    canister.get_name(),
                 );
             }
         }
@@ -622,44 +688,51 @@ impl CanisterPool {
         if self
             .canisters_to_build(build_config)
             .iter()
-            .any(|can| can.info.is_rust())
+            .any(|can| can.info.should_cargo_audit())
         {
-            self.run_cargo_audit()?;
+            self.run_cargo_audit(env)?;
         } else {
             trace!(
                 self.logger,
-                "No canister of type 'rust' found. Not trying to run 'cargo audit'."
+                "No canister of type 'rust' found (or it disabled the audit step). Not trying to run 'cargo audit'."
             )
         }
 
         Ok(())
     }
 
-    fn step_prebuild(&self, build_config: &BuildConfig, canister: &Canister) -> DfxResult<()> {
-        canister.prebuild(self, build_config)
+    fn step_prebuild(
+        &self,
+        env: &dyn Environment,
+        build_config: &BuildConfig,
+        canister: &Canister,
+    ) -> DfxResult<()> {
+        canister.prebuild(env, self, build_config)
     }
 
     fn step_build<'a>(
         &self,
+        env: &dyn Environment,
         build_config: &BuildConfig,
         canister: &'a Canister,
     ) -> DfxResult<&'a BuildOutput> {
-        canister.build(self, build_config)
+        canister.build(env, self, build_config)
     }
 
     fn step_postbuild(
         &self,
+        env: &dyn Environment,
         build_config: &BuildConfig,
         canister: &Canister,
         build_output: &BuildOutput,
     ) -> DfxResult<()> {
         canister.candid_post_process(self.get_logger(), build_config, build_output)?;
 
-        canister.wasm_post_process(self.get_logger(), build_output)?;
+        canister.wasm_post_process(env, self.get_logger(), build_output)?;
 
         build_canister_js(&canister.canister_id(), &canister.info)?;
 
-        canister.postbuild(self, build_config)
+        canister.postbuild(env, self, build_config)
     }
 
     fn step_postbuild_all(
@@ -685,13 +758,15 @@ impl CanisterPool {
     #[context("Failed while trying to build all canisters in the canister pool.")]
     pub fn build(
         &self,
+        env: &dyn Environment,
         log: &Logger,
         build_config: &BuildConfig,
     ) -> DfxResult<Vec<Result<&BuildOutput, BuildError>>> {
-        self.step_prebuild_all(log, build_config)
+        self.step_prebuild_all(env, log, build_config)
             .map_err(|e| DfxError::new(BuildError::PreBuildAllStepFailed(Box::new(e))))?;
 
-        let graph = self.build_dependencies_graph()?;
+        let canisters_to_build = self.canisters_to_build(build_config);
+        let graph = self.build_dependencies_graph(env, canisters_to_build.clone())?;
         let nodes = petgraph::algo::toposort(&graph, None).map_err(|cycle| {
             let message = match graph.node_weight(cycle.node_id()) {
                 Some(canister_id) => match self.get_canister_info(canister_id) {
@@ -717,13 +792,13 @@ impl CanisterPool {
                     .map(|c| c.get_name())
                     .contains(&canister.get_name())
                 {
-                    trace!(log, "Building canister '{}'.", canister.get_name());
+                    info!(log, "Building canister '{}'.", canister.get_name());
                 } else {
                     trace!(log, "Not building canister '{}'.", canister.get_name());
                     continue;
                 }
                 result.push(
-                    self.step_prebuild(build_config, canister)
+                    self.step_prebuild(env, build_config, canister)
                         .map_err(|e| {
                             BuildError::PreBuildStepFailed(
                                 *canister_id,
@@ -732,7 +807,7 @@ impl CanisterPool {
                             )
                         })
                         .and_then(|_| {
-                            self.step_build(build_config, canister).map_err(|e| {
+                            self.step_build(env, build_config, canister).map_err(|e| {
                                 BuildError::BuildStepFailed(
                                     *canister_id,
                                     canister.get_name().to_string(),
@@ -741,7 +816,7 @@ impl CanisterPool {
                             })
                         })
                         .and_then(|o| {
-                            self.step_postbuild(build_config, canister, o)
+                            self.step_postbuild(env, build_config, canister, o)
                                 .map_err(|e| {
                                     BuildError::PostBuildStepFailed(
                                         *canister_id,
@@ -764,9 +839,14 @@ impl CanisterPool {
     /// Build all canisters, failing with the first that failed the build. Will return
     /// nothing if all succeeded.
     #[context("Failed while trying to build all canisters.")]
-    pub async fn build_or_fail(&self, log: &Logger, build_config: &BuildConfig) -> DfxResult<()> {
-        self.download(build_config).await?;
-        let outputs = self.build(log, build_config)?;
+    pub async fn build_or_fail(
+        &self,
+        env: &dyn Environment,
+        log: &Logger,
+        build_config: &BuildConfig,
+    ) -> DfxResult<()> {
+        self.download().await?;
+        let outputs = self.build(env, log, build_config)?;
 
         for output in outputs {
             output.map_err(DfxError::new)?;
@@ -775,8 +855,8 @@ impl CanisterPool {
         Ok(())
     }
 
-    async fn download(&self, build_config: &BuildConfig) -> DfxResult {
-        for canister in self.canisters_to_build(build_config) {
+    async fn download(&self) -> DfxResult {
+        for canister in self.canisters.iter() {
             let info = canister.get_info();
 
             if info.is_custom() {
@@ -787,7 +867,7 @@ impl CanisterPool {
     }
 
     /// If `cargo-audit` is installed this runs `cargo audit` and displays any vulnerable dependencies.
-    fn run_cargo_audit(&self) -> DfxResult {
+    fn run_cargo_audit(&self, env: &dyn Environment) -> DfxResult {
         let location = Command::new("cargo")
             .args(["locate-project", "--message-format=plain", "--workspace"])
             .output()
@@ -822,12 +902,14 @@ impl CanisterPool {
                 self.logger,
                 "Checking for vulnerabilities in rust canisters."
             );
-            let out = Command::new("cargo")
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .arg("audit")
-                .output()
-                .context("Failed to run 'cargo audit'.")?;
+            let out = with_suspend_all_spinners(env, || {
+                Command::new("cargo")
+                    .stdout(Stdio::inherit())
+                    .stderr(Stdio::inherit())
+                    .arg("audit")
+                    .output()
+                    .context("Failed to run 'cargo audit'.")
+            })?;
             if out.status.success() {
                 info!(self.logger, "Audit found no vulnerabilities.")
             } else {
@@ -839,14 +921,15 @@ impl CanisterPool {
         Ok(())
     }
 
-    pub fn canisters_to_build(&self, build_config: &BuildConfig) -> Vec<&Arc<Canister>> {
+    pub fn canisters_to_build(&self, build_config: &BuildConfig) -> Vec<&Canister> {
         if let Some(canister_names) = &build_config.canisters_to_build {
             self.canisters
                 .iter()
                 .filter(|can| canister_names.contains(&can.info.get_name().to_string()))
+                .map(Arc::as_ref)
                 .collect()
         } else {
-            self.canisters.iter().collect()
+            self.canisters.iter().map(Arc::as_ref).collect()
         }
     }
 }

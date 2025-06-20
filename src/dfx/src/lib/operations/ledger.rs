@@ -1,5 +1,10 @@
+use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::ledger_types::{AccountIdBlob, BlockHeight, Memo, TransferError};
 use crate::lib::nns_types::account_identifier::Subaccount;
+use crate::lib::operations::{
+    ICRC1_BALANCE_OF_METHOD, ICRC1_TRANSFER_METHOD, ICRC2_ALLOWANCE_METHOD, ICRC2_APPROVE_METHOD,
+    ICRC2_TRANSFER_FROM_METHOD,
+};
 use crate::lib::{
     error::DfxResult,
     ledger_types::{
@@ -8,10 +13,11 @@ use crate::lib::{
     },
     nns_types::{account_identifier::AccountIdentifier, icpts::ICPTs},
 };
-use anyhow::{bail, ensure, Context};
+use anyhow::{anyhow, bail, ensure, Context};
 use backoff::backoff::Backoff;
+use backoff::future::retry;
 use backoff::ExponentialBackoff;
-use candid::{Decode, Encode, Principal};
+use candid::{Decode, Encode, Nat, Principal};
 use fn_error_context::context;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::agent_error::HttpErrorPayload;
@@ -20,10 +26,17 @@ use ic_agent::{
     lookup_value, Agent, AgentError,
 };
 use ic_utils::{call::SyncCall, Canister};
+use icrc_ledger_types::icrc1;
+use icrc_ledger_types::icrc1::transfer::BlockIndex;
+use icrc_ledger_types::icrc1::transfer::TransferError as ICRC1TransferError;
+use icrc_ledger_types::icrc2;
+use icrc_ledger_types::icrc2::allowance::Allowance;
+use icrc_ledger_types::icrc2::approve::ApproveError;
+use icrc_ledger_types::icrc2::transfer_from::TransferFromError;
 use slog::{info, Logger};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const ACCOUNT_BALANCE_METHOD: &str = "account_balance_dfx";
+const ACCOUNT_BALANCE_METHOD: &str = "account_balance";
 const TRANSFER_METHOD: &str = "transfer";
 
 pub async fn balance(
@@ -39,11 +52,31 @@ pub async fn balance(
     let (result,) = canister
         .query(ACCOUNT_BALANCE_METHOD)
         .with_arg(AccountBalanceArgs {
-            account: acct.to_string(),
+            account: acct.to_address(),
         })
         .build()
         .call()
         .await?;
+    Ok(result)
+}
+
+pub async fn icrc1_balance(
+    agent: &Agent,
+    canister_id: &Principal,
+    owner: icrc1::account::Account,
+) -> DfxResult<u128> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(*canister_id)
+        .build()?;
+
+    let (result,) = canister
+        .query(ICRC1_BALANCE_OF_METHOD)
+        .with_arg(owner)
+        .build()
+        .call()
+        .await?;
+
     Ok(result)
 }
 
@@ -142,6 +175,12 @@ pub async fn transfer(
                         info!(logger, "{}", TransferError::TxDuplicate { duplicate_of });
                         break duplicate_of;
                     }
+                    Err(TransferError::InsufficientFunds { balance }) => {
+                        return Err(anyhow!(TransferError::InsufficientFunds { balance }))
+                            .with_context(|| {
+                                diagnose_insufficient_funds_error(agent, from_subaccount)
+                            });
+                    }
                     Err(transfer_err) => bail!(transfer_err),
                 }
             }
@@ -164,13 +203,252 @@ pub async fn transfer(
     Ok(block_height)
 }
 
+pub async fn icrc1_transfer(
+    agent: &Agent,
+    logger: &Logger,
+    canister_id: &Principal,
+    from_subaccount: Option<icrc1::account::Subaccount>,
+    to: icrc1::account::Account,
+    amount: ICPTs,
+    fee: Option<ICPTs>,
+    memo: Option<u64>,
+    created_at_time: u64,
+) -> DfxResult<BlockIndex> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(*canister_id)
+        .build()?;
+
+    let retry_policy = ExponentialBackoff::default();
+
+    let block_index = retry(retry_policy, || async {
+        let arg = icrc1::transfer::TransferArg {
+            from_subaccount,
+            to,
+            fee: fee.map(|value| Nat::from(value.get_e8s())),
+            created_at_time: Some(created_at_time),
+            memo: memo.map(|v| v.into()),
+            amount: Nat::from(amount.get_e8s()),
+        };
+        match canister
+            .update(ICRC1_TRANSFER_METHOD)
+            .with_arg(arg)
+            .build()
+            .map(|result: (Result<BlockIndex, ICRC1TransferError>,)| (result.0,))
+            .await
+            .map(|(result,)| result)
+        {
+            Ok(Ok(block_index)) => Ok(block_index),
+            Ok(Err(ICRC1TransferError::Duplicate { duplicate_of })) => {
+                info!(
+                    logger,
+                    "{}",
+                    ICRC1TransferError::Duplicate {
+                        duplicate_of: duplicate_of.clone()
+                    }
+                );
+                Ok(duplicate_of)
+            }
+            Ok(Err(transfer_err)) => Err(backoff::Error::permanent(anyhow!(transfer_err))),
+            Err(agent_err) if retryable(&agent_err) => {
+                Err(backoff::Error::transient(anyhow!(agent_err)))
+            }
+            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+        }
+    })
+    .await?;
+
+    Ok(block_index)
+}
+
+pub async fn icrc2_transfer_from(
+    agent: &Agent,
+    logger: &Logger,
+    canister_id: &Principal,
+    spender_subaccount: Option<icrc1::account::Subaccount>,
+    from: icrc1::account::Account,
+    to: icrc1::account::Account,
+    amount: ICPTs,
+    fee: Option<ICPTs>,
+    created_at_time: u64,
+    memo: Option<u64>,
+) -> DfxResult<BlockIndex> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(*canister_id)
+        .build()?;
+
+    let retry_policy = ExponentialBackoff::default();
+
+    let block_index = retry(retry_policy, || async {
+        let arg = icrc2::transfer_from::TransferFromArgs {
+            spender_subaccount,
+            from,
+            to,
+            fee: fee.map(|value| Nat::from(value.get_e8s())),
+            created_at_time: Some(created_at_time),
+            memo: memo.map(|v| v.into()),
+            amount: Nat::from(amount.get_e8s()),
+        };
+        match canister
+            .update(ICRC2_TRANSFER_FROM_METHOD)
+            .with_arg(arg)
+            .build()
+            .map(|result: (Result<BlockIndex, TransferFromError>,)| (result.0,))
+            .await
+            .map(|(result,)| result)
+        {
+            Ok(Ok(block_index)) => Ok(block_index),
+            Ok(Err(TransferFromError::Duplicate { duplicate_of })) => {
+                info!(
+                    logger,
+                    "Transfer is a duplicate of block index {}", duplicate_of
+                );
+                Ok(duplicate_of)
+            }
+            Ok(Err(transfer_from_err)) => {
+                Err(backoff::Error::permanent(anyhow!(transfer_from_err)))
+            }
+            Err(agent_err) if retryable(&agent_err) => {
+                Err(backoff::Error::transient(anyhow!(agent_err)))
+            }
+            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+        }
+    })
+    .await?;
+
+    Ok(block_index)
+}
+
+pub async fn icrc2_approve(
+    agent: &Agent,
+    logger: &Logger,
+    canister_id: &Principal,
+    from_subaccount: Option<icrc1::account::Subaccount>,
+    spender: Principal,
+    spender_subaccount: Option<icrc1::account::Subaccount>,
+    amount: ICPTs,
+    expected_allowance: Option<ICPTs>,
+    fee: Option<ICPTs>,
+    created_at_time: u64,
+    expires_at: Option<u64>,
+    memo: Option<u64>,
+) -> DfxResult<BlockIndex> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(*canister_id)
+        .build()?;
+
+    let retry_policy = ExponentialBackoff::default();
+
+    let block_index = retry(retry_policy, || async {
+        let arg = icrc2::approve::ApproveArgs {
+            from_subaccount,
+            fee: fee.map(|value| Nat::from(value.get_e8s())),
+            created_at_time: Some(created_at_time),
+            memo: memo.map(|v| v.into()),
+            amount: Nat::from(amount.get_e8s()),
+            spender: icrc1::account::Account {
+                owner: spender,
+                subaccount: spender_subaccount,
+            },
+            expected_allowance: expected_allowance.map(|value| Nat::from(value.get_e8s())),
+            expires_at,
+        };
+        match canister
+            .update(ICRC2_APPROVE_METHOD)
+            .with_arg(arg)
+            .build()
+            .map(|result: (Result<BlockIndex, ApproveError>,)| (result.0,))
+            .await
+            .map(|(result,)| result)
+        {
+            Ok(Ok(block_index)) => Ok(block_index),
+            Ok(Err(ApproveError::Duplicate { duplicate_of })) => {
+                info!(logger, "Approval is a duplicate of block {}", duplicate_of);
+                Ok(duplicate_of)
+            }
+            Ok(Err(approve_err)) => Err(backoff::Error::permanent(anyhow!(approve_err))),
+            Err(agent_err) if retryable(&agent_err) => {
+                Err(backoff::Error::transient(anyhow!(agent_err)))
+            }
+            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+        }
+    })
+    .await?;
+
+    Ok(block_index)
+}
+
+pub async fn icrc2_allowance(
+    agent: &Agent,
+    canister_id: &Principal,
+    owner: icrc1::account::Account,
+    spender: icrc1::account::Account,
+) -> DfxResult<Allowance> {
+    let canister = Canister::builder()
+        .with_agent(agent)
+        .with_canister_id(*canister_id)
+        .build()?;
+
+    let retry_policy = ExponentialBackoff::default();
+
+    retry(retry_policy, || async {
+        let arg = icrc2::allowance::AllowanceArgs {
+            account: owner,
+            spender,
+        };
+        let result = canister
+            .query(ICRC2_ALLOWANCE_METHOD)
+            .with_arg(arg)
+            .build()
+            .call()
+            .await;
+        match result {
+            Ok((allowance,)) => Ok(allowance),
+            Err(agent_err) if retryable(&agent_err) => {
+                Err(backoff::Error::transient(anyhow!(agent_err)))
+            }
+            Err(agent_err) => Err(backoff::Error::permanent(anyhow!(agent_err))),
+        }
+    })
+    .await
+}
+
+fn diagnose_insufficient_funds_error(
+    agent: &Agent,
+    subaccount: Option<Subaccount>,
+) -> DiagnosedError {
+    let principal = agent.get_principal().unwrap(); // This should always succeed at this point.
+
+    let explanation = "Insufficient ICP balance to finish the transfer transaction.";
+    let suggestion = format!(
+        "Please top up your ICP balance.
+
+Your account address for receiving ICP from centralized exchanges: {}
+(run `dfx ledger account-id` to display)
+
+Your principal for ICP wallets and decentralized exchanges: {}
+(run `dfx identity get-principal` to display)
+",
+        AccountIdentifier::new(principal, subaccount),
+        principal.to_text()
+    );
+
+    DiagnosedError::new(explanation, suggestion)
+}
+
 fn retryable(agent_error: &AgentError) -> bool {
     match agent_error {
-        AgentError::CertifiedReject(RejectResponse {
-            reject_code: RejectCode::CanisterError,
-            reject_message,
+        AgentError::CertifiedReject {
+            reject:
+                RejectResponse {
+                    reject_code: RejectCode::CanisterError,
+                    reject_message,
+                    ..
+                },
             ..
-        }) if reject_message.contains("is out of cycles") => false,
+        } if reject_message.contains("is out of cycles") => false,
         AgentError::HttpError(HttpErrorPayload {
             status,
             content_type: _,

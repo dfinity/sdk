@@ -16,6 +16,7 @@ pub(crate) struct SignedMessageV1 {
     #[serde(with = "date_time_utc")]
     pub expiration: OffsetDateTime,
     pub network: String, // url of the network
+    pub is_ic: bool,
     pub call_type: String,
     pub sender: String,
     pub canister_id: String,
@@ -31,6 +32,7 @@ impl SignedMessageV1 {
         creation: OffsetDateTime,
         expiration: OffsetDateTime,
         network: String,
+        is_ic: bool,
         sender: Principal,
         canister_id: Principal,
         method_name: String,
@@ -41,6 +43,7 @@ impl SignedMessageV1 {
             creation,
             expiration,
             network,
+            is_ic,
             call_type: String::new(),
             sender: sender.to_string(),
             canister_id: canister_id.to_string(),

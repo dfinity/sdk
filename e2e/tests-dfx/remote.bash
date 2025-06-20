@@ -137,7 +137,7 @@ teardown() {
   assert_match "Canister 'remote' is a remote canister on network 'actuallylocal', and cannot be installed from here."
 }
 
-@test "canister create --all, canister install --all skip remote canisters" {
+@test "all commands with --all skip remote canisters" {
   install_asset remote/actual
   dfx_start
   setup_actuallylocal_shared_network
@@ -200,6 +200,32 @@ teardown() {
 
   assert_command jq .remote canister_ids.json
   assert_eq "null"
+
+  assert_command dfx ledger fabricate-cycles --all --t 100 --network actuallylocal
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+
+  assert_command dfx canister status --all --network actuallylocal
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+
+  assert_command dfx canister update-settings --log-visibility public --all --network actuallylocal
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+
+  assert_command dfx canister stop --all --network actuallylocal
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+
+  assert_command dfx canister start --all --network actuallylocal
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+
+  # have to stop to uninstall
+  assert_command dfx canister stop --all --network actuallylocal
+
+  assert_command dfx canister uninstall-code --all --network actuallylocal
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
+
+  assert_command dfx build --all --network actuallylocal
+
+  assert_command dfx canister delete --all --network actuallylocal
+  assert_contains "Skipping canister 'remote' because it is remote for network 'actuallylocal'"
 
   # Assert frontend declarations are actually created
   dfx generate
@@ -318,4 +344,10 @@ teardown() {
   assert_command dfx deploy --network actuallylocal -vv
   assert_match "CANISTER_ID_REMOTE: qoctq-giaaa-aaaaa-aaaea-cai"
   assert_contains "CANISTER_CANDID_PATH_REMOTE: $(pwd -P)/remotecandid.did"
+}
+
+@test "build step downloads dependency .did files" {
+  install_asset remote/download_did
+  assert_command dfx build --ic -v
+  assert_not_contains ".did file for canister 'internet_identity' does not exist"
 }

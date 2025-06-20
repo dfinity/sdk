@@ -1,8 +1,13 @@
+use crate::config::model::project_template::ProjectTemplateCategory;
+use crate::config::project_templates::{ProjectTemplate, ProjectTemplateName, ResourceLocation};
 use crate::error::extension::{
     ConvertExtensionSubcommandIntoClapArgError, ConvertExtensionSubcommandIntoClapCommandError,
     LoadExtensionManifestError,
 };
-use serde::{Deserialize, Deserializer};
+use crate::extension::manager::ExtensionManager;
+use crate::json::structure::{SerdeVec, VersionReqWithJsonSchema, VersionWithJsonSchema};
+use schemars::JsonSchema;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use std::path::PathBuf;
 use std::{
@@ -11,15 +16,26 @@ use std::{
 };
 
 pub static MANIFEST_FILE_NAME: &str = "extension.json";
+const DEFAULT_DOWNLOAD_URL_TEMPLATE: &str =
+    "https://github.com/dfinity/dfx-extensions/releases/download/{{tag}}/{{basename}}.{{archive-format}}";
 
 type SubcmdName = String;
 type ArgName = String;
 
-#[derive(Debug, Deserialize)]
+fn should_skip_serializing_project_templates(
+    project_templates: &Option<HashMap<String, ExtensionProjectTemplate>>,
+) -> bool {
+    project_templates
+        .as_ref()
+        .map(HashMap::is_empty)
+        .unwrap_or(true)
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExtensionManifest {
     pub name: String,
-    pub version: String,
+    pub version: VersionWithJsonSchema,
     pub homepage: String,
     pub authors: Option<String>,
     pub summary: String,
@@ -27,8 +43,57 @@ pub struct ExtensionManifest {
     pub keywords: Option<Vec<String>>,
     pub description: Option<String>,
     pub subcommands: Option<ExtensionSubcommandsOpts>,
-    pub dependencies: Option<HashMap<String, String>>,
+    pub dependencies: Option<HashMap<String, ExtensionDependency>>,
     pub canister_type: Option<ExtensionCanisterType>,
+
+    #[serde(
+        default,
+        skip_serializing_if = "should_skip_serializing_project_templates"
+    )]
+    pub project_templates: Option<HashMap<String, ExtensionProjectTemplate>>,
+
+    /// Components of the download url template are:
+    /// - `{{tag}}`: the tag of the extension release, which will follow the form "<extension name>-v<extension version>"
+    /// - `{{basename}}`: The basename of the release filename, which will follow the form "<extension name>-<arch>-<platform>", for example "nns-x86_64-unknown-linux-gnu"
+    /// - `{{archive-format}}`: the format of the archive, for example "tar.gz"
+    #[serde(
+        default = "default_download_url_template",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub download_url_template: Option<String>,
+}
+
+fn default_download_url_template() -> Option<String> {
+    Some(DEFAULT_DOWNLOAD_URL_TEMPLATE.to_string())
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum ExtensionDependency {
+    /// A SemVer version requirement, for example ">=0.17.0".
+    Version(VersionReqWithJsonSchema),
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ExtensionProjectTemplate {
+    /// The name used for display and sorting
+    pub display: String,
+
+    /// Used to determine which CLI group (`--type`, `--backend`, `--frontend`)
+    /// as well as for interactive selection
+    pub category: ProjectTemplateCategory,
+
+    /// Other project templates to patch in alongside this one
+    pub requirements: Vec<String>,
+
+    /// Run a command after adding the canister to dfx.json
+    pub post_create: SerdeVec<String>,
+
+    /// If set, display a spinner while this command runs
+    pub post_create_spinner_message: Option<String>,
+
+    /// If the post-create command fails, display this warning but don't fail
+    pub post_create_failure_warning: Option<String>,
 }
 
 impl ExtensionManifest {
@@ -50,19 +115,79 @@ impl ExtensionManifest {
         extensions_root_dir.join(name).join(MANIFEST_FILE_NAME)
     }
 
+    pub fn download_url_template(&self) -> String {
+        self.download_url_template
+            .clone()
+            .unwrap_or_else(|| DEFAULT_DOWNLOAD_URL_TEMPLATE.to_string())
+    }
+
     pub fn into_clap_commands(
-        self,
+        &self,
     ) -> Result<Vec<clap::Command>, ConvertExtensionSubcommandIntoClapCommandError> {
-        self.subcommands
-            .unwrap_or_default()
-            .0
-            .into_iter()
-            .map(|(subcmd, opts)| opts.into_clap_command(subcmd))
-            .collect::<Result<Vec<_>, _>>()
+        if let Some(sc) = self.subcommands.as_ref() {
+            sc.0.iter()
+                .map(|(subcmd, opts)| opts.as_clap_command(subcmd))
+                .collect::<Result<Vec<_>, _>>()
+        } else {
+            Ok(vec![])
+        }
+    }
+
+    pub fn project_templates(
+        &self,
+        em: &ExtensionManager,
+        builtin_templates: &[ProjectTemplate],
+    ) -> Vec<ProjectTemplate> {
+        let Some(project_templates) = self.project_templates.as_ref() else {
+            return vec![];
+        };
+
+        let extension_dir = em.get_extension_directory(&self.name);
+
+        // the default sort order is after everything built-in
+        let default_sort_order = builtin_templates
+            .iter()
+            .map(|t| t.sort_order)
+            .max()
+            .unwrap_or(0)
+            + 1;
+
+        project_templates
+            .iter()
+            .map(|(name, template)| {
+                let resource_dir = extension_dir.join("project_templates").join(name);
+                let resource_location = ResourceLocation::Directory { path: resource_dir };
+
+                // keep the sort order as a built-in template of the same name,
+                // otherwise put it after everything else
+                let sort_order = builtin_templates
+                    .iter()
+                    .find(|t| t.name == ProjectTemplateName(name.clone()))
+                    .map(|t| t.sort_order)
+                    .unwrap_or(default_sort_order);
+
+                let requirements = template
+                    .requirements
+                    .iter()
+                    .map(|r| ProjectTemplateName(r.clone()))
+                    .collect();
+                ProjectTemplate {
+                    name: ProjectTemplateName(name.clone()),
+                    display: template.display.clone(),
+                    resource_location,
+                    category: template.category.clone(),
+                    requirements,
+                    post_create: template.post_create.clone().into_vec(),
+                    post_create_spinner_message: template.post_create_spinner_message.clone(),
+                    post_create_failure_warning: template.post_create_failure_warning.clone(),
+                    sort_order,
+                }
+            })
+            .collect()
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct ExtensionCanisterType {
     /// If one field depends on another and both specify a handlebars expression,
     /// list the fields in the order that they should be evaluated.
@@ -79,10 +204,10 @@ pub struct ExtensionCanisterType {
     pub defaults: BTreeMap<String, Value>,
 }
 
-#[derive(Debug, Deserialize, Default)]
-pub struct ExtensionSubcommandsOpts(BTreeMap<SubcmdName, ExtensionSubcommandOpts>);
+#[derive(Debug, Serialize, Deserialize, Default, JsonSchema)]
+pub struct ExtensionSubcommandsOpts(pub BTreeMap<SubcmdName, ExtensionSubcommandOpts>);
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExtensionSubcommandOpts {
     pub about: Option<String>,
@@ -90,7 +215,7 @@ pub struct ExtensionSubcommandOpts {
     pub subcommands: Option<ExtensionSubcommandsOpts>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExtensionSubcommandArgOpts {
     pub about: Option<String>,
@@ -103,7 +228,7 @@ pub struct ExtensionSubcommandArgOpts {
     pub values: ArgNumberOfValues,
 }
 
-#[derive(Debug)]
+#[derive(Debug, JsonSchema, Eq, PartialEq)]
 pub enum ArgNumberOfValues {
     /// zero or more values
     Number(usize),
@@ -158,32 +283,48 @@ impl<'de> Deserialize<'de> for ArgNumberOfValues {
     }
 }
 
+impl Serialize for ArgNumberOfValues {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            Self::Number(n) => serializer.serialize_u64(*n as u64),
+            Self::Unlimited => serializer.serialize_str("unlimited"),
+            Self::Range(range) => {
+                let s = format!("{}..{}", range.start, range.end - 1);
+                serializer.serialize_str(&s)
+            }
+        }
+    }
+}
+
 impl ExtensionSubcommandArgOpts {
-    pub fn into_clap_arg(
-        self,
-        name: String,
+    pub fn as_clap_arg(
+        &self,
+        name: &str,
     ) -> Result<clap::Arg, ConvertExtensionSubcommandIntoClapArgError> {
-        let mut arg = clap::Arg::new(name.clone());
-        if let Some(about) = self.about {
+        let mut arg = clap::Arg::new(name.to_string());
+        if let Some(about) = &self.about {
             arg = arg.help(about);
         } else {
             return Err(ConvertExtensionSubcommandIntoClapArgError::ExtensionSubcommandArgMissingDescription(
-                name,
+                name.to_string(),
             ));
         }
-        if let Some(l) = self.long {
+        if let Some(l) = &self.long {
             arg = arg.long(l);
         }
-        if let Some(s) = self.short {
-            arg = arg.short(s);
+        if let Some(s) = &self.short {
+            arg = arg.short(*s);
         }
         #[allow(deprecated)]
         if self.multiple {
             arg = arg.num_args(0..);
         } else {
-            arg = match self.values {
-                ArgNumberOfValues::Number(n) => arg.num_args(n),
-                ArgNumberOfValues::Range(r) => arg.num_args(r),
+            arg = match &self.values {
+                ArgNumberOfValues::Number(n) => arg.num_args(*n),
+                ArgNumberOfValues::Range(r) => arg.num_args(r.clone()),
                 ArgNumberOfValues::Unlimited => arg.num_args(0..),
             };
         }
@@ -196,25 +337,25 @@ impl ExtensionSubcommandArgOpts {
 }
 
 impl ExtensionSubcommandOpts {
-    pub fn into_clap_command(
-        self,
-        name: String,
+    pub fn as_clap_command(
+        &self,
+        name: &str,
     ) -> Result<clap::Command, ConvertExtensionSubcommandIntoClapCommandError> {
-        let mut cmd = clap::Command::new(name);
+        let mut cmd = clap::Command::new(name.to_string());
 
-        if let Some(about) = self.about {
+        if let Some(about) = &self.about {
             cmd = cmd.about(about);
         }
 
-        if let Some(args) = self.args {
+        if let Some(args) = &self.args {
             for (name, opts) in args {
-                cmd = cmd.arg(opts.into_clap_arg(name)?);
+                cmd = cmd.arg(opts.as_clap_arg(name)?);
             }
         }
 
-        if let Some(subcommands) = self.subcommands {
-            for (name, subcommand) in subcommands.0 {
-                cmd = cmd.subcommand(subcommand.into_clap_command(name)?);
+        if let Some(subcommands) = &self.subcommands {
+            for (name, subcommand) in &subcommands.0 {
+                cmd = cmd.subcommand(subcommand.as_clap_command(name)?);
             }
         }
 
@@ -235,6 +376,9 @@ fn parse_test_file() {
     "sns",
     "nns"
   ],
+  "dependencies": {
+    "dfx": ">=0.8, <0.9"
+  },
   "keywords": [
     "sns",
     "nns",
@@ -360,8 +504,15 @@ fn parse_test_file() {
 
     let m: Result<ExtensionManifest, serde_json::Error> = dbg!(serde_json::from_str(f));
     assert!(m.is_ok());
+    let manifest = m.unwrap();
 
-    let mut subcmds = dbg!(m.unwrap().into_clap_commands().unwrap());
+    let dependencies = manifest.dependencies.as_ref().unwrap();
+    let dfx_dep = dependencies.get("dfx").unwrap();
+    let ExtensionDependency::Version(req) = dfx_dep;
+    assert!(req.matches(&semver::Version::new(0, 8, 5)));
+    assert!(!req.matches(&semver::Version::new(0, 9, 0)));
+
+    let mut subcmds = dbg!(manifest.into_clap_commands().unwrap());
 
     use clap::error::ErrorKind::*;
     for c in &mut subcmds {
@@ -413,4 +564,91 @@ fn parse_test_file() {
     clap::Command::new("sns")
         .subcommands(&subcmds)
         .debug_assert();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_arg_number_of_values_number_serialization_deserialization() {
+        let original = ArgNumberOfValues::Number(5);
+        let serialized = serde_json::to_string(&original).unwrap();
+        let deserialized: ArgNumberOfValues = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(serialized, "5");
+        assert_eq!(deserialized, ArgNumberOfValues::Number(5));
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_arg_number_of_values_unlimited_serialization_deserialization() {
+        let original = ArgNumberOfValues::Unlimited;
+        let serialized = serde_json::to_string(&original).unwrap();
+        let deserialized: ArgNumberOfValues = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(serialized, "\"unlimited\"");
+        assert_eq!(deserialized, ArgNumberOfValues::Unlimited);
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn test_arg_number_of_values_range_serialization_deserialization() {
+        let original = ArgNumberOfValues::Range(1..4);
+        let serialized = serde_json::to_string(&original).unwrap();
+        let deserialized: ArgNumberOfValues = serde_json::from_str(&serialized).unwrap();
+
+        assert_eq!(serialized, "\"1..3\"");
+        assert_eq!(deserialized, ArgNumberOfValues::Range(1_usize..4_usize));
+        assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn tolerant_to_no_project_templates() {
+        let f = r#"
+          {
+            "name": "sns",
+            "version": "0.4.7",
+            "homepage": "https://github.com/dfinity/dfx-extensions",
+            "authors": "DFINITY",
+            "summary": "Initialize, deploy and interact with an SNS",
+            "categories": [
+              "sns",
+              "nns"
+            ],
+            "keywords": [
+              "sns",
+              "nns",
+              "deployment"
+            ],
+            "description": null,
+            "subcommands": {
+              "add-sns-wasm-for-tests": {
+                "about": "Add a wasms for one of the SNS canisters, skipping the NNS proposal, for tests",
+                "args": {
+                  "canister_type": {
+                    "about": "The type of the canister that the wasm is for. Must be one of \"archive\", \"root\", \"governance\", \"ledger\", \"swap\", \"index\"",
+                    "long": null,
+                    "short": null,
+                    "multiple": false,
+                    "values": 1
+                  }
+                },
+                "subcommands": null
+              }
+            },
+            "dependencies": {
+              "dfx": ">=0.17.0"
+            },
+            "canister_type": null,
+            "download_url_template": "https://github.com/dfinity/dfx-extensions/releases/download/{{tag}}/{{basename}}.{{archive-format}}"
+          }"#;
+        let manifest: ExtensionManifest = serde_json::from_str(f).unwrap();
+        assert!(manifest.project_templates.is_none());
+
+        // now let's serialize it and check that "project_templates" is not present in the output
+        let serialized = serde_json::to_string(&manifest).unwrap();
+        assert!(!serialized.contains("project_templates"));
+    }
 }

@@ -39,6 +39,8 @@ pub struct SetAssetContentArguments {
     pub key: AssetKey,
     pub content_encoding: String,
     pub chunk_ids: Vec<ChunkId>,
+    /// If set: appended as the final chunk.
+    pub last_chunk: Option<ByteBuf>,
     pub sha256: Option<ByteBuf>,
 }
 
@@ -134,6 +136,17 @@ pub struct CreateChunkResponse {
     pub chunk_id: ChunkId,
 }
 
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct CreateChunksArg {
+    pub batch_id: BatchId,
+    pub content: Vec<ByteBuf>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct CreateChunksResponse {
+    pub chunk_ids: Vec<ChunkId>,
+}
+
 #[derive(Clone, Debug, CandidType, Deserialize, PartialEq, Eq)]
 pub struct AssetProperties {
     pub max_age: Option<u64>,
@@ -194,7 +207,9 @@ pub enum AssetCanisterArgs {
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct InitArgs {}
+pub struct InitArgs {
+    pub set_permissions: Option<SetPermissions>,
+}
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct UpgradeArgs {
