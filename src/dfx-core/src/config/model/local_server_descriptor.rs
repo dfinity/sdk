@@ -119,16 +119,6 @@ impl LocalServerDescriptor {
         self.data_directory.join("pocket-ic-pid")
     }
 
-    /// This file contains the configuration port of the pocket-ic gateway process
-    pub fn pocketic_proxy_port_path(&self) -> PathBuf {
-        self.data_directory.join("pocket-ic-proxy-port")
-    }
-
-    /// This file contains the pid of the pocket-ic gateway process
-    pub fn pocketic_proxy_pid_path(&self) -> PathBuf {
-        self.data_directory.join("pocket-ic-proxy-pid")
-    }
-
     /// Returns whether the local server is PocketIC (as opposed to the replica)
     pub fn effective_config(&self) -> Result<Option<CachedConfig<'static>>, StructuredFileError> {
         let path = self.effective_config_path();

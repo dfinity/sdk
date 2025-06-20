@@ -184,7 +184,7 @@ EOF
   }
 EOF
 
-  dfx extension install nns --version 0.5.1
+  dfx extension install nns --version 0.5.4
   dfx nns install
 }
 
