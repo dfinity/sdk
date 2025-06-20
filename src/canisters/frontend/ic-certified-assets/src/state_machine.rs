@@ -19,7 +19,8 @@ use crate::{
         },
         CertifiedResponses,
     },
-    evidence::{EvidenceComputation, EvidenceComputation::Computed},
+    evidence::EvidenceComputation::{self, Computed},
+    state_trait::AssetCanisterStateTrait,
     types::*,
     url_decode::url_decode,
 };
@@ -384,28 +385,8 @@ impl Asset {
     }
 }
 
-impl State {
-    fn get_asset(&self, key: &AssetKey) -> Result<&Asset, String> {
-        self.assets
-            .get(key)
-            .or_else(|| {
-                let aliased = aliases_of(key)
-                    .into_iter()
-                    .find_map(|alias_key| self.assets.get(&alias_key));
-                if let Some(asset) = aliased {
-                    if asset.is_aliased.unwrap_or(DEFAULT_ALIAS_ENABLED) {
-                        aliased
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                }
-            })
-            .ok_or_else(|| "asset not found".to_string())
-    }
-
-    pub fn set_permissions(
+impl AssetCanisterStateTrait for State {
+    fn set_permissions(
         &mut self,
         SetPermissions {
             prepare,
@@ -419,32 +400,32 @@ impl State {
             manage_permissions.into_iter().collect();
     }
 
-    pub fn grant_permission(&mut self, principal: Principal, permission: &Permission) {
+    fn grant_permission(&mut self, principal: Principal, permission: &Permission) {
         let permitted = self.get_mut_permission_list(permission);
         permitted.insert(principal);
     }
 
-    pub fn revoke_permission(&mut self, principal: Principal, permission: &Permission) {
+    fn revoke_permission(&mut self, principal: Principal, permission: &Permission) {
         let permitted = self.get_mut_permission_list(permission);
         permitted.remove(&principal);
     }
 
-    pub fn list_permitted(&self, permission: &Permission) -> &BTreeSet<Principal> {
+    fn list_permitted(&self, permission: &Permission) -> &BTreeSet<Principal> {
         self.get_permission_list(permission)
     }
 
-    pub fn take_ownership(&mut self, controller: Principal) {
+    fn take_ownership(&mut self, controller: Principal) {
         self.commit_principals.clear();
         self.prepare_principals.clear();
         self.manage_permissions_principals.clear();
         self.commit_principals.insert(controller);
     }
 
-    pub fn root_hash(&self) -> Hash {
+    fn root_hash(&self) -> Hash {
         self.asset_hashes.root_hash()
     }
 
-    pub fn create_asset(&mut self, arg: CreateAssetArguments) -> Result<(), String> {
+    fn create_asset(&mut self, arg: CreateAssetArguments) -> Result<(), String> {
         if self.assets.contains_key(&arg.key) {
             return Err("asset already exists".to_string());
         }
@@ -462,11 +443,7 @@ impl State {
         Ok(())
     }
 
-    pub fn set_asset_content(
-        &mut self,
-        arg: SetAssetContentArguments,
-        now: u64,
-    ) -> Result<(), String> {
+    fn set_asset_content(&mut self, arg: SetAssetContentArguments, now: u64) -> Result<(), String> {
         if arg.chunk_ids.is_empty() && arg.last_chunk.is_none() {
             return Err("encoding must have at least one chunk or contain last_chunk".to_string());
         }
@@ -519,7 +496,7 @@ impl State {
         Ok(())
     }
 
-    pub fn unset_asset_content(&mut self, arg: UnsetAssetContentArguments) -> Result<(), String> {
+    fn unset_asset_content(&mut self, arg: UnsetAssetContentArguments) -> Result<(), String> {
         let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self
             .assets
@@ -533,7 +510,7 @@ impl State {
         Ok(())
     }
 
-    pub fn delete_asset(&mut self, arg: DeleteAssetArguments) {
+    fn delete_asset(&mut self, arg: DeleteAssetArguments) {
         if self.assets.contains_key(&arg.key) {
             for dependent in self.dependent_keys(&arg.key) {
                 self.asset_hashes.remove_responses_for_path(&dependent);
@@ -556,7 +533,7 @@ impl State {
         }
     }
 
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         self.assets.clear();
         self.batches.clear();
         self.chunks.clear();
@@ -564,34 +541,18 @@ impl State {
         self.next_chunk_id = Nat::from(1_u8);
     }
 
-    pub fn has_permission(&self, principal: &Principal, permission: &Permission) -> bool {
+    fn has_permission(&self, principal: &Principal, permission: &Permission) -> bool {
         let list = self.get_permission_list(permission);
         list.contains(principal)
     }
 
-    pub fn can(&self, principal: &Principal, permission: &Permission) -> bool {
+    fn can(&self, principal: &Principal, permission: &Permission) -> bool {
         self.has_permission(principal, permission)
             || (*permission == Permission::Prepare
                 && self.has_permission(principal, &Permission::Commit))
     }
 
-    fn get_permission_list(&self, permission: &Permission) -> &BTreeSet<Principal> {
-        match permission {
-            Permission::Commit => &self.commit_principals,
-            Permission::Prepare => &self.prepare_principals,
-            Permission::ManagePermissions => &self.manage_permissions_principals,
-        }
-    }
-
-    fn get_mut_permission_list(&mut self, permission: &Permission) -> &mut BTreeSet<Principal> {
-        match permission {
-            Permission::Commit => &mut self.commit_principals,
-            Permission::Prepare => &mut self.prepare_principals,
-            Permission::ManagePermissions => &mut self.manage_permissions_principals,
-        }
-    }
-
-    pub fn retrieve(&self, key: &AssetKey) -> Result<RcBytes, String> {
+    fn retrieve(&self, key: &AssetKey) -> Result<RcBytes, String> {
         let asset = self.get_asset(key)?;
 
         let id_enc = asset
@@ -606,7 +567,7 @@ impl State {
         Ok(id_enc.content_chunks[0].clone())
     }
 
-    pub fn store(&mut self, arg: StoreArg, time: u64) -> Result<(), String> {
+    fn store(&mut self, arg: StoreArg, time: u64) -> Result<(), String> {
         let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self.assets.entry(arg.key.clone()).or_default();
         asset.content_type = arg.content_type;
@@ -629,7 +590,7 @@ impl State {
         Ok(())
     }
 
-    pub fn create_batch(&mut self, now: u64) -> Result<BatchId, String> {
+    fn create_batch(&mut self, now: u64) -> Result<BatchId, String> {
         self.batches.retain(|_, b| {
             b.expires_at > now || matches!(b.evidence_computation, Some(Computed(_)))
         });
@@ -669,14 +630,14 @@ impl State {
         Ok(batch_id)
     }
 
-    pub fn create_chunk(&mut self, arg: CreateChunkArg, now: u64) -> Result<ChunkId, String> {
+    fn create_chunk(&mut self, arg: CreateChunkArg, now: u64) -> Result<ChunkId, String> {
         let ids = self.create_chunks_helper(arg.batch_id, vec![arg.content], now)?;
         ids.into_iter()
             .next()
             .ok_or_else(|| "Bug: created chunk did not return a chunk id.".to_string())
     }
 
-    pub fn create_chunks(
+    fn create_chunks(
         &mut self,
         CreateChunksArg {
             batch_id,
@@ -685,6 +646,373 @@ impl State {
         now: u64,
     ) -> Result<Vec<ChunkId>, String> {
         self.create_chunks_helper(batch_id, chunks, now)
+    }
+    fn commit_batch(&mut self, arg: CommitBatchArguments, now: u64) -> Result<(), String> {
+        let (chunks_added, bytes_added) = self.compute_last_chunk_data(&arg);
+        self.check_batch_limits(chunks_added, bytes_added)?;
+
+        let batch_id = arg.batch_id;
+        for op in arg.operations {
+            match op {
+                BatchOperation::CreateAsset(arg) => self.create_asset(arg)?,
+                BatchOperation::SetAssetContent(arg) => self.set_asset_content(arg, now)?,
+                BatchOperation::UnsetAssetContent(arg) => self.unset_asset_content(arg)?,
+                BatchOperation::DeleteAsset(arg) => self.delete_asset(arg),
+                BatchOperation::Clear(_) => self.clear(),
+                BatchOperation::SetAssetProperties(arg) => self.set_asset_properties(arg)?,
+            }
+        }
+        self.batches.remove(&batch_id);
+        self.certify_404_if_required();
+        Ok(())
+    }
+
+    fn propose_commit_batch(&mut self, arg: CommitBatchArguments) -> Result<(), String> {
+        let batch = self
+            .batches
+            .get_mut(&arg.batch_id)
+            .expect("batch not found");
+        if batch.commit_batch_arguments.is_some() {
+            return Err(format!(
+                "batch {} already has proposed CommitBatchArguments",
+                arg.batch_id
+            ));
+        };
+        batch.commit_batch_arguments = Some(arg);
+        Ok(())
+    }
+
+    fn commit_proposed_batch(
+        &mut self,
+        arg: CommitProposedBatchArguments,
+        now: u64,
+    ) -> Result<(), String> {
+        self.validate_commit_proposed_batch_args(&arg)?;
+        let batch = self.batches.get_mut(&arg.batch_id).unwrap();
+        let proposed_batch_arguments = batch.commit_batch_arguments.take().unwrap();
+        self.commit_batch(proposed_batch_arguments, now)
+    }
+
+    fn validate_commit_proposed_batch(
+        &self,
+        arg: CommitProposedBatchArguments,
+    ) -> Result<String, String> {
+        self.validate_commit_proposed_batch_args(&arg)?;
+        Ok(format!(
+            "commit proposed batch {} with evidence {}",
+            arg.batch_id,
+            hex::encode(arg.evidence)
+        ))
+    }
+
+    fn compute_evidence(
+        &mut self,
+        arg: ComputeEvidenceArguments,
+    ) -> Result<Option<ByteBuf>, String> {
+        let batch = self
+            .batches
+            .get_mut(&arg.batch_id)
+            .expect("batch not found");
+
+        let cba = batch
+            .commit_batch_arguments
+            .as_ref()
+            .expect("batch does not have CommitBatchArguments");
+
+        let max_iterations = arg
+            .max_iterations
+            .unwrap_or(DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS);
+
+        let mut ec = batch.evidence_computation.take().unwrap_or_default();
+        for _ in 0..max_iterations {
+            ec = ec.advance(cba, &self.chunks);
+            if matches!(ec, Computed(_)) {
+                break;
+            }
+        }
+        batch.evidence_computation = Some(ec);
+
+        if let Some(Computed(evidence)) = &batch.evidence_computation {
+            Ok(Some(evidence.clone()))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn delete_batch(&mut self, arg: DeleteBatchArguments) -> Result<(), String> {
+        if self.batches.remove(&arg.batch_id).is_none() {
+            return Err("batch not found".to_string());
+        }
+        self.chunks.retain(|_, c| c.batch_id != arg.batch_id);
+        Ok(())
+    }
+
+    fn list_assets(&self) -> Vec<AssetDetails> {
+        self.assets
+            .iter()
+            .map(|(key, asset)| {
+                let mut encodings: Vec<_> = asset
+                    .encodings
+                    .iter()
+                    .map(|(enc_name, enc)| AssetEncodingDetails {
+                        content_encoding: enc_name.clone(),
+                        sha256: Some(ByteBuf::from(enc.sha256)),
+                        length: Nat::from(enc.total_length),
+                        modified: enc.modified.clone(),
+                    })
+                    .collect();
+                encodings.sort_by(|l, r| l.content_encoding.cmp(&r.content_encoding));
+
+                AssetDetails {
+                    key: key.clone(),
+                    content_type: asset.content_type.clone(),
+                    encodings,
+                }
+            })
+            .collect::<Vec<_>>()
+    }
+
+    fn certified_tree(&self, certificate: &[u8]) -> CertifiedTree {
+        let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
+        serializer.self_describe().unwrap();
+        self.asset_hashes
+            .as_hash_tree()
+            .serialize(&mut serializer)
+            .unwrap();
+
+        CertifiedTree {
+            certificate: certificate.to_vec(),
+            tree: serializer.into_inner(),
+        }
+    }
+
+    fn get(&self, arg: GetArg) -> Result<EncodedAsset, String> {
+        let asset = self.get_asset(&arg.key)?;
+
+        for enc in arg.accept_encodings.iter() {
+            if let Some(asset_enc) = asset.encodings.get(enc) {
+                return Ok(EncodedAsset {
+                    content: asset_enc.content_chunks[0].clone(),
+                    content_type: asset.content_type.clone(),
+                    content_encoding: enc.clone(),
+                    total_length: Nat::from(asset_enc.total_length as u64),
+                    sha256: Some(ByteBuf::from(asset_enc.sha256)),
+                });
+            }
+        }
+        Err("no such encoding".to_string())
+    }
+
+    fn get_chunk(&self, arg: GetChunkArg) -> Result<RcBytes, String> {
+        let asset = self.get_asset(&arg.key)?;
+
+        let enc = asset
+            .encodings
+            .get(&arg.content_encoding)
+            .ok_or_else(|| "no such encoding".to_string())?;
+
+        let expected_hash = arg.sha256.ok_or("sha256 required")?;
+        if expected_hash != enc.sha256 {
+            return Err("sha256 mismatch".to_string());
+        }
+
+        if arg.index >= enc.content_chunks.len() {
+            return Err("chunk index out of bounds".to_string());
+        }
+        let index: usize = arg.index.0.to_usize().unwrap();
+
+        Ok(enc.content_chunks[index].clone())
+    }
+
+    fn http_request(
+        &self,
+        req: HttpRequest,
+        certificate: &[u8],
+        callback: CallbackFunc,
+    ) -> HttpResponse {
+        let mut encodings = vec![];
+        // waiting for https://dfinity.atlassian.net/browse/BOUN-446
+        let etags = Vec::new();
+        for (name, value) in req.headers.iter() {
+            if name.eq_ignore_ascii_case("Accept-Encoding") {
+                for v in value.split(',') {
+                    encodings.push(v.trim().to_string());
+                }
+            }
+        }
+
+        let path = match req.url.find('?') {
+            Some(i) => &req.url[..i],
+            None => &req.url[..],
+        };
+
+        match url_decode(path) {
+            Ok(path) => {
+                self.build_http_response(certificate, &path, encodings, 0, callback, etags, req)
+            }
+            Err(err) => HttpResponse {
+                status_code: 400,
+                headers: vec![],
+                body: RcBytes::from(ByteBuf::from(format!(
+                    "failed to decode path '{}': {}",
+                    path, err
+                ))),
+                upgrade: None,
+                streaming_strategy: None,
+            },
+        }
+    }
+
+    fn http_request_streaming_callback(
+        &self,
+        StreamingCallbackToken {
+            key,
+            content_encoding,
+            index,
+            sha256,
+        }: StreamingCallbackToken,
+    ) -> Result<StreamingCallbackHttpResponse, String> {
+        let asset = self
+            .get_asset(&key)
+            .map_err(|_| "Invalid token on streaming: key not found.".to_string())?;
+        let enc = asset
+            .encodings
+            .get(&content_encoding)
+            .ok_or_else(|| "Invalid token on streaming: encoding not found.".to_string())?;
+
+        let expected_hash = sha256.ok_or("sha256 required")?;
+        if expected_hash != enc.sha256 {
+            return Err("sha256 mismatch".to_string());
+        }
+
+        // MAX is good enough. This means a chunk would be above 64-bits, which is impossible...
+        let chunk_index = index.0.to_usize().unwrap_or(usize::MAX);
+
+        Ok(StreamingCallbackHttpResponse {
+            body: enc.content_chunks[chunk_index].clone(),
+            token: StreamingCallbackToken::create_token(
+                &content_encoding,
+                enc.content_chunks.len(),
+                enc.sha256,
+                &key,
+                chunk_index,
+            ),
+        })
+    }
+
+    fn get_asset_properties(&self, key: AssetKey) -> Result<AssetProperties, String> {
+        let asset = self
+            .assets
+            .get(&key)
+            .ok_or_else(|| "asset not found".to_string())?;
+
+        Ok(AssetProperties {
+            max_age: asset.max_age,
+            headers: asset.headers.clone(),
+            allow_raw_access: asset.allow_raw_access,
+            is_aliased: asset.is_aliased,
+        })
+    }
+
+    fn set_asset_properties(&mut self, arg: SetAssetPropertiesArguments) -> Result<(), String> {
+        let dependent_keys = self.dependent_keys(&arg.key);
+        let asset = self
+            .assets
+            .get_mut(&arg.key)
+            .ok_or_else(|| "asset not found".to_string())?;
+
+        if let Some(headers) = arg.headers {
+            asset.headers = headers
+        }
+        if let Some(max_age) = arg.max_age {
+            asset.max_age = max_age
+        }
+        if let Some(allow_raw_access) = arg.allow_raw_access {
+            asset.allow_raw_access = allow_raw_access
+        }
+
+        if let Some(is_aliased) = arg.is_aliased {
+            asset.is_aliased = is_aliased
+        }
+
+        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
+
+        Ok(())
+    }
+    fn get_configuration(&self) -> ConfigurationResponse {
+        let max_batches = self.configuration.max_batches;
+        let max_chunks = self.configuration.max_chunks;
+        let max_bytes = self.configuration.max_bytes;
+        ConfigurationResponse {
+            max_batches,
+            max_chunks,
+            max_bytes,
+        }
+    }
+
+    fn configure(&mut self, args: ConfigureArguments) {
+        if let Some(max_batches) = args.max_batches {
+            self.configuration.max_batches = max_batches;
+        }
+        if let Some(max_chunks) = args.max_chunks {
+            self.configuration.max_chunks = max_chunks;
+        }
+        if let Some(max_bytes) = args.max_bytes {
+            self.configuration.max_bytes = max_bytes;
+        }
+    }
+
+    fn to_stable_state(&self) -> StableState {
+        let permissions = StableStatePermissions {
+            commit: self.commit_principals.clone(),
+            prepare: self.prepare_principals.clone(),
+            manage_permissions: self.manage_permissions_principals.clone(),
+        };
+        StableState {
+            authorized: vec![],
+            permissions: Some(permissions),
+            stable_assets: self.assets.clone(),
+            next_batch_id: Some(self.next_batch_id.clone()),
+            configuration: Some(self.configuration.clone()),
+        }
+    }
+}
+
+impl State {
+    fn get_asset(&self, key: &AssetKey) -> Result<&Asset, String> {
+        self.assets
+            .get(key)
+            .or_else(|| {
+                let aliased = aliases_of(key)
+                    .into_iter()
+                    .find_map(|alias_key| self.assets.get(&alias_key));
+                if let Some(asset) = aliased {
+                    if asset.is_aliased.unwrap_or(DEFAULT_ALIAS_ENABLED) {
+                        aliased
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .ok_or_else(|| "asset not found".to_string())
+    }
+
+    fn get_permission_list(&self, permission: &Permission) -> &BTreeSet<Principal> {
+        match permission {
+            Permission::Commit => &self.commit_principals,
+            Permission::Prepare => &self.prepare_principals,
+            Permission::ManagePermissions => &self.manage_permissions_principals,
+        }
+    }
+
+    fn get_mut_permission_list(&mut self, permission: &Permission) -> &mut BTreeSet<Principal> {
+        match permission {
+            Permission::Commit => &mut self.commit_principals,
+            Permission::Prepare => &mut self.prepare_principals,
+            Permission::ManagePermissions => &mut self.manage_permissions_principals,
+        }
     }
 
     /// Post-condition: `chunks.len() == output_chunk_ids.len()`
@@ -770,64 +1098,6 @@ impl State {
         )
     }
 
-    pub fn commit_batch(&mut self, arg: CommitBatchArguments, now: u64) -> Result<(), String> {
-        let (chunks_added, bytes_added) = self.compute_last_chunk_data(&arg);
-        self.check_batch_limits(chunks_added, bytes_added)?;
-
-        let batch_id = arg.batch_id;
-        for op in arg.operations {
-            match op {
-                BatchOperation::CreateAsset(arg) => self.create_asset(arg)?,
-                BatchOperation::SetAssetContent(arg) => self.set_asset_content(arg, now)?,
-                BatchOperation::UnsetAssetContent(arg) => self.unset_asset_content(arg)?,
-                BatchOperation::DeleteAsset(arg) => self.delete_asset(arg),
-                BatchOperation::Clear(_) => self.clear(),
-                BatchOperation::SetAssetProperties(arg) => self.set_asset_properties(arg)?,
-            }
-        }
-        self.batches.remove(&batch_id);
-        self.certify_404_if_required();
-        Ok(())
-    }
-
-    pub fn propose_commit_batch(&mut self, arg: CommitBatchArguments) -> Result<(), String> {
-        let batch = self
-            .batches
-            .get_mut(&arg.batch_id)
-            .expect("batch not found");
-        if batch.commit_batch_arguments.is_some() {
-            return Err(format!(
-                "batch {} already has proposed CommitBatchArguments",
-                arg.batch_id
-            ));
-        };
-        batch.commit_batch_arguments = Some(arg);
-        Ok(())
-    }
-
-    pub fn commit_proposed_batch(
-        &mut self,
-        arg: CommitProposedBatchArguments,
-        now: u64,
-    ) -> Result<(), String> {
-        self.validate_commit_proposed_batch_args(&arg)?;
-        let batch = self.batches.get_mut(&arg.batch_id).unwrap();
-        let proposed_batch_arguments = batch.commit_batch_arguments.take().unwrap();
-        self.commit_batch(proposed_batch_arguments, now)
-    }
-
-    pub fn validate_commit_proposed_batch(
-        &self,
-        arg: CommitProposedBatchArguments,
-    ) -> Result<String, String> {
-        self.validate_commit_proposed_batch_args(&arg)?;
-        Ok(format!(
-            "commit proposed batch {} with evidence {}",
-            arg.batch_id,
-            hex::encode(arg.evidence)
-        ))
-    }
-
     fn validate_commit_proposed_batch_args(
         &self,
         arg: &CommitProposedBatchArguments,
@@ -849,125 +1119,6 @@ impl State {
             ));
         }
         Ok(())
-    }
-
-    pub fn compute_evidence(
-        &mut self,
-        arg: ComputeEvidenceArguments,
-    ) -> Result<Option<ByteBuf>, String> {
-        let batch = self
-            .batches
-            .get_mut(&arg.batch_id)
-            .expect("batch not found");
-
-        let cba = batch
-            .commit_batch_arguments
-            .as_ref()
-            .expect("batch does not have CommitBatchArguments");
-
-        let max_iterations = arg
-            .max_iterations
-            .unwrap_or(DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS);
-
-        let mut ec = batch.evidence_computation.take().unwrap_or_default();
-        for _ in 0..max_iterations {
-            ec = ec.advance(cba, &self.chunks);
-            if matches!(ec, Computed(_)) {
-                break;
-            }
-        }
-        batch.evidence_computation = Some(ec);
-
-        if let Some(Computed(evidence)) = &batch.evidence_computation {
-            Ok(Some(evidence.clone()))
-        } else {
-            Ok(None)
-        }
-    }
-
-    pub fn delete_batch(&mut self, arg: DeleteBatchArguments) -> Result<(), String> {
-        if self.batches.remove(&arg.batch_id).is_none() {
-            return Err("batch not found".to_string());
-        }
-        self.chunks.retain(|_, c| c.batch_id != arg.batch_id);
-        Ok(())
-    }
-
-    pub fn list_assets(&self) -> Vec<AssetDetails> {
-        self.assets
-            .iter()
-            .map(|(key, asset)| {
-                let mut encodings: Vec<_> = asset
-                    .encodings
-                    .iter()
-                    .map(|(enc_name, enc)| AssetEncodingDetails {
-                        content_encoding: enc_name.clone(),
-                        sha256: Some(ByteBuf::from(enc.sha256)),
-                        length: Nat::from(enc.total_length),
-                        modified: enc.modified.clone(),
-                    })
-                    .collect();
-                encodings.sort_by(|l, r| l.content_encoding.cmp(&r.content_encoding));
-
-                AssetDetails {
-                    key: key.clone(),
-                    content_type: asset.content_type.clone(),
-                    encodings,
-                }
-            })
-            .collect::<Vec<_>>()
-    }
-
-    pub fn certified_tree(&self, certificate: &[u8]) -> CertifiedTree {
-        let mut serializer = serde_cbor::ser::Serializer::new(vec![]);
-        serializer.self_describe().unwrap();
-        self.asset_hashes
-            .as_hash_tree()
-            .serialize(&mut serializer)
-            .unwrap();
-
-        CertifiedTree {
-            certificate: certificate.to_vec(),
-            tree: serializer.into_inner(),
-        }
-    }
-
-    pub fn get(&self, arg: GetArg) -> Result<EncodedAsset, String> {
-        let asset = self.get_asset(&arg.key)?;
-
-        for enc in arg.accept_encodings.iter() {
-            if let Some(asset_enc) = asset.encodings.get(enc) {
-                return Ok(EncodedAsset {
-                    content: asset_enc.content_chunks[0].clone(),
-                    content_type: asset.content_type.clone(),
-                    content_encoding: enc.clone(),
-                    total_length: Nat::from(asset_enc.total_length as u64),
-                    sha256: Some(ByteBuf::from(asset_enc.sha256)),
-                });
-            }
-        }
-        Err("no such encoding".to_string())
-    }
-
-    pub fn get_chunk(&self, arg: GetChunkArg) -> Result<RcBytes, String> {
-        let asset = self.get_asset(&arg.key)?;
-
-        let enc = asset
-            .encodings
-            .get(&arg.content_encoding)
-            .ok_or_else(|| "no such encoding".to_string())?;
-
-        let expected_hash = arg.sha256.ok_or("sha256 required")?;
-        if expected_hash != enc.sha256 {
-            return Err("sha256 mismatch".to_string());
-        }
-
-        if arg.index >= enc.content_chunks.len() {
-            return Err("chunk index out of bounds".to_string());
-        }
-        let index: usize = arg.index.0.to_usize().unwrap();
-
-        Ok(enc.content_chunks[index].clone())
     }
 
     fn build_http_response(
@@ -1033,122 +1184,6 @@ impl State {
         HttpResponse::build_404(certificate_header, req.get_certificate_version())
     }
 
-    pub fn http_request(
-        &self,
-        req: HttpRequest,
-        certificate: &[u8],
-        callback: CallbackFunc,
-    ) -> HttpResponse {
-        let mut encodings = vec![];
-        // waiting for https://dfinity.atlassian.net/browse/BOUN-446
-        let etags = Vec::new();
-        for (name, value) in req.headers.iter() {
-            if name.eq_ignore_ascii_case("Accept-Encoding") {
-                for v in value.split(',') {
-                    encodings.push(v.trim().to_string());
-                }
-            }
-        }
-
-        let path = match req.url.find('?') {
-            Some(i) => &req.url[..i],
-            None => &req.url[..],
-        };
-
-        match url_decode(path) {
-            Ok(path) => {
-                self.build_http_response(certificate, &path, encodings, 0, callback, etags, req)
-            }
-            Err(err) => HttpResponse {
-                status_code: 400,
-                headers: vec![],
-                body: RcBytes::from(ByteBuf::from(format!(
-                    "failed to decode path '{}': {}",
-                    path, err
-                ))),
-                upgrade: None,
-                streaming_strategy: None,
-            },
-        }
-    }
-
-    pub fn http_request_streaming_callback(
-        &self,
-        StreamingCallbackToken {
-            key,
-            content_encoding,
-            index,
-            sha256,
-        }: StreamingCallbackToken,
-    ) -> Result<StreamingCallbackHttpResponse, String> {
-        let asset = self
-            .get_asset(&key)
-            .map_err(|_| "Invalid token on streaming: key not found.".to_string())?;
-        let enc = asset
-            .encodings
-            .get(&content_encoding)
-            .ok_or_else(|| "Invalid token on streaming: encoding not found.".to_string())?;
-
-        let expected_hash = sha256.ok_or("sha256 required")?;
-        if expected_hash != enc.sha256 {
-            return Err("sha256 mismatch".to_string());
-        }
-
-        // MAX is good enough. This means a chunk would be above 64-bits, which is impossible...
-        let chunk_index = index.0.to_usize().unwrap_or(usize::MAX);
-
-        Ok(StreamingCallbackHttpResponse {
-            body: enc.content_chunks[chunk_index].clone(),
-            token: StreamingCallbackToken::create_token(
-                &content_encoding,
-                enc.content_chunks.len(),
-                enc.sha256,
-                &key,
-                chunk_index,
-            ),
-        })
-    }
-
-    pub fn get_asset_properties(&self, key: AssetKey) -> Result<AssetProperties, String> {
-        let asset = self
-            .assets
-            .get(&key)
-            .ok_or_else(|| "asset not found".to_string())?;
-
-        Ok(AssetProperties {
-            max_age: asset.max_age,
-            headers: asset.headers.clone(),
-            allow_raw_access: asset.allow_raw_access,
-            is_aliased: asset.is_aliased,
-        })
-    }
-
-    pub fn set_asset_properties(&mut self, arg: SetAssetPropertiesArguments) -> Result<(), String> {
-        let dependent_keys = self.dependent_keys(&arg.key);
-        let asset = self
-            .assets
-            .get_mut(&arg.key)
-            .ok_or_else(|| "asset not found".to_string())?;
-
-        if let Some(headers) = arg.headers {
-            asset.headers = headers
-        }
-        if let Some(max_age) = arg.max_age {
-            asset.max_age = max_age
-        }
-        if let Some(allow_raw_access) = arg.allow_raw_access {
-            asset.allow_raw_access = allow_raw_access
-        }
-
-        if let Some(is_aliased) = arg.is_aliased {
-            asset.is_aliased = is_aliased
-        }
-
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
-
-        Ok(())
-    }
-
     // Returns keys that needs to be updated if the supplied key is changed.
     fn dependent_keys(&self, key: &AssetKey) -> Vec<AssetKey> {
         if self
@@ -1163,29 +1198,6 @@ impl State {
                 .collect()
         } else {
             Vec::new()
-        }
-    }
-
-    pub fn get_configuration(&self) -> ConfigurationResponse {
-        let max_batches = self.configuration.max_batches;
-        let max_chunks = self.configuration.max_chunks;
-        let max_bytes = self.configuration.max_bytes;
-        ConfigurationResponse {
-            max_batches,
-            max_chunks,
-            max_bytes,
-        }
-    }
-
-    pub fn configure(&mut self, args: ConfigureArguments) {
-        if let Some(max_batches) = args.max_batches {
-            self.configuration.max_batches = max_batches;
-        }
-        if let Some(max_chunks) = args.max_chunks {
-            self.configuration.max_chunks = max_chunks;
-        }
-        if let Some(max_bytes) = args.max_bytes {
-            self.configuration.max_bytes = max_bytes;
         }
     }
 
@@ -1212,18 +1224,7 @@ impl State {
 
 impl From<State> for StableState {
     fn from(state: State) -> Self {
-        let permissions = StableStatePermissions {
-            commit: state.commit_principals,
-            prepare: state.prepare_principals,
-            manage_permissions: state.manage_permissions_principals,
-        };
-        Self {
-            authorized: vec![],
-            permissions: Some(permissions),
-            stable_assets: state.assets,
-            next_batch_id: Some(state.next_batch_id),
-            configuration: Some(state.configuration),
-        }
+        state.to_stable_state()
     }
 }
 

@@ -2,6 +2,7 @@
 pub mod asset_certification;
 pub mod evidence;
 pub mod state_machine;
+pub mod state_trait;
 pub mod types;
 mod url_decode;
 
@@ -15,6 +16,7 @@ use crate::{
         StreamingCallbackToken,
     },
     state_machine::{AssetDetails, CertifiedTree, EncodedAsset, State},
+    state_trait::AssetCanisterStateTrait,
     types::*,
 };
 use asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
@@ -29,7 +31,7 @@ use std::cell::RefCell;
 pub static SUPPORTED_CERTIFICATE_VERSIONS: [u8; 3] = *b"1,2";
 
 thread_local! {
-    static STATE: RefCell<State> = RefCell::new(State::default());
+    static STATE: RefCell<Box< dyn AssetCanisterStateTrait>> = RefCell::new(Box::new(State::default()));
 }
 
 #[query]
@@ -422,6 +424,14 @@ fn is_controller() -> Result<(), String> {
     }
 }
 
+pub fn init_with_state(args: Option<AssetCanisterArgs>, state: Box<dyn AssetCanisterStateTrait>) {
+    STATE.with(|s| {
+        *s.borrow_mut() = state;
+    });
+
+    init(args);
+}
+
 pub fn init(args: Option<AssetCanisterArgs>) {
     STATE.with(|s| {
         let mut s = s.borrow_mut();
@@ -443,7 +453,7 @@ pub fn init(args: Option<AssetCanisterArgs>) {
 }
 
 pub fn pre_upgrade() -> StableState {
-    STATE.with(|s| s.take().into())
+    STATE.with(|s| s.borrow().as_ref().to_stable_state())
 }
 
 pub fn post_upgrade(stable_state: StableState, args: Option<AssetCanisterArgs>) {
@@ -453,7 +463,7 @@ pub fn post_upgrade(stable_state: StableState, args: Option<AssetCanisterArgs>) 
     });
 
     STATE.with(|s| {
-        *s.borrow_mut() = State::from(stable_state);
+        *s.borrow_mut() = Box::new(State::from(stable_state));
         set_certified_data(&s.borrow().root_hash());
         if let Some(set_permissions) = set_permissions {
             s.borrow_mut().set_permissions(set_permissions);
