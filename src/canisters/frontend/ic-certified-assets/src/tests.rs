@@ -19,6 +19,8 @@ use ic_response_verification_test_utils::{
 use serde_bytes::ByteBuf;
 use std::collections::HashMap;
 
+use crate::state_trait::AssetCanisterStateTrait;
+
 // from ic-response-verification tests
 const MAX_CERT_TIME_OFFSET_NS: u128 = 300_000_000_000;
 
