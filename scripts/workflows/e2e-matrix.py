@@ -38,6 +38,11 @@ for test in all_tests:
             "os": "macos-13",
             "serial": serial,
         })
+        include.append({
+            "test": test,
+            "os": "macos-13-xlarge",
+            "serial": serial,
+        })
 
 matrix = {
     "include": include,
