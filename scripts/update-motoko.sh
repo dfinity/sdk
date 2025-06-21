@@ -33,7 +33,6 @@ declare -A variants=([x86_64-darwin]=Darwin-x86_64 [x86_64-linux]=Linux-x86_64 [
 for platform in "${!variants[@]}"; do
     motoko_url=$(printf 'https://github.com/dfinity/motoko/releases/download/%s/motoko-%s-%s.tar.gz' \
         "$(urlencode "$version")" "$(urlencode "${variants[$platform]}")" "$(urlencode "$version")")
-    echo "$motoko_url"
     motoko_sha=$(curl --proto '=https' --tlsv1.2 -sSfL "$motoko_url" | sha256sum | head -c 64)
     jq '.[$platform].motoko = {url: $url, sha256: $sha256, version: $version}' --arg platform "$platform" --arg version "$version" \
         --arg url "$motoko_url" --arg sha256 "$motoko_sha" "$sources" | sponge "$sources"
