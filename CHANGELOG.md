@@ -2,6 +2,12 @@
 
 # UNRELEASED
 
+### fix: deps deploy works with Canister ID out of the ranges of the pocket-ic subnets
+
+The `dfx deps deploy` command didn't work when the pulled dependency's Canister ID is out of the ranges of the `pocket-ic` subnets.
+
+The removed `replica` had one subnet to cover all subnets. While the `pocket-ic` can dynamically create new subnet when trying to create a canister with specified ID.
+
 ### chore: update bitcoin regtest configuration to be same as the bitcoin mainnet
 
 Update bitcoin `regtest` configuration to be same as the bitcoin `mainnet`.
@@ -29,6 +35,23 @@ You can get the fees by `get_config` API on the [BTC Mainnet Canister](https://d
 
 If you were using the contents of the `pocket-ic-proxy-port` file to determine the port for
 the `/http_gateway` endpoint, you should instead use `dfx info pocketic-config-port`
+
+## Dependencies
+
+### Replica
+
+Updated replica to commit ac7ff452684f84ea0cfc3fd0a27228220a368b33.
+This incorporates the following executed proposals:
+
+- [136982](https://dashboard.internetcomputer.org/proposal/136982)
+- [136887](https://dashboard.internetcomputer.org/proposal/136887)
+- [136789](https://dashboard.internetcomputer.org/proposal/136789)
+- [136731](https://dashboard.internetcomputer.org/proposal/136731)
+- [136567](https://dashboard.internetcomputer.org/proposal/136567)
+
+### Motoko
+
+Updated Motoko to [0.14.12](https://github.com/dfinity/motoko/releases/tag/0.14.12)
 
 # 0.27.0
 
@@ -58,7 +81,7 @@ Improve `dfx canister logs` with several options
 
 ### Motoko
 
-Updated Motoko to [0.14.11](https://github.com/dfinity/motoko/releases/tag/0.14.11)
+Updated Motoko to [0.14.8](https://github.com/dfinity/motoko/releases/tag/0.14.8)
 
 ### Bitcoin canister
 

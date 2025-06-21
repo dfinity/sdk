@@ -18,7 +18,7 @@
             "pullable": {
                 "wasm_url": "http://httpbin.org/status/404",
                 "dependencies": [
-                    "yofga-2qaaa-aaaaa-aabsq-cai"
+                    "w36hm-eqaaa-aaaal-qr76a-cai"
                 ],
                 "init_guide": "No init arguments required"
             },
@@ -33,7 +33,7 @@
             "pullable": {
                 "wasm_url": "http://httpbin.org/status/404",
                 "dependencies": [
-                    "yofga-2qaaa-aaaaa-aabsq-cai"
+                    "w36hm-eqaaa-aaaal-qr76a-cai"
                 ],
                 "init_guide": "An optional natural number, e.g. \"(opt 20)\"."
             }
