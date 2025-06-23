@@ -32,6 +32,20 @@ thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
 }
 
+pub fn with_state<F, R>(f: F) -> R
+where
+    F: FnOnce(&State) -> R,
+{
+    STATE.with(|s| f(&s.borrow()))
+}
+
+pub fn with_state_mut<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut State) -> R,
+{
+    STATE.with(|s| f(&mut s.borrow_mut()))
+}
+
 #[query]
 #[candid_method(query)]
 fn api_version() -> u16 {
@@ -387,11 +401,11 @@ fn can(permission: Permission) -> Result<(), String> {
     })
 }
 
-fn can_commit() -> Result<(), String> {
+pub fn can_commit() -> Result<(), String> {
     can(Permission::Commit)
 }
 
-fn can_prepare() -> Result<(), String> {
+pub fn can_prepare() -> Result<(), String> {
     can(Permission::Prepare)
 }
 
