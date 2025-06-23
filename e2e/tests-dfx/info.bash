@@ -103,7 +103,7 @@ teardown() {
   ]" > src/e2e_project_frontend/assets/.ic-assets.json5
   cat src/e2e_project_frontend/assets/.ic-assets.json5
 
-  # fails if the the above produced invalid json5
+  # fails if the above produced invalid json5
   assert_command dfx deploy
 }
 
