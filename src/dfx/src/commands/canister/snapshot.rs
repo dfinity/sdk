@@ -1,5 +1,6 @@
 use std::{
     fmt::{self, Display, Formatter},
+    path::PathBuf,
     str::FromStr,
 };
 
@@ -17,7 +18,7 @@ use crate::lib::{
     error::{DfxError, DfxResult},
     operations::canister::{
         delete_canister_snapshot, get_canister_status, list_canister_snapshots,
-        load_canister_snapshot, take_canister_snapshot,
+        load_canister_snapshot, read_canister_snapshot_metadata, take_canister_snapshot,
     },
     root_key::fetch_root_key_if_needed,
 };
@@ -58,6 +59,15 @@ enum SnapshotSubcommand {
         /// The ID of the snapshot to delete.
         snapshot: SnapshotId,
     },
+    Download {
+        /// The canister to download the snapshot from.
+        canister: String,
+        /// The ID of the snapshot to download.
+        snapshot: SnapshotId,
+        /// The directory to download the snapshot to.
+        #[arg(long)]
+        dir: Option<PathBuf>,
+    },
 }
 
 #[derive(Clone)]
@@ -93,6 +103,11 @@ pub async fn exec(
             delete(env, canister, snapshot, call_sender).await?
         }
         SnapshotSubcommand::List { canister } => list(env, canister, call_sender).await?,
+        SnapshotSubcommand::Download {
+            canister,
+            snapshot,
+            dir,
+        } => download(env, canister, snapshot, dir, call_sender).await?,
     }
     Ok(())
 }
@@ -204,5 +219,24 @@ async fn list(env: &dyn Environment, canister: String, call_sender: &CallSender)
         });
         info!(env.get_logger(), "{snapshots}");
     }
+    Ok(())
+}
+
+async fn download(
+    env: &dyn Environment,
+    canister: String,
+    snapshot: SnapshotId,
+    _dir: Option<PathBuf>,
+    call_sender: &CallSender,
+) -> DfxResult {
+    let canister_id = canister
+        .parse()
+        .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
+    let metadata = read_canister_snapshot_metadata(env, canister_id, &snapshot.0, call_sender)
+        .await
+        .with_context(|| format!("Failed to read metadata from snapshot {snapshot} from canister {canister}"))?;
+
+    // TODO: download the snapshot to the directory.
+    println!("Snapshot metadata: {:?}", metadata);
     Ok(())
 }

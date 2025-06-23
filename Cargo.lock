@@ -2696,8 +2696,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.40.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4832787330765f1bdf67123928855390b7f0b5a16dd0a7ea67674b7d3178ffd0"
+source = "git+https://github.com/dfinity/agent-rs?rev=cfb6a8a111a957c255efc4b4831f5ad6e8cbfc28#cfb6a8a111a957c255efc4b4831f5ad6e8cbfc28"
 dependencies = [
  "arc-swap",
  "async-channel",
@@ -2716,7 +2715,7 @@ dependencies = [
  "http 1.2.0",
  "http-body 1.0.1",
  "ic-certification 3.0.2",
- "ic-transport-types",
+ "ic-transport-types 0.40.1 (git+https://github.com/dfinity/agent-rs?rev=cfb6a8a111a957c255efc4b4831f5ad6e8cbfc28)",
  "ic-verify-bls-signature",
  "k256 0.13.4",
  "leb128",
@@ -3156,8 +3155,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.40.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4a985594aabdaad982f5bd6f4c41e5d0464e1b2fb133f4061fed3a22fc694f84"
+source = "git+https://github.com/dfinity/agent-rs?rev=cfb6a8a111a957c255efc4b4831f5ad6e8cbfc28#cfb6a8a111a957c255efc4b4831f5ad6e8cbfc28"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3293,6 +3291,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-transport-types"
+version = "0.40.1"
+source = "git+https://github.com/dfinity/agent-rs?rev=cfb6a8a111a957c255efc4b4831f5ad6e8cbfc28#cfb6a8a111a957c255efc4b4831f5ad6e8cbfc28"
+dependencies = [
+ "candid",
+ "hex",
+ "ic-certification 3.0.2",
+ "leb128",
+ "serde",
+ "serde_bytes",
+ "serde_cbor",
+ "serde_repr",
+ "sha2 0.10.9",
+ "thiserror 2.0.11",
+]
+
+[[package]]
 name = "ic-types"
 version = "0.9.0"
 source = "git+https://github.com/dfinity/ic.git?rev=1290256484f59c3d950c5e9a098e97383b248ad6#1290256484f59c3d950c5e9a098e97383b248ad6"
@@ -3348,8 +3363,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.40.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d1812840b28c9f526d8e9642d5ffe347a91c22537c24d4ba3c334f74bcd012e"
+source = "git+https://github.com/dfinity/agent-rs?rev=cfb6a8a111a957c255efc4b4831f5ad6e8cbfc28#cfb6a8a111a957c255efc4b4831f5ad6e8cbfc28"
 dependencies = [
  "async-trait",
  "candid",
@@ -4830,7 +4844,7 @@ dependencies = [
  "hex",
  "ic-certification 3.0.2",
  "ic-management-canister-types",
- "ic-transport-types",
+ "ic-transport-types 0.40.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "reqwest",
  "schemars",
  "serde",
