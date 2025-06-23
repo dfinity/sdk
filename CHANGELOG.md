@@ -53,6 +53,11 @@ This incorporates the following executed proposals:
 
 Updated Motoko to [0.14.12](https://github.com/dfinity/motoko/releases/tag/0.14.12)
 
+### Frontend canister
+
+- Module hash: b3c00bb1f247f9327445953dff2cf7f031828584de7a0f4ad2d766c37cc94730
+- https://github.com/dfinity/sdk/pull/4285
+
 # 0.27.0
 
 ### feat!: remove the 'native' replica
