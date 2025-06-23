@@ -43,14 +43,11 @@ pub fn api_version() -> u16 {
 }
 
 pub fn authorize(other: Principal) {
-    STATE.with(|s| s.borrow_mut().grant_permission(other, &Permission::Commit))
+    with_state_mut(|s| s.grant_permission(other, &Permission::Commit))
 }
 
 pub fn grant_permission(arg: GrantPermissionArguments) {
-    STATE.with(|s| {
-        s.borrow_mut()
-            .grant_permission(arg.to_principal, &arg.permission)
-    })
+    with_state_mut(|s| s.grant_permission(arg.to_principal, &arg.permission))
 }
 
 pub async fn validate_grant_permission(arg: GrantPermissionArguments) -> Result<String, String> {
@@ -70,7 +67,7 @@ pub async fn deauthorize(other: Principal) {
     };
     match check_access_result {
         Err(e) => trap(&e),
-        Ok(_) => STATE.with(|s| s.borrow_mut().revoke_permission(other, &Permission::Commit)),
+        Ok(_) => with_state_mut(|s| s.revoke_permission(other, &Permission::Commit)),
     }
 }
 
@@ -82,10 +79,7 @@ pub async fn revoke_permission(arg: RevokePermissionArguments) {
     };
     match check_access_result {
         Err(e) => trap(&e),
-        Ok(_) => STATE.with(|s| {
-            s.borrow_mut()
-                .revoke_permission(arg.of_principal, &arg.permission)
-        }),
+        Ok(_) => with_state_mut(|s| s.revoke_permission(arg.of_principal, &arg.permission)),
     }
 }
 
@@ -97,16 +91,16 @@ pub async fn validate_revoke_permission(arg: RevokePermissionArguments) -> Resul
 }
 
 pub fn list_authorized() -> ManualReply<Vec<Principal>> {
-    STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&Permission::Commit)))
+    with_state(|s| ManualReply::one(s.list_permitted(&Permission::Commit)))
 }
 
 pub fn list_permitted(arg: ListPermittedArguments) -> ManualReply<Vec<Principal>> {
-    STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&arg.permission)))
+    with_state(|s| ManualReply::one(s.list_permitted(&arg.permission)))
 }
 
 pub async fn take_ownership() {
     let caller = ic_cdk::api::caller();
-    STATE.with(|s| s.borrow_mut().take_ownership(caller))
+    with_state_mut(|s| s.take_ownership(caller))
 }
 
 pub async fn validate_take_ownership() -> Result<String, String> {
@@ -114,157 +108,156 @@ pub async fn validate_take_ownership() -> Result<String, String> {
 }
 
 pub fn retrieve(key: AssetKey) -> RcBytes {
-    STATE.with(|s| match s.borrow().retrieve(&key) {
+    with_state(|s| match s.retrieve(&key) {
         Ok(bytes) => bytes,
         Err(msg) => trap(&msg),
     })
 }
 
 pub fn store(arg: StoreArg) {
-    STATE.with(move |s| {
-        if let Err(msg) = s.borrow_mut().store(arg, time()) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.store(arg, time()) {
             trap(&msg);
         }
-        set_certified_data(&s.borrow().root_hash());
+        set_certified_data(&s.root_hash());
     });
 }
 
 pub fn create_batch() -> CreateBatchResponse {
-    STATE.with(|s| match s.borrow_mut().create_batch(time()) {
+    with_state_mut(|s| match s.create_batch(time()) {
         Ok(batch_id) => CreateBatchResponse { batch_id },
         Err(msg) => trap(&msg),
     })
 }
 
 pub fn create_chunk(arg: CreateChunkArg) -> CreateChunkResponse {
-    STATE.with(|s| match s.borrow_mut().create_chunk(arg, time()) {
+    with_state_mut(|s| match s.create_chunk(arg, time()) {
         Ok(chunk_id) => CreateChunkResponse { chunk_id },
         Err(msg) => trap(&msg),
     })
 }
 
 pub fn create_chunks(arg: CreateChunksArg) -> CreateChunksResponse {
-    STATE.with(|s| match s.borrow_mut().create_chunks(arg, time()) {
+    with_state_mut(|s| match s.create_chunks(arg, time()) {
         Ok(chunk_ids) => CreateChunksResponse { chunk_ids },
         Err(msg) => trap(&msg),
     })
 }
 
 pub fn create_asset(arg: CreateAssetArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().create_asset(arg) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.create_asset(arg) {
             trap(&msg);
         }
-        set_certified_data(&s.borrow().root_hash());
+        set_certified_data(&s.root_hash());
     })
 }
 
 pub fn set_asset_content(arg: SetAssetContentArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().set_asset_content(arg, time()) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.set_asset_content(arg, time()) {
             trap(&msg);
         }
-        set_certified_data(&s.borrow().root_hash());
+        set_certified_data(&s.root_hash());
     })
 }
 
 pub fn unset_asset_content(arg: UnsetAssetContentArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().unset_asset_content(arg) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.unset_asset_content(arg) {
             trap(&msg);
         }
-        set_certified_data(&s.borrow().root_hash());
+        set_certified_data(&s.root_hash());
     })
 }
 
 pub fn delete_asset(arg: DeleteAssetArguments) {
-    STATE.with(|s| {
-        s.borrow_mut().delete_asset(arg);
-        set_certified_data(&s.borrow().root_hash());
+    with_state_mut(|s| {
+        s.delete_asset(arg);
+        set_certified_data(&s.root_hash());
     });
 }
 
 pub fn clear() {
-    STATE.with(|s| {
-        s.borrow_mut().clear();
-        set_certified_data(&s.borrow().root_hash());
+    with_state_mut(|s| {
+        s.clear();
+        set_certified_data(&s.root_hash());
     });
 }
 
 pub fn commit_batch(arg: CommitBatchArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().commit_batch(arg, time()) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.commit_batch(arg, time()) {
             trap(&msg);
         }
-        set_certified_data(&s.borrow().root_hash());
+        set_certified_data(&s.root_hash());
     });
 }
 
 pub fn propose_commit_batch(arg: CommitBatchArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().propose_commit_batch(arg) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.propose_commit_batch(arg) {
             trap(&msg);
         }
+        set_certified_data(&s.root_hash());
     });
 }
 
 pub fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ByteBuf> {
-    STATE.with(|s| match s.borrow_mut().compute_evidence(arg) {
+    with_state_mut(|s| match s.compute_evidence(arg) {
         Err(msg) => trap(&msg),
         Ok(maybe_evidence) => maybe_evidence,
     })
 }
 
 pub fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().commit_proposed_batch(arg, time()) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.commit_proposed_batch(arg, time()) {
             trap(&msg);
         }
-        set_certified_data(&s.borrow().root_hash());
+        set_certified_data(&s.root_hash());
     });
 }
 
 pub fn validate_commit_proposed_batch(arg: CommitProposedBatchArguments) -> Result<String, String> {
-    STATE.with(|s| s.borrow_mut().validate_commit_proposed_batch(arg))
+    with_state_mut(|s| s.validate_commit_proposed_batch(arg))
 }
 
 pub fn delete_batch(arg: DeleteBatchArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().delete_batch(arg) {
-            trap(&msg);
-        }
-    });
+    if let Err(msg) = with_state_mut(|s| s.delete_batch(arg)) {
+        trap(&msg);
+    }
 }
 
 pub fn get(arg: GetArg) -> EncodedAsset {
-    STATE.with(|s| match s.borrow().get(arg) {
+    with_state(|s| match s.get(arg) {
         Ok(asset) => asset,
         Err(msg) => trap(&msg),
     })
 }
 
 pub fn get_chunk(arg: GetChunkArg) -> GetChunkResponse {
-    STATE.with(|s| match s.borrow().get_chunk(arg) {
+    with_state(|s| match s.get_chunk(arg) {
         Ok(content) => GetChunkResponse { content },
         Err(msg) => trap(&msg),
     })
 }
 
 pub fn list() -> Vec<AssetDetails> {
-    STATE.with(|s| s.borrow().list_assets())
+    with_state(|s| s.list_assets())
 }
 
 pub fn certified_tree() -> CertifiedTree {
     let certificate = data_certificate().unwrap_or_else(|| trap("no data certificate available"));
 
-    STATE.with(|s| s.borrow().certified_tree(&certificate))
+    with_state(|s| s.certified_tree(&certificate))
 }
 
 pub fn http_request(req: HttpRequest) -> HttpResponse {
     let certificate = data_certificate().unwrap_or_else(|| trap("no data certificate available"));
 
-    STATE.with(|s| {
-        s.borrow().http_request(
+    with_state(|s| {
+        s.http_request(
             req,
             &certificate,
             CallbackFunc::new(ic_cdk::id(), "http_request_streaming_callback".to_string()),
@@ -275,35 +268,30 @@ pub fn http_request(req: HttpRequest) -> HttpResponse {
 pub fn http_request_streaming_callback(
     token: StreamingCallbackToken,
 ) -> StreamingCallbackHttpResponse {
-    STATE.with(|s| {
-        s.borrow()
-            .http_request_streaming_callback(token)
+    with_state(|s| {
+        s.http_request_streaming_callback(token)
             .unwrap_or_else(|msg| trap(&msg))
     })
 }
 
 pub fn get_asset_properties(key: AssetKey) -> AssetProperties {
-    STATE.with(|s| {
-        s.borrow()
-            .get_asset_properties(key)
-            .unwrap_or_else(|msg| trap(&msg))
-    })
+    with_state(|s| s.get_asset_properties(key).unwrap_or_else(|msg| trap(&msg)))
 }
 
 pub fn set_asset_properties(arg: SetAssetPropertiesArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().set_asset_properties(arg) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.set_asset_properties(arg) {
             trap(&msg);
         }
     })
 }
 
 pub fn get_configuration() -> ConfigurationResponse {
-    STATE.with(|s| s.borrow().get_configuration())
+    with_state(|s| s.get_configuration())
 }
 
 pub fn configure(arg: ConfigureArguments) {
-    STATE.with(|s| s.borrow_mut().configure(arg))
+    with_state_mut(|s| s.configure(arg))
 }
 
 pub fn validate_configure(arg: ConfigureArguments) -> Result<String, String> {
@@ -311,9 +299,8 @@ pub fn validate_configure(arg: ConfigureArguments) -> Result<String, String> {
 }
 
 pub fn can(permission: Permission) -> Result<(), String> {
-    STATE.with(|s| {
-        s.borrow()
-            .can(&caller(), &permission)
+    with_state(|s| {
+        s.can(&caller(), &permission)
             .then_some(())
             .ok_or_else(|| format!("Caller does not have {} permission", permission))
     })
@@ -329,7 +316,7 @@ pub fn can_prepare() -> Result<(), String> {
 
 pub fn has_permission_or_is_controller(permission: &Permission) -> Result<(), String> {
     let caller = caller();
-    let has_permission = STATE.with(|s| s.borrow().has_permission(&caller, permission));
+    let has_permission = with_state(|s| s.has_permission(&caller, permission));
     let is_controller = ic_cdk::api::is_controller(&caller);
     if has_permission || is_controller {
         Ok(())
@@ -355,8 +342,7 @@ pub fn is_controller() -> Result<(), String> {
 }
 
 pub fn init(args: Option<AssetCanisterArgs>) {
-    STATE.with(|s| {
-        let mut s = s.borrow_mut();
+    with_state_mut(|s| {
         s.clear();
         s.grant_permission(caller(), &Permission::Commit);
     });
@@ -365,10 +351,9 @@ pub fn init(args: Option<AssetCanisterArgs>) {
         let AssetCanisterArgs::Init(init_args) = upgrade_arg else {
             ic_cdk::trap("Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.")
         };
-        STATE.with(|s| {
-            let mut state = s.borrow_mut();
+        with_state_mut(|s| {
             if let Some(set_permissions) = init_args.set_permissions {
-                state.set_permissions(set_permissions);
+                s.set_permissions(set_permissions);
             }
         });
     }
@@ -384,11 +369,11 @@ pub fn post_upgrade(stable_state: StableState, args: Option<AssetCanisterArgs>) 
         set_permissions
     });
 
-    STATE.with(|s| {
-        *s.borrow_mut() = State::from(stable_state);
-        set_certified_data(&s.borrow().root_hash());
+    with_state_mut(|s| {
+        *s = State::from(stable_state);
+        set_certified_data(&s.root_hash());
         if let Some(set_permissions) = set_permissions {
-            s.borrow_mut().set_permissions(set_permissions);
+            s.set_permissions(set_permissions);
         }
     });
 }
