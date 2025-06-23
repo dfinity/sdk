@@ -34,3 +34,5 @@ fn post_upgrade(args: Option<AssetCanisterArgs>) {
         ic_cdk::storage::stable_restore().expect("failed to restore stable state");
     ic_certified_assets::post_upgrade(stable_state, args);
 }
+
+ic_certified_assets::export_canister_methods!();
