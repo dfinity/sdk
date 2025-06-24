@@ -1,5 +1,5 @@
 use candid::ser::IDLBuilder;
-use ic_cdk::api::stable;
+use ic_cdk::stable;
 use ic_cdk::{init, post_upgrade, pre_upgrade};
 use ic_certified_assets::types::AssetCanisterArgs;
 
