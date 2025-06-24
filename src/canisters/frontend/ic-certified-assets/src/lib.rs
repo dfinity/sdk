@@ -528,13 +528,13 @@ macro_rules! export_canister_methods {
             $crate::validate_revoke_permission(arg).await
         }
 
-        #[$crate::ic_certified_assets_update(manual_reply = true)]
+        #[$crate::ic_certified_assets_update]
         #[$crate::ic_certified_assets_candid_method(update)]
         fn list_authorized() -> Vec<candid::Principal> {
             $crate::list_authorized()
         }
 
-        #[$crate::ic_certified_assets_update(manual_reply = true)]
+        #[$crate::ic_certified_assets_update]
         #[$crate::ic_certified_assets_candid_method(update)]
         fn list_permitted(arg: types::ListPermittedArguments) -> Vec<candid::Principal> {
             $crate::list_permitted(arg)
