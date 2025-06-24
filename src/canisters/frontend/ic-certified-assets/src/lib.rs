@@ -392,6 +392,9 @@ where
     STATE.with(|s| f(&s.borrow()))
 }
 
+/// Exports the whole asset canister interface, but does not handle init/pre_/post_upgrade for initial configuration or state persistence across upgrades.
+///
+/// For a working example how to use this macro, see [here](https://github.com/dfinity/sdk/blob/master/src/canisters/frontend/ic-frontend-canister/src/lib.rs).
 #[macro_export]
 macro_rules! export_canister_methods {
     () => {
