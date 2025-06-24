@@ -19,7 +19,7 @@ use crate::{
 };
 use asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use candid::Principal;
-use ic_cdk::api::{call::ManualReply, caller, data_certificate, set_certified_data, time, trap};
+use ic_cdk::api::{canister_self, certified_data_set, data_certificate, msg_caller, time, trap};
 use std::cell::RefCell;
 
 // Re-export for use in macros
@@ -58,7 +58,7 @@ pub async fn validate_grant_permission(arg: GrantPermissionArguments) -> Result<
 }
 
 pub async fn deauthorize(other: Principal) {
-    let check_access_result = if other == caller() {
+    let check_access_result = if other == msg_caller() {
         // this isn't "ManagePermissions" because these legacy methods only
         // deal with the Commit permission
         has_permission_or_is_controller(&Permission::Commit)
@@ -72,7 +72,7 @@ pub async fn deauthorize(other: Principal) {
 }
 
 pub async fn revoke_permission(arg: RevokePermissionArguments) {
-    let check_access_result = if arg.of_principal == caller() {
+    let check_access_result = if arg.of_principal == msg_caller() {
         has_permission_or_is_controller(&arg.permission)
     } else {
         has_permission_or_is_controller(&Permission::ManagePermissions)
@@ -90,16 +90,21 @@ pub async fn validate_revoke_permission(arg: RevokePermissionArguments) -> Resul
     ))
 }
 
-pub fn list_authorized() -> ManualReply<Vec<Principal>> {
-    with_state(|s| ManualReply::one(s.list_permitted(&Permission::Commit)))
+pub fn list_authorized() -> Vec<Principal> {
+    with_state(|s| {
+        s.list_permitted(&Permission::Commit)
+            .iter()
+            .cloned()
+            .collect()
+    })
 }
 
-pub fn list_permitted(arg: ListPermittedArguments) -> ManualReply<Vec<Principal>> {
-    with_state(|s| ManualReply::one(s.list_permitted(&arg.permission)))
+pub fn list_permitted(arg: ListPermittedArguments) -> Vec<Principal> {
+    with_state(|s| s.list_permitted(&arg.permission).iter().cloned().collect())
 }
 
 pub async fn take_ownership() {
-    let caller = ic_cdk::api::caller();
+    let caller = msg_caller();
     with_state_mut(|s| s.take_ownership(caller))
 }
 
@@ -119,7 +124,7 @@ pub fn store(arg: StoreArg) {
         if let Err(msg) = s.store(arg, time()) {
             trap(&msg);
         }
-        set_certified_data(&s.root_hash());
+        certified_data_set(s.root_hash());
     });
 }
 
@@ -149,7 +154,7 @@ pub fn create_asset(arg: CreateAssetArguments) {
         if let Err(msg) = s.create_asset(arg) {
             trap(&msg);
         }
-        set_certified_data(&s.root_hash());
+        certified_data_set(s.root_hash());
     })
 }
 
@@ -158,7 +163,7 @@ pub fn set_asset_content(arg: SetAssetContentArguments) {
         if let Err(msg) = s.set_asset_content(arg, time()) {
             trap(&msg);
         }
-        set_certified_data(&s.root_hash());
+        certified_data_set(s.root_hash());
     })
 }
 
@@ -167,21 +172,21 @@ pub fn unset_asset_content(arg: UnsetAssetContentArguments) {
         if let Err(msg) = s.unset_asset_content(arg) {
             trap(&msg);
         }
-        set_certified_data(&s.root_hash());
+        certified_data_set(s.root_hash());
     })
 }
 
 pub fn delete_asset(arg: DeleteAssetArguments) {
     with_state_mut(|s| {
         s.delete_asset(arg);
-        set_certified_data(&s.root_hash());
+        certified_data_set(s.root_hash());
     });
 }
 
 pub fn clear() {
     with_state_mut(|s| {
         s.clear();
-        set_certified_data(&s.root_hash());
+        certified_data_set(s.root_hash());
     });
 }
 
@@ -190,7 +195,7 @@ pub fn commit_batch(arg: CommitBatchArguments) {
         if let Err(msg) = s.commit_batch(arg, time()) {
             trap(&msg);
         }
-        set_certified_data(&s.root_hash());
+        certified_data_set(s.root_hash());
     });
 }
 
@@ -199,7 +204,7 @@ pub fn propose_commit_batch(arg: CommitBatchArguments) {
         if let Err(msg) = s.propose_commit_batch(arg) {
             trap(&msg);
         }
-        set_certified_data(&s.root_hash());
+        certified_data_set(s.root_hash());
     });
 }
 
@@ -215,7 +220,7 @@ pub fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
         if let Err(msg) = s.commit_proposed_batch(arg, time()) {
             trap(&msg);
         }
-        set_certified_data(&s.root_hash());
+        certified_data_set(s.root_hash());
     });
 }
 
@@ -260,7 +265,10 @@ pub fn http_request(req: HttpRequest) -> HttpResponse {
         s.http_request(
             req,
             &certificate,
-            CallbackFunc::new(ic_cdk::id(), "http_request_streaming_callback".to_string()),
+            CallbackFunc::new(
+                canister_self(),
+                "http_request_streaming_callback".to_string(),
+            ),
         )
     })
 }
@@ -300,7 +308,7 @@ pub fn validate_configure(arg: ConfigureArguments) -> Result<String, String> {
 
 pub fn can(permission: Permission) -> Result<(), String> {
     with_state(|s| {
-        s.can(&caller(), &permission)
+        s.can(&msg_caller(), &permission)
             .then_some(())
             .ok_or_else(|| format!("Caller does not have {} permission", permission))
     })
@@ -315,7 +323,7 @@ pub fn can_prepare() -> Result<(), String> {
 }
 
 pub fn has_permission_or_is_controller(permission: &Permission) -> Result<(), String> {
-    let caller = caller();
+    let caller = msg_caller();
     let has_permission = with_state(|s| s.has_permission(&caller, permission));
     let is_controller = ic_cdk::api::is_controller(&caller);
     if has_permission || is_controller {
@@ -333,7 +341,7 @@ pub fn is_manager_or_controller() -> Result<(), String> {
 }
 
 pub fn is_controller() -> Result<(), String> {
-    let caller = caller();
+    let caller = msg_caller();
     if ic_cdk::api::is_controller(&caller) {
         Ok(())
     } else {
@@ -344,7 +352,7 @@ pub fn is_controller() -> Result<(), String> {
 pub fn init(args: Option<AssetCanisterArgs>) {
     with_state_mut(|s| {
         s.clear();
-        s.grant_permission(caller(), &Permission::Commit);
+        s.grant_permission(msg_caller(), &Permission::Commit);
     });
 
     if let Some(upgrade_arg) = args {
@@ -371,7 +379,7 @@ pub fn post_upgrade(stable_state: StableState, args: Option<AssetCanisterArgs>) 
 
     with_state_mut(|s| {
         *s = State::from(stable_state);
-        set_certified_data(&s.root_hash());
+        certified_data_set(s.root_hash());
         if let Some(set_permissions) = set_permissions {
             s.set_permissions(set_permissions);
         }
@@ -522,15 +530,13 @@ macro_rules! export_canister_methods {
 
         #[$crate::ic_certified_assets_update(manual_reply = true)]
         #[$crate::ic_certified_assets_candid_method(update)]
-        fn list_authorized() -> ic_cdk::api::call::ManualReply<Vec<candid::Principal>> {
+        fn list_authorized() -> Vec<candid::Principal> {
             $crate::list_authorized()
         }
 
         #[$crate::ic_certified_assets_update(manual_reply = true)]
         #[$crate::ic_certified_assets_candid_method(update)]
-        fn list_permitted(
-            arg: types::ListPermittedArguments,
-        ) -> ic_cdk::api::call::ManualReply<Vec<candid::Principal>> {
+        fn list_permitted(arg: types::ListPermittedArguments) -> Vec<candid::Principal> {
             $crate::list_permitted(arg)
         }
 
