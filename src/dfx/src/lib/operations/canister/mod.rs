@@ -5,7 +5,9 @@ pub mod motoko_playground;
 mod skip_remote_canister;
 
 pub use create_canister::create_canister;
-use ic_utils::interfaces::management_canister::{Snapshot, SnapshotMetadataResult};
+use ic_utils::interfaces::management_canister::{
+    Snapshot, SnapshotDataKind, SnapshotDataResult, SnapshotMetadataResult,
+};
 pub use install_canister::install_wallet;
 pub use skip_remote_canister::skip_remote_canister;
 
@@ -607,4 +609,37 @@ pub async fn read_canister_snapshot_metadata(
     )
     .await?;
     Ok(snapshot_metadata)
+}
+
+#[context(
+    "Failed to read data from snapshot {} in canister {canister_id}",
+    hex::encode(snapshot_id)
+)]
+pub async fn read_canister_snapshot_data(
+    env: &dyn Environment,
+    canister_id: Principal,
+    snapshot_id: &[u8],
+    kind: &SnapshotDataKind,
+    call_sender: &CallSender,
+) -> DfxResult<SnapshotDataResult> {
+    #[derive(CandidType)]
+    struct In<'a> {
+        canister_id: Principal,
+        snapshot_id: &'a [u8],
+        kind: &'a SnapshotDataKind,
+    }
+    let (snapshot_data,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::ReadCanisterSnapshotData.as_ref(),
+        &In {
+            canister_id,
+            snapshot_id,
+            kind,
+        },
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(snapshot_data)
 }

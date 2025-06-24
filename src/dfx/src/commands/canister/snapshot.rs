@@ -5,9 +5,10 @@ use std::{
 };
 
 use anyhow::{bail, Context};
+use candid::Principal;
 use clap::{Parser, Subcommand};
 use dfx_core::identity::CallSender;
-use ic_utils::interfaces::management_canister::CanisterStatus;
+use ic_utils::interfaces::management_canister::{CanisterStatus, SnapshotDataKind};
 use indicatif::HumanBytes;
 use itertools::Itertools;
 use slog::info;
@@ -18,7 +19,8 @@ use crate::lib::{
     error::{DfxError, DfxResult},
     operations::canister::{
         delete_canister_snapshot, get_canister_status, list_canister_snapshots,
-        load_canister_snapshot, read_canister_snapshot_metadata, take_canister_snapshot,
+        load_canister_snapshot, read_canister_snapshot_data, read_canister_snapshot_metadata,
+        take_canister_snapshot,
     },
     root_key::fetch_root_key_if_needed,
 };
@@ -243,15 +245,104 @@ async fn download(
         })?;
     let metadata_file = dir.join("metadata.json");
     let metadata_json = serde_json::to_string_pretty(&metadata)?;
-    std::fs::write(&metadata_file, metadata_json)
-        .with_context(|| format!("Failed to write snapshot metadata to '{}'", metadata_file.display()))?;
+    std::fs::write(&metadata_file, metadata_json).with_context(|| {
+        format!(
+            "Failed to write snapshot metadata to '{}'",
+            metadata_file.display()
+        )
+    })?;
     info!(
         env.get_logger(),
         "Snapshot metadata saved to '{}'",
         metadata_file.display()
     );
 
-    // TODO: download the actual snapshot data to the directory.
+    let wasm_module = read_blob(
+        env,
+        canister_id,
+        &snapshot,
+        BlobKind::WasmModule,
+        metadata.wasm_module_size as usize,
+        call_sender,
+    )
+    .await
+    .with_context(|| {
+        format!(
+            "Failed to read data from snapshot {snapshot} from canister {}",
+            canister_id.to_text(),
+        )
+    })?;
+    let wasm_module_file = dir.join("wasm_module.bin");
+    std::fs::write(&wasm_module_file, &wasm_module).with_context(|| {
+        format!(
+            "Failed to write wasm module to '{}'",
+            wasm_module_file.display()
+        )
+    })?;
+    info!(
+        env.get_logger(),
+        "Wasm module saved to '{}'",
+        wasm_module_file.display()
+    );
+
+    let wasm_memory = read_blob(
+        env,
+        canister_id,
+        &snapshot,
+        BlobKind::MainMemory,
+        metadata.wasm_memory_size as usize,
+        call_sender,
+    )
+    .await
+    .with_context(|| {
+        format!(
+            "Failed to read data from snapshot {snapshot} from canister {}",
+            canister_id.to_text(),
+        )
+    })?;
+    let wasm_memory_file = dir.join("wasm_memory.bin");
+    std::fs::write(&wasm_memory_file, &wasm_memory).with_context(|| {
+        format!(
+            "Failed to write wasm memory to '{}'",
+            wasm_memory_file.display()
+        )
+    })?;
+    info!(
+        env.get_logger(),
+        "Wasm memory saved to '{}'",
+        wasm_memory_file.display()
+    );
+
+    if metadata.stable_memory_size > 0 {
+        let stable_memory = read_blob(
+            env,
+            canister_id,
+            &snapshot,
+            BlobKind::StableMemory,
+            metadata.stable_memory_size as usize,
+            call_sender,
+        )
+        .await
+        .with_context(|| {
+            format!(
+                "Failed to read data from snapshot {snapshot} from canister {}",
+                canister_id.to_text(),
+            )
+        })?;
+        let stable_memory_file = dir.join("stable_memory.bin");
+        std::fs::write(&stable_memory_file, &stable_memory).with_context(|| {
+            format!(
+                "Failed to write stable memory to '{}'",
+                stable_memory_file.display()
+            )
+        })?;
+        info!(
+            env.get_logger(),
+            "Stable memory saved to '{}'",
+            stable_memory_file.display()
+        );
+    }
+
     Ok(())
 }
 
@@ -280,4 +371,53 @@ fn check_dir(dir: &PathBuf) -> DfxResult {
     }
 
     Ok(())
+}
+
+enum BlobKind {
+    WasmModule,
+    MainMemory,
+    StableMemory,
+}
+
+async fn read_blob(
+    env: &dyn Environment,
+    canister_id: Principal,
+    snapshot: &SnapshotId,
+    blob_kind: BlobKind,
+    length: usize,
+    call_sender: &CallSender,
+) -> DfxResult<Vec<u8>> {
+    const MAX_CHUNK_SIZE: usize = 2_000_000;
+    let mut blob: Vec<u8> = vec![0; length];
+    let mut offset = 0;
+    while offset < length {
+        let chunk_size = std::cmp::min(length - offset, MAX_CHUNK_SIZE);
+        let kind = match blob_kind {
+            BlobKind::WasmModule => SnapshotDataKind::WasmModule {
+                offset: offset as u64,
+                size: chunk_size as u64,
+            },
+            BlobKind::MainMemory => SnapshotDataKind::MainMemory {
+                offset: offset as u64,
+                size: chunk_size as u64,
+            },
+            BlobKind::StableMemory => SnapshotDataKind::StableMemory {
+                offset: offset as u64,
+                size: chunk_size as u64,
+            },
+        };
+        let chunk = read_canister_snapshot_data(env, canister_id, &snapshot.0, &kind, call_sender)
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to read data from snapshot {snapshot} from canister {}",
+                    canister_id.to_text()
+                )
+            })?
+            .chunk;
+        blob[offset..offset + chunk_size].copy_from_slice(&chunk);
+        offset += chunk_size;
+    }
+
+    Ok(blob)
 }
