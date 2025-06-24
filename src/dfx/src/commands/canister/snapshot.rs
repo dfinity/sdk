@@ -22,6 +22,7 @@ use crate::lib::{
     },
     root_key::fetch_root_key_if_needed,
 };
+use crate::util::clap::parsers::directory_parser;
 
 #[derive(Parser)]
 pub struct SnapshotOpts {
@@ -65,8 +66,8 @@ enum SnapshotSubcommand {
         /// The ID of the snapshot to download.
         snapshot: SnapshotId,
         /// The directory to download the snapshot to.
-        #[arg(long)]
-        dir: Option<PathBuf>,
+        #[arg(long, value_parser = directory_parser)]
+        dir: PathBuf,
     },
 }
 
@@ -226,17 +227,57 @@ async fn download(
     env: &dyn Environment,
     canister: String,
     snapshot: SnapshotId,
-    _dir: Option<PathBuf>,
+    dir: PathBuf,
     call_sender: &CallSender,
 ) -> DfxResult {
+    check_dir(&dir)?;
+
     let canister_id = canister
         .parse()
         .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
+
     let metadata = read_canister_snapshot_metadata(env, canister_id, &snapshot.0, call_sender)
         .await
-        .with_context(|| format!("Failed to read metadata from snapshot {snapshot} from canister {canister}"))?;
+        .with_context(|| {
+            format!("Failed to read metadata from snapshot {snapshot} from canister {canister}")
+        })?;
+    let metadata_file = dir.join("metadata.json");
+    let metadata_json = serde_json::to_string_pretty(&metadata)?;
+    std::fs::write(&metadata_file, metadata_json)
+        .with_context(|| format!("Failed to write snapshot metadata to '{}'", metadata_file.display()))?;
+    info!(
+        env.get_logger(),
+        "Snapshot metadata saved to '{}'",
+        metadata_file.display()
+    );
 
-    // TODO: download the snapshot to the directory.
-    println!("Snapshot metadata: {:?}", metadata);
+    // TODO: download the actual snapshot data to the directory.
+    Ok(())
+}
+
+fn check_dir(dir: &PathBuf) -> DfxResult {
+    // Check if the directory is empty.
+    let mut entries = std::fs::read_dir(&dir)
+        .with_context(|| format!("Failed to read directory '{}'", dir.display()))?;
+    if entries.next().is_some() {
+        bail!("Directory '{}' is not empty", dir.display());
+    }
+
+    // Check if the directory is writable.
+    let temp_file = dir.join(".snapshot_write_test");
+    match std::fs::File::create(&temp_file) {
+        Ok(_) => {
+            std::fs::remove_file(&temp_file).with_context(|| {
+                format!(
+                    "Failed to remove temporary test file '{}'",
+                    temp_file.display()
+                )
+            })?;
+        }
+        Err(e) => {
+            bail!("Directory '{}' is not writable: {}", dir.display(), e);
+        }
+    }
+
     Ok(())
 }
