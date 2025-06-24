@@ -55,7 +55,9 @@ Updated Motoko to [0.14.12](https://github.com/dfinity/motoko/releases/tag/0.14.
 
 ### Frontend canister
 
-- Module hash: b3c00bb1f247f9327445953dff2cf7f031828584de7a0f4ad2d766c37cc94730
+Added missing fields to the asset canister .wasm: `SetAssetContentArguments.last_chunk : opt blob`, and `HttpResponse.upgrade: opt bool`
+
+- Module hash: ffdf61795a862343ea3ebd4280f9b97743b056a120091787193d87d9b38d1236
 - https://github.com/dfinity/sdk/pull/4285
 
 # 0.27.0
