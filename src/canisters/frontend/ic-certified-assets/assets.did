@@ -17,6 +17,7 @@ type SetAssetContentArguments = record {
   key: Key;
   content_encoding: text;
   chunk_ids: vec ChunkId;
+  last_chunk: opt blob;
   sha256: opt blob;
 };
 
@@ -80,6 +81,7 @@ type HttpResponse = record {
   headers: vec HeaderField;
   body: blob;
   streaming_strategy: opt StreamingStrategy;
+  upgrade: opt bool;
 };
 
 type StreamingCallbackHttpResponse = record {
