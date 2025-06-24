@@ -407,7 +407,7 @@ macro_rules! export_canister_methods {
 
         #[cfg(target_arch = "wasm32")]
         #[link_section = "icp:public supported_certificate_versions"]
-        pub static CERTIFICATE_VERSIONS: [u8; 3] = $crate::SUPPORTED_CERTIFICATE_VERSIONS;
+        static CERTIFICATE_VERSIONS: [u8; 3] = $crate::SUPPORTED_CERTIFICATE_VERSIONS;
 
         // Query methods
         #[$crate::query]
@@ -487,7 +487,7 @@ macro_rules! export_canister_methods {
 
         #[$crate::update]
         #[$crate::candid_method(update)]
-        pub async fn validate_grant_permission(
+        async fn validate_grant_permission(
             arg: types::GrantPermissionArguments,
         ) -> Result<String, String> {
             $crate::validate_grant_permission(arg).await
@@ -495,19 +495,19 @@ macro_rules! export_canister_methods {
 
         #[$crate::update]
         #[$crate::candid_method(update)]
-        pub async fn deauthorize(other: candid::Principal) {
+        async fn deauthorize(other: candid::Principal) {
             $crate::deauthorize(other).await
         }
 
         #[$crate::update]
         #[$crate::candid_method(update)]
-        pub async fn revoke_permission(arg: types::RevokePermissionArguments) {
+        async fn revoke_permission(arg: types::RevokePermissionArguments) {
             $crate::revoke_permission(arg).await
         }
 
         #[$crate::update]
         #[$crate::candid_method(update)]
-        pub async fn validate_revoke_permission(
+        async fn validate_revoke_permission(
             arg: types::RevokePermissionArguments,
         ) -> Result<String, String> {
             $crate::validate_revoke_permission(arg).await
@@ -529,13 +529,13 @@ macro_rules! export_canister_methods {
 
         #[$crate::update(guard = "__ic_certified_assets_is_controller")]
         #[$crate::candid_method(update)]
-        pub async fn take_ownership() {
+        async fn take_ownership() {
             $crate::take_ownership().await
         }
 
         #[$crate::update]
         #[$crate::candid_method(update)]
-        pub async fn validate_take_ownership() -> Result<String, String> {
+        async fn validate_take_ownership() -> Result<String, String> {
             $crate::validate_take_ownership().await
         }
 
