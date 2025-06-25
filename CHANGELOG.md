@@ -36,6 +36,10 @@ You can get the fees by `get_config` API on the [BTC Mainnet Canister](https://d
 If you were using the contents of the `pocket-ic-proxy-port` file to determine the port for
 the `/http_gateway` endpoint, you should instead use `dfx info pocketic-config-port`
 
+### feat: add dfx native support for aarch64-Darwin
+
+Add dfx native support for aarch64-Darwin.
+
 ## Dependencies
 
 ### Replica
