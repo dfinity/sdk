@@ -1382,6 +1382,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "darling"
+version = "0.20.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc7f46116c46ff9ab3eb1597a45688b6715c6e628b5c133e288e709a29bcb4ee"
+dependencies = [
+ "darling_core 0.20.11",
+ "darling_macro 0.20.11",
+]
+
+[[package]]
 name = "darling_core"
 version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1410,6 +1420,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "darling_core"
+version = "0.20.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d00b9596d185e565c2207a0b01f8bd1a135483d02d9b7b0a54b11da8d53412e"
+dependencies = [
+ "fnv",
+ "ident_case",
+ "proc-macro2",
+ "quote",
+ "strsim 0.11.1",
+ "syn 2.0.98",
+]
+
+[[package]]
 name = "darling_macro"
 version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1429,6 +1453,17 @@ dependencies = [
  "darling_core 0.14.4",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "darling_macro"
+version = "0.20.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc34b93ccb385b40dc71c6fceac4b2ad23662c7eeb248cf10d529b7e055b6ead"
+dependencies = [
+ "darling_core 0.20.11",
+ "quote",
+ "syn 2.0.98",
 ]
 
 [[package]]
@@ -2812,7 +2847,7 @@ source = "git+https://github.com/dfinity/ic.git?rev=1290256484f59c3d950c5e9a098e
 dependencies = [
  "candid",
  "ic-btc-interface",
- "ic-error-types",
+ "ic-error-types 0.9.0",
  "ic-protobuf",
  "serde",
  "serde_bytes",
@@ -2833,29 +2868,42 @@ dependencies = [
 
 [[package]]
 name = "ic-cdk"
-version = "0.13.5"
+version = "0.18.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b1da6a25b045f9da3c9459c0cb2b0700ac368ee16382975a17185a23b9c18ab"
+checksum = "6d5997f241642ba53f7249618f8a05cfa1cd77f67ac4dbbab66f2611769d447b"
 dependencies = [
  "candid",
+ "ic-cdk-executor",
  "ic-cdk-macros",
+ "ic-error-types 0.2.0",
+ "ic-management-canister-types",
  "ic0",
  "serde",
  "serde_bytes",
+ "slotmap",
+ "thiserror 2.0.11",
+]
+
+[[package]]
+name = "ic-cdk-executor"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f3586c51b6b3809b69c79e97de172b4649f56094e8c8bc1ce2e41a29f20ed5f"
+dependencies = [
+ "slotmap",
 ]
 
 [[package]]
 name = "ic-cdk-macros"
-version = "0.13.2"
+version = "0.18.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a45800053d80a6df839a71aaea5797e723188c0b992618208ca3b941350c7355"
+checksum = "f1c52b98db56a0f885915f250744d0d74da9e6d008ede6f5dde8dcde80bbcf56"
 dependencies = [
  "candid",
+ "darling 0.20.11",
  "proc-macro2",
  "quote",
- "serde",
- "serde_tokenstream",
- "syn 1.0.109",
+ "syn 2.0.98",
 ]
 
 [[package]]
@@ -3101,6 +3149,17 @@ dependencies = [
 
 [[package]]
 name = "ic-error-types"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbeeb3d91aa179d6496d7293becdacedfc413c825cac79fd54ea1906f003ee55"
+dependencies = [
+ "serde",
+ "strum 0.26.3",
+ "strum_macros 0.26.4",
+]
+
+[[package]]
+name = "ic-error-types"
 version = "0.9.0"
 source = "git+https://github.com/dfinity/ic.git?rev=1290256484f59c3d950c5e9a098e97383b248ad6#1290256484f59c3d950c5e9a098e97383b248ad6"
 dependencies = [
@@ -3143,7 +3202,7 @@ dependencies = [
  "ic-base-types",
  "ic-btc-interface",
  "ic-btc-types-internal",
- "ic-error-types",
+ "ic-error-types 0.9.0",
  "ic-protobuf",
  "num-traits",
  "serde",
@@ -3309,7 +3368,7 @@ dependencies = [
  "ic-crypto-internal-types",
  "ic-crypto-sha2",
  "ic-crypto-tree-hash",
- "ic-error-types",
+ "ic-error-types 0.9.0",
  "ic-ic00-types",
  "ic-protobuf",
  "ic-utils 0.9.0",
@@ -3402,9 +3461,9 @@ dependencies = [
 
 [[package]]
 name = "ic0"
-version = "0.21.1"
+version = "0.25.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a54b5297861c651551676e8c43df805dad175cc33bc97dbd992edbbb85dcbcdf"
+checksum = "39a4ced1c92f952a12e554742ffa7d21752a02450930c3b76bea78a2f1b7ab16"
 
 [[package]]
 name = "ic_bls12_381"
@@ -5764,17 +5823,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde_tokenstream"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "797ba1d80299b264f3aac68ab5d12e5825a561749db4df7cd7c8083900c5d4e9"
-dependencies = [
- "proc-macro2",
- "serde",
- "syn 1.0.109",
-]
-
-[[package]]
 name = "serde_urlencoded"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5963,6 +6011,15 @@ dependencies = [
  "term",
  "thread_local",
  "time",
+]
+
+[[package]]
+name = "slotmap"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbff4acf519f630b3a3ddcfaea6c06b42174d9a44bc70c620e9ed1649d58b82a"
+dependencies = [
+ "version_check",
 ]
 
 [[package]]
