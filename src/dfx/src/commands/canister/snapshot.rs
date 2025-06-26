@@ -343,6 +343,46 @@ async fn download(
         );
     }
 
+    if metadata.wasm_chunk_store.len() > 0 {
+        let wasm_chunk_store_dir = dir.join("wasm_chunk_store");
+        std::fs::create_dir(&wasm_chunk_store_dir).with_context(|| {
+            format!(
+                "Failed to create directory '{}'",
+                wasm_chunk_store_dir.display()
+            )
+        })?;
+
+        for chunk_hash in metadata.wasm_chunk_store {
+            let chunk_file =
+                wasm_chunk_store_dir.join(format!("{}.bin", hex::encode(&chunk_hash.hash)));
+
+            let chunk = read_canister_snapshot_data(
+                env,
+                canister_id,
+                &snapshot.0,
+                &SnapshotDataKind::WasmChunk {
+                    hash: chunk_hash.hash,
+                },
+                call_sender,
+            )
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to read data from snapshot {snapshot} from canister {}",
+                    canister_id.to_text()
+                )
+            })?
+            .chunk;
+            std::fs::write(&chunk_file, &chunk)
+                .with_context(|| format!("Failed to write chunk to '{}'", chunk_file.display()))?;
+            info!(
+                env.get_logger(),
+                "Wasm chunk saved to '{}'",
+                chunk_file.display()
+            );
+        }
+    }
+
     Ok(())
 }
 
