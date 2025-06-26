@@ -11,7 +11,7 @@ use dfx_core::identity::CallSender;
 use ic_utils::interfaces::management_canister::{CanisterStatus, SnapshotDataKind};
 use indicatif::HumanBytes;
 use itertools::Itertools;
-use slog::info;
+use slog::{debug, info};
 use time::{macros::format_description, OffsetDateTime};
 
 use crate::lib::{
@@ -238,10 +238,14 @@ async fn download(
         .parse()
         .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
 
+    // Store metadata.
     let metadata = read_canister_snapshot_metadata(env, canister_id, &snapshot.0, call_sender)
         .await
         .with_context(|| {
-            format!("Failed to read metadata from snapshot {snapshot} from canister {canister}")
+            format!(
+                "Failed to read metadata from snapshot {snapshot} in canister {}",
+                canister_id.to_text()
+            )
         })?;
     let metadata_file = dir.join("metadata.json");
     let metadata_json = serde_json::to_string_pretty(&metadata)?;
@@ -251,12 +255,13 @@ async fn download(
             metadata_file.display()
         )
     })?;
-    info!(
+    debug!(
         env.get_logger(),
         "Snapshot metadata saved to '{}'",
         metadata_file.display()
     );
 
+    // Store Wasm module.
     let wasm_module = read_blob(
         env,
         canister_id,
@@ -268,23 +273,24 @@ async fn download(
     .await
     .with_context(|| {
         format!(
-            "Failed to read data from snapshot {snapshot} from canister {}",
+            "Failed to read Wasm module from snapshot {snapshot} in canister {}",
             canister_id.to_text(),
         )
     })?;
     let wasm_module_file = dir.join("wasm_module.bin");
     std::fs::write(&wasm_module_file, &wasm_module).with_context(|| {
         format!(
-            "Failed to write wasm module to '{}'",
+            "Failed to write Wasm module to '{}'",
             wasm_module_file.display()
         )
     })?;
-    info!(
+    debug!(
         env.get_logger(),
         "Wasm module saved to '{}'",
         wasm_module_file.display()
     );
 
+    // Store Wasm memory.
     let wasm_memory = read_blob(
         env,
         canister_id,
@@ -296,23 +302,24 @@ async fn download(
     .await
     .with_context(|| {
         format!(
-            "Failed to read data from snapshot {snapshot} from canister {}",
+            "Failed to read Wasm memory from snapshot {snapshot} in canister {}",
             canister_id.to_text(),
         )
     })?;
     let wasm_memory_file = dir.join("wasm_memory.bin");
     std::fs::write(&wasm_memory_file, &wasm_memory).with_context(|| {
         format!(
-            "Failed to write wasm memory to '{}'",
+            "Failed to write Wasm memory to '{}'",
             wasm_memory_file.display()
         )
     })?;
-    info!(
+    debug!(
         env.get_logger(),
         "Wasm memory saved to '{}'",
         wasm_memory_file.display()
     );
 
+    // Store stable memory.
     if metadata.stable_memory_size > 0 {
         let stable_memory = read_blob(
             env,
@@ -325,7 +332,7 @@ async fn download(
         .await
         .with_context(|| {
             format!(
-                "Failed to read data from snapshot {snapshot} from canister {}",
+                "Failed to read stable memory from snapshot {snapshot} in canister {}",
                 canister_id.to_text(),
             )
         })?;
@@ -336,13 +343,14 @@ async fn download(
                 stable_memory_file.display()
             )
         })?;
-        info!(
+        debug!(
             env.get_logger(),
             "Stable memory saved to '{}'",
             stable_memory_file.display()
         );
     }
 
+    // Store Wasm chunks.
     if metadata.wasm_chunk_store.len() > 0 {
         let wasm_chunk_store_dir = dir.join("wasm_chunk_store");
         std::fs::create_dir(&wasm_chunk_store_dir).with_context(|| {
@@ -375,13 +383,20 @@ async fn download(
             .chunk;
             std::fs::write(&chunk_file, &chunk)
                 .with_context(|| format!("Failed to write chunk to '{}'", chunk_file.display()))?;
-            info!(
+            debug!(
                 env.get_logger(),
                 "Wasm chunk saved to '{}'",
                 chunk_file.display()
             );
         }
     }
+
+    info!(
+        env.get_logger(),
+        "Snapshot {snapshot} in canister {} saved to '{}'",
+        canister_id.to_text(),
+        dir.display()
+    );
 
     Ok(())
 }
