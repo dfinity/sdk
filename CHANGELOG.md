@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.28.0
+
 ### fix: deps deploy works with Canister ID out of the ranges of the pocket-ic subnets
 
 The `dfx deps deploy` command didn't work when the pulled dependency's Canister ID is out of the ranges of the `pocket-ic` subnets.
