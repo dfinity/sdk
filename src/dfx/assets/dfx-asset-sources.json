@@ -1,5 +1,5 @@
 {
-  "replica-rev": "ac7ff452684f84ea0cfc3fd0a27228220a368b33",
+  "replica-rev": "60fb469c46e44e6071193a3314cc442044fcf17a",
   "x86_64-darwin": {
     "motoko": {
       "url": "https://github.com/dfinity/motoko/releases/download/0.14.12/motoko-Darwin-x86_64-0.14.12.tar.gz",
@@ -7,9 +7,9 @@
       "version": "0.14.12"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/ac7ff452684f84ea0cfc3fd0a27228220a368b33/binaries/x86_64-darwin/pocket-ic.gz",
-      "sha256": "392fcc1765d8bfb970dda2ab7fa53a66a938b1c2e16e2d5f0f983d15533f0100",
-      "rev": "ac7ff452684f84ea0cfc3fd0a27228220a368b33"
+      "url": "https://download.dfinity.systems/ic/60fb469c46e44e6071193a3314cc442044fcf17a/binaries/x86_64-darwin/pocket-ic.gz",
+      "sha256": "c776e9f049af42c0508d8b5b1a4ad190824b051c0782dcb3a9f6fca777ca351b",
+      "rev": "60fb469c46e44e6071193a3314cc442044fcf17a"
     }
   },
   "arm64-darwin": {
@@ -19,9 +19,9 @@
       "version": "0.14.12"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/ac7ff452684f84ea0cfc3fd0a27228220a368b33/binaries/arm64-darwin/pocket-ic-server-arm64-darwin",
-      "sha256": "f6cd133fee202ce57a6b4c8c88d648d3d42d4c2d10d9d3d0fe264f2012a691d9",
-      "rev": "ac7ff452684f84ea0cfc3fd0a27228220a368b33"
+      "url": "https://download.dfinity.systems/ic/60fb469c46e44e6071193a3314cc442044fcf17a/binaries/arm64-darwin/pocket-ic-server-arm64-darwin",
+      "sha256": "7e6d01c6cabae215bd76f5bcf216454dcf56bf53fc246b3890a4599288b88edd",
+      "rev": "60fb469c46e44e6071193a3314cc442044fcf17a"
     }
   },
   "x86_64-linux": {
@@ -31,9 +31,9 @@
       "version": "0.14.12"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/ac7ff452684f84ea0cfc3fd0a27228220a368b33/binaries/x86_64-linux/pocket-ic.gz",
-      "sha256": "ca85b6f6d5c9819ab0e24857db8945ed4df58a89168f5e5000e3f9136ceccbc5",
-      "rev": "ac7ff452684f84ea0cfc3fd0a27228220a368b33"
+      "url": "https://download.dfinity.systems/ic/60fb469c46e44e6071193a3314cc442044fcf17a/binaries/x86_64-linux/pocket-ic.gz",
+      "sha256": "e981273f7b24e702034db8dc9924cace8c7c1c1e52536506ff0a4596a17a431c",
+      "rev": "60fb469c46e44e6071193a3314cc442044fcf17a"
     }
   },
   "common": {
