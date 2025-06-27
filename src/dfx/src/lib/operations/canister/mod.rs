@@ -6,7 +6,8 @@ mod skip_remote_canister;
 
 pub use create_canister::create_canister;
 use ic_utils::interfaces::management_canister::{
-    Snapshot, SnapshotDataKind, SnapshotDataResult, SnapshotMetadataResult,
+    CanisterSnapshotId, CanisterTimer, ExportedGlobal, OnLowWasmMemoryHookStatus, Snapshot,
+    SnapshotDataKind, SnapshotDataResult, SnapshotMetadata,
 };
 pub use install_canister::install_wallet;
 pub use skip_remote_canister::skip_remote_canister;
@@ -590,7 +591,7 @@ pub async fn read_canister_snapshot_metadata(
     canister_id: Principal,
     snapshot_id: &[u8],
     call_sender: &CallSender,
-) -> DfxResult<SnapshotMetadataResult> {
+) -> DfxResult<SnapshotMetadata> {
     #[derive(CandidType)]
     struct In<'a> {
         canister_id: Principal,
@@ -642,4 +643,45 @@ pub async fn read_canister_snapshot_data(
     )
     .await?;
     Ok(snapshot_data)
+}
+
+pub async fn upload_canister_snapshot_metadata(
+    env: &dyn Environment,
+    canister_id: Principal,
+    replace_snapshot: Option<&[u8]>,
+    metadata: &SnapshotMetadata,
+    call_sender: &CallSender,
+) -> DfxResult<CanisterSnapshotId> {
+    #[derive(CandidType)]
+    struct In<'a> {
+        canister_id: Principal,
+        replace_snapshot: Option<&'a [u8]>,
+        wasm_module_size: u64,
+        exported_globals: &'a Vec<ExportedGlobal>,
+        wasm_memory_size: u64,
+        stable_memory_size: u64,
+        certified_data: &'a Vec<u8>,
+        global_timer: Option<&'a CanisterTimer>,
+        on_low_wasm_memory_hook_status: Option<&'a OnLowWasmMemoryHookStatus>,
+    }
+    let (snapshot_id,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::UploadCanisterSnapshotMetadata.as_ref(),
+        &In {
+            canister_id,
+            replace_snapshot,
+            wasm_module_size: metadata.wasm_module_size,
+            exported_globals: &metadata.exported_globals,
+            wasm_memory_size: metadata.wasm_memory_size,
+            stable_memory_size: metadata.stable_memory_size,
+            certified_data: &metadata.certified_data,
+            global_timer: metadata.global_timer.as_ref(),
+            on_low_wasm_memory_hook_status: metadata.on_low_wasm_memory_hook_status.as_ref(),
+        },
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(snapshot_id)
 }

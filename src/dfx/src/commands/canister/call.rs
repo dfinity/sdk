@@ -191,7 +191,8 @@ pub fn get_effective_canister_id(
         | MgmtMethod::ListCanisterSnapshots
         | MgmtMethod::DeleteCanisterSnapshot
         | MgmtMethod::ReadCanisterSnapshotMetadata
-        | MgmtMethod::ReadCanisterSnapshotData => {
+        | MgmtMethod::ReadCanisterSnapshotData
+        | MgmtMethod::UploadCanisterSnapshotMetadata => {
             #[derive(CandidType, Deserialize)]
             struct In {
                 canister_id: CanisterId,

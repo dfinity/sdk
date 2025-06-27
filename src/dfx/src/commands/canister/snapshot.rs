@@ -8,7 +8,9 @@ use anyhow::{bail, Context};
 use candid::Principal;
 use clap::{Parser, Subcommand};
 use dfx_core::identity::CallSender;
-use ic_utils::interfaces::management_canister::{CanisterStatus, SnapshotDataKind};
+use ic_utils::interfaces::management_canister::{
+    CanisterStatus, SnapshotDataKind, SnapshotMetadata,
+};
 use indicatif::HumanBytes;
 use itertools::Itertools;
 use slog::{debug, info};
@@ -20,7 +22,7 @@ use crate::lib::{
     operations::canister::{
         delete_canister_snapshot, get_canister_status, list_canister_snapshots,
         load_canister_snapshot, read_canister_snapshot_data, read_canister_snapshot_metadata,
-        take_canister_snapshot,
+        take_canister_snapshot, upload_canister_snapshot_metadata,
     },
     root_key::fetch_root_key_if_needed,
 };
@@ -71,6 +73,13 @@ enum SnapshotSubcommand {
         #[arg(long, value_parser = directory_parser)]
         dir: PathBuf,
     },
+    Upload {
+        /// The canister to upload the snapshot to.
+        canister: String,
+        /// The directory to upload the snapshot from.
+        #[arg(long, value_parser = directory_parser)]
+        dir: PathBuf,
+    },
 }
 
 #[derive(Clone)]
@@ -111,6 +120,9 @@ pub async fn exec(
             snapshot,
             dir,
         } => download(env, canister, snapshot, dir, call_sender).await?,
+        SnapshotSubcommand::Upload { canister, dir } => {
+            upload(env, canister, dir, call_sender).await?
+        }
     }
     Ok(())
 }
@@ -351,7 +363,7 @@ async fn download(
     }
 
     // Store Wasm chunks.
-    if metadata.wasm_chunk_store.len() > 0 {
+    if !metadata.wasm_chunk_store.is_empty() {
         let wasm_chunk_store_dir = dir.join("wasm_chunk_store");
         std::fs::create_dir(&wasm_chunk_store_dir).with_context(|| {
             format!(
@@ -401,9 +413,55 @@ async fn download(
     Ok(())
 }
 
+async fn upload(
+    env: &dyn Environment,
+    canister: String,
+    dir: PathBuf,
+    call_sender: &CallSender,
+) -> DfxResult {
+    let canister_id = canister
+        .parse()
+        .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
+
+    // Upload snapshot metadata.
+    let metadata_file = dir.join("metadata.json");
+    let metadata: SnapshotMetadata =
+        serde_json::from_str(&std::fs::read_to_string(&metadata_file).with_context(|| {
+            format!(
+                "Failed to read snapshot metadata from '{}'",
+                metadata_file.display()
+            )
+        })?)
+        .with_context(|| {
+            format!(
+                "Failed to deserialize snapshot metadata from '{}'",
+                metadata_file.display()
+            )
+        })?;
+    let snapshot_id =
+        upload_canister_snapshot_metadata(env, canister_id, None, &metadata, call_sender)
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to upload snapshot metadata to canister {}",
+                    canister_id.to_text()
+                )
+            })?;
+    debug!(
+        env.get_logger(),
+        "Snapshot metadata uploaded to canister {} with Snapshot ID: {}",
+        canister_id.to_text(),
+        hex::encode(snapshot_id.snapshot_id)
+    );
+
+    // TODO: Upload Snapshot data.
+
+    Ok(())
+}
+
 fn check_dir(dir: &PathBuf) -> DfxResult {
     // Check if the directory is empty.
-    let mut entries = std::fs::read_dir(&dir)
+    let mut entries = std::fs::read_dir(dir)
         .with_context(|| format!("Failed to read directory '{}'", dir.display()))?;
     if entries.next().is_some() {
         bail!("Directory '{}' is not empty", dir.display());
