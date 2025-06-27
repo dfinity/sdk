@@ -4,8 +4,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-06-26
+
+### Added
+
+- The stored state can now be directly accessed with `with_state`
+- Asset permissions can be set in the initialization parameters when installing or upgrading
+- Added bulk operations for chunk uploading and committing
+- Added support for response verification v2 certificate expressions
+- Added configurable upload limits for chunks and batches
+- Added an API for proposing, validating, and committing asset change batches, for use in SNSes
+- Added functions for getting and setting asset properties
+- Added `list_authorized` and `deauthorize` functions
+- Added `take_ownership` function for clearing the ACL
+- Added a more fine-grained permission system to the ACL
+
+### Changed
+
+- Exported methods are now declared explicitly with the `export_canister_methods!` macro. The implementations of these methods are now public and can be invoked explicitly
+- Converted `list_permitted` to an update call
+- Domain redirection now prefers `icp0.io` over `ic0.app`
+- Authorized users can no longer authorize other users
+
 ## [0.2.5] - 2022-08-22
-### Removed 
+### Added 
 - Support for asset caching based on [ETag](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag)
 - Automatic redirection of all traffic from `.raw.ic0.app` domain to `.ic0.app`
 
