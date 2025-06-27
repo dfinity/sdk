@@ -1513,7 +1513,7 @@ mod tests {
     #[test]
     fn find_dfinity_config_current_path() {
         let root_dir = tempfile::tempdir().unwrap();
-        let root_path = root_dir.into_path().canonicalize().unwrap();
+        let root_path = root_dir.keep().canonicalize().unwrap();
         let config_path = root_path.join("foo/fah/bar").join(CONFIG_FILE_NAME);
 
         std::fs::create_dir_all(config_path.parent().unwrap()).unwrap();
@@ -1530,7 +1530,7 @@ mod tests {
     #[test]
     fn find_dfinity_config_parent() {
         let root_dir = tempfile::tempdir().unwrap();
-        let root_path = root_dir.into_path().canonicalize().unwrap();
+        let root_path = root_dir.keep().canonicalize().unwrap();
         let config_path = root_path.join("foo/fah/bar").join(CONFIG_FILE_NAME);
 
         std::fs::create_dir_all(config_path.parent().unwrap()).unwrap();
@@ -1546,7 +1546,7 @@ mod tests {
     #[test]
     fn find_dfinity_config_subdir() {
         let root_dir = tempfile::tempdir().unwrap();
-        let root_path = root_dir.into_path().canonicalize().unwrap();
+        let root_path = root_dir.keep().canonicalize().unwrap();
         let config_path = root_path.join("foo/fah/bar").join(CONFIG_FILE_NAME);
         let subdir_path = config_path.parent().unwrap().join("baz/blue");
 
