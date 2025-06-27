@@ -44,9 +44,10 @@ Add dfx native support for aarch64-Darwin.
 
 ### Replica
 
-Updated replica to commit ac7ff452684f84ea0cfc3fd0a27228220a368b33.
+Updated replica to commit 60fb469c46e44e6071193a3314cc442044fcf17a.
 This incorporates the following executed proposals:
 
+- [137072](https://dashboard.internetcomputer.org/proposal/137072)
 - [136982](https://dashboard.internetcomputer.org/proposal/136982)
 - [136887](https://dashboard.internetcomputer.org/proposal/136887)
 - [136789](https://dashboard.internetcomputer.org/proposal/136789)
