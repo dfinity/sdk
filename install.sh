@@ -381,7 +381,7 @@ DFX_VERSION="${DFX_VERSION-}"
 DFXVM_INIT_YES="${DFXVM_INIT_YES-}"
 
 # The SHA and the time of the last commit that touched this file.
-SCRIPT_COMMIT_DESC="df1b6708d8e6e4fccd6f44bd73d85864f928c096"
+SCRIPT_COMMIT_DESC="6c389c0447de3c806ddbec76d31ce672aeb226b4"
 
 download_and_install() {
     SHASUM="$1"
