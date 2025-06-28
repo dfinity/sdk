@@ -28,7 +28,7 @@ pub struct LogVisibilityOpt {
     #[arg(long, action = ArgAction::Append, value_parser = principal_parser, conflicts_with("set_log_viewer"))]
     remove_log_viewer: Option<Vec<Principal>>,
 
-    /// Specifies the the principal of the log viewer of the canister.
+    /// Specifies the principal of the log viewer of the canister.
     /// Can be specified more than once.
     #[arg(
         long,
