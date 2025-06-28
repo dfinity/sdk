@@ -27,7 +27,7 @@ candid_parser = "0.1.4"
 dfx-core = { path = "src/dfx-core", version = "0.1.0" }
 ic-agent = { version = "0.40.1" }
 ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.22.0" }
-ic-cdk = "0.13.1"
+ic-cdk = "0.18.4"
 ic-identity-hsm = { version = "0.40.1" }
 ic-utils = { version = "0.40.1" }
 

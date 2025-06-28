@@ -1,11 +1,21 @@
 // Copied from https://github.com/dfinity/cycles-ledger/blob/main/cycles-ledger/src/endpoints.rs
 use candid::{CandidType, Nat, Principal};
-use ic_cdk::api::call::RejectionCode;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use icrc_ledger_types::icrc1::transfer::BlockIndex;
 use serde::Deserialize;
 
 pub type NumCycles = Nat;
+
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub enum RejectionCode {
+    NoError,
+    CanisterError,
+    SysTransient,
+    DestinationInvalid,
+    Unknown,
+    SysFatal,
+    CanisterReject,
+}
 
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct WithdrawArgs {

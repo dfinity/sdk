@@ -184,23 +184,33 @@ async fn download_binaries(
             .unwrap_or_else(|| panic!("Cannot find source for {bin}"))
             .clone();
         let client_ = client.clone();
-        joinset.spawn(async move { (bin, download_and_check_sha(client_, source).await) });
+        joinset.spawn(async move {
+            (
+                bin,
+                source.clone(),
+                download_and_check_sha(client_, source).await,
+            )
+        });
     }
     let mut map = HashMap::new();
     while let Some(res) = joinset.join_next().await {
-        let (bin, content) = res.unwrap();
-        let decompressed = spawn_blocking(|| {
-            let mut buf = BytesMut::new();
-            io::copy(
-                &mut GzDecoder::new(content.reader()),
-                &mut (&mut buf).writer(),
-            )
-            .unwrap();
-            buf.freeze()
-        })
-        .await
-        .unwrap();
-        map.insert(bin.into(), decompressed);
+        let (bin, source, content) = res.unwrap();
+        let final_content = if source.url.ends_with(".gz") {
+            spawn_blocking(|| {
+                let mut buf = BytesMut::new();
+                io::copy(
+                    &mut GzDecoder::new(content.reader()),
+                    &mut (&mut buf).writer(),
+                )
+                .unwrap();
+                buf.freeze()
+            })
+            .await
+            .unwrap()
+        } else {
+            content
+        };
+        map.insert(bin.into(), final_content);
     }
     map
 }
