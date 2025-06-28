@@ -58,7 +58,7 @@ This incorporates the following executed proposals:
 
 ### Motoko
 
-Updated Motoko to [0.14.12](https://github.com/dfinity/motoko/releases/tag/0.14.12)
+Updated Motoko to [0.14.13](https://github.com/dfinity/motoko/releases/tag/0.14.13)
 
 ### Frontend canister
 
