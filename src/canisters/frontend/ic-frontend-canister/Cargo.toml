@@ -15,5 +15,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 ic-certified-assets = { path = "../ic-certified-assets" }
-ic-cdk.workspace = true
+ic-cdk = { version = "0.17.0" }
 candid.workspace = true

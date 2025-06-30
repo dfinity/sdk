@@ -19,7 +19,10 @@ use crate::{
 };
 use asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
 use candid::Principal;
-use ic_cdk::api::{canister_self, certified_data_set, data_certificate, msg_caller, time, trap};
+use ic_cdk::api::{
+    caller as msg_caller, data_certificate, id as canister_self,
+    set_certified_data as certified_data_set, time, trap,
+};
 use std::cell::RefCell;
 
 // Re-export for use in macros
@@ -124,7 +127,7 @@ pub fn store(arg: StoreArg) {
         if let Err(msg) = s.store(arg, time()) {
             trap(&msg);
         }
-        certified_data_set(s.root_hash());
+        certified_data_set(&s.root_hash());
     });
 }
 
@@ -154,7 +157,7 @@ pub fn create_asset(arg: CreateAssetArguments) {
         if let Err(msg) = s.create_asset(arg) {
             trap(&msg);
         }
-        certified_data_set(s.root_hash());
+        certified_data_set(&s.root_hash());
     })
 }
 
@@ -163,7 +166,7 @@ pub fn set_asset_content(arg: SetAssetContentArguments) {
         if let Err(msg) = s.set_asset_content(arg, time()) {
             trap(&msg);
         }
-        certified_data_set(s.root_hash());
+        certified_data_set(&s.root_hash());
     })
 }
 
@@ -172,21 +175,21 @@ pub fn unset_asset_content(arg: UnsetAssetContentArguments) {
         if let Err(msg) = s.unset_asset_content(arg) {
             trap(&msg);
         }
-        certified_data_set(s.root_hash());
+        certified_data_set(&s.root_hash());
     })
 }
 
 pub fn delete_asset(arg: DeleteAssetArguments) {
     with_state_mut(|s| {
         s.delete_asset(arg);
-        certified_data_set(s.root_hash());
+        certified_data_set(&s.root_hash());
     });
 }
 
 pub fn clear() {
     with_state_mut(|s| {
         s.clear();
-        certified_data_set(s.root_hash());
+        certified_data_set(&s.root_hash());
     });
 }
 
@@ -195,7 +198,7 @@ pub fn commit_batch(arg: CommitBatchArguments) {
         if let Err(msg) = s.commit_batch(arg, time()) {
             trap(&msg);
         }
-        certified_data_set(s.root_hash());
+        certified_data_set(&s.root_hash());
     });
 }
 
@@ -204,7 +207,7 @@ pub fn propose_commit_batch(arg: CommitBatchArguments) {
         if let Err(msg) = s.propose_commit_batch(arg) {
             trap(&msg);
         }
-        certified_data_set(s.root_hash());
+        certified_data_set(&s.root_hash());
     });
 }
 
@@ -220,7 +223,7 @@ pub fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
         if let Err(msg) = s.commit_proposed_batch(arg, time()) {
             trap(&msg);
         }
-        certified_data_set(s.root_hash());
+        certified_data_set(&s.root_hash());
     });
 }
 
@@ -379,7 +382,7 @@ pub fn post_upgrade(stable_state: StableState, args: Option<AssetCanisterArgs>) 
 
     with_state_mut(|s| {
         *s = State::from(stable_state);
-        certified_data_set(s.root_hash());
+        certified_data_set(&s.root_hash());
         if let Some(set_permissions) = set_permissions {
             s.set_permissions(set_permissions);
         }
