@@ -9,7 +9,7 @@ use candid::Principal;
 use clap::{Parser, Subcommand};
 use dfx_core::identity::CallSender;
 use ic_utils::interfaces::management_canister::{
-    CanisterStatus, SnapshotDataKind, SnapshotMetadata,
+    CanisterSnapshotId, CanisterStatus, SnapshotDataKind, SnapshotDataOffset, SnapshotMetadata,
 };
 use indicatif::HumanBytes;
 use itertools::Itertools;
@@ -22,7 +22,7 @@ use crate::lib::{
     operations::canister::{
         delete_canister_snapshot, get_canister_status, list_canister_snapshots,
         load_canister_snapshot, read_canister_snapshot_data, read_canister_snapshot_metadata,
-        take_canister_snapshot, upload_canister_snapshot_metadata,
+        take_canister_snapshot, upload_canister_snapshot_data, upload_canister_snapshot_metadata,
     },
     root_key::fetch_root_key_if_needed,
 };
@@ -95,6 +95,12 @@ impl FromStr for SnapshotId {
     type Err = DfxError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self(hex::decode(s)?))
+    }
+}
+
+impl From<CanisterSnapshotId> for SnapshotId {
+    fn from(canister_snapshot_id: CanisterSnapshotId) -> Self {
+        SnapshotId(canister_snapshot_id.snapshot_id)
     }
 }
 
@@ -438,7 +444,7 @@ async fn upload(
                 metadata_file.display()
             )
         })?;
-    let snapshot_id =
+    let snapshot_id: SnapshotId =
         upload_canister_snapshot_metadata(env, canister_id, None, &metadata, call_sender)
             .await
             .with_context(|| {
@@ -446,15 +452,146 @@ async fn upload(
                     "Failed to upload snapshot metadata to canister {}",
                     canister_id.to_text()
                 )
-            })?;
+            })?
+            .into();
     debug!(
         env.get_logger(),
         "Snapshot metadata uploaded to canister {} with Snapshot ID: {}",
         canister_id.to_text(),
-        hex::encode(snapshot_id.snapshot_id)
+        snapshot_id
     );
 
-    // TODO: Upload Snapshot data.
+    // Upload Wasm module.
+    let wasm_module_file = dir.join("wasm_module.bin");
+    let wasm_module_data = std::fs::read(&wasm_module_file).with_context(|| {
+        format!(
+            "Failed to read Wasm module from '{}'",
+            wasm_module_file.display()
+        )
+    })?;
+    upload_blob(
+        env,
+        canister_id,
+        &snapshot_id,
+        BlobKind::WasmModule,
+        wasm_module_data,
+        call_sender,
+    )
+    .await
+    .with_context(|| {
+        format!(
+            "Failed to upload Wasm module to snapshot {snapshot_id} in canister {}",
+            canister_id.to_text()
+        )
+    })?;
+    debug!(
+        env.get_logger(),
+        "Snapshot Wasm module uploaded to canister {} with Snapshot ID: {}",
+        canister_id.to_text(),
+        snapshot_id
+    );
+
+    // Upload Wasm memory.
+    let wasm_memory_file = dir.join("wasm_memory.bin");
+    let wasm_memory_data = std::fs::read(&wasm_memory_file).with_context(|| {
+        format!(
+            "Failed to read Wasm memory from '{}'",
+            wasm_memory_file.display()
+        )
+    })?;
+    upload_blob(
+        env,
+        canister_id,
+        &snapshot_id,
+        BlobKind::MainMemory,
+        wasm_memory_data,
+        call_sender,
+    )
+    .await
+    .with_context(|| {
+        format!(
+            "Failed to upload Wasm memory to snapshot {snapshot_id} in canister {}",
+            canister_id.to_text()
+        )
+    })?;
+    debug!(
+        env.get_logger(),
+        "Snapshot Wasm memory uploaded to canister {} with Snapshot ID: {}",
+        canister_id.to_text(),
+        snapshot_id
+    );
+
+    // Upload stable memory.
+    if metadata.stable_memory_size > 0 {
+        let stable_memory_file = dir.join("stable_memory.bin");
+        let stable_memory_data = std::fs::read(&stable_memory_file).with_context(|| {
+            format!(
+                "Failed to read stable memory from '{}'",
+                stable_memory_file.display()
+            )
+        })?;
+        upload_blob(
+            env,
+            canister_id,
+            &snapshot_id,
+            BlobKind::StableMemory,
+            stable_memory_data,
+            call_sender,
+        )
+        .await
+        .with_context(|| {
+            format!(
+                "Failed to upload stable memory to snapshot {snapshot_id} in canister {}",
+                canister_id.to_text()
+            )
+        })?;
+    }
+    debug!(
+        env.get_logger(),
+        "Snapshot stable memory uploaded to canister {} with Snapshot ID: {}",
+        canister_id.to_text(),
+        snapshot_id
+    );
+
+    // Upload Wasm chunks.
+    if !metadata.wasm_chunk_store.is_empty() {
+        let wasm_chunk_store_dir = dir.join("wasm_chunk_store");
+        for chunk_hash in metadata.wasm_chunk_store {
+            let hash_str = hex::encode(&chunk_hash.hash);
+            let chunk_file = wasm_chunk_store_dir.join(format!("{}.bin", hash_str));
+            let chunk_data = std::fs::read(&chunk_file).with_context(|| {
+                format!("Failed to read Wasm chunk from '{}'", chunk_file.display())
+            })?;
+            upload_canister_snapshot_data(
+                env,
+                canister_id,
+                &snapshot_id.0,
+                &SnapshotDataOffset::WasmChunk,
+                chunk_data.as_ref(),
+                call_sender,
+            )
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to upload Wasm chunk {} to snapshot {snapshot_id} in canister {}",
+                    hash_str,
+                    canister_id.to_text()
+                )
+            })?;
+            debug!(
+                env.get_logger(),
+                "Snapshot Wasm chunk {} uploaded to canister {} with Snapshot ID: {}",
+                hex::encode(&chunk_hash.hash),
+                canister_id.to_text(),
+                snapshot_id
+            );
+        }
+    }
+
+    info!(
+        env.get_logger(),
+        "Uploaded a snapshot of canister {canister}. Snapshot ID: {}", snapshot_id
+    );
 
     Ok(())
 }
@@ -492,6 +629,8 @@ enum BlobKind {
     StableMemory,
 }
 
+const MAX_CHUNK_SIZE: usize = 2_000_000;
+
 async fn read_blob(
     env: &dyn Environment,
     canister_id: Principal,
@@ -500,7 +639,6 @@ async fn read_blob(
     length: usize,
     call_sender: &CallSender,
 ) -> DfxResult<Vec<u8>> {
-    const MAX_CHUNK_SIZE: usize = 2_000_000;
     let mut blob: Vec<u8> = vec![0; length];
     let mut offset = 0;
     while offset < length {
@@ -533,4 +671,48 @@ async fn read_blob(
     }
 
     Ok(blob)
+}
+
+async fn upload_blob(
+    env: &dyn Environment,
+    canister_id: Principal,
+    snapshot: &SnapshotId,
+    blob_kind: BlobKind,
+    data: Vec<u8>,
+    call_sender: &CallSender,
+) -> DfxResult {
+    let length = data.len();
+    let mut offset = 0;
+    while offset < length {
+        let chunk_size = std::cmp::min(length - offset, MAX_CHUNK_SIZE);
+        let kind = match blob_kind {
+            BlobKind::WasmModule => SnapshotDataOffset::WasmModule {
+                offset: offset as u64,
+            },
+            BlobKind::MainMemory => SnapshotDataOffset::MainMemory {
+                offset: offset as u64,
+            },
+            BlobKind::StableMemory => SnapshotDataOffset::StableMemory {
+                offset: offset as u64,
+            },
+        };
+        upload_canister_snapshot_data(
+            env,
+            canister_id,
+            &snapshot.0,
+            &kind,
+            &data[offset..offset + chunk_size],
+            call_sender,
+        )
+        .await
+        .with_context(|| {
+            format!(
+                "Failed to upload data to snapshot {snapshot} in canister {}",
+                canister_id.to_text()
+            )
+        })?;
+        offset += chunk_size;
+    }
+
+    Ok(())
 }
