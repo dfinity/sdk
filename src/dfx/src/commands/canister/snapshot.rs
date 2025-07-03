@@ -78,6 +78,9 @@ enum SnapshotSubcommand {
     Upload {
         /// The canister to upload the snapshot to.
         canister: String,
+        /// If a snapshot ID is specified, this snapshot will replace it and reuse the ID.
+        #[arg(long)]
+        replace: Option<SnapshotId>,
         /// The directory to upload the snapshot from.
         #[arg(long, value_parser = directory_parser)]
         dir: PathBuf,
@@ -128,9 +131,11 @@ pub async fn exec(
             snapshot,
             dir,
         } => download(env, canister, snapshot, dir, call_sender).await?,
-        SnapshotSubcommand::Upload { canister, dir } => {
-            upload(env, canister, dir, call_sender).await?
-        }
+        SnapshotSubcommand::Upload {
+            canister,
+            replace,
+            dir,
+        } => upload(env, canister, replace, dir, call_sender).await?,
     }
     Ok(())
 }
@@ -437,6 +442,7 @@ async fn download(
 async fn upload(
     env: &dyn Environment,
     canister: String,
+    replace: Option<SnapshotId>,
     dir: PathBuf,
     call_sender: &CallSender,
 ) -> DfxResult {
@@ -463,8 +469,14 @@ async fn upload(
     let retry_policy = ExponentialBackoff::default();
 
     let snapshot_id = retry(retry_policy.clone(), || async {
-        match upload_canister_snapshot_metadata(env, canister_id, None, &metadata, call_sender)
-            .await
+        match upload_canister_snapshot_metadata(
+            env,
+            canister_id,
+            replace.as_ref().map(|x| &*x.0),
+            &metadata,
+            call_sender,
+        )
+        .await
         {
             Ok(snapshot_id) => Ok(snapshot_id),
             Err(_error) => Err(backoff::Error::transient(anyhow!(
