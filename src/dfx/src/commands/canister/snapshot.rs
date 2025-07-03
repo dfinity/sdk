@@ -4,7 +4,9 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
+use backoff::future::retry;
+use backoff::ExponentialBackoff;
 use candid::Principal;
 use clap::{Parser, Subcommand};
 use dfx_core::identity::CallSender;
@@ -256,15 +258,18 @@ async fn download(
         .parse()
         .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
 
+    let retry_policy = ExponentialBackoff::default();
+
     // Store metadata.
-    let metadata = read_canister_snapshot_metadata(env, canister_id, &snapshot.0, call_sender)
-        .await
-        .with_context(|| {
-            format!(
-                "Failed to read metadata from snapshot {snapshot} in canister {}",
-                canister_id.to_text()
-            )
-        })?;
+    let metadata = retry(retry_policy.clone(), || async {
+        match read_canister_snapshot_metadata(env, canister_id, &snapshot.0, call_sender).await {
+            Ok(metadata) => Ok(metadata),
+            Err(_error) => Err(backoff::Error::transient(anyhow!(
+                "Failed to read metadata from snapshot {snapshot} in canister {canister}"
+            ))),
+        }
+    })
+    .await?;
     let metadata_file = dir.join("metadata.json");
     let metadata_json = serde_json::to_string_pretty(&metadata)?;
     std::fs::write(&metadata_file, metadata_json).with_context(|| {
@@ -282,10 +287,12 @@ async fn download(
     // Store Wasm module.
     let wasm_module = read_blob(
         env,
+        &canister,
         canister_id,
         &snapshot,
         BlobKind::WasmModule,
         metadata.wasm_module_size as usize,
+        retry_policy.clone(),
         call_sender,
     )
     .await
@@ -311,10 +318,12 @@ async fn download(
     // Store Wasm memory.
     let wasm_memory = read_blob(
         env,
+        &canister,
         canister_id,
         &snapshot,
         BlobKind::MainMemory,
         metadata.wasm_memory_size as usize,
+        retry_policy.clone(),
         call_sender,
     )
     .await
@@ -341,10 +350,12 @@ async fn download(
     if metadata.stable_memory_size > 0 {
         let stable_memory = read_blob(
             env,
+            &canister,
             canister_id,
             &snapshot,
             BlobKind::StableMemory,
             metadata.stable_memory_size as usize,
+            retry_policy.clone(),
             call_sender,
         )
         .await
@@ -379,31 +390,35 @@ async fn download(
         })?;
 
         for chunk_hash in metadata.wasm_chunk_store {
-            let chunk_file =
-                wasm_chunk_store_dir.join(format!("{}.bin", hex::encode(&chunk_hash.hash)));
+            let hash_str = hex::encode(&chunk_hash.hash);
+            let chunk_file = wasm_chunk_store_dir.join(format!("{}.bin", hash_str));
 
-            let chunk = read_canister_snapshot_data(
-                env,
-                canister_id,
-                &snapshot.0,
-                &SnapshotDataKind::WasmChunk {
-                    hash: chunk_hash.hash,
-                },
-                call_sender,
-            )
-            .await
-            .with_context(|| {
-                format!(
-                    "Failed to read data from snapshot {snapshot} from canister {}",
-                    canister_id.to_text()
+            let chunk = retry(retry_policy.clone(), || async {
+                match read_canister_snapshot_data(
+                    env,
+                    canister_id,
+                    &snapshot.0,
+                    &SnapshotDataKind::WasmChunk {
+                        hash: chunk_hash.hash.clone(),
+                    },
+                    call_sender,
                 )
-            })?
+                .await {
+                    Ok(chunk) => Ok(chunk),
+                    Err(_error) => Err(backoff::Error::transient(anyhow!(
+                        "Failed to read data from snapshot {snapshot} from canister {canister} for chunk {hash_str}"
+                    ))),
+                }
+            })
+            .await?
             .chunk;
-            std::fs::write(&chunk_file, &chunk)
-                .with_context(|| format!("Failed to write chunk to '{}'", chunk_file.display()))?;
+
+            std::fs::write(&chunk_file, &chunk).with_context(|| {
+                format!("Failed to write chunk data to '{}'", chunk_file.display())
+            })?;
             debug!(
                 env.get_logger(),
-                "Wasm chunk saved to '{}'",
+                "Wasm chunk data saved to '{}'",
                 chunk_file.display()
             );
         }
@@ -444,16 +459,22 @@ async fn upload(
                 metadata_file.display()
             )
         })?;
-    let snapshot_id: SnapshotId =
-        upload_canister_snapshot_metadata(env, canister_id, None, &metadata, call_sender)
+
+    let retry_policy = ExponentialBackoff::default();
+
+    let snapshot_id = retry(retry_policy.clone(), || async {
+        match upload_canister_snapshot_metadata(env, canister_id, None, &metadata, call_sender)
             .await
-            .with_context(|| {
-                format!(
-                    "Failed to upload snapshot metadata to canister {}",
-                    canister_id.to_text()
-                )
-            })?
-            .into();
+        {
+            Ok(snapshot_id) => Ok(snapshot_id),
+            Err(_error) => Err(backoff::Error::transient(anyhow!(
+                "Failed to upload snapshot metadata to canister {canister}"
+            ))),
+        }
+    })
+    .await?
+    .into();
+
     debug!(
         env.get_logger(),
         "Snapshot metadata uploaded to canister {} with Snapshot ID: {}",
@@ -471,10 +492,12 @@ async fn upload(
     })?;
     upload_blob(
         env,
+        &canister,
         canister_id,
         &snapshot_id,
         BlobKind::WasmModule,
         wasm_module_data,
+        retry_policy.clone(),
         call_sender,
     )
     .await
@@ -501,10 +524,12 @@ async fn upload(
     })?;
     upload_blob(
         env,
+        &canister,
         canister_id,
         &snapshot_id,
         BlobKind::MainMemory,
         wasm_memory_data,
+        retry_policy.clone(),
         call_sender,
     )
     .await
@@ -532,10 +557,12 @@ async fn upload(
         })?;
         upload_blob(
             env,
+            &canister,
             canister_id,
             &snapshot_id,
             BlobKind::StableMemory,
             stable_memory_data,
+            retry_policy.clone(),
             call_sender,
         )
         .await
@@ -562,22 +589,25 @@ async fn upload(
             let chunk_data = std::fs::read(&chunk_file).with_context(|| {
                 format!("Failed to read Wasm chunk from '{}'", chunk_file.display())
             })?;
-            upload_canister_snapshot_data(
-                env,
-                canister_id,
-                &snapshot_id.0,
-                &SnapshotDataOffset::WasmChunk,
-                chunk_data.as_ref(),
-                call_sender,
-            )
-            .await
-            .with_context(|| {
-                format!(
-                    "Failed to upload Wasm chunk {} to snapshot {snapshot_id} in canister {}",
-                    hash_str,
-                    canister_id.to_text()
+
+            retry(retry_policy.clone(), || async {
+                match upload_canister_snapshot_data(
+                    env,
+                    canister_id,
+                    &snapshot_id.0,
+                    &SnapshotDataOffset::WasmChunk,
+                    chunk_data.as_ref(),
+                    call_sender,
                 )
-            })?;
+                .await
+                {
+                    Ok(_) => Ok(()),
+                    Err(_error) => Err(backoff::Error::transient(anyhow!(
+                        "Failed to upload Wasm chunk {hash_str} to snapshot {snapshot_id} in canister {canister}"
+                    ))),
+                }
+            })
+            .await?;
             debug!(
                 env.get_logger(),
                 "Snapshot Wasm chunk {} uploaded to canister {} with Snapshot ID: {}",
@@ -633,10 +663,12 @@ const MAX_CHUNK_SIZE: usize = 2_000_000;
 
 async fn read_blob(
     env: &dyn Environment,
+    canister: &str,
     canister_id: Principal,
     snapshot: &SnapshotId,
     blob_kind: BlobKind,
     length: usize,
+    retry_policy: ExponentialBackoff,
     call_sender: &CallSender,
 ) -> DfxResult<Vec<u8>> {
     let mut blob: Vec<u8> = vec![0; length];
@@ -657,15 +689,18 @@ async fn read_blob(
                 size: chunk_size as u64,
             },
         };
-        let chunk = read_canister_snapshot_data(env, canister_id, &snapshot.0, &kind, call_sender)
-            .await
-            .with_context(|| {
-                format!(
-                    "Failed to read data from snapshot {snapshot} from canister {}",
-                    canister_id.to_text()
-                )
-            })?
-            .chunk;
+        let chunk = retry(retry_policy.clone(), || async {
+            match read_canister_snapshot_data(env, canister_id, &snapshot.0, &kind, call_sender)
+                .await
+            {
+                Ok(chunk) => Ok(chunk),
+                Err(_error) => Err(backoff::Error::transient(anyhow!(
+                    "Failed to read data from snapshot {snapshot} from canister {canister}",
+                ))),
+            }
+        })
+        .await?
+        .chunk;
         blob[offset..offset + chunk_size].copy_from_slice(&chunk);
         offset += chunk_size;
     }
@@ -675,10 +710,12 @@ async fn read_blob(
 
 async fn upload_blob(
     env: &dyn Environment,
+    canister: &str,
     canister_id: Principal,
     snapshot: &SnapshotId,
     blob_kind: BlobKind,
     data: Vec<u8>,
+    retry_policy: ExponentialBackoff,
     call_sender: &CallSender,
 ) -> DfxResult {
     let length = data.len();
@@ -696,21 +733,24 @@ async fn upload_blob(
                 offset: offset as u64,
             },
         };
-        upload_canister_snapshot_data(
-            env,
-            canister_id,
-            &snapshot.0,
-            &kind,
-            &data[offset..offset + chunk_size],
-            call_sender,
-        )
-        .await
-        .with_context(|| {
-            format!(
-                "Failed to upload data to snapshot {snapshot} in canister {}",
-                canister_id.to_text()
+        retry(retry_policy.clone(), || async {
+            match upload_canister_snapshot_data(
+                env,
+                canister_id,
+                &snapshot.0,
+                &kind,
+                &data[offset..offset + chunk_size],
+                call_sender,
             )
-        })?;
+            .await
+            {
+                Ok(_) => Ok(()),
+                Err(_error) => Err(backoff::Error::transient(anyhow!(
+                    "Failed to upload data to snapshot {snapshot} in canister {canister}",
+                ))),
+            }
+        })
+        .await?;
         offset += chunk_size;
     }
 
