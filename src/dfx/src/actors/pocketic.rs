@@ -25,6 +25,7 @@ use dfx_core::config::model::replica_config::CachedConfig;
 use dfx_core::config::model::replica_config::ReplicaConfig;
 #[cfg(unix)]
 use dfx_core::json::save_json_file;
+use reqwest::Response;
 use slog::{debug, error, warn, Logger};
 use std::net::SocketAddr;
 use std::ops::ControlFlow::{self, *};
@@ -415,7 +416,8 @@ async fn initialize_pocketic(
         })
         .send()
         .await?
-        .error_for_status()?
+        .check_http_err()
+        .await?
         .json::<CreateInstanceResponse>()
         .await?;
     let instance = match resp {
@@ -449,7 +451,8 @@ async fn initialize_pocketic(
         })
         .send()
         .await?
-        .error_for_status()?;
+        .check_http_err()
+        .await?;
     init_client
         .post(format!(
             "http://localhost:{port}/instances/{instance}/auto_progress"
@@ -459,7 +462,8 @@ async fn initialize_pocketic(
         })
         .send()
         .await?
-        .error_for_status()?;
+        .check_http_err()
+        .await?;
 
     let agent_url = format!("http://localhost:{port}/instances/{instance}/");
 
@@ -518,7 +522,8 @@ async fn initialize_gateway(
         })
         .send()
         .await?
-        .error_for_status()?;
+        .check_http_err()
+        .await?;
     let resp = resp.json::<CreateHttpGatewayResponse>().await?;
     let instance = match resp {
         CreateHttpGatewayResponse::Created(info) => info.instance_id,
@@ -556,15 +561,37 @@ async fn shutdown_pocketic(
         ))
         .send()
         .await?
-        .error_for_status()?;
+        .check_http_err()
+        .await?;
     shutdown_client
         .delete(format!(
             "http://localhost:{port}/instances/{server_instance}"
         ))
         .send()
         .await?
-        .error_for_status()?;
+        .check_http_err()
+        .await?;
     Ok(())
+}
+
+trait ResponseExt {
+    async fn check_http_err(self) -> DfxResult<Response>;
+}
+
+impl ResponseExt for Response {
+    async fn check_http_err(self) -> DfxResult<Response> {
+        let status = self.status();
+        if status.is_client_error() || status.is_server_error() {
+            bail!(
+                "{} {}: {}",
+                status.as_str(),
+                status.canonical_reason().unwrap(),
+                self.text().await?
+            );
+        } else {
+            Ok(self)
+        }
+    }
 }
 
 #[cfg(not(unix))]
