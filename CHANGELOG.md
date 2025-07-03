@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.28.0
+
 ### fix: deps deploy works with Canister ID out of the ranges of the pocket-ic subnets
 
 The `dfx deps deploy` command didn't work when the pulled dependency's Canister ID is out of the ranges of the `pocket-ic` subnets.
@@ -36,13 +38,18 @@ You can get the fees by `get_config` API on the [BTC Mainnet Canister](https://d
 If you were using the contents of the `pocket-ic-proxy-port` file to determine the port for
 the `/http_gateway` endpoint, you should instead use `dfx info pocketic-config-port`
 
+### feat: add dfx native support for aarch64-Darwin
+
+Add dfx native support for aarch64-Darwin.
+
 ## Dependencies
 
 ### Replica
 
-Updated replica to commit ac7ff452684f84ea0cfc3fd0a27228220a368b33.
+Updated replica to commit 60fb469c46e44e6071193a3314cc442044fcf17a.
 This incorporates the following executed proposals:
 
+- [137072](https://dashboard.internetcomputer.org/proposal/137072)
 - [136982](https://dashboard.internetcomputer.org/proposal/136982)
 - [136887](https://dashboard.internetcomputer.org/proposal/136887)
 - [136789](https://dashboard.internetcomputer.org/proposal/136789)
@@ -51,7 +58,16 @@ This incorporates the following executed proposals:
 
 ### Motoko
 
-Updated Motoko to [0.14.12](https://github.com/dfinity/motoko/releases/tag/0.14.12)
+Updated Motoko to [0.14.13](https://github.com/dfinity/motoko/releases/tag/0.14.13)
+
+### Frontend canister
+
+Added missing fields to the asset canister .wasm: `SetAssetContentArguments.last_chunk : opt blob`, and `HttpResponse.upgrade: opt bool`
+
+- Module hash: 2f73b9e18b992f221a5fbab7fc59d840a9cbc461f7cfe875049f51354d23696c
+- https://github.com/dfinity/sdk/pull/4289
+- https://github.com/dfinity/sdk/pull/4285
+- https://github.com/dfinity/sdk/pull/4286
 
 # 0.27.0
 

@@ -2,8 +2,13 @@ name: Update ic.did
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 0 * * *" # Runs at UTC midnight every day
+  # There were a couple of issues from running this workflow every day.
+  # * It was causing a lot of PRs to be created, which cluttered the PR list.
+  # * When there is a emergent change to the ic.did but not yet availble in the portal repo,
+  #   this workflow would detect the difference and create a PR which is not what we want.
+  # So we are disabling the schedule for now.
+  # schedule:
+  #   - cron: "0 0 * * *" # Runs at UTC midnight every day
 
 env:
   # When getting Rust dependencies, retry on network error:
