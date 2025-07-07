@@ -54,7 +54,7 @@ pub async fn install_canister_wasm(
     mode: InstallMode,
     call_sender: &CallSender,
     wasm_module: Vec<u8>,
-    ask_for_consent: impl FnOnce(&str) -> Result<(), UserConsent>,
+    ask_for_consent: impl FnOnce(&str) -> Result<(), UserConsent> + Send,
 ) -> Result<(), CanisterInstallError> {
     let mgr = ManagementCanister::create(agent);
     if mode == InstallMode::Reinstall {

@@ -20,6 +20,7 @@ license = "Apache-2.0"
 
 [workspace.lints.clippy]
 needless_lifetimes = "allow"
+future_not_send = "warn"
 
 [workspace.dependencies]
 candid = "0.10.11"

@@ -27,7 +27,7 @@ pub enum AssetSyncState {
 }
 
 /// Display progress of the synchronization process
-pub trait AssetSyncProgressRenderer {
+pub trait AssetSyncProgressRenderer: Send + Sync {
     /// Set the current state of the synchronization process
     fn set_state(&self, state: AssetSyncState);
 
