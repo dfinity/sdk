@@ -290,98 +290,47 @@ async fn download(
     );
 
     // Store Wasm module.
-    let wasm_module = read_blob(
+    store_data(
         env,
         &canister,
         canister_id,
         &snapshot,
         BlobKind::WasmModule,
         metadata.wasm_module_size as usize,
+        dir.join("wasm_module.bin"),
         retry_policy.clone(),
         call_sender,
     )
-    .await
-    .with_context(|| {
-        format!(
-            "Failed to read Wasm module from snapshot {snapshot} in canister {}",
-            canister_id.to_text(),
-        )
-    })?;
-    let wasm_module_file = dir.join("wasm_module.bin");
-    std::fs::write(&wasm_module_file, &wasm_module).with_context(|| {
-        format!(
-            "Failed to write Wasm module to '{}'",
-            wasm_module_file.display()
-        )
-    })?;
-    debug!(
-        env.get_logger(),
-        "Wasm module saved to '{}'",
-        wasm_module_file.display()
-    );
+    .await?;
 
     // Store Wasm memory.
-    let wasm_memory = read_blob(
+    store_data(
         env,
         &canister,
         canister_id,
         &snapshot,
         BlobKind::MainMemory,
         metadata.wasm_memory_size as usize,
+        dir.join("wasm_memory.bin"),
         retry_policy.clone(),
         call_sender,
     )
-    .await
-    .with_context(|| {
-        format!(
-            "Failed to read Wasm memory from snapshot {snapshot} in canister {}",
-            canister_id.to_text(),
-        )
-    })?;
-    let wasm_memory_file = dir.join("wasm_memory.bin");
-    std::fs::write(&wasm_memory_file, &wasm_memory).with_context(|| {
-        format!(
-            "Failed to write Wasm memory to '{}'",
-            wasm_memory_file.display()
-        )
-    })?;
-    debug!(
-        env.get_logger(),
-        "Wasm memory saved to '{}'",
-        wasm_memory_file.display()
-    );
+    .await?;
 
     // Store stable memory.
     if metadata.stable_memory_size > 0 {
-        let stable_memory = read_blob(
+        store_data(
             env,
             &canister,
             canister_id,
             &snapshot,
             BlobKind::StableMemory,
             metadata.stable_memory_size as usize,
+            dir.join("stable_memory.bin"),
             retry_policy.clone(),
             call_sender,
         )
-        .await
-        .with_context(|| {
-            format!(
-                "Failed to read stable memory from snapshot {snapshot} in canister {}",
-                canister_id.to_text(),
-            )
-        })?;
-        let stable_memory_file = dir.join("stable_memory.bin");
-        std::fs::write(&stable_memory_file, &stable_memory).with_context(|| {
-            format!(
-                "Failed to write stable memory to '{}'",
-                stable_memory_file.display()
-            )
-        })?;
-        debug!(
-            env.get_logger(),
-            "Stable memory saved to '{}'",
-            stable_memory_file.display()
-        );
+        .await?;
     }
 
     // Store Wasm chunks.
@@ -432,7 +381,7 @@ async fn download(
     info!(
         env.get_logger(),
         "Snapshot {snapshot} in canister {} saved to '{}'",
-        canister_id.to_text(),
+        canister,
         dir.display()
     );
 
@@ -489,108 +438,49 @@ async fn upload(
 
     debug!(
         env.get_logger(),
-        "Snapshot metadata uploaded to canister {} with Snapshot ID: {}",
-        canister_id.to_text(),
-        snapshot_id
+        "Snapshot metadata uploaded to canister {canister} with Snapshot ID: {snapshot_id}"
     );
 
     // Upload Wasm module.
-    let wasm_module_file = dir.join("wasm_module.bin");
-    let wasm_module_data = std::fs::read(&wasm_module_file).with_context(|| {
-        format!(
-            "Failed to read Wasm module from '{}'",
-            wasm_module_file.display()
-        )
-    })?;
-    upload_blob(
+    upload_data(
         env,
         &canister,
         canister_id,
         &snapshot_id,
         BlobKind::WasmModule,
-        wasm_module_data,
+        dir.join("wasm_module.bin"),
         retry_policy.clone(),
         call_sender,
     )
-    .await
-    .with_context(|| {
-        format!(
-            "Failed to upload Wasm module to snapshot {snapshot_id} in canister {}",
-            canister_id.to_text()
-        )
-    })?;
-    debug!(
-        env.get_logger(),
-        "Snapshot Wasm module uploaded to canister {} with Snapshot ID: {}",
-        canister_id.to_text(),
-        snapshot_id
-    );
+    .await?;
 
     // Upload Wasm memory.
-    let wasm_memory_file = dir.join("wasm_memory.bin");
-    let wasm_memory_data = std::fs::read(&wasm_memory_file).with_context(|| {
-        format!(
-            "Failed to read Wasm memory from '{}'",
-            wasm_memory_file.display()
-        )
-    })?;
-    upload_blob(
+    upload_data(
         env,
         &canister,
         canister_id,
         &snapshot_id,
         BlobKind::MainMemory,
-        wasm_memory_data,
+        dir.join("wasm_memory.bin"),
         retry_policy.clone(),
         call_sender,
     )
-    .await
-    .with_context(|| {
-        format!(
-            "Failed to upload Wasm memory to snapshot {snapshot_id} in canister {}",
-            canister_id.to_text()
-        )
-    })?;
-    debug!(
-        env.get_logger(),
-        "Snapshot Wasm memory uploaded to canister {} with Snapshot ID: {}",
-        canister_id.to_text(),
-        snapshot_id
-    );
+    .await?;
 
     // Upload stable memory.
     if metadata.stable_memory_size > 0 {
-        let stable_memory_file = dir.join("stable_memory.bin");
-        let stable_memory_data = std::fs::read(&stable_memory_file).with_context(|| {
-            format!(
-                "Failed to read stable memory from '{}'",
-                stable_memory_file.display()
-            )
-        })?;
-        upload_blob(
+        upload_data(
             env,
             &canister,
             canister_id,
             &snapshot_id,
             BlobKind::StableMemory,
-            stable_memory_data,
+            dir.join("stable_memory.bin"),
             retry_policy.clone(),
             call_sender,
         )
-        .await
-        .with_context(|| {
-            format!(
-                "Failed to upload stable memory to snapshot {snapshot_id} in canister {}",
-                canister_id.to_text()
-            )
-        })?;
+        .await?;
     }
-    debug!(
-        env.get_logger(),
-        "Snapshot stable memory uploaded to canister {} with Snapshot ID: {}",
-        canister_id.to_text(),
-        snapshot_id
-    );
 
     // Upload Wasm chunks.
     if !metadata.wasm_chunk_store.is_empty() {
@@ -624,7 +514,7 @@ async fn upload(
                 env.get_logger(),
                 "Snapshot Wasm chunk {} uploaded to canister {} with Snapshot ID: {}",
                 hex::encode(&chunk_hash.hash),
-                canister_id.to_text(),
+                canister,
                 snapshot_id
             );
         }
@@ -673,6 +563,49 @@ enum BlobKind {
 
 const MAX_CHUNK_SIZE: usize = 2_000_000;
 
+async fn store_data(
+    env: &dyn Environment,
+    canister: &str,
+    canister_id: Principal,
+    snapshot_id: &SnapshotId,
+    blob_kind: BlobKind,
+    length: usize,
+    file_path: PathBuf,
+    retry_policy: ExponentialBackoff,
+    call_sender: &CallSender,
+) -> DfxResult {
+    let message = match blob_kind {
+        BlobKind::WasmModule => "Wasm module",
+        BlobKind::MainMemory => "Wasm memory",
+        BlobKind::StableMemory => "stable memory",
+    };
+
+    let blob = read_blob(
+        env,
+        canister,
+        canister_id,
+        snapshot_id,
+        blob_kind,
+        length,
+        retry_policy.clone(),
+        call_sender,
+    )
+    .await
+    .with_context(|| {
+        format!("Failed to read {message} from snapshot {snapshot_id} in canister {canister}")
+    })?;
+
+    std::fs::write(&file_path, &blob)
+        .with_context(|| format!("Failed to write {message} to '{}'", file_path.display()))?;
+    debug!(
+        env.get_logger(),
+        "The {message} has been saved to '{}'",
+        file_path.display()
+    );
+
+    Ok(())
+}
+
 async fn read_blob(
     env: &dyn Environment,
     canister: &str,
@@ -718,6 +651,45 @@ async fn read_blob(
     }
 
     Ok(blob)
+}
+
+async fn upload_data(
+    env: &dyn Environment,
+    canister: &str,
+    canister_id: Principal,
+    snapshot_id: &SnapshotId,
+    blob_kind: BlobKind,
+    file_path: PathBuf,
+    retry_policy: ExponentialBackoff,
+    call_sender: &CallSender,
+) -> DfxResult {
+    let message = match blob_kind {
+        BlobKind::WasmModule => "Wasm module",
+        BlobKind::MainMemory => "Wasm memory",
+        BlobKind::StableMemory => "stable memory",
+    };
+    let blob = std::fs::read(&file_path)
+        .with_context(|| format!("Failed to read {message} from '{}'", file_path.display()))?;
+    upload_blob(
+        env,
+        canister,
+        canister_id,
+        snapshot_id,
+        BlobKind::WasmModule,
+        blob,
+        retry_policy.clone(),
+        call_sender,
+    )
+    .await
+    .with_context(|| {
+        format!("Failed to upload {message} to snapshot {snapshot_id} in canister {canister}")
+    })?;
+    debug!(
+        env.get_logger(),
+        "Snapshot {message} uploaded to canister {canister} with Snapshot ID: {snapshot_id}"
+    );
+
+    Ok(())
 }
 
 async fn upload_blob(
