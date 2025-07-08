@@ -159,46 +159,50 @@ pub async fn install_canister(
         );
     } else if !(canister_info.is_assets() && no_asset_upgrade) {
         let idl_path = canister_info.get_constructor_idl_path();
-        let init_type = if wasm_path_override.is_some() {
-            None
-        } else {
-            get_candid_init_type(&idl_path)
-        };
 
-        // The argument and argument_type from the CLI take precedence over the dfx.json configuration.
-        let argument_from_json = canister_info.get_init_arg()?;
-        let (argument, argument_type) = match (argument_from_cli, &argument_from_json) {
-            (Some(a_cli), Some(a_json)) => {
-                // We want to warn the user when the argument from CLI and json are different.
-                // There are two cases to consider:
-                // 1. The argument from CLI is in raw format, while the argument from json is always in Candid format.
-                // 2. Both arguments are in Candid format, but they are different.
-                if argument_type_from_cli == Some("raw") || a_cli != a_json {
-                    warn!(
-                        log,
-                        "Canister '{0}' has init_arg/init_arg_file in dfx.json: {1},
+        let install_args = {
+            let init_type = if wasm_path_override.is_some() {
+                None
+            } else {
+                get_candid_init_type(&idl_path)
+            };
+
+            // The argument and argument_type from the CLI take precedence over the dfx.json configuration.
+            let argument_from_json = canister_info.get_init_arg()?;
+            let (argument, argument_type) = match (argument_from_cli, &argument_from_json) {
+                (Some(a_cli), Some(a_json)) => {
+                    // We want to warn the user when the argument from CLI and json are different.
+                    // There are two cases to consider:
+                    // 1. The argument from CLI is in raw format, while the argument from json is always in Candid format.
+                    // 2. Both arguments are in Candid format, but they are different.
+                    if argument_type_from_cli == Some("raw") || a_cli != a_json {
+                        warn!(
+                            log,
+                            "Canister '{0}' has init_arg/init_arg_file in dfx.json: {1},
 which is different from the one specified in the command line: {2}.
 The command line value will be used.",
-                        canister_info.get_name(),
-                        a_json,
-                        a_cli
-                    );
+                            canister_info.get_name(),
+                            a_json,
+                            a_cli
+                        );
+                    }
+                    (argument_from_cli, argument_type_from_cli)
                 }
-                (argument_from_cli, argument_type_from_cli)
-            }
-            (Some(_), None) => (argument_from_cli, argument_type_from_cli),
-            (None, Some(a_json)) => (Some(a_json.as_str()), Some("idl")), // `init_arg` in dfx.json is always in Candid format
-            (None, None) => (None, None),
+                (Some(_), None) => (argument_from_cli, argument_type_from_cli),
+                (None, Some(a_json)) => (Some(a_json.as_str()), Some("idl")), // `init_arg` in dfx.json is always in Candid format
+                (None, None) => (None, None),
+            };
+            blob_from_arguments(
+                Some(env),
+                argument,
+                None,
+                argument_type,
+                &init_type,
+                true,
+                always_assist,
+            )?
         };
-        let install_args = blob_from_arguments(
-            Some(env),
-            argument,
-            None,
-            argument_type,
-            &init_type,
-            true,
-            always_assist,
-        )?;
+
         if let Some(timestamp) = canister_id_store.get_timestamp(canister_info.get_name()) {
             let new_timestamp = playground_install_code(
                 env,
