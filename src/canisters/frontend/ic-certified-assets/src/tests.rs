@@ -13,11 +13,13 @@ use crate::CreateChunksArg;
 use candid::{Nat, Principal};
 use ic_certification_testing::CertificateBuilder;
 use ic_crypto_tree_hash::Digest;
+use ic_http_certification::{Method, StatusCode};
 use ic_response_verification_test_utils::{
     base64_encode, create_canister_id, get_current_timestamp,
 };
 use serde_bytes::ByteBuf;
 use std::collections::HashMap;
+use std::str::FromStr;
 
 // from ic-response-verification tests
 const MAX_CERT_TIME_OFFSET_NS: u128 = 300_000_000_000;
@@ -59,18 +61,18 @@ pub fn verify_response(
     );
 
     // actual verification
-    let request = ic_http_certification::http::HttpRequest {
-        method: request.method.clone(),
-        url: request.url.clone(),
-        headers: request.headers.clone(),
-        body: request.body[..].into(),
-    };
-    let response = ic_http_certification::http::HttpResponse {
-        status_code: response.status_code,
-        headers: response.headers,
-        body: response.body[..].into(),
-        upgrade: None,
-    };
+    let request = ic_http_certification::http::HttpRequest::builder()
+        .with_method(Method::from_str(&request.method).unwrap())
+        .with_url(&request.url)
+        .with_headers(request.headers.clone())
+        .with_body(request.body.as_slice())
+        .build();
+    let response = ic_http_certification::http::HttpResponse::builder()
+        .with_status_code(StatusCode::from_u16(response.status_code).unwrap())
+        .with_headers(response.headers)
+        .with_body(&response.body[..])
+        .with_upgrade(false)
+        .build();
     Ok(ic_response_verification::verify_request_response_pair(
         request,
         response,
