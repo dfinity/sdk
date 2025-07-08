@@ -263,18 +263,12 @@ async fn download(
         .parse()
         .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
 
-    let retry_policy = ExponentialBackoff::default();
-
     // Store metadata.
-    let metadata = retry(retry_policy.clone(), || async {
-        match read_canister_snapshot_metadata(env, canister_id, &snapshot.0, call_sender).await {
-            Ok(metadata) => Ok(metadata),
-            Err(_error) => Err(backoff::Error::transient(anyhow!(
-                "Failed to read metadata from snapshot {snapshot} in canister {canister}"
-            ))),
-        }
-    })
-    .await?;
+    let metadata = read_canister_snapshot_metadata(env, canister_id, &snapshot.0, call_sender)
+        .await
+        .with_context(|| {
+            format!("Failed to read metadata from snapshot {snapshot} in canister {canister}")
+        })?;
     let metadata_file = dir.join("metadata.json");
     let metadata_json = serde_json::to_string_pretty(&metadata)?;
     std::fs::write(&metadata_file, metadata_json).with_context(|| {
@@ -288,6 +282,8 @@ async fn download(
         "Snapshot metadata saved to '{}'",
         metadata_file.display()
     );
+
+    let retry_policy = ExponentialBackoff::default();
 
     // Store Wasm module.
     store_data(
@@ -415,31 +411,23 @@ async fn upload(
             )
         })?;
 
-    let retry_policy = ExponentialBackoff::default();
-
-    let snapshot_id = retry(retry_policy.clone(), || async {
-        match upload_canister_snapshot_metadata(
-            env,
-            canister_id,
-            replace.as_ref().map(|x| &*x.0),
-            &metadata,
-            call_sender,
-        )
-        .await
-        {
-            Ok(snapshot_id) => Ok(snapshot_id),
-            Err(_error) => Err(backoff::Error::transient(anyhow!(
-                "Failed to upload snapshot metadata to canister {canister}"
-            ))),
-        }
-    })
-    .await?
+    let snapshot_id = upload_canister_snapshot_metadata(
+        env,
+        canister_id,
+        replace.as_ref().map(|x| &*x.0),
+        &metadata,
+        call_sender,
+    )
+    .await
+    .with_context(|| format!("Failed to upload snapshot metadata to canister {canister}"))?
     .into();
 
     debug!(
         env.get_logger(),
         "Snapshot metadata uploaded to canister {canister} with Snapshot ID: {snapshot_id}"
     );
+
+    let retry_policy = ExponentialBackoff::default();
 
     // Upload Wasm module.
     upload_data(
