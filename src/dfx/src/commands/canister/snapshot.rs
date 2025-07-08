@@ -675,7 +675,7 @@ async fn upload_data(
         canister,
         canister_id,
         snapshot_id,
-        BlobKind::WasmModule,
+        blob_kind,
         blob,
         retry_policy.clone(),
         call_sender,
