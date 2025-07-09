@@ -16,10 +16,10 @@ Next, scroll through the "Passwords" section of the "login" keychain. If it is b
 
 ![The Keychain Access app, on the passwords screen of the login keychain with an IC identity highlighted](images/dfx-0.28.0-keychain_access.png)
 
-For each `internet_computer_identities` entry you see (including the one marked `temp___dummy`), double-click it and switch to the "Access Control" tab. If you see `dfx` on that list, click it and then click the 'minus' button to remove it. If `dfx` shows up multiple times, remove each such entry. Finally, click "Save Changes".
+For each `internet_computer_identities` entry you see, double-click it and switch to the "Access Control" tab. If you see `dfx` on that list, click it and then click the 'minus' button to remove it. If `dfx` shows up multiple times, remove each such entry. Finally, click "Save Changes".
 
 ![A properties window for an individual password, showing the dfx entry on the Access Control screen.](images/dfx-0.28.0-keychain_access_focused.png)
 
-After these steps, `dfx` should no longer give you this error. Note that fixing just one identity will not restore access to that identity unless you have also fixed the one marked `temp___dummy`.
+After these steps, `dfx` should no longer give you this error.
 
-If your workflow requires using multiple versions of dfx, note that this error will be re-created each time you "Always Allow" an x64 or pre-0.28 version of dfx to access your identities.
+If your workflow requires using multiple versions of dfx, note that this error will be re-created each time you "Always Allow" an x64 or pre-0.28 version of dfx to access your identities. You may want to copy (via export/import) identities so post-0.28 versions use different identities from pre-0.28 versions; that way they will not step on each other's toes.
