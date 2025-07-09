@@ -546,7 +546,8 @@
             }
           ]
         }
-      }
+      },
+      "additionalProperties": false
     },
     "ConfigCanistersCanisterRemote": {
       "title": "Remote Canister Configuration",
