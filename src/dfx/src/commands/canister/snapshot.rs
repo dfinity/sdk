@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{anyhow, bail, Context, Error};
 use backoff::future::retry;
 use backoff::ExponentialBackoff;
 use candid::Principal;
@@ -15,7 +15,7 @@ use ic_utils::interfaces::management_canister::{
 };
 use indicatif::HumanBytes;
 use itertools::Itertools;
-use slog::{debug, info};
+use slog::{debug, error, info};
 use time::{macros::format_description, OffsetDateTime};
 
 use crate::lib::{
@@ -543,6 +543,7 @@ fn check_dir(dir: &PathBuf) -> DfxResult {
     Ok(())
 }
 
+#[derive(Debug)]
 enum BlobKind {
     WasmModule,
     MainMemory,
@@ -627,9 +628,15 @@ async fn read_blob(
                 .await
             {
                 Ok(chunk) => Ok(chunk),
-                Err(_error) => Err(backoff::Error::transient(anyhow!(
-                    "Failed to read data from snapshot {snapshot} from canister {canister}",
-                ))),
+                Err(error) if retryable(&error) => {
+                    error!(
+                        env.get_logger(),
+                        "Failed to read {:?} from snapshot {snapshot} in canister {canister}.",
+                        blob_kind,
+                    );
+                    Err(backoff::Error::transient(anyhow!(error)))
+                }
+                Err(error) => Err(backoff::Error::permanent(anyhow!(error))),
             }
         })
         .await?
@@ -717,9 +724,15 @@ async fn upload_blob(
             .await
             {
                 Ok(_) => Ok(()),
-                Err(_error) => Err(backoff::Error::transient(anyhow!(
-                    "Failed to upload data to snapshot {snapshot} in canister {canister}",
-                ))),
+                Err(error) if retryable(&error) => {
+                    error!(
+                        env.get_logger(),
+                        "Failed to upload {:?} to snapshot {snapshot} in canister {canister}.",
+                        blob_kind,
+                    );
+                    Err(backoff::Error::transient(anyhow!(error)))
+                }
+                Err(error) => Err(backoff::Error::permanent(anyhow!(error))),
             }
         })
         .await?;
@@ -727,4 +740,15 @@ async fn upload_blob(
     }
 
     Ok(())
+}
+
+fn retryable(error: &Error) -> bool {
+    if let Some(err) = error.chain().last() {
+        // https://internetcomputer.org/docs/references/execution-errors#canister-made-a-call-with-too-long-a-timeout
+        if err.to_string().contains("timeout") {
+            return true;
+        }
+    }
+
+    false
 }

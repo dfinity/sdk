@@ -582,10 +582,6 @@ pub async fn delete_canister_snapshot(
     Ok(())
 }
 
-#[context(
-    "Failed to read metadata from snapshot {} in canister {canister_id}",
-    hex::encode(snapshot_id)
-)]
 pub async fn read_canister_snapshot_metadata(
     env: &dyn Environment,
     canister_id: Principal,
@@ -612,10 +608,6 @@ pub async fn read_canister_snapshot_metadata(
     Ok(snapshot_metadata)
 }
 
-#[context(
-    "Failed to read data from snapshot {} in canister {canister_id}",
-    hex::encode(snapshot_id)
-)]
 pub async fn read_canister_snapshot_data(
     env: &dyn Environment,
     canister_id: Principal,
@@ -645,7 +637,6 @@ pub async fn read_canister_snapshot_data(
     Ok(snapshot_data)
 }
 
-#[context("Failed to upload metadata in canister {canister_id}")]
 pub async fn upload_canister_snapshot_metadata(
     env: &dyn Environment,
     canister_id: Principal,
@@ -687,10 +678,6 @@ pub async fn upload_canister_snapshot_metadata(
     Ok(snapshot_id)
 }
 
-#[context(
-    "Failed to upload data to snapshot {} in canister {canister_id}",
-    hex::encode(snapshot_id)
-)]
 pub async fn upload_canister_snapshot_data(
     env: &dyn Environment,
     canister_id: Principal,
