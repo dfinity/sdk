@@ -52,7 +52,12 @@ pub mod wallet;
 
 pub const ANONYMOUS_IDENTITY_NAME: &str = "anonymous";
 pub const IDENTITY_JSON: &str = "identity.json";
-pub const TEMP_IDENTITY_PREFIX: &str = "___temp___";
+pub const TEMP_IDENTITY_PREFIX: &str = if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+    "___s_temp___"
+} else {
+    "___temp___"
+};
+
 pub const WALLET_CONFIG_FILENAME: &str = "wallets.json";
 const HSM_SLOT_INDEX: usize = 0;
 
