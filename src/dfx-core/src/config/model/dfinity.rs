@@ -232,6 +232,7 @@ pub const DEFAULT_REPLICA_PORT: u16 = 8080;
 /// # Canister Configuration
 /// Configurations for a single canister.
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(deny_unknown_fields)]
 pub struct ConfigCanistersCanister {
     /// # Declarations Configuration
     /// Defines which canister interface declarations to generate,
