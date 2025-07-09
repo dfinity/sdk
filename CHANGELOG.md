@@ -40,7 +40,7 @@ the `/http_gateway` endpoint, you should instead use `dfx info pocketic-config-p
 
 ### feat: add dfx native support for aarch64-Darwin
 
-Add dfx native support for aarch64-Darwin.
+Add dfx native support for aarch64-Darwin. Using it may require editing your identities. See the [migration guide](./docs/migration/dfx-0.28.0-migration-guide.md) for more information.
 
 ## Dependencies
 
