@@ -3350,14 +3350,14 @@ source = "git+https://github.com/dfinity/agent-rs?rev=3df9a3b413b5c52bb69cbc5fda
 dependencies = [
  "candid",
  "hex",
- "ic-certification 3.0.2",
+ "ic-certification 3.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "leb128",
  "serde",
  "serde_bytes",
  "serde_cbor",
  "serde_repr",
  "sha2 0.10.9",
- "thiserror 2.0.11",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
