@@ -59,13 +59,13 @@ teardown() {
     snapshot=${BASH_REMATCH[1]}
     dfx canister start hello_backend
 
+    assert_command dfx canister call hello_backend inc_read
+    assert_contains '(2 : nat)'
+
     OUTPUT_DIR="output"
     mkdir -p "$OUTPUT_DIR"
     assert_command dfx canister snapshot download hello_backend "$snapshot" --dir "$OUTPUT_DIR"
     assert_contains "saved to '$OUTPUT_DIR'"
-
-    assert_command dfx canister call hello_backend inc_read
-    assert_contains '(2 : nat)'
 
     assert_command dfx canister snapshot upload hello_backend --dir "$OUTPUT_DIR"
     assert_match 'Snapshot ID: ([0-9a-f]+)'
