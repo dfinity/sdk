@@ -26,6 +26,7 @@ use crate::lib::{
         load_canister_snapshot, read_canister_snapshot_data, read_canister_snapshot_metadata,
         take_canister_snapshot, upload_canister_snapshot_data, upload_canister_snapshot_metadata,
     },
+    retryable::retryable,
     root_key::fetch_root_key_if_needed,
 };
 use crate::util::clap::parsers::directory_parser;
@@ -628,7 +629,7 @@ async fn read_blob(
                 .await
             {
                 Ok(chunk) => Ok(chunk),
-                Err(error) if retryable(&error) => {
+                Err(error) if is_retryable(&error) => {
                     error!(
                         env.get_logger(),
                         "Failed to read {:?} from snapshot {snapshot} in canister {canister}.",
@@ -724,7 +725,7 @@ async fn upload_blob(
             .await
             {
                 Ok(_) => Ok(()),
-                Err(error) if retryable(&error) => {
+                Err(error) if is_retryable(&error) => {
                     error!(
                         env.get_logger(),
                         "Failed to upload {:?} to snapshot {snapshot} in canister {canister}.",
@@ -742,12 +743,9 @@ async fn upload_blob(
     Ok(())
 }
 
-fn retryable(error: &Error) -> bool {
-    if let Some(err) = error.chain().last() {
-        // https://internetcomputer.org/docs/references/execution-errors#canister-made-a-call-with-too-long-a-timeout
-        if err.to_string().contains("timeout") {
-            return true;
-        }
+fn is_retryable(error: &Error) -> bool {
+    if let Some(agent_err) = error.downcast_ref::<ic_agent::AgentError>() {
+        return retryable(agent_err);
     }
 
     false
