@@ -217,6 +217,7 @@ pub fn get_effective_canister_id(
     }
 }
 
+#[allow(clippy::future_not_send)]
 pub async fn exec(
     env: &dyn Environment,
     opts: CanisterCallOpts,
