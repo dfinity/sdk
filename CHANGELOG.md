@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: support canister snapshot download and upload.
+
+Added `dfx canister snapshot download` and `dfx canister snapshot upload` commands to download and upload the canister snapshot.
+
 # 0.28.0
 
 ### fix: deps deploy works with Canister ID out of the ranges of the pocket-ic subnets

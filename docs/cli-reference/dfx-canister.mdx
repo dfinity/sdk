@@ -1014,6 +1014,62 @@ Use the `dfx canister snapshot list` command to list the snapshots in canister `
 dfx canister snapshot list hello
 ```
 
+## dfx canister snapshot download
+
+Use the `dfx canister snapshot download` command to download an existing canister snapshot to a given directory. The downloaded data can be uploaded with `dfx canister snapshot upload`.
+
+### Basic usage
+
+```sh
+dfx canister snapshot download <canister> <snapshot> --dir <DIR>
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister snapshot download` command.
+
+| Argument      | Description                                                                |
+|---------------|----------------------------------------------------------------------------|
+| `<canister>`  | The canister to download the snapshot from.                                |
+| `<snapshot>`  | The ID of the snapshot to download.                                        |
+| --dir `<dir>` | The directory to download the snapshot to. It should be created and empty. |
+
+### Examples
+
+Use the `dfx canister snapshot download` command to download the snapshot `0000000000000000ffffffffff9000010101` in canister `hello` to the `output` directory:
+
+```sh
+dfx canister snapshot download hello 0000000000000000ffffffffff9000010101 --dir output
+```
+
+## dfx canister snapshot upload
+
+Use the `dfx canister snapshot upload` command to upload a downloaded snapshot from a given directory to a canister.
+
+### Basic usage
+
+```sh
+dfx canister snapshot upload <canister> --dir <DIR>
+```
+
+### Arguments
+
+You can use the following arguments with the `dfx canister snapshot upload` command.
+
+| Argument              | Description                                                                    |
+|-----------------------|--------------------------------------------------------------------------------|
+| `<canister>`          | The canister to upload the snapshot to.                                        |
+| --dir `<dir>`         | The directory to upload the snapshot from.                                     |
+| --replace `<replace>` | If a snapshot ID is specified, this snapshot will replace it and reuse the ID. |                                        |
+
+### Examples
+
+Use the `dfx canister snapshot upload` command to upload a downloaded snapshot from the `output` directory to canister `hello`:
+
+```sh
+dfx canister snapshot upload hello --dir output
+```
+
 ## dfx canister start
 
 Use the `dfx canister start` command to restart a stopped canister on the mainnet or the local development environment.

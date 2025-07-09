@@ -67,6 +67,7 @@ enum SnapshotSubcommand {
         /// The ID of the snapshot to delete.
         snapshot: SnapshotId,
     },
+    /// Downloads an existing snapshot from a canister into a given directory.
     Download {
         /// The canister to download the snapshot from.
         canister: String,
@@ -76,6 +77,7 @@ enum SnapshotSubcommand {
         #[arg(long, value_parser = directory_parser)]
         dir: PathBuf,
     },
+    /// Uploads a downloaded snapshot from a given directory to a canister.
     Upload {
         /// The canister to upload the snapshot to.
         canister: String,
