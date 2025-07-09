@@ -6,6 +6,7 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
+use crate::util::with_suspend_all_spinners;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
@@ -33,6 +34,7 @@ impl CanisterBuilder for RustBuilder {
     #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
+        _: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
@@ -53,14 +55,13 @@ impl CanisterBuilder for RustBuilder {
     #[context("Failed to build Rust canister '{}'.", canister_info.get_name())]
     fn build(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         canister_info: &CanisterInfo,
         config: &BuildConfig,
     ) -> DfxResult<BuildOutput> {
         let rust_info = canister_info.as_info::<RustCanisterInfo>()?;
         let package = rust_info.get_package();
-
-        let canister_id = canister_info.get_canister_id().unwrap();
 
         let mut cargo = Command::new("cargo");
         cargo
@@ -76,7 +77,7 @@ impl CanisterBuilder for RustBuilder {
             .arg("--locked");
 
         let dependencies = self
-            .get_dependencies(pool, canister_info)
+            .get_dependencies(env, pool, canister_info)
             .unwrap_or_default();
         let vars = super::get_and_write_environment_variables(
             canister_info,
@@ -94,14 +95,16 @@ impl CanisterBuilder for RustBuilder {
             "Executing: cargo build --target wasm32-unknown-unknown --release -p {} --locked",
             package
         );
-        let output = cargo.output().context("Failed to run 'cargo build'. You might need to run `cargo update` (or a similar command like `cargo vendor`) if you have updated `Cargo.toml`, because `dfx build` uses the --locked flag with Cargo.")?;
+
+        let output = with_suspend_all_spinners(env, || {
+            cargo.output().context("Failed to run 'cargo build'. You might need to run `cargo update` (or a similar command like `cargo vendor`) if you have updated `Cargo.toml`, because `dfx build` uses the --locked flag with Cargo.")
+        })?;
 
         if !output.status.success() {
             bail!("Failed to compile the rust package: {}", package);
         }
 
         Ok(BuildOutput {
-            canister_id,
             wasm: WasmBuildOutput::File(rust_info.get_output_wasm_path().to_path_buf()),
             idl: IdlBuildOutput::File(canister_info.get_output_idl_path().to_path_buf()),
         })
@@ -109,6 +112,7 @@ impl CanisterBuilder for RustBuilder {
 
     fn get_candid_path(
         &self,
+        _: &dyn Environment,
         _pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,

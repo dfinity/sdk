@@ -60,7 +60,7 @@ teardown() {
   assert_command dfx canister create --all
 
   assert_command dfx deploy
-  assert_match 'Installing code for canister'
+  assert_match 'Installed code for canister'
 }
 
 @test "dfx deploy supports arguments" {
@@ -85,13 +85,13 @@ teardown() {
   # Therefore, there is no "attempting (install|upgrade)" message.
 
   assert_command dfx deploy hello_backend
-  assert_match 'Installing code for canister'
+  assert_match 'Installed code for canister'
 
   assert_command dfx canister call hello_backend greet '("First")'
   assert_eq '("Hello, First!")'
 
   assert_command dfx deploy hello_backend --upgrade-unchanged
-  assert_match 'Upgrading code for canister'
+  assert_match 'Upgraded code for canister'
 
   assert_command dfx canister call hello_backend greet '("Second")'
   assert_eq '("Hello, Second!")'

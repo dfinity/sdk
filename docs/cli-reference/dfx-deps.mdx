@@ -6,6 +6,8 @@ import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
 
 Use the `dfx deps` command with flags and subcommands to pull dependencies from the mainnet and deploy locally.
 
+[Learn how to configure a canister as `pullable`](https://internetcomputer.org/docs/building-apps/advanced/using-third-party-canisters).
+
 The basic syntax for running `dfx deps` commands is:
 
 ``` bash
@@ -28,7 +30,7 @@ dfx deps pull --help
 
 ## dfx deps pull
 
-Use the `dfx deps pull` command to pull dependencies as defined in `dfx.json`.
+Use the `dfx deps pull` command to pull dependencies as defined in `dfx.json`. It will resolve all transitive dependencies.
 
 ### Basic usage
 
@@ -38,7 +40,7 @@ dfx deps pull [options]
 
 ### Arguments
 
-You can specify the following argument for the `dfx deps delete` command.
+You can specify the following argument for the `dfx deps pull` command.
 
 | Command   | Description                                                     |
 | --------- | --------------------------------------------------------------- |
@@ -46,13 +48,7 @@ You can specify the following argument for the `dfx deps delete` command.
 
 ### Examples
 
-You can use the `dfx deps pull` command to pull the dependencies as defined in `dfx.json` from the mainnet. It will resolve all indirect dependencies.
-
-``` bash
-dfx deps pull
-```
-
-For testing, you may want to pull from local replica, then run:
+For testing, you may want to pull from local environment, then run:
 
 ```bash
 dfx deps pull --network local
@@ -70,19 +66,13 @@ dfx deps init [options] [canister]
 
 ### Examples
 
-You can use the `dfx deps init` command to set empty init arguments for all pulled dependencies.
-
-``` bash
-dfx deps init
-```
-
 If any of the dependencies require init arguments, the above command will alarm you with their canister ID and names if exist. Then you can specify canister ID or name to set init argument for individual dependency.
 
 ```bash
-`dfx deps init <CANISTER_ID/NAME> --argument <ARGUMENT> [--argument-type <TYPE>]`
+dfx deps init <CANISTER_ID/NAME> --argument <ARGUMENT> [--argument-type <TYPE>]
 ```
 
-The command below set number `1` for canister `dep_a` as the argument type is the default `idl` (candid).
+The command below set number `1` for canister `dep_a` as the argument type is the default `idl` (Candid).
 
 ```bash
 dfx deps init dep_a --argument 1
@@ -111,8 +101,6 @@ dfx deps deploy [flag]
 ```
 
 ### Examples
-
-You can use the `dfx deps deploy` command to deploy dependencies on local replica.
 
 ``` bash
 dfx deps deploy

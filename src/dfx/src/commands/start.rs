@@ -1,10 +1,6 @@
-use crate::actors::pocketic_proxy::{signals::PortReadySubscribe, PocketIcProxyConfig};
-use crate::actors::{
-    start_btc_adapter_actor, start_canister_http_adapter_actor, start_pocketic_actor,
-    start_pocketic_proxy_actor, start_replica_actor, start_shutdown_controller,
-};
+use crate::actors::pocketic::PocketIcProxyConfig;
+use crate::actors::{start_pocketic_actor, start_post_start_actor, start_shutdown_controller};
 use crate::config::dfx_version_str;
-use crate::error_invalid_argument;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::info::replica_rev;
@@ -12,12 +8,10 @@ use crate::lib::integrations::status::wait_for_integrations_initialized;
 use crate::lib::network::id::write_network_id;
 use crate::lib::replica::status::ping_and_wait;
 use crate::util::get_reusable_socket_addr;
-use actix::Recipient;
-use anyhow::{anyhow, bail, Context, Error};
+use anyhow::{anyhow, bail, ensure, Context, Error};
 use clap::{ArgAction, Parser};
 use dfx_core::{
     config::model::{
-        bitcoin_adapter, canister_http_adapter,
         local_server_descriptor::{LocalNetworkScopeDescriptor, LocalServerDescriptor},
         network_descriptor::NetworkDescriptor,
         replica_config::{CachedConfig, ReplicaConfig},
@@ -28,13 +22,12 @@ use dfx_core::{
     network::provider::{create_network_descriptor, LocalBindDetermination},
 };
 use fn_error_context::context;
-use os_str_bytes::{OsStrBytes, OsStringBytes};
 use slog::{info, warn, Logger};
 use std::io::Read;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime};
 use sysinfo::{Pid, System, SystemExt};
 use tokio::runtime::Runtime;
 
@@ -49,19 +42,23 @@ pub struct StartOpts {
     #[arg(long)]
     background: bool,
 
+    /// Indicates if the actual dfx process is running in the background.
+    #[arg(long, env = "DFX_RUNNING_IN_BACKGROUND", hide = true)]
+    running_in_background: bool,
+
     /// Cleans the state of the current project.
     #[arg(long)]
     clean: bool,
 
     /// Address of bitcoind node.  Implies --enable-bitcoin.
-    #[arg(long, action = ArgAction::Append, conflicts_with = "pocketic")]
+    #[arg(long, action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
 
     /// enable bitcoin integration
-    #[arg(long, conflicts_with = "pocketic")]
+    #[arg(long)]
     enable_bitcoin: bool,
 
-    /// enable canister http requests (on by default for --pocketic)
+    /// enable canister http requests (on by default)
     #[arg(long)]
     enable_canister_http: bool,
 
@@ -70,7 +67,7 @@ pub struct StartOpts {
     artificial_delay: u32,
 
     /// Start even if the network config was modified.
-    #[arg(long, conflicts_with = "pocketic")]
+    #[arg(long)]
     force: bool,
 
     /// A list of domains that can be served. These are used for canister resolution [default: localhost]
@@ -78,8 +75,13 @@ pub struct StartOpts {
     domain: Vec<String>,
 
     /// Runs PocketIC instead of the replica
+    /// Currently this has no effect.
     #[clap(long, alias = "emulator")]
+    #[allow(unused)]
     pocketic: bool,
+
+    #[clap(long, hide = true)]
+    replica: bool,
 }
 
 // The frontend webserver is brought up by the bg process; thus, the fg process
@@ -138,6 +140,7 @@ pub fn exec(
     StartOpts {
         host,
         background,
+        running_in_background,
         clean,
         force,
         bitcoin_node,
@@ -145,9 +148,12 @@ pub fn exec(
         enable_canister_http,
         artificial_delay,
         domain,
-        pocketic,
+        pocketic: _,
+        replica,
     }: StartOpts,
 ) -> DfxResult {
+    ensure!(!replica, "The 'native' replica (--replica) is no longer supported. See the 0.27.0 migration guide for more information.
+https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-guide.md");
     if !background {
         info!(
             env.get_logger(),
@@ -175,13 +181,11 @@ pub fn exec(
         env.get_logger(),
         network_descriptor,
         host,
-        None,
         enable_bitcoin,
         bitcoin_node,
         enable_canister_http,
         domain,
         artificial_delay,
-        pocketic,
     )?;
 
     let local_server_descriptor = network_descriptor.local_server_descriptor()?;
@@ -218,34 +222,11 @@ pub fn exec(
 
     clean_older_state_dirs(local_server_descriptor)?;
     let state_root = local_server_descriptor.state_dir();
-
-    let btc_adapter_socket_holder_path = local_server_descriptor.btc_adapter_socket_holder_path();
-    let canister_http_adapter_socket_holder_path =
-        local_server_descriptor.canister_http_adapter_socket_holder_path();
-
     let pid_file_path = empty_writable_path(pid_file_path)?;
-    let btc_adapter_pid_file_path =
-        empty_writable_path(local_server_descriptor.btc_adapter_pid_path())?;
-    let btc_adapter_config_path =
-        empty_writable_path(local_server_descriptor.btc_adapter_config_path())?;
-    let canister_http_adapter_pid_file_path =
-        empty_writable_path(local_server_descriptor.canister_http_adapter_pid_path())?;
-    let canister_http_adapter_config_path =
-        empty_writable_path(local_server_descriptor.canister_http_adapter_config_path())?;
-    let pocketic_proxy_pid_file_path =
-        empty_writable_path(local_server_descriptor.pocketic_proxy_pid_path())?;
-    let pocketic_proxy_port_file_path =
-        empty_writable_path(local_server_descriptor.pocketic_proxy_port_path())?;
     let webserver_port_path = empty_writable_path(local_server_descriptor.webserver_port_path())?;
 
     let previous_config_path = local_server_descriptor.effective_config_path();
 
-    // dfx info replica-port will read these port files to find out which port to use,
-    // so we need to make sure only one has a valid port in it.
-    let replica_config_dir = local_server_descriptor.replica_configuration_dir();
-    fs::create_dir_all(&replica_config_dir)?;
-
-    let replica_port_path = empty_writable_path(local_server_descriptor.replica_port_path())?;
     let pocketic_port_path = empty_writable_path(local_server_descriptor.pocketic_port_path())?;
 
     if background {
@@ -267,23 +248,6 @@ pub fn exec(
     write_pid(&pid_file_path);
     fs::write(&webserver_port_path, address_and_port.port().to_string())?;
 
-    let btc_adapter_config = configure_btc_adapter_if_enabled(
-        local_server_descriptor,
-        &btc_adapter_config_path,
-        &btc_adapter_socket_holder_path,
-    )?;
-    let btc_adapter_socket_path = btc_adapter_config
-        .as_ref()
-        .and_then(|cfg| cfg.get_socket_path());
-
-    let canister_http_adapter_config = configure_canister_http_adapter_if_enabled(
-        local_server_descriptor,
-        &canister_http_adapter_config_path,
-        &canister_http_adapter_socket_holder_path,
-    )?;
-    let canister_http_socket_path = canister_http_adapter_config
-        .as_ref()
-        .and_then(|cfg| cfg.get_socket_path());
     let subnet_type = local_server_descriptor
         .replica
         .subnet_type
@@ -300,39 +264,28 @@ pub fn exec(
         .map(|v| v.into_vec());
 
     let replica_config = {
-        let replica_config =
+        let mut replica_config =
             ReplicaConfig::new(&state_root, subnet_type, log_level, artificial_delay);
-        let mut replica_config = if let Some(port) = local_server_descriptor.replica.port {
-            replica_config.with_port(port)
-        } else {
-            replica_config.with_random_port(&replica_port_path)
-        };
-        if let Some(btc_adapter_config) = btc_adapter_config.as_ref() {
+        if local_server_descriptor.bitcoin.enabled {
             replica_config = replica_config.with_btc_adapter_enabled();
-            if let Some(btc_adapter_socket) = btc_adapter_config.get_socket_path() {
-                replica_config = replica_config.with_btc_adapter_socket(btc_adapter_socket);
-            }
         }
-        if let Some(canister_http_adapter_config) = canister_http_adapter_config.as_ref() {
+        if local_server_descriptor.canister_http.enabled {
             replica_config = replica_config.with_canister_http_adapter_enabled();
-            if let Some(socket_path) = canister_http_adapter_config.get_socket_path() {
-                replica_config = replica_config.with_canister_http_adapter_socket(socket_path);
-            }
         }
         replica_config
     };
 
-    let effective_config = if pocketic {
-        CachedConfig::pocketic(&replica_config, replica_rev().into(), None)
-    } else {
+    let effective_config = if replica {
         CachedConfig::replica(&replica_config, replica_rev().into())
+    } else {
+        CachedConfig::pocketic(&replica_config, replica_rev().into(), None)
     };
 
     let is_shared_network = matches!(
         &local_server_descriptor.scope,
         LocalNetworkScopeDescriptor::Shared { .. }
     );
-    if is_shared_network && !pocketic {
+    if is_shared_network {
         save_json_file(
             &local_server_descriptor.effective_config_path_by_settings_digest(),
             &effective_config,
@@ -348,82 +301,30 @@ pub fn exec(
     }
     save_json_file(&previous_config_path, &effective_config)?;
 
-    let network_descriptor = network_descriptor.clone();
-
+    let spinner = env.new_spinner("Starting local network...".into());
     let system = actix::System::new();
-    let _proxy = system.block_on(async move {
+    let _post_start = system.block_on(async move {
         let shutdown_controller = start_shutdown_controller(env)?;
-
-        let port_ready_subscribe: Recipient<PortReadySubscribe> = if pocketic {
-            let server = start_pocketic_actor(
-                env,
-                replica_config,
-                local_server_descriptor,
-                shutdown_controller.clone(),
-                pocketic_port_path,
-            )?;
-            server.recipient()
-        } else {
-            let btc_adapter_ready_subscribe = btc_adapter_config
-                .map(|btc_adapter_config| {
-                    start_btc_adapter_actor(
-                        env,
-                        btc_adapter_config_path,
-                        btc_adapter_config.get_socket_path(),
-                        shutdown_controller.clone(),
-                        btc_adapter_pid_file_path,
-                    )
-                })
-                .transpose()?;
-            let canister_http_adapter_ready_subscribe = canister_http_adapter_config
-                .map(|canister_http_adapter_config| {
-                    start_canister_http_adapter_actor(
-                        env,
-                        canister_http_adapter_config_path,
-                        canister_http_adapter_config.get_socket_path(),
-                        shutdown_controller.clone(),
-                        canister_http_adapter_pid_file_path,
-                    )
-                })
-                .transpose()?;
-
-            let replica = start_replica_actor(
-                env,
-                replica_config,
-                local_server_descriptor,
-                shutdown_controller.clone(),
-                btc_adapter_ready_subscribe,
-                canister_http_adapter_ready_subscribe,
-            )?;
-            replica.recipient()
-        };
 
         let pocketic_proxy_config = PocketIcProxyConfig {
             bind: address_and_port,
-            replica_url: None,
-            fetch_root_key: !network_descriptor.is_ic,
             domains: proxy_domains,
-            verbose: env.get_verbose_level() > 0,
         };
-        let proxy = start_pocketic_proxy_actor(
+
+        let server = start_pocketic_actor(
             env,
+            replica_config,
+            local_server_descriptor,
+            shutdown_controller.clone(),
+            pocketic_port_path,
             pocketic_proxy_config,
-            Some(port_ready_subscribe),
-            shutdown_controller,
-            pocketic_proxy_pid_file_path,
-            pocketic_proxy_port_file_path,
         )?;
-        Ok::<_, Error>(proxy)
+
+        let post_start = start_post_start_actor(env, running_in_background, Some(server), spinner)?;
+
+        Ok::<_, Error>(post_start)
     })?;
     system.run()?;
-
-    if let Some(btc_adapter_socket_path) = btc_adapter_socket_path {
-        let _ = std::fs::remove_file(btc_adapter_socket_path);
-    }
-    if let Some(canister_http_socket_path) = canister_http_socket_path {
-        let _ = std::fs::remove_file(canister_http_socket_path);
-    }
-
     Ok(())
 }
 
@@ -479,13 +380,11 @@ pub fn apply_command_line_parameters(
     logger: &Logger,
     network_descriptor: NetworkDescriptor,
     host: Option<String>,
-    replica_port: Option<String>,
     enable_bitcoin: bool,
     bitcoin_nodes: Vec<SocketAddr>,
     enable_canister_http: bool,
     domain: Vec<String>,
     artificial_delay: u32,
-    pocketic: bool,
 ) -> DfxResult<NetworkDescriptor> {
     if enable_canister_http {
         warn!(
@@ -504,12 +403,6 @@ pub fn apply_command_line_parameters(
             .map_err(|e| anyhow!("Invalid argument: Invalid host: {}", e))?;
         local_server_descriptor = local_server_descriptor.with_bind_address(host);
     }
-    if let Some(replica_port) = replica_port {
-        let replica_port: u16 = replica_port
-            .parse()
-            .map_err(|err| error_invalid_argument!("Invalid port number: {}", err))?;
-        local_server_descriptor = local_server_descriptor.with_replica_port(replica_port);
-    }
     if enable_bitcoin || !bitcoin_nodes.is_empty() {
         local_server_descriptor = local_server_descriptor.with_bitcoin_enabled();
     }
@@ -522,12 +415,8 @@ pub fn apply_command_line_parameters(
         local_server_descriptor = local_server_descriptor.with_proxy_domains(domain)
     }
 
-    let settings_digest = get_settings_digest(
-        replica_rev(),
-        &local_server_descriptor,
-        artificial_delay,
-        pocketic,
-    );
+    let settings_digest =
+        get_settings_digest(replica_rev(), &local_server_descriptor, artificial_delay);
 
     local_server_descriptor = local_server_descriptor.with_settings_digest(settings_digest);
 
@@ -574,7 +463,8 @@ fn send_background() -> DfxResult<()> {
             .skip(1)
             .filter(|a| !a.eq("--background"))
             .filter(|a| !a.eq("--clean")),
-    );
+    )
+    .env("DFX_RUNNING_IN_BACKGROUND", "true"); // Set the `DFX_RUNNING_IN_BACKGROUND` environment variable which will be used by the second start.
 
     cmd.spawn().context("Failed to spawn child process.")?;
     Ok(())
@@ -630,108 +520,8 @@ fn write_pid(pid_file_path: &Path) {
     }
 }
 
-#[context("Failed to configure btc adapter.")]
-pub fn configure_btc_adapter_if_enabled(
-    local_server_descriptor: &LocalServerDescriptor,
-    config_path: &Path,
-    uds_holder_path: &Path,
-) -> DfxResult<Option<bitcoin_adapter::Config>> {
-    if !local_server_descriptor.bitcoin.enabled {
-        return Ok(None);
-    };
-
-    let log_level = local_server_descriptor.bitcoin.log_level;
-
-    let nodes = if let Some(ref nodes) = local_server_descriptor.bitcoin.nodes {
-        nodes.clone()
-    } else {
-        bitcoin_adapter::default_nodes()
-    };
-
-    let config = write_btc_adapter_config(uds_holder_path, config_path, nodes, log_level)?;
-    Ok(Some(config))
-}
-
-#[context("Failed to create persistent socket path for {} at {}.", prefix, uds_holder_path.to_string_lossy())]
-fn create_new_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> DfxResult<PathBuf> {
-    let pid = sysinfo::get_current_pid()
-        .map_err(|s| anyhow!("Unable to obtain pid of current process: {}", s))?;
-    let timestamp_seconds = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-
-    // Unix domain socket names can only be so long.
-    // An attempt to use a path under .dfx/ resulted in this error:
-    //    path must be shorter than libc::sockaddr_un.sun_path
-    let uds_path = std::env::temp_dir().join(format!("{}.{}.{}", prefix, pid, timestamp_seconds));
-    std::fs::write(uds_holder_path, uds_path.to_raw_bytes()).with_context(|| {
-        format!(
-            "unable to write unix domain socket path to {}",
-            uds_holder_path.to_string_lossy()
-        )
-    })?;
-    Ok(uds_path)
-}
-
-#[context("Failed to get persistent socket path for {} at {}.", prefix, uds_holder_path.to_string_lossy())]
-fn get_persistent_socket_path(uds_holder_path: &Path, prefix: &str) -> DfxResult<PathBuf> {
-    if let Ok(uds_path) = std::fs::read(uds_holder_path) {
-        Ok(PathBuf::assert_from_raw_vec(uds_path))
-    } else {
-        create_new_persistent_socket_path(uds_holder_path, prefix)
-    }
-}
-
-#[context("Failed to write btc adapter config to {}.", config_path.to_string_lossy())]
-fn write_btc_adapter_config(
-    uds_holder_path: &Path,
-    config_path: &Path,
-    nodes: Vec<SocketAddr>,
-    log_level: bitcoin_adapter::BitcoinAdapterLogLevel,
-) -> DfxResult<bitcoin_adapter::Config> {
-    let socket_path = get_persistent_socket_path(uds_holder_path, "ic-btc-adapter-socket")?;
-
-    let adapter_config = bitcoin_adapter::Config::new(nodes, socket_path, log_level);
-
-    let contents = serde_json::to_string_pretty(&adapter_config)
-        .context("Unable to serialize btc adapter configuration to json")?;
-    std::fs::write(config_path, contents).with_context(|| {
-        format!(
-            "Unable to write btc adapter configuration to {}",
-            config_path.to_string_lossy()
-        )
-    })?;
-
-    Ok(adapter_config)
-}
-
 pub fn empty_writable_path(path: PathBuf) -> DfxResult<PathBuf> {
     std::fs::write(&path, "")
         .with_context(|| format!("Unable to write to {}", path.to_string_lossy()))?;
     Ok(path)
-}
-
-#[context("Failed to configure canister http adapter.")]
-pub fn configure_canister_http_adapter_if_enabled(
-    local_server_descriptor: &LocalServerDescriptor,
-    config_path: &Path,
-    uds_holder_path: &Path,
-) -> DfxResult<Option<canister_http_adapter::Config>> {
-    if !local_server_descriptor.canister_http.enabled {
-        return Ok(None);
-    };
-
-    let socket_path =
-        get_persistent_socket_path(uds_holder_path, "ic-https-outcalls-adapter-socket")?;
-
-    let log_level = local_server_descriptor.canister_http.log_level;
-    let adapter_config = canister_http_adapter::Config::new(socket_path, log_level);
-
-    let contents = serde_json::to_string_pretty(&adapter_config)
-        .context("Unable to serialize canister http adapter configuration to json")?;
-    std::fs::write(config_path, contents)
-        .with_context(|| format!("Unable to write {}", config_path.to_string_lossy()))?;
-
-    Ok(Some(adapter_config))
 }

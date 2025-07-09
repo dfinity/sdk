@@ -1,13 +1,13 @@
 use crate::util::assets;
-use dfx_core::config::project_templates::{
-    Category, ProjectTemplate, ProjectTemplateName, ResourceLocation,
-};
+use dfx_core::config::model::project_template::ProjectTemplateCategory;
+use dfx_core::config::project_templates::{ProjectTemplate, ProjectTemplateName, ResourceLocation};
 
 const NPM_INSTALL: &str = "npm install --quiet --no-progress --workspaces --if-present";
 const NPM_INSTALL_SPINNER_MESSAGE: &str = "Installing node dependencies...";
 const NPM_INSTALL_FAILURE_WARNING: &str =
     "An error occurred. See the messages above for more details.";
 const CARGO_UPDATE_FAILURE_MESSAGE: &str = "You will need to run it yourself (or a similar command like `cargo vendor`), because `dfx build` will use the --locked flag with Cargo.";
+const CARGO_UPDATE_SPINNER_MESSAGE: &str = "Updating cargo lockfile...";
 
 pub fn builtin_templates() -> Vec<ProjectTemplate> {
     let motoko = ProjectTemplate {
@@ -16,7 +16,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_motoko_files,
         },
-        category: Category::Backend,
+        category: ProjectTemplateCategory::Backend,
         post_create: vec![],
         post_create_failure_warning: None,
         post_create_spinner_message: None,
@@ -30,10 +30,10 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_rust_files,
         },
-        category: Category::Backend,
+        category: ProjectTemplateCategory::Backend,
         post_create: vec!["cargo update".to_string()],
         post_create_failure_warning: Some(CARGO_UPDATE_FAILURE_MESSAGE.to_string()),
-        post_create_spinner_message: None,
+        post_create_spinner_message: Some(CARGO_UPDATE_SPINNER_MESSAGE.to_string()),
         requirements: vec![],
         sort_order: 1,
     };
@@ -44,7 +44,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_azle_files,
         },
-        category: Category::Backend,
+        category: ProjectTemplateCategory::Backend,
         post_create: vec![],
         post_create_failure_warning: None,
         post_create_spinner_message: None,
@@ -58,7 +58,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_kybra_files,
         },
-        category: Category::Backend,
+        category: ProjectTemplateCategory::Backend,
         post_create: vec![],
         post_create_failure_warning: None,
         post_create_spinner_message: None,
@@ -72,7 +72,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_svelte_files,
         },
-        category: Category::Frontend,
+        category: ProjectTemplateCategory::Frontend,
         post_create: vec![NPM_INSTALL.to_string()],
         post_create_failure_warning: Some(NPM_INSTALL_FAILURE_WARNING.to_string()),
         post_create_spinner_message: Some(NPM_INSTALL_SPINNER_MESSAGE.to_string()),
@@ -86,7 +86,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_react_files,
         },
-        category: Category::Frontend,
+        category: ProjectTemplateCategory::Frontend,
         post_create: vec![NPM_INSTALL.to_string()],
         post_create_failure_warning: Some(NPM_INSTALL_FAILURE_WARNING.to_string()),
         post_create_spinner_message: Some(NPM_INSTALL_SPINNER_MESSAGE.to_string()),
@@ -100,7 +100,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_vue_files,
         },
-        category: Category::Frontend,
+        category: ProjectTemplateCategory::Frontend,
         post_create: vec![NPM_INSTALL.to_string()],
         post_create_failure_warning: Some(NPM_INSTALL_FAILURE_WARNING.to_string()),
         post_create_spinner_message: Some(NPM_INSTALL_SPINNER_MESSAGE.to_string()),
@@ -114,7 +114,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_vanillajs_files,
         },
-        category: Category::Frontend,
+        category: ProjectTemplateCategory::Frontend,
         post_create: vec![NPM_INSTALL.to_string()],
         post_create_failure_warning: Some(NPM_INSTALL_FAILURE_WARNING.to_string()),
         post_create_spinner_message: Some(NPM_INSTALL_SPINNER_MESSAGE.to_string()),
@@ -128,7 +128,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_assets_files,
         },
-        category: Category::Frontend,
+        category: ProjectTemplateCategory::Frontend,
         post_create: vec![],
         post_create_failure_warning: None,
         post_create_spinner_message: None,
@@ -142,7 +142,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_svelte_test_files,
         },
-        category: Category::FrontendTest,
+        category: ProjectTemplateCategory::FrontendTest,
         post_create: vec![],
         post_create_failure_warning: None,
         post_create_spinner_message: None,
@@ -156,7 +156,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_react_test_files,
         },
-        category: Category::FrontendTest,
+        category: ProjectTemplateCategory::FrontendTest,
         post_create: vec![],
         post_create_failure_warning: None,
         post_create_spinner_message: None,
@@ -170,7 +170,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_vue_test_files,
         },
-        category: Category::FrontendTest,
+        category: ProjectTemplateCategory::FrontendTest,
         post_create: vec![],
         post_create_failure_warning: None,
         post_create_spinner_message: None,
@@ -184,7 +184,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_vanillajs_test_files,
         },
-        category: Category::FrontendTest,
+        category: ProjectTemplateCategory::FrontendTest,
         post_create: vec![],
         post_create_failure_warning: None,
         post_create_spinner_message: None,
@@ -198,7 +198,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_internet_identity_files,
         },
-        category: Category::Extra,
+        category: ProjectTemplateCategory::Extra,
         post_create: vec![],
         post_create_failure_warning: None,
         post_create_spinner_message: None,
@@ -212,7 +212,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_bitcoin_files,
         },
-        category: Category::Extra,
+        category: ProjectTemplateCategory::Extra,
         post_create: vec![],
         post_create_failure_warning: None,
         post_create_spinner_message: None,
@@ -226,7 +226,7 @@ pub fn builtin_templates() -> Vec<ProjectTemplate> {
         resource_location: ResourceLocation::Bundled {
             get_archive_fn: assets::new_project_js_files,
         },
-        category: Category::Support,
+        category: ProjectTemplateCategory::Support,
         post_create: vec![],
         post_create_failure_warning: None,
         post_create_spinner_message: None,

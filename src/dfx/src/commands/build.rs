@@ -1,4 +1,4 @@
-use crate::config::cache::DiskBasedCache;
+use crate::config::cache::VersionCache;
 use crate::lib::agent::create_anonymous_agent_environment;
 use crate::lib::builders::BuildConfig;
 use crate::lib::environment::Environment;
@@ -44,7 +44,7 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
 
     // Check the cache. This will only install the cache if there isn't one installed
     // already.
-    DiskBasedCache::install(&env.get_cache().version_str())?;
+    VersionCache::install(&env, &env.get_cache().version_str())?;
 
     let build_mode_check = opts.check;
 
@@ -82,15 +82,13 @@ pub fn exec(env: &dyn Environment, opts: CanisterBuildOpts) -> DfxResult {
         }
     }
 
-    slog::info!(logger, "Building canisters...");
-
     let runtime = Runtime::new().expect("Unable to create a runtime");
-    let build_config =
-        BuildConfig::from_config(&config, env.get_network_descriptor().is_playground())?
-            .with_build_mode_check(build_mode_check)
-            .with_canisters_to_build(canisters_to_build)
-            .with_env_file(env_file);
-    runtime.block_on(canister_pool.build_or_fail(logger, &build_config))?;
+    let build_config = BuildConfig::from_config(&config)?
+        .with_canisters_to_build(canisters_to_build)
+        .with_env_file(env_file);
+    runtime.block_on(canister_pool.build_or_fail(&env, logger, &build_config))?;
+
+    slog::info!(logger, "Finished building canisters.");
 
     Ok(())
 }

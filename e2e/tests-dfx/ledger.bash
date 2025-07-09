@@ -2,6 +2,13 @@
 
 load ../utils/_
 
+install_nns() {
+  dfx_start_for_nns_install
+
+  dfx extension install nns --version 0.5.4
+  dfx nns install --ledger-accounts 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc
+}
+
 setup() {
   standard_setup
   install_asset ledger
@@ -9,11 +16,7 @@ setup() {
 
   dfx identity import --storage-mode plaintext alice alice.pem
   dfx identity import --storage-mode plaintext bob bob.pem
-
-  dfx_start_for_nns_install
-
-  dfx extension install nns --version 0.4.3
-  dfx nns install --ledger-accounts 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc
+  dfx identity import --storage-mode plaintext david david.pem
 }
 
 teardown() {
@@ -27,6 +30,8 @@ current_time_nanoseconds() {
 }
 
 @test "ledger account-id" {
+  install_nns
+
   dfx identity use alice
   assert_command dfx ledger account-id
   assert_match 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
@@ -46,6 +51,8 @@ current_time_nanoseconds() {
 }
 
 @test "ledger balance & transfer" {
+  install_nns
+
   dfx identity use alice
   assert_command dfx ledger account-id
   assert_eq 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
@@ -100,10 +107,75 @@ current_time_nanoseconds() {
   assert_contains "Transfer sent at block height" "$stdout"
   # shellcheck disable=SC2154
   assert_not_contains "Transfer sent at block height $block_height" "$stdout"
+}
 
+@test "ledger icrc functions" {
+  install_nns
+
+  ALICE=$(dfx identity get-principal --identity alice)
+  BOB=$(dfx identity get-principal --identity bob)
+  DAVID=$(dfx identity get-principal --identity david)
+
+  dfx identity use alice
+
+  assert_command dfx ledger balance
+  assert_eq "1000000000.00000000 ICP"
+
+  # Test transfer and balance.
+
+  assert_command dfx ledger transfer --amount 50 --to-principal "$DAVID" --memo 1 # to david
+  assert_contains "Transfer sent at block index"
+
+  # The owner(alice) transferred 50 ICP to david and paid transaction fee which is 0.0001 ICP.
+  assert_command dfx ledger balance
+  assert_eq "999999949.99990000 ICP"
+
+  # The receiver(david) received 50 ICP.
+  assert_command dfx ledger balance --of-principal "$DAVID"
+  assert_match "50.00000000 ICP"
+
+  # Test approve, transfer-from and allowance.
+
+  assert_command dfx ledger approve "$BOB" --amount 100 # to bob
+  assert_contains "Approval sent at block index"
+
+  # The approver(alice) paid approving fee which is 0.0001 ICP.
+  assert_command dfx ledger balance
+  assert_eq "999999949.99980000 ICP"
+
+  # The spender(bob) have 100 ICP allowance from the approver(alice).
+  assert_command dfx ledger allowance --spender "$BOB"
+  assert_match "Allowance 100.00000000 ICP"
+
+  dfx identity use bob
+
+  assert_command dfx ledger balance
+  assert_match "1000000000.00000000 ICP"
+
+  assert_command dfx ledger transfer-from --from "$ALICE" --amount 50 "$DAVID" # to david
+  assert_contains "Transfer sent at block index"
+
+  # The spender(bob) transferred 50 ICP to david from the approver(alice).
+  # And the approver(alice) paid transaction fee which is 0.0001 ICP
+  assert_command dfx ledger balance --of-principal "$ALICE"
+  assert_eq "999999899.99970000 ICP"
+
+  # The spender(bob) remains 49.99990000 ICP allowance from the approver(alice).
+  assert_command dfx ledger allowance --owner "$ALICE" --spender "$BOB"
+  assert_match "Allowance 49.99990000 ICP"
+
+  # The spender(bob) balance is unchanged.
+  assert_command dfx ledger balance --of-principal "$BOB"
+  assert_match "1000000000.00000000 ICP"
+
+  # The receiver(david) received 50 ICP.
+  assert_command dfx ledger balance --of-principal "$DAVID"
+  assert_match "100.00000000 ICP"
 }
 
 @test "ledger subaccounts" {
+  install_nns
+
   subacct=000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
   assert_command dfx ledger account-id --identity bob --subaccount "$subacct"
   assert_match 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc
@@ -131,6 +203,7 @@ current_time_nanoseconds() {
   assert_command dfx ledger balance --identity alice
   assert_match "999999999.99990000 ICP"
 }
+
 tc_to_num() {
   if [[ $1 =~ T ]]; then
     echo "${1%%[^0-9]*}000000000000"
@@ -140,6 +213,8 @@ tc_to_num() {
 }
 
 @test "ledger top-up" {
+  install_nns
+
   dfx identity use alice
   assert_command dfx ledger balance
   assert_match "1000000000.00000000 ICP"
@@ -148,10 +223,10 @@ tc_to_num() {
   balance=$(tc_to_num "$(dfx wallet balance)")
 
   assert_command dfx ledger top-up "$wallet" --icp 5
-  assert_match "Canister was topped up with 617283500000000 cycles"
+  assert_match "Canister was topped up with 500000000000000 cycles"
   balance_now=$(tc_to_num "$(dfx wallet balance)")
 
-  (( balance_now - balance > 600000000000000 ))
+  (( balance_now - balance > 400000000000000 ))
 
   # Transaction Deduplication
   t=$(current_time_nanoseconds)
@@ -194,10 +269,12 @@ tc_to_num() {
   dfx_new
   assert_command dfx canister create e2e_project_backend
   assert_command dfx ledger top-up e2e_project_backend --amount 5
-  assert_contains "Canister was topped up with 617283500000000 cycles"
+  assert_contains "Canister was topped up with 500000000000000 cycles"
 }
 
 @test "ledger create-canister" {
+  install_nns
+
   dfx identity use alice
   assert_command dfx ledger create-canister --amount=100 --subnet-type "type1" "$(dfx identity get-principal)"
   assert_match "Transfer sent at block height"
@@ -269,6 +346,7 @@ tc_to_num() {
 }
 
 @test "ledger show-subnet-types" {
+  install_nns
   install_asset cmc
 
   dfx deploy cmc
@@ -277,4 +355,11 @@ tc_to_num() {
 
   assert_command dfx ledger show-subnet-types --cycles-minting-canister-id "$CANISTER_ID"
   assert_eq '["type1", "type2"]'
+}
+
+@test "balance without ledger fails as expected" {
+  dfx_start
+
+  assert_command_fail dfx ledger balance
+  assert_contains "ICP Ledger with canister ID 'ryjl3-tyaaa-aaaaa-aaaba-cai' is not installed."
 }

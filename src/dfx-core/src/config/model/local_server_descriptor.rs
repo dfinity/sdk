@@ -18,6 +18,8 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use time::OffsetDateTime;
 
+use super::replica_config::CachedReplicaConfig;
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct NetworkMetadata {
     pub created: OffsetDateTime,
@@ -107,54 +109,6 @@ impl LocalServerDescriptor {
         pid_paths
     }
 
-    /// This file contains the pid of the ic-btc-adapter process
-    pub fn btc_adapter_pid_path(&self) -> PathBuf {
-        self.data_directory.join("ic-btc-adapter-pid")
-    }
-
-    /// This file contains the configuration for the ic-btc-adapter
-    pub fn btc_adapter_config_path(&self) -> PathBuf {
-        self.data_directory.join("ic-btc-adapter-config.json")
-    }
-
-    /// This file contains the PATH of the unix domain socket for the ic-btc-adapter
-    pub fn btc_adapter_socket_holder_path(&self) -> PathBuf {
-        self.data_directory.join("ic-btc-adapter-socket-path")
-    }
-
-    /// This file contains the configuration for the ic-https-outcalls-adapter
-    pub fn canister_http_adapter_config_path(&self) -> PathBuf {
-        self.data_directory.join("ic-canister-http-config.json")
-    }
-
-    /// This file contains the pid of the ic-https-outcalls-adapter process
-    pub fn canister_http_adapter_pid_path(&self) -> PathBuf {
-        self.data_directory.join("ic-https-outcalls-adapter-pid")
-    }
-
-    /// This file contains the PATH of the unix domain socket for the ic-https-outcalls-adapter
-    pub fn canister_http_adapter_socket_holder_path(&self) -> PathBuf {
-        self.data_directory.join("ic-canister-http-socket-path")
-    }
-
-    /// The replica configuration directory doesn't actually contain replica configuration.
-    /// It contains two files:
-    ///   - replica-1.port  contains the listening port of the running replica process
-    ///   - replica.pid     contains the pid of the running replica process
-    pub fn replica_configuration_dir(&self) -> PathBuf {
-        self.data_directory.join("replica-configuration")
-    }
-
-    /// This file contains the listening port of the replica
-    pub fn replica_port_path(&self) -> PathBuf {
-        self.replica_configuration_dir().join("replica-1.port")
-    }
-
-    /// This file contains the pid of the replica process
-    pub fn replica_pid_path(&self) -> PathBuf {
-        self.replica_configuration_dir().join("replica-pid")
-    }
-
     /// This file contains the configuration/API port of the pocket-ic replica process
     pub fn pocketic_port_path(&self) -> PathBuf {
         self.data_directory.join("pocket-ic-port")
@@ -163,16 +117,6 @@ impl LocalServerDescriptor {
     /// This file contains the pid of the pocket-ic replica process
     pub fn pocketic_pid_path(&self) -> PathBuf {
         self.data_directory.join("pocket-ic-pid")
-    }
-
-    /// This file contains the configuration port of the pocket-ic gateway process
-    pub fn pocketic_proxy_port_path(&self) -> PathBuf {
-        self.data_directory.join("pocket-ic-proxy-port")
-    }
-
-    /// This file contains the pid of the pocket-ic gateway process
-    pub fn pocketic_proxy_pid_path(&self) -> PathBuf {
-        self.data_directory.join("pocket-ic-proxy-pid")
     }
 
     /// Returns whether the local server is PocketIC (as opposed to the replica)
@@ -237,14 +181,6 @@ impl LocalServerDescriptor {
             bind_address,
             ..self
         }
-    }
-
-    pub fn with_replica_port(self, port: u16) -> Self {
-        let replica = ConfigDefaultsReplica {
-            port: Some(port),
-            ..self.replica
-        };
-        Self { replica, ..self }
     }
 
     pub fn with_bitcoin_enabled(self) -> LocalServerDescriptor {
@@ -359,33 +295,29 @@ impl LocalServerDescriptor {
         debug!(log, "");
     }
 
-    /// Gets the port of a local replica.
+    /// Gets the port of a local PocketIC instance.
     ///
     /// # Prerequisites
-    /// - A local replica or emulator needs to be running, e.g. with `dfx start`.
-    pub fn get_running_replica_port(
+    /// - A local PocketIC instance needs to be running, e.g. with `dfx start`.
+    pub fn get_running_pocketic_port(
         &self,
         logger: Option<&Logger>,
     ) -> Result<Option<u16>, NetworkConfigError> {
-        let replica_port_path = self.replica_port_path();
-        let pocketic_port_path = self.pocketic_port_path();
-        match read_port_from(&replica_port_path)? {
+        match read_port_from(&self.pocketic_port_path())? {
             Some(port) => {
                 if let Some(logger) = logger {
-                    info!(logger, "Found local replica running on port {}", port);
+                    info!(logger, "Found local PocketIC running on port {}", port);
                 }
                 Ok(Some(port))
             }
-            None => match read_port_from(&pocketic_port_path)? {
-                Some(port) => {
-                    if let Some(logger) = logger {
-                        info!(logger, "Found local PocketIC running on port {}", port);
-                    }
-                    Ok(Some(port))
-                }
-                None => Ok(self.replica.port),
-            },
+            None => Ok(None),
         }
+    }
+
+    pub fn is_pocketic(&self) -> Result<Option<bool>, StructuredFileError> {
+        Ok(self
+            .effective_config()?
+            .map(|cfg| matches!(cfg.config, CachedReplicaConfig::PocketIc { .. })))
     }
 }
 

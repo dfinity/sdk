@@ -15,6 +15,20 @@ teardown() {
   standard_teardown
 }
 
+@test "build custom canister succeeds even if input wasm is read-only" {
+  install_asset custom_canister
+  install_asset wasm/identity
+  chmod u-w main.wasm
+
+  dfx_start
+  dfx canister create --all
+  assert_command dfx build custom
+
+  jq '.canisters.custom.shrink=true' dfx.json | sponge dfx.json
+  jq '.canisters.custom.gzip=false' dfx.json | sponge dfx.json
+  assert_command dfx build custom
+}
+
 @test "can build a custom canister with wasm and/or candid from a url" {
   install_asset wasm/identity
   mkdir -p www/wasm
@@ -136,6 +150,8 @@ teardown() {
   dfx_start
   dfx canister create --all
   assert_command dfx build
+  assert_contains "Building canister 'e2e_project_backend'"
+  assert_contains "Finished building canisters."
 }
 
 @test "build succeeds if enable optimize" {

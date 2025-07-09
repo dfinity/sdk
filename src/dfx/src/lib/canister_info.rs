@@ -49,6 +49,7 @@ pub struct CanisterInfo {
     type_specific: CanisterTypeProperties,
 
     dependencies: Vec<String>,
+    pre_install: Vec<String>,
     post_install: Vec<String>,
     main: Option<PathBuf>,
     shrink: Option<bool>,
@@ -144,6 +145,7 @@ impl CanisterInfo {
                         package: _,
                         crate_name: _,
                         candid,
+                        skip_cargo_audit: _,
                     } => workspace_root.join(candid),
                     CanisterTypeProperties::Assets { .. } => output_root.join("assetstorage.did"),
                     CanisterTypeProperties::Custom {
@@ -171,6 +173,7 @@ impl CanisterInfo {
             _ => build_defaults.get_args(),
         };
 
+        let pre_install = canister_config.pre_install.clone().into_vec();
         let post_install = canister_config.post_install.clone().into_vec();
         let metadata = CanisterMetadataConfig::new(&canister_config.metadata, &network_name);
 
@@ -190,6 +193,7 @@ impl CanisterInfo {
             args,
             type_specific,
             dependencies,
+            pre_install,
             post_install,
             main: canister_config.main.clone(),
             shrink: canister_config.shrink,
@@ -260,6 +264,10 @@ impl CanisterInfo {
 
     pub fn get_packtool(&self) -> &Option<String> {
         &self.packtool
+    }
+
+    pub fn get_pre_install(&self) -> &[String] {
+        &self.pre_install
     }
 
     pub fn get_post_install(&self) -> &[String] {
@@ -351,6 +359,10 @@ impl CanisterInfo {
 
     pub fn is_rust(&self) -> bool {
         matches!(self.type_specific, CanisterTypeProperties::Rust { .. })
+    }
+
+    pub fn should_cargo_audit(&self) -> bool {
+        matches!(self.type_specific, CanisterTypeProperties::Rust { skip_cargo_audit, .. } if !skip_cargo_audit)
     }
 
     pub fn is_assets(&self) -> bool {

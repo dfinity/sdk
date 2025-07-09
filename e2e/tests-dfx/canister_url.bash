@@ -4,7 +4,9 @@ load ../utils/_
 
 setup() {
   standard_setup
-
+  # some of the tests run on mainnet with default plaintext identity
+  # so we need to set this to avoid the error
+  export DFX_WARNING=-mainnet_plaintext_identity
   dfx_new_assets hello
 }
 
@@ -31,15 +33,15 @@ teardown() {
 @test "url subcommand prints valid backend canister urls on local" {
   dfx_start
   dfx canister create --all
-  jq '.__Candid_UI.local="br5f7-7uaaa-aaaaa-qaaca-cai"' .dfx/local/canister_ids.json | sponge .dfx/local/canister_ids.json
+  jq '.__Candid_UI.local="erxue-5aaaa-aaaab-qaagq-cai"' .dfx/local/canister_ids.json | sponge .dfx/local/canister_ids.json
 
   backend_id=$(dfx canister id hello_backend)
   assert_command dfx canister url hello_backend
-  assert_match "canisterId=br5f7-7uaaa-aaaaa-qaaca-cai&id=${backend_id}"
+  assert_match "canisterId=erxue-5aaaa-aaaab-qaagq-cai&id=${backend_id}"
 
   backend_id=$(dfx canister id hello_backend)
   assert_command dfx canister url "$backend_id"
-  assert_match "canisterId=br5f7-7uaaa-aaaaa-qaaca-cai&id=${backend_id}"
+  assert_match "canisterId=erxue-5aaaa-aaaab-qaagq-cai&id=${backend_id}"
 }
 
 @test "url subcommand prints valid frontend canister urls from a subdirectory" {
@@ -58,7 +60,7 @@ teardown() {
   echo "{}" > canister_ids.json
   jq '.hello_frontend.ic = "qsgof-4qaaa-aaaan-qekqq-cai"' canister_ids.json | sponge canister_ids.json
   frontend_id=$(dfx canister id hello_frontend --ic)
-  
+
   assert_command dfx canister url hello_frontend --ic
   assert_match "https://${frontend_id}.icp0.io"
 

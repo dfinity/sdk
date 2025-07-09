@@ -13,7 +13,7 @@ use walkdir::WalkDir;
 mod prepare_assets;
 
 const INPUTS: &[&str] = &[
-    "nix/sources.json",
+    "src/dfx/assets/dfx-asset-sources.json",
     "src/dfx/assets/prepare_assets.rs",
     "src/dfx/assets/build.rs",
     "src/distributed/assetstorage.did",
@@ -64,6 +64,9 @@ struct Sources {
     x86_64_linux: HashMap<String, Source>,
     #[serde(rename = "x86_64-darwin")]
     x86_64_darwin: HashMap<String, Source>,
+    #[serde(rename = "arm64-darwin")]
+    aarch64_darwin: HashMap<String, Source>,
+    common: HashMap<String, Source>,
     #[serde(rename = "replica-rev")]
     replica_rev: String,
 }
@@ -94,14 +97,16 @@ fn find_assets(sources: Sources) -> PathBuf {
             }
         }
 
-        let source_set = match (
+        let mut source_set = match (
             &*env::var("CARGO_CFG_TARGET_ARCH").unwrap(),
             &*env::var("CARGO_CFG_TARGET_OS").unwrap(),
         ) {
-            ("x86_64" | "aarch64", "macos") => sources.x86_64_darwin, // rosetta
+            ("x86_64", "macos") => sources.x86_64_darwin, // rosetta
+            ("aarch64", "macos") => sources.aarch64_darwin, // aarch64
             ("x86_64", "linux" | "windows") => sources.x86_64_linux,
             (arch, os) => panic!("Unsupported OS type {arch}-{os}"),
         };
+        source_set.extend(sources.common);
         prepare_assets::prepare(&dfx_assets_path, source_set);
 
         fs::write(last_hash_of_inputs_path, hash_of_inputs)
@@ -345,11 +350,11 @@ fn define_replica_rev(replica_rev: &str) {
 }
 
 fn main() {
-    let sources: Sources = toml::from_str(
-        &fs::read_to_string("assets/dfx-asset-sources.toml")
-            .expect("unable to read dfx-asset-sources.toml"),
+    let sources: Sources = serde_json::from_str(
+        &fs::read_to_string("assets/dfx-asset-sources.json")
+            .expect("unable to read dfx-asset-sources.json"),
     )
-    .expect("unable to parse dfx-asset-sources.toml");
+    .expect("unable to parse dfx-asset-sources.json");
     define_replica_rev(&sources.replica_rev);
     add_assets(sources);
     define_dfx_version();

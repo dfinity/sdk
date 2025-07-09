@@ -4,9 +4,15 @@ set -ex
 
 export
 
-# Install Bats + moreutils.
-brew fetch --retry coreutils moreutils
+# Install Bats + moreutils + parallel
+brew fetch --retry coreutils moreutils parallel
 brew install coreutils moreutils
+# moreutils also has a command named parallel, so on homebrew you have to force it
+brew unlink moreutils
+brew install parallel
+brew unlink parallel
+brew link moreutils
+brew link parallel --overwrite
 
 # Install Bats.
 if [ "$(uname -r)" = "19.6.0" ]; then
@@ -24,8 +30,7 @@ if [ "$E2E_TEST" = "tests-dfx/build_rust.bash" ] && command -v cargo-audit &>/de
     cargo uninstall cargo-audit
 fi
 if [ "$E2E_TEST" = "tests-dfx/certificate.bash" ]; then
-     brew fetch --retry --cask mitmproxy
-     brew install --cask mitmproxy --no-quarantine
+     HOMEBREW_CURL_OPTS="--http1.1" brew install --cask mitmproxy --no-quarantine
 fi
 if [ "$E2E_TEST" = "tests-dfx/deps.bash" ]; then
      cargo install cargo-binstall@1.6.9 --locked

@@ -2,6 +2,501 @@
 
 # UNRELEASED
 
+# 0.28.0
+
+### fix: deps deploy works with Canister ID out of the ranges of the pocket-ic subnets
+
+The `dfx deps deploy` command didn't work when the pulled dependency's Canister ID is out of the ranges of the `pocket-ic` subnets.
+
+The removed `replica` had one subnet to cover all subnets. While the `pocket-ic` can dynamically create new subnet when trying to create a canister with specified ID.
+
+### chore: update bitcoin regtest configuration to be same as the bitcoin mainnet
+
+Update bitcoin `regtest` configuration to be same as the bitcoin `mainnet`.
+
+```
+fees = record {
+      get_current_fee_percentiles = 10_000_000 : nat;
+      get_utxos_maximum = 10_000_000_000 : nat;
+      get_block_headers_cycles_per_ten_instructions = 10 : nat;
+      get_current_fee_percentiles_maximum = 100_000_000 : nat;
+      send_transaction_per_byte = 20_000_000 : nat;
+      get_balance = 10_000_000 : nat;
+      get_utxos_cycles_per_ten_instructions = 10 : nat;
+      get_block_headers_base = 50_000_000 : nat;
+      get_utxos_base = 50_000_000 : nat;
+      get_balance_maximum = 100_000_000 : nat;
+      send_transaction_base = 5_000_000_000 : nat;
+      get_block_headers_maximum = 10_000_000_000 : nat;
+    };
+```
+
+You can get the fees by `get_config` API on the [BTC Mainnet Canister](https://dashboard.internetcomputer.org/canister/ghsi2-tqaaa-aaaan-aaaca-cai).
+
+### feat: `dfx start` now starts a single pocket-ic process to serve as the server and gateway
+
+If you were using the contents of the `pocket-ic-proxy-port` file to determine the port for
+the `/http_gateway` endpoint, you should instead use `dfx info pocketic-config-port`
+
+### feat: add dfx native support for aarch64-Darwin
+
+Add dfx native support for aarch64-Darwin.
+
+## Dependencies
+
+### Replica
+
+Updated replica to commit e915efecc8af90993ccfc499721ebe826aadba60.
+This incorporates the following executed proposals:
+
+- [137152](https://dashboard.internetcomputer.org/proposal/137152)
+- [137072](https://dashboard.internetcomputer.org/proposal/137072)
+- [136982](https://dashboard.internetcomputer.org/proposal/136982)
+- [136887](https://dashboard.internetcomputer.org/proposal/136887)
+- [136789](https://dashboard.internetcomputer.org/proposal/136789)
+- [136731](https://dashboard.internetcomputer.org/proposal/136731)
+- [136567](https://dashboard.internetcomputer.org/proposal/136567)
+
+### Motoko
+
+Updated Motoko to [0.14.13](https://github.com/dfinity/motoko/releases/tag/0.14.13)
+
+### Frontend canister
+
+Added missing fields to the asset canister .wasm: `SetAssetContentArguments.last_chunk : opt blob`, and `HttpResponse.upgrade: opt bool`
+
+- Module hash: 2f73b9e18b992f221a5fbab7fc59d840a9cbc461f7cfe875049f51354d23696c
+- https://github.com/dfinity/sdk/pull/4289
+- https://github.com/dfinity/sdk/pull/4285
+- https://github.com/dfinity/sdk/pull/4286
+
+# 0.27.0
+
+### feat!: remove the 'native' replica
+
+The native replica is no longer bundled with dfx; dfx only uses PocketIC for local networks. Accordingly `dfx start --replica` and `dfx info replica-port` now report an error. See the [migration guide](./docs/migration/dfx-0.27.0-migration-guide.md) for more information.
+
+### feat!: Add safeguard to very short freezing threshold
+
+Similar to very long freezing thresholds, setting a freezing threshold below 1 week now requires confirmation with `--confirm-very-short-freezing-threshold` so that unexpected canister uninstallation is less likely.
+
+### chore: removes the outdated `_language-service` command
+
+### feat: Support 'follow' mode for 'dfx canister logs'
+Support `follow` mode for `dfx canister logs`
+- `--follow` to fetch logs continuously until interrupted with `Ctrl+C`
+- `--interval` to specify the interval in seconds between log fetches
+
+### feat: Improve 'dfx canister logs' with several options
+
+Improve `dfx canister logs` with several options
+- `--tail <n>` to show the last `n` log entries
+- `--since` to show the logs newer than a relative duration
+- `--since-time` to show the logs newer than a specific timestamp
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.8](https://github.com/dfinity/motoko/releases/tag/0.14.8)
+
+### Bitcoin canister
+
+Upgraded Bitcoin canister to [release/2024-08-30](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2024-08-30)
+
+### Replica
+
+Updated replica to elected commit f195ba756bc3bf170a2888699e5e74101fdac6ba.
+This incorporates the following executed proposals:
+
+- [136436](https://dashboard.internetcomputer.org/proposal/136436)
+- [136366](https://dashboard.internetcomputer.org/proposal/136366)
+- [136310](https://dashboard.internetcomputer.org/proposal/136310)
+
+# 0.26.1
+
+### fix: clear state when switching from shared to project network
+
+dfx would try to reuse canister ids when switching from a shared network to a project network,
+which would cause errors since those canister ids wouldn't exist. dfx now deletes the .dfx
+directory if it was previously used with the shared local network.
+
+### feat: Set canister ids using `dfx canister set-id <canister name> <principal>`
+
+Added the counterpart to `dfx canister id <canister name>`. Networks can be targeted as usual using `--network <network name>` or the `--ic` shorthand for mainnet.
+
+### chore: use `account_balance` instead of the legacy `account_balance_dfx`
+
+Use the `account_balance` rather than the legacy `account_balance_dfx` on the ICP ledger.
+
+### feat: Extend `dfx ledger transfer` and `dfx ledger balance` to support ICRC-1 standard
+
+Extend `dfx ledger transfer` and `dfx ledger balance` to support [ICRC-1 standard](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-1).
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.8](https://github.com/dfinity/motoko/releases/tag/0.14.8)
+
+### Replica
+
+Updated replica to elected commit 579b8ba3a31341f354f4ddb3d60ac44548a91bc2.
+This incorporates the following executed proposals:
+
+- [136223](https://dashboard.internetcomputer.org/proposal/136223)
+- [136066](https://dashboard.internetcomputer.org/proposal/136066)
+- [136004](https://dashboard.internetcomputer.org/proposal/136004)
+- [135931](https://dashboard.internetcomputer.org/proposal/135931)
+
+# 0.26.0
+
+### feat!: `dfx start` uses `--pocketic` by default
+
+As [announced](https://forum.dfinity.org/t/dfx-replacing-the-local-replica-with-pocketic/40167) `dfx start` now runs PocketIC by default.
+Running a local replica is still possible with `--replica`, but this option will be removed in the near future.
+
+### feat: dfx will now report telemetry by default
+
+dfx will now record information about each dfx command executed, and periodically send
+this information to a DFINITY server, by default.
+
+For more information or to comment, please see https://forum.dfinity.org/t/dfx-telemetry-proposal-2025/41569.
+
+You can see what data dfx collects by inspecting the file at `dfx info telemetry-log-path`.
+
+You can disable this entirely with `dfx config telemetry off` or configure it to only collect
+locally with `dfx config telemetry local`.
+
+### feat: `dfx info telemetry-log-path`
+
+Displays the path of the telemetry log file.
+
+### fix: Warning and error messages now correctly suggest `dfx info security-policy` when suboptimal security policies get used
+
+### chore: updated the canister creation fee to 500B cycles
+
+Updated the canister creation fee to `500B` cycles as [documented](https://internetcomputer.org/docs/building-apps/essentials/gas-cost#cycles-price-breakdown).
+
+### chore: improve the `dfx build` output
+
+Improve the ouput of `dfx build` with the canister names that were built, example as below.
+
+```
+$ dfx build
+Building canister 'hello_backend'.
+Building canister 'hello_frontend'.
+Finished building canisters.
+```
+
+### feat: Add `dfx ledger approve` and `dfx ledger transfer-from` subcommands
+
+Implement `dfx ledger approve` and `dfx ledger transfer-from` subcommands that comply with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
+
+### feat: Add `dfx ledger allowance` subcommand
+
+Implement `dfx ledger allowance` subcommand that complies with the [ICRC-2](https://github.com/dfinity/ICRC-1/tree/main/standards/ICRC-2) standard.
+
+### feat: Enable VetKD for use with `--replica`
+
+- Add VetKD types and methods to management canister IDL
+- The VetKD test key id `Bls12_381_G2:dfx_test_key` is now enabled when starting `dfx` with `--replica`.
+
+### fix: dfx will no longer try to use a nonexistent wallet after changing backend settings without --clean
+
+After running `dfx start` with different options, dfx would try to use a wallet that was created
+on a previous run, which would fail. Now, dfx will create a new wallet if the settings have changed.
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.4](https://github.com/dfinity/motoko/releases/tag/0.14.4)
+
+### Replica
+
+Updated replica to elected commit f6f5e0927d14886e4bd67f776ee889f31cec2364.
+This incorporates the following executed proposals:
+
+- [135836](https://dashboard.internetcomputer.org/proposal/135836)
+- [135697](https://dashboard.internetcomputer.org/proposal/135697)
+- [135696](https://dashboard.internetcomputer.org/proposal/135696)
+- [135600](https://dashboard.internetcomputer.org/proposal/135600)
+- [135601](https://dashboard.internetcomputer.org/proposal/135601)
+
+# 0.25.1
+
+### feat: `skip_cargo_audit` flag in dfx.json to skip `cargo audit` build step
+
+### fix: `dfx canister install` and `dfx deploy` with `--no-asset-upgrade` no longer hang indefinitely when wasm is not up to date
+
+### fix: `dfx` downloads `.did` files for remote canisters
+
+### feat: streamlined output during asset synchronization
+
+### chore: hide `dfx wallet redeem-faucet-coupon`
+
+### docs: fixed description of `dfx cycles balance`
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.2](https://github.com/dfinity/motoko/releases/tag/0.14.2)
+
+### Frontend canister
+
+- Module hash: 865eb25df5a6d857147e078bb33c727797957247f7af2635846d65c5397b36a6
+- https://github.com/dfinity/sdk/pull/4095
+
+### Replica
+
+Updated replica to non-elected commit ebb190bf1da0dba3e486b78c95cf5a3c5542e2f3.
+
+This includes X_OC_JWT and X_OC_API_KEY cors headers in PocketIC HTTP gateway (see https://github.com/dfinity/ic/pull/4154).
+
+This also incorporates the following executed proposals up to commit 2f02a660f6f17b5a78c13d9b372f74c8228f79b8:
+
+- [135422](https://dashboard.internetcomputer.org/proposal/135422)
+- [135421](https://dashboard.internetcomputer.org/proposal/135421)
+- [135302](https://dashboard.internetcomputer.org/proposal/135302)
+- [135301](https://dashboard.internetcomputer.org/proposal/135301)
+- [135204](https://dashboard.internetcomputer.org/proposal/135204)
+- [135203](https://dashboard.internetcomputer.org/proposal/135203)
+- [135052](https://dashboard.internetcomputer.org/proposal/135052)
+- [135051](https://dashboard.internetcomputer.org/proposal/135051)
+
+# 0.25.0
+
+### fix: `dfx canister install` and `dfx deploy` with `--no-asset-upgrade` no longer hang indefinitely when wasm is not up to date
+
+### fix: `dfx` downloads `.did` files for remote canisters
+
+### feat: streamlined output during asset synchronization
+
+### fix: correctly detects hyphenated Rust bin crates
+
+### fix: removes unnecessary tsc step in sveltekit build script
+
+### feat!: `dfx info pocketic-config-port`
+
+Due to the incompatibility between the APIs on the replica port and the PocketIC port, `dfx info replica-port`
+no longer works with PocketIC, and the PocketIC port is provided by a new command, `dfx info pocketic-config-port`.
+
+### feat: streamlined `dfx new` output
+
+### test: adds playwright tests for `dfx new` project frontends
+
+The first of a suite of baseline tests to automate testing starter projects. Makes sure that sveltekit, react, vue, and vanilla frontends are compatible with other dfx or asset canister changes.
+
+### fix: template frontends now have unsupported browser warnings
+
+DFX's default security headers cause Safari to break when viewing local canisters. Warning messages
+have been added to the frontend project templates when the page is broken that indicate to try switching
+browsers.
+
+### feat: impersonating sender of requests to a local PocketIC instance
+
+`dfx canister call`, `dfx canister status`, and `dfx canister update-settings` take
+an additional CLI argument `--impersonate` to specify a principal
+on behalf of which requests to a local PocketIC instance are sent.
+
+### feat: `dfx canister [create|update-settings] --wasm-memory-threshold`
+
+This adds support for the WASM memory threshold, used in conjunction with `--wasm-memory-limit`.
+When the remaining memory until the limit falls below the threshold, the canister's
+`on_low_wasm_memory` handler is run.
+
+### fix: `dfx deploy --by-proposal` no longer sends chunk data in ProposeCommitBatch
+
+Recently we made `dfx deploy` include some chunk data in CommitBatch, in order to streamline
+deploys for smaller projects. `dfx deploy` splits up larger change lists and submits them in
+smaller batches, in order to remain within message and compute limits.
+
+This change also applied to `dfx deploy --by-proposal`, which submits all changes in a single
+message. This made it more likely that `dfx deploy --by-proposal` will fail due to exceeding
+message limits.
+
+This fix makes it so `dfx deploy --by-proposal` never includes this chunk data in
+ProposeCommitBatch, which will allow for more changes before hitting message limits.
+
+### feat: `dfx start --pocketic` supports `--force` and shared networks.
+
+`dfx start --pocketic` is now compatible with `--force` and shared networks.
+
+### feat: error when using insecure identity on mainnet
+
+This used to be a warning. A hard error can abort the command so that no insecure state will be on the mainnet.
+
+Users can suppress this error by setting `export DFX_WARNING=-mainnet_plaintext_identity`.
+
+The warning won't display when executing commands like `dfx deploy --playground`.
+
+### feat: support `--replica` in `dfx start`
+
+Added a flag `--replica` to `dfx start`. This flag currently has no effect.
+Once PocketIC becomes the default for `dfx start` this flag will start the replica instead.
+You can use the `--replica` flag already to write scripts that anticipate that change.
+
+### feat: extensions can define project templates
+
+An extension can define one or more project templates for `dfx new` to use.
+These can be new templates or replace the built-in project templates.
+
+### fix: all commands with --all parameter skip remote canisters
+
+This affects the following commands:
+- `dfx canister delete`
+- `dfx canister deposit-cycles`
+- `dfx canister start`
+- `dfx canister status`
+- `dfx canister stop`
+- `dfx canister uninstall-code`
+- `dfx canister update-settings`
+- `dfx ledger fabricate-cycles`
+
+### fix: `dfx` can deploy canisters to playground networks that have Motoko EOP enabled
+
+Canisters with Motoko's Enhanced Orthogonal Persistence feature require `wasm_memory_persistence = Keep` when they get installed.
+Previously, when `dfx` attempted to install canisters with EOP enabled to a playground it didn't set `wasm_memory_persistence` properly.
+
+### fix: custom canisters with a read-only wasm no longer fail to build with a permissions error
+
+### chore: improve `dfx deploy` messages.
+
+If users run `dfx deploy` without enough cycles, show additional messages to indicate what to do next.
+```
+Error explanation:
+Insufficient cycles balance to create the canister.
+How to resolve the error:
+Please top up your cycles balance by converting ICP to cycles like below:
+'dfx cycles convert --amount=0.123'.
+```
+
+If users run `dfx deploy --playground` but the backend is not updated with the latest frontend canister wasm
+the error message will explain this properly and recommends asking for help on the forum since this can't be resolved by users.
+
+### chore: improve `dfx cycles convert` messages.
+
+If users run `dfx cycles convert` without enough ICP tokens, show additional messages to indicate what to do next.
+```
+Error explanation:
+Insufficient ICP balance to finish the transfer transaction.
+How to resolve the error:
+Please top up your ICP balance.
+
+Your account address for receiving ICP from centralized exchanges: 8494c01329531c06254ff45dad87db806ae6ed935ad6a504cdbc00a935db7b49
+(run `dfx ledger account-id` to display)
+
+Your principal for ICP wallets and decentralized exchanges: ueuar-wxbnk-bdcsr-dnrh3-rsyq6-ffned-h64ox-vxywi-gzawf-ot4pv-sqe
+(run `dfx identity get-principal` to display)
+```
+
+### feat: Add pre-install tasks
+
+Add pre-install tasks, which can be defined by the new `pre-install` key for canister objects in `dfx.json` with a command or list of commands.
+
+### chore: Warn when the 'canister_ids.json' file is first generated for persistent networks.
+
+Warn when the 'canister_ids.json' file is first generated for persistent networks.
+
+```
+dfx deploy --network ic
+...
+test_backend canister created on network ic with canister id: j36qm-pqaaa-aaaan-qzqya-cai
+WARN: The "/home/sdk/repos/test/canister_ids.json" file has been generated. Please make sure you store it correctly, e.g., submitting it to a GitHub repository.
+Building canisters...
+...
+```
+
+### chore: Provides units for all fields of canister status.
+
+Provides units for all fields of canister status.
+
+```
+$ dfx canister status pxmfj-jaaaa-aaaan-qmmbq-cai --ic
+Canister status call result for pxmfj-jaaaa-aaaan-qmmbq-cai.
+Status: Running
+Controllers: uom2z-lqsqq-qbn4p-nts4l-2xjfl-oeivu-oso42-4t4jh-54ikd-ewnvi-tqe yjac5-2yaaa-aaaan-qaqka-cai
+Memory allocation: 0 Bytes
+Compute allocation: 0 %
+Freezing threshold: 2_592_000 Seconds
+Idle cycles burned per day: 20_548_135 Cycles
+Memory Size: 2_010_735 Bytes
+Balance: 2_985_407_678_380 Cycles
+Reserved: 0 Cycles
+Reserved cycles limit: 5_000_000_000_000 Cycles
+Wasm memory limit: 3_221_225_472 Bytes
+Wasm memory threshold: 0 Bytes
+Module hash: 0x4f13cceb571483ac99a9f89afc05718c0a4ab72e9fac7d49054c0a3e05c4899b
+Number of queries: 0
+Instructions spent in queries: 0
+Total query request payload size: 0 Bytes
+Total query response payload size: 0 Bytes
+Log visibility: controllers
+```
+
+### feat!: Print error traces only in verbose (`-v`) mode or if no proper error message is available
+
+### chore: Add Schnorr types and methods to management canister IDL
+
+## Dependencies
+
+### Frontend canister
+
+### fix: 'unreachable' error when trying to upgrade an asset canister with over 1GB data
+
+The asset canister now estimates the size of the data to be serialized to stable memory,
+and reserves that much space for the ValueSerializer's buffer.
+
+- Module hash: 865eb25df5a6d857147e078bb33c727797957247f7af2635846d65c5397b36a6
+- https://github.com/dfinity/sdk/pull/4095
+- https://github.com/dfinity/sdk/pull/4036
+
+### Motoko
+
+Updated Motoko to [0.13.7](https://github.com/dfinity/motoko/releases/tag/0.13.7)
+
+### Replica
+
+Updated replica to elected commit 4ba583480e05a518aa2bcf36f5a0e48475e8edc2.
+This incorporates the following executed proposals:
+
+- [134967](https://dashboard.internetcomputer.org/proposal/134967)
+- [134966](https://dashboard.internetcomputer.org/proposal/134966)
+- [134900](https://dashboard.internetcomputer.org/proposal/134900)
+- [134773](https://dashboard.internetcomputer.org/proposal/134773)
+- [134684](https://dashboard.internetcomputer.org/proposal/134684)
+- [134663](https://dashboard.internetcomputer.org/proposal/134663)
+- [134608](https://dashboard.internetcomputer.org/proposal/134608)
+- [134609](https://dashboard.internetcomputer.org/proposal/134609)
+- [134497](https://dashboard.internetcomputer.org/proposal/134497)
+- [134408](https://dashboard.internetcomputer.org/proposal/134408)
+- [134337](https://dashboard.internetcomputer.org/proposal/134337)
+- [134336](https://dashboard.internetcomputer.org/proposal/134336)
+- [134259](https://dashboard.internetcomputer.org/proposal/134259)
+- [134251](https://dashboard.internetcomputer.org/proposal/134251)
+- [134250](https://dashboard.internetcomputer.org/proposal/134250)
+- [134188](https://dashboard.internetcomputer.org/proposal/134188)
+- [134187](https://dashboard.internetcomputer.org/proposal/134187)
+- [134186](https://dashboard.internetcomputer.org/proposal/134186)
+- [134185](https://dashboard.internetcomputer.org/proposal/134185)
+
+# 0.24.3
+
+### feat: Bitcoin support in PocketIC
+
+`dfx start --pocketic` is now compatible with `--bitcoin-node` and `--enable-bitcoin`.
+
+### feat: facade pull ICP, ckBTC, ckETH ledger canisters
+
+The ledger canisters can be pulled even though they are not really "pullable".
+The metadata like wasm_url and init_guide are hardcoded inside `dfx deps pull` logic.
+
+- ICP ledger: `ryjl3-tyaaa-aaaaa-aaaba-cai`
+- ckBTC ledger: `mxzaz-hqaaa-aaaar-qaada-cai`
+- ckETH ledger: `ss2fx-dyaaa-aaaar-qacoq-cai`
+
 ### chore: update agent version in frontend templates, and include `resolve.dedupe` in Vite config
 
 ### chore: improve error message when trying to use the local replica when it is not running
@@ -18,13 +513,72 @@ Allow setting permissions lists in init arguments just like in upgrade arguments
 - Module hash: f45db224b40fac516c877e3108dc809d4b22fa42d05ee8dfa5002536a3a3daed
 - Bump agent-js to fix error code
 
+### chore!: improve the messages for the subcommands of `dfx cycles` and `dfx ledger`.
+
+If users run subcommands of `dfx cycles` or `dfx ledger` without the `--ic` flag, show below messages to indicate what to do next.
+```
+Error explanation:
+Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' is not installed.
+How to resolve the error:
+Run the command with '--ic' flag if you want to manage the cycles on the mainnet.
+```
+
+### chore: improve `dfx start` messages.
+
+For `dfx start`, show below messages to users to indicate what to do next.
+```
+Success! The dfx server is running.
+You must open a new terminal to continue developing. If you'd prefer to stop, quit with 'Ctrl-C'.
+```
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.13.4](https://github.com/dfinity/motoko/releases/tag/0.13.4)
+
+### Replica
+
+Updated replica to elected commit a62848817cec7ae50618a87a526c85d020283fd9.
+This incorporates the following executed proposals:
+
+- [134036](https://dashboard.internetcomputer.org/proposal/134036)
+- [134035](https://dashboard.internetcomputer.org/proposal/134035)
+- [134034](https://dashboard.internetcomputer.org/proposal/134034)
+- [134032](https://dashboard.internetcomputer.org/proposal/134032)
+- [133939](https://dashboard.internetcomputer.org/proposal/133939)
+- [133953](https://dashboard.internetcomputer.org/proposal/133953)
+- [133952](https://dashboard.internetcomputer.org/proposal/133952)
+- [133951](https://dashboard.internetcomputer.org/proposal/133951)
+- [133950](https://dashboard.internetcomputer.org/proposal/133950)
+- [133902](https://dashboard.internetcomputer.org/proposal/133902)
+- [133901](https://dashboard.internetcomputer.org/proposal/133901)
+- [133900](https://dashboard.internetcomputer.org/proposal/133900)
+- [133798](https://dashboard.internetcomputer.org/proposal/133798)
+- [133799](https://dashboard.internetcomputer.org/proposal/133799)
+- [133800](https://dashboard.internetcomputer.org/proposal/133800)
+- [133457](https://dashboard.internetcomputer.org/proposal/133457)
+- [133450](https://dashboard.internetcomputer.org/proposal/133450)
+- [133443](https://dashboard.internetcomputer.org/proposal/133443)
+- [133397](https://dashboard.internetcomputer.org/proposal/133397)
+- [133396](https://dashboard.internetcomputer.org/proposal/133396)
+
 # 0.24.2
+
+### feat: all commands will use the DFX_NETWORK from the environment
+
+If `DFX_NETWORK` is set in the environment, all commands will use that network by default.
+The `--network` parameter will take precedence if provided.
+
+### fix: dfx generate now honors the --network parameter
+This fixes an issue where `dfx deploy --playground` would fail if the project
+had not been previously built for the local network.
 
 ### feat: Support canister log allowed viewer list
 
 Added support for the canister log allowed viewer list, enabling specified users to access a canister's logs without needing to be set as the canister's controller.
 Valid settings are:
-- `--add-log-viewer`, `--remove-log-viewer` and `--set-log-viewer` flags with `dfx canister update-settings` 
+- `--add-log-viewer`, `--remove-log-viewer` and `--set-log-viewer` flags with `dfx canister update-settings`
 - `--log-viewer` flag with `dfx canister create`
 - `canisters[].initialization_values.log_visibility.allowed_viewers` in `dfx.json`
 
@@ -120,7 +674,7 @@ Module hash 15da2adc4426b8037c9e716b81cb6a8cf1a835ac37589be2cef8cb3f4a04adaa
 
 `dfx deploy --mode` now takes the same possible values as `dfx canister install --mode`: "install", "reinstall", "upgrade" and "auto".
 
-In "auto" mode, the upgrade options are hints which only take effects when the actual install mode is "upgrade". 
+In "auto" mode, the upgrade options are hints which only take effects when the actual install mode is "upgrade".
 
 To maintain backward compatibility, a minor difference between the two commands remains.
 If the `--mode` is not set, `dfx deploy` defaults to "auto", while `dfx canister install` defaults to "install".

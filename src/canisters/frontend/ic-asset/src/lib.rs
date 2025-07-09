@@ -20,7 +20,7 @@
 //!     .with_agent(&agent)
 //!     .build()?;
 //! let logger = slog::Logger::root(slog::Discard, slog::o!());
-//! ic_asset::sync(&canister, &[concat!(env!("CARGO_MANIFEST_DIR"), "assets/").as_ref()], false, &logger).await?;
+//! ic_asset::sync(&canister, &[concat!(env!("CARGO_MANIFEST_DIR"), "assets/").as_ref()], false, &logger, None).await?;
 //! # Ok(())
 //! # }
 
@@ -36,11 +36,13 @@ mod batch_upload;
 mod canister_api;
 pub mod error;
 mod evidence;
+mod progress;
 pub mod security_policy;
 mod sync;
 mod upload;
 
 pub use evidence::compute_evidence;
+pub use progress::{AssetSyncProgressRenderer, AssetSyncState};
 pub use sync::prepare_sync_for_proposal;
 pub use sync::sync;
 pub use upload::upload;

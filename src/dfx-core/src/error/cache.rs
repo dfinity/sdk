@@ -5,6 +5,7 @@ use crate::error::fs::{
 };
 use crate::error::get_current_exe::GetCurrentExeError;
 use crate::error::get_user_home::GetUserHomeError;
+use std::path::PathBuf;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -32,6 +33,18 @@ pub enum EnsureCacheVersionsDirError {
 
     #[error(transparent)]
     GetCacheRoot(#[from] GetCacheRootError),
+}
+
+#[derive(Error, Debug)]
+pub enum GetVersionFromCachePathError {
+    #[error("no filename in cache path '{0}'")]
+    NoCachePathFilename(PathBuf),
+
+    #[error("filename in cache path '{0}' is not valid UTF-8")]
+    CachePathFilenameNotUtf8(PathBuf),
+
+    #[error("cannot parse version from cache path filename")]
+    ParseVersion(#[from] semver::Error),
 }
 
 #[derive(Error, Debug)]

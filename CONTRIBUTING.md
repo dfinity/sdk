@@ -59,19 +59,12 @@ If there is already an entry in the 'Unreleased' section, change it; if not, add
 
 #### Running End-to-End Tests
 
-``` bash
-sdk $ bats e2e/tests-dfx/*.bash
-sdk $ bats e2e/tests-replica/*.bash
-```
-
-#### Running End-to-End Tests Against Reference IC
-
 This runs the end-to-end tests against the
 [PocketIC emulator](https://github.com/dfinity/pocketic).
 
 ``` bash
-sdk $ USE_POCKETIC=1 bats e2e/tests-dfx/*.bash
-sdk $ USE_POCKETIC=1 bats e2e/tests-replica/*.bash
+sdk $ bats e2e/tests-dfx/*.bash
+sdk $ bats e2e/tests-replica/*.bash
 ```
 
 ## Conventional Commits
@@ -110,7 +103,6 @@ What that means is your PR title should start with one of the following prefix:
 #### Locally
 To update the replica to a given $SHA from the dfinity repo, execute the following:
 ``` bash
-# Requires niv to run. To install niv, run nix-env -iA nixpkgs.niv
 ./scripts/update-replica.sh $SHA
 ```
 
@@ -121,7 +113,6 @@ To update Motoko to a given $VERSION from the motoko and motoko-base repos, run 
 
 You can also execute the following locally:
 ``` bash
-# Requires niv to run. To install niv, run nix-env -iA nixpkgs.niv
 ./scripts/update-motoko.sh $VERSION
 ```
 

@@ -1,8 +1,11 @@
+use crate::config::model::project_template::ProjectTemplateCategory;
+use crate::config::project_templates::{ProjectTemplate, ProjectTemplateName, ResourceLocation};
 use crate::error::extension::{
     ConvertExtensionSubcommandIntoClapArgError, ConvertExtensionSubcommandIntoClapCommandError,
     LoadExtensionManifestError,
 };
-use crate::json::structure::{VersionReqWithJsonSchema, VersionWithJsonSchema};
+use crate::extension::manager::ExtensionManager;
+use crate::json::structure::{SerdeVec, VersionReqWithJsonSchema, VersionWithJsonSchema};
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
@@ -19,6 +22,15 @@ const DEFAULT_DOWNLOAD_URL_TEMPLATE: &str =
 type SubcmdName = String;
 type ArgName = String;
 
+fn should_skip_serializing_project_templates(
+    project_templates: &Option<HashMap<String, ExtensionProjectTemplate>>,
+) -> bool {
+    project_templates
+        .as_ref()
+        .map(HashMap::is_empty)
+        .unwrap_or(true)
+}
+
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ExtensionManifest {
@@ -33,6 +45,12 @@ pub struct ExtensionManifest {
     pub subcommands: Option<ExtensionSubcommandsOpts>,
     pub dependencies: Option<HashMap<String, ExtensionDependency>>,
     pub canister_type: Option<ExtensionCanisterType>,
+
+    #[serde(
+        default,
+        skip_serializing_if = "should_skip_serializing_project_templates"
+    )]
+    pub project_templates: Option<HashMap<String, ExtensionProjectTemplate>>,
 
     /// Components of the download url template are:
     /// - `{{tag}}`: the tag of the extension release, which will follow the form "<extension name>-v<extension version>"
@@ -54,6 +72,28 @@ fn default_download_url_template() -> Option<String> {
 pub enum ExtensionDependency {
     /// A SemVer version requirement, for example ">=0.17.0".
     Version(VersionReqWithJsonSchema),
+}
+
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub struct ExtensionProjectTemplate {
+    /// The name used for display and sorting
+    pub display: String,
+
+    /// Used to determine which CLI group (`--type`, `--backend`, `--frontend`)
+    /// as well as for interactive selection
+    pub category: ProjectTemplateCategory,
+
+    /// Other project templates to patch in alongside this one
+    pub requirements: Vec<String>,
+
+    /// Run a command after adding the canister to dfx.json
+    pub post_create: SerdeVec<String>,
+
+    /// If set, display a spinner while this command runs
+    pub post_create_spinner_message: Option<String>,
+
+    /// If the post-create command fails, display this warning but don't fail
+    pub post_create_failure_warning: Option<String>,
 }
 
 impl ExtensionManifest {
@@ -91,6 +131,59 @@ impl ExtensionManifest {
         } else {
             Ok(vec![])
         }
+    }
+
+    pub fn project_templates(
+        &self,
+        em: &ExtensionManager,
+        builtin_templates: &[ProjectTemplate],
+    ) -> Vec<ProjectTemplate> {
+        let Some(project_templates) = self.project_templates.as_ref() else {
+            return vec![];
+        };
+
+        let extension_dir = em.get_extension_directory(&self.name);
+
+        // the default sort order is after everything built-in
+        let default_sort_order = builtin_templates
+            .iter()
+            .map(|t| t.sort_order)
+            .max()
+            .unwrap_or(0)
+            + 1;
+
+        project_templates
+            .iter()
+            .map(|(name, template)| {
+                let resource_dir = extension_dir.join("project_templates").join(name);
+                let resource_location = ResourceLocation::Directory { path: resource_dir };
+
+                // keep the sort order as a built-in template of the same name,
+                // otherwise put it after everything else
+                let sort_order = builtin_templates
+                    .iter()
+                    .find(|t| t.name == ProjectTemplateName(name.clone()))
+                    .map(|t| t.sort_order)
+                    .unwrap_or(default_sort_order);
+
+                let requirements = template
+                    .requirements
+                    .iter()
+                    .map(|r| ProjectTemplateName(r.clone()))
+                    .collect();
+                ProjectTemplate {
+                    name: ProjectTemplateName(name.clone()),
+                    display: template.display.clone(),
+                    resource_location,
+                    category: template.category.clone(),
+                    requirements,
+                    post_create: template.post_create.clone().into_vec(),
+                    post_create_spinner_message: template.post_create_spinner_message.clone(),
+                    post_create_failure_warning: template.post_create_failure_warning.clone(),
+                    sort_order,
+                }
+            })
+            .collect()
     }
 }
 
@@ -509,5 +602,53 @@ mod tests {
         assert_eq!(serialized, "\"1..3\"");
         assert_eq!(deserialized, ArgNumberOfValues::Range(1_usize..4_usize));
         assert_eq!(original, deserialized);
+    }
+
+    #[test]
+    fn tolerant_to_no_project_templates() {
+        let f = r#"
+          {
+            "name": "sns",
+            "version": "0.4.7",
+            "homepage": "https://github.com/dfinity/dfx-extensions",
+            "authors": "DFINITY",
+            "summary": "Initialize, deploy and interact with an SNS",
+            "categories": [
+              "sns",
+              "nns"
+            ],
+            "keywords": [
+              "sns",
+              "nns",
+              "deployment"
+            ],
+            "description": null,
+            "subcommands": {
+              "add-sns-wasm-for-tests": {
+                "about": "Add a wasms for one of the SNS canisters, skipping the NNS proposal, for tests",
+                "args": {
+                  "canister_type": {
+                    "about": "The type of the canister that the wasm is for. Must be one of \"archive\", \"root\", \"governance\", \"ledger\", \"swap\", \"index\"",
+                    "long": null,
+                    "short": null,
+                    "multiple": false,
+                    "values": 1
+                  }
+                },
+                "subcommands": null
+              }
+            },
+            "dependencies": {
+              "dfx": ">=0.17.0"
+            },
+            "canister_type": null,
+            "download_url_template": "https://github.com/dfinity/dfx-extensions/releases/download/{{tag}}/{{basename}}.{{archive-format}}"
+          }"#;
+        let manifest: ExtensionManifest = serde_json::from_str(f).unwrap();
+        assert!(manifest.project_templates.is_none());
+
+        // now let's serialize it and check that "project_templates" is not present in the output
+        let serialized = serde_json::to_string(&manifest).unwrap();
+        assert!(!serialized.contains("project_templates"));
     }
 }

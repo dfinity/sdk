@@ -57,7 +57,7 @@ pub async fn exec(
         let request_id = request_id
             .parse::<RequestId>()
             .context("Failed to decode request ID.")?;
-        let response = agent
+        let (response, _cert) = agent
             .request_status_signed(&request_id, canister_id, envelope)
             .await
             .with_context(|| format!("Failed to read canister state of {}.", canister_id))?;

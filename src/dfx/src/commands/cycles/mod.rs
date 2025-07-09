@@ -2,6 +2,7 @@ use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_opt::NetworkOpt;
+use crate::lib::telemetry::{CyclesHost, Telemetry};
 use clap::Parser;
 use tokio::runtime::Runtime;
 
@@ -34,6 +35,7 @@ enum SubCommand {
 }
 
 pub fn exec(env: &dyn Environment, opts: CyclesOpts) -> DfxResult {
+    Telemetry::set_cycles_host(CyclesHost::CyclesLedger);
     let agent_env = create_agent_environment(env, opts.network.to_network_name())?;
     let runtime = Runtime::new().expect("Unable to create a runtime");
     runtime.block_on(async {

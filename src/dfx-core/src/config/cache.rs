@@ -1,28 +1,14 @@
 #[cfg(windows)]
 use crate::config::directories::project_dirs;
 use crate::error::cache::{
-    DeleteCacheError, EnsureCacheVersionsDirError, GetBinaryCommandPathError, GetCacheRootError,
+    DeleteCacheError, EnsureCacheVersionsDirError, GetCacheRootError, GetVersionFromCachePathError,
     IsCacheInstalledError, ListCacheVersionsError,
 };
 #[cfg(not(windows))]
 use crate::foundation::get_user_home;
 use crate::fs::composite::ensure_dir_exists;
 use semver::Version;
-use std::path::PathBuf;
-
-pub trait Cache {
-    fn version_str(&self) -> String;
-    fn is_installed(&self) -> Result<bool, IsCacheInstalledError>;
-    fn delete(&self) -> Result<(), DeleteCacheError>;
-    fn get_binary_command_path(
-        &self,
-        binary_name: &str,
-    ) -> Result<PathBuf, GetBinaryCommandPathError>;
-    fn get_binary_command(
-        &self,
-        binary_name: &str,
-    ) -> Result<std::process::Command, GetBinaryCommandPathError>;
-}
+use std::path::{Path, PathBuf};
 
 pub fn get_cache_root() -> Result<PathBuf, GetCacheRootError> {
     let cache_root = std::env::var_os("DFX_CACHE_ROOT");
@@ -48,6 +34,21 @@ pub fn get_cache_root() -> Result<PathBuf, GetCacheRootError> {
 pub fn get_cache_path_for_version(v: &str) -> Result<PathBuf, GetCacheRootError> {
     let p = get_cache_root()?.join("versions").join(v);
     Ok(p)
+}
+
+pub fn get_version_from_cache_path(
+    cache_path: &Path,
+) -> Result<Version, GetVersionFromCachePathError> {
+    let version = cache_path
+        .file_name()
+        .ok_or(GetVersionFromCachePathError::NoCachePathFilename(
+            cache_path.to_path_buf(),
+        ))?
+        .to_str()
+        .ok_or(GetVersionFromCachePathError::CachePathFilenameNotUtf8(
+            cache_path.to_path_buf(),
+        ))?;
+    Ok(Version::parse(version)?)
 }
 
 /// Return the binary cache root. It constructs it if not present

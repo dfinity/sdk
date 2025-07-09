@@ -187,6 +187,35 @@ check_permission_failure() {
   assert_contains "cache-control: max-age=888"
 }
 
+@test "deploy --by-proposal lots of small assets should not overflow message limits" {
+  assert_command dfx identity new controller --storage-mode plaintext
+  assert_command dfx identity new prepare --storage-mode plaintext
+  assert_command dfx identity new commit --storage-mode plaintext
+  assert_command dfx identity use anonymous
+
+  CONTROLLER_PRINCIPAL=$(dfx identity get-principal --identity controller)
+  PREPARE_PRINCIPAL=$(dfx identity get-principal --identity prepare)
+  COMMIT_PRINCIPAL=$(dfx identity get-principal --identity commit)
+
+  dfx_start
+  assert_command dfx deploy --identity controller
+
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$PREPARE_PRINCIPAL\"; permission = variant { Prepare }; })" --identity controller
+  assert_command dfx canister call e2e_project_frontend grant_permission "(record { to_principal=principal \"$COMMIT_PRINCIPAL\"; permission = variant { Commit }; })" --identity controller
+
+  for a in $(seq 1 1400); do
+    # 1400 files * ~1200 header bytes: 1,680,000 bytes
+    # 1400 files * 650 content bytes = 910,000 bytes: small enough that chunk uploader won't upload before finalize
+    # commit batch without content: 1,978,870 bytes
+    # commit batch with content: 2,889,392 bytes
+    # change finalize_upload to always pass MAX_CHUNK_SIZE/2 to see this fail
+    dd if=/dev/random of=src/e2e_project_frontend/assets/"$a" bs=650 count=1
+  done
+
+  assert_command dfx deploy e2e_project_frontend --by-proposal --identity prepare
+  assert_match "Proposed commit of batch 2 with evidence [0-9a-z]*.  Either commit it by proposal, or delete it."
+}
+
 @test "deploy --by-proposal all assets" {
   assert_command dfx identity new controller --storage-mode plaintext
   assert_command dfx identity new prepare --storage-mode plaintext
@@ -697,8 +726,6 @@ check_permission_failure() {
 }
 
 @test "can serve filenames with special characters in filename" {
-  # This is observed, not expected behavior
-  # see https://dfinity.atlassian.net/browse/SDK-1247
   install_asset assetscanister
 
   dfx_start
@@ -706,19 +733,21 @@ check_permission_failure() {
   echo "filename is an ae symbol" >'src/e2e_project_frontend/assets/æ'
 
   dfx deploy
-
-  dfx canister  call --query e2e_project_frontend list '(record {})'
-
-  # decode as expected
-  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%c3%a6";headers=vec{};method="GET";body=vec{}})'
-  assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
-
   ID=$(dfx canister id e2e_project_frontend)
   PORT=$(get_webserver_port)
 
+  dfx canister  call --query e2e_project_frontend list '(record {})'
+
+  # decode as expected - %c3%a6 is the utf-8 encoding of the ae symbol
+  assert_command dfx canister call --query e2e_project_frontend http_request '(record{url="/%c3%a6";headers=vec{};method="GET";body=vec{}})'
+  assert_match "filename is an ae symbol" # candid looks like blob "filename is \c3\a6\0a"
+
+  assert_command curl --fail -vv http://localhost:"$PORT"/%c3%a6?canisterId="$ID"
+  assert_match "filename is an ae symbol"
+
   # fails with because %e6 is not valid utf-8 percent encoding
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
-  assert_contains "500 Internal Server Error"
+  assert_contains "503 Service Unavailable"
 }
 
 @test "http_request percent-decodes urls" {
@@ -788,7 +817,7 @@ check_permission_failure() {
 
   assert_command_fail curl --fail -vv http://localhost:"$PORT"/%e6?canisterId="$ID"
   # fails because %e6 is not valid utf-8 percent encoding
-  assert_contains "500 Internal Server Error"
+  assert_contains "503 Service Unavailable"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/%25?canisterId="$ID"
   assert_match "200 OK" "$stderr"
@@ -876,14 +905,14 @@ check_permission_failure() {
   dd if=/dev/urandom of=src/e2e_project_frontend/assets/asset2.bin bs=400000 count=1
 
   dfx_start
-  assert_command dfx deploy
+  assert_command dfx deploy -v
 
   assert_match '/asset1.bin 1/1'
   assert_match '/asset2.bin 1/1'
 
   dd if=/dev/urandom of=src/e2e_project_frontend/assets/asset2.bin bs=400000 count=1
 
-  assert_command dfx deploy
+  assert_command dfx deploy -v
   assert_match '/asset1.bin.*is already installed'
   assert_match '/asset2.bin 1/1'
 }
@@ -1056,7 +1085,7 @@ CHERRIES" "$stdout"
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/logo.png";accept_encodings=vec{"identity"}})'
   assert_match 'content_type = "image/png"'
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/index.js";accept_encodings=vec{"identity"}})'
-  assert_match 'content_type = "application/javascript"'
+  assert_match 'content_type = "text/javascript"'
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/sample-asset.txt";accept_encodings=vec{"identity"}})'
   assert_match 'content_type = "text/plain"'
   assert_command dfx canister call --query e2e_project_frontend get '(record{key="/main.css";accept_encodings=vec{"identity"}})'
@@ -1353,8 +1382,7 @@ EOF
   echo '[]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_contains "This project does not define a security policy for some assets."
-  assert_contains "Assets without any security policy: all"
+  assert_contains "This project does not define a security policy for any assets."
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_not_match "content-security-policy"
   assert_not_match "permissions-policy"
@@ -1385,7 +1413,7 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_not_contains "This project does not define a security policy for some assets."
+  assert_not_contains "This project does not define a security policy for any assets."
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_not_match "content-security-policy"
   assert_not_match "permissions-policy"
@@ -1399,8 +1427,8 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_not_contains "This project does not define a security policy for some assets."
-  assert_not_contains "This project uses the default security policy for some assets."
+  assert_not_contains "This project does not define a security policy for any assets."
+  assert_not_contains "This project uses the default security policy for all assets."
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_not_match "content-security-policy"
   assert_not_match "permissions-policy"
@@ -1414,8 +1442,8 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_contains "This project uses the default security policy for some assets."
-  assert_contains "Unhardened assets: all"
+  assert_contains "This project uses the default security policy for all assets."
+  assert_not_contains "Unhardened assets:"
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_match "content-security-policy"
   assert_match "permissions-policy"
@@ -1451,7 +1479,7 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_not_contains "This project uses the default security policy for some assets."
+  assert_not_contains "This project uses the default security policy for all assets."
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_match "content-security-policy"
   assert_match "permissions-policy"
@@ -1479,8 +1507,8 @@ EOF
   ]' > src/e2e_project_frontend/assets/.ic-assets.json5
 
   assert_command dfx deploy
-  assert_not_contains "This project does not define a security policy for some assets."
-  assert_not_contains "This project uses the default security policy for some assets."
+  assert_not_contains "This project does not define a security policy for any assets."
+  assert_not_contains "This project uses the default security policy for all assets."
   assert_command curl --fail --head "http://localhost:$PORT/thing.json?canisterId=$ID"
   assert_match "content-security-policy: overwritten"
   assert_match "permissions-policy"
@@ -1612,7 +1640,7 @@ EOF
 
   # However, due to returning the wrong certificate, it fails with Err(InvalidResponseHashes)
   # see https://dfinity.atlassian.net/browse/SDK-1246
-  assert_contains "500 Internal Server Error"
+  assert_contains "503 Service Unavailable"
 
 
   assert_command dfx canister call e2e_project_frontend set_asset_properties '( record { key="/test_alias_file.html"; is_aliased=opt(opt(true))  })'
@@ -1620,7 +1648,7 @@ EOF
   assert_match "200 OK" "$stderr"
 
   # redirect survives upgrade
-  assert_command dfx deploy --upgrade-unchanged
+  assert_command dfx deploy --upgrade-unchanged -v
   assert_match "is already installed"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/test_alias_file.html?canisterId="$ID"
@@ -1659,7 +1687,7 @@ EOF
 
   # again see # see https://dfinity.atlassian.net/browse/SDK-1246, this should be 404
   # assert_match "404 Not Found" "$stderr"
-  assert_contains "500 Internal Server Error"
+  assert_contains "503 Service Unavailable"
 
   assert_command curl --fail -vv http://localhost:"$PORT"/index_test?canisterId="$ID"
   assert_match "200 OK" "$stderr"
@@ -1893,8 +1921,30 @@ WARN: {
     },
   ]' > src/e2e_project_frontend/assets/somedir/.ic-assets.json5
 
-  assert_command dfx deploy
+  assert_command dfx deploy -v
   assert_match '/somedir/upload-me.txt 1/1 \(8 bytes\) sha [0-9a-z]* \(with cache and 1 header\)'
+}
+
+@test "asset configuration via .ic-assets.json5 - respects weird characters" {
+  install_asset assetscanister
+  touch src/e2e_project_frontend/assets/thing.txt
+  cat <<'EOF' >src/e2e_project_frontend/assets/.ic-assets.json5
+[
+  {
+    "match": "thing.txt",
+    "headers": {
+      "X-Dummy-Header": "\"\'@%({[~$?\\"
+    }
+  }
+]
+EOF
+  dfx_start
+  assert_command dfx deploy
+  ID=$(dfx canister id e2e_project_frontend)
+  PORT=$(get_webserver_port)
+  assert_command curl --head "http://localhost:$PORT/thing.txt?canisterId=$ID"
+  # shellcheck disable=SC1003
+  assert_contains 'x-dummy-header: "'"'"'@%({[~$?\' 
 }
 
 @test "uses selected canister wasm" {

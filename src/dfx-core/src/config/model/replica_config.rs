@@ -222,7 +222,8 @@ impl<'a> CachedConfig<'a> {
         }
     }
     pub fn can_share_state(&self, other: &Self) -> bool {
-        self == other
+        // effective canister id does not matter for ability to share state
+        self.replica_rev == other.replica_rev && self.config == other.config
     }
     pub fn get_effective_canister_id(&self) -> Option<Principal> {
         self.effective_canister_id

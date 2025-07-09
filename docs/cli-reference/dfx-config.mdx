@@ -1,0 +1,23 @@
+import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
+
+# dfx config
+
+<MarkdownChipRow labels={["Reference"]} />
+
+The `dfx config` command reports or modifies `dfx`'s configuration. It can also be modified manually (see `dfx info config-json-path`).
+
+Some settings have associated environment variables or CLI flags which will override the file. `dfx config` will emit a warning when you change an overridden setting, and when the settings are queried, will report the setting it actually uses (i.e. post-override).
+
+## Basic usage
+
+```bash
+dfx config <field> [value]
+```
+
+When a value is not supplied, `dfx` will print the current *effective* value of that field.
+
+## Config fields
+
+| Command                    | Description                                                                                                                      |
+|----------------------------|----------------------------------------------------------------------------------------------------------------------------------|
+| `telemetry [on|off|local]` | Sets whether telemetry is enabled. `local` means `dfx` will collect the logs but not transmit them. Overridden by `$DFX_TELEMETRY` |

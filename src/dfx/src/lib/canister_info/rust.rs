@@ -34,14 +34,13 @@ impl CanisterInfoFactory for RustCanisterInfo {
             bail!("`cargo metadata` was unsuccessful");
         }
 
-        let (package, crate_name) = if let CanisterTypeProperties::Rust {
+        let CanisterTypeProperties::Rust {
             package,
             crate_name,
             candid: _,
+            skip_cargo_audit: _,
         } = info.type_specific.clone()
-        {
-            (package, crate_name)
-        } else {
+        else {
             bail!(
                 "Attempted to construct a custom canister from a type:{} canister config",
                 info.type_specific.name()
@@ -85,7 +84,11 @@ impl CanisterInfoFactory for RustCanisterInfo {
             "More than one bin/cdylib {phrasing} found"
         );
 
-        let wasm_name = target.name.replace('-', "_");
+        let wasm_name = if target.kind.iter().any(|t| t == "bin") {
+            target.name.clone()
+        } else {
+            target.name.replace('-', "_")
+        };
         let output_wasm_path = metadata
             .target_directory
             .join(format!("wasm32-unknown-unknown/release/{wasm_name}.wasm"))

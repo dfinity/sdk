@@ -42,25 +42,13 @@ teardown() {
   assert_match n5n4y-3aaaa-aaaaa-p777q-cai
 }
 
-@test "create succeeds when specify large canister ID" {
-  [[ "$USE_POCKETIC" ]] && skip "skipped for pocketic: subnet range"
-  dfx_start
-  # hhn2s-5l777-77777-7777q-cai is the canister ID of (u64::MAX / 2)
-  assert_command dfx canister create e2e_project_backend --specified-id hhn2s-5l777-77777-7777q-cai
-  assert_command dfx canister id e2e_project_backend
-  assert_match hhn2s-5l777-77777-7777q-cai
-}
-
 @test "create fails when specify out of range canister ID" {
   dfx_start
   # nojwb-ieaaa-aaaaa-aaaaa-cai is the canister ID of (u64::MAX / 2 + 1)
   assert_command_fail dfx canister create e2e_project_backend --specified-id nojwb-ieaaa-aaaaa-aaaaa-cai
 
-  if [[ "$USE_POCKETIC" ]]; then
-    assert_match "The effective canister ID nojwb-ieaaa-aaaaa-aaaaa-cai does not belong to an existing subnet and it is not a mainnet canister ID."
-  else
-    assert_match "Specified CanisterId nojwb-ieaaa-aaaaa-aaaaa-cai is not hosted by subnet"
-  fi
+  assert_match "The effective canister ID nojwb-ieaaa-aaaaa-aaaaa-cai does not belong to an existing subnet and it is not a mainnet canister ID."
+
 }
 
 @test "create fails if set both --all and --specified-id" {
@@ -407,7 +395,6 @@ function textual_decode() {
 }
 
 @test "create targets application subnet in PocketIC" {
-  [[ ! "$USE_POCKETIC" ]] && skip "skipped for replica: no support for multiple subnets"
   dfx_start
   # create the backend canister without a wallet canister so that the backend canister is the only canister ever created
   assert_command dfx canister create e2e_project_backend --no-wallet
@@ -416,7 +403,7 @@ function textual_decode() {
   # base64 encode the actual canister id
   CANISTER_ID_BASE64="$(textual_decode "${CANISTER_ID}" | xxd -r -p | base64)"
   # fetch topology from PocketIC server
-  TOPOLOGY="$(curl "http://127.0.0.1:$(dfx info replica-port)/instances/0/read/topology")"
+  TOPOLOGY="$(curl "http://127.0.0.1:$(dfx info pocketic-config-port)/instances/0/read/topology")"
   echo "${TOPOLOGY}"
   # find application subnet id in the topology
   for subnet_id in $(echo "${TOPOLOGY}" | jq '.subnet_configs | keys[]')

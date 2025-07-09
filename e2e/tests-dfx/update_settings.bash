@@ -40,6 +40,16 @@ teardown() {
   assert_command dfx ledger fabricate-cycles --canister hello_backend --t 100
   assert_command dfx canister status hello_backend
   assert_match "Freezing threshold: 100_000_000_000"
+
+  # trying to set threshold to 1 day, which should not work without confirmation
+  assert_command_fail dfx canister update-settings hello_backend --freezing-threshold 86400
+  assert_match "The freezing threshold is very short at less than 1 week" # error message pointing to the error
+
+  # with manual override it's ok
+  assert_command dfx canister update-settings hello_backend --freezing-threshold 86400 --confirm-very-short-freezing-threshold
+  
+  assert_command dfx canister status hello_backend
+  assert_match "Freezing threshold: 86_400"
 }
 
 @test "set wasm memory limit" {
@@ -59,6 +69,23 @@ teardown() {
   assert_command dfx canister call e2e_project_backend greet '("alice")' --update
   assert_command_fail dfx canister call e2e_project_backend greet_update '("alice")'
   assert_contains "Canister exceeded its current Wasm memory limit of 8 bytes"
+}
+
+@test "set wasm memory threshold" {
+  dfx_new_rust
+  install_asset allocate_memory
+  dfx_start
+  assert_command dfx canister create e2e_project_backend --no-wallet --wasm-memory-threshold 2MiB --wasm-memory-limit 2MiB
+  assert_command dfx deploy e2e_project_backend
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Wasm memory threshold: 2_097_152 Bytes"
+  assert_command dfx canister update-settings e2e_project_backend --wasm-memory-threshold 1MiB
+  assert_command dfx canister status e2e_project_backend
+  assert_contains "Wasm memory threshold: 1_048_576 Bytes"
+  assert_command dfx canister call e2e_project_backend greet_update '("alice")'
+  sleep 1
+  assert_command dfx canister logs e2e_project_backend
+  assert_contains "Low memory!"
 }
 
 @test "set log visibility" {
@@ -573,7 +600,7 @@ teardown() {
   # See https://dfinity.atlassian.net/browse/RUN-314
   # dfx canister update-settings --compute-allocation 1 "$CANISTER_ID"
 
-  dfx canister update-settings --freezing-threshold 172 "$CANISTER_ID"
+  dfx canister update-settings --freezing-threshold 172 --confirm-very-short-freezing-threshold "$CANISTER_ID"
   assert_command dfx canister status "$CANISTER_ID"
   assert_match 'Memory allocation: 2_000_000_000'
   # assert_match 'Compute allocation: 4'

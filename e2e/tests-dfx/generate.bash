@@ -139,14 +139,13 @@ teardown() {
   assert_command dfx generate
 }
 
-@test "dfx generate --network is still valid" {
-  # The option has no effect, but is still accepted to not break existing scripts
+@test "dfx generate --network is accepted" {
   dfx_new hello
   assert_command dfx generate --network local
+  assert_file_exists ".dfx/local/canisters/hello_backend/service.did"
 
-  # Option is not advertised anymore
-  assert_command dfx generate --help
-  assert_not_contains "--network"
+  assert_command dfx generate --playground
+  assert_file_exists ".dfx/playground/canisters/hello_backend/service.did"
 }
 
 @test "dfx generate does not delete source candid file of Rust canister when bindings contains no did" {

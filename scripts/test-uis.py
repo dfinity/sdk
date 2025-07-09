@@ -40,10 +40,12 @@ AgentError: Call failed:
   Method: fetch_canister_logs (query)
   "Status": "rejected"
   "Code": "CanisterReject"
-  "Message": "IC0406: Caller 2vxsx-fae is not allowed to query ic00 method fetch_canister_logs"
+  "Message": "Caller 2vxsx-fae is not allowed to query ic00 method fetch_canister_logs"
         """.strip(),
         "/index.js",
-    )
+    ),
+    ("[JavaScript Warning: \"This page is in Quirks Mode. Page layout may be impacted. For Standards Mode use “<!DOCTYPE html>”", "/"),
+    ("[JavaScript Warning: \"asm.js type error: Asm.js optimizer disabled because no suitable wasm compiler is available", "/index.js")
 ]
 _CANDID_UI_ERRORS_TO_IGNORE = [
     ("Error", "/index.js")

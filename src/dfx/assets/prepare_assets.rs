@@ -112,10 +112,10 @@ fn write_binary_cache(
         BufWriter::new(File::create(out_dir.join("binary_cache.tgz")).unwrap()),
         Compression::new(6),
     ));
-    for (path, bin) in bins.into_iter().chain(
-        ["moc", "mo-doc", "mo-ide"]
-            .map(|bin| (bin.into(), bin_tars.remove(Path::new(bin)).unwrap())),
-    ) {
+    for (path, bin) in bins
+        .into_iter()
+        .chain(["moc", "mo-doc"].map(|bin| (bin.into(), bin_tars.remove(Path::new(bin)).unwrap())))
+    {
         let mut header = Header::new_gnu();
         header.set_size(bin.len() as u64);
         header.set_mode(0o500);
@@ -177,41 +177,40 @@ async fn download_binaries(
     sources: Arc<HashMap<String, Source>>,
 ) -> HashMap<PathBuf, Bytes> {
     let mut joinset = JoinSet::new();
-    for bin in [
-        "canister_sandbox",
-        "compiler_sandbox",
-        "ic-admin",
-        "ic-btc-adapter",
-        "ic-https-outcalls-adapter",
-        "ic-nns-init",
-        "ic-starter",
-        "pocket-ic",
-        "replica",
-        "sandbox_launcher",
-        "sns",
-    ] {
+    #[allow(clippy::single_element_loop)]
+    for bin in ["pocket-ic"] {
         let source = sources
             .get(bin)
             .unwrap_or_else(|| panic!("Cannot find source for {bin}"))
             .clone();
         let client_ = client.clone();
-        joinset.spawn(async move { (bin, download_and_check_sha(client_, source).await) });
+        joinset.spawn(async move {
+            (
+                bin,
+                source.clone(),
+                download_and_check_sha(client_, source).await,
+            )
+        });
     }
     let mut map = HashMap::new();
     while let Some(res) = joinset.join_next().await {
-        let (bin, content) = res.unwrap();
-        let decompressed = spawn_blocking(|| {
-            let mut buf = BytesMut::new();
-            io::copy(
-                &mut GzDecoder::new(content.reader()),
-                &mut (&mut buf).writer(),
-            )
-            .unwrap();
-            buf.freeze()
-        })
-        .await
-        .unwrap();
-        map.insert(bin.into(), decompressed);
+        let (bin, source, content) = res.unwrap();
+        let final_content = if source.url.ends_with(".gz") {
+            spawn_blocking(|| {
+                let mut buf = BytesMut::new();
+                io::copy(
+                    &mut GzDecoder::new(content.reader()),
+                    &mut (&mut buf).writer(),
+                )
+                .unwrap();
+                buf.freeze()
+            })
+            .await
+            .unwrap()
+        } else {
+            content
+        };
+        map.insert(bin.into(), final_content);
     }
     map
 }

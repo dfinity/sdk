@@ -1,5 +1,5 @@
 name: "chore: Update Motoko"
-on: 
+on:
   workflow_dispatch:
     inputs:
       motokoVersion:
@@ -19,6 +19,8 @@ env:
   CARGO_NET_RETRY: 10
   # Use the local .curlrc
   CURL_HOME: .
+  # Disable DFX telemetry
+  DFX_TELEMETRY: 'off'
 
 jobs:
   update-motoko:
@@ -28,30 +30,22 @@ jobs:
       with:
         ref: ${{ github.event.inputs.sdkBranch }}
 
+    - name: Install script dependencies
+      run: sudo apt-get install -y moreutils
+
     - name: determine Motoko version
       run: |
         if [ '${{ github.event.inputs.motokoVersion }}' = 'latest' ]; then
           echo "MOTOKO_VERSION=$(curl -s "${{ env.GH_API_RELEASES_LATEST }}" | jq  -r '.tag_name')" >> $GITHUB_ENV
-        else 
+        else
           echo "MOTOKO_VERSION=${{ github.event.inputs.motokoVersion }}" >> $GITHUB_ENV
         fi
         grep -s "MOTOKO_VERSION" $GITHUB_ENV
-   
-    - name: install Nix
-      uses: cachix/install-nix-action@v21
-      with:
-        nix_path: nixpkgs=channel:nixos-unstable
-
-    - name: install niv (dependency manager for Nix projects)
-      run: nix-env -i niv -f '<nixpkgs>'
-
-    - name: install packages from nix/sources.json
-      run: niv update
 
     - name: update Motoko
       run: |
         echo "updating Motoko"
-        scripts/update-motoko.sh ${{ env.MOTOKO_VERSION }} 
+        scripts/update-motoko.sh ${{ env.MOTOKO_VERSION }}
 
     - name: setup git config, then create new branch and push new commit to it
       run: |
@@ -61,15 +55,22 @@ jobs:
         git config committer.name "GitHub Actions Bot"
         git config user.email "${{ github.event.sender.id }}+${{ github.event.sender.login }}@users.noreply.github.com"
         git config user.name "${{ github.event.sender.login }}"
-        git checkout -b chore-update-motoko-${{ env.MOTOKO_VERSION }} 
+        git checkout -b chore-update-motoko-${{ env.MOTOKO_VERSION }}
         git add .
         git commit -m "chore: update Motoko version to ${{ env.MOTOKO_VERSION }}"
-        git push origin chore-update-motoko-${{ env.MOTOKO_VERSION }} 
-      
-    - name: create Pull Request, with CHANGELOG.md entry suggestion 
+        git push origin chore-update-motoko-${{ env.MOTOKO_VERSION }}
+
+    - name: Create GitHub App Token
+      uses: actions/create-github-app-token@v2
+      id: app-token
+      with:
+        app-id: ${{ vars.PR_AUTOMATION_BOT_PUBLIC_APP_ID }}
+        private-key: ${{ secrets.PR_AUTOMATION_BOT_PUBLIC_PRIVATE_KEY }}
+
+    - name: create Pull Request, with CHANGELOG.md entry suggestion
       uses: actions/github-script@v6
       with:
-        github-token: ${{ secrets.NIV_UPDATER_TOKEN }} # act on behalf of https://github.com/dfinity-bot 
+        github-token: ${{ steps.app-token.outputs.token }}
         script: |
           const { repo, owner } = context.repo;
 

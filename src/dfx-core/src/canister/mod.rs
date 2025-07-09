@@ -1,6 +1,8 @@
 use crate::{
-    cli::ask_for_consent,
-    error::canister::{CanisterBuilderError, CanisterInstallError},
+    error::{
+        canister::{CanisterBuilderError, CanisterInstallError},
+        cli::UserConsent,
+    },
     identity::CallSender,
 };
 use candid::Principal;
@@ -28,11 +30,19 @@ pub async fn build_wallet_canister(
     .map_err(CanisterBuilderError::WalletCanisterCaller)
 }
 
-pub fn install_mode_to_prompt(mode: &InstallMode) -> &'static str {
+pub fn install_mode_to_present_tense(mode: &InstallMode) -> &'static str {
     match mode {
         InstallMode::Install => "Installing",
         InstallMode::Reinstall => "Reinstalling",
         InstallMode::Upgrade { .. } => "Upgrading",
+    }
+}
+
+pub fn install_mode_to_past_tense(mode: &InstallMode) -> &'static str {
+    match mode {
+        InstallMode::Install => "Installed",
+        InstallMode::Reinstall => "Reinstalled",
+        InstallMode::Upgrade { .. } => "Upgraded",
     }
 }
 
@@ -44,10 +54,10 @@ pub async fn install_canister_wasm(
     mode: InstallMode,
     call_sender: &CallSender,
     wasm_module: Vec<u8>,
-    skip_consent: bool,
+    ask_for_consent: impl FnOnce(&str) -> Result<(), UserConsent> + Send,
 ) -> Result<(), CanisterInstallError> {
     let mgr = ManagementCanister::create(agent);
-    if !skip_consent && mode == InstallMode::Reinstall {
+    if mode == InstallMode::Reinstall {
         let msg = if let Some(name) = canister_name {
             format!("You are about to reinstall the {name} canister")
         } else {
@@ -70,6 +80,9 @@ YOU WILL LOSE ALL DATA IN THE CANISTER.
             install_builder
                 .await
                 .map_err(CanisterInstallError::InstallWasmError)
+        }
+        CallSender::Impersonate(_) => {
+            unreachable!("Impersonating sender when installing canisters is not supported.")
         }
         CallSender::Wallet(wallet_id) => {
             let wallet = build_wallet_canister(*wallet_id, agent).await?;

@@ -10,12 +10,13 @@ use crate::error::CreateEncodingError;
 use crate::error::CreateEncodingError::EncodeContentFailed;
 use crate::error::CreateProjectAssetError;
 use crate::error::SetEncodingError;
+use crate::AssetSyncProgressRenderer;
 use candid::Nat;
 use futures::future::try_join_all;
 use futures::TryFutureExt;
 use ic_utils::Canister;
 use mime::Mime;
-use slog::{debug, info, Logger};
+use slog::{debug, Logger};
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -48,6 +49,12 @@ pub(crate) struct ProjectAsset {
     pub(crate) asset_descriptor: AssetDescriptor,
     pub(crate) media_type: Mime,
     pub(crate) encodings: HashMap<String, ProjectAssetEncoding>,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum Mode {
+    ByProposal,
+    NormalDeploy,
 }
 
 type IdMapping = BTreeMap<usize, Nat>;
@@ -83,14 +90,22 @@ impl<'agent> ChunkUploader<'agent> {
         &self,
         contents: &[u8],
         semaphores: &Semaphores,
+        progress: Option<&dyn AssetSyncProgressRenderer>,
     ) -> Result<usize, CreateChunkError> {
         let uploader_chunk_id = self.chunks.fetch_add(1, Ordering::SeqCst);
         self.bytes.fetch_add(contents.len(), Ordering::SeqCst);
         if contents.len() == MAX_CHUNK_SIZE || self.api_version < 2 {
-            let canister_chunk_id =
-                create_chunk(&self.canister, &self.batch_id, contents, semaphores).await?;
+            let canister_chunk_id = create_chunk(
+                &self.canister,
+                &self.batch_id,
+                contents,
+                semaphores,
+                progress,
+            )
+            .await?;
             let mut map = self.id_mapping.lock().await;
             map.insert(uploader_chunk_id, canister_chunk_id);
+
             Ok(uploader_chunk_id)
         } else {
             self.add_to_upload_queue(uploader_chunk_id, contents).await;
@@ -100,7 +115,8 @@ impl<'agent> ChunkUploader<'agent> {
             //  - Tested with: `for i in $(seq 1 50); do dd if=/dev/urandom of="src/hello_frontend/assets/file_$i.bin" bs=$(shuf -i 1-2000000 -n 1) count=1; done && dfx deploy hello_frontend`
             //  - Result: Roughly 15% of batches under 90% full.
             // With other byte ranges (e.g. `shuf -i 1-3000000 -n 1`) stats improve significantly
-            self.upload_chunks(4 * MAX_CHUNK_SIZE, semaphores).await?;
+            self.upload_chunks(4 * MAX_CHUNK_SIZE, semaphores, progress)
+                .await?;
             Ok(uploader_chunk_id)
         }
     }
@@ -108,9 +124,19 @@ impl<'agent> ChunkUploader<'agent> {
     pub(crate) async fn finalize_upload(
         &self,
         semaphores: &Semaphores,
+        mode: Mode,
+        progress: Option<&dyn AssetSyncProgressRenderer>,
     ) -> Result<(), CreateChunkError> {
-        // Crude estimate: If `MAX_CHUNK_SIZE / 2` bytes are added as data to the `commit_batch` args the message won't be above the message size limit.
-        self.upload_chunks(MAX_CHUNK_SIZE / 2, semaphores).await
+        let max_retained_bytes = if mode == Mode::ByProposal {
+            // Never add data to the commit_batch args, because they have to fit in a single call.
+            0
+        } else {
+            // Crude estimate: If `MAX_CHUNK_SIZE / 2` bytes are added as data to the `commit_batch` args the message won't be above the message size limit.
+            MAX_CHUNK_SIZE / 2
+        };
+
+        self.upload_chunks(max_retained_bytes, semaphores, progress)
+            .await
     }
 
     pub(crate) fn bytes(&self) -> usize {
@@ -160,6 +186,7 @@ impl<'agent> ChunkUploader<'agent> {
         &self,
         max_retained_bytes: usize,
         semaphores: &Semaphores,
+        progress: Option<&dyn AssetSyncProgressRenderer>,
     ) -> Result<(), CreateChunkError> {
         let mut queue = self.upload_queue.lock().await;
 
@@ -188,7 +215,7 @@ impl<'agent> ChunkUploader<'agent> {
         try_join_all(batches.into_iter().map(|chunks| async move {
             let (uploader_chunk_ids, chunks): (Vec<_>, Vec<_>) = chunks.into_iter().unzip();
             let canister_chunk_ids =
-                create_chunks(&self.canister, &self.batch_id, chunks, semaphores).await?;
+                create_chunks(&self.canister, &self.batch_id, chunks, semaphores, progress).await?;
             let mut map = self.id_mapping.lock().await;
             for (uploader_id, canister_id) in uploader_chunk_ids
                 .into_iter()
@@ -213,6 +240,7 @@ async fn make_project_asset_encoding(
     content_encoding: &str,
     semaphores: &Semaphores,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<ProjectAssetEncoding, CreateChunkError> {
     let sha256 = content.sha256();
 
@@ -235,7 +263,7 @@ async fn make_project_asset_encoding(
     };
 
     let uploader_chunk_ids = if already_in_place {
-        info!(
+        debug!(
             logger,
             "  {}{} ({} bytes) sha {} is already installed",
             &asset_descriptor.key,
@@ -253,10 +281,11 @@ async fn make_project_asset_encoding(
             content_encoding,
             semaphores,
             logger,
+            progress,
         )
         .await?
     } else {
-        info!(
+        debug!(
             logger,
             "  {}{} ({} bytes) sha {} will be uploaded",
             &asset_descriptor.key,
@@ -284,6 +313,7 @@ async fn make_encoding(
     force_encoding: bool,
     semaphores: &Semaphores,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<Option<(String, ProjectAssetEncoding)>, CreateEncodingError> {
     match encoder {
         ContentEncoder::Identity => {
@@ -295,6 +325,7 @@ async fn make_encoding(
                 CONTENT_ENCODING_IDENTITY,
                 semaphores,
                 logger,
+                progress,
             )
             .await
             .map_err(CreateEncodingError::CreateChunkFailed)?;
@@ -317,6 +348,7 @@ async fn make_encoding(
                     &content_encoding,
                     semaphores,
                     logger,
+                    progress,
                 )
                 .await
                 .map_err(CreateEncodingError::CreateChunkFailed)?;
@@ -335,12 +367,14 @@ async fn make_encodings(
     content: &Content,
     semaphores: &Semaphores,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<HashMap<String, ProjectAssetEncoding>, CreateEncodingError> {
     let encoders = asset_descriptor
         .config
         .encodings
         .clone()
         .unwrap_or_else(|| default_encoders(&content.media_type));
+
     // The identity encoding is always uploaded if it's in the list of chosen encodings.
     // Other encoding are only uploaded if they save bytes compared to identity.
     // The encoding is forced through the filter if there is no identity encoding to compare against.
@@ -358,6 +392,7 @@ async fn make_encodings(
                 force_encoding,
                 semaphores,
                 logger,
+                progress,
             )
         })
         .collect();
@@ -378,15 +413,10 @@ async fn make_project_asset(
     canister_assets: &HashMap<String, AssetDetails>,
     semaphores: &Semaphores,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<ProjectAsset, CreateProjectAssetError> {
     let file_size = dfx_core::fs::metadata(&asset_descriptor.source)?.len();
-    let permits = std::cmp::max(
-        1,
-        std::cmp::min(
-            ((file_size + 999999) / 1000000) as usize,
-            MAX_COST_SINGLE_FILE_MB,
-        ),
-    );
+    let permits = (((file_size + 999999) / 1000000) as usize).clamp(1, MAX_COST_SINGLE_FILE_MB);
     let _releaser = semaphores.file.acquire(permits).await;
     let content = Content::load(&asset_descriptor.source)
         .map_err(CreateProjectAssetError::LoadContentFailed)?;
@@ -398,9 +428,13 @@ async fn make_project_asset(
         &content,
         semaphores,
         logger,
+        progress,
     )
     .await?;
 
+    if let Some(progress) = progress {
+        progress.increment_complete_assets();
+    }
     Ok(ProjectAsset {
         asset_descriptor,
         media_type: content.media_type,
@@ -412,10 +446,15 @@ pub(crate) async fn make_project_assets(
     chunk_upload_target: Option<&ChunkUploader<'_>>,
     asset_descriptors: Vec<AssetDescriptor>,
     canister_assets: &HashMap<String, AssetDetails>,
+    mode: Mode,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<HashMap<String, ProjectAsset>, CreateProjectAssetError> {
     let semaphores = Semaphores::new();
 
+    if let Some(progress) = progress {
+        progress.set_total_assets(asset_descriptors.len());
+    }
     let project_asset_futures: Vec<_> = asset_descriptors
         .iter()
         .map(|loc| {
@@ -425,16 +464,20 @@ pub(crate) async fn make_project_assets(
                 canister_assets,
                 &semaphores,
                 logger,
+                progress,
             )
         })
         .collect();
     let project_assets = try_join_all(project_asset_futures).await?;
     if let Some(uploader) = chunk_upload_target {
-        uploader.finalize_upload(&semaphores).await.map_err(|err| {
-            CreateProjectAssetError::CreateEncodingError(CreateEncodingError::CreateChunkFailed(
-                err,
-            ))
-        })?;
+        uploader
+            .finalize_upload(&semaphores, mode, progress)
+            .await
+            .map_err(|err| {
+                CreateProjectAssetError::CreateEncodingError(
+                    CreateEncodingError::CreateChunkFailed(err),
+                )
+            })?;
     }
 
     let mut hm = HashMap::new();
@@ -452,11 +495,14 @@ async fn upload_content_chunks(
     content_encoding: &str,
     semaphores: &Semaphores,
     logger: &Logger,
+    progress: Option<&dyn AssetSyncProgressRenderer>,
 ) -> Result<Vec<usize>, CreateChunkError> {
     if content.data.is_empty() {
         let empty = vec![];
-        let chunk_id = chunk_uploader.create_chunk(&empty, semaphores).await?;
-        info!(
+        let chunk_id = chunk_uploader
+            .create_chunk(&empty, semaphores, progress)
+            .await?;
+        debug!(
             logger,
             "  {}{} 1/1 (0 bytes) sha {}",
             &asset_descriptor.key,
@@ -466,16 +512,19 @@ async fn upload_content_chunks(
         return Ok(vec![chunk_id]);
     }
 
-    let count = (content.data.len() + MAX_CHUNK_SIZE - 1) / MAX_CHUNK_SIZE;
+    if let Some(progress) = progress {
+        progress.add_total_bytes(content.data.len());
+    }
+    let count = content.data.len().div_ceil(MAX_CHUNK_SIZE);
     let chunks_futures: Vec<_> = content
         .data
         .chunks(MAX_CHUNK_SIZE)
         .enumerate()
         .map(|(i, data_chunk)| {
             chunk_uploader
-                .create_chunk(data_chunk, semaphores)
+                .create_chunk(data_chunk, semaphores, progress)
                 .map_ok(move |chunk_id| {
-                    info!(
+                    debug!(
                         logger,
                         "  {}{} {}/{} ({} bytes) sha {} {}",
                         &asset_descriptor.key,

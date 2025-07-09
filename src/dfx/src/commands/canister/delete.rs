@@ -3,18 +3,17 @@ use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings;
 use crate::lib::operations::canister;
 use crate::lib::operations::canister::{
-    deposit_cycles, start_canister, stop_canister, update_settings,
+    deposit_cycles, skip_remote_canister, start_canister, stop_canister, update_settings,
 };
 use crate::lib::operations::cycles_ledger::wallet_deposit_to_cycles_ledger;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::assets::wallet_wasm;
-use crate::util::blob_from_arguments;
 use crate::util::clap::parsers::{cycle_amount_parser, icrc_subaccount_parser};
+use crate::util::{ask_for_consent, blob_from_arguments};
 use anyhow::{bail, Context};
 use candid::Principal;
 use clap::Parser;
 use dfx_core::canister::build_wallet_canister;
-use dfx_core::cli::ask_for_consent;
 use dfx_core::identity::wallet::wallet_canister_id;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
@@ -96,12 +95,9 @@ async fn delete_canister(
     initial_margin: Option<u128>,
 ) -> DfxResult {
     let log = env.get_logger();
-    let mut canister_id_store = env.get_canister_id_store()?;
+    let canister_id_store = env.get_canister_id_store()?;
     let (canister_id, canister_name_to_delete) = match Principal::from_text(canister) {
-        Ok(canister_id) => (
-            canister_id,
-            canister_id_store.get_name_in_project(canister).cloned(),
-        ),
+        Ok(canister_id) => (canister_id, canister_id_store.get_name_in_project(canister)),
         Err(_) => (canister_id_store.get(canister)?, Some(canister.to_string())),
     };
 
@@ -127,6 +123,11 @@ async fn delete_canister(
                     CallSender::Wallet(wallet_id) => WithdrawTarget::Canister {
                         canister_id: *wallet_id,
                     },
+                    CallSender::Impersonate(_) => {
+                        unreachable!(
+                            "Impersonating sender when deleting canisters is not supported."
+                        )
+                    }
                     CallSender::SelectedId => {
                         let network = env.get_network_descriptor();
                         let identity_name = env
@@ -172,9 +173,10 @@ async fn delete_canister(
             // Determine how many cycles we can withdraw.
             let status = canister::get_canister_status(env, canister_id, call_sender).await?;
             if status.status != CanisterStatus::Stopped && !skip_confirmation {
-                ask_for_consent(&format!(
-                    "Canister {canister} has not been stopped. Delete anyway?"
-                ))?;
+                ask_for_consent(
+                    env,
+                    &format!("Canister {canister} has not been stopped. Delete anyway?"),
+                )?;
             }
             let agent = env.get_agent();
             let mgr = ManagementCanister::create(agent);
@@ -189,6 +191,7 @@ async fn delete_canister(
                 freezing_threshold: Some(FreezingThreshold::try_from(0u8).unwrap()),
                 reserved_cycles_limit: None,
                 wasm_memory_limit: None,
+                wasm_memory_threshold: None,
                 log_visibility: None,
             };
             info!(log, "Setting the controller to identity principal.");
@@ -320,7 +323,7 @@ async fn delete_canister(
     }
 
     if let Some(canister_name) = canister_name_to_delete {
-        canister_id_store.remove(&canister_name)?;
+        canister_id_store.remove(log, &canister_name)?;
     }
 
     Ok(())
@@ -352,6 +355,9 @@ pub async fn exec(
     } else if opts.all {
         if let Some(canisters) = &config.get_config().canisters {
             for canister in canisters.keys() {
+                if skip_remote_canister(env, canister)? {
+                    continue;
+                }
                 delete_canister(
                     env,
                     canister,

@@ -2,20 +2,23 @@ pub(crate) mod create_canister;
 pub(crate) mod deploy_canisters;
 pub(crate) mod install_canister;
 pub mod motoko_playground;
+mod skip_remote_canister;
 
 pub use create_canister::create_canister;
 use ic_utils::interfaces::management_canister::Snapshot;
 pub use install_canister::install_wallet;
+pub use skip_remote_canister::skip_remote_canister;
 
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use candid::utils::ArgumentDecoder;
 use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
+use candid::{decode_args, encode_args};
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::config::model::dfinity::Config;
 use dfx_core::identity::CallSender;
@@ -27,6 +30,7 @@ use ic_utils::interfaces::management_canister::{
 };
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
+use pocket_ic::common::rest::RawEffectivePrincipal;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
@@ -58,6 +62,38 @@ where
                 .build()
                 .await
                 .context("Update call (without wallet) failed.")?
+        }
+        CallSender::Impersonate(sender) => {
+            let pocketic = env.get_pocketic();
+            if let Some(pocketic) = pocketic {
+                let msg_id = pocketic
+                    .submit_call_with_effective_principal(
+                        Principal::management_canister(),
+                        RawEffectivePrincipal::CanisterId(destination_canister.as_slice().to_vec()),
+                        *sender,
+                        method,
+                        encode_args((arg,)).unwrap(),
+                    )
+                    .await
+                    .map_err(|err| {
+                        anyhow!(
+                            "Failed to submit management canister call: {} ({})",
+                            err.reject_message,
+                            err.error_code
+                        )
+                    })?;
+                let data = pocketic.await_call_no_ticks(msg_id).await.map_err(|err| {
+                    anyhow!(
+                        "Management canister call failed: {} ({})",
+                        err.reject_message,
+                        err.error_code
+                    )
+                })?;
+
+                decode_args(&data).context("Could not decode management canister response.")?
+            } else {
+                bail!("Impersonating sender is only supported for a local PocketIC instance.")
+            }
         }
         CallSender::Wallet(wallet_id) => {
             let wallet = build_wallet_canister(*wallet_id, agent).await?;
@@ -105,6 +141,31 @@ where
                 .call()
                 .await
                 .context("Query call (without wallet) failed.")?
+        }
+        CallSender::Impersonate(sender) => {
+            let pocketic = env.get_pocketic();
+            if let Some(pocketic) = pocketic {
+                let data = pocketic
+                    .query_call_with_effective_principal(
+                        Principal::management_canister(),
+                        RawEffectivePrincipal::CanisterId(destination_canister.as_slice().to_vec()),
+                        *sender,
+                        method,
+                        encode_args((arg,)).unwrap(),
+                    )
+                    .await
+                    .map_err(|err| {
+                        anyhow!(
+                            "Failed to perform management canister query call: {} ({})",
+                            err.reject_message,
+                            err.error_code
+                        )
+                    })?;
+                decode_args(&data)
+                    .context("Failed to decode management canister query call response.")?
+            } else {
+                bail!("Impersonating sender is only supported for a local PocketIC instance.")
+            }
         }
         CallSender::Wallet(wallet_id) => {
             let wallet = build_wallet_canister(*wallet_id, agent).await?;
@@ -179,7 +240,7 @@ pub async fn start_canister(
         canister_id: Principal,
     }
 
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::StartCanister.as_ref(),
@@ -206,7 +267,7 @@ pub async fn stop_canister(
         canister_id: Principal,
     }
 
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::StopCanister.as_ref(),
@@ -230,7 +291,7 @@ pub async fn update_settings(
         canister_id: Principal,
         settings: CanisterSettings,
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::UpdateSettings.as_ref(),
@@ -255,7 +316,7 @@ pub async fn uninstall_code(
     struct In {
         canister_id: Principal,
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::UninstallCode.as_ref(),
@@ -278,7 +339,7 @@ pub async fn delete_canister(
     struct In {
         canister_id: Principal,
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::DeleteCanister.as_ref(),
@@ -302,7 +363,7 @@ pub async fn deposit_cycles(
     struct In {
         canister_id: Principal,
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::DepositCycles.as_ref(),
@@ -333,7 +394,7 @@ pub async fn provisional_deposit_cycles(
         canister_id: Principal,
         amount: u128,
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::ProvisionalTopUpCanister.as_ref(),
@@ -450,7 +511,7 @@ pub async fn load_canister_snapshot(
         snapshot_id: &'a [u8],
         sender_canister_version: Option<u64>,
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::LoadCanisterSnapshot.as_ref(),
@@ -503,7 +564,7 @@ pub async fn delete_canister_snapshot(
         canister_id: Principal,
         snapshot_id: &'a [u8],
     }
-    do_management_call(
+    do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::DeleteCanisterSnapshot.as_ref(),

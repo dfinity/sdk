@@ -14,18 +14,26 @@ teardown() {
   standard_teardown
 }
 
-@test "displays the replica port" {
-  assert_command_fail dfx info replica-port
-  assert_contains "No replica port found"
+@test "displays the telemetry log path" {
+  assert_command dfx info telemetry-log-path
 
-  dfx_start
-  assert_command dfx info replica-port
-  if [[ "$USE_POCKETIC" ]]
-  then
-    assert_eq "$(get_pocketic_port)"
+  if [ "$(uname)" == "Darwin" ]; then
+    assert_eq "$HOME/Library/Caches/org.dfinity.dfx/telemetry/telemetry.log"
+  elif [ "$(uname)" == "Linux" ]; then
+    assert_eq "$HOME/.cache/dfx/telemetry/telemetry.log"
   else
-    assert_eq "$(get_replica_port)"
+     echo "Unsupported OS" | fail
   fi
+}
+
+@test "displays the replica port" {
+  assert_command_fail dfx info pocketic-config-port
+  assert_contains "No PocketIC port found"
+  dfx_start
+  assert_command_fail dfx info replica-port
+  assert_contains "Error: The 'native' replica (--replica) is no longer supported. If you intended to get the API port, use \`--webserver-port\`."
+  assert_command dfx info pocketic-config-port
+  assert_eq "$(get_pocketic_port)"
 }
 
 @test "displays the default webserver port for the local shared network" {
@@ -45,8 +53,8 @@ teardown() {
 }
 
 @test "displays the replica revision included in dfx" {
-  nix_sources_path="${BATS_TEST_DIRNAME}/../../nix/sources.json"
-  expected_rev="$(jq -r '."replica-x86_64-linux".rev' "$nix_sources_path")"
+  sources_path="${BATS_TEST_DIRNAME}/../../src/dfx/assets/dfx-asset-sources.json"
+  expected_rev="$(jq -r '."x86_64-linux"."pocket-ic".rev' "$sources_path")"
 
   assert_command dfx info replica-rev
   assert_eq "$expected_rev"
@@ -95,6 +103,23 @@ teardown() {
   ]" > src/e2e_project_frontend/assets/.ic-assets.json5
   cat src/e2e_project_frontend/assets/.ic-assets.json5
 
-  # fails if the the above produced invalid json5
+  # fails if the above produced invalid json5
   assert_command dfx deploy
+}
+
+@test "prints the path to the config file" {
+  cfg=$(dfx info config-json-path)
+  assert_command test -f "$cfg"
+  assert_command jq . "$cfg"
+}
+
+@test "prints the pocket-ic default effective canister id" {
+  dfx_start
+  local topology expected_id64 expected_id
+  topology=$(curl "http://localhost:$(get_webserver_port)/_/topology")
+  expected_id64=$(jq -r .default_effective_canister_id.canister_id <<<"$topology")
+  expected_id=$(cat <(crc32 <(base64 -d <<<"$expected_id64") | xxd -r -p) <(base64 -d <<<"$expected_id64") | base32 \
+    | tr -d = | tr '[:upper:]' '[:lower:]' | fold -w5 | paste -sd- -)
+  assert_command dfx info default-effective-canister-id
+  assert_eq "$stdout" "$expected_id"
 }

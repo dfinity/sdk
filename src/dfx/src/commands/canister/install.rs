@@ -4,12 +4,15 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::operations::canister::install_canister::install_canister;
 use crate::lib::root_key::fetch_root_key_if_needed;
-use crate::util::blob_from_arguments;
 use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
 use crate::util::clap::install_mode::{InstallModeHint, InstallModeOpt};
-use dfx_core::canister::{install_canister_wasm, install_mode_to_prompt};
+use crate::util::{ask_for_consent, blob_from_arguments};
+use dfx_core::canister::{
+    install_canister_wasm, install_mode_to_past_tense, install_mode_to_present_tense,
+};
 use dfx_core::identity::CallSender;
 
+use crate::lib::operations::canister::skip_remote_canister;
 use anyhow::bail;
 use candid::Principal;
 use clap::Parser;
@@ -79,7 +82,7 @@ pub async fn exec(
     fetch_root_key_if_needed(env).await?;
 
     let mode_hint = opts.install_mode.mode_for_canister_install()?;
-    let mut canister_id_store = env.get_canister_id_store()?;
+    let canister_id_store = env.get_canister_id_store()?;
     let network = env.get_network_descriptor();
 
     if mode_hint == InstallModeHint::Reinstall && (opts.canister.is_none() || opts.all) {
@@ -102,12 +105,15 @@ pub async fn exec(
                 )?;
                 let wasm_module = dfx_core::fs::read(wasm_path)?;
                 let mode = mode_hint.to_install_mode_with_wasm_path()?;
-                info!(
-                    env.get_logger(),
-                    "{} code for canister {}",
-                    install_mode_to_prompt(&mode),
-                    canister_id,
+                let spinner = env.new_spinner(
+                    format!(
+                        "{} code for canister {}",
+                        install_mode_to_present_tense(&mode),
+                        canister_id,
+                    )
+                    .into(),
                 );
+
                 install_canister_wasm(
                     env.get_agent(),
                     canister_id,
@@ -116,9 +122,22 @@ pub async fn exec(
                     mode,
                     call_sender,
                     wasm_module,
-                    opts.yes,
+                    |message| {
+                        if opts.yes {
+                            Ok(())
+                        } else {
+                            ask_for_consent(env, message)
+                        }
+                    },
                 )
                 .await?;
+                spinner.finish_and_clear();
+                info!(
+                    env.get_logger(),
+                    "{} code for canister {}",
+                    install_mode_to_past_tense(&mode),
+                    canister_id
+                );
                 Ok(())
             } else {
                 bail!("When installing a canister by its ID, you must specify `--wasm` option.")
@@ -145,7 +164,7 @@ pub async fn exec(
                 // streamlined version, we can ignore most of the environment
                 install_canister(
                     env,
-                    &mut canister_id_store,
+                    canister_id_store,
                     canister_id,
                     &canister_info,
                     Some(&wasm_path),
@@ -165,7 +184,7 @@ pub async fn exec(
             } else {
                 install_canister(
                     env,
-                    &mut canister_id_store,
+                    canister_id_store,
                     canister_id,
                     &canister_info,
                     None,
@@ -187,7 +206,6 @@ pub async fn exec(
     } else if opts.all {
         // Install all canisters.
         let config = env.get_config_or_anyhow()?;
-        let config_interface = config.get_config();
         let env_file = config.get_output_env_file(opts.output_env_file)?;
         let pull_canisters_in_config = get_pull_canisters_in_config(env)?;
         if let Some(canisters) = &config.get_config().canisters {
@@ -195,13 +213,7 @@ pub async fn exec(
                 if pull_canisters_in_config.contains_key(canister) {
                     continue;
                 }
-                if config_interface.is_remote_canister(canister, &network.name)? {
-                    info!(
-                        env.get_logger(),
-                        "Skipping canister '{}' because it is remote for network '{}'",
-                        canister,
-                        &network.name,
-                    );
+                if skip_remote_canister(env, canister)? {
                     continue;
                 }
 
@@ -209,7 +221,7 @@ pub async fn exec(
                 let canister_info = CanisterInfo::load(&config, canister, Some(canister_id))?;
                 install_canister(
                     env,
-                    &mut canister_id_store,
+                    canister_id_store,
                     canister_id,
                     &canister_info,
                     None,

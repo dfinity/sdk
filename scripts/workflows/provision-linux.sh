@@ -7,8 +7,8 @@ export
 # Enter temporary directory.
 pushd /tmp
 
-# Install Bats + moreutils.
-sudo apt-get install --yes bats moreutils
+# Install Bats + moreutils + parallel.
+sudo apt-get install --yes bats parallel moreutils
 
 # Modifications needed for some tests
 if [ "$E2E_TEST" = "tests-dfx/bitcoin.bash" ]; then
@@ -38,6 +38,9 @@ if [ "$E2E_TEST" = "tests-dfx/identity_encryption.bash" ] \
     || [ "$E2E_TEST" = "tests-dfx/build.bash" ]
 then
     sudo apt-get install --yes expect
+fi
+if [ "$E2E_TEST" = "tests-dfx/info.bash" ]; then
+    sudo apt-get install --yes libarchive-zip-perl
 fi
 
 # Set environment variables.

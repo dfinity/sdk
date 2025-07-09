@@ -109,7 +109,7 @@ impl HttpRequest {
 
     pub fn redirect_from_raw_to_certified_domain(&self) -> HttpResponse {
         #[cfg(not(test))]
-        let canister_id = ic_cdk::api::id().to_text();
+        let canister_id = ic_cdk::api::canister_self().to_text();
         #[cfg(test)]
         let canister_id = self.get_canister_id();
 

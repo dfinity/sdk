@@ -15,13 +15,14 @@ use std::{
 };
 
 pub mod deploy;
+pub mod pull;
 
 #[derive(Serialize, Deserialize, Default)]
 pub struct PulledJson {
     pub canisters: BTreeMap<Principal, PulledCanister>,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Clone)]
 pub struct PulledCanister {
     /// Name of `type: pull` in dfx.json. Omitted if indirect dependency.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -35,8 +36,9 @@ pub struct PulledCanister {
     ///   - wasm_hash if defined in the dfx metadata
     ///   - wasm_hash_url content if defined in the dfx metadata
     ///   - otherwise read from canister_status
-    /// This field is kept here so that users can compare the hash of the downloaded wasm with it
-    /// If matched, we get extra confidence that the downloaded wasm is correct
+    ///
+    /// This field is kept here so that users can compare the hash of the downloaded wasm with it.
+    /// If matched, we get extra confidence that the downloaded wasm is correct.
     /// If not matched, it is still acceptable
     pub wasm_hash: String,
     /// The downloaded wasm hash when `dfx deps pull`
@@ -299,7 +301,7 @@ pub fn get_pull_canister_or_principal(
             let p = Principal::from_text(canister).with_context(||
                 format!("{canister} is not a valid Principal nor a `type: pull` canister specified in dfx.json")
             )?;
-            if pulled_json.canisters.get(&p).is_none() {
+            if !pulled_json.canisters.contains_key(&p) {
                 bail!("Could not find {} in pulled.json", &p);
             }
             Ok(p)

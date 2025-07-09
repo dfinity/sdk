@@ -1,3 +1,4 @@
+use crate::config::cache::VersionCache;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
@@ -11,13 +12,14 @@ use crate::util;
 use anyhow::{anyhow, Context};
 use candid::Principal as CanisterId;
 use console::style;
-use dfx_core::config::cache::Cache;
 use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use fn_error_context::context;
-use slog::{o, Logger};
+use itertools::Itertools;
+use slog::{debug, info, o, Logger};
 use std::fs;
+use std::io::ErrorKind;
 use std::path::Path;
-use std::sync::Arc;
+use std::process::{Command, Stdio};
 
 /// Set of extras that can be specified in the dfx.json.
 struct AssetsBuilderExtra {
@@ -57,7 +59,7 @@ impl AssetsBuilderExtra {
     }
 }
 pub struct AssetsBuilder {
-    _cache: Arc<dyn Cache>,
+    _cache: VersionCache,
     logger: Logger,
 }
 unsafe impl Send for AssetsBuilder {}
@@ -77,6 +79,7 @@ impl CanisterBuilder for AssetsBuilder {
     #[context("Failed to get dependencies for canister '{}'.", info.get_name())]
     fn get_dependencies(
         &self,
+        _: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
     ) -> DfxResult<Vec<CanisterId>> {
@@ -86,6 +89,7 @@ impl CanisterBuilder for AssetsBuilder {
     #[context("Failed to build asset canister '{}'.", info.get_name())]
     fn build(
         &self,
+        _: &dyn Environment,
         _pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,
@@ -98,7 +102,6 @@ impl CanisterBuilder for AssetsBuilder {
         fs::write(&wasm_path, canister_assets).context("Failed to write asset canister wasm")?;
         let idl_path = info.get_output_root().join(Path::new("assetstorage.did"));
         Ok(BuildOutput {
-            canister_id: info.get_canister_id().expect("Could not find canister ID."),
             wasm: WasmBuildOutput::File(wasm_path),
             idl: IdlBuildOutput::File(idl_path),
         })
@@ -106,6 +109,7 @@ impl CanisterBuilder for AssetsBuilder {
 
     fn postbuild(
         &self,
+        env: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,
@@ -125,6 +129,7 @@ impl CanisterBuilder for AssetsBuilder {
         )?;
 
         build_frontend(
+            env,
             pool.get_logger(),
             info.get_workspace_root(),
             &config.network_name,
@@ -141,6 +146,7 @@ impl CanisterBuilder for AssetsBuilder {
 
     fn get_candid_path(
         &self,
+        _: &dyn Environment,
         _pool: &CanisterPool,
         info: &CanisterInfo,
         _config: &BuildConfig,
@@ -177,6 +183,7 @@ fn unpack_did(generate_output_dir: &Path) -> DfxResult<()> {
 
 #[context("Failed to build frontend for network '{}'.", network_name)]
 fn build_frontend(
+    env: &dyn Environment,
     logger: &slog::Logger,
     project_root: &Path,
     network_name: &str,
@@ -190,20 +197,20 @@ fn build_frontend(
 
     if custom_build_frontend {
         for command in build {
-            slog::info!(
+            info!(
                 logger,
                 r#"{} '{}'"#,
                 style("Executing").green().bold(),
                 command
             );
 
-            super::run_command(command, &vars, project_root)
-                .with_context(|| format!("Failed to run {}.", command))?;
+            super::run_command(env, command, &vars, project_root)
+                .with_context(|| format!("Failed to run {command}.",))?;
         }
     } else if build_frontend {
         // Frontend build.
-        slog::info!(logger, "Building frontend...");
-        let mut cmd = std::process::Command::new(program::NPM);
+        let spinner = env.new_spinner("Building frontend...".into());
+        let mut cmd = Command::new(program::NPM);
 
         // Provide DFX_NETWORK at build time
         cmd.env("DFX_NETWORK", network_name);
@@ -223,23 +230,43 @@ fn build_frontend(
         }
 
         cmd.current_dir(project_root)
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped());
-        slog::debug!(logger, "Running {:?}...", cmd);
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        debug!(logger, "Running {cmd:?}...");
 
-        let output = cmd
-            .output()
-            .with_context(|| format!("Error executing {:#?}", cmd))?;
+        let res = cmd.output();
+        let output = match res {
+            Ok(o) => o,
+            Err(e) => {
+                let root_err = if e.kind() == ErrorKind::NotFound {
+                    anyhow!("npm was not found. (Is it installed?)")
+                } else {
+                    e.into()
+                };
+                return Err(root_err).context(format!(
+                    "Error executing {} {}",
+                    shell_words::quote(&cmd.get_program().to_string_lossy()),
+                    cmd.get_args()
+                        .map(|a| shell_words::quote(&a.to_string_lossy()).into_owned())
+                        .format(" ")
+                ));
+            }
+        };
         if !output.status.success() {
             return Err(DfxError::new(BuildError::CommandError(
-                format!("{:?}", cmd),
+                format!("{cmd:?}",),
                 output.status,
                 String::from_utf8_lossy(&output.stdout).to_string(),
                 String::from_utf8_lossy(&output.stderr).to_string(),
             )));
         } else if !output.stderr.is_empty() {
             // Cannot use eprintln, because it would interfere with the progress bar.
-            slog::warn!(logger, "{}", String::from_utf8_lossy(&output.stderr));
+            debug!(
+                logger,
+                "Frontend build succeed:\n{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            spinner.finish_and_clear();
         }
     }
     Ok(())

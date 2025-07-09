@@ -1,33 +1,39 @@
-use crate::config::cache::DiskBasedCache;
+use crate::config::cache::VersionCache;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
+use crate::lib::telemetry::{CanisterRecord, Telemetry};
 use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
-use anyhow::anyhow;
+use anyhow::{anyhow, bail};
 use candid::Principal;
-use dfx_core::config::cache::Cache;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
-use dfx_core::config::model::dfinity::{Config, NetworksConfig};
-use dfx_core::config::model::network_descriptor::NetworkDescriptor;
+use dfx_core::config::model::dfinity::{Config, NetworksConfig, TelemetryState, ToolConfig};
+use dfx_core::config::model::network_descriptor::{NetworkDescriptor, NetworkTypeDescriptor};
 use dfx_core::error::canister_id_store::CanisterIdStoreError;
 use dfx_core::error::identity::NewIdentityManagerError;
 use dfx_core::error::load_dfx_config::LoadDfxConfigError;
+use dfx_core::error::uri::UriError;
 use dfx_core::extension::manager::ExtensionManager;
 use dfx_core::identity::identity_manager::{IdentityManager, InitializeIdentity};
 use fn_error_context::context;
 use ic_agent::{Agent, Identity};
+use indicatif::MultiProgress;
+use once_cell::sync::OnceCell;
+use pocket_ic::nonblocking::PocketIc;
 use semver::Version;
-use slog::{warn, Logger, Record};
+use slog::{Logger, Record};
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use url::Url;
 
-pub trait Environment {
-    fn get_cache(&self) -> Arc<dyn Cache>;
+pub trait Environment: Send + Sync {
+    fn get_cache(&self) -> VersionCache;
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError>;
     fn get_networks_config(&self) -> Arc<NetworksConfig>;
+    fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>>;
+    fn telemetry_mode(&self) -> TelemetryState;
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>>;
 
     /// Return a temporary directory for the current project.
@@ -44,12 +50,15 @@ pub trait Environment {
     #[allow(clippy::needless_lifetimes)]
     fn get_agent<'a>(&'a self) -> &'a Agent;
 
+    fn get_pocketic(&self) -> Option<&PocketIc>;
+
     #[allow(clippy::needless_lifetimes)]
     fn get_network_descriptor<'a>(&'a self) -> &'a NetworkDescriptor;
 
     fn get_logger(&self) -> &slog::Logger;
     fn get_verbose_level(&self) -> i64;
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar;
+    fn with_suspend_all_spinners(&self, f: Box<dyn FnOnce() + '_>); // box needed for dyn Environment
     fn new_progress(&self, message: &str) -> ProgressBar;
 
     fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {
@@ -61,7 +70,7 @@ pub trait Environment {
     }
 
     // Explicit lifetimes are actually needed for mockall to work properly.
-    #[allow(clippy::needless_lifetimes)]
+    #[allow(clippy::needless_lifetimes, unused)]
     fn log<'a>(&self, record: &Record<'a>) {
         self.get_logger().log(record);
     }
@@ -76,13 +85,7 @@ pub trait Environment {
 
     fn get_extension_manager(&self) -> &ExtensionManager;
 
-    fn get_canister_id_store(&self) -> Result<CanisterIdStore, CanisterIdStoreError> {
-        CanisterIdStore::new(
-            self.get_logger(),
-            self.get_network_descriptor(),
-            self.get_config()?,
-        )
-    }
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError>;
 }
 
 pub enum ProjectConfig {
@@ -92,15 +95,18 @@ pub enum ProjectConfig {
 }
 
 pub struct EnvironmentImpl {
-    project_config: RefCell<ProjectConfig>,
+    project_config: Mutex<ProjectConfig>,
     shared_networks_config: Arc<NetworksConfig>,
+    tool_config: Arc<Mutex<ToolConfig>>,
 
-    cache: Arc<dyn Cache>,
+    cache: VersionCache,
 
     version: Version,
 
     logger: Option<slog::Logger>,
     verbose_level: i64,
+
+    spinners: MultiProgress,
 
     identity_override: Option<String>,
 
@@ -110,20 +116,22 @@ pub struct EnvironmentImpl {
 }
 
 impl EnvironmentImpl {
-    pub fn new(extension_manager: ExtensionManager) -> DfxResult<Self> {
+    pub fn new(extension_manager: ExtensionManager, tool_config: ToolConfig) -> DfxResult<Self> {
         let shared_networks_config = NetworksConfig::new()?;
         let version = dfx_version().clone();
 
         Ok(EnvironmentImpl {
-            cache: Arc::new(DiskBasedCache::with_version(&version)),
-            project_config: RefCell::new(ProjectConfig::NotLoaded),
+            cache: VersionCache::with_version(&version),
+            project_config: Mutex::new(ProjectConfig::NotLoaded),
             shared_networks_config: Arc::new(shared_networks_config),
+            tool_config: Arc::new(Mutex::new(tool_config)),
             version: version.clone(),
             logger: None,
             verbose_level: 0,
             identity_override: None,
             effective_canister_id: None,
             extension_manager,
+            spinners: MultiProgress::new(),
         })
     }
 
@@ -158,28 +166,45 @@ impl EnvironmentImpl {
         }
     }
 
+    pub fn with_spinners(mut self, spinners: MultiProgress) -> Self {
+        self.spinners = spinners;
+        self
+    }
+
     fn load_config(&self) -> Result<(), LoadDfxConfigError> {
         let config = Config::from_current_dir(Some(&self.extension_manager))?;
 
         let project_config = config.map_or(ProjectConfig::NoProject, |config| {
+            if let Some(canisters) = &config.config.canisters {
+                Telemetry::set_canisters(
+                    canisters
+                        .values()
+                        .map(CanisterRecord::from_canister)
+                        .collect(),
+                );
+            }
             ProjectConfig::Loaded(Arc::new(config))
         });
-        self.project_config.replace(project_config);
+        *self.project_config.lock().unwrap() = project_config;
         Ok(())
     }
 }
 
 impl Environment for EnvironmentImpl {
-    fn get_cache(&self) -> Arc<dyn Cache> {
-        Arc::clone(&self.cache)
+    fn get_cache(&self) -> VersionCache {
+        self.cache.clone()
     }
 
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
-        if matches!(*self.project_config.borrow(), ProjectConfig::NotLoaded) {
+        if matches!(
+            *self.project_config.lock().unwrap(),
+            ProjectConfig::NotLoaded
+        ) {
             self.load_config()?;
         }
 
-        let config = if let ProjectConfig::Loaded(ref config) = *self.project_config.borrow() {
+        let config = if let ProjectConfig::Loaded(ref config) = *self.project_config.lock().unwrap()
+        {
             Some(Arc::clone(config))
         } else {
             None
@@ -189,6 +214,24 @@ impl Environment for EnvironmentImpl {
 
     fn get_networks_config(&self) -> Arc<NetworksConfig> {
         self.shared_networks_config.clone()
+    }
+
+    fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>> {
+        self.tool_config.clone()
+    }
+
+    fn telemetry_mode(&self) -> TelemetryState {
+        if let Ok(var) = std::env::var("DFX_TELEMETRY") {
+            if !var.is_empty() {
+                return match &*var {
+                    "true" | "1" | "on" => TelemetryState::On,
+                    "false" | "0" | "off" => TelemetryState::Off,
+                    "local" => TelemetryState::Local,
+                    _ => TelemetryState::On,
+                };
+            }
+        }
+        self.tool_config.lock().unwrap().interface().telemetry
     }
 
     fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
@@ -213,10 +256,18 @@ impl Environment for EnvironmentImpl {
         unreachable!("Agent only available from an AgentEnvironment");
     }
 
+    fn get_pocketic(&self) -> Option<&PocketIc> {
+        unreachable!("PocketIC handle only available from an AgentEnvironment");
+    }
+
     fn get_network_descriptor(&self) -> &NetworkDescriptor {
         // It's not valid to call get_network_descriptor on an EnvironmentImpl.
         // All of the places that call this have an AgentEnvironment anyway.
         unreachable!("NetworkDescriptor only available from an AgentEnvironment");
+    }
+
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
+        unreachable!("CanisterIdStore only available from an AgentEnvironment")
     }
 
     fn get_logger(&self) -> &slog::Logger {
@@ -232,10 +283,14 @@ impl Environment for EnvironmentImpl {
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar {
         // Only show the progress bar if the level is INFO or more.
         if self.verbose_level >= 0 {
-            ProgressBar::new_spinner(message)
+            ProgressBar::new_spinner(message, &self.spinners)
         } else {
             ProgressBar::discard()
         }
+    }
+
+    fn with_suspend_all_spinners(&self, f: Box<dyn FnOnce() + '_>) {
+        self.spinners.suspend(f);
     }
 
     fn new_progress(&self, _message: &str) -> ProgressBar {
@@ -267,9 +322,11 @@ impl Environment for EnvironmentImpl {
 pub struct AgentEnvironment<'a> {
     backend: &'a dyn Environment,
     agent: Agent,
+    pocketic: Option<PocketIc>,
     network_descriptor: NetworkDescriptor,
     identity_manager: IdentityManager,
     effective_canister_id: Option<Principal>,
+    canister_id_store: OnceCell<CanisterIdStore>,
 }
 
 impl<'a> AgentEnvironment<'a> {
@@ -287,12 +344,26 @@ impl<'a> AgentEnvironment<'a> {
         } else {
             identity_manager.instantiate_selected_identity(&logger)?
         };
+        Telemetry::set_identity_type(identity.identity_type());
+        Telemetry::set_network(&network_descriptor);
         if network_descriptor.is_ic
+            && !matches!(
+                network_descriptor.r#type,
+                NetworkTypeDescriptor::Playground { .. }
+            )
             && identity.insecure
             && !is_warning_disabled(MainnetPlainTextIdentity)
         {
-            warn!(logger, "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP. Create a new identity with `dfx identity new` \
-                and use it in mainnet-facing commands with the `--identity` flag", identity.name());
+            bail!(
+                "The {} identity is not stored securely. Do not use it to control a lot of cycles/ICP.
+- For enhanced security, create a new identity using the command: 
+    dfx identity new
+  Then, specify the new identity in mainnet-facing commands with the `--identity` flag.
+- If you understand the risks and still wish to use the insecure plaintext identity, you can suppress this warning by running:
+    export DFX_WARNING=-mainnet_plaintext_identity
+  After setting this environment variable, re-run the command.",
+                identity.name()
+            );
         }
         let url = network_descriptor.first_provider()?;
         let effective_canister_id = if let Some(d) = &network_descriptor.local_server_descriptor {
@@ -302,23 +373,50 @@ impl<'a> AgentEnvironment<'a> {
             None
         };
 
+        let pocketic =
+            if let Some(local_server_descriptor) = &network_descriptor.local_server_descriptor {
+                match local_server_descriptor.get_running_pocketic_port(None)? {
+                    Some(port) => {
+                        let mut socket_addr = local_server_descriptor.bind_address;
+                        socket_addr.set_port(port);
+                        let url = format!("http://{}", socket_addr);
+                        let url = Url::parse(&url)
+                            .map_err(|e| UriError::UrlParseError(url.to_string(), e))?;
+                        Some(create_pocketic(&url))
+                    }
+                    None => None,
+                }
+            } else {
+                None
+            };
+
         Ok(AgentEnvironment {
             backend,
             agent: create_agent(logger, url, identity, timeout)?,
+            pocketic,
             network_descriptor: network_descriptor.clone(),
             identity_manager,
             effective_canister_id,
+            canister_id_store: OnceCell::new(),
         })
     }
 }
 
 impl<'a> Environment for AgentEnvironment<'a> {
-    fn get_cache(&self) -> Arc<dyn Cache> {
+    fn get_cache(&self) -> VersionCache {
         self.backend.get_cache()
     }
 
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
         self.backend.get_config()
+    }
+
+    fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>> {
+        self.backend.get_tool_config()
+    }
+
+    fn telemetry_mode(&self) -> TelemetryState {
+        self.backend.telemetry_mode()
     }
 
     fn get_networks_config(&self) -> Arc<NetworksConfig> {
@@ -329,6 +427,17 @@ impl<'a> Environment for AgentEnvironment<'a> {
         self.get_config()?.ok_or_else(|| anyhow!(
             "Cannot find dfx configuration file in the current working directory. Did you forget to create one?"
         ))
+    }
+
+    fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
+        self.canister_id_store.get_or_try_init(|| {
+            let config = self.get_config()?;
+            let network_descriptor = self.get_network_descriptor();
+            let store =
+                CanisterIdStore::new(self.get_logger(), network_descriptor, config.clone())?;
+            Telemetry::allowlist_all_asset_canisters(config.as_deref(), &store);
+            Ok(store)
+        })
     }
 
     fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
@@ -347,6 +456,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
         &self.agent
     }
 
+    fn get_pocketic(&self) -> Option<&PocketIc> {
+        self.pocketic.as_ref()
+    }
+
     fn get_network_descriptor(&self) -> &NetworkDescriptor {
         &self.network_descriptor
     }
@@ -361,6 +474,10 @@ impl<'a> Environment for AgentEnvironment<'a> {
 
     fn new_spinner(&self, message: Cow<'static, str>) -> ProgressBar {
         self.backend.new_spinner(message)
+    }
+
+    fn with_suspend_all_spinners(&self, f: Box<dyn FnOnce() + '_>) {
+        self.backend.with_suspend_all_spinners(f);
     }
 
     fn new_progress(&self, message: &str) -> ProgressBar {
@@ -406,7 +523,94 @@ pub fn create_agent(
         .with_url(url)
         .with_boxed_identity(identity)
         .with_verify_query_signatures(!disable_query_verification)
-        .with_ingress_expiry(Some(timeout))
+        .with_ingress_expiry(timeout)
         .build()?;
     Ok(agent)
+}
+
+pub fn create_pocketic(url: &Url) -> PocketIc {
+    PocketIc::new_from_existing_instance(url.clone(), 0, None)
+}
+
+#[cfg(test)]
+pub mod test_env {
+    use super::*;
+
+    /// Provides access to log-message-generating functions in test mode.
+    pub struct TestEnv;
+    impl Environment for TestEnv {
+        fn get_agent(&self) -> &Agent {
+            unimplemented!()
+        }
+        fn get_cache(&self) -> VersionCache {
+            unimplemented!()
+        }
+        fn get_canister_id_store(&self) -> Result<&CanisterIdStore, CanisterIdStoreError> {
+            unimplemented!()
+        }
+        fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
+            unimplemented!()
+        }
+        fn get_config_or_anyhow(&self) -> anyhow::Result<Arc<Config>> {
+            bail!("dummy env")
+        }
+        fn get_effective_canister_id(&self) -> Principal {
+            unimplemented!()
+        }
+        fn get_extension_manager(&self) -> &ExtensionManager {
+            unimplemented!()
+        }
+        fn get_identity_override(&self) -> Option<&str> {
+            None
+        }
+        fn get_logger(&self) -> &slog::Logger {
+            unimplemented!()
+        }
+        fn get_network_descriptor(&self) -> &NetworkDescriptor {
+            unimplemented!()
+        }
+        fn get_networks_config(&self) -> Arc<NetworksConfig> {
+            unimplemented!()
+        }
+        fn get_tool_config(&self) -> Arc<Mutex<ToolConfig>> {
+            unimplemented!()
+        }
+        fn get_override_effective_canister_id(&self) -> Option<Principal> {
+            None
+        }
+        fn get_pocketic(&self) -> Option<&PocketIc> {
+            None
+        }
+        fn get_project_temp_dir(&self) -> DfxResult<Option<PathBuf>> {
+            Ok(None)
+        }
+        fn get_selected_identity(&self) -> Option<&String> {
+            unimplemented!()
+        }
+        fn get_selected_identity_principal(&self) -> Option<Principal> {
+            unimplemented!()
+        }
+        fn get_verbose_level(&self) -> i64 {
+            0
+        }
+        fn get_version(&self) -> &Version {
+            unimplemented!()
+        }
+        fn telemetry_mode(&self) -> TelemetryState {
+            TelemetryState::Off
+        }
+        fn log(&self, _record: &Record) {}
+        fn new_identity_manager(&self) -> Result<IdentityManager, NewIdentityManagerError> {
+            unimplemented!()
+        }
+        fn new_progress(&self, _message: &str) -> ProgressBar {
+            ProgressBar::discard()
+        }
+        fn with_suspend_all_spinners(&self, f: Box<dyn FnOnce() + '_>) {
+            f()
+        }
+        fn new_spinner(&self, _message: Cow<'static, str>) -> ProgressBar {
+            ProgressBar::discard()
+        }
+    }
 }

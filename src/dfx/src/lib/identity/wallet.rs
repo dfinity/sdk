@@ -1,5 +1,6 @@
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::root_key::fetch_root_key_if_needed;
+use crate::lib::telemetry::Telemetry;
 use crate::util::assets::wallet_wasm;
 use crate::Environment;
 use anyhow::{bail, Context};
@@ -59,7 +60,10 @@ pub async fn get_or_create_wallet(
                 })
             }
         }
-        Some(principal) => Ok(principal),
+        Some(principal) => {
+            Telemetry::allowlist_canisters(&[principal]);
+            Ok(principal)
+        }
     }
 }
 
@@ -72,9 +76,12 @@ pub async fn create_wallet(
     fetch_root_key_if_needed(env).await?;
     let agent = env.get_agent();
     let mgr = ManagementCanister::create(agent);
-    info!(
-        env.get_logger(),
-        "Creating a wallet canister on the {} network.", network.name
+    let spinner = env.new_spinner(
+        format!(
+            "Creating a wallet canister on the {} network.",
+            network.name
+        )
+        .into(),
     );
 
     let wasm = wallet_wasm(env.get_logger())?;
@@ -91,16 +98,22 @@ pub async fn create_wallet(
         }
     };
 
+    Telemetry::allowlist_canisters(&[canister_id]);
+
     match mgr
         .install_code(&canister_id, wasm.as_slice())
         .with_mode(InstallMode::Install)
         .await
     {
-        Err(AgentError::CertifiedReject(RejectResponse {
-            reject_code: RejectCode::CanisterError,
-            reject_message,
+        Err(AgentError::CertifiedReject {
+            reject:
+                RejectResponse {
+                    reject_code: RejectCode::CanisterError,
+                    reject_message,
+                    ..
+                },
             ..
-        })) if reject_message.contains("not empty") => {
+        }) if reject_message.contains("not empty") => {
             bail!(
                 r#"The wallet canister "{canister_id}" already exists for user "{name}" on "{}" network."#,
                 network.name
@@ -117,10 +130,10 @@ pub async fn create_wallet(
         .context("Failed to store wallet wasm.")?;
 
     set_wallet_id(network, name, canister_id)?;
-
+    spinner.finish_and_clear();
     info!(
         env.get_logger(),
-        r#"The wallet canister on the "{}" network for user "{}" is "{}""#,
+        r#"Created a wallet canister on the "{}" network for user "{}" with ID "{}""#,
         network.name,
         name,
         canister_id,
