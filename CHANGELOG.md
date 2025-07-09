@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: feat: updates sveltekit starter dependencies and testing strategy
+
+Now uses `@testing-library/svelte` and requires less setup logic in the "frontend tests"
+
 # 0.28.0
 
 ### fix: deps deploy works with Canister ID out of the ranges of the pocket-ic subnets
