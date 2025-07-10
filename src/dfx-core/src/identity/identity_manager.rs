@@ -8,7 +8,9 @@ use crate::error::identity::{
     ConvertMnemonicToKeyError,
     ConvertMnemonicToKeyError::DeriveExtendedKeyFromPathFailed,
     CreateIdentityConfigError,
-    CreateIdentityConfigError::GenerateFreshEncryptionConfigurationFailed,
+    CreateIdentityConfigError::{
+        GenerateFreshEncryptionConfigurationFailed, KeyringAvailabilityCheckFailed,
+    },
     CreateNewIdentityError,
     CreateNewIdentityError::{
         ConvertSecretKeyToSec1PemFailed, CreateMnemonicFromPhraseFailed,
@@ -340,7 +342,9 @@ impl IdentityManager {
             } else {
                 match mode {
                     IdentityStorageMode::Keyring => {
-                        if keyring_mock::keyring_available(log) {
+                        if keyring_mock::keyring_available(log)
+                            .map_err(KeyringAvailabilityCheckFailed)?
+                        {
                             Ok(IdentityConfiguration {
                                 keyring_identity_suffix: Some(String::from(name)),
                                 ..Default::default()

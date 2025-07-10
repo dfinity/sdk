@@ -52,6 +52,9 @@ tiny-bip39 = "1.0.0"
 time = { workspace = true, features = ["serde", "serde-human-readable"] }
 url.workspace = true
 
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "3"
+
 [dev-dependencies]
 futures.workspace = true
 proptest = "1.0"

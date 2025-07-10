@@ -1698,6 +1698,7 @@ dependencies = [
  "ring",
  "schemars",
  "sec1 0.3.0",
+ "security-framework 3.2.0",
  "semver",
  "serde",
  "serde_json",
