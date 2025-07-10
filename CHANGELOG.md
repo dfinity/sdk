@@ -2,7 +2,7 @@
 
 # UNRELEASED
 
-### feat: feat: updates sveltekit starter dependencies and testing strategy
+### feat: updates sveltekit starter dependencies and testing strategy
 
 Now uses `@testing-library/svelte` and requires less setup logic in the "frontend tests"
 
