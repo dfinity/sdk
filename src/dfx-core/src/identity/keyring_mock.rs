@@ -1,9 +1,9 @@
 use super::TEMP_IDENTITY_PREFIX;
-use crate::error::keyring::KeyringError;
 use crate::error::keyring::KeyringError::{
     DecodePemFailed, DeletePasswordFailed, GetPasswordFailed, LoadMockKeyringFailed,
     MockKeyNotFound, MockUnavailable, NewEntryFailed, SaveMockKeyringFailed, SetPasswordFailed,
 };
+use crate::error::keyring::{KeyringError, KeyringMaintenanceError};
 use crate::json::{load_json_file, save_json_file};
 use keyring;
 use serde::{Deserialize, Serialize};
@@ -75,7 +75,10 @@ pub fn load_pem_from_keyring(identity_name_suffix: &str) -> Result<Vec<u8>, Keyr
         KeyringMockMode::NoMock => {
             let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name)
                 .map_err(NewEntryFailed)?;
-            let encoded_pem = entry.get_password().map_err(GetPasswordFailed)?;
+            let encoded_pem = entry
+                .get_password()
+                .handle_macos_acl_error()?
+                .map_err(GetPasswordFailed)?;
             let pem = hex::decode(encoded_pem).map_err(DecodePemFailed)?;
             Ok(pem)
         }
@@ -104,6 +107,7 @@ pub fn write_pem_to_keyring(
                 .map_err(NewEntryFailed)?;
             entry
                 .set_password(&encoded_pem)
+                .handle_macos_acl_error()?
                 .map_err(SetPasswordFailed)?;
             Ok(())
         }
@@ -118,7 +122,7 @@ pub fn write_pem_to_keyring(
 }
 
 /// Determines if keyring is available by trying to write a dummy entry.
-pub fn keyring_available(log: &Logger) -> bool {
+pub fn keyring_available(log: &Logger) -> Result<bool, KeyringMaintenanceError> {
     match KeyringMockMode::current_mode() {
         KeyringMockMode::NoMock => {
             trace!(log, "Checking for keyring availability.");
@@ -128,13 +132,16 @@ pub fn keyring_available(log: &Logger) -> bool {
                 KEYRING_IDENTITY_PREFIX, TEMP_IDENTITY_PREFIX, "dummy"
             );
             if let Ok(entry) = keyring::Entry::new(KEYRING_SERVICE_NAME, &dummy_entry_name) {
-                entry.set_password("dummy entry").is_ok()
+                Ok(entry
+                    .set_password("dummy entry")
+                    .handle_macos_acl_error()?
+                    .is_ok())
             } else {
-                false
+                Ok(false)
             }
         }
-        KeyringMockMode::MockReject => false,
-        KeyringMockMode::MockAvailable => true,
+        KeyringMockMode::MockReject => Ok(false),
+        KeyringMockMode::MockAvailable => Ok(true),
     }
 }
 
@@ -144,7 +151,7 @@ pub fn delete_pem_from_keyring(identity_name_suffix: &str) -> Result<(), Keyring
         KeyringMockMode::NoMock => {
             let entry = keyring::Entry::new(KEYRING_SERVICE_NAME, &keyring_identity_name)
                 .map_err(NewEntryFailed)?;
-            if entry.get_password().is_ok() {
+            if entry.get_password().handle_macos_acl_error()?.is_ok() {
                 entry.delete_credential().map_err(DeletePasswordFailed)?;
             }
         }
@@ -156,4 +163,25 @@ pub fn delete_pem_from_keyring(identity_name_suffix: &str) -> Result<(), Keyring
         KeyringMockMode::MockReject => return Err(MockUnavailable()),
     }
     Ok(())
+}
+
+trait KeyringResultExt: Sized {
+    fn handle_macos_acl_error(self) -> Result<Self, KeyringMaintenanceError>;
+}
+
+impl<T> KeyringResultExt for Result<T, keyring::Error> {
+    fn handle_macos_acl_error(self) -> Result<Self, KeyringMaintenanceError> {
+        match self {
+            Ok(value) => Ok(Ok(value)),
+            #[cfg(target_os = "macos")]
+            Err(keyring::Error::PlatformFailure(err))
+                if err
+                    .downcast_ref::<security_framework::base::Error>()
+                    .is_some_and(|err| err.code() == -67671) =>
+            {
+                Err(KeyringMaintenanceError)
+            }
+            Err(e) => Ok(Err(e)),
+        }
+    }
 }
