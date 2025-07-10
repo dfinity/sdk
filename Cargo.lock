@@ -1286,6 +1286,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "curve25519-dalek"
+version = "4.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "373b7c5dbd637569a2cca66e8d66b8c446a1e7bf064ea321d265d7b3dfe7c97e"
+dependencies = [
+ "cfg-if",
+ "cpufeatures",
+ "curve25519-dalek-derive",
+ "digest 0.10.7",
+ "fiat-crypto",
+ "group 0.13.0",
+ "rand_core 0.6.4",
+ "rustc_version",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
+name = "curve25519-dalek-derive"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f46882e17999c6cc590af592290432be3bce0428cb0d5f8b6715e4dc7b383eb3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
+]
+
+[[package]]
 name = "curve25519-dalek-ng"
 version = "4.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1847,6 +1876,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ed25519"
+version = "2.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "115531babc129696a58c64a4fef0a8bf9e9698629fb97e9e40767d235cfbcd53"
+dependencies = [
+ "pkcs8 0.10.2",
+ "signature 2.2.0",
+]
+
+[[package]]
 name = "ed25519-consensus"
 version = "2.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1858,6 +1897,23 @@ dependencies = [
  "serde",
  "sha2 0.9.9",
  "thiserror 1.0.69",
+ "zeroize",
+]
+
+[[package]]
+name = "ed25519-dalek"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70e796c081cee67dc755e1a36a0a172b897fab85fc3f6bc48307991f64e4eca9"
+dependencies = [
+ "curve25519-dalek",
+ "ed25519",
+ "merlin",
+ "rand_core 0.6.4",
+ "serde",
+ "sha2 0.10.9",
+ "signature 2.2.0",
+ "subtle",
  "zeroize",
 ]
 
@@ -2059,6 +2115,12 @@ dependencies = [
  "rand_core 0.6.4",
  "subtle",
 ]
+
+[[package]]
+name = "fiat-crypto"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64cd1e32ddd350061ae6edb1b082d7c54915b5c672c389143b9a63403a109f24"
 
 [[package]]
 name = "filetime"
@@ -2481,6 +2543,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "hkdf"
+version = "0.12.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7b5f8eb2ad728638ea2c7d47a21db23b7b58a72ed6a38256b8a1849f15fbbdf7"
+dependencies = [
+ "hmac",
+]
+
+[[package]]
 name = "hmac"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2709,7 +2780,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.40.1"
-source = "git+https://github.com/dfinity/agent-rs?rev=3df9a3b413b5c52bb69cbc5fdae82075ce9042b9#3df9a3b413b5c52bb69cbc5fdae82075ce9042b9"
+source = "git+https://github.com/dfinity/agent-rs?rev=b6ba44f871e9dc3be81d621dcfd1ecf65a4aeac1#b6ba44f871e9dc3be81d621dcfd1ecf65a4aeac1"
 dependencies = [
  "arc-swap",
  "async-channel",
@@ -2728,7 +2799,8 @@ dependencies = [
  "http 1.3.1",
  "http-body 1.0.1",
  "ic-certification 3.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "ic-transport-types 0.40.1 (git+https://github.com/dfinity/agent-rs?rev=3df9a3b413b5c52bb69cbc5fdae82075ce9042b9)",
+ "ic-ed25519",
+ "ic-transport-types 0.40.1 (git+https://github.com/dfinity/agent-rs?rev=b6ba44f871e9dc3be81d621dcfd1ecf65a4aeac1)",
  "ic-verify-bls-signature",
  "k256 0.13.4",
  "leb128",
@@ -2744,7 +2816,6 @@ dependencies = [
  "serde_cbor",
  "serde_repr",
  "sha2 0.10.9",
- "simple_asn1",
  "stop-token",
  "thiserror 2.0.12",
  "time",
@@ -3113,6 +3184,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ic-ed25519"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0a381e86a9d559c816a7ff4419e56f5d37f96357258fb63b0cb7026db0f729b"
+dependencies = [
+ "curve25519-dalek",
+ "ed25519-dalek",
+ "hkdf",
+ "pem 1.1.1",
+ "rand 0.8.5",
+ "thiserror 2.0.12",
+ "zeroize",
+]
+
+[[package]]
 name = "ic-error-types"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3198,7 +3284,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.40.1"
-source = "git+https://github.com/dfinity/agent-rs?rev=3df9a3b413b5c52bb69cbc5fdae82075ce9042b9#3df9a3b413b5c52bb69cbc5fdae82075ce9042b9"
+source = "git+https://github.com/dfinity/agent-rs?rev=b6ba44f871e9dc3be81d621dcfd1ecf65a4aeac1#b6ba44f871e9dc3be81d621dcfd1ecf65a4aeac1"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3346,7 +3432,7 @@ dependencies = [
 [[package]]
 name = "ic-transport-types"
 version = "0.40.1"
-source = "git+https://github.com/dfinity/agent-rs?rev=3df9a3b413b5c52bb69cbc5fdae82075ce9042b9#3df9a3b413b5c52bb69cbc5fdae82075ce9042b9"
+source = "git+https://github.com/dfinity/agent-rs?rev=b6ba44f871e9dc3be81d621dcfd1ecf65a4aeac1#b6ba44f871e9dc3be81d621dcfd1ecf65a4aeac1"
 dependencies = [
  "candid",
  "hex",
@@ -3416,7 +3502,7 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.40.1"
-source = "git+https://github.com/dfinity/agent-rs?rev=3df9a3b413b5c52bb69cbc5fdae82075ce9042b9#3df9a3b413b5c52bb69cbc5fdae82075ce9042b9"
+source = "git+https://github.com/dfinity/agent-rs?rev=b6ba44f871e9dc3be81d621dcfd1ecf65a4aeac1#b6ba44f871e9dc3be81d621dcfd1ecf65a4aeac1"
 dependencies = [
  "async-trait",
  "candid",
@@ -4218,6 +4304,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5aa361d4faea93603064a027415f07bd8e1d5c88c9fbf68bf56a285428fd79ce"
 dependencies = [
  "autocfg",
+]
+
+[[package]]
+name = "merlin"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58c38e2799fc0978b65dfff8023ec7843e2330bb462f19198840b34b6582397d"
+dependencies = [
+ "byteorder",
+ "keccak",
+ "rand_core 0.6.4",
+ "zeroize",
 ]
 
 [[package]]
@@ -5519,6 +5617,15 @@ name = "rustc-hash"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "357703d41365b4b27c590e3ed91eabb1b663f07c4c084095e60cbed4362dff0d"
+
+[[package]]
+name = "rustc_version"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92"
+dependencies = [
+ "semver",
+]
 
 [[package]]
 name = "rustix"
