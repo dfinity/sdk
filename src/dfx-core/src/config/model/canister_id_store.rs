@@ -9,11 +9,10 @@ use candid::Principal as CanisterId;
 use ic_agent::export::Principal;
 use serde::{Deserialize, Serialize, Serializer};
 use slog::{warn, Logger};
-use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::ops::{Deref, DerefMut, Sub};
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
@@ -85,7 +84,7 @@ impl<'de> Deserialize<'de> for NetworkNametoCanisterTimestamp {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct CanisterIdStore {
     network_descriptor: NetworkDescriptor,
     canister_ids_path: Option<PathBuf>,
@@ -93,10 +92,10 @@ pub struct CanisterIdStore {
 
     // Only the canister ids read from/written to canister-ids.json
     // which does not include remote canister ids
-    ids: RefCell<CanisterIds>,
+    ids: Mutex<CanisterIds>,
 
     // Only canisters that will time out at some point have their timestamp of acquisition saved
-    acquisition_timestamps: RefCell<CanisterTimestamps>,
+    acquisition_timestamps: Mutex<CanisterTimestamps>,
 
     // Remote ids read from dfx.json, never written to canister_ids.json
     remote_ids: Option<CanisterIds>,
@@ -163,8 +162,8 @@ impl CanisterIdStore {
             network_descriptor: network_descriptor.clone(),
             canister_ids_path,
             canister_timestamps_path,
-            ids: RefCell::new(ids),
-            acquisition_timestamps: RefCell::new(acquisition_timestamps),
+            ids: Mutex::new(ids),
+            acquisition_timestamps: Mutex::new(acquisition_timestamps),
             remote_ids,
             pull_ids,
         };
@@ -182,7 +181,8 @@ impl CanisterIdStore {
 
     pub fn get_timestamp(&self, canister_name: &str) -> Option<AcquisitionDateTime> {
         self.acquisition_timestamps
-            .borrow()
+            .lock()
+            .unwrap()
             .get(canister_name)
             .and_then(|timestamp_map| timestamp_map.get(&self.network_descriptor.name).copied())
     }
@@ -196,7 +196,8 @@ impl CanisterIdStore {
     }
 
     pub fn get_name_in_project(&self, canister_id: &str) -> Option<String> {
-        self.get_name_in(canister_id, &self.ids.borrow()).cloned()
+        self.get_name_in(canister_id, &self.ids.lock().unwrap())
+            .cloned()
     }
 
     pub fn get_name_in<'a>(
@@ -268,13 +269,14 @@ impl CanisterIdStore {
         self.remote_ids
             .as_ref()
             .and_then(|remote_ids| self.find_in(canister_name, remote_ids))
-            .or_else(|| self.find_in(canister_name, &self.ids.borrow()))
+            .or_else(|| self.find_in(canister_name, &self.ids.lock().unwrap()))
             .or_else(|| self.pull_ids.get(canister_name).copied())
     }
     pub fn get_name_id_map(&self) -> BTreeMap<String, String> {
         let mut ids: BTreeMap<_, _> = self
             .ids
-            .borrow()
+            .lock()
+            .unwrap()
             .iter()
             .filter_map(|(name, network_to_id)| {
                 Some((
@@ -340,7 +342,8 @@ impl CanisterIdStore {
     ) -> Result<(), AddCanisterIdError> {
         let network_name = &self.network_descriptor.name;
         self.ids
-            .borrow_mut()
+            .lock()
+            .unwrap()
             .entry(canister_name.to_string())
             .or_default()
             .insert(network_name.to_string(), canister_id.to_string());
@@ -352,7 +355,8 @@ impl CanisterIdStore {
             })?;
         if let Some(timestamp) = timestamp {
             self.acquisition_timestamps
-                .borrow_mut()
+                .lock()
+                .unwrap()
                 .entry(canister_name.to_string())
                 .or_default()
                 .insert(network_name.to_string(), timestamp);
@@ -365,7 +369,7 @@ impl CanisterIdStore {
     pub fn remove(&self, log: &Logger, canister_name: &str) -> Result<(), RemoveCanisterIdError> {
         let network_name = &self.network_descriptor.name;
         let save = if let Some(network_name_to_canister_id) =
-            self.ids.borrow_mut().get_mut(canister_name)
+            self.ids.lock().unwrap().get_mut(canister_name)
         {
             network_name_to_canister_id.remove(network_name);
             true
@@ -381,7 +385,8 @@ impl CanisterIdStore {
         }
         let save = if let Some(network_name_to_timestamp) = self
             .acquisition_timestamps
-            .borrow_mut()
+            .lock()
+            .unwrap()
             .get_mut(canister_name)
         {
             network_name_to_timestamp.remove(network_name);
@@ -405,13 +410,17 @@ impl CanisterIdStore {
         let prune_cutoff = now.sub(*timeout);
 
         let mut canisters_to_prune: Vec<String> = Vec::new();
-        for (canister_name, timestamp) in self.acquisition_timestamps.borrow().iter().filter_map(
-            |(canister_name, network_to_timestamp)| {
+        for (canister_name, timestamp) in self
+            .acquisition_timestamps
+            .lock()
+            .unwrap()
+            .iter()
+            .filter_map(|(canister_name, network_to_timestamp)| {
                 network_to_timestamp
                     .get(network_name)
                     .map(|timestamp| (canister_name, timestamp))
-            },
-        ) {
+            })
+        {
             if *timestamp <= prune_cutoff {
                 canisters_to_prune.push(canister_name.clone());
             }
@@ -427,7 +436,8 @@ impl CanisterIdStore {
 
     pub fn non_remote_user_canisters(&self) -> Vec<(String, Principal)> {
         self.ids
-            .borrow()
+            .lock()
+            .unwrap()
             .iter()
             .filter_map(|(name, network_to_id)| {
                 network_to_id
@@ -436,6 +446,21 @@ impl CanisterIdStore {
                     .map(|principal| (name.clone(), principal))
             })
             .collect()
+    }
+}
+
+impl Clone for CanisterIdStore {
+    // Mutex doesn't impl Clone
+    fn clone(&self) -> Self {
+        CanisterIdStore {
+            network_descriptor: self.network_descriptor.clone(),
+            canister_ids_path: self.canister_ids_path.clone(),
+            canister_timestamps_path: self.canister_timestamps_path.clone(),
+            ids: Mutex::new(self.ids.lock().unwrap().clone()),
+            acquisition_timestamps: Mutex::new(self.acquisition_timestamps.lock().unwrap().clone()),
+            remote_ids: self.remote_ids.clone(),
+            pull_ids: self.pull_ids.clone(),
+        }
     }
 }
 

@@ -43,7 +43,7 @@ pub(crate) async fn create_batch(canister: &Canister<'_>) -> Result<Nat, AgentEr
     Ok(result)
 }
 
-pub(crate) async fn submit_commit_batch<T: CandidType + Sync>(
+pub(crate) async fn submit_commit_batch<T: CandidType + Send + Sync>(
     canister: &Canister<'_>,
     method_name: &str,
     arg: T, // CommitBatchArguments_{v0,v1,etc}
@@ -69,14 +69,14 @@ pub(crate) async fn submit_commit_batch<T: CandidType + Sync>(
     }
 }
 
-pub(crate) async fn commit_batch<T: CandidType + Sync>(
+pub(crate) async fn commit_batch<T: CandidType + Send + Sync>(
     canister: &Canister<'_>,
     arg: T, // CommitBatchArguments_{v0,v1,etc}
 ) -> Result<(), AgentError> {
     submit_commit_batch(canister, COMMIT_BATCH, arg).await
 }
 
-pub(crate) async fn propose_commit_batch<T: CandidType + Sync>(
+pub(crate) async fn propose_commit_batch<T: CandidType + Send + Sync>(
     canister: &Canister<'_>,
     arg: T, // CommitBatchArguments_{v0,v1,etc}
 ) -> Result<(), AgentError> {

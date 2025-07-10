@@ -1,14 +1,16 @@
 use crate::lib::environment::Environment;
 use crate::lib::progress_bar::ProgressBar;
 use ic_asset::{AssetSyncProgressRenderer, AssetSyncState};
-use std::cell::OnceCell;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    OnceLock,
+};
 
 pub struct EnvAssetSyncProgressRenderer<'a> {
     pub env: &'a dyn Environment,
 
     topline: ProgressBar,
-    bytes: OnceCell<ProgressBar>,
+    bytes: OnceLock<ProgressBar>,
 
     // getting properties of assets already in canister
     total_assets_to_retrieve_properties: AtomicUsize,
@@ -37,7 +39,7 @@ impl<'a> EnvAssetSyncProgressRenderer<'a> {
         let total_assets = AtomicUsize::new(0);
         let complete_assets = AtomicUsize::new(0);
 
-        let bytes = OnceCell::new(); // env.new_spinner("Uploading content...".into());
+        let bytes = OnceLock::new(); // env.new_spinner("Uploading content...".into());
         let total_bytes = AtomicUsize::new(0);
         let uploaded_bytes = AtomicUsize::new(0);
 
