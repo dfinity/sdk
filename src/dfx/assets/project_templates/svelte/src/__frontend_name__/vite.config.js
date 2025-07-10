@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 
 dotenv.config({ path: '../../.env' });
 
-export default defineConfig({
+export default defineConfig(({mode}) => ({
   build: {
     emptyOutDir: true,
   },
@@ -41,4 +41,4 @@ export default defineConfig({
     ],
     dedupe: ['@dfinity/agent'],
   },
-});
+}));

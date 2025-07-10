@@ -6,6 +6,6 @@
 @@ -33,1 +33,5 @@
 +  test: {
 +    environment: 'jsdom',
-+    setupFiles: 'src/setupTests.js',
 +  },
    resolve: {
++    conditions: mode === 'test' ? ['browser'] : [],
