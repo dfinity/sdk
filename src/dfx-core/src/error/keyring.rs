@@ -40,6 +40,6 @@ A macOS issue prevents arm64 versions of dfx from accessing your identities whil
 
 You will need to go into Keychain Access and remove dfx from the 'Access Control' tab of all 'internet_computer_identities' keys.
 
-For more information, see the dfx 0.28.0 migration guide: https://github.com/dfinity/sdk/blob/0.28.0-beta.2/docs/migration/dfx-0.28.0-migration-guide.md
+For more information, see the dfx 0.28.0 migration guide: https://github.com/dfinity/sdk/blob/0.28.0/docs/migration/dfx-0.28.0-migration-guide.md
 ")]
 pub struct KeyringMaintenanceError;
