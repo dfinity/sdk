@@ -549,6 +549,6 @@ mod tests {
             .unwrap()
             .block_on(download_file(&url));
         let time1 = std::time::Instant::now();
-        assert!(time1 - time0 < std::time::Duration::from_secs(61));
+        assert!(time1 - time0 < std::time::Duration::from_secs(61), "Failed after {}", time1 - time0);
     }
 }
