@@ -94,7 +94,7 @@ pub fn directory_parser(path: &str) -> Result<PathBuf, String> {
     if path.is_dir() {
         Ok(path)
     } else {
-        Err("Path does not exist or is not a directory.".to_string())
+        Err(format!("Path '{path}' does not exist or is not a directory."))
     }
 }
 
