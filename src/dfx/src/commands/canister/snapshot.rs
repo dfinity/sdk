@@ -9,7 +9,10 @@ use backoff::future::retry;
 use backoff::ExponentialBackoff;
 use candid::Principal;
 use clap::{Parser, Subcommand};
-use dfx_core::identity::CallSender;
+use dfx_core::{
+    identity::CallSender,
+    json::{load_json_file, save_json_file},
+};
 use ic_utils::interfaces::management_canister::{
     CanisterSnapshotId, CanisterStatus, SnapshotDataKind, SnapshotDataOffset, SnapshotMetadata,
 };
@@ -273,13 +276,7 @@ async fn download(
             format!("Failed to read metadata from snapshot {snapshot} in canister {canister}")
         })?;
     let metadata_file = dir.join("metadata.json");
-    let metadata_json = serde_json::to_string_pretty(&metadata)?;
-    std::fs::write(&metadata_file, metadata_json).with_context(|| {
-        format!(
-            "Failed to write snapshot metadata to '{}'",
-            metadata_file.display()
-        )
-    })?;
+    save_json_file(&metadata_file, &metadata)?;
     debug!(
         env.get_logger(),
         "Snapshot metadata saved to '{}'",
@@ -399,21 +396,7 @@ async fn upload(
         .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
 
     // Upload snapshot metadata.
-    let metadata_file = dir.join("metadata.json");
-    let metadata: SnapshotMetadata =
-        serde_json::from_str(&std::fs::read_to_string(&metadata_file).with_context(|| {
-            format!(
-                "Failed to read snapshot metadata from '{}'",
-                metadata_file.display()
-            )
-        })?)
-        .with_context(|| {
-            format!(
-                "Failed to deserialize snapshot metadata from '{}'",
-                metadata_file.display()
-            )
-        })?;
-
+    let metadata: SnapshotMetadata = load_json_file(&dir.join("metadata.json"))?;
     let snapshot_id = upload_canister_snapshot_metadata(
         env,
         canister_id,
@@ -424,7 +407,6 @@ async fn upload(
     .await
     .with_context(|| format!("Failed to upload snapshot metadata to canister {canister}"))?
     .into();
-
     debug!(
         env.get_logger(),
         "Snapshot metadata uploaded to canister {canister} with Snapshot ID: {snapshot_id}"
