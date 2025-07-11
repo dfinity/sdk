@@ -94,7 +94,10 @@ pub fn directory_parser(path: &str) -> Result<PathBuf, String> {
     if path.is_dir() {
         Ok(path)
     } else {
-        Err(format!("Path '{path}' does not exist or is not a directory."))
+        Err(format!(
+            "Path '{}' does not exist or is not a directory.",
+            path.display()
+        ))
     }
 }
 
