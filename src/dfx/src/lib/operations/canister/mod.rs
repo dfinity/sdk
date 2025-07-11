@@ -5,7 +5,10 @@ pub mod motoko_playground;
 mod skip_remote_canister;
 
 pub use create_canister::create_canister;
-use ic_utils::interfaces::management_canister::Snapshot;
+use ic_utils::interfaces::management_canister::{
+    CanisterSnapshotId, CanisterTimer, ExportedGlobal, OnLowWasmMemoryHookStatus, Snapshot,
+    SnapshotDataKind, SnapshotDataOffset, SnapshotDataResult, SnapshotMetadata,
+};
 pub use install_canister::install_wallet;
 pub use skip_remote_canister::skip_remote_canister;
 
@@ -577,4 +580,132 @@ pub async fn delete_canister_snapshot(
     )
     .await?;
     Ok(())
+}
+
+pub async fn read_canister_snapshot_metadata(
+    env: &dyn Environment,
+    canister_id: Principal,
+    snapshot_id: &[u8],
+    call_sender: &CallSender,
+) -> DfxResult<SnapshotMetadata> {
+    #[derive(CandidType)]
+    struct In<'a> {
+        canister_id: Principal,
+        snapshot_id: &'a [u8],
+    }
+    let (snapshot_metadata,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::ReadCanisterSnapshotMetadata.as_ref(),
+        &In {
+            canister_id,
+            snapshot_id,
+        },
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(snapshot_metadata)
+}
+
+pub async fn read_canister_snapshot_data(
+    env: &dyn Environment,
+    canister_id: Principal,
+    snapshot_id: &[u8],
+    kind: &SnapshotDataKind,
+    call_sender: &CallSender,
+) -> DfxResult<SnapshotDataResult> {
+    #[derive(CandidType)]
+    struct In<'a> {
+        canister_id: Principal,
+        snapshot_id: &'a [u8],
+        kind: &'a SnapshotDataKind,
+    }
+    let (snapshot_data,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::ReadCanisterSnapshotData.as_ref(),
+        &In {
+            canister_id,
+            snapshot_id,
+            kind,
+        },
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(snapshot_data)
+}
+
+pub async fn upload_canister_snapshot_metadata(
+    env: &dyn Environment,
+    canister_id: Principal,
+    replace_snapshot: Option<&[u8]>,
+    metadata: &SnapshotMetadata,
+    call_sender: &CallSender,
+) -> DfxResult<CanisterSnapshotId> {
+    #[derive(CandidType)]
+    struct In<'a> {
+        canister_id: Principal,
+        replace_snapshot: Option<&'a [u8]>,
+        wasm_module_size: u64,
+        exported_globals: &'a Vec<ExportedGlobal>,
+        wasm_memory_size: u64,
+        stable_memory_size: u64,
+        certified_data: &'a Vec<u8>,
+        global_timer: Option<&'a CanisterTimer>,
+        on_low_wasm_memory_hook_status: Option<&'a OnLowWasmMemoryHookStatus>,
+    }
+    let (snapshot_id,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::UploadCanisterSnapshotMetadata.as_ref(),
+        &In {
+            canister_id,
+            replace_snapshot,
+            wasm_module_size: metadata.wasm_module_size,
+            exported_globals: &metadata.exported_globals,
+            wasm_memory_size: metadata.wasm_memory_size,
+            stable_memory_size: metadata.stable_memory_size,
+            certified_data: &metadata.certified_data,
+            global_timer: metadata.global_timer.as_ref(),
+            on_low_wasm_memory_hook_status: metadata.on_low_wasm_memory_hook_status.as_ref(),
+        },
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(snapshot_id)
+}
+
+pub async fn upload_canister_snapshot_data(
+    env: &dyn Environment,
+    canister_id: Principal,
+    snapshot_id: &[u8],
+    kind: &SnapshotDataOffset,
+    chunk: &[u8],
+    call_sender: &CallSender,
+) -> DfxResult {
+    #[derive(CandidType)]
+    struct In<'a> {
+        canister_id: Principal,
+        snapshot_id: &'a [u8],
+        kind: &'a SnapshotDataOffset,
+        chunk: &'a [u8],
+    }
+    let (snapshot_data,) = do_management_call(
+        env,
+        canister_id,
+        MgmtMethod::UploadCanisterSnapshotData.as_ref(),
+        &In {
+            canister_id,
+            snapshot_id,
+            kind,
+            chunk,
+        },
+        call_sender,
+        0,
+    )
+    .await?;
+    Ok(snapshot_data)
 }

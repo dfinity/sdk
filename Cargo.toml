@@ -26,11 +26,11 @@ future_not_send = "warn"
 candid = "0.10.11"
 candid_parser = "0.1.4"
 dfx-core = { path = "src/dfx-core", version = "0.1.0" }
-ic-agent = { version = "0.40.1" }
+ic-agent = { version = "0.41.0" }
 ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.24.0" }
 ic-cdk = "0.18.4"
-ic-identity-hsm = { version = "0.40.1" }
-ic-utils = { version = "0.40.1" }
+ic-identity-hsm = { version = "0.41.0" }
+ic-utils = { version = "0.41.0" }
 
 aes-gcm = { version = "0.10.3", features = ["std"] }
 anyhow = "1.0.56"
