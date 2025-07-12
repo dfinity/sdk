@@ -6,6 +6,12 @@
 
 Added `dfx canister snapshot download` and `dfx canister snapshot upload` commands to download and upload the canister snapshot.
 
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.14.14](https://github.com/dfinity/motoko/releases/tag/0.14.14)
+
 # 0.28.0
 
 ### fix: deps deploy works with Canister ID out of the ranges of the pocket-ic subnets
