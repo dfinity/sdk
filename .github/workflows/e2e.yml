@@ -66,9 +66,15 @@ jobs:
           - os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             binary_path: target/x86_64-unknown-linux-gnu/release/dfx
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            binary_path: target/aarch64-unknown-linux-gnu/release/dfx
           - os: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             binary_path: target/x86_64-unknown-linux-gnu/release/dfx
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            binary_path: target/aarch64-unknown-linux-gnu/release/dfx
           - os: windows-2022
             target: x86_64-pc-windows-msvc
             binary_path: target\x86_64-pc-windows-msvc\release\dfx.exe
@@ -114,7 +120,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-13-xlarge, ubuntu-22.04, ubuntu-24.04]
+        os: [macos-13, macos-13-xlarge, ubuntu-22.04, ubuntu-22.04-arm, ubuntu-24.04, ubuntu-24.04-arm]
     steps:
       - uses: actions/checkout@v4
       - name: Download dfx binary
@@ -184,7 +190,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, macos-13-xlarge, ubuntu-22.04, ubuntu-24.04]
+        os: [macos-13, macos-13-xlarge, ubuntu-22.04, ubuntu-22.04-arm, ubuntu-24.04, ubuntu-24.04-arm]
     steps:
       - name: Checking out repo
         uses: actions/checkout@v4
