@@ -39,12 +39,12 @@
   "arm64-linux": {
     "motoko": {
       "url": "https://github.com/dfinity/motoko/releases/download/0.14.13/motoko-Linux-aarch64-0.14.13.tar.gz",
-      "sha256": "ae5bfa782bc4edd3dad9291a579e33634b5f4bbbc5f22e318fe5a61caf233c16",
+      "sha256": "0571dbfa9e857aa19c4181654ddd84de25b9409163587a2c64730795dbb7cd05",
       "version": "0.14.13"
     },
     "pocket-ic": {
-      "url": "https://download.dfinity.systems/ic/e915efecc8af90993ccfc499721ebe826aadba60/binaries/arm64-darwin/pocket-ic-server-arm64-darwin",
-      "sha256": "5bcc6196e7766f3d0f4226558a9a4e92e8e8eb5c63864c25fe76985d016f6572",
+      "url": "https://download.dfinity.systems/ic/e915efecc8af90993ccfc499721ebe826aadba60/binaries/arm64-linux/pocket-ic-server-arm64-linux",
+      "sha256": "10a7cf4366bc1704a8eccde96c53e4cbdbc51ddd455427fb04d675b4c7f6fe37",
       "rev": "e915efecc8af90993ccfc499721ebe826aadba60"
     }
   },
