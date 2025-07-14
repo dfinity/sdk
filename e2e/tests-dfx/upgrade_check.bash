@@ -71,7 +71,7 @@ teardown() {
   jq '.canisters.hello_backend.main="v4_bad.mo"' dfx.json | sponge dfx.json
   echo yes | (
   assert_command dfx deploy
-  assert_match "Candid interface compatibility check failed"
+  assert_match "FIX ME! opt text <: opt int via special opt rule."
   )
   assert_command dfx canister call hello_backend f '()'
   assert_match "(opt \"\")"
