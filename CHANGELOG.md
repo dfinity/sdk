@@ -8,7 +8,7 @@ Added `dfx canister snapshot download` and `dfx canister snapshot upload` comman
 
 ### fix: dfx now warns when encountering a special opt rule
 
-dfx now shows warnings when the old Candid declaration is a subtype of the new Candid declaration via a special opt rule, instead of throwing an error.
+dfx now shows warnings when the new Candid declaration is a subtype of the old Candid declaration via a special opt rule, instead of throwing an error.
 
 # 0.28.0
 
