@@ -62,6 +62,8 @@ impl Source {
 struct Sources {
     #[serde(rename = "x86_64-linux")]
     x86_64_linux: HashMap<String, Source>,
+    #[serde(rename = "arm64-linux")]
+    aarch64_linux: HashMap<String, Source>,
     #[serde(rename = "x86_64-darwin")]
     x86_64_darwin: HashMap<String, Source>,
     #[serde(rename = "arm64-darwin")]
@@ -104,6 +106,7 @@ fn find_assets(sources: Sources) -> PathBuf {
             ("x86_64", "macos") => sources.x86_64_darwin, // rosetta
             ("aarch64", "macos") => sources.aarch64_darwin, // aarch64
             ("x86_64", "linux" | "windows") => sources.x86_64_linux,
+            ("aarch64", "linux") => sources.aarch64_linux,
             (arch, os) => panic!("Unsupported OS type {arch}-{os}"),
         };
         source_set.extend(sources.common);

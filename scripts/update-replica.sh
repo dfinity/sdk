@@ -22,7 +22,7 @@ rev=$1
 echo "Updating sources to rev ${rev}"
 jq '."replica-rev" = $rev' --arg rev "$rev" "$sources" | sponge "$sources"
 
-declare -A variants=([x86_64-darwin]=pocket-ic.gz [x86_64-linux]=pocket-ic.gz [arm64-darwin]=pocket-ic-server-arm64-darwin)
+declare -A variants=([x86_64-darwin]=pocket-ic.gz [x86_64-linux]=pocket-ic.gz [arm64-darwin]=pocket-ic-server-arm64-darwin [arm64-linux]=pocket-ic-server-arm64-linux)
 for platform in "${!variants[@]}"; do
     pocketic_url=$(printf 'https://download.dfinity.systems/ic/%s/binaries/%s/%s' "$rev" "$platform" "${variants[$platform]}")
     pocketic_sha=$(curl --proto '=https' --tlsv1.2 -sSfL "$pocketic_url" | sha256sum | head -c 64)
