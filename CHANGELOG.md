@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+### feat: add dfx native support for aarch64-Linux
+
+Add dfx native support for aarch64-Linux.
+
 ### feat: support canister snapshot download and upload.
 
 Added `dfx canister snapshot download` and `dfx canister snapshot upload` commands to download and upload the canister snapshot.
