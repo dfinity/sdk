@@ -337,7 +337,7 @@ fn check_candid_compatibility(
         .ok_or_else(|| anyhow!("Deployed did file should contain some service interface"))?;
     let mut gamma = HashSet::new();
     let old_type = env.merge_type(env2, old_type);
-    let result = subtype_with_config(OptReport::Error, &mut gamma, &env, &new_type, &old_type);
+    let result = subtype_with_config(OptReport::Warning, &mut gamma, &env, &new_type, &old_type);
     Ok(match result {
         Ok(_) => None,
         Err(e) => Some(e.to_string()),

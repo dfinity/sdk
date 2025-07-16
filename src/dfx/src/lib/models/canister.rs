@@ -440,7 +440,7 @@ fn check_valid_subtype(compiled_idl_path: &Path, specified_idl_path: &Path) -> D
     let mut gamma = HashSet::new();
     let specified_type = env.merge_type(env2, specified_type);
     subtype_with_config(
-        OptReport::Error,
+        OptReport::Warning,
         &mut gamma,
         &env,
         &compiled_type,
