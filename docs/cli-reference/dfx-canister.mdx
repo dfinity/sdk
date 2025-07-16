@@ -912,7 +912,7 @@ You can use the following arguments with the `dfx canister snapshot create` comm
 | Argument              | Description                                                                    |
 |-----------------------|--------------------------------------------------------------------------------|
 | `<canister>`          | The canister to snapshot.                                                      |
-| `--replace <replace>` | If a snapshot ID is specified, this snapshot will replace it and reuse the ID. |
+| `--replace <replace>` | If a snapshot ID is specified, the snapshot identified by this ID will be deleted and a snapshot with a new ID will be returned. |
 
 ### Examples
 
@@ -1060,7 +1060,7 @@ You can use the following arguments with the `dfx canister snapshot upload` comm
 |-----------------------|--------------------------------------------------------------------------------|
 | `<canister>`          | The canister to upload the snapshot to.                                        |
 | --dir `<dir>`         | The directory to upload the snapshot from.                                     |
-| --replace `<replace>` | If a snapshot ID is specified, this snapshot will replace it and reuse the ID. |                                        |
+| --replace `<replace>` | If a snapshot ID is specified, the snapshot identified by this ID will be deleted and a snapshot with a new ID will be returned. |
 
 ### Examples
 
