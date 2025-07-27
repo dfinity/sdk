@@ -331,7 +331,7 @@ fn add_assets(sources: Sources) {
     );
 }
 
-/// Use a verion based on environment variable,
+/// Use a version based on environment variable,
 /// or the latest git tag plus sha of current git HEAD at time of build,
 /// or let the cargo.toml version.
 fn define_dfx_version() {
