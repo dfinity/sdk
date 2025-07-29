@@ -12,6 +12,10 @@ Added `dfx canister snapshot download` and `dfx canister snapshot upload` comman
 
 ## Dependencies
 
+### Motoko
+
+Updated Motoko to [0.15.0](https://github.com/dfinity/motoko/releases/tag/0.15.0)
+
 ### Replica
 
 Updated replica to elected commit 615045e039c57ed842c689e49a07ab3de3a8a781.
