@@ -10,6 +10,10 @@ Add dfx native support for aarch64-Linux.
 
 Added `dfx canister snapshot download` and `dfx canister snapshot upload` commands to download and upload the canister snapshot.
 
+### fix: dfx now warns when encountering a special opt rule
+
+dfx now shows warnings when the new Candid declaration is a subtype of the old Candid declaration via a special opt rule, instead of throwing an error.
+
 # 0.28.0
 
 ### fix: deps deploy works with Canister ID out of the ranges of the pocket-ic subnets
