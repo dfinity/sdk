@@ -1,4 +1,4 @@
-actor Counter {
+persistent actor Counter {
     var cell : Nat = 0;
 
     public func inc() : async () {
