@@ -5,9 +5,9 @@ import Text "mo:base/Text";
 import Blob "mo:base/Blob";
 import Nat "mo:base/Nat";
 
-shared actor class HttpQuery() = this {
-    let MAX_RESPONSE_BYTES : Nat64 = 800000; // last seen ~90k
-    let CYCLES_TO_PAY : Nat = 16_000_000_000;
+shared persistent actor class HttpQuery() = this {
+    transient let MAX_RESPONSE_BYTES : Nat64 = 800000; // last seen ~90k
+    transient let CYCLES_TO_PAY : Nat = 16_000_000_000;
 
     public func get_url(host : Text, url : Text) : async Text {
         let request_headers = [
@@ -30,9 +30,8 @@ shared actor class HttpQuery() = this {
             transform = ?transform_context;
         };
 
-        Cycles.add(CYCLES_TO_PAY);
         let ic : Types.IC = actor ("aaaaa-aa");
-        let response : Types.CanisterHttpResponsePayload = await ic.http_request(request);
+        let response : Types.CanisterHttpResponsePayload = await (with cycles = CYCLES_TO_PAY) ic.http_request(request);
         let result : Text = switch (Text.decodeUtf8(Blob.fromArray(response.body))) {
             case null "";
             case (?decoded) decoded;
