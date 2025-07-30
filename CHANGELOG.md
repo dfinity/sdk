@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.29.0
+
 ### feat: add dfx native support for aarch64-Linux
 
 Add dfx native support for aarch64-Linux.
