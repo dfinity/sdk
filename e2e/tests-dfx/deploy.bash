@@ -35,7 +35,7 @@ teardown() {
   assert_command dfx deploy
   assert_match "Module hash.*is already installed"
 
-  assert_command dfx deploy --upgrade-unchanged
+  assert_command dfx deploy --upgrade-unchanged --wasm-memory-persistence keep
   assert_not_match "Module hash.*is already installed"
 }
 
@@ -56,7 +56,7 @@ teardown() {
   assert_command dfx canister info hello_backend
   assert_not_match "Controllers: ($WALLET $PRINCIPAL|$PRINCIPAL $WALLET)"
   assert_match "Controllers: $PRINCIPAL"
-}
+} 
 
 @test "deploy from a subdirectory" {
   dfx_new hello
