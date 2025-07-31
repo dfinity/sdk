@@ -35,7 +35,7 @@ teardown() {
   assert_command dfx deploy
   assert_match "Module hash.*is already installed"
 
-  assert_command dfx deploy --upgrade-unchanged --wasm-memory-persistence keep
+  assert_command dfx deploy --upgrade-unchanged --wasm-memory-persistence replace
   assert_not_match "Module hash.*is already installed"
 }
 
