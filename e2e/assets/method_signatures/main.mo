@@ -1,6 +1,6 @@
 import Text "mo:base/Text";
 
-actor {
+persistent actor {
   public query func returns_string(name: Text) : async Text {
     return "Hello, " # name # "!";
   };

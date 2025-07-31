@@ -1,4 +1,4 @@
-actor Certificate {
+persistent actor Certificate {
 
     public query func hello_query(name: Text) : async Text {
         "Hello, " # name # "!"
