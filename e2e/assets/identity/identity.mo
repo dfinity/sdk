@@ -1,7 +1,7 @@
 import P "mo:base/Principal";
 
-shared({caller}) actor class () = Self {
-    private let initializer : Principal = caller;
+shared({caller}) persistent actor class () = Self {
+    private transient let initializer : Principal = caller;
 
     public shared(msg) func fromCall(): async Principal {
         msg.caller

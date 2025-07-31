@@ -1,6 +1,6 @@
 import A "mo:base/Array";
 
-actor {
+persistent actor {
     type Matrix = [[Int]];
 
     public query func transpose(m: Matrix) : async Matrix {

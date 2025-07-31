@@ -1,4 +1,4 @@
-actor {
+persistent actor {
   var id : Text = "";
 
   //
