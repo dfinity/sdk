@@ -13,7 +13,9 @@ use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use ic_agent::Agent;
-use ic_utils::interfaces::{management_canister::builders::CanisterInstallMode, ManagementCanister};
+use ic_utils::interfaces::{
+    management_canister::builders::CanisterInstallMode, ManagementCanister,
+};
 use slog::{info, Logger};
 
 /// Deploy pulled dependencies locally.

@@ -27,7 +27,9 @@ use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::Agent;
-use ic_utils::interfaces::management_canister::builders::{CanisterInstallMode, WasmMemoryPersistence};
+use ic_utils::interfaces::management_canister::builders::{
+    CanisterInstallMode, WasmMemoryPersistence,
+};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
@@ -96,7 +98,12 @@ pub async fn install_canister(
         )
         .into(),
     );
-    if !skip_consent && matches!(mode, CanisterInstallMode::Reinstall | CanisterInstallMode::Upgrade { .. }) {
+    if !skip_consent
+        && matches!(
+            mode,
+            CanisterInstallMode::Reinstall | CanisterInstallMode::Upgrade { .. }
+        )
+    {
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;
         if let Some(candid) = &candid {
             match check_candid_compatibility(canister_info, candid) {
