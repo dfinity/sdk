@@ -13,7 +13,7 @@ use dfx_core::identity::wallet::{get_wallet_config_path, wallet_canister_id};
 use dfx_core::identity::{Identity, WalletGlobalConfig, WalletNetworkMap};
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::AgentError;
-use ic_utils::interfaces::management_canister::builders::InstallMode;
+use ic_utils::interfaces::management_canister::builders::CanisterInstallMode;
 use ic_utils::interfaces::{ManagementCanister, WalletCanister};
 use slog::info;
 use std::collections::BTreeMap;
@@ -102,7 +102,7 @@ pub async fn create_wallet(
 
     match mgr
         .install_code(&canister_id, wasm.as_slice())
-        .with_mode(InstallMode::Install)
+        .with_mode(CanisterInstallMode::Install)
         .await
     {
         Err(AgentError::CertifiedReject {

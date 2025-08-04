@@ -8,7 +8,7 @@ use dfx_core::identity::Identity;
 use ic_agent::{Agent, Identity as _};
 use ic_utils::{
     interfaces::{
-        management_canister::builders::{CanisterSettings, InstallMode},
+        management_canister::builders::{CanisterInstallMode, CanisterSettings},
         WalletCanister,
     },
     Argument,
@@ -66,7 +66,7 @@ async fn migrate_wallet(
                 env,
                 agent,
                 *wallet.canister_id_(),
-                InstallMode::Upgrade(None),
+                CanisterInstallMode::Upgrade(None),
             )
             .await?
         } else {

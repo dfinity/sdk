@@ -13,7 +13,7 @@ use candid::Principal;
 use clap::Parser;
 use fn_error_context::context;
 use ic_agent::Agent;
-use ic_utils::interfaces::{management_canister::builders::InstallMode, ManagementCanister};
+use ic_utils::interfaces::{management_canister::builders::CanisterInstallMode, ManagementCanister};
 use slog::{info, Logger};
 
 /// Deploy pulled dependencies locally.
@@ -89,7 +89,7 @@ async fn install_pulled_canister(
     let mgr = ManagementCanister::create(agent);
     mgr.install_code(canister_id, &wasm)
         // always reinstall pulled canister
-        .with_mode(InstallMode::Reinstall)
+        .with_mode(CanisterInstallMode::Reinstall)
         .with_raw_arg(install_args)
         .await?;
     Ok(())

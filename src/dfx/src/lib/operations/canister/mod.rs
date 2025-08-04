@@ -5,9 +5,11 @@ pub mod motoko_playground;
 mod skip_remote_canister;
 
 pub use create_canister::create_canister;
-use ic_utils::interfaces::management_canister::{
-    CanisterSnapshotId, CanisterTimer, ExportedGlobal, OnLowWasmMemoryHookStatus, Snapshot,
-    SnapshotDataKind, SnapshotDataOffset, SnapshotDataResult, SnapshotMetadata,
+use ic_management_canister_types::{
+    LoadCanisterSnapshotArgs, ReadCanisterSnapshotDataArgs, ReadCanisterSnapshotDataResult,
+    ReadCanisterSnapshotMetadataArgs, ReadCanisterSnapshotMetadataResult, Snapshot,
+    SnapshotDataOffset, UploadCanisterSnapshotDataArgs, UploadCanisterSnapshotMetadataArgs,
+    UploadCanisterSnapshotMetadataResult,
 };
 pub use install_canister::install_wallet;
 pub use skip_remote_canister::skip_remote_canister;
@@ -29,7 +31,7 @@ use fn_error_context::context;
 use ic_utils::call::SyncCall;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{
-    FetchCanisterLogsResponse, MgmtMethod, StatusCallResult,
+    CanisterStatusResult, FetchCanisterLogsResult, MgmtMethod,
 };
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
@@ -192,13 +194,13 @@ pub async fn get_canister_status(
     env: &dyn Environment,
     canister_id: Principal,
     call_sender: &CallSender,
-) -> DfxResult<StatusCallResult> {
+) -> DfxResult<CanisterStatusResult> {
     #[derive(CandidType)]
     struct In {
         canister_id: Principal,
     }
 
-    let (out,): (StatusCallResult,) = do_management_call(
+    let (out,): (CanisterStatusResult,) = do_management_call(
         env,
         canister_id,
         MgmtMethod::CanisterStatus.as_ref(),
@@ -215,13 +217,13 @@ pub async fn get_canister_logs(
     env: &dyn Environment,
     canister_id: Principal,
     call_sender: &CallSender,
-) -> DfxResult<FetchCanisterLogsResponse> {
+) -> DfxResult<FetchCanisterLogsResult> {
     #[derive(CandidType)]
     struct In {
         canister_id: Principal,
     }
 
-    let (out,): (FetchCanisterLogsResponse,) = do_management_query_call(
+    let (out,): (FetchCanisterLogsResult,) = do_management_query_call(
         env,
         canister_id,
         MgmtMethod::FetchCanisterLogs.as_ref(),
@@ -500,29 +502,19 @@ pub async fn take_canister_snapshot(
 
 #[context(
     "Failed to load snapshot {} in canister {canister_id}",
-    hex::encode(snapshot_id)
+    hex::encode(&load_args.snapshot_id)
 )]
 pub async fn load_canister_snapshot(
     env: &dyn Environment,
     canister_id: Principal,
-    snapshot_id: &[u8],
+    load_args: &LoadCanisterSnapshotArgs,
     call_sender: &CallSender,
 ) -> DfxResult {
-    #[derive(CandidType)]
-    struct In<'a> {
-        canister_id: Principal,
-        snapshot_id: &'a [u8],
-        sender_canister_version: Option<u64>,
-    }
     do_management_call::<_, ()>(
         env,
         canister_id,
         MgmtMethod::LoadCanisterSnapshot.as_ref(),
-        &In {
-            canister_id,
-            snapshot_id,
-            sender_canister_version: None,
-        },
+        load_args,
         call_sender,
         0,
     )
@@ -585,22 +577,14 @@ pub async fn delete_canister_snapshot(
 pub async fn read_canister_snapshot_metadata(
     env: &dyn Environment,
     canister_id: Principal,
-    snapshot_id: &[u8],
+    metadata_args: &ReadCanisterSnapshotMetadataArgs,
     call_sender: &CallSender,
-) -> DfxResult<SnapshotMetadata> {
-    #[derive(CandidType)]
-    struct In<'a> {
-        canister_id: Principal,
-        snapshot_id: &'a [u8],
-    }
+) -> DfxResult<ReadCanisterSnapshotMetadataResult> {
     let (snapshot_metadata,) = do_management_call(
         env,
         canister_id,
         MgmtMethod::ReadCanisterSnapshotMetadata.as_ref(),
-        &In {
-            canister_id,
-            snapshot_id,
-        },
+        metadata_args,
         call_sender,
         0,
     )
@@ -611,25 +595,14 @@ pub async fn read_canister_snapshot_metadata(
 pub async fn read_canister_snapshot_data(
     env: &dyn Environment,
     canister_id: Principal,
-    snapshot_id: &[u8],
-    kind: &SnapshotDataKind,
+    data_args: &ReadCanisterSnapshotDataArgs,
     call_sender: &CallSender,
-) -> DfxResult<SnapshotDataResult> {
-    #[derive(CandidType)]
-    struct In<'a> {
-        canister_id: Principal,
-        snapshot_id: &'a [u8],
-        kind: &'a SnapshotDataKind,
-    }
+) -> DfxResult<ReadCanisterSnapshotDataResult> {
     let (snapshot_data,) = do_management_call(
         env,
         canister_id,
         MgmtMethod::ReadCanisterSnapshotData.as_ref(),
-        &In {
-            canister_id,
-            snapshot_id,
-            kind,
-        },
+        data_args,
         call_sender,
         0,
     )
@@ -640,37 +613,14 @@ pub async fn read_canister_snapshot_data(
 pub async fn upload_canister_snapshot_metadata(
     env: &dyn Environment,
     canister_id: Principal,
-    replace_snapshot: Option<&[u8]>,
-    metadata: &SnapshotMetadata,
+    metadata_args: &UploadCanisterSnapshotMetadataArgs,
     call_sender: &CallSender,
-) -> DfxResult<CanisterSnapshotId> {
-    #[derive(CandidType)]
-    struct In<'a> {
-        canister_id: Principal,
-        replace_snapshot: Option<&'a [u8]>,
-        wasm_module_size: u64,
-        exported_globals: &'a Vec<ExportedGlobal>,
-        wasm_memory_size: u64,
-        stable_memory_size: u64,
-        certified_data: &'a Vec<u8>,
-        global_timer: Option<&'a CanisterTimer>,
-        on_low_wasm_memory_hook_status: Option<&'a OnLowWasmMemoryHookStatus>,
-    }
+) -> DfxResult<UploadCanisterSnapshotMetadataResult> {
     let (snapshot_id,) = do_management_call(
         env,
         canister_id,
         MgmtMethod::UploadCanisterSnapshotMetadata.as_ref(),
-        &In {
-            canister_id,
-            replace_snapshot,
-            wasm_module_size: metadata.wasm_module_size,
-            exported_globals: &metadata.exported_globals,
-            wasm_memory_size: metadata.wasm_memory_size,
-            stable_memory_size: metadata.stable_memory_size,
-            certified_data: &metadata.certified_data,
-            global_timer: metadata.global_timer.as_ref(),
-            on_low_wasm_memory_hook_status: metadata.on_low_wasm_memory_hook_status.as_ref(),
-        },
+        metadata_args,
         call_sender,
         0,
     )
@@ -681,9 +631,7 @@ pub async fn upload_canister_snapshot_metadata(
 pub async fn upload_canister_snapshot_data(
     env: &dyn Environment,
     canister_id: Principal,
-    snapshot_id: &[u8],
-    kind: &SnapshotDataOffset,
-    chunk: &[u8],
+    data_args: &UploadCanisterSnapshotDataArgs,
     call_sender: &CallSender,
 ) -> DfxResult {
     #[derive(CandidType)]
@@ -697,12 +645,7 @@ pub async fn upload_canister_snapshot_data(
         env,
         canister_id,
         MgmtMethod::UploadCanisterSnapshotData.as_ref(),
-        &In {
-            canister_id,
-            snapshot_id,
-            kind,
-            chunk,
-        },
+        data_args,
         call_sender,
         0,
     )

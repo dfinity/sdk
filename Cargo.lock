@@ -1612,6 +1612,7 @@ dependencies = [
  "ic-asset",
  "ic-cdk",
  "ic-identity-hsm",
+ "ic-management-canister-types",
  "ic-utils 0.41.0",
  "ic-wasm",
  "icrc-ledger-types",
@@ -2781,8 +2782,7 @@ dependencies = [
 [[package]]
 name = "ic-agent"
 version = "0.41.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e9f0125ba06162d2626d80318cad1d3540426a92d2929c5a7a10edc0b0127cca"
+source = "git+https://github.com/dfinity/agent-rs?rev=6fa748eedbdff38b4b2f2ccb831f95ea096f8c14#6fa748eedbdff38b4b2f2ccb831f95ea096f8c14"
 dependencies = [
  "arc-swap",
  "async-channel",
@@ -3286,8 +3286,7 @@ dependencies = [
 [[package]]
 name = "ic-identity-hsm"
 version = "0.41.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23140670b328168461f86293af46e65206185fb221113875acaf5d79a5154c9f"
+source = "git+https://github.com/dfinity/agent-rs?rev=6fa748eedbdff38b4b2f2ccb831f95ea096f8c14#6fa748eedbdff38b4b2f2ccb831f95ea096f8c14"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3299,9 +3298,9 @@ dependencies = [
 
 [[package]]
 name = "ic-management-canister-types"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "98554c2d8a30c00b6bfda18062fdcef21215cad07a52d8b8b1eb3130e51bfe71"
+checksum = "95f3af3543f6d0cbdecd2dcdfd4737ada2bd42d935cc787eec22090c96492c76"
 dependencies = [
  "candid",
  "serde",
@@ -3435,8 +3434,7 @@ dependencies = [
 [[package]]
 name = "ic-transport-types"
 version = "0.41.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5527e1eed0407cf4aa8ced1bc22181c2ae09f8385a00d270f146310b9379c6ad"
+source = "git+https://github.com/dfinity/agent-rs?rev=6fa748eedbdff38b4b2f2ccb831f95ea096f8c14#6fa748eedbdff38b4b2f2ccb831f95ea096f8c14"
 dependencies = [
  "candid",
  "hex",
@@ -3506,13 +3504,13 @@ dependencies = [
 [[package]]
 name = "ic-utils"
 version = "0.41.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c29195ffa60237812b8d297d4778860bf29b7c462a527e20c34f74841737873"
+source = "git+https://github.com/dfinity/agent-rs?rev=6fa748eedbdff38b4b2f2ccb831f95ea096f8c14#6fa748eedbdff38b4b2f2ccb831f95ea096f8c14"
 dependencies = [
  "async-trait",
  "candid",
  "futures-util",
  "ic-agent",
+ "ic-management-canister-types",
  "once_cell",
  "semver",
  "serde",
