@@ -3,7 +3,7 @@ import List "mo:base/List";
 import Array "mo:base/Array";
 import Debug "mo:base/Debug";
 
-actor FakeRegistry {
+persistent actor FakeRegistry {
 
     // list of (canister id -> subnet id) mappings
     var subnet_per_canister : [(Principal, Principal)] = [];

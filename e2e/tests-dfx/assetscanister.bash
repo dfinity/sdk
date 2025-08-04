@@ -1495,7 +1495,7 @@ EOF
   assert_command_fail dfx deploy
   assert_contains "does not actually configure any custom improvements over the standard policy"
 
-  # Security policy "hardened" defined for all assets, with overwiting default security headers
+  # Security policy "hardened" defined for all assets, with overwriting default security headers
   echo '[
     {
       "match": "**/*",

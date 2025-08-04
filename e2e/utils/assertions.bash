@@ -130,7 +130,7 @@ assert_not_match() {
 
 # Asserts that a string occurs a number of times in another string.
 # Arguments:
-#    $1 - Expected number of occurance.
+#    $1 - Expected number of occurrence.
 #    $2 - The string to search for.
 #    $3 - The string to search in. By default it will use $output.
 assert_occurs() {

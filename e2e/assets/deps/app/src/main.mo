@@ -1,7 +1,7 @@
 import dep_b "canister:dep_b";
 import dep_c "canister:dep_c";
 
-actor {
+persistent actor {
     public query func get() : async Nat {
         return 4;
     };

@@ -2,7 +2,7 @@ import A "mo:base/Array";
 import C "mo:base/Char";
 import T "mo:base/Text";
 
-actor {
+persistent actor {
     public type List<T> = ?{head : T; tail : List<T>};
     public type List2<T> = { #nil; #cons: (T, List2<T>) };
 

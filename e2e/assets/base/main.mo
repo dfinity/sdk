@@ -1,7 +1,7 @@
 import Char "mo:base/Char";
 import Option "mo:base/Option";
 
-actor IsDigit {
+persistent actor IsDigit {
 
     // Could not figure out how to have a Char parameter.
     public query func is_digit(text: Text) : async Bool {

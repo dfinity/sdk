@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.29.0
+
 ### feat: add dfx native support for aarch64-Linux
 
 Add dfx native support for aarch64-Linux.
@@ -9,6 +11,22 @@ Add dfx native support for aarch64-Linux.
 ### feat: support canister snapshot download and upload.
 
 Added `dfx canister snapshot download` and `dfx canister snapshot upload` commands to download and upload the canister snapshot.
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.15.1](https://github.com/dfinity/motoko/releases/tag/0.15.1)
+
+### Replica
+
+Updated replica to elected commit 615045e039c57ed842c689e49a07ab3de3a8a781.
+This incorporates the following executed proposals:
+
+- [137578](https://dashboard.internetcomputer.org/proposal/137578)
+- [137497](https://dashboard.internetcomputer.org/proposal/137497)
+- [137345](https://dashboard.internetcomputer.org/proposal/137345)
+- [137224](https://dashboard.internetcomputer.org/proposal/137224)
 
 # 0.28.0
 

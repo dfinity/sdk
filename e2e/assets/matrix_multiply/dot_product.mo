@@ -1,4 +1,4 @@
-actor {
+persistent actor {
     type Vec = [Int];
     var vec : Vec = [];
     
