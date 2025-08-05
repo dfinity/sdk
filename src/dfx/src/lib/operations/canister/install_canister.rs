@@ -27,7 +27,9 @@ use dfx_core::config::model::network_descriptor::NetworkDescriptor;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::Agent;
-use ic_utils::interfaces::management_canister::builders::{InstallMode, WasmMemoryPersistence};
+use ic_utils::interfaces::management_canister::builders::{
+    CanisterInstallMode, WasmMemoryPersistence,
+};
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use itertools::Itertools;
@@ -96,7 +98,12 @@ pub async fn install_canister(
         )
         .into(),
     );
-    if !skip_consent && matches!(mode, InstallMode::Reinstall | InstallMode::Upgrade { .. }) {
+    if !skip_consent
+        && matches!(
+            mode,
+            CanisterInstallMode::Reinstall | CanisterInstallMode::Upgrade { .. }
+        )
+    {
         let candid = read_module_metadata(agent, canister_id, "candid:service").await;
         if let Some(candid) = &candid {
             match check_candid_compatibility(canister_info, candid) {
@@ -112,7 +119,7 @@ pub async fn install_canister(
             }
         }
     }
-    if canister_info.is_motoko() && matches!(mode, InstallMode::Upgrade { .. }) {
+    if canister_info.is_motoko() && matches!(mode, CanisterInstallMode::Upgrade { .. }) {
         let stable_types = read_module_metadata(agent, canister_id, "motoko:stable-types").await;
         if let Some(stable_types) = &stable_types {
             match check_stable_compatibility(canister_info, env, stable_types) {
@@ -148,7 +155,7 @@ pub async fn install_canister(
     let new_hash = Sha256::digest(&wasm_module);
     debug!(log, "New wasm module hash: {}", hex::encode(new_hash));
 
-    if matches!(mode, InstallMode::Upgrade { .. })
+    if matches!(mode, CanisterInstallMode::Upgrade { .. })
         && matches!(&installed_module_hash, Some(old_hash) if old_hash[..] == new_hash[..])
         && !upgrade_unchanged
     {
@@ -366,7 +373,7 @@ async fn wait_for_module_hash(
                 }
                 if reported_hash[..] == new_hash[..] {
                     break;
-                } else if old_hash.map_or(true, |old_hash| old_hash == reported_hash) {
+                } else if old_hash.is_none_or(|old_hash| old_hash == reported_hash) {
                     times += 1;
                     if times > 3 {
                         info!(
@@ -544,7 +551,7 @@ pub async fn install_wallet(
     env: &dyn Environment,
     agent: &Agent,
     id: Principal,
-    mode: InstallMode,
+    mode: CanisterInstallMode,
 ) -> DfxResult {
     if env.get_network_descriptor().is_playground() {
         bail!("Refusing to install wallet. Wallets do not work for playground networks.");

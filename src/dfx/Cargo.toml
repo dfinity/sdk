@@ -77,6 +77,7 @@ ic-asset.workspace = true
 ic-cdk.workspace = true
 ic-identity-hsm.workspace = true
 ic-utils.workspace = true
+ic-management-canister-types.workspace = true
 ic-wasm = "0.8.0"
 icrc-ledger-types = "0.1.8"
 idl2json = "0.10.1"
