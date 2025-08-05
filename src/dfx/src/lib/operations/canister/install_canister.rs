@@ -373,7 +373,7 @@ async fn wait_for_module_hash(
                 }
                 if reported_hash[..] == new_hash[..] {
                     break;
-                } else if old_hash.map_or(true, |old_hash| old_hash == reported_hash) {
+                } else if old_hash.is_none_or(|old_hash| old_hash == reported_hash) {
                     times += 1;
                     if times > 3 {
                         info!(
