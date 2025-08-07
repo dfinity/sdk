@@ -381,7 +381,7 @@ DFX_VERSION="${DFX_VERSION-}"
 DFXVM_INIT_YES="${DFXVM_INIT_YES-}"
 
 # The SHA and the time of the last commit that touched this file.
-SCRIPT_COMMIT_DESC="92e3c4b39dd9cbb4b26d17c8c1a88dcb165f5b70"
+SCRIPT_COMMIT_DESC="d65ed65a65d977784d62f5ffd90908982eddd47b"
 
 download_and_install() {
     SHASUM="$1"
@@ -479,6 +479,7 @@ main() {
 ## output is one of the following, which correspond to part of the release asset filenames:
 ##    aarch64-apple-darwin
 ##    x86_64-apple-darwin
+##    aarch64-unknown-linux-gnu
 ##    x86_64-unknown-linux-gnu
 
 get_architecture() {
@@ -513,9 +514,6 @@ get_architecture() {
 
         Linux)
             _ostype=unknown-linux-gnu
-            # The only cputype we build on Linux is x86_64.
-            # `uname -m` in a Linux Docker container on an Apple M1 can return aarch64
-            _cputype=x86_64
             ;;
 
         Darwin)
