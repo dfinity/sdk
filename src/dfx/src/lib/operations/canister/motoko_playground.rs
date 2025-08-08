@@ -8,7 +8,7 @@ use dfx_core::config::model::network_descriptor::{
 };
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::{
-    CanisterUpgradeOptions, InstallMode, WasmMemoryPersistence,
+    CanisterInstallMode, UpgradeFlags, WasmMemoryPersistence,
 };
 use num_traits::ToPrimitive;
 use rand::Rng;
@@ -67,24 +67,24 @@ pub enum PlaygroundInstallMode {
     Reinstall,
 }
 
-impl TryFrom<InstallMode> for PlaygroundInstallMode {
+impl TryFrom<CanisterInstallMode> for PlaygroundInstallMode {
     type Error = anyhow::Error;
-    fn try_from(m: InstallMode) -> DfxResult<Self> {
+    fn try_from(m: CanisterInstallMode) -> DfxResult<Self> {
         match m {
-            InstallMode::Install => Ok(Self::Install),
-            InstallMode::Reinstall => Ok(Self::Reinstall),
-            InstallMode::Upgrade(Some(CanisterUpgradeOptions {
+            CanisterInstallMode::Install => Ok(Self::Install),
+            CanisterInstallMode::Reinstall => Ok(Self::Reinstall),
+            CanisterInstallMode::Upgrade(Some(UpgradeFlags {
                 skip_pre_upgrade: Some(true),
                 ..
             })) => bail!("Cannot skip pre-upgrade on the playground"),
-            InstallMode::Upgrade(
-                Some(CanisterUpgradeOptions {
+            CanisterInstallMode::Upgrade(
+                Some(UpgradeFlags {
                     wasm_memory_persistence: None | Some(WasmMemoryPersistence::Replace),
                     ..
                 })
                 | None,
             ) => Ok(Self::Upgrade(None)),
-            InstallMode::Upgrade(Some(CanisterUpgradeOptions {
+            CanisterInstallMode::Upgrade(Some(UpgradeFlags {
                 wasm_memory_persistence: Some(WasmMemoryPersistence::Keep),
                 ..
             })) => Ok(Self::Upgrade(Some(PlaygroundCanisterUpgradeOptions {
@@ -197,7 +197,7 @@ pub async fn playground_install_code(
     canister_timestamp: AcquisitionDateTime,
     arg: &[u8],
     wasm_module: &[u8],
-    mode: InstallMode,
+    mode: CanisterInstallMode,
     is_asset_canister: bool,
 ) -> DfxResult<AcquisitionDateTime> {
     let canister_info = CanisterInfo::from(canister_id, canister_timestamp);
@@ -240,7 +240,7 @@ pub async fn playground_install_code(
     out.get_timestamp()
 }
 
-fn convert_mode(mode: InstallMode, wasm_module: &[u8]) -> DfxResult<PlaygroundInstallMode> {
+fn convert_mode(mode: CanisterInstallMode, wasm_module: &[u8]) -> DfxResult<PlaygroundInstallMode> {
     let converted_mode: PlaygroundInstallMode = mode.try_into()?;
     // Motoko EOP requires `wasm_memory_persistence: Keep` for canister upgrades.
     // Usually, this option is auto-set if the installed wasm has the private metadata `enhanced-orthogonal-persistence` set.

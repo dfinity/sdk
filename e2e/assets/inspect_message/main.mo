@@ -1,6 +1,6 @@
 import Principal = "mo:base/Principal";
 
-actor {
+persistent actor {
    public func always_accepted() : async () { };
    public func always_rejected() : async () { };
 

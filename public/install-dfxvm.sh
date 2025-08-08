@@ -479,6 +479,7 @@ main() {
 ## output is one of the following, which correspond to part of the release asset filenames:
 ##    aarch64-apple-darwin
 ##    x86_64-apple-darwin
+##    aarch64-unknown-linux-gnu
 ##    x86_64-unknown-linux-gnu
 
 get_architecture() {
@@ -513,9 +514,6 @@ get_architecture() {
 
         Linux)
             _ostype=unknown-linux-gnu
-            # The only cputype we build on Linux is x86_64.
-            # `uname -m` in a Linux Docker container on an Apple M1 can return aarch64
-            _cputype=x86_64
             ;;
 
         Darwin)

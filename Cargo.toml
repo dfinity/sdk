@@ -15,7 +15,7 @@ resolver = "3"
 authors = ["DFINITY Stiftung <sdk@dfinity.org>"]
 edition = "2021"
 repository = "https://github.com/dfinity/sdk"
-rust-version = "1.84.0"
+rust-version = "1.85.0"
 license = "Apache-2.0"
 
 [workspace.lints.clippy]
@@ -26,11 +26,12 @@ future_not_send = "warn"
 candid = "0.10.11"
 candid_parser = "0.1.4"
 dfx-core = { path = "src/dfx-core", version = "0.1.0" }
-ic-agent = { version = "0.41.0" }
+ic-agent = "0.42.0"
 ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.24.0" }
 ic-cdk = "0.18.4"
-ic-identity-hsm = { version = "0.41.0" }
-ic-utils = { version = "0.41.0" }
+ic-identity-hsm = "0.42.0"
+ic-utils = "0.42.0"
+ic-management-canister-types = "0.3.2"
 
 aes-gcm = { version = "0.10.3", features = ["std"] }
 anyhow = "1.0.56"

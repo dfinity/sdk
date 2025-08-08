@@ -1,4 +1,4 @@
-actor {
+persistent actor {
   stable var state : Int = 0;
   public func inc2() : async Int {
     state += 1;
