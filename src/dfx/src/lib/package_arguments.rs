@@ -8,7 +8,7 @@ use std::process::Command;
 
 /// Package arguments for moc as returned by a package tool like
 /// https://github.com/kritzcreek/vessel or, if there is no package
-/// tool, the base library.
+/// tool, the `base` and `core` packages.
 pub type PackageArguments = Vec<String>;
 
 #[context("Failed to load package arguments.")]

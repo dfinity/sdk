@@ -88,6 +88,7 @@ async fn make_binary_cache(out_dir: PathBuf, sources: HashMap<String, Source>) {
         .build()
         .unwrap();
     let mo_base = spawn(download_mo_base(client.clone(), sources.clone()));
+    let mo_core = spawn(download_mo_core(client.clone(), sources.clone()));
     let bins = spawn(download_binaries(client.clone(), sources.clone()));
     let bin_tars = spawn(download_bin_tarballs(client.clone(), sources.clone()));
     let canisters = spawn(download_canisters(
@@ -95,9 +96,9 @@ async fn make_binary_cache(out_dir: PathBuf, sources: HashMap<String, Source>) {
         sources.clone(),
         out_dir.clone(),
     ));
-    let (mo_base, bins, bin_tars, _) =
-        tokio::try_join!(mo_base, bins, bin_tars, canisters).unwrap();
-    spawn_blocking(|| write_binary_cache(out_dir, mo_base, bins, bin_tars))
+    let (mo_base, mo_core, bins, bin_tars, _) =
+        tokio::try_join!(mo_base, mo_core, bins, bin_tars, canisters).unwrap();
+    spawn_blocking(|| write_binary_cache(out_dir, mo_base, mo_core, bins, bin_tars))
         .await
         .unwrap();
 }
@@ -105,6 +106,7 @@ async fn make_binary_cache(out_dir: PathBuf, sources: HashMap<String, Source>) {
 fn write_binary_cache(
     out_dir: PathBuf,
     mo_base: HashMap<PathBuf, Bytes>,
+    mo_core: HashMap<PathBuf, Bytes>,
     bins: HashMap<PathBuf, Bytes>,
     mut bin_tars: HashMap<PathBuf, Bytes>,
 ) {
@@ -138,6 +140,18 @@ fn write_binary_cache(
         header.set_mode(0o644);
         header.set_size(file.len() as u64);
         tar.append_data(&mut header, Path::new("base").join(path), file.reader())
+            .unwrap();
+    }
+    let mut core_hdr = Header::new_gnu();
+    core_hdr.set_entry_type(EntryType::dir());
+    core_hdr.set_mode(0o755);
+    core_hdr.set_size(0);
+    tar.append_data(&mut core_hdr, "core", io::empty()).unwrap();
+    for (path, file) in mo_core {
+        let mut header = Header::new_gnu();
+        header.set_mode(0o644);
+        header.set_size(file.len() as u64);
+        tar.append_data(&mut header, Path::new("core").join(path), file.reader())
             .unwrap();
     }
     tar.finish().unwrap();
@@ -243,6 +257,22 @@ async fn download_mo_base(
     let mo_base = download_and_check_sha(client, source).await;
     let mut map = HashMap::new();
     tar_xzf(&mo_base, |path, content| {
+        let path = path.strip_prefix(".").unwrap_or(&path); // normalize ./x to x
+        if let Ok(file) = path.strip_prefix("src") {
+            map.insert(file.to_owned(), content);
+        }
+    });
+    map
+}
+
+async fn download_mo_core(
+    client: Client,
+    sources: Arc<HashMap<String, Source>>,
+) -> HashMap<PathBuf, Bytes> {
+    let source = sources["motoko-core"].clone();
+    let mo_core = download_and_check_sha(client, source).await;
+    let mut map = HashMap::new();
+    tar_xzf(&mo_core, |path, content| {
         let path = path.strip_prefix(".").unwrap_or(&path); // normalize ./x to x
         if let Ok(file) = path.strip_prefix("src") {
             map.insert(file.to_owned(), content);
