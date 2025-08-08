@@ -1,6 +1,6 @@
 import a "canister:a";
 
-actor class c(num : ?Nat) {
+persistent actor class c(num : ?Nat) {
     stable var NUM : Nat = switch (num) {
         case (?n) { n };
         case (null) { 3 };

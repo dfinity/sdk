@@ -87,8 +87,7 @@ pub async fn exec(env: &dyn Environment, opts: RequestStatusOpts) -> DfxResult {
             tokio::time::sleep(interval).await;
         }
     }
-    .await
-    .map_err(DfxError::from)?;
+    .await?;
 
     let output_type = opts.output.as_deref();
     print_idl_blob(&blob, output_type, &None)?;

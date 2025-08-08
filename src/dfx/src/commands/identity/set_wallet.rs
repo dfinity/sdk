@@ -1,7 +1,7 @@
 use crate::lib::agent::create_agent_environment;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
-use crate::lib::error::{DfxError, DfxResult};
+use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::set_wallet_id;
 use crate::lib::network::network_opt::NetworkOpt;
 use anyhow::{anyhow, Context};
@@ -87,8 +87,7 @@ pub fn exec(env: &dyn Environment, opts: SetWalletOpts, network: NetworkOpt) -> 
                         Ok(())
                     },
                 }
-            })
-            .map_err(DfxError::from)?;
+            })?;
     }
 
     info!(

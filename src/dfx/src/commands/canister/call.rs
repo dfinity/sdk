@@ -18,7 +18,7 @@ use dfx_core::identity::CallSender;
 use ic_agent::agent::CallResponse;
 use ic_agent::RequestId;
 use ic_utils::canister::Argument;
-use ic_utils::interfaces::management_canister::builders::{CanisterInstall, CanisterSettings};
+use ic_utils::interfaces::management_canister::builders::{CanisterSettings, InstallCodeArgs};
 use ic_utils::interfaces::management_canister::MgmtMethod;
 use ic_utils::interfaces::wallet::{CallForwarder, CallResult};
 use ic_utils::interfaces::WalletCanister;
@@ -160,7 +160,7 @@ pub fn get_effective_canister_id(
         | MgmtMethod::NodeMetricsHistory => Ok(CanisterId::management_canister()),
         MgmtMethod::InstallCode => {
             // TODO: Maybe this case can be merged with the following one.
-            let install_args = candid::Decode!(arg_value, CanisterInstall)
+            let install_args = candid::Decode!(arg_value, InstallCodeArgs)
                 .context("Failed to decode arguments.")?;
             Ok(install_args.canister_id)
         }

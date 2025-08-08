@@ -186,8 +186,7 @@ impl DfxInterfaceBuilder {
             NetworkPicker::Local => None,
             NetworkPicker::Mainnet => Some("ic".to_string()),
             NetworkPicker::Named(name) => Some(name.clone()),
-        }
-        .map(String::from);
+        };
         let logger = None;
         create_network_descriptor(
             config,

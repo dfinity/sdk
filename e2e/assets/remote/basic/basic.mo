@@ -1,6 +1,6 @@
 import R "canister:remote";
 
-actor {
+persistent actor {
     public func read_remote() : async Text {
         await R.read()
     };

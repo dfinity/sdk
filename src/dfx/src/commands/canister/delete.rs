@@ -18,8 +18,8 @@ use dfx_core::identity::wallet::wallet_canister_id;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::attributes::FreezingThreshold;
-use ic_utils::interfaces::management_canister::builders::InstallMode;
-use ic_utils::interfaces::management_canister::CanisterStatus;
+use ic_utils::interfaces::management_canister::builders::CanisterInstallMode;
+use ic_utils::interfaces::management_canister::CanisterStatusType;
 use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
 use icrc_ledger_types::icrc1::account::{Account, Subaccount};
@@ -172,7 +172,7 @@ async fn delete_canister(
 
             // Determine how many cycles we can withdraw.
             let status = canister::get_canister_status(env, canister_id, call_sender).await?;
-            if status.status != CanisterStatus::Stopped && !skip_confirmation {
+            if status.status != CanisterStatusType::Stopped && !skip_confirmation {
                 ask_for_consent(
                     env,
                     &format!("Canister {canister} has not been stopped. Delete anyway?"),
@@ -205,7 +205,7 @@ async fn delete_canister(
                 canister
             );
             let args = blob_from_arguments(None, None, None, None, &None, false, false)?;
-            let mode = InstallMode::Reinstall;
+            let mode = CanisterInstallMode::Reinstall;
             let install_builder = mgr
                 .install_code(&canister_id, &wasm_module)
                 .with_raw_arg(args.to_vec())
@@ -304,7 +304,7 @@ async fn delete_canister(
                     log,
                     "Failed to install temporary wallet, deleting without withdrawal."
                 );
-                if status.status != CanisterStatus::Stopped {
+                if status.status != CanisterStatusType::Stopped {
                     info!(log, "Stopping canister.")
                 }
                 stop_canister(env, canister_id, &CallSender::SelectedId).await?;

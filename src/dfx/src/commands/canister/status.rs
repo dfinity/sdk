@@ -46,22 +46,10 @@ async fn canister_status(
         .collect();
     controllers.sort();
 
-    let reserved_cycles_limit = if let Some(limit) = status.settings.reserved_cycles_limit {
-        format!("{} Cycles", limit)
-    } else {
-        "Not Set".to_string()
-    };
+    let reserved_cycles_limit = format!("{} Cycles", status.settings.reserved_cycles_limit);
+    let wasm_memory_limit = format!("{} Bytes", status.settings.wasm_memory_limit);
+    let wasm_memory_threshold = format!("{} Bytes", status.settings.wasm_memory_threshold);
 
-    let wasm_memory_limit = if let Some(limit) = status.settings.wasm_memory_limit {
-        format!("{} Bytes", limit)
-    } else {
-        "Not Set".to_string()
-    };
-    let wasm_memory_threshold = if let Some(threshold) = status.settings.wasm_memory_threshold {
-        format!("{} Bytes", threshold)
-    } else {
-        "Not Set".to_string()
-    };
     let log_visibility = match status.settings.log_visibility {
         LogVisibility::Controllers => "controllers".to_string(),
         LogVisibility::Public => "public".to_string(),
@@ -79,7 +67,7 @@ async fn canister_status(
     println!(
         "\
 Canister status call result for {canister}.
-Status: {status}
+Status: {status:?}
 Controllers: {controllers}
 Memory allocation: {memory_allocation} Bytes
 Compute allocation: {compute_allocation} %

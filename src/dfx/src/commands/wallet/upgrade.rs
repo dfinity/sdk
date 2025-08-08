@@ -6,7 +6,7 @@ use crate::lib::state_tree::canister_info::read_state_tree_canister_module_hash;
 use anyhow::bail;
 use clap::Parser;
 use dfx_core::identity::wallet::wallet_canister_id;
-use ic_utils::interfaces::management_canister::builders::InstallMode;
+use ic_utils::interfaces::management_canister::builders::CanisterInstallMode;
 
 /// Upgrade the wallet's Wasm module to the current Wasm bundled with DFX.
 #[derive(Parser)]
@@ -43,7 +43,7 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
 
     let agent = env.get_agent();
 
-    install_wallet(env, agent, canister_id, InstallMode::Upgrade(None)).await?;
+    install_wallet(env, agent, canister_id, CanisterInstallMode::Upgrade(None)).await?;
 
     println!("Upgraded the wallet wasm module.");
     Ok(())

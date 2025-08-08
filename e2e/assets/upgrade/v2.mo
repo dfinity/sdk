@@ -1,5 +1,5 @@
 import Int "mo:base/Int";
-actor {
+persistent actor {
   stable var state : Int = 0;
   stable var new_state : Nat = Int.abs(state);
   public func inc() : async Nat {
