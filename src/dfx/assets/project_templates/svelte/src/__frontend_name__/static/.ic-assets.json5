@@ -7,7 +7,7 @@
         // See 'dfx info security-policy' to see the policy and for advice on how to harden the headers.
         // Once you improved the headers for your dapp, set the security policy to "hardened" to disable the warning.
         // Options are: "hardened" | "standard" | "disabled".
-        "security_policy": "standard",
+        "security_policy": "hardened",
 
         "headers": {
             "Content-Security-Policy": "default-src 'self';script-src 'self' 'unsafe-eval' 'unsafe-inline';connect-src 'self' http://localhost:* https://icp0.io https://*.icp0.io https://icp-api.io;img-src 'self' data:;style-src * 'unsafe-inline';style-src-elem * 'unsafe-inline';font-src *;object-src 'none';base-uri 'self';frame-ancestors 'none';form-action 'self';upgrade-insecure-requests;",
