@@ -13,6 +13,8 @@ const config = {
       precompress: false,
       strict: true
     }),
+    // We set the Content-Security-Policy header here because Svelte adds an hash for all the generated inline styles and scripts (see https://svelte.dev/docs/kit/configuration#csp).
+    // Therefore, we must not set the Content-Security-Policy header in the `static/.ic-assets.json5` file to avoid overriding the header.
     csp: {
       mode: 'hash',
       directives: {
