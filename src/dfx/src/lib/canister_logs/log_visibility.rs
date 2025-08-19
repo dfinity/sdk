@@ -5,7 +5,7 @@ use crate::util::clap::parsers::{log_visibility_parser, principal_parser};
 use anyhow::anyhow;
 use candid::Principal;
 use clap::{ArgAction, Args};
-use ic_utils::interfaces::management_canister::{LogVisibility, StatusCallResult};
+use ic_utils::interfaces::management_canister::{CanisterStatusResult, LogVisibility};
 
 #[derive(Args, Clone, Debug, Default)]
 pub struct LogVisibilityOpt {
@@ -73,7 +73,7 @@ impl LogVisibilityOpt {
     pub fn to_log_visibility(
         &self,
         env: &dyn Environment,
-        current_status: Option<&StatusCallResult>,
+        current_status: Option<&CanisterStatusResult>,
     ) -> DfxResult<LogVisibility> {
         let logger = env.get_logger();
 

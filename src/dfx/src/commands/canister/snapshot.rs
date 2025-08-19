@@ -13,8 +13,11 @@ use dfx_core::{
     identity::CallSender,
     json::{load_json_file, save_json_file},
 };
-use ic_utils::interfaces::management_canister::{
-    CanisterSnapshotId, CanisterStatus, SnapshotDataKind, SnapshotDataOffset, SnapshotMetadata,
+use ic_management_canister_types::{
+    CanisterStatusType, LoadCanisterSnapshotArgs, ReadCanisterSnapshotDataArgs,
+    ReadCanisterSnapshotMetadataArgs, ReadCanisterSnapshotMetadataResult, SnapshotDataKind,
+    SnapshotDataOffset, UploadCanisterSnapshotDataArgs, UploadCanisterSnapshotMetadataArgs,
+    UploadCanisterSnapshotMetadataResult,
 };
 use indicatif::HumanBytes;
 use itertools::Itertools;
@@ -109,8 +112,8 @@ impl FromStr for SnapshotId {
     }
 }
 
-impl From<CanisterSnapshotId> for SnapshotId {
-    fn from(canister_snapshot_id: CanisterSnapshotId) -> Self {
+impl From<UploadCanisterSnapshotMetadataResult> for SnapshotId {
+    fn from(canister_snapshot_id: UploadCanisterSnapshotMetadataResult) -> Self {
         SnapshotId(canister_snapshot_id.snapshot_id)
     }
 }
@@ -146,11 +149,11 @@ pub async fn exec(
     Ok(())
 }
 
-fn ensure_status(status: CanisterStatus, canister: &str, phrasing: &str) -> DfxResult {
+fn ensure_status(status: CanisterStatusType, canister: &str, phrasing: &str) -> DfxResult {
     match status {
-        CanisterStatus::Stopped => {}
-        CanisterStatus::Running => bail!("Canister {canister} is running and snapshots should not be {phrasing} running canisters. Run `dfx canister stop` first"),
-        CanisterStatus::Stopping => bail!("Canister {canister} is stopping but is not yet stopped. Wait a few seconds and try again"),
+        CanisterStatusType::Stopped => {}
+        CanisterStatusType::Running => bail!("Canister {canister} is running and snapshots should not be {phrasing} running canisters. Run `dfx canister stop` first"),
+        CanisterStatusType::Stopping => bail!("Canister {canister} is stopping but is not yet stopped. Wait a few seconds and try again"),
     }
     Ok(())
 }
@@ -197,7 +200,12 @@ async fn load(
         .await
         .with_context(|| format!("Could not retrieve status of canister {canister}"))?;
     ensure_status(status.status, &canister, "applied to")?;
-    load_canister_snapshot(env, canister_id, &snapshot.0, call_sender)
+    let load_args = LoadCanisterSnapshotArgs {
+        canister_id,
+        snapshot_id: snapshot.0.clone(),
+        sender_canister_version: None,
+    };
+    load_canister_snapshot(env, canister_id, &load_args, call_sender)
         .await
         .with_context(|| format!("Failed to load snapshot {snapshot} in canister {canister}"))?;
     info!(
@@ -270,7 +278,11 @@ async fn download(
         .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
 
     // Store metadata.
-    let metadata = read_canister_snapshot_metadata(env, canister_id, &snapshot.0, call_sender)
+    let metadata_args = ReadCanisterSnapshotMetadataArgs {
+        canister_id,
+        snapshot_id: snapshot.0.clone(),
+    };
+    let metadata = read_canister_snapshot_metadata(env, canister_id, &metadata_args, call_sender)
         .await
         .with_context(|| {
             format!("Failed to read metadata from snapshot {snapshot} in canister {canister}")
@@ -344,13 +356,17 @@ async fn download(
             let chunk_file = wasm_chunk_store_dir.join(format!("{}.bin", hash_str));
 
             let chunk = retry(retry_policy.clone(), || async {
+                let data_args = ReadCanisterSnapshotDataArgs {
+                    canister_id,
+                    snapshot_id: snapshot.0.clone(),
+                    kind: SnapshotDataKind::WasmChunk {
+                        hash: chunk_hash.hash.clone(),
+                    },
+                };
                 match read_canister_snapshot_data(
                     env,
                     canister_id,
-                    &snapshot.0,
-                    &SnapshotDataKind::WasmChunk {
-                        hash: chunk_hash.hash.clone(),
-                    },
+                    &data_args,
                     call_sender,
                 )
                 .await {
@@ -396,17 +412,23 @@ async fn upload(
         .or_else(|_| env.get_canister_id_store()?.get(&canister))?;
 
     // Upload snapshot metadata.
-    let metadata: SnapshotMetadata = load_json_file(&dir.join("metadata.json"))?;
-    let snapshot_id = upload_canister_snapshot_metadata(
-        env,
+    let metadata: ReadCanisterSnapshotMetadataResult = load_json_file(&dir.join("metadata.json"))?;
+    let metadata_args = UploadCanisterSnapshotMetadataArgs {
         canister_id,
-        replace.as_ref().map(|x| &*x.0),
-        &metadata,
-        call_sender,
-    )
-    .await
-    .with_context(|| format!("Failed to upload snapshot metadata to canister {canister}"))?
-    .into();
+        replace_snapshot: replace.as_ref().map(|x| x.0.clone()),
+        wasm_module_size: metadata.wasm_module_size,
+        exported_globals: metadata.exported_globals,
+        wasm_memory_size: metadata.wasm_memory_size,
+        stable_memory_size: metadata.stable_memory_size,
+        certified_data: metadata.certified_data,
+        global_timer: metadata.global_timer,
+        on_low_wasm_memory_hook_status: metadata.on_low_wasm_memory_hook_status,
+    };
+    let snapshot_id =
+        upload_canister_snapshot_metadata(env, canister_id, &metadata_args, call_sender)
+            .await
+            .with_context(|| format!("Failed to upload snapshot metadata to canister {canister}"))?
+            .into();
     debug!(
         env.get_logger(),
         "Snapshot metadata uploaded to canister {canister} with Snapshot ID: {snapshot_id}"
@@ -466,12 +488,16 @@ async fn upload(
             })?;
 
             retry(retry_policy.clone(), || async {
+                let data_args = UploadCanisterSnapshotDataArgs {
+                    canister_id,
+                    snapshot_id: snapshot_id.0.clone(),
+                    kind: SnapshotDataOffset::WasmChunk,
+                    chunk: chunk_data.clone(),
+                };
                 match upload_canister_snapshot_data(
                     env,
                     canister_id,
-                    &snapshot_id.0,
-                    &SnapshotDataOffset::WasmChunk,
-                    chunk_data.as_ref(),
+                    &data_args,
                     call_sender,
                 )
                 .await
@@ -609,9 +635,12 @@ async fn read_blob(
             },
         };
         let chunk = retry(retry_policy.clone(), || async {
-            match read_canister_snapshot_data(env, canister_id, &snapshot.0, &kind, call_sender)
-                .await
-            {
+            let data_args = ReadCanisterSnapshotDataArgs {
+                canister_id,
+                snapshot_id: snapshot.0.clone(),
+                kind: kind.clone(),
+            };
+            match read_canister_snapshot_data(env, canister_id, &data_args, call_sender).await {
                 Ok(chunk) => Ok(chunk),
                 Err(error) if is_retryable(&error) => {
                     error!(
@@ -698,16 +727,13 @@ async fn upload_blob(
             },
         };
         retry(retry_policy.clone(), || async {
-            match upload_canister_snapshot_data(
-                env,
+            let data_args = UploadCanisterSnapshotDataArgs {
                 canister_id,
-                &snapshot.0,
-                &kind,
-                &data[offset..offset + chunk_size],
-                call_sender,
-            )
-            .await
-            {
+                snapshot_id: snapshot.0.clone(),
+                kind: kind.clone(),
+                chunk: data[offset..offset + chunk_size].to_vec(),
+            };
+            match upload_canister_snapshot_data(env, canister_id, &data_args, call_sender).await {
                 Ok(_) => Ok(()),
                 Err(error) if is_retryable(&error) => {
                     error!(

@@ -24,7 +24,7 @@ use dfx_core::error::identity::InstantiateIdentityFromNameError::GetIdentityPrin
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::identity::Identity;
-use ic_utils::interfaces::management_canister::StatusCallResult;
+use ic_utils::interfaces::management_canister::CanisterStatusResult;
 
 /// Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.)
 #[derive(Parser, Debug)]
@@ -195,7 +195,7 @@ pub async fn exec(
             get_wasm_memory_limit(opts.wasm_memory_limit, config_interface, canister_name)?;
         let wasm_memory_threshold =
             get_wasm_memory_threshold(opts.wasm_memory_threshold, config_interface, canister_name)?;
-        let mut current_status: Option<StatusCallResult> = None;
+        let mut current_status: Option<CanisterStatusResult> = None;
         if let Some(log_visibility) = &opts.log_visibility_opt {
             if log_visibility.require_current_settings() {
                 current_status = Some(get_canister_status(env, canister_id, call_sender).await?);
@@ -312,7 +312,7 @@ pub async fn exec(
                 .with_context(|| {
                     format!("Failed to get Wasm memory threshold for {canister_name}.")
                 })?;
-                let mut current_status: Option<StatusCallResult> = None;
+                let mut current_status: Option<CanisterStatusResult> = None;
                 if let Some(log_visibility) = &opts.log_visibility_opt {
                     if log_visibility.require_current_settings() {
                         current_status =

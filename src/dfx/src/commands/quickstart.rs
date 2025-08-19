@@ -28,7 +28,7 @@ use dfx_core::identity::wallet::wallet_canister_id;
 use dialoguer::{Confirm, Input};
 use ic_agent::Agent;
 use ic_utils::interfaces::{
-    management_canister::builders::InstallMode, ManagementCanister, WalletCanister,
+    management_canister::builders::CanisterInstallMode, ManagementCanister, WalletCanister,
 };
 use num_traits::Inv;
 use rust_decimal::Decimal;
@@ -109,7 +109,7 @@ async fn step_import_wallet(env: &dyn Environment, agent: &Agent, ident: &str) -
         let mgmt = ManagementCanister::create(agent);
         let wasm = wallet_wasm(env.get_logger())?;
         mgmt.install_code(&id, &wasm)
-            .with_mode(InstallMode::Install)
+            .with_mode(CanisterInstallMode::Install)
             .await?;
         WalletCanister::create(agent, id).await?
     };
@@ -218,7 +218,7 @@ async fn step_finish_wallet(
     ident: &str,
 ) -> DfxResult {
     let install_spinner = env.new_spinner("Installing the wallet code to the canister...".into());
-    install_wallet(env, agent, wallet, InstallMode::Install)
+    install_wallet(env, agent, wallet, CanisterInstallMode::Install)
         .await
         .context("Failed to install the wallet code to the canister")?;
     set_wallet_id(env.get_network_descriptor(), ident, wallet)

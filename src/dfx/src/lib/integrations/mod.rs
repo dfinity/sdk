@@ -11,7 +11,7 @@ use dfx_core::identity::Identity;
 use dfx_core::{error::root_key::FetchRootKeyError, util::expiry_duration};
 use fn_error_context::context;
 use ic_agent::Agent;
-use ic_utils::interfaces::management_canister::builders::InstallMode;
+use ic_utils::interfaces::management_canister::builders::CanisterInstallMode;
 use ic_utils::interfaces::ManagementCanister;
 use sha2::Digest;
 use slog::{debug, info, Logger};
@@ -67,7 +67,7 @@ async fn install_canister(
     ManagementCanister::create(agent)
         .install_code(canister_id, wasm)
         // always reinstall pulled canister
-        .with_mode(InstallMode::Reinstall)
+        .with_mode(CanisterInstallMode::Reinstall)
         .with_raw_arg(install_args)
         .await?;
     Ok(())

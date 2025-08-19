@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+Updated Motoko to [0.16.0](https://github.com/dfinity/motoko/releases/tag/0.16.0)
+
 # 0.29.0
 
 ### feat: add dfx native support for aarch64-Linux
