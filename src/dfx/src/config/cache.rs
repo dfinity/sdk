@@ -126,7 +126,8 @@ pub fn install_version(
             #[cfg(unix)]
             {
                 let archive_path = dfx_core::fs::get_archive_path(&file)?;
-                let mode = if archive_path.starts_with("base/") || archive_path.starts_with("core/") {
+                let mode = if archive_path.starts_with("base/") || archive_path.starts_with("core/")
+                {
                     READ_USER_ONLY_PERMISSION
                 } else {
                     EXEC_READ_USER_ONLY_PERMISSION

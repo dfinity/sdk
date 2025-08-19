@@ -1,6 +1,6 @@
 import Int "mo:core/Int";
 
-actor TestCore {
+persistent actor TestCore {
 
     public query func test_core() : async Bool {
         // Test a simple function from the core package
