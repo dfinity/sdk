@@ -7,6 +7,10 @@
 The `tech_stack` metadata was previously defined with `HashMap`, which resulted in non-deterministic serialization due to its random key ordering.
 This has been fixed by replacing it with `BTreeMap`, which sorts keys and guarantees consistent, deterministic output every time.
 
+### Motoko
+
+Updated Motoko to [0.16.0](https://github.com/dfinity/motoko/releases/tag/0.16.0)
+
 # 0.29.0
 
 ### feat: add dfx native support for aarch64-Linux
@@ -21,7 +25,7 @@ Added `dfx canister snapshot download` and `dfx canister snapshot upload` comman
 
 ### Motoko
 
-Updated Motoko to [0.16.0](https://github.com/dfinity/motoko/releases/tag/0.16.0)
+Updated Motoko to [0.15.1](https://github.com/dfinity/motoko/releases/tag/0.15.1)
 
 ### Replica
 
