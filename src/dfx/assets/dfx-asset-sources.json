@@ -58,6 +58,11 @@
       "url": "https://github.com/dfinity/bitcoin-canister/releases/download/release%2F2024-08-30/ic-btc-canister.wasm.gz",
       "sha256": "d0ada614be09055f37d45d8ad92560432c86b426d9e66f42609ce64007a13c3e",
       "version": "release/2024-08-30"
+    },
+    "motoko-core": {
+      "url": "https://github.com/dfinity/motoko/releases/download/0.16.0/motoko-core.tar.gz",
+      "sha256": "dacbeb1735306be8c6bfa3738167bcf372b0364dc5319e5a024d70d4e11231e0",
+      "version": "0.16.0"
     }
   }
 }
