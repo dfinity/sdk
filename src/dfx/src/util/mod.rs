@@ -24,6 +24,7 @@ use std::collections::BTreeMap;
 use std::io::{stderr, stdin, stdout, IsTerminal, Read};
 use std::net::{IpAddr, SocketAddr, TcpListener};
 use std::path::Path;
+use std::str::FromStr;
 use std::time::Duration;
 
 pub mod assets;
@@ -219,16 +220,16 @@ pub fn blob_from_arguments(
                     } else if let Some(random) = random {
                         let random = if random.is_empty() {
                             eprintln!("Random schema is empty, using any random value instead.");
-                            "{=}"
+                            ""
                         } else {
                             random
                         };
                         use rand::Rng;
                         let mut rng = rand::thread_rng();
                         let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
-                        let config = candid_parser::configs::Configs::from_dhall(random)
+                        let config = candid_parser::configs::Configs::from_str(random)
                             .context("Failed to create candid parser config.")?;
-                        let args = candid_parser::random::any(&seed, &config, env, &func.args)
+                        let args = candid_parser::random::any(&seed, config, env, &func.args, &None)
                             .context("Failed to create idl args.")?;
                         eprintln!("Sending the following random argument:\n{}\n", args);
                         args.to_bytes_with_types(env, &func.args)
