@@ -116,7 +116,7 @@ uuid = { version = "1.15.1", features = ["v4"] }
 walkdir.workspace = true
 walrus = "0.21.1"
 which = "4.2.5"
-serde_dhall = "0.12.1"
+serde_dhall = { version = "0.12.1", default-features = false }
 toml = "0.8"
 
 [target.'cfg(windows)'.dependencies]
