@@ -20,11 +20,11 @@ use idl2json::{idl2json, Idl2JsonOptions};
 use num_traits::FromPrimitive;
 use reqwest::{Client, StatusCode, Url};
 use rust_decimal::Decimal;
+use serde_dhall::SimpleValue;
 use std::collections::BTreeMap;
 use std::io::{stderr, stdin, stdout, IsTerminal, Read};
 use std::net::{IpAddr, SocketAddr, TcpListener};
 use std::path::Path;
-use std::str::FromStr;
 use std::time::Duration;
 
 pub mod assets;
@@ -220,15 +220,20 @@ pub fn blob_from_arguments(
                     } else if let Some(random) = random {
                         let random = if random.is_empty() {
                             eprintln!("Random schema is empty, using any random value instead.");
-                            ""
+                            "{=}"
                         } else {
                             random
                         };
                         use rand::Rng;
                         let mut rng = rand::thread_rng();
                         let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
-                        let config = candid_parser::configs::Configs::from_str(random)
-                            .context("Failed to create candid parser config.")?;
+                        let dhall_value: SimpleValue = serde_dhall::from_str(&random).parse()?;
+                        let toml_conversion = toml::Value::try_from(dhall_value)
+                            .context("Failed to convert dhall value to toml value.")?;
+                        let toml::Value::Table(table) = toml_conversion else {
+                            bail!("Failed to convert dhall value to toml table.")
+                        };
+                        let config = candid_parser::configs::Configs(table);
                         let args = candid_parser::random::any(&seed, config, env, &func.args, &None)
                             .context("Failed to create idl args.")?;
                         eprintln!("Sending the following random argument:\n{}\n", args);

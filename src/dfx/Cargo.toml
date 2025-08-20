@@ -18,9 +18,7 @@ path = "src/main.rs"
 [build-dependencies]
 backoff = { version = "0.4.0", features = ["futures", "tokio"] }
 bytes = "1"
-flate2 = { version = "1.0.11", default-features = false, features = [
-    "zlib-ng",
-] }
+flate2 = { version = "1.0.11", default-features = false, features = ["zlib-ng"] }
 hex = "0.4.3"
 reqwest.workspace = true
 serde = { version = "1.0", features = ["derive"] }
@@ -46,12 +44,7 @@ candid_parser = { workspace = true, features = ["random", "assist"] }
 cargo_metadata = "0.18.1"
 chrono = "0.4.39"
 ci_info = "0.14"
-clap = { workspace = true, features = [
-    "derive",
-    "env",
-    "unstable-styles",
-    "wrap_help",
-] }
+clap = { workspace = true, features = ["derive", "env", "unstable-styles", "wrap_help"] }
 clap_complete = { workspace = true }
 console = "0.15.0"
 crc32fast = "1.3.2"
@@ -68,10 +61,7 @@ futures.workspace = true
 handlebars.workspace = true
 hex = { workspace = true, features = ["serde"] }
 humantime.workspace = true
-hyper-rustls = { version = "0.24.1", default-features = false, features = [
-    "webpki-roots",
-    "http2",
-] }
+hyper-rustls = { version = "0.24.1", default-features = false, features = ["webpki-roots", "http2"] }
 ic-agent.workspace = true
 ic-asset.workspace = true
 ic-cdk.workspace = true
@@ -119,17 +109,15 @@ tar.workspace = true
 tempfile.workspace = true
 term = "0.7.0"
 thiserror.workspace = true
-time = { workspace = true, features = [
-    "macros",
-    "serde",
-    "serde-human-readable",
-] }
+time = { workspace = true, features = ["macros", "serde", "serde-human-readable"] }
 tokio = { workspace = true, features = ["full"] }
 url.workspace = true
 uuid = { version = "1.15.1", features = ["v4"] }
 walkdir.workspace = true
 walrus = "0.21.1"
 which = "4.2.5"
+serde_dhall = "0.12.1"
+toml = "0.8"
 
 [target.'cfg(windows)'.dependencies]
 junction = "1.0.0"
