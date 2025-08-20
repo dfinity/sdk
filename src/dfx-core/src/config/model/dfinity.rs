@@ -58,7 +58,7 @@ use schemars::JsonSchema;
 use serde::de::{Error as _, MapAccess, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::default::Default;
 use std::fmt::{self, Debug, Display, Formatter};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr, ToSocketAddrs};
@@ -209,7 +209,7 @@ pub struct Pullable {
     pub init_arg: Option<String>,
 }
 
-pub type TechStackCategoryMap = HashMap<String, HashMap<String, String>>;
+pub type TechStackCategoryMap = BTreeMap<String, BTreeMap<String, String>>;
 
 /// # Tech Stack
 /// The tech stack used to build a canister.
@@ -1703,5 +1703,24 @@ mod tests {
             .unwrap();
         assert_eq!(None, compute_allocation);
         assert_eq!(None, memory_allocation);
+    }
+
+    #[test]
+    fn tech_stack_category_deterministic_serialization() {
+        let first = build_and_serialize();
+        // Repeat `build and serialize` many times and assert equality
+        for _ in 0..10 {
+            let next = build_and_serialize();
+            assert_eq!(first, next);
+        }
+    }
+
+    fn build_and_serialize() -> String {
+        use super::TechStackCategoryMap;
+        use std::collections::BTreeMap;
+        let mut data: TechStackCategoryMap = BTreeMap::new();
+        data.insert("typescript".into(), BTreeMap::new());
+        data.insert("javascript".into(), BTreeMap::new());
+        serde_json::to_string(&data).unwrap()
     }
 }
