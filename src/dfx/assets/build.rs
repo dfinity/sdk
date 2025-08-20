@@ -62,8 +62,12 @@ impl Source {
 struct Sources {
     #[serde(rename = "x86_64-linux")]
     x86_64_linux: HashMap<String, Source>,
+    #[serde(rename = "arm64-linux")]
+    aarch64_linux: HashMap<String, Source>,
     #[serde(rename = "x86_64-darwin")]
     x86_64_darwin: HashMap<String, Source>,
+    #[serde(rename = "arm64-darwin")]
+    aarch64_darwin: HashMap<String, Source>,
     common: HashMap<String, Source>,
     #[serde(rename = "replica-rev")]
     replica_rev: String,
@@ -99,8 +103,10 @@ fn find_assets(sources: Sources) -> PathBuf {
             &*env::var("CARGO_CFG_TARGET_ARCH").unwrap(),
             &*env::var("CARGO_CFG_TARGET_OS").unwrap(),
         ) {
-            ("x86_64" | "aarch64", "macos") => sources.x86_64_darwin, // rosetta
+            ("x86_64", "macos") => sources.x86_64_darwin, // rosetta
+            ("aarch64", "macos") => sources.aarch64_darwin, // aarch64
             ("x86_64", "linux" | "windows") => sources.x86_64_linux,
+            ("aarch64", "linux") => sources.aarch64_linux,
             (arch, os) => panic!("Unsupported OS type {arch}-{os}"),
         };
         source_set.extend(sources.common);
@@ -325,7 +331,7 @@ fn add_assets(sources: Sources) {
     );
 }
 
-/// Use a verion based on environment variable,
+/// Use a version based on environment variable,
 /// or the latest git tag plus sha of current git HEAD at time of build,
 /// or let the cargo.toml version.
 fn define_dfx_version() {

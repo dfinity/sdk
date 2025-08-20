@@ -18,54 +18,47 @@ use crate::{
     types::*,
 };
 use asset_certification::types::{certification::AssetKey, rc_bytes::RcBytes};
-use candid::{candid_method, Principal};
-use ic_cdk::api::{call::ManualReply, caller, data_certificate, set_certified_data, time, trap};
-use ic_cdk::{query, update};
-use serde_bytes::ByteBuf;
+use candid::Principal;
+use ic_cdk::api::{canister_self, certified_data_set, data_certificate, msg_caller, time, trap};
 use std::cell::RefCell;
 
-#[cfg(target_arch = "wasm32")]
-#[link_section = "icp:public supported_certificate_versions"]
+// Re-export for use in macros
+#[doc(hidden)]
+pub use candid::candid_method as ic_certified_assets_candid_method;
+#[doc(hidden)]
+pub use ic_cdk::query as ic_certified_assets_query;
+#[doc(hidden)]
+pub use ic_cdk::update as ic_certified_assets_update;
+#[doc(hidden)]
+pub use serde_bytes::ByteBuf as ic_certified_assets_ByteBuf;
+
 pub static SUPPORTED_CERTIFICATE_VERSIONS: [u8; 3] = *b"1,2";
 
 thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
 }
 
-#[query]
-#[candid_method(query)]
-fn api_version() -> u16 {
+pub fn api_version() -> u16 {
     2
 }
 
-#[update(guard = "is_manager_or_controller")]
-#[candid_method(update)]
-fn authorize(other: Principal) {
-    STATE.with(|s| s.borrow_mut().grant_permission(other, &Permission::Commit))
+pub fn authorize(other: Principal) {
+    with_state_mut(|s| s.grant_permission(other, &Permission::Commit))
 }
 
-#[update(guard = "is_manager_or_controller")]
-#[candid_method(update)]
-fn grant_permission(arg: GrantPermissionArguments) {
-    STATE.with(|s| {
-        s.borrow_mut()
-            .grant_permission(arg.to_principal, &arg.permission)
-    })
+pub fn grant_permission(arg: GrantPermissionArguments) {
+    with_state_mut(|s| s.grant_permission(arg.to_principal, &arg.permission))
 }
 
-#[update]
-#[candid_method(update)]
-async fn validate_grant_permission(arg: GrantPermissionArguments) -> Result<String, String> {
+pub async fn validate_grant_permission(arg: GrantPermissionArguments) -> Result<String, String> {
     Ok(format!(
         "grant {} permission to principal {}",
         arg.permission, arg.to_principal
     ))
 }
 
-#[update]
-#[candid_method(update)]
-async fn deauthorize(other: Principal) {
-    let check_access_result = if other == caller() {
+pub async fn deauthorize(other: Principal) {
+    let check_access_result = if other == msg_caller() {
         // this isn't "ManagePermissions" because these legacy methods only
         // deal with the Commit permission
         has_permission_or_is_controller(&Permission::Commit)
@@ -74,330 +67,264 @@ async fn deauthorize(other: Principal) {
     };
     match check_access_result {
         Err(e) => trap(&e),
-        Ok(_) => STATE.with(|s| s.borrow_mut().revoke_permission(other, &Permission::Commit)),
+        Ok(_) => with_state_mut(|s| s.revoke_permission(other, &Permission::Commit)),
     }
 }
 
-#[update]
-#[candid_method(update)]
-async fn revoke_permission(arg: RevokePermissionArguments) {
-    let check_access_result = if arg.of_principal == caller() {
+pub async fn revoke_permission(arg: RevokePermissionArguments) {
+    let check_access_result = if arg.of_principal == msg_caller() {
         has_permission_or_is_controller(&arg.permission)
     } else {
         has_permission_or_is_controller(&Permission::ManagePermissions)
     };
     match check_access_result {
         Err(e) => trap(&e),
-        Ok(_) => STATE.with(|s| {
-            s.borrow_mut()
-                .revoke_permission(arg.of_principal, &arg.permission)
-        }),
+        Ok(_) => with_state_mut(|s| s.revoke_permission(arg.of_principal, &arg.permission)),
     }
 }
 
-#[update]
-#[candid_method(update)]
-async fn validate_revoke_permission(arg: RevokePermissionArguments) -> Result<String, String> {
+pub async fn validate_revoke_permission(arg: RevokePermissionArguments) -> Result<String, String> {
     Ok(format!(
         "revoke {} permission from principal {}",
         arg.permission, arg.of_principal
     ))
 }
 
-#[update(manual_reply = true)]
-#[candid_method(update)]
-fn list_authorized() -> ManualReply<Vec<Principal>> {
-    STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&Permission::Commit)))
+pub fn list_authorized() -> Vec<Principal> {
+    with_state(|s| {
+        s.list_permitted(&Permission::Commit)
+            .iter()
+            .cloned()
+            .collect()
+    })
 }
 
-#[update(manual_reply = true)]
-#[candid_method(update)]
-fn list_permitted(arg: ListPermittedArguments) -> ManualReply<Vec<Principal>> {
-    STATE.with(|s| ManualReply::one(s.borrow().list_permitted(&arg.permission)))
+pub fn list_permitted(arg: ListPermittedArguments) -> Vec<Principal> {
+    with_state(|s| s.list_permitted(&arg.permission).iter().cloned().collect())
 }
 
-#[update(guard = "is_controller")]
-#[candid_method(update)]
-async fn take_ownership() {
-    let caller = ic_cdk::api::caller();
-    STATE.with(|s| s.borrow_mut().take_ownership(caller))
+pub async fn take_ownership() {
+    let caller = msg_caller();
+    with_state_mut(|s| s.take_ownership(caller))
 }
 
-#[update]
-#[candid_method(update)]
-async fn validate_take_ownership() -> Result<String, String> {
+pub async fn validate_take_ownership() -> Result<String, String> {
     Ok("revoke all permissions, then gives the caller Commit permissions".to_string())
 }
 
-#[query]
-#[candid_method(query)]
-fn retrieve(key: AssetKey) -> RcBytes {
-    STATE.with(|s| match s.borrow().retrieve(&key) {
+pub fn retrieve(key: AssetKey) -> RcBytes {
+    with_state(|s| match s.retrieve(&key) {
         Ok(bytes) => bytes,
         Err(msg) => trap(&msg),
     })
 }
 
-#[update(guard = "can_commit")]
-#[candid_method(update)]
-fn store(arg: StoreArg) {
-    STATE.with(move |s| {
-        if let Err(msg) = s.borrow_mut().store(arg, time()) {
+pub fn store(arg: StoreArg) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.store(arg, time()) {
             trap(&msg);
         }
-        set_certified_data(&s.borrow().root_hash());
+        certified_data_set(s.root_hash());
     });
 }
 
-#[update(guard = "can_prepare")]
-#[candid_method(update)]
-fn create_batch() -> CreateBatchResponse {
-    STATE.with(|s| match s.borrow_mut().create_batch(time()) {
+pub fn create_batch() -> CreateBatchResponse {
+    with_state_mut(|s| match s.create_batch(time()) {
         Ok(batch_id) => CreateBatchResponse { batch_id },
         Err(msg) => trap(&msg),
     })
 }
 
-#[update(guard = "can_prepare")]
-#[candid_method(update)]
-fn create_chunk(arg: CreateChunkArg) -> CreateChunkResponse {
-    STATE.with(|s| match s.borrow_mut().create_chunk(arg, time()) {
+pub fn create_chunk(arg: CreateChunkArg) -> CreateChunkResponse {
+    with_state_mut(|s| match s.create_chunk(arg, time()) {
         Ok(chunk_id) => CreateChunkResponse { chunk_id },
         Err(msg) => trap(&msg),
     })
 }
 
-#[update(guard = "can_prepare")]
-#[candid_method(update)]
-fn create_chunks(arg: CreateChunksArg) -> CreateChunksResponse {
-    STATE.with(|s| match s.borrow_mut().create_chunks(arg, time()) {
+pub fn create_chunks(arg: CreateChunksArg) -> CreateChunksResponse {
+    with_state_mut(|s| match s.create_chunks(arg, time()) {
         Ok(chunk_ids) => CreateChunksResponse { chunk_ids },
         Err(msg) => trap(&msg),
     })
 }
 
-#[update(guard = "can_commit")]
-#[candid_method(update)]
-fn create_asset(arg: CreateAssetArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().create_asset(arg) {
+pub fn create_asset(arg: CreateAssetArguments) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.create_asset(arg) {
             trap(&msg);
         }
-        set_certified_data(&s.borrow().root_hash());
+        certified_data_set(s.root_hash());
     })
 }
 
-#[update(guard = "can_commit")]
-#[candid_method(update)]
-fn set_asset_content(arg: SetAssetContentArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().set_asset_content(arg, time()) {
+pub fn set_asset_content(arg: SetAssetContentArguments) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.set_asset_content(arg, time()) {
             trap(&msg);
         }
-        set_certified_data(&s.borrow().root_hash());
+        certified_data_set(s.root_hash());
     })
 }
 
-#[update(guard = "can_commit")]
-#[candid_method(update)]
-fn unset_asset_content(arg: UnsetAssetContentArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().unset_asset_content(arg) {
+pub fn unset_asset_content(arg: UnsetAssetContentArguments) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.unset_asset_content(arg) {
             trap(&msg);
         }
-        set_certified_data(&s.borrow().root_hash());
+        certified_data_set(s.root_hash());
     })
 }
 
-#[update(guard = "can_commit")]
-#[candid_method(update)]
-fn delete_asset(arg: DeleteAssetArguments) {
-    STATE.with(|s| {
-        s.borrow_mut().delete_asset(arg);
-        set_certified_data(&s.borrow().root_hash());
+pub fn delete_asset(arg: DeleteAssetArguments) {
+    with_state_mut(|s| {
+        s.delete_asset(arg);
+        certified_data_set(s.root_hash());
     });
 }
 
-#[update(guard = "can_commit")]
-#[candid_method(update)]
-fn clear() {
-    STATE.with(|s| {
-        s.borrow_mut().clear();
-        set_certified_data(&s.borrow().root_hash());
+pub fn clear() {
+    with_state_mut(|s| {
+        s.clear();
+        certified_data_set(s.root_hash());
     });
 }
 
-#[update(guard = "can_commit")]
-#[candid_method(update)]
-fn commit_batch(arg: CommitBatchArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().commit_batch(arg, time()) {
+pub fn commit_batch(arg: CommitBatchArguments) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.commit_batch(arg, time()) {
             trap(&msg);
         }
-        set_certified_data(&s.borrow().root_hash());
+        certified_data_set(s.root_hash());
     });
 }
 
-#[update(guard = "can_prepare")]
-#[candid_method(update)]
-fn propose_commit_batch(arg: CommitBatchArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().propose_commit_batch(arg) {
+pub fn propose_commit_batch(arg: CommitBatchArguments) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.propose_commit_batch(arg) {
             trap(&msg);
         }
+        certified_data_set(s.root_hash());
     });
 }
 
-#[update(guard = "can_prepare")]
-#[candid_method(update)]
-fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ByteBuf> {
-    STATE.with(|s| match s.borrow_mut().compute_evidence(arg) {
+pub fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ic_certified_assets_ByteBuf> {
+    with_state_mut(|s| match s.compute_evidence(arg) {
         Err(msg) => trap(&msg),
         Ok(maybe_evidence) => maybe_evidence,
     })
 }
 
-#[update(guard = "can_commit")]
-#[candid_method(update)]
-fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().commit_proposed_batch(arg, time()) {
+pub fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.commit_proposed_batch(arg, time()) {
             trap(&msg);
         }
-        set_certified_data(&s.borrow().root_hash());
+        certified_data_set(s.root_hash());
     });
 }
 
-#[update]
-#[candid_method(update)]
-fn validate_commit_proposed_batch(arg: CommitProposedBatchArguments) -> Result<String, String> {
-    STATE.with(|s| s.borrow_mut().validate_commit_proposed_batch(arg))
+pub fn validate_commit_proposed_batch(arg: CommitProposedBatchArguments) -> Result<String, String> {
+    with_state_mut(|s| s.validate_commit_proposed_batch(arg))
 }
 
-#[update(guard = "can_prepare")]
-#[candid_method(update)]
-fn delete_batch(arg: DeleteBatchArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().delete_batch(arg) {
-            trap(&msg);
-        }
-    });
+pub fn delete_batch(arg: DeleteBatchArguments) {
+    if let Err(msg) = with_state_mut(|s| s.delete_batch(arg)) {
+        trap(&msg);
+    }
 }
 
-#[query]
-#[candid_method(query)]
-fn get(arg: GetArg) -> EncodedAsset {
-    STATE.with(|s| match s.borrow().get(arg) {
+pub fn get(arg: GetArg) -> EncodedAsset {
+    with_state(|s| match s.get(arg) {
         Ok(asset) => asset,
         Err(msg) => trap(&msg),
     })
 }
 
-#[query]
-#[candid_method(query)]
-fn get_chunk(arg: GetChunkArg) -> GetChunkResponse {
-    STATE.with(|s| match s.borrow().get_chunk(arg) {
+pub fn get_chunk(arg: GetChunkArg) -> GetChunkResponse {
+    with_state(|s| match s.get_chunk(arg) {
         Ok(content) => GetChunkResponse { content },
         Err(msg) => trap(&msg),
     })
 }
 
-#[query]
-#[candid_method(query)]
-fn list() -> Vec<AssetDetails> {
-    STATE.with(|s| s.borrow().list_assets())
+pub fn list() -> Vec<AssetDetails> {
+    with_state(|s| s.list_assets())
 }
 
-#[query]
-#[candid_method(query)]
-fn certified_tree() -> CertifiedTree {
+pub fn certified_tree() -> CertifiedTree {
     let certificate = data_certificate().unwrap_or_else(|| trap("no data certificate available"));
 
-    STATE.with(|s| s.borrow().certified_tree(&certificate))
+    with_state(|s| s.certified_tree(&certificate))
 }
 
-#[query]
-#[candid_method(query)]
-fn http_request(req: HttpRequest) -> HttpResponse {
+pub fn http_request(req: HttpRequest) -> HttpResponse {
     let certificate = data_certificate().unwrap_or_else(|| trap("no data certificate available"));
 
-    STATE.with(|s| {
-        s.borrow().http_request(
+    with_state(|s| {
+        s.http_request(
             req,
             &certificate,
-            CallbackFunc::new(ic_cdk::id(), "http_request_streaming_callback".to_string()),
+            CallbackFunc::new(
+                canister_self(),
+                "http_request_streaming_callback".to_string(),
+            ),
         )
     })
 }
 
-#[query]
-#[candid_method(query)]
-fn http_request_streaming_callback(token: StreamingCallbackToken) -> StreamingCallbackHttpResponse {
-    STATE.with(|s| {
-        s.borrow()
-            .http_request_streaming_callback(token)
+pub fn http_request_streaming_callback(
+    token: StreamingCallbackToken,
+) -> StreamingCallbackHttpResponse {
+    with_state(|s| {
+        s.http_request_streaming_callback(token)
             .unwrap_or_else(|msg| trap(&msg))
     })
 }
 
-#[query]
-#[candid_method(query)]
-fn get_asset_properties(key: AssetKey) -> AssetProperties {
-    STATE.with(|s| {
-        s.borrow()
-            .get_asset_properties(key)
-            .unwrap_or_else(|msg| trap(&msg))
-    })
+pub fn get_asset_properties(key: AssetKey) -> AssetProperties {
+    with_state(|s| s.get_asset_properties(key).unwrap_or_else(|msg| trap(&msg)))
 }
 
-#[update(guard = "can_commit")]
-#[candid_method(update)]
-fn set_asset_properties(arg: SetAssetPropertiesArguments) {
-    STATE.with(|s| {
-        if let Err(msg) = s.borrow_mut().set_asset_properties(arg) {
+pub fn set_asset_properties(arg: SetAssetPropertiesArguments) {
+    with_state_mut(|s| {
+        if let Err(msg) = s.set_asset_properties(arg) {
             trap(&msg);
         }
     })
 }
 
-#[update(guard = "can_prepare")]
-#[candid_method(update)]
-fn get_configuration() -> ConfigurationResponse {
-    STATE.with(|s| s.borrow().get_configuration())
+pub fn get_configuration() -> ConfigurationResponse {
+    with_state(|s| s.get_configuration())
 }
 
-#[update(guard = "can_commit")]
-#[candid_method(update)]
-fn configure(arg: ConfigureArguments) {
-    STATE.with(|s| s.borrow_mut().configure(arg))
+pub fn configure(arg: ConfigureArguments) {
+    with_state_mut(|s| s.configure(arg))
 }
 
-#[update]
-#[candid_method(update)]
-fn validate_configure(arg: ConfigureArguments) -> Result<String, String> {
+pub fn validate_configure(arg: ConfigureArguments) -> Result<String, String> {
     Ok(format!("configure: {:?}", arg))
 }
 
-fn can(permission: Permission) -> Result<(), String> {
-    STATE.with(|s| {
-        s.borrow()
-            .can(&caller(), &permission)
+pub fn can(permission: Permission) -> Result<(), String> {
+    with_state(|s| {
+        s.can(&msg_caller(), &permission)
             .then_some(())
             .ok_or_else(|| format!("Caller does not have {} permission", permission))
     })
 }
 
-fn can_commit() -> Result<(), String> {
+pub fn can_commit() -> Result<(), String> {
     can(Permission::Commit)
 }
 
-fn can_prepare() -> Result<(), String> {
+pub fn can_prepare() -> Result<(), String> {
     can(Permission::Prepare)
 }
 
-fn has_permission_or_is_controller(permission: &Permission) -> Result<(), String> {
-    let caller = caller();
-    let has_permission = STATE.with(|s| s.borrow().has_permission(&caller, permission));
+pub fn has_permission_or_is_controller(permission: &Permission) -> Result<(), String> {
+    let caller = msg_caller();
+    let has_permission = with_state(|s| s.has_permission(&caller, permission));
     let is_controller = ic_cdk::api::is_controller(&caller);
     if has_permission || is_controller {
         Ok(())
@@ -409,12 +336,12 @@ fn has_permission_or_is_controller(permission: &Permission) -> Result<(), String
     }
 }
 
-fn is_manager_or_controller() -> Result<(), String> {
+pub fn is_manager_or_controller() -> Result<(), String> {
     has_permission_or_is_controller(&Permission::ManagePermissions)
 }
 
-fn is_controller() -> Result<(), String> {
-    let caller = caller();
+pub fn is_controller() -> Result<(), String> {
+    let caller = msg_caller();
     if ic_cdk::api::is_controller(&caller) {
         Ok(())
     } else {
@@ -423,20 +350,18 @@ fn is_controller() -> Result<(), String> {
 }
 
 pub fn init(args: Option<AssetCanisterArgs>) {
-    STATE.with(|s| {
-        let mut s = s.borrow_mut();
+    with_state_mut(|s| {
         s.clear();
-        s.grant_permission(caller(), &Permission::Commit);
+        s.grant_permission(msg_caller(), &Permission::Commit);
     });
 
     if let Some(upgrade_arg) = args {
         let AssetCanisterArgs::Init(init_args) = upgrade_arg else {
             ic_cdk::trap("Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.")
         };
-        STATE.with(|s| {
-            let mut state = s.borrow_mut();
+        with_state_mut(|s| {
             if let Some(set_permissions) = init_args.set_permissions {
-                state.set_permissions(set_permissions);
+                s.set_permissions(set_permissions);
             }
         });
     }
@@ -452,19 +377,307 @@ pub fn post_upgrade(stable_state: StableState, args: Option<AssetCanisterArgs>) 
         set_permissions
     });
 
-    STATE.with(|s| {
-        *s.borrow_mut() = State::from(stable_state);
-        set_certified_data(&s.borrow().root_hash());
+    with_state_mut(|s| {
+        *s = State::from(stable_state);
+        certified_data_set(s.root_hash());
         if let Some(set_permissions) = set_permissions {
-            s.borrow_mut().set_permissions(set_permissions);
+            s.set_permissions(set_permissions);
         }
     });
+}
+
+pub fn with_state_mut<F, R>(f: F) -> R
+where
+    F: FnOnce(&mut State) -> R,
+{
+    STATE.with(|s| f(&mut s.borrow_mut()))
+}
+
+pub fn with_state<F, R>(f: F) -> R
+where
+    F: FnOnce(&State) -> R,
+{
+    STATE.with(|s| f(&s.borrow()))
+}
+
+/// Exports the whole asset canister interface, but does not handle init/pre_/post_upgrade for initial configuration or state persistence across upgrades.
+///
+/// For a working example how to use this macro, see [here](https://github.com/dfinity/sdk/blob/master/src/canisters/frontend/ic-frontend-canister/src/lib.rs).
+#[macro_export]
+macro_rules! export_canister_methods {
+    () => {
+        use $crate::asset_certification;
+        use $crate::ic_certified_assets_ByteBuf;
+        use $crate::state_machine;
+        use $crate::types;
+
+        use $crate::can_commit as __ic_certified_assets_can_commit;
+        use $crate::can_prepare as __ic_certified_assets_can_prepare;
+        use $crate::is_controller as __ic_certified_assets_is_controller;
+        use $crate::is_manager_or_controller as __ic_certified_assets_is_manager_or_controller;
+
+        #[cfg(target_arch = "wasm32")]
+        #[link_section = "icp:public supported_certificate_versions"]
+        static CERTIFICATE_VERSIONS: [u8; 3] = $crate::SUPPORTED_CERTIFICATE_VERSIONS;
+
+        // Query methods
+        #[$crate::ic_certified_assets_query]
+        #[$crate::ic_certified_assets_candid_method(query)]
+        fn api_version() -> u16 {
+            $crate::api_version()
+        }
+
+        #[$crate::ic_certified_assets_query]
+        #[$crate::ic_certified_assets_candid_method(query)]
+        fn retrieve(
+            key: asset_certification::types::certification::AssetKey,
+        ) -> asset_certification::types::rc_bytes::RcBytes {
+            $crate::retrieve(key)
+        }
+
+        #[$crate::ic_certified_assets_query]
+        #[$crate::ic_certified_assets_candid_method(query)]
+        fn get(arg: types::GetArg) -> state_machine::EncodedAsset {
+            $crate::get(arg)
+        }
+
+        #[$crate::ic_certified_assets_query]
+        #[$crate::ic_certified_assets_candid_method(query)]
+        fn get_chunk(arg: types::GetChunkArg) -> types::GetChunkResponse {
+            $crate::get_chunk(arg)
+        }
+
+        #[$crate::ic_certified_assets_query]
+        #[$crate::ic_certified_assets_candid_method(query)]
+        fn list() -> Vec<state_machine::AssetDetails> {
+            $crate::list()
+        }
+
+        #[$crate::ic_certified_assets_query]
+        #[$crate::ic_certified_assets_candid_method(query)]
+        fn certified_tree() -> state_machine::CertifiedTree {
+            $crate::certified_tree()
+        }
+
+        #[$crate::ic_certified_assets_query]
+        #[$crate::ic_certified_assets_candid_method(query)]
+        fn http_request(
+            req: asset_certification::types::http::HttpRequest,
+        ) -> asset_certification::types::http::HttpResponse {
+            $crate::http_request(req)
+        }
+
+        #[$crate::ic_certified_assets_query]
+        #[$crate::ic_certified_assets_candid_method(query)]
+        fn http_request_streaming_callback(
+            token: asset_certification::types::http::StreamingCallbackToken,
+        ) -> asset_certification::types::http::StreamingCallbackHttpResponse {
+            $crate::http_request_streaming_callback(token)
+        }
+
+        #[$crate::ic_certified_assets_query]
+        #[$crate::ic_certified_assets_candid_method(query)]
+        fn get_asset_properties(
+            key: asset_certification::types::certification::AssetKey,
+        ) -> types::AssetProperties {
+            $crate::get_asset_properties(key)
+        }
+
+        // Update methods
+        #[$crate::ic_certified_assets_update(
+            guard = "__ic_certified_assets_is_manager_or_controller"
+        )]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn authorize(other: candid::Principal) {
+            $crate::authorize(other)
+        }
+
+        #[$crate::ic_certified_assets_update(
+            guard = "__ic_certified_assets_is_manager_or_controller"
+        )]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn grant_permission(arg: types::GrantPermissionArguments) {
+            $crate::grant_permission(arg)
+        }
+
+        #[$crate::ic_certified_assets_update]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        async fn validate_grant_permission(
+            arg: types::GrantPermissionArguments,
+        ) -> Result<String, String> {
+            $crate::validate_grant_permission(arg).await
+        }
+
+        #[$crate::ic_certified_assets_update]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        async fn deauthorize(other: candid::Principal) {
+            $crate::deauthorize(other).await
+        }
+
+        #[$crate::ic_certified_assets_update]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        async fn revoke_permission(arg: types::RevokePermissionArguments) {
+            $crate::revoke_permission(arg).await
+        }
+
+        #[$crate::ic_certified_assets_update]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        async fn validate_revoke_permission(
+            arg: types::RevokePermissionArguments,
+        ) -> Result<String, String> {
+            $crate::validate_revoke_permission(arg).await
+        }
+
+        #[$crate::ic_certified_assets_update]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn list_authorized() -> Vec<candid::Principal> {
+            $crate::list_authorized()
+        }
+
+        #[$crate::ic_certified_assets_update]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn list_permitted(arg: types::ListPermittedArguments) -> Vec<candid::Principal> {
+            $crate::list_permitted(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_is_controller")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        async fn take_ownership() {
+            $crate::take_ownership().await
+        }
+
+        #[$crate::ic_certified_assets_update]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        async fn validate_take_ownership() -> Result<String, String> {
+            $crate::validate_take_ownership().await
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn store(arg: types::StoreArg) {
+            $crate::store(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_prepare")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn create_batch() -> types::CreateBatchResponse {
+            $crate::create_batch()
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_prepare")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn create_chunk(arg: types::CreateChunkArg) -> types::CreateChunkResponse {
+            $crate::create_chunk(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_prepare")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn create_chunks(arg: types::CreateChunksArg) -> types::CreateChunksResponse {
+            $crate::create_chunks(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn create_asset(arg: types::CreateAssetArguments) {
+            $crate::create_asset(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn set_asset_content(arg: types::SetAssetContentArguments) {
+            $crate::set_asset_content(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn unset_asset_content(arg: types::UnsetAssetContentArguments) {
+            $crate::unset_asset_content(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn delete_asset(arg: types::DeleteAssetArguments) {
+            $crate::delete_asset(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn clear() {
+            $crate::clear()
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn commit_batch(arg: types::CommitBatchArguments) {
+            $crate::commit_batch(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_prepare")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn propose_commit_batch(arg: types::CommitBatchArguments) {
+            $crate::propose_commit_batch(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_prepare")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn compute_evidence(
+            arg: types::ComputeEvidenceArguments,
+        ) -> Option<ic_certified_assets_ByteBuf> {
+            $crate::compute_evidence(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn commit_proposed_batch(arg: types::CommitProposedBatchArguments) {
+            $crate::commit_proposed_batch(arg)
+        }
+
+        #[$crate::ic_certified_assets_update]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn validate_commit_proposed_batch(
+            arg: types::CommitProposedBatchArguments,
+        ) -> Result<String, String> {
+            $crate::validate_commit_proposed_batch(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_prepare")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn delete_batch(arg: types::DeleteBatchArguments) {
+            $crate::delete_batch(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn set_asset_properties(arg: types::SetAssetPropertiesArguments) {
+            $crate::set_asset_properties(arg)
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_prepare")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn get_configuration() -> types::ConfigurationResponse {
+            $crate::get_configuration()
+        }
+
+        #[$crate::ic_certified_assets_update(guard = "__ic_certified_assets_can_commit")]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn configure(arg: types::ConfigureArguments) {
+            $crate::configure(arg)
+        }
+
+        #[$crate::ic_certified_assets_update]
+        #[$crate::ic_certified_assets_candid_method(update)]
+        fn validate_configure(arg: types::ConfigureArguments) -> Result<String, String> {
+            $crate::validate_configure(arg)
+        }
+    };
 }
 
 #[test]
 fn candid_interface_compatibility() {
     use candid_parser::utils::{service_compatible, CandidSource};
     use std::path::PathBuf;
+
+    export_canister_methods!();
 
     candid::export_service!();
     let new_interface = __export_service();

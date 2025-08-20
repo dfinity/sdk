@@ -189,7 +189,11 @@ pub fn get_effective_canister_id(
         | MgmtMethod::TakeCanisterSnapshot
         | MgmtMethod::LoadCanisterSnapshot
         | MgmtMethod::ListCanisterSnapshots
-        | MgmtMethod::DeleteCanisterSnapshot => {
+        | MgmtMethod::DeleteCanisterSnapshot
+        | MgmtMethod::ReadCanisterSnapshotMetadata
+        | MgmtMethod::ReadCanisterSnapshotData
+        | MgmtMethod::UploadCanisterSnapshotMetadata
+        | MgmtMethod::UploadCanisterSnapshotData => {
             #[derive(CandidType, Deserialize)]
             struct In {
                 canister_id: CanisterId,
@@ -213,6 +217,7 @@ pub fn get_effective_canister_id(
     }
 }
 
+#[allow(clippy::future_not_send)]
 pub async fn exec(
     env: &dyn Environment,
     opts: CanisterCallOpts,

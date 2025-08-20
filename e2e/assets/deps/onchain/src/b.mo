@@ -1,6 +1,6 @@
 import a "canister:a";
 
-actor {
+persistent actor {
     public query func get() : async Nat {
         return 2;
     };

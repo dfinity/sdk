@@ -23,7 +23,6 @@ use pocket_ic::nonblocking::PocketIc;
 use semver::Version;
 use slog::{Logger, Record};
 use std::borrow::Cow;
-use std::cell::RefCell;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -31,7 +30,7 @@ use url::Url;
 use super::graph::graph_nodes_map::GraphWithNodesMap;
 use super::models::canister::Import;
 
-pub trait Environment {
+pub trait Environment: Send + Sync {
     fn get_cache(&self) -> VersionCache;
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError>;
     fn get_networks_config(&self) -> Arc<NetworksConfig>;
@@ -100,7 +99,7 @@ pub enum ProjectConfig {
 }
 
 pub struct EnvironmentImpl {
-    project_config: RefCell<ProjectConfig>,
+    project_config: Mutex<ProjectConfig>,
     shared_networks_config: Arc<NetworksConfig>,
     tool_config: Arc<Mutex<ToolConfig>>,
 
@@ -131,7 +130,7 @@ impl EnvironmentImpl {
 
         Ok(EnvironmentImpl {
             cache: VersionCache::with_version(&version),
-            project_config: RefCell::new(ProjectConfig::NotLoaded),
+            project_config: Mutex::new(ProjectConfig::NotLoaded),
             shared_networks_config: Arc::new(shared_networks_config),
             tool_config: Arc::new(Mutex::new(tool_config)),
             version: version.clone(),
@@ -195,7 +194,7 @@ impl EnvironmentImpl {
             }
             ProjectConfig::Loaded(Arc::new(config))
         });
-        self.project_config.replace(project_config);
+        *self.project_config.lock().unwrap() = project_config;
         Ok(())
     }
 }
@@ -206,11 +205,15 @@ impl Environment for EnvironmentImpl {
     }
 
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError> {
-        if matches!(*self.project_config.borrow(), ProjectConfig::NotLoaded) {
+        if matches!(
+            *self.project_config.lock().unwrap(),
+            ProjectConfig::NotLoaded
+        ) {
             self.load_config()?;
         }
 
-        let config = if let ProjectConfig::Loaded(ref config) = *self.project_config.borrow() {
+        let config = if let ProjectConfig::Loaded(ref config) = *self.project_config.lock().unwrap()
+        {
             Some(Arc::clone(config))
         } else {
             None

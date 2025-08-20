@@ -109,7 +109,7 @@ pub struct CanisterCreateOpts {
     #[arg(long, value_parser = log_visibility_parser, conflicts_with("log_viewer"))]
     log_visibility: Option<LogVisibility>,
 
-    /// Specifies the the principal of the log viewer of the canister.
+    /// Specifies the principal of the log viewer of the canister.
     /// Can be specified more than once.
     #[arg(long, action = ArgAction::Append, value_parser = principal_parser, conflicts_with("log_visibility"))]
     log_viewer: Option<Vec<candid::Principal>>,

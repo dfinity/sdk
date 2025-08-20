@@ -3,7 +3,7 @@ import P "mo:base/Principal";
 import Text "mo:base/Text";
 import Prim "mo:⛔";
 
-actor Call {
+persistent actor Call {
   type SubnetTypesToSubnetsResponse = {
     data: [(Text, [Principal])];
   };

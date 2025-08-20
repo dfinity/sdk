@@ -89,6 +89,18 @@ pub fn file_or_stdin_parser(path: &str) -> Result<PathBuf, String> {
     }
 }
 
+pub fn directory_parser(path: &str) -> Result<PathBuf, String> {
+    let path = PathBuf::from(path);
+    if path.is_dir() {
+        Ok(path)
+    } else {
+        Err(format!(
+            "Path '{}' does not exist or is not a directory.",
+            path.display()
+        ))
+    }
+}
+
 pub fn trillion_cycle_amount_parser(input: &str) -> Result<u128, String> {
     if let Ok(cycles) = format!("{}000000000000", input.replace('_', "")).parse::<u128>() {
         Ok(cycles)

@@ -3,6 +3,7 @@ use crate::error::fs::{
     ReadFileError, ReadPermissionsError, RemoveDirectoryAndContentsError, RemoveDirectoryError,
     RemoveFileError, RenameError, SetPermissionsError, WriteFileError,
 };
+use crate::error::keyring::KeyringMaintenanceError;
 use crate::error::{
     config::ConfigError,
     encryption::EncryptionError,
@@ -43,6 +44,9 @@ pub enum ConvertMnemonicToKeyError {
 pub enum CreateIdentityConfigError {
     #[error("Failed to generate a fresh encryption configuration")]
     GenerateFreshEncryptionConfigurationFailed(#[source] EncryptionError),
+
+    #[error("Failed to check for keyring availability")]
+    KeyringAvailabilityCheckFailed(#[source] KeyringMaintenanceError),
 }
 
 #[derive(Error, Debug)]

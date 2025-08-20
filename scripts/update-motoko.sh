@@ -29,7 +29,7 @@ motoko_base_sha=$(curl --proto '=https' --tlsv1.2 -sSfL "$motoko_base_url" | sha
 jq '.common."motoko-base" = {url: $url, sha256: $sha256, version: $version}' --arg version "$version" \
     --arg url "$motoko_base_url" --arg sha256 "$motoko_base_sha" "$sources" | sponge "$sources"
 
-declare -A variants=([x86_64-darwin]=Darwin-x86_64 [x86_64-linux]=Linux-x86_64)
+declare -A variants=([x86_64-darwin]=Darwin-x86_64 [x86_64-linux]=Linux-x86_64 [arm64-darwin]=Darwin-arm64 [arm64-linux]=Linux-aarch64)
 for platform in "${!variants[@]}"; do
     motoko_url=$(printf 'https://github.com/dfinity/motoko/releases/download/%s/motoko-%s-%s.tar.gz' \
         "$(urlencode "$version")" "$(urlencode "${variants[$platform]}")" "$(urlencode "$version")")

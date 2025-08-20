@@ -1,3 +1,3 @@
 import X "canister:random";
-actor {};
+persistent actor {};
 
