@@ -1,9 +1,12 @@
+use std::str::FromStr;
+
 use crate::lib::agent::create_agent_environment;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use anyhow::Context;
-use candid_parser::utils::CandidSource;
+use candid_parser::bindings::rust::ExternalConfig;
+use candid_parser::configs::Configs;
 use clap::Parser;
 use slog::info;
 
@@ -70,24 +73,31 @@ pub fn exec(env: &dyn Environment, opts: GenerateBindingOpts) -> DfxResult {
                         continue;
                     }
                 }
-                let (type_env, did_types) = CandidSource::File(&candid).load()?;
+                let (type_env, did_types, prog) = candid_parser::pretty_check_file(&candid)?;
                 let extension = main.extension().unwrap_or_default();
                 let bindings = if extension == "mo" {
                     Some(candid_parser::bindings::motoko::compile(
-                        &type_env, &did_types,
+                        &type_env, &did_types, &prog,
                     ))
                 } else if extension == "rs" {
-                    let config = candid_parser::bindings::rust::Config::new();
-                    Some(candid_parser::bindings::rust::compile(
-                        &config, &type_env, &did_types,
-                    ))
+                    let config = candid_parser::bindings::rust::Config::new(Configs::from_str("")?);
+                    Some(
+                        candid_parser::bindings::rust::compile(
+                            &config,
+                            &type_env,
+                            &did_types,
+                            &prog,
+                            ExternalConfig::default(),
+                        )
+                        .0,
+                    )
                 } else if extension == "js" {
                     Some(candid_parser::bindings::javascript::compile(
                         &type_env, &did_types,
                     ))
                 } else if extension == "ts" {
                     Some(candid_parser::bindings::typescript::compile(
-                        &type_env, &did_types,
+                        &type_env, &did_types, &prog,
                     ))
                 } else {
                     info!(

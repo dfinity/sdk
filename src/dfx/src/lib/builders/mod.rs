@@ -7,7 +7,6 @@ use crate::util::command::direct_or_shell_command;
 use crate::util::with_suspend_all_spinners;
 use anyhow::{bail, Context};
 use candid::Principal as CanisterId;
-use candid_parser::utils::CandidSource;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
@@ -157,15 +156,16 @@ pub trait CanisterBuilder {
             bail!("Candid file: {} doesn't exist.", did_from_build.display());
         }
 
-        let (env, ty) = CandidSource::File(did_from_build.as_path()).load()?;
+        let (env, ty, prog) = candid_parser::pretty_check_file(did_from_build.as_path())?;
 
         // Typescript
         if bindings.contains(&"ts".to_string()) {
             let output_did_ts_path = generate_output_dir
                 .join(info.get_name())
                 .with_extension("did.d.ts");
-            let content =
-                ensure_trailing_newline(candid_parser::bindings::typescript::compile(&env, &ty));
+            let content = ensure_trailing_newline(candid_parser::bindings::typescript::compile(
+                &env, &ty, &prog,
+            ));
             std::fs::write(&output_did_ts_path, content).with_context(|| {
                 format!(
                     "Failed to write to {}.",
@@ -198,7 +198,7 @@ pub trait CanisterBuilder {
                 .join(info.get_name())
                 .with_extension("mo");
             let content =
-                ensure_trailing_newline(candid_parser::bindings::motoko::compile(&env, &ty));
+                ensure_trailing_newline(candid_parser::bindings::motoko::compile(&env, &ty, &prog));
             std::fs::write(&output_mo_path, content)
                 .with_context(|| format!("Failed to write to {}.", output_mo_path.display()))?;
             trace!(logger, "  {}", &output_mo_path.display());
