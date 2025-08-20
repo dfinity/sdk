@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### fix: ensure deterministic serialization of `tech_stack` metadata
+
+The `tech_stack` metadata was previously defined with `HashMap`, which resulted in non-deterministic serialization due to its random key ordering.
+This has been fixed by replacing it with `BTreeMap`, which sorts keys and guarantees consistent, deterministic output every time.
+
 # 0.29.0
 
 ### feat: add dfx native support for aarch64-Linux
