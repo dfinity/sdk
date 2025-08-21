@@ -103,7 +103,7 @@ impl Canister {
     #[context("Failed to generate random canister id.")]
     pub fn generate_random_canister_id() -> DfxResult<CanisterId> {
         let mut rng = thread_rng();
-        let mut v: Vec<u8> = std::iter::repeat(0u8).take(8).collect();
+        let mut v: Vec<u8> = std::iter::repeat_n(0u8, 8).collect();
         rng.fill_bytes(v.as_mut_slice());
         CanisterId::try_from(v).context("Failed to convert bytes to canister id.")
     }

@@ -58,7 +58,7 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let workspace_root = info.get_workspace_root();
         let name = info.get_name();
         ensure!(
-            matches!(info.type_specific, CanisterTypeProperties::Motoko { .. }),
+            matches!(info.type_specific, CanisterTypeProperties::Motoko),
             "Attempted to construct a custom canister from a type:{} canister config",
             info.type_specific.name()
         );

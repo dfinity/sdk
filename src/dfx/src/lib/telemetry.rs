@@ -609,7 +609,7 @@ impl CanisterRecord {
         let r#type = match &config.type_specific {
             CanisterTypeProperties::Rust { .. } => CanisterType::Rust,
             CanisterTypeProperties::Assets { .. } => CanisterType::Assets,
-            CanisterTypeProperties::Motoko { .. } => CanisterType::Motoko,
+            CanisterTypeProperties::Motoko => CanisterType::Motoko,
             CanisterTypeProperties::Custom { .. } => CanisterType::Custom,
             CanisterTypeProperties::Pull { .. } => CanisterType::Pull,
         };

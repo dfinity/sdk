@@ -801,7 +801,7 @@ fn get_legacy_creds_pem_path() -> Result<Option<PathBuf>, GetLegacyCredentialsPe
         // No legacy path on Windows - there was no Windows support when paths were changed
         Ok(None)
     } else {
-        let config_root = std::env::var_os("DFX_CONFIG_ROOT");
+        let config_root = crate::config::directories::DFX_CONFIG_ROOT.lock().unwrap().clone();
         let home = get_user_home().map_err(GetLegacyPemPathFailed)?;
         let root = config_root.unwrap_or(home);
 

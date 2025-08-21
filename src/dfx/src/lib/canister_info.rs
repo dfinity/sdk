@@ -350,7 +350,7 @@ impl CanisterInfo {
     }
 
     pub fn is_motoko(&self) -> bool {
-        matches!(self.type_specific, CanisterTypeProperties::Motoko { .. })
+        matches!(self.type_specific, CanisterTypeProperties::Motoko)
     }
 
     pub fn is_custom(&self) -> bool {

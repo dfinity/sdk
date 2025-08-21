@@ -3,7 +3,6 @@ use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::clap::parsers::cycle_amount_parser;
 use anyhow::{anyhow, Context};
-use candid::CandidType;
 use candid::Principal;
 use clap::Parser;
 
@@ -20,11 +19,6 @@ pub struct SendOpts {
 }
 
 pub async fn exec(env: &dyn Environment, opts: SendOpts) -> DfxResult {
-    #[derive(CandidType)]
-    struct In {
-        canister: Principal,
-        amount: u128,
-    }
     let canister = Principal::from_text(&opts.destination).with_context(|| {
         format!(
             "Failed to parse {:?} as destination principal.",

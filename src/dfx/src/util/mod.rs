@@ -226,7 +226,7 @@ pub fn blob_from_arguments(
                         };
                         use rand::Rng;
                         let mut rng = rand::thread_rng();
-                        let seed: Vec<u8> = (0..2048).map(|_| rng.gen::<u8>()).collect();
+                        let seed: Vec<u8> = (0..2048).map(|_| rng.r#gen::<u8>()).collect();
                         let dhall_value: SimpleValue = serde_dhall::from_str(random).parse()?;
                         let toml_conversion = toml::Value::try_from(dhall_value)
                             .context("Failed to convert dhall value to toml value.")?;

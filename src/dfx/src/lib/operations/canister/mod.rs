@@ -8,7 +8,7 @@ pub use create_canister::create_canister;
 use ic_management_canister_types::{
     LoadCanisterSnapshotArgs, ReadCanisterSnapshotDataArgs, ReadCanisterSnapshotDataResult,
     ReadCanisterSnapshotMetadataArgs, ReadCanisterSnapshotMetadataResult, Snapshot,
-    SnapshotDataOffset, UploadCanisterSnapshotDataArgs, UploadCanisterSnapshotMetadataArgs,
+    UploadCanisterSnapshotDataArgs, UploadCanisterSnapshotMetadataArgs,
     UploadCanisterSnapshotMetadataResult,
 };
 pub use install_canister::install_wallet;
@@ -634,13 +634,6 @@ pub async fn upload_canister_snapshot_data(
     data_args: &UploadCanisterSnapshotDataArgs,
     call_sender: &CallSender,
 ) -> DfxResult {
-    #[derive(CandidType)]
-    struct In<'a> {
-        canister_id: Principal,
-        snapshot_id: &'a [u8],
-        kind: &'a SnapshotDataOffset,
-        chunk: &'a [u8],
-    }
     let (snapshot_data,) = do_management_call(
         env,
         canister_id,

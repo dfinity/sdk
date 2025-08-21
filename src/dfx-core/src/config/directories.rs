@@ -11,7 +11,9 @@ use crate::fs::composite::ensure_dir_exists;
 use crate::identity::WALLET_CONFIG_FILENAME;
 use crate::json::load_json_file;
 use directories_next::ProjectDirs;
+use std::ffi::OsString;
 use std::path::PathBuf;
+use std::sync::{LazyLock, Mutex};
 
 pub fn project_dirs() -> Result<&'static ProjectDirs, GetUserHomeError> {
     lazy_static::lazy_static! {
@@ -45,7 +47,7 @@ pub fn get_shared_wallet_config_path(
 }
 
 pub fn get_user_dfx_config_dir() -> Result<PathBuf, ConfigError> {
-    let config_root = std::env::var_os("DFX_CONFIG_ROOT");
+    let config_root = DFX_CONFIG_ROOT.lock().unwrap().clone();
     // dirs-next is not used for *nix to preserve existing paths
     #[cfg(not(windows))]
     let p = {
@@ -64,3 +66,9 @@ pub fn get_user_dfx_config_dir() -> Result<PathBuf, ConfigError> {
     ensure_dir_exists(&p).map_err(EnsureConfigDirectoryExistsFailed)?;
     Ok(p)
 }
+
+// tests want to be able to call set_var. set_var is unsafe. So, the env-var check is replaced
+// with a global that the tests can modify.
+pub(crate) static DFX_CONFIG_ROOT: LazyLock<Mutex<Option<OsString>>> = LazyLock::new(|| {
+    Mutex::new(std::env::var_os("DFX_CONFIG_ROOT"))
+});

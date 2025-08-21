@@ -1,7 +1,7 @@
 use std::{borrow::Cow, time::Duration};
 
 use schemars::{
-    gen::SchemaGenerator,
+    r#gen::SchemaGenerator,
     schema::{InstanceType, Metadata, Schema, SchemaObject, StringValidation},
     JsonSchema,
 };

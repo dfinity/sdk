@@ -33,7 +33,7 @@ pub fn ensure_cohesive_network_directory(
                 crate::fs::write(&project_network_id_path, &network_id)?;
             }
         }
-    } else if let Some(LocalNetworkScopeDescriptor::Project { .. }) = &scope {
+    } else if let Some(LocalNetworkScopeDescriptor::Project) = &scope {
         // a network-id file indicates the previous configuration was for the shared local network.
         // canister ids, at minimum, will no longer be valid
         let network_id_path = directory.join("network-id");

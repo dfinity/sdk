@@ -273,7 +273,10 @@ mod tests {
         }
 
         // so tests don't clobber each other in the environment
-        std::env::set_var("DFX_CONFIG_ROOT", temp_dir.path());
+        crate::config::directories::DFX_CONFIG_ROOT
+            .lock()
+            .unwrap()
+            .replace(temp_dir.path().to_path_buf().into_os_string());
 
         let temp_dir = Arc::new(temp_dir);
         test_function(temp_dir.clone()).await;
