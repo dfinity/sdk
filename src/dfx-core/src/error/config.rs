@@ -75,13 +75,17 @@ pub enum ApplyExtensionCanisterTypeError {
         source: ApplyExtensionCanisterTypeDefaultsError,
     },
 
-    #[error("canister '{canister}' has unknown type '{extension}' and there is no installed extension by that name which could define it")]
+    #[error(
+        "canister '{canister}' has unknown type '{extension}' and there is no installed extension by that name which could define it"
+    )]
     NoExtensionForUnknownCanisterType { canister: String, extension: String },
 
     #[error(transparent)]
     LoadExtensionManifest(LoadExtensionManifestError),
 
-    #[error("canister '{canister}' has type '{extension}', but that extension does not define a canister type")]
+    #[error(
+        "canister '{canister}' has type '{extension}', but that extension does not define a canister type"
+    )]
     ExtensionDoesNotDefineCanisterType { canister: String, extension: String },
 }
 

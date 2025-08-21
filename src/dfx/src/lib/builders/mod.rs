@@ -5,14 +5,14 @@ use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::models::canister::CanisterPool;
 use crate::util::command::direct_or_shell_command;
 use crate::util::with_suspend_all_spinners;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use candid::Principal as CanisterId;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
 use fn_error_context::context;
 use handlebars::Handlebars;
-use slog::{info, trace, Logger};
+use slog::{Logger, info, trace};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::ffi::OsStr;
@@ -136,7 +136,11 @@ pub trait CanisterBuilder {
             .context("`bindings` must not be None")?;
 
         if bindings.is_empty() {
-            info!(logger, "`{}.declarations.bindings` in dfx.json was set to be an empty list, so no type declarations will be generated.", &info.get_name());
+            info!(
+                logger,
+                "`{}.declarations.bindings` in dfx.json was set to be an empty list, so no type declarations will be generated.",
+                &info.get_name()
+            );
             return Ok(());
         }
 

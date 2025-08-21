@@ -18,23 +18,23 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
-use anyhow::{anyhow, bail, Context};
-use candid::utils::ArgumentDecoder;
+use anyhow::{Context, anyhow, bail};
 use candid::CandidType;
 use candid::Principal as CanisterId;
 use candid::Principal;
+use candid::utils::ArgumentDecoder;
 use candid::{decode_args, encode_args};
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::config::model::dfinity::Config;
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
+use ic_utils::Argument;
 use ic_utils::call::SyncCall;
+use ic_utils::interfaces::ManagementCanister;
 use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use ic_utils::interfaces::management_canister::{
     CanisterStatusResult, FetchCanisterLogsResult, MgmtMethod,
 };
-use ic_utils::interfaces::ManagementCanister;
-use ic_utils::Argument;
 use pocket_ic::common::rest::RawEffectivePrincipal;
 use std::collections::HashSet;
 use std::path::PathBuf;

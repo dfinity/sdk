@@ -43,7 +43,10 @@ pub fn exec(env: &dyn Environment, opts: ImportOpts) -> DfxResult {
     let log = env.get_logger();
 
     if opts.disable_encryption {
-        warn!(log, "The flag --disable-encryption has been deprecated. Please use --storage-mode=plaintext instead.");
+        warn!(
+            log,
+            "The flag --disable-encryption has been deprecated. Please use --storage-mode=plaintext instead."
+        );
     }
 
     let mode = if opts.disable_encryption {

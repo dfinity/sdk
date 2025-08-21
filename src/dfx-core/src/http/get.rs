@@ -1,6 +1,6 @@
+use backoff::SystemClock;
 use backoff::exponential::ExponentialBackoff;
 use backoff::future::retry;
-use backoff::SystemClock;
 use reqwest::Response;
 use url::Url;
 

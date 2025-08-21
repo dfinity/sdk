@@ -38,7 +38,9 @@ pub async fn exec(env: &dyn Environment, _opts: UpgradeOpts) -> DfxResult {
         .await?
         .is_none()
     {
-        bail!("The cycles wallet canister is empty. Try running `dfx identity deploy-wallet` to install code for the cycles wallet in this canister.")
+        bail!(
+            "The cycles wallet canister is empty. Try running `dfx identity deploy-wallet` to install code for the cycles wallet in this canister."
+        )
     }
 
     let agent = env.get_agent();

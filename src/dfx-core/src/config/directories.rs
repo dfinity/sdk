@@ -69,6 +69,5 @@ pub fn get_user_dfx_config_dir() -> Result<PathBuf, ConfigError> {
 
 // tests want to be able to call set_var. set_var is unsafe. So, the env-var check is replaced
 // with a global that the tests can modify.
-pub(crate) static DFX_CONFIG_ROOT: LazyLock<Mutex<Option<OsString>>> = LazyLock::new(|| {
-    Mutex::new(std::env::var_os("DFX_CONFIG_ROOT"))
-});
+pub(crate) static DFX_CONFIG_ROOT: LazyLock<Mutex<Option<OsString>>> =
+    LazyLock::new(|| Mutex::new(std::env::var_os("DFX_CONFIG_ROOT")));

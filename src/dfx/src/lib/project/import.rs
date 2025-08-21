@@ -6,7 +6,7 @@ use dfx_core::error::fs::ReadFileError;
 use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use serde_json::{Map, Value};
-use slog::{info, Logger};
+use slog::{Logger, info};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;

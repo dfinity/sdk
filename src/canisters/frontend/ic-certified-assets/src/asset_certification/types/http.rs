@@ -1,11 +1,11 @@
 use super::rc_bytes::RcBytes;
 use crate::{
     asset_certification::types::certification::{CertificateExpression, ResponseHash},
-    state_machine::{encoding_certification_order, Asset, AssetEncoding},
+    state_machine::{Asset, AssetEncoding, encoding_certification_order},
 };
-use candid::{define_function, CandidType, Deserialize, Nat};
+use candid::{CandidType, Deserialize, Nat, define_function};
 use ic_certification::Hash;
-use ic_representation_independent_hash::{representation_independent_hash, Value};
+use ic_representation_independent_hash::{Value, representation_independent_hash};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
 

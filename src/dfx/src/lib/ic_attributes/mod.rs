@@ -1,15 +1,15 @@
 use crate::lib::canister_logs::log_visibility::LogVisibilityOpt;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use anyhow::{anyhow, Context, Error};
+use anyhow::{Context, Error, anyhow};
 use byte_unit::Byte;
 use candid::Principal;
 use dfx_core::config::model::dfinity::ConfigInterface;
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::{
+    CanisterStatusResult, LogVisibility,
     attributes::{ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit},
     builders::WasmMemoryLimit,
-    CanisterStatusResult, LogVisibility,
 };
 use num_traits::ToPrimitive;
 use std::convert::TryFrom;

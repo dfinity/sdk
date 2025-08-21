@@ -357,7 +357,9 @@ pub fn init(args: Option<AssetCanisterArgs>) {
 
     if let Some(upgrade_arg) = args {
         let AssetCanisterArgs::Init(init_args) = upgrade_arg else {
-            ic_cdk::trap("Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.")
+            ic_cdk::trap(
+                "Cannot initialize the canister with an Upgrade argument. Please provide an Init argument.",
+            )
         };
         with_state_mut(|s| {
             if let Some(set_permissions) = init_args.set_permissions {
@@ -674,7 +676,7 @@ macro_rules! export_canister_methods {
 
 #[test]
 fn candid_interface_compatibility() {
-    use candid_parser::utils::{service_compatible, CandidSource};
+    use candid_parser::utils::{CandidSource, service_compatible};
     use std::path::PathBuf;
 
     export_canister_methods!();

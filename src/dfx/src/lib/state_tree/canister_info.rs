@@ -1,5 +1,5 @@
 use crate::lib::error::DfxResult;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use candid::Principal;
 use ic_agent::{Agent, AgentError};
 

@@ -1,8 +1,8 @@
+use crate::Environment;
 use crate::lib::environment::AgentEnvironment;
 use crate::lib::error::DfxResult;
-use crate::Environment;
 use dfx_core::identity::ANONYMOUS_IDENTITY_NAME;
-use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
+use dfx_core::network::provider::{LocalBindDetermination, create_network_descriptor};
 
 use dfx_core::util::expiry_duration;
 use fn_error_context::context;

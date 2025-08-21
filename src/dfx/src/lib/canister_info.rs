@@ -2,7 +2,7 @@
 use crate::lib::error::DfxResult;
 use crate::lib::metadata::config::CanisterMetadataConfig;
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use candid::Principal as CanisterId;
 use candid::Principal;
 use core::panic;

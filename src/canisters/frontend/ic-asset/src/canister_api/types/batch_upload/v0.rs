@@ -55,7 +55,7 @@ impl TryFrom<super::v1::CommitBatchArguments> for CommitBatchArguments {
                 }
                 super::v1::BatchOperationKind::Clear(args) => BatchOperationKind::Clear(args),
                 super::v1::BatchOperationKind::SetAssetProperties(_) => {
-                    return Err(V0SetAssetPropertiesNotSupported)
+                    return Err(V0SetAssetPropertiesNotSupported);
                 }
             };
             operations.push(operation);

@@ -4,13 +4,13 @@ use crate::lib::cycles_ledger_types::create_canister::{
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::ic_attributes::CanisterSettings as DfxCanisterSettings;
-use crate::lib::identity::wallet::{get_or_create_wallet_canister, GetOrCreateWalletCanisterError};
+use crate::lib::identity::wallet::{GetOrCreateWalletCanisterError, get_or_create_wallet_canister};
 use crate::lib::ledger_types::MAINNET_CYCLE_MINTER_CANISTER_ID;
 use crate::lib::operations::canister::motoko_playground::reserve_canister_with_playground;
 use crate::lib::operations::cycles_ledger::create_with_cycles_ledger;
 use crate::lib::telemetry::{CyclesHost, Telemetry};
 use crate::util::clap::subnet_selection_opt::SubnetSelectionType;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use candid::Principal;
 use dfx_core::canister::build_wallet_canister;
 use dfx_core::identity::CallSender;
@@ -19,9 +19,9 @@ use fn_error_context::context;
 use ic_agent::agent::{RejectCode, RejectResponse};
 use ic_agent::agent_error::HttpErrorPayload;
 use ic_agent::{Agent, AgentError};
-use ic_utils::interfaces::management_canister::builders::CanisterSettings;
-use ic_utils::interfaces::ManagementCanister;
 use ic_utils::Argument;
+use ic_utils::interfaces::ManagementCanister;
+use ic_utils::interfaces::management_canister::builders::CanisterSettings;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use slog::{debug, info, warn};
 use std::format;
@@ -309,13 +309,18 @@ async fn create_with_wallet(
     } else {
         if settings.reserved_cycles_limit.is_some() {
             bail!(
-                "Cannot create a canister using a wallet if the reserved_cycles_limit is set. Please create with --no-wallet or use dfx canister update-settings instead.")
+                "Cannot create a canister using a wallet if the reserved_cycles_limit is set. Please create with --no-wallet or use dfx canister update-settings instead."
+            )
         }
         if settings.wasm_memory_limit.is_some() {
-            bail!("Cannot create a canister using a wallet if the wasm_memory_limit is set. Please create with --no-wallet or use dfx canister update-settings instead.")
+            bail!(
+                "Cannot create a canister using a wallet if the wasm_memory_limit is set. Please create with --no-wallet or use dfx canister update-settings instead."
+            )
         }
         if settings.log_visibility.is_some() {
-            bail!("Cannot create a canister using a wallet if log_visibility is set. Please create with --no-wallet or use dfx canister update-settings instead.")
+            bail!(
+                "Cannot create a canister using a wallet if log_visibility is set. Please create with --no-wallet or use dfx canister update-settings instead."
+            )
         }
         match wallet
             .wallet_create_canister(

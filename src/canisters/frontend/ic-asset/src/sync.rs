@@ -1,5 +1,5 @@
 use crate::asset::config::{
-    AssetConfig, AssetSourceDirectoryConfiguration, ASSETS_CONFIG_FILENAME_JSON,
+    ASSETS_CONFIG_FILENAME_JSON, AssetConfig, AssetSourceDirectoryConfiguration,
 };
 use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
 use crate::batch_upload::plumbing::ChunkUploader;
@@ -7,7 +7,7 @@ use crate::batch_upload::plumbing::Mode::{ByProposal, NormalDeploy};
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
-    plumbing::{make_project_assets, AssetDescriptor},
+    plumbing::{AssetDescriptor, make_project_assets},
 };
 use crate::canister_api::methods::batch::{compute_evidence, propose_commit_batch};
 use crate::canister_api::methods::{
@@ -37,7 +37,7 @@ use ic_agent::AgentError;
 use ic_utils::Canister;
 use itertools::Itertools;
 use serde_bytes::ByteBuf;
-use slog::{debug, info, trace, warn, Logger};
+use slog::{Logger, debug, info, trace, warn};
 use std::collections::HashMap;
 use std::path::Path;
 use walkdir::WalkDir;
@@ -166,7 +166,10 @@ pub async fn sync(
         progress,
     )
     .await?;
-    debug!(logger, "Canister API version: {canister_api_version}. ic-asset API version: {BATCH_UPLOAD_API_VERSION}");
+    debug!(
+        logger,
+        "Canister API version: {canister_api_version}. ic-asset API version: {BATCH_UPLOAD_API_VERSION}"
+    );
     debug!(logger, "Committing batch.");
     if let Some(progress) = progress {
         progress.set_state(AssetSyncState::CommitBatch);
@@ -289,7 +292,12 @@ pub async fn prepare_sync_for_proposal(
         }
     };
 
-    info!(logger, "Proposed commit of batch {} with evidence {}.  Either commit it by proposal, or delete it.", batch_id, hex::encode(&evidence));
+    info!(
+        logger,
+        "Proposed commit of batch {} with evidence {}.  Either commit it by proposal, or delete it.",
+        batch_id,
+        hex::encode(&evidence)
+    );
 
     Ok((batch_id, evidence))
 }
@@ -421,8 +429,14 @@ pub(crate) fn gather_asset_descriptors(
             } else {
                 "some"
             };
-            warn!(logger, "This project uses the default security policy for {qnt} assets. While it is set up to work with many applications, it is recommended to further harden the policy to increase security against attacks like XSS.");
-            warn!(logger, "To get started, have a look at 'dfx info security-policy'. It shows the default security policy along with suggestions on how to improve it.");
+            warn!(
+                logger,
+                "This project uses the default security policy for {qnt} assets. While it is set up to work with many applications, it is recommended to further harden the policy to increase security against attacks like XSS."
+            );
+            warn!(
+                logger,
+                "To get started, have a look at 'dfx info security-policy'. It shows the default security policy along with suggestions on how to improve it."
+            );
             if standard_policy_assets.len() != asset_descriptors.len() {
                 warn!(logger, "Unhardened assets:");
                 for asset in &standard_policy_assets {
@@ -431,7 +445,10 @@ pub(crate) fn gather_asset_descriptors(
             }
         }
         if !standard_policy_assets.is_empty() || !no_policy_assets.is_empty() {
-            warn!(logger, "To disable the policy warning, define \"disable_security_policy_warning\": true in .ic-assets.json5.");
+            warn!(
+                logger,
+                "To disable the policy warning, define \"disable_security_policy_warning\": true in .ic-assets.json5."
+            );
         }
         let missing_hardening_assets = asset_descriptors
             .values()
@@ -810,11 +827,13 @@ mod test_gathering_asset_descriptors_with_tempdir {
         let assets_dir = assets_temp_dir.path().canonicalize().unwrap();
         let mut asset_descriptors = dbg!(gather_asset_descriptors(&[&assets_dir]));
 
-        let mut expected_asset_descriptors = vec![AssetDescriptor::default_from_path(
-            &assets_dir,
-            ".hidden-dir/.hidden-dir-nested/.hfile",
-        )
-        .with_headers(HashMap::from([("D", "w")]))];
+        let mut expected_asset_descriptors = vec![
+            AssetDescriptor::default_from_path(
+                &assets_dir,
+                ".hidden-dir/.hidden-dir-nested/.hfile",
+            )
+            .with_headers(HashMap::from([("D", "w")])),
+        ];
 
         expected_asset_descriptors.sort_by_key(|v| v.source.clone());
         asset_descriptors.sort_by_key(|v| v.source.clone());

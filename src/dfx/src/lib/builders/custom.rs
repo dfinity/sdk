@@ -1,18 +1,18 @@
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
-use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
+use crate::lib::canister_info::custom::CustomCanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::util::download_file_to_path;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use candid::Principal as CanisterId;
 use console::style;
 use fn_error_context::context;
-use slog::info;
 use slog::Logger;
+use slog::info;
 use std::path::PathBuf;
 use url::Url;
 

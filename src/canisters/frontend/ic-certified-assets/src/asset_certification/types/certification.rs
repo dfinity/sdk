@@ -1,11 +1,11 @@
 use super::{
-    http::{build_ic_certificate_expression_from_headers, FALLBACK_FILE},
+    http::{FALLBACK_FILE, build_ic_certificate_expression_from_headers},
     rc_bytes::RcBytes,
 };
 use candid::{CandidType, Deserialize};
 use ic_representation_independent_hash::Value;
-use serde_cbor::ser::IoWrite;
 use serde_cbor::Serializer;
+use serde_cbor::ser::IoWrite;
 use sha2::Digest;
 use std::borrow::Borrow;
 

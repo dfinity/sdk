@@ -1,5 +1,5 @@
 use anyhow::bail;
-use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
+use dfx_core::network::provider::{LocalBindDetermination, create_network_descriptor};
 
 use crate::lib::{environment::Environment, error::DfxResult};
 

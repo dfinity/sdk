@@ -35,7 +35,10 @@ pub fn exec(env: &dyn Environment, opts: InstallOpts) -> DfxResult<()> {
     let mgr = env.get_extension_manager();
     let effective_extension_name = opts.install_as.clone().unwrap_or_else(|| opts.name.clone());
     if DfxCommand::has_subcommand(&effective_extension_name) {
-        bail!("Extension '{}' cannot be installed because it conflicts with an existing command. Consider using '--install-as' flag to install this extension under different name.", opts.name)
+        bail!(
+            "Extension '{}' cannot be installed because it conflicts with an existing command. Consider using '--install-as' flag to install this extension under different name.",
+            opts.name
+        )
     }
 
     let runtime = Runtime::new().expect("Unable to create a runtime");

@@ -73,7 +73,9 @@ pub async fn exec(
 ) -> DfxResult {
     let log = env.get_logger();
     if *call_sender != CallSender::SelectedId {
-        bail!("`sign` currently doesn't support proxying through the wallet canister, please use `dfx canister sign --no-wallet ...`.");
+        bail!(
+            "`sign` currently doesn't support proxying through the wallet canister, please use `dfx canister sign --no-wallet ...`."
+        );
     }
 
     let method_name = opts.method_name.as_str();

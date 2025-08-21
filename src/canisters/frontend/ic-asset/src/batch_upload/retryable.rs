@@ -1,5 +1,5 @@
-use ic_agent::export::reqwest::StatusCode;
 use ic_agent::AgentError;
+use ic_agent::export::reqwest::StatusCode;
 
 pub(crate) fn retryable(agent_error: &AgentError) -> bool {
     match agent_error {

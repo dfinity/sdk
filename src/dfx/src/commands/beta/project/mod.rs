@@ -1,5 +1,5 @@
-use crate::lib::error::DfxResult;
 use crate::Environment;
+use crate::lib::error::DfxResult;
 use clap::Parser;
 
 mod import;

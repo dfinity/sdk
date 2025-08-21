@@ -1,4 +1,4 @@
-use crate::{lib::error::DfxResult, Environment};
+use crate::{Environment, lib::error::DfxResult};
 
 use dfx_core::network::root_key;
 

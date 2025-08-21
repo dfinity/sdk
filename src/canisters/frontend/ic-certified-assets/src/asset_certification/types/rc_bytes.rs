@@ -1,7 +1,7 @@
 //! This module contains an implementation of [RcBytes], a reference-counted byte array.
 use candid::{
-    types::{Serializer, Type, TypeInner},
     CandidType, Deserialize,
+    types::{Serializer, Type, TypeInner},
 };
 use serde::de::Deserializer;
 use serde_bytes::ByteBuf;

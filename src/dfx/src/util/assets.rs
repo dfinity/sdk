@@ -1,5 +1,5 @@
 use crate::lib::error::DfxResult;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use fn_error_context::context;
 use slog::info;
 use std::io::Read;

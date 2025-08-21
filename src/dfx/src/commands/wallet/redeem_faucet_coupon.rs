@@ -5,8 +5,8 @@ use crate::lib::error::DfxResult;
 use crate::lib::identity::wallet::set_wallet_id;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::{ask_for_consent, format_as_trillions, pretty_thousand_separators};
-use anyhow::{anyhow, bail, Context};
-use candid::{encode_args, Decode, Principal};
+use anyhow::{Context, anyhow, bail};
+use candid::{Decode, Principal, encode_args};
 use clap::Parser;
 use slog::{info, warn};
 
@@ -42,7 +42,10 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
     if fetch_root_key_if_needed(env).await.is_err() {
         bail!("Failed to connect to the local replica. Did you forget to use '--network ic'?");
     } else if !env.get_network_descriptor().is_ic {
-        warn!(log, "Trying to redeem a wallet coupon on a local replica. Did you forget to use '--network ic'?");
+        warn!(
+            log,
+            "Trying to redeem a wallet coupon on a local replica. Did you forget to use '--network ic'?"
+        );
     }
 
     info!(log, "Redeeming coupon. This may take up to 30 seconds...");
@@ -73,7 +76,10 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
         // identity has no wallet yet - faucet will provide one
         _ => {
             if !opts.yes {
-                ask_for_consent(env, "`dfx cycles` is now recommended instead of `dfx wallet`. Are you sure you want to create a new cycles wallet anyway?")?;
+                ask_for_consent(
+                    env,
+                    "`dfx cycles` is now recommended instead of `dfx wallet`. Are you sure you want to create a new cycles wallet anyway?",
+                )?;
             }
             let identity = env
                 .get_selected_identity()

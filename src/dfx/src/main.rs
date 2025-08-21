@@ -1,9 +1,9 @@
 #![allow(special_module_name)]
 use crate::config::{dfx_version, dfx_version_str};
-use crate::lib::diagnosis::{diagnose, DiagnosedError};
+use crate::lib::diagnosis::{DiagnosedError, diagnose};
 use crate::lib::environment::{Environment, EnvironmentImpl};
 use crate::lib::error::DfxResult;
-use crate::lib::logger::{create_root_logger, LoggingMode};
+use crate::lib::logger::{LoggingMode, create_root_logger};
 use crate::lib::project::templates::builtin_templates;
 use crate::lib::telemetry::Telemetry;
 use anyhow::Error;
@@ -244,8 +244,8 @@ pub fn sort_clap_commands(cmd: &mut clap::Command) {
 
 #[cfg(test)]
 mod tests {
-    use crate::lib::project::templates::builtin_templates;
     use crate::CliOpts;
+    use crate::lib::project::templates::builtin_templates;
     use clap::CommandFactory;
     use dfx_core::config::project_templates;
 

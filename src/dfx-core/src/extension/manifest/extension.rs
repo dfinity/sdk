@@ -16,8 +16,7 @@ use std::{
 };
 
 pub static MANIFEST_FILE_NAME: &str = "extension.json";
-const DEFAULT_DOWNLOAD_URL_TEMPLATE: &str =
-    "https://github.com/dfinity/dfx-extensions/releases/download/{{tag}}/{{basename}}.{{archive-format}}";
+const DEFAULT_DOWNLOAD_URL_TEMPLATE: &str = "https://github.com/dfinity/dfx-extensions/releases/download/{{tag}}/{{basename}}.{{archive-format}}";
 
 type SubcmdName = String;
 type ArgName = String;
@@ -275,9 +274,9 @@ impl<'de> Deserialize<'de> for ArgNumberOfValues {
                     }
                 }
                 Err(serde::de::Error::custom(format!(
-            "Invalid format for values: '{}'. Expected 'unlimited' or a positive integer or a range (for example '1..3')",
-            s
-        )))
+                    "Invalid format for values: '{}'. Expected 'unlimited' or a positive integer or a range (for example '1..3')",
+                    s
+                )))
             }
         }
     }

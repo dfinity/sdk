@@ -3,10 +3,10 @@ use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::network::network_opt::NetworkOpt;
-use crate::lib::operations::canister::deploy_canisters::deploy_canisters;
 use crate::lib::operations::canister::deploy_canisters::DeployMode::{
     ComputeEvidence, ForceReinstallSingleCanister, NormalDeploy, PrepareForProposal,
 };
+use crate::lib::operations::canister::deploy_canisters::deploy_canisters;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
 use crate::util::clap::install_mode::{InstallModeHint, InstallModeOpt};
@@ -136,13 +136,18 @@ pub fn exec(env: &dyn Environment, opts: DeployOpts) -> DfxResult {
                 .get_config()
                 .is_remote_canister(canister_name, &network.name)?
             {
-                bail!("The '{}' canister is remote for network '{}' and cannot be force-reinstalled from here",
-                    canister_name, &network.name);
+                bail!(
+                    "The '{}' canister is remote for network '{}' and cannot be force-reinstalled from here",
+                    canister_name,
+                    &network.name
+                );
             }
             ForceReinstallSingleCanister(canister_name.to_string())
         }
         (InstallModeHint::Reinstall, None) => {
-            bail!("The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister.");
+            bail!(
+                "The --mode=reinstall is only valid when deploying a single canister, because reinstallation destroys all data in the canister."
+            );
         }
         (_, None) if opts.by_proposal => {
             bail!("The --by-proposal flag is only valid when deploying a single canister.");

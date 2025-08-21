@@ -121,7 +121,9 @@ impl SubnetSelectionType {
                 None => selected_subnet = Some(next_subnet),
                 Some(selected_subnet) if selected_subnet == next_subnet => continue,
                 Some(_nonmatching_subnet) => {
-                    bail!("Cannot automatically decide which subnet to target. Please explicitly specify --subnet or --subnet-type.")
+                    bail!(
+                        "Cannot automatically decide which subnet to target. Please explicitly specify --subnet or --subnet-type."
+                    )
                 }
             }
         }

@@ -4,7 +4,7 @@ use crate::lib::network::network_opt::NetworkOpt;
 use candid::Principal;
 use clap::Parser;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
-use dfx_core::network::provider::{create_network_descriptor, LocalBindDetermination};
+use dfx_core::network::provider::{LocalBindDetermination, create_network_descriptor};
 
 /// Prints the identifier of a canister.
 #[derive(Parser)]
