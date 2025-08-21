@@ -397,10 +397,7 @@ fn wasm_opt_level_convert(opt_level: WasmOptLevel) -> OptLevel {
 fn separate_candid(path: &Path) -> DfxResult<(String, String, String)> {
     use candid::pretty::candid::{compile, pp_args};
     use candid::types::internal::TypeInner;
-    use candid_parser::{
-        pretty_parse,
-        types::{Dec, IDLProg},
-    };
+    use candid_parser::{pretty_parse, syntax::Dec, IDLProg};
     let did = dfx_core::fs::read_to_string(path)?;
     let prog = pretty_parse::<IDLProg>(&format!("{}", path.display()), &did)?;
     let has_imports = prog
@@ -1046,8 +1043,8 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
     let output_did_ts_path = canister_info
         .get_service_idl_path()
         .with_extension("did.d.ts");
-
-    let (env, ty) = CandidSource::File(&canister_info.get_constructor_idl_path()).load()?;
+    let (env, ty, prog) =
+        candid_parser::pretty_check_file(&canister_info.get_constructor_idl_path())?;
     let content = ensure_trailing_newline(candid_parser::bindings::javascript::compile(&env, &ty));
     std::fs::write(&output_did_js_path, content).with_context(|| {
         format!(
@@ -1055,7 +1052,9 @@ fn build_canister_js(canister_id: &CanisterId, canister_info: &CanisterInfo) -> 
             output_did_js_path.to_string_lossy()
         )
     })?;
-    let content = ensure_trailing_newline(candid_parser::bindings::typescript::compile(&env, &ty));
+    let content = ensure_trailing_newline(candid_parser::bindings::typescript::compile(
+        &env, &ty, &prog,
+    ));
     std::fs::write(&output_did_ts_path, content).with_context(|| {
         format!(
             "Failed to write to {}.",

@@ -173,7 +173,7 @@ pub fn exec(env1: &dyn Environment, opts: RulesOpts) -> DfxResult {
         &pool,
     )?;
 
-    let graph0 = env.get_imports().borrow();
+    let graph0 = env.get_imports().lock().unwrap();
     let graph = graph0.graph();
 
     let mut expansions = HashMap::new();

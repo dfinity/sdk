@@ -1,7 +1,7 @@
 use anyhow::bail;
 use clap::Args;
 use ic_utils::interfaces::management_canister::builders::{
-    CanisterUpgradeOptions, InstallMode, WasmMemoryPersistence,
+    CanisterInstallMode, UpgradeFlags, WasmMemoryPersistence,
 };
 
 use crate::lib::error::DfxResult;
@@ -34,8 +34,8 @@ pub struct InstallModeOpt {
 pub enum InstallModeHint {
     Install,
     Reinstall,
-    Upgrade(Option<CanisterUpgradeOptions>),
-    Auto(Option<CanisterUpgradeOptions>),
+    Upgrade(Option<UpgradeFlags>),
+    Auto(Option<UpgradeFlags>),
 }
 
 enum HighLevelMode {
@@ -67,7 +67,7 @@ impl InstallModeOpt {
         };
         let canister_upgrade_options = match (self.skip_pre_upgrade, wasm_memory_persistence) {
             (false, None) => None,
-            (s, w) => Some(CanisterUpgradeOptions {
+            (s, w) => Some(UpgradeFlags {
                 skip_pre_upgrade: Some(s),
                 wasm_memory_persistence: w,
             }),
@@ -100,11 +100,11 @@ impl InstallModeOpt {
 }
 
 impl InstallModeHint {
-    pub fn to_install_mode_with_wasm_path(&self) -> DfxResult<InstallMode> {
+    pub fn to_install_mode_with_wasm_path(&self) -> DfxResult<CanisterInstallMode> {
         match self {
-            InstallModeHint::Install => Ok(InstallMode::Install),
-            InstallModeHint::Reinstall => Ok(InstallMode::Reinstall),
-            InstallModeHint::Upgrade(opt) => Ok(InstallMode::Upgrade(*opt)),
+            InstallModeHint::Install => Ok(CanisterInstallMode::Install),
+            InstallModeHint::Reinstall => Ok(CanisterInstallMode::Reinstall),
+            InstallModeHint::Upgrade(opt) => Ok(CanisterInstallMode::Upgrade(*opt)),
             InstallModeHint::Auto(_) => bail!("The install mode cannot be auto when using --wasm"),
         }
     }
@@ -113,14 +113,14 @@ impl InstallModeHint {
         &self,
         upgrade_in_auto: bool,
         wasm_memory_persistence_embedded: Option<WasmMemoryPersistence>,
-    ) -> InstallMode {
+    ) -> CanisterInstallMode {
         match self {
-            InstallModeHint::Install => InstallMode::Install,
-            InstallModeHint::Reinstall => InstallMode::Reinstall,
-            InstallModeHint::Upgrade(opt) => InstallMode::Upgrade(*opt),
+            InstallModeHint::Install => CanisterInstallMode::Install,
+            InstallModeHint::Reinstall => CanisterInstallMode::Reinstall,
+            InstallModeHint::Upgrade(opt) => CanisterInstallMode::Upgrade(*opt),
             InstallModeHint::Auto(opt) => {
                 let opt = if opt.is_none() && wasm_memory_persistence_embedded.is_some() {
-                    Some(CanisterUpgradeOptions {
+                    Some(UpgradeFlags {
                         skip_pre_upgrade: None,
                         wasm_memory_persistence: wasm_memory_persistence_embedded,
                     })
@@ -128,8 +128,8 @@ impl InstallModeHint {
                     *opt
                 };
                 match upgrade_in_auto {
-                    true => InstallMode::Upgrade(opt),
-                    false => InstallMode::Install,
+                    true => CanisterInstallMode::Upgrade(opt),
+                    false => CanisterInstallMode::Install,
                 }
             }
         }

@@ -8,7 +8,6 @@ use crate::util::command::direct_or_shell_command;
 use crate::util::with_suspend_all_spinners;
 use anyhow::{bail, Context, anyhow};
 use candid::Principal as CanisterId;
-use candid_parser::utils::CandidSource;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
 use dfx_core::util;
@@ -175,15 +174,16 @@ pub trait CanisterBuilder {
             bail!("Candid file: {} doesn't exist.", did_from_build.display());
         }
 
-        let (env, ty) = CandidSource::File(did_from_build.as_path()).load()?;
+        let (env, ty, prog) = candid_parser::pretty_check_file(did_from_build.as_path())?;
 
         // Typescript
         if bindings.contains(&"ts".to_string()) {
             let output_did_ts_path = generate_output_dir
                 .join(info.get_name())
                 .with_extension("did.d.ts");
-            let content =
-                ensure_trailing_newline(candid_parser::bindings::typescript::compile(&env, &ty));
+            let content = ensure_trailing_newline(candid_parser::bindings::typescript::compile(
+                &env, &ty, &prog,
+            ));
             std::fs::write(&output_did_ts_path, content).with_context(|| {
                 format!(
                     "Failed to write to {}.",
@@ -216,7 +216,7 @@ pub trait CanisterBuilder {
                 .join(info.get_name())
                 .with_extension("mo");
             let content =
-                ensure_trailing_newline(candid_parser::bindings::motoko::compile(&env, &ty));
+                ensure_trailing_newline(candid_parser::bindings::motoko::compile(&env, &ty, &prog));
             std::fs::write(&output_mo_path, content)
                 .with_context(|| format!("Failed to write to {}.", output_mo_path.display()))?;
             trace!(logger, "  {}", &output_mo_path.display());
@@ -256,11 +256,11 @@ pub trait CanisterBuilder {
             pool: &CanisterPool,
             parent: &Import,
         ) -> DfxResult {
-            if env.get_imports().borrow().nodes().contains_key(parent) {
+            if env.get_imports().lock().unwrap().nodes().contains_key(parent) {
                 // The item and its descendants are already in the graph.
                 return Ok(());
             }
-            let parent_node_index = env.get_imports().borrow_mut().update_node(parent);
+            let parent_node_index = env.get_imports().lock().unwrap().update_node(parent);
 
             let file = match parent {
                 Import::Canister(parent_name) => {
@@ -294,8 +294,8 @@ pub trait CanisterBuilder {
 
                             let child_node = Import::Canister(child.clone());
                             let child_node_index =
-                                env.get_imports().borrow_mut().update_node(&child_node);
-                            env.get_imports().borrow_mut().update_edge(
+                                env.get_imports().lock().unwrap().update_node(&child_node);
+                            env.get_imports().lock().unwrap().update_edge(
                                 parent_node_index,
                                 child_node_index,
                                 (),
@@ -325,8 +325,8 @@ pub trait CanisterBuilder {
                         }
                         _ => {}
                     }
-                    let child_node_index = env.get_imports().borrow_mut().update_node(&child);
-                    env.get_imports().borrow_mut().update_edge(
+                    let child_node_index = env.get_imports().lock().unwrap().update_node(&child);
+                    env.get_imports().lock().unwrap().update_edge(
                         parent_node_index,
                         child_node_index,
                         (),

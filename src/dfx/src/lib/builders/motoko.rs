@@ -109,7 +109,7 @@ impl CanisterBuilder for MotokoBuilder {
 
         self.read_dependencies(env, pool, info)?;
 
-        let imports = env.get_imports().borrow();
+        let imports = env.get_imports().lock().unwrap();
         let graph = imports.graph();
         // let space = DfsSpace::new(&graph);
         // match petgraph::algo::toposort(graph, Some(&mut space)) {
@@ -180,7 +180,7 @@ impl CanisterBuilder for MotokoBuilder {
             .with_context(|| format!("Failed to create {}.", idl_dir_path.to_string_lossy()))?;
 
         // If the management canister is being imported, emit the candid file.
-        if env.get_imports().borrow().nodes().keys().contains(&Import::Canister("aaaaa-aa".to_string()))
+        if env.get_imports().lock().unwrap().nodes().keys().contains(&Import::Canister("aaaaa-aa".to_string()))
         {
             let management_idl_path = idl_dir_path.join("aaaaa-aa.did");
             dfx_core::fs::write(management_idl_path, management_idl()?)?;

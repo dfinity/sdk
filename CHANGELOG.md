@@ -6,6 +6,16 @@
 
 * Command `rules` that outputs time-efficient GNU Make rules.
 
+### fix: ensure deterministic serialization of `tech_stack` metadata
+
+The `tech_stack` metadata was previously defined with `HashMap`, which resulted in non-deterministic serialization due to its random key ordering.
+This has been fixed by replacing it with `BTreeMap`, which sorts keys and guarantees consistent, deterministic output every time.
+
+### Motoko
+
+Updated Motoko to [0.16.0](https://github.com/dfinity/motoko/releases/tag/0.16.0)
+>>>>>>> c6acd853972b6a8d884965cbefd57cca888e3b5c
+
 # 0.29.0
 
 ### feat: add dfx native support for aarch64-Linux

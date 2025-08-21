@@ -9,7 +9,7 @@ use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
 use crate::util::fuzzy_parse_argument;
 use anyhow::{anyhow, bail, Context};
 use candid::Principal;
-use candid_parser::{types::IDLTypes, typing::ast_to_type, utils::CandidSource};
+use candid_parser::{syntax::IDLTypes, typing::ast_to_type, utils::CandidSource};
 use clap::Parser;
 use slog::{info, warn, Logger};
 

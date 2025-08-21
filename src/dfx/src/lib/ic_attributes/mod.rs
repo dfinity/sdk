@@ -9,7 +9,7 @@ use fn_error_context::context;
 use ic_utils::interfaces::management_canister::{
     attributes::{ComputeAllocation, FreezingThreshold, MemoryAllocation, ReservedCyclesLimit},
     builders::WasmMemoryLimit,
-    LogVisibility, StatusCallResult,
+    CanisterStatusResult, LogVisibility,
 };
 use num_traits::ToPrimitive;
 use std::convert::TryFrom;
@@ -256,7 +256,7 @@ pub fn get_wasm_memory_threshold(
 pub fn get_log_visibility(
     env: &dyn Environment,
     log_visibility: Option<&LogVisibilityOpt>,
-    current_settings: Option<&StatusCallResult>,
+    current_settings: Option<&CanisterStatusResult>,
     config_interface: Option<&ConfigInterface>,
     canister_name: Option<&str>,
 ) -> DfxResult<Option<LogVisibility>> {

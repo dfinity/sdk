@@ -180,7 +180,6 @@ pub async fn exec(
                     opts.always_assist,
                 )
                 .await
-                .map_err(Into::into)
             } else {
                 install_canister(
                     env,
@@ -200,7 +199,6 @@ pub async fn exec(
                     opts.always_assist,
                 )
                 .await
-                .map_err(Into::into)
             }
         }
     } else if opts.all {
