@@ -1,10 +1,11 @@
+use crate::AssetSyncProgressRenderer;
 use crate::asset::config::AssetConfig;
 use crate::batch_upload::operations::BATCH_UPLOAD_API_VERSION;
 use crate::batch_upload::plumbing::Mode::NormalDeploy;
 use crate::batch_upload::{
     self,
     operations::AssetDeletionReason,
-    plumbing::{make_project_assets, AssetDescriptor, ChunkUploader},
+    plumbing::{AssetDescriptor, ChunkUploader, make_project_assets},
 };
 use crate::canister_api::methods::{
     api_version::api_version,
@@ -14,9 +15,8 @@ use crate::canister_api::methods::{
 use crate::canister_api::types::batch_upload::v0;
 use crate::error::CompatibilityError::DowngradeV1TOV0Failed;
 use crate::error::UploadError::{self, CommitBatchFailed, CreateBatchFailed, ListAssetsFailed};
-use crate::AssetSyncProgressRenderer;
 use ic_utils::Canister;
-use slog::{info, Logger};
+use slog::{Logger, info};
 use std::collections::HashMap;
 use std::path::PathBuf;
 

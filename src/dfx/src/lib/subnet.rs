@@ -1,11 +1,11 @@
 use crate::lib::error::DfxResult;
 use anyhow::anyhow;
-use backoff::future::retry;
 use backoff::ExponentialBackoff;
+use backoff::future::retry;
 use candid::{CandidType, Deserialize, Principal};
 use ic_agent::{Agent, AgentError};
-use ic_utils::call::SyncCall;
 use ic_utils::Canister;
+use ic_utils::call::SyncCall;
 
 use super::retryable::retryable;
 

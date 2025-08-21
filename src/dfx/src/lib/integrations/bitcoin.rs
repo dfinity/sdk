@@ -5,7 +5,7 @@ use crate::util::assets::bitcoin_wasm;
 use candid::Principal;
 use fn_error_context::context;
 use ic_agent::Agent;
-use slog::{debug, Logger};
+use slog::{Logger, debug};
 
 pub const MAINNET_BITCOIN_CANISTER_ID: Principal =
     Principal::from_slice(&[0x00, 0x00, 0x00, 0x00, 0x01, 0xA0, 0x00, 0x01, 0x01, 0x01]);

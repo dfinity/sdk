@@ -1,4 +1,5 @@
 use crate::{
+    DfxInterface,
     config::cache::get_version_from_cache_path,
     config::model::{
         dfinity::{Config, NetworksConfig},
@@ -11,14 +12,13 @@ use crate::{
         network_config::NetworkConfigError,
     },
     extension::manager::ExtensionManager,
-    identity::{identity_manager::InitializeIdentity, IdentityManager},
+    identity::{IdentityManager, identity_manager::InitializeIdentity},
     network::{
-        provider::{create_network_descriptor, LocalBindDetermination},
+        provider::{LocalBindDetermination, create_network_descriptor},
         root_key::fetch_root_key_when_non_mainnet_or_error,
     },
-    DfxInterface,
 };
-use ic_agent::{agent::route_provider::RoundRobinRouteProvider, Agent, Identity};
+use ic_agent::{Agent, Identity, agent::route_provider::RoundRobinRouteProvider};
 use reqwest::Client;
 use semver::Version;
 use std::path::Path;
@@ -206,6 +206,7 @@ impl Default for DfxInterfaceBuilder {
 
 #[cfg(test)]
 mod tests {
+    use crate::DfxInterface;
     use crate::error::{
         builder::{
             BuildDfxInterfaceError,
@@ -218,10 +219,9 @@ mod tests {
         root_key::FetchRootKeyError::AgentError,
     };
     use crate::identity::{
-        identity_manager::IdentityStorageMode::Plaintext, IdentityCreationParameters,
-        IdentityManager,
+        IdentityCreationParameters, IdentityManager,
+        identity_manager::IdentityStorageMode::Plaintext,
     };
-    use crate::DfxInterface;
     use candid::Principal;
     use futures::Future;
     use ic_agent::{AgentError::TransportError, Identity};
@@ -273,7 +273,10 @@ mod tests {
         }
 
         // so tests don't clobber each other in the environment
-        std::env::set_var("DFX_CONFIG_ROOT", temp_dir.path());
+        crate::config::directories::DFX_CONFIG_ROOT
+            .lock()
+            .unwrap()
+            .replace(temp_dir.path().to_path_buf().into_os_string());
 
         let temp_dir = Arc::new(temp_dir);
         test_function(temp_dir.clone()).await;

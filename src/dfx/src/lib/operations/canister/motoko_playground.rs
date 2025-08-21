@@ -1,10 +1,10 @@
 use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::{environment::Environment, error::DfxResult};
-use anyhow::{anyhow, bail, Context};
-use candid::{encode_args, CandidType, Decode, Deserialize, Encode, Principal};
+use anyhow::{Context, anyhow, bail};
+use candid::{CandidType, Decode, Deserialize, Encode, Principal, encode_args};
 use dfx_core::config::model::canister_id_store::AcquisitionDateTime;
 use dfx_core::config::model::network_descriptor::{
-    NetworkTypeDescriptor, MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID,
+    MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID, NetworkTypeDescriptor,
 };
 use fn_error_context::context;
 use ic_utils::interfaces::management_canister::builders::{
@@ -132,7 +132,9 @@ pub async fn reserve_canister_with_playground(
         bail!("Trying to reserve canister with playground on non-playground network.")
     };
     if ci_info::is_ci() && playground_canister == MAINNET_MOTOKO_PLAYGROUND_CANISTER_ID {
-        bail!("Cannot reserve playground canister in CI, please run `dfx start` to use the local replica.")
+        bail!(
+            "Cannot reserve playground canister in CI, please run `dfx start` to use the local replica."
+        )
     }
 
     let canister_id_store = env.get_canister_id_store()?;
@@ -270,7 +272,7 @@ fn create_nonce() -> (candid::Int, candid::Nat) {
         .as_nanos();
     let timestamp = candid::Int::from(now);
     let mut rng = rand::thread_rng();
-    let mut nonce = candid::Nat::from(rng.gen::<u32>());
+    let mut nonce = candid::Nat::from(rng.r#gen::<u32>());
     let prefix = format!("{}{}", POW_DOMAIN, timestamp);
     loop {
         let to_hash = format!("{}{}", prefix, nonce).replace('_', "");

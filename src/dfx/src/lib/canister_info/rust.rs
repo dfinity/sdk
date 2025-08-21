@@ -1,6 +1,6 @@
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
 use crate::lib::error::DfxResult;
-use anyhow::{bail, ensure, Context};
+use anyhow::{Context, bail, ensure};
 use cargo_metadata::Metadata;
 use dfx_core::config::model::dfinity::CanisterTypeProperties;
 use itertools::Itertools;

@@ -217,12 +217,11 @@ impl FromStr for ICPTs {
                     "0" => 0_u64,
                     e8s => {
                         let e8s = &e8s.to_string()[2..e8s.to_string().len()];
-                        let amount = e8s.chars().enumerate().fold(0, |amount, (idx, val)| {
+                        e8s.chars().enumerate().fold(0, |amount, (idx, val)| {
                             amount
                                 + (10_u64.pow(DECIMAL_PLACES - 1 - (idx as u32))
                                     * (val.to_digit(10).unwrap() as u64))
-                        });
-                        amount
+                        })
                     }
                 };
                 ICPTs::new(icpts, e8s)

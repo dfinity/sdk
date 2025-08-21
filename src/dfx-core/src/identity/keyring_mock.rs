@@ -7,7 +7,7 @@ use crate::error::keyring::{KeyringError, KeyringMaintenanceError};
 use crate::json::{load_json_file, save_json_file};
 use keyring;
 use serde::{Deserialize, Serialize};
-use slog::{trace, Logger};
+use slog::{Logger, trace};
 use std::{collections::HashMap, path::PathBuf};
 
 pub const KEYRING_SERVICE_NAME: &str = "internet_computer_identities";

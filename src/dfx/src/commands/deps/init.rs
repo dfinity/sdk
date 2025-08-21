@@ -1,17 +1,17 @@
 use crate::lib::deps::{
-    create_init_json_if_not_existed, get_canister_prompt, get_pull_canister_or_principal,
-    get_pull_canisters_in_config, get_pulled_service_candid_path, load_init_json, load_pulled_json,
-    save_init_json, validate_pulled, InitJson, PulledJson,
+    InitJson, PulledJson, create_init_json_if_not_existed, get_canister_prompt,
+    get_pull_canister_or_principal, get_pull_canisters_in_config, get_pulled_service_candid_path,
+    load_init_json, load_pulled_json, save_init_json, validate_pulled,
 };
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::clap::argument_from_cli::ArgumentFromCliLongOpt;
 use crate::util::fuzzy_parse_argument;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use candid::Principal;
 use candid_parser::{syntax::IDLTypes, typing::ast_to_type, utils::CandidSource};
 use clap::Parser;
-use slog::{info, warn, Logger};
+use slog::{Logger, info, warn};
 
 /// Set init arguments for pulled dependencies.
 #[derive(Parser)]
@@ -120,7 +120,9 @@ fn set_init(
             }
         }
         (Some(_), true) => {
-            bail!("Canister {canister_prompt} takes no init argument. Please rerun without `--argument`");
+            bail!(
+                "Canister {canister_prompt} takes no init argument. Please rerun without `--argument`"
+            );
         }
         (None, false) => {
             // No argument provided from CLI but the canister requires an init argument.
@@ -155,7 +157,9 @@ The following info might be helpful:
                     "Canister {canister_prompt} set init argument with \"(null)\"."
                 );
             } else {
-                bail!("Canister {canister_prompt} requires an init argument. The following info might be helpful:\n{help_message}");
+                bail!(
+                    "Canister {canister_prompt} requires an init argument. The following info might be helpful:\n{help_message}"
+                );
             }
         }
         (None, true) => {

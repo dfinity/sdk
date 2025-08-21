@@ -1,5 +1,5 @@
 use crate::config::model::dfinity::{
-    NetworkType, PlaygroundConfig, DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH,
+    DEFAULT_IC_GATEWAY, DEFAULT_IC_GATEWAY_TRAILING_SLASH, NetworkType, PlaygroundConfig,
 };
 use crate::config::model::local_server_descriptor::LocalServerDescriptor;
 use crate::error::network_config::NetworkConfigError;

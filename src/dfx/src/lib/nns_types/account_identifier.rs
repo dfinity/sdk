@@ -6,7 +6,7 @@
 use anyhow::Context;
 use candid::CandidType;
 use candid::Principal;
-use serde::{de, de::Error, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de, de::Error};
 use sha2::{Digest, Sha224};
 use std::convert::{TryFrom, TryInto};
 use std::fmt::{Display, Formatter};

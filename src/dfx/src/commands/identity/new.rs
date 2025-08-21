@@ -1,6 +1,7 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::util::clap::parsers::hsm_key_id_parser;
+use IdentityCreationParameters::{Hardware, Pem};
 use anyhow::Context;
 use clap::Parser;
 use dfx_core::error::identity::CreateNewIdentityError::SwitchBackToIdentityFailed;
@@ -8,9 +9,8 @@ use dfx_core::identity::identity_manager::{
     HardwareIdentityConfiguration, IdentityCreationParameters, IdentityStorageMode,
 };
 use regex::Regex;
-use slog::{info, warn, Logger};
+use slog::{Logger, info, warn};
 use std::str::FromStr;
-use IdentityCreationParameters::{Hardware, Pem};
 
 /// Creates a new identity.
 #[derive(Parser)]
@@ -62,7 +62,10 @@ pub fn exec(env: &dyn Environment, opts: NewIdentityOpts) -> DfxResult {
     let log = env.get_logger();
 
     if opts.disable_encryption {
-        warn!(log, "The flag --disable-encryption has been deprecated. Please use --storage-mode=plaintext instead.");
+        warn!(
+            log,
+            "The flag --disable-encryption has been deprecated. Please use --storage-mode=plaintext instead."
+        );
     }
 
     let name = opts.new_identity.as_str();

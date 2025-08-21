@@ -8,8 +8,8 @@ use clap::Parser;
 use dfx_core::identity::CallSender;
 use ic_utils::interfaces::management_canister::{CanisterLogRecord, FetchCanisterLogsResult};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use time::format_description::well_known::Rfc3339;
 use time::OffsetDateTime;
+use time::format_description::well_known::Rfc3339;
 
 /// Get the canister logs.
 #[derive(Parser)]

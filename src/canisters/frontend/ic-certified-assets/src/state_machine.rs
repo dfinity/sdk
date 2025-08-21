@@ -5,19 +5,20 @@
 // as formal arguments.  This approach makes it very easy to test the state machine.
 use crate::{
     asset_certification::{
+        CertifiedResponses,
         types::{
             certification::{
                 AssetKey, AssetPath, CertificateExpression, HashTreePath, NestedTreeKey,
                 RequestHash, ResponseHash, WitnessResult,
             },
             http::{
+                CallbackFunc, FALLBACK_FILE, HttpRequest, HttpResponse,
+                StreamingCallbackHttpResponse, StreamingCallbackToken,
                 build_ic_certificate_expression_from_headers_and_encoding,
-                build_ic_certificate_expression_header, response_hash, CallbackFunc, HttpRequest,
-                HttpResponse, StreamingCallbackHttpResponse, StreamingCallbackToken, FALLBACK_FILE,
+                build_ic_certificate_expression_header, response_hash,
             },
             rc_bytes::RcBytes,
         },
-        CertifiedResponses,
     },
     evidence::{EvidenceComputation, EvidenceComputation::Computed},
     types::*,
@@ -155,9 +156,11 @@ impl AssetEncoding {
         response_hashes.insert(200, response_hash_200);
         response_hashes.insert(304, response_hash_304);
 
-        debug_assert!(STATUS_CODES_TO_CERTIFY
-            .iter()
-            .all(|code| response_hashes.contains_key(code)));
+        debug_assert!(
+            STATUS_CODES_TO_CERTIFY
+                .iter()
+                .all(|code| response_hashes.contains_key(code))
+        );
 
         response_hashes
     }
@@ -642,8 +645,14 @@ impl State {
             .find(|(_batch_id, batch)| batch.commit_batch_arguments.is_some())
         {
             let message = match batch.evidence_computation {
-                Some(Computed(_)) => format!("Batch {} is already proposed.  Delete or execute it to propose another.", batch_id),
-                _ => format!("Batch {} has not completed evidence computation.  Wait for it to expire or delete it to propose another.", batch_id),
+                Some(Computed(_)) => format!(
+                    "Batch {} is already proposed.  Delete or execute it to propose another.",
+                    batch_id
+                ),
+                _ => format!(
+                    "Batch {} has not completed evidence computation.  Wait for it to expire or delete it to propose another.",
+                    batch_id
+                ),
             };
             return Err(message);
         }

@@ -1,6 +1,6 @@
+use crate::Environment;
 use crate::config::cache::VersionCache;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::Environment;
 use anyhow::{anyhow, bail};
 use fn_error_context::context;
 use std::path::Path;

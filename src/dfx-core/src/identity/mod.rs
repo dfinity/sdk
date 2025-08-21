@@ -28,18 +28,18 @@ use crate::identity::identity_file_locations::IdentityFileLocations;
 use crate::identity::wallet::wallet_canister_id;
 use crate::json::{load_json_file, save_json_file};
 use candid::Principal;
+use ic_agent::Signature;
 use ic_agent::agent::EnvelopeContent;
 use ic_agent::identity::{
     AnonymousIdentity, BasicIdentity, Delegation, Secp256k1Identity, SignedDelegation,
 };
-use ic_agent::Signature;
 use ic_identity_hsm::HardwareIdentity;
 pub use identity_manager::{
     HardwareIdentityConfiguration, IdentityConfiguration, IdentityCreationParameters,
     IdentityManager,
 };
 use serde::{Deserialize, Serialize};
-use slog::{info, Logger};
+use slog::{Logger, info};
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 

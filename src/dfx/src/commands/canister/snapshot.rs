@@ -4,9 +4,9 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{anyhow, bail, Context, Error};
-use backoff::future::retry;
+use anyhow::{Context, Error, anyhow, bail};
 use backoff::ExponentialBackoff;
+use backoff::future::retry;
 use candid::Principal;
 use clap::{Parser, Subcommand};
 use dfx_core::{
@@ -22,7 +22,7 @@ use ic_management_canister_types::{
 use indicatif::HumanBytes;
 use itertools::Itertools;
 use slog::{debug, error, info};
-use time::{macros::format_description, OffsetDateTime};
+use time::{OffsetDateTime, macros::format_description};
 
 use crate::lib::{
     environment::Environment,
@@ -152,8 +152,12 @@ pub async fn exec(
 fn ensure_status(status: CanisterStatusType, canister: &str, phrasing: &str) -> DfxResult {
     match status {
         CanisterStatusType::Stopped => {}
-        CanisterStatusType::Running => bail!("Canister {canister} is running and snapshots should not be {phrasing} running canisters. Run `dfx canister stop` first"),
-        CanisterStatusType::Stopping => bail!("Canister {canister} is stopping but is not yet stopped. Wait a few seconds and try again"),
+        CanisterStatusType::Running => bail!(
+            "Canister {canister} is running and snapshots should not be {phrasing} running canisters. Run `dfx canister stop` first"
+        ),
+        CanisterStatusType::Stopping => bail!(
+            "Canister {canister} is stopping but is not yet stopped. Wait a few seconds and try again"
+        ),
     }
     Ok(())
 }

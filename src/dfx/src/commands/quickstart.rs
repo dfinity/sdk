@@ -21,14 +21,14 @@ use crate::{
     },
     util::assets::wallet_wasm,
 };
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use candid::Principal;
 use clap::Parser;
 use dfx_core::identity::wallet::wallet_canister_id;
 use dialoguer::{Confirm, Input};
 use ic_agent::Agent;
 use ic_utils::interfaces::{
-    management_canister::builders::CanisterInstallMode, ManagementCanister, WalletCanister,
+    ManagementCanister, WalletCanister, management_canister::builders::CanisterInstallMode,
 };
 use num_traits::Inv;
 use rust_decimal::Decimal;
@@ -231,10 +231,18 @@ async fn step_finish_wallet(
 
 fn step_explain_deploy(acct: AccountIdentifier, needed_icp: Decimal) {
     eprintln!("\nYou need {needed_icp:.8} more ICP to deploy a 10 TC wallet canister on mainnet.");
-    eprintln!("Deposit at least {needed_icp:.8} ICP into the address {acct}, and then run this command again, to deploy a mainnet wallet.");
+    eprintln!(
+        "Deposit at least {needed_icp:.8} ICP into the address {acct}, and then run this command again, to deploy a mainnet wallet."
+    );
     eprintln!("\nAlternatively:");
-    eprintln!("- If you have ICP in an NNS account, you can create a new canister through the NNS interface");
-    eprintln!("- If you have a Discord account, you can request free cycles at https://faucet.dfinity.org");
+    eprintln!(
+        "- If you have ICP in an NNS account, you can create a new canister through the NNS interface"
+    );
+    eprintln!(
+        "- If you have a Discord account, you can request free cycles at https://faucet.dfinity.org"
+    );
     eprintln!("Either of these options will ask for your DFX user principal, listed above.");
-    eprintln!("And either of these options will hand you back a wallet canister principal; when you run the command again, select the 'import an existing wallet' option.");
+    eprintln!(
+        "And either of these options will hand you back a wallet canister principal; when you run the command again, select the 'import an existing wallet' option."
+    );
 }

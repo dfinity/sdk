@@ -1,10 +1,10 @@
+use crate::CliOpts;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
-use crate::CliOpts;
 use clap::CommandFactory;
 use clap::Parser;
-use clap_complete::generate;
 use clap_complete::Shell;
+use clap_complete::generate;
 
 /// Generate a shell completion script.
 #[derive(Parser)]

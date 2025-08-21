@@ -2,8 +2,8 @@ use crate::lib::environment::Environment;
 use crate::lib::progress_bar::ProgressBar;
 use ic_asset::{AssetSyncProgressRenderer, AssetSyncState};
 use std::sync::{
-    atomic::{AtomicUsize, Ordering},
     OnceLock,
+    atomic::{AtomicUsize, Ordering},
 };
 
 pub struct EnvAssetSyncProgressRenderer<'a> {

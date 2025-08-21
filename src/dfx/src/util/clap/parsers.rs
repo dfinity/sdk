@@ -4,7 +4,7 @@ use ic_utils::interfaces::management_canister::LogVisibility;
 use icrc_ledger_types::icrc1::account::Subaccount;
 use rust_decimal::Decimal;
 use std::{path::PathBuf, str::FromStr};
-use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 /// Removes `_`, interprets `k`, `m`, `b`, `t` suffix (case-insensitive)
 fn decimal_with_suffix_parser(input: &str) -> Result<Decimal, String> {
@@ -252,7 +252,7 @@ pub fn duration_parser(duration: &str) -> Result<u64, String> {
             return Err(format!(
                 "Unknown duration unit: '{}'. Valid units are s, m, h, d",
                 unit
-            ))
+            ));
         }
     };
 
@@ -274,7 +274,10 @@ pub fn timestamp_parser(timestamp: &str) -> Result<u64, String> {
         return Ok(nanos);
     }
 
-    Err(format!("Invalid timestamp format: {}. Required either nanoseconds since epoch or RFC3339 format (e.g. '2021-05-06T19:17:10.000000002Z')", timestamp))
+    Err(format!(
+        "Invalid timestamp format: {}. Required either nanoseconds since epoch or RFC3339 format (e.g. '2021-05-06T19:17:10.000000002Z')",
+        timestamp
+    ))
 }
 
 #[test]
