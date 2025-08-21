@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.29.1
+
 ### fix: ensure deterministic serialization of `tech_stack` metadata
 
 The `tech_stack` metadata was previously defined with `HashMap`, which resulted in non-deterministic serialization due to its random key ordering.
