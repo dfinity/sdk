@@ -1,11 +1,12 @@
 use crate::config::dfx_version_str;
+use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
-use crate::lib::models::canister::CanisterPool;
+use crate::lib::models::canister::{CanisterPool, Import};
 use crate::util::command::direct_or_shell_command;
 use crate::util::with_suspend_all_spinners;
-use anyhow::{bail, Context};
+use anyhow::{bail, Context, anyhow};
 use candid::Principal as CanisterId;
 use dfx_core::config::model::dfinity::{Config, Profile};
 use dfx_core::network::provider::get_network_context;
@@ -24,7 +25,7 @@ use std::process::Stdio;
 use std::sync::Arc;
 
 mod assets;
-mod custom;
+pub mod custom; // TODO: Shouldn't be `pub`.
 mod motoko;
 mod pull;
 mod rust;
@@ -61,8 +62,23 @@ pub trait CanisterBuilder {
         _env: &dyn Environment,
         _pool: &CanisterPool,
         _info: &CanisterInfo,
+        _no_deps: bool,
     ) -> DfxResult<Vec<CanisterId>> {
         Ok(Vec::new())
+    }
+
+    fn maybe_get_dependencies(
+        &self,
+        env: &dyn Environment,
+        pool: &CanisterPool,
+        info: &CanisterInfo,
+        no_deps: bool,
+    ) -> DfxResult<Vec<CanisterId>> {
+        if no_deps {
+            Ok(Vec::new())
+        } else {
+            self.get_dependencies(env, pool, info, no_deps)
+        }
     }
 
     fn prebuild(
@@ -83,6 +99,7 @@ pub trait CanisterBuilder {
         pool: &CanisterPool,
         info: &CanisterInfo,
         config: &BuildConfig,
+        no_deps: bool,
     ) -> DfxResult<BuildOutput>;
 
     fn postbuild(
@@ -91,6 +108,7 @@ pub trait CanisterBuilder {
         _pool: &CanisterPool,
         _info: &CanisterInfo,
         _config: &BuildConfig,
+        _no_deps: bool,
     ) -> DfxResult {
         Ok(())
     }
@@ -222,6 +240,125 @@ pub trait CanisterBuilder {
             generate_output_dir.display()
         );
 
+        Ok(())
+    }
+
+    #[context("Failed to find imports for canister '{}'.", info.get_name())]
+    fn read_dependencies(
+        &self,
+        env: &dyn Environment,
+        pool: &CanisterPool,
+        info: &CanisterInfo,
+    ) -> DfxResult {
+        #[context("Failed recursive dependency detection at {}.", parent)]
+        fn read_dependencies_recursive(
+            env: &dyn Environment,
+            pool: &CanisterPool,
+            parent: &Import,
+        ) -> DfxResult {
+            if env.get_imports().lock().unwrap().nodes().contains_key(parent) {
+                // The item and its descendants are already in the graph.
+                return Ok(());
+            }
+            let parent_node_index = env.get_imports().lock().unwrap().update_node(parent);
+
+            let file = match parent {
+                Import::Canister(parent_name) => {
+                    let parent_canister = pool.get_first_canister_with_name(parent_name)
+                        .ok_or_else(|| anyhow!("No such canister {}", parent_name))?;
+                    let parent_canister_info = parent_canister.get_info();
+                    if parent_canister_info.is_motoko() {
+                        let motoko_info = parent_canister
+                            .get_info()
+                            .as_info::<MotokoCanisterInfo>()
+                            .context("Getting Motoko info")?;
+                        Some(
+                            motoko_info
+                                .get_main_path()
+                                .to_path_buf()
+                                // .canonicalize()
+                                // .with_context(|| {
+                                //     format!(
+                                //         "Canonicalizing Motoko path {}",
+                                //         motoko_info.get_main_path().to_string_lossy()
+                                //     )
+                                // })?,
+                        )
+                    } else {
+                        for child in parent_canister_info.get_dependencies() {
+                            read_dependencies_recursive(
+                                env,
+                                pool,
+                                &Import::Canister(child.clone()),
+                            )?;
+
+                            let child_node = Import::Canister(child.clone());
+                            let child_node_index =
+                                env.get_imports().lock().unwrap().update_node(&child_node);
+                            env.get_imports().lock().unwrap().update_edge(
+                                parent_node_index,
+                                child_node_index,
+                                (),
+                            );
+                        }
+                        return Ok(());
+                    }
+                }
+                Import::Path(path) => Some(path.clone()),
+                _ => None,
+            };
+            if let Some(file) = file {
+                let mut command = env.get_cache()
+                    .get_binary_command(env, "moc")
+                    .context("Getting binary command \"moc\"")?;
+                let command = command.arg("--print-deps").arg(file);
+                let output = command
+                    .output()
+                    .with_context(|| format!("Error executing {:#?}", command))?;
+                let output = String::from_utf8_lossy(&output.stdout);
+
+                for line in output.lines() {
+                    let child = Import::try_from(line).context("Failed to create MotokoImport.")?;
+                    match &child {
+                        Import::Canister(_) | Import::Path(_) => {
+                            read_dependencies_recursive(env, pool, &child)?
+                        }
+                        _ => {}
+                    }
+                    let child_node_index = env.get_imports().lock().unwrap().update_node(&child);
+                    env.get_imports().lock().unwrap().update_edge(
+                        parent_node_index,
+                        child_node_index,
+                        (),
+                    );
+                }
+            }
+
+            Ok(())
+        }
+
+        read_dependencies_recursive(
+            env,
+            pool,
+            &Import::Canister(info.get_name().to_string()),
+        )?;
+
+        Ok(())
+    }
+
+    #[context("Failed to finread canister dependencues.")]
+    fn read_all_dependencies(
+        &self,
+        env: &dyn Environment,
+        pool: &CanisterPool,
+    ) -> DfxResult {
+        // TODO: several `unwrap`s in this function
+        // TODO: It should be simpler.
+        let config = env.get_config()?;
+        for canister_name in config.as_ref().unwrap().get_config().canisters.as_ref().unwrap().keys() {
+            let canister = pool.get_first_canister_with_name(&canister_name).unwrap(); // TODO
+            self.read_dependencies(env, pool, canister.get_info())?;
+        }
         Ok(())
     }
 

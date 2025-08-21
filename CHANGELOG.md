@@ -2,6 +2,10 @@
 
 # UNRELEASED
 
+* Flags `--no-compile` and `--no-deps`
+
+* Command `rules` that outputs time-efficient GNU Make rules.
+
 ### fix: ensure deterministic serialization of `tech_stack` metadata
 
 The `tech_stack` metadata was previously defined with `HashMap`, which resulted in non-deterministic serialization due to its random key ordering.
@@ -10,6 +14,7 @@ This has been fixed by replacing it with `BTreeMap`, which sorts keys and guaran
 ### Motoko
 
 Updated Motoko to [0.16.0](https://github.com/dfinity/motoko/releases/tag/0.16.0)
+>>>>>>> c6acd853972b6a8d884965cbefd57cca888e3b5c
 
 # 0.29.0
 
@@ -38,6 +43,7 @@ This incorporates the following executed proposals:
 - [137224](https://dashboard.internetcomputer.org/proposal/137224)
 
 # 0.28.0
+>>>>>>> 92b85e02f3110a0f1d12979634331c66b0ced43c
 
 ### fix: deps deploy works with Canister ID out of the ranges of the pocket-ic subnets
 
@@ -155,6 +161,7 @@ This incorporates the following executed proposals:
 dfx would try to reuse canister ids when switching from a shared network to a project network,
 which would cause errors since those canister ids wouldn't exist. dfx now deletes the .dfx
 directory if it was previously used with the shared local network.
+>>>>>>> upstream/master
 
 ### feat: Set canister ids using `dfx canister set-id <canister name> <principal>`
 

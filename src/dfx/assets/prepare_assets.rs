@@ -160,13 +160,13 @@ fn write_binary_cache(
 async fn download_and_check_sha(client: Client, source: Source) -> Bytes {
     let retry_policy = ExponentialBackoffBuilder::new()
         .with_initial_interval(Duration::from_secs(1))
-        .with_max_interval(Duration::from_secs(16))
-        .with_multiplier(2.0)
-        .with_max_elapsed_time(Some(Duration::from_secs(300)))
+        .with_max_interval(Duration::from_secs(64))
+        .with_multiplier(1.5)
+        .with_max_elapsed_time(Some(Duration::from_secs(3600)))
         .build();
 
     let response = retry(retry_policy, || async {
-        match client.get(&source.url).send().await {
+        match client.get(&source.url).timeout(Duration::from_secs(3600)).send().await {
             Ok(response) => Ok(response),
             Err(err) => Err(backoff::Error::transient(err)),
         }

@@ -37,18 +37,23 @@ impl CanisterBuilder for RustBuilder {
         _: &dyn Environment,
         pool: &CanisterPool,
         info: &CanisterInfo,
+        no_deps: bool,
     ) -> DfxResult<Vec<CanisterId>> {
-        let dependencies = info.get_dependencies()
-            .iter()
-            .map(|name| {
-                pool.get_first_canister_with_name(name)
-                    .map(|c| c.canister_id())
-                    .map_or_else(
-                        || Err(anyhow!("A canister with the name '{}' was not found in the current project.", name.clone())),
-                        DfxResult::Ok,
-                    )
-            })
-            .collect::<DfxResult<Vec<CanisterId>>>().with_context(|| format!("Failed to collect dependencies (canister ids) for canister {}.", info.get_name()))?;
+        let dependencies = if no_deps {
+            info.get_dependencies()
+                .iter()
+                .map(|name| {
+                    pool.get_first_canister_with_name(name)
+                        .map(|c| c.canister_id())
+                        .map_or_else(
+                            || Err(anyhow!("A canister with the name '{}' was not found in the current project.", name.clone())),
+                            DfxResult::Ok,
+                        )
+                })
+                .collect::<DfxResult<Vec<CanisterId>>>().with_context(|| format!("Failed to collect dependencies (canister ids) for canister {}.", info.get_name()))?
+            } else {
+                Vec::new()
+            };
         Ok(dependencies)
     }
 
@@ -59,6 +64,7 @@ impl CanisterBuilder for RustBuilder {
         pool: &CanisterPool,
         canister_info: &CanisterInfo,
         config: &BuildConfig,
+        no_deps: bool,
     ) -> DfxResult<BuildOutput> {
         let rust_info = canister_info.as_info::<RustCanisterInfo>()?;
         let package = rust_info.get_package();
@@ -77,7 +83,7 @@ impl CanisterBuilder for RustBuilder {
             .arg("--locked");
 
         let dependencies = self
-            .get_dependencies(env, pool, canister_info)
+            .maybe_get_dependencies(env, pool, canister_info, no_deps)
             .unwrap_or_default();
         let vars = super::get_and_write_environment_variables(
             canister_info,

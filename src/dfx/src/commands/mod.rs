@@ -25,6 +25,7 @@ mod new;
 mod ping;
 mod quickstart;
 mod remote;
+mod rules;
 mod schema;
 mod send_telemetry;
 mod start;
@@ -57,6 +58,7 @@ pub enum DfxCommand {
     Ping(ping::PingOpts),
     Quickstart(quickstart::QuickstartOpts),
     Remote(remote::RemoteOpts),
+    Rules(rules::RulesOpts),
     Schema(schema::SchemaOpts),
     #[command(name = "_send-telemetry", hide = true)]
     SendTelemetry(send_telemetry::SendTelemetryOpts),
@@ -92,6 +94,7 @@ pub fn exec(env: &dyn Environment, cmd: DfxCommand) -> DfxResult {
         DfxCommand::Ping(v) => ping::exec(env, v),
         DfxCommand::Quickstart(v) => quickstart::exec(env, v),
         DfxCommand::Remote(v) => remote::exec(env, v),
+        DfxCommand::Rules(v) => rules::exec(env, v),
         DfxCommand::Schema(v) => schema::exec(v),
         DfxCommand::SendTelemetry(v) => send_telemetry::exec(v),
         DfxCommand::Start(v) => start::exec(env, v),
