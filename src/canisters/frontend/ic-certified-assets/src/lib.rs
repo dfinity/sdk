@@ -419,7 +419,7 @@ macro_rules! export_canister_methods {
         use $crate::is_manager_or_controller as __ic_certified_assets_is_manager_or_controller;
 
         #[cfg(target_arch = "wasm32")]
-        #[link_section = "icp:public supported_certificate_versions"]
+        #[unsafe(link_section = "icp:public supported_certificate_versions")]
         static CERTIFICATE_VERSIONS: [u8; 3] = $crate::SUPPORTED_CERTIFICATE_VERSIONS;
 
         // Query methods
