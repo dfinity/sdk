@@ -30,6 +30,7 @@ type Ex = variant {
     field: nat;
   }
 }
+// Service comments
 service : {
   // Method comments
   func : (Ex) -> ();
