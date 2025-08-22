@@ -8,11 +8,11 @@ use crate::{
 use candid::Principal;
 use ic_agent::Agent;
 use ic_utils::{
-    interfaces::{
-        management_canister::builders::{CanisterInstallMode, InstallCodeArgs},
-        ManagementCanister, WalletCanister,
-    },
     Argument,
+    interfaces::{
+        ManagementCanister, WalletCanister,
+        management_canister::builders::{CanisterInstallMode, InstallCodeArgs},
+    },
 };
 
 pub async fn build_wallet_canister(

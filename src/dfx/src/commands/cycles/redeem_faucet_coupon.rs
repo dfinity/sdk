@@ -3,8 +3,8 @@ use crate::lib::error::DfxResult;
 use crate::lib::root_key::fetch_root_key_if_needed;
 use crate::util::clap::parsers::icrc_subaccount_parser;
 use crate::util::{format_as_trillions, pretty_thousand_separators};
-use anyhow::{anyhow, bail, Context};
-use candid::{encode_args, CandidType, Decode, Deserialize, Principal};
+use anyhow::{Context, anyhow, bail};
+use candid::{CandidType, Decode, Deserialize, Principal, encode_args};
 use clap::Parser;
 use icrc_ledger_types::icrc1::account::{Account, Subaccount};
 use slog::{info, warn};
@@ -41,7 +41,10 @@ pub async fn exec(env: &dyn Environment, opts: RedeemFaucetCouponOpts) -> DfxRes
     if fetch_root_key_if_needed(env).await.is_err() {
         bail!("Failed to connect to the local replica. Did you forget to use '--network ic'?");
     } else if !env.get_network_descriptor().is_ic {
-        warn!(log, "Trying to redeem a wallet coupon on a local replica. Did you forget to use '--network ic'?");
+        warn!(
+            log,
+            "Trying to redeem a wallet coupon on a local replica. Did you forget to use '--network ic'?"
+        );
     }
 
     let identity = env

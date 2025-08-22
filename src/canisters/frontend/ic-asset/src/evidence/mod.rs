@@ -1,8 +1,9 @@
+use crate::AssetSyncProgressRenderer;
 use crate::asset::content::Content;
 use crate::asset::content_encoder::ContentEncoder::{Brotli, Gzip};
-use crate::batch_upload::operations::assemble_batch_operations;
 use crate::batch_upload::operations::AssetDeletionReason::Obsolete;
-use crate::batch_upload::plumbing::{make_project_assets, ProjectAsset};
+use crate::batch_upload::operations::assemble_batch_operations;
+use crate::batch_upload::plumbing::{ProjectAsset, make_project_assets};
 use crate::canister_api::methods::asset_properties::get_assets_properties;
 use crate::canister_api::methods::list::list_assets;
 use crate::canister_api::types::asset::SetAssetPropertiesArguments;
@@ -15,10 +16,9 @@ use crate::error::ComputeEvidenceError;
 use crate::error::HashContentError;
 use crate::error::HashContentError::EncodeContentFailed;
 use crate::sync::gather_asset_descriptors;
-use crate::AssetSyncProgressRenderer;
 use ic_utils::Canister;
 use sha2::{Digest, Sha256};
-use slog::{info, trace, Logger};
+use slog::{Logger, info, trace};
 use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 

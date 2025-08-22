@@ -1,5 +1,5 @@
-use candid::{pretty::candid::pp_args, Principal};
-use candid_parser::utils::{instantiate_candid, CandidSource};
+use candid::{Principal, pretty::candid::pp_args};
+use candid_parser::utils::{CandidSource, instantiate_candid};
 use dfx_core::config::cache::get_cache_root;
 use dfx_core::fs::{composite::ensure_parent_dir_exists, read, read_to_string, write};
 use sha2::{Digest, Sha256};

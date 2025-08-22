@@ -3,8 +3,9 @@ use crate::lib::diagnosis::DiagnosedError;
 use crate::lib::environment::Environment;
 use crate::lib::error::{DfxError, DfxResult};
 use crate::lib::ic_attributes::{
-    get_compute_allocation, get_freezing_threshold, get_log_visibility, get_memory_allocation,
-    get_reserved_cycles_limit, get_wasm_memory_limit, get_wasm_memory_threshold, CanisterSettings,
+    CanisterSettings, get_compute_allocation, get_freezing_threshold, get_log_visibility,
+    get_memory_allocation, get_reserved_cycles_limit, get_wasm_memory_limit,
+    get_wasm_memory_threshold,
 };
 use crate::lib::operations::canister::{
     get_canister_status, skip_remote_canister, update_settings,
@@ -15,7 +16,7 @@ use crate::util::clap::parsers::{
     compute_allocation_parser, freezing_threshold_parser, memory_allocation_parser,
     reserved_cycles_limit_parser, wasm_memory_limit_parser,
 };
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use byte_unit::Byte;
 use candid::Principal as CanisterId;
 use candid::Principal;
@@ -157,7 +158,10 @@ pub async fn exec(
     fetch_root_key_if_needed(env).await?;
 
     if !opts.yes && user_is_removing_themselves_as_controller(env, call_sender, &opts)? {
-        ask_for_consent(env, "You are trying to remove yourself as a controller of this canister. This may leave this canister un-upgradeable.")?
+        ask_for_consent(
+            env,
+            "You are trying to remove yourself as a controller of this canister. This may leave this canister un-upgradeable.",
+        )?
     }
 
     let controllers: Option<DfxResult<Vec<_>>> = opts.set_controller.as_ref().map(|controllers| {

@@ -1,6 +1,6 @@
 use crate::lib::canister_info::{CanisterInfo, CanisterInfoFactory};
 use crate::lib::error::DfxResult;
-use anyhow::{ensure, Context};
+use anyhow::{Context, ensure};
 use dfx_core::config::model::dfinity::CanisterTypeProperties;
 use std::path::{Path, PathBuf};
 
@@ -58,7 +58,7 @@ impl CanisterInfoFactory for MotokoCanisterInfo {
         let workspace_root = info.get_workspace_root();
         let name = info.get_name();
         ensure!(
-            matches!(info.type_specific, CanisterTypeProperties::Motoko { .. }),
+            matches!(info.type_specific, CanisterTypeProperties::Motoko),
             "Attempted to construct a custom canister from a type:{} canister config",
             info.type_specific.name()
         );

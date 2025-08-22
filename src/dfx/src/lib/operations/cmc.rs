@@ -2,9 +2,9 @@ use crate::lib::error::{
     DfxResult, NotifyCreateCanisterError, NotifyMintCyclesError, NotifyTopUpError,
 };
 use crate::lib::ledger_types::{
-    BlockHeight, BlockIndex, Memo, NotifyCreateCanisterArg, NotifyCreateCanisterResult,
-    NotifyMintCyclesArg, NotifyMintCyclesResult, NotifyMintCyclesSuccess, NotifyTopUpArg,
-    NotifyTopUpResult, MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID,
+    BlockHeight, BlockIndex, MAINNET_CYCLE_MINTER_CANISTER_ID, MAINNET_LEDGER_CANISTER_ID, Memo,
+    NotifyCreateCanisterArg, NotifyCreateCanisterResult, NotifyMintCyclesArg,
+    NotifyMintCyclesResult, NotifyMintCyclesSuccess, NotifyTopUpArg, NotifyTopUpResult,
 };
 use crate::lib::nns_types::account_identifier::{AccountIdentifier, Subaccount};
 use crate::lib::nns_types::icpts::ICPTs;

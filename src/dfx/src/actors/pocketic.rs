@@ -1,10 +1,10 @@
 #![cfg_attr(windows, allow(unused))]
 
 use crate::actors::post_start::signals::{PocketIcReadySignal, PocketIcReadySubscribe};
-use crate::actors::shutdown::{wait_for_child_or_receiver, ChildOrReceiver};
-use crate::actors::shutdown_controller::signals::outbound::Shutdown;
-use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
+use crate::actors::shutdown::{ChildOrReceiver, wait_for_child_or_receiver};
 use crate::actors::shutdown_controller::ShutdownController;
+use crate::actors::shutdown_controller::signals::ShutdownSubscribe;
+use crate::actors::shutdown_controller::signals::outbound::Shutdown;
 use crate::lib::error::{DfxError, DfxResult};
 #[cfg(unix)]
 use crate::lib::info::replica_rev;
@@ -19,13 +19,13 @@ use actix::{
 use anyhow::{anyhow, bail};
 #[cfg(unix)]
 use candid::Principal;
-use crossbeam::channel::{unbounded, Receiver, Sender};
+use crossbeam::channel::{Receiver, Sender, unbounded};
 #[cfg(unix)]
 use dfx_core::config::model::replica_config::CachedConfig;
 use dfx_core::config::model::replica_config::ReplicaConfig;
 #[cfg(unix)]
 use dfx_core::json::save_json_file;
-use slog::{debug, error, warn, Logger};
+use slog::{Logger, debug, error, warn};
 use std::net::SocketAddr;
 use std::ops::ControlFlow::{self, *};
 use std::path::{Path, PathBuf};

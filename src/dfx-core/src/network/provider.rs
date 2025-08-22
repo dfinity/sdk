@@ -2,8 +2,8 @@ use crate::config::directories::{
     get_shared_network_data_directory, get_shared_wallet_config_path,
 };
 use crate::config::model::dfinity::{
-    Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, NetworkType, NetworksConfig,
-    DEFAULT_PROJECT_LOCAL_BIND, DEFAULT_SHARED_LOCAL_BIND,
+    Config, ConfigDefaults, ConfigLocalProvider, ConfigNetwork, DEFAULT_PROJECT_LOCAL_BIND,
+    DEFAULT_SHARED_LOCAL_BIND, NetworkType, NetworksConfig,
 };
 use crate::config::model::local_server_descriptor::{
     LocalNetworkScopeDescriptor, LocalServerDescriptor,
@@ -19,7 +19,7 @@ use crate::identity::WALLET_CONFIG_FILENAME;
 use crate::util;
 use lazy_static::lazy_static;
 use serde_json::json;
-use slog::{debug, info, warn, Logger};
+use slog::{Logger, debug, info, warn};
 use std::path::{Display, Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use url::Url;
@@ -336,11 +336,14 @@ fn warn_if_ignoring_project_defaults_in_shared_network(
 
             let example_networks_json =
                 serde_json::to_string_pretty(&example_networks_json).unwrap();
-            warn!(logger, "Ignoring the 'defaults' field in dfx.json because project settings never apply to the shared network.\n\
+            warn!(
+                logger,
+                "Ignoring the 'defaults' field in dfx.json because project settings never apply to the shared network.\n\
                     To apply these settings to the shared network, define them in {shared_config_display_path} like so:\n\
                     {example_networks_json}",
-                    shared_config_display_path = &shared_config_display_path,
-                    example_networks_json = &example_networks_json);
+                shared_config_display_path = &shared_config_display_path,
+                example_networks_json = &example_networks_json
+            );
         }
     }
 }
@@ -485,8 +488,8 @@ mod tests {
     use crate::config::model::canister_http_adapter::HttpAdapterLogLevel;
     use crate::config::model::dfinity::ReplicaSubnetType::{System, VerifiedApplication};
     use crate::config::model::dfinity::{
-        to_socket_addr, ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsReplica,
-        ReplicaLogLevel,
+        ConfigDefaultsBitcoin, ConfigDefaultsCanisterHttp, ConfigDefaultsReplica, ReplicaLogLevel,
+        to_socket_addr,
     };
     use std::fs;
     use std::net::SocketAddr;

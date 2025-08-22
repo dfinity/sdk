@@ -1,3 +1,4 @@
+use crate::AssetSyncProgressRenderer;
 use crate::batch_upload::retryable::retryable;
 use crate::batch_upload::semaphores::Semaphores;
 use crate::canister_api::methods::method_names::CREATE_CHUNK;
@@ -5,9 +6,8 @@ use crate::canister_api::types::batch_upload::common::{
     CreateChunkRequest, CreateChunkResponse, CreateChunksRequest, CreateChunksResponse,
 };
 use crate::error::CreateChunkError;
-use crate::AssetSyncProgressRenderer;
-use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
+use backoff::backoff::Backoff;
 use candid::{Decode, Nat};
 use ic_agent::agent::CallResponse;
 use ic_utils::Canister;

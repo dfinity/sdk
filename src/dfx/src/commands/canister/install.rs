@@ -86,7 +86,9 @@ pub async fn exec(
     let network = env.get_network_descriptor();
 
     if mode_hint == InstallModeHint::Reinstall && (opts.canister.is_none() || opts.all) {
-        bail!("The --mode=reinstall is only valid when specifying a single canister, because reinstallation destroys all data in the canister.");
+        bail!(
+            "The --mode=reinstall is only valid when specifying a single canister, because reinstallation destroys all data in the canister."
+        );
     }
 
     if let Some(canister) = opts.canister.as_deref() {
@@ -155,7 +157,11 @@ pub async fn exec(
                 );
             }
             if config_interface.is_remote_canister(canister, &network.name)? {
-                bail!("Canister '{}' is a remote canister on network '{}', and cannot be installed from here.", canister, &network.name)
+                bail!(
+                    "Canister '{}' is a remote canister on network '{}', and cannot be installed from here.",
+                    canister,
+                    &network.name
+                )
             }
 
             let canister_id = canister_id_store.get(canister)?;
@@ -238,7 +244,10 @@ pub async fn exec(
             }
         }
         if !pull_canisters_in_config.is_empty() {
-            info!(env.get_logger(), "There are pull dependencies defined in dfx.json. Please deploy them using `dfx deps deploy`.");
+            info!(
+                env.get_logger(),
+                "There are pull dependencies defined in dfx.json. Please deploy them using `dfx deps deploy`."
+            );
         }
         Ok(())
     } else {

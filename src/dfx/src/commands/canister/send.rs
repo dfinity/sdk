@@ -1,14 +1,14 @@
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::sign::signed_message::SignedMessageV1;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use candid::{IDLArgs, Principal};
 use clap::Parser;
 use dfx_core::identity::CallSender;
 use dfx_core::json::load_json_file;
-use ic_agent::agent::{CallResponse, RequestStatusResponse};
 use ic_agent::Agent;
 use ic_agent::RequestId;
+use ic_agent::agent::{CallResponse, RequestStatusResponse};
 use std::path::PathBuf;
 
 /// Send a previously-signed message.
@@ -28,7 +28,9 @@ pub async fn exec(
     call_sender: &CallSender,
 ) -> DfxResult {
     if *call_sender != CallSender::SelectedId {
-        bail!("`send` currently doesn't support proxying through the wallet canister, please use `dfx canister send --no-wallet ...`.");
+        bail!(
+            "`send` currently doesn't support proxying through the wallet canister, please use `dfx canister send --no-wallet ...`."
+        );
     }
     let file_name = opts.file_name;
     let message: SignedMessageV1 = load_json_file(&file_name)?;
@@ -136,7 +138,9 @@ pub async fn exec(
                         "To check the status of this update call, append `--status` to current command."
                     );
                     eprintln!("e.g. `dfx canister send message.json --status`");
-                    eprintln!("Alternatively, if you have the correct identity on this machine, using `dfx canister request-status` with following arguments.");
+                    eprintln!(
+                        "Alternatively, if you have the correct identity on this machine, using `dfx canister request-status` with following arguments."
+                    );
                     eprint!("Request ID: ");
                     println!("0x{}", String::from(request_id));
                     eprint!("Canister ID: ");

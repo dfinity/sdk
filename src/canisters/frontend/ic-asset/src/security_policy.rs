@@ -95,44 +95,44 @@ We recommend tightening the CSP for your specific application. Some recommendati
                         "default-src 'self';script-src 'self';connect-src 'self' http://localhost:* https://icp0.io https://*.icp0.io https://icp-api.io;img-src 'self' data:;style-src * 'unsafe-inline';style-src-elem * 'unsafe-inline';font-src *;object-src 'none';base-uri 'self';frame-ancestors 'none';form-action 'self';upgrade-insecure-requests;",
                         r#"Notes about the CSP below:
 - We added img-src data: because data: images are used often.
-- frame-ancestors: none mitigates clickjacking attacks. See https://owasp.org/www-community/attacks/Clickjacking."#
+- frame-ancestors: none mitigates clickjacking attacks. See https://owasp.org/www-community/attacks/Clickjacking."#,
                     ),
                     (
                         "Permissions-Policy",
                         "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(), gamepad=(), speaker-selection=(), conversion-measurement=(), focus-without-user-activation=(), hid=(), idle-detection=(), interest-cohort=(), serial=(), sync-script=(), trust-token-redemption=(), window-placement=(), vertical-scroll=()",
                         r#"Security: The permissions policy disables all features for security reasons. If your site needs such permissions, activate them.
-To configure permissions go here https://www.permissionspolicy.com/"#
+To configure permissions go here https://www.permissionspolicy.com/"#,
                     ),
                     (
                         "X-Frame-Options",
                         "DENY",
                         r#"Security: Mitigates clickjacking attacks.
-See: https://owasp.org/www-community/attacks/Clickjacking."#
+See: https://owasp.org/www-community/attacks/Clickjacking."#,
                     ),
                     (
                         "Referrer-Policy",
                         "same-origin",
                         r#"Security: Avoids forwarding referrer information to other origins.
-See: https://owasp.org/www-project-secure-headers/#referrer-policy."#
+See: https://owasp.org/www-project-secure-headers/#referrer-policy."#,
                     ),
                     (
                         "Strict-Transport-Security",
                         "max-age=31536000; includeSubDomains",
                         r#"Security: Tells the user's browser that it must always use HTTPS with your site.
-See: https://owasp.org/www-project-secure-headers/#http-strict-transport-security"#
+See: https://owasp.org/www-project-secure-headers/#http-strict-transport-security"#,
                     ),
                     (
                         "X-Content-Type-Options",
                         "nosniff",
                         r#"Security: Prevents the browser from interpreting files as a different MIME type to what is specified in the Content-Type header.
-See: https://owasp.org/www-project-secure-headers/#x-content-type-options"#
+See: https://owasp.org/www-project-secure-headers/#x-content-type-options"#,
                     ),
                     (
                         "X-XSS-Protection",
                         "1; mode=block",
                         r#"Security: Enables browser features to mitigate some of the XSS attacks. Note that it has to be in mode=block.
-See: https://owasp.org/www-community/attacks/xss/"#
-                    )
+See: https://owasp.org/www-community/attacks/xss/"#,
+                    ),
                 ],
             },
         }

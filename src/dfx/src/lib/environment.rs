@@ -3,7 +3,7 @@ use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
 use crate::lib::progress_bar::ProgressBar;
 use crate::lib::telemetry::{CanisterRecord, Telemetry};
-use crate::lib::warning::{is_warning_disabled, DfxWarning::MainnetPlainTextIdentity};
+use crate::lib::warning::{DfxWarning::MainnetPlainTextIdentity, is_warning_disabled};
 use anyhow::{anyhow, bail};
 use candid::Principal;
 use dfx_core::config::model::canister_id_store::CanisterIdStore;
@@ -28,6 +28,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use url::Url;
 
+#[allow(unused)]
 pub trait Environment: Send + Sync {
     fn get_cache(&self) -> VersionCache;
     fn get_config(&self) -> Result<Option<Arc<Config>>, LoadDfxConfigError>;

@@ -1,13 +1,13 @@
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
-use crate::lib::canister_info::rust::RustCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
+use crate::lib::canister_info::rust::RustCanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::DfxResult;
 use crate::lib::models::canister::CanisterPool;
 use crate::util::with_suspend_all_spinners;
-use anyhow::{anyhow, bail, Context};
+use anyhow::{Context, anyhow, bail};
 use candid::Principal as CanisterId;
 use fn_error_context::context;
 use slog::{info, o};

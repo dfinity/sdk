@@ -2,8 +2,8 @@ use crate::config::cache::VersionCache;
 use crate::lib::builders::{
     BuildConfig, BuildOutput, CanisterBuilder, IdlBuildOutput, WasmBuildOutput,
 };
-use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::canister_info::CanisterInfo;
+use crate::lib::canister_info::motoko::MotokoCanisterInfo;
 use crate::lib::environment::Environment;
 use crate::lib::error::{BuildError, DfxError, DfxResult};
 use crate::lib::metadata::names::{CANDID_ARGS, CANDID_SERVICE};
@@ -14,7 +14,7 @@ use anyhow::Context;
 use candid::Principal as CanisterId;
 use dfx_core::config::model::dfinity::{MetadataVisibility, Profile};
 use fn_error_context::context;
-use slog::{info, o, trace, warn, Logger};
+use slog::{Logger, info, o, trace, warn};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
 use std::fmt::Debug;
@@ -334,7 +334,7 @@ impl TryFrom<&str> for MotokoImport {
                         return Err(DfxError::new(BuildError::DependencyError(format!(
                             "Unknown import {}",
                             url
-                        ))))
+                        ))));
                     }
                 }
             }
@@ -353,7 +353,7 @@ impl TryFrom<&str> for MotokoImport {
                     return Err(DfxError::new(BuildError::DependencyError(format!(
                         "Cannot resolve relative import {}",
                         url
-                    ))))
+                    ))));
                 }
             },
         };

@@ -337,7 +337,7 @@ mod rule_utils {
     use crate::error::LoadRuleError;
     use globset::{Glob, GlobMatcher};
     use itertools::Itertools;
-    use serde::{de::Error as _, Deserialize, Serializer};
+    use serde::{Deserialize, Serializer, de::Error as _};
     use serde_json::Value;
     use std::collections::BTreeMap;
     use std::fmt;
@@ -402,7 +402,7 @@ mod rule_utils {
                                     v => {
                                         return Err(D::Error::custom(format!(
                                             "headers must be strings, numbers, or bools (was {v:?})"
-                                        )))
+                                        )));
                                     }
                                 },
                             ))

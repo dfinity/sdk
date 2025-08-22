@@ -1,19 +1,19 @@
 use crate::error::GetAssetPropertiesError;
 use crate::error::GetAssetPropertiesError::GetAssetPropertiesFailed;
 use crate::{
+    AssetSyncProgressRenderer,
     batch_upload::retryable::retryable,
     canister_api::{
         methods::method_names::GET_ASSET_PROPERTIES,
         types::asset::{AssetDetails, AssetProperties, GetAssetPropertiesArgument},
     },
-    AssetSyncProgressRenderer,
 };
-use backoff::backoff::Backoff;
 use backoff::ExponentialBackoffBuilder;
+use backoff::backoff::Backoff;
 use futures_intrusive::sync::SharedSemaphore;
-use ic_agent::{agent::RejectResponse, AgentError};
-use ic_utils::call::SyncCall;
+use ic_agent::{AgentError, agent::RejectResponse};
 use ic_utils::Canister;
+use ic_utils::call::SyncCall;
 use std::{collections::HashMap, time::Duration};
 
 const MAX_CONCURRENT_REQUESTS: usize = 50;

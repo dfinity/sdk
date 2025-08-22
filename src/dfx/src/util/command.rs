@@ -8,6 +8,7 @@ pub fn direct_or_shell_command(s: &str, cwd: &Path) -> DfxResult<Command> {
     let canonical_result = dfx_core::fs::canonicalize(&cwd.join(&words[0]));
     let mut cmd = if words.len() == 1 && canonical_result.is_ok() {
         // If the command is a file, execute it directly.
+        #[allow(clippy::unnecessary_unwrap)]
         let file = canonical_result.unwrap();
         Command::new(file)
     } else {

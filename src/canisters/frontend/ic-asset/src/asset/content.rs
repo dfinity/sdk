@@ -1,8 +1,8 @@
 use crate::asset::content_encoder::ContentEncoder;
 use brotli::CompressorWriter;
 use dfx_core::error::fs::ReadFileError;
-use flate2::write::GzEncoder;
 use flate2::Compression;
+use flate2::write::GzEncoder;
 use mime::Mime;
 use sha2::{Digest, Sha256};
 use std::io::Write;

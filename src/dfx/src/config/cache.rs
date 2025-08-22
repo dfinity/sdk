@@ -11,10 +11,10 @@ use dfx_core::error::cache::{
     DeleteCacheError, GetBinaryCommandPathError, InstallCacheError, IsCacheInstalledError,
 };
 use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
+use rand::{Rng, thread_rng};
 use semver::Version;
 use slog::info;
-use std::io::{stderr, IsTerminal};
+use std::io::{IsTerminal, stderr};
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;

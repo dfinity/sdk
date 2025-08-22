@@ -1,8 +1,8 @@
 use crate::lib::error::DfxResult;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
+use flate2::Compression;
 use flate2::read::GzDecoder;
 use flate2::write::GzEncoder;
-use flate2::Compression;
 use fn_error_context::context;
 use std::io::{Read, Write};
 use std::path::Path;

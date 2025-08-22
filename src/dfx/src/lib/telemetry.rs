@@ -1,8 +1,8 @@
 #![allow(unused)] // remove when there are no more todos
 
+use crate::CliOpts;
 use crate::config::dfx_version;
 use crate::lib::error::DfxResult;
-use crate::CliOpts;
 use anyhow::Context;
 use candid::Principal;
 use chrono::{Datelike, Local, NaiveDateTime};
@@ -19,9 +19,9 @@ use dfx_core::fs;
 use dfx_core::identity::IdentityType;
 use fd_lock::{RwLock as FdRwLock, RwLockWriteGuard};
 use fn_error_context::context;
+use ic_agent::AgentError;
 use ic_agent::agent::RejectResponse;
 use ic_agent::agent_error::Operation;
-use ic_agent::AgentError;
 use reqwest::StatusCode;
 use semver::Version;
 use serde::Serialize;
@@ -609,7 +609,7 @@ impl CanisterRecord {
         let r#type = match &config.type_specific {
             CanisterTypeProperties::Rust { .. } => CanisterType::Rust,
             CanisterTypeProperties::Assets { .. } => CanisterType::Assets,
-            CanisterTypeProperties::Motoko { .. } => CanisterType::Motoko,
+            CanisterTypeProperties::Motoko => CanisterType::Motoko,
             CanisterTypeProperties::Custom { .. } => CanisterType::Custom,
             CanisterTypeProperties::Pull { .. } => CanisterType::Pull,
         };
@@ -750,7 +750,9 @@ mod tests {
     #[test]
     fn hide_parameter_value() {
         let _guard = setup_test();
-        let actual = full_command_to_telemetry("dfx canister update-settings --add-log-viewer=evtzg-5hnpy-uoy4t-tn3fa-7c4ca-nweso-exmhj-nt3vs-htbce-pys7c-yqe e2e_project");
+        let actual = full_command_to_telemetry(
+            "dfx canister update-settings --add-log-viewer=evtzg-5hnpy-uoy4t-tn3fa-7c4ca-nweso-exmhj-nt3vs-htbce-pys7c-yqe e2e_project",
+        );
         let expected = Telemetry {
             command: "canister update-settings".to_string(),
             arguments: vec![

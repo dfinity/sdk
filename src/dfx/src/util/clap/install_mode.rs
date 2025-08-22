@@ -88,7 +88,9 @@ impl InstallModeOpt {
                 HighLevelMode::Install | HighLevelMode::Reinstall
             )
         {
-            bail!("--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'.");
+            bail!(
+                "--skip-pre-upgrade and --wasm-memory-persistence can only be used with mode 'upgrade' or 'auto'."
+            );
         }
         match high_level_mode {
             HighLevelMode::Install => Ok(InstallModeHint::Install),
