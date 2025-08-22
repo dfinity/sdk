@@ -15,6 +15,12 @@ This has been fixed by replacing it with `BTreeMap`, which sorts keys and guaran
 
 Updated Motoko to [0.16.0](https://github.com/dfinity/motoko/releases/tag/0.16.0)
 
+### Candid
+
+Updated candid_parser to 0.2.1.
+
+Comments applied to types and fields will now become doc comments in dfx's generated bindings. See the [Candid changelog](https://github.com/dfinity/candid/blob/2025-07-29/CHANGELOG.md#candid_parser-021) for more.
+
 ### Frontend canister
 
 - Module hash: 4014793c83ae0ff2d851a0c4e62f289a114d36bc1826f5579f55a70ff3c70551
