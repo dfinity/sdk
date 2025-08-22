@@ -1,46 +1,16 @@
 [
     {
-        match: "**/*",
+        "match": "**/*",
 
         // Provides a base set of security headers that will work for most dapps.
         // Any headers you manually specify will override the headers provided by the policy.
         // See 'dfx info security-policy' to see the policy and for advice on how to harden the headers.
         // Once you improved the headers for your dapp, set the security policy to "hardened" to disable the warning.
         // Options are: "hardened" | "standard" | "disabled".
-        security_policy: "disabled",
+        "security_policy": "standard",
 
-        // We disable the "security_policy" above and manually define all "standard" security
-        // policy headers except "Content Security Policy", so that
-        // no actual CSP policy is enforced at the HTTP header level.
-        // This ensures the browser will use the CSP <meta> tag that SvelteKit injects
-        // into index.html during the build. The configuration for this is in `svelte.config.js`.
-        // That meta tag includes automatically generated script hashes for SvelteKit's
-        // inline bootstrap code, so we can keep a strict policy without adding
-        // 'unsafe-inline' or calculating hashes manually.
-        headers: {
-            // Security: The permissions policy disables all features for security reasons. If your site needs such permissions, activate them.
-            // To configure permissions go here https://www.permissionspolicy.com/
-            "Permissions-Policy": "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(), gamepad=(), speaker-selection=(), conversion-measurement=(), focus-without-user-activation=(), hid=(), idle-detection=(), interest-cohort=(), serial=(), sync-script=(), trust-token-redemption=(), window-placement=(), vertical-scroll=()",
-
-            // Security: Mitigates clickjacking attacks.
-            // See: https://owasp.org/www-community/attacks/Clickjacking.
-            "X-Frame-Options": "DENY",
-
-            // Security: Avoids forwarding referrer information to other origins.
-            // See: https://owasp.org/www-project-secure-headers/#referrer-policy.
-            "Referrer-Policy": "same-origin",
-
-            // Security: Tells the user's browser that it must always use HTTPS with your site.
-            // See: https://owasp.org/www-project-secure-headers/#http-strict-transport-security
-            "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-
-            // Security: Prevents the browser from interpreting files as a different MIME type to what is specified in the Content-Type header.
-            // See: https://owasp.org/www-project-secure-headers/#x-content-type-options
-            "X-Content-Type-Options": "nosniff",
-
-            // Security: Enables browser features to mitigate some of the XSS attacks. Note that it has to be in mode=block.
-            // See: https://owasp.org/www-community/attacks/xss/
-            "X-XSS-Protection": "1; mode=block",
+        "headers": {
+            "Content-Security-Policy": "default-src 'self';script-src 'self' 'unsafe-eval' 'unsafe-inline';connect-src 'self' http://localhost:* https://icp0.io https://*.icp0.io https://icp-api.io;img-src 'self' data:;style-src * 'unsafe-inline';style-src-elem * 'unsafe-inline';font-src *;object-src 'none';base-uri 'self';frame-ancestors 'none';form-action 'self';upgrade-insecure-requests;",
         },
 
         // Uncomment to disable the warning about using the
