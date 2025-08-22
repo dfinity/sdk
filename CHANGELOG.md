@@ -19,7 +19,7 @@ Updated Motoko to [0.16.0](https://github.com/dfinity/motoko/releases/tag/0.16.0
 
 Updated candid_parser to 0.2.1.
 
-Comments applied to types and fields will now become doc comments in dfx's generated bindings.
+Comments applied to Candid elements will now become doc comments in dfx's generated bindings.
 
 ```candid
 // Type comments
