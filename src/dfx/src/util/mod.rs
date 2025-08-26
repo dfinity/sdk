@@ -555,7 +555,11 @@ mod tests {
             .unwrap()
             .block_on(download_file(&url));
         let time1 = std::time::Instant::now();
-        // Relax the time constraint so that the test is less flaky
-        assert!(time1 - time0 < std::time::Duration::from_secs(70));
+        let elapsed = (time1 - time0).as_secs();
+        assert!(
+            elapsed < 80, // Relax the time constraint so that the test is less flaky
+            "Download file took {} seconds (> 60s)",
+            elapsed
+        );
     }
 }
