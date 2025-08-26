@@ -5,6 +5,7 @@ use dfx_core::error::root_key::FetchRootKeyError;
 use dfx_core::network::provider::get_network_context;
 use ic_agent::AgentError;
 use ic_agent::agent::{RejectCode, RejectResponse};
+use ic_agent::agent_error::TransportError;
 use ic_asset::error::{GatherAssetDescriptorsError, SyncError, UploadContentError};
 use regex::Regex;
 use std::path::Path;
@@ -93,16 +94,20 @@ fn local_replica_not_running(err: &AnyhowError) -> bool {
         }
     };
     if let Some(AgentError::TransportError(transport_error)) = maybe_agent_error {
-        transport_error.is_connect()
-            && transport_error
-                .url()
-                .and_then(|url| url.host())
-                .map(|host| match host {
-                    url::Host::Domain(domain) => domain == "localhost",
-                    url::Host::Ipv4(ipv4_addr) => ipv4_addr.is_loopback(),
-                    url::Host::Ipv6(ipv6_addr) => ipv6_addr.is_loopback(),
-                })
-                .unwrap_or(false)
+        if let TransportError::Reqwest(reqwest_err) = transport_error {
+            reqwest_err.is_connect()
+                && reqwest_err
+                    .url()
+                    .and_then(|url| url.host())
+                    .map(|host| match host {
+                        url::Host::Domain(domain) => domain == "localhost",
+                        url::Host::Ipv4(ipv4_addr) => ipv4_addr.is_loopback(),
+                        url::Host::Ipv6(ipv6_addr) => ipv6_addr.is_loopback(),
+                    })
+                    .unwrap_or(false)
+        } else {
+            false
+        }
     } else {
         false
     }

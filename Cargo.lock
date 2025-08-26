@@ -1044,7 +1044,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -1663,8 +1663,8 @@ dependencies = [
  "ic-asset",
  "ic-cdk",
  "ic-identity-hsm",
- "ic-management-canister-types",
- "ic-utils 0.42.0",
+ "ic-management-canister-types 0.4.0",
+ "ic-utils 0.44.0",
  "ic-wasm",
  "icrc-ledger-types",
  "idl2json",
@@ -1742,7 +1742,7 @@ dependencies = [
  "humantime-serde",
  "ic-agent",
  "ic-identity-hsm",
- "ic-utils 0.42.0",
+ "ic-utils 0.44.0",
  "itertools 0.10.5",
  "k256 0.11.6",
  "keyring",
@@ -2148,7 +2148,7 @@ checksum = "0ce92ff622d6dadf7349484f42c93271a0d49b7cc4d466a936405bacbe10aa78"
 dependencies = [
  "cfg-if",
  "rustix 1.0.7",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -2860,9 +2860,9 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.42.0"
+version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65511dadb3b00d71d52355c6589505f8e1c3399aa48cf93f97b04faa3b09c5b9"
+checksum = "39d930ac981dd27535b09fb36832c52554ec5acc382ed61bfb5ce91967624259"
 dependencies = [
  "arc-swap",
  "async-channel",
@@ -2870,6 +2870,7 @@ dependencies = [
  "async-trait",
  "async-watch",
  "backoff",
+ "bytes",
  "cached 0.52.0",
  "candid",
  "der 0.7.10",
@@ -2880,9 +2881,10 @@ dependencies = [
  "hex",
  "http 1.3.1",
  "http-body 1.0.1",
+ "http-body-util",
  "ic-certification 3.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "ic-ed25519",
- "ic-transport-types 0.42.0",
+ "ic-transport-types 0.44.0",
  "ic-verify-bls-signature",
  "k256 0.13.4",
  "leb128",
@@ -2921,7 +2923,7 @@ dependencies = [
  "globset",
  "hex",
  "ic-agent",
- "ic-utils 0.42.0",
+ "ic-utils 0.44.0",
  "itertools 0.10.5",
  "json5",
  "mime",
@@ -3006,7 +3008,7 @@ dependencies = [
  "ic-cdk-executor",
  "ic-cdk-macros",
  "ic-error-types 0.2.0",
- "ic-management-canister-types",
+ "ic-management-canister-types 0.3.2",
  "ic0",
  "serde",
  "serde_bytes",
@@ -3366,9 +3368,9 @@ dependencies = [
 
 [[package]]
 name = "ic-identity-hsm"
-version = "0.42.0"
+version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "865a33f5ddb87b6e09b17f23758f5f2b3e8e5939083711a0d21c8f173f4c74ad"
+checksum = "756acc689399fec38eb63a7f84cf0829e778bd85b5589e782a39f2fbf8052ff6"
 dependencies = [
  "hex",
  "ic-agent",
@@ -3383,6 +3385,17 @@ name = "ic-management-canister-types"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95f3af3543f6d0cbdecd2dcdfd4737ada2bd42d935cc787eec22090c96492c76"
+dependencies = [
+ "candid",
+ "serde",
+ "serde_bytes",
+]
+
+[[package]]
+name = "ic-management-canister-types"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "300adbb554ca7d6003f6080b978f5f53730d93cc9d6c8223199cbcfd166b7b42"
 dependencies = [
  "candid",
  "serde",
@@ -3515,9 +3528,9 @@ dependencies = [
 
 [[package]]
 name = "ic-transport-types"
-version = "0.42.0"
+version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27ddcfae6150a88556f1f09b2197a727fd126df7c15c3609c640fdac18f11fc1"
+checksum = "763b894ca67d2cf606e7ed30d21a851709d53da3488dc7e2f53fd76290e3c859"
 dependencies = [
  "candid",
  "hex",
@@ -3586,15 +3599,15 @@ dependencies = [
 
 [[package]]
 name = "ic-utils"
-version = "0.42.0"
+version = "0.44.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61a1c80268dc06c27b4d34191b0e4a213eb0f89df4546b329c02aa6d828a4df5"
+checksum = "a819863dfcf0ec1bc3ecb11e5a82ad86a4064a7eb9502c4d1a6859e48e2de4e0"
 dependencies = [
  "async-trait",
  "candid",
  "futures-util",
  "ic-agent",
- "ic-management-canister-types",
+ "ic-management-canister-types 0.4.0",
  "once_cell",
  "semver",
  "serde",
@@ -3823,7 +3836,7 @@ dependencies = [
  "humantime",
  "ic-agent",
  "ic-asset",
- "ic-utils 0.42.0",
+ "ic-utils 0.44.0",
  "libflate 1.4.0",
  "num-traits",
  "pem 1.1.1",
@@ -3971,7 +3984,7 @@ checksum = "e04d7f318608d35d4b61ddd75cbdaee86b023ebe2bd5a66ee0915f0bf93095a9"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5148,7 +5161,7 @@ dependencies = [
  "flate2",
  "hex",
  "ic-certification 3.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "ic-management-canister-types",
+ "ic-management-canister-types 0.3.2",
  "ic-transport-types 0.40.1",
  "reqwest",
  "schemars",
@@ -5407,7 +5420,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5784,7 +5797,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.4.15",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5797,7 +5810,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys 0.9.4",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6396,7 +6409,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "psm",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -6610,7 +6623,7 @@ dependencies = [
  "getrandom 0.3.3",
  "once_cell",
  "rustix 1.0.7",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7474,7 +7487,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]

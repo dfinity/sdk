@@ -421,7 +421,7 @@ async fn upload(
         canister_id,
         replace_snapshot: replace.as_ref().map(|x| x.0.clone()),
         wasm_module_size: metadata.wasm_module_size,
-        exported_globals: metadata.exported_globals,
+        globals: metadata.globals,
         wasm_memory_size: metadata.wasm_memory_size,
         stable_memory_size: metadata.stable_memory_size,
         certified_data: metadata.certified_data,

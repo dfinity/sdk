@@ -77,6 +77,7 @@ pub async fn notify_create(
                     wasm_memory_limit: None,
                     wasm_memory_threshold: None,
                     log_visibility: None,
+                    environment_variables: None,
                 })
             })
             .map_err(NotifyCreateCanisterError::EncodeArguments)?,
