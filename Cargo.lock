@@ -1722,7 +1722,7 @@ dependencies = [
 
 [[package]]
 name = "dfx-core"
-version = "0.1.4"
+version = "0.2.0"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -2910,7 +2910,7 @@ dependencies = [
 
 [[package]]
 name = "ic-asset"
-version = "0.24.0"
+version = "0.25.0"
 dependencies = [
  "backoff",
  "brotli",
@@ -3826,7 +3826,7 @@ dependencies = [
 
 [[package]]
 name = "icx-asset"
-version = "0.22.0"
+version = "0.25.0"
 dependencies = [
  "anstyle",
  "anyhow",
