@@ -13,7 +13,7 @@ This has been fixed by replacing it with `BTreeMap`, which sorts keys and guaran
 
 ### Motoko
 
-Updated Motoko to [0.16.0](https://github.com/dfinity/motoko/releases/tag/0.16.0)
+Updated Motoko to [0.16.1](https://github.com/dfinity/motoko/releases/tag/0.16.1)
 
 ### Candid
 
