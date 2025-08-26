@@ -93,21 +93,19 @@ fn local_replica_not_running(err: &AnyhowError) -> bool {
             err.downcast_ref::<AgentError>()
         }
     };
-    if let Some(AgentError::TransportError(transport_error)) = maybe_agent_error {
-        if let TransportError::Reqwest(reqwest_err) = transport_error {
-            reqwest_err.is_connect()
-                && reqwest_err
-                    .url()
-                    .and_then(|url| url.host())
-                    .map(|host| match host {
-                        url::Host::Domain(domain) => domain == "localhost",
-                        url::Host::Ipv4(ipv4_addr) => ipv4_addr.is_loopback(),
-                        url::Host::Ipv6(ipv6_addr) => ipv6_addr.is_loopback(),
-                    })
-                    .unwrap_or(false)
-        } else {
-            false
-        }
+    if let Some(AgentError::TransportError(TransportError::Reqwest(reqwest_err))) =
+        maybe_agent_error
+    {
+        reqwest_err.is_connect()
+            && reqwest_err
+                .url()
+                .and_then(|url| url.host())
+                .map(|host| match host {
+                    url::Host::Domain(domain) => domain == "localhost",
+                    url::Host::Ipv4(ipv4_addr) => ipv4_addr.is_loopback(),
+                    url::Host::Ipv6(ipv6_addr) => ipv6_addr.is_loopback(),
+                })
+                .unwrap_or(false)
     } else {
         false
     }
