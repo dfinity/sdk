@@ -5,6 +5,7 @@ use dfx_core::error::root_key::FetchRootKeyError;
 use dfx_core::network::provider::get_network_context;
 use ic_agent::AgentError;
 use ic_agent::agent::{RejectCode, RejectResponse};
+use ic_agent::agent_error::TransportError;
 use ic_asset::error::{GatherAssetDescriptorsError, SyncError, UploadContentError};
 use regex::Regex;
 use std::path::Path;
@@ -92,9 +93,11 @@ fn local_replica_not_running(err: &AnyhowError) -> bool {
             err.downcast_ref::<AgentError>()
         }
     };
-    if let Some(AgentError::TransportError(transport_error)) = maybe_agent_error {
-        transport_error.is_connect()
-            && transport_error
+    if let Some(AgentError::TransportError(TransportError::Reqwest(reqwest_err))) =
+        maybe_agent_error
+    {
+        reqwest_err.is_connect()
+            && reqwest_err
                 .url()
                 .and_then(|url| url.host())
                 .map(|host| match host {
