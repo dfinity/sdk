@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2025-08-26
+
+### Changed
+
+- updated ic-agent dependency to 0.44.0
+
 ## [0.1.4] - 2025-05-15
 
 ### Changed
