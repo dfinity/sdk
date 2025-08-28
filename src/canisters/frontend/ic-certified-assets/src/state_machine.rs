@@ -24,12 +24,12 @@ use crate::{
     types::*,
     url_decode::url_decode,
 };
-use candid::{CandidType, Deserialize, Int, Nat, Principal};
+use candid::{CandidType, Int, Nat, Principal};
 use ic_certification::{AsHashTree, Hash};
 use ic_representation_independent_hash::Value;
 use itertools::fold;
 use num_traits::ToPrimitive;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
 use std::collections::{BTreeSet, HashMap};
@@ -69,6 +69,14 @@ const DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS: u16 = 20;
 
 type Timestamp = Int;
 
+fn timestamp_to_u64(timestamp: Timestamp) -> u64 {
+    timestamp.0.to_u64().expect("timestamp overflow")
+}
+
+fn batch_id_to_u64(batch_id: BatchId) -> u64 {
+    batch_id.0.to_u64().expect("batch id overflow")
+}
+
 #[derive(Default, Clone, Debug, CandidType, Deserialize)]
 pub struct AssetEncoding {
     pub modified: Timestamp,
@@ -82,23 +90,47 @@ pub struct AssetEncoding {
     pub response_hashes: Option<HashMap<u16, [u8; 32]>>,
 }
 
-impl AssetEncoding {
-    fn estimate_size(&self) -> usize {
-        let mut size = 0;
-        size += 8; // modified
-        size += self.total_length + self.content_chunks.len() * 4;
-        size += 5; // total_length
-        size += 1; //  certified
-        size += self.sha256.len();
-        size += 1 + self
-            .certificate_expression
-            .as_ref()
-            .map_or(0, |ce| 2 + ce.expression.len() + ce.expression_hash.len());
-        size += 1 + self.response_hashes.as_ref().map_or(0, |hashes| {
-            hashes.iter().fold(2, |acc, (_k, v)| acc + 2 + v.len())
-        });
-        size
+/// Same as [AssetEncoding] but serializable with cbor
+#[derive(Default, Clone, Debug, Deserialize, Serialize)]
+pub struct StableAssetEncodingV2 {
+    pub modified: u64,
+    pub content_chunks: Vec<RcBytes>,
+    pub total_length: usize,
+    pub certified: bool,
+    pub sha256: [u8; 32],
+    pub certificate_expression: Option<CertificateExpression>,
+    pub response_hashes: Option<HashMap<u16, [u8; 32]>>,
+}
+
+impl From<AssetEncoding> for StableAssetEncodingV2 {
+    fn from(asset_encoding: AssetEncoding) -> Self {
+        Self {
+            modified: timestamp_to_u64(asset_encoding.modified),
+            content_chunks: asset_encoding.content_chunks,
+            total_length: asset_encoding.total_length,
+            certified: asset_encoding.certified,
+            sha256: asset_encoding.sha256,
+            certificate_expression: asset_encoding.certificate_expression,
+            response_hashes: asset_encoding.response_hashes,
+        }
     }
+}
+
+impl From<StableAssetEncodingV2> for AssetEncoding {
+    fn from(stable_asset_encoding: StableAssetEncodingV2) -> Self {
+        Self {
+            modified: Timestamp::from(stable_asset_encoding.modified),
+            content_chunks: stable_asset_encoding.content_chunks,
+            total_length: stable_asset_encoding.total_length,
+            certified: stable_asset_encoding.certified,
+            sha256: stable_asset_encoding.sha256,
+            certificate_expression: stable_asset_encoding.certificate_expression,
+            response_hashes: stable_asset_encoding.response_hashes,
+        }
+    }
+}
+
+impl AssetEncoding {
     fn asset_hash_path_v2(&self, path: &AssetPath, status_code: u16) -> Option<HashTreePath> {
         self.certificate_expression.as_ref().and_then(|ce| {
             self.response_hashes.as_ref().and_then(|hashes| {
@@ -176,6 +208,51 @@ pub struct Asset {
     pub allow_raw_access: Option<bool>,
 }
 
+/// Same as [Asset] but serializable with cbor
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StableAssetV2 {
+    pub content_type: String,
+    pub encodings: HashMap<String, StableAssetEncodingV2>,
+    pub max_age: Option<u64>,
+    pub headers: Option<HashMap<String, String>>,
+    pub is_aliased: Option<bool>,
+    pub allow_raw_access: Option<bool>,
+}
+
+impl From<Asset> for StableAssetV2 {
+    fn from(asset: Asset) -> Self {
+        Self {
+            content_type: asset.content_type,
+            encodings: asset
+                .encodings
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+            max_age: asset.max_age,
+            headers: asset.headers,
+            is_aliased: asset.is_aliased,
+            allow_raw_access: asset.allow_raw_access,
+        }
+    }
+}
+
+impl From<StableAssetV2> for Asset {
+    fn from(stable_asset: StableAssetV2) -> Self {
+        Self {
+            content_type: stable_asset.content_type,
+            encodings: stable_asset
+                .encodings
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+            max_age: stable_asset.max_age,
+            headers: stable_asset.headers,
+            is_aliased: stable_asset.is_aliased,
+            allow_raw_access: stable_asset.allow_raw_access,
+        }
+    }
+}
+
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct EncodedAsset {
     pub content: RcBytes,
@@ -225,22 +302,31 @@ pub struct Configuration {
     pub max_bytes: Option<u64>,
 }
 
-impl Configuration {
-    fn estimate_size(&self) -> usize {
-        1 + self
-            .max_batches
-            .as_ref()
-            .map_or(0, |_| std::mem::size_of::<u64>())
-            + 1
-            + self
-                .max_chunks
-                .as_ref()
-                .map_or(0, |_| std::mem::size_of::<u64>())
-            + 1
-            + self
-                .max_bytes
-                .as_ref()
-                .map_or(0, |_| std::mem::size_of::<u64>())
+/// Same as [Configuration] but serializable with cbor
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StableConfigurationV2 {
+    pub max_batches: Option<u64>,
+    pub max_chunks: Option<u64>,
+    pub max_bytes: Option<u64>,
+}
+
+impl From<Configuration> for StableConfigurationV2 {
+    fn from(configuration: Configuration) -> Self {
+        Self {
+            max_batches: configuration.max_batches,
+            max_chunks: configuration.max_chunks,
+            max_bytes: configuration.max_bytes,
+        }
+    }
+}
+
+impl From<StableConfigurationV2> for Configuration {
+    fn from(stable_configuration: StableConfigurationV2) -> Self {
+        Self {
+            max_batches: stable_configuration.max_batches,
+            max_chunks: stable_configuration.max_chunks,
+            max_bytes: stable_configuration.max_bytes,
+        }
     }
 }
 
@@ -270,13 +356,21 @@ pub struct StableStatePermissions {
     manage_permissions: BTreeSet<Principal>,
 }
 
-impl StableStatePermissions {
-    fn estimate_size(&self) -> usize {
-        8 + self.commit.len() * std::mem::size_of::<Principal>()
-            + 8
-            + self.prepare.len() * std::mem::size_of::<Principal>()
-            + 8
-            + self.manage_permissions.len() * std::mem::size_of::<Principal>()
+/// Same as [StableStatePermissions] but serializable with cbor
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StableStatePermissionsV2 {
+    commit: BTreeSet<Principal>,
+    prepare: BTreeSet<Principal>,
+    manage_permissions: BTreeSet<Principal>,
+}
+
+impl From<StableStatePermissions> for StableStatePermissionsV2 {
+    fn from(stable_state_permissions: StableStatePermissions) -> Self {
+        Self {
+            commit: stable_state_permissions.commit,
+            prepare: stable_state_permissions.prepare,
+            manage_permissions: stable_state_permissions.manage_permissions,
+        }
     }
 }
 
@@ -290,46 +384,34 @@ pub struct StableState {
     configuration: Option<Configuration>,
 }
 
-impl StableState {
-    pub fn estimate_size(&self) -> usize {
-        let mut size = 0;
-        size += 2 + self.authorized.len() * std::mem::size_of::<Principal>();
-        size += 1 + self.permissions.as_ref().map_or(0, |p| p.estimate_size());
-        size += self.stable_assets.iter().fold(2, |acc, (name, asset)| {
-            acc + 2 + name.len() + asset.estimate_size()
-        });
-        size += 1 + self.next_batch_id.as_ref().map_or(0, |_| 8);
-        size += 1 + self.configuration.as_ref().map_or(0, |c| c.estimate_size());
-        size
+/// Same as [StableState] but serializable with cbor
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct StableStateV2 {
+    authorized: Vec<Principal>, // ignored if permissions is Some(_)
+    permissions: Option<StableStatePermissionsV2>,
+    stable_assets: HashMap<String, StableAssetV2>,
+
+    next_batch_id: Option<u64>,
+    configuration: Option<StableConfigurationV2>,
+}
+
+impl From<StableState> for StableStateV2 {
+    fn from(stable_state: StableState) -> Self {
+        Self {
+            authorized: stable_state.authorized,
+            permissions: stable_state.permissions.map(Into::into),
+            stable_assets: stable_state
+                .stable_assets
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+            next_batch_id: stable_state.next_batch_id.map(batch_id_to_u64),
+            configuration: stable_state.configuration.map(Into::into),
+        }
     }
 }
 
 impl Asset {
-    fn estimate_size(&self) -> usize {
-        let mut size = 0;
-        size += 1 + self.content_type.len();
-        size += self.encodings.iter().fold(1, |acc, (name, encoding)| {
-            acc + 1 + name.len() + encoding.estimate_size()
-        });
-        size += 1 + self
-            .max_age
-            .as_ref()
-            .map_or(0, |_| std::mem::size_of::<u64>());
-        size += 1 + self.headers.as_ref().map_or(0, |hm| {
-            hm.iter()
-                .fold(2, |acc, (k, v)| acc + 1 + k.len() + 2 + v.len())
-        });
-        size += 1 + self
-            .is_aliased
-            .as_ref()
-            .map_or(0, |_| std::mem::size_of::<bool>());
-        size += 1 + self
-            .allow_raw_access
-            .as_ref()
-            .map_or(0, |_| std::mem::size_of::<bool>());
-        size
-    }
-
     fn allow_raw_access(&self) -> bool {
         self.allow_raw_access.unwrap_or(true)
     }
@@ -1219,9 +1301,9 @@ impl State {
     }
 }
 
-impl From<State> for StableState {
+impl From<State> for StableStateV2 {
     fn from(state: State) -> Self {
-        let permissions = StableStatePermissions {
+        let permissions = StableStatePermissionsV2 {
             commit: state.commit_principals,
             prepare: state.prepare_principals,
             manage_permissions: state.manage_permissions_principals,
@@ -1229,15 +1311,19 @@ impl From<State> for StableState {
         Self {
             authorized: vec![],
             permissions: Some(permissions),
-            stable_assets: state.assets,
-            next_batch_id: Some(state.next_batch_id),
-            configuration: Some(state.configuration),
+            stable_assets: state
+                .assets
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
+            next_batch_id: Some(batch_id_to_u64(state.next_batch_id)),
+            configuration: Some(state.configuration.into()),
         }
     }
 }
 
-impl From<StableState> for State {
-    fn from(stable_state: StableState) -> Self {
+impl From<StableStateV2> for State {
+    fn from(stable_state: StableStateV2) -> Self {
         let (commit_principals, prepare_principals, manage_permissions_principals) =
             if let Some(permissions) = stable_state.permissions {
                 (
@@ -1256,11 +1342,19 @@ impl From<StableState> for State {
             commit_principals,
             prepare_principals,
             manage_permissions_principals,
-            assets: stable_state.stable_assets,
+            assets: stable_state
+                .stable_assets
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
             next_batch_id: stable_state
                 .next_batch_id
+                .map(BatchId::from)
                 .unwrap_or_else(|| Nat::from(1_u8)),
-            configuration: stable_state.configuration.unwrap_or_default(),
+            configuration: stable_state
+                .configuration
+                .map(Into::into)
+                .unwrap_or_default(),
             ..Self::default()
         };
 
