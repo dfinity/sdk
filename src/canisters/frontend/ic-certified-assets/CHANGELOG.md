@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added automatic conversion between legacy `StableState` and new `StableStateV2` formats
   - `pre_upgrade()` now returns `StableStateV2` instead of `StableState`
   - `post_upgrade()` now accepts `StableStateV2` parameter instead of `StableState`
+  - Removes `estimate_size()` methods from the `StableState`, `Configuration`, `StableStatePermissions`, `Asset`, `AssetEncoding` structs.
 
 ## [0.3.0] - 2025-06-26
 
