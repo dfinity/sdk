@@ -3312,6 +3312,8 @@ dependencies = [
  "candid",
  "ic-cdk",
  "ic-certified-assets",
+ "serde",
+ "serde_cbor",
 ]
 
 [[package]]

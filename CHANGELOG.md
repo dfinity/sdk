@@ -2,6 +2,13 @@
 
 # UNRELEASED
 
+### Frontend canister
+
+Use CBOR for serializing asset canister state to stable memory instead of Candid.
+
+- Module hash: 31af259ca97754a8e2f8c05bfe697108a05b0ba5ddca7610157ecb10947e7312
+- https://github.com/dfinity/sdk/pull/4368
+
 # 0.29.1
 
 ### fix: ensure deterministic serialization of `tech_stack` metadata
