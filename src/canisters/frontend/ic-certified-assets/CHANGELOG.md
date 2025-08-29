@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **BREAKING**: Implement `serde::Serialize` and `serde::Deserialize` for `StableState`
+  - Introduced new `StableStateV2`, which implements `serde::Serialize` and `serde::Deserialize`. This allows to serialize and deserialize the state using serde-compatible libraries, such as `serde_cbor`.
+  - Added automatic conversion between legacy `StableState` and new `StableStateV2` formats
+  - `pre_upgrade()` now returns `StableStateV2` instead of `StableState`
+  - `post_upgrade()` now accepts `StableStateV2` parameter instead of `StableState`
+
 ## [0.3.0] - 2025-06-26
 
 ### Added
