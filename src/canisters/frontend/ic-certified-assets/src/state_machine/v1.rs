@@ -1,10 +1,11 @@
 use std::collections::{BTreeSet, HashMap};
 
-use candid::{CandidType, Deserialize, Nat, Principal};
+use candid::{CandidType, Deserialize, Principal};
 
 use crate::{
     asset_certification::types::{certification::CertificateExpression, rc_bytes::RcBytes},
     state_machine::Timestamp,
+    types::BatchId,
 };
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
@@ -12,7 +13,7 @@ pub struct StableStateV1 {
     pub authorized: Vec<Principal>,
     pub permissions: Option<StableStatePermissionsV1>,
     pub stable_assets: HashMap<String, StableAssetV1>,
-    pub next_batch_id: Option<Nat>,
+    pub next_batch_id: Option<BatchId>,
     pub configuration: Option<StableConfigurationV1>,
 }
 
