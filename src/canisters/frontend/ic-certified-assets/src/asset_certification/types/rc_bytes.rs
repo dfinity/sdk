@@ -1,7 +1,7 @@
 //! This module contains an implementation of [RcBytes], a reference-counted byte array.
 use candid::{
     CandidType,
-    types::{Serializer as CandidSerializer, Type, TypeInner},
+    types::{Type, TypeInner},
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_bytes::ByteBuf;
@@ -19,7 +19,7 @@ impl CandidType for RcBytes {
 
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
     where
-        S: CandidSerializer,
+        S: candid::types::Serializer,
     {
         serializer.serialize_blob(&self.0)
     }
