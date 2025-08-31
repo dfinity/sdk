@@ -8,12 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **BREAKING**: Implement `serde::Serialize` and `serde::Deserialize` for `StableState`
-  - Introduced new `StableStateV2`, which implements `serde::Serialize` and `serde::Deserialize`. This allows to serialize and deserialize the state using serde-compatible libraries, such as `serde_cbor`.
-  - Added automatic conversion between legacy `StableState` and new `StableStateV2` formats
-  - `pre_upgrade()` now returns `StableStateV2` instead of `StableState`
-  - `post_upgrade()` now accepts `StableStateV2` parameter instead of `StableState`
-  - Removes `estimate_size()` methods from the `StableState`, `Configuration`, `StableStatePermissions`, `Asset`, `AssetEncoding` structs.
+- **BREAKING**: Implement `serde::Serialize` and `serde::Deserialize` for stable state structures:
+  - Moved all stable state structures to the `stable_machine::v1` module, renaming them to `StableStateV1`, `StableConfigurationV1`, `StableStatePermissionsV1`, `StableAssetV1`, `StableAssetEncodingV1`
+  - Removed `StableState` struct
+  - Introduced new `state_machine::v2` module with the new `StableStateV2` struct, which implements `serde::Serialize` and `serde::Deserialize`. This allows to serialize and deserialize the state using serde-compatible libraries, such as `serde_cbor`.
+  - Added conversion between legacy `StableStateV1` and new `StableStateV2` structs
+  - `pre_upgrade()` now returns `StableStateV2` instead of `StableStateV1`
+  - `post_upgrade()` now accepts `StableStateV2` parameter instead of `StableStateV1`
+  - Removed `estimate_size()` methods from the `StableStateV1`, `StableConfigurationV1`, `StableStatePermissionsV1`, `StableAssetV1`, `StableAssetEncodingV1` structs
 
 ## [0.3.0] - 2025-06-26
 
