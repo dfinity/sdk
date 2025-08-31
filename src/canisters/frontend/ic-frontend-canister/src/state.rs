@@ -1,5 +1,5 @@
 use ic_cdk::stable;
-use ic_certified_assets::{StableState, StableStateV2};
+use ic_certified_assets::{StableStateV1, StableStateV2};
 
 pub fn save_stable_state(stable_state: &StableStateV2) -> Result<(), serde_cbor::Error> {
     let mut stable_writer = stable::StableWriter::default();
@@ -12,7 +12,7 @@ pub fn is_candid_stable_state() -> bool {
     maybe_magic_bytes == b"DIDL"
 }
 
-pub fn load_candid_stable_state() -> Result<StableState, String> {
+pub fn load_candid_stable_state() -> Result<StableStateV1, String> {
     let (stable_state,) = ic_cdk::storage::stable_restore()?;
     Ok(stable_state)
 }

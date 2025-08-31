@@ -1,8 +1,10 @@
 //! This module contains a pure implementation of the certified assets state machine.
 
+mod v1;
 mod v2;
 
-pub use v2::StableState as StableStateV2;
+pub use v1::StableStateV1;
+pub use v2::StableStateV2;
 
 // NB. This module should not depend on ic_cdk, it contains only pure state transition functions.
 // All the environment (time, certificates, etc.) is passed to the state transition functions
@@ -73,7 +75,7 @@ const DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS: u16 = 20;
 
 type Timestamp = Int;
 
-#[derive(Default, Clone, Debug, CandidType, Deserialize)]
+#[derive(Default, Clone, Debug)]
 pub struct AssetEncoding {
     pub modified: Timestamp,
     pub content_chunks: Vec<RcBytes>,
@@ -154,7 +156,7 @@ impl AssetEncoding {
     }
 }
 
-#[derive(Default, Clone, Debug, CandidType, Deserialize)]
+#[derive(Default, Clone, Debug)]
 pub struct Asset {
     pub content_type: String,
     pub encodings: HashMap<String, AssetEncoding>,
@@ -206,7 +208,7 @@ pub struct Batch {
     pub chunk_content_total_size: usize,
 }
 
-#[derive(Clone, Debug, Default, CandidType, Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct Configuration {
     pub max_batches: Option<u64>,
     pub max_chunks: Option<u64>,
@@ -230,23 +232,6 @@ pub struct State {
     manage_permissions_principals: BTreeSet<Principal>,
 
     asset_hashes: CertifiedResponses,
-}
-
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct StableStatePermissions {
-    commit: BTreeSet<Principal>,
-    prepare: BTreeSet<Principal>,
-    manage_permissions: BTreeSet<Principal>,
-}
-
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct StableState {
-    authorized: Vec<Principal>, // ignored if permissions is Some(_)
-    permissions: Option<StableStatePermissions>,
-    stable_assets: HashMap<String, Asset>,
-
-    next_batch_id: Option<BatchId>,
-    configuration: Option<Configuration>,
 }
 
 impl Asset {
