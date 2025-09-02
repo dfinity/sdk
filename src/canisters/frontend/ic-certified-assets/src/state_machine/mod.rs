@@ -1,5 +1,9 @@
 //! This module contains a pure implementation of the certified assets state machine.
 
+pub mod v1;
+
+pub use v1::StableStateV1;
+
 // NB. This module should not depend on ic_cdk, it contains only pure state transition functions.
 // All the environment (time, certificates, etc.) is passed to the state transition functions
 // as formal arguments.  This approach makes it very easy to test the state machine.
@@ -69,7 +73,7 @@ const DEFAULT_MAX_COMPUTE_EVIDENCE_ITERATIONS: u16 = 20;
 
 type Timestamp = Int;
 
-#[derive(Default, Clone, Debug, CandidType, Deserialize)]
+#[derive(Default, Clone, Debug)]
 pub struct AssetEncoding {
     pub modified: Timestamp,
     pub content_chunks: Vec<RcBytes>,
@@ -83,22 +87,6 @@ pub struct AssetEncoding {
 }
 
 impl AssetEncoding {
-    fn estimate_size(&self) -> usize {
-        let mut size = 0;
-        size += 8; // modified
-        size += self.total_length + self.content_chunks.len() * 4;
-        size += 5; // total_length
-        size += 1; //  certified
-        size += self.sha256.len();
-        size += 1 + self
-            .certificate_expression
-            .as_ref()
-            .map_or(0, |ce| 2 + ce.expression.len() + ce.expression_hash.len());
-        size += 1 + self.response_hashes.as_ref().map_or(0, |hashes| {
-            hashes.iter().fold(2, |acc, (_k, v)| acc + 2 + v.len())
-        });
-        size
-    }
     fn asset_hash_path_v2(&self, path: &AssetPath, status_code: u16) -> Option<HashTreePath> {
         self.certificate_expression.as_ref().and_then(|ce| {
             self.response_hashes.as_ref().and_then(|hashes| {
@@ -166,7 +154,7 @@ impl AssetEncoding {
     }
 }
 
-#[derive(Default, Clone, Debug, CandidType, Deserialize)]
+#[derive(Default, Clone, Debug)]
 pub struct Asset {
     pub content_type: String,
     pub encodings: HashMap<String, AssetEncoding>,
@@ -218,30 +206,11 @@ pub struct Batch {
     pub chunk_content_total_size: usize,
 }
 
-#[derive(Clone, Debug, Default, CandidType, Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct Configuration {
     pub max_batches: Option<u64>,
     pub max_chunks: Option<u64>,
     pub max_bytes: Option<u64>,
-}
-
-impl Configuration {
-    fn estimate_size(&self) -> usize {
-        1 + self
-            .max_batches
-            .as_ref()
-            .map_or(0, |_| std::mem::size_of::<u64>())
-            + 1
-            + self
-                .max_chunks
-                .as_ref()
-                .map_or(0, |_| std::mem::size_of::<u64>())
-            + 1
-            + self
-                .max_bytes
-                .as_ref()
-                .map_or(0, |_| std::mem::size_of::<u64>())
-    }
 }
 
 #[derive(Default)]
@@ -263,73 +232,7 @@ pub struct State {
     asset_hashes: CertifiedResponses,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct StableStatePermissions {
-    commit: BTreeSet<Principal>,
-    prepare: BTreeSet<Principal>,
-    manage_permissions: BTreeSet<Principal>,
-}
-
-impl StableStatePermissions {
-    fn estimate_size(&self) -> usize {
-        8 + self.commit.len() * std::mem::size_of::<Principal>()
-            + 8
-            + self.prepare.len() * std::mem::size_of::<Principal>()
-            + 8
-            + self.manage_permissions.len() * std::mem::size_of::<Principal>()
-    }
-}
-
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct StableState {
-    authorized: Vec<Principal>, // ignored if permissions is Some(_)
-    permissions: Option<StableStatePermissions>,
-    stable_assets: HashMap<String, Asset>,
-
-    next_batch_id: Option<BatchId>,
-    configuration: Option<Configuration>,
-}
-
-impl StableState {
-    pub fn estimate_size(&self) -> usize {
-        let mut size = 0;
-        size += 2 + self.authorized.len() * std::mem::size_of::<Principal>();
-        size += 1 + self.permissions.as_ref().map_or(0, |p| p.estimate_size());
-        size += self.stable_assets.iter().fold(2, |acc, (name, asset)| {
-            acc + 2 + name.len() + asset.estimate_size()
-        });
-        size += 1 + self.next_batch_id.as_ref().map_or(0, |_| 8);
-        size += 1 + self.configuration.as_ref().map_or(0, |c| c.estimate_size());
-        size
-    }
-}
-
 impl Asset {
-    fn estimate_size(&self) -> usize {
-        let mut size = 0;
-        size += 1 + self.content_type.len();
-        size += self.encodings.iter().fold(1, |acc, (name, encoding)| {
-            acc + 1 + name.len() + encoding.estimate_size()
-        });
-        size += 1 + self
-            .max_age
-            .as_ref()
-            .map_or(0, |_| std::mem::size_of::<u64>());
-        size += 1 + self.headers.as_ref().map_or(0, |hm| {
-            hm.iter()
-                .fold(2, |acc, (k, v)| acc + 1 + k.len() + 2 + v.len())
-        });
-        size += 1 + self
-            .is_aliased
-            .as_ref()
-            .map_or(0, |_| std::mem::size_of::<bool>());
-        size += 1 + self
-            .allow_raw_access
-            .as_ref()
-            .map_or(0, |_| std::mem::size_of::<bool>());
-        size
-    }
-
     fn allow_raw_access(&self) -> bool {
         self.allow_raw_access.unwrap_or(true)
     }
@@ -1219,25 +1122,8 @@ impl State {
     }
 }
 
-impl From<State> for StableState {
-    fn from(state: State) -> Self {
-        let permissions = StableStatePermissions {
-            commit: state.commit_principals,
-            prepare: state.prepare_principals,
-            manage_permissions: state.manage_permissions_principals,
-        };
-        Self {
-            authorized: vec![],
-            permissions: Some(permissions),
-            stable_assets: state.assets,
-            next_batch_id: Some(state.next_batch_id),
-            configuration: Some(state.configuration),
-        }
-    }
-}
-
-impl From<StableState> for State {
-    fn from(stable_state: StableState) -> Self {
+impl From<StableStateV1> for State {
+    fn from(stable_state: StableStateV1) -> Self {
         let (commit_principals, prepare_principals, manage_permissions_principals) =
             if let Some(permissions) = stable_state.permissions {
                 (
@@ -1256,11 +1142,18 @@ impl From<StableState> for State {
             commit_principals,
             prepare_principals,
             manage_permissions_principals,
-            assets: stable_state.stable_assets,
+            assets: stable_state
+                .stable_assets
+                .into_iter()
+                .map(|(k, v)| (k, v.into()))
+                .collect(),
             next_batch_id: stable_state
                 .next_batch_id
                 .unwrap_or_else(|| Nat::from(1_u8)),
-            configuration: stable_state.configuration.unwrap_or_default(),
+            configuration: stable_state
+                .configuration
+                .map(Into::into)
+                .unwrap_or_default(),
             ..Self::default()
         };
 

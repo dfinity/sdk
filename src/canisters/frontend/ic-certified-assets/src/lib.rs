@@ -8,7 +8,7 @@ mod url_decode;
 #[cfg(test)]
 mod tests;
 
-pub use crate::state_machine::StableState;
+pub use crate::state_machine::StableStateV1 as StableState;
 use crate::{
     asset_certification::types::http::{
         CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
