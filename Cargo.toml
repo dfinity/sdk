@@ -25,13 +25,13 @@ future_not_send = "warn"
 [workspace.dependencies]
 candid = "0.10.17"
 candid_parser = "0.2.1"
-dfx-core = { path = "src/dfx-core", version = "0.1.0" }
-ic-agent = "0.42.0"
-ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.24.0" }
+dfx-core = { path = "src/dfx-core", version = "0.2.0" }
+ic-agent = "0.44.0"
+ic-asset = { path = "src/canisters/frontend/ic-asset", version = "0.25.0" }
 ic-cdk = "0.18.4"
-ic-identity-hsm = "0.42.0"
-ic-utils = "0.42.0"
-ic-management-canister-types = "0.3.2"
+ic-identity-hsm = "0.44.0"
+ic-utils = "0.44.0"
+ic-management-canister-types = "0.4.0"
 
 aes-gcm = { version = "0.10.3", features = ["std"] }
 anyhow = "1.0.56"
