@@ -1,8 +1,10 @@
 //! This module contains a pure implementation of the certified assets state machine.
 
-pub mod v1;
+mod v1;
+mod v2;
 
 pub use v1::StableStateV1;
+pub use v2::StableStateV2;
 
 // NB. This module should not depend on ic_cdk, it contains only pure state transition functions.
 // All the environment (time, certificates, etc.) is passed to the state transition functions
@@ -28,12 +30,12 @@ use crate::{
     types::*,
     url_decode::url_decode,
 };
-use candid::{CandidType, Deserialize, Int, Nat, Principal};
+use candid::{CandidType, Int, Nat, Principal};
 use ic_certification::{AsHashTree, Hash};
 use ic_representation_independent_hash::Value;
 use itertools::fold;
 use num_traits::ToPrimitive;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
 use std::collections::{BTreeSet, HashMap};
@@ -1122,8 +1124,8 @@ impl State {
     }
 }
 
-impl From<StableStateV1> for State {
-    fn from(stable_state: StableStateV1) -> Self {
+impl From<StableStateV2> for State {
+    fn from(stable_state: StableStateV2) -> Self {
         let (commit_principals, prepare_principals, manage_permissions_principals) =
             if let Some(permissions) = stable_state.permissions {
                 (
@@ -1149,6 +1151,7 @@ impl From<StableStateV1> for State {
                 .collect(),
             next_batch_id: stable_state
                 .next_batch_id
+                .map(BatchId::from)
                 .unwrap_or_else(|| Nat::from(1_u8)),
             configuration: stable_state
                 .configuration
