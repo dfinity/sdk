@@ -17,6 +17,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `post_upgrade()` now accepts `StableStateV2` parameter instead of `StableStateV1`
   - Removed `estimate_size()` methods from the `StableStateV1`, `StableConfigurationV1`, `StableStatePermissionsV1`, `StableAssetV1`, `StableAssetEncodingV1` structs
 
+#### Migration guide
+
+To migrate canisters that use the `ic-certified-assets` library to the new serde-serializable stable state:
+
+1. Upgrade to the latest `ic-certified-assets` which exports `StableStateV2` and implements `serde::{Serialize, Deserialize}` for stable state types.
+
+2. Choose a serde-compatible library to serialize and deserialize the stable state, such as [`serde_cbor`](https://crates.io/crates/serde_cbor), and add it to your canister's dependencies.
+
+3. Update the upgrade hooks to persist the new serialized state in stable memory and keep backward compatibility with existing deployments that stored Candid:
+    ```rust
+    // In this example, the serde-compatible library of choice is `serde_cbor`.
+
+    use ic_cdk::stable;
+    use ic_certified_assets::{StableStateV1, StableStateV2, types::AssetCanisterArgs};
+
+    pub fn save_stable_state(stable_state: &StableStateV2) -> Result<(), serde_cbor::Error> {
+        let mut stable_writer = stable::StableWriter::default();
+        serde_cbor::to_writer(&mut stable_writer, stable_state)
+    }
+
+    pub fn is_candid_stable_state() -> bool {
+        let mut maybe_magic_bytes = vec![0u8; 4];
+        stable::stable_read(0, &mut maybe_magic_bytes);
+        maybe_magic_bytes == b"DIDL"
+    }
+
+    pub fn load_candid_stable_state() -> Result<StableStateV1, String> {
+        let (stable_state,) = ic_cdk::storage::stable_restore()?;
+        Ok(stable_state)
+    }
+
+    pub fn load_stable_state() -> Result<StableStateV2, serde_cbor::Error> {
+        let stable_reader = stable::StableReader::default();
+        from_reader_ignore_trailing_data(stable_reader)
+    }
+
+    fn from_reader_ignore_trailing_data<T, R>(reader: R) -> Result<T, serde_cbor::Error>
+    where
+        T: serde::de::DeserializeOwned,
+        R: std::io::Read,
+    {
+        let mut deserializer = serde_cbor::de::Deserializer::from_reader(reader);
+        let value = serde::de::Deserialize::deserialize(&mut deserializer)?;
+        // we do not call deserializer.end() here
+        // because we want to ignore trailing data loaded from stable memory
+        Ok(value)
+    }
+
+    #[ic_cdk::pre_upgrade]
+    fn pre_upgrade() {
+        let stable_state = ic_certified_assets::pre_upgrade();
+        save_stable_state(&stable_state).expect("failed to serialize stable state");
+    }
+
+    #[ic_cdk::post_upgrade]
+    fn post_upgrade(args: Option<AssetCanisterArgs>) {
+        let stable_state = if is_candid_stable_state() {
+            // backward compatibility
+            load_candid_stable_state()
+                .expect("failed to restore candid stable state")
+                .into()
+        } else {
+            load_stable_state().expect("failed to deserialize stable state")
+        };
+        ic_certified_assets::post_upgrade(stable_state, args);
+    }
+    ```
+
+This way, you maintain backward compatibility with the existing deployment of your asset canister, which was using Candid to save and load the stable state. An implementation reference can be found in the [Asset Canister source code](https://github.com/dfinity/sdk/tree/master/src/canisters/frontend/ic-frontend-canister).
+
 ## [0.3.0] - 2025-06-26
 
 ### Added
