@@ -46,7 +46,6 @@ teardown() {
 }
 
 @test "canister snapshots download and upload" {
-    skip "Enable this test when the management canister API is stablized and pocket-ic/agent are updated"
     dfx_start
     install_asset counter
     dfx deploy
