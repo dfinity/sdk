@@ -379,8 +379,8 @@ async fn initialize_pocketic(
 ) -> DfxResult<usize> {
     use dfx_core::config::model::dfinity::ReplicaSubnetType;
     use pocket_ic::common::rest::{
-        AutoProgressConfig, CreateInstanceResponse, EmptyConfig, ExtendedSubnetConfigSet,
-        InstanceConfig, NonmainnetFeatures, RawTime, SubnetSpec,
+        AutoProgressConfig, CreateInstanceResponse, ExtendedSubnetConfigSet, InstanceConfig,
+        RawTime, SubnetSpec,
     };
     use reqwest::Client;
     use time::OffsetDateTime;
@@ -403,21 +403,17 @@ async fn initialize_pocketic(
             subnet_config_set.verified_application.push(<_>::default())
         }
     }
-    let nonmainnet_features = NonmainnetFeatures {
-        enable_beta_features: Some(EmptyConfig {}),
-        ..Default::default()
-    };
+
     let resp = init_client
         .post(format!("http://localhost:{port}/instances"))
         .json(&InstanceConfig {
             subnet_config_set,
             state_dir: Some(replica_config.state_manager.state_root.clone()),
-            nonmainnet_features: Some(nonmainnet_features),
+            nonmainnet_features: true,
             log_level: Some(replica_config.log_level.to_pocketic_string()),
             bitcoind_addr: bitcoind_addr.clone(),
             icp_features: None,
             allow_incomplete_state: None,
-            http_gateway_config: None,
             initial_time: None,
         })
         .send()
@@ -432,7 +428,6 @@ async fn initialize_pocketic(
         CreateInstanceResponse::Created {
             instance_id,
             topology,
-            http_gateway_info: _,
         } => {
             let default_effective_canister_id: Principal =
                 topology.default_effective_canister_id.into();
