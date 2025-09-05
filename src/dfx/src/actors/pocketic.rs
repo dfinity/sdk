@@ -403,6 +403,7 @@ async fn initialize_pocketic(
             subnet_config_set.verified_application.push(<_>::default())
         }
     }
+
     let resp = init_client
         .post(format!("http://localhost:{port}/instances"))
         .json(&InstanceConfig {
@@ -413,6 +414,7 @@ async fn initialize_pocketic(
             bitcoind_addr: bitcoind_addr.clone(),
             icp_features: None,
             allow_incomplete_state: None,
+            initial_time: None,
         })
         .send()
         .await?
