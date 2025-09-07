@@ -25,7 +25,7 @@ use dfx_core::error::identity::InstantiateIdentityFromNameError::GetIdentityPrin
 use dfx_core::identity::CallSender;
 use fn_error_context::context;
 use ic_agent::identity::Identity;
-use ic_utils::interfaces::management_canister::CanisterStatusResult;
+use ic_utils::interfaces::management_canister::{CanisterStatusResult, LogVisibility};
 
 /// Update one or more of a canister's settings (i.e its controller, compute allocation, or memory allocation.)
 #[derive(Parser, Debug)]
@@ -125,6 +125,29 @@ pub struct UpdateSettingsOpts {
     /// This option only works for a local PocketIC instance.
     #[arg(long)]
     impersonate: Option<Principal>,
+
+    /// Specifies the canister name or id to sync the settings from.
+    #[arg(
+        long,
+        conflicts_with("all"),
+        conflicts_with("set_controller"),
+        conflicts_with("add_controller"),
+        conflicts_with("remove_controller"),
+        conflicts_with("compute_allocation"),
+        conflicts_with("memory_allocation"),
+        conflicts_with("freezing_threshold"),
+        conflicts_with("reserved_cycles_limit"),
+        conflicts_with("wasm_memory_limit"),
+        conflicts_with("wasm_memory_threshold"),
+        conflicts_with("log_visibility"),
+        conflicts_with("add_log_viewer"),
+        conflicts_with("remove_log_viewer"),
+        conflicts_with("set_log_viewer"),
+        conflicts_with("confirm_very_long_freezing_threshold"),
+        conflicts_with("confirm_very_short_freezing_threshold"),
+        conflicts_with("impersonate")
+    )]
+    sync_with: Option<String>,
 }
 
 pub async fn exec(
@@ -156,6 +179,10 @@ pub async fn exec(
     }
 
     fetch_root_key_if_needed(env).await?;
+
+    if let Some(from_canister) = opts.sync_with.as_deref() {
+        return sync_canister_settings(env, from_canister, &opts, call_sender).await;
+    }
 
     if !opts.yes && user_is_removing_themselves_as_controller(env, call_sender, &opts)? {
         ask_for_consent(
@@ -385,6 +412,82 @@ pub async fn exec(
     } else {
         bail!("Cannot find canister name.")
     }
+
+    Ok(())
+}
+
+async fn sync_canister_settings(
+    env: &dyn Environment,
+    from_canister: &str,
+    opts: &UpdateSettingsOpts,
+    call_sender: &CallSender,
+) -> DfxResult<()> {
+    if opts.canister.is_none() {
+        bail!("Cannot find canister name to sync settings to.");
+    }
+    let to_canister = opts.canister.as_deref().unwrap();
+
+    let canister_id_store = env.get_canister_id_store()?;
+
+    // Get the FROM canister status.
+    let from_canister_id =
+        CanisterId::from_text(from_canister).or_else(|_| canister_id_store.get(from_canister))?;
+    let from_canister_status = get_canister_status(env, from_canister_id, call_sender).await?;
+
+    if !opts.yes {
+        // Print the canister settings in a pretty format, and ask for consent.
+        // Basically we output the settings listed https://internetcomputer.org/docs/references/ic-interface-spec#ic-create_canister.
+        let mut controllers: Vec<_> = from_canister_status
+            .settings
+            .controllers
+            .iter()
+            .map(Principal::to_text)
+            .collect();
+        controllers.sort();
+
+        let log_visibility = match from_canister_status.settings.log_visibility {
+            LogVisibility::Controllers => "controllers".to_string(),
+            LogVisibility::Public => "public".to_string(),
+            LogVisibility::AllowedViewers(viewers) => {
+                if viewers.is_empty() {
+                    "allowed viewers list is empty".to_string()
+                } else {
+                    let mut viewers: Vec<_> = viewers.iter().map(Principal::to_text).collect();
+                    viewers.sort();
+                    format!("allowed viewers: {}", viewers.join(", "))
+                }
+            }
+        };
+
+        println!(
+            "\
+Canister settings: {from_canister}
+Controllers: {controllers}
+Memory allocation: {memory_allocation} Bytes
+Compute allocation: {compute_allocation} %
+Freezing threshold: {freezing_threshold} Seconds
+Reserved cycles limit: {reserved_cycles_limit} Cycles
+Wasm memory limit: {wasm_memory_limit} Bytes
+Wasm memory threshold: {wasm_memory_threshold} Bytes
+Log visibility: {log_visibility}\n",
+            controllers = controllers.join(" "),
+            memory_allocation = from_canister_status.settings.memory_allocation,
+            compute_allocation = from_canister_status.settings.compute_allocation,
+            freezing_threshold = from_canister_status.settings.freezing_threshold,
+            reserved_cycles_limit = from_canister_status.reserved_cycles,
+            wasm_memory_limit = from_canister_status.settings.wasm_memory_limit,
+            wasm_memory_threshold = from_canister_status.settings.wasm_memory_threshold,
+            log_visibility = log_visibility,
+        );
+
+        ask_for_consent(
+            env,
+            &format!("You are trying to sync settings from {from_canister} to {to_canister}."),
+        )?;
+    }
+
+    // TODO: call the update_settings function.
+    println!("Syncing settings from {from_canister} to {to_canister}.");
 
     Ok(())
 }
