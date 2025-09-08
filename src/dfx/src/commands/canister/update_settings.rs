@@ -145,8 +145,7 @@ pub struct UpdateSettingsOpts {
         conflicts_with("remove_log_viewer"),
         conflicts_with("set_log_viewer"),
         conflicts_with("confirm_very_long_freezing_threshold"),
-        conflicts_with("confirm_very_short_freezing_threshold"),
-        conflicts_with("impersonate")
+        conflicts_with("confirm_very_short_freezing_threshold")
     )]
     sync_with: Option<String>,
 }
@@ -486,7 +485,7 @@ Log visibility: {log_visibility}\n",
 
         ask_for_consent(
             env,
-            &format!("You are trying to sync settings from {from_canister} to {to_canister}."),
+            &format!("You are trying to sync settings from '{from_canister}' to '{to_canister}'."),
         )?;
     }
 
@@ -562,7 +561,7 @@ Log visibility: {log_visibility}\n",
     };
     update_settings(env, to_canister_id, settings, call_sender).await?;
 
-    println!("Synced settings from {from_canister} to {to_canister}.");
+    println!("Synced settings from '{from_canister}' to '{to_canister}'.");
 
     Ok(())
 }
