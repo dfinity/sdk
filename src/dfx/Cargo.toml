@@ -1,6 +1,6 @@
 [package]
 name = "dfx"
-version = "0.29.0"
+version = "0.29.1"
 authors.workspace = true
 edition.workspace = true
 repository.workspace = true
@@ -84,7 +84,7 @@ os_str_bytes = { version = "6.3.0", features = ["conversions"] }
 patch = "0.7.0"
 pem.workspace = true
 petgraph = "0.6.0"
-pocket-ic = { git = "https://github.com/dfinity/ic", rev = "615045e039c57ed842c689e49a07ab3de3a8a781" }
+pocket-ic = { git = "https://github.com/dfinity/ic", rev = "3418c975f63f180ecf19886c5e757a3c33d72f4e" }
 rand = "0.8.5"
 regex = "1.5.5"
 reqwest = { workspace = true, features = ["blocking", "json"] }
