@@ -656,7 +656,7 @@ teardown() {
   dfx_start
   dfx deploy
 
-  # Fabricate cycles for hello_frontend and hello_backend for setting compute allocation.
+  # Fabricate cycles for setting compute allocation.
   dfx ledger fabricate-cycles --canister hello_frontend --cycles 100000000000000
   dfx ledger fabricate-cycles --canister hello_backend --cycles 100000000000000
 
