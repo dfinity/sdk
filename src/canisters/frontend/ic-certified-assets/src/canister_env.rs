@@ -24,11 +24,10 @@ fn load_icp_canister_ids() -> HashMap<String, String> {
 
     for i in 0..env_var_count {
         let name = env_var_name(i);
-        if !name.starts_with(ICP_CANISTER_IDS_PREFIX) {
-            continue;
+        if name.starts_with(ICP_CANISTER_IDS_PREFIX) {
+            let value = env_var_value(&name);
+            icp_canister_ids.insert(name, value);
         }
-        let value = env_var_value(&name);
-        icp_canister_ids.insert(name, value);
     }
     icp_canister_ids
 }
