@@ -26,7 +26,8 @@ use crate::{
             rc_bytes::RcBytes,
         },
     },
-    evidence::{EvidenceComputation, EvidenceComputation::Computed},
+    cookies::add_ic_env_cookie,
+    evidence::EvidenceComputation::{self, Computed},
     types::*,
     url_decode::url_decode,
 };
@@ -356,13 +357,17 @@ impl State {
         if self.assets.contains_key(&arg.key) {
             return Err("asset already exists".to_string());
         }
+
+        let mut headers = arg.headers.unwrap_or_default();
+        add_ic_env_cookie(&mut headers);
+
         self.assets.insert(
             arg.key,
             Asset {
                 content_type: arg.content_type,
                 encodings: HashMap::new(),
                 max_age: arg.max_age,
-                headers: arg.headers,
+                headers: Some(headers),
                 is_aliased: arg.enable_aliasing,
                 allow_raw_access: arg.allow_raw_access,
             },

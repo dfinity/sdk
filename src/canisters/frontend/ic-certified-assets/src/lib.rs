@@ -1,9 +1,12 @@
 //! This module declares canister methods expected by the assets canister client.
 pub mod asset_certification;
+mod canister_env;
+mod cookies;
 pub mod evidence;
 pub mod state_machine;
 pub mod types;
 mod url_decode;
+mod url_encode;
 
 #[cfg(test)]
 mod tests;
