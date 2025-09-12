@@ -18,6 +18,12 @@ Extended `dfx canister update-settings` with `--sync-with` option to support syn
 dfx canister update-settings to_canister --sync-with from_canister
 ```
 
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.16.2](https://github.com/dfinity/motoko/releases/tag/0.16.2)
+
 # 0.29.1
 
 ### fix: ensure deterministic serialization of `tech_stack` metadata
