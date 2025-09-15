@@ -629,7 +629,7 @@ async fn read_blob(
                 offset: offset as u64,
                 size: chunk_size as u64,
             },
-            BlobKind::MainMemory => SnapshotDataKind::MainMemory {
+            BlobKind::MainMemory => SnapshotDataKind::WasmMemory {
                 offset: offset as u64,
                 size: chunk_size as u64,
             },
@@ -723,7 +723,7 @@ async fn upload_blob(
             BlobKind::WasmModule => SnapshotDataOffset::WasmModule {
                 offset: offset as u64,
             },
-            BlobKind::MainMemory => SnapshotDataOffset::MainMemory {
+            BlobKind::MainMemory => SnapshotDataOffset::WasmMemory {
                 offset: offset as u64,
             },
             BlobKind::StableMemory => SnapshotDataOffset::StableMemory {

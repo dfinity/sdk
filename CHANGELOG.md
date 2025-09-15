@@ -9,6 +9,21 @@ Use CBOR for serializing asset canister state to stable memory instead of Candid
 - Module hash: 423f20ee4e5daf8f76d6bb2b4a87440227f15b26cf874c132fd75d83e252c8f6
 - https://github.com/dfinity/sdk/pull/4368
 
+
+### feat: extended `dfx canister update-settings` with `--sync-with` option.
+
+Extended `dfx canister update-settings` with `--sync-with` option to support syncing canister settings from one cansiter to another, example as below.
+
+```
+dfx canister update-settings to_canister --sync-with from_canister
+```
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.16.2](https://github.com/dfinity/motoko/releases/tag/0.16.2)
+
 # 0.29.1
 
 ### fix: ensure deterministic serialization of `tech_stack` metadata
@@ -20,7 +35,29 @@ This has been fixed by replacing it with `BTreeMap`, which sorts keys and guaran
 
 ### Motoko
 
-Updated Motoko to [0.16.0](https://github.com/dfinity/motoko/releases/tag/0.16.0)
+Updated Motoko to [0.16.1](https://github.com/dfinity/motoko/releases/tag/0.16.1)
+
+### Candid
+
+Updated candid_parser to 0.2.1.
+
+Comments applied to Candid elements will now become doc comments in dfx's generated bindings.
+
+```candid
+// Type comments
+type Ex = variant {
+  // Variant comments
+  Var: record {
+    // Field comments
+    field: nat;
+  }
+}
+// Service comments
+service : {
+  // Method comments
+  func : (Ex) -> ();
+}
+```
 
 ### Candid
 

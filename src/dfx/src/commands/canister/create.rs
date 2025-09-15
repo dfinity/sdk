@@ -73,12 +73,12 @@ pub struct CanisterCreateOpts {
     /// Specifies the upper limit of the canister's reserved cycles balance.
     ///
     /// Reserved cycles are cycles that the system sets aside for future use by the canister.
-    /// If a subnet's storage exceeds 450 GiB, then every time a canister allocates new storage bytes,
+    /// If a subnet's storage exceeds 750 GiB, then every time a canister allocates new storage bytes,
     /// the system sets aside some amount of cycles from the main balance of the canister.
     /// These reserved cycles will be used to cover future payments for the newly allocated bytes.
     /// The reserved cycles are not transferable and the amount of reserved cycles depends on how full the subnet is.
     ///
-    /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 450 GiB.
+    /// A setting of 0 means that the canister will trap if it tries to allocate new storage while the subnet's memory usage exceeds 750 GiB.
     #[arg(long, value_parser = reserved_cycles_limit_parser, hide = true)]
     reserved_cycles_limit: Option<u128>,
 
