@@ -280,6 +280,7 @@ async fn register_canisters(
                     wasm_memory_limit,
                     wasm_memory_threshold: None,
                     log_visibility,
+                    environment_variables: None,
                 },
                 created_at_time,
                 subnet_selection,

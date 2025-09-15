@@ -262,7 +262,14 @@ pub async fn exec(
                     current_status =
                         Some(get_canister_status(env, canister_id, call_sender).await?);
                 }
-                controllers.get_or_insert(current_status.unwrap().settings.controllers)
+                controllers.get_or_insert(
+                    current_status
+                        .as_ref()
+                        .unwrap()
+                        .settings
+                        .controllers
+                        .clone(),
+                )
             };
             let removed = removed
                 .iter()
@@ -275,6 +282,17 @@ pub async fn exec(
                 }
             }
         }
+        if current_status.is_none() {
+            current_status = Some(get_canister_status(env, canister_id, call_sender).await?);
+        }
+        let environment_variables = Some(
+            current_status
+                .as_ref()
+                .unwrap()
+                .settings
+                .environment_variables
+                .clone(),
+        );
         let settings = CanisterSettings {
             controllers,
             compute_allocation,
@@ -284,6 +302,7 @@ pub async fn exec(
             wasm_memory_limit,
             wasm_memory_threshold,
             log_visibility,
+            environment_variables,
         };
         update_settings(env, canister_id, settings, call_sender).await?;
         display_controller_update(&opts, canister_name_or_id);
@@ -382,7 +401,14 @@ pub async fn exec(
                             current_status =
                                 Some(get_canister_status(env, canister_id, call_sender).await?);
                         }
-                        controllers.get_or_insert(current_status.unwrap().settings.controllers)
+                        controllers.get_or_insert(
+                            current_status
+                                .as_ref()
+                                .unwrap()
+                                .settings
+                                .controllers
+                                .clone(),
+                        )
                     };
                     let removed = removed
                         .iter()
@@ -395,6 +421,18 @@ pub async fn exec(
                         }
                     }
                 }
+                if current_status.is_none() {
+                    current_status =
+                        Some(get_canister_status(env, canister_id, call_sender).await?);
+                }
+                let environment_variables = Some(
+                    current_status
+                        .as_ref()
+                        .unwrap()
+                        .settings
+                        .environment_variables
+                        .clone(),
+                );
                 let settings = CanisterSettings {
                     controllers,
                     compute_allocation,
@@ -404,6 +442,7 @@ pub async fn exec(
                     wasm_memory_limit,
                     wasm_memory_threshold,
                     log_visibility,
+                    environment_variables,
                 };
                 update_settings(env, canister_id, settings, call_sender).await?;
                 display_controller_update(&opts, canister_name);
@@ -490,7 +529,7 @@ Log visibility: {log_visibility}\n",
     }
 
     // Prepare the settings from the FROM canister.
-    let controllers = Some(from_canister_status.settings.controllers.to_owned());
+    let controllers = Some(from_canister_status.settings.controllers.clone());
     let compute_allocation = get_compute_allocation(
         from_canister_status.settings.compute_allocation.0.to_u64(),
         None,
@@ -546,7 +585,7 @@ Log visibility: {log_visibility}\n",
         None,
         None,
     )?;
-    let log_visibility = Some(from_canister_status.settings.log_visibility.to_owned());
+    let log_visibility = Some(from_canister_status.settings.log_visibility.clone());
 
     // Update the settings to the TO canister.
     let settings = CanisterSettings {
@@ -558,6 +597,7 @@ Log visibility: {log_visibility}\n",
         wasm_memory_limit,
         wasm_memory_threshold,
         log_visibility,
+        environment_variables: Some(from_canister_status.settings.environment_variables.clone()),
     };
     update_settings(env, to_canister_id, settings, call_sender).await?;
 
