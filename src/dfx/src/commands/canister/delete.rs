@@ -193,6 +193,7 @@ async fn delete_canister(
                 wasm_memory_limit: None,
                 wasm_memory_threshold: None,
                 log_visibility: None,
+                environment_variables: None,
             };
             info!(log, "Setting the controller to identity principal.");
             update_settings(env, canister_id, settings, call_sender).await?;
