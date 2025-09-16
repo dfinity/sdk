@@ -282,8 +282,6 @@ Required Permission: [Prepare](#permission-prepare)
 
 This method stores a content chunk and extends the batch expiry time.
 
-When creating chunks for a given content encoding, the size of each chunk except the last must be the same.
-
 The asset canister must retain all data related to a batch for at least the [Minimum Batch Retention Duration](#constant-minimum-batch-retention-duration) after creating a chunk in a batch.
 
 Preconditions:
