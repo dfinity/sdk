@@ -70,7 +70,7 @@ The usual method of updating data in the asset canister is by calling the follow
 3. [commit_batch()](#method-commit_batch) zero or more times with `batch_id: 0`.
 4. [commit_batch()](#method-commit_batch) once with the batch ID from step 1, which indicates the batch is complete.
 
-The reason for multiple rather than single calls to [commit_batch][#method-commit_batch] is that certificate computation for an entire batch may exceed per-message computation limits.
+The reason for multiple rather than single calls to [commit_batch](#method-commit_batch) is that certificate computation for an entire batch may exceed per-message computation limits.
 
 ### Batch Updates By Proposal
 
