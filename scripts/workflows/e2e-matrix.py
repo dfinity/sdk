@@ -35,12 +35,12 @@ for test in all_tests:
     if test in SELECTED_TESTS:
         include.append({
             "test": test,
-            "os": "macos-13",
+            "os": "macos-14",       # arm64 
             "serial": serial,
         })
         include.append({
             "test": test,
-            "os": "macos-13-xlarge",
+            "os": "macos-14-large", # intel
             "serial": serial,
         })
         include.append({

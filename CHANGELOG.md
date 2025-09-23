@@ -2,6 +2,8 @@
 
 # UNRELEASED
 
+# 0.29.2
+
 ### Frontend canister
 
 Use CBOR for serializing asset canister state to stable memory instead of Candid.
@@ -17,6 +19,20 @@ Extended `dfx canister update-settings` with `--sync-with` option to support syn
 ```
 dfx canister update-settings to_canister --sync-with from_canister
 ```
+
+## Dependencies
+
+### Motoko
+
+Updated Motoko to [0.16.2](https://github.com/dfinity/motoko/releases/tag/0.16.2)
+
+### Bitcoin canister
+
+Upgraded Bitcoin canister to [release/2025-07-02](https://github.com/dfinity/bitcoin-canister/releases/tag/release%2F2025-07-02)
+
+### Replica
+
+Updated replica to commit 615045e039c57ed842c689e49a07ab3de3a8a781.
 
 # 0.29.1
 
