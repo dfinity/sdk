@@ -379,7 +379,8 @@ async fn initialize_pocketic(
 ) -> DfxResult<usize> {
     use dfx_core::config::model::dfinity::ReplicaSubnetType;
     use pocket_ic::common::rest::{
-        AutoProgressConfig, CreateInstanceResponse, ExtendedSubnetConfigSet, IcpConfig, IcpConfigFlag, InstanceConfig, RawTime, SubnetSpec
+        AutoProgressConfig, CreateInstanceResponse, ExtendedSubnetConfigSet, IcpConfig,
+        IcpConfigFlag, IcpFeatures, IcpFeaturesConfig, InstanceConfig, RawTime, SubnetSpec,
     };
     use reqwest::Client;
     use time::OffsetDateTime;
@@ -408,16 +409,19 @@ async fn initialize_pocketic(
         .json(&InstanceConfig {
             subnet_config_set,
             state_dir: Some(replica_config.state_manager.state_root.clone()),
-            icp_config: Some (
-                IcpConfig {
-                    beta_features: Some(
-                        IcpConfigFlag::Enabled
-                    ),
-                    ..Default::default()
-                }
-            ),
+            icp_config: Some(IcpConfig {
+                beta_features: Some(IcpConfigFlag::Enabled),
+                ..Default::default()
+            }),
             log_level: Some(replica_config.log_level.to_pocketic_string()),
             bitcoind_addr: bitcoind_addr.clone(),
+            icp_features: Some(IcpFeatures {
+                registry: Some(IcpFeaturesConfig::default()),
+                cycles_minting: Some(IcpFeaturesConfig::default()),
+                icp_token: Some(IcpFeaturesConfig::default()),
+                cycles_token: Some(IcpFeaturesConfig::default()),
+                ..Default::default()
+            }),
             ..Default::default()
         })
         .send()

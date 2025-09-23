@@ -2,21 +2,27 @@
 
 load ../utils/_
 
-install_nns() {
-  dfx_start_for_nns_install
-
-  dfx extension install nns --version 0.5.4
-  dfx nns install --ledger-accounts 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc
-}
+export ALICE_ACCOUNT_ID="345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752"
+export BOB_ACCOUNT_ID="22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89"
+export BOB_SUBACCOUNT_ID="5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc"
 
 setup() {
   standard_setup
   install_asset ledger
-  install_shared_asset subnet_type/shared_network_settings/system
 
   dfx identity import --storage-mode plaintext alice alice.pem
   dfx identity import --storage-mode plaintext bob bob.pem
   dfx identity import --storage-mode plaintext david david.pem
+}
+
+# Top up alice, bob and bob-sub accounts with 1,000,000 ICP each.
+# This method must be called after dfx_start
+prepare_accounts() {
+  # The pocket-ic instance has the ICP ledger canister pre-installed 
+  # in which the account of the annonymous identity has 1,000,000,000 ICP.
+  dfx ledger --identity anonymous transfer --memo 1 --icp 1000000 "$ALICE_ACCOUNT_ID"
+  dfx ledger --identity anonymous transfer --memo 1 --icp 1000000 "$BOB_ACCOUNT_ID"
+  dfx ledger --identity anonymous transfer --memo 1 --icp 1000000 "$BOB_SUBACCOUNT_ID" 
 }
 
 teardown() {
@@ -30,11 +36,11 @@ current_time_nanoseconds() {
 }
 
 @test "ledger account-id" {
-  install_nns
+  dfx_start
 
   dfx identity use alice
   assert_command dfx ledger account-id
-  assert_match 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+  assert_match "$ALICE_ACCOUNT_ID"
 
   assert_command dfx ledger account-id --of-principal fg7gi-vyaaa-aaaal-qadca-cai
   assert_match a014842f64a22e59887162a79c7ca7eb02553250704780ec4d954f12d0ea0b18
@@ -51,58 +57,59 @@ current_time_nanoseconds() {
 }
 
 @test "ledger balance & transfer" {
-  install_nns
+  dfx_start
+  prepare_accounts
 
   dfx identity use alice
   assert_command dfx ledger account-id
-  assert_eq 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+  assert_eq "$ALICE_ACCOUNT_ID"
 
   assert_command dfx ledger balance
-  assert_eq "1000000000.00000000 ICP"
+  assert_eq "1000000.00000000 ICP"
 
-  assert_command dfx ledger transfer --amount 100 --memo 1 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89 # to bob
+  assert_command dfx ledger transfer --amount 100 --memo 1 "$BOB_ACCOUNT_ID"
   assert_contains "Transfer sent at block height"
 
   # The sender(alice) paid transaction fee which is 0.0001 ICP
   assert_command dfx ledger balance
-  assert_eq "999999899.99990000 ICP"
+  assert_eq "999899.99990000 ICP"
 
   dfx identity use bob
   assert_command dfx ledger account-id
-  assert_eq 22ca7edac648b814e81d7946e8bacea99280e07c5f51a04ba7a38009d8ad8e89
+  assert_eq "$BOB_ACCOUNT_ID"
 
   assert_command dfx ledger balance
-  assert_eq "1000000100.00000000 ICP"
+  assert_eq "1000100.00000000 ICP"
 
-  assert_command dfx ledger transfer --icp 100 --e8s 1 --memo 2 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 # to alice
+  assert_command dfx ledger transfer --icp 100 --e8s 1 --memo 2 "$ALICE_ACCOUNT_ID"
   assert_contains "Transfer sent at block height"
 
   # The sender(bob) paid transaction fee which is 0.0001 ICP
   # 10100 - 100 - 0.0001 - 0.00000001 = 9999.99989999
   assert_command dfx ledger balance
-  assert_eq "999999999.99989999 ICP"
+  assert_eq "999999.99989999 ICP"
 
   # Transaction Deduplication
   t=$(current_time_nanoseconds)
 
-  assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time "$t" 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+  assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time "$t" "$ALICE_ACCOUNT_ID"
   # shellcheck disable=SC2154
   block_height=$(echo "$stdout" | sed '1q' | sed 's/Transfer sent at block height //')
   # shellcheck disable=SC2154
   assert_eq "Transfer sent at block height $block_height" "$stdout"
 
-  assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time $((t+1)) 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+  assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time $((t+1)) "$ALICE_ACCOUNT_ID"
   # shellcheck disable=SC2154
   assert_contains "Transfer sent at block height" "$stdout"
   # shellcheck disable=SC2154
   assert_not_contains "Transfer sent at block height $block_height" "$stdout"
 
-  assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time "$t" 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+  assert_command dfx ledger transfer --icp 1 --memo 1 --created-at-time "$t" "$ALICE_ACCOUNT_ID"
   # shellcheck disable=SC2154
   assert_eq "transaction is a duplicate of another transaction in block $block_height" "$stderr"
   assert_eq "Transfer sent at block height $block_height" "$stdout"
 
-  assert_command dfx ledger transfer --icp 1 --memo 2 --created-at-time "$t" 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752
+  assert_command dfx ledger transfer --icp 1 --memo 2 --created-at-time "$t" "$ALICE_ACCOUNT_ID"
   # shellcheck disable=SC2154
   assert_contains "Transfer sent at block height" "$stdout"
   # shellcheck disable=SC2154
@@ -110,7 +117,8 @@ current_time_nanoseconds() {
 }
 
 @test "ledger icrc functions" {
-  install_nns
+  dfx_start
+  prepare_accounts
 
   ALICE=$(dfx identity get-principal --identity alice)
   BOB=$(dfx identity get-principal --identity bob)
@@ -119,7 +127,7 @@ current_time_nanoseconds() {
   dfx identity use alice
 
   assert_command dfx ledger balance
-  assert_eq "1000000000.00000000 ICP"
+  assert_eq "1000000.00000000 ICP"
 
   # Test transfer and balance.
 
@@ -128,7 +136,7 @@ current_time_nanoseconds() {
 
   # The owner(alice) transferred 50 ICP to david and paid transaction fee which is 0.0001 ICP.
   assert_command dfx ledger balance
-  assert_eq "999999949.99990000 ICP"
+  assert_eq "999949.99990000 ICP"
 
   # The receiver(david) received 50 ICP.
   assert_command dfx ledger balance --of-principal "$DAVID"
@@ -141,7 +149,7 @@ current_time_nanoseconds() {
 
   # The approver(alice) paid approving fee which is 0.0001 ICP.
   assert_command dfx ledger balance
-  assert_eq "999999949.99980000 ICP"
+  assert_eq "999949.99980000 ICP"
 
   # The spender(bob) have 100 ICP allowance from the approver(alice).
   assert_command dfx ledger allowance --spender "$BOB"
@@ -150,7 +158,7 @@ current_time_nanoseconds() {
   dfx identity use bob
 
   assert_command dfx ledger balance
-  assert_match "1000000000.00000000 ICP"
+  assert_match "1000000.00000000 ICP"
 
   assert_command dfx ledger transfer-from --from "$ALICE" --amount 50 "$DAVID" # to david
   assert_contains "Transfer sent at block index"
@@ -158,7 +166,7 @@ current_time_nanoseconds() {
   # The spender(bob) transferred 50 ICP to david from the approver(alice).
   # And the approver(alice) paid transaction fee which is 0.0001 ICP
   assert_command dfx ledger balance --of-principal "$ALICE"
-  assert_eq "999999899.99970000 ICP"
+  assert_eq "999899.99970000 ICP"
 
   # The spender(bob) remains 49.99990000 ICP allowance from the approver(alice).
   assert_command dfx ledger allowance --owner "$ALICE" --spender "$BOB"
@@ -166,7 +174,7 @@ current_time_nanoseconds() {
 
   # The spender(bob) balance is unchanged.
   assert_command dfx ledger balance --of-principal "$BOB"
-  assert_match "1000000000.00000000 ICP"
+  assert_match "1000000.00000000 ICP"
 
   # The receiver(david) received 50 ICP.
   assert_command dfx ledger balance --of-principal "$DAVID"
@@ -174,34 +182,35 @@ current_time_nanoseconds() {
 }
 
 @test "ledger subaccounts" {
-  install_nns
+  dfx_start
+  prepare_accounts
 
   subacct=000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
   assert_command dfx ledger account-id --identity bob --subaccount "$subacct"
-  assert_match 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc
+  assert_match "$BOB_SUBACCOUNT_ID"
 
   dfx identity use alice
   assert_command dfx ledger balance
-  assert_match "1000000000.00000000 ICP"
-  assert_command dfx ledger transfer --amount 100 --memo 1 5a94fe181e9d411c58726cb87cbf2d016241b6c350bc3330e4869ca76e54ecbc # to bob+subacct
+  assert_match "1000000.00000000 ICP"
+  assert_command dfx ledger transfer --amount 100 --memo 1 "$BOB_SUBACCOUNT_ID"
   assert_match "Transfer sent at block height"
   assert_command dfx ledger balance
-  assert_match "999999899.99990000 ICP"
+  assert_match "999899.99990000 ICP"
 
   dfx identity use bob
   assert_command dfx ledger balance
-  assert_match "1000000000.00000000 ICP"
+  assert_match "1000000.00000000 ICP"
   assert_command dfx ledger balance --subaccount "$subacct"
-  assert_match "1000000100.00000000 ICP"
+  assert_match "1000100.00000000 ICP"
 
-  assert_command dfx ledger transfer --amount 100 --memo 2 345f723e9e619934daac6ae0f4be13a7b0ba57d6a608e511a00fd0ded5866752 --from-subaccount "$subacct" # to alice
+  assert_command dfx ledger transfer --amount 100 --memo 2 "$ALICE_ACCOUNT_ID" --from-subaccount "$subacct"
   assert_match "Transfer sent at block height"
   assert_command dfx ledger balance
-  assert_match "1000000000.00000000 ICP"
+  assert_match "1000000.00000000 ICP"
   assert_command dfx ledger balance --subaccount "$subacct"
-  assert_match "999999999.99990000 ICP"
+  assert_match "999999.99990000 ICP"
   assert_command dfx ledger balance --identity alice
-  assert_match "999999999.99990000 ICP"
+  assert_match "999999.99990000 ICP"
 }
 
 tc_to_num() {
@@ -213,20 +222,21 @@ tc_to_num() {
 }
 
 @test "ledger top-up" {
-  install_nns
+  dfx_start
+  prepare_accounts
 
   dfx identity use alice
   assert_command dfx ledger balance
-  assert_match "1000000000.00000000 ICP"
+  assert_match "1000000.00000000 ICP"
 
   wallet=$(dfx identity get-wallet)
   balance=$(tc_to_num "$(dfx wallet balance)")
 
   assert_command dfx ledger top-up "$wallet" --icp 5
-  assert_match "Canister was topped up with 500000000000000 cycles"
+  assert_match "Canister was topped up with 17600000000000 cycles"
   balance_now=$(tc_to_num "$(dfx wallet balance)")
 
-  (( balance_now - balance > 400000000000000 ))
+  (( balance_now - balance > 15000000000000 ))
 
   # Transaction Deduplication
   t=$(current_time_nanoseconds)
@@ -269,11 +279,12 @@ tc_to_num() {
   dfx_new
   assert_command dfx canister create e2e_project_backend
   assert_command dfx ledger top-up e2e_project_backend --amount 5
-  assert_contains "Canister was topped up with 500000000000000 cycles"
+  assert_contains "Canister was topped up with 17600000000000 cycles"
 }
 
 @test "ledger create-canister" {
-  install_nns
+  dfx_start
+  prepare_accounts
 
   dfx identity use alice
   assert_command dfx ledger create-canister --amount=100 --subnet-type "type1" "$(dfx identity get-principal)"
@@ -346,15 +357,9 @@ tc_to_num() {
 }
 
 @test "ledger show-subnet-types" {
-  install_nns
-  install_asset cmc
-
-  dfx deploy cmc
-
-  CANISTER_ID=$(dfx canister id cmc)
-
-  assert_command dfx ledger show-subnet-types --cycles-minting-canister-id "$CANISTER_ID"
-  assert_eq '["type1", "type2"]'
+  dfx_start
+  assert_command dfx ledger show-subnet-types
+  assert_eq '["fiduciary"]'
 }
 
 @test "balance without ledger fails as expected" {
