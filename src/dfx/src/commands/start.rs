@@ -50,6 +50,10 @@ pub struct StartOpts {
     #[arg(long)]
     clean: bool,
 
+    /// Bootstrap system canisters.
+    #[arg(long)]
+    system_canisters: bool,
+
     /// Address of bitcoind node.  Implies --enable-bitcoin.
     #[arg(long, action = ArgAction::Append)]
     bitcoin_node: Vec<SocketAddr>,
@@ -142,6 +146,7 @@ pub fn exec(
         background,
         running_in_background,
         clean,
+        system_canisters,
         force,
         bitcoin_node,
         enable_bitcoin,
@@ -271,6 +276,9 @@ https://github.com/dfinity/sdk/blob/0.27.0/docs/migration/dfx-0.27.0-migration-g
         }
         if local_server_descriptor.canister_http.enabled {
             replica_config = replica_config.with_canister_http_adapter_enabled();
+        }
+        if system_canisters {
+            replica_config = replica_config.with_system_canisters();
         }
         replica_config
     };

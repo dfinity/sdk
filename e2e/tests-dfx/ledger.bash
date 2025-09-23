@@ -36,7 +36,7 @@ current_time_nanoseconds() {
 }
 
 @test "ledger account-id" {
-  dfx_start
+  dfx_start --system-canisters
 
   dfx identity use alice
   assert_command dfx ledger account-id
@@ -57,7 +57,7 @@ current_time_nanoseconds() {
 }
 
 @test "ledger balance & transfer" {
-  dfx_start
+  dfx_start --system-canisters
   prepare_accounts
 
   dfx identity use alice
@@ -117,7 +117,7 @@ current_time_nanoseconds() {
 }
 
 @test "ledger icrc functions" {
-  dfx_start
+  dfx_start --system-canisters
   prepare_accounts
 
   ALICE=$(dfx identity get-principal --identity alice)
@@ -182,7 +182,7 @@ current_time_nanoseconds() {
 }
 
 @test "ledger subaccounts" {
-  dfx_start
+  dfx_start --system-canisters
   prepare_accounts
 
   subacct=000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f
@@ -222,7 +222,7 @@ tc_to_num() {
 }
 
 @test "ledger top-up" {
-  dfx_start
+  dfx_start --system-canisters
   prepare_accounts
 
   dfx identity use alice
@@ -283,7 +283,7 @@ tc_to_num() {
 }
 
 @test "ledger create-canister" {
-  dfx_start
+  dfx_start --system-canisters
   prepare_accounts
 
   dfx identity use alice
@@ -357,7 +357,7 @@ tc_to_num() {
 }
 
 @test "ledger show-subnet-types" {
-  dfx_start
+  dfx_start --system-canisters
   assert_command dfx ledger show-subnet-types
   assert_eq '["fiduciary"]'
 }

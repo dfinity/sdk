@@ -404,6 +404,25 @@ async fn initialize_pocketic(
         }
     }
 
+    let icp_features = if replica_config.system_canisters {
+        // Explicitly enabling specific system canisters here
+        // ensures we'll notice if pocket-ic adds support for additional ones
+        Some(IcpFeatures {
+            registry: Some(IcpFeaturesConfig::default()),
+            cycles_minting: Some(IcpFeaturesConfig::default()),
+            icp_token: Some(IcpFeaturesConfig::default()),
+            cycles_token: Some(IcpFeaturesConfig::default()),
+            nns_governance: Some(IcpFeaturesConfig::default()),
+            sns: Some(IcpFeaturesConfig::default()),
+            ii: Some(IcpFeaturesConfig::default()),
+            // FIXME: if the `nns_ui` feature is enabled, the pocket-ic instance creation will fail with errors like:
+            // `Failed to initialize PocketIC: HTTP status client error (400 Bad Request) for url (http://localhost:56833/instances)`
+            nns_ui: None,
+        })
+    } else {
+        None
+    };
+
     let resp = init_client
         .post(format!("http://localhost:{port}/instances"))
         .json(&InstanceConfig {
@@ -415,13 +434,7 @@ async fn initialize_pocketic(
             }),
             log_level: Some(replica_config.log_level.to_pocketic_string()),
             bitcoind_addr: bitcoind_addr.clone(),
-            icp_features: Some(IcpFeatures {
-                registry: Some(IcpFeaturesConfig::default()),
-                cycles_minting: Some(IcpFeaturesConfig::default()),
-                icp_token: Some(IcpFeaturesConfig::default()),
-                cycles_token: Some(IcpFeaturesConfig::default()),
-                ..Default::default()
-            }),
+            icp_features,
             ..Default::default()
         })
         .send()
