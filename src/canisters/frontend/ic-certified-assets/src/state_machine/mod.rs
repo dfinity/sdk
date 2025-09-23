@@ -1189,7 +1189,6 @@ impl From<StableStateV2> for State {
                 .configuration
                 .map(Into::into)
                 .unwrap_or_default(),
-            encoded_canister_env: CanisterEnv::load().to_cookie_value(),
             ..Self::default()
         };
 
