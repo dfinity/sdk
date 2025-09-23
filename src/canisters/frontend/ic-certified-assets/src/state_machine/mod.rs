@@ -708,6 +708,9 @@ impl State {
     }
 
     pub fn commit_batch(&mut self, arg: CommitBatchArguments, now: u64) -> Result<(), String> {
+        // Reload the canister env to get the latest values
+        self.encoded_canister_env = CanisterEnv::load().to_cookie_value();
+
         let (chunks_added, bytes_added) = self.compute_last_chunk_data(&arg);
         self.check_batch_limits(chunks_added, bytes_added)?;
 

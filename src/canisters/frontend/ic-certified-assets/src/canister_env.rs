@@ -11,6 +11,10 @@ const COOKIE_VALUES_SEPARATOR: &str = "&";
 
 pub struct CanisterEnv {
     pub ic_root_key: Vec<u8>,
+    /// We can expect a maximum of 20 entries, each with a maximum of 128 characters
+    /// for both the key and the value. Total size: 20 * 128 * 2 = 4096 bytes
+    ///
+    /// Numbers from https://github.com/dfinity/ic/blob/34bd4301f941cdfa1596a0eecf9f58ad6407293c/rs/config/src/execution_environment.rs#L175-L183
     pub icp_public_env_vars: HashMap<String, String>,
 }
 
