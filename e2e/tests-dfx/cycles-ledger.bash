@@ -548,9 +548,6 @@ current_time_nanoseconds() {
   # shellcheck disable=SC2103
   cd ..
 
-  # Top up cycles for alice.
-  dfx_new temporary
-
   # Get some ICP in Alice's accounts
   assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE")"
   assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE" --subaccount "$ALICE_SUBACCT1")"
@@ -558,9 +555,6 @@ current_time_nanoseconds() {
   # Get some cycles (converted from ICP) in Alice's accounts
   assert_command dfx cycles convert --amount 10 --identity alice
   assert_command dfx cycles convert --amount 10 --identity alice --from-subaccount "$ALICE_SUBACCT1" --to-subaccount "$ALICE_SUBACCT1"
-  
-  # shellcheck disable=SC2103
-  cd ..
 
   # Setup done
   dfx_new
@@ -623,14 +617,10 @@ current_time_nanoseconds() {
   export DFX_DISABLE_AUTO_WALLET=1
   ALICE=$(dfx identity get-principal --identity alice)
 
-  # Top up cycles for alice.
-  dfx_new temporary
   # Get some ICP in Alice's account
   assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE")"
   # Get some cycles (converted from ICP) in Alice's account
   assert_command dfx cycles convert --amount 10 --identity alice
-  # shellcheck disable=SC2103
-  cd ..
 
   dfx_new
   # setup done
@@ -653,9 +643,8 @@ current_time_nanoseconds() {
 }
 
 @test "redeem-faucet-coupon redeems into the cycles ledger" {
-  start_and_install_nns
+  dfx_start --system-canisters
 
-  assert_command deploy_cycles_ledger
   dfx_new hello
   install_asset faucet
   dfx deploy
@@ -685,25 +674,14 @@ current_time_nanoseconds() {
 }
 
 @test "create canister on specific subnet" {
-  start_and_install_nns
-  
-  dfx_new temporary
-  add_cycles_ledger_canisters_to_project
-  install_cycles_ledger_canisters
+  dfx_start --system-canisters
 
   ALICE=$(dfx identity get-principal --identity alice)
+  # Get some ICP in Alice's account
+  assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE")"
+  # Get some cycles (converted from ICP) in Alice's account
+  assert_command dfx cycles convert --amount 10 --identity alice
 
-  assert_command deploy_cycles_ledger
-  CYCLES_LEDGER_ID=$(dfx canister id cycles-ledger)
-  echo "Cycles ledger deployed at id $CYCLES_LEDGER_ID"
-  assert_command dfx deploy depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})"
-  echo "Cycles depositor deployed at id $(dfx canister id depositor)"
-  assert_command dfx ledger fabricate-cycles --canister depositor --t 9999
-
-  assert_command dfx deploy
-
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 13_400_000_000_000;})" --identity cycle-giver
-  cd ..
   dfx_new 
 
   dfx identity use alice
@@ -722,84 +700,82 @@ current_time_nanoseconds() {
 }
 
 @test "automatically choose subnet" {
-  dfx_start
+  dfx_start --system-canisters
 
   REGISTRY="rwlgt-iiaaa-aaaaa-aaaaa-cai"
   CMC="rkp4c-7iaaa-aaaaa-aaaca-cai"
+
   ALICE=$(dfx identity get-principal --identity alice)
-  dfx_new temporary
-  install_asset fake_registry
-  dfx deploy fake_registry --specified-id "$REGISTRY"
-  add_cycles_ledger_canisters_to_project
-  install_cycles_ledger_canisters
-  assert_command deploy_cycles_ledger
-  CYCLES_LEDGER_ID=$(dfx canister id cycles-ledger)
-  echo "Cycles ledger deployed at id $CYCLES_LEDGER_ID"
-  assert_command dfx deploy depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})"
-  echo "Cycles depositor deployed at id $(dfx canister id depositor)"
-  assert_command dfx ledger fabricate-cycles --canister depositor --t 9999
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 99_000_000_000_000;})"
-  install_asset fake_cmc
-  dfx deploy fake-cmc --specified-id "$CMC"
-  cd ..
+  # Get some ICP in Alice's account
+  assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 1000 "$(dfx ledger account-id --of-principal "$ALICE")"
+  # Get some cycles (converted from ICP) in Alice's account
+  assert_command dfx cycles convert --amount 100 --identity alice
+
   # shellcheck disable=SC2030,SC2031
   export DFX_DISABLE_AUTO_WALLET=1
   dfx identity use alice
   dfx_new
 
-  SUBNET1="iqd74-4xnai"
-  SUBNET2="2myss-nlbai"
+  # This is the default application subnet ID
+  SUBNET1="$(dfx canister call "$CMC" get_default_subnets --query | sed -n 's/.*principal "\(.*\)" *;.*/\1/p')"
+  echo "Default application subnet: $SUBNET1"
+  # This is the fiduciary subnet ID that was created because of `dfx start --system-canisters`
+  SUBNET2="$(dfx canister call "$CMC" get_subnet_types_to_subnets --query | sed -n 's/.*principal "\(.*\)" *;.*/\1/p')"
+  echo "Fiduciary subnet: $SUBNET2"
 
   jq '.canisters.one = { "main": "src/e2e_project_backend/main.mo", "type": "motoko" }' dfx.json | sponge dfx.json
   jq '.canisters.two = { "main": "src/e2e_project_backend/main.mo", "type": "motoko" }' dfx.json | sponge dfx.json
+  assert_command dfx ledger create-canister --amount 10 --subnet "$SUBNET2" "$ALICE"
+  THREE_ID=$(echo "$stdout" | sed '3q;d' | sed 's/Canister created with id: //')
+  echo "Remote canister three: $THREE_ID"
+  # shellcheck disable=SC2086
+  jq '.canisters.three = { "main": "src/e2e_project_backend/main.mo", "type": "motoko", "remote" : { "candid": "", "id": { "local": '$THREE_ID' } } }' dfx.json | sponge dfx.json
   # setup done
-
 
   # no other canisters already exist
   assert_command dfx canister create e2e_project_backend
-  assert_command dfx canister call "$CMC" last_create_canister_args --query
-  assert_contains "subnet_selection = null"
   stop_and_delete e2e_project_backend
 
   assert_command dfx deploy e2e_project_backend
-  assert_command dfx canister call "$CMC" last_create_canister_args --query
-  assert_contains "subnet_selection = null"
   stop_and_delete e2e_project_backend
 
   # one other canister already exists
-  assert_command dfx canister create one --subnet aaaaa-aa
+  assert_command dfx canister create one --subnet "$SUBNET1"
   ONE_ID="$(dfx canister id one)"
   echo "Canister one: $ONE_ID"
-  assert_command dfx canister call "$REGISTRY" set_subnet_for_canister "(vec { record {0 = principal \"$ONE_ID\"; 1 = principal \"$SUBNET1\"} })"
 
   assert_command dfx canister create e2e_project_backend
-  assert_command dfx canister call "$CMC" last_create_canister_args --query
-  assert_contains "subnet = principal \"$SUBNET1\""
+  ID="$(dfx canister id e2e_project_backend)"
+  assert_command dfx canister call "$REGISTRY" get_subnet_for_canister  --query "(record { \"principal\" = opt principal \"$ID\" })"
+  assert_contains "$SUBNET1"
   stop_and_delete e2e_project_backend
 
   assert_command dfx deploy e2e_project_backend
-  assert_command dfx canister call "$CMC" last_create_canister_args --query
-  assert_contains "subnet = principal \"$SUBNET1\""
+  ID="$(dfx canister id e2e_project_backend)"
+  assert_command dfx canister call "$REGISTRY" get_subnet_for_canister  --query "(record { \"principal\" = opt principal \"$ID\" })"
+  assert_contains "$SUBNET1"
   stop_and_delete e2e_project_backend
 
   # multiple other canisters already exist - all on same subnet
-  assert_command dfx canister create two --subnet aaaaa-aa
+  assert_command dfx canister create two --subnet "$SUBNET1"
   TWO_ID="$(dfx canister id two)"
   echo "Canister two: $TWO_ID"
-  assert_command dfx canister call "$REGISTRY" set_subnet_for_canister "(vec { record {0 = principal \"$ONE_ID\"; 1 = principal \"$SUBNET1\"}; record { 0 = principal \"$TWO_ID\"; 1 = principal \"$SUBNET1\"} })"
 
   assert_command dfx canister create e2e_project_backend
-  assert_command dfx canister call "$CMC" last_create_canister_args --query
-  assert_contains "subnet = principal \"$SUBNET1\""
+  ID="$(dfx canister id e2e_project_backend)"
+  assert_command dfx canister call "$REGISTRY" get_subnet_for_canister  --query "(record { \"principal\" = opt principal \"$ID\" })"
+  assert_contains "$SUBNET1"
   stop_and_delete e2e_project_backend
 
   assert_command dfx deploy e2e_project_backend
-  assert_command dfx canister call "$CMC" last_create_canister_args --query
-  assert_contains "subnet = principal \"$SUBNET1\""
+  ID="$(dfx canister id e2e_project_backend)"
+  assert_command dfx canister call "$REGISTRY" get_subnet_for_canister  --query "(record { \"principal\" = opt principal \"$ID\" })"
+  assert_contains "$SUBNET1"
   stop_and_delete e2e_project_backend
 
   # multiple other canisters already exist - not all on same subnet
-  assert_command dfx canister call "$REGISTRY" set_subnet_for_canister "(vec { record {0 = principal \"$ONE_ID\"; 1 = principal \"$SUBNET1\"}; record { 0 = principal \"$TWO_ID\"; 1 = principal \"$SUBNET2\"} })"
+  stop_and_delete two
+  assert_command dfx canister create two --subnet "$SUBNET2"
 
   assert_command_fail dfx canister create e2e_project_backend
   assert_contains "Cannot automatically decide which subnet to target."
@@ -809,27 +785,31 @@ current_time_nanoseconds() {
   
   # still can create if a subnet is specified
   assert_command dfx canister create e2e_project_backend --subnet "$SUBNET2"
-  assert_command dfx canister call "$CMC" last_create_canister_args --query
-  assert_contains "subnet = principal \"$SUBNET2\""
+  ID="$(dfx canister id e2e_project_backend)"
+  assert_command dfx canister call "$REGISTRY" get_subnet_for_canister  --query "(record { \"principal\" = opt principal \"$ID\" })"
+  assert_contains "$SUBNET2"
   stop_and_delete e2e_project_backend
 
   assert_command dfx deploy e2e_project_backend --subnet "$SUBNET2"
-  assert_command dfx canister call "$CMC" last_create_canister_args --query
-  assert_contains "subnet = principal \"$SUBNET2\""
+  ID="$(dfx canister id e2e_project_backend)"
+  assert_command dfx canister call "$REGISTRY" get_subnet_for_canister  --query "(record { \"principal\" = opt principal \"$ID\" })"
+  assert_contains "$SUBNET2"
   stop_and_delete e2e_project_backend
 
   # remote canister exists on different subnet
-  THREE_ID="3333u-aiaaa-aaaar-avzbq-cai"
-  jq '.canisters.three = { "main": "src/e2e_project_backend/main.mo", "type": "motoko", "remote" : { "candid": "", "id": { "local": "'$THREE_ID'" } } }' dfx.json | sponge dfx.json
-  assert_command dfx canister call "$REGISTRY" set_subnet_for_canister "(vec { record {0 = principal \"$ONE_ID\"; 1 = principal \"$SUBNET1\"}; record { 0 = principal \"$TWO_ID\"; 1 = principal \"$SUBNET1\"}; record { 0 = principal \"$THREE_ID\"; 1 = principal \"$SUBNET2\"} })"
+  # one, two on SUBNET1, three on SUBNET2
+  stop_and_delete two
+  assert_command dfx canister create two --subnet "$SUBNET1"
 
   assert_command dfx canister create e2e_project_backend
-  assert_command dfx canister call "$CMC" last_create_canister_args --query
-  assert_contains "subnet = principal \"$SUBNET1\""
+  ID="$(dfx canister id e2e_project_backend)"
+  assert_command dfx canister call "$REGISTRY" get_subnet_for_canister  --query "(record { \"principal\" = opt principal \"$ID\" })"
+  assert_contains "$SUBNET1"
   stop_and_delete e2e_project_backend
 
   assert_command dfx deploy e2e_project_backend
-  assert_command dfx canister call "$CMC" last_create_canister_args --query
-  assert_contains "subnet = principal \"$SUBNET1\""
+  ID="$(dfx canister id e2e_project_backend)"
+  assert_command dfx canister call "$REGISTRY" get_subnet_for_canister  --query "(record { \"principal\" = opt principal \"$ID\" })"
+  assert_contains "$SUBNET1"
   stop_and_delete e2e_project_backend
 }
