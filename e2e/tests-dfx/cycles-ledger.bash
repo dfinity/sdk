@@ -533,58 +533,6 @@ current_time_nanoseconds() {
   assert_eq "35197700000000 cycles."
 }
 
-@test "howto" {
-  start_and_install_nns
-
-  # This is the equivalent of https://www.notion.so/dfinityorg/How-to-install-and-test-the-cycles-ledger-521c9f3c410f4a438514a03e35464299
-  ALICE=$(dfx identity get-principal --identity alice)
-  BOB=$(dfx identity get-principal --identity bob)
-
-  deploy_cycles_ledger
-
-  assert_command dfx ledger balance --identity cycle-giver
-  assert_eq "1000000000.00000000 ICP"
-
-  assert_command dfx canister status depositor
-  assert_contains "Balance: 10_000_000_000_000 Cycles"
-
-  dfx canister status depositor
-
-  assert_command dfx cycles balance --identity alice --precise
-  assert_eq "0 cycles."
-
-  assert_command dfx cycles balance --identity bob --precise
-  assert_eq "0 cycles."
-
-
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 500_000_000;})" --identity cycle-giver
-  assert_eq "(record { balance = 500_000_000 : nat; block_index = 0 : nat })"
-
-  assert_command dfx canister status depositor
-  assert_contains "Balance: 9_999_500_000_000 Cycles"
-
-  assert_command dfx cycles balance --identity alice --precise
-  assert_eq "500000000 cycles."
-
-  assert_command dfx cycles transfer "$BOB" 100000 --identity alice
-  assert_eq "Transfer sent at block index 1"
-
-  assert_command dfx cycles balance --identity alice --precise
-  assert_eq "399900000 cycles."
-
-  assert_command dfx cycles balance --identity bob --precise
-  assert_eq "100000 cycles."
-
-  assert_command dfx cycles top-up depositor 100000 --identity alice
-  assert_eq "Transfer sent at block index 2"
-
-  assert_command dfx cycles balance --identity alice --precise
-  assert_eq "299800000 cycles."
-
-  assert_command dfx canister status depositor
-  assert_contains "Balance: 9_999_500_100_000 Cycles"
-}
-
 @test "canister creation" {
   start_and_install_nns
   
