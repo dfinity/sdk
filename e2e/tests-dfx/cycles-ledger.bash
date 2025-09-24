@@ -618,30 +618,24 @@ current_time_nanoseconds() {
 }
 
 @test "canister deletion" {
-  start_and_install_nns
-
-  dfx_new temporary
-  add_cycles_ledger_canisters_to_project
-  install_cycles_ledger_canisters
-
+  dfx_start --system-canisters
+  # shellcheck disable=SC2030,SC2031
+  export DFX_DISABLE_AUTO_WALLET=1
   ALICE=$(dfx identity get-principal --identity alice)
 
-  assert_command deploy_cycles_ledger
-  CYCLES_LEDGER_ID=$(dfx canister id cycles-ledger)
-  echo "Cycles ledger deployed at id $CYCLES_LEDGER_ID"
-  assert_command dfx deploy depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})"
-  echo "Cycles depositor deployed at id $(dfx canister id depositor)"
-  assert_command dfx ledger fabricate-cycles --canister depositor --t 9999
-  assert_command dfx deploy
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 22_400_000_000_000;})" --identity cycle-giver
-
+  # Top up cycles for alice.
+  dfx_new temporary
+  # Get some ICP in Alice's account
+  assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE")"
+  # Get some cycles (converted from ICP) in Alice's account
+  assert_command dfx cycles convert --amount 10 --identity alice
+  # shellcheck disable=SC2103
   cd ..
+
   dfx_new
   # setup done
 
   dfx identity use alice
-  # shellcheck disable=SC2030,SC2031
-  export DFX_DISABLE_AUTO_WALLET=1
   assert_command dfx canister create --all
 
   # delete by name
