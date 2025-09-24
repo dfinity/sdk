@@ -46,15 +46,15 @@ impl CanisterEnv {
 }
 
 fn load_icp_public_env_vars() -> HashMap<String, String> {
-    let mut icp_canister_ids = HashMap::new();
+    let mut public_env_vars = HashMap::new();
     let env_var_count = env_var_count();
 
     for i in 0..env_var_count {
         let name = env_var_name(i);
         if name.starts_with(PUBLIC_ENV_VAR_NAME_PREFIX) {
             let value = env_var_value(&name);
-            icp_canister_ids.insert(name, value);
+            public_env_vars.insert(name, value);
         }
     }
-    icp_canister_ids
+    public_env_vars
 }
