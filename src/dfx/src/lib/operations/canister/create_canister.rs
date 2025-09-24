@@ -233,10 +233,11 @@ async fn create_with_management_canister(
             status, content, ..
         })) if (400..500).contains(&status) => {
             let message = String::from_utf8_lossy(&content);
-            if message.contains(
-                "does not belong to an existing subnet and it is not a mainnet canister ID.",
-            ) {
-                Err(anyhow!("{message}"))
+            if specified_id.is_some() && message.contains("canister_not_found") {
+                let sid = specified_id.unwrap();
+                Err(anyhow!(
+                    "The specified canister ID {sid} is out of range. Hint: A mainnet canister ID is normally valid here."
+                ))
             } else {
                 Err(anyhow!(NEEDS_WALLET))
             }
