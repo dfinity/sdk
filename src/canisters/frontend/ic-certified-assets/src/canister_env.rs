@@ -4,7 +4,7 @@ use ic_cdk::api::{env_var_count, env_var_name, env_var_value, root_key};
 
 use crate::url_encode::url_encode;
 
-const ICP_PUBLIC_ENV_VAR_NAME_PREFIX: &str = "ICP_PUBLIC_";
+const PUBLIC_ENV_VAR_NAME_PREFIX: &str = "PUBLIC_";
 
 const IC_ROOT_KEY_VALUE_KEY: &str = "ic_root_key";
 const COOKIE_VALUES_SEPARATOR: &str = "&";
@@ -51,7 +51,7 @@ fn load_icp_public_env_vars() -> HashMap<String, String> {
 
     for i in 0..env_var_count {
         let name = env_var_name(i);
-        if name.starts_with(ICP_PUBLIC_ENV_VAR_NAME_PREFIX) {
+        if name.starts_with(PUBLIC_ENV_VAR_NAME_PREFIX) {
             let value = env_var_value(&name);
             icp_canister_ids.insert(name, value);
         }
