@@ -365,172 +365,172 @@ current_time_nanoseconds() {
   assert_eq "1100000 cycles."
 }
 
-@test "top up canister principal check" {
-  start_and_install_nns
+@test "top-up canister principal check" {
+  dfx_start --system-canisters
 
   BOB=$(dfx identity get-principal --identity bob)
-
-  deploy_cycles_ledger
 
   assert_command_fail dfx cycles top-up "$BOB" 600000 --identity alice
   assert_contains "Invalid receiver: $BOB.  Make sure the receiver is a canister."
 }
 
 @test "top-up and deposit-cycles" {
-  start_and_install_nns
+  # Bootstrapping system canisters would make the pocket-ic be in auto_progress mode.
+  # Canisters will consume cycles over time as they execute.
+  dfx_start --system-canisters
 
   dfx_new
-  add_cycles_ledger_canisters_to_project
-  install_cycles_ledger_canisters
 
   BOB=$(dfx identity get-principal --identity bob)
   BOB_SUBACCT1="7C7B7A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-  BOB_SUBACCT1_CANDID="\7C\7B\7A\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
   BOB_SUBACCT2="6C6B6A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-  BOB_SUBACCT2_CANDID="\6C\6B\6A\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
 
-  deploy_cycles_ledger
+  assert_command dfx canister create --all
 
-  assert_command dfx deploy
+  # Get some ICP in Bob's accounts
+  assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$BOB")"
+  assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$BOB" --subaccount "$BOB_SUBACCT1")"
+  assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$BOB" --subaccount "$BOB_SUBACCT2")"
 
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\";};cycles = 2_400_000_000_000;})" --identity cycle-giver
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\"; subaccount = opt blob \"$BOB_SUBACCT1_CANDID\"};cycles = 2_600_000_000_000;})" --identity cycle-giver
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\"; subaccount = opt blob \"$BOB_SUBACCT2_CANDID\"};cycles = 2_700_000_000_000;})" --identity cycle-giver
+  # Get some cycles (converted from ICP) in Bob's accounts
+  assert_command dfx cycles convert --amount 10 --identity bob
+  assert_command dfx cycles convert --amount 10 --identity bob --from-subaccount "$BOB_SUBACCT1" --to-subaccount "$BOB_SUBACCT1"
+  assert_command dfx cycles convert --amount 10 --identity bob --from-subaccount "$BOB_SUBACCT2" --to-subaccount "$BOB_SUBACCT2"
 
   # shellcheck disable=SC2030
   export DFX_DISABLE_AUTO_WALLET=1
 
   # account to canister
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "2400000000000 cycles."
+  assert_eq "35199900000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_000_000_000 Cycles"
+  assert_contains "Balance: 2_999" # 2_999x10^9
 
-  assert_command dfx cycles top-up e2e_project_backend 100000 --identity bob
+  assert_command dfx cycles top-up e2e_project_backend 1000000000 --identity bob
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "2399899900000 cycles."
+  assert_eq "35198800000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_000_100_000 Cycles"
+  assert_contains "Balance: 3_000" # 3_000x10^9
 
-  assert_command dfx canister deposit-cycles 100000 e2e_project_backend --identity bob
+  assert_command dfx canister deposit-cycles 1000000000 e2e_project_backend --identity bob
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "2399799800000 cycles."
+  assert_eq "35197700000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_000_200_000 Cycles"
+  assert_contains "Balance: 3_001" # 3_001x10^9
 
   # subaccount to canister
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
-  assert_eq "2600000000000 cycles."
+  assert_eq "35199900000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_000_200_000 Cycles"
+  assert_contains "Balance: 3_001" # 3_001x10^9
 
-  assert_command dfx cycles top-up e2e_project_backend 300000 --identity bob --from-subaccount "$BOB_SUBACCT1"
+  assert_command dfx cycles top-up e2e_project_backend 1000000000 --identity bob --from-subaccount "$BOB_SUBACCT1"
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
-  assert_eq "2599899700000 cycles."
+  assert_eq "35198800000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_000_500_000 Cycles"
+  assert_contains "Balance: 3_002" # 3_002x10^9
 
-  assert_command dfx canister deposit-cycles 300000 e2e_project_backend --identity bob --from-subaccount "$BOB_SUBACCT1"
+  assert_command dfx canister deposit-cycles 1000000000 e2e_project_backend --identity bob --from-subaccount "$BOB_SUBACCT1"
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT1"
-  assert_eq "2599799400000 cycles."
+  assert_eq "35197700000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_000_800_000 Cycles"
+  assert_contains "Balance: 3_003" # 3_003x10^9
 
   # subaccount to canister - by canister id
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT2"
-  assert_eq "2700000000000 cycles."
+  assert_eq "35199900000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_000_800_000 Cycles"
+  assert_contains "Balance: 3_003" # 3_003x10^9
 
-  assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" 600000 --identity bob --from-subaccount "$BOB_SUBACCT2"
+  assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" 1000000000 --identity bob --from-subaccount "$BOB_SUBACCT2"
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT2"
-  assert_eq "2699899400000 cycles."
+  assert_eq "35198800000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_001_400_000 Cycles"
+  assert_contains "Balance: 3_004" # 3_004x10^9
 
-  assert_command dfx canister deposit-cycles 600000 "$(dfx canister id e2e_project_backend)" --identity bob --from-subaccount "$BOB_SUBACCT2"
+  assert_command dfx canister deposit-cycles 1000000000 "$(dfx canister id e2e_project_backend)" --identity bob --from-subaccount "$BOB_SUBACCT2"
   assert_command dfx cycles balance --precise --identity bob --subaccount "$BOB_SUBACCT2"
-  assert_eq "2699798800000 cycles."
+  assert_eq "35197700000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_002_000_000 Cycles"
+  assert_contains "Balance: 3_005" # 3_005x10^9
 
   # deduplication
   t=$(current_time_nanoseconds)
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "2399799800000 cycles."
+  assert_eq "35197700000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_002_000_000 Cycles"
+  assert_contains "Balance: 3_005" # 3_005x10^9
 
-  assert_command dfx canister deposit-cycles 100000 e2e_project_backend --identity bob --created-at-time "$t"
+  assert_command dfx canister deposit-cycles 1000000000 e2e_project_backend --identity bob --created-at-time "$t"
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "2399699700000 cycles."
+  assert_eq "35196600000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_002_100_000 Cycles"
+  assert_contains "Balance: 3_006" # 3_006x10^9
 
-  assert_command dfx canister deposit-cycles 100000 e2e_project_backend --identity bob --created-at-time "$t"
+  assert_command dfx canister deposit-cycles 1000000000 e2e_project_backend --identity bob --created-at-time "$t"
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "2399699700000 cycles."
+  assert_eq "35196600000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_002_100_000 Cycles"
+  assert_contains "Balance: 3_006" # 3_006x10^9
 
   # deposit-cycles --all skips remote canisters
   jq '.canisters.remote.remote.id.local="rdmx6-jaaaa-aaaaa-aaadq-cai"' dfx.json | sponge dfx.json
-  assert_command dfx canister deposit-cycles 10000 --all --identity bob
+  assert_command dfx canister deposit-cycles 1000000000 --all --identity bob
   assert_contains "Skipping canister 'remote' because it is remote for network 'local'"
-  assert_contains "Depositing 10000 cycles onto e2e_project_backend"
-  assert_not_contains "Depositing 10000 cycles onto remote"
+  assert_contains "Depositing 1000000000 cycles onto e2e_project_backend"
+  assert_not_contains "Depositing 1000000000 cycles onto remote"
 }
 
 @test "top-up deduplication" {
-  start_and_install_nns
+  dfx_start --system-canisters
 
   dfx_new
-  add_cycles_ledger_canisters_to_project
-  install_cycles_ledger_canisters
 
   BOB=$(dfx identity get-principal --identity bob)
   BOB_SUBACCT1="7C7B7A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-  BOB_SUBACCT1_CANDID="\7C\7B\7A\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
   BOB_SUBACCT2="6C6B6A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-  BOB_SUBACCT2_CANDID="\6C\6B\6A\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
 
-  deploy_cycles_ledger
+  assert_command dfx canister create --all
 
-  assert_command dfx deploy
+  # Get some ICP in Bob's accounts
+  assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$BOB")"
+  assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$BOB" --subaccount "$BOB_SUBACCT1")"
+  assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$BOB" --subaccount "$BOB_SUBACCT2")"
 
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\";};cycles = 2_400_000_000_000;})" --identity cycle-giver
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\"; subaccount = opt blob \"$BOB_SUBACCT1_CANDID\"};cycles = 2_600_000_000_000;})" --identity cycle-giver
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\"; subaccount = opt blob \"$BOB_SUBACCT2_CANDID\"};cycles = 2_700_000_000_000;})" --identity cycle-giver
+  # Get some cycles (converted from ICP) in Bob's accounts
+  assert_command dfx cycles convert --amount 10 --identity bob
+  assert_command dfx cycles convert --amount 10 --identity bob --from-subaccount "$BOB_SUBACCT1" --to-subaccount "$BOB_SUBACCT1"
+  assert_command dfx cycles convert --amount 10 --identity bob --from-subaccount "$BOB_SUBACCT2" --to-subaccount "$BOB_SUBACCT2"
 
   # account to canister
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "2400000000000 cycles."
+  assert_eq "35199900000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_000_000_000 Cycles"
+  assert_contains "Balance: 2_999" # 2_999x10^9
 
   t=$(current_time_nanoseconds)
-  assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 100000 --identity bob
+  assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 1000000000 --identity bob
   assert_eq "Transfer sent at block index 3"
 
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "2399899900000 cycles."
+  assert_eq "35198800000000 cycles."
   assert_command dfx canister status e2e_project_backend
-  assert_contains "Balance: 3_500_000_100_000 Cycles"
+  assert_contains "Balance: 3_000" # 3_000x10^9
 
   # same created-at-time: dupe
-  assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 100000 --identity bob
+  assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time "$t" 1000000000 --identity bob
   # shellcheck disable=SC2154
   assert_contains "transaction is a duplicate of another transaction in block 3" "$stderr"
   # shellcheck disable=SC2154
   assert_contains "Transfer sent at block index 3" "$stdout"
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "2399899900000 cycles."
+  assert_eq "35198800000000 cycles."
 
   # different created-at-time: not dupe
-  assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time $((t+1)) 100000 --identity bob
+  assert_command dfx cycles top-up "$(dfx canister id e2e_project_backend)" --created-at-time $((t+1)) 1000000000 --identity bob
   assert_eq "Transfer sent at block index 4"
   assert_command dfx cycles balance --precise --identity bob
-  assert_eq "2399799800000 cycles."
+  assert_eq "35197700000000 cycles."
 }
 
 @test "howto" {
