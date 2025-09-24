@@ -1,15 +1,10 @@
 #!/usr/bin/env bats
 
 load ../utils/_
-load ../utils/cycles-ledger
 
 setup() {
   standard_setup
-  # install_asset cycles-ledger
-  # install_shared_asset subnet_type/shared_network_settings/system
-  # install_cycles_ledger_canisters
 
-  dfx identity new --storage-mode plaintext cycle-giver
   dfx identity new --storage-mode plaintext alice
   echo "Alice principal: $(dfx identity get-principal --identity alice)"
   dfx identity new --storage-mode plaintext bob
@@ -20,22 +15,6 @@ teardown() {
   dfx_stop
 
   standard_teardown
-}
-
-start_and_install_nns() {
-  dfx_start_for_nns_install
-
-  dfx extension install nns --version 0.5.4
-  dfx nns install --ledger-accounts "$(dfx ledger account-id --identity cycle-giver)"
-}
-
-add_cycles_ledger_canisters_to_project() {
-  jq -s '.[0] * .[1]' ../dfx.json dfx.json | sponge dfx.json
-}
-
-deploy_cycles_ledger() {
-  assert_command dfx deploy cycles-ledger --specified-id "um5iw-rqaaa-aaaaq-qaaba-cai" --argument '(variant { Init = record { max_blocks_per_request = 100; index_id = null; } })'
-  assert_command dfx deploy depositor --argument "(record {ledger_id = principal \"$(dfx canister id cycles-ledger)\"})" --with-cycles 10000000000000 --specified-id "ul4oc-4iaaa-aaaaq-qaabq-cai"
 }
 
 current_time_nanoseconds() {
