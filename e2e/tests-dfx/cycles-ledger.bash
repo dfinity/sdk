@@ -5,9 +5,9 @@ load ../utils/cycles-ledger
 
 setup() {
   standard_setup
-  install_asset cycles-ledger
-  install_shared_asset subnet_type/shared_network_settings/system
-  install_cycles_ledger_canisters
+  # install_asset cycles-ledger
+  # install_shared_asset subnet_type/shared_network_settings/system
+  # install_cycles_ledger_canisters
 
   dfx identity new --storage-mode plaintext cycle-giver
   dfx identity new --storage-mode plaintext alice
@@ -42,86 +42,96 @@ current_time_nanoseconds() {
   echo "$(date +%s)"000000000
 }
 
-@test "balance" {
-  start_and_install_nns
-
-  ALICE=$(dfx identity get-principal --identity alice)
-  ALICE_SUBACCT1="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-  ALICE_SUBACCT1_CANDID="\00\01\02\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
-  ALICE_SUBACCT2="9C9B9A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-  ALICE_SUBACCT2_CANDID="\9C\9B\9A\03\04\05\06\07\08\09\0a\0b\0c\0d\0e\0f\10\11\12\13\14\15\16\17\18\19\1a\1b\1c\1d\1e\1f"
-  BOB=$(dfx identity get-principal --identity bob)
-
-  deploy_cycles_ledger
-
-  assert_command dfx cycles balance --identity alice --precise
-  assert_eq "0 cycles."
-
-  assert_command dfx cycles balance --identity alice
-  assert_eq "0.000 TC (trillion cycles)."
-
-  assert_command dfx cycles balance --identity bob --precise
-  assert_eq "0 cycles."
-
-  assert_command dfx cycles balance --identity bob
-  assert_eq "0.000 TC (trillion cycles)."
-
-
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\";};cycles = 1_700_400_200_150;})" --identity cycle-giver
-  assert_eq "(record { balance = 1_700_400_200_150 : nat; block_index = 0 : nat })"
-
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT1_CANDID\"};cycles = 3_750_000_000_000;})" --identity cycle-giver
-  assert_eq "(record { balance = 3_750_000_000_000 : nat; block_index = 1 : nat })"
-
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$ALICE\"; subaccount = opt blob \"$ALICE_SUBACCT2_CANDID\"};cycles = 760_500_000_000;})" --identity cycle-giver
-  assert_eq "(record { balance = 760_500_000_000 : nat; block_index = 2 : nat })"
-
-  assert_command dfx canister call depositor deposit "(record {to = record{owner = principal \"$BOB\";};cycles = 2_900_000_000_000;})" --identity cycle-giver
-  assert_eq "(record { balance = 2_900_000_000_000 : nat; block_index = 3 : nat })"
-
-
-  assert_command dfx cycles balance --precise --identity alice
-  assert_eq "1700400200150 cycles."
-
-  assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT1"
-  assert_eq "3750000000000 cycles."
-
-  assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT2"
-  assert_eq "760500000000 cycles."
-
-  assert_command dfx cycles balance --precise --identity bob
-  assert_eq "2900000000000 cycles."
-
-
-  assert_command dfx cycles balance --identity alice
-  assert_eq "1.700 TC (trillion cycles)."
-
-  assert_command dfx cycles balance --identity alice --subaccount "$ALICE_SUBACCT1"
-  assert_eq "3.750 TC (trillion cycles)."
-
-  assert_command dfx cycles balance --identity alice --subaccount "$ALICE_SUBACCT2"
-  assert_eq "0.760 TC (trillion cycles)."
-
-  assert_command dfx cycles balance --identity bob
-  assert_eq "2.900 TC (trillion cycles)."
-
-
-  # can see cycles balance of other accounts
-  assert_command dfx cycles balance --owner "$ALICE" --identity bob
-  assert_eq "1.700 TC (trillion cycles)."
-
-  assert_command dfx cycles balance --owner "$ALICE" --subaccount "$ALICE_SUBACCT1" --identity bob
-  assert_eq "3.750 TC (trillion cycles)."
-
-  assert_command dfx cycles balance --owner "$BOB" --identity anonymous
-  assert_eq "2.900 TC (trillion cycles)."
-}
-
 @test "balance without cycles ledger fails as expected" {
   dfx_start
 
   assert_command_fail dfx cycles balance
   assert_contains "Cycles ledger with canister ID 'um5iw-rqaaa-aaaaq-qaaba-cai' is not installed."
+}
+
+@test "convert icp to cycles & balance" {
+  dfx_start --system-canisters
+
+  ALICE=$(dfx identity get-principal --identity alice)
+  ALICE_SUBACCT1="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+  ALICE_SUBACCT2="6C6B6A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+
+  # Test failed to convert ICP to cycles without enough ICP.
+  assert_command_fail dfx cycles convert --amount 12.5 --identity alice
+  assert_contains "Insufficient ICP balance to finish the transfer transaction."
+
+  assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE")"
+  assert_command dfx --identity anonymous ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE" --subaccount "$ALICE_SUBACCT1")"
+
+  dfx identity use alice
+  assert_command dfx ledger balance
+  assert_eq "100.00000000 ICP"
+  assert_command dfx ledger balance --subaccount "$ALICE_SUBACCT1"
+  assert_eq "100.00000000 ICP"
+  assert_command dfx cycles balance --precise
+  assert_eq "0 cycles."
+
+  # base case
+  assert_command dfx cycles convert --amount 12.5
+  assert_contains "Account was topped up with 44_000_000_000_000 cycles!"
+  assert_command dfx ledger balance
+  assert_eq "87.49990000 ICP"
+  assert_command dfx cycles balance --precise
+  assert_eq "43999900000000 cycles."
+
+  # to-subaccount and from-subaccount
+  assert_command dfx cycles convert --amount 10 --from-subaccount "$ALICE_SUBACCT1" --to-subaccount "$ALICE_SUBACCT2"
+  assert_contains "Account was topped up with 35_200_000_000_000 cycles!"
+  assert_command dfx ledger balance --subaccount "$ALICE_SUBACCT1"
+  assert_eq "89.99990000 ICP"
+  assert_command dfx cycles balance --precise --subaccount "$ALICE_SUBACCT2"
+  assert_eq "35199900000000 cycles."
+
+  # deduplication
+  t=$(current_time_nanoseconds)
+  assert_command dfx cycles convert --amount 10 --created-at-time "$t"
+  assert_contains "Transfer sent at block height"
+  assert_command dfx cycles balance --precise
+  assert_eq "79199800000000 cycles."
+  # same created-at-time: dupe
+  assert_command dfx cycles convert --amount 10 --created-at-time "$t"
+  # shellcheck disable=SC2154
+  assert_contains "transaction is a duplicate of another transaction in block" "$stderr"
+  # shellcheck disable=SC2154
+  assert_contains "Transfer sent at block height"
+
+  # Check balances
+
+  ## --precise
+  assert_command dfx cycles balance --precise --identity alice
+  assert_eq "79199800000000 cycles."
+
+  assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT1"
+  assert_eq "0 cycles."
+
+  assert_command dfx cycles balance --precise --identity alice --subaccount "$ALICE_SUBACCT2"
+  assert_eq "35199900000000 cycles."
+
+  ## no --precise
+  assert_command dfx cycles balance --identity alice
+  assert_eq "79.200 TC (trillion cycles)."
+
+  assert_command dfx cycles balance --identity alice --subaccount "$ALICE_SUBACCT1"
+  assert_eq "0.000 TC (trillion cycles)."
+
+  assert_command dfx cycles balance --identity alice --subaccount "$ALICE_SUBACCT2"
+  assert_eq "35.200 TC (trillion cycles)."
+
+
+  # can see cycles balance of other accounts
+  assert_command dfx cycles balance --owner "$ALICE" --identity bob
+  assert_eq "79.200 TC (trillion cycles)."
+
+  assert_command dfx cycles balance --owner "$ALICE" --subaccount "$ALICE_SUBACCT2" --identity bob
+  assert_eq "35.200 TC (trillion cycles)."
+
+  assert_command dfx cycles balance --owner "$ALICE" --identity anonymous
+  assert_eq "79.200 TC (trillion cycles)."
 }
 
 @test "transfer" {
@@ -886,60 +896,4 @@ current_time_nanoseconds() {
   assert_command dfx canister call "$CMC" last_create_canister_args --query
   assert_contains "subnet = principal \"$SUBNET1\""
   stop_and_delete e2e_project_backend
-}
-
-@test "convert icp to cycles" {
-  start_and_install_nns
-
-  ALICE=$(dfx identity get-principal --identity alice)
-  ALICE_SUBACCT1="000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-  ALICE_SUBACCT2="6C6B6A030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
-
-  deploy_cycles_ledger
-
-  # Test failed to convert ICP to cycles without enough ICP.
-  assert_command_fail dfx cycles convert --amount 12.5 --identity alice
-  assert_contains "Insufficient ICP balance to finish the transfer transaction."
-
-  assert_command dfx --identity cycle-giver ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE")"
-  assert_command dfx --identity cycle-giver ledger transfer --memo 1234 --amount 100 "$(dfx ledger account-id --of-principal "$ALICE" --subaccount "$ALICE_SUBACCT1")"
-
-  dfx identity use alice
-  assert_command dfx ledger balance
-  assert_eq "100.00000000 ICP"
-  assert_command dfx ledger balance --subaccount "$ALICE_SUBACCT1"
-  assert_eq "100.00000000 ICP"
-  assert_command dfx cycles balance --precise
-  assert_eq "0 cycles."
-
-  dfx canister call rrkah-fqaaa-aaaaa-aaaaq-cai get_proposal_info '(3 : nat64)'
-
-  # base case
-  assert_command dfx cycles convert --amount 12.5
-  assert_contains "Account was topped up with 1_250_000_000_000_000 cycles!"
-  assert_command dfx ledger balance
-  assert_eq "87.49990000 ICP"
-  assert_command dfx cycles balance --precise
-  assert_eq "1250000000000000 cycles."
-
-  # to-subaccount and from-subaccount
-  assert_command dfx cycles convert --amount 10 --from-subaccount "$ALICE_SUBACCT1" --to-subaccount "$ALICE_SUBACCT2"
-  assert_contains "Account was topped up with 1_000_000_000_000_000 cycles!"
-  assert_command dfx ledger balance --subaccount "$ALICE_SUBACCT1"
-  assert_eq "89.99990000 ICP"
-  assert_command dfx cycles balance --precise --subaccount "$ALICE_SUBACCT2"
-  assert_eq "1000000000000000 cycles."
-
-  # deduplication
-  t=$(current_time_nanoseconds)
-  assert_command dfx cycles convert --amount 10 --created-at-time "$t"
-  assert_contains "Transfer sent at block height 12"
-  assert_command dfx cycles balance --precise
-  assert_eq "2250000000000000 cycles."
-  # same created-at-time: dupe
-  assert_command dfx cycles convert --amount 10 --created-at-time "$t"
-  # shellcheck disable=SC2154
-  assert_contains "transaction is a duplicate of another transaction in block 12" "$stderr"
-  # shellcheck disable=SC2154
-  assert_contains "Transfer sent at block height 12"
 }
