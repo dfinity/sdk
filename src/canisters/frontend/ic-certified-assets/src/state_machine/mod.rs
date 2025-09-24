@@ -727,6 +727,9 @@ impl State {
         }
         self.batches.remove(&batch_id);
         self.certify_404_if_required();
+
+        self.update_ic_env_cookie_in_html_files();
+
         Ok(())
     }
 
@@ -789,6 +792,15 @@ impl State {
             ));
         }
         Ok(())
+    }
+
+    fn update_ic_env_cookie_in_html_files(&mut self) {
+        for (key, asset) in &mut self.assets {
+            if is_html_key(key) {
+                let headers = asset.headers.get_or_insert_default();
+                add_ic_env_cookie(headers, &self.encoded_canister_env);
+            }
+        }
     }
 
     pub fn compute_evidence(
