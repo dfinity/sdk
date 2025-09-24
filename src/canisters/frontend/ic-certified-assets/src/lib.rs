@@ -5,8 +5,7 @@ mod cookies;
 pub mod evidence;
 pub mod state_machine;
 pub mod types;
-mod url_decode;
-mod url_encode;
+mod url;
 
 #[cfg(test)]
 mod tests;

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use ic_cdk::api::{env_var_count, env_var_name, env_var_value, root_key};
 
-use crate::url_encode::url_encode;
+use crate::url::url_encode;
 
 const PUBLIC_ENV_VAR_NAME_PREFIX: &str = "PUBLIC_";
 

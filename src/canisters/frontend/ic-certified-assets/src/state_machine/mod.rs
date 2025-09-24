@@ -30,7 +30,7 @@ use crate::{
     cookies::add_ic_env_cookie,
     evidence::EvidenceComputation::{self, Computed},
     types::*,
-    url_decode::url_decode,
+    url::url_decode,
 };
 use candid::{CandidType, Int, Nat, Principal};
 use ic_certification::{AsHashTree, Hash};

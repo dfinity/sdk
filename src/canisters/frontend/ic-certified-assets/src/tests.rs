@@ -9,7 +9,7 @@ use crate::types::{
     DeleteBatchArguments, GetArg, GetChunkArg, SetAssetContentArguments,
     SetAssetPropertiesArguments,
 };
-use crate::url_decode::{UrlDecodeError, url_decode};
+use crate::url::{UrlDecodeError, url_decode};
 use candid::{Nat, Principal};
 use ic_certification_testing::CertificateBuilder;
 use ic_crypto_tree_hash::Digest;
