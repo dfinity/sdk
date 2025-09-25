@@ -25,6 +25,9 @@ use std::str::FromStr;
 // from ic-response-verification tests
 const MAX_CERT_TIME_OFFSET_NS: u128 = 300_000_000_000;
 
+/// The empty canister env value serialized as a cookie value
+const DEFAULT_IC_ENV_COOKIE_VALUE: &str = "ic_env=ic%5Froot%5Fkey%3D; SameSite=Lax";
+
 fn some_principal() -> Principal {
     Principal::from_text("ryjl3-tyaaa-aaaaa-aaaba-cai").unwrap()
 }
@@ -1251,6 +1254,7 @@ fn supports_getting_and_setting_asset_properties() {
     let canister_env = empty_canister_env();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
+    let set_cookie_header = ("Set-Cookie".into(), DEFAULT_IC_ENV_COOKIE_VALUE.into());
 
     create_assets(
         &mut state,
@@ -1271,10 +1275,10 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/contents.html".into()),
         Ok(AssetProperties {
             max_age: None,
-            headers: Some(HashMap::from([(
-                "Access-Control-Allow-Origin".into(),
-                "*".into()
-            )])),
+            headers: Some(HashMap::from([
+                set_cookie_header.clone(),
+                ("Access-Control-Allow-Origin".into(), "*".into())
+            ])),
             allow_raw_access: None,
             is_aliased: None
         })
@@ -1283,10 +1287,10 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(604800),
-            headers: Some(HashMap::from([(
-                "X-Content-Type-Options".into(),
-                "nosniff".into()
-            )])),
+            headers: Some(HashMap::from([
+                set_cookie_header.clone(),
+                ("X-Content-Type-Options".into(), "nosniff".into())
+            ])),
             allow_raw_access: None,
             is_aliased: None
         })
@@ -1297,10 +1301,10 @@ fn supports_getting_and_setting_asset_properties() {
             .set_asset_properties(SetAssetPropertiesArguments {
                 key: "/max-age.html".into(),
                 max_age: Some(Some(1)),
-                headers: Some(Some(HashMap::from([(
-                    "X-Content-Type-Options".into(),
-                    "nosniff".into()
-                )]))),
+                headers: Some(Some(HashMap::from([
+                    set_cookie_header.clone(),
+                    ("X-Content-Type-Options".into(), "nosniff".into())
+                ]))),
                 allow_raw_access: None,
                 is_aliased: None
             })
@@ -1310,10 +1314,10 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(1),
-            headers: Some(HashMap::from([(
-                "X-Content-Type-Options".into(),
-                "nosniff".into()
-            )])),
+            headers: Some(HashMap::from([
+                set_cookie_header.clone(),
+                ("X-Content-Type-Options".into(), "nosniff".into())
+            ])),
             allow_raw_access: None,
             is_aliased: None
         })
@@ -1334,7 +1338,7 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: None,
-            headers: None,
+            headers: Some(HashMap::from([set_cookie_header.clone()])),
             allow_raw_access: None,
             is_aliased: None
         })
@@ -1345,10 +1349,10 @@ fn supports_getting_and_setting_asset_properties() {
             .set_asset_properties(SetAssetPropertiesArguments {
                 key: "/max-age.html".into(),
                 max_age: Some(Some(1)),
-                headers: Some(Some(HashMap::from([(
-                    "X-Content-Type-Options".into(),
-                    "nosniff".into()
-                )]))),
+                headers: Some(Some(HashMap::from([
+                    set_cookie_header.clone(),
+                    ("X-Content-Type-Options".into(), "nosniff".into())
+                ]))),
                 allow_raw_access: None,
                 is_aliased: None
             })
@@ -1358,10 +1362,10 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(1),
-            headers: Some(HashMap::from([(
-                "X-Content-Type-Options".into(),
-                "nosniff".into()
-            )])),
+            headers: Some(HashMap::from([
+                set_cookie_header.clone(),
+                ("X-Content-Type-Options".into(), "nosniff".into())
+            ])),
             allow_raw_access: None,
             is_aliased: None
         })
@@ -1382,7 +1386,10 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(1),
-            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            headers: Some(HashMap::from([
+                set_cookie_header.clone(),
+                ("new-header".into(), "value".into())
+            ])),
             allow_raw_access: None,
             is_aliased: None
         })
@@ -1403,7 +1410,10 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(2),
-            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            headers: Some(HashMap::from([
+                set_cookie_header.clone(),
+                ("new-header".into(), "value".into())
+            ])),
             allow_raw_access: None,
             is_aliased: None
         })
@@ -1424,7 +1434,10 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(2),
-            headers: Some(HashMap::from([("new-header".into(), "value".into())])),
+            headers: Some(HashMap::from([
+                set_cookie_header.clone(),
+                ("new-header".into(), "value".into())
+            ])),
             allow_raw_access: None,
             is_aliased: Some(false)
         })
@@ -1445,7 +1458,7 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(2),
-            headers: None,
+            headers: Some(HashMap::from([set_cookie_header.clone()])),
             allow_raw_access: None,
             is_aliased: None
         })
@@ -1878,7 +1891,7 @@ mod certificate_expression {
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
-            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "cache-control", "Access-Control-Allow-Origin", "Set-Cookie"]}}}})"#,
             "Missing ic-certifiedexpression header in response: {:#?}",
             response,
         );
@@ -1919,7 +1932,7 @@ mod certificate_expression {
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
-            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "cache-control", "Access-Control-Allow-Origin"]}}}})"#,
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "cache-control", "Set-Cookie", "Access-Control-Allow-Origin"]}}}})"#,
             "Missing ic-certificateexpression header in response: {:#?}",
             response,
         );
