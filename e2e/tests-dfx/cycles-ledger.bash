@@ -354,7 +354,7 @@ current_time_nanoseconds() {
 }
 
 @test "top-up and deposit-cycles" {
-  # Bootstrapping system canisters would make the pocket-ic be in auto_progress mode.
+  # Bootstrapping system canisters turns the pocket-ic auto_progress mode on.
   # Canisters will consume cycles over time as they execute.
   dfx_start --system-canisters
 
