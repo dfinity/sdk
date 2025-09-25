@@ -50,7 +50,7 @@ pub struct StartOpts {
     #[arg(long)]
     clean: bool,
 
-    /// Bootstrap system canisters.
+    /// Bootstraps system canisters.
     #[arg(long)]
     system_canisters: bool,
 
