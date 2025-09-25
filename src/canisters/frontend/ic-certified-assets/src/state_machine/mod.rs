@@ -26,9 +26,9 @@ use crate::{
             rc_bytes::RcBytes,
         },
     },
-    canister_env::CanisterEnv,
     cookies::add_ic_env_cookie,
     evidence::EvidenceComputation::{self, Computed},
+    system_context::SystemContext,
     types::*,
     url::url_decode,
 };
@@ -378,7 +378,7 @@ impl State {
     pub fn set_asset_content(
         &mut self,
         arg: SetAssetContentArguments,
-        now: u64,
+        system_context: &SystemContext,
     ) -> Result<(), String> {
         if arg.chunk_ids.is_empty() && arg.last_chunk.is_none() {
             return Err("encoding must have at least one chunk or contain last_chunk".to_string());
@@ -390,7 +390,7 @@ impl State {
             .get_mut(&arg.key)
             .ok_or_else(|| "asset not found".to_string())?;
 
-        let now = Int::from(now);
+        let now = Int::from(system_context.current_timestamp_ns);
 
         let mut content_chunks = vec![];
         for chunk_id in arg.chunk_ids.iter() {
@@ -531,7 +531,7 @@ impl State {
         Ok(id_enc.content_chunks[0].clone())
     }
 
-    pub fn store(&mut self, arg: StoreArg, time: u64) -> Result<(), String> {
+    pub fn store(&mut self, arg: StoreArg, system_context: &SystemContext) -> Result<(), String> {
         let dependent_keys = self.dependent_keys(&arg.key);
         let asset = self.assets.entry(arg.key.clone()).or_default();
         asset.content_type = arg.content_type;
@@ -547,7 +547,7 @@ impl State {
         let encoding = asset.encodings.entry(arg.content_encoding).or_default();
         encoding.total_length = arg.content.len();
         encoding.content_chunks = vec![RcBytes::from(arg.content)];
-        encoding.modified = Int::from(time);
+        encoding.modified = Int::from(system_context.current_timestamp_ns);
         encoding.sha256 = hash;
 
         on_asset_change(
@@ -560,7 +560,8 @@ impl State {
         Ok(())
     }
 
-    pub fn create_batch(&mut self, now: u64) -> Result<BatchId, String> {
+    pub fn create_batch(&mut self, system_context: &SystemContext) -> Result<BatchId, String> {
+        let now = system_context.current_timestamp_ns;
         self.batches.retain(|_, b| {
             b.expires_at > now || matches!(b.evidence_computation, Some(Computed(_)))
         });
@@ -606,8 +607,12 @@ impl State {
         Ok(batch_id)
     }
 
-    pub fn create_chunk(&mut self, arg: CreateChunkArg, now: u64) -> Result<ChunkId, String> {
-        let ids = self.create_chunks_helper(arg.batch_id, vec![arg.content], now)?;
+    pub fn create_chunk(
+        &mut self,
+        arg: CreateChunkArg,
+        system_context: &SystemContext,
+    ) -> Result<ChunkId, String> {
+        let ids = self.create_chunks_helper(arg.batch_id, vec![arg.content], system_context)?;
         ids.into_iter()
             .next()
             .ok_or_else(|| "Bug: created chunk did not return a chunk id.".to_string())
@@ -619,9 +624,9 @@ impl State {
             batch_id,
             content: chunks,
         }: CreateChunksArg,
-        now: u64,
+        system_context: &SystemContext,
     ) -> Result<Vec<ChunkId>, String> {
-        self.create_chunks_helper(batch_id, chunks, now)
+        self.create_chunks_helper(batch_id, chunks, system_context)
     }
 
     /// Post-condition: `chunks.len() == output_chunk_ids.len()`
@@ -629,7 +634,7 @@ impl State {
         &mut self,
         batch_id: Nat,
         chunks: Vec<ByteBuf>,
-        now: u64,
+        system_context: &SystemContext,
     ) -> Result<Vec<ChunkId>, String> {
         self.check_batch_limits(chunks.len(), chunks.iter().map(|chunk| chunk.len()).sum())?;
         let batch = self
@@ -640,7 +645,7 @@ impl State {
             return Err(format!("batch {} has been proposed", batch_id));
         }
 
-        batch.expires_at = Int::from(now + BATCH_EXPIRY_NANOS);
+        batch.expires_at = Int::from(system_context.current_timestamp_ns + BATCH_EXPIRY_NANOS);
 
         let chunks_len = chunks.len();
 
@@ -710,11 +715,10 @@ impl State {
     pub fn commit_batch(
         &mut self,
         arg: CommitBatchArguments,
-        now: u64,
-        canister_env: &CanisterEnv,
+        system_context: &SystemContext,
     ) -> Result<(), String> {
         // Reload the canister env to get the latest values
-        self.encoded_canister_env = canister_env.to_cookie_value();
+        self.encoded_canister_env = system_context.get_canister_env().to_cookie_value();
 
         let (chunks_added, bytes_added) = self.compute_last_chunk_data(&arg);
         self.check_batch_limits(chunks_added, bytes_added)?;
@@ -723,7 +727,9 @@ impl State {
         for op in arg.operations {
             match op {
                 BatchOperation::CreateAsset(arg) => self.create_asset(arg)?,
-                BatchOperation::SetAssetContent(arg) => self.set_asset_content(arg, now)?,
+                BatchOperation::SetAssetContent(arg) => {
+                    self.set_asset_content(arg, system_context)?
+                }
                 BatchOperation::UnsetAssetContent(arg) => self.unset_asset_content(arg)?,
                 BatchOperation::DeleteAsset(arg) => self.delete_asset(arg),
                 BatchOperation::Clear(_) => self.clear(),
@@ -756,13 +762,12 @@ impl State {
     pub fn commit_proposed_batch(
         &mut self,
         arg: CommitProposedBatchArguments,
-        now: u64,
-        canister_env: &CanisterEnv,
+        system_context: &SystemContext,
     ) -> Result<(), String> {
         self.validate_commit_proposed_batch_args(&arg)?;
         let batch = self.batches.get_mut(&arg.batch_id).unwrap();
         let proposed_batch_arguments = batch.commit_batch_arguments.take().unwrap();
-        self.commit_batch(proposed_batch_arguments, now, canister_env)
+        self.commit_batch(proposed_batch_arguments, system_context)
     }
 
     pub fn validate_commit_proposed_batch(
