@@ -8,6 +8,11 @@ import { MarkdownChipRow } from "/src/components/Chip/MarkdownChipRow";
 The `dfx nns` command is no longer part of dfx, and has now been turned into the dfx extension. In order to obtain it, please run `dfx extension install nns`.
 :::
 
+:::caution
+The `dfx nns install` command is not needed anymore for deploying NNS canisters to the local development environment.
+It is recommended to use `dfx start --system-canisters` instead, which utilizes the built-in system canisters bootstrapping capability provided by PocketIC for a more streamlined setup.
+:::
+
 Use the `dfx nns` subcommands to interact with the Network Nervous System.
 
 The basic syntax for running `dfx nns` commands is:
