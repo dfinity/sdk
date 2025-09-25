@@ -707,9 +707,14 @@ impl State {
         )
     }
 
-    pub fn commit_batch(&mut self, arg: CommitBatchArguments, now: u64) -> Result<(), String> {
+    pub fn commit_batch(
+        &mut self,
+        arg: CommitBatchArguments,
+        now: u64,
+        canister_env: &CanisterEnv,
+    ) -> Result<(), String> {
         // Reload the canister env to get the latest values
-        self.encoded_canister_env = CanisterEnv::load().to_cookie_value();
+        self.encoded_canister_env = canister_env.to_cookie_value();
 
         let (chunks_added, bytes_added) = self.compute_last_chunk_data(&arg);
         self.check_batch_limits(chunks_added, bytes_added)?;
@@ -752,11 +757,12 @@ impl State {
         &mut self,
         arg: CommitProposedBatchArguments,
         now: u64,
+        canister_env: &CanisterEnv,
     ) -> Result<(), String> {
         self.validate_commit_proposed_batch_args(&arg)?;
         let batch = self.batches.get_mut(&arg.batch_id).unwrap();
         let proposed_batch_arguments = batch.commit_batch_arguments.take().unwrap();
-        self.commit_batch(proposed_batch_arguments, now)
+        self.commit_batch(proposed_batch_arguments, now, canister_env)
     }
 
     pub fn validate_commit_proposed_batch(
@@ -795,10 +801,23 @@ impl State {
     }
 
     fn update_ic_env_cookie_in_html_files(&mut self) {
-        for (key, asset) in &mut self.assets {
-            if is_html_key(key) {
-                let headers = asset.headers.get_or_insert_default();
-                add_ic_env_cookie(headers, &self.encoded_canister_env);
+        let assets_keys: Vec<_> = self
+            .assets
+            .keys()
+            .filter(|key| is_html_key(key))
+            .cloned()
+            .collect();
+
+        for key in assets_keys {
+            let dependent_keys = self.dependent_keys(&key);
+            if let Some(asset) = self.assets.get_mut(&key) {
+                on_asset_change(
+                    &mut self.asset_hashes,
+                    &key,
+                    asset,
+                    dependent_keys,
+                    Some(&self.encoded_canister_env),
+                );
             }
         }
     }

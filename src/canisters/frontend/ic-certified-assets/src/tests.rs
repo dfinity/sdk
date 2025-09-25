@@ -2,6 +2,7 @@ use crate::CreateChunksArg;
 use crate::asset_certification::types::http::{
     CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackToken, StreamingStrategy,
 };
+use crate::canister_env::CanisterEnv;
 use crate::state_machine::{BATCH_EXPIRY_NANOS, StableStateV2, State};
 use crate::types::{
     AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CommitProposedBatchArguments,
@@ -30,6 +31,13 @@ fn some_principal() -> Principal {
 
 fn unused_callback() -> CallbackFunc {
     CallbackFunc::new(some_principal(), "unused".to_string())
+}
+
+fn empty_canister_env() -> CanisterEnv {
+    CanisterEnv {
+        ic_root_key: vec![],
+        icp_public_env_vars: HashMap::new(),
+    }
 }
 
 pub fn verify_response(
@@ -198,7 +206,12 @@ impl RequestBuilder {
     }
 }
 
-fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) -> BatchId {
+fn create_assets(
+    state: &mut State,
+    time_now: u64,
+    canister_env: &CanisterEnv,
+    assets: Vec<AssetBuilder>,
+) -> BatchId {
     let batch_id = state.create_batch(time_now).unwrap();
 
     let operations =
@@ -211,6 +224,7 @@ fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) ->
                 operations,
             },
             time_now,
+            canister_env,
         )
         .unwrap();
 
@@ -220,6 +234,7 @@ fn create_assets(state: &mut State, time_now: u64, assets: Vec<AssetBuilder>) ->
 fn create_assets_by_proposal(
     state: &mut State,
     time_now: u64,
+    canister_env: &CanisterEnv,
     assets: Vec<AssetBuilder>,
 ) -> BatchId {
     let batch_id = state.create_batch(time_now).unwrap();
@@ -249,6 +264,7 @@ fn create_assets_by_proposal(
                 evidence,
             },
             time_now,
+            canister_env,
         )
         .unwrap();
 
@@ -332,7 +348,7 @@ impl State {
     }
 
     fn create_test_asset(&mut self, asset: AssetBuilder) {
-        create_assets(self, 100_000_000_000, vec![asset]);
+        create_assets(self, 100_000_000_000, &empty_canister_env(), vec![asset]);
     }
 }
 
@@ -340,12 +356,14 @@ impl State {
 fn can_create_assets_using_batch_api() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
     let batch_id = create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents.html", "text/html").with_encoding("identity", vec![BODY]),
         ],
@@ -385,6 +403,7 @@ fn can_create_assets_using_batch_api() {
 fn serve_correct_encoding_v1() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
 
     const IDENTITY_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
     const GZIP_BODY: &[u8] = b"this is 'gzipped' content";
@@ -392,6 +411,7 @@ fn serve_correct_encoding_v1() {
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![IDENTITY_BODY])
@@ -463,6 +483,7 @@ fn serve_correct_encoding_v1() {
 fn serve_correct_encoding_v2() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
 
     const IDENTITY_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
     const GZIP_BODY: &[u8] = b"this is 'gzipped' content";
@@ -470,6 +491,7 @@ fn serve_correct_encoding_v2() {
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![IDENTITY_BODY])
@@ -516,6 +538,7 @@ fn serve_correct_encoding_v2() {
 fn serve_fallback_v2() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
 
     const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
     const OTHER_BODY: &[u8] = b"<!DOCTYPE html><html>other content</html>";
@@ -523,6 +546,7 @@ fn serve_fallback_v2() {
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY]),
@@ -588,12 +612,14 @@ fn serve_fallback_v2() {
 fn serve_fallback_v1() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
 
     const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY]),
@@ -625,12 +651,14 @@ fn serve_fallback_v1() {
 fn can_create_assets_using_batch_proposal_api() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
     let batch_id = create_assets_by_proposal(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents.html", "text/html").with_encoding("identity", vec![BODY]),
         ],
@@ -896,6 +924,7 @@ fn can_delete_batch_with_chunks() {
 fn returns_index_file_for_missing_assets() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
 
     const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>Index</html>";
     const OTHER_BODY: &[u8] = b"<!DOCTYPE html><html>Other</html>";
@@ -903,6 +932,7 @@ fn returns_index_file_for_missing_assets() {
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY]),
@@ -926,12 +956,14 @@ fn returns_index_file_for_missing_assets() {
 fn preserves_state_on_stable_roundtrip() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
 
     const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>Index</html>";
 
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY]),
@@ -955,6 +987,7 @@ fn preserves_state_on_stable_roundtrip() {
 fn uses_streaming_for_multichunk_assets() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
 
     const INDEX_BODY_CHUNK_1: &[u8] = b"<!DOCTYPE html>";
     const INDEX_BODY_CHUNK_2: &[u8] = b"<html>Index</html>";
@@ -962,6 +995,7 @@ fn uses_streaming_for_multichunk_assets() {
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY_CHUNK_1, INDEX_BODY_CHUNK_2]),
@@ -1011,6 +1045,7 @@ fn uses_streaming_for_multichunk_assets() {
 fn get_and_get_chunk_for_multichunk_assets() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
 
     const INDEX_BODY_CHUNK_0: &[u8] = b"<!DOCTYPE html>";
     const INDEX_BODY_CHUNK_1: &[u8] = b"<html>Index</html>";
@@ -1018,6 +1053,7 @@ fn get_and_get_chunk_for_multichunk_assets() {
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY_CHUNK_0, INDEX_BODY_CHUNK_1]),
@@ -1060,12 +1096,14 @@ fn get_and_get_chunk_for_multichunk_assets() {
 fn supports_max_age_headers() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents.html", "text/html").with_encoding("identity", vec![BODY]),
             AssetBuilder::new("/max-age.html", "text/html")
@@ -1140,12 +1178,14 @@ fn check_url_decode() {
 fn supports_custom_http_headers() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![BODY])
@@ -1208,12 +1248,14 @@ fn supports_custom_http_headers() {
 fn supports_getting_and_setting_asset_properties() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![BODY])
@@ -1414,11 +1456,13 @@ fn supports_getting_and_setting_asset_properties() {
 fn create_asset_fails_if_asset_exists() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
     const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
 
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![FILE_BODY]),
@@ -1444,12 +1488,15 @@ fn create_asset_fails_if_asset_exists() {
 fn support_aliases() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
     const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>index</html>";
     const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
     const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
+
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![FILE_BODY]),
@@ -1492,12 +1539,14 @@ fn support_aliases() {
 fn alias_enable_and_disable() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
     const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
     const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
 
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![FILE_BODY]),
@@ -1535,6 +1584,7 @@ fn alias_enable_and_disable() {
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![FILE_BODY])
@@ -1562,12 +1612,14 @@ fn alias_enable_and_disable() {
 fn alias_behavior_persists_through_upgrade() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
     const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
     const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
 
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![FILE_BODY])
@@ -1613,12 +1665,14 @@ fn alias_behavior_persists_through_upgrade() {
 fn aliasing_name_clash() {
     let mut state = State::default();
     let time_now = 100_000_000_000;
+    let canister_env = empty_canister_env();
     const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
     const FILE_BODY_2: &[u8] = b"<!DOCTYPE html><html>second body</html>";
 
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![FILE_BODY]),
@@ -1631,6 +1685,7 @@ fn aliasing_name_clash() {
     create_assets(
         &mut state,
         time_now,
+        &canister_env,
         vec![
             AssetBuilder::new("/contents", "text/html")
                 .with_encoding("identity", vec![FILE_BODY_2]),
@@ -1780,12 +1835,14 @@ mod certificate_expression {
     fn ic_certificate_expression_present_for_new_assets() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
+        let canister_env = empty_canister_env();
 
         const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
         create_assets(
             &mut state,
             time_now,
+            &canister_env,
             vec![
                 AssetBuilder::new("/contents.html", "text/html")
                     .with_encoding("identity", vec![BODY])
@@ -1831,12 +1888,14 @@ mod certificate_expression {
     fn ic_certificate_expression_gets_updated_on_asset_properties_update() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
+        let canister_env = empty_canister_env();
 
         const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
         create_assets(
             &mut state,
             time_now,
+            &canister_env,
             vec![
                 AssetBuilder::new("/contents.html", "text/html")
                     .with_encoding("gzip", vec![BODY])
@@ -1906,6 +1965,7 @@ mod certification_v2 {
     fn proper_header_structure() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
+        let canister_env = empty_canister_env();
 
         const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
         const UPDATED_BODY: &[u8] = b"<!DOCTYPE html><html>lots of content!</html>";
@@ -1913,6 +1973,7 @@ mod certification_v2 {
         create_assets(
             &mut state,
             time_now,
+            &canister_env,
             vec![
                 AssetBuilder::new("/contents.html", "text/html")
                     .with_encoding("identity", vec![BODY])
@@ -1945,6 +2006,7 @@ mod certification_v2 {
         create_assets(
             &mut state,
             time_now,
+            &canister_env,
             vec![
                 AssetBuilder::new("/contents.html", "text/html")
                     .with_encoding("identity", vec![UPDATED_BODY])
@@ -1971,12 +2033,14 @@ mod certification_v2 {
 
         let mut state = State::default();
         let time_now = 100_000_000_000;
+        let canister_env = empty_canister_env();
 
         const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
         create_assets(
             &mut state,
             time_now,
+            &canister_env,
             vec![
                 AssetBuilder::new("/contents.html", "text/html")
                     .with_encoding("identity", vec![BODY])
@@ -3528,6 +3592,7 @@ mod validate_commit_proposed_batch {
     fn batch_not_found() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
+        let canister_env = empty_canister_env();
 
         match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
             batch_id: 1_u8.into(),
@@ -3543,6 +3608,7 @@ mod validate_commit_proposed_batch {
                 evidence: Default::default(),
             },
             time_now,
+            &canister_env,
         ) {
             Err(err) if err.contains("batch not found") => (),
             other => panic!("expected 'batch not found' error, got: {:?}", other),
@@ -3553,6 +3619,7 @@ mod validate_commit_proposed_batch {
     fn no_commit_batch_arguments() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
+        let canister_env = empty_canister_env();
         let batch_id = state.create_batch(time_now).unwrap();
 
         match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
@@ -3569,6 +3636,7 @@ mod validate_commit_proposed_batch {
                 evidence: Default::default(),
             },
             time_now,
+            &canister_env,
         ) {
             Err(err) if err.contains("batch does not have CommitBatchArguments") => (),
             other => panic!("expected 'batch not found' error, got: {:?}", other),
@@ -3579,6 +3647,7 @@ mod validate_commit_proposed_batch {
     fn evidence_not_computed() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
+        let canister_env = empty_canister_env();
         let batch_id = state.create_batch(time_now).unwrap();
 
         assert!(
@@ -3603,6 +3672,7 @@ mod validate_commit_proposed_batch {
                 evidence: Default::default(),
             },
             time_now,
+            &canister_env,
         ) {
             Err(err) if err.contains("batch does not have computed evidence") => (),
             other => panic!("expected 'batch not found' error, got: {:?}", other),
@@ -3613,6 +3683,7 @@ mod validate_commit_proposed_batch {
     fn evidence_does_not_match() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
+        let canister_env = empty_canister_env();
         let batch_id = state.create_batch(time_now).unwrap();
 
         assert!(
@@ -3646,6 +3717,7 @@ mod validate_commit_proposed_batch {
                 evidence: Default::default(),
             },
             time_now,
+            &canister_env,
         ) {
             Err(err) if err.contains("does not match presented evidence") => (),
             other => panic!("expected 'batch not found' error, got: {:?}", other),
@@ -3656,6 +3728,7 @@ mod validate_commit_proposed_batch {
     fn all_good() {
         let mut state = State::default();
         let time_now = 100_000_000_000;
+        let canister_env = empty_canister_env();
         let batch_id = state.create_batch(time_now).unwrap();
 
         assert!(
@@ -3693,6 +3766,7 @@ mod validate_commit_proposed_batch {
             .commit_proposed_batch(
                 CommitProposedBatchArguments { batch_id, evidence },
                 time_now,
+                &canister_env,
             )
             .unwrap();
     }
