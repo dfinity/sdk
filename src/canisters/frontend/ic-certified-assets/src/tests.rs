@@ -1301,10 +1301,10 @@ fn supports_getting_and_setting_asset_properties() {
             .set_asset_properties(SetAssetPropertiesArguments {
                 key: "/max-age.html".into(),
                 max_age: Some(Some(1)),
-                headers: Some(Some(HashMap::from([
-                    set_cookie_header.clone(),
-                    ("X-Content-Type-Options".into(), "nosniff".into())
-                ]))),
+                headers: Some(Some(HashMap::from([(
+                    "X-Content-Type-Options".into(),
+                    "nosniff".into()
+                )]))),
                 allow_raw_access: None,
                 is_aliased: None
             })
@@ -1349,10 +1349,10 @@ fn supports_getting_and_setting_asset_properties() {
             .set_asset_properties(SetAssetPropertiesArguments {
                 key: "/max-age.html".into(),
                 max_age: Some(Some(1)),
-                headers: Some(Some(HashMap::from([
-                    set_cookie_header.clone(),
-                    ("X-Content-Type-Options".into(), "nosniff".into())
-                ]))),
+                headers: Some(Some(HashMap::from([(
+                    "X-Content-Type-Options".into(),
+                    "nosniff".into()
+                )]))),
                 allow_raw_access: None,
                 is_aliased: None
             })
