@@ -2,6 +2,11 @@
 
 # UNRELEASED
 
+### feat: `dfx start --system-canisters` for bootstrapping system cansiters
+
+This new flag utilizes the built-in system canisters bootstrapping capability provided by PocketIC v10.
+`dfx nns install` is not needed anymore.
+
 # 0.29.2
 
 ### Frontend canister
