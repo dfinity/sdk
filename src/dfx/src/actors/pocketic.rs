@@ -415,7 +415,7 @@ async fn initialize_pocketic(
             nns_governance: Some(IcpFeaturesConfig::default()),
             sns: Some(IcpFeaturesConfig::default()),
             ii: Some(IcpFeaturesConfig::default()),
-            // FIXME: if the `nns_ui` feature is enabled, the pocket-ic instance creation will fail with errors like:
+            // FIXME(SDK-2346): if the `nns_ui` feature is enabled, the pocket-ic instance creation will fail with errors like:
             // `Failed to initialize PocketIC: HTTP status client error (400 Bad Request) for url (http://localhost:56833/instances)`
             nns_ui: None,
         })
