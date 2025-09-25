@@ -46,9 +46,7 @@ teardown() {
   dfx_start
   # nojwb-ieaaa-aaaaa-aaaaa-cai is the canister ID of (u64::MAX / 2 + 1)
   assert_command_fail dfx canister create e2e_project_backend --specified-id nojwb-ieaaa-aaaaa-aaaaa-cai
-
-  assert_match "The effective canister ID nojwb-ieaaa-aaaaa-aaaaa-cai does not belong to an existing subnet and it is not a mainnet canister ID."
-
+  assert_match "The specified canister ID nojwb-ieaaa-aaaaa-aaaaa-cai is out of range. Hint: A mainnet canister ID is normally valid here."
 }
 
 @test "create fails if set both --all and --specified-id" {

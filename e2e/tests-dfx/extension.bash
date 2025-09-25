@@ -142,8 +142,7 @@ EOF
 }
 
 @test "run an extension command with a canister type defined by another extension" {
-  install_shared_asset subnet_type/shared_network_settings/system
-  dfx_start_for_nns_install
+  dfx_start
 
   install_asset wasm/identity
   CACHE_DIR=$(dfx cache show)
@@ -185,7 +184,7 @@ EOF
 EOF
 
   dfx extension install nns --version 0.5.4
-  dfx nns install
+  dfx nns import
 }
 
 

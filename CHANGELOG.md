@@ -2,6 +2,20 @@
 
 # UNRELEASED
 
+### feat: `dfx start --system-canisters` for bootstrapping system canisters
+
+This new flag utilizes the built-in system canisters bootstrapping capability provided by PocketIC v10.
+`dfx nns install` is not needed anymore.
+
+When using `dfx start --system-canisters`, there's no option to specify accounts to have initial balances like you can with `dfx nns install --ledger-accounts <account-ids>`.
+However, the anonymous identity's account comes with an initial balance of 1 Billion ICP. You can transfer some of these ICP tokens to your own account on the ICP ledger. Then convert some ICP into cycles balance on the cycles-ledger.
+
+```sh
+YOUR_ACCOUNT_ID="$(dfx ledger account-id)"
+dfx ledger --identity anonymous transfer --memo 1 --icp 1000000 "$YOUR_ACCOUNT_ID"
+dfx cycles convert --amount 100
+```
+
 # 0.29.2
 
 ### Frontend canister
