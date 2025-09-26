@@ -1657,7 +1657,9 @@ fn aliasing_name_clash() {
 }
 
 #[test]
-fn headers_deserialize_from_hashmap_to_btreemap() {
+fn headers_cbor_deserialize_from_hashmap_to_btreemap() {
+    // We want to make sure that deserializing from a HashMap to a BTreeMap works
+    // so that frontend canister upgrades don't break
     for i in 0..100 {
         let old_headers: HashMap<String, String> = HashMap::from([
             // Order is not alphabetical on purpose here
@@ -1694,10 +1696,15 @@ fn headers_candid_hashmap_btreemap_roundtrip() {
             ("d-name".into(), "d-value".into()),
             ("index".into(), i.to_string()),
         ]);
-        let serialized = candid::encode_one(old_headers).unwrap();
-        let new_headers: BTreeMap<String, String> = candid::decode_one(&serialized).unwrap();
+
+        // Deserialize to BTreeMap
+        let old_serialized = candid::encode_one(&old_headers).unwrap();
+        let new_headers: BTreeMap<String, String> = candid::decode_one(&old_serialized).unwrap();
         assert_eq!(
-            new_headers.into_iter().collect::<Vec<(String, String)>>(),
+            new_headers
+                .clone()
+                .into_iter()
+                .collect::<Vec<(String, String)>>(),
             vec![
                 ("a-name".into(), "a-value".into()),
                 ("b-name".into(), "b-value".into()),
@@ -1705,6 +1712,15 @@ fn headers_candid_hashmap_btreemap_roundtrip() {
                 ("d-name".into(), "d-value".into()),
                 ("index".into(), i.to_string()),
             ]
+        );
+
+        // Go back to HashMap
+        let new_serialized = candid::encode_one(new_headers).unwrap();
+        let old_deserialized: HashMap<String, String> =
+            candid::decode_one(&new_serialized).unwrap();
+        assert_eq!(
+            old_deserialized, old_headers,
+            "Old headers don't match, iteration: {i}",
         );
     }
 }
