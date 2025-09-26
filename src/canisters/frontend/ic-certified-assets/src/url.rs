@@ -1,6 +1,6 @@
 use std::fmt;
 
-use percent_encoding::percent_decode_str;
+use percent_encoding::{NON_ALPHANUMERIC, percent_decode_str, utf8_percent_encode};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum UrlDecodeError {
@@ -31,4 +31,11 @@ pub fn url_decode(url: &str) -> Result<String, UrlDecodeError> {
         Ok(result) => Ok(result.to_string()),
         Err(_) => Err(UrlDecodeError::InvalidPercentEncoding),
     }
+}
+
+/// Encodes a percent encoded string according to https://url.spec.whatwg.org/#percent-encode
+///
+/// This is a wrapper around the percent-encoding crate.
+pub fn url_encode(url: &str) -> String {
+    utf8_percent_encode(url, NON_ALPHANUMERIC).to_string()
 }
