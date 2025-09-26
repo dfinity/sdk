@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed `CreateAssetArguments.headers` to use `BTreeMap<String, String>` instead of `HashMap<String, String>`
   - Changed `AssetProperties.headers` to use `BTreeMap<String, String>` instead of `HashMap<String, String>`
   - Changed `SetAssetPropertiesArguments.headers` to use `BTreeMap<String, String>` instead of `HashMap<String, String>`
+- **BREAKING**: Sets the `ic_env` cookie for html files, which contains the root key and the canister environment variables that are prefixed with `PUBLIC_`. Please note that this version of the `ic-certified-assets` is only compatible with PocketIC **v10** and above.
 
 #### Migration guide
 

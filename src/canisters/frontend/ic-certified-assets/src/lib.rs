@@ -1,9 +1,11 @@
 //! This module declares canister methods expected by the assets canister client.
 pub mod asset_certification;
+mod canister_env;
+mod cookies;
 pub mod evidence;
 pub mod state_machine;
 pub mod types;
-mod url_decode;
+mod url;
 
 #[cfg(test)]
 mod tests;
@@ -14,6 +16,7 @@ use crate::{
         CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackHttpResponse,
         StreamingCallbackToken,
     },
+    canister_env::CanisterEnv,
     state_machine::{AssetDetails, CertifiedTree, EncodedAsset, State},
     types::*,
 };
@@ -191,8 +194,10 @@ pub fn clear() {
 }
 
 pub fn commit_batch(arg: CommitBatchArguments) {
+    let canister_env = CanisterEnv::load();
+
     with_state_mut(|s| {
-        if let Err(msg) = s.commit_batch(arg, time()) {
+        if let Err(msg) = s.commit_batch(arg, time(), &canister_env) {
             trap(&msg);
         }
         certified_data_set(s.root_hash());
@@ -216,8 +221,10 @@ pub fn compute_evidence(arg: ComputeEvidenceArguments) -> Option<ic_certified_as
 }
 
 pub fn commit_proposed_batch(arg: CommitProposedBatchArguments) {
+    let canister_env = CanisterEnv::load();
+
     with_state_mut(|s| {
-        if let Err(msg) = s.commit_proposed_batch(arg, time()) {
+        if let Err(msg) = s.commit_proposed_batch(arg, time(), &canister_env) {
             trap(&msg);
         }
         certified_data_set(s.root_hash());

@@ -26,9 +26,11 @@ use crate::{
             rc_bytes::RcBytes,
         },
     },
-    evidence::{EvidenceComputation, EvidenceComputation::Computed},
+    canister_env::CanisterEnv,
+    cookies::add_ic_env_cookie,
+    evidence::EvidenceComputation::{self, Computed},
     types::*,
-    url_decode::url_decode,
+    url::url_decode,
 };
 use candid::{CandidType, Int, Nat, Principal};
 use ic_certification::{AsHashTree, Hash};
@@ -232,6 +234,8 @@ pub struct State {
     manage_permissions_principals: BTreeSet<Principal>,
 
     asset_hashes: CertifiedResponses,
+
+    encoded_canister_env: String,
 }
 
 impl Asset {
@@ -356,6 +360,7 @@ impl State {
         if self.assets.contains_key(&arg.key) {
             return Err("asset already exists".to_string());
         }
+
         self.assets.insert(
             arg.key,
             Asset {
@@ -422,7 +427,13 @@ impl State {
         };
         asset.encodings.insert(arg.content_encoding, enc);
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
+        on_asset_change(
+            &mut self.asset_hashes,
+            &arg.key,
+            asset,
+            dependent_keys,
+            Some(&self.encoded_canister_env),
+        );
 
         Ok(())
     }
@@ -435,7 +446,13 @@ impl State {
             .ok_or_else(|| "asset not found".to_string())?;
 
         if asset.encodings.remove(&arg.content_encoding).is_some() {
-            on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
+            on_asset_change(
+                &mut self.asset_hashes,
+                &arg.key,
+                asset,
+                dependent_keys,
+                None,
+            );
         }
 
         Ok(())
@@ -458,7 +475,7 @@ impl State {
             if self.assets.contains_key(&key) {
                 let dependent_keys = self.dependent_keys(&key);
                 if let Some(asset) = self.assets.get_mut(&key) {
-                    on_asset_change(&mut self.asset_hashes, &key, asset, dependent_keys);
+                    on_asset_change(&mut self.asset_hashes, &key, asset, dependent_keys, None);
                 }
             }
         }
@@ -533,7 +550,13 @@ impl State {
         encoding.modified = Int::from(time);
         encoding.sha256 = hash;
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
+        on_asset_change(
+            &mut self.asset_hashes,
+            &arg.key,
+            asset,
+            dependent_keys,
+            Some(&self.encoded_canister_env),
+        );
         Ok(())
     }
 
@@ -684,7 +707,15 @@ impl State {
         )
     }
 
-    pub fn commit_batch(&mut self, arg: CommitBatchArguments, now: u64) -> Result<(), String> {
+    pub fn commit_batch(
+        &mut self,
+        arg: CommitBatchArguments,
+        now: u64,
+        canister_env: &CanisterEnv,
+    ) -> Result<(), String> {
+        // Reload the canister env to get the latest values
+        self.encoded_canister_env = canister_env.to_cookie_value();
+
         let (chunks_added, bytes_added) = self.compute_last_chunk_data(&arg);
         self.check_batch_limits(chunks_added, bytes_added)?;
 
@@ -701,6 +732,9 @@ impl State {
         }
         self.batches.remove(&batch_id);
         self.certify_404_if_required();
+
+        self.update_ic_env_cookie_in_html_files();
+
         Ok(())
     }
 
@@ -723,11 +757,12 @@ impl State {
         &mut self,
         arg: CommitProposedBatchArguments,
         now: u64,
+        canister_env: &CanisterEnv,
     ) -> Result<(), String> {
         self.validate_commit_proposed_batch_args(&arg)?;
         let batch = self.batches.get_mut(&arg.batch_id).unwrap();
         let proposed_batch_arguments = batch.commit_batch_arguments.take().unwrap();
-        self.commit_batch(proposed_batch_arguments, now)
+        self.commit_batch(proposed_batch_arguments, now, canister_env)
     }
 
     pub fn validate_commit_proposed_batch(
@@ -763,6 +798,28 @@ impl State {
             ));
         }
         Ok(())
+    }
+
+    fn update_ic_env_cookie_in_html_files(&mut self) {
+        let assets_keys: Vec<_> = self
+            .assets
+            .keys()
+            .filter(|key| is_html_key(key))
+            .cloned()
+            .collect();
+
+        for key in assets_keys {
+            let dependent_keys = self.dependent_keys(&key);
+            if let Some(asset) = self.assets.get_mut(&key) {
+                on_asset_change(
+                    &mut self.asset_hashes,
+                    &key,
+                    asset,
+                    dependent_keys,
+                    Some(&self.encoded_canister_env),
+                );
+            }
+        }
     }
 
     pub fn compute_evidence(
@@ -1058,7 +1115,13 @@ impl State {
             asset.is_aliased = is_aliased
         }
 
-        on_asset_change(&mut self.asset_hashes, &arg.key, asset, dependent_keys);
+        on_asset_change(
+            &mut self.asset_hashes,
+            &arg.key,
+            asset,
+            dependent_keys,
+            Some(&self.encoded_canister_env),
+        );
 
         Ok(())
     }
@@ -1167,7 +1230,8 @@ impl From<StableStateV2> for State {
                 for enc in asset.encodings.values_mut() {
                     enc.certified = false;
                 }
-                on_asset_change(&mut state.asset_hashes, &key, asset, dependent_keys);
+                // Do not pass the canister env here, because we want to load the assets as they are (with the old cookie value)
+                on_asset_change(&mut state.asset_hashes, &key, asset, dependent_keys, None);
             } else {
                 // shouldn't reach this
             }
@@ -1208,6 +1272,7 @@ fn on_asset_change(
     key: &str,
     asset: &mut Asset,
     dependent_keys: Vec<AssetKey>,
+    encoded_canister_env: Option<&String>,
 ) {
     let mut affected_keys = dependent_keys;
     affected_keys.push(key.to_string());
@@ -1222,6 +1287,14 @@ fn on_asset_change(
         enc.certified = false;
     }
 
+    // Add ic_env cookie for html files, if the cookie value (canister env) is provided
+    if let Some(encoded_canister_env) = encoded_canister_env {
+        if is_html_key(key) {
+            let headers = asset.headers.get_or_insert_default();
+            add_ic_env_cookie(headers, encoded_canister_env);
+        }
+    }
+
     asset.update_ic_certificate_expressions();
 
     let most_important_encoding_v1 = asset.most_important_encoding_v1();
@@ -1232,6 +1305,7 @@ fn on_asset_change(
         headers,
         ..
     } = asset;
+
     // Insert certified response values into hash_tree
     // Once certification v1 support is removed, encoding_certification_order().iter() can be replaced with asset.encodings.iter_mut()
     for enc_name in encoding_certification_order(encodings.keys()).iter() {
@@ -1298,7 +1372,7 @@ fn insert_new_response_hashes_for_encoding(
 fn aliases_of(key: &AssetKey) -> Vec<AssetKey> {
     if key.ends_with('/') {
         vec![format!("{}index.html", key)]
-    } else if !key.ends_with(".html") {
+    } else if !is_html_key(key) {
         vec![format!("{}.html", key), format!("{}/index.html", key)]
     } else {
         Vec::new()
@@ -1319,9 +1393,13 @@ fn aliased_by(key: &AssetKey) -> Vec<AssetKey> {
             key[..(key.len() - 10)].into(),
             key[..(key.len() - 11)].to_string(),
         ]
-    } else if key.ends_with(".html") {
+    } else if is_html_key(key) {
         vec![key[..(key.len() - 5)].to_string()]
     } else {
         Vec::new()
     }
+}
+
+fn is_html_key<T: AsRef<str>>(key: T) -> bool {
+    key.as_ref().ends_with(".html")
 }
