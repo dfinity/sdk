@@ -2,8 +2,9 @@ use crate::CreateChunksArg;
 use crate::asset_certification::types::http::{
     CallbackFunc, HttpRequest, HttpResponse, StreamingCallbackToken, StreamingStrategy,
 };
-use crate::canister_env::CanisterEnv;
 use crate::state_machine::{BATCH_EXPIRY_NANOS, StableStateV2, State};
+use crate::system_context::SystemContext;
+use crate::system_context::canister_env::CanisterEnv;
 use crate::types::{
     AssetProperties, BatchId, BatchOperation, CommitBatchArguments, CommitProposedBatchArguments,
     ComputeEvidenceArguments, CreateAssetArguments, CreateChunkArg, DeleteAssetArguments,
@@ -36,11 +37,14 @@ fn unused_callback() -> CallbackFunc {
     CallbackFunc::new(some_principal(), "unused".to_string())
 }
 
-fn empty_canister_env() -> CanisterEnv {
-    CanisterEnv {
-        ic_root_key: vec![],
-        icp_public_env_vars: HashMap::new(),
-    }
+fn mock_system_context() -> SystemContext {
+    SystemContext::new_with_options(
+        Some(CanisterEnv {
+            ic_root_key: vec![],
+            icp_public_env_vars: HashMap::new(),
+        }),
+        100_000_000_000,
+    )
 }
 
 pub fn verify_response(
@@ -211,14 +215,17 @@ impl RequestBuilder {
 
 fn create_assets(
     state: &mut State,
-    time_now: u64,
-    canister_env: &CanisterEnv,
+    system_context: &SystemContext,
     assets: Vec<AssetBuilder>,
 ) -> BatchId {
-    let batch_id = state.create_batch(time_now).unwrap();
+    let batch_id = state.create_batch(system_context).unwrap();
 
-    let operations =
-        assemble_create_assets_and_set_contents_operations(state, time_now, assets, &batch_id);
+    let operations = assemble_create_assets_and_set_contents_operations(
+        state,
+        system_context,
+        assets,
+        &batch_id,
+    );
 
     state
         .commit_batch(
@@ -226,8 +233,7 @@ fn create_assets(
                 batch_id: batch_id.clone(),
                 operations,
             },
-            time_now,
-            canister_env,
+            system_context,
         )
         .unwrap();
 
@@ -236,14 +242,17 @@ fn create_assets(
 
 fn create_assets_by_proposal(
     state: &mut State,
-    time_now: u64,
-    canister_env: &CanisterEnv,
+    system_context: &SystemContext,
     assets: Vec<AssetBuilder>,
 ) -> BatchId {
-    let batch_id = state.create_batch(time_now).unwrap();
+    let batch_id = state.create_batch(system_context).unwrap();
 
-    let operations =
-        assemble_create_assets_and_set_contents_operations(state, time_now, assets, &batch_id);
+    let operations = assemble_create_assets_and_set_contents_operations(
+        state,
+        system_context,
+        assets,
+        &batch_id,
+    );
 
     state
         .propose_commit_batch(CommitBatchArguments {
@@ -266,8 +275,7 @@ fn create_assets_by_proposal(
                 batch_id: batch_id.clone(),
                 evidence,
             },
-            time_now,
-            canister_env,
+            system_context,
         )
         .unwrap();
 
@@ -276,7 +284,7 @@ fn create_assets_by_proposal(
 
 fn assemble_create_assets_and_set_contents_operations(
     state: &mut State,
-    time_now: u64,
+    system_context: &SystemContext,
     assets: Vec<AssetBuilder>,
     batch_id: &BatchId,
 ) -> Vec<BatchOperation> {
@@ -307,7 +315,7 @@ fn assemble_create_assets_and_set_contents_operations(
                                 batch_id: batch_id.clone(),
                                 content: chunk,
                             },
-                            time_now,
+                            system_context,
                         )
                         .unwrap(),
                 );
@@ -351,22 +359,20 @@ impl State {
     }
 
     fn create_test_asset(&mut self, asset: AssetBuilder) {
-        create_assets(self, 100_000_000_000, &empty_canister_env(), vec![asset]);
+        create_assets(self, &mock_system_context(), vec![asset]);
     }
 }
 
 #[test]
 fn can_create_assets_using_batch_api() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
     let batch_id = create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents.html", "text/html").with_encoding("identity", vec![BODY]),
         ],
@@ -389,7 +395,7 @@ fn can_create_assets_using_batch_api() {
                 batch_id,
                 content: ByteBuf::new(),
             },
-            time_now,
+            &system_context,
         )
         .unwrap_err();
 
@@ -405,16 +411,14 @@ fn can_create_assets_using_batch_api() {
 #[test]
 fn serve_correct_encoding_v1() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
 
     const IDENTITY_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
     const GZIP_BODY: &[u8] = b"this is 'gzipped' content";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![IDENTITY_BODY])
@@ -485,16 +489,14 @@ fn serve_correct_encoding_v1() {
 #[test]
 fn serve_correct_encoding_v2() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
 
     const IDENTITY_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
     const GZIP_BODY: &[u8] = b"this is 'gzipped' content";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![IDENTITY_BODY])
@@ -540,16 +542,14 @@ fn serve_correct_encoding_v2() {
 #[test]
 fn serve_fallback_v2() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
 
     const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
     const OTHER_BODY: &[u8] = b"<!DOCTYPE html><html>other content</html>";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY]),
@@ -614,15 +614,13 @@ fn serve_fallback_v2() {
 #[test]
 fn serve_fallback_v1() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
 
     const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY]),
@@ -653,15 +651,13 @@ fn serve_fallback_v1() {
 #[test]
 fn can_create_assets_using_batch_proposal_api() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
     let batch_id = create_assets_by_proposal(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents.html", "text/html").with_encoding("identity", vec![BODY]),
         ],
@@ -684,7 +680,7 @@ fn can_create_assets_using_batch_proposal_api() {
                 batch_id,
                 content: ByteBuf::new(),
             },
-            time_now,
+            &system_context,
         )
         .unwrap_err();
 
@@ -700,9 +696,9 @@ fn can_create_assets_using_batch_proposal_api() {
 #[test]
 fn batches_are_dropped_after_timeout() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
+    let mut system_context = mock_system_context();
 
-    let batch_1 = state.create_batch(time_now).unwrap();
+    let batch_1 = state.create_batch(&system_context).unwrap();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
@@ -712,19 +708,20 @@ fn batches_are_dropped_after_timeout() {
                 batch_id: batch_1.clone(),
                 content: ByteBuf::from(BODY.to_vec()),
             },
-            time_now,
+            &system_context,
         )
         .unwrap();
 
-    let time_now = time_now + BATCH_EXPIRY_NANOS + 1;
-    let _batch_2 = state.create_batch(time_now);
+    system_context.current_timestamp_ns =
+        system_context.current_timestamp_ns + BATCH_EXPIRY_NANOS + 1;
+    let _batch_2 = state.create_batch(&system_context);
 
     match state.create_chunk(
         CreateChunkArg {
             batch_id: batch_1,
             content: ByteBuf::from(BODY.to_vec()),
         },
-        time_now,
+        &system_context,
     ) {
         Err(err) if err.contains("batch not found") => (),
         other => panic!("expected 'batch not found' error, got: {:?}", other),
@@ -734,9 +731,9 @@ fn batches_are_dropped_after_timeout() {
 #[test]
 fn can_propose_commit_batch_exactly_once() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
+    let system_context = mock_system_context();
 
-    let batch_1 = state.create_batch(time_now).unwrap();
+    let batch_1 = state.create_batch(&system_context).unwrap();
 
     let args = CommitBatchArguments {
         batch_id: batch_1.clone(),
@@ -757,9 +754,9 @@ fn can_propose_commit_batch_exactly_once() {
 #[test]
 fn cannot_create_chunk_in_proposed_batch_() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
+    let system_context = mock_system_context();
 
-    let batch_1 = state.create_batch(time_now).unwrap();
+    let batch_1 = state.create_batch(&system_context).unwrap();
 
     let args = CommitBatchArguments {
         batch_id: batch_1.clone(),
@@ -773,7 +770,7 @@ fn cannot_create_chunk_in_proposed_batch_() {
             batch_id: batch_1.clone(),
             content: ByteBuf::from(BODY.to_vec()),
         },
-        time_now,
+        &system_context,
     ) {
         Err(err) if err == format!("batch {} has been proposed", batch_1) => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
@@ -783,7 +780,7 @@ fn cannot_create_chunk_in_proposed_batch_() {
             batch_id: batch_1.clone(),
             content: vec![ByteBuf::from(BODY.to_vec())],
         },
-        time_now,
+        &system_context,
     ) {
         Err(err) if err == format!("batch {} has been proposed", batch_1) => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
@@ -793,9 +790,9 @@ fn cannot_create_chunk_in_proposed_batch_() {
 #[test]
 fn batches_with_proposed_commit_args_do_not_expire() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
+    let mut system_context = mock_system_context();
 
-    let batch_1 = state.create_batch(time_now).unwrap();
+    let batch_1 = state.create_batch(&system_context).unwrap();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
@@ -805,7 +802,7 @@ fn batches_with_proposed_commit_args_do_not_expire() {
                 batch_id: batch_1.clone(),
                 content: ByteBuf::from(BODY.to_vec()),
             },
-            time_now,
+            &system_context,
         )
         .unwrap();
 
@@ -815,15 +812,16 @@ fn batches_with_proposed_commit_args_do_not_expire() {
     };
     assert_eq!(Ok(()), state.propose_commit_batch(args));
 
-    let time_now = time_now + BATCH_EXPIRY_NANOS + 1;
-    let _batch_2 = state.create_batch(time_now);
+    system_context.current_timestamp_ns =
+        system_context.current_timestamp_ns + BATCH_EXPIRY_NANOS + 1;
+    let _batch_2 = state.create_batch(&system_context);
 
     match state.create_chunk(
         CreateChunkArg {
             batch_id: batch_1,
             content: ByteBuf::from(BODY.to_vec()),
         },
-        time_now,
+        &system_context,
     ) {
         Err(err) if err.contains("batch not found") => (),
         other => panic!("expected 'batch not found' error, got: {:?}", other),
@@ -833,9 +831,9 @@ fn batches_with_proposed_commit_args_do_not_expire() {
 #[test]
 fn batches_with_evidence_do_not_expire() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
+    let mut system_context = mock_system_context();
 
-    let batch_1 = state.create_batch(time_now).unwrap();
+    let batch_1 = state.create_batch(&system_context).unwrap();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
@@ -845,7 +843,7 @@ fn batches_with_evidence_do_not_expire() {
                 batch_id: batch_1.clone(),
                 content: ByteBuf::from(BODY.to_vec()),
             },
-            time_now,
+            &system_context,
         )
         .unwrap();
 
@@ -862,15 +860,16 @@ fn batches_with_evidence_do_not_expire() {
         Ok(Some(_))
     ));
 
-    let time_now = time_now + BATCH_EXPIRY_NANOS + 1;
-    let _batch_2 = state.create_batch(time_now);
+    system_context.current_timestamp_ns =
+        system_context.current_timestamp_ns + BATCH_EXPIRY_NANOS + 1;
+    let _batch_2 = state.create_batch(&system_context);
 
     match state.create_chunk(
         CreateChunkArg {
             batch_id: batch_1.clone(),
             content: ByteBuf::from(BODY.to_vec()),
         },
-        time_now,
+        &system_context,
     ) {
         Err(err) if err == format!("batch {} has been proposed", batch_1) => {}
         other => panic!("expected batch already proposed error, got: {:?}", other),
@@ -880,9 +879,9 @@ fn batches_with_evidence_do_not_expire() {
 #[test]
 fn can_delete_proposed_batch() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
+    let system_context = mock_system_context();
 
-    let batch_1 = state.create_batch(time_now).unwrap();
+    let batch_1 = state.create_batch(&system_context).unwrap();
 
     let args = CommitBatchArguments {
         batch_id: batch_1.clone(),
@@ -900,9 +899,9 @@ fn can_delete_proposed_batch() {
 #[test]
 fn can_delete_batch_with_chunks() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
+    let system_context = mock_system_context();
 
-    let batch_1 = state.create_batch(time_now).unwrap();
+    let batch_1 = state.create_batch(&system_context).unwrap();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
     let _chunk_1 = state
@@ -911,7 +910,7 @@ fn can_delete_batch_with_chunks() {
                 batch_id: batch_1.clone(),
                 content: ByteBuf::from(BODY.to_vec()),
             },
-            time_now,
+            &system_context,
         )
         .unwrap();
 
@@ -926,16 +925,14 @@ fn can_delete_batch_with_chunks() {
 #[test]
 fn returns_index_file_for_missing_assets() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
 
     const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>Index</html>";
     const OTHER_BODY: &[u8] = b"<!DOCTYPE html><html>Other</html>";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY]),
@@ -958,15 +955,13 @@ fn returns_index_file_for_missing_assets() {
 #[test]
 fn preserves_state_on_stable_roundtrip() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
 
     const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>Index</html>";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY]),
@@ -989,16 +984,14 @@ fn preserves_state_on_stable_roundtrip() {
 #[test]
 fn uses_streaming_for_multichunk_assets() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
 
     const INDEX_BODY_CHUNK_1: &[u8] = b"<!DOCTYPE html>";
     const INDEX_BODY_CHUNK_2: &[u8] = b"<html>Index</html>";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY_CHUNK_1, INDEX_BODY_CHUNK_2]),
@@ -1047,16 +1040,14 @@ fn uses_streaming_for_multichunk_assets() {
 #[test]
 fn get_and_get_chunk_for_multichunk_assets() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
 
     const INDEX_BODY_CHUNK_0: &[u8] = b"<!DOCTYPE html>";
     const INDEX_BODY_CHUNK_1: &[u8] = b"<html>Index</html>";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/index.html", "text/html")
                 .with_encoding("identity", vec![INDEX_BODY_CHUNK_0, INDEX_BODY_CHUNK_1]),
@@ -1098,15 +1089,13 @@ fn get_and_get_chunk_for_multichunk_assets() {
 #[test]
 fn supports_max_age_headers() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents.html", "text/html").with_encoding("identity", vec![BODY]),
             AssetBuilder::new("/max-age.html", "text/html")
@@ -1180,15 +1169,13 @@ fn check_url_decode() {
 #[test]
 fn supports_custom_http_headers() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![BODY])
@@ -1250,16 +1237,14 @@ fn supports_custom_http_headers() {
 #[test]
 fn supports_getting_and_setting_asset_properties() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
 
     const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
     let set_cookie_header = ("Set-Cookie".into(), DEFAULT_IC_ENV_COOKIE_VALUE.into());
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![BODY])
@@ -1471,14 +1456,12 @@ fn supports_getting_and_setting_asset_properties() {
 #[test]
 fn create_asset_fails_if_asset_exists() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
     const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![FILE_BODY]),
@@ -1503,16 +1486,14 @@ fn create_asset_fails_if_asset_exists() {
 #[test]
 fn support_aliases() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
     const INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>index</html>";
     const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
     const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![FILE_BODY]),
@@ -1554,15 +1535,13 @@ fn support_aliases() {
 #[test]
 fn alias_enable_and_disable() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
     const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
     const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![FILE_BODY]),
@@ -1599,8 +1578,7 @@ fn alias_enable_and_disable() {
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![FILE_BODY])
@@ -1627,15 +1605,13 @@ fn alias_enable_and_disable() {
 #[test]
 fn alias_behavior_persists_through_upgrade() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
     const SUBDIR_INDEX_BODY: &[u8] = b"<!DOCTYPE html><html>subdir index</html>";
     const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![FILE_BODY])
@@ -1680,15 +1656,13 @@ fn alias_behavior_persists_through_upgrade() {
 #[test]
 fn aliasing_name_clash() {
     let mut state = State::default();
-    let time_now = 100_000_000_000;
-    let canister_env = empty_canister_env();
+    let system_context = mock_system_context();
     const FILE_BODY: &[u8] = b"<!DOCTYPE html><html>file body</html>";
     const FILE_BODY_2: &[u8] = b"<!DOCTYPE html><html>second body</html>";
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents.html", "text/html")
                 .with_encoding("identity", vec![FILE_BODY]),
@@ -1700,8 +1674,7 @@ fn aliasing_name_clash() {
 
     create_assets(
         &mut state,
-        time_now,
-        &canister_env,
+        &system_context,
         vec![
             AssetBuilder::new("/contents", "text/html")
                 .with_encoding("identity", vec![FILE_BODY_2]),
@@ -1919,15 +1892,13 @@ mod certificate_expression {
     #[test]
     fn ic_certificate_expression_present_for_new_assets() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
-        let canister_env = empty_canister_env();
+        let system_context = mock_system_context();
 
         const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
         create_assets(
             &mut state,
-            time_now,
-            &canister_env,
+            &system_context,
             vec![
                 AssetBuilder::new("/contents.html", "text/html")
                     .with_encoding("identity", vec![BODY])
@@ -1972,15 +1943,13 @@ mod certificate_expression {
     #[test]
     fn ic_certificate_expression_gets_updated_on_asset_properties_update() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
-        let canister_env = empty_canister_env();
+        let system_context = mock_system_context();
 
         const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
         create_assets(
             &mut state,
-            time_now,
-            &canister_env,
+            &system_context,
             vec![
                 AssetBuilder::new("/contents.html", "text/html")
                     .with_encoding("gzip", vec![BODY])
@@ -2049,16 +2018,14 @@ mod certification_v2 {
     #[test]
     fn proper_header_structure() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
-        let canister_env = empty_canister_env();
+        let system_context = mock_system_context();
 
         const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
         const UPDATED_BODY: &[u8] = b"<!DOCTYPE html><html>lots of content!</html>";
 
         create_assets(
             &mut state,
-            time_now,
-            &canister_env,
+            &system_context,
             vec![
                 AssetBuilder::new("/contents.html", "text/html")
                     .with_encoding("identity", vec![BODY])
@@ -2090,8 +2057,7 @@ mod certification_v2 {
 
         create_assets(
             &mut state,
-            time_now,
-            &canister_env,
+            &system_context,
             vec![
                 AssetBuilder::new("/contents.html", "text/html")
                     .with_encoding("identity", vec![UPDATED_BODY])
@@ -2117,15 +2083,13 @@ mod certification_v2 {
         // Serving HTTP 304 responses if the etag matches is part of https://dfinity.atlassian.net/browse/SDK-191
 
         let mut state = State::default();
-        let time_now = 100_000_000_000;
-        let canister_env = empty_canister_env();
+        let system_context = mock_system_context();
 
         const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
 
         create_assets(
             &mut state,
-            time_now,
-            &canister_env,
+            &system_context,
             vec![
                 AssetBuilder::new("/contents.html", "text/html")
                     .with_encoding("identity", vec![BODY])
@@ -2170,9 +2134,9 @@ mod evidence_computation {
     #[test]
     fn evidence_with_set_single_chunk_asset_content() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         const BODY: &[u8] = b"<!DOCTYPE html><html></html>";
         let chunk_1 = state
             .create_chunk(
@@ -2180,7 +2144,7 @@ mod evidence_computation {
                     batch_id: batch_1.clone(),
                     content: ByteBuf::from(BODY.to_vec()),
                 },
-                time_now,
+                &system_context,
             )
             .unwrap();
 
@@ -2226,9 +2190,9 @@ mod evidence_computation {
     #[test]
     fn evidence_with_set_multiple_chunk_asset_content() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         const CHUNK_1_CONTENT: &[u8] = b"<!DOCTYPE html><html></html>";
         const CHUNK_2_CONTENT: &[u8] = b"there is more content here";
         let chunk_1 = state
@@ -2237,7 +2201,7 @@ mod evidence_computation {
                     batch_id: batch_1.clone(),
                     content: ByteBuf::from(CHUNK_1_CONTENT.to_vec()),
                 },
-                time_now,
+                &system_context,
             )
             .unwrap();
         let chunk_2 = state
@@ -2246,7 +2210,7 @@ mod evidence_computation {
                     batch_id: batch_1.clone(),
                     content: ByteBuf::from(CHUNK_2_CONTENT.to_vec()),
                 },
-                time_now,
+                &system_context,
             )
             .unwrap();
 
@@ -2292,9 +2256,9 @@ mod evidence_computation {
     #[test]
     fn evidence_with_create_asset() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_id = state.create_batch(time_now).unwrap();
+        let batch_id = state.create_batch(&system_context).unwrap();
         let create_asset = CreateAssetArguments {
             key: "/a/b/c".to_string(),
             content_type: "text/plain".to_string(),
@@ -2326,9 +2290,9 @@ mod evidence_computation {
     #[test]
     fn evidence_with_set_empty_asset_content() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_id = state.create_batch(time_now).unwrap();
+        let batch_id = state.create_batch(&system_context).unwrap();
         let create_asset = CreateAssetArguments {
             key: "/a/b/c".to_string(),
             content_type: "text/plain".to_string(),
@@ -2376,9 +2340,9 @@ mod evidence_computation {
     #[test]
     fn evidence_with_no_operations() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_id = state.create_batch(time_now).unwrap();
+        let batch_id = state.create_batch(&system_context).unwrap();
         let cba = CommitBatchArguments {
             batch_id: batch_id.clone(),
             operations: vec![],
@@ -2399,10 +2363,10 @@ mod evidence_computation {
     #[test]
     fn create_asset_same_fields_same_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
         {
-            let batch_1 = state.create_batch(time_now).unwrap();
+            let batch_1 = state.create_batch(&system_context).unwrap();
             assert!(
                 state
                     .propose_commit_batch(CommitBatchArguments {
@@ -2427,7 +2391,7 @@ mod evidence_computation {
                 .unwrap();
             delete_batch(&mut state, batch_1);
 
-            let batch_2 = state.create_batch(time_now).unwrap();
+            let batch_2 = state.create_batch(&system_context).unwrap();
             assert!(
                 state
                     .propose_commit_batch(CommitBatchArguments {
@@ -2456,7 +2420,7 @@ mod evidence_computation {
         }
 
         {
-            let batch_1 = state.create_batch(time_now).unwrap();
+            let batch_1 = state.create_batch(&system_context).unwrap();
             assert!(
                 state
                     .propose_commit_batch(CommitBatchArguments {
@@ -2484,7 +2448,7 @@ mod evidence_computation {
                 .unwrap();
             delete_batch(&mut state, batch_1);
 
-            let batch_2 = state.create_batch(time_now).unwrap();
+            let batch_2 = state.create_batch(&system_context).unwrap();
             assert!(
                 state
                     .propose_commit_batch(CommitBatchArguments {
@@ -2517,9 +2481,9 @@ mod evidence_computation {
     #[test]
     fn create_asset_arguments_key_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2544,7 +2508,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2574,9 +2538,9 @@ mod evidence_computation {
     #[test]
     fn create_asset_arguments_content_type_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2601,7 +2565,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2631,9 +2595,9 @@ mod evidence_computation {
     #[test]
     fn create_asset_arguments_max_age_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2658,7 +2622,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2684,7 +2648,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_2);
 
-        let batch_3 = state.create_batch(time_now).unwrap();
+        let batch_3 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2716,9 +2680,9 @@ mod evidence_computation {
     #[test]
     fn create_asset_arguments_headers_affect_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2743,7 +2707,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2768,7 +2732,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_2);
 
-        let batch_3 = state.create_batch(time_now).unwrap();
+        let batch_3 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2794,7 +2758,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_3);
 
-        let batch_4 = state.create_batch(time_now).unwrap();
+        let batch_4 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2832,9 +2796,9 @@ mod evidence_computation {
     #[test]
     fn create_asset_arguments_enable_aliasing_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2859,7 +2823,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2885,7 +2849,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_2);
 
-        let batch_3 = state.create_batch(time_now).unwrap();
+        let batch_3 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2917,9 +2881,9 @@ mod evidence_computation {
     #[test]
     fn create_asset_arguments_allow_raw_access_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2944,7 +2908,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -2970,7 +2934,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_2);
 
-        let batch_3 = state.create_batch(time_now).unwrap();
+        let batch_3 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3002,9 +2966,9 @@ mod evidence_computation {
     #[test]
     fn set_asset_content_arguments_key_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3028,7 +2992,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3057,9 +3021,9 @@ mod evidence_computation {
     #[test]
     fn set_asset_content_arguments_content_encoding_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3083,7 +3047,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3112,19 +3076,19 @@ mod evidence_computation {
     #[test]
     fn set_asset_content_arguments_chunk_contents_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
         const CHUNK_1_CONTENT: &[u8] = b"first batch chunk content";
         const CHUNK_2_CONTENT: &[u8] = b"second batch chunk content";
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         let chunk_1 = state
             .create_chunk(
                 CreateChunkArg {
                     batch_id: batch_1.clone(),
                     content: ByteBuf::from(CHUNK_1_CONTENT),
                 },
-                time_now,
+                &system_context,
             )
             .unwrap();
         assert!(
@@ -3150,14 +3114,14 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         let chunk_2 = state
             .create_chunk(
                 CreateChunkArg {
                     batch_id: batch_2.clone(),
                     content: ByteBuf::from(CHUNK_2_CONTENT),
                 },
-                time_now,
+                &system_context,
             )
             .unwrap();
         assert!(
@@ -3187,13 +3151,13 @@ mod evidence_computation {
     #[test]
     fn set_asset_content_arguments_multiple_chunk_contents_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
         const CHUNK_1_CONTENT: &[u8] = b"first chunk, same for both";
         const BATCH_1_CHUNK_2_CONTENT: &[u8] = b"first batch second chunk content";
         const BATCH_2_CHUNK_2_CONTENT: &[u8] = b"second batch second chunk content";
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         {
             let chunk_1 = state
                 .create_chunk(
@@ -3201,7 +3165,7 @@ mod evidence_computation {
                         batch_id: batch_1.clone(),
                         content: ByteBuf::from(CHUNK_1_CONTENT),
                     },
-                    time_now,
+                    &system_context,
                 )
                 .unwrap();
             let chunk_2 = state
@@ -3210,7 +3174,7 @@ mod evidence_computation {
                         batch_id: batch_1.clone(),
                         content: ByteBuf::from(BATCH_1_CHUNK_2_CONTENT),
                     },
-                    time_now,
+                    &system_context,
                 )
                 .unwrap();
 
@@ -3238,7 +3202,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         {
             let chunk_1 = state
                 .create_chunk(
@@ -3246,7 +3210,7 @@ mod evidence_computation {
                         batch_id: batch_2.clone(),
                         content: ByteBuf::from(CHUNK_1_CONTENT),
                     },
-                    time_now,
+                    &system_context,
                 )
                 .unwrap();
             let chunk_2 = state
@@ -3255,7 +3219,7 @@ mod evidence_computation {
                         batch_id: batch_2.clone(),
                         content: ByteBuf::from(BATCH_2_CHUNK_2_CONTENT),
                     },
-                    time_now,
+                    &system_context,
                 )
                 .unwrap();
             assert!(
@@ -3287,12 +3251,12 @@ mod evidence_computation {
     #[test]
     fn set_asset_content_arguments_sha256_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
         let sha256_1 = ByteBuf::from("01020304");
         let sha256_2 = ByteBuf::from("09080706");
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3316,7 +3280,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3345,9 +3309,9 @@ mod evidence_computation {
     #[test]
     fn unset_asset_content_arguments_key_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3370,7 +3334,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3398,9 +3362,9 @@ mod evidence_computation {
     #[test]
     fn unset_asset_content_arguments_content_encoding_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3423,7 +3387,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3452,9 +3416,9 @@ mod evidence_computation {
     fn delete_asset_content_arguments_key_affects_evidence() {
         // todo
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3474,7 +3438,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3499,9 +3463,9 @@ mod evidence_computation {
     #[test]
     fn clear_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3519,7 +3483,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3545,9 +3509,9 @@ mod evidence_computation {
     #[test]
     fn set_asset_properties_arguments_key_affects_evidence() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
 
-        let batch_1 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3573,7 +3537,7 @@ mod evidence_computation {
             .unwrap();
         delete_batch(&mut state, batch_1);
 
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert!(
             state
                 .propose_commit_batch(CommitBatchArguments {
@@ -3635,8 +3599,9 @@ mod evidence_computation {
             args: SetAssetPropertiesArguments,
         ) -> serde_bytes::ByteBuf {
             let mut state = State::default();
-            let time_now = 100_000_000_000;
-            let batch = state.create_batch(time_now).unwrap();
+            let system_context = mock_system_context();
+
+            let batch = state.create_batch(&system_context).unwrap();
             assert!(
                 state
                     .propose_commit_batch(CommitBatchArguments {
@@ -3678,8 +3643,7 @@ mod validate_commit_proposed_batch {
     #[test]
     fn batch_not_found() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
-        let canister_env = empty_canister_env();
+        let system_context = mock_system_context();
 
         match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
             batch_id: 1_u8.into(),
@@ -3694,8 +3658,7 @@ mod validate_commit_proposed_batch {
                 batch_id: 1_u8.into(),
                 evidence: Default::default(),
             },
-            time_now,
-            &canister_env,
+            &system_context,
         ) {
             Err(err) if err.contains("batch not found") => (),
             other => panic!("expected 'batch not found' error, got: {:?}", other),
@@ -3705,9 +3668,8 @@ mod validate_commit_proposed_batch {
     #[test]
     fn no_commit_batch_arguments() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
-        let canister_env = empty_canister_env();
-        let batch_id = state.create_batch(time_now).unwrap();
+        let system_context = mock_system_context();
+        let batch_id = state.create_batch(&system_context).unwrap();
 
         match state.validate_commit_proposed_batch(CommitProposedBatchArguments {
             batch_id: batch_id.clone(),
@@ -3722,8 +3684,7 @@ mod validate_commit_proposed_batch {
                 batch_id,
                 evidence: Default::default(),
             },
-            time_now,
-            &canister_env,
+            &system_context,
         ) {
             Err(err) if err.contains("batch does not have CommitBatchArguments") => (),
             other => panic!("expected 'batch not found' error, got: {:?}", other),
@@ -3733,9 +3694,8 @@ mod validate_commit_proposed_batch {
     #[test]
     fn evidence_not_computed() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
-        let canister_env = empty_canister_env();
-        let batch_id = state.create_batch(time_now).unwrap();
+        let system_context = mock_system_context();
+        let batch_id = state.create_batch(&system_context).unwrap();
 
         assert!(
             state
@@ -3758,8 +3718,7 @@ mod validate_commit_proposed_batch {
                 batch_id,
                 evidence: Default::default(),
             },
-            time_now,
-            &canister_env,
+            &system_context,
         ) {
             Err(err) if err.contains("batch does not have computed evidence") => (),
             other => panic!("expected 'batch not found' error, got: {:?}", other),
@@ -3769,9 +3728,8 @@ mod validate_commit_proposed_batch {
     #[test]
     fn evidence_does_not_match() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
-        let canister_env = empty_canister_env();
-        let batch_id = state.create_batch(time_now).unwrap();
+        let system_context = mock_system_context();
+        let batch_id = state.create_batch(&system_context).unwrap();
 
         assert!(
             state
@@ -3803,8 +3761,7 @@ mod validate_commit_proposed_batch {
                 batch_id,
                 evidence: Default::default(),
             },
-            time_now,
-            &canister_env,
+            &system_context,
         ) {
             Err(err) if err.contains("does not match presented evidence") => (),
             other => panic!("expected 'batch not found' error, got: {:?}", other),
@@ -3814,9 +3771,8 @@ mod validate_commit_proposed_batch {
     #[test]
     fn all_good() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
-        let canister_env = empty_canister_env();
-        let batch_id = state.create_batch(time_now).unwrap();
+        let system_context = mock_system_context();
+        let batch_id = state.create_batch(&system_context).unwrap();
 
         assert!(
             state
@@ -3852,8 +3808,7 @@ mod validate_commit_proposed_batch {
         state
             .commit_proposed_batch(
                 CommitProposedBatchArguments { batch_id, evidence },
-                time_now,
-                &canister_env,
+                &system_context,
             )
             .unwrap();
     }
@@ -4025,7 +3980,8 @@ mod enforce_limits {
 
     fn cannot_create_batch_if_batch_already_proposed_with_batch_limit(max_batches: Option<u64>) {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let mut system_context = mock_system_context();
+        let time_now = system_context.current_timestamp_ns;
 
         state.configure(ConfigureArguments {
             max_batches: Some(max_batches),
@@ -4033,17 +3989,16 @@ mod enforce_limits {
             max_bytes: None,
         });
 
-        let batch_id = state.create_batch(time_now).unwrap();
+        let batch_id = state.create_batch(&system_context).unwrap();
         let cba = CommitBatchArguments {
             batch_id: batch_id.clone(),
             operations: vec![],
         };
         assert!(state.propose_commit_batch(cba).is_ok());
 
+        system_context.current_timestamp_ns = time_now + BATCH_EXPIRY_NANOS - 1;
         assert_eq!(
-            state
-                .create_batch(time_now + BATCH_EXPIRY_NANOS - 1)
-                .unwrap_err(),
+            state.create_batch(&system_context).unwrap_err(),
             "Batch 0 has not completed evidence computation.  Wait for it to expire or delete it to propose another."
         );
 
@@ -4057,10 +4012,9 @@ mod enforce_limits {
                 .is_some()
         );
 
+        system_context.current_timestamp_ns = time_now + BATCH_EXPIRY_NANOS + 1;
         assert_eq!(
-            state
-                .create_batch(time_now + BATCH_EXPIRY_NANOS + 1)
-                .unwrap_err(),
+            state.create_batch(&system_context).unwrap_err(),
             "Batch 0 is already proposed.  Delete or execute it to propose another."
         );
     }
@@ -4068,17 +4022,18 @@ mod enforce_limits {
     #[test]
     fn max_batches() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
+
         state.configure(ConfigureArguments {
             max_batches: Some(Some(3)),
             max_chunks: None,
             max_bytes: None,
         });
-        state.create_batch(time_now).unwrap();
-        state.create_batch(time_now).unwrap();
-        state.create_batch(time_now).unwrap();
+        state.create_batch(&system_context).unwrap();
+        state.create_batch(&system_context).unwrap();
+        state.create_batch(&system_context).unwrap();
         assert_eq!(
-            state.create_batch(time_now).unwrap_err(),
+            state.create_batch(&system_context).unwrap_err(),
             "batch limit exceeded"
         );
     }
@@ -4086,14 +4041,15 @@ mod enforce_limits {
     #[test]
     fn max_chunks() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
+
         state.configure(ConfigureArguments {
             max_batches: None,
             max_chunks: Some(Some(3)),
             max_bytes: None,
         });
-        let batch_1 = state.create_batch(time_now).unwrap();
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
 
         state
             .create_chunk(
@@ -4101,7 +4057,7 @@ mod enforce_limits {
                     batch_id: batch_1.clone(),
                     content: ByteBuf::new(),
                 },
-                time_now,
+                &system_context,
             )
             .unwrap();
         state
@@ -4110,7 +4066,7 @@ mod enforce_limits {
                     batch_id: batch_2.clone(),
                     content: ByteBuf::new(),
                 },
-                time_now,
+                &system_context,
             )
             .unwrap();
         assert_eq!(
@@ -4120,7 +4076,7 @@ mod enforce_limits {
                         batch_id: batch_2.clone(),
                         content: vec![ByteBuf::new(), ByteBuf::new()]
                     },
-                    time_now
+                    &system_context,
                 )
                 .unwrap_err(),
             "chunk limit exceeded"
@@ -4131,7 +4087,7 @@ mod enforce_limits {
                     batch_id: batch_2.clone(),
                     content: ByteBuf::new(),
                 },
-                time_now,
+                &system_context,
             )
             .unwrap();
 
@@ -4142,7 +4098,7 @@ mod enforce_limits {
                         batch_id: batch_1,
                         content: ByteBuf::new(),
                     },
-                    time_now
+                    &system_context,
                 )
                 .unwrap_err(),
             "chunk limit exceeded"
@@ -4154,7 +4110,7 @@ mod enforce_limits {
                         batch_id: batch_2,
                         content: ByteBuf::new(),
                     },
-                    time_now
+                    &system_context,
                 )
                 .unwrap_err(),
             "chunk limit exceeded"
@@ -4164,7 +4120,8 @@ mod enforce_limits {
     #[test]
     fn max_bytes() {
         let mut state = State::default();
-        let time_now = 100_000_000_000;
+        let system_context = mock_system_context();
+
         state.configure(ConfigureArguments {
             max_batches: None,
             max_chunks: None,
@@ -4176,8 +4133,8 @@ mod enforce_limits {
         let c3 = vec![3u8; 89];
         let c4 = vec![4u8; 1];
 
-        let batch_1 = state.create_batch(time_now).unwrap();
-        let batch_2 = state.create_batch(time_now).unwrap();
+        let batch_1 = state.create_batch(&system_context).unwrap();
+        let batch_2 = state.create_batch(&system_context).unwrap();
         assert_eq!(
             state
                 .create_chunks(
@@ -4189,7 +4146,7 @@ mod enforce_limits {
                             ByteBuf::from(c2.clone())
                         ]
                     },
-                    time_now
+                    &system_context,
                 )
                 .unwrap_err(),
             "byte limit exceeded"
@@ -4200,7 +4157,7 @@ mod enforce_limits {
                     batch_id: batch_1.clone(),
                     content: vec![ByteBuf::from(c0), ByteBuf::from(c1)],
                 },
-                time_now,
+                &system_context,
             )
             .unwrap();
         assert_eq!(
@@ -4210,7 +4167,7 @@ mod enforce_limits {
                         batch_id: batch_2.clone(),
                         content: ByteBuf::from(c2),
                     },
-                    time_now
+                    &system_context,
                 )
                 .unwrap_err(),
             "byte limit exceeded"
@@ -4221,7 +4178,7 @@ mod enforce_limits {
                     batch_id: batch_2,
                     content: ByteBuf::from(c3),
                 },
-                time_now,
+                &system_context,
             )
             .unwrap();
         assert_eq!(
@@ -4231,7 +4188,7 @@ mod enforce_limits {
                         batch_id: batch_1,
                         content: ByteBuf::from(c4),
                     },
-                    time_now
+                    &system_context,
                 )
                 .unwrap_err(),
             "byte limit exceeded"

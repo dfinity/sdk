@@ -23,9 +23,10 @@ Use `BTreeMap` instead of `HashMap` for headers to guarantee deterministic order
 Sets the `ic_env` cookie for html files, which contains the root key and the canister environment variables that are prefixed with `PUBLIC_`.
 Please note that this version of the frontend canister is only compatible with PocketIC **v10** and above.
 
-- Module hash: 2c5ab2cdebe93356e319b36c33abcb49c2162b97353476bb5894540e6e616f13
+- Module hash: 5871b95ccb8278f3b817dcec42eb040f7a48949dc7f9bb1ed70108a952960aac
 - https://github.com/dfinity/sdk/pull/4392
 - https://github.com/dfinity/sdk/pull/4387
+- https://github.com/dfinity/sdk/pull/4389
 
 # 0.29.2
 
