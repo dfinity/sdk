@@ -10,7 +10,7 @@ use crate::types::{
 use itertools::Itertools;
 use serde_bytes::ByteBuf;
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 const TAG_FALSE: [u8; 1] = [0];
 const TAG_TRUE: [u8; 1] = [1];
@@ -252,7 +252,7 @@ fn hash_opt_bytebuf(hasher: &mut Sha256, buf: Option<&ByteBuf>) {
     }
 }
 
-fn hash_headers(hasher: &mut Sha256, headers: Option<&HashMap<String, String>>) {
+fn hash_headers(hasher: &mut Sha256, headers: Option<&BTreeMap<String, String>>) {
     if let Some(headers) = headers {
         hasher.update(TAG_SOME);
         for k in headers.keys().sorted() {

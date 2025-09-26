@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use candid::Principal;
 use num_traits::ToPrimitive;
@@ -124,7 +124,7 @@ pub struct StableAssetV2 {
     pub content_type: String,
     pub encodings: HashMap<String, StableAssetEncodingV2>,
     pub max_age: Option<u64>,
-    pub headers: Option<HashMap<String, String>>,
+    pub headers: Option<BTreeMap<String, String>>,
     pub is_aliased: Option<bool>,
     pub allow_raw_access: Option<bool>,
 }
@@ -156,7 +156,7 @@ impl From<StableAssetV1> for StableAssetV2 {
                 .map(|(k, v)| (k, v.into()))
                 .collect(),
             max_age: asset.max_age,
-            headers: asset.headers,
+            headers: asset.headers.map(|h| h.into_iter().collect()),
             is_aliased: asset.is_aliased,
             allow_raw_access: asset.allow_raw_access,
         }
