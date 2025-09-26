@@ -20,7 +20,6 @@ use ic_response_verification_test_utils::{
     base64_encode, create_canister_id, get_current_timestamp,
 };
 use serde_bytes::ByteBuf;
-use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 
@@ -39,13 +38,13 @@ fn unused_callback() -> CallbackFunc {
 }
 
 fn mock_system_context() -> SystemContext {
-    SystemContext {
-        canister_env: RefCell::new(Some(CanisterEnv {
+    SystemContext::new_with_options(
+        Some(CanisterEnv {
             ic_root_key: vec![],
             icp_public_env_vars: HashMap::new(),
-        })),
-        current_timestamp_ns: 100_000_000_000,
-    }
+        }),
+        100_000_000_000,
+    )
 }
 
 pub fn verify_response(

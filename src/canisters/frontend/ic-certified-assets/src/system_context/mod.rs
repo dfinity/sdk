@@ -29,8 +29,7 @@ use ic_cdk::api::time;
 /// }
 /// ```
 pub struct SystemContext {
-    /// Do not access this field directly, call [Self::get_canister_env] instead.
-    pub canister_env: RefCell<Option<CanisterEnv>>,
+    canister_env: RefCell<Option<CanisterEnv>>,
     pub current_timestamp_ns: u64,
 }
 
@@ -45,6 +44,14 @@ impl SystemContext {
         }
     }
 
+    #[cfg(test)]
+    pub fn new_with_options(canister_env: Option<CanisterEnv>, current_timestamp_ns: u64) -> Self {
+        Self {
+            canister_env: RefCell::new(canister_env),
+            current_timestamp_ns,
+        }
+    }
+
     /// Returns the current canister environment, loading it if it is not already loaded.
     pub fn get_canister_env(&self) -> Ref<'_, CanisterEnv> {
         if self.canister_env.borrow().is_none() {
@@ -54,5 +61,11 @@ impl SystemContext {
         Ref::map(self.canister_env.borrow(), |opt| {
             opt.as_ref().expect("CanisterEnv should be initialized")
         })
+    }
+}
+
+impl Default for SystemContext {
+    fn default() -> Self {
+        Self::new()
     }
 }
