@@ -23,6 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed `AssetProperties.headers` to use `BTreeMap<String, String>` instead of `HashMap<String, String>`
   - Changed `SetAssetPropertiesArguments.headers` to use `BTreeMap<String, String>` instead of `HashMap<String, String>`
 - **BREAKING**: Sets the `ic_env` cookie for html files, which contains the root key and the canister environment variables that are prefixed with `PUBLIC_`. Please note that this version of the `ic-certified-assets` is only compatible with PocketIC **v10** and above.
+- **BREAKING**: Use `SystemContext` instead of multiple arguments for `State` methods.
+  - Changed `State.store()` to accept `&SystemContext` instead of `time`
+  - Changed `State.create_batch()` to accept `&SystemContext` instead of `now`
+  - Changed `State.create_chunk()` to accept `&SystemContext` instead of `now`
+  - Changed `State.create_chunks()` to accept `&SystemContext` instead of `now`
+  - Changed `State.set_asset_content()` to accept `&SystemContext` instead of `now`
+  - Changed `State.commit_batch()` to accept `&SystemContext` instead of `now`
+  - Changed `State.commit_proposed_batch()` to accept `&SystemContext` instead of `now`
 
 #### Migration guide
 
