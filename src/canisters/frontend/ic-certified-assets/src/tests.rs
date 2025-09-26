@@ -18,7 +18,7 @@ use ic_response_verification_test_utils::{
     base64_encode, create_canister_id, get_current_timestamp,
 };
 use serde_bytes::ByteBuf;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 
 // from ic-response-verification tests
@@ -1654,6 +1654,59 @@ fn aliasing_name_clash() {
     let alias_accessible_again =
         certified_http_request(&state, RequestBuilder::get("/contents").build());
     assert_eq!(alias_accessible_again.body.as_ref(), FILE_BODY);
+}
+
+#[test]
+fn headers_deserialize_from_hashmap_to_btreemap() {
+    for i in 0..100 {
+        let old_headers: HashMap<String, String> = HashMap::from([
+            // Order is not alphabetical on purpose here
+            // to check that the BTreeMap orders them correctly
+            ("c-name".into(), "c-value".into()),
+            ("index".into(), i.to_string()),
+            ("d-name".into(), "d-value".into()),
+            ("b-name".into(), "b-value".into()),
+            ("a-name".into(), "a-value".into()),
+        ]);
+        let serialized = serde_cbor::to_vec(&old_headers).unwrap();
+        let new_headers: BTreeMap<String, String> = serde_cbor::from_slice(&serialized).unwrap();
+        // Compare the order to check that the BTreeMap is deterministic
+        assert_eq!(
+            new_headers.into_iter().collect::<Vec<(String, String)>>(),
+            vec![
+                ("a-name".into(), "a-value".into()),
+                ("b-name".into(), "b-value".into()),
+                ("c-name".into(), "c-value".into()),
+                ("d-name".into(), "d-value".into()),
+                ("index".into(), i.to_string()),
+            ]
+        );
+    }
+}
+
+#[test]
+fn headers_candid_hashmap_btreemap_roundtrip() {
+    for i in 0..100 {
+        let old_headers: HashMap<String, String> = HashMap::from([
+            ("a-name".into(), "a-value".into()),
+            ("b-name".into(), "b-value".into()),
+            ("c-name".into(), "c-value".into()),
+            ("d-name".into(), "d-value".into()),
+            ("index".into(), i.to_string()),
+        ]);
+        let serialized = candid::encode_one(old_headers).unwrap();
+        let new_headers: BTreeMap<String, String> = candid::decode_one(&serialized).unwrap();
+        assert_eq!(
+            new_headers.into_iter().collect::<Vec<(String, String)>>(),
+            vec![
+                ("a-name".into(), "a-value".into()),
+                ("b-name".into(), "b-value".into()),
+                ("c-name".into(), "c-value".into()),
+                ("d-name".into(), "d-value".into()),
+                ("index".into(), i.to_string()),
+            ]
+        );
+    }
 }
 
 #[cfg(test)]
