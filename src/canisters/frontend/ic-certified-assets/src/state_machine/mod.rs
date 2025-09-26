@@ -40,7 +40,7 @@ use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use serde_bytes::ByteBuf;
 use sha2::Digest;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::convert::TryInto;
 
 /// The amount of time a batch is kept alive. Modifying the batch
@@ -120,7 +120,7 @@ impl AssetEncoding {
 
     fn compute_response_hashes(
         &self,
-        headers: &Option<HashMap<String, String>>,
+        headers: &Option<BTreeMap<String, String>>,
         max_age: &Option<u64>,
         content_type: &str,
         encoding_name: &str,
@@ -163,7 +163,7 @@ pub struct Asset {
     pub content_type: String,
     pub encodings: HashMap<String, AssetEncoding>,
     pub max_age: Option<u64>,
-    pub headers: Option<HashMap<String, String>>,
+    pub headers: Option<BTreeMap<String, String>>,
     pub is_aliased: Option<bool>,
     pub allow_raw_access: Option<bool>,
 }

@@ -19,7 +19,7 @@ use ic_response_verification_test_utils::{
     base64_encode, create_canister_id, get_current_timestamp,
 };
 use serde_bytes::ByteBuf;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::str::FromStr;
 
 // from ic-response-verification tests
@@ -117,7 +117,7 @@ struct AssetBuilder {
     content_type: String,
     encodings: Vec<(String, Vec<ByteBuf>)>,
     max_age: Option<u64>,
-    headers: Option<HashMap<String, String>>,
+    headers: Option<BTreeMap<String, String>>,
     aliasing: Option<bool>,
     allow_raw_access: Option<bool>,
 }
@@ -152,7 +152,7 @@ impl AssetBuilder {
     }
 
     fn with_header(mut self, header_key: &str, header_value: &str) -> Self {
-        let hm = self.headers.get_or_insert(HashMap::new());
+        let hm = self.headers.get_or_insert(BTreeMap::new());
         hm.insert(header_key.to_string(), header_value.to_string());
         self
     }
@@ -1275,7 +1275,7 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/contents.html".into()),
         Ok(AssetProperties {
             max_age: None,
-            headers: Some(HashMap::from([
+            headers: Some(BTreeMap::from([
                 set_cookie_header.clone(),
                 ("Access-Control-Allow-Origin".into(), "*".into())
             ])),
@@ -1287,7 +1287,7 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(604800),
-            headers: Some(HashMap::from([
+            headers: Some(BTreeMap::from([
                 set_cookie_header.clone(),
                 ("X-Content-Type-Options".into(), "nosniff".into())
             ])),
@@ -1301,7 +1301,7 @@ fn supports_getting_and_setting_asset_properties() {
             .set_asset_properties(SetAssetPropertiesArguments {
                 key: "/max-age.html".into(),
                 max_age: Some(Some(1)),
-                headers: Some(Some(HashMap::from([(
+                headers: Some(Some(BTreeMap::from([(
                     "X-Content-Type-Options".into(),
                     "nosniff".into()
                 )]))),
@@ -1314,7 +1314,7 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(1),
-            headers: Some(HashMap::from([
+            headers: Some(BTreeMap::from([
                 set_cookie_header.clone(),
                 ("X-Content-Type-Options".into(), "nosniff".into())
             ])),
@@ -1338,7 +1338,7 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: None,
-            headers: Some(HashMap::from([set_cookie_header.clone()])),
+            headers: Some(BTreeMap::from([set_cookie_header.clone()])),
             allow_raw_access: None,
             is_aliased: None
         })
@@ -1349,7 +1349,7 @@ fn supports_getting_and_setting_asset_properties() {
             .set_asset_properties(SetAssetPropertiesArguments {
                 key: "/max-age.html".into(),
                 max_age: Some(Some(1)),
-                headers: Some(Some(HashMap::from([(
+                headers: Some(Some(BTreeMap::from([(
                     "X-Content-Type-Options".into(),
                     "nosniff".into()
                 )]))),
@@ -1362,7 +1362,7 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(1),
-            headers: Some(HashMap::from([
+            headers: Some(BTreeMap::from([
                 set_cookie_header.clone(),
                 ("X-Content-Type-Options".into(), "nosniff".into())
             ])),
@@ -1376,7 +1376,10 @@ fn supports_getting_and_setting_asset_properties() {
             .set_asset_properties(SetAssetPropertiesArguments {
                 key: "/max-age.html".into(),
                 max_age: None,
-                headers: Some(Some(HashMap::from([("new-header".into(), "value".into())]))),
+                headers: Some(Some(BTreeMap::from([(
+                    "new-header".into(),
+                    "value".into()
+                )]))),
                 allow_raw_access: None,
                 is_aliased: None
             })
@@ -1386,7 +1389,7 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(1),
-            headers: Some(HashMap::from([
+            headers: Some(BTreeMap::from([
                 set_cookie_header.clone(),
                 ("new-header".into(), "value".into())
             ])),
@@ -1410,7 +1413,7 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(2),
-            headers: Some(HashMap::from([
+            headers: Some(BTreeMap::from([
                 set_cookie_header.clone(),
                 ("new-header".into(), "value".into())
             ])),
@@ -1434,7 +1437,7 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(2),
-            headers: Some(HashMap::from([
+            headers: Some(BTreeMap::from([
                 set_cookie_header.clone(),
                 ("new-header".into(), "value".into())
             ])),
@@ -1458,7 +1461,7 @@ fn supports_getting_and_setting_asset_properties() {
         state.get_asset_properties("/max-age.html".into()),
         Ok(AssetProperties {
             max_age: Some(2),
-            headers: Some(HashMap::from([set_cookie_header.clone()])),
+            headers: Some(BTreeMap::from([set_cookie_header.clone()])),
             allow_raw_access: None,
             is_aliased: None
         })
@@ -1721,6 +1724,75 @@ fn aliasing_name_clash() {
     assert_eq!(alias_accessible_again.body.as_ref(), FILE_BODY);
 }
 
+#[test]
+fn headers_cbor_deserialize_from_hashmap_to_btreemap() {
+    // We want to make sure that deserializing from a HashMap to a BTreeMap works
+    // so that frontend canister upgrades don't break
+    for i in 0..100 {
+        let old_headers: HashMap<String, String> = HashMap::from([
+            // Order is not alphabetical on purpose here
+            // to check that the BTreeMap orders them correctly
+            ("c-name".into(), "c-value".into()),
+            ("index".into(), i.to_string()),
+            ("d-name".into(), "d-value".into()),
+            ("b-name".into(), "b-value".into()),
+            ("a-name".into(), "a-value".into()),
+        ]);
+        let serialized = serde_cbor::to_vec(&old_headers).unwrap();
+        let new_headers: BTreeMap<String, String> = serde_cbor::from_slice(&serialized).unwrap();
+        // Compare the order to check that the BTreeMap is deterministic
+        assert_eq!(
+            new_headers.into_iter().collect::<Vec<(String, String)>>(),
+            vec![
+                ("a-name".into(), "a-value".into()),
+                ("b-name".into(), "b-value".into()),
+                ("c-name".into(), "c-value".into()),
+                ("d-name".into(), "d-value".into()),
+                ("index".into(), i.to_string()),
+            ]
+        );
+    }
+}
+
+#[test]
+fn headers_candid_hashmap_btreemap_roundtrip() {
+    for i in 0..100 {
+        let old_headers: HashMap<String, String> = HashMap::from([
+            ("a-name".into(), "a-value".into()),
+            ("b-name".into(), "b-value".into()),
+            ("c-name".into(), "c-value".into()),
+            ("d-name".into(), "d-value".into()),
+            ("index".into(), i.to_string()),
+        ]);
+
+        // Deserialize to BTreeMap
+        let old_serialized = candid::encode_one(&old_headers).unwrap();
+        let new_headers: BTreeMap<String, String> = candid::decode_one(&old_serialized).unwrap();
+        assert_eq!(
+            new_headers
+                .clone()
+                .into_iter()
+                .collect::<Vec<(String, String)>>(),
+            vec![
+                ("a-name".into(), "a-value".into()),
+                ("b-name".into(), "b-value".into()),
+                ("c-name".into(), "c-value".into()),
+                ("d-name".into(), "d-value".into()),
+                ("index".into(), i.to_string()),
+            ]
+        );
+
+        // Go back to HashMap
+        let new_serialized = candid::encode_one(new_headers).unwrap();
+        let old_deserialized: HashMap<String, String> =
+            candid::decode_one(&new_serialized).unwrap();
+        assert_eq!(
+            old_deserialized, old_headers,
+            "Old headers don't match, iteration: {i}",
+        );
+    }
+}
+
 #[cfg(test)]
 mod allow_raw_access {
     use super::*;
@@ -1941,7 +2013,7 @@ mod certificate_expression {
             .set_asset_properties(SetAssetPropertiesArguments {
                 key: "/contents.html".into(),
                 max_age: Some(None),
-                headers: Some(Some(HashMap::from([(
+                headers: Some(Some(BTreeMap::from([(
                     "custom-header".into(),
                     "value".into(),
                 )]))),
@@ -2089,6 +2161,8 @@ mod certification_v2 {
 
 #[cfg(test)]
 mod evidence_computation {
+    use std::collections::BTreeMap;
+
     use super::*;
     use crate::types::BatchOperation::SetAssetContent;
     use crate::types::{ClearArguments, ComputeEvidenceArguments, UnsetAssetContentArguments};
@@ -2391,7 +2465,7 @@ mod evidence_computation {
                             key: "/d".to_string(),
                             content_type: "text/plain".to_string(),
                             max_age: Some(98),
-                            headers: Some(HashMap::from([
+                            headers: Some(BTreeMap::from([
                                 ("H1".to_string(), "V1".to_string()),
                                 ("H2".to_string(), "V2".to_string())
                             ])),
@@ -2419,7 +2493,7 @@ mod evidence_computation {
                             key: "/d".to_string(),
                             content_type: "text/plain".to_string(),
                             max_age: Some(98),
-                            headers: Some(HashMap::from([
+                            headers: Some(BTreeMap::from([
                                 ("H1".to_string(), "V1".to_string()),
                                 ("H2".to_string(), "V2".to_string())
                             ])),
@@ -2653,7 +2727,7 @@ mod evidence_computation {
                         key: "/".to_string(),
                         content_type: "".to_string(),
                         max_age: None,
-                        headers: Some(HashMap::from([("H1".to_string(), "V1".to_string()),])),
+                        headers: Some(BTreeMap::from([("H1".to_string(), "V1".to_string()),])),
                         enable_aliasing: None,
                         allow_raw_access: None,
                     }),],
@@ -2678,7 +2752,7 @@ mod evidence_computation {
                         key: "/".to_string(),
                         content_type: "".to_string(),
                         max_age: None,
-                        headers: Some(HashMap::from([("H1".to_string(), "V2".to_string()),])),
+                        headers: Some(BTreeMap::from([("H1".to_string(), "V2".to_string()),])),
                         enable_aliasing: None,
                         allow_raw_access: None,
                     }),],
@@ -2703,7 +2777,7 @@ mod evidence_computation {
                         key: "/".to_string(),
                         content_type: "".to_string(),
                         max_age: None,
-                        headers: Some(HashMap::from([("H2".to_string(), "V1".to_string()),])),
+                        headers: Some(BTreeMap::from([("H2".to_string(), "V1".to_string()),])),
                         enable_aliasing: None,
                         allow_raw_access: None,
                     }),],
@@ -2729,7 +2803,7 @@ mod evidence_computation {
                         key: "/".to_string(),
                         content_type: "".to_string(),
                         max_age: None,
-                        headers: Some(HashMap::from([
+                        headers: Some(BTreeMap::from([
                             ("H1".to_string(), "V1".to_string()),
                             ("H2".to_string(), "V2".to_string()),
                         ])),
@@ -3535,7 +3609,7 @@ mod evidence_computation {
                 for headers in &[
                     None,
                     Some(None),
-                    Some(Some(HashMap::from([(
+                    Some(Some(BTreeMap::from([(
                         String::from("a"),
                         String::from("b"),
                     )]))),

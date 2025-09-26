@@ -16,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `pre_upgrade()` now returns `StableStateV2` instead of `StableStateV1`
   - `post_upgrade()` now accepts `StableStateV2` parameter instead of `StableStateV1`
   - Removed `estimate_size()` methods from the `StableStateV1`, `StableConfigurationV1`, `StableStatePermissionsV1`, `StableAssetV1`, `StableAssetEncodingV1` structs
+- **BREAKING**: Use `BTreeMap` instead of `HashMap` for headers to guarantee deterministic ordering.
+  - Changed `StableAssetV2.headers` to use `BTreeMap<String, String>` instead of `HashMap<String, String>`
+  - Changed `Asset.headers` to use `BTreeMap<String, String>` instead of `HashMap<String, String>`
+  - Changed `CreateAssetArguments.headers` to use `BTreeMap<String, String>` instead of `HashMap<String, String>`
+  - Changed `AssetProperties.headers` to use `BTreeMap<String, String>` instead of `HashMap<String, String>`
+  - Changed `SetAssetPropertiesArguments.headers` to use `BTreeMap<String, String>` instead of `HashMap<String, String>`
 
 #### Migration guide
 

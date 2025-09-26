@@ -16,6 +16,13 @@ dfx ledger --identity anonymous transfer --memo 1 --icp 1000000 "$YOUR_ACCOUNT_I
 dfx cycles convert --amount 100
 ```
 
+### Frontend canister
+
+Use `BTreeMap` instead of `HashMap` for headers to guarantee deterministic ordering.
+
+- Module hash: 47927c343a5217f1687d2d60ac7d1cd32b35100f9e24a5c488828857146419e9
+- https://github.com/dfinity/sdk/pull/4392
+
 # 0.29.2
 
 ### Frontend canister
