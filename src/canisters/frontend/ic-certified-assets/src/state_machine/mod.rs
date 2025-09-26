@@ -1287,6 +1287,14 @@ fn on_asset_change(
         enc.certified = false;
     }
 
+    // Add ic_env cookie for html files, if the cookie value (canister env) is provided
+    if let Some(encoded_canister_env) = encoded_canister_env {
+        if is_html_key(key) {
+            let headers = asset.headers.get_or_insert_default();
+            add_ic_env_cookie(headers, encoded_canister_env);
+        }
+    }
+
     asset.update_ic_certificate_expressions();
 
     let most_important_encoding_v1 = asset.most_important_encoding_v1();
@@ -1297,14 +1305,6 @@ fn on_asset_change(
         headers,
         ..
     } = asset;
-
-    // Add ic_env cookie for html files, if the cookie value (canister env) is provided
-    if let Some(encoded_canister_env) = encoded_canister_env {
-        if is_html_key(key) {
-            let headers = headers.get_or_insert_default();
-            add_ic_env_cookie(headers, encoded_canister_env);
-        }
-    }
 
     // Insert certified response values into hash_tree
     // Once certification v1 support is removed, encoding_certification_order().iter() can be replaced with asset.encodings.iter_mut()

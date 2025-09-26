@@ -1891,7 +1891,7 @@ mod certificate_expression {
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
-            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "cache-control", "Access-Control-Allow-Origin", "Set-Cookie"]}}}})"#,
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "cache-control", "Set-Cookie", "Access-Control-Allow-Origin"]}}}})"#,
             "Missing ic-certifiedexpression header in response: {:#?}",
             response,
         );
@@ -1963,7 +1963,7 @@ mod certificate_expression {
         );
         assert_eq!(
             lookup_header(&response, "ic-certificateexpression").unwrap(),
-            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "custom-header"]}}}})"#,
+            r#"default_certification(ValidationArgs{certification: Certification{no_request_certification: Empty{}, response_certification: ResponseCertification{certified_response_headers: ResponseHeaderList{headers: ["content-type", "content-encoding", "custom-header", "Set-Cookie"]}}}})"#,
             "Missing ic-certifiedexpression header in response: {:#?}",
             response,
         );
